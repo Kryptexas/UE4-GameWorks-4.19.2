@@ -51,6 +51,16 @@ void UFontBulkData::Unlock() const
 	CriticalSection.Unlock();
 }
 
+int32 UFontBulkData::GetBulkDataSize() const
+{
+	return BulkData.GetBulkDataSize();
+}
+
+int32 UFontBulkData::GetBulkDataSizeOnDisk() const
+{
+	return BulkData.GetBulkDataSizeOnDisk();
+}
+
 void UFontBulkData::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);

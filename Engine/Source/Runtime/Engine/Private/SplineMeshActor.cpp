@@ -22,6 +22,7 @@ ASplineMeshActor::ASplineMeshActor(const FObjectInitializer& ObjectInitializer)
 	SplineMeshComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	SplineMeshComponent->Mobility = EComponentMobility::Static;
 	SplineMeshComponent->bGenerateOverlapEvents = false;
+	SplineMeshComponent->bAllowSplineEditingPerInstance = true;
 
 	RootComponent = SplineMeshComponent;
 }

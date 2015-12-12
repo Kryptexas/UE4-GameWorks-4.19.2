@@ -79,14 +79,14 @@ bool UUserWidget::Initialize()
 
 		// Map the named slot bindings to the available slots.
 		WidgetTree->ForEachWidget([&] (UWidget* Widget) {
-			if ( UNamedSlot* NamedWidet = Cast<UNamedSlot>(Widget) )
+			if ( UNamedSlot* NamedWidget = Cast<UNamedSlot>(Widget) )
 			{
 				for ( FNamedSlotBinding& Binding : NamedSlotBindings )
 				{
-					if ( Binding.Content && Binding.Name == NamedWidet->GetFName() )
+					if ( Binding.Content && Binding.Name == NamedWidget->GetFName() )
 					{
-						NamedWidet->ClearChildren();
-						NamedWidet->AddChild(Binding.Content);
+						NamedWidget->ClearChildren();
+						NamedWidget->AddChild(Binding.Content);
 						return;
 					}
 				}
@@ -460,13 +460,17 @@ UWidget* UUserWidget::GetContentForSlot(FName SlotName) const
 
 void UUserWidget::SetContentForSlot(FName SlotName, UWidget* Content)
 {
+	bool bFoundExistingSlot = false;
+
 	// Find the binding in the existing set and replace the content for that binding.
-	for ( int32 BindingIndex = 0; BindingIndex < NamedSlotBindings.Num(); BindingIndex++)
+	for ( int32 BindingIndex = 0; BindingIndex < NamedSlotBindings.Num(); BindingIndex++ )
 	{
 		FNamedSlotBinding& Binding = NamedSlotBindings[BindingIndex];
 
 		if ( Binding.Name == SlotName )
 		{
+			bFoundExistingSlot = true;
+
 			if ( Content )
 			{
 				Binding.Content = Content;
@@ -476,11 +480,11 @@ void UUserWidget::SetContentForSlot(FName SlotName, UWidget* Content)
 				NamedSlotBindings.RemoveAt(BindingIndex);
 			}
 
-			return;
+			break;
 		}
 	}
 
-	if ( Content )
+	if ( !bFoundExistingSlot && Content )
 	{
 		// Add the new binding to the list of bindings.
 		FNamedSlotBinding NewBinding;
@@ -494,10 +498,14 @@ void UUserWidget::SetContentForSlot(FName SlotName, UWidget* Content)
 	if ( WidgetTree )
 	{
 		UNamedSlot* NamedSlot = Cast<UNamedSlot>(WidgetTree->FindWidget(SlotName));
-		if (NamedSlot)
+		if ( NamedSlot )
 		{
 			NamedSlot->ClearChildren();
-			NamedSlot->AddChild(Content);
+
+			if ( Content )
+			{
+				NamedSlot->AddChild(Content);
+			}
 		}
 	}
 }

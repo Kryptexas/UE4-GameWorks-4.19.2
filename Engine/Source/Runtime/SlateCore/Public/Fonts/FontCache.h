@@ -137,7 +137,6 @@ public:
 	FORCEINLINE bool operator==(const FShapedGlyphEntryKey& Other) const
 	{
 		return FontFace == Other.FontFace 
-			&& GlyphIndex == Other.GlyphIndex
 			&& FontSize == Other.FontSize
 			&& FontScale == Other.FontScale
 			&& GlyphIndex == Other.GlyphIndex;
@@ -412,7 +411,7 @@ public:
 	 * @param Character		The character to get
 	 * @return				Data about the character
 	 */
-	const FCharacterEntry& GetCharacter(const FSlateFontInfo& InFontInfo, TCHAR Character);
+	FCharacterEntry GetCharacter(const FSlateFontInfo& InFontInfo, TCHAR Character);
 
 	/** Check to see if our cached data is potentially stale for our font */
 	bool IsStale() const;
@@ -458,20 +457,11 @@ private:
 	bool CanCacheCharacter(TCHAR Character);
 
 	/**
-	 * Gets data about how to render and measure a character 
-	 * Caching and atlasing it if needed
-	 *
-	 * @param Character	The character to get
-	 * @return Data about the character
-	 */
-	const FCharacterEntry& GetCharacter( TCHAR Character );
-
-	/**
 	 * Caches a new character
 	 * 
 	 * @param Character	The character to cache
 	 */
-	FCharacterEntry& CacheCharacter( TCHAR Character );
+	const FCharacterEntry& CacheCharacter( TCHAR Character );
 
 
 private:
@@ -691,6 +681,10 @@ private:
 	// Non-copyable
 	FSlateFontCache(const FSlateFontCache&);
 	FSlateFontCache& operator=(const FSlateFontCache&);
+
+	/** Called after the active culture has changed */
+	void HandleCultureChanged();
+
 private:
 
 	/** FreeType library instance (owned by this font cache) */
@@ -728,4 +722,7 @@ private:
 
 	/** Whether or not we have a pending request to flush the cache when it is safe to do so */
 	volatile mutable bool bFlushRequested;
+
+	/** Active culture version the last time the font cache was flushed */
+	mutable int32 LastFlushHistoryVersion;
 };

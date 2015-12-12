@@ -382,6 +382,7 @@ public:
 		FReply Reply = SButton::OnMouseButtonUp(MyGeometry, MouseEvent);
 
 		bIsPressed = bWasPressed;
+		bIsHovered = true;
 
 		return Reply;
 	}
@@ -392,6 +393,8 @@ public:
 		{
 			ResponseToMouseUp = EResponseToMouseUp::Handle;
 		}
+
+		bIsPressed = false;
 
 		SButton::OnMouseLeave(MouseEvent);
 	}

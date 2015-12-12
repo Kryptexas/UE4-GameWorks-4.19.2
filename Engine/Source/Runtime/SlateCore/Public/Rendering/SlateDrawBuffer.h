@@ -60,5 +60,5 @@ protected:
 	TArray< TSharedPtr<FSlateWindowElementList> > WindowElementListsPool;
 
 	// 1 if this buffer is locked, 0 otherwise.
-	int32 Locked;
+	volatile int32 Locked;
 };

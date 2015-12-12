@@ -350,9 +350,11 @@ namespace
 		return Result;
 	}
 
-	void GatherDialogueWaveForLocalization(const UObject* const Object, TArray<FGatherableTextData>& GatherableTextDataArray)
+	void GatherDialogueWaveForLocalization(const UObject* const Object, FPropertyLocalizationDataGatherer& PropertyLocalizationDataGatherer, const EPropertyLocalizationGathererTextFlags GatherTextFlags)
 	{
 		const UDialogueWave* const DialogueWave = CastChecked<UDialogueWave>(Object);
+
+		PropertyLocalizationDataGatherer.GatherLocalizationDataFromObject(DialogueWave, GatherTextFlags);
 
 		FDialogueHelper DialogueHelper;
 		if( DialogueHelper.ProcessDialogueWave( DialogueWave ) )
@@ -366,15 +368,16 @@ namespace
 					SourceData.SourceString = SpokenSource;
 				}
 
+				auto& GatherableTextDataArray = PropertyLocalizationDataGatherer.GetGatherableTextDataArray();
 				FGatherableTextData* GatherableTextData = GatherableTextDataArray.FindByPredicate([&](const FGatherableTextData& Candidate)
 				{
-					return	Candidate.NamespaceName == DialogueHelper.DialogueNamespace && 
-						Candidate.SourceData.SourceString == SourceData.SourceString &&
-						Candidate.SourceData.SourceStringMetaData == SourceData.SourceStringMetaData;
+					return Candidate.NamespaceName.Equals(DialogueHelper.DialogueNamespace, ESearchCase::CaseSensitive)
+						&& Candidate.SourceData.SourceString.Equals(SourceData.SourceString, ESearchCase::CaseSensitive) 
+						&& Candidate.SourceData.SourceStringMetaData == SourceData.SourceStringMetaData;
 				});
 				if(!GatherableTextData)
 				{
-					GatherableTextData = new(GatherableTextDataArray) FGatherableTextData;
+					GatherableTextData = &GatherableTextDataArray[GatherableTextDataArray.AddDefaulted()];
 					GatherableTextData->NamespaceName = DialogueHelper.DialogueNamespace;
 					GatherableTextData->SourceData = SourceData;
 				}
@@ -382,14 +385,14 @@ namespace
 				{
 					const FTextSourceSiteContext& Base = DialogueHelper.GetBaseContext();
 
-					FTextSourceSiteContext& SourceSiteContext = *(new(GatherableTextData->SourceSiteContexts) FTextSourceSiteContext(Base));
+					GatherableTextData->SourceSiteContexts.Add(FTextSourceSiteContext(Base));
 				}
 
 				{
 					const TArray<FTextSourceSiteContext>& Variations = DialogueHelper.GetContextSpecificVariations();
 					for( const FTextSourceSiteContext& Variation : Variations )
 					{
-						FTextSourceSiteContext& SourceSiteContext = *(new(GatherableTextData->SourceSiteContexts) FTextSourceSiteContext(Variation));
+						GatherableTextData->SourceSiteContexts.Add(FTextSourceSiteContext(Variation));
 					}
 				}
 			}
@@ -494,11 +497,11 @@ UDialogueWave::UDialogueWave(const FObjectInitializer& ObjectInitializer)
 	, LocalizationGUID( FGuid::NewGuid() )
 {
 #if WITH_EDITORONLY_DATA
-	struct FAutomaticRegistrationOfLocalizationGatherer
+	static struct FAutomaticRegistrationOfLocalizationGatherer
 	{
 		FAutomaticRegistrationOfLocalizationGatherer()
 		{
-			UPackage::GetTypeSpecificLocalizationDataGatheringCallbacks().Add(UDialogueWave::StaticClass(), &GatherDialogueWaveForLocalization);
+			FPropertyLocalizationDataGatherer::GetTypeSpecificLocalizationDataGatheringCallbacks().Add(UDialogueWave::StaticClass(), &GatherDialogueWaveForLocalization);
 		}
 	} AutomaticRegistrationOfLocalizationGatherer;
 #endif

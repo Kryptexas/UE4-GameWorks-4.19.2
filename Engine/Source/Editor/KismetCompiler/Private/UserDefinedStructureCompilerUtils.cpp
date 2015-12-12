@@ -190,6 +190,10 @@ struct FUserDefinedStructureCompilerInner
 			{
 				NewProperty->SetPropertyFlags(CPF_DisableEditOnInstance);
 			}
+			if (VarDesc.bEnableMultiLineText)
+			{
+				NewProperty->SetMetaData("MultiLine", TEXT("true"));
+			}
 			if (VarDesc.bEnable3dWidget)
 			{
 				NewProperty->SetMetaData(FEdMode::MD_MakeEditWidget, TEXT("true"));

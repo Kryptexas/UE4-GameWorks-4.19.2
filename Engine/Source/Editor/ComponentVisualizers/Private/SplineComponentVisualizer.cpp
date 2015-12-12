@@ -151,6 +151,20 @@ FSplineComponentVisualizer::~FSplineComponentVisualizer()
 	FSplineComponentVisualizerCommands::Unregister();
 }
 
+static float GetDashSize(const FSceneView* View, const FVector& Start, const FVector& End, float Scale)
+{
+	const float StartW = View->WorldToScreen(Start).W;
+	const float EndW = View->WorldToScreen(End).W;
+
+	const float WLimit = 10.0f;
+	if (StartW > WLimit || EndW > WLimit)
+	{
+		return FMath::Max(StartW, EndW) * Scale;
+	}
+
+	return 0.0f;
+}
+
 void FSplineComponentVisualizer::DrawVisualization(const UActorComponent* Component, const FSceneView* View, FPrimitiveDrawInterface* PDI)
 {
 	if (const USplineComponent* SplineComp = Cast<const USplineComponent>(Component))
@@ -179,8 +193,18 @@ void FSplineComponentVisualizer::DrawVisualization(const UActorComponent* Compon
 					const FVector Tangent = SplineComp->GetTangentAtSplinePoint(SelectedKey, ESplineCoordinateSpace::World);
 
 					PDI->SetHitProxy(NULL);
-					DrawDashedLine(PDI, Location, Location + Tangent, SelectedColor, 5, SDPG_Foreground);
-					DrawDashedLine(PDI, Location, Location - Tangent, SelectedColor, 5, SDPG_Foreground);
+
+					const float DashSize1 = GetDashSize(View, Location, Location + Tangent, 0.01f);
+					if (DashSize1 > 0.0f)
+					{
+						DrawDashedLine(PDI, Location, Location + Tangent, SelectedColor, DashSize1, SDPG_Foreground);
+					}
+
+					const float DashSize2 = GetDashSize(View, Location, Location - Tangent, 0.01f);
+					if (DashSize2 > 0.0f)
+					{
+						DrawDashedLine(PDI, Location, Location - Tangent, SelectedColor, DashSize2, SDPG_Foreground);
+					}
 
 					if (bIsSplineEditable)
 					{
@@ -261,7 +285,11 @@ void FSplineComponentVisualizer::DrawVisualization(const UActorComponent* Compon
 				// For constant interpolation - don't draw ticks - just draw dotted line.
 				if (SplineInfo.Points[KeyIdx - 1].InterpMode == CIM_Constant)
 				{
-					DrawDashedLine(PDI, OldKeyPos, NewKeyPos, LineColor, 20, SDPG_World);
+					const float DashSize = GetDashSize(View, OldKeyPos, NewKeyPos, 0.03f);
+					if (DashSize > 0.0f)
+					{
+						DrawDashedLine(PDI, OldKeyPos, NewKeyPos, LineColor, DashSize, SDPG_World);
+					}
 				}
 				else
 				{

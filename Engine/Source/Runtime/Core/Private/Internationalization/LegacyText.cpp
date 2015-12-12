@@ -36,32 +36,6 @@ FText FText::AsDateTime( const FDateTime& DateTime, const EDateTimeStyle::Type D
 	return FText::FromString(DateTime.ToString(TEXT("%Y.%m.%d-%H.%M.%S")));
 }
 
-FText FText::AsMemory( SIZE_T NumBytes, const FNumberFormattingOptions* const Options, const FCulturePtr& TargetCulture )
-{
-	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
-	FFormatNamedArguments Args;
-
-	if (NumBytes < 1024)
-	{
-		Args.Add( TEXT("Number"), FText::AsNumber( (uint64)NumBytes, Options, TargetCulture) );
-		Args.Add( TEXT("Unit"), FText::FromString( FString( TEXT("B") ) ) );
-		return FText::Format( NSLOCTEXT("Internationalization", "ComputerMemoryFormatting", "{Number} {Unit}"), Args );
-	}
-
-	static const TCHAR* Prefixes = TEXT("kMGTPEZY");
-	int32 Prefix = 0;
-
-	for (; NumBytes > 1024 * 1024; NumBytes >>= 10)
-	{
-		++Prefix;
-	}
-
-	const double MemorySizeAsDouble = (double)NumBytes / 1024.0;
-	Args.Add( TEXT("Number"), FText::AsNumber( MemorySizeAsDouble, Options, TargetCulture) );
-	Args.Add( TEXT("Unit"), FText::FromString( FString( 1, &Prefixes[Prefix] ) + TEXT("B") ) );
-	return FText::Format( NSLOCTEXT("Internationalization", "ComputerMemoryFormatting", "{Number} {Unit}"), Args);
-}
-
 int32 FText::CompareTo( const FText& Other, const ETextComparisonLevel::Type ComparisonLevel ) const
 {
 	return FCString::Strcmp( *TextData->GetDisplayString(), *Other.TextData->GetDisplayString() );

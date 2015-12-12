@@ -108,7 +108,7 @@ private:
 
 private:
 	/** A temporary pair of buffers that we write our video frames to */
-	void* Buffer[2];
+	FMappedTextureBuffer Buffer[2];
 	/** We ping pong between the buffers in case the GPU is a frame behind (GSystemSettings.bAllowOneFrameThreadLag) */
 	int32 CurrentBufferIndex;
 	/** The width and height of these frames */

@@ -89,11 +89,11 @@ bool UPanelWidget::RemoveChildAt(int32 Index)
 
 	OnSlotRemoved(Slot);
 
-	Slot->Parent = nullptr;
-	Slot->Content = nullptr;
-
 	const bool bReleaseChildren = true;
 	Slot->ReleaseSlateResources(bReleaseChildren);
+
+	Slot->Parent = nullptr;
+	Slot->Content = nullptr;
 
 	return true;
 }

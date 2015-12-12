@@ -16,7 +16,6 @@ UTextBlock::UTextBlock(const FObjectInitializer& ObjectInitializer)
 	ShadowOffset = FVector2D(1.0f, 1.0f);
 	ColorAndOpacity = FLinearColor::White;
 	ShadowColorAndOpacity = FLinearColor::Transparent;
-	LineHeightPercentage = 1.0f;
 
 	if (!UE_SERVER)
 	{
@@ -145,12 +144,9 @@ void UTextBlock::SynchronizeProperties()
 		MyTextBlock->SetColorAndOpacity( ColorAndOpacityBinding );
 		MyTextBlock->SetShadowOffset( ShadowOffset );
 		MyTextBlock->SetShadowColorAndOpacity( ShadowColorAndOpacityBinding );
-		MyTextBlock->SetAutoWrapText( AutoWrapText );
-		MyTextBlock->SetWrapTextAt( WrapTextAt != 0 ? WrapTextAt : TAttribute<float>() );
 		MyTextBlock->SetMinDesiredWidth( MinDesiredWidth );
-		MyTextBlock->SetLineHeightPercentage( LineHeightPercentage );
-		MyTextBlock->SetMargin( Margin );
-		MyTextBlock->SetJustification( Justification );
+
+		Super::SynchronizeTextLayoutProperties( *MyTextBlock );
 	}
 }
 

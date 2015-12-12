@@ -181,8 +181,62 @@ public:
 		}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		RenderBounds(Collector.GetPDI(0), ViewFamily.EngineShowFlags, GetBounds(), IsSelected());
+		for ( int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++ )
+		{
+			if ( VisibilityMap & ( 1 << ViewIndex ) )
+			{
+				RenderCollision(BodySetup, Collector, ViewIndex, ViewFamily.EngineShowFlags, GetBounds(), IsSelected());
+				RenderBounds(Collector.GetPDI(ViewIndex), ViewFamily.EngineShowFlags, GetBounds(), IsSelected());
+			}
+		}
 #endif
+	}
+
+	void RenderCollision(UBodySetup* InBodySetup, FMeshElementCollector& Collector, int32 ViewIndex, const FEngineShowFlags& EngineShowFlags, const FBoxSphereBounds& Bounds, bool bRenderInEditor) const
+	{
+		if ( InBodySetup )
+		{
+			bool bDrawCollision = EngineShowFlags.Collision && IsCollisionEnabled();
+
+			if ( bDrawCollision && AllowDebugViewmodes() )
+			{
+				// Draw simple collision as wireframe if 'show collision', collision is enabled, and we are not using the complex as the simple
+				const bool bDrawSimpleWireframeCollision = InBodySetup->CollisionTraceFlag != ECollisionTraceFlag::CTF_UseComplexAsSimple;
+
+				if ( FMath::Abs(GetLocalToWorld().Determinant()) < SMALL_NUMBER )
+				{
+					// Catch this here or otherwise GeomTransform below will assert
+					// This spams so commented out
+					//UE_LOG(LogStaticMesh, Log, TEXT("Zero scaling not supported (%s)"), *StaticMesh->GetPathName());
+				}
+				else
+				{
+					const bool bDrawSolid = !bDrawSimpleWireframeCollision;
+					const bool bProxyIsSelected = IsSelected();
+
+					if ( bDrawSolid )
+					{
+						// Make a material for drawing solid collision stuff
+						auto SolidMaterialInstance = new FColoredMaterialRenderProxy(
+							GEngine->ShadedLevelColorationUnlitMaterial->GetRenderProxy(IsSelected(), IsHovered()),
+							WireframeColor
+							);
+
+						Collector.RegisterOneFrameMaterialProxy(SolidMaterialInstance);
+
+						FTransform GeomTransform(GetLocalToWorld());
+						InBodySetup->AggGeom.GetAggGeom(GeomTransform, WireframeColor.ToFColor(true), SolidMaterialInstance, false, true, UseEditorDepthTest(), ViewIndex, Collector);
+					}
+					// wireframe
+					else
+					{
+						FColor CollisionColor = FColor(157, 149, 223, 255);
+						FTransform GeomTransform(GetLocalToWorld());
+						InBodySetup->AggGeom.GetAggGeom(GeomTransform, GetSelectionColor(CollisionColor, bProxyIsSelected, IsHovered()).ToFColor(true), nullptr, false, false, UseEditorDepthTest(), ViewIndex, Collector);
+					}
+				}
+			}
+		}
 	}
 
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
@@ -454,7 +508,6 @@ FBoxSphereBounds UWidgetComponent::CalcBounds(const FTransform & LocalToWorld) c
 {
 	if ( Space != EWidgetSpace::Screen )
 	{
-
 		if( bUseLegacyRotation )
 		{
 			const FVector Origin = FVector(
@@ -467,8 +520,8 @@ FBoxSphereBounds UWidgetComponent::CalcBounds(const FTransform & LocalToWorld) c
 		else
 		{
 			const FVector Origin = FVector(.5f,
-			( DrawSize.X * 0.5f ) - ( DrawSize.X * Pivot.X ),
-			( DrawSize.Y * 0.5f ) - ( DrawSize.Y * Pivot.Y ));
+			-( DrawSize.X * 0.5f ) + ( DrawSize.X * Pivot.X ),
+			-( DrawSize.Y * 0.5f ) + ( DrawSize.Y * Pivot.Y ));
 
 			const FVector BoxExtent = FVector(1.f, DrawSize.X / 2.0f, DrawSize.Y / 2.0f);
 
@@ -552,8 +605,6 @@ void UWidgetComponent::OnRegister()
 			}
 		}
 
-		InitWidget();
-
 		if ( Space != EWidgetSpace::Screen )
 		{
 			if ( !WidgetRenderer.IsValid() && !GUsingNullRHI )
@@ -561,6 +612,10 @@ void UWidgetComponent::OnRegister()
 				WidgetRenderer = MakeShareable(new FWidgetRenderer());
 			}
 		}
+
+		BodySetup = nullptr;
+
+		InitWidget();
 	}
 #endif // !UE_SERVER
 }
@@ -620,6 +675,8 @@ void UWidgetComponent::ReleaseResources()
 
 void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
 #if !UE_SERVER
 
 	static const int32 LayerZOrder = -100;
@@ -633,38 +690,13 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 
 	if ( Space != EWidgetSpace::Screen )
 	{
-		if ( GUsingNullRHI )
-		{
-			return;
-		}
-
-		if ( !SlateWidget.IsValid() )
-		{
-			return;
-		}
-
-		if ( DrawSize.X == 0 || DrawSize.Y == 0 )
-		{
-			return;
-		}
-
 		const float RenderTimeThreshold = .5f;
 		if ( IsVisible() )
 		{
 			// If we don't tick when off-screen, don't bother ticking if it hasn't been rendered recently
 			if ( TickWhenOffscreen || GetWorld()->TimeSince(LastRenderTime) <= RenderTimeThreshold )
 			{
-				UpdateRenderTarget();
-				
-				const float DrawScale = 1.0f;
-
-				WidgetRenderer->DrawWindow(
-					RenderTarget,
-					HitTestGrid.ToSharedRef(),
-					SlateWidget.ToSharedRef(),
-					DrawScale,
-					DrawSize,
-					DeltaTime);
+				DrawWidgetToRenderTarget(DeltaTime);
 			}
 		}
 	}
@@ -721,6 +753,36 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 	}
 
 #endif // !UE_SERVER
+}
+
+void UWidgetComponent::DrawWidgetToRenderTarget(float DeltaTime)
+{
+	if ( GUsingNullRHI )
+	{
+		return;
+	}
+
+	if ( !SlateWidget.IsValid() )
+	{
+		return;
+	}
+
+	if ( DrawSize.X == 0 || DrawSize.Y == 0 )
+	{
+		return;
+	}
+	
+	UpdateRenderTarget();
+
+	const float DrawScale = 1.0f;
+
+	WidgetRenderer->DrawWindow(
+		RenderTarget,
+		HitTestGrid.ToSharedRef(),
+		SlateWidget.ToSharedRef(),
+		DrawScale,
+		DrawSize,
+		DeltaTime);
 }
 
 void UWidgetComponent::RemoveWidgetFromScreen()
@@ -817,15 +879,14 @@ void UWidgetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCha
 
 		auto PropertyName = Property->GetFName();
 
-		if( PropertyName == DrawSizeName || PropertyName == WidgetClassName )
+		if( PropertyName == WidgetClassName )
 		{
 			UpdateWidget();
-
-			if ( PropertyName == DrawSizeName || PropertyName == PivotName )
-			{
-				UpdateBodySetup(true);
-			}
-
+			MarkRenderStateDirty();
+		}
+		else if ( PropertyName == DrawSizeName || PropertyName == PivotName )
+		{
+			UpdateBodySetup(true);
 			MarkRenderStateDirty();
 		}
 		else if ( PropertyName == IsOpaqueName || PropertyName == IsTwoSidedName )
@@ -959,6 +1020,7 @@ void UWidgetComponent::UpdateRenderTarget()
 			if ( RenderTarget->SizeX != DrawSize.X || RenderTarget->SizeY != DrawSize.Y )
 			{
 				RenderTarget->InitCustomFormat(DrawSize.X, DrawSize.Y, PF_B8G8R8A8, false);
+				RenderTarget->UpdateResourceImmediate(false);
 				bRenderStateDirty = true;
 			}
 
@@ -967,6 +1029,11 @@ void UWidgetComponent::UpdateRenderTarget()
 			{
 				RenderTarget->ClearColor = ActualBackgroundColor;
 				bClearColorChanged = bRenderStateDirty = true;
+			}
+
+			if ( bRenderStateDirty )
+			{
+				RenderTarget->UpdateResource();
 			}
 		}
 	}
@@ -1002,7 +1069,7 @@ void UWidgetComponent::UpdateBodySetup( bool bDrawSizeChanged )
 		// We do not have a bodysetup in screen space
 		BodySetup = nullptr;
 	}
-	else if( !BodySetup || bDrawSizeChanged )
+	else if ( !BodySetup || bDrawSizeChanged )
 	{
 		BodySetup = NewObject<UBodySetup>(this);
 		BodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
@@ -1014,10 +1081,9 @@ void UWidgetComponent::UpdateBodySetup( bool bDrawSizeChanged )
 		if( bUseLegacyRotation )
 		{
 			Origin = FVector(
-				(DrawSize.X * 0.5f) - ( DrawSize.X * Pivot.X ),
-				(DrawSize.Y * 0.5f) - ( DrawSize.Y * Pivot.Y ), .5f);
+				( DrawSize.X * 0.5f ) - ( DrawSize.X * Pivot.X ),
+				( DrawSize.Y * 0.5f ) - ( DrawSize.Y * Pivot.Y ), .5f);
 
-					
 			BoxElem->X = DrawSize.X;
 			BoxElem->Y = DrawSize.Y;
 			BoxElem->Z = 1.0f;
@@ -1025,9 +1091,9 @@ void UWidgetComponent::UpdateBodySetup( bool bDrawSizeChanged )
 		else
 		{
 			Origin = FVector(.5f,
-				(DrawSize.X * 0.5f) - ( DrawSize.X * Pivot.X ),
-				(DrawSize.Y * 0.5f) - ( DrawSize.Y * Pivot.Y ) );
-					
+				-( DrawSize.X * 0.5f ) + ( DrawSize.X * Pivot.X ),
+				-( DrawSize.Y * 0.5f ) + ( DrawSize.Y * Pivot.Y ));
+			
 			BoxElem->X = 1.0f;
 			BoxElem->Y = DrawSize.X;
 			BoxElem->Z = DrawSize.Y;
@@ -1035,7 +1101,7 @@ void UWidgetComponent::UpdateBodySetup( bool bDrawSizeChanged )
 
 		BoxElem->SetTransform(FTransform::Identity);
 		BoxElem->Center = Origin;
-	}	
+	}
 }
 
 void UWidgetComponent::GetLocalHitLocation(FVector WorldHitLocation, FVector2D& OutLocalWidgetHitLocation) const

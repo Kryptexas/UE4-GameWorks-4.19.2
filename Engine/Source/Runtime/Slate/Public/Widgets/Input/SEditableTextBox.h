@@ -23,6 +23,7 @@ public:
 		, _SelectAllTextWhenFocused( false )
 		, _RevertTextOnEscape( false )
 		, _ClearKeyboardFocusOnCommit( true )
+		, _AllowContextMenu(true)
 		, _MinDesiredWidth( 0.0f )
 		, _SelectAllTextOnCommit( false )
 		, _BackgroundColor()		
@@ -65,6 +66,9 @@ public:
 
 		/** Whether to clear keyboard focus when pressing enter to commit changes */
 		SLATE_ATTRIBUTE( bool, ClearKeyboardFocusOnCommit )
+
+		/** Whether the context menu can be opened */
+		SLATE_ATTRIBUTE(bool, AllowContextMenu)
 
 		/** Delegate to call before a context menu is opened. User returns the menu content or null to the disable context menu */
 		SLATE_EVENT(FOnContextMenuOpening, OnContextMenuOpening)
@@ -133,6 +137,9 @@ public:
 	
 	/** See the IsPassword attribute */
 	void SetIsPassword( TAttribute< bool > InIsPassword );
+
+	/** See the AllowContextMenu attribute */
+	void SetAllowContextMenu(TAttribute< bool > InAllowContextMenu);
 
 	/**
 	 * Sets the font used to draw the text

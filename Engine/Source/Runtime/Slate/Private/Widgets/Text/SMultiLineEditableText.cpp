@@ -276,6 +276,7 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 	bSelectAllTextWhenFocused = InArgs._SelectAllTextWhenFocused;
 	bClearTextSelectionOnFocusLoss = InArgs._ClearTextSelectionOnFocusLoss;
 	bClearKeyboardFocusOnCommit = InArgs._ClearKeyboardFocusOnCommit;
+	AllowContextMenu = InArgs._AllowContextMenu;
 	OnContextMenuOpening = InArgs._OnContextMenuOpening;
 	bRevertTextOnEscape = InArgs._RevertTextOnEscape;
 	OnHScrollBarUserScrolled = InArgs._OnHScrollBarUserScrolled;
@@ -434,6 +435,46 @@ void SMultiLineEditableText::SetFont(const TAttribute< FSlateFontInfo >& InNewFo
 	TextStyle.SetFont(InNewFont.Get());
 
 	// @todo: Chris.Wood - this doesn't update the font (needs the TextLayout updating?)
+}
+
+void SMultiLineEditableText::SetTextShapingMethod(const TOptional<ETextShapingMethod>& InTextShapingMethod)
+{
+	TextLayout->SetTextShapingMethod((InTextShapingMethod.IsSet()) ? InTextShapingMethod.GetValue() : GetDefaultTextShapingMethod());
+}
+
+void SMultiLineEditableText::SetTextFlowDirection(const TOptional<ETextFlowDirection>& InTextFlowDirection)
+{
+	TextLayout->SetTextFlowDirection((InTextFlowDirection.IsSet()) ? InTextFlowDirection.GetValue() : GetDefaultTextFlowDirection());
+}
+
+void SMultiLineEditableText::SetWrapTextAt(const TAttribute<float>& InWrapTextAt)
+{
+	WrapTextAt = InWrapTextAt;
+}
+
+void SMultiLineEditableText::SetAutoWrapText(const TAttribute<bool>& InAutoWrapText)
+{
+	AutoWrapText = InAutoWrapText;
+}
+
+void SMultiLineEditableText::SetLineHeightPercentage(const TAttribute<float>& InLineHeightPercentage)
+{
+	LineHeightPercentage = InLineHeightPercentage;
+}
+
+void SMultiLineEditableText::SetMargin(const TAttribute<FMargin>& InMargin)
+{
+	Margin = InMargin;
+}
+
+void SMultiLineEditableText::SetJustification(const TAttribute<ETextJustify::Type>& InJustification)
+{
+	Justification = InJustification;
+}
+
+void SMultiLineEditableText::SetAllowContextMenu(const TAttribute< bool >& InAllowContextMenu)
+{
+	AllowContextMenu = InAllowContextMenu;
 }
 
 void SMultiLineEditableText::SetTextFromVirtualKeyboard(const FText& InNewText, ESetTextType SetTextType, ETextCommit::Type CommitType)
@@ -2353,6 +2394,11 @@ TSharedRef< SWidget > SMultiLineEditableText::GetWidget()
 
 void SMultiLineEditableText::SummonContextMenu(const FVector2D& InLocation, TSharedPtr<SWindow> ParentWindow, const FWidgetPath& EventPath)
 {
+	if (!AllowContextMenu.Get())
+	{
+		return;
+	}
+
 	TSharedPtr<SWidget> MenuContentWidget;
 
 	if (OnContextMenuOpening.IsBound())

@@ -266,6 +266,7 @@ private:
 	FString IconName; 						// Name of an icon to show next to the checkbox
 	FString IconToolTip;					// ToolTip to display for the icon
 	FSimpleDelegate RefreshButtonCallback;	// ToolTip to display for the icon
+	mutable TWeakObjectPtr<UObject> Object;			// Cached object associated with this entry.
 };
 
 /**

@@ -493,6 +493,9 @@ public:
 	/** Move all the selected actors to the current level */
 	TSharedPtr< FUICommandInfo > MoveSelectedToCurrentLevel;
 
+	/** Finds the level of the selected actors in the content browser */
+	TSharedPtr< FUICommandInfo > FindActorLevelInContentBrowser;
+
 	/** Finds the levels of the selected actors in the level browser */
 	TSharedPtr< FUICommandInfo > FindLevelsInLevelBrowser;
 
@@ -1039,6 +1042,12 @@ public:
 	 * Moves the currently selected actors to the current level                   
 	 */
 	static void OnMoveSelectedToCurrentLevel();
+
+	/** Finds the currently selected actor(s) level in the content browser */
+	static void OnFindActorLevelInContentBrowser();
+
+	/** @return Returns true if all selected actors are from the same level and hence can browse to it in the content browser */
+	static bool CanExecuteFindActorLevelInContentBrowser();
 
 	/**
 	 * Selects the currently selected actor(s) levels in the level browser

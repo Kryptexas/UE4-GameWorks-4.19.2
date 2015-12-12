@@ -351,16 +351,15 @@ void FAssetRegistry::SearchAllAssets(bool bSynchronousSearch)
 	FPackageName::QueryRootContentPaths( PathsToSearch );
 
 	// Start the asset search (synchronous in commandlets)
-	const bool bLoadAndSaveCache = !FParse::Param(FCommandLine::Get(), TEXT("NoAssetRegistryCache"));
 	if ( bSynchronousSearch )
 	{
 		const bool bForceRescan = false;
-		ScanPathsSynchronous_Internal(PathsToSearch, bForceRescan, bLoadAndSaveCache);
+		ScanPathsSynchronous_Internal(PathsToSearch, bForceRescan, EAssetDataCacheMode::UseMonolithicCache);
 	}
 	else if ( !BackgroundAssetSearch.IsValid() )
 	{
 		// if the BackgroundAssetSearch is already valid then we have already called it before
-		BackgroundAssetSearch = MakeShareable( new FAssetDataGatherer(PathsToSearch, bSynchronousSearch, bLoadAndSaveCache) );
+		BackgroundAssetSearch = MakeShareable(new FAssetDataGatherer(PathsToSearch, bSynchronousSearch, EAssetDataCacheMode::UseMonolithicCache));
 	}
 }
 
@@ -1232,8 +1231,7 @@ bool FAssetRegistry::RemovePath(const FString& PathToRemove)
 
 void FAssetRegistry::ScanPathsSynchronous(const TArray<FString>& InPaths, bool bForceRescan)
 {
-	const bool bUseCache = false;
-	ScanPathsSynchronous_Internal(InPaths, bForceRescan, bUseCache);
+	ScanPathsSynchronous_Internal(InPaths, bForceRescan, EAssetDataCacheMode::UseModularCache);
 }
 
 void FAssetRegistry::PrioritizeSearchPath(const FString& PathToPrioritize)
@@ -1812,7 +1810,7 @@ void FAssetRegistry::LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Da
 	}
 }
 
-void FAssetRegistry::ScanPathsSynchronous_Internal(const TArray<FString>& InPaths, bool bForceRescan, bool bUseCache)
+void FAssetRegistry::ScanPathsSynchronous_Internal(const TArray<FString>& InPaths, bool bForceRescan, EAssetDataCacheMode AssetDataCacheMode)
 {
 	const double SearchStartTime = FPlatformTime::Seconds();
 
@@ -1830,7 +1828,7 @@ void FAssetRegistry::ScanPathsSynchronous_Internal(const TArray<FString>& InPath
 	if ( PathsToScan.Num() > 0 )
 	{
 		// Start the sync asset search
-		FAssetDataGatherer AssetSearch(PathsToScan, /*bSynchronous=*/true, bUseCache);
+		FAssetDataGatherer AssetSearch(PathsToScan, /*bSynchronous=*/true, AssetDataCacheMode);
 
 		// Get the search results
 		TArray<FAssetData*> AssetResults;

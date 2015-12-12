@@ -8,7 +8,7 @@
  * Editable text box widget
  */
 UCLASS(meta=( DisplayName="Editable Text (Multi-Line)" ))
-class UMG_API UMultiLineEditableText : public UWidget
+class UMG_API UMultiLineEditableText : public UTextLayoutWidget
 {
 	GENERATED_UCLASS_BODY()
 
@@ -35,21 +35,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
 	FTextBlockStyle WidgetStyle;
 
-	/** The justification of the text in the multilinebox */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Content)
-	TEnumAsByte<ETextJustify::Type> Justification;
-
-	/** Whether to wrap text automatically based on the widget's computed horizontal space.*/
-	UPROPERTY(EditAnywhere, Category=Content)
-	bool bAutoWrapText;
-
-	/** Whether text wraps onto a new line when it's length exceeds this width; if this value is zero or negative, no wrapping occurs. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Content)
-	float WrapTextAt;
-
 	/** Font color and opacity (overrides Style) */
 	UPROPERTY()
 	FSlateFontInfo Font_DEPRECATED;
+
+	/** Whether the context menu can be opened */
+	UPROPERTY(EditAnywhere, Category = Behavior, AdvancedDisplay)
+	bool AllowContextMenu;
 
 	/** Called whenever the text is changed interactively by the user */
 	UPROPERTY(BlueprintAssignable, Category="Widget Event", meta=(DisplayName="OnTextChanged (Multi-Line Editable Text)"))

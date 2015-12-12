@@ -3,6 +3,8 @@
 
 #include "PropertyEditorConstants.h"
 
+class UProperty;
+
 class SPropertyEditorArrayItem : public SCompoundWidget
 {
 public:
@@ -26,4 +28,5 @@ private:
 
 private:
 	TSharedPtr<FPropertyEditor> PropertyEditor;
+	TSharedPtr<IPropertyHandle> TitlePropertyHandle;
 };

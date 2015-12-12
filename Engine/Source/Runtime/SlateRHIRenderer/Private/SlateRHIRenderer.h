@@ -212,7 +212,7 @@ public:
 	virtual void CopyWindowsToVirtualScreenBuffer(const TArray<FString>& KeypressBuffer) override;
 	
 	/** Allows and disallows access to the crash tracker buffer data on the CPU */
-	virtual void MapVirtualScreenBuffer(void** OutImageData) override;
+	virtual void MapVirtualScreenBuffer(FMappedTextureBuffer* OutTextureData) override;
 	virtual void UnmapVirtualScreenBuffer() override;
 
 	/**

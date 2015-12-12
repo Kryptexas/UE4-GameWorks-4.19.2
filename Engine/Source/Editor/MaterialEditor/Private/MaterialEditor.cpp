@@ -3595,6 +3595,8 @@ void FMaterialEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyCha
 			RefreshExpressionPreviews();
 			RegenerateCodeView();
 		}
+
+		GetDefault<UMaterialGraphSchema>()->ForceVisualizationCacheClear();
 	}
 
 	delete ScopedTransaction;
@@ -3602,8 +3604,6 @@ void FMaterialEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyCha
 
 	Material->MarkPackageDirty();
 	SetMaterialDirty();
-
-	GetDefault<UMaterialGraphSchema>()->ForceVisualizationCacheClear();
 }
 
 void FMaterialEditor::ToggleCollapsed(UMaterialExpression* MaterialExpression)

@@ -88,6 +88,13 @@ public:
 	};
 	static bool MoveVariable(UUserDefinedStruct* Struct, FGuid VarGuid, EMoveDirection MoveDirection);
 
+	//Multi-line text
+	static bool CanEnableMultiLineText(const UUserDefinedStruct* Struct, FGuid VarGuid);
+
+	static bool ChangeMultiLineTextEnabled(UUserDefinedStruct* Struct, FGuid VarGuid, bool bIsEnabled);
+
+	static bool IsMultiLineTextEnabled(const UUserDefinedStruct* Struct, FGuid VarGuid);
+
 	//3D Widget
 	static bool CanEnable3dWidget(const UUserDefinedStruct* Struct, FGuid VarGuid);
 

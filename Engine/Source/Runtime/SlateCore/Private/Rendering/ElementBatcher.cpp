@@ -394,7 +394,8 @@ void FSlateElementBatcher::AddBoxElement( const FSlateDrawElement& DrawElement )
 		const bool bMirrorVertical = (MirroringRule == ESlateBrushMirrorType::Both || MirroringRule == ESlateBrushMirrorType::Vertical);
 
 		// Pass the tiling information as a flag so we can pick the correct texture addressing mode
-		ESlateBatchDrawFlag::Type DrawFlags = ( ( bTileHorizontal ? ESlateBatchDrawFlag::TileU : 0 ) | ( bTileVertical ? ESlateBatchDrawFlag::TileV : 0 ) );
+		ESlateBatchDrawFlag::Type DrawFlags = InPayload.BatchFlags;
+		DrawFlags |= ( ( bTileHorizontal ? ESlateBatchDrawFlag::TileU : 0 ) | ( bTileVertical ? ESlateBatchDrawFlag::TileV : 0 ) );
 
 		FSlateElementBatch& ElementBatch = FindBatchForElement( Layer, FShaderParams(), Resource, ESlateDrawPrimitive::TriangleList, ESlateShader::Default, InDrawEffects, DrawFlags, DrawElement.GetScissorRect() );
 		TArray<FSlateVertex>& BatchVertices = BatchData->GetBatchVertexList(ElementBatch);
@@ -992,7 +993,17 @@ void FSlateElementBatcher::AddGradientElement( const FSlateDrawElement& DrawElem
 	// There must be at least one gradient stop
 	check( InPayload.GradientStops.Num() > 0 );
 
-	FSlateElementBatch& ElementBatch = FindBatchForElement( Layer, FShaderParams(), nullptr, ESlateDrawPrimitive::TriangleList, ESlateShader::Default, InDrawEffects, InPayload.bGammaCorrect == false ? ESlateBatchDrawFlag::NoGamma : ESlateBatchDrawFlag::None, DrawElement.GetScissorRect() );
+	FSlateElementBatch& ElementBatch = 
+		FindBatchForElement( 
+			Layer,
+			FShaderParams(),
+			nullptr,
+			ESlateDrawPrimitive::TriangleList,
+			ESlateShader::Default,
+			InDrawEffects,
+			InPayload.BatchFlags,
+			DrawElement.GetScissorRect() );
+
 	TArray<FSlateVertex>& BatchVertices = BatchData->GetBatchVertexList(ElementBatch);
 	TArray<SlateIndex>& BatchIndices = BatchData->GetBatchIndexList(ElementBatch);
 
@@ -1427,18 +1438,7 @@ void FSlateElementBatcher::AddViewportElement( const FSlateDrawElement& DrawElem
 
 	const FColor FinalColor = PackVertexColor(InPayload.Tint);
 
-	ESlateBatchDrawFlag::Type DrawFlags = ESlateBatchDrawFlag::None;
-	
-	if( !InPayload.bAllowBlending )
-	{
-		DrawFlags |= ESlateBatchDrawFlag::NoBlending;
-	}
-
-	if( !InPayload.bGammaCorrect )
-	{
-		// Don't apply gamma correction
-		DrawFlags |= ESlateBatchDrawFlag::NoGamma;
-	}
+	ESlateBatchDrawFlag::Type DrawFlags = InPayload.BatchFlags;
 
 	FSlateShaderResource* ViewportResource = InPayload.ViewportRenderTargetTexture;
 	ESlateShader::Type ShaderType = ESlateShader::Default;

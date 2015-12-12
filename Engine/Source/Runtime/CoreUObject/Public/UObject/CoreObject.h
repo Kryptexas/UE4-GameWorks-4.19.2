@@ -401,13 +401,6 @@ public:
 		return PackageFlagsPrivate;
 	}
 
-	typedef TFunction<void (const UObject* const, TArray<FGatherableTextData>&)> FLocalizationDataGatheringCallback;
-	static TMap<UField*, FLocalizationDataGatheringCallback>& GetTypeSpecificLocalizationDataGatheringCallbacks()
-	{
-		static TMap<UField*, FLocalizationDataGatheringCallback> TypeSpecificLocalizationDataGatheringCallbacks;
-		return TypeSpecificLocalizationDataGatheringCallbacks;
-	}
-
 	/** Returns true if this package has a thumbnail map */
 	bool HasThumbnailMap() const
 	{

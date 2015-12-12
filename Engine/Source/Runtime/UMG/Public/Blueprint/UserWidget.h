@@ -871,13 +871,13 @@ public:
 protected:
 
 	/** Adds the widget to the screen, either to the viewport or to the player's screen depending on if the LocalPlayer is null. */
-	void AddToScreen(ULocalPlayer* LocalPlayer, int32 ZOrder);
+	virtual void AddToScreen(ULocalPlayer* LocalPlayer, int32 ZOrder);
 
 	/**
 	 * Called when a top level widget is in the viewport and the world is potentially coming to and end. When this occurs, 
 	 * it's not save to keep widgets on the screen.  We automatically remove them when this happens and mark them for pending kill.
 	 */
-	void OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld);
+	virtual void OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld);
 
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	virtual void OnWidgetRebuilt() override;

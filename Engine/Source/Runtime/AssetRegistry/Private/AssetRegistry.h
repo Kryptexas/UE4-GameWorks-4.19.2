@@ -82,7 +82,7 @@ public:
 private:
 
 	/** Internal handler for ScanPathsSynchronous */
-	void ScanPathsSynchronous_Internal(const TArray<FString>& InPaths, bool bForceRescan, bool bUseCache);
+	void ScanPathsSynchronous_Internal(const TArray<FString>& InPaths, bool bForceRescan, EAssetDataCacheMode AssetDataCacheMode);
 
 	/** Called every tick to when data is retrieved by the background asset search. If TickStartTime is < 0, the entire list of gathered assets will be cached. Also used in sychronous searches */
 	void AssetSearchDataGathered(const double TickStartTime, TArray<FAssetData*>& AssetResults);

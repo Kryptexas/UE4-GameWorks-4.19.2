@@ -58,6 +58,8 @@ int32 SGridPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeom
 	// wants to an overlay for all of its contents.
 	int32 MaxLayerId = LayerId;
 
+	const FPaintArgs NewArgs = Args.WithNewParent(this);
+
 	// We need to iterate over slots, because slots know the GridLayers. This isn't available in the arranged children.
 	// Some slots do not show up (they are hidden/collapsed). We need a 2nd index to skip over them.
 	//
@@ -73,26 +75,29 @@ int32 SGridPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeom
 
 			FSlateRect ChildClipRect = MyClippingRect.IntersectionWith( CurWidget.Geometry.GetClippingRect() );
 
-			if ( LastGridLayer != CurSlot.LayerParam )
+			if ( !ChildClipRect.IsEmpty() )
 			{
-				// We starting a new grid layer group?
-				LastGridLayer = CurSlot.LayerParam;
-				// Ensure that everything here is drawn on top of 
-				// previously drawn grid content.
-				LayerId = MaxLayerId+1;
-			}
+				if ( LastGridLayer != CurSlot.LayerParam )
+				{
+					// We starting a new grid layer group?
+					LastGridLayer = CurSlot.LayerParam;
+					// Ensure that everything here is drawn on top of 
+					// previously drawn grid content.
+					LayerId = MaxLayerId + 1;
+				}
 
-			const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint(
-				Args.WithNewParent(this),
-				CurWidget.Geometry,
-				ChildClipRect,
-				OutDrawElements,
-				LayerId,
-				InWidgetStyle,
-				ShouldBeEnabled( bParentEnabled )
-			);
-			
-			MaxLayerId = FMath::Max( MaxLayerId, CurWidgetsMaxLayerId );
+				const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint(
+					NewArgs,
+					CurWidget.Geometry,
+					ChildClipRect,
+					OutDrawElements,
+					LayerId,
+					InWidgetStyle,
+					ShouldBeEnabled(bParentEnabled)
+					);
+
+				MaxLayerId = FMath::Max(MaxLayerId, CurWidgetsMaxLayerId);
+			}
 		}
 	}
 

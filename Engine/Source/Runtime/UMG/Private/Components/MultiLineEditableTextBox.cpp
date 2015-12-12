@@ -21,11 +21,12 @@ UMultiLineEditableTextBox::UMultiLineEditableTextBox(const FObjectInitializer& O
 		Font_DEPRECATED = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Bold"));
 	}
 
-	bAutoWrapText = true;
+	AutoWrapText = true;
 
 	SMultiLineEditableTextBox::FArguments Defaults;
 	WidgetStyle = *Defaults._Style;
 	TextStyle = *Defaults._TextStyle;
+	AllowContextMenu = Defaults._AllowContextMenu.Get();
 }
 
 void UMultiLineEditableTextBox::ReleaseSlateResources(bool bReleaseChildren)
@@ -40,9 +41,7 @@ TSharedRef<SWidget> UMultiLineEditableTextBox::RebuildWidget()
 	MyEditableTextBlock = SNew(SMultiLineEditableTextBox)
 		.Style(&WidgetStyle)
 		.TextStyle(&TextStyle)
-		.Justification(Justification)
-		.AutoWrapText( bAutoWrapText )
-		.WrapTextAt( WrapTextAt )
+		.AllowContextMenu(AllowContextMenu)
 //		.MinDesiredWidth(MinimumDesiredWidth)
 //		.Padding(Padding)
 //		.IsCaretMovedWhenGainFocus(IsCaretMovedWhenGainFocus)
@@ -66,12 +65,15 @@ void UMultiLineEditableTextBox::SynchronizeProperties()
 	MyEditableTextBlock->SetStyle(&WidgetStyle);
 	MyEditableTextBlock->SetText(Text);
 	MyEditableTextBlock->SetHintText(HintTextBinding);
+	MyEditableTextBlock->SetAllowContextMenu(AllowContextMenu);
 
 //	MyEditableTextBlock->SetIsReadOnly(IsReadOnly);
 //	MyEditableTextBlock->SetIsPassword(IsPassword);
 //	MyEditableTextBlock->SetColorAndOpacity(ColorAndOpacity);
 
 	// TODO UMG Complete making all properties settable on SMultiLineEditableTextBox
+
+	Super::SynchronizeTextLayoutProperties(*MyEditableTextBlock);
 }
 
 FText UMultiLineEditableTextBox::GetText() const

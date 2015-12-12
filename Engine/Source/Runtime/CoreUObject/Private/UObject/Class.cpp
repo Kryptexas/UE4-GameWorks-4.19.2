@@ -16,7 +16,6 @@
 // does a lot of mutation of the class tree, and the validation checks impact iteration time.
 #define DO_CLASS_TREE_VALIDATION 0
 
-DECLARE_LOG_CATEGORY_EXTERN(LogScriptSerialization, Log, All);
 DEFINE_LOG_CATEGORY(LogScriptSerialization);
 DEFINE_LOG_CATEGORY(LogClass);
 
@@ -1496,8 +1495,8 @@ void UStruct::Serialize( FArchive& Ar )
 
 				// force writing to a buffer
 				TArray<uint8> TempScript;
-					FMemoryWriter MemWriter(TempScript, Ar.IsPersistent());
-					LinkerSave->Saver = &MemWriter;
+				FMemoryWriter MemWriter(TempScript, Ar.IsPersistent());
+				LinkerSave->Saver = &MemWriter;
 
 				// now, use the linker to save the byte code, but writing to memory
 				while (iCode < ScriptBytecodeSize)
@@ -1505,11 +1504,11 @@ void UStruct::Serialize( FArchive& Ar )
 					SerializeExpr(iCode, Ar);
 				}
 
-					// restore the saver
-					LinkerSave->Saver = SavedSaver;
+				// restore the saver
+				LinkerSave->Saver = SavedSaver;
 
-					// now write out the memory bytes
-					Ar.Serialize(TempScript.GetData(), TempScript.Num());
+				// now write out the memory bytes
+				Ar.Serialize(TempScript.GetData(), TempScript.Num());
 
 				// and update the SHA (does nothing if not currently calculating SHA)
 				LinkerSave->UpdateScriptSHAKey(TempScript);
@@ -1681,17 +1680,11 @@ bool UStruct::GetStringMetaDataHierarchical(const FName& Key, FString* OutValue)
 EExprToken UStruct::SerializeExpr( int32& iCode, FArchive& Ar )
 {
 #define SERIALIZEEXPR_INC
+#define SERIALIZEEXPR_AUTO_UNDEF_XFER_MACROS
 #include "ScriptSerialization.h"
 	return Expr;
 #undef SERIALIZEEXPR_INC
-
-#undef XFER
-#undef XFERPTR
-#undef XFERNAME
-#undef XFER_FUNC_POINTER
-#undef XFER_FUNC_NAME
-#undef XFER_PROP_POINTER
-#undef FIXUP_EXPR_OBJECT_POINTER
+#undef SERIALIZEEXPR_AUTO_UNDEF_XFER_MACROS
 }
 
 void UStruct::InstanceSubobjectTemplates( void* Data, void const* DefaultData, UStruct* DefaultStruct, UObject* Owner, FObjectInstancingGraph* InstanceGraph )

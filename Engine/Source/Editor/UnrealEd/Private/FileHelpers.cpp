@@ -1151,6 +1151,11 @@ bool FEditorFileUtils::AddCheckoutPackageItems(bool bCheckDirty, TArray<UPackage
 					CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ECheckBoxState::Checked, false, TEXT("SavePackages.SCC_DlgReadOnly"), Tooltip.ToString());
 					bPackagesAdded = true;
 				}
+				else if (OutPackagesNotNeedingCheckout)
+				{
+					// The current package doesn't need to be checked out in order to save as it's already writable.
+					OutPackagesNotNeedingCheckout->Add(CurPackage);
+				}
 			}
 		}
 		else if (bPkgReadOnly && bFoundFile && (IsCheckOutSelectedDisabled() || !bCareAboutReadOnly))
@@ -2181,6 +2186,15 @@ void FEditorFileUtils::ResetLevelFilenames()
 
 bool FEditorFileUtils::AutosaveMap(const FString& AbsoluteAutosaveDir, const int32 AutosaveIndex, const bool bForceIfNotInList, const TSet< TWeakObjectPtr<UPackage> >& DirtyPackagesForAutoSave)
 {
+	auto Result = AutosaveMapEx(AbsoluteAutosaveDir, AutosaveIndex, bForceIfNotInList, DirtyPackagesForAutoSave);
+
+	check(Result != EAutosaveContentPackagesResult::Failure);
+
+	return Result == EAutosaveContentPackagesResult::Success;
+}
+
+EAutosaveContentPackagesResult::Type FEditorFileUtils::AutosaveMapEx(const FString& AbsoluteAutosaveDir, const int32 AutosaveIndex, const bool bForceIfNotInList, const TSet< TWeakObjectPtr<UPackage> >& DirtyPackagesForAutoSave)
+{
 	const FScopedBusyCursor BusyCursor;
 	bool bResult  = false;
 	double TotalSaveTime = 0.0f;
@@ -2221,9 +2235,8 @@ bool FEditorFileUtils::AutosaveMap(const FString& AbsoluteAutosaveDir, const int
 
 				if( bLevelWasSaved == false && FUnrealEdMisc::Get().GetAutosaveState() != FUnrealEdMisc::EAutosaveState::Cancelled )
 				{
-					bResult = false;
 					UE_LOG(LogFileHelpers, Log, TEXT("Editor autosave (incl. sublevels) failed for file '%s' which belongs to world '%s'. Aborting autosave."), *FinalFilename, *EditorContext.World()->GetOutermost()->GetName() );
-					break;
+					return EAutosaveContentPackagesResult::Failure;
 				}
 
 				bResult |= bLevelWasSaved;
@@ -2243,7 +2256,7 @@ bool FEditorFileUtils::AutosaveMap(const FString& AbsoluteAutosaveDir, const int
 	{
 		UE_LOG(LogFileHelpers, Log, TEXT("Editor autosave (incl. sublevels) for all levels took %.3f"), TotalSaveTime );
 	}
-	return bResult;
+	return bResult ? EAutosaveContentPackagesResult::Success : EAutosaveContentPackagesResult::NothingToDo;
 }
 
 bool FEditorFileUtils::AutosaveContentPackages(const FString& AbsoluteAutosaveDir, const int32 AutosaveIndex, const bool bForceIfNotInList, const TSet< TWeakObjectPtr<UPackage> >& DirtyPackagesForAutoSave)

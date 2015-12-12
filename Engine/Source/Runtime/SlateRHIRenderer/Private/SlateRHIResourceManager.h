@@ -40,9 +40,9 @@ public:
 
 	uint32 GetNumObjectResources() const { return TextureMap.Num() + MaterialMap.Num(); }
 
-private:
-	void RemoveExpiredTextureResources();
-	void RemoveExpiredMaterialResources();
+public:
+	void RemoveExpiredTextureResources(TArray< TSharedPtr<FSlateUTextureResource> >& RemovedTextures);
+	void RemoveExpiredMaterialResources(TArray< TSharedPtr<FSlateMaterialResource> >& RemovedMaterials);
 
 private:
 	TMap<FName, TSharedPtr<FSlateDynamicTextureResource> > NativeTextureMap;

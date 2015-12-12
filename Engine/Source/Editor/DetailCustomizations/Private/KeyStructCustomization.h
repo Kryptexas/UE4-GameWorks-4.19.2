@@ -27,7 +27,7 @@ public:
 private:
 
 	/** Gets the current Key being edited. */
-	FKey GetCurrentKey() const;
+	TOptional<FKey> GetCurrentKey() const;
 
 	/** Updates the property when a new key is selected. */
 	void OnKeyChanged(TSharedPtr<FKey> SelectedKey);

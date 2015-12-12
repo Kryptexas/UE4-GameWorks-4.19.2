@@ -25,6 +25,12 @@ public:
 	/** Unlock the bulk font data, after which point the pointer returned by Lock no longer is valid */
 	void Unlock() const;
 
+	/** Returns the size of the bulk data in bytes */
+	int32 GetBulkDataSize() const;
+
+	/** Returns the size of the bulk data on disk. This can differ from GetBulkDataSize if BULKDATA_SerializeCompressed is set */
+	int32 GetBulkDataSizeOnDisk() const;
+
 	// UObject interface
 	virtual void Serialize(FArchive& Ar) override;
 

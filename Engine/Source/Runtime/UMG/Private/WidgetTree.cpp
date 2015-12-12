@@ -95,3 +95,18 @@ void UWidgetTree::GetChildWidgets(UWidget* Parent, TArray<UWidget*>& Widgets)
 {
 	ForWidgetAndChildren(Parent, [&] (UWidget* Widget) { Widgets.Add(Widget); });
 }
+
+void UWidgetTree::PreSave()
+{
+	AllWidgets.Empty();
+
+	GetAllWidgets(AllWidgets);
+
+	Super::PreSave();
+}
+
+void UWidgetTree::PostLoad()
+{
+	Super::PostLoad();
+	AllWidgets.Empty();
+}

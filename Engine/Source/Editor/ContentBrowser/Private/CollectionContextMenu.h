@@ -49,6 +49,9 @@ private:
 	/** Handler for when "Update Collection" is selected */
 	void ExecuteUpdateCollection();
 
+	/** Handler for when "Refresh Collection" is selected */
+	void ExecuteRefreshCollection();
+
 	/** Handler for when "Save Collection" is selected */
 	void ExecuteSaveCollection();
 

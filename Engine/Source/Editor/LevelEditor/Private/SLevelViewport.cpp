@@ -3498,8 +3498,6 @@ void SLevelViewport::HideMouseCaptureLabel()
 
 void SLevelViewport::ResetNewLevelViewFlags()
 {
-	ChangeExposureSetting(FEditorViewportCommands::AutoExposureRadioID);
-
 	const bool bUseSavedDefaults = true;
 	OnUseDefaultShowFlags(bUseSavedDefaults);
 }

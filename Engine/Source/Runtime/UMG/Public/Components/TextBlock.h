@@ -11,7 +11,7 @@
  * * Text
  */
 UCLASS(meta=(DisplayName="Text"))
-class UMG_API UTextBlock : public UWidget
+class UMG_API UTextBlock : public UTextLayoutWidget
 {
 	GENERATED_UCLASS_BODY()
 
@@ -56,6 +56,7 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Appearance")
 	void SetFont(FSlateFontInfo InFontInfo);
+
 	/**
 	 *  Set the text justification for this text block
 	 *
@@ -97,29 +98,9 @@ public:
 	UPROPERTY()
 	FGetLinearColor ShadowColorAndOpacityDelegate;
 
-	/** How the text should be aligned with the margin. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
-	TEnumAsByte<ETextJustify::Type> Justification;
-
-	/** True if we're wrapping text automatically based on the computed horizontal space for this widget */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
-	bool AutoWrapText;
-
-	/** Whether text wraps onto a new line when it's length exceeds this width; if this value is zero or negative, no wrapping occurs. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance, AdvancedDisplay)
-	float WrapTextAt;
-
 	/** The minimum desired size for the text */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance, AdvancedDisplay)
 	float MinDesiredWidth;
-
-	/** The amount of blank space left around the edges of text area. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance, AdvancedDisplay)
-	FMargin Margin;
-
-	/** The amount to scale each lines height by. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance, AdvancedDisplay)
-	float LineHeightPercentage;
 
 	/** If true, it will automatically wrap this text widget with an invalidation panel */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Performance, AdvancedDisplay)

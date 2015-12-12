@@ -8295,6 +8295,25 @@ void FBlueprintEditor::TryInvokingDetailsTab(bool bFlash)
 	}
 }
 
+void FBlueprintEditor::SelectGraphActionItemByName(const FName& ItemName, ESelectInfo::Type SelectInfo, int32 SectionId, bool bIsCategory)
+{
+	if (MyBlueprintWidget.IsValid() && Inspector.IsValid())
+	{
+		// Select Item in "My Blueprint"
+		MyBlueprintWidget->SelectItemByName(ItemName, SelectInfo, SectionId, bIsCategory);
+
+		// Find associated variable
+		if (FEdGraphSchemaAction_K2Var* SelectedVar = MyBlueprintWidget->SelectionAsVar())
+		{
+			if (UProperty* SelectedProperty = SelectedVar->GetProperty())
+			{
+				// Update Details Panel
+				Inspector->ShowDetailsForSingleObject(SelectedProperty);
+			}
+		}
+	}
+}
+
 /////////////////////////////////////////////////////
 /////////////////////////////////////////////////////
 /////////////////////////////////////////////////////

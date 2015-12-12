@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
-#include "SFbxSceneTreeView.h"
+#include "SSceneImportNodeTreeView.h"
 #include "ClassIconFinder.h"
 
 #define LOCTEXT_NAMESPACE "SFbxSceneTreeView"
@@ -40,11 +40,11 @@ void SFbxSceneTreeView::Construct(const SFbxSceneTreeView::FArguments& InArgs)
 }
 
 /** The item used for visualizing the class in the tree. */
-class SFbxNodeItem : public STableRow< FbxNodeInfoPtr >
+class SFbxSceneTreeViewItem : public STableRow< FbxNodeInfoPtr >
 {
 public:
 
-	SLATE_BEGIN_ARGS(SFbxNodeItem)
+	SLATE_BEGIN_ARGS(SFbxSceneTreeViewItem)
 		: _FbxNodeInfo(NULL)
 	{}
 
@@ -77,8 +77,8 @@ public:
 			.AutoWidth()
 			[
 				SNew(SCheckBox)
-				.OnCheckStateChanged(this, &SFbxNodeItem::OnItemCheckChanged)
-				.IsChecked(this, &SFbxNodeItem::IsItemChecked)
+				.OnCheckStateChanged(this, &SFbxSceneTreeViewItem::OnItemCheckChanged)
+				.IsChecked(this, &SFbxSceneTreeViewItem::IsItemChecked)
 			]
 		+ SHorizontalBox::Slot()
 			.AutoWidth()
@@ -134,7 +134,7 @@ private:
 
 TSharedRef< ITableRow > SFbxSceneTreeView::OnGenerateRowFbxSceneTreeView(FbxNodeInfoPtr Item, const TSharedRef< STableViewBase >& OwnerTable)
 {
-	TSharedRef< SFbxNodeItem > ReturnRow = SNew(SFbxNodeItem, OwnerTable)
+	TSharedRef< SFbxSceneTreeViewItem > ReturnRow = SNew(SFbxSceneTreeViewItem, OwnerTable)
 		.FbxNodeInfo(Item);
 	return ReturnRow;
 }
@@ -150,7 +150,7 @@ void SFbxSceneTreeView::OnGetChildrenFbxSceneTreeView(FbxNodeInfoPtr InParent, T
 	}
 }
 
-void RecursiveSetImport(FbxNodeInfoPtr NodeInfoPtr, bool ImportStatus)
+void SFbxSceneTreeView::RecursiveSetImport(FbxNodeInfoPtr NodeInfoPtr, bool ImportStatus)
 {
 	NodeInfoPtr->bImportNode = ImportStatus;
 	for (auto Child : NodeInfoPtr->Childrens)
@@ -238,6 +238,7 @@ TSharedPtr<SWidget> SFbxSceneTreeView::OnOpenContextMenu()
 		MenuBuilder.AddMenuEntry(LOCTEXT("UncheckForImport", "Remove Selection From Import"), FText(), MinusIcon, FUIAction(FExecuteAction::CreateSP(this, &SFbxSceneTreeView::RemoveSelectionFromImport)));
 	}
 	MenuBuilder.EndSection();
+/*
 	if (SelectAssets.Num() > 0)
 	{
 		MenuBuilder.AddMenuSeparator();
@@ -251,6 +252,7 @@ TSharedPtr<SWidget> SFbxSceneTreeView::OnOpenContextMenu()
 		}
 		MenuBuilder.EndSection();
 	}
+*/
 	
 
 	return MenuBuilder.MakeWidget();

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "UniqueObj.h"
+#include "RenderingCommon.h"
 
 class SWindow;
 class FSlateViewportInterface;
@@ -71,8 +72,7 @@ public:
 	bool bRequiresVSync;
 
 	// Misc data
-	bool bGammaCorrect;
-	bool bAllowBlending;
+	ESlateBatchDrawFlag::Type BatchFlags;
 
 	// Custom drawer data
 	TWeakPtr<ICustomSlateElement, ESPMode::ThreadSafe> CustomDrawer;
@@ -108,8 +108,7 @@ public:
 		, ViewportRenderTargetTexture(nullptr)
 		, bViewportTextureAlphaOnly(false)
 		, bRequiresVSync(false)
-		, bGammaCorrect(false)
-		, bAllowBlending(false)
+		, BatchFlags(ESlateBatchDrawFlag::None)
 		, CustomDrawer()
 		, InstanceData(nullptr)
 		, InstanceOffset(0)
@@ -158,7 +157,11 @@ public:
 	{
 		GradientStops = InGradientStops;
 		GradientType = InGradientType;
-		bGammaCorrect = bInGammaCorrect;
+
+		if ( !bInGammaCorrect )
+		{
+			BatchFlags |= ESlateBatchDrawFlag::NoGamma;
+		}
 	}
 
 	void SetSplinePayloadProperties( const FVector2D& InStart, const FVector2D& InStartDir, const FVector2D& InEnd, const FVector2D& InEndDir, float InThickness, const FLinearColor& InTint )
@@ -188,8 +191,20 @@ public:
 		bAllowViewportScaling = InViewport->AllowScaling();
 		bViewportTextureAlphaOnly = InViewport->IsViewportTextureAlphaOnly();
 		bRequiresVSync = InViewport->RequiresVsync();
-		bGammaCorrect = bInGammaCorrect;
-		bAllowBlending = bInAllowBlending;
+
+		if ( !bInGammaCorrect )
+		{
+			BatchFlags |= ESlateBatchDrawFlag::NoGamma;
+		}
+
+		if ( !bInAllowBlending )
+		{
+			BatchFlags |= ESlateBatchDrawFlag::NoBlending;
+		}
+		else
+		{
+			BatchFlags |= ESlateBatchDrawFlag::AlphaCompositing;
+		}
 	}
 
 	void SetCustomDrawerPayloadProperties( const TSharedPtr<ICustomSlateElement, ESPMode::ThreadSafe>& InCustomDrawer )

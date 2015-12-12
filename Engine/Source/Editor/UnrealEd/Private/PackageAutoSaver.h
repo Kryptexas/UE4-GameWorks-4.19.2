@@ -10,6 +10,7 @@ namespace ECloseNotification
 {
 	enum Type
 	{
+		NothingToDo,
 		Success,
 		Postponed,
 		Failed

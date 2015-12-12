@@ -15,6 +15,7 @@
 -----------------------------------------------------------------------------*/
 
 COREUOBJECT_API DECLARE_LOG_CATEGORY_EXTERN(LogClass, Log, All);
+COREUOBJECT_API DECLARE_LOG_CATEGORY_EXTERN(LogScriptSerialization, Log, All);
 
 struct FPropertyTag;
 

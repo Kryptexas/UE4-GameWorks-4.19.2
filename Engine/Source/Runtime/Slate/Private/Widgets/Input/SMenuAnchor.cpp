@@ -191,7 +191,12 @@ void SMenuAnchor::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrange
 
 FVector2D SMenuAnchor::ComputeDesiredSize( float ) const
 {
-	return Children[0].GetWidget()->GetDesiredSize();
+	FVector2D DesiredSize = Children[0].GetWidget()->GetDesiredSize();
+
+	// Menu anchors might be created with null content, in which case they must still get drawn in order to 
+	// draw pop-up content, therefore it must lie and always request a desired size of at least 1,1, otherwise 
+	// a panel may filter it from drawing thinking the it doesn't have anything to draw.
+	return FVector2D(FMath::Max(DesiredSize.X, 1.0f), FMath::Max(DesiredSize.Y, 1.0f));
 }
 
 FChildren* SMenuAnchor::GetChildren()

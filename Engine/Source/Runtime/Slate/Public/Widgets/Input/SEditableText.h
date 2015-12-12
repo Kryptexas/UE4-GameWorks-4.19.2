@@ -31,6 +31,7 @@ public:
 		, _SelectAllTextWhenFocused( false )
 		, _RevertTextOnEscape( false )
 		, _ClearKeyboardFocusOnCommit(true)
+		, _AllowContextMenu(true)
 		, _MinDesiredWidth(0.0f)
 		, _SelectAllTextOnCommit( false )
 		, _VirtualKeyboardType(EKeyboardType::Keyboard_Default)
@@ -77,6 +78,9 @@ public:
 
 		/** Whether to clear keyboard focus when pressing enter to commit changes */
 		SLATE_ATTRIBUTE( bool, ClearKeyboardFocusOnCommit )
+
+		/** Whether the context menu can be opened  */
+		SLATE_ATTRIBUTE(bool, AllowContextMenu)
 
 		/** Delegate to call before a context menu is opened. User returns the menu content or null to the disable context menu */
 		SLATE_EVENT(FOnContextMenuOpening, OnContextMenuOpening)
@@ -141,6 +145,9 @@ public:
 	
 	/** See the ColorAndOpacity attribute */
 	void SetColorAndOpacity(TAttribute<FSlateColor> Color);
+
+	/** See the AllowContextMenu attribute */
+	void SetAllowContextMenu(const TAttribute< bool >& InAllowContextMenu);
 
 	/**
 	 * Restores the text to the original state
@@ -580,6 +587,9 @@ private:
 
 	/** Whether to select all text when pressing enter to commit changes */
 	TAttribute< bool > SelectAllTextOnCommit;
+
+	/** Whether to disable the context menu */
+	TAttribute< bool > AllowContextMenu;
 
 	/** Delegate to call before a context menu is opened */
 	FOnContextMenuOpening OnContextMenuOpening;

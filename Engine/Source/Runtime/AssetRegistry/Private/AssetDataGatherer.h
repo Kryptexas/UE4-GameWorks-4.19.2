@@ -126,13 +126,29 @@ private:
 
 
 /**
+ * Used to control the cache location and behavior of an FAssetDataGatherer cache
+ */
+enum class EAssetDataCacheMode : uint8
+{
+	/** Do not cache */
+	NoCache,
+
+	/** Use the monolithic CachedAssetRegistry.bin cache (should only be used for the main asset registry scan) */
+	UseMonolithicCache,
+
+	/** Use a modular cache file based on the given paths (should be used for synchronous scans, eg, from object libraries) */
+	UseModularCache,
+};
+
+
+/**
  * Async task for gathering asset data from from the file list in FAssetRegistry
  */
 class FAssetDataGatherer : public FRunnable
 {
 public:
 	/** Constructor */
-	FAssetDataGatherer(const TArray<FString>& Paths, bool bInIsSynchronous, bool bInLoadAndSaveCache = false);
+	FAssetDataGatherer(const TArray<FString>& Paths, bool bInIsSynchronous, EAssetDataCacheMode AssetDataCacheMode);
 	virtual ~FAssetDataGatherer();
 
 	// FRunnable implementation

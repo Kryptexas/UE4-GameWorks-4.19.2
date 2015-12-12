@@ -253,6 +253,18 @@ void STextBlock::SetTextStyle(const FTextBlockStyle* InTextStyle)
 	Invalidate(EInvalidateWidget::Layout);
 }
 
+void STextBlock::SetTextShapingMethod(const TOptional<ETextShapingMethod>& InTextShapingMethod)
+{
+	TextLayoutCache->SetTextShapingMethod(InTextShapingMethod);
+	Invalidate(EInvalidateWidget::Layout);
+}
+
+void STextBlock::SetTextFlowDirection(const TOptional<ETextFlowDirection>& InTextFlowDirection)
+{
+	TextLayoutCache->SetTextFlowDirection(InTextFlowDirection);
+	Invalidate(EInvalidateWidget::Layout);
+}
+
 void STextBlock::SetWrapTextAt(const TAttribute<float>& InWrapTextAt)
 {
 	WrapTextAt = InWrapTextAt;

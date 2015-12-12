@@ -9,9 +9,13 @@
 DECLARE_MULTICAST_DELEGATE( FOnRetainedModeChanged );
 
 /**
- * 
+ * The SRetainerWidget renders children widgets to a render target first before
+ * later rendering that render target to the screen.  This allows both frequency
+ * and phase to be controlled so that the UI can actually render less often than the
+ * frequency of the main game render.  It also has the side benefit of allow materials
+ * to be applied to the render target after drawing the widgets to apply a simple post process.
  */
-class UMG_API SRetainerWidget : public ISlateViewport, public SCompoundWidget, public FGCObject, public ICustomHitTestPath
+class UMG_API SRetainerWidget : public SCompoundWidget, public FGCObject, public ICustomHitTestPath
 {
 public:
 	SLATE_BEGIN_ARGS(SRetainerWidget)
@@ -31,17 +35,15 @@ public:
 
 	void Construct(const FArguments& Args);
 
-	// ISlateViewport
-	using ISlateViewport::Tick;
-	virtual FIntPoint GetSize() const override;
-	virtual bool RequiresVsync() const override;
-	virtual FSlateShaderResource* GetViewportRenderTargetTexture() const override;
-	bool IsViewportTextureAlphaOnly() const override;
-	// ISlateViewport
-
 	void SetRetainedRendering(bool bRetainRendering);
 
 	void SetContent(const TSharedRef< SWidget >& InContent);
+
+	UMaterialInstanceDynamic* GetEffectMaterial() const;
+
+	void SetEffectMaterial(UMaterialInterface* EffectMaterial);
+
+	void SetTextureParameter(FName TextureParameter);
 
 	// FGCObject
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
@@ -81,11 +83,10 @@ private:
 
 	FSimpleSlot EmptyChildSlot;
 
-	FSlateBrush RenderTargetBrush;
+	mutable FSlateBrush SurfaceBrush;
 
 	mutable FWidgetRenderer WidgetRenderer;
 	mutable class UTextureRenderTarget2D* RenderTarget;
-	mutable class FSlateRenderTargetRHI* RenderTargetResource;
 	mutable TSharedPtr<SWidget> MyWidget;
 
 	bool bRenderingOffscreenDesire;
@@ -101,4 +102,8 @@ private:
 	TSharedPtr<FHittestGrid> HitTestGrid;
 
 	STAT(TStatId MyStatId;)
+
+	FSlateBrush DynaicBrush;
+	UMaterialInstanceDynamic* DynamicEffect;
+	FName DynamicEffectTextureParameter;
 };

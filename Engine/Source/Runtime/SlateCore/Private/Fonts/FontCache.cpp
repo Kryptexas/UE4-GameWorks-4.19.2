@@ -361,10 +361,8 @@ bool FCharacterList::IsStale() const
 
 int8 FCharacterList::GetKerning(const FSlateFontInfo& InFontInfo, TCHAR FirstChar, TCHAR SecondChar)
 {
-	FScopedFontFallback FallbackScope(FontFallback, InFontInfo.FontFallback);
-
-	const FCharacterEntry First = GetCharacter( FirstChar );
-	const FCharacterEntry Second = GetCharacter( SecondChar );
+	const FCharacterEntry First = GetCharacter( InFontInfo, FirstChar );
+	const FCharacterEntry Second = GetCharacter( InFontInfo, SecondChar );
 	return GetKerning( First, Second );
 }
 
@@ -427,16 +425,11 @@ bool FCharacterList::CanCacheCharacter(TCHAR Character)
 	return bReturnVal;
 }
 
-const FCharacterEntry& FCharacterList::GetCharacter(const FSlateFontInfo& InFontInfo, TCHAR Character)
+FCharacterEntry FCharacterList::GetCharacter(const FSlateFontInfo& InFontInfo, TCHAR Character)
 {
 	FScopedFontFallback FallbackScope(FontFallback, InFontInfo.FontFallback);
 
-	return GetCharacter(Character);
-}
-
-const FCharacterEntry& FCharacterList::GetCharacter(TCHAR Character)
-{
-	FCharacterEntry* ReturnVal = NULL;
+	const FCharacterEntry* ReturnVal = nullptr;
 	bool bDirectIndexChar = Character < MaxDirectIndexedEntries;
 
 	// First get a reference to the character, if it is already mapped (mapped does not mean cached though)
@@ -456,7 +449,7 @@ const FCharacterEntry& FCharacterList::GetCharacter(TCHAR Character)
 	// Determine whether the character needs caching, and map it if needed
 	bool bNeedCaching = false;
 
-	if (ReturnVal != NULL)
+	if (ReturnVal)
 	{
 		bNeedCaching = !ReturnVal->IsCached();
 
@@ -464,7 +457,7 @@ const FCharacterEntry& FCharacterList::GetCharacter(TCHAR Character)
 		if (bNeedCaching && !CanCacheCharacter(Character))
 		{
 			bNeedCaching = false;
-			ReturnVal = NULL;
+			ReturnVal = nullptr;
 		}
 	}
 	// Only map the character if it can be cached
@@ -484,7 +477,7 @@ const FCharacterEntry& FCharacterList::GetCharacter(TCHAR Character)
 	}
 
 
-	if (ReturnVal != NULL)
+	if (ReturnVal)
 	{
 		if (bNeedCaching)
 		{
@@ -493,20 +486,20 @@ const FCharacterEntry& FCharacterList::GetCharacter(TCHAR Character)
 		// For already-cached characters, reject characters that don't fall within maximum font fallback level requirements
 		else if (Character != SlateFontRendererUtils::InvalidSubChar && FontFallback < ReturnVal->FallbackLevel)
 		{
-			ReturnVal = NULL;
+			ReturnVal = nullptr;
 		}
 	}
 
-	// The character is not valid, replace with the invalid character substitute
-	if (ReturnVal == NULL)
+	if (ReturnVal)
 	{
-		ReturnVal = (FCharacterEntry*)&(GetCharacter(SlateFontRendererUtils::InvalidSubChar));
+		return *ReturnVal;
 	}
 
-	return *ReturnVal;
+	// The character is not valid, replace with the invalid character substitute
+	return GetCharacter(InFontInfo, SlateFontRendererUtils::InvalidSubChar);
 }
 
-FCharacterEntry& FCharacterList::CacheCharacter( TCHAR Character )
+const FCharacterEntry& FCharacterList::CacheCharacter( TCHAR Character )
 {
 	FCharacterEntry NewEntry;
 	bool bSuccess = FontCache.AddNewEntry( Character, FontKey, NewEntry );
@@ -534,10 +527,11 @@ FSlateFontCache::FSlateFontCache( TSharedRef<ISlateFontAtlasFactory> InFontAtlas
 	, TextShaper( new FSlateTextShaper( FTGlyphCache.Get(), FTAdvanceCache.Get(), FTKerningPairCache.Get(), CompositeFontCache.Get(), FontRenderer.Get(), this ) )
 	, FontAtlasFactory( InFontAtlasFactory )
 	, bFlushRequested( false )
+	, LastFlushHistoryVersion( FTextLocalizationManager::Get().GetTextRevision() )
 {
 	UE_LOG(LogSlate, Log, TEXT("SlateFontCache - WITH_FREETYPE: %d, WITH_HARFBUZZ: %d"), WITH_FREETYPE, WITH_HARFBUZZ);
 
-	FInternationalization::Get().OnCultureChanged().AddRaw(this, &FSlateFontCache::FlushCache);
+	FInternationalization::Get().OnCultureChanged().AddRaw(this, &FSlateFontCache::HandleCultureChanged);
 }
 
 FSlateFontCache::~FSlateFontCache()
@@ -697,6 +691,17 @@ FShapedGlyphSequenceRef FSlateFontCache::ShapeUnidirectionalText( const TCHAR* I
 
 FCharacterList& FSlateFontCache::GetCharacterList( const FSlateFontInfo &InFontInfo, float FontScale ) const
 {
+	{
+		// If the active culture has changed, then the localized fallback font may also have changed
+		// We need to flush the cache *immediately* in order to avoid getting bad data back from the character list cache
+		// We don't do this immediate flush in HandleCultureChanged because that may be called from the wrong thread
+		const int32 CurrentHistoryVersion = FTextLocalizationManager::Get().GetTextRevision();
+		if (LastFlushHistoryVersion != CurrentHistoryVersion)
+		{
+			FlushCache();
+		}
+	}
+
 	// Create a key for looking up each character
 	const FSlateFontKey FontKey( InFontInfo, FontScale );
 
@@ -855,9 +860,6 @@ void FSlateFontCache::FlushCache() const
 	{
 		FlushData();
 
-		FontToCharacterListCache.Empty();
-		ShapedGlyphToAtlasData.Empty();
-
 		for ( int32 AtlasIndex = 0; AtlasIndex < FontAtlases.Num(); ++AtlasIndex )
 		{
 			FontAtlases[AtlasIndex]->ReleaseResources();
@@ -869,6 +871,8 @@ void FSlateFontCache::FlushCache() const
 		SET_DWORD_STAT(STAT_SlateNumFontAtlases, 0);
 
 		FontAtlases.Empty();
+
+		LastFlushHistoryVersion = FTextLocalizationManager::Get().GetTextRevision();
 
 		UE_LOG(LogSlate, Verbose, TEXT("Slate font cache was flushed"));
 	}
@@ -887,4 +891,14 @@ void FSlateFontCache::FlushData() const
 	FTAdvanceCache->FlushCache();
 	FTKerningPairCache->FlushCache();
 	CompositeFontCache->FlushCache();
+
+	FontToCharacterListCache.Empty();
+	ShapedGlyphToAtlasData.Empty();
+}
+
+void FSlateFontCache::HandleCultureChanged()
+{
+	// The culture has changed, so request the font cache be flushed once it is safe to do so
+	// We don't flush immediately as the request may come in from a different thread than the one that owns the font cache
+	bFlushRequested = true;
 }

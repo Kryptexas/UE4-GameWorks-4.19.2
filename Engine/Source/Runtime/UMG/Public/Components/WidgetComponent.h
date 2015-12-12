@@ -164,6 +164,9 @@ public:
 protected:
 	void RemoveWidgetFromScreen();
 
+	/** Draws the current widget to the render target if possible. */
+	void DrawWidgetToRenderTarget(float DeltaTime);
+
 protected:
 	/** The coordinate space in which to render the widget */
 	UPROPERTY(EditAnywhere, Category=UserInterface)

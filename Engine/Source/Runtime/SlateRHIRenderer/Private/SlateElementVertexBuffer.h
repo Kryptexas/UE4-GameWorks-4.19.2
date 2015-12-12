@@ -21,7 +21,7 @@ public:
 
 	void Init( int32 MinNumVertices )
 	{
-		MinBufferSize = sizeof(VertexType) * FMath::Max( MinNumVertices, 200 );
+		MinBufferSize = sizeof(VertexType) * FMath::Max( MinNumVertices, 100 );
 
 		if ( IsInRenderingThread() )
 		{

@@ -279,6 +279,8 @@ void FStreamingLevelCollectionModel::BuildHierarchyMenu(FMenuBuilder& InMenuBuil
 				LOCTEXT("LevelsChangeStreamingMethod_Tooltip", "Changes the streaming method for the selected levels"),
 				FNewMenuDelegate::CreateRaw(this, &FStreamingLevelCollectionModel::FillSetStreamingMethodSubMenu ));
 		}
+
+		InMenuBuilder.AddMenuEntry(Commands.World_FindInContentBrowser);
 	}
 	InMenuBuilder.EndSection();
 	

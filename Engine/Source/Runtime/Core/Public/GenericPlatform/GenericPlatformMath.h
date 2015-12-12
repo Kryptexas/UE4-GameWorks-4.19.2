@@ -280,9 +280,14 @@ struct FGenericPlatformMath
 	{
 		return ((*(uint32*)&A) & 0x7F800000) != 0x7F800000;
 	}
-	static FORCEINLINE bool IsNegativeFloat(const float& F1)
+	static FORCEINLINE bool IsNegativeFloat(const float& A)
 	{
-		return ( (*(uint32*)&F1) >= (uint32)0x80000000 ); // Detects sign bit.
+		return ( (*(uint32*)&A) >= (uint32)0x80000000 ); // Detects sign bit.
+	}
+
+	static FORCEINLINE bool IsNegativeDouble(const double& A)
+	{
+		return ( (*(uint64*)&A) >= (uint64)0x8000000000000000 ); // Detects sign bit.
 	}
 
 	/** Returns a random integer between 0 and RAND_MAX, inclusive */

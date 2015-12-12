@@ -28,4 +28,7 @@ class UMG_API INamedSlotInterface
 
 	/**  */
 	bool ContainsContent(UWidget* Content) const;
+
+	/**  */
+	void ReleaseNamedSlotSlateResources(bool bReleaseChildren);
 };

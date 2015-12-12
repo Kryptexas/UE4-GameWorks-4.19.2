@@ -604,7 +604,7 @@ void SColorGradientEditor::OnSelectedStopColorChanged( FLinearColor InNewColor )
 
 void SColorGradientEditor::OnCancelSelectedStopColorChange( FLinearColor PreviousColor )
 {
-	SelectedStop.SetColor( PreviousColor.HSVToLinearRGB(), *CurveOwner );
+	SelectedStop.SetColor( PreviousColor, *CurveOwner );
 	CurveOwner->ModifyOwner();
 }
 

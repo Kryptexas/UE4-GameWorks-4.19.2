@@ -238,7 +238,7 @@ void FSoundCueEditor::PostUndo(bool bSuccess)
 
 void FSoundCueEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, class UProperty* PropertyThatChanged)
 {
-	if (SoundCueGraphEditor.IsValid())
+	if (SoundCueGraphEditor.IsValid() && PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive)
 	{
 		SoundCueGraphEditor->NotifyGraphChanged();
 	}

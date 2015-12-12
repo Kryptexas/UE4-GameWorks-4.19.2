@@ -71,16 +71,66 @@ void SRichTextBlock::OnArrangeChildren( const FGeometry& AllottedGeometry, FArra
 void SRichTextBlock::SetText( const TAttribute<FText>& InTextAttr )
 {
 	BoundText = InTextAttr;
+	Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
 void SRichTextBlock::SetHighlightText( const TAttribute<FText>& InHighlightText )
 {
 	HighlightText = InHighlightText;
+	Invalidate(EInvalidateWidget::Layout);
+}
+
+void SRichTextBlock::SetTextShapingMethod(const TOptional<ETextShapingMethod>& InTextShapingMethod)
+{
+	TextLayoutCache->SetTextShapingMethod(InTextShapingMethod);
+	Invalidate(EInvalidateWidget::Layout);
+}
+
+void SRichTextBlock::SetTextFlowDirection(const TOptional<ETextFlowDirection>& InTextFlowDirection)
+{
+	TextLayoutCache->SetTextFlowDirection(InTextFlowDirection);
+	Invalidate(EInvalidateWidget::Layout);
+}
+
+void SRichTextBlock::SetWrapTextAt(const TAttribute<float>& InWrapTextAt)
+{
+	WrapTextAt = InWrapTextAt;
+	Invalidate(EInvalidateWidget::Layout);
+}
+
+void SRichTextBlock::SetAutoWrapText(const TAttribute<bool>& InAutoWrapText)
+{
+	AutoWrapText = InAutoWrapText;
+	Invalidate(EInvalidateWidget::Layout);
+}
+
+void SRichTextBlock::SetLineHeightPercentage(const TAttribute<float>& InLineHeightPercentage)
+{
+	LineHeightPercentage = InLineHeightPercentage;
+	Invalidate(EInvalidateWidget::Layout);
+}
+
+void SRichTextBlock::SetMargin(const TAttribute<FMargin>& InMargin)
+{
+	Margin = InMargin;
+	Invalidate(EInvalidateWidget::Layout);
+}
+
+void SRichTextBlock::SetJustification(const TAttribute<ETextJustify::Type>& InJustification)
+{
+	Justification = InJustification;
+	Invalidate(EInvalidateWidget::Layout);
 }
 
 void SRichTextBlock::Refresh()
 {
 	TextLayoutCache->DirtyLayout();
+	Invalidate(EInvalidateWidget::Layout);
+}
+
+bool SRichTextBlock::ComputeVolatility() const
+{
+	return SWidget::ComputeVolatility() || BoundText.IsBound();
 }
 
 #endif //WITH_FANCY_TEXT

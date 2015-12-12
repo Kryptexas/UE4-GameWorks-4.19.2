@@ -52,6 +52,7 @@ void UBorder::SynchronizeProperties()
 	TAttribute<FSlateColor> BrushColorBinding = OPTIONAL_BINDING_CONVERT(FLinearColor, BrushColor, FSlateColor, ConvertLinearColorToSlateColor);
 	TAttribute<const FSlateBrush*> ImageBinding = OPTIONAL_BINDING_CONVERT(FSlateBrush, Background, const FSlateBrush*, ConvertImage);
 	
+	MyBorder->SetPadding(Padding);
 	MyBorder->SetBorderBackgroundColor(BrushColorBinding);
 	MyBorder->SetColorAndOpacity(ContentColorAndOpacityBinding);
 

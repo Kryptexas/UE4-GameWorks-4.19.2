@@ -224,14 +224,12 @@ public:
 	bool bExpandedInDesigner;
 
 	/** Stores a reference to the asset responsible for this widgets construction. */
-	UPROPERTY(Transient)
-	const UObject* WidgetGeneratedBy;
+	TWeakObjectPtr<UObject> WidgetGeneratedBy;
 
 #endif
 
 	/** Stores a reference to the class responsible for this widgets construction. */
-	UPROPERTY(Transient)
-	const UClass* WidgetGeneratedByClass;
+	TWeakObjectPtr<UClass> WidgetGeneratedByClass;
 
 public:
 

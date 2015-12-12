@@ -21,4 +21,12 @@ class UNREALED_API UFbxAssetImportData : public UAssetImportData
 
 	UPROPERTY(EditAnywhere, Category=Transform, meta=(ImportType="StaticMesh|SkeletalMesh|Animation", ImportCategory="Transform"))
 	float ImportUniformScale;
+
+	/* Use by the reimport factory to answer CanReimport, if true only factory for scene reimport will return true */
+	UPROPERTY()
+	bool bImportAsScene;
+
+	/* Use by the reimport factory to answer CanReimport, if true only factory for scene reimport will return true */
+	UPROPERTY()
+	UFbxSceneImportData* FbxSceneImportDataReference;
 };

@@ -37,6 +37,7 @@ public:
 		, _ClearTextSelectionOnFocusLoss(true)
 		, _RevertTextOnEscape(false)
 		, _ClearKeyboardFocusOnCommit(true)
+		, _AllowContextMenu(true)
 		, _OnCursorMoved()
 		, _ContextMenuExtender()
 		, _ModiferKeyForNewLine(EModifierKey::None)
@@ -102,6 +103,9 @@ public:
 		/** Whether to clear keyboard focus when pressing enter to commit changes */
 		SLATE_ATTRIBUTE(bool, ClearKeyboardFocusOnCommit)
 
+		/** Whether to prevent the context menu from being displayed  */
+		SLATE_ATTRIBUTE(bool, AllowContextMenu)
+
 		/** Delegate to call before a context menu is opened. User returns the menu content or null to the disable context menu */
 		SLATE_EVENT(FOnContextMenuOpening, OnContextMenuOpening)
 
@@ -158,6 +162,30 @@ public:
 	* @param  InNewFont	The new font to use
 	*/
 	void SetFont(const TAttribute< FSlateFontInfo >& InNewFont);
+
+	/** See TextShapingMethod attribute */
+	void SetTextShapingMethod(const TOptional<ETextShapingMethod>& InTextShapingMethod);
+
+	/** See TextFlowDirection attribute */
+	void SetTextFlowDirection(const TOptional<ETextFlowDirection>& InTextFlowDirection);
+
+	/** See WrapTextAt attribute */
+	void SetWrapTextAt(const TAttribute<float>& InWrapTextAt);
+
+	/** See AutoWrapText attribute */
+	void SetAutoWrapText(const TAttribute<bool>& InAutoWrapText);
+
+	/** See LineHeightPercentage attribute */
+	void SetLineHeightPercentage(const TAttribute<float>& InLineHeightPercentage);
+
+	/** See Margin attribute */
+	void SetMargin(const TAttribute<FMargin>& InMargin);
+
+	/** See Justification attribute */
+	void SetJustification(const TAttribute<ETextJustify::Type>& InJustification);
+
+	/** See the AllowContextMenu attribute */
+	void SetAllowContextMenu(const TAttribute< bool >& InAllowContextMenu);
 
 	virtual bool GetIsReadOnly() const override;
 	virtual void ClearSelection() override;
@@ -697,6 +725,9 @@ private:
 
 	/** True if we want the text control to lose focus on an text commit/revert events */
 	TAttribute< bool > bClearKeyboardFocusOnCommit;
+
+	/** Whether the context menu can be opened */
+	TAttribute< bool > AllowContextMenu;
 
 	/** True if we're currently selecting text by dragging the mouse cursor with the left button held down */
 	bool bIsDragSelecting;

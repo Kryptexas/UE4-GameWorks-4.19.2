@@ -311,10 +311,14 @@ TSharedRef<ITableRow> FDataTableEditor::MakeRowNameWidget(FDataTableEditorRowLis
 			SNew(SBox)
 			.Padding(FMargin(4, 2, 4, 2))
 			[
-				SNew(STextBlock)
-				.ColorAndOpacity(this, &FDataTableEditor::GetRowTextColor, InRowDataPtr->RowId)
-				.Text(InRowDataPtr->DisplayName)
-				.HighlightText(this, &FDataTableEditor::GetFilterText)
+				SNew(SBox)
+				.HeightOverride(InRowDataPtr->DesiredRowHeight)
+				[
+					SNew(STextBlock)
+					.ColorAndOpacity(this, &FDataTableEditor::GetRowTextColor, InRowDataPtr->RowId)
+					.Text(InRowDataPtr->DisplayName)
+					.HighlightText(this, &FDataTableEditor::GetFilterText)
+				]
 			]
 		];
 }

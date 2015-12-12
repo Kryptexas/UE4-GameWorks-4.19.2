@@ -27,12 +27,12 @@ public:
 	/**
 	 * Get (or create) the culture specific fallback font
 	 */
-	TSharedPtr<const FCompositeFont> GetFallbackFont();
+	const FFontData& GetLocalizedFallbackFontData();
 
 	/**
-	 * Get (or create) the culture specific fallback font
+	 * Get (or create) the last resort fallback font
 	 */
-	const FFontData& GetFallbackFontData();
+	TSharedPtr<const FCompositeFont> GetLastResortFont();
 
 	/**
 	 * Get (or create) the last resort fallback font
@@ -81,16 +81,16 @@ private:
 
 	TMap<FLegacyFontKey, TSharedPtr<const FCompositeFont>> LegacyFontNameToCompositeFont;
 	TSharedPtr<const FCompositeFont> SystemFont;
-	TSharedPtr<const FCompositeFont> FallbackFont;
+	TSharedPtr<const FCompositeFont> LastResortFont;
 	
-	TSharedPtr<const FFontData> FallbackFontData;
+	TSharedPtr<const FFontData> LocalizedFallbackFontData;
 	TSharedPtr<const FFontData> LastResortFontData;
 
-	int32 FallbackFontHistoryVersion;
-	int32 FallbackFontDataHistoryVersion;
+	TMap<FString, TSharedPtr<const FFontData>> AllLocalizedFallbackFontData;
+	int32 LocalizedFallbackFontDataHistoryVersion;
 
-	FCriticalSection FallbackFontCS;
-	FCriticalSection FallbackFontDataCS;
+	FCriticalSection LocalizedFallbackFontDataCS;
+	FCriticalSection LastResortFontCS;
 	FCriticalSection LastResortFontDataCS;
 
 	static TSharedPtr<FLegacySlateFontInfoCache> Singleton;

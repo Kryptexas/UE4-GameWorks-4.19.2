@@ -80,7 +80,9 @@
 #include "SizeBoxSlot.h"
 #include "SizeBox.h"
 
+#include "TextWidgetTypes.h"
 #include "TextBlock.h"
+
 #include "CheckBox.h"
 #include "Image.h"
 

@@ -236,7 +236,7 @@ static void ApplyUnroll(FbxNode *pNode, FbxAnimLayer* pLayer, FbxAnimCurveFilter
 		// Set bone rotation order
 		EFbxRotationOrder RotationOrder = eEulerXYZ;
 		pNode->GetRotationOrder(FbxNode::eSourcePivot, RotationOrder);
-		pUnrollFilter->SetRotationOrder((FbxEuler::EOrder)(RotationOrder*2));
+		pUnrollFilter->SetRotationOrder((FbxEuler::EOrder)(RotationOrder));
 
 		pUnrollFilter->Apply(lRCurve, 3);
 	}

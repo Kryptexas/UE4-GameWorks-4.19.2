@@ -24,6 +24,9 @@ struct FDataTableEditorRowListViewData
 	/** Display name of this row */
 	FText DisplayName;
 
+	/** The calculated height of this row taking into account the cell data for each column */
+	float DesiredRowHeight;
+
 	/** Array corresponding to each cell in this row */
 	TArray<FText> CellData;
 };

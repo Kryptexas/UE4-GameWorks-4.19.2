@@ -180,9 +180,32 @@ void FBPVariableDescription::RemoveMetaData(const FName& Key)
 //////////////////////////////////////////////////////////////////////////
 // UBlueprintCore
 
+#if WITH_EDITORONLY_DATA
+namespace
+{
+	void GatherBlueprintForLocalization(const UObject* const Object, FPropertyLocalizationDataGatherer& PropertyLocalizationDataGatherer, const EPropertyLocalizationGathererTextFlags GatherTextFlags)
+	{
+		const UBlueprintCore* const Blueprint = CastChecked<UBlueprintCore>(Object);
+
+		// Blueprint assets never exist at runtime, so treat all of their properties as editor-only, but allow their script (which is available at runtime) to be gathered by a game
+		PropertyLocalizationDataGatherer.GatherLocalizationDataFromObject(Blueprint, GatherTextFlags | EPropertyLocalizationGathererTextFlags::ForceEditorOnlyProperties);
+	}
+}
+#endif
+
 UBlueprintCore::UBlueprintCore(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+#if WITH_EDITORONLY_DATA
+	static struct FAutomaticRegistrationOfLocalizationGatherer
+	{
+		FAutomaticRegistrationOfLocalizationGatherer()
+		{
+			FPropertyLocalizationDataGatherer::GetTypeSpecificLocalizationDataGatheringCallbacks().Add(UBlueprintCore::StaticClass(), &GatherBlueprintForLocalization);
+		}
+	} AutomaticRegistrationOfLocalizationGatherer;
+#endif
+
 	bLegacyGeneratedClassIsAuthoritative = false;
 	bLegacyNeedToPurgeSkelRefs = true;
 }

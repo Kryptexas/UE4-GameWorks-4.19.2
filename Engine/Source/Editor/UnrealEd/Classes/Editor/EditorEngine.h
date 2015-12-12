@@ -1933,11 +1933,23 @@ public:
 	void SyncToContentBrowser();
 
 	/**
+	 * Syncs the selected actors' levels to the content browser
+	 */
+	void SyncActorLevelsToContentBrowser();
+
+	/**
 	 * Checks if the slected objects contain something to browse to
 	 *
 	 * @return true if any of the selected objects contains something that can be browsed to
 	 */
 	bool CanSyncToContentBrowser();
+
+	/**
+	 * Checks if the selected objects have levels which can be browsed to
+	 *
+	 * @return true if any of the selected objects contains something that can be browsed to
+	 */
+	bool CanSyncActorLevelsToContentBrowser();
 
 	/**
 	 * Toggles the movement lock on selected actors so they may or may not be moved with the transform widgets
@@ -2191,6 +2203,13 @@ public:
 	 * @param Objects	Array to be filled with objects which can be browsed to
 	 */
 	void GetObjectsToSyncToContentBrowser( TArray<UObject*>& Objects );
+
+	/**
+	 * Gets all levels which can be synced to in content browser for current selection
+	 *
+	 * @param Objects	Array to be filled with ULevel objects
+	 */
+	void GetLevelsToSyncToContentBrowser(TArray<UObject*>& Objects);
 
 	/**
 	* Queries for a list of assets that are referenced by the current editor selection (actors, surfaces, etc.)

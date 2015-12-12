@@ -32,6 +32,7 @@ UEditableTextBox::UEditableTextBox(const FObjectInitializer& ObjectInitializer)
 	RevertTextOnEscape = Defaults._RevertTextOnEscape.Get();
 	ClearKeyboardFocusOnCommit = Defaults._ClearKeyboardFocusOnCommit.Get();
 	SelectAllTextOnCommit = Defaults._SelectAllTextOnCommit.Get();
+	AllowContextMenu = Defaults._AllowContextMenu.Get();
 
 	WidgetStyle = *Defaults._Style;
 }
@@ -53,6 +54,7 @@ TSharedRef<SWidget> UEditableTextBox::RebuildWidget()
 		.RevertTextOnEscape(RevertTextOnEscape)
 		.ClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit)
 		.SelectAllTextOnCommit(SelectAllTextOnCommit)
+		.AllowContextMenu(AllowContextMenu)
 		.OnTextChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, HandleOnTextChanged))
 		.OnTextCommitted(BIND_UOBJECT_DELEGATE(FOnTextCommitted, HandleOnTextCommitted))
 		.VirtualKeyboardType(EVirtualKeyboardType::AsKeyboardType(KeyboardType.GetValue()));
@@ -78,6 +80,7 @@ void UEditableTextBox::SynchronizeProperties()
 	MyEditableTextBlock->SetRevertTextOnEscape(RevertTextOnEscape);
 	MyEditableTextBlock->SetClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit);
 	MyEditableTextBlock->SetSelectAllTextOnCommit(SelectAllTextOnCommit);
+	MyEditableTextBlock->SetAllowContextMenu(AllowContextMenu);
 }
 
 FText UEditableTextBox::GetText() const

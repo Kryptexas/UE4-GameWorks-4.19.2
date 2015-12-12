@@ -3668,22 +3668,8 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 
 				if ( !(Linker->Summary.PackageFlags & PKG_FilterEditorOnly) )
 				{
-					TArray<UObject*> ObjectsInPackage;
-					GetObjectsWithOuter(InOuter, ObjectsInPackage, true, RF_Transient, EInternalObjectFlags::PendingKill);
-					for (UObject* const Object : ObjectsInPackage)
-					{
-						FPropertyLocalizationDataGatherer PropertyLocalizationDataGatherer(Linker->GatherableTextDataMap);
-						PropertyLocalizationDataGatherer.GatherLocalizationDataFromPropertiesOfDataStructure(Object->GetClass(), Object);
-
-						for(UClass* Class = Object->GetClass(); Class != nullptr; Class = Class->GetSuperClass())
-						{
-							FLocalizationDataGatheringCallback* const CustomCallback = GetTypeSpecificLocalizationDataGatheringCallbacks().Find(Class);
-							if (CustomCallback)
-							{
-								(*CustomCallback)(Object, Linker->GatherableTextDataMap);
-							}
-						}
-					}
+					// Gathers from the given package
+					FPropertyLocalizationDataGatherer(Linker->GatherableTextDataMap, InOuter);
 				}
 
 				UE_LOG_COOK_TIME(TEXT("GatherLocalizableTextData"));

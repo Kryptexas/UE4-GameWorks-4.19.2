@@ -35,12 +35,24 @@ public class SlateCore : ModuleRules
 			}
 		);
 
-		if (Target.Type.Value != TargetRules.TargetType.Server && UEBuildConfiguration.bCompileFreeType)
+		if (Target.Type.Value != TargetRules.TargetType.Server)
 		{
-			AddThirdPartyPrivateStaticDependencies(Target, "FreeType2");
+			if (UEBuildConfiguration.bCompileFreeType)
+			{
+				AddThirdPartyPrivateStaticDependencies(Target, "FreeType2");
+				Definitions.Add("WITH_FREETYPE=1");
+			}
+			else
+			{
+				Definitions.Add("WITH_FREETYPE=0");
+			}
+
+			if (UEBuildConfiguration.bCompileICU)
+			{
+				AddThirdPartyPrivateStaticDependencies(Target, "ICU");
+			}
+
 			AddThirdPartyPrivateStaticDependencies(Target, "HarfBuzz");
-			AddThirdPartyPrivateStaticDependencies(Target, "ICU");
-			Definitions.Add("WITH_FREETYPE=1");
 		}
 		else
 		{

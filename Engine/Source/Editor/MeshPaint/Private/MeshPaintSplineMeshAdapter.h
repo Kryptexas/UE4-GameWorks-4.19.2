@@ -11,11 +11,7 @@
 class FMeshPaintGeometryAdapterForSplineMeshes : public FMeshPaintGeometryAdapterForStaticMeshes
 {
 public:
-	virtual bool InitializeMeshData() override;
-	virtual FVector GetMeshVertex(int32 Index) const override;
-
-protected:
-	TArray<FVector> MeshVertices;
+	virtual void InitializeMeshVertices() override;
 };
 
 //////////////////////////////////////////////////////////////////////////

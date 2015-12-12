@@ -8,6 +8,13 @@ public class HarfBuzz : ModuleRules
 	public HarfBuzz(TargetInfo Target)
 	{
 		Type = ModuleType.External;
+		
+		// Can't be used without our dependencies
+		if (!UEBuildConfiguration.bCompileFreeType || !UEBuildConfiguration.bCompileICU)
+		{
+			Definitions.Add("WITH_HARFBUZZ=0");
+			return;
+		}
 
 		string HarfBuzzVersion = "harfbuzz-1.0.5";
 		string HarfBuzzRootPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "HarfBuzz/" + HarfBuzzVersion + "/";

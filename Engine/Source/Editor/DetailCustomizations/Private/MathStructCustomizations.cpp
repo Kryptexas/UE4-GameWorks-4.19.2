@@ -704,6 +704,9 @@ FLinearColor FColorStructCustomization::OnGetColorForColorBlock() const
 
 FPropertyAccess::Result FColorStructCustomization::GetColorAsLinear(FLinearColor& OutColor) const
 {
+	// Default to full alpha in case the alpha component is disabled.
+	OutColor.A = 1.0f;
+
 	// Get each color component 
 	for(int32 ChildIndex = 0; ChildIndex < SortedChildHandles.Num(); ++ChildIndex)
 	{

@@ -22,10 +22,13 @@ DECLARE_CYCLE_STAT(TEXT("Slate RT: Draw Batches"), STAT_SlateRTDrawBatches, STAT
 
 void FSlateCrashReportResource::InitDynamicRHI()
 {
+	int32 Width = VirtualScreen.Width();
+	int32 Height = VirtualScreen.Height();
+
 	FRHIResourceCreateInfo CreateInfo;
 	CrashReportBuffer = RHICreateTexture2D(
-		VirtualScreen.Width(),
-		VirtualScreen.Height(),
+		Width,
+		Height,
 		PF_R8G8B8A8,
 		1,
 		1,
@@ -36,8 +39,8 @@ void FSlateCrashReportResource::InitDynamicRHI()
 	for (int32 i = 0; i < 2; ++i)
 	{
 		ReadbackBuffer[i] = RHICreateTexture2D(
-			VirtualScreen.Width(),
-			VirtualScreen.Height(),
+			Width,
+			Height,
 			PF_R8G8B8A8,
 			1,
 			1,
@@ -556,8 +559,11 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 		Policy.BeginDrawingWindows();
 	});
 
-	// Update texture atlases if needed
-	ResourceManager->UpdateTextureAtlases();
+	// Update texture atlases if needed and safe
+	if (DoesThreadOwnSlateRendering())
+	{
+		ResourceManager->UpdateTextureAtlases();
+	}
 
 	const TSharedRef<FSlateFontCache> FontCache = SlateFontServices->GetFontCache();
 
@@ -803,7 +809,7 @@ void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& 
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 		// @todo livestream: Ideally this "desktop background color" should be configurable in the editor's preferences
-		RHICmdList.Clear(true, FLinearColor(0.02f, 0.02f, 0.2f), false, 0.f, false, 0x00, FIntRect());
+		RHICmdList.Clear(true, FLinearColor(0.8f, 0.00f, 0.0f), false, 0.f, false, 0x00, FIntRect());
 	});
 
 	// draw windows to buffer
@@ -813,6 +819,8 @@ void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& 
 	static const FName RendererModuleName( "Renderer" );
 	IRendererModule& RendererModule = FModuleManager::GetModuleChecked<IRendererModule>( RendererModuleName );
 
+	//if ( false )
+	{
 	for (int32 i = 0; i < OutWindows.Num(); ++i)
 	{
 		TSharedPtr<SWindow> WindowPtr = OutWindows[i];
@@ -881,6 +889,7 @@ void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& 
 					EDRF_Default);
 			});
 		}
+	}
 	}
 
 	// draw mouse cursor and keypresses
@@ -977,26 +986,29 @@ void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& 
 }
 
 
-void FSlateRHIRenderer::MapVirtualScreenBuffer(void** OutImageData)
+void FSlateRHIRenderer::MapVirtualScreenBuffer(FMappedTextureBuffer* OutTextureData)
 {
+	const FIntRect VirtualScreen = CrashTrackerResource->GetVirtualScreen();
+
 	struct FReadbackFromStagingBufferContext
 	{
 		FSlateCrashReportResource* CrashReportResource;
-		void** OutData;
+		FMappedTextureBuffer* TextureData;
+		FIntRect ExpectedBufferSize;
 	};
 	FReadbackFromStagingBufferContext ReadbackFromStagingBufferContext =
 	{
 		CrashTrackerResource,
-		OutImageData
+		OutTextureData,
+		VirtualScreen,
 	};
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 		ReadbackFromStagingBuffer,
 		FReadbackFromStagingBufferContext,Context,ReadbackFromStagingBufferContext,
 	{
 		SCOPE_CYCLE_COUNTER(STAT_MapStagingBuffer);
-		int32 UnusedWidth = 0;
-		int32 UnusedHeight = 0;
-		RHICmdList.MapStagingSurface(Context.CrashReportResource->GetReadbackBuffer(), *Context.OutData, UnusedWidth, UnusedHeight);
+		RHICmdList.MapStagingSurface(Context.CrashReportResource->GetReadbackBuffer(), Context.TextureData->Data, Context.TextureData->Width, Context.TextureData->Height);
+
 		Context.CrashReportResource->SwapTargetReadbackBuffer();
 	});
 }

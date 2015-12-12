@@ -8,7 +8,8 @@ FSlate3DRenderer::FSlate3DRenderer( TSharedRef<FSlateFontServices> InSlateFontSe
 	: SlateFontServices( InSlateFontServices )
 	, ResourceManager( InResourceManager )
 {
-	RenderTargetPolicy = MakeShareable( new FSlateRHIRenderingPolicy( SlateFontServices, ResourceManager ) );
+	const int32 InitialBufferSize = 200;
+	RenderTargetPolicy = MakeShareable( new FSlateRHIRenderingPolicy( SlateFontServices, ResourceManager, InitialBufferSize ) );
 	RenderTargetPolicy->SetUseGammaCorrection( bUseGammaCorrection );
 
 	ElementBatcher = MakeShareable(new FSlateElementBatcher(RenderTargetPolicy.ToSharedRef()));
@@ -21,7 +22,10 @@ FSlate3DRenderer::~FSlate3DRenderer()
 		RenderTargetPolicy->ReleaseResources();
 	}
 
-	FlushRenderingCommands();
+	if ( IsInGameThread() )
+	{
+		FlushRenderingCommands();
+	}
 }
 
 FSlateDrawBuffer& FSlate3DRenderer::GetDrawBuffer()
@@ -39,7 +43,6 @@ FSlateDrawBuffer& FSlate3DRenderer::GetDrawBuffer()
 		Buffer = &DrawBuffers[FreeBufferIndex];
 	}
 
-
 	Buffer->ClearBuffer();
 
 	return *Buffer;
@@ -50,10 +53,6 @@ void FSlate3DRenderer::DrawWindow_GameThread(FSlateDrawBuffer& DrawBuffer)
 	check( IsInGameThread() );
 
 	const TSharedRef<FSlateFontCache> FontCache = SlateFontServices->GetGameThreadFontCache();
-
-	// Need to flush the font cache before we add the elements below to avoid the flush potentially 
-	// deleting the texture resources that will be needed by the render thread
-	//FontCache->ConditionalFlushCache();
 
 	TArray<TSharedPtr<FSlateWindowElementList>>& WindowElementLists = DrawBuffer.GetWindowElementLists();
 
@@ -81,11 +80,12 @@ void FSlate3DRenderer::DrawWindow_GameThread(FSlateDrawBuffer& DrawBuffer)
 	}
 }
 
-void FSlate3DRenderer::DrawWindowToTarget_RenderThread( FRHICommandListImmediate& InRHICmdList, UTextureRenderTarget2D* RenderTarget, FSlateDrawBuffer& WindowDrawBuffer )
+void FSlate3DRenderer::DrawWindowToTarget_RenderThread(FRHICommandListImmediate& InRHICmdList, FTextureRenderTarget2DResource* RenderTargetResource, FSlateDrawBuffer& WindowDrawBuffer)
 {
 	SCOPED_DRAW_EVENT(InRHICmdList, SlateRenderToTarget);
 
 	checkSlow(WindowDrawBuffer.GetWindowElementLists().Num() == 1);
+	checkSlow(RenderTargetResource);
 
 	FSlateWindowElementList& WindowElementList = *WindowDrawBuffer.GetWindowElementLists()[0].Get();
 
@@ -104,7 +104,6 @@ void FSlate3DRenderer::DrawWindowToTarget_RenderThread( FRHICommandListImmediate
 		});
 
 	RenderTargetPolicy->UpdateVertexAndIndexBuffers( InRHICmdList, BatchData );
-	FTextureRenderTarget2DResource* RenderTargetResource = static_cast<FTextureRenderTarget2DResource*>( RenderTarget->GetRenderTargetResource() );
 	
 	// Set render target and clear.
 	FTexture2DRHIRef RTResource = RenderTargetResource->GetTextureRHI();
@@ -112,15 +111,14 @@ void FSlate3DRenderer::DrawWindowToTarget_RenderThread( FRHICommandListImmediate
 	ColorRTV.LoadAction = ERenderTargetLoadAction::EClear;
 	FRHISetRenderTargetsInfo Info(1, &ColorRTV, FTextureRHIParamRef());
 	Info.bClearColor = true;
-	ensure(ColorRTV.Texture->GetClearColor() == RenderTarget->ClearColor);
 
 	InRHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, RTResource);
 	InRHICmdList.SetRenderTargetsAndClear(Info);
 
-	FMatrix ProjectionMatrix = FSlateRHIRenderer::CreateProjectionMatrix( RenderTarget->SizeX, RenderTarget->SizeY );
+	FMatrix ProjectionMatrix = FSlateRHIRenderer::CreateProjectionMatrix(RTResource->GetSizeX(), RTResource->GetSizeY());
 	if (BatchData.GetRenderBatches().Num() > 0)
 	{
-		FSlateBackBuffer BackBufferTarget(RenderTargetResource->GetTextureRHI(), FIntPoint(RenderTarget->SizeX, RenderTarget->SizeY ) );
+		FSlateBackBuffer BackBufferTarget(RenderTargetResource->GetTextureRHI(), FIntPoint(RTResource->GetSizeX(), RTResource->GetSizeY()));
 
 		// The scene renderer will handle it in this case
 		const bool bAllowSwitchVerticalAxis = false;

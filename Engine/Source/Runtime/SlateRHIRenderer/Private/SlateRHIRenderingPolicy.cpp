@@ -21,58 +21,59 @@ DECLARE_DWORD_COUNTER_STAT(TEXT("Num Layers"), STAT_SlateNumLayers, STATGROUP_Sl
 DECLARE_DWORD_COUNTER_STAT(TEXT("Num Batches"), STAT_SlateNumBatches, STATGROUP_Slate);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Num Vertices"), STAT_SlateVertexCount, STATGROUP_Slate);
 
-FSlateRHIRenderingPolicy::FSlateRHIRenderingPolicy(TSharedRef<FSlateFontServices> InSlateFontServices, TSharedRef<FSlateRHIResourceManager> InResourceManager)
+FSlateRHIRenderingPolicy::FSlateRHIRenderingPolicy(TSharedRef<FSlateFontServices> InSlateFontServices, TSharedRef<FSlateRHIResourceManager> InResourceManager, TOptional<int32> InitialBufferSize)
 	: FSlateRenderingPolicy(InSlateFontServices, 0)
 	, ResourceManager(InResourceManager)
-	, CurrentBufferIndex(0)
 	, bGammaCorrect(true)
+	, BlendMode()
+	, InitialBufferSizeOverride(InitialBufferSize)
 {
 	InitResources();
+
+	SetDefaultBlendMode(FBlendStateInitializerRHI::FRenderTarget(BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha, CW_RGBA));
 }
 
 FSlateRHIRenderingPolicy::~FSlateRHIRenderingPolicy()
 {
 	// Delete released resources.  Note this MUST NOT be called before the rendering resources have been released
-	DeleteReleasedResources();
+	ReleaseResources();
+	FlushRenderingCommands();
 }
 
 void FSlateRHIRenderingPolicy::InitResources()
 {
-	int32 NumVertices = 200;
-	if( GConfig )
+	int32 NumVertices = 100;
+
+	if ( InitialBufferSizeOverride.IsSet() )
+	{
+		NumVertices = InitialBufferSizeOverride.GetValue();
+	}
+	else if ( GConfig )
 	{
 		int32 NumVertsInConfig = 0;
-		GConfig->GetInt( TEXT("SlateRenderer"), TEXT("NumPreallocatedVertices"), NumVertsInConfig, GEngineIni);
-		// Always create a little space but never allow it to get too high
+		if ( GConfig->GetInt(TEXT("SlateRenderer"), TEXT("NumPreallocatedVertices"), NumVertsInConfig, GEngineIni) )
+		{
+			NumVertices = NumVertsInConfig;
+		}
+	}
 
+	// Always create a little space but never allow it to get too high
 #if !SLATE_USE_32BIT_INDICES
-		NumVertices = FMath::Clamp(NumVertsInConfig, 200, 65535);
+	NumVertices = FMath::Clamp(NumVertices, 100, 65535);
 #else
-		NumVertices = FMath::Clamp(NumVertsInConfig, 200, 1000000);
+	NumVertices = FMath::Clamp(NumVertices, 100, 1000000);
 #endif
 
-		UE_LOG(LogSlate, Verbose, TEXT("Allocating space for %d vertices"), NumVertices);
-	}
+	UE_LOG(LogSlate, Verbose, TEXT("Allocating space for %d vertices"), NumVertices);
 
-	for( int32 BufferIndex = 0; BufferIndex < SlateRHIConstants::NumBuffers; ++BufferIndex )
-	{
-		VertexBuffers[BufferIndex].Init(NumVertices);
-		IndexBuffers[BufferIndex].Init(NumVertices);
-	}
+	VertexBuffers.Init(NumVertices);
+	IndexBuffers.Init(NumVertices);
 }
 
 void FSlateRHIRenderingPolicy::ReleaseResources()
 {
-	for( int32 BufferIndex = 0; BufferIndex < SlateRHIConstants::NumBuffers; ++BufferIndex )
-	{
-		VertexBuffers[BufferIndex].Destroy();
-		IndexBuffers[BufferIndex].Destroy();
-	}
-}
-
-void FSlateRHIRenderingPolicy::DeleteReleasedResources()
-{
-	
+	VertexBuffers.Destroy();
+	IndexBuffers.Destroy();
 }
 
 void FSlateRHIRenderingPolicy::BeginDrawingWindows()
@@ -99,27 +100,24 @@ struct FSlateUpdateVertexAndIndexBuffers : public FRHICommand<FSlateUpdateVertex
 
 	void Execute(FRHICommandListBase& CmdList)
 	{
-		SCOPE_CYCLE_COUNTER( STAT_SlateUpdateBufferRTTime );
+		SCOPE_CYCLE_COUNTER(STAT_SlateUpdateBufferRTTime);
 
-		if (BatchData.GetNumBatchedVertices() > 0)
-		{
-			uint8* VertexBufferData = (uint8*)VertexBuffer.LockBuffer_RHIThread(BatchData.GetNumBatchedVertices());
-			uint8* IndexBufferData = (uint8*)IndexBuffer.LockBuffer_RHIThread(BatchData.GetNumBatchedIndices());
+		const int32 NumBatchedVertices = BatchData.GetNumBatchedVertices();
+		const int32 NumBatchedIndices = BatchData.GetNumBatchedIndices();
 
-			BatchData.FillVertexAndIndexBuffer( VertexBufferData, IndexBufferData );
-	
-			VertexBuffer.UnlockBuffer_RHIThread();
-			IndexBuffer.UnlockBuffer_RHIThread();
-		}
+		uint8* VertexBufferData = (uint8*)VertexBuffer.LockBuffer_RHIThread(NumBatchedVertices);
+		uint8* IndexBufferData = (uint8*)IndexBuffer.LockBuffer_RHIThread(NumBatchedIndices);
+
+		BatchData.FillVertexAndIndexBuffer(VertexBufferData, IndexBufferData);
+
+		VertexBuffer.UnlockBuffer_RHIThread();
+		IndexBuffer.UnlockBuffer_RHIThread();
 	}
 };
 
 void FSlateRHIRenderingPolicy::UpdateVertexAndIndexBuffers(FRHICommandListImmediate& RHICmdList, FSlateBatchData& InBatchData)
 {
-	TSlateElementVertexBuffer<FSlateVertex>& VertexBuffer = VertexBuffers[CurrentBufferIndex];
-	FSlateElementIndexBuffer& IndexBuffer = IndexBuffers[CurrentBufferIndex];
-
-	UpdateVertexAndIndexBuffers(RHICmdList, InBatchData, VertexBuffer, IndexBuffer);
+	UpdateVertexAndIndexBuffers(RHICmdList, InBatchData, VertexBuffers, IndexBuffers);
 }
 
 void FSlateRHIRenderingPolicy::UpdateVertexAndIndexBuffers(FRHICommandListImmediate& RHICmdList, FSlateBatchData& InBatchData, const TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe>& RenderHandle)
@@ -294,6 +292,11 @@ static FSceneView& CreateSceneView( FSceneViewFamilyContext& ViewFamilyContext, 
 	return *View;
 }
 
+void FSlateRHIRenderingPolicy::SetDefaultBlendMode(const FBlendStateInitializerRHI& BlendState)
+{
+	BlendMode = RHICreateBlendState(BlendState);
+}
+
 void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList, FSlateBackBuffer& BackBuffer, const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches, bool bAllowSwitchVerticalAxis)
 {
 	// Should only be called by the rendering thread
@@ -328,8 +331,8 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 
 	FSamplerStateRHIRef BilinearClamp = TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
 
-	TSlateElementVertexBuffer<FSlateVertex>* VertexBuffer = &VertexBuffers[CurrentBufferIndex];
-	FSlateElementIndexBuffer* IndexBuffer = &IndexBuffers[CurrentBufferIndex];
+	TSlateElementVertexBuffer<FSlateVertex>* VertexBuffer = &VertexBuffers;
+	FSlateElementIndexBuffer* IndexBuffer = &IndexBuffers;
 
 	if ( GRHISupportsBaseVertexIndex )
 	{
@@ -359,8 +362,8 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 			}
 			else
 			{
-				VertexBuffer = &VertexBuffers[CurrentBufferIndex];
-				IndexBuffer = &IndexBuffers[CurrentBufferIndex];
+				VertexBuffer = &VertexBuffers;
+				IndexBuffer = &IndexBuffers;
 			}
 
 			checkSlow(VertexBuffer);
@@ -412,14 +415,17 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 
 				GlobalVertexShader->SetViewProjection(RHICmdList, DynamicOffset * ViewProjectionMatrix);
 				GlobalVertexShader->SetVerticalAxisMultiplier(RHICmdList, bAllowSwitchVerticalAxis && RHINeedsToSwitchVerticalAxis(GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel]) ? -1.0f : 1.0f );
+
 #if !DEBUG_OVERDRAW
 				RHICmdList.SetBlendState(
 					( RenderBatch.DrawFlags & ESlateBatchDrawFlag::NoBlending )
 					? TStaticBlendState<>::GetRHI()
 #if SLATE_PRE_MULTIPLY
-					: TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI()
+					: ( ( RenderBatch.DrawFlags & ESlateBatchDrawFlag::AlphaCompositing )
+						? TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI()
+						: BlendMode.GetReference() )
 #else
-					: TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI()
+					: BlendMode.GetReference()
 #endif
 					);
 #else
@@ -536,6 +542,13 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 						PixelShader->SetAdditionalTexture(RHICmdList, TextureRHI, BilinearClamp);
 					}
 
+#if SLATE_PRE_MULTIPLY
+					if ( RenderBatch.DrawFlags & ESlateBatchDrawFlag::AlphaCompositing )
+					{
+						RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI());
+					}
+#endif
+
 					uint32 PrimitiveCount = RenderBatch.DrawPrimitiveType == ESlateDrawPrimitive::LineList ? RenderBatch.NumIndices / 2 : RenderBatch.NumIndices / 3;
 
 					// for RHIs that can't handle VertexOffset, we need to offset the stream source each time
@@ -587,8 +600,6 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 		}
 
 	}
-
-	CurrentBufferIndex = (CurrentBufferIndex + 1) % SlateRHIConstants::NumBuffers;
 }
 
 
@@ -598,102 +609,75 @@ FSlateElementPS* FSlateRHIRenderingPolicy::GetTexturePixelShader( ESlateShader::
 	const auto FeatureLevel = GMaxRHIFeatureLevel;
 	auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
 
-#define PixelShaderLookupTable(FullEffects, LimitedEffects)	\
-	switch ( ShaderType )																							\
-	{																							\
-	default:																							\
-	case ESlateShader::Default:																							\
-		PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Default, FullEffects> >(ShaderMap);									\
-		break;									\
-	case ESlateShader::Border:									\
-		PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Border, FullEffects> >(ShaderMap);									\
-		break;									\
-	case ESlateShader::Font:									\
-		PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Font, LimitedEffects> >(ShaderMap);									\
-		break;									\
-	case ESlateShader::LineSegment:									\
-		PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::LineSegment, LimitedEffects> >(ShaderMap);									\
-		break;									\
-	}
-
 #if !DEBUG_OVERDRAW
 	
-	const bool bPreMultipliedAlpha = ( DrawEffects & ESlateDrawEffect::PreMultipliedAlpha ) != 0;
+	const bool bDrawDisabled = ( DrawEffects & ESlateDrawEffect::DisabledEffect ) != 0;
+	const bool bUseTextureAlpha = ( DrawEffects & ESlateDrawEffect::IgnoreTextureAlpha ) == 0;
 
-	if ( bPreMultipliedAlpha )
+	if ( bDrawDisabled )
 	{
-		PixelShader = *TShaderMapRef<FSlatePreMultiplyPassThroughPS>(ShaderMap);
+		switch ( ShaderType )
+		{
+		default:
+		case ESlateShader::Default:
+			if ( bUseTextureAlpha )
+			{
+				PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Default, true, true> >(ShaderMap);
+			}
+			else
+			{
+				PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Default, true, false> >(ShaderMap);
+			}
+			break;
+		case ESlateShader::Border:
+			if ( bUseTextureAlpha )
+			{
+				PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Border, true, true> >(ShaderMap);
+			}
+			else
+			{
+				PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Border, true, false> >(ShaderMap);
+			}
+			break;
+		case ESlateShader::Font:
+			PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Font, true> >(ShaderMap);
+			break;
+		case ESlateShader::LineSegment:
+			PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::LineSegment, true> >(ShaderMap);
+			break;
+		}
 	}
 	else
 	{
-		const bool bDrawDisabled = ( DrawEffects & ESlateDrawEffect::DisabledEffect ) != 0;
-		const bool bUseTextureAlpha = ( DrawEffects & ESlateDrawEffect::IgnoreTextureAlpha ) == 0;
-
-		if ( bDrawDisabled )
+		switch ( ShaderType )
 		{
-			switch ( ShaderType )
+		default:
+		case ESlateShader::Default:
+			if ( bUseTextureAlpha )
 			{
-			default:
-			case ESlateShader::Default:
-				if ( bUseTextureAlpha )
-				{
-					PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Default, true, true> >(ShaderMap);
-				}
-				else
-				{
-					PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Default, true, false> >(ShaderMap);
-				}
-				break;
-			case ESlateShader::Border:
-				if ( bUseTextureAlpha )
-				{
-					PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Border, true, true> >(ShaderMap);
-				}
-				else
-				{
-					PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Border, true, false> >(ShaderMap);
-				}
-				break;
-			case ESlateShader::Font:
-				PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Font, true> >(ShaderMap);
-				break;
-			case ESlateShader::LineSegment:
-				PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::LineSegment, true> >(ShaderMap);
-				break;
+				PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Default, false, true> >(ShaderMap);
 			}
-		}
-		else
-		{
-			switch ( ShaderType )
+			else
 			{
-			default:
-			case ESlateShader::Default:
-				if ( bUseTextureAlpha )
-				{
-					PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Default, false, true> >(ShaderMap);
-				}
-				else
-				{
-					PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Default, false, false> >(ShaderMap);
-				}
-				break;
-			case ESlateShader::Border:
-				if ( bUseTextureAlpha )
-				{
-					PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Border, false, true> >(ShaderMap);
-				}
-				else
-				{
-					PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Border, false, false> >(ShaderMap);
-				}
-				break;
-			case ESlateShader::Font:
-				PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Font, false> >(ShaderMap);
-				break;
-			case ESlateShader::LineSegment:
-				PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::LineSegment, false> >(ShaderMap);
-				break;
+				PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Default, false, false> >(ShaderMap);
 			}
+			break;
+		case ESlateShader::Border:
+			if ( bUseTextureAlpha )
+			{
+				PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Border, false, true> >(ShaderMap);
+			}
+			else
+			{
+				PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Border, false, false> >(ShaderMap);
+			}
+			break;
+		case ESlateShader::Font:
+			PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Font, false> >(ShaderMap);
+			break;
+		case ESlateShader::LineSegment:
+			PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::LineSegment, false> >(ShaderMap);
+			break;
 		}
 	}
 #else

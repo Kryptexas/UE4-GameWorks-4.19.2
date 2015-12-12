@@ -67,6 +67,7 @@ void SEditableText::Construct( const FArguments& InArgs )
 	bSelectAllTextWhenFocused = InArgs._SelectAllTextWhenFocused;
 	RevertTextOnEscape = InArgs._RevertTextOnEscape;
 	ClearKeyboardFocusOnCommit = InArgs._ClearKeyboardFocusOnCommit;
+	AllowContextMenu = InArgs._AllowContextMenu;
 	OnContextMenuOpening = InArgs._OnContextMenuOpening;
 	OnIsTypedCharValid = InArgs._OnIsTypedCharValid;
 	OnTextChanged = InArgs._OnTextChanged;
@@ -1824,8 +1825,12 @@ void SEditableText::SaveText()
 
 void SEditableText::SummonContextMenu(const FVector2D& InLocation, TSharedPtr<SWindow> ParentWindow, const FWidgetPath& EventPath)
 {
-	TSharedPtr<SWidget> MenuContentWidget;
+	if (!AllowContextMenu.Get())
+	{
+		return;
+	}
 
+	TSharedPtr<SWidget> MenuContentWidget;
 	if (OnContextMenuOpening.IsBound())
 	{
 		MenuContentWidget = OnContextMenuOpening.Execute();
@@ -2070,6 +2075,11 @@ void SEditableText::SetClearKeyboardFocusOnCommit(const TAttribute<bool>& InClea
 void SEditableText::SetSelectAllTextOnCommit(const TAttribute<bool>& InSelectAllTextOnCommit)
 {
 	SelectAllTextOnCommit = InSelectAllTextOnCommit;
+}
+
+void SEditableText::SetAllowContextMenu(const TAttribute< bool >& InAllowContextMenu)
+{
+	AllowContextMenu = InAllowContextMenu;
 }
 
 void SEditableText::EnsureActiveTick()

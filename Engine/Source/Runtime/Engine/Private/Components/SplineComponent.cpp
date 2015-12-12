@@ -722,7 +722,7 @@ float USplineComponent::GetInputKeyAtDistanceAlongSpline(float Distance) const
 		return 0.0f;
 	}
 
-	const float TimeMultiplier = Duration / (NumPoints - 1.0f);
+	const float TimeMultiplier = Duration / (bClosedLoop ? NumPoints : (NumPoints - 1.0f));
 	return SplineReparamTable.Eval(Distance, 0.0f) * TimeMultiplier;
 }
 
@@ -1161,6 +1161,6 @@ void USplineComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& P
 		}
 	}
 
-	Super::PostEditChangeProperty(PropertyChangedEvent);
+	Super::PostEditChangeChainProperty(PropertyChangedEvent);
 }
 #endif

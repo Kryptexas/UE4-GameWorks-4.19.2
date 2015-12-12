@@ -952,6 +952,32 @@ DEF_ASPERCENT(float)
 #undef DEF_ASPERCENT
 #undef DEF_ASPERCENT_CAST
 
+FText FText::AsMemory(uint64 NumBytes, const FNumberFormattingOptions* const Options, const FCulturePtr& TargetCulture)
+{
+	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	FFormatNamedArguments Args;
+
+	if (NumBytes < 1024)
+	{
+		Args.Add( TEXT("Number"), FText::AsNumber( NumBytes, Options, TargetCulture) );
+		Args.Add( TEXT("Unit"), FText::FromString( FString( TEXT("B") ) ) );
+		return FText::Format( NSLOCTEXT("Internationalization", "ComputerMemoryFormatting", "{Number} {Unit}"), Args );
+	}
+
+	static const TCHAR* Prefixes = TEXT("kMGTPEZY");
+	int32 Prefix = 0;
+
+	for (; NumBytes > 1024 * 1024; NumBytes >>= 10)
+	{
+		++Prefix;
+	}
+
+	const double MemorySizeAsDouble = (double)NumBytes / 1024.0;
+	Args.Add( TEXT("Number"), FText::AsNumber( MemorySizeAsDouble, Options, TargetCulture) );
+	Args.Add( TEXT("Unit"), FText::FromString( FString( 1, &Prefixes[Prefix] ) + TEXT("B") ) );
+	return FText::Format( NSLOCTEXT("Internationalization", "ComputerMemoryFormatting", "{Number} {Unit}"), Args);
+}
+
 FString FText::GetInvariantTimeZone()
 {
 	return TEXT("Etc/Unknown");

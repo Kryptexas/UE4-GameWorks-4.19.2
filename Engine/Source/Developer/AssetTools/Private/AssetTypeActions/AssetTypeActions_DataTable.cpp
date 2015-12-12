@@ -144,14 +144,57 @@ void FAssetTypeActions_DataTable::ExecuteExportAsJSON(TArray< TWeakObjectPtr<UOb
 
 void FAssetTypeActions_DataTable::OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor )
 {
-	for (auto ObjIt = InObjects.CreateConstIterator(); ObjIt; ++ObjIt)
+	TArray<UDataTable*> DataTablesToOpen;
+	TArray<UDataTable*> InvalidDataTables;
+
+	for (UObject* Obj : InObjects)
 	{
-		auto Table = Cast<UDataTable>(*ObjIt);
-		if (Table != NULL)
+		UDataTable* Table = Cast<UDataTable>(Obj);
+		if (Table)
 		{
-			FDataTableEditorModule& DataTableEditorModule = FModuleManager::LoadModuleChecked<FDataTableEditorModule>( "DataTableEditor" );
-			TSharedRef< IDataTableEditor > NewDataTableEditor = DataTableEditorModule.CreateDataTableEditor( EToolkitMode::Standalone, EditWithinLevelEditor, Table );
+			if (Table->RowStruct)
+			{
+				DataTablesToOpen.Add(Table);
+			}
+			else
+			{
+				InvalidDataTables.Add(Table);
+			}
 		}
+	}
+
+	if (InvalidDataTables.Num() > 0)
+	{
+		FTextBuilder DataTablesListText;
+		DataTablesListText.Indent();
+		for (UDataTable* Table : InvalidDataTables)
+		{
+			const FName ResolvedRowStructName = Table->GetRowStructName();
+			DataTablesListText.AppendLineFormat(LOCTEXT("DataTable_MissingRowStructListEntry", "* {0} (Row Structure: {1})"), FText::FromString(Table->GetName()), FText::FromName(ResolvedRowStructName));
+		}
+
+		const EAppReturnType::Type DlgResult = OpenMsgDlgInt(
+			EAppMsgType::YesNoCancel, 
+			FText::Format(LOCTEXT("DataTable_MissingRowStructMsg", "The following Data Tables are missing their row structure and will not be editable.\n\n{0}\n\nDo you want to open these data tables?"), DataTablesListText.ToText()), 
+			LOCTEXT("DataTable_MissingRowStructTitle", "Continue?")
+			);
+
+		switch(DlgResult)
+		{
+		case EAppReturnType::Yes:
+			DataTablesToOpen.Append(InvalidDataTables);
+			break;
+		case EAppReturnType::Cancel:
+			return;
+		default:
+			break;
+		}
+	}
+
+	FDataTableEditorModule& DataTableEditorModule = FModuleManager::LoadModuleChecked<FDataTableEditorModule>("DataTableEditor");
+	for (UDataTable* Table : DataTablesToOpen)
+	{
+		DataTableEditorModule.CreateDataTableEditor(EToolkitMode::Standalone, EditWithinLevelEditor, Table);
 	}
 }
 

@@ -64,4 +64,14 @@ public:
 	 * Marks the designer content as being modified.
 	 */
 	virtual void MarkDesignModifed(bool bRequiresRecompile) = 0;
+
+	/**
+	 * Push a new designer message to show at the bottom of the screen.  Don't forget to call PopDesignerMessage when complete.
+	 */
+	virtual void PushDesignerMessage(const FText& Message) = 0;
+
+	/**
+	 * Removes the last message from the message stack.
+	 */
+	virtual void PopDesignerMessage() = 0;
 };

@@ -21,11 +21,8 @@ struct FOptionalPinFromProperty
 	UPROPERTY(EditAnywhere, Category=Hi, BlueprintReadOnly)
 	FString PropertyFriendlyName;
 
-	//~ Using WITH_EDITORONLY_DATA within an Editor module to exclude this FText property from the gather for games
-#if WITH_EDITORONLY_DATA
 	UPROPERTY(EditAnywhere, Category=Hi, BlueprintReadOnly)
 	FText PropertyTooltip;
-#endif //~ WITH_EDITORONLY_DATA
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Hi)
 	bool bShowPin;
@@ -49,7 +46,9 @@ struct FOptionalPinFromProperty
 	FOptionalPinFromProperty(FName InPropertyName, bool bInShowPin, bool bInCanToggleVisibility, const FString& InFriendlyName, const FText& InTooltip, bool bInPropertyIsCustomized, FName InCategoryName, bool bInHasOverridePin)
 		: PropertyName(InPropertyName)
 		, PropertyFriendlyName(InFriendlyName)
+#if WITH_EDITORONLY_DATA
 		, PropertyTooltip(InTooltip)
+#endif
 		, bShowPin(bInShowPin)
 		, bCanToggleVisibility(bInCanToggleVisibility)
 		, bPropertyIsCustomized(bInPropertyIsCustomized)

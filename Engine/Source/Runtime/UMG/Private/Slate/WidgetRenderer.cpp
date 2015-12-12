@@ -75,9 +75,27 @@ void FWidgetRenderer::DrawWindow(
 	FVector2D DrawSize,
 	float DeltaTime)
 {
-#if !UE_SERVER
-	FGeometry WindowGeometry = FGeometry::MakeRoot(DrawSize * (1 / Scale), FSlateLayoutTransform(Scale));
+	FGeometry WindowGeometry = FGeometry::MakeRoot(DrawSize * ( 1 / Scale ), FSlateLayoutTransform(Scale));
 
+	DrawWindow(
+		RenderTarget,
+		HitTestGrid,
+		Window,
+		WindowGeometry,
+		WindowGeometry.GetClippingRect(),
+		DeltaTime
+		);
+}
+
+void FWidgetRenderer::DrawWindow(
+	UTextureRenderTarget2D* RenderTarget,
+	TSharedRef<FHittestGrid> HitTestGrid,
+	TSharedRef<SWindow> Window,
+	FGeometry WindowGeometry,
+	FSlateRect WindowClipRect,
+	float DeltaTime)
+{
+#if !UE_SERVER
 	if ( GUsingNullRHI )
 	{
 		return;
@@ -91,11 +109,11 @@ void FWidgetRenderer::DrawWindow(
 	if ( bPrepassNeeded )
 	{
 		// Ticking can cause geometry changes.  Recompute
-		Window->SlatePrepass(Scale);
+		Window->SlatePrepass(WindowGeometry.Scale);
 	}
 
 	// Prepare the test grid 
-	HitTestGrid->ClearGridForNewFrame(WindowGeometry.GetClippingRect());
+	HitTestGrid->ClearGridForNewFrame(WindowClipRect);
 
 	// Get the free buffer & add our virtual window
 	FSlateDrawBuffer& DrawBuffer = Renderer->GetDrawBuffer();
@@ -103,10 +121,12 @@ void FWidgetRenderer::DrawWindow(
 
 	int32 MaxLayerId = 0;
 	{
+		FPaintArgs PaintArgs(Window.Get(), HitTestGrid.Get(), FVector2D::ZeroVector, FApp::GetCurrentTime(), DeltaTime);
+
 		// Paint the window
 		MaxLayerId = Window->Paint(
-			FPaintArgs(Window.Get(), HitTestGrid.Get(), FVector2D::ZeroVector, FApp::GetCurrentTime(), DeltaTime),
-			WindowGeometry, WindowGeometry.GetClippingRect(),
+			PaintArgs,
+			WindowGeometry, WindowClipRect,
 			WindowElementList,
 			0,
 			FWidgetStyle(),
@@ -115,13 +135,24 @@ void FWidgetRenderer::DrawWindow(
 
 	Renderer->DrawWindow_GameThread(DrawBuffer);
 
+	struct FRenderThreadContext
+	{
+		FSlateDrawBuffer* DrawBuffer;
+		FTextureRenderTarget2DResource* RenderTargetResource;
+		TSharedPtr<ISlate3DRenderer, ESPMode::ThreadSafe> Renderer;
+	};
+	FRenderThreadContext Context =
+	{
+		&DrawBuffer,
+		static_cast<FTextureRenderTarget2DResource*>(RenderTarget->GameThread_GetRenderTargetResource()),
+		Renderer
+	};
+
 	// Enqueue a command to unlock the draw buffer after all windows have been drawn
-	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(UWidgetComponentRenderToTexture,
-		FSlateDrawBuffer&, InDrawBuffer, DrawBuffer,
-		UTextureRenderTarget2D*, InRenderTarget, RenderTarget,
-		ISlate3DRenderer*, InRenderer, Renderer.Get(),
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(FWidgetRenderer_DrawWindow,
+		FRenderThreadContext, InContext, Context,
 		{
-			InRenderer->DrawWindowToTarget_RenderThread(RHICmdList, InRenderTarget, InDrawBuffer);
+			InContext.Renderer->DrawWindowToTarget_RenderThread(RHICmdList, InContext.RenderTargetResource, *InContext.DrawBuffer);
 		});
 #endif // !UE_SERVER
 }

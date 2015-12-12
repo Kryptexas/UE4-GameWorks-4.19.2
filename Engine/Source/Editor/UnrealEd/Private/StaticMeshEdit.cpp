@@ -852,7 +852,7 @@ struct ExistingStaticMeshData
 };
 
 
-ExistingStaticMeshData* SaveExistingStaticMeshData(UStaticMesh* ExistingMesh)
+ExistingStaticMeshData* SaveExistingStaticMeshData(UStaticMesh* ExistingMesh, bool bSaveMaterials)
 {
 	struct ExistingStaticMeshData* ExistingMeshDataPtr = NULL;
 
@@ -876,7 +876,7 @@ ExistingStaticMeshData* SaveExistingStaticMeshData(UStaticMesh* ExistingMesh)
 			for(int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
 			{
 				FMeshSectionInfo Info = OldSectionInfoMap.Get(i, SectionIndex);
-				if(ExistingMesh->Materials.IsValidIndex(Info.MaterialIndex))
+				if(bSaveMaterials && ExistingMesh->Materials.IsValidIndex(Info.MaterialIndex))
 				{
 					// we only save per LOD separeate IF the material index isn't added yet. 
 					// if it's already added, we don't have to add another one. 

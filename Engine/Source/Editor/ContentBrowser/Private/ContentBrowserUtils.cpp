@@ -1085,13 +1085,16 @@ ContentBrowserUtils::ECBFolderCategory ContentBrowserUtils::GetFolderCategory( c
 
 bool ContentBrowserUtils::IsEngineFolder( const FString& InPath )
 {
-	return InPath.StartsWith(TEXT("/Engine")) || InPath == TEXT("Engine");
+	static const FString EnginePathWithSlash = TEXT("/Engine");
+	static const FString EnginePathWithoutSlash = TEXT("Engine");
+
+	return InPath.StartsWith(EnginePathWithSlash) || InPath == EnginePathWithoutSlash;
 }
 
 bool ContentBrowserUtils::IsDevelopersFolder( const FString& InPath )
 {
-	const FString DeveloperPathWithSlash = FPackageName::FilenameToLongPackageName(FPaths::GameDevelopersDir());
-	const FString DeveloperPathWithoutSlash = DeveloperPathWithSlash.LeftChop(1);
+	static const FString DeveloperPathWithSlash = FPackageName::FilenameToLongPackageName(FPaths::GameDevelopersDir());
+	static const FString DeveloperPathWithoutSlash = DeveloperPathWithSlash.LeftChop(1);
 		
 	return InPath.StartsWith(DeveloperPathWithSlash) || InPath == DeveloperPathWithoutSlash;
 }
@@ -1114,8 +1117,14 @@ bool ContentBrowserUtils::IsPluginFolder( const FString& InPath )
 
 bool ContentBrowserUtils::IsLocalizationFolder( const FString& InPath )
 {
-	return	InPath.StartsWith(TEXT("/Engine/L10N")) || InPath.StartsWith(TEXT("Engine/L10N")) ||
-			InPath.StartsWith(TEXT("/Game/L10N")) || InPath.StartsWith(TEXT("Game/L10N"));
+	static const FString EngineLocPathWithSlash = TEXT("/Engine/L10N");
+	static const FString EngineLocPathWithoutSlash = TEXT("Engine/L10N");
+
+	static const FString GameLocPathWithSlash = TEXT("/Game/L10N");
+	static const FString GameLocPathWithoutSlash = TEXT("Game/L10N");
+
+	return	InPath.StartsWith(EngineLocPathWithSlash) || InPath.StartsWith(EngineLocPathWithoutSlash) ||
+			InPath.StartsWith(GameLocPathWithSlash) || InPath.StartsWith(GameLocPathWithoutSlash);
 }
 
 void ContentBrowserUtils::GetObjectsInAssetData(const TArray<FAssetData>& AssetList, TArray<UObject*>& OutDroppedObjects)

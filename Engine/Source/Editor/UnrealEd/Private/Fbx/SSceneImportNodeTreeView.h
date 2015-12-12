@@ -39,4 +39,5 @@ protected:
 	void OnSelectionChanged(FbxNodeInfoPtr Item, ESelectInfo::Type SelectionType);
 
 	void GotoAsset(TSharedPtr<FFbxAttributeInfo> AssetAttribute);
+	void RecursiveSetImport(FbxNodeInfoPtr NodeInfoPtr, bool ImportStatus);
 };

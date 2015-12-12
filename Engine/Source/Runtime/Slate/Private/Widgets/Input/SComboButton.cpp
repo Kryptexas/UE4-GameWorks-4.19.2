@@ -109,6 +109,18 @@ FReply SComboButton::OnButtonClicked()
 	return ButtonClickedReply;
 }
 
+FReply SComboButton::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
+{
+	FReply Reply = FReply::Unhandled();
+	if (InKeyEvent.GetKey() == EKeys::Gamepad_FaceButton_Bottom)
+	{
+		// Handle menu open with controller.
+		Reply = OnButtonClicked();
+	}
+
+	return Reply;
+}
+
 void SComboButton::SetMenuContent(TSharedRef<SWidget> InContent)
 {
 	WrappedContent = MenuContent =

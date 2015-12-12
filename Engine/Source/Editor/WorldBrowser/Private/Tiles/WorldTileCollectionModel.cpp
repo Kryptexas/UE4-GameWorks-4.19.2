@@ -320,6 +320,8 @@ void FWorldTileCollectionModel::BuildWorldCompositionMenu(FMenuBuilder& InMenuBu
 			LOCTEXT("LockHeader", "Lock"),
 			LOCTEXT("LockSubMenu_ToolTip", "Selected Level(s) lock commands"),
 			FNewMenuDelegate::CreateSP(this, &FWorldTileCollectionModel::FillLockSubMenu ) );
+
+		InMenuBuilder.AddMenuEntry(Commands.World_FindInContentBrowser);
 	}
 	InMenuBuilder.EndSection();
 
@@ -423,6 +425,7 @@ void FWorldTileCollectionModel::BuildHierarchyMenu(FMenuBuilder& InMenuBuilder) 
 			LOCTEXT("LockSubMenu_ToolTip", "Selected Level(s) lock commands"),
 			FNewMenuDelegate::CreateSP(this, &FWorldTileCollectionModel::FillLockSubMenu ) );
 	
+		InMenuBuilder.AddMenuEntry(Commands.World_FindInContentBrowser);
 	}
 	InMenuBuilder.EndSection();
 

@@ -22,3 +22,20 @@ bool INamedSlotInterface::ContainsContent(UWidget* Content) const
 
 	return false;
 }
+
+void INamedSlotInterface::ReleaseNamedSlotSlateResources(bool bReleaseChildren)
+{
+	if ( bReleaseChildren )
+	{
+		TArray<FName> SlotNames;
+		GetSlotNames(SlotNames);
+
+		for ( const FName& SlotName : SlotNames )
+		{
+			if ( UWidget* Content = GetContentForSlot(SlotName) )
+			{
+				Content->ReleaseSlateResources(bReleaseChildren);
+			}
+		}
+	}
+}

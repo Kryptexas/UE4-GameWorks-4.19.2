@@ -15,11 +15,16 @@
 #include "Animation/SkeletalMeshActor.h"
 #include "PackageTools.h"
 
-#include "FbxSceneOptionWindow.h"
+#include "SFbxSceneOptionWindow.h"
 #include "MainFrame.h"
+#include "PackageTools.h"
 
 #include "Editor/KismetCompiler/Public/KismetCompilerModule.h"
 #include "Kismet2/KismetEditorUtilities.h"
+
+#include "OutputDevice.h"
+
+#include "FbxImporter.h"
 
 #define LOCTEXT_NAMESPACE "FBXSceneImportFactory"
 
@@ -27,23 +32,22 @@ using namespace UnFbx;
 
 //////////////////////////////////////////////////////////////////////////
 // TODO list
-// -. When we export the material is set in the actor when we import the mesh,
-//    but when we have a link mesh, we want to set the material for all actors.
 // -. Set the combineMesh to true when importing a group of staticmesh
 // -. Export correctly skeletal mesh, in fbxreview the skeletal mesh is not
 //    playing is animation.
-// -. Create a UI for the import scene options
 // -. Create some tests
 // -. Support for camera
 // -. Support for light
 
+//Initialize static default option name
+FString UFbxSceneImportFactory::DefaultOptionName = FString(TEXT("Default"));
 
 bool GetFbxSceneImportOptions(UnFbx::FFbxImporter* FbxImporter
 	, TSharedPtr<FFbxSceneInfo> SceneInfoPtr
 	, UnFbx::FBXImportOptions *GlobalImportSettings
 	, UFbxSceneImportOptions *SceneImportOptions
 	, UFbxSceneImportOptionsStaticMesh *StaticMeshImportData
-	, MeshInfoOverrideOptions &SceneMeshOverrideOptions
+	, ImportOptionsNameMap &NameOptionsMap
 	, UFbxSceneImportOptionsSkeletalMesh *SkeletalMeshImportData
 	, UFbxSceneImportOptionsAnimation *AnimSequenceImportData
 	, UFbxSceneImportOptionsMaterial *TextureImportData
@@ -60,6 +64,8 @@ bool GetFbxSceneImportOptions(UnFbx::FFbxImporter* FbxImporter
 	//Make sure Material get imported
 	GlobalImportSettings->bImportMaterials = true;
 
+	GlobalImportSettings->bConvertScene = true;
+
 	//TODO this options will be set by the fbxscene UI in the material options tab, it also should be save/load from config file
 	//Prefix materials package name to put all material under Material folder (this avoid name clash with meshes)
 	GlobalImportSettings->MaterialPrefixName = FName("/Materials/");
@@ -74,6 +80,7 @@ bool GetFbxSceneImportOptions(UnFbx::FFbxImporter* FbxImporter
 		.ClientSize(FVector2D(800.f, 650.f))
 		.Title(NSLOCTEXT("UnrealEd", "FBXSceneImportOpionsTitle", "FBX Scene Import Options"));
 	TSharedPtr<SFbxSceneOptionWindow> FbxSceneOptionWindow;
+
 	Window->SetContent
 		(
 			SAssignNew(FbxSceneOptionWindow, SFbxSceneOptionWindow)
@@ -81,12 +88,12 @@ bool GetFbxSceneImportOptions(UnFbx::FFbxImporter* FbxImporter
 			.GlobalImportSettings(GlobalImportSettings)
 			.SceneImportOptionsDisplay(SceneImportOptions)
 			.SceneImportOptionsStaticMeshDisplay(StaticMeshImportData)
-			.SceneMeshOverrideOptions(&SceneMeshOverrideOptions)
+			.OverrideNameOptionsMap(&NameOptionsMap)
 			.SceneImportOptionsSkeletalMeshDisplay(SkeletalMeshImportData)
 			.SceneImportOptionsAnimationDisplay(AnimSequenceImportData)
 			.SceneImportOptionsMaterialDisplay(TextureImportData)
 			.OwnerWindow(Window)
-			.FullPath(FText::FromString(Path))
+			.FullPath(Path)
 			);
 
 	FSlateApplication::Get().AddModalWindow(Window, ParentWindow, false);
@@ -99,6 +106,34 @@ bool GetFbxSceneImportOptions(UnFbx::FFbxImporter* FbxImporter
 	//setup all options
 	GlobalImportSettings->bImportStaticMeshLODs = SceneImportOptions->bImportStaticMeshLODs;
 	GlobalImportSettings->bImportSkeletalMeshLODs = SceneImportOptions->bImportSkeletalMeshLODs;
+
+	//Set the override material into the options
+	for (TSharedPtr<FFbxNodeInfo> NodeInfo : SceneInfoPtr->HierarchyInfo)
+	{
+		for (TSharedPtr<FFbxMaterialInfo> Material : NodeInfo->Materials)
+		{
+			if (!GlobalImportSettings->OverrideMaterials.Contains(Material->UniqueId))
+			{
+				//If user dont want to import a material we have to replace it by the default material
+				if (!Material->bImportAttribute)
+				{
+					UMaterial* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
+					if (DefaultMaterial != nullptr)
+					{
+						GlobalImportSettings->OverrideMaterials.Add(Material->UniqueId, DefaultMaterial);
+					}
+				}
+				else if (Material->bOverridePath)
+				{
+					UMaterialInterface *UnrealMaterial = static_cast<UMaterialInterface*>(Material->GetContentObject());
+					if (UnrealMaterial != nullptr)
+					{
+						GlobalImportSettings->OverrideMaterials.Add(Material->UniqueId, UnrealMaterial);
+					}
+				}
+			}
+		}
+	}
 
 	//Save the import options in ini config file
 	SceneImportOptions->SaveConfig();
@@ -117,10 +152,110 @@ bool IsEmptyAttribute(FString AttributeType)
 	return (AttributeType.Compare("eNull") == 0 || AttributeType.Compare("eUnknown") == 0);
 }
 
+static void ExtractPropertyTextures(FbxSurfaceMaterial *FbxMaterial, TSharedPtr<FFbxMaterialInfo> MaterialInfo, const char *MaterialProperty, TMap<uint64, TSharedPtr<FFbxTextureInfo>> ExtractedTextures)
+{
+	FbxProperty FbxProperty = FbxMaterial->FindProperty(MaterialProperty);
+	if (FbxProperty.IsValid())
+	{
+		int32 LayeredTextureCount = FbxProperty.GetSrcObjectCount<FbxLayeredTexture>();
+		if (LayeredTextureCount == 0)
+		{
+			int32 TextureCount = FbxProperty.GetSrcObjectCount<FbxTexture>();
+			if (TextureCount > 0)
+			{
+				for (int32 TextureIndex = 0; TextureIndex < TextureCount; ++TextureIndex)
+				{
+					FbxFileTexture* FbxTexture = FbxProperty.GetSrcObject<FbxFileTexture>(TextureIndex);
+					TSharedPtr<FFbxTextureInfo> TextureInfo = nullptr;
+					if (ExtractedTextures.Contains(FbxTexture->GetUniqueID()))
+					{
+						TextureInfo = *(ExtractedTextures.Find(FbxTexture->GetUniqueID()));
+					}
+					else
+					{
+						TextureInfo = MakeShareable(new FFbxTextureInfo());
+						TextureInfo->Name = UTF8_TO_TCHAR(FbxTexture->GetName());
+						TextureInfo->UniqueId = FbxTexture->GetUniqueID();
+						TextureInfo->TexturePath = UTF8_TO_TCHAR(FbxTexture->GetFileName());
+						ExtractedTextures.Add(TextureInfo->UniqueId, TextureInfo);
+					}
+					//Add the texture
+					MaterialInfo->Textures.Add(TextureInfo);
+				}
+			}
+		}
+	}
+}
+
+static void ExtractMaterialInfoFromNode(UnFbx::FFbxImporter* FbxImporter, FbxNode *Node, TSharedPtr<FFbxSceneInfo> SceneInfoPtr, TMap<uint64, TSharedPtr<FFbxMaterialInfo>> ExtractedMaterials, TMap<uint64, TSharedPtr<FFbxTextureInfo>> ExtractedTextures, FString CurrentHierarchyPath)
+{
+	TSharedPtr<FFbxNodeInfo> FoundNode = nullptr;
+	for (TSharedPtr<FFbxNodeInfo> Nodeinfo : SceneInfoPtr->HierarchyInfo)
+	{
+		if (Nodeinfo->UniqueId == Node->GetUniqueID())
+		{
+			FoundNode = Nodeinfo;
+		}
+	}
+	if (FoundNode.IsValid())
+	{
+		if (!CurrentHierarchyPath.IsEmpty())
+		{
+			CurrentHierarchyPath += TEXT("/");
+		}
+		CurrentHierarchyPath += FoundNode->NodeName;
+
+		for (int MaterialIndex = 0; MaterialIndex < Node->GetMaterialCount(); ++MaterialIndex)
+		{
+			FbxSurfaceMaterial *FbxMaterial = Node->GetMaterial(MaterialIndex);
+			TSharedPtr<FFbxMaterialInfo> MaterialInfo = nullptr;
+			if (ExtractedMaterials.Contains(FbxMaterial->GetUniqueID()))
+			{
+				MaterialInfo = *(ExtractedMaterials.Find(FbxMaterial->GetUniqueID()));
+			}
+			else
+			{
+				MaterialInfo = MakeShareable(new FFbxMaterialInfo());
+				MaterialInfo->HierarchyPath = CurrentHierarchyPath;
+				MaterialInfo->UniqueId = FbxMaterial->GetUniqueID();
+				MaterialInfo->Name = UTF8_TO_TCHAR(FbxMaterial->GetName());
+				ExtractPropertyTextures(FbxMaterial, MaterialInfo, FbxSurfaceMaterial::sDiffuse, ExtractedTextures);
+				ExtractPropertyTextures(FbxMaterial, MaterialInfo, FbxSurfaceMaterial::sEmissive, ExtractedTextures);
+				ExtractPropertyTextures(FbxMaterial, MaterialInfo, FbxSurfaceMaterial::sSpecular, ExtractedTextures);
+				//ExtractPropertyTextures(FbxMaterial, MaterialInfo, FbxSurfaceMaterial::sSpecularFactor, ExtractedTextures);
+				//ExtractPropertyTextures(FbxMaterial, MaterialInfo, FbxSurfaceMaterial::sShininess, ExtractedTextures);
+				ExtractPropertyTextures(FbxMaterial, MaterialInfo, FbxSurfaceMaterial::sNormalMap, ExtractedTextures);
+				ExtractPropertyTextures(FbxMaterial, MaterialInfo, FbxSurfaceMaterial::sBump, ExtractedTextures);
+				ExtractPropertyTextures(FbxMaterial, MaterialInfo, FbxSurfaceMaterial::sTransparentColor, ExtractedTextures);
+				ExtractPropertyTextures(FbxMaterial, MaterialInfo, FbxSurfaceMaterial::sTransparencyFactor, ExtractedTextures);
+				ExtractedMaterials.Add(MaterialInfo->UniqueId, MaterialInfo);
+			}
+			//Add the Material to the node
+			FoundNode->Materials.AddUnique(MaterialInfo);
+		}
+	}
+	for (int ChildIndex = 0; ChildIndex < Node->GetChildCount(); ++ChildIndex)
+	{
+		FbxNode *ChildNode = Node->GetChild(ChildIndex);
+		ExtractMaterialInfoFromNode(FbxImporter, ChildNode, SceneInfoPtr, ExtractedMaterials, ExtractedTextures, CurrentHierarchyPath);
+	}
+}
+
+void UFbxSceneImportFactory::ExtractMaterialInfo(void* FbxImporterVoid, TSharedPtr<FFbxSceneInfo> SceneInfoPtr)
+{
+	UnFbx::FFbxImporter* FbxImporter = (UnFbx::FFbxImporter*)FbxImporterVoid;
+	TMap<uint64, TSharedPtr<FFbxMaterialInfo>> ExtractedMaterials;
+	TMap<uint64, TSharedPtr<FFbxTextureInfo>> ExtractedTextures;
+	FbxNode* RootNode = FbxImporter->Scene->GetRootNode();
+	FString CurrentHierarchyPath = TEXT("");
+	ExtractMaterialInfoFromNode(FbxImporter, RootNode, SceneInfoPtr, ExtractedMaterials, ExtractedTextures, CurrentHierarchyPath);
+}
+
 // TODO we should replace the old UnFbx:: data by the new data that use shared pointer.
 // For now we convert the old structure to the new one
-TSharedPtr<FFbxSceneInfo> ConvertSceneInfo(UnFbx::FbxSceneInfo &SceneInfo)
+TSharedPtr<FFbxSceneInfo> UFbxSceneImportFactory::ConvertSceneInfo(void* VoidFbxSceneInfo)
 {
+	UnFbx::FbxSceneInfo &SceneInfo = *((UnFbx::FbxSceneInfo*)VoidFbxSceneInfo);
 	TSharedPtr<FFbxSceneInfo> SceneInfoPtr = MakeShareable(new FFbxSceneInfo());
 	SceneInfoPtr->NonSkinnedMeshNum = SceneInfo.NonSkinnedMeshNum;
 	SceneInfoPtr->SkinnedMeshNum = SceneInfo.SkinnedMeshNum;
@@ -130,36 +265,34 @@ TSharedPtr<FFbxSceneInfo> ConvertSceneInfo(UnFbx::FbxSceneInfo &SceneInfo)
 	SceneInfoPtr->bHasAnimation = SceneInfo.bHasAnimation;
 	SceneInfoPtr->FrameRate = SceneInfo.FrameRate;
 	SceneInfoPtr->TotalTime = SceneInfo.TotalTime;
-	for (auto MeshInfoIt = SceneInfo.MeshInfo.CreateConstIterator(); MeshInfoIt; ++MeshInfoIt)
+	for (const UnFbx::FbxMeshInfo MeshInfo : SceneInfo.MeshInfo)
 	{
 		TSharedPtr<FFbxMeshInfo> MeshInfoPtr = MakeShareable(new FFbxMeshInfo());
-		MeshInfoPtr->FaceNum = (*MeshInfoIt).FaceNum;
-		MeshInfoPtr->VertexNum = (*MeshInfoIt).VertexNum;
-		MeshInfoPtr->bTriangulated = (*MeshInfoIt).bTriangulated;
-		MeshInfoPtr->MaterialNum = (*MeshInfoIt).MaterialNum;
-		MeshInfoPtr->bIsSkelMesh = (*MeshInfoIt).bIsSkelMesh;
-		MeshInfoPtr->SkeletonRoot = (*MeshInfoIt).SkeletonRoot;
-		MeshInfoPtr->SkeletonElemNum = (*MeshInfoIt).SkeletonElemNum;
-		MeshInfoPtr->LODGroup = (*MeshInfoIt).LODGroup;
-		MeshInfoPtr->LODLevel = (*MeshInfoIt).LODLevel;
-		MeshInfoPtr->MorphNum = (*MeshInfoIt).MorphNum;
-		MeshInfoPtr->Name = (*MeshInfoIt).Name;
-		MeshInfoPtr->UniqueId = (*MeshInfoIt).UniqueId;
+		MeshInfoPtr->FaceNum = MeshInfo.FaceNum;
+		MeshInfoPtr->VertexNum = MeshInfo.VertexNum;
+		MeshInfoPtr->bTriangulated = MeshInfo.bTriangulated;
+		MeshInfoPtr->MaterialNum = MeshInfo.MaterialNum;
+		MeshInfoPtr->bIsSkelMesh = MeshInfo.bIsSkelMesh;
+		MeshInfoPtr->SkeletonRoot = MeshInfo.SkeletonRoot;
+		MeshInfoPtr->SkeletonElemNum = MeshInfo.SkeletonElemNum;
+		MeshInfoPtr->LODGroup = MeshInfo.LODGroup;
+		MeshInfoPtr->LODLevel = MeshInfo.LODLevel;
+		MeshInfoPtr->MorphNum = MeshInfo.MorphNum;
+		MeshInfoPtr->Name = MeshInfo.Name;
+		MeshInfoPtr->UniqueId = MeshInfo.UniqueId;
 		SceneInfoPtr->MeshInfo.Add(MeshInfoPtr);
 	}
-	for (auto NodeInfoIt = SceneInfo.HierarchyInfo.CreateConstIterator(); NodeInfoIt; ++NodeInfoIt)
+	for (const UnFbx::FbxNodeInfo& NodeInfo : SceneInfo.HierarchyInfo)
 	{
-		const UnFbx::FbxNodeInfo &NodeInfo = (*NodeInfoIt);
 		TSharedPtr<FFbxNodeInfo> NodeInfoPtr = MakeShareable(new FFbxNodeInfo());
 		NodeInfoPtr->NodeName = NodeInfo.ObjectName;
 		NodeInfoPtr->UniqueId = NodeInfo.UniqueId;
 		NodeInfoPtr->AttributeType = NodeInfo.AttributeType;
-
+		
 		//Find the parent
-		NodeInfoPtr->ParentNodeInfo = NULL;
-		for (auto ParentIt = SceneInfoPtr->HierarchyInfo.CreateConstIterator(); ParentIt; ++ParentIt)
+		NodeInfoPtr->ParentNodeInfo = nullptr;
+		for (TSharedPtr<FFbxNodeInfo> ParentPtr : SceneInfoPtr->HierarchyInfo)
 		{
-			TSharedPtr<FFbxNodeInfo> ParentPtr = (*ParentIt);
 			if (ParentPtr->UniqueId == NodeInfo.ParentUniqueId)
 			{
 				NodeInfoPtr->ParentNodeInfo = ParentPtr;
@@ -169,10 +302,9 @@ TSharedPtr<FFbxSceneInfo> ConvertSceneInfo(UnFbx::FbxSceneInfo &SceneInfo)
 		}
 
 		//Find the attribute info
-		NodeInfoPtr->AttributeInfo = NULL;
-		for (auto AttributeIt = SceneInfoPtr->MeshInfo.CreateConstIterator(); AttributeIt; ++AttributeIt)
+		NodeInfoPtr->AttributeInfo = nullptr;
+		for (TSharedPtr<FFbxMeshInfo> AttributePtr : SceneInfoPtr->MeshInfo)
 		{
-			TSharedPtr<FFbxMeshInfo> AttributePtr = (*AttributeIt);
 			if (AttributePtr->UniqueId == NodeInfo.AttributeUniqueId)
 			{
 				NodeInfoPtr->AttributeInfo = AttributePtr;
@@ -185,9 +317,9 @@ TSharedPtr<FFbxSceneInfo> ConvertSceneInfo(UnFbx::FbxSceneInfo &SceneInfo)
 		FbxVector4 NewLocalT = NodeInfo.Transform.GetT();
 		FbxVector4 NewLocalS = NodeInfo.Transform.GetS();
 		FbxQuaternion NewLocalQ = NodeInfo.Transform.GetQ();
-		NodeInfoPtr->Transform.SetTranslation(FFbxDataConverter::ConvertPos(NewLocalT));
-		NodeInfoPtr->Transform.SetScale3D(FFbxDataConverter::ConvertScale(NewLocalS));
-		NodeInfoPtr->Transform.SetRotation(FFbxDataConverter::ConvertRotToQuat(NewLocalQ));
+		NodeInfoPtr->Transform.SetTranslation(UnFbx::FFbxDataConverter::ConvertPos(NewLocalT));
+		NodeInfoPtr->Transform.SetScale3D(UnFbx::FFbxDataConverter::ConvertScale(NewLocalS));
+		NodeInfoPtr->Transform.SetRotation(UnFbx::FFbxDataConverter::ConvertRotToQuat(NewLocalQ));
 
 		//by default we import all node
 		NodeInfoPtr->bImportNode = true;
@@ -203,6 +335,57 @@ UClass *FFbxMeshInfo::GetType()
 	if (bIsSkelMesh)
 		return USkeletalMesh::StaticClass();
 	return UStaticMesh::StaticClass();
+}
+
+UClass *FFbxTextureInfo::GetType()
+{
+	return UTexture::StaticClass();
+}
+
+UClass *FFbxMaterialInfo::GetType()
+{
+	return UMaterial::StaticClass();
+}
+
+UPackage *FFbxAttributeInfo::GetContentPackage()
+{
+	if (!IsContentObjectUpToDate)
+	{
+		//Update the Object, this will update the ContentPackage and set the IsContentUpToDate state
+		GetContentObject();
+	}
+	return ContentPackage;
+}
+
+UObject *FFbxAttributeInfo::GetContentObject()
+{
+	if (IsContentObjectUpToDate)
+		return ContentObject;
+	ContentPackage = nullptr;
+	ContentObject = nullptr;
+	FString ImportPath = PackageTools::SanitizePackageName(GetImportPath());
+	FString AssetName = GetFullImportName();
+	ContentPackage = LoadPackage(nullptr, *ImportPath, LOAD_Verify | LOAD_NoWarn);
+	if (ContentPackage != nullptr)
+	{
+		ContentPackage->FullyLoad();
+	}
+	ContentObject = FindObjectSafe<UObject>(ANY_PACKAGE, *AssetName);
+	if (ContentObject != nullptr)
+	{
+		if (ContentObject->HasAnyFlags(RF_Transient) || ContentObject->IsPendingKill())
+		{
+			ContentObject = nullptr;
+		}
+		else if (ContentPackage == nullptr)
+		{
+			//If we are able to find the object but not to load the package, this mean that the package is a new created package that is not save yet
+			ContentPackage = ContentObject->GetOutermost();
+		}
+	}
+
+	IsContentObjectUpToDate = true;
+	return ContentObject;
 }
 
 UFbxSceneImportFactory::UFbxSceneImportFactory(const FObjectInitializer& ObjectInitializer)
@@ -227,7 +410,84 @@ UFbxSceneImportFactory::UFbxSceneImportFactory(const FObjectInitializer& ObjectI
 	SkeletalMeshImportData = CreateDefaultSubobject<UFbxSkeletalMeshImportData>(TEXT("SkeletalMeshImportData"), true);
 	AnimSequenceImportData = CreateDefaultSubobject<UFbxAnimSequenceImportData>(TEXT("AnimSequenceImportData"), true);
 	TextureImportData = CreateDefaultSubobject<UFbxTextureImportData>(TEXT("TextureImportData"), true);
+
+	ReimportData = nullptr;
 }
+
+void UFbxSceneImportFactory::FillSceneHierarchyPath(TSharedPtr<FFbxSceneInfo> SceneInfo)
+{
+	//Set the hierarchy path for every node this data will be use by the reimport
+	for (FbxNodeInfoPtr NodeInfo : SceneInfo->HierarchyInfo)
+	{
+		FString NodeTreePath = NodeInfo->NodeName;
+		FbxNodeInfoPtr CurrentNode = NodeInfo->ParentNodeInfo;
+		while (CurrentNode.IsValid())
+		{
+			NodeTreePath += TEXT(".");
+			NodeTreePath += CurrentNode->NodeName;
+			CurrentNode = CurrentNode->ParentNodeInfo;
+		}
+		NodeInfo->NodeHierarchyPath = NodeTreePath;
+	}
+}
+
+UFbxSceneImportData* CreateReImportAsset(const FString &PackagePath, const FString &FbxImportFileName, UFbxSceneImportOptions* SceneImportOptions, TSharedPtr<FFbxSceneInfo> SceneInfo, ImportOptionsNameMap &NameOptionsMap)
+{
+	//Create a package
+	FString FilenameBase = FPaths::GetBaseFilename(FbxImportFileName);
+	FString FbxReImportPkgName = PackagePath + TEXT("/FbxScene_") + FilenameBase;
+	FbxReImportPkgName = PackageTools::SanitizePackageName(FbxReImportPkgName);
+	FString AssetName = TEXT("FbxScene_") + FilenameBase;
+	AssetName = PackageTools::SanitizePackageName(AssetName);
+	UPackage* PkgExist = nullptr;
+	if (!FEditorFileUtils::IsMapPackageAsset(FbxReImportPkgName))
+	{
+		PkgExist = FindPackage(nullptr, *FbxReImportPkgName);
+	}
+	int32 tryCount = 1;
+	while (PkgExist != nullptr)
+	{
+		FbxReImportPkgName = PackagePath + TEXT("/");
+		AssetName = TEXT("FbxScene_") + FilenameBase;
+		AssetName += TEXT("_");
+		AssetName += FString::FromInt(tryCount++);
+		FbxReImportPkgName += AssetName;
+		FbxReImportPkgName = PackageTools::SanitizePackageName(FbxReImportPkgName);
+		if (!FEditorFileUtils::IsMapPackageAsset(FbxReImportPkgName))
+		{
+			PkgExist = FindPackage(nullptr, *FbxReImportPkgName);
+		}
+	}
+	UPackage* Pkg = CreatePackage(nullptr, *FbxReImportPkgName);
+	if (!ensure(Pkg))
+	{
+		//TODO log an import warning stipulate that there is no re-import asset created
+		return nullptr;
+	}
+	Pkg->FullyLoad();
+
+	FbxReImportPkgName = FPackageName::GetLongPackageAssetName(Pkg->GetOutermost()->GetName());
+	//Save the re-import data asset
+	UFbxSceneImportData *ReImportAsset = NewObject<UFbxSceneImportData>(Pkg, NAME_None, RF_Public | RF_Standalone);
+	FString NewUniqueName = AssetName;
+	if (!ReImportAsset->Rename(*NewUniqueName, nullptr, REN_Test))
+	{
+		NewUniqueName = MakeUniqueObjectName(ReImportAsset, UFbxSceneImportData::StaticClass(), FName(*AssetName)).ToString();
+	}
+	ReImportAsset->Rename(*NewUniqueName);
+	ReImportAsset->SceneInfoSourceData = SceneInfo;
+	//Copy the options map
+	for (auto kvp : NameOptionsMap)
+	{
+		ReImportAsset->NameOptionsMap.Add(kvp.Key, kvp.Value);
+	}
+	
+	ReImportAsset->SourceFbxFile = FPaths::ConvertRelativePathToFull(FbxImportFileName);
+	ReImportAsset->bCreateFolderHierarchy = SceneImportOptions->bCreateContentFolderHierarchy;
+	ReImportAsset->HierarchyType = SceneImportOptions->HierarchyType.GetValue();
+	return ReImportAsset;
+}
+
 
 UObject* UFbxSceneImportFactory::FactoryCreateBinary
 (
@@ -262,11 +522,11 @@ const uint8*		BufferEnd,
 FFeedbackContext*	Warn
 )
 {
-	if (InParent == NULL)
+	if (InParent == nullptr)
 	{
-		return NULL;
+		return nullptr;
 	}
-
+	NameOptionsMap.Reset();
 	UWorld* World = GWorld;
 	ULevel* CurrentLevel = World->GetCurrentLevel();
 	//We will call other factory store the filename value since UFactory::CurrentFilename is static
@@ -289,19 +549,24 @@ FFeedbackContext*	Warn
 
 	Warn->BeginSlowTask(NSLOCTEXT("FbxSceneFactory", "BeginImportingFbxSceneTask", "Importing FBX scene"), true);
 	
+	GlobalImportSettings = FbxImporter->GetImportOptions();
+	
+	//Always convert the scene
+	GlobalImportSettings->bConvertScene = true;
+
 	//Read the fbx and store the hierarchy's information so we can reuse it after importing all the model in the fbx file
 	if (!FbxImporter->ImportFromFile(*FbxImportFileName, Type))
 	{
 		// Log the error message and fail the import.
 		Warn->Log(ELogVerbosity::Error, FbxImporter->GetErrorMessage());
 		FbxImporter->ReleaseScene();
-		FbxImporter = NULL;
+		FbxImporter = nullptr;
 		// Mark us as no longer importing a T3D.
 		GEditor->IsImportingT3D = 0;
 		GIsImportingT3D = false;
 		Warn->EndSlowTask();
 		FEditorDelegates::OnAssetPostImport.Broadcast(this, World);
-		return NULL;
+		return nullptr;
 	}
 
 	FString PackageName = "";
@@ -311,17 +576,22 @@ FFeedbackContext*	Warn
 	UnFbx::FbxSceneInfo SceneInfo;
 	//Read the scene and found all instance with their scene information.
 	FbxImporter->GetSceneInfo(FbxImportFileName, SceneInfo);
+	
+	GlobalImportSettingsReference = new UnFbx::FBXImportOptions();
+	SFbxSceneOptionWindow::CopyFbxOptionsToFbxOptions(GlobalImportSettings, GlobalImportSettingsReference);
 
 	//Convert old structure to the new scene export structure
-	TSharedPtr<FFbxSceneInfo> SceneInfoPtr = ConvertSceneInfo(SceneInfo);
+	TSharedPtr<FFbxSceneInfo> SceneInfoPtr = ConvertSceneInfo(&SceneInfo);
+	
+	//Get import material info
+	ExtractMaterialInfo(FbxImporter, SceneInfoPtr);
 
-	GlobalImportSettings = FbxImporter->GetImportOptions();
 	if(!GetFbxSceneImportOptions(FbxImporter
 		, SceneInfoPtr
-		, GlobalImportSettings
+		, GlobalImportSettingsReference
 		, SceneImportOptions
 		, SceneImportOptionsStaticMesh
-		, StaticMeshOverrideOptions
+		, NameOptionsMap
 		, SceneImportOptionsSkeletalMesh
 		, SceneImportOptionsAnimation
 		, SceneImportOptionsMaterial
@@ -330,21 +600,48 @@ FFeedbackContext*	Warn
 		//User cancel the scene import
 		ImportWasCancel = true;
 		FbxImporter->ReleaseScene();
-		FbxImporter = NULL;
-		GlobalImportSettings = NULL;
+		FbxImporter = nullptr;
+		GlobalImportSettings = nullptr;
+		GlobalImportSettingsReference = nullptr;
 		// Mark us as no longer importing a T3D.
 		GEditor->IsImportingT3D = 0;
 		GIsImportingT3D = false;
 		Warn->EndSlowTask();
 		FEditorDelegates::OnAssetPostImport.Broadcast(this, World);
-		return NULL;
+		return nullptr;
 	}
 
-	GlobalImportSettingsReference = new UnFbx::FBXImportOptions();
-	SFbxSceneOptionWindow::CopyFbxOptionsToFbxOptions(GlobalImportSettings, GlobalImportSettingsReference);
+	SFbxSceneOptionWindow::CopyFbxOptionsToFbxOptions(GlobalImportSettingsReference, GlobalImportSettings);
+
+	FillSceneHierarchyPath(SceneInfoPtr);
+
+	ReimportData = CreateReImportAsset(Path, FbxImportFileName, SceneImportOptions, SceneInfoPtr, NameOptionsMap);
+	if (ReimportData == nullptr)
+	{
+		//Cannot save the reimport data
+		const FText CreateReimportDataFailed = LOCTEXT("CreateReimportDataFailed", "Failed to create the re import data asset, which will make impossible the re import of this scene.\nLook in the logs to see the reason.\nPress Ok to continue or Cancel to abort the import process");
+		if (FMessageDialog::Open(EAppMsgType::OkCancel, CreateReimportDataFailed) == EAppReturnType::Cancel)
+		{
+			//User cancel the scene import
+			ImportWasCancel = true;
+			FbxImporter->ReleaseScene();
+			FbxImporter = nullptr;
+			GlobalImportSettings = nullptr;
+			// Mark us as no longer importing a T3D.
+			GEditor->IsImportingT3D = 0;
+			GIsImportingT3D = false;
+			Warn->EndSlowTask();
+			FEditorDelegates::OnAssetPostImport.Broadcast(this, World);
+			return nullptr;
+		}
+	}
+
+	//We are a scene import set the flag for the reimport factory
+	StaticMeshImportData->bImportAsScene = true;
+	StaticMeshImportData->FbxSceneImportDataReference = ReimportData;
 
 	//Get the scene root node
-	FbxNode* RootNodeToImport = NULL;
+	FbxNode* RootNodeToImport = nullptr;
 	RootNodeToImport = FbxImporter->Scene->GetRootNode();
 	
 	//Apply the options scene transform to the root node
@@ -367,11 +664,11 @@ FFeedbackContext*	Warn
 	ImportAllSkeletalMesh(RootNodeToImport, FbxImporter, Flags, NodeIndex, InterestingNodeCount, SceneInfoPtr);
 	//////////////////////////////////////////////////////////////////////////
 
-	UObject *ReturnObject = NULL;
+	UObject *ReturnObject = nullptr;
 	for (auto ItAsset = AllNewAssets.CreateIterator(); ItAsset; ++ItAsset)
 	{
 		UObject *AssetObject = ItAsset.Value();
-		if (AssetObject && ReturnObject == NULL)
+		if (AssetObject && ReturnObject == nullptr)
 		{
 			//Set the first import object as the return object to prevent false error from the caller of this factory
 			ReturnObject = AssetObject;
@@ -398,24 +695,35 @@ FFeedbackContext*	Warn
 		case EFBXSceneOptionsCreateHierarchyType::FBXSOCHT_CreateActorComponents:
 		case EFBXSceneOptionsCreateHierarchyType::FBXSOCHT_CreateBlueprint:
 		{
-			CreateActorComponentsHierarchy(SceneInfoPtr);
+			AActor *HierarchyActor = CreateActorComponentsHierarchy(SceneInfoPtr);
+			//If the user want to export to a BP replace the container actor with a BP link
+			if (SceneImportOptions->HierarchyType == EFBXSceneOptionsCreateHierarchyType::FBXSOCHT_CreateBlueprint && HierarchyActor != nullptr)
+			{
+				//The location+name of the BP is the user select content path + fbx base filename
+				FString FullnameBP = Path + TEXT("/") + FPaths::GetBaseFilename(UFactory::CurrentFilename);
+				FullnameBP = PackageTools::SanitizePackageName(FullnameBP);
+				//Create the blueprint from the actor and replace the actor with a blueprintactor that point on the blueprint
+				UBlueprint* SceneBlueprint = FKismetEditorUtilities::CreateBlueprintFromActor(FullnameBP, HierarchyActor, true);
+				if (SceneBlueprint != nullptr && ReimportData != nullptr)
+				{
+					//Set the blueprint path name in the re import scene data asset, this will allow re import to find the original import blueprint
+					ReimportData->BluePrintFullName = SceneBlueprint->GetPathName();
+				}
+			}
 		}
 		break;
 	}
 
 	//Release the FbxImporter 
 	FbxImporter->ReleaseScene();
-	FbxImporter = NULL;
-	GlobalImportSettings = NULL;
-	delete GlobalImportSettingsReference;
-	GlobalImportSettingsReference = NULL;
-
-	//TODO destroy the memory use by override options
-	StaticMeshOverrideOptions.Empty();
+	FbxImporter = nullptr;
+	GlobalImportSettings = nullptr;
+	GlobalImportSettingsReference = nullptr;
 
 	// Mark us as no longer importing a T3D.
 	GEditor->IsImportingT3D = 0;
 	GIsImportingT3D = false;
+	ReimportData = nullptr;
 
 	Warn->EndSlowTask();
 	FEditorDelegates::OnAssetPostImport.Broadcast(this, World);
@@ -439,21 +747,49 @@ void UFbxSceneImportFactory::ApplySceneTransformOptionsToRootNode(TSharedPtr<FFb
 	}
 }
 
+bool UFbxSceneImportFactory::SetStaticMeshComponentOverrideMaterial(UStaticMeshComponent* StaticMeshComponent, TSharedPtr<FFbxNodeInfo> NodeInfo)
+{
+	bool bOverrideMaterial = false;
+	UStaticMesh *StaticMesh = StaticMeshComponent->StaticMesh;
+	if (StaticMesh->Materials.Num() == NodeInfo->Materials.Num())
+	{
+		for (int32 MaterialIndex = 0; MaterialIndex < NodeInfo->Materials.Num(); ++MaterialIndex)
+		{
+			TSharedPtr<FFbxMaterialInfo> MaterialInfo = NodeInfo->Materials[MaterialIndex];
+			UMaterialInterface *MaterialInterface = Cast<UMaterialInterface>(MaterialInfo->GetContentObject());
+			if (MaterialInterface != nullptr && StaticMesh->GetMaterial(MaterialIndex) != MaterialInterface)
+			{
+				bOverrideMaterial = true;
+				break;
+			}
+		}
+		if (bOverrideMaterial)
+		{
+			for (int32 MaterialIndex = 0; MaterialIndex < NodeInfo->Materials.Num(); ++MaterialIndex)
+			{
+				TSharedPtr<FFbxMaterialInfo> MaterialInfo = NodeInfo->Materials[MaterialIndex];
+				UMaterialInterface *MaterialInterface = Cast<UMaterialInterface>(MaterialInfo->GetContentObject());
+				if (MaterialInterface != nullptr && StaticMesh->GetMaterial(MaterialIndex) != MaterialInterface)
+				{
+					StaticMeshComponent->SetMaterial(MaterialIndex, MaterialInterface);
+				}
+			}
+		}
+	}
+	return bOverrideMaterial;
+}
+
 void UFbxSceneImportFactory::CreateLevelActorHierarchy(TSharedPtr<FFbxSceneInfo> SceneInfoPtr)
 {
-	FString FbxImportFileName = UFactory::CurrentFilename;
-	FString FilenameBase = FPaths::GetBaseFilename(FbxImportFileName);
 	EComponentMobility::Type MobilityType = SceneImportOptions->bImportAsDynamic ? EComponentMobility::Movable : EComponentMobility::Static;
 	TMap<uint64, AActor *> NewActorNameMap;
 	FTransform RootTransform = FTransform::Identity;
 	bool bSelectActor = true;
 	//////////////////////////////////////////////////////////////////////////
 	// iterate the whole hierarchy and create all actors
-	for (auto NodeIt = SceneInfoPtr->HierarchyInfo.CreateConstIterator(); NodeIt; ++NodeIt)
+	for (TSharedPtr<FFbxNodeInfo>  NodeInfo : SceneInfoPtr->HierarchyInfo)
 	{
-		TSharedPtr<FFbxNodeInfo>  NodeInfo = (*NodeIt);
-		FString NodeItName(NodeInfo->NodeName);
-		if (NodeItName.Compare("RootNode") == 0)
+		if (NodeInfo->NodeName.Compare("RootNode") == 0)
 		{
 			RootTransform = NodeInfo->Transform;
 			continue;
@@ -468,12 +804,19 @@ void UFbxSceneImportFactory::CreateLevelActorHierarchy(TSharedPtr<FFbxSceneInfo>
 		UObject *AssetToPlace = (NodeInfo->AttributeInfo.IsValid() && AllNewAssets.Contains(NodeInfo->AttributeInfo)) ? AllNewAssets[NodeInfo->AttributeInfo] : nullptr;
 
 		//create actor
-		AActor *PlacedActor = NULL;
-		if (AssetToPlace != NULL)
+		AActor *PlacedActor = nullptr;
+		if (AssetToPlace != nullptr)
 		{
 			//Create an actor from the asset
 			//default flag is RF_Transactional;
 			PlacedActor = FActorFactoryAssetProxy::AddActorForAsset(AssetToPlace, bSelectActor);
+			
+			//Set the actor override material
+			if (PlacedActor->IsA(AStaticMeshActor::StaticClass()))
+			{
+				UStaticMeshComponent *StaticMeshComponent = Cast<UStaticMeshComponent>(PlacedActor->GetComponentByClass(UStaticMeshComponent::StaticClass()));
+				SetStaticMeshComponentOverrideMaterial(StaticMeshComponent, NodeInfo);
+			}
 		}
 		else if (IsEmptyAttribute(NodeInfo->AttributeType) || NodeInfo->AttributeType.Compare("eMesh") == 0)
 		{
@@ -496,42 +839,33 @@ void UFbxSceneImportFactory::CreateLevelActorHierarchy(TSharedPtr<FFbxSceneInfo>
 			//TODO log which fbx attribute we cannot create an actor from
 		}
 
-		if (PlacedActor != NULL)
+		if (PlacedActor != nullptr)
 		{
 			//Rename the actor correctly
 			//When importing a scene we don't want to change the actor name even if there is similar label already existing
-			PlacedActor->SetActorLabel(NodeItName);
+			PlacedActor->SetActorLabel(NodeInfo->NodeName);
 
 			USceneComponent* RootComponent = Cast<USceneComponent>(PlacedActor->GetRootComponent());
 			if (RootComponent)
 			{
+				//Set the mobility
+				RootComponent->Mobility = MobilityType;
 				//Map the new actor name with the old name in case the name is changing
 				NewActorNameMap.Add(NodeInfo->UniqueId, PlacedActor);
 				uint64 ParentUniqueId = NodeInfo->ParentNodeInfo.IsValid() ? NodeInfo->ParentNodeInfo->UniqueId : 0;
-				AActor *ParentActor = NULL;
+				AActor *ParentActor = nullptr;
 				//If there is a parent we must set the parent actor
 				if (NewActorNameMap.Contains(ParentUniqueId))
 				{
 					ParentActor = *NewActorNameMap.Find(ParentUniqueId);
-					if (ParentActor != NULL)
+					if (ParentActor != nullptr)
 					{
 						USceneComponent* ParentRootComponent = Cast<USceneComponent>(ParentActor->GetRootComponent());
 						if (ParentRootComponent)
 						{
-							//Set the mobility when adding the first child
-							if (ParentRootComponent->AttachChildren.Num() == 0)
+							if (GEditor->CanParentActors(ParentActor, PlacedActor))
 							{
-								//Make sure the mobility of the parent is the same of the child
-								ParentRootComponent->Mobility = RootComponent->Mobility;
-							}
-
-							//Set the parent only if the mobility is matching we cannot mix dynamic and static in the scene hierarchy
-							if (ParentRootComponent->Mobility == RootComponent->Mobility)
-							{
-								if (GEditor->CanParentActors(ParentActor, PlacedActor))
-								{
-									GEditor->ParentActors(ParentActor, PlacedActor, NAME_None);
-								}
+								GEditor->ParentActors(ParentActor, PlacedActor, NAME_None);
 							}
 						}
 					}
@@ -547,13 +881,13 @@ void UFbxSceneImportFactory::CreateLevelActorHierarchy(TSharedPtr<FFbxSceneInfo>
 	//////////////////////////////////////////////////////////////////////////
 }
 
-void UFbxSceneImportFactory::CreateActorComponentsHierarchy(TSharedPtr<FFbxSceneInfo> SceneInfoPtr)
+AActor *UFbxSceneImportFactory::CreateActorComponentsHierarchy(TSharedPtr<FFbxSceneInfo> SceneInfoPtr)
 {
 	FString FbxImportFileName = UFactory::CurrentFilename;
-	UBlueprint *NewBluePrintActor = NULL;
-	AActor *RootActorContainer = NULL;
-	FString FilenameBase = FPaths::GetBaseFilename(FbxImportFileName);
-	USceneComponent *ActorRootComponent = NULL;
+	UBlueprint *NewBluePrintActor = nullptr;
+	AActor *RootActorContainer = nullptr;
+	FString FilenameBase = FbxImportFileName.IsEmpty() ? TEXT("TransientToBlueprintActor") : FPaths::GetBaseFilename(FbxImportFileName);
+	USceneComponent *ActorRootComponent = nullptr;
 	TMap<uint64, USceneComponent *> NewSceneComponentNameMap;
 	EComponentMobility::Type MobilityType = SceneImportOptions->bImportAsDynamic ? EComponentMobility::Movable : EComponentMobility::Static;
 	
@@ -565,9 +899,9 @@ void UFbxSceneImportFactory::CreateActorComponentsHierarchy(TSharedPtr<FFbxScene
 	UObject* EmptyActorAsset = EmptyActorAssetData.GetAsset();
 	//Place an empty actor
 	RootActorContainer = FActorFactoryAssetProxy::AddActorForAsset(EmptyActorAsset, true);
-	check(RootActorContainer != NULL);
+	check(RootActorContainer != nullptr);
 	ActorRootComponent = NewObject<USceneComponent>(RootActorContainer, USceneComponent::GetDefaultSceneRootVariableName());
-	check(ActorRootComponent != NULL);
+	check(ActorRootComponent != nullptr);
 	ActorRootComponent->Mobility = MobilityType;
 	ActorRootComponent->bVisualizeComponent = true;
 	RootActorContainer->SetRootComponent(ActorRootComponent);
@@ -578,13 +912,11 @@ void UFbxSceneImportFactory::CreateActorComponentsHierarchy(TSharedPtr<FFbxScene
 	//////////////////////////////////////////////////////////////////////////
 	// iterate the whole hierarchy and create all component
 	FTransform RootTransform = FTransform::Identity;
-	for (auto NodeIt = SceneInfoPtr->HierarchyInfo.CreateConstIterator(); NodeIt; ++NodeIt)
+	for (TSharedPtr<FFbxNodeInfo> NodeInfo : SceneInfoPtr->HierarchyInfo)
 	{
-		TSharedPtr<FFbxNodeInfo>  NodeInfo = (*NodeIt);
-		FString NodeItName(NodeInfo->NodeName);
 		//Set the root transform if its the root node and skip the node
 		//The root transform will be use for every node under the root node
-		if (NodeItName.Compare("RootNode") == 0)
+		if (NodeInfo->NodeName.Compare("RootNode") == 0)
 		{
 			RootTransform = NodeInfo->Transform;
 			continue;
@@ -599,8 +931,8 @@ void UFbxSceneImportFactory::CreateActorComponentsHierarchy(TSharedPtr<FFbxScene
 
 		//Create the component where the type depend on the asset point by the component
 		//In case there is no asset we create a SceneComponent
-		USceneComponent* SceneComponent = NULL;
-		if (AssetToPlace != NULL)
+		USceneComponent* SceneComponent = nullptr;
+		if (AssetToPlace != nullptr)
 		{
 			if (AssetToPlace->GetClass() == UStaticMesh::StaticClass())
 			{
@@ -608,6 +940,7 @@ void UFbxSceneImportFactory::CreateActorComponentsHierarchy(TSharedPtr<FFbxScene
 				UStaticMeshComponent* StaticMeshComponent = NewObject<UStaticMeshComponent>(RootActorContainer, NAME_None);
 				StaticMeshComponent->SetStaticMesh(Cast<UStaticMesh>(AssetToPlace));
 				StaticMeshComponent->DepthPriorityGroup = SDPG_World;
+				SetStaticMeshComponentOverrideMaterial(StaticMeshComponent, NodeInfo);
 				SceneComponent = StaticMeshComponent;
 				SceneComponent->Mobility = MobilityType;
 			}
@@ -634,10 +967,10 @@ void UFbxSceneImportFactory::CreateActorComponentsHierarchy(TSharedPtr<FFbxScene
 
 		//////////////////////////////////////////////////////////////////////////
 		//Make sure scenecomponent name are unique in the hierarchy of the outer
-		FString NewUniqueName = NodeItName;
+		FString NewUniqueName = NodeInfo->NodeName;
 		if (!SceneComponent->Rename(*NewUniqueName, nullptr, REN_Test))
 		{
-			NewUniqueName = MakeUniqueObjectName(RootActorContainer, USceneComponent::StaticClass(), FName(*NodeItName)).ToString();
+			NewUniqueName = MakeUniqueObjectName(RootActorContainer, USceneComponent::StaticClass(), FName(*NodeInfo->NodeName)).ToString();
 		}
 		SceneComponent->Rename(*NewUniqueName);
 
@@ -651,11 +984,11 @@ void UFbxSceneImportFactory::CreateActorComponentsHierarchy(TSharedPtr<FFbxScene
 		//Find the parent component by unique ID and attach(as child) the newly created scenecomponent
 		//Attach the component to the rootcomponent if we dont find any parent component
 		uint64 ParentUniqueId = NodeInfo->ParentNodeInfo.IsValid() ? NodeInfo->ParentNodeInfo->UniqueId : 0;
-		USceneComponent *ParentRootComponent = NULL;
+		USceneComponent *ParentRootComponent = nullptr;
 		if (NewSceneComponentNameMap.Contains(ParentUniqueId))
 		{
 			ParentRootComponent = *NewSceneComponentNameMap.Find(ParentUniqueId);
-			if (ParentRootComponent != NULL)
+			if (ParentRootComponent != nullptr)
 			{
 				SceneComponent->AttachTo(ParentRootComponent, NAME_None, EAttachLocation::KeepWorldPosition);
 			}
@@ -671,14 +1004,7 @@ void UFbxSceneImportFactory::CreateActorComponentsHierarchy(TSharedPtr<FFbxScene
 	// End of iteration of the hierarchy
 	//////////////////////////////////////////////////////////////////////////
 
-	//If the user want to export to a BP replace the container actor with a BP link
-	if (SceneImportOptions->HierarchyType == EFBXSceneOptionsCreateHierarchyType::FBXSOCHT_CreateBlueprint && RootActorContainer != NULL)
-	{
-		//The location+name of the BP is the user select content path + fbx base filename
-		FString FullnameBP = Path + TEXT("/") + FilenameBase;
-		//Create the blueprint from the actor and replace the actor with a blueprintactor that point on the blueprint
-		FKismetEditorUtilities::CreateBlueprintFromActor(FullnameBP, RootActorContainer, true);
-	}
+	return RootActorContainer;
 }
 
 void UFbxSceneImportFactory::ApplyTransformToComponent(USceneComponent *SceneComponent, FTransform *LocalTransform, FTransform *PreMultiplyTransform)
@@ -708,14 +1034,14 @@ void UFbxSceneImportFactory::ImportAllSkeletalMesh(void* VoidRootNodeToImport, v
 
 	for (int32 i = 0; i < SkelMeshArray.Num(); i++)
 	{
-		UObject* NewObject = NULL;
+		UObject* NewObject = nullptr;
 		TArray<FbxNode*> NodeArray = *SkelMeshArray[i];
-		UPackage* Pkg = NULL;
+		UPackage* Pkg = nullptr;
 		TotalNumNodes += NodeArray.Num();
+		TSharedPtr<FFbxNodeInfo> RootNodeInfo;
 		if (TotalNumNodes > 0)
 		{
 			FbxNode* RootNodeArrayNode = NodeArray[0];
-			TSharedPtr<FFbxNodeInfo> RootNodeInfo;
 			if (!FindSceneNodeInfo(SceneInfo, RootNodeArrayNode->GetUniqueID(), RootNodeInfo))
 			{
 				continue;
@@ -769,8 +1095,9 @@ void UFbxSceneImportFactory::ImportAllSkeletalMesh(void* VoidRootNodeToImport, v
 				FString PackageName = Path + TEXT("/") + OutputName.ToString();
 				FString SkeletalMeshName;
 				Pkg = CreatePackageForNode(PackageName, SkeletalMeshName);
-				if (Pkg == NULL)
+				if (Pkg == nullptr)
 					break;
+				RootNodeInfo->AttributeInfo->SetOriginalImportPath(PackageName);
 				FName SkeletalMeshFName = FName(*SkeletalMeshName);
 				USkeletalMesh* NewMesh = FbxImporter->ImportSkeletalMesh(Pkg, SkelMeshNodeArray, SkeletalMeshFName, Flags, SkeletalMeshImportData);
 				NewObject = NewMesh;
@@ -810,7 +1137,7 @@ void UFbxSceneImportFactory::ImportAllSkeletalMesh(void* VoidRootNodeToImport, v
 			// import morph target
 			if (NewObject && SkeletalMeshImportData->bImportMorphTargets)
 			{
-				if (Pkg == NULL)
+				if (Pkg == nullptr)
 					continue;
 				// TODO: Disable material importing when importing morph targets
 				FbxImporter->ImportFbxMorphTarget(SkelMeshNodeArray, Cast<USkeletalMesh>(NewObject), Pkg, LODIndex);
@@ -853,7 +1180,7 @@ void UFbxSceneImportFactory::ImportAllStaticMesh(void* VoidRootNodeToImport, voi
 	InterestingNodeCount = FbxImporter->GetFbxMeshCount(RootNodeToImport, bCountLODGroupMeshes, NumLODGroups);
 
 	int32 ImportedMeshCount = 0;
-	UStaticMesh* NewStaticMesh = NULL;
+	UStaticMesh* NewStaticMesh = nullptr;
 	UObject* Object = RecursiveImportNode(FbxImporter, RootNodeToImport, Flags, NodeIndex, InterestingNodeCount, SceneInfo, Path);
 
 	NewStaticMesh = Cast<UStaticMesh>(Object);
@@ -878,7 +1205,7 @@ void UFbxSceneImportFactory::ImportAllStaticMesh(void* VoidRootNodeToImport, voi
 // @todo document
 UObject* UFbxSceneImportFactory::RecursiveImportNode(void* VoidFbxImporter, void* VoidNode, EObjectFlags Flags, int32& NodeIndex, int32 Total, TSharedPtr<FFbxSceneInfo>  SceneInfo, FString PackagePath)
 {
-	UObject* NewObject = NULL;
+	UObject* NewObject = nullptr;
 	TSharedPtr<FFbxNodeInfo> OutNodeInfo;
 	UnFbx::FFbxImporter* FFbxImporter = (UnFbx::FFbxImporter*)VoidFbxImporter;
 
@@ -923,13 +1250,17 @@ UObject* UFbxSceneImportFactory::RecursiveImportNode(void* VoidFbxImporter, void
 		
 		if (SceneImportOptions->bCreateContentFolderHierarchy)
 		{
-			PackagePath += TEXT("/") + FString(FFbxImporter->MakeName(Node->GetName()));
+			FString NodeName = FString(FFbxImporter->MakeName(Node->GetName()));
+			if (NodeName.Compare("RootNode") != 0)
+			{
+				PackagePath += TEXT("/") + NodeName;
+			}
 		}
 
 		for (int32 ChildIndex = 0; ChildIndex < Node->GetChildCount(); ++ChildIndex)
 		{
 			UObject* SubObject = RecursiveImportNode(VoidFbxImporter, Node->GetChild(ChildIndex), Flags, NodeIndex, Total, SceneInfo, PackagePath);
-			if (NewObject == NULL)
+			if (NewObject == nullptr)
 			{
 				NewObject = SubObject;
 			}
@@ -945,7 +1276,7 @@ UObject* UFbxSceneImportFactory::ImportANode(void* VoidFbxImporter, void* VoidNo
 	UnFbx::FFbxImporter* FFbxImporter = (UnFbx::FFbxImporter*)VoidFbxImporter;
 	FbxNode* Node = (FbxNode*)VoidNode;
 	FString ParentName;
-	if (Node->GetParent() != NULL)
+	if (Node->GetParent() != nullptr)
 	{
 		ParentName = FFbxImporter->MakeName(Node->GetParent()->GetName());
 	}
@@ -959,13 +1290,13 @@ UObject* UFbxSceneImportFactory::ImportANode(void* VoidFbxImporter, void* VoidNo
 	if (!FindSceneNodeInfo(SceneInfo, Node->GetUniqueID(), OutNodeInfo) || !OutNodeInfo->AttributeInfo.IsValid())
 	{
 		//We cannot instantiate this asset if its not part of the hierarchy
-		return NULL;
+		return nullptr;
 	}
 
 	if(OutNodeInfo->AttributeInfo->GetType() != UStaticMesh::StaticClass() || !OutNodeInfo->AttributeInfo->bImportAttribute)
 	{
 		//export only static mesh or the user specify to not import this mesh
-		return NULL;
+		return nullptr;
 	}
 
 	//Check if the Mesh was already import
@@ -974,43 +1305,42 @@ UObject* UFbxSceneImportFactory::ImportANode(void* VoidFbxImporter, void* VoidNo
 		return AllNewAssets[OutNodeInfo->AttributeInfo];
 	}
 
-	UObject* NewObject = NULL;
-	FName OutputName = FFbxImporter->MakeNameForMesh(OutNodeInfo->AttributeInfo->Name, NULL);
+	UObject* NewObject = nullptr;
+	// skip collision models
+	if (NodeName.Find("UCX") != -1 || NodeName.Find("MCDCX") != -1 ||
+		NodeName.Find("UBX") != -1 || NodeName.Find("USP") != -1)
 	{
-		// skip collision models
-		if (NodeName.Find("UCX") != -1 || NodeName.Find("MCDCX") != -1 ||
-			NodeName.Find("UBX") != -1 || NodeName.Find("USP") != -1)
-		{
-			return NULL;
-		}
-
-		//Create a package for this node
-		//Get Parent hierarchy name to create new package path
-
-		FString PackageName = PackagePath + TEXT("/") + OutputName.ToString();
-		FString StaticMeshName;
-		UPackage* Pkg = CreatePackageForNode(PackageName, StaticMeshName);
-		if (Pkg == NULL)
-			return NULL;
-
-		//Apply the correct fbx options
-		TSharedPtr<FFbxMeshInfo> MeshInfo = StaticCastSharedPtr<FFbxMeshInfo>(OutNodeInfo->AttributeInfo);
-		if (StaticMeshOverrideOptions.Contains(MeshInfo))
-		{
-			UnFbx::FBXImportOptions* OverrideImportSettings = *StaticMeshOverrideOptions.Find(MeshInfo);
-			SFbxSceneOptionWindow::CopyFbxOptionsToFbxOptions(OverrideImportSettings, GlobalImportSettings);
-			SFbxSceneOptionWindow::CopyFbxOptionsToStaticMeshOptions(OverrideImportSettings, SceneImportOptionsStaticMesh);
-			SceneImportOptionsStaticMesh->FillStaticMeshInmportData(StaticMeshImportData, SceneImportOptions);
-		}
-		else
-		{
-			SFbxSceneOptionWindow::CopyFbxOptionsToFbxOptions(GlobalImportSettingsReference, GlobalImportSettings);
-			SFbxSceneOptionWindow::CopyFbxOptionsToStaticMeshOptions(GlobalImportSettingsReference, SceneImportOptionsStaticMesh);
-			SceneImportOptionsStaticMesh->FillStaticMeshInmportData(StaticMeshImportData, SceneImportOptions);
-		}
-		FName StaticMeshFName = FName(*StaticMeshName);
-		NewObject = FFbxImporter->ImportStaticMesh(Pkg, Node, StaticMeshFName, Flags, StaticMeshImportData, Cast<UStaticMesh>(InMesh), LODIndex);
+		return nullptr;
 	}
+
+	//Create a package for this node
+	FString PackageName = PackagePath + TEXT("/") + OutNodeInfo->AttributeInfo->Name;
+	FString StaticMeshName;
+	UPackage* Pkg = CreatePackageForNode(PackageName, StaticMeshName);
+	if (Pkg == nullptr)
+		return nullptr;
+
+	//Apply the correct fbx options
+	TSharedPtr<FFbxMeshInfo> MeshInfo = StaticCastSharedPtr<FFbxMeshInfo>(OutNodeInfo->AttributeInfo);
+	
+	UnFbx::FBXImportOptions* OverrideImportSettings = GetOptionsFromName(MeshInfo->OptionName);
+	if (OverrideImportSettings != nullptr)
+	{
+		SFbxSceneOptionWindow::CopyFbxOptionsToFbxOptions(OverrideImportSettings, GlobalImportSettings);
+		SFbxSceneOptionWindow::CopyFbxOptionsToStaticMeshOptions(OverrideImportSettings, SceneImportOptionsStaticMesh);
+		SceneImportOptionsStaticMesh->FillStaticMeshInmportData(StaticMeshImportData, SceneImportOptions);
+	}
+	else
+	{
+		//Use the default options if we dont found options
+		SFbxSceneOptionWindow::CopyFbxOptionsToFbxOptions(GlobalImportSettingsReference, GlobalImportSettings);
+		SFbxSceneOptionWindow::CopyFbxOptionsToStaticMeshOptions(GlobalImportSettingsReference, SceneImportOptionsStaticMesh);
+		SceneImportOptionsStaticMesh->FillStaticMeshInmportData(StaticMeshImportData, SceneImportOptions);
+	}
+	FName StaticMeshFName = FName(*(OutNodeInfo->AttributeInfo->Name));
+	NewObject = FFbxImporter->ImportStaticMesh(Pkg, Node, StaticMeshFName, Flags, StaticMeshImportData, Cast<UStaticMesh>(InMesh), LODIndex);
+	OutNodeInfo->AttributeInfo->SetOriginalImportPath(PackageName);
+	OutNodeInfo->AttributeInfo->SetOriginalFullImportName(NewObject->GetPathName());
 
 	if (NewObject)
 	{
@@ -1022,6 +1352,18 @@ UObject* UFbxSceneImportFactory::ImportANode(void* VoidFbxImporter, void* VoidNo
 	}
 
 	return NewObject;
+}
+
+UnFbx::FBXImportOptions *UFbxSceneImportFactory::GetOptionsFromName(FString OptionsName)
+{
+	for (auto kvp : NameOptionsMap)
+	{
+		if (kvp.Key.Compare(OptionsName) == 0)
+		{
+			return kvp.Value;
+		}
+	}
+	return nullptr;
 }
 
 bool UFbxSceneImportFactory::FindSceneNodeInfo(TSharedPtr<FFbxSceneInfo> SceneInfo, uint64 NodeInfoUniqueId, TSharedPtr<FFbxNodeInfo> &OutNodeInfo)
@@ -1043,22 +1385,22 @@ UPackage *UFbxSceneImportFactory::CreatePackageForNode(FString PackageName, FStr
 	// We can not create assets that share the name of a map file in the same location
 	if (FEditorFileUtils::IsMapPackageAsset(PackageNameOfficial))
 	{
-		return NULL;
+		return nullptr;
 	}
-	
-	UPackage* PkgExist = FindPackage(NULL, *PackageNameOfficial);
+	bool IsPkgExist = FPackageName::DoesPackageExist(PackageNameOfficial);
 	int32 tryCount = 1;
-	while (PkgExist != NULL)
+	while (IsPkgExist)
 	{
 		PackageNameOfficial = PackageName;
 		PackageNameOfficial += TEXT("_");
 		PackageNameOfficial += FString::FromInt(tryCount++);
-		PkgExist = FindPackage(NULL, *PackageNameOfficial);
+		PackageNameOfficial = PackageTools::SanitizePackageName(PackageNameOfficial);
+		IsPkgExist = FPackageName::DoesPackageExist(PackageNameOfficial);
 	}
-	UPackage* Pkg = CreatePackage(NULL, *PackageNameOfficial);
+	UPackage* Pkg = CreatePackage(nullptr, *PackageNameOfficial);
 	if (!ensure(Pkg))
 	{
-		return NULL;
+		return nullptr;
 	}
 	Pkg->FullyLoad();
 

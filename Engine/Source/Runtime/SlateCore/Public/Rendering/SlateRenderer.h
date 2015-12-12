@@ -98,6 +98,32 @@ private:
 };
 
 
+struct FMappedTextureBuffer
+{
+	void* Data;
+	int32 Width;
+	int32 Height;
+
+	FMappedTextureBuffer()
+		: Data(nullptr)
+		, Width(0)
+		, Height(0)
+	{
+	}
+
+	bool IsValid() const
+	{
+		return Data && Width > 0 && Height > 0;
+	}
+
+	void Reset()
+	{
+		Data = nullptr;
+		Width = Height = 0;
+	}
+};
+
+
 /**
  * Abstract base class for Slate renderers.
  */
@@ -379,7 +405,7 @@ public:
 	virtual void CopyWindowsToVirtualScreenBuffer(const TArray<FString>& KeypressBuffer) {}
 	
 	/** Allows and disallows access to the crash tracker buffer data on the CPU */
-	virtual void MapVirtualScreenBuffer(void** OutImageData) {}
+	virtual void MapVirtualScreenBuffer(FMappedTextureBuffer* OutImageData) {}
 	virtual void UnmapVirtualScreenBuffer() {}
 
 protected:

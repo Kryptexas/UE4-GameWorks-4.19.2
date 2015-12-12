@@ -431,11 +431,20 @@ int32	UnFbx::FFbxImporter::DoUnSmoothVerts(FSkeletalMeshImportData &ImportData, 
 
 	for(int32 i=0; i< ImportData.Influences.Num(); i++)
 	{
+		if (PointInfluences.Num() <= ImportData.Influences[i].VertexIndex)
+		{
+			PointInfluences.AddZeroed(ImportData.Influences[i].VertexIndex - PointInfluences.Num() + 1);
+		}
 		PointInfluences[ImportData.Influences[i].VertexIndex ].RawInfIndices.Add( i );
 	}
 
 	for(int32 i=0; i< ImportData.Wedges.Num(); i++)
 	{
+		if (uint32(PointWedges.Num()) <= ImportData.Wedges[i].VertexIndex)
+		{
+			PointWedges.AddZeroed(ImportData.Wedges[i].VertexIndex - PointWedges.Num() + 1);
+		}
+
 		PointWedges[ImportData.Wedges[i].VertexIndex ].WedgeList.Add( i );
 	}
 

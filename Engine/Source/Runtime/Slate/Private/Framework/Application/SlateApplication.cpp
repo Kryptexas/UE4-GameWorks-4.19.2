@@ -277,6 +277,7 @@ DECLARE_CYCLE_STAT( TEXT("SlatePrepass"), STAT_SlatePrepass, STATGROUP_Slate );
 DECLARE_CYCLE_STAT( TEXT("Draw Window And Children Time"), STAT_SlateDrawWindowTime, STATGROUP_Slate );
 DECLARE_CYCLE_STAT( TEXT("TickWidgets"), STAT_SlateTickWidgets, STATGROUP_Slate );
 DECLARE_CYCLE_STAT( TEXT("TickRegisteredWidgets"), STAT_SlateTickRegisteredWidgets, STATGROUP_Slate );
+DECLARE_CYCLE_STAT( TEXT("Slate::PreTickEvent"), STAT_SlatePreTickEvent, STATGROUP_Slate );
 
 DECLARE_CYCLE_STAT(TEXT("ProcessKeyDown"), STAT_ProcessKeyDown, STATGROUP_Slate);
 DECLARE_CYCLE_STAT(TEXT("ProcessKeyUp"), STAT_ProcessKeyUp, STATGROUP_Slate);
@@ -1308,12 +1309,53 @@ extern SLATECORE_API int32 bFoldTick;
 
 void FSlateApplication::Tick()
 {
-	{
-	SCOPE_CYCLE_COUNTER( STAT_SlateTickTime );
-	SLATE_CYCLE_COUNTER_SCOPE(GSlateTotalTickTime);
-
 	FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::Tick");
 
+	{
+		SCOPE_CYCLE_COUNTER(STAT_SlateTickTime);
+		SLATE_CYCLE_COUNTER_SCOPE(GSlateTotalTickTime);
+
+		const float DeltaTime = GetDeltaTime();
+
+		TickPlatform(DeltaTime);
+		TickApplication(DeltaTime);
+	}
+
+	// Update Slate Stats
+	SLATE_STATS_END_FRAME(GetCurrentTime());
+
+	FPlatformMisc::EndNamedEvent();
+}
+
+void FSlateApplication::TickPlatform(float DeltaTime)
+{
+	FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::TickPlatform");
+
+	{
+		SCOPE_CYCLE_COUNTER(STAT_SlateMessageTick);
+
+		// We need to pump messages here so that slate can receive input.  
+		if ( ( ActiveModalWindows.Num() > 0 ) || GIntraFrameDebuggingGameThread )
+		{
+			// We only need to pump messages for slate when a modal window or blocking mode is active is up because normally message pumping is handled in FEngineLoop::Tick
+			PlatformApplication->PumpMessages(DeltaTime);
+
+			if ( FCoreDelegates::StarvedGameLoop.IsBound() )
+			{
+				FCoreDelegates::StarvedGameLoop.Execute();
+			}
+		}
+
+		PlatformApplication->Tick(DeltaTime);
+
+		PlatformApplication->ProcessDeferredEvents(DeltaTime);
+	}
+
+	FPlatformMisc::EndNamedEvent();
+}
+
+void FSlateApplication::TickApplication(float DeltaTime)
+{
 	if (Renderer.IsValid())
 	{
 		// Release any temporary material or texture resources we may have cached and are reporting to prevent
@@ -1321,36 +1363,13 @@ void FSlateApplication::Tick()
 		// be queued up to be released.
 		Renderer->ReleaseAccessedResources(/* Flush State */ false);
 	}
-	
 
-	const float DeltaTime = GetDeltaTime();
-
+	FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::PreTick");
 	{
-		SCOPE_CYCLE_COUNTER( STAT_SlateMessageTick );
-
-		//FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::Platform");
-
-		// We need to pump messages here so that slate can receive input.  
-		if( (ActiveModalWindows.Num() > 0) || GIntraFrameDebuggingGameThread )
-		{
-			// We only need to pump messages for slate when a modal window or blocking mode is active is up because normally message pumping is handled in FEngineLoop::Tick
-			PlatformApplication->PumpMessages( DeltaTime );
-
-			if (FCoreDelegates::StarvedGameLoop.IsBound())
-			{
-				FCoreDelegates::StarvedGameLoop.Execute();
-			}
-		}
-
-		PlatformApplication->Tick( DeltaTime );
-
-		PlatformApplication->ProcessDeferredEvents( DeltaTime );
-
-		//FPlatformMisc::EndNamedEvent();
+		SCOPE_CYCLE_COUNTER(STAT_SlatePreTickEvent);
+		PreTickEvent.Broadcast(DeltaTime);
 	}
-
-	UpdateRetainerWidgetsEvent.Broadcast( DeltaTime );
-
+	FPlatformMisc::EndNamedEvent();
 
 	//FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::UpdateCursorLockRegion");
 	// The widget locking the cursor to its bounds may have been reshaped.
@@ -1506,12 +1525,8 @@ void FSlateApplication::Tick()
 		// Draw all windows
 		DrawWindows();
 	}
-	}
 
-	FPlatformMisc::EndNamedEvent();
-
-	// Update Slate Stats
-	SLATE_STATS_END_FRAME(GetCurrentTime());
+	PostTickEvent.Broadcast(DeltaTime);
 }
 
 
@@ -1812,8 +1827,32 @@ void FSlateApplication::AddModalWindow( TSharedRef<SWindow> InSlateWindow, const
 		// Tick slate from here in the event that we should not return until the modal window is closed.
 		while( InSlateWindow == GetActiveModalWindow() )
 		{
-			// Tick and render Slate
-			Tick();
+			FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::Tick");
+
+			{
+				SCOPE_CYCLE_COUNTER(STAT_SlateTickTime);
+				SLATE_CYCLE_COUNTER_SCOPE(GSlateTotalTickTime);
+
+				const float DeltaTime = GetDeltaTime();
+
+				// Tick and pump messages for the platform.
+				TickPlatform(DeltaTime);
+
+				// It's possible that during ticking the platform we'll find out the modal dialog was closed.
+				// in which case we need to abort the current flow.
+				if ( InSlateWindow != GetActiveModalWindow() )
+				{
+					break;
+				}
+
+				// Tick and render Slate
+				TickApplication(DeltaTime);
+			}
+
+			// Update Slate Stats
+			SLATE_STATS_END_FRAME(GetCurrentTime());
+
+			FPlatformMisc::EndNamedEvent();
 
 			// Synchronize the game thread and the render thread so that the render thread doesn't get too far behind.
 			Renderer->Sync();
@@ -3715,7 +3754,7 @@ TSharedPtr< FSlateWindowElementList > FSlateApplication::FCacheElementPools::Get
 	TSharedPtr< FSlateWindowElementList > NextElementList;
 
 	// Move any inactive element lists in the active pool to the inactive pool.
-	for ( int32 i = 0; i < ActiveCachedElementListPool.Num(); i++ )
+	for ( int32 i = ActiveCachedElementListPool.Num() - 1; i >= 0; i-- )
 	{
 		if ( ActiveCachedElementListPool[i]->IsCachedRenderDataInUse() == false )
 		{
@@ -3725,7 +3764,7 @@ TSharedPtr< FSlateWindowElementList > FSlateApplication::FCacheElementPools::Get
 	}
 
 	// Remove inactive lists that don't belong to this window.
-	for ( int32 i = 0; i < InactiveCachedElementListPool.Num(); i++ )
+	for ( int32 i = InactiveCachedElementListPool.Num() - 1; i >= 0; i-- )
 	{
 		if ( InactiveCachedElementListPool[i]->GetWindow() != CurrentWindow )
 		{

@@ -130,12 +130,39 @@ public:
 	 */
 	void SetText( const TAttribute<FText>& InTextAttr );
 
+	/** See HighlightText attribute */
 	void SetHighlightText( const TAttribute<FText>& InHighlightText );
+
+	/** See TextShapingMethod attribute */
+	void SetTextShapingMethod(const TOptional<ETextShapingMethod>& InTextShapingMethod);
+
+	/** See TextFlowDirection attribute */
+	void SetTextFlowDirection(const TOptional<ETextFlowDirection>& InTextFlowDirection);
+
+	/** See WrapTextAt attribute */
+	void SetWrapTextAt(const TAttribute<float>& InWrapTextAt);
+
+	/** See AutoWrapText attribute */
+	void SetAutoWrapText(const TAttribute<bool>& InAutoWrapText);
+
+	/** See LineHeightPercentage attribute */
+	void SetLineHeightPercentage(const TAttribute<float>& InLineHeightPercentage);
+
+	/** See Margin attribute */
+	void SetMargin(const TAttribute<FMargin>& InMargin);
+
+	/** See Justification attribute */
+	void SetJustification(const TAttribute<ETextJustify::Type>& InJustification);
 
 	/**
 	 * Causes the text to reflow it's layout
 	 */
 	void Refresh();
+
+protected:
+	//~ SWidget interface
+	virtual bool ComputeVolatility() const override;
+	//~ End of SWidget interface
 
 private:
 

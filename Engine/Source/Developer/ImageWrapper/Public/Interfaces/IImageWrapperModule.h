@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "IImageWrapper.h"
 
 /**
  * Interface for image wrapper modules.

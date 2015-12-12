@@ -203,7 +203,7 @@ FText UMovieScene::GetObjectDisplayName(const FGuid& ObjectId)
 #if WITH_EDITORONLY_DATA
 	FText* Result = ObjectsToDisplayNames.Find(ObjectId.ToString());
 
-	if (Result != nullptr)
+	if (Result && !Result->IsEmpty())
 	{
 		return *Result;
 	}

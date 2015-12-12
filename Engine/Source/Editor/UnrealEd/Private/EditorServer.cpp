@@ -1712,7 +1712,7 @@ void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushes
 
 void UEditorEngine::RebuildAlteredBSP()
 {
-	if( GUndo && !GIsTransacting )
+	if( !GIsTransacting )
 	{
 		// Early out if BSP auto-updating is disabled
 		if (!GetDefault<ULevelEditorMiscSettings>()->bBSPAutoUpdate)
@@ -1724,15 +1724,15 @@ void UEditorEngine::RebuildAlteredBSP()
 
 		// A list of all the levels that need to be rebuilt
 		TArray< TWeakObjectPtr< ULevel > > LevelsToRebuild;
-			ABrush::NeedsRebuild(&LevelsToRebuild);
+		ABrush::NeedsRebuild(&LevelsToRebuild);
 
 		// Determine which levels need to be rebuilt
 		for (FSelectionIterator It(GetSelectedActorIterator()); It; ++It)
 		{
 			AActor* Actor = static_cast<AActor*>(*It);
-				checkSlow(Actor->IsA(AActor::StaticClass()));
+			checkSlow(Actor->IsA(AActor::StaticClass()));
 
-				ABrush* SelectedBrush = Cast< ABrush >(Actor);
+			ABrush* SelectedBrush = Cast< ABrush >(Actor);
 			if (SelectedBrush && !FActorEditorUtils::IsABuilderBrush(Actor))
 			{
 				ULevel* Level = SelectedBrush->GetLevel();
@@ -1745,16 +1745,16 @@ void UEditorEngine::RebuildAlteredBSP()
 			{
 				// In addition to any selected brushes, any brushes attached to a selected actor should be rebuilt
 				TArray<AActor*> AttachedActors;
-					Actor->GetAttachedActors(AttachedActors);
+				Actor->GetAttachedActors(AttachedActors);
 
 				const bool bExactClass = true;
 				TArray<AActor*> AttachedBrushes;
 				// Get any brush actors attached to the selected actor
-					if (ContainsObjectOfClass(AttachedActors, ABrush::StaticClass(), bExactClass, &AttachedBrushes))
+				if (ContainsObjectOfClass(AttachedActors, ABrush::StaticClass(), bExactClass, &AttachedBrushes))
 				{
-						for (int32 BrushIndex = 0; BrushIndex < AttachedBrushes.Num(); ++BrushIndex)
+					for (int32 BrushIndex = 0; BrushIndex < AttachedBrushes.Num(); ++BrushIndex)
 					{
-							ULevel* Level = CastChecked<ABrush>(AttachedBrushes[BrushIndex])->GetLevel();
+						ULevel* Level = CastChecked<ABrush>(AttachedBrushes[BrushIndex])->GetLevel();
 						if (Level)
 						{
 							LevelsToRebuild.AddUnique(Level);
@@ -1789,7 +1789,7 @@ void UEditorEngine::RebuildAlteredBSP()
 	}
 	else
 	{
- 		ensureMsgf(0, TEXT("Rebuild BSP ignored. Not in a transaction") );
+ 		ensureMsgf(0, TEXT("Rebuild BSP ignored during undo/redo") );
 		ABrush::OnRebuildDone();
 	}
 }

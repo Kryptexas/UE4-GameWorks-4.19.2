@@ -6,6 +6,8 @@
 class STextComboBox;
 
 typedef TSharedPtr<FFbxMeshInfo> FbxMeshInfoPtr;
+typedef TMap<FString, EFbxSceneReimportStatusFlags> FbxSceneReimportStatusMap;
+typedef FbxSceneReimportStatusMap* FbxSceneReimportStatusMapPtr;
 
 class SFbxSceneStaticMeshListView : public SListView<FbxMeshInfoPtr>
 {
@@ -16,12 +18,12 @@ public:
 	SLATE_BEGIN_ARGS(SFbxSceneStaticMeshListView)
 	: _SceneInfo(nullptr)
 	, _GlobalImportSettings(nullptr)
-	, _SceneMeshOverrideOptions(nullptr)
+	, _OverrideNameOptionsMap(nullptr)
 	, _SceneImportOptionsStaticMeshDisplay(nullptr)
 	{}
 		SLATE_ARGUMENT(TSharedPtr<FFbxSceneInfo>, SceneInfo)
 		SLATE_ARGUMENT(UnFbx::FBXImportOptions*, GlobalImportSettings)
-		SLATE_ARGUMENT(MeshInfoOverrideOptions*, SceneMeshOverrideOptions)
+		SLATE_ARGUMENT(ImportOptionsNameMapPtr, OverrideNameOptionsMap)
 		SLATE_ARGUMENT(class UFbxSceneImportOptionsStaticMesh*, SceneImportOptionsStaticMeshDisplay)
 	SLATE_END_ARGS()
 	
@@ -40,10 +42,8 @@ public:
 protected:
 	TSharedPtr<FFbxSceneInfo> SceneInfo;
 	UnFbx::FBXImportOptions* GlobalImportSettings;
-	MeshInfoOverrideOptions *SceneMeshOverrideOptions;
 
 	UnFbx::FBXImportOptions *CurrentStaticMeshImportOptions;
-
 
 	/** the elements we show in the tree view */
 	TArray<FbxMeshInfoPtr> FbxMeshesArray;
@@ -55,16 +55,15 @@ protected:
 	void RemoveSelectionFromImport();
 	void SetSelectionImportState(bool MarkForImport);
 	void OnSelectionChanged(FbxMeshInfoPtr Item, ESelectInfo::Type SelectionType);
-	void RefreshOptions();
-	void CreateOverrideOptions();
-	void ResetToDefaultOptions();
 
 	void OnChangedOverrideOptions(TSharedPtr<FString> ItemSelected, ESelectInfo::Type SelectInfo);
-	void AssignToOptions(TSharedPtr<FString> OptionName);
+	TSharedPtr<FString> FindOptionNameFromName(FString OptionName);
+	void AssignToOptions(FString OptionName);
+	FString FindUniqueOptionName();
 	
 
 	TArray<TSharedPtr<FString>> OverrideNameOptions;
-	TMap<TSharedPtr<FString>, UnFbx::FBXImportOptions*> OverrideNameOptionsMap;
+	ImportOptionsNameMapPtr OverrideNameOptionsMap;
 	TSharedPtr<STextComboBox> OptionComboBox;
 	TSharedPtr<FString> DefaultOptionNamePtr;
 };

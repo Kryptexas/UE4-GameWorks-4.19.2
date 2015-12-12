@@ -222,7 +222,15 @@ void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
 			continue;
 		}
 
-		FEdGraphPinType WidgetPinType(Schema->PC_Object, TEXT(""), Widget->GetClass(), false, false);
+		// This code was added to fix the problem of recompiling dependent widgets, not using the newest
+		// class thus resulting in REINST failures in dependent blueprints.
+		UClass* WidgetClass = Widget->GetClass();
+		if ( UBlueprintGeneratedClass* BPWidgetClass = Cast<UBlueprintGeneratedClass>(WidgetClass) )
+		{
+			WidgetClass = BPWidgetClass->GetAuthoritativeClass();
+		}
+
+		FEdGraphPinType WidgetPinType(Schema->PC_Object, TEXT(""), WidgetClass, false, false);
 		
 		// Always name the variable according to the underlying FName of the widget object
 		UProperty* WidgetProperty = CreateVariable(Widget->GetFName(), WidgetPinType);

@@ -307,6 +307,12 @@ protected:
 	/** Make this Level the Current Level */
 	void MakeLevelCurrent_Executed();
 
+	/** Find selected levels in Content Browser */
+	void FindInContentBrowser_Executed();
+
+	/** Is FindInContentBrowser a valid action */
+	bool IsValidFindInContentBrowser();
+
 	/** Moves the selected actors to this level */
 	void MoveActorsToSelected_Executed();
 

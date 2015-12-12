@@ -33,7 +33,7 @@ TSharedRef<SWidget>	SGraphPinKey::GetDefaultValueWidget()
 		.OnKeyChanged(this, &SGraphPinKey::OnKeyChanged);
 }
 
-FKey SGraphPinKey::GetCurrentKey() const
+TOptional<FKey> SGraphPinKey::GetCurrentKey() const
 {
 	return SelectedKey;
 }

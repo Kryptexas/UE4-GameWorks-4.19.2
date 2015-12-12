@@ -7,6 +7,8 @@
 
 #define LOCTEXT_NAMESPACE "UMG"
 
+static FName DefaultTextureParameterName("Texture");
+
 /////////////////////////////////////////////////////
 // URetainerBox
 
@@ -16,6 +18,35 @@ URetainerBox::URetainerBox(const FObjectInitializer& ObjectInitializer)
 	Visibility = ESlateVisibility::Visible;
 	Phase = 0;
 	PhaseCount = 1;
+	TextureParameter = DefaultTextureParameterName;
+}
+
+UMaterialInstanceDynamic* URetainerBox::GetEffectMaterial() const
+{
+	if ( MyRetainerWidget.IsValid() )
+	{
+		return MyRetainerWidget->GetEffectMaterial();
+	}
+
+	return nullptr;
+}
+
+void URetainerBox::SetEffectMaterial(UMaterialInterface* InEffectMaterial)
+{
+	EffectMaterial = InEffectMaterial;
+	if ( MyRetainerWidget.IsValid() )
+	{
+		MyRetainerWidget->SetEffectMaterial(EffectMaterial);
+	}
+}
+
+void URetainerBox::SetTextureParameter(FName InTextureParameter)
+{
+	TextureParameter = InTextureParameter;
+	if ( MyRetainerWidget.IsValid() )
+	{
+		MyRetainerWidget->SetTextureParameter(TextureParameter);
+	}
 }
 
 void URetainerBox::ReleaseSlateResources(bool bReleaseChildren)
@@ -44,6 +75,14 @@ TSharedRef<SWidget> URetainerBox::RebuildWidget()
 	}
 	
 	return BuildDesignTimeWidget(MyRetainerWidget.ToSharedRef());
+}
+
+void URetainerBox::SynchronizeProperties()
+{
+	Super::SynchronizeProperties();
+
+	MyRetainerWidget->SetEffectMaterial(EffectMaterial);
+	MyRetainerWidget->SetTextureParameter(TextureParameter);
 }
 
 void URetainerBox::OnSlotAdded(UPanelSlot* Slot)

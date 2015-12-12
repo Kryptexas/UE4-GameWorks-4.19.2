@@ -3056,7 +3056,9 @@ public:
 						// If removing degenerate triangles, ignore them when computing tangents.
 						TangentOptions |= ETangentOptions::IgnoreDegenerateTriangles;
 					}
-					if (SrcModel.BuildSettings.bUseMikkTSpace)
+
+					//MikkTSpace should be use only when the user want to recompute the normals or tangents otherwise should always fallback on builtin
+					if (SrcModel.BuildSettings.bUseMikkTSpace && (SrcModel.BuildSettings.bRecomputeNormals || SrcModel.BuildSettings.bRecomputeTangents))
 					{
 						ComputeTangents_MikkTSpace(RawMesh, OverlappingCorners, TangentOptions);
 					}
@@ -4372,8 +4374,8 @@ public:
 			TangentZ.AddZeroed(NumWedges);
 		}
 
-		// Compute any missing tangents.
-		if (BuildData->BuildOptions.bUseMikkTSpace)
+		// Compute any missing tangents. MikkTSpace should be use only when the user want to recompute the normals or tangents otherwise should always fallback on builtin
+		if (BuildData->BuildOptions.bUseMikkTSpace && (BuildData->BuildOptions.bComputeNormals || BuildData->BuildOptions.bComputeTangents))
 		{
 			Skeletal_ComputeTangents_MikkTSpace(BuildData, OverlappingCorners);
 		}

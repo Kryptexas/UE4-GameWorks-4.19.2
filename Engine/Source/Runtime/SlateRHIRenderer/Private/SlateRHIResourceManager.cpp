@@ -53,7 +53,6 @@ void FDynamicResourceMap::AddUTextureResource( UTexture* TextureObject, TSharedR
 		TextureMap.Add(TextureObject, InResource);
 
 		TextureMemorySincePurge += TextureObject->GetResourceSize(EResourceSizeMode::Inclusive);
-		RemoveExpiredTextureResources();
 	}
 }
 
@@ -61,8 +60,6 @@ void FDynamicResourceMap::AddMaterialResource( const UMaterialInterface* Materia
 {
 	check( Material == InMaterialResource->GetMaterialObject() );
 	MaterialMap.Add(Material, InMaterialResource);
-
-	RemoveExpiredMaterialResources();
 }
 
 void FDynamicResourceMap::RemoveDynamicTextureResource(FName ResourceName)
@@ -120,7 +117,7 @@ void FDynamicResourceMap::ReleaseResources()
 	}
 }
 
-void FDynamicResourceMap::RemoveExpiredTextureResources()
+void FDynamicResourceMap::RemoveExpiredTextureResources(TArray< TSharedPtr<FSlateUTextureResource> >& RemovedTextures)
 {
 	// We attempt to purge every 10Mb of accumulated textures.
 	static const uint64 PurgeAfterAddingNewBytes = 1024 * 1024 * 10; // 10Mb
@@ -129,8 +126,11 @@ void FDynamicResourceMap::RemoveExpiredTextureResources()
 	{
 		for ( TextureResourceMap::TIterator It(TextureMap); It; ++It )
 		{
-			if ( It.Key().IsStale() )
+			TWeakObjectPtr<UTexture>& Key = It.Key();
+			if ( !Key.IsValid() )
 			{
+				RemovedTextures.Push(It.Value());
+
 				It.RemoveCurrent();
 			}
 		}
@@ -139,16 +139,19 @@ void FDynamicResourceMap::RemoveExpiredTextureResources()
 	}
 }
 
-void FDynamicResourceMap::RemoveExpiredMaterialResources()
+void FDynamicResourceMap::RemoveExpiredMaterialResources(TArray< TSharedPtr<FSlateMaterialResource> >& RemovedMaterials)
 {
-	static const int32 CheckingIncrement = 10;
+	static const int32 CheckingIncrement = 20;
 
 	if ( MaterialMap.Num() > ( LastExpiredMaterialNumMarker + CheckingIncrement ) )
 	{
 		for ( MaterialResourceMap::TIterator It(MaterialMap); It; ++It )
 		{
-			if ( It.Key().IsStale() )
+			TWeakObjectPtr<UMaterialInterface>& Key = It.Key();
+			if ( !Key.IsValid() )
 			{
+				RemovedMaterials.Push(It.Value());
+
 				It.RemoveCurrent();
 			}
 		}
@@ -746,7 +749,6 @@ void FSlateRHIResourceManager::ReleaseDynamicResource( const FSlateBrush& InBrus
 					MaterialResourceFreeList.Add( MaterialResource );
 				}
 			}
-		
 		}
 		else if( !ResourceObject )
 		{
@@ -765,7 +767,6 @@ void FSlateRHIResourceManager::ReleaseDynamicResource( const FSlateBrush& InBrus
 				DEC_DWORD_STAT_BY(STAT_SlateNumDynamicTextures, 1);
 			}
 		}
-		
 	}
 }
 
@@ -790,6 +791,9 @@ void FSlateRHIResourceManager::BeginReleasingAccessedResources(bool bImmediately
 	// IsInGameThread returns true when you're in the slate loading thread
 	if ( IsInGameThread() && !IsInSlateThread() )
 	{
+		DynamicResourceMap.RemoveExpiredTextureResources(UTextureFreeList);
+		DynamicResourceMap.RemoveExpiredMaterialResources(MaterialResourceFreeList);
+
 		if ( CurrentAccessedUObject )
 		{
 			DirtyAccessedObjectSets.Enqueue(CurrentAccessedUObject);
@@ -833,7 +837,7 @@ TSet<UObject*>& FSlateRHIResourceManager::GetAccessedUObjects()
 			CurrentAccessedUObject = AllAccessedUObject.Last();
 		}
 	}
-	
+
 	return *CurrentAccessedUObject;
 }
 

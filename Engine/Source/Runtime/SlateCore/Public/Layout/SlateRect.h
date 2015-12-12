@@ -53,16 +53,18 @@ public:
 	
 public:
 
-	bool IsValid() const
+	/**
+	 * Determines if the rectangle has positive dimensions.
+	 */
+	FORCEINLINE bool IsValid() const
 	{
 		return !(Left == -1 && Right == -1 && Bottom == -1 && Top == -1) && Right >= Left && Bottom >= Top;
 	}
 
-
 	/**
-	 * @return true, if the rectangle is empty. Should be used in conjunction with IntersectionWith.
+	 * @return true, if the rectangle has a size of 0.
 	 */
-	bool IsEmpty() const
+	FORCEINLINE bool IsEmpty() const
 	{
 		return GetSize().SizeSquared() == 0.0f;
 	}
@@ -72,7 +74,7 @@ public:
 	 *
 	 * @return The size as a vector.
 	 */
-	FVector2D GetSize() const
+	FORCEINLINE FVector2D GetSize() const
 	{
 		return FVector2D( Right - Left, Bottom - Top );
 	}
@@ -82,7 +84,7 @@ public:
 	 * 
 	 * @return The center point.
 	 */
-	FVector2D GetCenter() const
+	FORCEINLINE FVector2D GetCenter() const
 	{
 		return FVector2D( Left, Top ) + GetSize() * 0.5f;
 	}
@@ -92,7 +94,7 @@ public:
 	 * 
 	 * @return The top-left position.
 	 */
-	FVector2D GetTopLeft() const
+	FORCEINLINE FVector2D GetTopLeft() const
 	{
 		return FVector2D( Left, Top );
 	}
@@ -102,7 +104,7 @@ public:
 	 *
 	 * @return The top-right position.
 	 */
-	FVector2D GetTopRight() const
+	FORCEINLINE FVector2D GetTopRight() const
 	{
 		return FVector2D(Right, Top);
 	}
@@ -112,7 +114,7 @@ public:
 	 * 
 	 * @return The bottom-right position.
 	 */
-	FVector2D GetBottomRight() const
+	FORCEINLINE FVector2D GetBottomRight() const
 	{
 		return FVector2D( Right, Bottom );
 	}
@@ -122,7 +124,7 @@ public:
 	 * 
 	 * @return The bottom-left position.
 	 */
-	FVector2D GetBottomLeft() const
+	FORCEINLINE FVector2D GetBottomLeft() const
 	{
 		return FVector2D( Left, Bottom );
 	}

@@ -468,6 +468,9 @@ FReimportManager::FReimportManager()
 	// Create reimport handler for FBX skeletal meshes
 	UReimportFbxSkeletalMeshFactory::StaticClass();
 
+	// Create reimport handler for FBX scene
+	UReimportFbxSceneFactory::StaticClass();
+
 	// Create reimport handler for APEX destructible meshes
 	UReimportDestructibleMeshFactory::StaticClass();
 

@@ -675,11 +675,7 @@ void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForc
 	}
 
 	OnWidgetPreviewUpdated.Broadcast();
-
-	if (Sequencer.IsValid())
-	{
-		Sequencer->UpdateRuntimeInstances();
-	}
+	GetSequencer()->UpdateRuntimeInstances();
 }
 
 FGraphAppearanceInfo FWidgetBlueprintEditor::GetGraphAppearance(UEdGraph* InGraph) const

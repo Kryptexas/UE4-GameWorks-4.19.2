@@ -110,17 +110,21 @@ namespace
 					+SHorizontalBox::Slot()
 					.FillWidth(1.0f)
 					[
-						SAssignNew(MultiLineWidget, SMultiLineEditableTextBox)
-						.Text_Lambda(GetTextValue)
-						.Font(InArgs._Font)
-						.SelectAllTextWhenFocused(false)
-						.ClearKeyboardFocusOnCommit(false)
-						.OnTextCommitted_Lambda(OnTextCommitted)
-						.SelectAllTextOnCommit(false)
-						.IsReadOnly(this, &STextPropertyWidget::IsReadOnly)
-						.AutoWrapText(true)
-						.ModiferKeyForNewLine(EModifierKey::Shift)
-						.IsPassword(bIsPassword)
+						SNew( SBox )
+						.MaxDesiredHeight(300.f)
+						[
+							SAssignNew(MultiLineWidget, SMultiLineEditableTextBox)
+							.Text_Lambda(GetTextValue)
+							.Font(InArgs._Font)
+							.SelectAllTextWhenFocused(false)
+							.ClearKeyboardFocusOnCommit(false)
+							.OnTextCommitted_Lambda(OnTextCommitted)
+							.SelectAllTextOnCommit(false)
+							.IsReadOnly(this, &STextPropertyWidget::IsReadOnly)
+							.AutoWrapText(true)
+							.ModiferKeyForNewLine(EModifierKey::Shift)
+							.IsPassword(bIsPassword)
+						]
 					]
 				];
 

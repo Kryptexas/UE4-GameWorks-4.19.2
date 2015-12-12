@@ -93,29 +93,17 @@ void UGatherTextFromAssetsCommandlet::ProcessGatherableTextDataArray(const FStri
 
 void UGatherTextFromAssetsCommandlet::ProcessPackages( const TArray< UPackage* >& PackagesToProcess )
 {
-	for(UPackage* const Package : PackagesToProcess)
+	TArray<FGatherableTextData> GatherableTextDataArray;
+
+	for(const UPackage* const Package : PackagesToProcess)
 	{
-		TArray<UObject*> ObjectsInPackage;
-		GetObjectsWithOuter(Package, ObjectsInPackage, true, RF_Transient, EInternalObjectFlags::PendingKill);
-		for (UObject* const Object : ObjectsInPackage)
-		{
-			TArray<FGatherableTextData> GatherableTextDataArray;
+		GatherableTextDataArray.Reset();
 
-			FPropertyLocalizationDataGatherer PropertyLocalizationDataGatherer(GatherableTextDataArray);
-			PropertyLocalizationDataGatherer.GatherLocalizationDataFromPropertiesOfDataStructure(Object->GetClass(), Object);
+		// Gathers from the given package
+		FPropertyLocalizationDataGatherer(GatherableTextDataArray, Package);
 
-				for(UClass* Class = Object->GetClass(); Class != nullptr; Class = Class->GetSuperClass())
-				{
-					UPackage::FLocalizationDataGatheringCallback* const CustomCallback = UPackage::GetTypeSpecificLocalizationDataGatheringCallbacks().Find(Class);
-					if (CustomCallback)
-					{
-						(*CustomCallback)(Object, GatherableTextDataArray);
-					}
-				}
-
-				ProcessGatherableTextDataArray(Package->FileName.ToString(), GatherableTextDataArray);
-			}
-		}
+		ProcessGatherableTextDataArray(Package->FileName.ToString(), GatherableTextDataArray);
+	}
 }
 
 int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)

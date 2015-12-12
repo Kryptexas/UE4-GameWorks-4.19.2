@@ -2864,7 +2864,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 				uint32 NewWindowHeight = PlayInSettings->NewWindowHeight;
 				uint32 NewWindowWidth = PlayInSettings->NewWindowWidth;
 				FIntPoint NewWindowPosition = PlayInSettings->NewWindowPosition;
-				bool CenterNewWindow = PlayInSettings->CenterNewWindow;
+				bool CenterNewWindow = PlayInSettings->CenterNewWindow && (PlayNetMode == PIE_Standalone);
 
 				// Setup size for PIE window
 				if ((NewWindowWidth <= 0) || (NewWindowHeight <= 0))

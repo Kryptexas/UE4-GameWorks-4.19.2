@@ -541,6 +541,9 @@ public:
 	/** Get the context to use from the Blueprint type */
 	static FName GetContextFromBlueprintType(EBlueprintType InType);
 
+	/* Selects an item in "My Blueprint" by name. */
+	void SelectGraphActionItemByName(const FName& ItemName, ESelectInfo::Type SelectInfo = ESelectInfo::Direct, int32 SectionId = INDEX_NONE, bool bIsCategory = false);
+
 protected:
 	/** Called during initialization of the blueprint editor to register any application modes. */
 	virtual void RegisterApplicationModes(const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode, bool bNewlyCreated = false);

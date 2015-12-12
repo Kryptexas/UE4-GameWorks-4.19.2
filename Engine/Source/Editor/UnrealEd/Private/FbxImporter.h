@@ -162,6 +162,9 @@ struct FBXImportOptions
 	*/
 	FName MaterialPrefixName;
 
+	//This data allow to override some fbx Material(point by the uint64 id) with existing unreal material asset
+	TMap<uint64, class UMaterialInterface*> OverrideMaterials;
+
 	bool ShouldImportNormals()
 	{
 		return NormalImportMethod == FBXNIM_ImportNormals || NormalImportMethod == FBXNIM_ImportNormalsAndTangents;
@@ -208,8 +211,6 @@ struct FbxNodeInfo
 
 	const char* ParentName;
 	uint64 ParentUniqueId;
-	
-	
 };
 
 struct FbxSceneInfo
@@ -391,6 +392,15 @@ public:
 	 * @return UObject* the new Unreal mesh object
 	 */
 	UStaticMesh* ReimportStaticMesh(UStaticMesh* Mesh, UFbxStaticMeshImportData* TemplateImportData);
+
+	/**
+	* re-import Unreal static mesh from updated scene Fbx file
+	* if the Fbx mesh is in LODGroup, the LOD of mesh will be updated
+	*
+	* @param Mesh the original Unreal static mesh object
+	* @return UObject* the new Unreal mesh object
+	*/
+	UStaticMesh* ReimportSceneStaticMesh(uint64 FbxUniqueId, UStaticMesh* Mesh, UFbxStaticMeshImportData* TemplateImportData);
 	
 	/**
 	* re-import Unreal skeletal mesh from updated Fbx file

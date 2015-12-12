@@ -2617,6 +2617,39 @@ void UEditorEngine::SyncToContentBrowser()
 	SyncBrowserToObjects(Objects);
 }
 
+void UEditorEngine::GetLevelsToSyncToContentBrowser(TArray<UObject*>& Objects)
+{
+	for (FSelectionIterator It(GetSelectedActorIterator()); It; ++It)
+	{
+		AActor* Actor = CastChecked<AActor>(*It);
+		ULevel* ActorLevel = Actor->GetLevel();
+		if (ActorLevel)
+		{
+			// Get the outer World as this is the actual asset we need to find
+			UObject* ActorWorld = ActorLevel->GetOuter();
+			if (ActorWorld)
+			{
+				Objects.AddUnique(ActorWorld);
+			}
+		}
+	}
+}
+
+void UEditorEngine::SyncActorLevelsToContentBrowser()
+{
+	TArray<UObject*> Objects;
+	GetLevelsToSyncToContentBrowser(Objects);
+
+	SyncBrowserToObjects(Objects);
+}
+
+bool UEditorEngine::CanSyncActorLevelsToContentBrowser()
+{
+	TArray<UObject*> Objects;
+	GetLevelsToSyncToContentBrowser(Objects);
+
+	return Objects.Num() > 0;
+}
 
 void UEditorEngine::GetReferencedAssetsForEditorSelection(TArray<UObject*>& Objects, const bool bIgnoreOtherAssetsIfBPReferenced)
 {

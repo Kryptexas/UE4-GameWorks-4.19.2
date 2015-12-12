@@ -394,8 +394,11 @@ public:
 	void ExternalModalStop();
 
 	/** Delegate for retainer widgets to know when they should update */
-	DECLARE_EVENT_OneParam(FSlateApplication, FOnUpdateRetainerWidgets, float);
-	FOnUpdateRetainerWidgets& OnUpdateRetainerWidgets()  { return UpdateRetainerWidgetsEvent; }
+	DECLARE_EVENT_OneParam(FSlateApplication, FSlateTickEvent, float);
+	FSlateTickEvent& OnPreTick()  { return PreTickEvent; }
+
+	/** Delegate for after slate application ticks. */
+	FSlateTickEvent& OnPostTick()  { return PostTickEvent; }
 
 	/** 
 	 * Removes references to FViewportRHI's.  
@@ -779,6 +782,16 @@ protected:
 	virtual bool IsWidgetDirectlyHovered(const TSharedPtr<const SWidget> Widget) const override;
 	virtual bool ShowUserFocus(const TSharedPtr<const SWidget> Widget) const override;
 
+	/**
+	 * Pumps and ticks the platform.
+	 */
+	void TickPlatform(float DeltaTime);
+
+	/**
+	 * Ticks and paints the actual Slate portion of the application.
+	 */
+	void TickApplication(float DeltaTime);
+
 	/** 
 	 * Ticks a slate window and all of its children
 	 *
@@ -1156,7 +1169,7 @@ public:
 	virtual EDropEffect::Type OnDragDrop( const TSharedPtr< FGenericWindow >& Window ) override;
 	virtual bool OnWindowAction( const TSharedRef< FGenericWindow >& PlatformWindow, const EWindowAction::Type InActionType ) override;
 
-private:
+public:
 
 	/**
 	 * Directly routes a pointer down event to the widgets in the specified widget path
@@ -1661,7 +1674,9 @@ private:
 	/** Configured fkeys to control navigation */
 	FNavigationConfig NavigationConfig;
 
-	/** Delegate for retainer widgets to know when they should update */
-	FOnUpdateRetainerWidgets UpdateRetainerWidgetsEvent;
+	/** Delegate for pre slate tick */
+	FSlateTickEvent PreTickEvent;
 
+	/** Delegate for post slate Tick */
+	FSlateTickEvent PostTickEvent;
 };

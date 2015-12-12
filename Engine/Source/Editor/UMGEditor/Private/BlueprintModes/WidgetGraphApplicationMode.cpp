@@ -101,4 +101,18 @@ void FWidgetGraphApplicationMode::RegisterTabFactories(TSharedPtr<FTabManager> I
 void FWidgetGraphApplicationMode::PostActivateMode()
 {
 	FWidgetBlueprintApplicationMode::PostActivateMode();
+	TSharedPtr<FWidgetBlueprintEditor> BP = GetBlueprintEditor();
+	
+	// Select associated widget variable in 'My Blueprint'.
+	const TSet<FWidgetReference>& Selected = BP->GetSelectedWidgets();
+	if (Selected.Num() == 1)
+	{
+		for (const FWidgetReference& WidgetRef : Selected)
+		{
+			if (WidgetRef.IsValid())
+			{
+				BP->SelectGraphActionItemByName(WidgetRef.GetPreview()->GetFName());
+			}
+		}
+	}
 }

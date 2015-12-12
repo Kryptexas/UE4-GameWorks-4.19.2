@@ -143,7 +143,7 @@ const FCompositeFont* FSlateFontInfo::GetCompositeFont() const
 	if (FontProvider)
 	{
 		const FCompositeFont* const ProvidedCompositeFont = FontProvider->GetCompositeFont();
-		return (ProvidedCompositeFont) ? ProvidedCompositeFont : FLegacySlateFontInfoCache::Get().GetFallbackFont().Get();
+		return (ProvidedCompositeFont) ? ProvidedCompositeFont : FLegacySlateFontInfoCache::Get().GetLastResortFont().Get();
 	}
 
 	if (CompositeFont.IsValid())
@@ -151,7 +151,7 @@ const FCompositeFont* FSlateFontInfo::GetCompositeFont() const
 		return CompositeFont.Get();
 	}
 
-	return FLegacySlateFontInfoCache::Get().GetFallbackFont().Get();
+	return FLegacySlateFontInfoCache::Get().GetLastResortFont().Get();
 }
 
 

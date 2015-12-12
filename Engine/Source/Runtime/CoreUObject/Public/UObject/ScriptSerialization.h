@@ -54,6 +54,32 @@
 	}
 #endif	//XFERNAME
 
+// ASCII string
+#ifndef XFERSTRING
+	#define XFERSTRING() \
+	{ \
+		do XFER(uint8) while( Script[iCode-1] ); \
+	}
+#endif	//XFERSTRING
+
+// UTF-16 string
+#ifndef XFERUNICODESTRING
+	#define XFERUNICODESTRING() \
+	{ \
+		do XFER(uint16) while( Script[iCode-1] || Script[iCode-2] ); \
+	}
+#endif	//XFERUNICODESTRING
+
+//FText
+#ifndef XFERTEXT
+	#define XFERTEXT() \
+	{ \
+		SerializeExpr( iCode, Ar );	\
+		SerializeExpr( iCode, Ar ); \
+		SerializeExpr( iCode, Ar ); \
+	}
+#endif	//XFERTEXT
+
 #ifndef XFERPTR 
 	#define XFERPTR(T) \
 	{ \
@@ -284,19 +310,17 @@
 		}
 		case EX_StringConst:
 		{
-			do XFER(uint8) while( Script[iCode-1] );
+			XFERSTRING();
 			break;
 		}
 		case EX_UnicodeStringConst:
 		{
-			do XFER(uint16) while( Script[iCode-1] || Script[iCode-2] );
+			XFERUNICODESTRING();
 			break;
 		}
 		case EX_TextConst:
 		{
-			SerializeExpr( iCode, Ar );
-			SerializeExpr( iCode, Ar );
-			SerializeExpr( iCode, Ar );
+			XFERTEXT();
 			break;
 		}
 		case EX_ObjectConst:
@@ -455,5 +479,18 @@
 		}
 	}
 
-#endif	//!TAGGED_PROPERTIES_ONLY || SERIALIZEEXPR_ONLY
+#endif	//SERIALIZEEXPR_INC
 
+
+#ifdef SERIALIZEEXPR_AUTO_UNDEF_XFER_MACROS
+	#undef XFER
+	#undef XFERPTR
+	#undef XFERNAME
+	#undef XFERSTRING
+	#undef XFERUNICODESTRING
+	#undef XFERTEXT
+	#undef XFER_FUNC_POINTER
+	#undef XFER_FUNC_NAME
+	#undef XFER_PROP_POINTER
+	#undef FIXUP_EXPR_OBJECT_POINTER
+#endif	//SERIALIZEEXPR_AUTO_UNDEF_XFER_MACROS

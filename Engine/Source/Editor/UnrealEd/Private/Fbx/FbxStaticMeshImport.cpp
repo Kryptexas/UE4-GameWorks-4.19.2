@@ -57,7 +57,7 @@ static const int32 LARGE_MESH_MATERIAL_INDEX_THRESHOLD = 64;
 using namespace UnFbx;
 
 struct ExistingStaticMeshData;
-extern ExistingStaticMeshData* SaveExistingStaticMeshData(UStaticMesh* ExistingMesh);
+extern ExistingStaticMeshData* SaveExistingStaticMeshData(UStaticMesh* ExistingMesh, bool bSaveMaterials);
 extern void RestoreExistingMeshData(struct ExistingStaticMeshData* ExistingMeshDataPtr, UStaticMesh* NewMesh);
 
 static FbxString GetNodeNameWithoutNamespace( FbxNode* Node )
@@ -706,6 +706,86 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 	return true;
 }
 
+UStaticMesh* UnFbx::FFbxImporter::ReimportSceneStaticMesh(uint64 FbxUniqueId, UStaticMesh* Mesh, UFbxStaticMeshImportData* TemplateImportData)
+{
+	TArray<FbxNode*> FbxMeshArray;
+	UStaticMesh* NewMesh = NULL;
+	FbxNode* Node = NULL;
+
+	// get meshes in Fbx file
+	//the function also fill the collision models, so we can update collision models correctly
+	FillFbxMeshArray(Scene->GetRootNode(), FbxMeshArray, this);
+
+	if (FbxMeshArray.Num() < 1)
+	{
+		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("Error_NoFBXMeshAttributeFound", "No FBX attribute mesh found when reimport scene static mesh '{0}'. The FBX file contain no static mesh."), FText::FromString(Mesh->GetName()))), FFbxErrors::Generic_Mesh_MeshNotFound);
+		return Mesh;
+	}
+	else
+	{
+		//Find the first node using the mesh attribute with the unique ID
+		for (FbxNode *MeshNode : FbxMeshArray)
+		{
+			if(FbxUniqueId == MeshNode->GetMesh()->GetUniqueID())
+			{
+				Node = MeshNode;
+				break;
+			}
+		}
+	}
+
+	if (!Node)
+	{
+		//Cannot find the staticmesh name in the fbx scene file
+		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("Error_NoFBXMeshNameFound", "No FBX attribute mesh with the same name was found when reimport scene static mesh '{0}'."), FText::FromString(Mesh->GetName()))), FFbxErrors::Generic_Mesh_MeshNotFound);
+		return Mesh;
+	}
+
+	struct ExistingStaticMeshData* ExistMeshDataPtr = SaveExistingStaticMeshData(Mesh, false);
+
+	if (Node)
+	{
+		FbxNode* NodeParent = Node->GetParent();
+		// Don't import materials and textures during a reimport
+		ImportOptions->bImportMaterials = true;
+		ImportOptions->bImportTextures = true;
+
+		// if the Fbx mesh is a part of LODGroup, update LOD
+		if (NodeParent && NodeParent->GetNodeAttribute() && NodeParent->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
+		{
+			NewMesh = ImportStaticMesh(Mesh->GetOutermost(), NodeParent->GetChild(0), *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, 0);
+			if (NewMesh)
+			{
+				// import LOD meshes
+				for (int32 LODIndex = 1; LODIndex < NodeParent->GetChildCount(); LODIndex++)
+				{
+					ImportStaticMesh(Mesh->GetOutermost(), NodeParent->GetChild(LODIndex), *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, LODIndex);
+				}
+			}
+		}
+		else
+		{
+			NewMesh = ImportStaticMesh(Mesh->GetOutermost(), Node, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, 0);
+		}
+	}
+	else
+	{
+		// no FBX mesh match, maybe the Unreal mesh is imported from multiple FBX mesh (enable option "Import As Single")
+		if (FbxMeshArray.Num() > 0)
+		{
+			NewMesh = ImportStaticMeshAsSingle(Mesh->GetOutermost(), FbxMeshArray, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, 0);
+		}
+		else // no mesh found in the FBX file
+		{
+			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("Error_NoFBXMeshFound", "No FBX mesh found when reimport Unreal mesh '{0}'. The FBX file is crashed."), FText::FromString(Mesh->GetName()))), FFbxErrors::Generic_Mesh_MeshNotFound);
+		}
+	}
+	//Don't restore materials when reimporting scene
+	RestoreExistingMeshData(ExistMeshDataPtr, NewMesh);
+	return NewMesh;
+}
+
+
 UStaticMesh* UnFbx::FFbxImporter::ReimportStaticMesh(UStaticMesh* Mesh, UFbxStaticMeshImportData* TemplateImportData)
 {
 	char MeshName[1024];
@@ -778,7 +858,7 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportStaticMesh(UStaticMesh* Mesh, UFbxStat
 		}
 	}
 	
-	struct ExistingStaticMeshData* ExistMeshDataPtr = SaveExistingStaticMeshData(Mesh);
+	struct ExistingStaticMeshData* ExistMeshDataPtr = SaveExistingStaticMeshData(Mesh, true);
 
 	if (Node)
 	{
@@ -877,6 +957,10 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 
 	// Parent package to place new meshes
 	UPackage* Package = NULL;
+	if (InParent != nullptr && InParent->IsA(UPackage::StaticClass()))
+	{
+		Package = StaticCast<UPackage*>(InParent);
+	}
 
 	// create empty mesh
 	UStaticMesh*	StaticMesh = NULL;
@@ -893,9 +977,13 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 	if( InStaticMesh == NULL || LODIndex == 0 )
 	{
 		// Create a package for each mesh
-		NewPackageName = FPackageName::GetLongPackagePath(Parent->GetOutermost()->GetName()) + TEXT("/") + MeshName;
-		NewPackageName = PackageTools::SanitizePackageName(NewPackageName);
-		Package = CreatePackage(NULL, *NewPackageName);
+		if (Package == nullptr)
+		{
+			NewPackageName = FPackageName::GetLongPackagePath(Parent->GetOutermost()->GetName()) + TEXT("/") + MeshName;
+			NewPackageName = PackageTools::SanitizePackageName(NewPackageName);
+			Package = CreatePackage(NULL, *NewPackageName);
+		}
+		Package->FullyLoad();
 
 		ExistingMesh = FindObject<UStaticMesh>( Package, *MeshName );
 		ExistingObject = FindObject<UObject>( Package, *MeshName );		

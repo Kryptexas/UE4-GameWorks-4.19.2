@@ -1172,6 +1172,9 @@ void SNewClassDialog::FinishClicked()
 		{
 			OnAddedToProject.ExecuteIfBound( NewClassName, NewClassPath, SelectedModuleInfo->ModuleName );
 
+			// Reload current project to take into account any new state
+			IProjectManager::Get().LoadProjectFile(FPaths::GetProjectFilePath());
+
 			// Prevent periodic validity checks. This is to prevent a brief error message about the class already existing while you are exiting.
 			bPreventPeriodicValidityChecksUntilNextChange = true;
 

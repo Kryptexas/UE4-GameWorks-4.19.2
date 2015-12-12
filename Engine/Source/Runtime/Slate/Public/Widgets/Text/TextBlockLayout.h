@@ -67,6 +67,16 @@ public:
 	void OverrideTextStyle(const FTextBlockStyle& InTextStyle);
 
 	/**
+	 * Set the text shaping method that the internal text layout should use
+	 */
+	void SetTextShapingMethod(const TOptional<ETextShapingMethod>& InTextShapingMethod);
+
+	/**
+	 * See the text flow direction that the internal text layout should use
+	 */
+	void SetTextFlowDirection(const TOptional<ETextFlowDirection>& InTextFlowDirection);
+
+	/**
 	 * Get the child widgets of this layout
 	 */
 	FChildren* GetChildren();

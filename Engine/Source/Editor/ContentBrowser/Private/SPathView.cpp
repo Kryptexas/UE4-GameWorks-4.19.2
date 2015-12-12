@@ -331,7 +331,7 @@ TSharedPtr<FTreeItem> SPathView::AddPath(const FString& Path, bool bUserNamed)
 
 					ChildItem = MakeShareable( new FTreeItem(FText::FromString(FolderName), FolderName, FolderPath, CurrentItem, bUserNamed) );
 					CurrentItem->Children.Add(ChildItem);
-					CurrentItem->SortChildren();
+					CurrentItem->RequestSortChildren();
 					TreeViewPtr->RequestTreeRefresh();
 
 					// If we have pending initial paths, and this path added the path, we should select it now
@@ -802,6 +802,7 @@ void SPathView::TreeItemScrolledIntoView( TSharedPtr<FTreeItem> TreeItem, const 
 
 void SPathView::GetChildrenForTree( TSharedPtr< FTreeItem > TreeItem, TArray< TSharedPtr<FTreeItem> >& OutChildren )
 {
+	TreeItem->SortChildrenIfNeeded();
 	OutChildren = TreeItem->Children;
 }
 
@@ -1135,7 +1136,7 @@ void SPathView::FolderNameChanged( const TSharedPtr< FTreeItem >& TreeItem, cons
 		// If we weren't a root node, make sure our parent is sorted
 		if ( TreeItem->Parent.IsValid() )
 		{
-			TreeItem->Parent.Pin()->SortChildren();
+			TreeItem->Parent.Pin()->RequestSortChildren();
 			TreeViewPtr->RequestTreeRefresh();
 		}
 

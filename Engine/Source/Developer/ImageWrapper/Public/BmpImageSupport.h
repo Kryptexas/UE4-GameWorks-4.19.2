@@ -34,7 +34,7 @@ struct FBitmapInfoHeader
 {
 	uint32 biSize;
 	uint32 biWidth;
-	uint32 biHeight;
+	int32 biHeight;
 	uint16 biPlanes;
 	uint16 biBitCount;
 	uint32 biCompression;

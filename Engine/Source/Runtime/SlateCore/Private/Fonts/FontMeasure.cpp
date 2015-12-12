@@ -58,7 +58,7 @@ FVector2D FSlateFontMeasure::Measure( const FString& Text, const FSlateFontInfo&
 FVector2D FSlateFontMeasure::Measure( const FText& Text, const FSlateFontInfo& InFontInfo, float FontScale ) const
 {
 	int32 DummyLastCharacterIndex;
-	const FString String = Text.ToString();
+	const FString& String = Text.ToString();
 	return MeasureStringInternal( String, 0, String.Len(), InFontInfo, false, FontScale, INDEX_NONE, ELastCharacterIndexFormat::Unused, DummyLastCharacterIndex);
 }
 

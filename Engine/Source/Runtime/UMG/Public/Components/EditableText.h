@@ -98,6 +98,10 @@ public:
 	UPROPERTY(EditAnywhere, Category=Behavior, AdvancedDisplay)
 	bool SelectAllTextOnCommit;
 
+	/** Whether the context menu can be opened */
+	UPROPERTY(EditAnywhere, Category = Behavior, AdvancedDisplay)
+	bool AllowContextMenu;
+
 	/** If we're on a platform that requires a virtual keyboard, what kind of keyboard should this widget use? */
 	UPROPERTY( EditAnywhere, Category = Behavior, AdvancedDisplay )
 	TEnumAsByte< EVirtualKeyboardType::Type > KeyboardType;

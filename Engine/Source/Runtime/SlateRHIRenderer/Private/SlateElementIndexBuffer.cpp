@@ -18,7 +18,7 @@ FSlateElementIndexBuffer::~FSlateElementIndexBuffer()
 
 void FSlateElementIndexBuffer::Init( int32 MinNumIndices )
 {
-	MinBufferSize = sizeof(SlateIndex) * FMath::Max( MinNumIndices, 200 );
+	MinBufferSize = sizeof(SlateIndex) * FMath::Max( MinNumIndices, 100 );
 
 	if ( IsInRenderingThread() )
 	{

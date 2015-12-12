@@ -29,7 +29,7 @@ public:
 	 */
 	virtual TSharedRef<FSlateRenderer> CreateSlateRHIRenderer( ) = 0;
 
-	virtual TSharedRef<ISlate3DRenderer> CreateSlate3DRenderer(bool bUseGammaCorrection) = 0;
+	virtual TSharedRef<ISlate3DRenderer, ESPMode::ThreadSafe> CreateSlate3DRenderer(bool bUseGammaCorrection) = 0;
 
 	virtual TSharedRef<ISlateFontAtlasFactory> CreateSlateFontAtlasFactory() = 0;
 

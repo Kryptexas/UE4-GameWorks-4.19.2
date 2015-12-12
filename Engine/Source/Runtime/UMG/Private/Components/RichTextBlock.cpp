@@ -19,7 +19,6 @@ URichTextBlock::URichTextBlock(const FObjectInitializer& ObjectInitializer)
 		Font = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Regular"));
 	}
 	Color = FLinearColor::White;
-	LineHeightPercentage = 1;
 
 	Decorators.Add(ObjectInitializer.CreateOptionalDefaultSubobject<URichTextBlockDecorator>(this, FName("DefaultDecorator")));
 }
@@ -52,11 +51,6 @@ TSharedRef<SWidget> URichTextBlock::RebuildWidget()
 
 	MyRichTextBlock =
 		SNew(SRichTextBlock)
-		.Justification(Justification)
-		.AutoWrapText(AutoWrapText)
-		.WrapTextAt(WrapTextAt)
-		.Margin(Margin)
-		.LineHeightPercentage(LineHeightPercentage)
 		.TextStyle(&DefaultStyle)
 		.Decorators(CreatedDecorators);
 	
@@ -70,6 +64,8 @@ void URichTextBlock::SynchronizeProperties()
 	TAttribute<FText> TextBinding = OPTIONAL_BINDING(FText, Text);
 
 	MyRichTextBlock->SetText(TextBinding);
+
+	Super::SynchronizeTextLayoutProperties( *MyRichTextBlock );
 }
 
 #if WITH_EDITOR

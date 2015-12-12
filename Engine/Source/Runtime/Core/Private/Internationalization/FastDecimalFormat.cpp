@@ -68,7 +68,7 @@ int32 IntegralToString_UInt64ToString(
 			if (InUseGrouping && NumUntilNextGroup-- == 0)
 			{
 				TmpBuffer[StringLen++] = InGroupingSeparatorCharacter;
-				NumUntilNextGroup = InSecondaryGroupingSize;
+				NumUntilNextGroup = InSecondaryGroupingSize - 1; // -1 to account for the digit we're about to print
 			}
 
 			TmpBuffer[StringLen++] = '0' + (TmpNum % 10);
@@ -243,7 +243,7 @@ FString FractionalToString(const double InVal, const FDecimalNumberFormattingRul
 		return InFormattingRules.NaNString;
 	}
 
-	const bool bIsNegative = InVal < 0.0;
+	const bool bIsNegative = FMath::IsNegativeDouble(InVal);
 
 	double IntegralPart = 0.0;
 	double FractionalPart = 0.0;

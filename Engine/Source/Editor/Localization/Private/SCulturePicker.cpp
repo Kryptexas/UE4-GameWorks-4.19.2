@@ -95,7 +95,10 @@ void SCulturePicker::BuildStockEntries()
 			for (const auto& ParentCultureName : ParentCultureNames)
 			{
 				const FCulturePtr ParentCulture = FInternationalization::Get().GetCulture(ParentCultureName);
-				StockCultures.AddUnique(ParentCulture);
+				if (ParentCulture.IsValid())
+				{
+					StockCultures.AddUnique(ParentCulture);
+				}
 			}
 		}
 	}

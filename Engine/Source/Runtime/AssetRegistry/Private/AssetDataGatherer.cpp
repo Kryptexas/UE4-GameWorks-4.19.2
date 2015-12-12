@@ -364,25 +364,42 @@ void FAssetDataDiscovery::SortPathsByPriority(const int32 MaxNumToSort)
 }
 
 
-FAssetDataGatherer::FAssetDataGatherer(const TArray<FString>& InPaths, bool bInIsSynchronous, bool bInLoadAndSaveCache)
+FAssetDataGatherer::FAssetDataGatherer(const TArray<FString>& InPaths, bool bInIsSynchronous, EAssetDataCacheMode AssetDataCacheMode)
 	: StopTaskCounter( 0 )
 	, bIsSynchronous( bInIsSynchronous )
 	, bIsDiscoveringFiles( false )
 	, SearchStartTime( 0 )
 	, NumPathsToSearchAtLastSyncPoint( InPaths.Num() )
-	, bLoadAndSaveCache( bInLoadAndSaveCache )
+	, bLoadAndSaveCache( false )
 	, bFinishedInitialDiscovery( false )
 	, Thread(nullptr)
 {
 	bGatherDependsData = GIsEditor && !FParse::Param( FCommandLine::Get(), TEXT("NoDependsGathering") );
 
-	CacheFilename = FPaths::GameIntermediateDir() / TEXT("CachedAssetRegistry.bin");
-
-	if (FParse::Param(FCommandLine::Get(), TEXT("multiprocess")))
+	if (FParse::Param(FCommandLine::Get(), TEXT("NoAssetRegistryCache")) || FParse::Param(FCommandLine::Get(), TEXT("multiprocess")))
 	{
 		bLoadAndSaveCache = false;
 	}
-	
+	else if (AssetDataCacheMode != EAssetDataCacheMode::NoCache)
+	{
+		if (AssetDataCacheMode == EAssetDataCacheMode::UseMonolithicCache)
+		{
+			bLoadAndSaveCache = true;
+			CacheFilename = FPaths::GameIntermediateDir() / TEXT("CachedAssetRegistry.bin");
+		}
+		else if (InPaths.Num() > 0)
+		{
+			// todo: handle hash collisions?
+			uint32 CacheHash = GetTypeHash(InPaths[0]);
+			for (int32 PathIndex = 1; PathIndex < InPaths.Num(); ++PathIndex)
+			{
+				CacheHash = HashCombine(CacheHash, GetTypeHash(InPaths[PathIndex]));
+			}
+
+			bLoadAndSaveCache = true;
+			CacheFilename = FPaths::GameIntermediateDir() / TEXT("AssetRegistryCache") / FString::Printf(TEXT("%08x.bin"), CacheHash);
+		}
+	}
 
 	if ( bIsSynchronous )
 	{

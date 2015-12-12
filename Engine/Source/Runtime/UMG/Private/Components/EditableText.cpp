@@ -31,6 +31,7 @@ UEditableText::UEditableText(const FObjectInitializer& ObjectInitializer)
 	RevertTextOnEscape = Defaults._RevertTextOnEscape.Get();
 	ClearKeyboardFocusOnCommit = Defaults._ClearKeyboardFocusOnCommit.Get();
 	SelectAllTextOnCommit = Defaults._SelectAllTextOnCommit.Get();
+	AllowContextMenu = Defaults._AllowContextMenu.Get();
 }
 
 void UEditableText::ReleaseSlateResources(bool bReleaseChildren)
@@ -68,7 +69,7 @@ void UEditableText::SynchronizeProperties()
 	MyEditableText->SetHintText(HintTextBinding);
 	MyEditableText->SetIsReadOnly(IsReadOnly);
 	MyEditableText->SetIsPassword(IsPassword);
-
+	MyEditableText->SetAllowContextMenu(AllowContextMenu);
 	// TODO UMG Complete making all properties settable on SEditableText
 }
 

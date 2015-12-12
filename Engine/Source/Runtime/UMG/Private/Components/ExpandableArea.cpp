@@ -48,6 +48,7 @@ void UExpandableArea::SetIsExpanded(bool IsExpanded)
 void UExpandableArea::ReleaseSlateResources( bool bReleaseChildren )
 {
 	Super::ReleaseSlateResources(bReleaseChildren);
+	ReleaseNamedSlotSlateResources(bReleaseChildren);
 
 	MyExpandableArea.Reset();
 }
@@ -76,10 +77,22 @@ void UExpandableArea::SetContentForSlot(FName SlotName, UWidget* Content)
 {
 	if ( SlotName == HeaderName )
 	{
+		if ( HeaderContent )
+		{
+			const bool bReleaseChildren = true;
+			HeaderContent->ReleaseSlateResources(bReleaseChildren);
+		}
+
 		HeaderContent = Content;
 	}
 	else if ( SlotName == BodyName )
 	{
+		if ( BodyContent )
+		{
+			const bool bReleaseChildren = true;
+			BodyContent->ReleaseSlateResources(bReleaseChildren);
+		}
+
 		BodyContent = Content;
 	}
 }

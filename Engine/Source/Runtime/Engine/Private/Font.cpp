@@ -371,20 +371,47 @@ void UFont::GetStringHeightAndWidth( const TCHAR *Text, int32& Height, int32& Wi
 
 SIZE_T UFont::GetResourceSize(EResourceSizeMode::Type Mode)
 {
-	if (Mode == EResourceSizeMode::Exclusive)
+	int32 ResourceSize = 0;
+
+	switch(FontCacheType)
 	{
-		return 0;
-	}
-	else
-	{
-		int32 ResourceSize = 0;
-		for( int32 TextureIndex = 0 ; TextureIndex < Textures.Num() ; ++TextureIndex )
+	case EFontCacheType::Offline:
 		{
-			if ( Textures[TextureIndex] )
+			for (UTexture2D* Texture : Textures)
 			{
-				ResourceSize += Textures[TextureIndex]->GetResourceSize(Mode);
+				if (Texture)
+				{
+					ResourceSize += Texture->GetResourceSize(Mode);
+				}
 			}
 		}
-		return ResourceSize;
+		break;
+
+	case EFontCacheType::Runtime:
+		{
+			auto GetTypefaceResourceSize = [](const FTypeface& Typeface) -> int32
+			{
+				int32 TypefaceResourceSize = 0;
+				for (const FTypefaceEntry& TypefaceEntry : Typeface.Fonts)
+				{
+					// We use GetBulkDataSizeOnDisk since that will be the resident size once the bulk data has been decompressed
+					TypefaceResourceSize += TypefaceEntry.Font.BulkDataPtr->GetBulkDataSizeOnDisk();
+				}
+				return TypefaceResourceSize;
+			};
+
+			// Sum the contained font data sizes
+			ResourceSize += GetTypefaceResourceSize(CompositeFont.DefaultTypeface);
+			for (const FCompositeSubFont& SubTypeface : CompositeFont.SubTypefaces)
+			{
+				ResourceSize += GetTypefaceResourceSize(SubTypeface.Typeface);
+			}
+		}
+		break;
+
+	default:
+		break;
 	}
+
+	return ResourceSize;
 }

@@ -243,7 +243,7 @@ int32 SProgressBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGe
 			CurrentMarqueeImage,
 			ForegroundClippingRect,
 			DrawEffects,
-			ColorAndOpacitySRGB
+			CurrentMarqueeImage->TintColor.GetSpecifiedColor() * ColorAndOpacitySRGB
 			);
 
 	}
