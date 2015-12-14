@@ -129,4 +129,35 @@ public:
 	inline operator T*() { return ptr; }
 };
 
+/// A simple helper class used to delete an array of instances of structs,
+///	that require cleaning up by calling destructor on every instance before release. 
+/// Releasing is taking place when rcScopedStructArrayDelete instance goes out of scope.
+/// @note if T doesn't require a destructor to be called use rcScopedDelete instead.
+template<class T>
+class rcScopedStructArrayDelete
+{
+	int itemCount;
+	T* ptr;
+
+	// on purpose made private to restrict copying
+	inline T* operator=(T* p);
+public:
+
+	/// Constructs an array of instances of T
+	inline rcScopedStructArrayDelete(const int n) : itemCount(n) { ptr = (T*)rcAlloc(sizeof(T)*n, RC_ALLOC_TEMP); }
+
+	~rcScopedStructArrayDelete()
+	{
+		for (int itemIndex = 0; itemIndex < itemCount; ++itemIndex)
+		{
+			ptr[itemIndex].~T();
+		}
+		rcFree(ptr);
+	}
+
+	/// The root array pointer.
+	///  @return The root array pointer.
+	inline operator T*() { return ptr; }
+};
+
 #endif
