@@ -1,0 +1,336 @@
+(dp1
+S'rightFootOptions_numMiddleBones'
+p2
+(lp3
+I0
+a(lp4
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'leftArmOptions_numLowArmTwistBones'
+p5
+(lp6
+I1
+a(lp7
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'leftArmOptions_numUpArmTwistBones'
+p8
+(lp9
+I1
+a(lp10
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'leftFootOptions_numMiddleBones'
+p11
+(lp12
+I0
+a(lp13
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/head/leaf/eyelid_bott_r (TR)
+p14
+Vhead/leaf/eyelid_bott_r (TR)
+p15
+sVextraJoint/head/leaf/brow_mid (TR)
+p16
+Vhead/leaf/brow_mid (TR)
+p17
+sS'leftLegOptions_numCalfTwistBones'
+p18
+(lp19
+I1
+a(lp20
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/head/leaf/eyelid_top_r (TR)
+p21
+Vhead/leaf/eyelid_top_r (TR)
+p22
+sS'leftHandOptions_numPinkyBones'
+p23
+(lp24
+I4
+a(lp25
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/head/leaf/brow_in_l (TR)
+p26
+Vhead/leaf/brow_in_l (TR)
+p27
+sVextraJoint/ball_r/leaf/tarsal_r (TR)
+p28
+Vball_r/leaf/tarsal_r (TR)
+p29
+sS'rightHandOptions_numMiddleBones'
+p30
+(lp31
+I4
+a(lp32
+F1
+aF0.68000305180437937
+aF0
+aasS'torsoOptions_numSpineBones'
+p33
+(lp34
+I3
+a(lp35
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/ball_l/leaf/tarsal_l (TR)
+p36
+Vball_l/leaf/tarsal_l (TR)
+p37
+sS'leftHandOptions_numIndexBones'
+p38
+(lp39
+I4
+a(lp40
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/head/chain/headfur_mid_r (2)
+p41
+Vhead/chain/headfur_mid_r (2)
+p42
+sS'rightArmOptions_numLowArmTwistBones'
+p43
+(lp44
+I1
+a(lp45
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/foot_r/leaf/heel_helper_r (TR)
+p46
+Vfoot_r/leaf/heel_helper_r (TR)
+p47
+sS'rightLegOptions_numThighTwistBones'
+p48
+(lp49
+I1
+a(lp50
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/head/leaf/eyelid_bott_l (TR)
+p51
+Vhead/leaf/eyelid_bott_l (TR)
+p52
+sS'rightHandOptions_numIndexBones'
+p53
+(lp54
+I4
+a(lp55
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/head/chain/earMain_l (3)
+p56
+Vhead/chain/earMain_l (3)
+p57
+sS'leftHandOptions_numMiddleBones'
+p58
+(lp59
+I4
+a(lp60
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/head/leaf/eyeball_r (TR)
+p61
+Vhead/leaf/eyeball_r (TR)
+p62
+sVextraJoint/holster/leaf/gun (TR)
+p63
+Vholster/leaf/gun (TR)
+p64
+sS'leftHandOptions_numRingBones'
+p65
+(lp66
+I4
+a(lp67
+F1
+aF0.68000305180437937
+aF0
+aasS'rightLegOptions_numCalfTwistBones'
+p68
+(lp69
+I1
+a(lp70
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/head/leaf/brow_out_r (TR)
+p71
+Vhead/leaf/brow_out_r (TR)
+p72
+sS'rightHandOptions_numPinkyBones'
+p73
+(lp74
+I4
+a(lp75
+F1
+aF0.68000305180437937
+aF0
+aasS'rightLegIncludeBallJoint_CB'
+p76
+I01
+sVextraJoint/head/leaf/eyelid_top_l (TR)
+p77
+Vhead/leaf/eyelid_top_l (TR)
+p78
+sS'rightFootOptions_numRingBones'
+p79
+(lp80
+I0
+a(lp81
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/head/leaf/brow_in_r (TR)
+p82
+Vhead/leaf/brow_in_r (TR)
+p83
+sS'rightFootOptions_numIndexBones'
+p84
+(lp85
+I0
+a(lp86
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'leftFootOptions_numPinkyBones'
+p87
+(lp88
+I0
+a(lp89
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'leftLegOptions_numThighTwistBones'
+p90
+(lp91
+I1
+a(lp92
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/head/leaf/jaw (TR)
+p93
+Vhead/leaf/jaw (TR)
+p94
+sVextraJoint/head/chain/earMain_r (3)
+p95
+Vhead/chain/earMain_r (3)
+p96
+sS'leftLegIncludeBallJoint_CB'
+p97
+I01
+sS'rightHandOptions_numRingBones'
+p98
+(lp99
+I4
+a(lp100
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/thigh_r/jiggle/holster
+p101
+Vthigh_r/jiggle/holster
+p102
+sS'rightHandOptions_numThumbBones'
+p103
+(lp104
+I3
+a(lp105
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'leftFootOptions_numRingBones'
+p106
+(lp107
+I0
+a(lp108
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'leftHandOptions_numThumbBones'
+p109
+(lp110
+I3
+a(lp111
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'leftFootOptions_numIndexBones'
+p112
+(lp113
+I0
+a(lp114
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/foot_l/leaf/heel_helper_l (TR)
+p115
+Vfoot_l/leaf/heel_helper_l (TR)
+p116
+sS'rightArmOptions_numUpArmTwistBones'
+p117
+(lp118
+I1
+a(lp119
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/head/leaf/eyeball_l (TR)
+p120
+Vhead/leaf/eyeball_l (TR)
+p121
+sVextraJoint/head/chain/headfur_mid_l (2)
+p122
+Vhead/chain/headfur_mid_l (2)
+p123
+sVextraJoint/head/leaf/brow_out_l (TR)
+p124
+Vhead/leaf/brow_out_l (TR)
+p125
+sS'rightFootOptions_numPinkyBones'
+p126
+(lp127
+I0
+a(lp128
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'torsoOptions_numNeckBones'
+p129
+(lp130
+I2
+a(lp131
+F0.14999618524452582
+aF0.14999618524452582
+aF0.14999618524452582
+aasS'rightFootOptions_numThumbBones'
+p132
+(lp133
+I0
+a(lp134
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'leftFootOptions_numThumbBones'
+p135
+(lp136
+I0
+a(lp137
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aas.

@@ -1,0 +1,520 @@
+(dp1
+S'rightLegOptions_numHeelTwistBones'
+p2
+(lp3
+I0
+a(lp4
+F0.26666666666666666
+aF0.26666666666666666
+aF0.26666666666666666
+aasS'leftArmOptions_numUpArmTwistBones'
+p5
+(lp6
+I2
+a(lp7
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/head/leaf/eyelid_bott_r (TR)
+p8
+Vhead/leaf/eyelid_bott_r (TR)
+p9
+sVextraJoint/head/leaf/eyelid_top_r (TR)
+p10
+Vhead/leaf/eyelid_top_r (TR)
+p11
+sVextraJoint/bot_loarm/leaf/bot_uparm_pistonC_bot (TR)
+p12
+Vbot_loarm/leaf/bot_uparm_pistonC_bot (TR)
+p13
+sVextraJoint/gun/leaf/gun_scope (TR)
+p14
+Vgun/leaf/gun_scope (TR)
+p15
+sS'torsoOptions_numSpineBones'
+p16
+(lp17
+I3
+a(lp18
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/upperarm_twist_01_r/leaf/bot_uparm (TR)
+p19
+Vupperarm_twist_01_r/leaf/bot_uparm (TR)
+p20
+sS'rightFootOptions_numThumbBones'
+p21
+(lp22
+I0
+a(lp23
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'leftLegIncludeBallJoint_CB'
+p24
+I01
+sS'rightHandOptions_numIndexBones'
+p25
+(lp26
+I3
+a(lp27
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'leftHandOptions_numRingBones'
+p28
+(lp29
+I3
+a(lp30
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/foot_r/leaf/heel_plate_r (TR)
+p31
+Vfoot_r/leaf/heel_plate_r (TR)
+p32
+sS'rightLegOptions_numCalfTwistBones'
+p33
+(lp34
+I1
+a(lp35
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'rightFootOptions_numRingBones'
+p36
+(lp37
+I0
+a(lp38
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/gun/leaf/gun_stock_panel_r (TR)
+p39
+Vgun/leaf/gun_stock_panel_r (TR)
+p40
+sVextraJoint/head/leaf/eyebrow_out_r (TR)
+p41
+Vhead/leaf/eyebrow_out_r (TR)
+p42
+sS'leftHandOptions_numThumbBones'
+p43
+(lp44
+I3
+a(lp45
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'leftFootOptions_numIndexBones'
+p46
+(lp47
+I0
+a(lp48
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/spine_03/leaf/pack_hose_out (TR)
+p49
+Vspine_03/leaf/pack_hose_out (TR)
+p50
+sVextraJoint/gun/leaf/gun_body_panel_l (TR)
+p51
+Vgun/leaf/gun_body_panel_l (TR)
+p52
+sS'leftFootOptions_numMiddleBones'
+p53
+(lp54
+I0
+a(lp55
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/upperarm_twist_02_l/leaf/arm_pouch_l (TR)
+p56
+Vupperarm_twist_02_l/leaf/arm_pouch_l (TR)
+p57
+sS'leftLegOptions_numCalfTwistBones'
+p58
+(lp59
+I1
+a(lp60
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'leftHandOptions_numIndexBones'
+p61
+(lp62
+I3
+a(lp63
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'rightArmOptions_numLowArmTwistBones'
+p64
+(lp65
+I1
+a(lp66
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/gun/leaf/gun_stock_panel_l (TR)
+p67
+Vgun/leaf/gun_stock_panel_l (TR)
+p68
+sVextraJoint/bot_hand/leaf/gun (TR)
+p69
+Vbot_hand/leaf/gun (TR)
+p70
+sS'leftHandOptions_numMiddleBones'
+p71
+(lp72
+I3
+a(lp73
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/head/leaf/eyeball_r (TR)
+p74
+Vhead/leaf/eyeball_r (TR)
+p75
+sVextraJoint/head/leaf/helmet_sight (TR)
+p76
+Vhead/leaf/helmet_sight (TR)
+p77
+sS'rightHandOptions_numPinkyBones'
+p78
+(lp79
+I3
+a(lp80
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/calf_r/leaf/ankle_plate_out_r (TR)
+p81
+Vcalf_r/leaf/ankle_plate_out_r (TR)
+p82
+sVextraJoint/head/leaf/eyelid_top_l (TR)
+p83
+Vhead/leaf/eyelid_top_l (TR)
+p84
+sVextraJoint/bot_loarm/leaf/bot_loarm_pistonD_top (TR)
+p85
+Vbot_loarm/leaf/bot_loarm_pistonD_top (TR)
+p86
+sS'leftFootOptions_numPinkyBones'
+p87
+(lp88
+I0
+a(lp89
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'leftLegOptions_numThighTwistBones'
+p90
+(lp91
+I2
+a(lp92
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/calf_r/leaf/ankle_plate_in_r (TR)
+p93
+Vcalf_r/leaf/ankle_plate_in_r (TR)
+p94
+sS'rightLegIncludeBallJoint_CB'
+p95
+I01
+sVextraJoint/hand_r/leaf/bot_loarm_pistonB_bot (TR)
+p96
+Vhand_r/leaf/bot_loarm_pistonB_bot (TR)
+p97
+sVextraJoint/shotgun/leaf/shotgun_clip (TR)
+p98
+Vshotgun/leaf/shotgun_clip (TR)
+p99
+sVextraJoint/gun/leaf/gun_stock_base (TR)
+p100
+Vgun/leaf/gun_stock_base (TR)
+p101
+sS'rightFootOptions_numPinkyBones'
+p102
+(lp103
+I0
+a(lp104
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'rightFootOptions_numMiddleBones'
+p105
+(lp106
+I0
+a(lp107
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/bot_loarm/leaf/bot_loarm_pistonB_top (TR)
+p108
+Vbot_loarm/leaf/bot_loarm_pistonB_top (TR)
+p109
+sS'leftArmOptions_numLowArmTwistBones'
+p110
+(lp111
+I2
+a(lp112
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/hand_r/leaf/bot_hand (TR)
+p113
+Vhand_r/leaf/bot_hand (TR)
+p114
+sS'leftHandOptions_numPinkyBones'
+p115
+(lp116
+I3
+a(lp117
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/foot_l/leaf/heel_plate_l (TR)
+p118
+Vfoot_l/leaf/heel_plate_l (TR)
+p119
+sVextraJoint/gun_stock_base/leaf/gun_stock_base_in_top (TR)
+p120
+Vgun_stock_base/leaf/gun_stock_base_in_top (TR)
+p121
+sS'rightLegOptions_numThighTwistBones'
+p122
+(lp123
+I2
+a(lp124
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/spine_01/leaf/trap_handle (TR)
+p125
+Vspine_01/leaf/trap_handle (TR)
+p126
+sVextraJoint/gun_stock_base/leaf/gun_barrel_inner (TR)
+p127
+Vgun_stock_base/leaf/gun_barrel_inner (TR)
+p128
+sVextraJoint/head/leaf/eyebrow_in_l (TR)
+p129
+Vhead/leaf/eyebrow_in_l (TR)
+p130
+sVextraJoint/gun_stock_base_in_top/leaf/gun_stock_base_out_top (TR)
+p131
+Vgun_stock_base_in_top/leaf/gun_stock_base_out_top (TR)
+p132
+sVextraJoint/lowerarm_twist_01_r/leaf/arm_hose_bott (TR)
+p133
+Vlowerarm_twist_01_r/leaf/arm_hose_bott (TR)
+p134
+sVextraJoint/head/leaf/eyebrow_in_r (TR)
+p135
+Vhead/leaf/eyebrow_in_r (TR)
+p136
+sS'rightFootOptions_numIndexBones'
+p137
+(lp138
+I0
+a(lp139
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/bot_loarm/leaf/bot_loarm_twist (TR)
+p140
+Vbot_loarm/leaf/bot_loarm_twist (TR)
+p141
+sS'rightHandOptions_numRingBones'
+p142
+(lp143
+I3
+a(lp144
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/shotgun_base/leaf/shotgun (TR)
+p145
+Vshotgun_base/leaf/shotgun (TR)
+p146
+sVextraJoint/bot_uparm/leaf/bot_uparm_pistonC_top (TR)
+p147
+Vbot_uparm/leaf/bot_uparm_pistonC_top (TR)
+p148
+sVextraJoint/head/leaf/eyeball_l (TR)
+p149
+Vhead/leaf/eyeball_l (TR)
+p150
+sS'leftFootOptions_numThumbBones'
+p151
+(lp152
+I0
+a(lp153
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/lowerarm_r/leaf/arm_hose_top (TR)
+p154
+Vlowerarm_r/leaf/arm_hose_top (TR)
+p155
+sVextraJoint/bot_loarm_twist/leaf/bot_loarm_pistonC_bot (TR)
+p156
+Vbot_loarm_twist/leaf/bot_loarm_pistonC_bot (TR)
+p157
+sVextraJoint/spine_03/leaf/sniper_can_arm_01 (TR)
+p158
+Vspine_03/leaf/sniper_can_arm_01 (TR)
+p159
+sS'leftLegOptions_numHeelTwistBones'
+p160
+(lp161
+I0
+a(lp162
+F0.26666666666666666
+aF0.26666666666666666
+aF0.26666666666666666
+aasS'leftFootOptions_numRingBones'
+p163
+(lp164
+I0
+a(lp165
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/gun_stock_base/leaf/gun_stock_in_bott (TR)
+p166
+Vgun_stock_base/leaf/gun_stock_in_bott (TR)
+p167
+sVextraJoint/gun/leaf/gun_stock_bott (TR)
+p168
+Vgun/leaf/gun_stock_bott (TR)
+p169
+sVextraJoint/bot_loarm/leaf/bot_loarm_pistonC_top (TR)
+p170
+Vbot_loarm/leaf/bot_loarm_pistonC_top (TR)
+p171
+sS'rightHandOptions_numMiddleBones'
+p172
+(lp173
+I3
+a(lp174
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/gun_stock_base/leaf/gun_stock_in_top (TR)
+p175
+Vgun_stock_base/leaf/gun_stock_in_top (TR)
+p176
+sVextraJoint/calf_l/leaf/ankle_plate_in_l (TR)
+p177
+Vcalf_l/leaf/ankle_plate_in_l (TR)
+p178
+sVextraJoint/head/leaf/mask (TR)
+p179
+Vhead/leaf/mask (TR)
+p180
+sVextraJoint/lowerarm_twist_01_r/leaf/wrist_cover (TR)
+p181
+Vlowerarm_twist_01_r/leaf/wrist_cover (TR)
+p182
+sVextraJoint/head/leaf/eyebrow_out_l (TR)
+p183
+Vhead/leaf/eyebrow_out_l (TR)
+p184
+sVextraJoint/gun_stock_base/leaf/gun_stock_base_in_bott (TR)
+p185
+Vgun_stock_base/leaf/gun_stock_base_in_bott (TR)
+p186
+sVextraJoint/lowerarm_r/leaf/bot_loarm (TR)
+p187
+Vlowerarm_r/leaf/bot_loarm (TR)
+p188
+sVextraJoint/spine_03/leaf/shotgun_base (TR)
+p189
+Vspine_03/leaf/shotgun_base (TR)
+p190
+sVextraJoint/pelvis/jiggle/hip_pack_c
+p191
+Vpelvis/jiggle/hip_pack_c
+p192
+sVextraJoint/pelvis/jiggle/hip_pack_b
+p193
+Vpelvis/jiggle/hip_pack_b
+p194
+sVextraJoint/pelvis/jiggle/hip_pack_a
+p195
+Vpelvis/jiggle/hip_pack_a
+p196
+sVextraJoint/pelvis/jiggle/hip_pack_d
+p197
+Vpelvis/jiggle/hip_pack_d
+p198
+sVextraJoint/gun_stock_base_in_bott/leaf/gun_stock_base_out_bott (TR)
+p199
+Vgun_stock_base_in_bott/leaf/gun_stock_base_out_bott (TR)
+p200
+sVextraJoint/head/leaf/eyelid_bott_l (TR)
+p201
+Vhead/leaf/eyelid_bott_l (TR)
+p202
+sVextraJoint/sniper_can_arm_02/leaf/sniper_can_arm_03 (TR)
+p203
+Vsniper_can_arm_02/leaf/sniper_can_arm_03 (TR)
+p204
+sVextraJoint/sniper_can_arm_01/leaf/sniper_can_arm_02 (TR)
+p205
+Vsniper_can_arm_01/leaf/sniper_can_arm_02 (TR)
+p206
+sVextraJoint/head/leaf/jaw (TR)
+p207
+Vhead/leaf/jaw (TR)
+p208
+sVextraJoint/calf_l/leaf/ankle_plate_out_l (TR)
+p209
+Vcalf_l/leaf/ankle_plate_out_l (TR)
+p210
+sVextraJoint/gun/leaf/gun_barrel (TR)
+p211
+Vgun/leaf/gun_barrel (TR)
+p212
+sS'rightHandOptions_numThumbBones'
+p213
+(lp214
+I3
+a(lp215
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/bot_loarm_twist/leaf/bot_loarm_pistonD_bot (TR)
+p216
+Vbot_loarm_twist/leaf/bot_loarm_pistonD_bot (TR)
+p217
+sVextraJoint/spine_03/leaf/pack_hose_in (TR)
+p218
+Vspine_03/leaf/pack_hose_in (TR)
+p219
+sVextraJoint/gun/leaf/gun_body_panel_r (TR)
+p220
+Vgun/leaf/gun_body_panel_r (TR)
+p221
+sS'torsoOptions_numNeckBones'
+p222
+(lp223
+I1
+a(lp224
+F1
+aF0.68000305180437937
+aF0
+aasS'rightArmOptions_numUpArmTwistBones'
+p225
+(lp226
+I2
+a(lp227
+F1
+aF0.68000305180437937
+aF0
+aas.

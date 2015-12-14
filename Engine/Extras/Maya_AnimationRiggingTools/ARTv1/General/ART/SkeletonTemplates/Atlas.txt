@@ -1,0 +1,756 @@
+(dp1
+VextraJoint/Bar_Back_11_r/leaf/Bar_Back_Light02_r (TR)
+p2
+VBar_Back_11_r/leaf/Bar_Back_Light02_r (TR)
+p3
+sVextraJoint/root/leaf/TopBar_Front_02 (TR)
+p4
+Vroot/leaf/TopBar_Front_02 (TR)
+p5
+sS'leftArmOptions_numUpArmTwistBones'
+p6
+(lp7
+I0
+a(lp8
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/root/leaf/Bar_Back_01_r (TR)
+p9
+Vroot/leaf/Bar_Back_01_r (TR)
+p10
+sVextraJoint/Bar_Front_05_r/leaf/Bar_Front_06_r (TR)
+p11
+VBar_Front_05_r/leaf/Bar_Front_06_r (TR)
+p12
+sVextraJoint/Bar_Front_09_r/leaf/Bar_Front_11_r (TR)
+p13
+VBar_Front_09_r/leaf/Bar_Front_11_r (TR)
+p14
+sVextraJoint/root/leaf/Floor_Back_03_l (TR)
+p15
+Vroot/leaf/Floor_Back_03_l (TR)
+p16
+sVextraJoint/Bar_Back_11_l/leaf/Bar_Back_Light02_l (TR)
+p17
+VBar_Back_11_l/leaf/Bar_Back_Light02_l (TR)
+p18
+sVextraJoint/Bar_Back_04_r/leaf/Bar_Back_05_r (TR)
+p19
+VBar_Back_04_r/leaf/Bar_Back_05_r (TR)
+p20
+sS'torsoOptions_numSpineBones'
+p21
+(lp22
+I3
+a(lp23
+F0.14999618524452582
+aF0.14999618524452582
+aF0.14999618524452582
+aasVextraJoint/root/leaf/Floor_Front_03_l (TR)
+p24
+Vroot/leaf/Floor_Front_03_l (TR)
+p25
+sS'rightFootOptions_numThumbBones'
+p26
+(lp27
+I0
+a(lp28
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/Bar_Back_05_r/leaf/Bar_Back_06_r (TR)
+p29
+VBar_Back_05_r/leaf/Bar_Back_06_r (TR)
+p30
+sVextraJoint/Bar_Front_10_l/leaf/Bar_Front_Lightbar_l (TR)
+p31
+VBar_Front_10_l/leaf/Bar_Front_Lightbar_l (TR)
+p32
+sVextraJoint/Bar_Back_09_r/leaf/Bar_Back_10_r (TR)
+p33
+VBar_Back_09_r/leaf/Bar_Back_10_r (TR)
+p34
+sS'rightHandOptions_numIndexBones'
+p35
+(lp36
+I0
+a(lp37
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/Bar_Back_03_l/leaf/Bar_Back_04_l (TR)
+p38
+VBar_Back_03_l/leaf/Bar_Back_04_l (TR)
+p39
+sVextraJoint/Bar_Back_06_l/leaf/Bar_Back_07_l (TR)
+p40
+VBar_Back_06_l/leaf/Bar_Back_07_l (TR)
+p41
+sVextraJoint/TopBar_Front_02/leaf/TopBar_Front_02_Light (TR)
+p42
+VTopBar_Front_02/leaf/TopBar_Front_02_Light (TR)
+p43
+sVextraJoint/Bar_Front_03_r/leaf/Bar_Front_04_r (TR)
+p44
+VBar_Front_03_r/leaf/Bar_Front_04_r (TR)
+p45
+sVextraJoint/Bar_Front_08_r/leaf/Bar_Front_09_r (TR)
+p46
+VBar_Front_08_r/leaf/Bar_Front_09_r (TR)
+p47
+sVextraJoint/root/leaf/Floor_Front_01_l (TR)
+p48
+Vroot/leaf/Floor_Front_01_l (TR)
+p49
+sS'leftHandOptions_numRingBones'
+p50
+(lp51
+I0
+a(lp52
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/root/leaf/Floor_Front_01_r (TR)
+p53
+Vroot/leaf/Floor_Front_01_r (TR)
+p54
+sS'rightLegOptions_numCalfTwistBones'
+p55
+(lp56
+I0
+a(lp57
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/Bar_Back_10_l/leaf/Bar_Back_LightBar_l (TR)
+p58
+VBar_Back_10_l/leaf/Bar_Back_LightBar_l (TR)
+p59
+sVextraJoint/Bar_Front_06_l/leaf/Bar_Front_08_l (TR)
+p60
+VBar_Front_06_l/leaf/Bar_Front_08_l (TR)
+p61
+sVextraJoint/Bar_Front_12_l/leaf/Bar_Front_Dish_l (TR)
+p62
+VBar_Front_12_l/leaf/Bar_Front_Dish_l (TR)
+p63
+sVextraJoint/Bar_Front_11_r/leaf/Bar_Front_12_r (TR)
+p64
+VBar_Front_11_r/leaf/Bar_Front_12_r (TR)
+p65
+sVextraJoint/Bar_Back_11_r/leaf/Bar_Back_Light01_r (TR)
+p66
+VBar_Back_11_r/leaf/Bar_Back_Light01_r (TR)
+p67
+sS'rightFootOptions_numRingBones'
+p68
+(lp69
+I0
+a(lp70
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/Bar_Front_09_l/leaf/Bar_Front_11_l (TR)
+p71
+VBar_Front_09_l/leaf/Bar_Front_11_l (TR)
+p72
+sS'leftHandOptions_numMiddleBones'
+p73
+(lp74
+I0
+a(lp75
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/Floor_Front_03_l/leaf/Floor_Front_04_l (TR)
+p76
+VFloor_Front_03_l/leaf/Floor_Front_04_l (TR)
+p77
+sS'leftHandOptions_numThumbBones'
+p78
+(lp79
+I0
+a(lp80
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/Bar_Back_11_r/leaf/Bar_Back_Light05_r (TR)
+p81
+VBar_Back_11_r/leaf/Bar_Back_Light05_r (TR)
+p82
+sS'leftFootOptions_numIndexBones'
+p83
+(lp84
+I0
+a(lp85
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/Bar_Front_02_l/leaf/Bar_Front_03_l (TR)
+p86
+VBar_Front_02_l/leaf/Bar_Front_03_l (TR)
+p87
+sVextraJoint/Bar_Front_11_l/leaf/Bar_Front_Light01_l (TR)
+p88
+VBar_Front_11_l/leaf/Bar_Front_Light01_l (TR)
+p89
+sVextraJoint/Mid_Middle/leaf/Mid_Top (TR)
+p90
+VMid_Middle/leaf/Mid_Top (TR)
+p91
+sVextraJoint/Bar_Back_04_l/leaf/Bar_Back_05_l (TR)
+p92
+VBar_Back_04_l/leaf/Bar_Back_05_l (TR)
+p93
+sS'leftFootOptions_numMiddleBones'
+p94
+(lp95
+I0
+a(lp96
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/Bar_Back_11_r/leaf/Bar_Back_Light03_r (TR)
+p97
+VBar_Back_11_r/leaf/Bar_Back_Light03_r (TR)
+p98
+sVextraJoint/Bar_Back_09_l/leaf/Bar_Back_11_l (TR)
+p99
+VBar_Back_09_l/leaf/Bar_Back_11_l (TR)
+p100
+sVextraJoint/Mid_Middle/leaf/Mid_Panel_04 (TR)
+p101
+VMid_Middle/leaf/Mid_Panel_04 (TR)
+p102
+sVextraJoint/Bar_Back_08_l/leaf/Bar_Back_09_l (TR)
+p103
+VBar_Back_08_l/leaf/Bar_Back_09_l (TR)
+p104
+sVextraJoint/root/leaf/TopBar_01_l (TR)
+p105
+Vroot/leaf/TopBar_01_l (TR)
+p106
+sVextraJoint/Floor_Front_01_r/leaf/Floor_Front_02_r (TR)
+p107
+VFloor_Front_01_r/leaf/Floor_Front_02_r (TR)
+p108
+sS'leftLegOptions_numCalfTwistBones'
+p109
+(lp110
+I0
+a(lp111
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/Floor_Back_03_l/leaf/Floor_Back_04_l (TR)
+p112
+VFloor_Back_03_l/leaf/Floor_Back_04_l (TR)
+p113
+sVextraJoint/Bar_Back_02_l/leaf/Bar_Back_03_l (TR)
+p114
+VBar_Back_02_l/leaf/Bar_Back_03_l (TR)
+p115
+sVextraJoint/Bar_Back_06_r/leaf/Bar_Back_08_r (TR)
+p116
+VBar_Back_06_r/leaf/Bar_Back_08_r (TR)
+p117
+sS'leftHandOptions_numIndexBones'
+p118
+(lp119
+I0
+a(lp120
+F1
+aF0.68000305180437937
+aF0
+aasS'rightArmOptions_numLowArmTwistBones'
+p121
+(lp122
+I0
+a(lp123
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/Bar_Back_06_r/leaf/Bar_Back_07_r (TR)
+p124
+VBar_Back_06_r/leaf/Bar_Back_07_r (TR)
+p125
+sVextraJoint/Bar_Back_11_l/leaf/Bar_Back_Light05_l (TR)
+p126
+VBar_Back_11_l/leaf/Bar_Back_Light05_l (TR)
+p127
+sVextraJoint/Mid_Middle/leaf/Mid_Panel_03 (TR)
+p128
+VMid_Middle/leaf/Mid_Panel_03 (TR)
+p129
+sVextraJoint/root/leaf/Ring_Main (TR)
+p130
+Vroot/leaf/Ring_Main (TR)
+p131
+sVextraJoint/Bar_Back_11_r/leaf/Bar_Back_Light04_r (TR)
+p132
+VBar_Back_11_r/leaf/Bar_Back_Light04_r (TR)
+p133
+sVextraJoint/Bar_Back_06_l/leaf/Bar_Back_08_l (TR)
+p134
+VBar_Back_06_l/leaf/Bar_Back_08_l (TR)
+p135
+sVextraJoint/root/leaf/TopBar_Back_01 (TR)
+p136
+Vroot/leaf/TopBar_Back_01 (TR)
+p137
+sVextraJoint/TopBar_02_l/leaf/TopBar_02_Light_l (TR)
+p138
+VTopBar_02_l/leaf/TopBar_02_Light_l (TR)
+p139
+sVextraJoint/Bar_Front_01_l/leaf/Bar_Front_02_l (TR)
+p140
+VBar_Front_01_l/leaf/Bar_Front_02_l (TR)
+p141
+sVextraJoint/Bar_Back_05_l/leaf/Bar_Back_06_l (TR)
+p142
+VBar_Back_05_l/leaf/Bar_Back_06_l (TR)
+p143
+sS'rightHandOptions_numPinkyBones'
+p144
+(lp145
+I0
+a(lp146
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/root/leaf/TopBar_Back_02 (TR)
+p147
+Vroot/leaf/TopBar_Back_02 (TR)
+p148
+sVextraJoint/Bar_Back_12_l/leaf/Bar_Back_13_l (TR)
+p149
+VBar_Back_12_l/leaf/Bar_Back_13_l (TR)
+p150
+sVextraJoint/root/leaf/TopBar_Front_01 (TR)
+p151
+Vroot/leaf/TopBar_Front_01 (TR)
+p152
+sS'leftFootOptions_numPinkyBones'
+p153
+(lp154
+I0
+a(lp155
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'leftLegOptions_numThighTwistBones'
+p156
+(lp157
+I0
+a(lp158
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/Floor_Front_03_r/leaf/Floor_Front_04_r (TR)
+p159
+VFloor_Front_03_r/leaf/Floor_Front_04_r (TR)
+p160
+sVextraJoint/root/leaf/Mid_Bottom (TR)
+p161
+Vroot/leaf/Mid_Bottom (TR)
+p162
+sVextraJoint/Bar_Back_11_r/leaf/Bar_Back_Light06_r (TR)
+p163
+VBar_Back_11_r/leaf/Bar_Back_Light06_r (TR)
+p164
+sVextraJoint/root/leaf/Bar_Front_01_r (TR)
+p165
+Vroot/leaf/Bar_Front_01_r (TR)
+p166
+sVextraJoint/root/leaf/Floor_Mid_05_r (TR)
+p167
+Vroot/leaf/Floor_Mid_05_r (TR)
+p168
+sS'leftFootOptions_numRingBones'
+p169
+(lp170
+I0
+a(lp171
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/Bar_Back_12_r/leaf/Bar_Back_13_r (TR)
+p172
+VBar_Back_12_r/leaf/Bar_Back_13_r (TR)
+p173
+sVextraJoint/Bar_Front_11_r/leaf/Bar_Front_Light03_r (TR)
+p174
+VBar_Front_11_r/leaf/Bar_Front_Light03_r (TR)
+p175
+sVextraJoint/Bar_Front_06_r/leaf/Bar_Front_08_r (TR)
+p176
+VBar_Front_06_r/leaf/Bar_Front_08_r (TR)
+p177
+sVextraJoint/Bar_Front_12_r/leaf/Bar_Front_13_r (TR)
+p178
+VBar_Front_12_r/leaf/Bar_Front_13_r (TR)
+p179
+sS'rightFootOptions_numPinkyBones'
+p180
+(lp181
+I0
+a(lp182
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/Bar_Back_11_l/leaf/Bar_Back_Light06_l (TR)
+p183
+VBar_Back_11_l/leaf/Bar_Back_Light06_l (TR)
+p184
+sS'rightFootOptions_numMiddleBones'
+p185
+(lp186
+I0
+a(lp187
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/Bar_Front_11_l/leaf/Bar_Front_12_l (TR)
+p188
+VBar_Front_11_l/leaf/Bar_Front_12_l (TR)
+p189
+sS'leftArmOptions_numLowArmTwistBones'
+p190
+(lp191
+I0
+a(lp192
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/Bar_Front_10_r/leaf/Bar_Front_Lightbar_r (TR)
+p193
+VBar_Front_10_r/leaf/Bar_Front_Lightbar_r (TR)
+p194
+sVextraJoint/Bar_Back_11_r/leaf/Bar_Back_12_r (TR)
+p195
+VBar_Back_11_r/leaf/Bar_Back_12_r (TR)
+p196
+sVextraJoint/Bar_Front_04_r/leaf/Bar_Front_05_r (TR)
+p197
+VBar_Front_04_r/leaf/Bar_Front_05_r (TR)
+p198
+sVextraJoint/Bar_Front_12_l/leaf/Bar_Front_13_l (TR)
+p199
+VBar_Front_12_l/leaf/Bar_Front_13_l (TR)
+p200
+sVextraJoint/Bar_Front_11_r/leaf/Bar_Front_Light05_r (TR)
+p201
+VBar_Front_11_r/leaf/Bar_Front_Light05_r (TR)
+p202
+sVextraJoint/Floor_Back_01_l/leaf/Floor_Back_02_l (TR)
+p203
+VFloor_Back_01_l/leaf/Floor_Back_02_l (TR)
+p204
+sVextraJoint/Bar_Back_02_r/leaf/Bar_Back_03_r (TR)
+p205
+VBar_Back_02_r/leaf/Bar_Back_03_r (TR)
+p206
+sS'leftHandOptions_numPinkyBones'
+p207
+(lp208
+I0
+a(lp209
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/Bar_Front_11_l/leaf/Bar_Front_Light02_l (TR)
+p210
+VBar_Front_11_l/leaf/Bar_Front_Light02_l (TR)
+p211
+sVextraJoint/Bar_Back_11_l/leaf/Bar_Back_Light03_l (TR)
+p212
+VBar_Back_11_l/leaf/Bar_Back_Light03_l (TR)
+p213
+sVextraJoint/Mid_Middle/leaf/Mid_Panel_01 (TR)
+p214
+VMid_Middle/leaf/Mid_Panel_01 (TR)
+p215
+sS'rightLegOptions_numThighTwistBones'
+p216
+(lp217
+I0
+a(lp218
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/root/leaf/Bar_Front_01_l (TR)
+p219
+Vroot/leaf/Bar_Front_01_l (TR)
+p220
+sVextraJoint/TopBar_02_r/leaf/TopBar_02_Light_r (TR)
+p221
+VTopBar_02_r/leaf/TopBar_02_Light_r (TR)
+p222
+sVextraJoint/root/leaf/Floor_Front_Mid (TR)
+p223
+Vroot/leaf/Floor_Front_Mid (TR)
+p224
+sVextraJoint/Bar_Front_09_r/leaf/Bar_Front_10_r (TR)
+p225
+VBar_Front_09_r/leaf/Bar_Front_10_r (TR)
+p226
+sVextraJoint/Bar_Front_12_r/leaf/Bar_Front_Dish_r (TR)
+p227
+VBar_Front_12_r/leaf/Bar_Front_Dish_r (TR)
+p228
+sVextraJoint/Bar_Front_06_l/leaf/Bar_Front_07_l (TR)
+p229
+VBar_Front_06_l/leaf/Bar_Front_07_l (TR)
+p230
+sVextraJoint/root/leaf/Mid_Middle (TR)
+p231
+Vroot/leaf/Mid_Middle (TR)
+p232
+sVextraJoint/Bar_Back_12_r/leaf/Bar_Back_Dish_r (TR)
+p233
+VBar_Back_12_r/leaf/Bar_Back_Dish_r (TR)
+p234
+sVextraJoint/Bar_Front_11_r/leaf/Bar_Front_Light01_r (TR)
+p235
+VBar_Front_11_r/leaf/Bar_Front_Light01_r (TR)
+p236
+sVextraJoint/TopBar_Back_02/leaf/TopBar_Back_02_Light (TR)
+p237
+VTopBar_Back_02/leaf/TopBar_Back_02_Light (TR)
+p238
+sS'rightFootOptions_numIndexBones'
+p239
+(lp240
+I0
+a(lp241
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/Bar_Back_08_r/leaf/Bar_Back_09_r (TR)
+p242
+VBar_Back_08_r/leaf/Bar_Back_09_r (TR)
+p243
+sVextraJoint/Ring_Main/leaf/Ring_Outer (TR)
+p244
+VRing_Main/leaf/Ring_Outer (TR)
+p245
+sVextraJoint/Bar_Front_11_r/leaf/Bar_Front_Light06_r (TR)
+p246
+VBar_Front_11_r/leaf/Bar_Front_Light06_r (TR)
+p247
+sVextraJoint/Bar_Back_01_r/leaf/Bar_Back_02_r (TR)
+p248
+VBar_Back_01_r/leaf/Bar_Back_02_r (TR)
+p249
+sVextraJoint/root/leaf/Floor_Back_01_l (TR)
+p250
+Vroot/leaf/Floor_Back_01_l (TR)
+p251
+sS'leftLegIncludeBallJoint_CB'
+p252
+I00
+sS'rightHandOptions_numRingBones'
+p253
+(lp254
+I0
+a(lp255
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/Bar_Back_01_l/leaf/Bar_Back_02_l (TR)
+p256
+VBar_Back_01_l/leaf/Bar_Back_02_l (TR)
+p257
+sVextraJoint/Bar_Back_10_r/leaf/Bar_Back_LightBar_r (TR)
+p258
+VBar_Back_10_r/leaf/Bar_Back_LightBar_r (TR)
+p259
+sVextraJoint/Bar_Front_09_l/leaf/Bar_Front_10_l (TR)
+p260
+VBar_Front_09_l/leaf/Bar_Front_10_l (TR)
+p261
+sVextraJoint/root/leaf/Floor_Mid_05_l (TR)
+p262
+Vroot/leaf/Floor_Mid_05_l (TR)
+p263
+sVextraJoint/Bar_Front_02_r/leaf/Bar_Front_03_r (TR)
+p264
+VBar_Front_02_r/leaf/Bar_Front_03_r (TR)
+p265
+sVextraJoint/Bar_Front_11_l/leaf/Bar_Front_Light06_l (TR)
+p266
+VBar_Front_11_l/leaf/Bar_Front_Light06_l (TR)
+p267
+sVextraJoint/Bar_Front_11_r/leaf/Bar_Front_Light02_r (TR)
+p268
+VBar_Front_11_r/leaf/Bar_Front_Light02_r (TR)
+p269
+sS'leftFootOptions_numThumbBones'
+p270
+(lp271
+I0
+a(lp272
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/Floor_Front_01_l/leaf/Floor_Front_02_l (TR)
+p273
+VFloor_Front_01_l/leaf/Floor_Front_02_l (TR)
+p274
+sVextraJoint/Bar_Back_09_r/leaf/Bar_Back_11_r (TR)
+p275
+VBar_Back_09_r/leaf/Bar_Back_11_r (TR)
+p276
+sVextraJoint/Ring_Main/leaf/Ring_Inner (TR)
+p277
+VRing_Main/leaf/Ring_Inner (TR)
+p278
+sVextraJoint/root/leaf/Floor_Back_01_r (TR)
+p279
+Vroot/leaf/Floor_Back_01_r (TR)
+p280
+sVextraJoint/root/leaf/TopBar_02_l (TR)
+p281
+Vroot/leaf/TopBar_02_l (TR)
+p282
+sS'rightHandOptions_numMiddleBones'
+p283
+(lp284
+I0
+a(lp285
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/Bar_Back_11_l/leaf/Bar_Back_Light01_l (TR)
+p286
+VBar_Back_11_l/leaf/Bar_Back_Light01_l (TR)
+p287
+sVextraJoint/Bar_Front_11_l/leaf/Bar_Front_Light04_l (TR)
+p288
+VBar_Front_11_l/leaf/Bar_Front_Light04_l (TR)
+p289
+sVextraJoint/root/leaf/TopBar_01_r (TR)
+p290
+Vroot/leaf/TopBar_01_r (TR)
+p291
+sVextraJoint/Bar_Front_06_r/leaf/Bar_Front_07_r (TR)
+p292
+VBar_Front_06_r/leaf/Bar_Front_07_r (TR)
+p293
+sVextraJoint/Bar_Back_12_l/leaf/Bar_Back_Dish_l (TR)
+p294
+VBar_Back_12_l/leaf/Bar_Back_Dish_l (TR)
+p295
+sVextraJoint/root/leaf/Floor_Back_Mid (TR)
+p296
+Vroot/leaf/Floor_Back_Mid (TR)
+p297
+sVextraJoint/Bar_Front_03_l/leaf/Bar_Front_04_l (TR)
+p298
+VBar_Front_03_l/leaf/Bar_Front_04_l (TR)
+p299
+sVextraJoint/Bar_Front_08_l/leaf/Bar_Front_09_l (TR)
+p300
+VBar_Front_08_l/leaf/Bar_Front_09_l (TR)
+p301
+sVextraJoint/Bar_Back_09_l/leaf/Bar_Back_10_l (TR)
+p302
+VBar_Back_09_l/leaf/Bar_Back_10_l (TR)
+p303
+sVextraJoint/Bar_Back_03_r/leaf/Bar_Back_04_r (TR)
+p304
+VBar_Back_03_r/leaf/Bar_Back_04_r (TR)
+p305
+sVextraJoint/Bar_Front_11_l/leaf/Bar_Front_Light03_l (TR)
+p306
+VBar_Front_11_l/leaf/Bar_Front_Light03_l (TR)
+p307
+sVextraJoint/root/leaf/TopBar_02_r (TR)
+p308
+Vroot/leaf/TopBar_02_r (TR)
+p309
+sS'rightLegIncludeBallJoint_CB'
+p310
+I00
+sVextraJoint/root/leaf/Floor_Back_03_r (TR)
+p311
+Vroot/leaf/Floor_Back_03_r (TR)
+p312
+sVextraJoint/Ring_Main/leaf/Ring_Mid (TR)
+p313
+VRing_Main/leaf/Ring_Mid (TR)
+p314
+sVextraJoint/Bar_Front_05_l/leaf/Bar_Front_06_l (TR)
+p315
+VBar_Front_05_l/leaf/Bar_Front_06_l (TR)
+p316
+sVextraJoint/Bar_Back_11_l/leaf/Bar_Back_12_l (TR)
+p317
+VBar_Back_11_l/leaf/Bar_Back_12_l (TR)
+p318
+sVextraJoint/Mid_Middle/leaf/Mid_Panel_02 (TR)
+p319
+VMid_Middle/leaf/Mid_Panel_02 (TR)
+p320
+sVextraJoint/Bar_Front_11_r/leaf/Bar_Front_Light04_r (TR)
+p321
+VBar_Front_11_r/leaf/Bar_Front_Light04_r (TR)
+p322
+sVextraJoint/Bar_Front_04_l/leaf/Bar_Front_05_l (TR)
+p323
+VBar_Front_04_l/leaf/Bar_Front_05_l (TR)
+p324
+sVextraJoint/Bar_Front_11_l/leaf/Bar_Front_Light05_l (TR)
+p325
+VBar_Front_11_l/leaf/Bar_Front_Light05_l (TR)
+p326
+sVextraJoint/Floor_Back_01_r/leaf/Floor_Back_02_r (TR)
+p327
+VFloor_Back_01_r/leaf/Floor_Back_02_r (TR)
+p328
+sVextraJoint/root/leaf/Floor_Front_03_r (TR)
+p329
+Vroot/leaf/Floor_Front_03_r (TR)
+p330
+sS'rightHandOptions_numThumbBones'
+p331
+(lp332
+I0
+a(lp333
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/Bar_Back_11_l/leaf/Bar_Back_Light04_l (TR)
+p334
+VBar_Back_11_l/leaf/Bar_Back_Light04_l (TR)
+p335
+sVextraJoint/Bar_Front_01_r/leaf/Bar_Front_02_r (TR)
+p336
+VBar_Front_01_r/leaf/Bar_Front_02_r (TR)
+p337
+sS'torsoOptions_numNeckBones'
+p338
+(lp339
+I1
+a(lp340
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/Floor_Back_03_r/leaf/Floor_Back_04_r (TR)
+p341
+VFloor_Back_03_r/leaf/Floor_Back_04_r (TR)
+p342
+sS'rightArmOptions_numUpArmTwistBones'
+p343
+(lp344
+I0
+a(lp345
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/root/leaf/Bar_Back_01_l (TR)
+p346
+Vroot/leaf/Bar_Back_01_l (TR)
+p347
+s.

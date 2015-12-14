@@ -1,0 +1,480 @@
+(dp1
+S'rightLegOptions_numHeelTwistBones'
+p2
+(lp3
+I0
+a(lp4
+F0.26666666666666666
+aF0.26666666666666666
+aF0.26666666666666666
+aasVextraJoint/calf_l/leaf/leg_jet_l (TR)
+p5
+Vcalf_l/leaf/leg_jet_l (TR)
+p6
+sS'leftArmOptions_numUpArmTwistBones'
+p7
+(lp8
+I0
+a(lp9
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/thigh_r/leaf/leg_socket_root_r (TR)
+p10
+Vthigh_r/leaf/leg_socket_root_r (TR)
+p11
+sVextraJoint/upperarm_r/leaf/arm_jet_r (TR)
+p12
+Vupperarm_r/leaf/arm_jet_r (TR)
+p13
+sVextraJoint/rocket_transform/leaf/rocket_root_l (TR)
+p14
+Vrocket_transform/leaf/rocket_root_l (TR)
+p15
+sS'torsoOptions_numSpineBones'
+p16
+(lp17
+I3
+a(lp18
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/cockpit_pedal_l/leaf/cockpit_foot_pedal_l (TR)
+p19
+Vcockpit_pedal_l/leaf/cockpit_foot_pedal_l (TR)
+p20
+sVextraJoint/lowerarm_r/leaf/shell_2 (TR)
+p21
+Vlowerarm_r/leaf/shell_2 (TR)
+p22
+sS'rightFootOptions_numThumbBones'
+p23
+(lp24
+I0
+a(lp25
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'rightHandOptions_numIndexBones'
+p26
+(lp27
+I3
+a(lp28
+F0.14999618524452582
+aF0.14999618524452582
+aF0.14999618524452582
+aasVextraJoint/pelvis/leaf/lower_fin (TR)
+p29
+Vpelvis/leaf/lower_fin (TR)
+p30
+sVextraJoint/calf_r/leaf/leg_jet_r (TR)
+p31
+Vcalf_r/leaf/leg_jet_r (TR)
+p32
+sS'leftHandOptions_numRingBones'
+p33
+(lp34
+I0
+a(lp35
+F1
+aF0.68000305180437937
+aF0
+aasS'rightLegOptions_numCalfTwistBones'
+p36
+(lp37
+I1
+a(lp38
+F0.14999618524452582
+aF0.14999618524452582
+aF0.14999618524452582
+aasVextraJoint/clavicle_l/leaf/shoulder_mid_l (TR)
+p39
+Vclavicle_l/leaf/shoulder_mid_l (TR)
+p40
+sVextraJoint/turbine_root/leaf/turbine_hinge (TR)
+p41
+Vturbine_root/leaf/turbine_hinge (TR)
+p42
+sS'rightFootOptions_numRingBones'
+p43
+(lp44
+I0
+a(lp45
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/spine_02/leaf/rocket_transform (TR)
+p46
+Vspine_02/leaf/rocket_transform (TR)
+p47
+sVextraJoint/clavicle_r/leaf/tube_lats_r (TR)
+p48
+Vclavicle_r/leaf/tube_lats_r (TR)
+p49
+sVextraJoint/spine_03/jiggle/shoulder_pad_l
+p50
+Vspine_03/jiggle/shoulder_pad_l
+p51
+sVextraJoint/rocket_root_l/leaf/rocket_l (TR)
+p52
+Vrocket_root_l/leaf/rocket_l (TR)
+p53
+sS'leftHandOptions_numThumbBones'
+p54
+(lp55
+I0
+a(lp56
+F1
+aF0.68000305180437937
+aF0
+aasS'leftFootOptions_numIndexBones'
+p57
+(lp58
+I0
+a(lp59
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/spine_03/jiggle/shoulder_pad_r
+p60
+Vspine_03/jiggle/shoulder_pad_r
+p61
+sVextraJoint/lowerarm_l/leaf/recoil_l (TR)
+p62
+Vlowerarm_l/leaf/recoil_l (TR)
+p63
+sVextraJoint/cannon_arm_2/leaf/cannon (TR)
+p64
+Vcannon_arm_2/leaf/cannon (TR)
+p65
+sS'leftFootOptions_numMiddleBones'
+p66
+(lp67
+I0
+a(lp68
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/lowerarm_r/leaf/shell_1 (TR)
+p69
+Vlowerarm_r/leaf/shell_1 (TR)
+p70
+sVextraJoint/spine_01/leaf/cockpit_seat_base (TR)
+p71
+Vspine_01/leaf/cockpit_seat_base (TR)
+p72
+sS'leftLegOptions_numCalfTwistBones'
+p73
+(lp74
+I1
+a(lp75
+F0.14999618524452582
+aF0.14999618524452582
+aF0.14999618524452582
+aasVextraJoint/lowerarm_l/leaf/bay_door_a (TR)
+p76
+Vlowerarm_l/leaf/bay_door_a (TR)
+p77
+sS'leftHandOptions_numIndexBones'
+p78
+(lp79
+I0
+a(lp80
+F1
+aF0.68000305180437937
+aF0
+aasS'rightArmOptions_numLowArmTwistBones'
+p81
+(lp82
+I0
+a(lp83
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/leg_socket_root_l/leaf/leg_socket_l (TR)
+p84
+Vleg_socket_root_l/leaf/leg_socket_l (TR)
+p85
+sS'leftHandOptions_numMiddleBones'
+p86
+(lp87
+I0
+a(lp88
+F1
+aF0.68000305180437937
+aF0
+aasS'rightHandOptions_numPinkyBones'
+p89
+(lp90
+I0
+a(lp91
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/cockpit_seat/chain/controlArm_r (3)
+p92
+Vcockpit_seat/chain/controlArm_r (3)
+p93
+sVextraJoint/pelvis/leaf/hip_l (TR)
+p94
+Vpelvis/leaf/hip_l (TR)
+p95
+sS'leftFootOptions_numPinkyBones'
+p96
+(lp97
+I0
+a(lp98
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'leftLegOptions_numThighTwistBones'
+p99
+(lp100
+I0
+a(lp101
+F1
+aF0.68000305180437937
+aF0
+aasS'leftLegIncludeBallJoint_CB'
+p102
+I01
+sS'leftFootOptions_numRingBones'
+p103
+(lp104
+I0
+a(lp105
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/lowerarm_r/leaf/recoil_r (TR)
+p106
+Vlowerarm_r/leaf/recoil_r (TR)
+p107
+sVextraJoint/clavicle_r/leaf/shoulder_mid_r (TR)
+p108
+Vclavicle_r/leaf/shoulder_mid_r (TR)
+p109
+sS'rightFootOptions_numPinkyBones'
+p110
+(lp111
+I0
+a(lp112
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/lowerarm_l/leaf/tube_arm_l (TR)
+p113
+Vlowerarm_l/leaf/tube_arm_l (TR)
+p114
+sS'rightFootOptions_numMiddleBones'
+p115
+(lp116
+I0
+a(lp117
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'leftArmOptions_numLowArmTwistBones'
+p118
+(lp119
+I0
+a(lp120
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/cannon_root/leaf/cannon_arm_1 (TR)
+p121
+Vcannon_root/leaf/cannon_arm_1 (TR)
+p122
+sVextraJoint/foot_r/leaf/foot_spike_r (TR)
+p123
+Vfoot_r/leaf/foot_spike_r (TR)
+p124
+sS'leftHandOptions_numPinkyBones'
+p125
+(lp126
+I0
+a(lp127
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/spine_01/leaf/turbine_root (TR)
+p128
+Vspine_01/leaf/turbine_root (TR)
+p129
+sVextraJoint/lowerarm_r/leaf/shell_3 (TR)
+p130
+Vlowerarm_r/leaf/shell_3 (TR)
+p131
+sVextraJoint/lower_fin/leaf/lower_fin_end (TR)
+p132
+Vlower_fin/leaf/lower_fin_end (TR)
+p133
+sS'rightLegOptions_numThighTwistBones'
+p134
+(lp135
+I0
+a(lp136
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/spine_03/leaf/upper_fin (TR)
+p137
+Vspine_03/leaf/upper_fin (TR)
+p138
+sVextraJoint/rocket_root_r/leaf/rocket_r (TR)
+p139
+Vrocket_root_r/leaf/rocket_r (TR)
+p140
+sVextraJoint/lowerarm_l/leaf/rocket (TR)
+p141
+Vlowerarm_l/leaf/rocket (TR)
+p142
+sVextraJoint/cockpit_pedal_r/leaf/cockpit_foot_pedal_r (TR)
+p143
+Vcockpit_pedal_r/leaf/cockpit_foot_pedal_r (TR)
+p144
+sVextraJoint/spine_03/leaf/cannon_root (TR)
+p145
+Vspine_03/leaf/cannon_root (TR)
+p146
+sVextraJoint/cockpit_seat/chain/controlArm_l (3)
+p147
+Vcockpit_seat/chain/controlArm_l (3)
+p148
+sS'rightFootOptions_numIndexBones'
+p149
+(lp150
+I0
+a(lp151
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/foot_l/leaf/foot_spike_l (TR)
+p152
+Vfoot_l/leaf/foot_spike_l (TR)
+p153
+sS'rightHandOptions_numRingBones'
+p154
+(lp155
+I3
+a(lp156
+F0.14999618524452582
+aF0.14999618524452582
+aF0.14999618524452582
+aasVextraJoint/spine_01/leaf/cockpit_pedal_r (TR)
+p157
+Vspine_01/leaf/cockpit_pedal_r (TR)
+p158
+sVextraJoint/rocket_transform/leaf/rocket_root_r (TR)
+p159
+Vrocket_transform/leaf/rocket_root_r (TR)
+p160
+sS'leftFootOptions_numThumbBones'
+p161
+(lp162
+I0
+a(lp163
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'leftLegOptions_numHeelTwistBones'
+p164
+(lp165
+I0
+a(lp166
+F0.26666666666666666
+aF0.26666666666666666
+aF0.26666666666666666
+aasVextraJoint/pelvis/leaf/hip_r (TR)
+p167
+Vpelvis/leaf/hip_r (TR)
+p168
+sVextraJoint/lowerarm_l/leaf/rocket_arm_root (TR)
+p169
+Vlowerarm_l/leaf/rocket_arm_root (TR)
+p170
+sVextraJoint/upperarm_l/leaf/arm_jet_l (TR)
+p171
+Vupperarm_l/leaf/arm_jet_l (TR)
+p172
+sVextraJoint/cannon_arm_1/leaf/cannon_arm_2 (TR)
+p173
+Vcannon_arm_1/leaf/cannon_arm_2 (TR)
+p174
+sVextraJoint/lowerarm_l/leaf/bay_door_b (TR)
+p175
+Vlowerarm_l/leaf/bay_door_b (TR)
+p176
+sVextraJoint/cannon/leaf/mine (TR)
+p177
+Vcannon/leaf/mine (TR)
+p178
+sVextraJoint/rocket_arm_root/leaf/rocket_arm (TR)
+p179
+Vrocket_arm_root/leaf/rocket_arm (TR)
+p180
+sVextraJoint/spine_01/leaf/cockpit_pedal_l (TR)
+p181
+Vspine_01/leaf/cockpit_pedal_l (TR)
+p182
+sS'rightHandOptions_numMiddleBones'
+p183
+(lp184
+I3
+a(lp185
+F0.14999618524452582
+aF0.14999618524452582
+aF0.14999618524452582
+aasVextraJoint/leg_socket_root_r/leaf/leg_socket_r (TR)
+p186
+Vleg_socket_root_r/leaf/leg_socket_r (TR)
+p187
+sVextraJoint/cockpit_seat_base/leaf/cockpit_seat (TR)
+p188
+Vcockpit_seat_base/leaf/cockpit_seat (TR)
+p189
+sVextraJoint/upperarm_r/leaf/tube_arm_r (TR)
+p190
+Vupperarm_r/leaf/tube_arm_r (TR)
+p191
+sS'rightLegIncludeBallJoint_CB'
+p192
+I01
+sVextraJoint/rocket_arm/leaf/rocket_arm_b (TR)
+p193
+Vrocket_arm/leaf/rocket_arm_b (TR)
+p194
+sS'rightHandOptions_numThumbBones'
+p195
+(lp196
+I0
+a(lp197
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/turbine_hinge/leaf/turbine (TR)
+p198
+Vturbine_hinge/leaf/turbine (TR)
+p199
+sS'torsoOptions_numNeckBones'
+p200
+(lp201
+I1
+a(lp202
+F1
+aF0.68000305180437937
+aF0
+aasS'rightArmOptions_numUpArmTwistBones'
+p203
+(lp204
+I0
+a(lp205
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/thigh_l/leaf/leg_socket_root_l (TR)
+p206
+Vthigh_l/leaf/leg_socket_root_l (TR)
+p207
+s.

@@ -1,0 +1,7 @@
+(dp1
+S'depotPaths'
+p2
+(lp3
+V//depot/usr/jeremy_ernst/MayaTools/General/Scripts/
+p4
+as.

@@ -1,0 +1,456 @@
+(dp1
+S'rightFootOptions_numMiddleBones'
+p2
+(lp3
+I0
+a(lp4
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/head/chain/tentacle_r (10)
+p5
+Vhead/chain/tentacle_r (10)
+p6
+sS'rightLegOptions_numHeelTwistBones'
+p7
+(lp8
+I0
+a(lp9
+F0.26666666666666666
+aF0.26666666666666666
+aF0.26666666666666666
+aasS'leftArmOptions_numLowArmTwistBones'
+p10
+(lp11
+I0
+a(lp12
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/dagger_base_r/leaf/dagger_c_r (TR)
+p13
+Vdagger_base_r/leaf/dagger_c_r (TR)
+p14
+sS'leftLegOptions_numHeelTwistBones'
+p15
+(lp16
+I0
+a(lp17
+F0.26666666666666666
+aF0.26666666666666666
+aF0.26666666666666666
+aasS'leftArmOptions_numUpArmTwistBones'
+p18
+(lp19
+I2
+a(lp20
+F1
+aF0.68000305180437937
+aF0
+aasS'leftFootOptions_numMiddleBones'
+p21
+(lp22
+I0
+a(lp23
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/upperarm_twist_01_r/jiggle/shoulderPad_r
+p24
+Vupperarm_twist_01_r/jiggle/shoulderPad_r
+p25
+sVextraJoint/lowerarm_l/leaf/lowerArm_topPlateB_l (TR)
+p26
+Vlowerarm_l/leaf/lowerArm_topPlateB_l (TR)
+p27
+sVextraJoint/pivotA_r/leaf/extensionA_r (TR)
+p28
+VpivotA_r/leaf/extensionA_r (TR)
+p29
+sVextraJoint/thruster_casing_l/leaf/thruster_b_l (TR)
+p30
+Vthruster_casing_l/leaf/thruster_b_l (TR)
+p31
+sVextraJoint/pivotB_r/leaf/extensionB_r (TR)
+p32
+VpivotB_r/leaf/extensionB_r (TR)
+p33
+sVextraJoint/sword_handle_r/leaf/pivotB_r (TR)
+p34
+Vsword_handle_r/leaf/pivotB_r (TR)
+p35
+sVextraJoint/lowerarm_l/leaf/lowerArm_bottomPlateB_l (TR)
+p36
+Vlowerarm_l/leaf/lowerArm_bottomPlateB_l (TR)
+p37
+sVextraJoint/spine_03/leaf/thruster_casing_l (TR)
+p38
+Vspine_03/leaf/thruster_casing_l (TR)
+p39
+sS'leftLegOptions_numCalfTwistBones'
+p40
+(lp41
+I1
+a(lp42
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/dagger_base_r/leaf/dagger_b_r (TR)
+p43
+Vdagger_base_r/leaf/dagger_b_r (TR)
+p44
+sVextraJoint/dagger_base_l/leaf/dagger_c_l (TR)
+p45
+Vdagger_base_l/leaf/dagger_c_l (TR)
+p46
+sS'leftHandOptions_numPinkyBones'
+p47
+(lp48
+I3
+a(lp49
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'rightHandOptions_numMiddleBones'
+p50
+(lp51
+I3
+a(lp52
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/head/leaf/tentacle_spring_l (TR)
+p53
+Vhead/leaf/tentacle_spring_l (TR)
+p54
+sVextraJoint/thruster_casing_l/leaf/thruster_c_l (TR)
+p55
+Vthruster_casing_l/leaf/thruster_c_l (TR)
+p56
+sS'torsoOptions_numSpineBones'
+p57
+(lp58
+I3
+a(lp59
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/weapon_l/leaf/sword_root_l (TR)
+p60
+Vweapon_l/leaf/sword_root_l (TR)
+p61
+sVextraJoint/lowerarm_l/leaf/weapon_l (TR)
+p62
+Vlowerarm_l/leaf/weapon_l (TR)
+p63
+sS'leftHandOptions_numIndexBones'
+p64
+(lp65
+I3
+a(lp66
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/lowerarm_l/leaf/lowerArm_bottomPlateA_l (TR)
+p67
+Vlowerarm_l/leaf/lowerArm_bottomPlateA_l (TR)
+p68
+sS'rightArmOptions_numLowArmTwistBones'
+p69
+(lp70
+I0
+a(lp71
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/lowerarm_l/leaf/lowerArm_topPlateA_l (TR)
+p72
+Vlowerarm_l/leaf/lowerArm_topPlateA_l (TR)
+p73
+sVextraJoint/spine_03/leaf/thruster_casing_r (TR)
+p74
+Vspine_03/leaf/thruster_casing_r (TR)
+p75
+sS'rightLegOptions_numThighTwistBones'
+p76
+(lp77
+I2
+a(lp78
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/clavicle_l/leaf/shoulderflap_l (TR)
+p79
+Vclavicle_l/leaf/shoulderflap_l (TR)
+p80
+sVextraJoint/dagger_base_r/leaf/dagger_a_r (TR)
+p81
+Vdagger_base_r/leaf/dagger_a_r (TR)
+p82
+sVextraJoint/lowerarm_l/leaf/dagger_base_l (TR)
+p83
+Vlowerarm_l/leaf/dagger_base_l (TR)
+p84
+sS'rightHandOptions_numIndexBones'
+p85
+(lp86
+I3
+a(lp87
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/lowerarm_r/leaf/lowerArm_bottomPlateA_r (TR)
+p88
+Vlowerarm_r/leaf/lowerArm_bottomPlateA_r (TR)
+p89
+sVextraJoint/upperarm_twist_01_l/jiggle/shoulderPad_l
+p90
+Vupperarm_twist_01_l/jiggle/shoulderPad_l
+p91
+sVextraJoint/weapon_r/leaf/sword_root_r (TR)
+p92
+Vweapon_r/leaf/sword_root_r (TR)
+p93
+sVextraJoint/lowerarm_r/leaf/weapon_r (TR)
+p94
+Vlowerarm_r/leaf/weapon_r (TR)
+p95
+sS'leftHandOptions_numMiddleBones'
+p96
+(lp97
+I3
+a(lp98
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/lowerarm_r/leaf/lowerArm_topPlateB_r (TR)
+p99
+Vlowerarm_r/leaf/lowerArm_topPlateB_r (TR)
+p100
+sVextraJoint/spine_03/chain/thrusterVent_r (2)
+p101
+Vspine_03/chain/thrusterVent_r (2)
+p102
+sS'leftHandOptions_numRingBones'
+p103
+(lp104
+I0
+a(lp105
+F1
+aF0.68000305180437937
+aF0
+aasS'rightLegOptions_numCalfTwistBones'
+p106
+(lp107
+I1
+a(lp108
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/head/chain/tentacle_l (10)
+p109
+Vhead/chain/tentacle_l (10)
+p110
+sVextraJoint/pivotA_l/leaf/extensionA_l (TR)
+p111
+VpivotA_l/leaf/extensionA_l (TR)
+p112
+sS'rightHandOptions_numPinkyBones'
+p113
+(lp114
+I3
+a(lp115
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/sword_handle_l/leaf/pivotA_l (TR)
+p116
+Vsword_handle_l/leaf/pivotA_l (TR)
+p117
+sVextraJoint/thruster_casing_l/leaf/thruster_a_l (TR)
+p118
+Vthruster_casing_l/leaf/thruster_a_l (TR)
+p119
+sVextraJoint/thruster_casing_r/leaf/thruster_a_r (TR)
+p120
+Vthruster_casing_r/leaf/thruster_a_r (TR)
+p121
+sVextraJoint/sword_handle_r/leaf/pivotA_r (TR)
+p122
+Vsword_handle_r/leaf/pivotA_r (TR)
+p123
+sS'rightLegIncludeBallJoint_CB'
+p124
+I01
+sS'rightFootOptions_numRingBones'
+p125
+(lp126
+I0
+a(lp127
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/lowerarm_r/leaf/lowerArm_bottomPlateB_r (TR)
+p128
+Vlowerarm_r/leaf/lowerArm_bottomPlateB_r (TR)
+p129
+sVextraJoint/pivotB_l/leaf/extensionB_l (TR)
+p130
+VpivotB_l/leaf/extensionB_l (TR)
+p131
+sVextraJoint/dagger_base_l/leaf/dagger_a_l (TR)
+p132
+Vdagger_base_l/leaf/dagger_a_l (TR)
+p133
+sS'rightFootOptions_numIndexBones'
+p134
+(lp135
+I0
+a(lp136
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/spine_03/chain/thrusterVent_l (2)
+p137
+Vspine_03/chain/thrusterVent_l (2)
+p138
+sVextraJoint/dagger_base_l/leaf/dagger_b_l (TR)
+p139
+Vdagger_base_l/leaf/dagger_b_l (TR)
+p140
+sS'leftFootOptions_numPinkyBones'
+p141
+(lp142
+I0
+a(lp143
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'leftLegOptions_numThighTwistBones'
+p144
+(lp145
+I2
+a(lp146
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/thruster_casing_r/leaf/thruster_c_r (TR)
+p147
+Vthruster_casing_r/leaf/thruster_c_r (TR)
+p148
+sVextraJoint/lowerarm_r/leaf/dagger_base_r (TR)
+p149
+Vlowerarm_r/leaf/dagger_base_r (TR)
+p150
+sVextraJoint/sword_root_l/leaf/sword_handle_l (TR)
+p151
+Vsword_root_l/leaf/sword_handle_l (TR)
+p152
+sS'leftLegIncludeBallJoint_CB'
+p153
+I01
+sS'rightHandOptions_numRingBones'
+p154
+(lp155
+I0
+a(lp156
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/clavicle_r/leaf/shoulderflap_r (TR)
+p157
+Vclavicle_r/leaf/shoulderflap_r (TR)
+p158
+sS'rightHandOptions_numThumbBones'
+p159
+(lp160
+I3
+a(lp161
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'leftFootOptions_numRingBones'
+p162
+(lp163
+I0
+a(lp164
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'leftHandOptions_numThumbBones'
+p165
+(lp166
+I3
+a(lp167
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'leftFootOptions_numIndexBones'
+p168
+(lp169
+I0
+a(lp170
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'rightArmOptions_numUpArmTwistBones'
+p171
+(lp172
+I2
+a(lp173
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/sword_handle_l/leaf/pivotB_l (TR)
+p174
+Vsword_handle_l/leaf/pivotB_l (TR)
+p175
+sVextraJoint/sword_root_r/leaf/sword_handle_r (TR)
+p176
+Vsword_root_r/leaf/sword_handle_r (TR)
+p177
+sS'rightFootOptions_numPinkyBones'
+p178
+(lp179
+I0
+a(lp180
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/thruster_casing_r/leaf/thruster_b_r (TR)
+p181
+Vthruster_casing_r/leaf/thruster_b_r (TR)
+p182
+sS'torsoOptions_numNeckBones'
+p183
+(lp184
+I1
+a(lp185
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/head/leaf/tentacle_spring_r (TR)
+p186
+Vhead/leaf/tentacle_spring_r (TR)
+p187
+sS'rightFootOptions_numThumbBones'
+p188
+(lp189
+I0
+a(lp190
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'leftFootOptions_numThumbBones'
+p191
+(lp192
+I0
+a(lp193
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/lowerarm_r/leaf/lowerArm_topPlateA_r (TR)
+p194
+Vlowerarm_r/leaf/lowerArm_topPlateA_r (TR)
+p195
+s.

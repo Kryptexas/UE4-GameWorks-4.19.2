@@ -1,0 +1,464 @@
+(dp1
+VextraJoint/upperarm_twist_02_l/leaf/arm_strap_bott_l (TR)
+p2
+Vupperarm_twist_02_l/leaf/arm_strap_bott_l (TR)
+p3
+sS'leftArmOptions_numUpArmTwistBones'
+p4
+(lp5
+I2
+a(lp6
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/head/leaf/eyelid_bott_r (TR)
+p7
+Vhead/leaf/eyelid_bott_r (TR)
+p8
+sVextraJoint/head/leaf/eyelid_top_r (TR)
+p9
+Vhead/leaf/eyelid_top_r (TR)
+p10
+sVextraJoint/upperarm_twist_02_r/leaf/arm_strap_bott_r (TR)
+p11
+Vupperarm_twist_02_r/leaf/arm_strap_bott_r (TR)
+p12
+sVextraJoint/panel_top_root_l/leaf/panel_top_l (TR)
+p13
+Vpanel_top_root_l/leaf/panel_top_l (TR)
+p14
+sVextraJoint/lowerarm_l/leaf/sheild_main (TR)
+p15
+Vlowerarm_l/leaf/sheild_main (TR)
+p16
+sS'torsoOptions_numSpineBones'
+p17
+(lp18
+I3
+a(lp19
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/calf_l/leaf/shinpad_l (TR)
+p20
+Vcalf_l/leaf/shinpad_l (TR)
+p21
+sVextraJoint/panels_l/leaf/panel_bot_root_l (TR)
+p22
+Vpanels_l/leaf/panel_bot_root_l (TR)
+p23
+sS'rightHandOptions_numIndexBones'
+p24
+(lp25
+I2
+a(lp26
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/upperarm_twist_02_l/leaf/tricep_l (TR)
+p27
+Vupperarm_twist_02_l/leaf/tricep_l (TR)
+p28
+sVextraJoint/pelvis/leaf/tail_pad (TR)
+p29
+Vpelvis/leaf/tail_pad (TR)
+p30
+sS'leftHandOptions_numRingBones'
+p31
+(lp32
+I2
+a(lp33
+F1
+aF0.68000305180437937
+aF0
+aasS'rightLegOptions_numCalfTwistBones'
+p34
+(lp35
+I0
+a(lp36
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/panels_main/leaf/panels_l (TR)
+p37
+Vpanels_main/leaf/panels_l (TR)
+p38
+sS'rightFootOptions_numRingBones'
+p39
+(lp40
+I0
+a(lp41
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/lowerarm_l/leaf/loarm_shield_back_l (TR)
+p42
+Vlowerarm_l/leaf/loarm_shield_back_l (TR)
+p43
+sS'leftHandOptions_numMiddleBones'
+p44
+(lp45
+I2
+a(lp46
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/head/leaf/eyebrow_out_r (TR)
+p47
+Vhead/leaf/eyebrow_out_r (TR)
+p48
+sS'leftHandOptions_numThumbBones'
+p49
+(lp50
+I2
+a(lp51
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/sheild_main/leaf/panels_main (TR)
+p52
+Vsheild_main/leaf/panels_main (TR)
+p53
+sVextraJoint/calf_r/leaf/shinpad_r (TR)
+p54
+Vcalf_r/leaf/shinpad_r (TR)
+p55
+sVextraJoint/head/leaf/eyebrow_out_l (TR)
+p56
+Vhead/leaf/eyebrow_out_l (TR)
+p57
+sS'leftFootOptions_numMiddleBones'
+p58
+(lp59
+I0
+a(lp60
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'leftFootOptions_numPinkyBones'
+p61
+(lp62
+I0
+a(lp63
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'leftLegOptions_numCalfTwistBones'
+p64
+(lp65
+I0
+a(lp66
+F1
+aF0.68000305180437937
+aF0
+aasS'leftHandOptions_numIndexBones'
+p67
+(lp68
+I2
+a(lp69
+F1
+aF0.68000305180437937
+aF0
+aasS'rightArmOptions_numLowArmTwistBones'
+p70
+(lp71
+I1
+a(lp72
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'leftFootOptions_numIndexBones'
+p73
+(lp74
+I0
+a(lp75
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/football_pads_front/leaf/chest_strap_l (TR)
+p76
+Vfootball_pads_front/leaf/chest_strap_l (TR)
+p77
+sVextraJoint/head/leaf/eyeball_r (TR)
+p78
+Vhead/leaf/eyeball_r (TR)
+p79
+sS'rightHandOptions_numPinkyBones'
+p80
+(lp81
+I2
+a(lp82
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/panels_main/leaf/panels_r (TR)
+p83
+Vpanels_main/leaf/panels_r (TR)
+p84
+sVextraJoint/head/leaf/eyelid_top_l (TR)
+p85
+Vhead/leaf/eyelid_top_l (TR)
+p86
+sVextraJoint/panel_bot_root_r/leaf/panel_bot_r (TR)
+p87
+Vpanel_bot_root_r/leaf/panel_bot_r (TR)
+p88
+sVextraJoint/lowerarm_l/leaf/loarm_shield_bot_l (TR)
+p89
+Vlowerarm_l/leaf/loarm_shield_bot_l (TR)
+p90
+sVextraJoint/spine_02/leaf/lowerback_muscle_r (TR)
+p91
+Vspine_02/leaf/lowerback_muscle_r (TR)
+p92
+sS'leftLegOptions_numThighTwistBones'
+p93
+(lp94
+I2
+a(lp95
+F1
+aF0.68000305180437937
+aF0
+aasS'leftLegIncludeBallJoint_CB'
+p96
+I01
+sVextraJoint/foot_l/leaf/toe_l (TR)
+p97
+Vfoot_l/leaf/toe_l (TR)
+p98
+sVextraJoint/panels_r/leaf/panel_top_root_r (TR)
+p99
+Vpanels_r/leaf/panel_top_root_r (TR)
+p100
+sS'leftFootOptions_numRingBones'
+p101
+(lp102
+I0
+a(lp103
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/ball_l/leaf/toe_plate_l (TR)
+p104
+Vball_l/leaf/toe_plate_l (TR)
+p105
+sS'rightFootOptions_numPinkyBones'
+p106
+(lp107
+I0
+a(lp108
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'rightFootOptions_numThumbBones'
+p109
+(lp110
+I0
+a(lp111
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasS'rightFootOptions_numMiddleBones'
+p112
+(lp113
+I0
+a(lp114
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/spine_03/leaf/football_pads_back (TR)
+p115
+Vspine_03/leaf/football_pads_back (TR)
+p116
+sS'leftArmOptions_numLowArmTwistBones'
+p117
+(lp118
+I1
+a(lp119
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/football_pads_back/leaf/turbine_back_main (TR)
+p120
+Vfootball_pads_back/leaf/turbine_back_main (TR)
+p121
+sS'leftHandOptions_numPinkyBones'
+p122
+(lp123
+I2
+a(lp124
+F1
+aF0.68000305180437937
+aF0
+aasS'rightLegOptions_numThighTwistBones'
+p125
+(lp126
+I2
+a(lp127
+F1
+aF0.68000305180437937
+aF0
+aasS'rightArmOptions_numUpArmTwistBones'
+p128
+(lp129
+I2
+a(lp130
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/calf_l/leaf/calf_armor_l (TR)
+p131
+Vcalf_l/leaf/calf_armor_l (TR)
+p132
+sVextraJoint/head/leaf/eyebrow_in_r (TR)
+p133
+Vhead/leaf/eyebrow_in_r (TR)
+p134
+sS'rightFootOptions_numIndexBones'
+p135
+(lp136
+I0
+a(lp137
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/hand_r/leaf/weapon_r (TR)
+p138
+Vhand_r/leaf/weapon_r (TR)
+p139
+sS'rightHandOptions_numRingBones'
+p140
+(lp141
+I2
+a(lp142
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/upperarm_twist_02_l/leaf/arm_strap_top_l (TR)
+p143
+Vupperarm_twist_02_l/leaf/arm_strap_top_l (TR)
+p144
+sVextraJoint/head/leaf/eyeball_l (TR)
+p145
+Vhead/leaf/eyeball_l (TR)
+p146
+sVextraJoint/foot_r/leaf/toe_r (TR)
+p147
+Vfoot_r/leaf/toe_r (TR)
+p148
+sVextraJoint/upperarm_twist_02_r/leaf/arm_strap_top_r (TR)
+p149
+Vupperarm_twist_02_r/leaf/arm_strap_top_r (TR)
+p150
+sS'leftFootOptions_numThumbBones'
+p151
+(lp152
+I0
+a(lp153
+F0.16470588235294117
+aF0.16470588235294117
+aF0.16470588235294117
+aasVextraJoint/panel_top_root_r/leaf/panel_top_r (TR)
+p154
+Vpanel_top_root_r/leaf/panel_top_r (TR)
+p155
+sVextraJoint/pelvis/leaf/hip_strap_l (TR)
+p156
+Vpelvis/leaf/hip_strap_l (TR)
+p157
+sVextraJoint/pelvis/leaf/flap_front (TR)
+p158
+Vpelvis/leaf/flap_front (TR)
+p159
+sS'rightHandOptions_numMiddleBones'
+p160
+(lp161
+I2
+a(lp162
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/head/leaf/eyebrow_in_l (TR)
+p163
+Vhead/leaf/eyebrow_in_l (TR)
+p164
+sVextraJoint/pelvis/leaf/flap_back (TR)
+p165
+Vpelvis/leaf/flap_back (TR)
+p166
+sVextraJoint/calf_r/leaf/calf_armor_r (TR)
+p167
+Vcalf_r/leaf/calf_armor_r (TR)
+p168
+sVextraJoint/pelvis/leaf/hip_strap_r (TR)
+p169
+Vpelvis/leaf/hip_strap_r (TR)
+p170
+sVextraJoint/lowerarm_l/leaf/loarm_shield_top_l (TR)
+p171
+Vlowerarm_l/leaf/loarm_shield_top_l (TR)
+p172
+sVextraJoint/panel_bot_root_l/leaf/panel_bot_l (TR)
+p173
+Vpanel_bot_root_l/leaf/panel_bot_l (TR)
+p174
+sVextraJoint/football_pads_front/leaf/chest_strap_r (TR)
+p175
+Vfootball_pads_front/leaf/chest_strap_r (TR)
+p176
+sS'rightLegIncludeBallJoint_CB'
+p177
+I01
+sVextraJoint/panels_l/leaf/panel_top_root_l (TR)
+p178
+Vpanels_l/leaf/panel_top_root_l (TR)
+p179
+sVextraJoint/head/leaf/eyelid_bott_l (TR)
+p180
+Vhead/leaf/eyelid_bott_l (TR)
+p181
+sVextraJoint/head/leaf/jaw (TR)
+p182
+Vhead/leaf/jaw (TR)
+p183
+sVextraJoint/upperarm_twist_02_r/leaf/tricep_r (TR)
+p184
+Vupperarm_twist_02_r/leaf/tricep_r (TR)
+p185
+sVextraJoint/panels_r/leaf/panel_bot_root_r (TR)
+p186
+Vpanels_r/leaf/panel_bot_root_r (TR)
+p187
+sS'rightHandOptions_numThumbBones'
+p188
+(lp189
+I2
+a(lp190
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/turbine_back_main/leaf/turbine_back_inner (TR)
+p191
+Vturbine_back_main/leaf/turbine_back_inner (TR)
+p192
+sVextraJoint/ball_r/leaf/toe_plate_r (TR)
+p193
+Vball_r/leaf/toe_plate_r (TR)
+p194
+sVextraJoint/spine_02/leaf/lowerback_muscle_l (TR)
+p195
+Vspine_02/leaf/lowerback_muscle_l (TR)
+p196
+sS'torsoOptions_numNeckBones'
+p197
+(lp198
+I1
+a(lp199
+F1
+aF0.68000305180437937
+aF0
+aasVextraJoint/spine_03/leaf/football_pads_front (TR)
+p200
+Vspine_03/leaf/football_pads_front (TR)
+p201
+s.
