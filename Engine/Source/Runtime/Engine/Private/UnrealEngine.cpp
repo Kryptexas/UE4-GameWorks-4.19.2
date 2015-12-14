@@ -10321,7 +10321,7 @@ void UEngine::VerifyLoadMapWorldCleanup()
 		const bool bIsPersistantWorldType = (World->WorldType == EWorldType::Inactive) || (World->WorldType == EWorldType::Preview);
 		if (!bIsPersistantWorldType && !WorldHasValidContext(World))
 		{
-			if (World->PersistentLevel != nullptr && !WorldHasValidContext(World->PersistentLevel->OwningWorld))
+			if (World->PersistentLevel == nullptr || !WorldHasValidContext(World->PersistentLevel->OwningWorld))
 			{
 				// Print some debug information...
 				UE_LOG(LogLoad, Log, TEXT("%s not cleaned up by garbage collection! "), *World->GetFullName());
