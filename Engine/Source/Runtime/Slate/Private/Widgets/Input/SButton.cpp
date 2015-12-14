@@ -254,7 +254,12 @@ FReply SButton::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEven
 		}
 		else
 		{
-			if( IsHovered() )
+			bool bEventOverButton = IsHovered();
+			if (!bEventOverButton && MouseEvent.IsTouchEvent())
+			{
+				bEventOverButton = MyGeometry.IsUnderLocation(MouseEvent.GetScreenSpacePosition());
+			}
+			if (bEventOverButton)
 			{
 				// If we asked for a precise tap, all we need is for the user to have not moved their pointer very far.
 				const bool bTriggerForTouchEvent = IsPreciseTapOrClick(MouseEvent);
