@@ -14,6 +14,7 @@ class UEnvQueryOption;
 struct FEnvQueryInstance;
 struct FEnvNamedValue;
 class UEnvQueryTest;
+class UEnvQueryInstanceBlueprintWrapper;
 
 /** wrapper for easy query execution */
 USTRUCT()
@@ -178,6 +179,9 @@ class AIMODULE_API UEnvQueryManager : public UObject, public FTickableGameObject
 	UFUNCTION(BlueprintCallable, Category = "AI|EQS", meta = (WorldContext = "WorldContext", AdvancedDisplay = "WrapperClass"))
 	static UEnvQueryInstanceBlueprintWrapper* RunEQSQuery(UObject* WorldContext, UEnvQuery* QueryTemplate, UObject* Querier, TEnumAsByte<EEnvQueryRunMode::Type> RunMode, TSubclassOf<UEnvQueryInstanceBlueprintWrapper> WrapperClass);
 
+	void RegisterActiveWrapper(UEnvQueryInstanceBlueprintWrapper& Wrapper);
+	void UnregisterActiveWrapper(UEnvQueryInstanceBlueprintWrapper& Wrapper);
+
 	static void SetAllowTimeSlicing(bool bAllowTimeSlicing);
 
 #if USE_EQS_DEBUGGER
@@ -204,6 +208,9 @@ protected:
 	/** local cache of context objects for managing BP based objects */
 	UPROPERTY(transient)
 	TArray<UEnvQueryContext*> LocalContexts;
+
+	UPROPERTY()
+	TArray<UEnvQueryInstanceBlueprintWrapper*> GCShieldedWrappers;
 
 	/** local contexts mapped by class names */
 	TMap<FName, UEnvQueryContext*> LocalContextMap;

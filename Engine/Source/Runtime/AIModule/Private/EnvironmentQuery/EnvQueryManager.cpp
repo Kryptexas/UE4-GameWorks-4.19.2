@@ -267,7 +267,6 @@ void UEnvQueryManager::Tick(float DeltaTime)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_EQS_Tick);
 	SET_DWORD_STAT(STAT_AI_EQS_NumInstances, RunningQueries.Num());
-	SCOPE_CYCLE_COUNTER(STAT_AI_Overall);
 	// @TODO: threads?
 
 	const double ExecutionTimeWarningSeconds = 0.25;
@@ -385,6 +384,8 @@ void UEnvQueryManager::OnWorldCleanup()
 			}
 		}
 	}
+
+	GCShieldedWrappers.Reset();
 }
 
 void UEnvQueryManager::RegisterExternalQuery(TSharedPtr<FEnvQueryInstance> QueryInstance)
@@ -694,7 +695,7 @@ float UEnvQueryManager::FindNamedParam(int32 QueryId, FName ParamName) const
 }
 
 //----------------------------------------------------------------------//
-// BP functions
+// BP functions and related functionality 
 //----------------------------------------------------------------------//
 UEnvQueryInstanceBlueprintWrapper* UEnvQueryManager::RunEQSQuery(UObject* WorldContext, UEnvQuery* QueryTemplate, UObject* Querier, TEnumAsByte<EEnvQueryRunMode::Type> RunMode, TSubclassOf<UEnvQueryInstanceBlueprintWrapper> WrapperClass)
 { 
@@ -727,19 +728,27 @@ UEnvQueryInstanceBlueprintWrapper* UEnvQueryManager::RunEQSQuery(UObject* WorldC
 
 		if (bValidQuerier)
 		{
-			QueryInstanceWrapper = NewObject<UEnvQueryInstanceBlueprintWrapper>((UClass*)(WrapperClass) ? (UClass*)WrapperClass : UEnvQueryInstanceBlueprintWrapper::StaticClass());
+			QueryInstanceWrapper = NewObject<UEnvQueryInstanceBlueprintWrapper>(EQSManager, (UClass*)(WrapperClass) ? (UClass*)WrapperClass : UEnvQueryInstanceBlueprintWrapper::StaticClass());
 			check(QueryInstanceWrapper);
 
 			FEnvQueryRequest QueryRequest(QueryTemplate, Querier);
 			// @todo named params still missing support
 			//QueryRequest.SetNamedParams(QueryParams);
-
-			QueryInstanceWrapper->SetRunMode(RunMode);
-			QueryInstanceWrapper->SetQueryID(QueryRequest.Execute(RunMode, QueryInstanceWrapper, &UEnvQueryInstanceBlueprintWrapper::OnQueryFinished));
+			QueryInstanceWrapper->RunQuery(RunMode, QueryRequest);
 		}
 	}
 	
 	return QueryInstanceWrapper;
+}
+
+void UEnvQueryManager::RegisterActiveWrapper(UEnvQueryInstanceBlueprintWrapper& Wrapper)
+{
+	GCShieldedWrappers.AddUnique(&Wrapper);
+}
+
+void UEnvQueryManager::UnregisterActiveWrapper(UEnvQueryInstanceBlueprintWrapper& Wrapper)
+{
+	GCShieldedWrappers.RemoveSingleSwap(&Wrapper, /*bAllowShrinking=*/false);
 }
 
 //----------------------------------------------------------------------//
