@@ -44,7 +44,7 @@ class FHTML5PlatformEditorModule
 		{
 			SettingsModule->RegisterSettings("Project", "Platforms", "HTML5",
 				LOCTEXT("TargetSettingsName", "HTML5"),
-				LOCTEXT("SDKSettingsDescription", "Settings for HTML5"),
+				LOCTEXT("TargetSettingsDescription", "Settings for HTML5"),
 				GetMutableDefault<UHTML5TargetSettings>()
 			);
 

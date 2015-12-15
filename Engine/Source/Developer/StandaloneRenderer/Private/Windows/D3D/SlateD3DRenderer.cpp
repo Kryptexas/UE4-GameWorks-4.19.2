@@ -124,7 +124,7 @@ void FSlateD3DRenderer::CreateDevice()
 
 		if (Hr == DXGI_ERROR_UNSUPPORTED)
 		{
-			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *NSLOCTEXT("", "", "There is a problem with your graphics card. Please ensure your card meets the minimum system requirements and that you have the latest drivers installed.").ToString(), *NSLOCTEXT("", "UnsupportedVideoCardErrorTitle", "Unsupported Video Card").ToString());
+			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *NSLOCTEXT("SlateD3DRenderer", "ProblemWithGraphicsCard", "There is a problem with your graphics card. Please ensure your card meets the minimum system requirements and that you have the latest drivers installed.").ToString(), *NSLOCTEXT("SlateD3DRenderer", "UnsupportedVideoCardErrorTitle", "Unsupported Video Card").ToString());
 		}
 		
 		checkf(SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr);

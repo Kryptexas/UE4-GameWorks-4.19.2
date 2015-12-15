@@ -212,8 +212,8 @@ void FGameplayDebugger::CreateSnappingOptionsMenu(FMenuBuilder& Builder)
 	{
 		Builder.AddMenuSeparator();
 		Builder.AddSubMenu(
-			LOCTEXT("Test_GameplayDebugger_Menu", "Gameplay Debugger"),
-			LOCTEXT("Test_GameplayDebugger_Menu_Tooltip", "Quick setting for Gameplay Debugger tool in selected view"),
+			LOCTEXT("Test_GameplayDebugger_SnappingOptions_Menu", "Gameplay Debugger"),
+			LOCTEXT("Test_GameplayDebugger_SnappingOptions_Menu_Tooltip", "Quick setting for Gameplay Debugger tool in selected view"),
 			FNewMenuDelegate::CreateRaw(this, &FGameplayDebugger::CreateSettingSubMenu)
 			);
 	}

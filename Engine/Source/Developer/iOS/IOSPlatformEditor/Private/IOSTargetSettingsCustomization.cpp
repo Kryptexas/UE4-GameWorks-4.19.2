@@ -1017,7 +1017,7 @@ FReply FIOSTargetSettingsCustomization::OnInstallProvisionClicked()
 
 		bOpened = DesktopPlatform->OpenFileDialog(
 			ParentWindowWindowHandle,
-			LOCTEXT("ImportDialogTitle", "Import Provision").ToString(),
+			LOCTEXT("ImportProvisionDialogTitle", "Import Provision").ToString(),
 			FPaths::GetProjectFilePath(),
 			TEXT(""),
 			FileTypes,
@@ -1103,7 +1103,7 @@ FReply FIOSTargetSettingsCustomization::OnInstallCertificateClicked()
 
 		bOpened = DesktopPlatform->OpenFileDialog(
 			ParentWindowWindowHandle,
-			LOCTEXT("ImportDialogTitle", "Import Certificate").ToString(),
+			LOCTEXT("ImportCertificateDialogTitle", "Import Certificate").ToString(),
 			FPaths::GetProjectFilePath(),
 			TEXT(""),
 			FileTypes,

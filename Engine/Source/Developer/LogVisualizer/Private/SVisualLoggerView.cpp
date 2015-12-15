@@ -174,7 +174,7 @@ void SVisualLoggerView::Construct(const FArguments& InArgs, const TSharedRef<FUI
 								[
 									SAssignNew(SearchBox, SSearchBox)
 									.OnTextChanged(InArgs._OnFiltersSearchChanged)
-									.HintText_Lambda([Settings]()->FText{return Settings->bSearchInsideLogs ? LOCTEXT("FiltersSearchHint", "Log Data Search") : LOCTEXT("FiltersSearchHint", "Log Category Search"); })
+									.HintText_Lambda([Settings]()->FText{return Settings->bSearchInsideLogs ? LOCTEXT("DataFiltersSearchHint", "Log Data Search") : LOCTEXT("CategoryFiltersSearchHint", "Log Category Search"); })
 								]
 #endif
 							]

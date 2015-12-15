@@ -396,12 +396,12 @@ private:
 
 	FText GetRerunButtonToolTip() const
 	{
-		return LOCTEXT("DoneButtonCloseTooltip", "Run this launch profile.");
+		return LOCTEXT("RerunButtonTooltip", "Run this launch profile.");
 	}
 
 	FText GetRerunButtonText() const
 	{
-		return LOCTEXT("DoneButtonDoneLabel", "Run");
+		return LOCTEXT("RerunButtonLabel", "Run");
 	}
 
 	bool IsDoneButtonEnabled() const
