@@ -14,6 +14,7 @@
 #include "ModuleManager.h"
 #include "Ticker.h"
 #include "DerivedDataCacheInterface.h"
+#include "ITargetPlatformManagerModule.h"
 
 DEFINE_LOG_CATEGORY(LogSHA);
 DEFINE_LOG_CATEGORY(LogStats);

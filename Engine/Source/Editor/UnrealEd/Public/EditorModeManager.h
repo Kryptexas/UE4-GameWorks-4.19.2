@@ -94,13 +94,13 @@ public:
 	template <typename SpecificModeType>
 	SpecificModeType* GetActiveModeTyped( FEditorModeID InID )
 	{
-		return (SpecificModeType*)GetActiveMode(InID);
+		return static_cast<SpecificModeType*>(GetActiveMode(InID));
 	}
 
 	template <typename SpecificModeType>
 	const SpecificModeType* GetActiveModeTyped( FEditorModeID InID ) const
 	{
-		return (SpecificModeType*)GetActiveMode(InID);
+		return static_cast<SpecificModeType*>(GetActiveMode(InID));
 	}
 
 	/**

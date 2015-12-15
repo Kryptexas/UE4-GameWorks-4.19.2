@@ -258,7 +258,7 @@ public:
 			return nullptr;
 		}
 
-		return (TModuleInterface*)(ModuleManager.GetModule(ModuleName).Get());
+		return static_cast<TModuleInterface*>(ModuleManager.GetModule(ModuleName).Get());
 	}
 
 	/**
