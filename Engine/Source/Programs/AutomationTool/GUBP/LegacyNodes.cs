@@ -1564,7 +1564,7 @@ partial class GUBP
 
     public class CookNode : HostPlatformNode
     {
-        BranchInfo.BranchUProject GameProj;
+        public BranchInfo.BranchUProject GameProj;
         UnrealTargetPlatform TargetPlatform;
         string CookPlatform;
         bool bIsMassive;
