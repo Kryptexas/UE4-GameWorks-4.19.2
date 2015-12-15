@@ -145,7 +145,8 @@ public class UnrealEd : ModuleRules
 				"GameProjectGeneration",
                 "HierarchicalLODUtilities",
                 "BlueprintNativeCodeGen",
-                "Analytics"
+                "Analytics",
+                "PluginWarden"
 			}
 		);
 
