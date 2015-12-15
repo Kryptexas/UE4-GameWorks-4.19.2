@@ -288,7 +288,7 @@ void SDetailsView::ForceRefresh()
 		}
 	}
 
-	SetObjectArrayPrivate( NewObjectList );
+	BeginSelectingObjects(NewObjectList);
 }
 
 
@@ -305,7 +305,7 @@ void SDetailsView::SetObjects( const TArray<UObject*>& InObjects, bool bForceRef
 
 		if( bForceRefresh || ShouldSetNewObjects( ObjectWeakPtrs ) )
 		{
-			SetObjectArrayPrivate( ObjectWeakPtrs );
+			BeginSelectingObjects(ObjectWeakPtrs);
 		}
 	}
 }
@@ -316,7 +316,7 @@ void SDetailsView::SetObjects( const TArray< TWeakObjectPtr< UObject > >& InObje
 	{
 		if( bForceRefresh || ShouldSetNewObjects( InObjects ) )
 		{
-			SetObjectArrayPrivate( InObjects );
+			BeginSelectingObjects(InObjects);
 		}
 	}
 }
@@ -350,7 +350,7 @@ void SDetailsView::RemoveInvalidObjects()
 
 	if (!bAllFound)
 	{
-		SetObjectArrayPrivate(ResetArray);
+		BeginSelectingObjects(ResetArray);
 	}
 }
 
@@ -400,7 +400,14 @@ bool SDetailsView::ShouldSetNewObjects( const TArray< TWeakObjectPtr< UObject > 
 	return bShouldSetObjects;
 }
 
-void SDetailsView::SetObjectArrayPrivate( const TArray< TWeakObjectPtr< UObject > >& InObjects )
+void SDetailsView::BeginSelectingObjects(const TArray< TWeakObjectPtr< UObject > >& InObjects)
+{
+	RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateLambda([=] (double, float) {
+		return FinishSelectingObjects(InObjects);
+	}));
+}
+
+EActiveTimerReturnType SDetailsView::FinishSelectingObjects(const TArray< TWeakObjectPtr< UObject > > InObjects)
 {
 	double StartTime = FPlatformTime::Seconds();
 
@@ -495,6 +502,8 @@ void SDetailsView::SetObjectArrayPrivate( const TArray< TWeakObjectPtr< UObject 
 	OnObjectArrayChanged.ExecuteIfBound(Title, InObjects);
 
 	double ElapsedTime = FPlatformTime::Seconds() - StartTime;
+
+	return EActiveTimerReturnType::Stop;
 }
 
 void SDetailsView::ReplaceObjects( const TMap<UObject*, UObject*>& OldToNewObjectMap )
@@ -533,9 +542,8 @@ void SDetailsView::ReplaceObjects( const TMap<UObject*, UObject*>& OldToNewObjec
 
 	if( bObjectsReplaced )
 	{
-		SetObjectArrayPrivate( NewObjectList );
+		BeginSelectingObjects(NewObjectList);
 	}
-
 }
 
 void SDetailsView::RemoveDeletedObjects( const TArray<UObject*>& DeletedObjects )
@@ -561,7 +569,7 @@ void SDetailsView::RemoveDeletedObjects( const TArray<UObject*>& DeletedObjects 
 	// if any objects were replaced update the observed objects
 	if( bObjectsRemoved )
 	{
-		SetObjectArrayPrivate( NewObjectList );
+		BeginSelectingObjects(NewObjectList);
 	}
 }
 

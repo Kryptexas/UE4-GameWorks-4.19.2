@@ -100,10 +100,13 @@ public:
 	{ 
 		return false; 
 	}
+
 private:
 	void RegisterInstancedCustomPropertyLayout( UClass* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate ) override;
 	void UnregisterInstancedCustomPropertyLayout( UClass* Class ) override;
-	void SetObjectArrayPrivate( const TArray< TWeakObjectPtr< UObject > >& InObjects );
+	
+	void BeginSelectingObjects(const TArray< TWeakObjectPtr< UObject > >& InObjects);
+	EActiveTimerReturnType FinishSelectingObjects(const TArray< TWeakObjectPtr< UObject > > InObjects);
 
 	TSharedRef<SDetailTree> ConstructTreeView( TSharedRef<SScrollBar>& ScrollBar );
 
