@@ -570,12 +570,12 @@ public:
 	
 	/** 
 	 * Finish tracking an overlap interaction that is no longer occurring between this component and the component specified. 
-	 * @param OtherComp - The component of the other actor to stop overlapping
-	 * @param bDoNotifies - True to dispatch appropriate begin/end overlap notifications when these events occur.
-	 * @param bNoNotifySelf	- True to skip end overlap notifications to this component's.  Does not affect notifications to OtherComp's actor.
+	 * @param OtherComp The component of the other actor to stop overlapping
+	 * @param bDoNotifies True to dispatch appropriate begin/end overlap notifications when these events occur.
+	 * @param bSkipNotifySelf True to skip end overlap notifications to this component's.  Does not affect notifications to OtherComp's actor.
 	 * @see [Overlap Events](https://docs.unrealengine.com/latest/INT/Engine/Physics/Collision/index.html#overlapandgenerateoverlapevents)
 	 */
-	void EndComponentOverlap(const FOverlapInfo& OtherOverlap, bool bDoNotifies=true, bool bNoNotifySelf=false);
+	void EndComponentOverlap(const FOverlapInfo& OtherOverlap, bool bDoNotifies=true, bool bSkipNotifySelf=false);
 
 	/**
 	 * Check whether this component is overlapping another component.
@@ -1095,6 +1095,7 @@ public:
 	virtual bool ShouldCreatePhysicsState() const override;
 	virtual bool HasValidPhysicsState() const override;
 	virtual class FActorComponentInstanceData* GetComponentInstanceData() const override;
+	virtual void OnComponentDestroyed() override;
 	//~ End UActorComponent Interface
 
 	/** @return true if the owner is selected and this component is selectable */
@@ -1674,6 +1675,9 @@ protected:
 
 	/** Called when the BodyInstance ResponseToChannels, CollisionEnabled or bNotifyRigidBodyCollision changes, in case subclasses want to use that information. */
 	virtual void OnComponentCollisionSettingsChanged();
+
+	/** Ends all current component overlaps. Generally used when destroying this component or when it can no longer generate overlaps. */
+	void ClearComponentOverlaps(bool bDoNotifies, bool bSkipNotifySelf);
 
 private:
 	

@@ -1083,7 +1083,9 @@ void AActor::ClearComponentOverlaps()
 		{
 			if (OverlapComp)
 			{
-				PrimComp->EndComponentOverlap(OverlapComp, true, true);
+				const bool bDoNotifies = true;
+				const bool bSkipNotifySelf = false;
+				PrimComp->EndComponentOverlap(OverlapComp, bDoNotifies, bSkipNotifySelf);
 
 				if (IsPendingKill())
 				{

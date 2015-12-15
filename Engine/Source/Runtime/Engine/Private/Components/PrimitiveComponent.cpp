@@ -41,6 +41,8 @@ namespace PrimitiveComponentStatics
 	static const FName UpdateOverlapsName(TEXT("UpdateOverlaps"));
 }
 
+typedef TArray<FOverlapInfo, TInlineAllocator<3>> TInlineOverlapInfoArray;
+
 DEFINE_LOG_CATEGORY_STATIC(LogPrimitiveComponent, Log, All);
 
 static FAutoConsoleVariable CVarAllowCachedOverlaps(
@@ -875,6 +877,22 @@ void UPrimitiveComponent::BeginDestroy()
 	{
 		Owner->DetachFence.BeginFence();
 	}
+}
+
+void UPrimitiveComponent::OnComponentDestroyed()
+{
+	// Prevent future overlap events. Any later calls to UpdateOverlaps will only allow this to end overlaps.
+	bGenerateOverlapEvents = false;
+
+	// End all current overlaps
+	if (OverlappingComponents.Num() > 0)
+	{
+		const bool bDoNotifies = true;
+		const bool bSkipNotifySelf = false;
+		ClearComponentOverlaps(bDoNotifies, bSkipNotifySelf);
+	}
+
+	Super::OnComponentDestroyed();
 }
 
 bool UPrimitiveComponent::IsReadyForFinishDestroy()
@@ -2067,7 +2085,7 @@ void UPrimitiveComponent::BeginComponentOverlap(const FOverlapInfo& OtherOverlap
 }
 
 
-void UPrimitiveComponent::EndComponentOverlap(const FOverlapInfo& OtherOverlap, bool bDoNotifies, bool bNoNotifySelf)
+void UPrimitiveComponent::EndComponentOverlap(const FOverlapInfo& OtherOverlap, bool bDoNotifies, bool bSkipNotifySelf)
 {
 	UPrimitiveComponent* OtherComp = OtherOverlap.OverlapInfo.Component.Get();
 	if (OtherComp == nullptr)
@@ -2094,7 +2112,7 @@ void UPrimitiveComponent::EndComponentOverlap(const FOverlapInfo& OtherOverlap, 
 			AActor* const MyActor = GetOwner();
 			if (OtherActor)
 			{
-				if (!bNoNotifySelf && IsPrimCompValidAndAlive(this))
+				if (!bSkipNotifySelf && IsPrimCompValidAndAlive(this))
 				{
 					OnComponentEndOverlap.Broadcast(OtherActor, OtherComp, OtherOverlap.GetBodyIndex());
 				}
@@ -2390,7 +2408,6 @@ void UPrimitiveComponent::UpdateOverlaps(const TArray<FOverlapInfo>* NewPendingO
 
 			// now generate full list of new touches, so we can compare to existing list and
 			// determine what changed
-			typedef TArray<FOverlapInfo, TInlineAllocator<3>> TInlineOverlapInfoArray;
 			TInlineOverlapInfoArray NewOverlappingComponents;
 
 			// If pending kill, we should not generate any new overlaps
@@ -2492,16 +2509,11 @@ void UPrimitiveComponent::UpdateOverlaps(const TArray<FOverlapInfo>* NewPendingO
 	else
 	{
 		// bGenerateOverlapEvents is false or collision is disabled
-
+		// End all overlaps that exist, in case bGenerateOverlapEvents was true last tick (i.e. was just turned off)
 		if (OverlappingComponents.Num() > 0)
 		{
-			// End all overlaps that exist, in case bGenerateOverlapEvents was true last tick (i.e. was just turned off)
-			// Make a copy since EndComponentOverlap will remove items from OverlappingComponents.
-			auto OverlapsCopy = OverlappingComponents;
-			for (const FOverlapInfo& OtherOverlap : OverlapsCopy)
-			{
-				EndComponentOverlap(OtherOverlap, bDoNotifies, false);
-			}
+			const bool bSkipNotifySelf = false;
+			ClearComponentOverlaps(bDoNotifies, bSkipNotifySelf);
 		}
 	}
 
@@ -2520,6 +2532,19 @@ void UPrimitiveComponent::UpdateOverlaps(const TArray<FOverlapInfo>* NewPendingO
 	if (bShouldUpdatePhysicsVolume)
 	{
 		UpdatePhysicsVolume(bDoNotifies);
+	}
+}
+
+void UPrimitiveComponent::ClearComponentOverlaps(bool bDoNotifies, bool bSkipNotifySelf)
+{
+	if (OverlappingComponents.Num() > 0)
+	{
+		// Make a copy since EndComponentOverlap will remove items from OverlappingComponents.
+		const TInlineOverlapInfoArray OverlapsCopy(OverlappingComponents);
+		for (const FOverlapInfo& OtherOverlap : OverlapsCopy)
+		{
+			EndComponentOverlap(OtherOverlap, bDoNotifies, bSkipNotifySelf);
+		}
 	}
 }
 
