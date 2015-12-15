@@ -2572,7 +2572,7 @@ void UPrimitiveComponent::UpdatePhysicsVolume( bool bTriggerNotifiers )
 			{
 				const FOverlapInfo& Overlap = *CompIt;
 				UPrimitiveComponent* OtherComponent = Overlap.OverlapInfo.Component.Get();
-				if (OtherComponent)
+				if (OtherComponent && OtherComponent->bGenerateOverlapEvents)
 				{
 					APhysicsVolume* V = Cast<APhysicsVolume>(OtherComponent->GetOwner());
 					if (V && V->Priority > BestPriority)
