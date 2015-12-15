@@ -4,3 +4,6 @@
 
 #include "UnrealEd.h"
 #include "SlateBasics.h"
+
+#include "SThrobber.h"
+#include "DesktopPlatformModule.h"

@@ -1,6 +1,11 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "IPortalServiceLocator.h"
+#include "Account/IPortalUser.h"
+#include "Account/IPortalUserLogin.h"
+#include "Application/IPortalApplicationWindow.h"
+
 extern TSet<FString> AuthorizedPlugins;
 
 enum class EPluginAuthorizationState
@@ -21,10 +26,9 @@ enum class EPluginAuthorizationState
 	Canceled,
 };
 
-class IPortalApplicationWindow;
-class IPortalUser;
-class IPortalUserLogin;
-
+/**
+ * The authorizing plug-in ui guides the user through the process of certifying their access to the plug-in.
+ */
 class SAuthorizingPlugin : public SCompoundWidget
 {
 public:
