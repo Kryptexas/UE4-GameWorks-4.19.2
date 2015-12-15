@@ -1,4 +1,6 @@
-﻿#define USE_NEW_PROCESS_JOBS
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
+#define USE_NEW_PROCESS_JOBS
 
 using System;
 using System.Collections.Generic;

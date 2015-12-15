@@ -1,4 +1,6 @@
-﻿using Microsoft.CSharp;
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
+using Microsoft.CSharp;
 using System;
 using System.CodeDom.Compiler;
 using System.Collections.Generic;

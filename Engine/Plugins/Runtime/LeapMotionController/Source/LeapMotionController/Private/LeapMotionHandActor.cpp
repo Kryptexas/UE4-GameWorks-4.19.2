@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LeapMotionControllerPrivatePCH.h"
 #include "LeapMotionHandActor.h"

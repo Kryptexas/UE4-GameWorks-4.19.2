@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
+using System.Collections.Generic;
 using AutomationTool;
 using UnrealBuildTool;
 

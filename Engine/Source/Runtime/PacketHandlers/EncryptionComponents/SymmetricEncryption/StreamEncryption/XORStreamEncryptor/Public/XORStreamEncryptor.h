@@ -1,3 +1,5 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
 #include "StreamEncryptionHandlerComponent.h"
 
 /* XOR Stream Encryptor Module Interface */
