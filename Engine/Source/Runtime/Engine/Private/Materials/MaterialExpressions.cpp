@@ -6389,7 +6389,6 @@ void UMaterialExpressionCustom::Serialize(FArchive& Ar)
 		static const FString UniformMembers[] = {
 			FString(TEXT("FieldOfViewWideAngles")),
 			FString(TEXT("PrevFieldOfViewWideAngles")),
-			FString(TEXT("ScreenPositionScaleBias")),
 			FString(TEXT("ViewRectMin")),
 			FString(TEXT("ViewSizeAndInvSize")),
 			FString(TEXT("BufferSizeAndInvSize")),

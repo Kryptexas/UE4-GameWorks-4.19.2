@@ -46,14 +46,13 @@ void EvaluateSurfelMaterialCS(
 	uint3 DispatchThreadId : SV_DispatchThreadID,
     uint3 GroupThreadId : SV_GroupThreadID) 
 {
+	ResolvedView = ResolveView();
+
 	uint SurfelIndex = DispatchThreadId.x;
 
 	if (SurfelIndex < NumSurfelsToGenerate)
 	{
 		float4 PositionAndRadius = InterpolatedVertexData[(SurfelStartIndex + SurfelIndex) * INTERPOLATED_VERTEX_DATA_STRIDE + 0];
-	#if INSTANCED_STEREO
-		ResolvedView = ResolveView();
-	#endif
 		FMaterialPixelParameters MaterialParameters;
 		FPixelMaterialInputs PixelMaterialInputs;
 		AssembleMaterialParameters(MaterialParameters, SurfelIndex);

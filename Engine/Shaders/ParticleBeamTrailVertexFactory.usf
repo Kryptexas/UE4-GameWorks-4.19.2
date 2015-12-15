@@ -41,7 +41,7 @@ struct FVertexFactoryInterpolantsVSToPS
 #endif	//USE_DYNAMIC_PARAMETERS
 
 #if INSTANCED_STEREO
-	uint EyeIndex : EYE_INDEX;
+	nointerpolation uint EyeIndex : EYE_INDEX;
 #endif
 };
 

@@ -459,7 +459,7 @@ void CapsuleShadowingCS(
 	uint ThreadIndex = GroupThreadId.y * THREADGROUP_SIZEX + GroupThreadId.x;
 
 	float2 ScreenUV = float2((DispatchThreadId.xy * DownsampleFactor + ScissorRectMinAndSize.xy + .5f) * Frame.BufferSizeAndInvSize.zw);
-	float2 ScreenPosition = (ScreenUV.xy - Frame.ScreenPositionScaleBias.wz) / Frame.ScreenPositionScaleBias.xy;
+	float2 ScreenPosition = (ScreenUV.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy;
 
 #if LIGHT_SOURCE_MODE == LIGHT_SOURCE_FROM_RECEIVER
 	float4 ReceiverTextureValue = ReceiverBentNormalTexture.Load(DispatchThreadId.xyz);
@@ -607,7 +607,7 @@ void CapsuleShadowingUpsampleVS(
 	uint TileY = InstanceId / TileDimensions.x;
 	uint2 TileCoordinate = uint2(EffectiveInstanceId - TileY * TileDimensions.x, TileY);
 	float2 ScreenUV = ((TileCoordinate + TexCoord) * TileSize + ScissorRectMinAndSize.xy) * Frame.BufferSizeAndInvSize.zw;
-	float2 ScreenPosition = (ScreenUV.xy - Frame.ScreenPositionScaleBias.wz) / Frame.ScreenPositionScaleBias.xy;
+	float2 ScreenPosition = (ScreenUV.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy;
 	OutPosition = float4(ScreenPosition, 0, 1);
 
 	// Cull the tile if no affecting capsules, shadow will not be visible

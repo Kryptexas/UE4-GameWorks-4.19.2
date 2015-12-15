@@ -23,11 +23,7 @@ void Main(
 	out float4 OutColor		: SV_Target0
 	)
 {
-
-// Instanced stereo not implemented
-#if INSTANCED_STEREO
 	ResolvedView = ResolveView();
-#endif
 
 	// material parameter inputs
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, SvPosition);
@@ -57,7 +53,7 @@ void Main(
 
 	// Prevent silhouettes from geometry that is in front of distortion from being seen in the distortion 
 	float2 NDC = (MaterialParameters.ScreenPosition.xy / MaterialParameters.ScreenPosition.w);
-	float2 ScreenUV = NDC * Frame.ScreenPositionScaleBias.xy + Frame.ScreenPositionScaleBias.wz;
+	float2 ScreenUV = NDC * ResolvedView.ScreenPositionScaleBias.xy + ResolvedView.ScreenPositionScaleBias.wz;
 
 	//Fix for Fov and aspect.
 	float InvTanHalfFov = DistortionParams.x;

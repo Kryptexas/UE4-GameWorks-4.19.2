@@ -865,10 +865,6 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 		}
 	}
 
-	// Determine if instanced stereo is enabled.
-	const FString* const InstancedStereoDef = Input.Environment.GetDefinitions().Find(TEXT("INSTANCED_STEREO"));
-	const bool bIsInstancedStereoEnabled = (InstancedStereoDef ? (*InstancedStereoDef == TEXT("1")) : false);
-
 	FString EntryPointName = Input.EntryPointName;
 
 	Output.bFailedRemovingUnused = false;
@@ -892,7 +888,7 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 		}
 	}
 
-	if (!RemoveUniformBuffersFromSource(PreprocessedShaderSource, bIsInstancedStereoEnabled))
+	if (!RemoveUniformBuffersFromSource(PreprocessedShaderSource))
 	{
 		return;
 	}

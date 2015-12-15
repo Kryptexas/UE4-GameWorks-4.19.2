@@ -916,7 +916,7 @@ float2 CalcScreenUVFromOffsetFraction(float4 ScreenPosition, float2 OffsetFracti
 	// Clamp to valid area of the screen to avoid reading garbage
 	//@todo - soft clamp
 	float2 OffsetNDC = clamp(NDC + OffsetFraction * float2(2, -2), -.999f, .999f);
-	return float2(OffsetNDC * Frame.ScreenPositionScaleBias.xy + Frame.ScreenPositionScaleBias.wz);
+	return float2(OffsetNDC * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz);
 }
 
 /** Applies an offset to the scene texture lookup and decodes the HDR linear space color. */
@@ -1048,7 +1048,7 @@ float4 CalcSceneColorAndDepth( float2 ScreenUV )
 
 float2 ScreenPositionToBufferUV(float4 ScreenPosition)
 {
-	return float2(ScreenPosition.xy / ScreenPosition.w * Frame.ScreenPositionScaleBias.xy + Frame.ScreenPositionScaleBias.wz);
+	return float2(ScreenPosition.xy / ScreenPosition.w * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz);
 }
 
 float2 SvPositionToBufferUV(float4 SvPosition)
@@ -1117,7 +1117,7 @@ MaterialFloat2 ScreenAlignedPosition( float4 ScreenPosition )
  */
 MaterialFloat2 ScreenAlignedUV( MaterialFloat2 UV )
 {
-	return (UV*MaterialFloat2(2,-2) + MaterialFloat2(-1,1))*Frame.ScreenPositionScaleBias.xy + Frame.ScreenPositionScaleBias.wz;
+	return (UV*MaterialFloat2(2,-2) + MaterialFloat2(-1,1))*View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
 }
 
 /**

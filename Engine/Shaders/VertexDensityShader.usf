@@ -17,11 +17,7 @@ struct FVertexDensityVSToPS
 
 void MainVS(FVertexFactoryInput Input, out FVertexDensityVSToPS Output)
 {
-
-// Instanced stereo not implemented
-#if INSTANCED_STEREO
 	ResolvedView = ResolveView();
-#endif
 	
 	FVertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
 	float4 WorldPosition = VertexFactoryGetWorldPosition(Input, VFIntermediates);
@@ -74,11 +70,7 @@ void MainGS(triangle FVertexDensityVSToPS Input[3], inout TriangleStream<FVertex
 
 float4 MainPS(FVertexDensityVSToPS Input) : SV_Target0
 {
-
-// Instanced stereo not implemented
-#if INSTANCED_STEREO
 	ResolvedView = ResolveView();
-#endif
 
 	if (Input.WorldPosition.w < 1e-6)
 	{

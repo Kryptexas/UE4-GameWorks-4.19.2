@@ -648,6 +648,8 @@ void Main(
 {
 #if INSTANCED_STEREO
 	ResolvedView = ResolveView(Interpolants.EyeIndex);
+#else
+	ResolvedView = ResolveView();
 #endif
 
 #if !WRITES_CUSTOMDATA_TO_GBUFFER
@@ -735,7 +737,7 @@ void Main(
 	BRANCH if(Primitive.DecalReceiverMask > 0)
 	{
 		float2 NDC = MaterialParameters.ScreenPosition.xy / MaterialParameters.ScreenPosition.w;
-		float2 ScreenUV = NDC * Frame.ScreenPositionScaleBias.xy + Frame.ScreenPositionScaleBias.wz;
+		float2 ScreenUV = NDC * ResolvedView.ScreenPositionScaleBias.xy + ResolvedView.ScreenPositionScaleBias.wz;
 
 		FDBufferData DBufferData = GetDBufferData(ScreenUV);
 

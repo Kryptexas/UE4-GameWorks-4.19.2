@@ -54,11 +54,7 @@ void Main(
 #endif
 	)
 {
-
-// Instanced stereo not implemented
-#if INSTANCED_STEREO
 	ResolvedView = ResolveView();
-#endif
 
 #if INTERPOLATE_VF_ATTRIBUTES
 	

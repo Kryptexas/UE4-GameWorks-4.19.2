@@ -562,7 +562,7 @@ void GatherRadiance(inout float4 Color, float3 WorldPosition, float3 RayDirectio
 			SkyLighting *= IndirectIrradiance;
 		}
 
-		float2 ScreenUV = ScreenPosition * Frame.ScreenPositionScaleBias.xy + Frame.ScreenPositionScaleBias.wz;
+		float2 ScreenUV = ScreenPosition * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
 		float Visibility = GetDistanceFieldAOSpecularOcclusion(ScreenUV, RayDirection, Roughness, ShadingModelID == SHADINGMODELID_TWOSIDED_FOLIAGE);
 
 		// TODO use Mip
@@ -616,7 +616,7 @@ void ReflectionEnvironmentTiledDeferredMain(
 	// Add in diffuse contribution from dynamic skylights so reflection captures will have something to mix with
 	if (SkyLightParameters.y > 0 && SkyLightParameters.z > 0)
 	{
-		float2 ScreenUV = ScreenPosition * Frame.ScreenPositionScaleBias.xy + Frame.ScreenPositionScaleBias.wz;
+		float2 ScreenUV = ScreenPosition * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
 		IndirectIrradiance += GetDynamicSkyIndirectIrradiance(ScreenUV, GBuffer.WorldNormal);
 	}
 #endif
