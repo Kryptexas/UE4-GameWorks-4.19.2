@@ -61,7 +61,7 @@ public ExampleGameTarget(TargetInfo Target)
 
 以下は「ShaderCompileWorker.Target.cs」ファイルの完全実例です。
 
-	// Copyright 1998-2015 Epic Games, Inc.All rights reserved.
+	// Copyright 1998-2016 Epic Games, Inc.All rights reserved.
 
 	using UnrealBuildTool;
 	using System.Collections.Generic;

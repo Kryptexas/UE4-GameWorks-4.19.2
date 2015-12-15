@@ -61,7 +61,7 @@ UnrealBuildTool 은 Rules DLL 에서 빌드 타겟을 요청할 때, `[APPNAME]`
 
 완성 예제로 ShaderCompileWorker.Target.cs 파일을 들어보겠습니다:
 
-	// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 	using UnrealBuildTool;
 	using System.Collections.Generic;
