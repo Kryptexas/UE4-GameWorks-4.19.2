@@ -28,7 +28,7 @@ void FOodleArchiveBase::FOodleCompressedData::Serialize(FArchive& Ar)
  * FOodleArchiveBase
  */
 
-bool FOodleArchiveBase::SerializeOodleCompressData(FOodleCompressedData& OutDataInfo, void* Data, uint32 DataBytes)
+bool FOodleArchiveBase::SerializeOodleCompressData(FOodleCompressedData& OutDataInfo, uint8* Data, uint32 DataBytes)
 {
 	bool bSuccess = true;
 
@@ -41,7 +41,7 @@ bool FOodleArchiveBase::SerializeOodleCompressData(FOodleCompressedData& OutData
 		OutDataInfo.DecompressedLength.Set(*this, DataBytes);
 	
 		uint32 CompressBufferLen = OodleLZ_GetCompressedBufferSizeNeeded(DataBytes);
-		void* CompressBuffer = new uint8[CompressBufferLen];
+		uint8* CompressBuffer = new uint8[CompressBufferLen];
 
 		SINTa OodleLen = OodleLZ_Compress(OodleLZ_Compressor_LZNIB, Data, (SINTa)DataBytes, CompressBuffer,
 											OodleLZ_CompressionLevel_Optimal);
@@ -65,7 +65,7 @@ bool FOodleArchiveBase::SerializeOodleCompressData(FOodleCompressedData& OutData
 	return bSuccess;
 }
 
-bool FOodleArchiveBase::SerializeOodleDecompressData(FOodleCompressedData& DataInfo, void*& OutData, uint32& OutDataBytes)
+bool FOodleArchiveBase::SerializeOodleDecompressData(FOodleCompressedData& DataInfo, uint8*& OutData, uint32& OutDataBytes)
 {
 	check(OutData == nullptr);
 
@@ -82,8 +82,8 @@ bool FOodleArchiveBase::SerializeOodleDecompressData(FOodleCompressedData& DataI
 	{
 		SeekPush(DataOffset);
 
-		void* CompressedData = new uint8[CompressedLength];
-		void* DecompressedData = new uint8[DecompressedLength];
+		uint8* CompressedData = new uint8[CompressedLength];
+		uint8* DecompressedData = new uint8[DecompressedLength];
 
 		InnerArchive.Serialize(CompressedData, CompressedLength);
 
@@ -367,8 +367,8 @@ void FOodleDictionaryArchive::SerializeHeader()
 	Header.SerializeHeader(*this);
 }
 
-void FOodleDictionaryArchive::SerializeDictionaryAndState(void*& DictionaryData, uint32& DictionaryBytes,
-															void*& CompactCompresorState, uint32& CompactCompressorStateBytes)
+void FOodleDictionaryArchive::SerializeDictionaryAndState(uint8*& DictionaryData, uint32& DictionaryBytes,
+															uint8*& CompactCompresorState, uint32& CompactCompressorStateBytes)
 {
 	if (IsLoading())
 	{

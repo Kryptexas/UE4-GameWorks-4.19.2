@@ -131,7 +131,7 @@ void FOodleNetStats::UpdateStats(float DeltaTime)
  * FOodleDictionary
  */
 
-FOodleDictionary::FOodleDictionary(uint32 InHashTableSize, void* InDictionaryData, uint32 InDictionarySize,
+FOodleDictionary::FOodleDictionary(uint32 InHashTableSize, uint8* InDictionaryData, uint32 InDictionarySize,
 									OodleNetwork1_Shared* InSharedDictionary, uint32 InSharedDictionarySize,
 									OodleNetwork1UDP_State* InInitialCompressorState, uint32 InCompressorStateSize)
 	: HashTableSize(InHashTableSize)
@@ -161,7 +161,7 @@ FOodleDictionary::~FOodleDictionary()
 
 	if (DictionaryData != nullptr)
 	{
-		delete DictionaryData;
+		delete [] DictionaryData;
 	}
 
 	if (SharedDictionary != nullptr)
@@ -427,9 +427,9 @@ void OodleHandlerComponent::InitializeDictionary(FString FilePath, TSharedPtr<FO
 		{
 			FOodleDictionaryArchive BoundArc(*ReadArc);
 
-			void* DictionaryData = nullptr;
+			uint8* DictionaryData = nullptr;
 			uint32 DictionaryBytes = 0;
-			void* CompactCompressorState = nullptr;
+			uint8* CompactCompressorState = nullptr;
 			uint32 CompactCompressorStateBytes = 0;
 
 			BoundArc.SerializeHeader();
@@ -464,7 +464,7 @@ void OodleHandlerComponent::InitializeDictionary(FString FilePath, TSharedPtr<FO
 
 				if (CompactCompressorState != nullptr)
 				{
-					delete CompactCompressorState;
+					delete [] CompactCompressorState;
 				}
 			}
 			else
@@ -473,12 +473,12 @@ void OodleHandlerComponent::InitializeDictionary(FString FilePath, TSharedPtr<FO
 
 				if (DictionaryData != nullptr)
 				{
-					delete DictionaryData;
+					delete [] DictionaryData;
 				}
 
 				if (CompactCompressorState != nullptr)
 				{
-					delete CompactCompressorState;
+					delete [] CompactCompressorState;
 				}
 			}
 

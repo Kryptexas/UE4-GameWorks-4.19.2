@@ -205,7 +205,7 @@ public:
 	 * @param DataBytes		The length of Data
 	 * @return				Whether or not compression was successful
 	 */
-	bool SerializeOodleCompressData(FOodleCompressedData& OutDataInfo, void* Data, uint32 DataBytes);
+	bool SerializeOodleCompressData(FOodleCompressedData& OutDataInfo, uint8* Data, uint32 DataBytes);
 
 	/**
 	 * Decompresses the data referenced by the input FOodleCompressedData struct
@@ -215,7 +215,7 @@ public:
 	 * @param OutDataBytes	Outputs the size of OutData
 	 * @return				Whether or not decompression was successful
 	 */
-	bool SerializeOodleDecompressData(FOodleCompressedData& DataInfo, void*& OutData, uint32& OutDataBytes);
+	bool SerializeOodleDecompressData(FOodleCompressedData& DataInfo, uint8*& OutData, uint32& OutDataBytes);
 
 
 	/**
@@ -434,8 +434,8 @@ public:
 	 * @param CompactCompressorState		Pointer to compressor data, when saving, and reference to nullptr void*, when loading
 	 * @param CompactCompressorStateBytes	Inputs/Outputs the size of the compressor data
 	 */
-	void SerializeDictionaryAndState(void*& DictionaryData, uint32& DictionaryBytes,
-										void*& CompactCompresorState, uint32& CompactCompressorStateBytes);
+	void SerializeDictionaryAndState(uint8*& DictionaryData, uint32& DictionaryBytes,
+										uint8*& CompactCompresorState, uint32& CompactCompressorStateBytes);
 };
 
 #endif

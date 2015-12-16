@@ -822,7 +822,7 @@ bool FOodleDictionaryGenerator::GenerateAndWriteDictionary()
 		bSuccess = bSuccess && OutputFile.SerializeOodleCompressData(OutputFile.Header.DictionaryData, NewDictionaryData,
 																		DictionarySize);
 
-		bSuccess = bSuccess && OutputFile.SerializeOodleCompressData(OutputFile.Header.CompressorData, CompactCompressorState,
+		bSuccess = bSuccess && OutputFile.SerializeOodleCompressData(OutputFile.Header.CompressorData, (uint8*)CompactCompressorState,
 																		CompactCompressorStateBytes);
 
 

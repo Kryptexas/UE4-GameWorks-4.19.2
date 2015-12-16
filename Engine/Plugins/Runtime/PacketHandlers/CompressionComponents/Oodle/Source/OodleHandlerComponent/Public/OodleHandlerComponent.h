@@ -205,7 +205,7 @@ struct FOodleDictionary
 	uint32 HashTableSize;
 
 	/** The raw dictionary data */
-	void* DictionaryData;
+	uint8* DictionaryData;
 
 	/** The size of the dictionary */
 	uint32 DictionarySize;
@@ -236,7 +236,7 @@ public:
 	/**
 	 * Base constructor
 	 */
-	FOodleDictionary(uint32 InHashTableSize, void* InDictionaryData, uint32 InDictionarySize, OodleNetwork1_Shared* InSharedDictionary,
+	FOodleDictionary(uint32 InHashTableSize, uint8* InDictionaryData, uint32 InDictionarySize, OodleNetwork1_Shared* InSharedDictionary,
 						uint32 InSharedDictionarySize, OodleNetwork1UDP_State* InInitialCompressorState, uint32 InCompressorStateSize);
 
 	/**
