@@ -12,6 +12,9 @@
 class UNREALED_API FEditorUndoClient
 {
 public:
+	/** Always unregister for undo on destruction, just in case. */
+	virtual ~FEditorUndoClient();
+
 	/**
 	 * Called to see if the context of the current undo/redo operation is a match for the client
 	 * Default state matching old context-less undo is Context="" and PrimaryObject=NULL
