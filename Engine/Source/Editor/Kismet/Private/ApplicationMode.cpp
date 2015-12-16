@@ -13,7 +13,7 @@ FApplicationMode::FApplicationMode(FName InModeName)
 	: ModeName(InModeName)
 {
 	ToolbarExtender = MakeShareable(new FExtender);
-	WorkspaceMenuCategory = FWorkspaceItem::NewGroup(LOCTEXT("WorkspaceMenu_ApplicationMode", "Asset Editor"));
+	WorkspaceMenuCategory = FWorkspaceItem::NewGroup(LOCTEXT("WorkspaceMenu_AssetEditor", "Asset Editor"));
 }
 
 FApplicationMode::FApplicationMode(FName InModeName, FText(*GetLocalizedMode)(const FName))

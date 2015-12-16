@@ -467,7 +467,6 @@ FText UK2Node_SpawnActorFromClass::GetNodeTitle(ENodeTitleType::Type TitleType) 
 	FText NodeTitle = NSLOCTEXT("K2Node", "SpawnActor_BaseTitle", "Spawn Actor from Class");
 	if (TitleType != ENodeTitleType::MenuTitle)
 	{
-		FText SpawnString = NSLOCTEXT("K2Node", "None", "NONE");
 		if (UEdGraphPin* ClassPin = GetClassPin())
 		{
 			if (ClassPin->LinkedTo.Num() > 0)
@@ -493,7 +492,7 @@ FText UK2Node_SpawnActorFromClass::GetNodeTitle(ENodeTitleType::Type TitleType) 
 					Args.Add(TEXT("ClassName"), ClassName);
 
 					// FText::Format() is slow, so we cache this to save on performance
-					CachedNodeTitle.SetCachedText(FText::Format(NSLOCTEXT("K2Node", "SpawnActor", "SpawnActor {ClassName}"), Args), this);
+					CachedNodeTitle.SetCachedText(FText::Format(NSLOCTEXT("K2Node", "SpawnActor_Title_Class", "SpawnActor {ClassName}"), Args), this);
 				}
 				NodeTitle = CachedNodeTitle;
 			} 
