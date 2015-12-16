@@ -154,16 +154,16 @@ private:
 	TMap<FArchive*, FString> MergeMap;
 
 
-	TArray<void*>	DictionaryPackets;
+	TArray<uint8*>	DictionaryPackets;
 	TArray<S32>		DictionaryPacketSizes;
 	uint32			DictionaryPacketBytes;
-	TArray<void*>	DictionaryTestPackets;
+	TArray<uint8*>	DictionaryTestPackets;
 	TArray<S32>		DictionaryTestPacketSizes;
 	uint32			DictionaryTestPacketBytes;
-	TArray<void*>	TrainerPackets;
+	TArray<uint8*>	TrainerPackets;
 	TArray<S32>		TrainerPacketSizes;
 	uint32			TrainerPacketBytes;
-	TArray<void*>	CompressionTestPackets;
+	TArray<uint8*>	CompressionTestPackets;
 	TArray<S32>		CompressionTestPacketSizes;
 	uint32			CompressionTestPacketBytes;
 
