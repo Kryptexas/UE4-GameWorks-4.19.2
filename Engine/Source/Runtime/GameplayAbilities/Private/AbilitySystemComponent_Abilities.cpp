@@ -813,7 +813,7 @@ void UAbilitySystemComponent::UnBlockAbilityByInputID(int32 InputID)
 	}
 }
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !UE_BUILD_SHIPPING
 int32 DenyClientActivation = 0;
 static FAutoConsoleVariableRef CVarDenyClientActivation(
 TEXT("AbilitySystem.DenyClientActivations"),
@@ -821,7 +821,7 @@ TEXT("AbilitySystem.DenyClientActivations"),
 	TEXT("Make server deny the next X ability activations from clients. For testing misprediction."),
 	ECVF_Default
 	);
-#endif
+#endif // !UE_BUILD_SHIPPING
 
 void UAbilitySystemComponent::OnRep_ActivateAbilities()
 {

@@ -115,4 +115,5 @@
 #include "Attribute.h"
 #include "Optional.h"
 #include "EnumClassFlags.h"
+#include "EnumRange.h"
 #include "Misc/DisableOldUETypes.h"

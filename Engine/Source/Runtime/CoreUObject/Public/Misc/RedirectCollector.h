@@ -48,10 +48,11 @@ public:
 	/** Helper struct for string asset reference tracking */
 	struct FPackagePropertyPair
 	{
-		FPackagePropertyPair() {}
+		FPackagePropertyPair() : bReferencedByEditorOnlyProperty(false) {}
 		FPackagePropertyPair(const FString& InPackage, const FString& InProperty)
 		: Package(InPackage)
 		, Property(InProperty)
+		, bReferencedByEditorOnlyProperty(false)
 		{}
 
 		bool operator==(const FPackagePropertyPair& Other) const
@@ -62,6 +63,7 @@ public:
 
 		FString Package;
 		FString Property;
+		bool bReferencedByEditorOnlyProperty;
 	};
 
 	/**

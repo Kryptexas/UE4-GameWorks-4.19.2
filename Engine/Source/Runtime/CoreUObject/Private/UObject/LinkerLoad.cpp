@@ -3723,7 +3723,7 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 					// Do this for all subobjects created in the native constructor.
 					FUObjectThreadContext::Get().ObjLoaded.AddUnique(Export.Object);
 					if (!Export.Object->HasAnyFlags(RF_LoadCompleted) &&
-						(Export.Object->HasAnyFlags(RF_DefaultSubObject) || (ThisParent && ThisParent->HasAnyFlags(RF_ClassDefaultObject))))
+						(Export.Object->HasAnyFlags(RF_DefaultSubObject) || (ThisParent && ThisParent->IsTemplate(RF_ClassDefaultObject))))
 					{
 						Export.Object->SetFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects | RF_WasLoaded);
 					}

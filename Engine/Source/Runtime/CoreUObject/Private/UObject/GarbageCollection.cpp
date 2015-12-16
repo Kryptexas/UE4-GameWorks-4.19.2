@@ -1094,6 +1094,8 @@ static FAutoConsoleVariableRef CVarFlushStreamingOnGC(
 	ECVF_Default
 	);
 
+bool VerifyClusterAssumptions(UObject* ClusterRootObject);
+
 /** 
  * Deletes all unreferenced objects, keeping objects that have any of the passed in KeepFlags set
  *
@@ -1152,7 +1154,7 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 			// Don't require UGCObjectReferencer's references to adhere to the assumptions.
 			// Although we want the referencer itself to sit in the disregard for gc set, most of the objects
 			// it's referencing will not be in the root set.
-			if ((ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot) || UObjectArray.IsDisregardForGC(Object)) && !Object->IsA(UGCObjectReferencer::StaticClass()))
+			if (UObjectArray.IsDisregardForGC(Object) && !Object->IsA(UGCObjectReferencer::StaticClass()))
 			{
 				// Serialize object with reference collector.
 				TArray<UObject*> CollectedReferences;
@@ -1174,6 +1176,13 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 							*ReferencedObject->GetFullName());
 						bShouldAssert = true;
 					}
+				}
+			}
+			else if (ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot))
+			{
+				if (!VerifyClusterAssumptions(Object))
+				{
+					bShouldAssert = true;
 				}
 			}
 			// Assert if we encountered any objects breaking implicit assumptions.

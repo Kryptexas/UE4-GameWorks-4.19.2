@@ -27,7 +27,7 @@ FGraphDataSource::FGraphDataSource( const FProfilerSessionRef& InProfilerSession
 	const FProfilerStat& Stat = MetaData->GetStatByID(InStatID);
 	const FProfilerGroup& Group = Stat.OwningGroup();
 
-	Initialize( Stat.Name().GetPlainNameString(), Group.ID(), Group.Name().GetPlainNameString(), Stat.Type(), ProfilerSession->GetCreationTime() );
+	Initialize( Stat.Name().GetPlainNameString(), Group.Name().GetPlainNameString(), Stat.Type(), ProfilerSession->GetCreationTime() );
 
 	switch( GetSampleType() )
 	{
@@ -206,28 +206,31 @@ FName FEventGraphConsts::FakeRoot = TEXT("FakeRoot");
 FEventProperty FEventGraphSample::Properties[ EEventPropertyIndex::InvalidOrMax ] =
 {
 	// Properties
-	FEventProperty(EEventPropertyIndex::StatName,TEXT("StatName"),STRUCT_OFFSET(FEventGraphSample,_StatName),EEventPropertyFormatters::Name),
-	FEventProperty(EEventPropertyIndex::InclusiveTimeMS,TEXT("InclusiveTimeMS"),STRUCT_OFFSET(FEventGraphSample,_InclusiveTimeMS),EEventPropertyFormatters::TimeMS),
-	FEventProperty(EEventPropertyIndex::InclusiveTimePct,TEXT("InclusiveTimePct"),STRUCT_OFFSET(FEventGraphSample,_InclusiveTimePct),EEventPropertyFormatters::TimePct),
-	FEventProperty(EEventPropertyIndex::MinInclusiveTimeMS,TEXT("MinInclusiveTimeMS"),STRUCT_OFFSET(FEventGraphSample,_MinInclusiveTimeMS),EEventPropertyFormatters::TimeMS),
-	FEventProperty(EEventPropertyIndex::MaxInclusiveTimeMS,TEXT("MaxInclusiveTimeMS"),STRUCT_OFFSET(FEventGraphSample,_MaxInclusiveTimeMS),EEventPropertyFormatters::TimeMS),
-	FEventProperty(EEventPropertyIndex::AvgInclusiveTimeMS,TEXT("AvgInclusiveTimeMS"),STRUCT_OFFSET(FEventGraphSample,_AvgInclusiveTimeMS),EEventPropertyFormatters::TimeMS),
-	FEventProperty(EEventPropertyIndex::ExclusiveTimeMS,TEXT("ExclusiveTimeMS"),STRUCT_OFFSET(FEventGraphSample,_ExclusiveTimeMS),EEventPropertyFormatters::TimeMS),
-	FEventProperty(EEventPropertyIndex::ExclusiveTimePct,TEXT("ExclusiveTimePct"),STRUCT_OFFSET(FEventGraphSample,_ExclusiveTimePct),EEventPropertyFormatters::TimePct),
-	FEventProperty(EEventPropertyIndex::AvgInclusiveTimePerCallMS,TEXT("AvgInclusiveTimePerCallMS"),STRUCT_OFFSET(FEventGraphSample,_AvgInclusiveTimePerCallMS),EEventPropertyFormatters::TimeMS),
-	FEventProperty(EEventPropertyIndex::NumCallsPerFrame,TEXT("NumCallsPerFrame"),STRUCT_OFFSET(FEventGraphSample,_NumCallsPerFrame),EEventPropertyFormatters::Number),
-	FEventProperty(EEventPropertyIndex::AvgNumCallsPerFrame,TEXT("AvgNumCallsPerFrame"),STRUCT_OFFSET(FEventGraphSample,_AvgNumCallsPerFrame),EEventPropertyFormatters::Number),
-	FEventProperty(EEventPropertyIndex::ThreadName,TEXT("ThreadName"),STRUCT_OFFSET(FEventGraphSample,_ThreadName),EEventPropertyFormatters::Name),
-	FEventProperty(EEventPropertyIndex::ThreadDurationMS,TEXT("ThreadDurationMS"),STRUCT_OFFSET(FEventGraphSample,_ThreadDurationMS),EEventPropertyFormatters::TimeMS),
-	FEventProperty(EEventPropertyIndex::FrameDurationMS,TEXT("FrameDurationMS"),STRUCT_OFFSET(FEventGraphSample,_FrameDurationMS),EEventPropertyFormatters::TimeMS),
-	FEventProperty(EEventPropertyIndex::ThreadPct,TEXT("ThreadPct"),STRUCT_OFFSET(FEventGraphSample,_ThreadPct),EEventPropertyFormatters::TimePct),
-	FEventProperty(EEventPropertyIndex::FramePct,TEXT("FramePct"),STRUCT_OFFSET(FEventGraphSample,_FramePct),EEventPropertyFormatters::TimePct),
-	FEventProperty(EEventPropertyIndex::ThreadToFramePct,TEXT("ThreadToFramePct"),STRUCT_OFFSET(FEventGraphSample,_ThreadToFramePct),EEventPropertyFormatters::TimePct),
-	FEventProperty(EEventPropertyIndex::StartTimeMS,TEXT("StartTimeMS"),STRUCT_OFFSET(FEventGraphSample,_StartTimeMS),EEventPropertyFormatters::TimeMS),
-	FEventProperty(EEventPropertyIndex::GroupName,TEXT("GroupName"),STRUCT_OFFSET(FEventGraphSample,_GroupName),EEventPropertyFormatters::Name),
-
+	FEventProperty( EEventPropertyIndex::StatName, TEXT( "StatName" ), STRUCT_OFFSET( FEventGraphSample, _StatName ), EEventPropertyFormatters::Name ),
+	FEventProperty( EEventPropertyIndex::InclusiveTimeMS, TEXT( "InclusiveTimeMS" ), STRUCT_OFFSET( FEventGraphSample, _InclusiveTimeMS ), EEventPropertyFormatters::TimeMS ),
+	FEventProperty( EEventPropertyIndex::InclusiveTimePct, TEXT( "InclusiveTimePct" ), STRUCT_OFFSET( FEventGraphSample, _InclusiveTimePct ), EEventPropertyFormatters::TimePct ),
+	FEventProperty( EEventPropertyIndex::ExclusiveTimeMS, TEXT( "ExclusiveTimeMS" ), STRUCT_OFFSET( FEventGraphSample, _ExclusiveTimeMS ), EEventPropertyFormatters::TimeMS ),
+	FEventProperty( EEventPropertyIndex::ExclusiveTimePct, TEXT( "ExclusiveTimePct" ), STRUCT_OFFSET( FEventGraphSample, _ExclusiveTimePct ), EEventPropertyFormatters::TimePct ),
+	FEventProperty( EEventPropertyIndex::NumCallsPerFrame, TEXT( "NumCallsPerFrame" ), STRUCT_OFFSET( FEventGraphSample, _NumCallsPerFrame ), EEventPropertyFormatters::Number ),
 	// Special none property
-	FEventProperty(EEventPropertyIndex::None,NAME_None,INDEX_NONE,EEventPropertyFormatters::Name),
+	FEventProperty( EEventPropertyIndex::None, NAME_None, INDEX_NONE, EEventPropertyFormatters::Name ),
+
+	FEventProperty( EEventPropertyIndex::MinInclusiveTimeMS, TEXT( "MinInclusiveTimeMS" ), STRUCT_OFFSET( FEventGraphSample, _MinInclusiveTimeMS ), EEventPropertyFormatters::TimeMS ),
+	FEventProperty( EEventPropertyIndex::MaxInclusiveTimeMS, TEXT( "MaxInclusiveTimeMS" ), STRUCT_OFFSET( FEventGraphSample, _MaxInclusiveTimeMS ), EEventPropertyFormatters::TimeMS ),
+	FEventProperty( EEventPropertyIndex::AvgInclusiveTimeMS, TEXT( "AvgInclusiveTimeMS" ), STRUCT_OFFSET( FEventGraphSample, _AvgInclusiveTimeMS ), EEventPropertyFormatters::TimeMS ),
+	
+	FEventProperty( EEventPropertyIndex::MinNumCallsPerFrame, TEXT( "MinNumCallsPerFrame" ), STRUCT_OFFSET( FEventGraphSample, _MinNumCallsPerFrame ), EEventPropertyFormatters::Number ),
+	FEventProperty( EEventPropertyIndex::MaxNumCallsPerFrame, TEXT( "MaxNumCallsPerFrame" ), STRUCT_OFFSET( FEventGraphSample, _MaxNumCallsPerFrame ), EEventPropertyFormatters::Number ),
+	FEventProperty( EEventPropertyIndex::AvgNumCallsPerFrame, TEXT( "AvgNumCallsPerFrame" ), STRUCT_OFFSET( FEventGraphSample, _AvgNumCallsPerFrame ), EEventPropertyFormatters::Number ),
+
+	FEventProperty( EEventPropertyIndex::ThreadName, TEXT( "ThreadName" ), STRUCT_OFFSET( FEventGraphSample, _ThreadName ), EEventPropertyFormatters::Name ),
+	FEventProperty( EEventPropertyIndex::ThreadDurationMS, TEXT( "ThreadDurationMS" ), STRUCT_OFFSET( FEventGraphSample, _ThreadDurationMS ), EEventPropertyFormatters::TimeMS ),
+	FEventProperty( EEventPropertyIndex::FrameDurationMS, TEXT( "FrameDurationMS" ), STRUCT_OFFSET( FEventGraphSample, _FrameDurationMS ), EEventPropertyFormatters::TimeMS ),
+	FEventProperty( EEventPropertyIndex::ThreadPct, TEXT( "ThreadPct" ), STRUCT_OFFSET( FEventGraphSample, _ThreadPct ), EEventPropertyFormatters::TimePct ),
+	FEventProperty( EEventPropertyIndex::FramePct, TEXT( "FramePct" ), STRUCT_OFFSET( FEventGraphSample, _FramePct ), EEventPropertyFormatters::TimePct ),
+	FEventProperty( EEventPropertyIndex::ThreadToFramePct, TEXT( "ThreadToFramePct" ), STRUCT_OFFSET( FEventGraphSample, _ThreadToFramePct ), EEventPropertyFormatters::TimePct ),
+	FEventProperty( EEventPropertyIndex::StartTimeMS, TEXT( "StartTimeMS" ), STRUCT_OFFSET( FEventGraphSample, _StartTimeMS ), EEventPropertyFormatters::TimeMS ),
+	FEventProperty( EEventPropertyIndex::GroupName, TEXT( "GroupName" ), STRUCT_OFFSET( FEventGraphSample, _GroupName ), EEventPropertyFormatters::Name ),
 
 	// Booleans
 	FEventProperty(EEventPropertyIndex::bIsHotPath,TEXT("bIsHotPath"),STRUCT_OFFSET(FEventGraphSample,_bIsHotPath),EEventPropertyFormatters::Bool),
@@ -247,36 +250,40 @@ void FEventGraphSample::InitializePropertyManagement()
 	{
 		NamedProperties = TMapBuilder<FName,const FEventProperty*>()
 			// Properties
-			.Add( TEXT("StatName"), &Properties[EEventPropertyIndex::StatName] )
-			.Add( TEXT("InclusiveTimeMS"), &Properties[EEventPropertyIndex::InclusiveTimeMS] )
-			.Add( TEXT("InclusiveTimePct"), &Properties[EEventPropertyIndex::InclusiveTimePct] )
-			.Add( TEXT("MinInclusiveTimeMS"), &Properties[EEventPropertyIndex::MinInclusiveTimeMS] )
-			.Add( TEXT("MaxInclusiveTimeMS"), &Properties[EEventPropertyIndex::MaxInclusiveTimeMS] )
-			.Add( TEXT("AvgInclusiveTimeMS"), &Properties[EEventPropertyIndex::AvgInclusiveTimeMS] )
-			.Add( TEXT("ExclusiveTimeMS"), &Properties[EEventPropertyIndex::ExclusiveTimeMS] )
-			.Add( TEXT("ExclusiveTimePct"), &Properties[EEventPropertyIndex::ExclusiveTimePct] )
-			.Add( TEXT("AvgInclusiveTimePerCallMS"), &Properties[EEventPropertyIndex::AvgInclusiveTimePerCallMS] )
-			.Add( TEXT("NumCallsPerFrame"), &Properties[EEventPropertyIndex::NumCallsPerFrame] )
-			.Add( TEXT("AvgNumCallsPerFrame"), &Properties[EEventPropertyIndex::AvgNumCallsPerFrame] )
-			.Add( TEXT("ThreadName"), &Properties[EEventPropertyIndex::ThreadName] )
-			.Add( TEXT("ThreadDurationMS"), &Properties[EEventPropertyIndex::ThreadDurationMS] )
-			.Add( TEXT("FrameDurationMS"), &Properties[EEventPropertyIndex::FrameDurationMS] )
-			.Add( TEXT("ThreadPct"), &Properties[EEventPropertyIndex::ThreadPct] )
-			.Add( TEXT("FramePct"), &Properties[EEventPropertyIndex::FramePct] )
-			.Add( TEXT("ThreadToFramePct"), &Properties[EEventPropertyIndex::ThreadToFramePct] )
-			.Add( TEXT("StartTimeMS"), &Properties[EEventPropertyIndex::StartTimeMS] )
-			.Add( TEXT("GroupName"), &Properties[EEventPropertyIndex::GroupName] )
+			.Add( TEXT( "StatName" ), &Properties[EEventPropertyIndex::StatName] )
+			.Add( TEXT( "InclusiveTimeMS" ), &Properties[EEventPropertyIndex::InclusiveTimeMS] )
+			.Add( TEXT( "InclusiveTimePct" ), &Properties[EEventPropertyIndex::InclusiveTimePct] )
+			.Add( TEXT( "ExclusiveTimeMS" ), &Properties[EEventPropertyIndex::ExclusiveTimeMS] )
+			.Add( TEXT( "ExclusiveTimePct" ), &Properties[EEventPropertyIndex::ExclusiveTimePct] )
+			.Add( TEXT( "NumCallsPerFrame" ), &Properties[EEventPropertyIndex::NumCallsPerFrame] )
 
 			// Special none property
 			.Add( NAME_None, &Properties[EEventPropertyIndex::None] )
 
+			.Add( TEXT( "MinInclusiveTimeMS" ), &Properties[EEventPropertyIndex::MinInclusiveTimeMS] )
+			.Add( TEXT( "MaxInclusiveTimeMS" ), &Properties[EEventPropertyIndex::MaxInclusiveTimeMS] )
+			.Add( TEXT( "AvgInclusiveTimeMS" ), &Properties[EEventPropertyIndex::AvgInclusiveTimeMS] )	
+
+			.Add( TEXT( "MinNumCallsPerFrame" ), &Properties[EEventPropertyIndex::MinNumCallsPerFrame] )
+			.Add( TEXT( "MaxNumCallsPerFrame" ), &Properties[EEventPropertyIndex::MaxNumCallsPerFrame] )
+			.Add( TEXT( "AvgNumCallsPerFrame" ), &Properties[EEventPropertyIndex::AvgNumCallsPerFrame] )
+
+			.Add( TEXT( "ThreadName" ), &Properties[EEventPropertyIndex::ThreadName] )
+			.Add( TEXT( "ThreadDurationMS" ), &Properties[EEventPropertyIndex::ThreadDurationMS] )
+			.Add( TEXT( "FrameDurationMS" ), &Properties[EEventPropertyIndex::FrameDurationMS] )
+			.Add( TEXT( "ThreadPct" ), &Properties[EEventPropertyIndex::ThreadPct] )
+			.Add( TEXT( "FramePct" ), &Properties[EEventPropertyIndex::FramePct] )
+			.Add( TEXT( "ThreadToFramePct" ), &Properties[EEventPropertyIndex::ThreadToFramePct] )
+			.Add( TEXT( "StartTimeMS" ), &Properties[EEventPropertyIndex::StartTimeMS] )
+			.Add( TEXT( "GroupName" ), &Properties[EEventPropertyIndex::GroupName] )
+
 			// Booleans
-			.Add( TEXT("bIsHotPath"), &Properties[EEventPropertyIndex::bIsHotPath] )
-			.Add( TEXT("bIsFiltered"), &Properties[EEventPropertyIndex::bIsFiltered] )
-			.Add( TEXT("bIsCulled"), &Properties[EEventPropertyIndex::bIsCulled] )
+			.Add( TEXT( "bIsHotPath" ), &Properties[EEventPropertyIndex::bIsHotPath] )
+			.Add( TEXT( "bIsFiltered" ), &Properties[EEventPropertyIndex::bIsFiltered] )
+			.Add( TEXT( "bIsCulled" ), &Properties[EEventPropertyIndex::bIsCulled] )
 
 			// Booleans internal
-			.Add( TEXT("bNeedNotCulledChildrenUpdate"), &Properties[EEventPropertyIndex::bNeedNotCulledChildrenUpdate] )
+			.Add( TEXT( "bNeedNotCulledChildrenUpdate" ), &Properties[EEventPropertyIndex::bNeedNotCulledChildrenUpdate] )
 			;
 	
 		// Make sure that the minimal property manager has been initialized.
@@ -289,6 +296,58 @@ void FEventGraphSample::InitializePropertyManagement()
 		check( FEventGraphSample::Properties[ EEventPropertyIndex::None ].Name == NAME_None );
 		check( FEventGraphSample::Properties[ EEventPropertyIndex::None ].Offset == INDEX_NONE );
 	}
+}
+
+void FEventGraphSample::SetMaximumTimesForAllChildren()
+{
+	struct FCopyMaximum
+	{
+		void operator()( FEventGraphSample* EventPtr, FEventGraphSample* RootEvent, FEventGraphSample* ThreadEvent )
+		{
+			EventPtr->CopyMaximum( RootEvent, ThreadEvent );
+		}
+	};
+
+	FEventGraphSamplePtr RootEvent = AsShared();
+	const int32 NumChildren = _ChildrenPtr.Num();
+	for (int32 ChildIndex = 0; ChildIndex < NumChildren; ++ChildIndex)
+	{
+		const FEventGraphSamplePtr& ThreadEvent = _ChildrenPtr[ChildIndex];
+		ThreadEvent->ExecuteOperationForAllChildren( FCopyMaximum(), (FEventGraphSample*)RootEvent.Get(), (FEventGraphSample*)ThreadEvent.Get() );
+	}
+}
+
+void FEventGraphSample::SetRootAndThreadForAllChildren()
+{
+	struct FSetRootAndThread
+	{
+		void operator()( FEventGraphSample* EventPtr, FEventGraphSample* RootEvent, FEventGraphSample* ThreadEvent )
+		{
+			EventPtr->_RootPtr = RootEvent;
+			EventPtr->_ThreadPtr = ThreadEvent;
+		}
+	};
+
+	FEventGraphSamplePtr RootEvent = AsShared();
+	const int32 NumChildren = _ChildrenPtr.Num();
+	for (int32 ChildIndex = 0; ChildIndex < NumChildren; ++ChildIndex)
+	{
+		const FEventGraphSamplePtr& ThreadEvent = _ChildrenPtr[ChildIndex];
+		ThreadEvent->ExecuteOperationForAllChildren( FSetRootAndThread(), (FEventGraphSample*)RootEvent.Get(), (FEventGraphSample*)ThreadEvent.Get() );
+	}
+}
+
+void FEventGraphSample::FixChildrenTimesAndCalcAveragesForAllChildren( const double NumFrames )
+{
+	struct FFixChildrenTimesAndCalcAverages
+	{
+		void operator()( FEventGraphSample* EventPtr, const double NumFrames )
+		{
+			EventPtr->FixChildrenTimesAndCalcAverages( NumFrames );
+		}
+	};
+
+	ExecuteOperationForAllChildren( FFixChildrenTimesAndCalcAverages(), NumFrames );
 }
 
 FEventGraphSamplePtr FEventGraphSample::FindChildPtr( const FEventGraphSamplePtr& OtherChild )
@@ -309,9 +368,9 @@ FEventGraphSamplePtr FEventGraphSample::FindChildPtr( const FEventGraphSamplePtr
 }
 
 
-void FEventGraphSample::CombineAndAddPtr_Recurrent( const FEventGraphSamplePtr& Other )
+void FEventGraphSample::Combine_Recurrent( const FEventGraphSamplePtr& Other )
 {
-	AddSamplePtr( Other );
+	Combine( Other );
 
 	// Check other children.
 	for( int32 ChildIndex = 0; ChildIndex < Other->_ChildrenPtr.Num(); ++ChildIndex )
@@ -321,61 +380,13 @@ void FEventGraphSample::CombineAndAddPtr_Recurrent( const FEventGraphSamplePtr& 
 
 		if( ThisChild.IsValid() )
 		{
-			ThisChild->CombineAndAddPtr_Recurrent( OtherChild );
+			ThisChild->Combine_Recurrent( OtherChild );
 		}
 		else
 		{
 			AddChildAndSetParentPtr( OtherChild->DuplicateWithHierarchyPtr() );
 		}
 	}
-}
-
-void FEventGraphSample::CombineAndFindMaxPtr_Recurrent( const FEventGraphSamplePtr& Other )
-{
-#if	_DEBUG
-	const FName Some0 = TEXT("FGCTask");
-	const FName Some1 = TEXT("PoolThread [0x21e8]");
-
-	if( Other->_StatName == Some0 || Other->_StatName == Some1 )
-	{
-		int k=0;k++;
-
-		if( Other->_InclusiveTimeMS > 0.4f )
-		{
-			int j=0;j++;
-		}
-	}
-#endif // _DEBUG
-
-	MaxSamplePtr( Other );
-
-	// Check other children.
-	for( int32 ChildIndex = 0; ChildIndex < Other->_ChildrenPtr.Num(); ++ChildIndex )
-	{
-		const FEventGraphSamplePtr& OtherChild = Other->_ChildrenPtr[ChildIndex];
-		FEventGraphSamplePtr ThisChild = FindChildPtr( OtherChild );
-
-		if( ThisChild.IsValid() )
-		{
-			ThisChild->CombineAndFindMaxPtr_Recurrent( OtherChild );
-		}
-		else
-		{
-			AddChildAndSetParentPtr( OtherChild->DuplicateWithHierarchyPtr() );
-		}
-	}
-}
-
-void FEventGraphSample::Divide_Recurrent( const double Divisor )
-{
-	DivideSamplePtr( Divisor );
-
-	// Check other children.
-	for( int32 ChildIndex = 0; ChildIndex < _ChildrenPtr.Num(); ++ChildIndex )
-	{
-		FEventGraphSamplePtr ThisChild = _ChildrenPtr[ChildIndex];
-		ThisChild->Divide_Recurrent( Divisor );
-}
 }
 
 /*-----------------------------------------------------------------------------
@@ -411,12 +422,16 @@ FEventGraphData::FEventGraphData( const FProfilerSessionRef& InProfilerSession, 
 
 	// Root sample contains FrameDurationMS
 	RootEvent->_InclusiveTimeMS = RootProfilerSample.DurationMS();
+	RootEvent->_MaxInclusiveTimeMS = RootEvent->_MinInclusiveTimeMS = RootEvent->_AvgInclusiveTimeMS = RootEvent->_InclusiveTimeMS;
 	RootEvent->_InclusiveTimePct = 100.0f;
+
+	RootEvent->_MinNumCallsPerFrame = RootEvent->_MaxNumCallsPerFrame = RootEvent->_AvgNumCallsPerFrame = RootEvent->_NumCallsPerFrame;
 
 	// Set root and thread event.
 	RootEvent->SetRootAndThreadForAllChildren();
 	// Fix all children. 
-	RootEvent->ExecuteOperationForAllChildren( FEventGraphSample::FFixChildrenTimes() );
+	const double MyNumFrames = 1.0;
+	RootEvent->FixChildrenTimesAndCalcAveragesForAllChildren( MyNumFrames );
 }
 
 void FEventGraphData::PopulateHierarchy_Recurrent
@@ -443,8 +458,7 @@ void FEventGraphData::PopulateHierarchy_Recurrent
 		FEventGraphSample* ChildEvent = new FEventGraphSample
 		(
 			ThreadName,	GroupName, ChildSample.StatID(), StatName, 
-			ChildSample.StartMS(), ChildSample.DurationMS(),
-			0.0f, 0.0f, 0.0f, 0.00f, ChildSample.CounterAsFloat(), 0.0f,
+			ChildSample.StartMS(), ChildSample.DurationMS(), ChildSample.CounterAsFloat(),
 			ParentEvent
 		);
 
@@ -455,11 +469,12 @@ void FEventGraphData::PopulateHierarchy_Recurrent
 	}
 }
 
-FEventGraphData::FEventGraphData( const FEventGraphData& Source )
+FEventGraphData::FEventGraphData( const FEventGraphData& Source ) 
+	: FrameStartIndex( Source.FrameStartIndex )
+	, FrameEndIndex( Source.FrameEndIndex )
 {
 	RootEvent = Source.GetRoot()->DuplicateWithHierarchyPtr();
 	RootEvent->SetRootAndThreadForAllChildren();
-	Advance( Source.FrameStartIndex, Source.FrameEndIndex );
 }
 
 FEventGraphDataRef FEventGraphData::DuplicateAsRef()
@@ -468,34 +483,43 @@ FEventGraphDataRef FEventGraphData::DuplicateAsRef()
 	return EventGraphRef;
 }
 
-void FEventGraphData::CombineAndAdd( const FEventGraphData& Other )
+void FEventGraphData::Combine( const FEventGraphData& Other )
 {
-	RootEvent->CombineAndAddPtr_Recurrent( Other.GetRoot() );
-	Description = FString::Printf( TEXT("CombineAndAdd: %i"), GetNumFrames() );
+	RootEvent->Combine_Recurrent( Other.GetRoot() );
+	Description = FString::Printf( TEXT("Combine: %i"), GetNumFrames() );
 }
 
-void FEventGraphData::CombineAndFindMax( const FEventGraphData& Other )
+void FEventGraphData::SetAsAverage()
 {
-	RootEvent->CombineAndFindMaxPtr_Recurrent( Other.GetRoot() );
-	Description = FString::Printf( TEXT("CombineAndFindMax: %i"), GetNumFrames() );
+	struct FCopyAverage
+	{
+		void operator()( FEventGraphSample* EventPtr, const double NumFrames )
+		{
+			EventPtr->CopyAverage( NumFrames );
+		}
+	};
+
+	const double NumFrames = (double)GetNumFrames();
+	RootEvent->ExecuteOperationForAllChildren( FCopyAverage(), NumFrames );
+	Description = FString::Printf( TEXT("Average: %i"), GetNumFrames() );
 }
 
-void FEventGraphData::Divide( const int32 InNumFrames )
+void FEventGraphData::SetAsMaximim()
 {
-	const double NumFrames = (double)InNumFrames;
-	RootEvent->ExecuteOperationForAllChildren( FEventGraphSample::FDivide(), NumFrames );
-	Description = FString::Printf( TEXT("Divide: %i"), GetNumFrames() );
+	RootEvent->SetMaximumTimesForAllChildren();
+	Description = FString::Printf( TEXT( "Maximum: %i" ), GetNumFrames() );
 }
 
-void FEventGraphData::Advance( const uint32 InFrameStartIndex, const uint32 InFrameEndIndex )
+void FEventGraphData::Finalize( const uint32 InFrameStartIndex, const uint32 InFrameEndIndex )
 {
+	FrameStartIndex = InFrameStartIndex;
+	FrameEndIndex = InFrameEndIndex;
+	const double NumFrames = (double)GetNumFrames();
+
 	// Set root and thread event.
 	RootEvent->SetRootAndThreadForAllChildren();
 	// Fix all children. 
-	RootEvent->ExecuteOperationForAllChildren( FEventGraphSample::FFixChildrenTimes() );
-
-	FrameStartIndex = InFrameStartIndex;
-	FrameEndIndex = InFrameEndIndex;
+	RootEvent->FixChildrenTimesAndCalcAveragesForAllChildren( NumFrames );
 }
 
 //}//namespace NEventGraphSample
@@ -507,6 +531,7 @@ FString EEventGraphTypes::ToName( const EEventGraphTypes::Type EventGraphType )
 		case Average: return LOCTEXT("EventGraphType_Name_Average", "Average").ToString();
 		case Maximum: return LOCTEXT("EventGraphType_Name_Maximum", "Maximum").ToString();
 		case OneFrame: return LOCTEXT("EventGraphType_Name_OneFrame", "OneFrame").ToString();
+		case Total: return LOCTEXT( "EventGraphType_Name_Total", "Total" ).ToString();
 
 		default: return LOCTEXT("InvalidOrMax", "InvalidOrMax").ToString();
 	}
@@ -515,10 +540,11 @@ FString EEventGraphTypes::ToName( const EEventGraphTypes::Type EventGraphType )
 FString EEventGraphTypes::ToDescription( const EEventGraphTypes::Type EventGraphType )
 {
 	switch( EventGraphType )
-{
+	{
 		case Average: return LOCTEXT("EventGraphType_Desc_Average", "Per-frame average event graph").ToString();
 		case Maximum: return LOCTEXT("EventGraphType_Desc_Maximum", "Highest \"per-frame\" event graph").ToString();
 		case OneFrame: return LOCTEXT("EventGraphType_Desc_OneFrame", "Event graph for one frame").ToString();
+		case Total: return LOCTEXT( "EventGraphType_Desc_Total", "Event graph for selected frames" ).ToString();
 
 		default: return LOCTEXT("InvalidOrMax", "InvalidOrMax").ToString();
 	}

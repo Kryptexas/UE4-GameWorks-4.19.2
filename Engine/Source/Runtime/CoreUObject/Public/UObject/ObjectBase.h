@@ -44,7 +44,7 @@ enum ELoadFlags
 	LOAD_None						= 0x00000000,	// No flags.
 	LOAD_SeekFree					= 0x00000001,	// Loads the package via the seek free loading path/ reader
 	LOAD_NoWarn						= 0x00000002,	// Don't display warning if load fails.
-//	LOAD_Unused						= 0x00000004,
+	LOAD_EditorOnly					= 0x00000004, // Load for editor-only purposes and by editor-only code
 //	LOAD_Unused						= 0x00000008,
 	LOAD_Verify						= 0x00000010,	// Only verify existance; don't actually load.
 	LOAD_AllowDll					= 0x00000020,	// Allow plain DLLs.

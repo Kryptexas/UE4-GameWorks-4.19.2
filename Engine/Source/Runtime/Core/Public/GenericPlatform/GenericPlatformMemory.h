@@ -224,6 +224,16 @@ struct CORE_API FGenericPlatformMemory
 	static uint32 GetPhysicalGBRam();
 
 	/**
+	 * Changes the protection on a region of committed pages in the virtual address space.
+	 *
+	 * @param Ptr Address to the starting page of the region of pages whose access protection attributes are to be changed.
+	 * @param Size The size of the region whose access protection attributes are to be changed, in bytes.
+	 * @param ProtectMode The OS dependent memory protection option.
+	 * @return True if the specified pages' protection mode was changed.
+	 */
+	static bool PageProtect( void* const Ptr, const SIZE_T Size, const uint32 ProtectMode );
+
+	/**
 	 * Allocates pages from the OS.
 	 *
 	 * @param Size Size to allocate, not necessarily aligned

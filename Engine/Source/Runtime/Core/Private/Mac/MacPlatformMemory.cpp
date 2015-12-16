@@ -8,6 +8,9 @@
 #include "MallocTBB.h"
 #include "MallocAnsi.h"
 #include "MallocBinned2.h"
+#if USE_MALLOC_STOMP
+	#include "MallocStomp.h"
+#endif // USE_MALLOC_STOMP
 
 #include <sys/param.h>
 #include <sys/mount.h>
@@ -47,6 +50,8 @@ FMalloc* FMacPlatformMemory::BaseAllocator()
 	{
 #if FORCE_ANSI_ALLOCATOR || IS_PROGRAM
 		return new FMallocAnsi();
+#elif USE_MALLOC_STOMP
+		return new FMallocStomp();
 #elif (WITH_EDITORONLY_DATA || IS_PROGRAM) && TBB_ALLOCATOR_ALLOWED
 		return new FMallocTBB();
 #else
@@ -124,6 +129,11 @@ const FPlatformMemoryConstants& FMacPlatformMemory::GetConstants()
 	}
 
 	return MemoryConstants;	
+}
+
+bool FMacPlatformMemory::PageProtect( void* const Ptr, const SIZE_T Size, const uint32 ProtectMode )
+{
+	return mprotect(Ptr, Size, static_cast<int32>(ProtectMode)) == 0;
 }
 
 void* FMacPlatformMemory::BinnedAllocFromOS( SIZE_T Size )

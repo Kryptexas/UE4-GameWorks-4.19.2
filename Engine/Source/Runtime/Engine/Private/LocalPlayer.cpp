@@ -27,7 +27,7 @@
 
 DEFINE_LOG_CATEGORY(LogPlayerManagement);
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !UE_BUILD_SHIPPING
 
 static TAutoConsoleVariable<int32> CVarViewportTest(
 	TEXT("r.ViewportTest"),
@@ -37,7 +37,7 @@ static TAutoConsoleVariable<int32> CVarViewportTest(
 	TEXT("1..7: Various Configuations"),
 	ECVF_RenderThreadSafe);
 
-#endif
+#endif // !UE_BUILD_SHIPPING
 
 DECLARE_CYCLE_STAT(TEXT("CalcSceneView"), STAT_CalcSceneView, STATGROUP_Engine);
 

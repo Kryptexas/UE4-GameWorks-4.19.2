@@ -4422,7 +4422,7 @@ bool FStreamingManagerTexture::HandleListStreamingTexturesReportCommand( const T
 
 #endif
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !UE_BUILD_SHIPPING
 bool FStreamingManagerTexture::HandleLightmapStreamingFactorCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	FString FactorString(FParse::Token(Cmd, 0));
@@ -4696,7 +4696,7 @@ bool FStreamingManagerTexture::HandleInvestigateTextureCommand( const TCHAR* Cmd
 	}
 	return true;
 }
-#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#endif // !UE_BUILD_SHIPPING
 /**
  * Allows the streaming manager to process exec commands.
  * @param InWorld	world contexxt
@@ -4730,7 +4730,7 @@ bool FStreamingManagerTexture::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputD
 		return HandleListStreamingTexturesReportCommand( Cmd, Ar );
 	}
 #endif
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !UE_BUILD_SHIPPING
 	if (FParse::Command(&Cmd,TEXT("LightmapStreamingFactor")))
 	{
 		return HandleLightmapStreamingFactorCommand( Cmd, Ar );
@@ -4783,7 +4783,7 @@ bool FStreamingManagerTexture::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputD
 	{
 		return HandleInvestigateTextureCommand( Cmd, Ar );
 	}
-#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#endif // !UE_BUILD_SHIPPING
 
 	return false;
 }
@@ -4791,7 +4791,7 @@ bool FStreamingManagerTexture::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputD
 void FStreamingManagerTexture::DumpTextureGroupStats( bool bDetailedStats )
 {
 	bTriggerDumpTextureGroupStats = false;
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !UE_BUILD_SHIPPING
 	struct FTextureGroupStats
 	{
 		FTextureGroupStats()
@@ -4987,7 +4987,7 @@ void FStreamingManagerTexture::DumpTextureGroupStats( bool bDetailedStats )
 	//@TODO: Calculate memory usage for non-pool textures properly!
 //	UE_LOG(LogContentStreaming, Log,  TEXT("%34s: NumTextures=%4d, Current=%7.1f KB"), TEXT("Non-streaming pool textures"), NumNonStreamingPoolTextures, NonStreamingPoolSize/1024.0f );
 //	UE_LOG(LogContentStreaming, Log,  TEXT("%34s: NumTextures=%4d, Current=%7.1f KB"), TEXT("Non-streaming non-pool textures"), NumNonStreamingTextures, NonStreamingSize/1024.0f );
-#endif
+#endif // !UE_BUILD_SHIPPING
 }
 
 /**
@@ -4999,7 +4999,7 @@ void FStreamingManagerTexture::DumpTextureGroupStats( bool bDetailedStats )
 void FStreamingManagerTexture::InvestigateTexture( const FString& InInvestigateTextureName )
 {
 	bTriggerInvestigateTexture = false;
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !UE_BUILD_SHIPPING
 	for ( int32 TextureIndex=0; TextureIndex < StreamingTextures.Num(); ++TextureIndex )
 	{
 		FStreamingTexture& StreamingTexture = StreamingTextures[TextureIndex];
@@ -5191,12 +5191,12 @@ void FStreamingManagerTexture::InvestigateTexture( const FString& InInvestigateT
 			}
 		}
 	}
-#endif
+#endif // !UE_BUILD_SHIPPING
 }
 
 void FStreamingManagerTexture::DumpTextureInstances( const UPrimitiveComponent* Primitive, FSpawnedPrimitiveData& PrimitiveData, UTexture2D* Texture2D )
 {
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !UE_BUILD_SHIPPING
 	const TCHAR* TypeString = (PrimitiveData.DynamicType == DPT_Level) ? TEXT("Dynamic (level)") : TEXT("Dynamic (spawned)");
 	for ( int32 InstanceIndex=0; InstanceIndex < PrimitiveData.TextureInstances.Num(); ++InstanceIndex )
 	{
@@ -5256,7 +5256,7 @@ void FStreamingManagerTexture::DumpTextureInstances( const UPrimitiveComponent* 
 				*Primitive->GetReadableName() );
 		}
 	}
-#endif
+#endif // !UE_BUILD_SHIPPING
 }
 
 

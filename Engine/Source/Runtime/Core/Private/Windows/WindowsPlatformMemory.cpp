@@ -4,6 +4,9 @@
 
 #include "MallocTBB.h"
 #include "MallocAnsi.h"
+#if USE_MALLOC_STOMP
+	#include "MallocStomp.h"
+#endif // USE_MALLOC_STOMP
 #include "GenericPlatformMemoryPoolStats.h"
 #include "MemoryMisc.h"
 
@@ -72,6 +75,9 @@ FMalloc* FWindowsPlatformMemory::BaseAllocator()
 
 #if FORCE_ANSI_ALLOCATOR
 	return new FMallocAnsi();
+#elif USE_MALLOC_STOMP
+	// Allocator that helps track down memory stomps.
+	return new FMallocStomp();
 #elif (WITH_EDITORONLY_DATA || IS_PROGRAM) && TBB_ALLOCATOR_ALLOWED
 	return new FMallocTBB();
 #else
@@ -164,6 +170,11 @@ const FPlatformMemoryConstants& FWindowsPlatformMemory::GetConstants()
 	return MemoryConstants;	
 }
 
+bool FWindowsPlatformMemory::PageProtect( void* const Ptr, const SIZE_T Size, const uint32 ProtectMode )
+{
+	DWORD flOldProtect;
+	return VirtualProtect(Ptr, Size, ProtectMode, &flOldProtect) != 0;
+}
 void* FWindowsPlatformMemory::BinnedAllocFromOS( SIZE_T Size )
 {
 	return VirtualAlloc( NULL, Size, MEM_COMMIT, PAGE_READWRITE );

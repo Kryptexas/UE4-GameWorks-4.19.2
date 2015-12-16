@@ -93,6 +93,9 @@ private:
 	/** Gets the instance of a given plugin */
 	TSharedPtr<FPlugin> FindPluginInstance(const FString& Name);
 
+	/** Returns true if the plugin is supported by the current target (program/game) */
+	bool IsPluginSupportedByCurrentTarget(TSharedRef<FPlugin> Plugin) const;
+
 private:
 	/** All of the plugins that we know about */
 	TArray< TSharedRef< FPlugin > > AllPlugins;

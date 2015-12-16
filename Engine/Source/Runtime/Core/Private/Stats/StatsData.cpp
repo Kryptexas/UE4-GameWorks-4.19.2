@@ -574,15 +574,8 @@ FStatsThreadState::FStatsThreadState(int32 InHistoryFrames)
 	, bFindMemoryExtensiveStats(false)
 	, CurrentGameFrame(1)
 	, CurrentRenderFrame(1)
-	, MaxFrameSeen(0)
-	, MinFrameSeen(-1)
-	, bWasLoaded(false)
 {
 }
-
-//FStatsThreadState::FStatsThreadState(FString const& Filename)
-//void FStatsThreadState::AddMessages(TArray<FStatMessage>& InMessages)
-//@see moved to StatsFile.cpp
 
 FStatsThreadState& FStatsThreadState::GetLocalState()
 {
@@ -592,14 +585,6 @@ FStatsThreadState& FStatsThreadState::GetLocalState()
 
 int64 FStatsThreadState::GetOldestValidFrame() const
 {
-	if (bWasLoaded)
-	{
-		if (MaxFrameSeen < 0 || MinFrameSeen < 0)
-		{
-			return -1;
-		}
-		return MinFrameSeen;
-	}
 	int64 Result = -1;
 	for (auto It = GoodFrames.CreateConstIterator(); It; ++It)
 	{
@@ -613,18 +598,6 @@ int64 FStatsThreadState::GetOldestValidFrame() const
 
 int64 FStatsThreadState::GetLatestValidFrame() const
 {
-	if (bWasLoaded)
-	{
-		if (MaxFrameSeen < 0 || MinFrameSeen < 0)
-		{
-			return -1;
-		}
-		if (MaxFrameSeen > MinFrameSeen)
-		{
-			return MaxFrameSeen - 1;
-		}
-		return MaxFrameSeen;
-	}
 	int64 Result = -1;
 	for (auto It = GoodFrames.CreateConstIterator(); It; ++It)
 	{
@@ -751,7 +724,6 @@ void FStatsThreadState::ToggleFindMemoryExtensiveStats()
 
 void FStatsThreadState::ProcessNonFrameStats(FStatMessagesArray& Data, TSet<FName>* NonFrameStatsFound)
 {
-	check(!bWasLoaded);
 	for (int32 Index = 0; Index < Data.Num() ; Index++)
 	{
 		FStatMessage& Item = Data[Index];
@@ -835,8 +807,6 @@ void FStatsThreadState::AddToHistoryAndEmpty(FStatPacketArray& NewData)
 	TArray<int64> Frames;
 	History.GenerateKeyArray(Frames);
 	Frames.Sort();
-
-	check(!bWasLoaded);
 
 	int64 LatestFinishedFrame = FMath::Min<int64>(CurrentGameFrame, CurrentRenderFrame) - 1;
 

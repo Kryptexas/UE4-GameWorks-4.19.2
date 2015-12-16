@@ -116,7 +116,6 @@ void FProfilerManager::PostConstructor()
 
 	ProfilerClient->OnProfilerFileTransfer().AddSP(this, &FProfilerManager::ProfilerClient_OnProfilerFileTransfer);
 
-	SessionManager->OnSelectedSessionChanged().AddSP( this, &FProfilerManager::SessionManager_OnSelectedSessionChanged );
 	SessionManager->OnInstanceSelectionChanged().AddSP( this, &FProfilerManager::SessionManager_OnInstanceSelectionChanged );
 
 	SetDataPreview( false );
@@ -425,11 +424,6 @@ void FProfilerManager::ProfilerClient_OnClientDisconnected( const FGuid& Session
 	SessionManager
 -----------------------------------------------------------------------------*/
 
-void FProfilerManager::SessionManager_OnSelectedSessionChanged( const ISessionInfoPtr& InActiveSession )
-{
-	//SessionManager_OnInstanceSelectionChanged(nullptr, false);
-}
-
 void FProfilerManager::SessionManager_OnInstanceSelectionChanged(const TSharedPtr<ISessionInstanceInfo>& InInstance, bool Selected)
 {
 	const ISessionInfoPtr& SelectedSession = SessionManager->GetSelectedSession();
@@ -473,16 +467,6 @@ void FProfilerManager::SessionManager_OnInstanceSelectionChanged(const TSharedPt
 }
 
 /*-----------------------------------------------------------------------------
-	Misc
------------------------------------------------------------------------------*/
-
-FCombinedGraphDataSourceRef FProfilerManager::CreateCombinedGraphDataSource( const uint32 StatID )
-{
-	FCombinedGraphDataSource* CombinedGraphDataSource = new FCombinedGraphDataSource( StatID, FTimeAccuracy::FPS060 );
-	return MakeShareable( CombinedGraphDataSource );
-}
-
-/*-----------------------------------------------------------------------------
 	Stat tracking
 -----------------------------------------------------------------------------*/
 
@@ -494,57 +478,27 @@ bool FProfilerManager::TrackStat( const uint32 StatID )
 	const bool bStatIsReady = ProfilerSession->GetAggregatedStat( StatID ) != nullptr;
 	if( StatID != 0 && bStatIsReady )
 	{
-		FTrackedStat* TrackedStat = TrackedStats.Find( StatID );
-
-		if( TrackedStat == nullptr )
+		FTrackedStatPtr TrackedStat = TrackedStats.FindRef( StatID );
+		if (!TrackedStat.IsValid())
 		{
 			// R = H, G = S, B = V
-			const FLinearColor& ColorAverage = GetColorForStatID( StatID );
-			const FLinearColor ColorAverageHSV = ColorAverage.LinearRGBToHSV();
+			const FLinearColor& GraphColor = GetColorForStatID( StatID );
+// 			const FLinearColor ColorAverageHSV = ColorAverage.LinearRGBToHSV();
+// 
+// 			FLinearColor ColorBackgroundHSV = ColorAverageHSV;
+// 			ColorBackgroundHSV.G = FMath::Max( 0.0f, ColorBackgroundHSV.G-0.25f );
+// 
+// 			FLinearColor ColorExtremesHSV = ColorAverageHSV;
+// 			ColorExtremesHSV.G = FMath::Min( 1.0f, ColorExtremesHSV.G+0.25f );
+// 			ColorExtremesHSV.B = FMath::Min( 1.0f, ColorExtremesHSV.B+0.25f );
+// 
+// 			const FLinearColor ColorBackground = ColorBackgroundHSV.HSVToLinearRGB();
+// 			const FLinearColor ColorExtremes = ColorExtremesHSV.HSVToLinearRGB();
 
-			FLinearColor ColorBackgroundHSV = ColorAverageHSV;
-			ColorBackgroundHSV.G = FMath::Max( 0.0f, ColorBackgroundHSV.G-0.25f );
-
-			FLinearColor ColorExtremesHSV = ColorAverageHSV;
-			ColorExtremesHSV.G = FMath::Min( 1.0f, ColorExtremesHSV.G+0.25f );
-			ColorExtremesHSV.B = FMath::Min( 1.0f, ColorExtremesHSV.B+0.25f );
-
-			const FLinearColor ColorBackground = ColorBackgroundHSV.HSVToLinearRGB();
-			const FLinearColor ColorExtremes = ColorExtremesHSV.HSVToLinearRGB();
-
-			TrackedStat = &TrackedStats.Add( StatID, FTrackedStat(CreateCombinedGraphDataSource( StatID ),ColorAverage,ColorExtremes,ColorBackground,StatID) );
+			TrackedStat = TrackedStats.Add( StatID, MakeShareable( new FTrackedStat( ProfilerSession->CreateGraphDataSource( StatID ), GraphColor, StatID ) ) );
 			bAdded = true;
 
-			// @TODO: Convert a reference parameter to copy parameter/sharedptr/ref/weak, to avoid problems when a reference is no longer valid.
-			TrackedStatChangedEvent.Broadcast( *TrackedStat, true );
-		}
-
-		if( TrackedStat != nullptr )
-		{
-			uint32 NumAddedInstances = 0;
-			bool bMetadataInitialized = false;
-
-			if (ProfilerSession.IsValid())
-			{
-
-				const bool bInstanceAdded = TrackStatForSessionInstance( StatID, ActiveInstanceID );
-				NumAddedInstances += bInstanceAdded ? 1 : 0;
-
-				// Initialize metadata for combine graph data source.
-				if( !bMetadataInitialized )
-				{
-					const bool bIsStatReady = ProfilerSession->GetMetaData()->IsStatInitialized( StatID );
-					if( bIsStatReady )
-					{
-						const FProfilerStatMetaDataRef MetaData = ProfilerSession->GetMetaData();
-						const FProfilerStat& Stat = MetaData->GetStatByID( StatID );
-						const FProfilerGroup& Group = Stat.OwningGroup();
-
-						TrackedStat->CombinedGraphDataSource->Initialize( Stat.Name().GetPlainNameString(), Group.ID(), Group.Name().GetPlainNameString(), Stat.Type(), ProfilerSession->GetCreationTime() );
-						bMetadataInitialized = true;
-					}
-				}
-			}
+			TrackedStatChangedEvent.Broadcast( TrackedStat, true );
 		}
 	}
 
@@ -555,14 +509,19 @@ bool FProfilerManager::UntrackStat( const uint32 StatID )
 {
 	bool bRemoved = false;
 
-	const FTrackedStat* TrackedStat = TrackedStats.Find( StatID );
-	if( TrackedStat )
+	// Game thread time is always tracked.
+	const uint32 GameThreadStatID = ProfilerSession->GetMetaData()->GetGameThreadStatID();
+	if (StatID != GameThreadStatID)
 	{
-		TrackedStatChangedEvent.Broadcast( *TrackedStat, false );
-		TrackedStats.Remove( StatID );
-		bRemoved = true;
-	}
+		FTrackedStatPtr TrackedStat = TrackedStats.FindRef( StatID );
+		if (TrackedStat.IsValid())
+		{
+			TrackedStatChangedEvent.Broadcast( TrackedStat, false );
+			TrackedStats.Remove( StatID );
+			bRemoved = true;
+		}
 
+	}
 	return bRemoved;
 }
 
@@ -580,9 +539,10 @@ void FProfilerManager::ClearStatsAndInstances()
 
 	for( auto It = TrackedStats.CreateConstIterator(); It; ++It )
 	{
-		const FTrackedStat& TrackedStat = It.Value();
-		UntrackStat( TrackedStat.StatID );
+		const FTrackedStatPtr& TrackedStat = It.Value();
+		TrackedStatChangedEvent.Broadcast( TrackedStat, false );
 	}
+	TrackedStats.Empty();
 
 	ProfilerClient->Untrack( ActiveInstanceID );
 	ActiveInstanceID.Invalidate();
@@ -592,60 +552,6 @@ const bool FProfilerManager::IsStatTracked( const uint32 StatID ) const
 {
 	return TrackedStats.Contains( StatID );
 }
-
-bool FProfilerManager::TrackStatForSessionInstance( const uint32 StatID, const FGuid& SessionInstanceID )
-{
-	bool bAdded = false;
-
-	const FTrackedStat* TrackedStat = TrackedStats.Find( StatID );
-	if( ProfilerSession.IsValid() && TrackedStat )
-	{
-		const bool bIsStatReady = ProfilerSession->GetMetaData()->IsStatInitialized( StatID );
-		const bool bIsExist = TrackedStat->CombinedGraphDataSource->IsProfilerSessionRegistered( SessionInstanceID );
-
-		if( bIsStatReady && !bIsExist )
-		{
-			// Create graph data provider for tracked stat.
-			FGraphDataSourceRefConst	GraphDataSource = ProfilerSession->CreateGraphDataSource( StatID );
-			TrackedStat->CombinedGraphDataSource->RegisterWithProfilerSession( SessionInstanceID, GraphDataSource );
-			bAdded = true;
-		}
-	}
-
-	return bAdded;
-}
-
-bool FProfilerManager::UntrackStatForSessionInstance( const uint32 StatID, const FGuid& SessionInstanceID )
-{
-	bool bRemoved = false;
-
-	const FTrackedStat* TrackedStat = TrackedStats.Find( StatID );
-
-	if( TrackedStat )
-	{
-		const bool bIsExist = TrackedStat->CombinedGraphDataSource->IsProfilerSessionRegistered( SessionInstanceID );
-		if( bIsExist )
-		{
-			TrackedStat->CombinedGraphDataSource->UnregisterWithProfilerSession( SessionInstanceID );
-			bRemoved = true;
-		}
-	}
-
-	return bRemoved;
-}
-
-const bool FProfilerManager::IsStatTrackedForSessionInstance( const uint32 StatID, const FGuid& SessionInstanceID ) const
-{
-	bool bResult = false;
-	const FTrackedStat* TrackedStat = TrackedStats.Find( StatID );
-	if( TrackedStat )
-	{
-		bResult = (*TrackedStat).CombinedGraphDataSource->IsProfilerSessionRegistered( SessionInstanceID );
-	}
-
-	return bResult;
-}
-
 
 // @TODO: Move to profiler settings
 const FLinearColor& FProfilerManager::GetColorForStatID( const uint32 StatID ) const

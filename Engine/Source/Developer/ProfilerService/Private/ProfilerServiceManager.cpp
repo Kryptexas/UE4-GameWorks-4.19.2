@@ -327,6 +327,7 @@ void FProfilerServiceManager::HandleServiceSubscribeMessage( const FProfilerServ
 
 		// Send authorize.
 		MessageEndpoint->Send( new FProfilerServiceAuthorize( SessionId, InstanceId ), SenderAddress );
+		// Eventually send the metadata if needed.
 
 		// Initiate the ping callback
 		if (ClientData.Num() == 1)

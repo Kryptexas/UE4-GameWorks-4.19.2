@@ -518,7 +518,7 @@ bool FSeparatingAxisPointCheck::FindSeparatingAxisGeneric()
 
 
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !UE_BUILD_SHIPPING
 
 DECLARE_LOG_CATEGORY_EXTERN(LogCollisionCommands, Log, All);
 DEFINE_LOG_CATEGORY(LogCollisionCommands);
@@ -952,7 +952,7 @@ namespace CollisionResponseConsoleCommands
 
 }
 
-#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#endif //!UE_BUILD_SHIPPING
 
 
 

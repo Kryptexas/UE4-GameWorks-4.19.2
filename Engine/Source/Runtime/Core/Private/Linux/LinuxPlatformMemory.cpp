@@ -115,6 +115,11 @@ class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 	return Allocator;
 }
 
+bool FLinuxPlatformMemory::PageProtect( void* const Ptr, const SIZE_T Size, const uint32 ProtectMode )
+{
+	return mprotect(Ptr, Size, static_cast<int32>(ProtectMode)) == 0;
+}
+
 void* FLinuxPlatformMemory::BinnedAllocFromOS( SIZE_T Size )
 {	
 	return valloc(Size);	// equivalent to memalign(sysconf(_SC_PAGESIZE),size).

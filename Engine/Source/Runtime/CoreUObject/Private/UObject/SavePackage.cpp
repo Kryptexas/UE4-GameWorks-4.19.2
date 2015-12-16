@@ -706,10 +706,9 @@ void FArchiveSaveTagExports::ProcessTaggedObjects()
 			{
 				Obj->GetClass()->SerializeDefaultObject(Obj, *this);
 			}
-			else
-			{
-				Obj->Serialize(*this);
-			}
+			// In the CDO case the above would serialize most of the references, including transient properties
+			// but we still want to serialize the object using the normal path to collect all custom versions it might be using.
+			Obj->Serialize(*this);
 		}
 
 		CurrentlyTaggedObjects.Empty(ArrayPreSize);

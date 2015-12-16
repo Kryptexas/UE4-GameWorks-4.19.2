@@ -68,25 +68,6 @@ struct EProfilerSampleTypes
 	static FString ToDescription( EProfilerSampleTypes::Type ProfilerSampleType );
 };
 
-/** Enumerates types where profiler samples can be stored. */
-namespace EStorageType
-{
-	enum Type
-	{
-		/** Stored in a local memory. */
-		LocalMemory,
-
-		/** Stored in a file. */
-		BackedUpByFile,
-
-		/** Stored in a global cache. */
-		GlobalCache,
-		
-		/** Invalid enum type, may be used as a number of enumerations. */
-		InvalidOrMax,
-	};
-}
-
 /*-----------------------------------------------------------------------------
 	Declarations
 -----------------------------------------------------------------------------*/

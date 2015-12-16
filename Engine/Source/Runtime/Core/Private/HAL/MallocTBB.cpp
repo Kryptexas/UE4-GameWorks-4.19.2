@@ -6,6 +6,7 @@
 
 #include "CorePrivatePCH.h"
 #include "MallocTBB.h"
+#include "MallocVerify.h"
 
 // Only use for supported platforms
 #if PLATFORM_SUPPORTS_TBB && TBB_ALLOCATOR_ALLOWED
@@ -54,6 +55,9 @@ void* FMallocTBB::Malloc( SIZE_T Size, uint32 Alignment )
 		FMemory::Memset(NewPtr, DEBUG_FILL_NEW, Size); 
 	}
 #endif
+#if MALLOC_VERIFY
+	FMallocVerify::Get().Malloc(NewPtr);
+#endif
 	MEM_TIME(MemTime += FPlatformTime::Seconds());
 	return NewPtr;
 }
@@ -94,6 +98,9 @@ void* FMallocTBB::Realloc( void* Ptr, SIZE_T NewSize, uint32 Alignment )
 	{
 		OutOfMemory(NewSize, Alignment);
 	}
+#if MALLOC_VERIFY
+	FMallocVerify::Get().Realloc(Ptr, NewPtr);
+#endif
 	MEM_TIME(MemTime += FPlatformTime::Seconds())
 	return NewPtr;
 }
@@ -105,6 +112,9 @@ void FMallocTBB::Free( void* Ptr )
 		return;
 	}
 	MEM_TIME(MemTime -= FPlatformTime::Seconds())
+#if MALLOC_VERIFY
+	FMallocVerify::Get().Free(Ptr);
+#endif
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	FMemory::Memset(Ptr, DEBUG_FILL_FREED, scalable_msize(Ptr)); 
 #endif

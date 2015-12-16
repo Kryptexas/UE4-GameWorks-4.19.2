@@ -1838,8 +1838,8 @@ struct FStat_##StatName\
 #define DECLARE_STATS_GROUP_MAYBE_COMPILED_OUT(GroupDesc, GroupId, GroupCat, CompileIn) \
 	DECLARE_STAT_GROUP(GroupDesc, GroupId, GroupCat, false, CompileIn);
 
-#ifdef UE_BUILD_DEBUG
-	#define SCOPE_CYCLE_COUNTER_GUARD {const char* ReadTheText = "SCOPE_CYCLE_COUNTER can't be used in the global scope.";}
+#if UE_BUILD_DEBUG
+	#define SCOPE_CYCLE_COUNTER_GUARD { const char* ReadTheText = "SCOPE_CYCLE_COUNTER can't be used in the global scope."; ReadTheText = ReadTheText; }
 #else
 	#define SCOPE_CYCLE_COUNTER_GUARD
 #endif // UE_BUILD_DEBUG

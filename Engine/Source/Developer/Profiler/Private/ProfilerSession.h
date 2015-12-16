@@ -1064,20 +1064,9 @@ public:
 		return AggregatedStats.Find( StatID );
 	}
 
-	const FEventGraphDataRef& GetEventGraphDataMaximum() const
-	{
-		return EventGraphDataMaximum;
-	}
-
-	const FEventGraphDataRef GetEventGraphDataAverage() const
-	{
-		const uint32 NumFramesLocal = EventGraphDataTotal->GetNumFrames();
-		FEventGraphDataRef EventGraphDataAverage = EventGraphDataTotal->DuplicateAsRef();
-		EventGraphDataAverage->Divide( (double)NumFramesLocal );
-		EventGraphDataAverage->Advance( 0, NumFramesLocal );
-
-		return EventGraphDataAverage;
-	}
+	const FEventGraphDataRef GetEventGraphDataTotal() const;
+	const FEventGraphDataRef GetEventGraphDataMaximum() const;
+	const FEventGraphDataRef GetEventGraphDataAverage() const;
 
 	/**
 	 * @return number of bytes allocated by this profiler session.
@@ -1145,9 +1134,9 @@ protected:
 	/** Completion sync. */
 	void CompletionSyncAggregatedEventGraphData();
 
-	void EventGraphCombineAndMax( const FEventGraphData* Current, const uint32 NumFrames );
+	void EventGraphCombine( const FEventGraphData* Current, const uint32 InNumFrames );
 
-	void EventGraphCombineAndAdd( const FEventGraphData* Current, const uint32 NumFrames );
+	void UpdateAllEventGraphs( const uint32 InNumFrames );
 
 	/** Called when the capture file has been fully loaded. */
 	void LoadComplete();
@@ -1195,13 +1184,14 @@ protected:
 	/** The stat metadata which holds all collected stats descriptions. */
 	FProfilerStatMetaDataRef StatMetaData;
 
-	// TODO: Make this more universal ? FEventGraphDataRef<AggregateFunc,FinalizerFunc,bRequiredCopy>
+	/** Aggregated event graph data for all collected frames, used for generating average values. Also contains min and max. */
+	FEventGraphDataPtr EventGraphDataTotal;
 
-	/** Aggregated event graph data for all collected frames, used for generating average values. */
-	FEventGraphDataRef EventGraphDataTotal;
+	/** Highest "per-frame" event graph. */
+	FEventGraphDataPtr EventGraphDataMaximum;
 
-	/** Aggregated event graph data for all collected frames, contains only maximum inclusive times. */
-	FEventGraphDataRef EventGraphDataMaximum;
+	/** Per-frame average event graph. */
+	FEventGraphDataPtr EventGraphDataAverage;
 
 	/** Temporary event graph data for the specified frame. Recreated each frame, used by the task graph tasks only. */
 	const FEventGraphData* EventGraphDataCurrent;
@@ -1260,7 +1250,7 @@ class FRawProfilerSession : public FProfilerSession
 	FProfilerStream ProfilerStream;
 
 	/** Stats thread state, mostly used to manage the stats metadata. */
-	FStatsThreadState StatsThreadStats;
+	FStatsLoadedState StatsThreadStats;
 	FStatsReadStream Stream;
 
 	/** Index of the last processed data for the mini-view. */

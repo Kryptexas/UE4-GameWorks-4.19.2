@@ -884,7 +884,12 @@ namespace UnrealBuildTool
 		/// Additional plugin filenames which are foreign to this target
 		/// </summary>
 		[NonSerialized]
-		public List<FileReference> ForeignPlugins;
+		public List<PluginInfo> UnrealHeaderToolPlugins;
+
+		/// <summary>
+		/// Additional plugin filenames to include when building UnrealHeaderTool for the current target
+		/// </summary>
+		public List<FileReference> ForeignPlugins = new List<FileReference>();
 
 		/// <summary>
 		/// All application binaries; may include binaries not built by this target.
@@ -3204,6 +3209,7 @@ namespace UnrealBuildTool
 
 			// Build a list of enabled plugins
 			EnabledPlugins = new List<PluginInfo>();
+			UnrealHeaderToolPlugins = new List<PluginInfo>();
 
 			// If we're compiling against the engine, add the plugins enabled for this target
 			if (UEBuildConfiguration.bCompileAgainstEngine)
@@ -3213,7 +3219,11 @@ namespace UnrealBuildTool
 				{
 					if (UProjectInfo.IsPluginEnabledForProject(ValidPlugin, Project, Platform))
 					{
-						EnabledPlugins.Add(ValidPlugin);
+						if (ValidPlugin.Descriptor.bCanBeUsedWithUnrealHeaderTool)
+						{
+							UnrealHeaderToolPlugins.Add(ValidPlugin);							
+						}
+						EnabledPlugins.Add(ValidPlugin);						
 					}
 				}
 			}

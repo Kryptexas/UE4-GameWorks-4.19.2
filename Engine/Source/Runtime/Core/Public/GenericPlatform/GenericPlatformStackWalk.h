@@ -79,6 +79,11 @@ struct CORE_API FGenericPlatformStackWalk
 	typedef FGenericPlatformStackWalk Base;
 
 	/**
+	* Initializes options related to stack walking from ini, i.e. how detailed the stack walking should be, performance settings etc.
+	*/
+	static void Init();
+
+	/**
 	 * Initializes stack traversal and symbol. Must be called before any other stack/symbol functions. Safe to reenter.
 	 */
 	static bool InitStackWalking()
@@ -182,4 +187,10 @@ struct CORE_API FGenericPlatformStackWalk
 	{
 		return 0;
 	}
+
+protected:
+
+	/** Returns true if non-monolithic builds should produce full callstacks in the log (and load all debug symbols) */
+	static bool WantsDetailedCallstacksInNonMonolithicBuilds();
+
 };

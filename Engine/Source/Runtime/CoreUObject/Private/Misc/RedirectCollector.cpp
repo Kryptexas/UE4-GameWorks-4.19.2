@@ -64,6 +64,9 @@ void FRedirectCollector::OnStringAssetReferenceLoaded(const FString& InString)
 			{
 				ContainingPackageAndProperty.Property = FString::Printf(TEXT("%s:%s"), *ThreadContext.SerializedObject->GetPathName(), *Linker->GetSerializedProperty()->GetName());
 			}
+#if WITH_EDITORONLY_DATA
+			ContainingPackageAndProperty.bReferencedByEditorOnlyProperty = Linker->IsEditorOnlyPropertyOnTheStack();
+#endif
 		}
 	}
 	StringAssetReferences.AddUnique(InString, ContainingPackageAndProperty);
@@ -112,7 +115,7 @@ void FRedirectCollector::ResolveStringAssetReference(FString FilterPackage)
 
 			StringAssetRefFilenameStack.Push(RefFilenameAndProperty.Package);
 
-			UObject *Loaded = LoadObject<UObject>(NULL, *ToLoad, NULL, LOAD_None, NULL);
+			UObject *Loaded = LoadObject<UObject>(NULL, *ToLoad, NULL, RefFilenameAndProperty.bReferencedByEditorOnlyProperty ? LOAD_EditorOnly : LOAD_None, NULL);
 			StringAssetRefFilenameStack.Pop();
 
 			UObjectRedirector* Redirector = dynamic_cast<UObjectRedirector*>(Loaded);

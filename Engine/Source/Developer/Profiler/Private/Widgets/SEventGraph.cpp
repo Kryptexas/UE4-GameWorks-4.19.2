@@ -58,7 +58,7 @@ namespace EventGraphColumns
 	// @TODO: Needs refactoring
 
 	/** Contains basic information about columns used in the event graph widget. Names should be localized. */
-	static const FEventGraphColumn Collection[ EEventPropertyIndex::None+1 ] =
+	static const FEventGraphColumn Collection[ 7 ] =
 	{
 		// Generated from a XLSX file.
 		FEventGraphColumn
@@ -96,39 +96,6 @@ namespace EventGraphColumns
 		
 		FEventGraphColumn
 		(
-			EEventPropertyIndex::MinInclusiveTimeMS,
-			TEXT("min"),
-			LOCTEXT("MinInclusiveTimeMSTitle", "Min Inc Time (MS)"),
-			LOCTEXT("MinInclusiveTimeMSDesc", "Minimum inclusive time of all instances for this event, in milliseconds"),
-			true,false,true,true,false,
-			HAlign_Right,
-			0.0f
-		),
-		
-		FEventGraphColumn
-		(
-			EEventPropertyIndex::MaxInclusiveTimeMS,
-			TEXT("max"),
-			LOCTEXT("MaxInclusiveTimeMSTitle", "Max Inc Time (MS)"),
-			LOCTEXT("MaxInclusiveTimeMSDesc", "Maximum inclusive time of all instances for this event, in milliseconds"),
-			true,false,true,true,false,
-			HAlign_Right,
-			0.0f
-		),
-		
-		FEventGraphColumn
-		(
-			EEventPropertyIndex::AvgInclusiveTimeMS,
-			TEXT("avg"),
-			LOCTEXT("AverageInclusiveTimeMSTitle", "Avg Inc Time (MS)"),
-			LOCTEXT("AverageInclusiveTimeMSDesc", "Average inclusive time of all instances for this event, in milliseconds"),
-			true,false,true,true,false,
-			HAlign_Right,
-			0.0f
-		),
-		
-		FEventGraphColumn
-		(
 			EEventPropertyIndex::ExclusiveTimeMS,
 			TEXT("exc"),
 			LOCTEXT("ExclusiveTimeMSTitle", "Exc Time (MS)"),
@@ -151,17 +118,6 @@ namespace EventGraphColumns
 		
 		FEventGraphColumn
 		(
-			EEventPropertyIndex::AvgInclusiveTimePerCallMS,
-			TEXT("avgper"),
-			LOCTEXT("AverageInclusiveTimePerCallMSTitle", "Avg Inc Time per Call (MS)"),
-			LOCTEXT("AverageInclusiveTimePerCallMSDesc", "Average inclusive time per call of all instances for this event, in milliseconds"),
-			true,false,true,false,false,
-			HAlign_Right,
-			0.0f
-		),
-		
-		FEventGraphColumn
-		(
 			EEventPropertyIndex::NumCallsPerFrame,
 			TEXT("calls"),
 			LOCTEXT("CallsPerFrameTitle", "Calls"),
@@ -169,111 +125,6 @@ namespace EventGraphColumns
 			false,true,true,true,false,
 			HAlign_Right,
 			64.0f
-		),
-		
-		FEventGraphColumn
-		(
-			EEventPropertyIndex::AvgNumCallsPerFrame,
-			TEXT("avgcalls"),
-			LOCTEXT("AverageCallsPerFrameTitle", "Avg Calls"),
-			LOCTEXT("AverageCallsPerFrameDesc", "Average number of times this event was called"),
-			true,true,true,true,false,
-			HAlign_Right,
-			64.0f
-		),
-		
-		// TODO: Show only in the tooltip
-		FEventGraphColumn
-		(
-			EEventPropertyIndex::ThreadName,
-			TEXT("th"),
-			LOCTEXT("ThreadNameTitle", "Thread Name"),
-			LOCTEXT("ThreadNameDesc", "Name of the thread that this event was captured on"),
-			true,false,true,false,false,
-			HAlign_Left,
-			0.0f
-		),
-		
-		// TODO: Show only in the tooltip
-		FEventGraphColumn
-		(
-			EEventPropertyIndex::ThreadDurationMS,
-			TEXT("td"),
-			LOCTEXT("ThreadDurationTitle", "Thread Duration (MS)"),
-			LOCTEXT("ThreadDurationDesc", "Duration of the thread that this event was captured on, in milliseconds"),
-			true,false,true,false,false,
-			HAlign_Right,
-			0.0f
-		),
-
-		// TODO: Show only in the tooltip
-		FEventGraphColumn
-		(
-			EEventPropertyIndex::FrameDurationMS,
-			TEXT("fd"),
-			LOCTEXT("FrameDurationMSTitle", "Frame Duration (MS)"),
-			LOCTEXT("FrameDurationMSDesc", "Duration of the frame that this event was captured on, in milliseconds"),
-			true,false,true,false,false,
-			HAlign_Right,
-			0.0f
-		),
-		
-		// TODO: Show only in the tooltip
-		FEventGraphColumn
-		(
-			EEventPropertyIndex::ThreadPct,
-			TEXT("t%"),
-			LOCTEXT("ThreadPercentageTitle", "% of Thread"),
-			LOCTEXT("ThreadPercentageDesc", "Percent of inclusive time spent by this event in the particular thread"),
-			true,true,true,false,false,
-			HAlign_Right,
-			64.0f
-		),
-		
-		// TODO: Show only in the tooltip
-		FEventGraphColumn
-		(
-			EEventPropertyIndex::FramePct,
-			TEXT("f%"),
-			LOCTEXT("FramePercentageTitle", "% of Frame"),
-			LOCTEXT("FramePercentageDesc", "Percent of inclusive time spent by this event in the particular frame"),
-			true,true,true,false,false,
-			HAlign_Right,
-			64.0f
-		),
-		
-		// TODO: Show only in the tooltip
-		FEventGraphColumn
-		(
-			EEventPropertyIndex::ThreadToFramePct,
-			TEXT("t2f%"),
-			LOCTEXT("ThreadToFramePercentageTitle", "Thread to Frame (%)"),
-			LOCTEXT("ThreadToFramePercentageDesc", "Percent of time spent in the thread in relation to the entire frame"),
-			true,false,true,false,false,
-			HAlign_Right,
-			64.0f
-		),
-		
-		FEventGraphColumn
-		(
-			EEventPropertyIndex::StartTimeMS,
-			TEXT("start"),
-			LOCTEXT("StartTimeMSTitle", "Start Time (MS)"),
-			LOCTEXT("StartTimeMSDesc", "Start time of this event, in milliseconds"),
-			true,false,true,false,false,
-			HAlign_Right,
-			0.0f
-		),
-		
-		FEventGraphColumn
-		(
-			EEventPropertyIndex::GroupName,
-			TEXT("grp"),
-			LOCTEXT("GroupNameTitle", "Group Name"),
-			LOCTEXT("GroupNameDesc", "Name of the stat group this event belongs to"),
-			true,false,true,false,false,
-			HAlign_Left,
-			0.0f
 		),
 
 		// Fake column used as a default column for NAME_None
@@ -296,22 +147,9 @@ namespace EventGraphColumns
 		.Add(TEXT("StatName"),&Collection[EEventPropertyIndex::StatName])
 		.Add(TEXT("InclusiveTimeMS"),&Collection[EEventPropertyIndex::InclusiveTimeMS])
 		.Add(TEXT("InclusiveTimePct"),&Collection[EEventPropertyIndex::InclusiveTimePct])
-		.Add(TEXT("MinInclusiveTimeMS"),&Collection[EEventPropertyIndex::MinInclusiveTimeMS])
-		.Add(TEXT("MaxInclusiveTimeMS"),&Collection[EEventPropertyIndex::MaxInclusiveTimeMS])
-		.Add(TEXT("AvgInclusiveTimeMS"),&Collection[EEventPropertyIndex::AvgInclusiveTimeMS])
 		.Add(TEXT("ExclusiveTimeMS"),&Collection[EEventPropertyIndex::ExclusiveTimeMS])
 		.Add(TEXT("ExclusiveTimePct"),&Collection[EEventPropertyIndex::ExclusiveTimePct])
-		.Add(TEXT("AvgInclusiveTimePerCallMS"),&Collection[EEventPropertyIndex::AvgInclusiveTimePerCallMS])
 		.Add(TEXT("NumCallsPerFrame"),&Collection[EEventPropertyIndex::NumCallsPerFrame])
-		.Add(TEXT("AvgNumCallsPerFrame"),&Collection[EEventPropertyIndex::AvgNumCallsPerFrame])
-		.Add(TEXT("ThreadName"),&Collection[EEventPropertyIndex::ThreadName])
-		.Add(TEXT("ThreadDurationMS"),&Collection[EEventPropertyIndex::ThreadDurationMS])
-		.Add(TEXT("FrameDurationMS"),&Collection[EEventPropertyIndex::FrameDurationMS])
-		.Add(TEXT("ThreadPct"),&Collection[EEventPropertyIndex::ThreadPct])
-		.Add(TEXT("FramePct"),&Collection[EEventPropertyIndex::FramePct])
-		.Add(TEXT("ThreadToFramePct"),&Collection[EEventPropertyIndex::ThreadToFramePct])
-		.Add(TEXT("StartTimeMS"),&Collection[EEventPropertyIndex::StartTimeMS])
-		.Add(TEXT("GroupName"),&Collection[EEventPropertyIndex::GroupName])
 		.Add(NAME_None,&Collection[EEventPropertyIndex::None])
 		;
 }
@@ -2505,6 +2343,7 @@ void SEventGraph::CreateEvents()
 		HierarchicalToFlatCoalesced.Add( EventPtr->_StatName, EventPtr );
 	}
 
+	// Should ignore recursion!
 	for( auto It = FlatIncCoalescedEvents.CreateConstIterator(); It; ++It )
 	{
 		const TArray<FEventGraphSamplePtr>& InclusiveCoalescedEvents = It.Value();
@@ -2512,7 +2351,7 @@ void SEventGraph::CreateEvents()
 		FEventGraphSamplePtr CoalescedEvent = InclusiveCoalescedEvents[0];
 		for( int32 EventIndex = 1; EventIndex < InclusiveCoalescedEvents.Num(); EventIndex++ )
 		{
-			*CoalescedEvent += *InclusiveCoalescedEvents[EventIndex];
+			CoalescedEvent->Combine( InclusiveCoalescedEvents[EventIndex] );
 		}
 
 		Events_FlatCoalesced.Add( CoalescedEvent );

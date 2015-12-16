@@ -14,6 +14,22 @@ FProgramCounterSymbolInfo::FProgramCounterSymbolInfo() :
 	FCStringAnsi::Strncpy( Filename, "", MAX_NAME_LENGHT );
 }
 
+/** Settings for stack walking */
+static bool GWantsDetailedCallstacksInNonMonolithicBuilds = true;
+
+void FGenericPlatformStackWalk::Init()
+{
+	// This needs to be called once configs are initialized
+	check(GConfig);
+
+	GConfig->GetBool(TEXT("Core.System"), TEXT("DetailedCallstacksInNonMonolithicBuilds"), GWantsDetailedCallstacksInNonMonolithicBuilds, GEngineIni);
+}
+
+bool FGenericPlatformStackWalk::WantsDetailedCallstacksInNonMonolithicBuilds()
+{
+	return GWantsDetailedCallstacksInNonMonolithicBuilds;
+}
+
 bool FGenericPlatformStackWalk::ProgramCounterToHumanReadableString( int32 CurrentCallDepth, uint64 ProgramCounter, ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, FGenericCrashContext* Context )
 {
 	if (HumanReadableString && HumanReadableStringSize > 0)

@@ -14,11 +14,18 @@
 	"CanContainContent" : false,
 	"IsBetaVersion" : false,
 	"Installed" : false,
+	"CanBeUsedWithUnrealHeaderTool" : true,
+	
 	"Modules" :
 	[
 		{
+			"Name" : "ScriptGeneratorPlugin",
+			"Type" : "Program",
+			"LoadingPhase" : "PostConfigInit"
+		},
+		{
 			"Name" : "ScriptPlugin",
-			"Type" : "Runtime",
+			"Type" : "RuntimeNoProgram",
 			"LoadingPhase" : "PreDefault",
 			"BlacklistPlatforms" :
 			[

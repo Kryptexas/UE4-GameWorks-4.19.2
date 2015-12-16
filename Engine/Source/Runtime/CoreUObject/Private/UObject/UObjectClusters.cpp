@@ -344,13 +344,14 @@ public:
 /**
  * Specialized FReferenceCollector that uses FClusterReferenceProcessor to construct the cluster
  */
-class FClusterCollector : public FReferenceCollector
+template <class TProcessor>
+class TClusterCollector : public FReferenceCollector
 {
-	FClusterReferenceProcessor& Processor;
+	TProcessor& Processor;
 	TArray<UObject*>& ObjectArray;
 
 public:
-	FClusterCollector(FClusterReferenceProcessor& InProcessor, TArray<UObject*>& InObjectArray)
+	TClusterCollector(TProcessor& InProcessor, TArray<UObject*>& InObjectArray)
 		: Processor(InProcessor)
 		, ObjectArray(InObjectArray)
 	{
@@ -391,7 +392,7 @@ void UObjectBaseUtility::CreateCluster()
 
 	// Collect all objects referenced by cluster root and by all objects it's referencing
 	FClusterReferenceProcessor Processor(InternalIndex, *Cluster);
-	TFastReferenceCollector<FClusterReferenceProcessor, FClusterCollector, FClusterArrayPool> ReferenceCollector(Processor, FClusterArrayPool::Get());
+	TFastReferenceCollector<FClusterReferenceProcessor, TClusterCollector<FClusterReferenceProcessor>, FClusterArrayPool> ReferenceCollector(Processor, FClusterArrayPool::Get());
 	TArray<UObject*> ObjectsToProcess;
 	ObjectsToProcess.Add(static_cast<UObject*>(this));
 	ReferenceCollector.CollectReferences(ObjectsToProcess, true);
@@ -409,4 +410,102 @@ void UObjectBaseUtility::CreateCluster()
 	{
 		delete Cluster;
 	}
+}
+
+
+/**
+* Handles UObject references found by TFastReferenceCollector
+*/
+class FClusterVerifyReferenceProcessor
+{	
+	const UObject* const ClusterRootObject;
+	const int32 ClusterRootIndex;
+	volatile bool bIsRunningMultithreaded;
+	bool bFailed;
+	TSet<UObject*> ProcessedObjects;
+
+public:
+
+	FClusterVerifyReferenceProcessor(UObject* InClusterRootObject)		
+		: ClusterRootObject(InClusterRootObject)
+		, ClusterRootIndex(GUObjectArray.ObjectToIndex(InClusterRootObject))
+		, bIsRunningMultithreaded(false)
+		, bFailed(false)
+	{
+	}
+
+	bool NoExternalReferencesFound() const
+	{
+		return !bFailed;
+	}
+
+	FORCEINLINE int32 GetMinDesiredObjectsPerSubTask() const
+	{
+		// We're not running the processor in parallel when creating clusters
+		return 0;
+	}
+
+	FORCEINLINE volatile bool IsRunningMultithreaded() const
+	{
+		// This should always be false
+		return bIsRunningMultithreaded;
+	}
+
+	FORCEINLINE void SetIsRunningMultithreaded(bool bIsParallel)
+	{
+		check(!bIsParallel);
+		bIsRunningMultithreaded = bIsParallel;
+	}
+
+	void UpdateDetailedStats(UObject* CurrentObject, uint32 DeltaCycles)
+	{
+	}
+
+	void LogDetailedStatsSummary()
+	{
+	}
+
+	/**
+	* Handles UObject reference from the token stream. Performance is critical here so we're FORCEINLINING this function.
+	*
+	* @param ObjectsToSerialize An array of remaining objects to serialize (Obj must be added to it if Obj can be added to cluster)
+	* @param ReferencingObject Object referencing the object to process.
+	* @param TokenIndex Index to the token stream where the reference was found.
+	* @param bAllowReferenceElimination True if reference elimination is allowed (ignored when constructing clusters).
+	*/
+	FORCEINLINE void HandleTokenStreamObjectReference(TArray<UObject*>& ObjectsToSerialize, UObject* ReferencingObject, UObject*& Object, const int32 TokenIndex, bool bAllowReferenceElimination)
+	{
+		if (Object && !ProcessedObjects.Contains(Object))
+		{
+			ProcessedObjects.Add(Object);
+			FUObjectItem* ObjectItem = GUObjectArray.ObjectToObjectItem(Object);
+			if (ObjectItem->GetOwnerIndex() == 0)
+			{
+				if (!ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot|EInternalObjectFlags::RootSet) && !GUObjectArray.IsDisregardForGC(Object))
+				{
+					UE_LOG(LogObj, Warning, TEXT("Object %s from cluster %s is referencing %s which is not part of root set or cluster."),
+						*ReferencingObject->GetFullName(),
+						*ClusterRootObject->GetFullName(),
+						*Object->GetFullName());
+					bFailed = true;
+				}
+			}
+			else if (ObjectItem->GetOwnerIndex() == ClusterRootIndex)
+			{
+				// If this object belongs to the current cluster, keep processing its references. Otherwise ignore it as it will be processed by its cluster
+				ObjectsToSerialize.Add(Object);
+			}
+		}
+	}
+};
+
+bool VerifyClusterAssumptions(UObject* ClusterRootObject)
+{
+	// Collect all objects referenced by cluster root and by all objects it's referencing
+	FClusterVerifyReferenceProcessor Processor(ClusterRootObject);
+	TFastReferenceCollector<FClusterVerifyReferenceProcessor, TClusterCollector<FClusterVerifyReferenceProcessor>, FClusterArrayPool> ReferenceCollector(Processor, FClusterArrayPool::Get());
+	TArray<UObject*> ObjectsToProcess;
+	ObjectsToProcess.Add(ClusterRootObject);
+	ReferenceCollector.CollectReferences(ObjectsToProcess, true);
+	return Processor.NoExternalReferencesFound();
 }

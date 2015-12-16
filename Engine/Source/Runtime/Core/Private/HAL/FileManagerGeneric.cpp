@@ -25,7 +25,7 @@ DEFINE_LOG_CATEGORY_STATIC( LogFileManager, Log, All );
 
 void FFileManagerGeneric::ProcessCommandLineOptions() 
 {
-#if !( UE_BUILD_SHIPPING || UE_BUILD_TEST )
+#if !UE_BUILD_SHIPPING
 	if( FParse::Param( FCommandLine::Get(),TEXT( "CLEANSCREENSHOTS" ) ) )
 	{
 		DeleteDirectory( *FPaths::ScreenShotDir(), false, true );

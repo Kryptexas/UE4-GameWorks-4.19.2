@@ -166,13 +166,13 @@ ENGINE_API UEngine*	GEngine = NULL;
  */
 ENGINE_API bool GShowDebugSelectedLightmap = false;
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !UE_BUILD_SHIPPING
 	/**
 	 * true if we debug material names with SCOPED_DRAW_EVENT.
 	 * Toggle with "ShowMaterialDrawEvents" console command.
 	 */
 	bool GShowMaterialDrawEvents = false;
-#endif
+#endif // !UE_BUILD_SHIPPING
 
 ENGINE_API uint32 GGPUFrameTime = 0;
 
@@ -195,14 +195,14 @@ static FAutoConsoleVariable CVarSystemResolution(
 	TEXT("     1920x1080wm for windowed mirror")
 	);
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !UE_BUILD_SHIPPING
 static TAutoConsoleVariable<float> CVarSetOverrideFPS(
 	TEXT("t.OverrideFPS"),
 	0.0f,
 	TEXT("This allows to override the frame time measurement with a fixed fps number (game can run faster or slower).\n")
 	TEXT("<=0:off, in frames per second, e.g. 60"),
 	ECVF_Cheat);
-#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#endif // !UE_BUILD_SHIPPING
 
 /** Enum entries represent index to global object referencer stored in UGameEngine */
 enum EGametypeContentReferencerTypes
@@ -977,9 +977,9 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	}
 
 	// Add the stats to the list, note this is also the order that they get rendered in if active.
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !UE_BUILD_SHIPPING
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Version"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatVersion, NULL, bIsRHS));
-#endif
+#endif // !UE_BUILD_SHIPPING
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_NamedEvents"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatNamedEvents, &UEngine::ToggleStatNamedEvents, bIsRHS));
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_FPS"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatFPS, &UEngine::ToggleStatFPS, bIsRHS));
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Summary"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatSummary, NULL, bIsRHS));
@@ -994,12 +994,12 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_ColorList"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatColorList, NULL));
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Levels"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatLevels, NULL));
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !UE_BUILD_SHIPPING
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_SoundMixes"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatSoundMixes, NULL));
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Reverb"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatReverb, NULL));
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_SoundWaves"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatSoundWaves, NULL));
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_SoundCues"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatSoundCues, NULL));
-#endif
+#endif // !UE_BUILD_SHIPPING
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Sounds"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatSounds, &UEngine::ToggleStatSounds));
 /* @todo UE4 physx fix this once we have convexelem drawing again
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_LevelMap"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatLevelMap, NULL));
@@ -1051,7 +1051,7 @@ void UEngine::ShutdownAudioDeviceManager()
 
 void UEngine::PreExit()
 {
-	if (IMovieSceneCaptureModule* Module = FModuleManager::GetModulePtr<IMovieSceneCaptureModule>("MovieSceneCapture"))
+	if (IMovieSceneCaptureModule* Module = FModuleManager::GetModulePtr<IMovieSceneCaptureModule>( "MovieSceneCapture" ))
 	{
 		Module->DestroyAllActiveCaptures();
 	}
@@ -1262,7 +1262,7 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 		}
 	}
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !UE_BUILD_SHIPPING
 	{
 		float OverrideFPS = CVarSetOverrideFPS.GetValueOnGameThread();
 		if(OverrideFPS >= 0.001f)
@@ -1274,7 +1274,7 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 			bTimeWasManipulated = true;
 		}
 	}
-#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#endif // !UE_BUILD_SHIPPING
 }
 
 
@@ -2453,13 +2453,16 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	}
 #endif
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-#if WITH_HOT_RELOAD
+
+#if	!(UE_BUILD_SHIPPING || UE_BUILD_TEST) && WITH_HOT_RELOAD
 	else if( FParse::Command(&Cmd,TEXT("HotReload")) )
 	{
 		return HandleHotReloadCommand( Cmd, Ar );
 	}
-#endif // WITH_HOT_RELOAD
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && WITH_HOT_RELOAD
+
+
+#if !UE_BUILD_SHIPPING
 	else if (FParse::Command(&Cmd, TEXT("DumpConsoleCommands")))
 	{
 		return HandleDumpConsoleCommandsCommand( Cmd, Ar, InWorld );
@@ -2553,9 +2556,6 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		return HandleShowSelectedLightmapCommand( Cmd, Ar );
 	}
-#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-
-#if !UE_BUILD_SHIPPING
 	else if( FParse::Command(&Cmd,TEXT("SHOWLOG")) )
 	{
 		return HandleShowLogCommand( Cmd, Ar );
@@ -2747,6 +2747,42 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	return true;
 }
 
+bool UEngine::HandleFlushLogCommand( const TCHAR* Cmd, FOutputDevice& Ar )
+{
+	GLog->FlushThreadedLogs();
+	GLog->Flush();
+	return true;
+}
+
+bool UEngine::HandleGameVerCommand( const TCHAR* Cmd, FOutputDevice& Ar )
+{
+	FString VersionString = FString::Printf( TEXT( "GameVersion Branch: %s, Configuration: %s, Version: %s, CommandLine: %s" ),
+											 *FApp::GetBranchName(), EBuildConfigurations::ToString( FApp::GetBuildConfiguration() ), *FEngineVersion::Current().ToString(), FCommandLine::Get() );
+
+	Ar.Logf( *VersionString );
+	FPlatformMisc::ClipboardCopy( *VersionString );
+
+	return 1;
+}
+
+bool UEngine::HandleStatCommand( UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Cmd, FOutputDevice& Ar )
+{
+	const TCHAR* Temp = Cmd;
+	for (int32 StatIdx = 0; StatIdx < EngineStats.Num(); StatIdx++)
+	{
+		const FEngineStatFuncs& EngineStat = EngineStats[StatIdx];
+		if (FParse::Command( &Temp, *EngineStat.CommandNameString ))
+		{
+			if (EngineStat.ToggleFunc)
+			{
+				return ViewportClient ? (this->*(EngineStat.ToggleFunc))(World, ViewportClient, Temp) : false;
+			}
+			return true;
+		}
+	}
+	return false;
+}
+
 bool UEngine::HandleStopMovieCaptureCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	if (IMovieSceneCaptureInterface* CaptureInterface = IMovieSceneCaptureModule::Get().GetFirstActiveMovieSceneCapture())
@@ -2755,17 +2791,6 @@ bool UEngine::HandleStopMovieCaptureCommand( const TCHAR* Cmd, FOutputDevice& Ar
 		return true;
 	}
 	return false;
-}
-
-bool UEngine::HandleGameVerCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	FString VersionString = FString::Printf(TEXT("GameVersion Branch: %s, Configuration: %s, Version: %s, CommandLine: %s"), 
-		*FApp::GetBranchName(), EBuildConfigurations::ToString(FApp::GetBuildConfiguration()), *FEngineVersion::Current().ToString(), FCommandLine::Get());
-
-	Ar.Logf( *VersionString );
-	FPlatformMisc::ClipboardCopy( *VersionString );
-
-	return 1;
 }
 
 bool UEngine::HandleCrackURLCommand( const TCHAR* Cmd, FOutputDevice& Ar )
@@ -2793,129 +2818,214 @@ bool UEngine::HandleDeferCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	return 1;
 }
 
-#if !UE_BUILD_SHIPPING
-bool UEngine::HandleMergeMeshCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
+bool UEngine::HandleCeCommand( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 {
-	FString CmdCopy = Cmd;
-	TArray<FString> Tokens;
-	while (CmdCopy.Len() > 0)
-	{
-		const TCHAR* LocalCmd = *CmdCopy;
-		FString Token = FParse::Token(LocalCmd, true);
-		Tokens.Add(Token);
-		CmdCopy = CmdCopy.Right(CmdCopy.Len() - Token.Len() - 1);
-	}
+	const TCHAR* ErrorMessage = TEXT( "No level found for CE processing" );
+	bool bResult = false;
 
-	// array of source meshes that will be merged
-	TArray<USkeletalMesh*> SourceMeshList;
-
-	if ( Tokens.Num() >= 2 )
+	// Try to execute the command on all level script actors
+	for (TArray<ULevel*>::TConstIterator it = InWorld->GetLevels().CreateConstIterator(); it; ++it)
 	{
-		for (int32 I=0; I<Tokens.Num(); ++I)
+		ULevel* CurrentLevel = *it;
+		if (CurrentLevel)
 		{
-			USkeletalMesh * SrcMesh = LoadObject<USkeletalMesh>(NULL, *Tokens[I], NULL, LOAD_None, NULL);
-			if (SrcMesh)
+			ErrorMessage = TEXT( "No LevelScriptActor found for CE processing" );
+
+			if (CurrentLevel->GetLevelScriptActor())
 			{
-				SourceMeshList.Add(SrcMesh);
+				ErrorMessage = 0;
+
+				// return true if at least one level handles the command
+				bResult |= CurrentLevel->GetLevelScriptActor()->CallFunctionByNameWithArguments( Cmd, Ar, NULL, true );
 			}
 		}
 	}
 
-	// find player controller skeletalmesh
-	APawn * PlayerPawn = NULL;
-	USkeletalMesh * PlayerMesh = NULL;
-	for( FConstPlayerControllerIterator Iterator = InWorld->GetPlayerControllerIterator(); Iterator; ++Iterator )
+	if (!bResult)
 	{
-		APlayerController* PlayerController = *Iterator;
-		if (PlayerController->GetCharacter() != NULL && PlayerController->GetCharacter()->GetMesh())
-		{
-			PlayerPawn = PlayerController->GetCharacter();
-			PlayerMesh = PlayerController->GetCharacter()->GetMesh()->SkeletalMesh;
-			break;
-		}
+		ErrorMessage = TEXT( "CE command wasn't processed" );
 	}
 
-	if (PlayerMesh)
+	if (ErrorMessage)
 	{
-		if (SourceMeshList.Num() ==  0)
-		{
-			SourceMeshList.Add(PlayerMesh);
-			SourceMeshList.Add(PlayerMesh);
-		}
-	}
-	else
-	{
-		// we don't have a pawn (because we couldn't find a mesh), use any pawn as a spawn point
-		for( FConstPlayerControllerIterator Iterator = InWorld->GetPlayerControllerIterator(); Iterator; ++Iterator )
-		{
-			APlayerController* PlayerController = *Iterator;
-			if (PlayerController->GetPawn() != NULL)
-			{
-				PlayerPawn = PlayerController->GetPawn();
-				break;
-			}
-		}		
+		UE_LOG( LogEngine, Error, TEXT( "%s" ), ErrorMessage );
 	}
 
-	if (PlayerPawn && SourceMeshList.Num() >= 2)
-	{
-		// create the composite mesh
-		auto CompositeMesh = NewObject<USkeletalMesh>(GetTransientPackage(), NAME_None, RF_Transient);
-
-		TArray<FSkelMeshMergeSectionMapping> InForceSectionMapping;
-		// create an instance of the FSkeletalMeshMerge utility
-		FSkeletalMeshMerge MeshMergeUtil( CompositeMesh, SourceMeshList, InForceSectionMapping,  0);
-
-		// merge the source meshes into the composite mesh
-		if( !MeshMergeUtil.DoMerge() )
-		{
-			// handle errors
-			// ...
-			UE_LOG(LogEngine, Log, TEXT("DoMerge Error: Merge Mesh Test Failed"));
-			return true;
-		}
-
-		FVector SpawnLocation = PlayerPawn->GetActorLocation() + PlayerPawn->GetActorForwardVector()*50.f;
-
-		// set the new composite mesh in the existing skeletal mesh component
-		ASkeletalMeshActor* const SMA = PlayerPawn->GetWorld()->SpawnActor<ASkeletalMeshActor>( SpawnLocation, PlayerPawn->GetActorRotation()*-1);
-		if (SMA)
-		{
-			SMA->GetSkeletalMeshComponent()->SetSkeletalMesh(CompositeMesh);
-		}
-	}
-
+	// the command was processed (resulted in executing the command or an error message) - no other spot handles "CE"
 	return true;
 }
-#endif // !UE_BUILD_SHIPPING
 
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-#if WITH_HOT_RELOAD
+bool UEngine::HandleDumpTicksCommand( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
+{
+	// Handle optional parameters, will dump all tick functions by default.
+	bool bShowEnabled = true;
+	bool bShowDisabled = true;
+	if (FParse::Command( &Cmd, TEXT( "ENABLED" ) ))
+	{
+		bShowDisabled = false;
+	}
+	else if (FParse::Command( &Cmd, TEXT( "DISABLED" ) ))
+	{
+		bShowEnabled = false;
+	}
+	FTickTaskManagerInterface::Get().DumpAllTickFunctions( Ar, InWorld, bShowEnabled, bShowDisabled );
+	return true;
+}
+
+bool UEngine::HandleGammaCommand( const TCHAR* Cmd, FOutputDevice& Ar )
+{
+	DisplayGamma = (*Cmd != 0) ? FMath::Clamp<float>( FCString::Atof( *FParse::Token( Cmd, false ) ), 0.5f, 5.0f ) : 2.2f;
+	return true;
+}
+
+bool UEngine::HandleRecordAnimationCommand( UWorld* InWorld, const TCHAR* InStr, FOutputDevice& Ar )
+{
+#if WITH_EDITOR
+	const TCHAR* Str = InStr;
+	// parse actor name
+	TCHAR ActorName[128];
+	AActor* FoundActor = nullptr;
+	if (FParse::Token( Str, ActorName, ARRAY_COUNT( ActorName ), 0 ))
+	{
+		FString const ActorNameStr = FString( ActorName );
+		for (ULevel const* Level : InWorld->GetLevels())
+		{
+			if (Level)
+			{
+				for (AActor* Actor : Level->Actors)
+				{
+					if (Actor)
+					{
+						if (Actor->GetName() == ActorNameStr)
+						{
+							FoundActor = Actor;
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if (FoundActor)
+	{
+		USkeletalMeshComponent* const SkelComp = FoundActor->FindComponentByClass<USkeletalMeshComponent>();
+		if (SkelComp)
+		{
+			TCHAR AssetPath[256];
+			FParse::Token( Str, AssetPath, ARRAY_COUNT( AssetPath ), 0 );
+			FString const AssetName = FPackageName::GetLongPackageAssetName( AssetPath );
+			return FAnimationRecorderManager::Get().RecordAnimation( FoundActor, SkelComp, AssetPath, AssetName );
+		}
+	}
+#endif		// WITH_EDITOR
+
+	return false;
+}
+
+bool UEngine::HandleStopRecordAnimationCommand( UWorld* InWorld, const TCHAR* InStr, FOutputDevice& Ar )
+{
+#if WITH_EDITOR
+	const TCHAR* Str = InStr;
+
+	// parse actor name
+	TCHAR ActorName[128];
+	AActor* FoundActor = nullptr;
+	bool bStopAll = false;
+	if (FParse::Token( Str, ActorName, ARRAY_COUNT( ActorName ), 0 ))
+	{
+		FString const ActorNameStr = FString( ActorName );
+
+		if (ActorNameStr.ToLower() == TEXT( "all" ))
+		{
+			bStopAll = true;
+		}
+		else if (InWorld)
+		{
+			// search for the actor by name
+			for (ULevel* Level : InWorld->GetLevels())
+			{
+				if (Level)
+				{
+					for (AActor* Actor : Level->Actors)
+					{
+						if (Actor)
+						{
+							if (Actor->GetName() == ActorNameStr)
+							{
+								FoundActor = Actor;
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if (bStopAll)
+	{
+		FAnimationRecorderManager::Get().StopRecordingAllAnimations();
+		return true;
+	}
+	else if (FoundActor)
+	{
+		USkeletalMeshComponent* const SkelComp = FoundActor->FindComponentByClass<USkeletalMeshComponent>();
+		if (SkelComp)
+		{
+			FAnimationRecorderManager::Get().StopRecordingAnimation( FoundActor, SkelComp );
+			return true;
+		}
+	}
+#endif		// WITH_EDITOR
+
+	return false;
+}
+
+bool UEngine::HandleShowLogCommand( const TCHAR* Cmd, FOutputDevice& Ar )
+{
+	// Toggle display of console log window.
+	if (GLogConsole)
+	{
+		GLogConsole->Show( !GLogConsole->IsShown() );
+	}
+	return 1;
+}
+
+#if STATS
+bool UEngine::HandleDumpParticleMemCommand( const TCHAR* Cmd, FOutputDevice& Ar )
+{
+	FParticleMemoryStatManager::DumpParticleMemoryStats( Ar );
+	return true;
+}
+#endif
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && WITH_HOT_RELOAD
 bool UEngine::HandleHotReloadCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
-	FString Module(FParse::Token(Cmd, 0));
+	FString Module( FParse::Token( Cmd, 0 ) );
 	FString PackagePath( FString( TEXT( "/Script/" ) ) + Module );
-	UPackage *Package = FindPackage(NULL,*PackagePath );
+	UPackage *Package = FindPackage( NULL, *PackagePath );
 	if (!Package)
 	{
-		Ar.Logf( TEXT("Could not HotReload '%s', package not found in memory"),*Module);
+		Ar.Logf( TEXT( "Could not HotReload '%s', package not found in memory" ), *Module );
 	}
 	else
 	{
-		Ar.Logf( TEXT("HotReloading %s..."),*Module);
+		Ar.Logf( TEXT( "HotReloading %s..." ), *Module );
 		TArray< UPackage*> PackagesToRebind;
 		PackagesToRebind.Add( Package );
 		const bool bWaitForCompletion = true;	// Always wait when hotreload is initiated from the console
-		IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
-		const ECompilationResult::Type CompilationResult = HotReloadSupport.RebindPackages(PackagesToRebind, TArray<FName>(), bWaitForCompletion, Ar);
+		IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>( "HotReload" );
+		const ECompilationResult::Type CompilationResult = HotReloadSupport.RebindPackages( PackagesToRebind, TArray<FName>(), bWaitForCompletion, Ar );
 	}
 	return true;
 }
-#endif // WITH_HOT_RELOAD
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && WITH_HOT_RELOAD
 
+#if !UE_BUILD_SHIPPING
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static void DumpHelp(UWorld* InWorld)
 {
 	UE_LOG(LogEngine, Display, TEXT("Console Help:"));
@@ -2970,8 +3080,6 @@ static FAutoConsoleCommandWithWorld GConsoleCommandHelp(
 	TEXT("Outputs some helptext to the console and the log"),
 	FConsoleCommandWithWorldDelegate::CreateStatic(DumpHelp)
 	);
-#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-
 
 bool UEngine::HandleDumpConsoleCommandsCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
@@ -3357,19 +3465,6 @@ bool UEngine::HandleProfileCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		return true;
 	}
 	return false;
-}
-
-#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-
-#if !UE_BUILD_SHIPPING
-bool UEngine::HandleShowLogCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	// Toggle display of console log window.
-	if( GLogConsole )
-	{
-		GLogConsole->Show( !GLogConsole->IsShown() );
-	}
-	return 1;
 }
 
 bool UEngine::HandleStartFPSChartCommand( const TCHAR* Cmd, FOutputDevice& Ar )
@@ -4623,6 +4718,100 @@ bool UEngine::HandleDebugCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	return false;
 }
 
+bool UEngine::HandleMergeMeshCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
+{
+	FString CmdCopy = Cmd;
+	TArray<FString> Tokens;
+	while (CmdCopy.Len() > 0)
+	{
+		const TCHAR* LocalCmd = *CmdCopy;
+		FString Token = FParse::Token( LocalCmd, true );
+		Tokens.Add( Token );
+		CmdCopy = CmdCopy.Right( CmdCopy.Len() - Token.Len() - 1 );
+	}
+
+	// array of source meshes that will be merged
+	TArray<USkeletalMesh*> SourceMeshList;
+
+	if (Tokens.Num() >= 2)
+	{
+		for (int32 I = 0; I<Tokens.Num(); ++I)
+		{
+			USkeletalMesh * SrcMesh = LoadObject<USkeletalMesh>( NULL, *Tokens[I], NULL, LOAD_None, NULL );
+			if (SrcMesh)
+			{
+				SourceMeshList.Add( SrcMesh );
+			}
+		}
+	}
+
+	// find player controller skeletalmesh
+	APawn * PlayerPawn = NULL;
+	USkeletalMesh * PlayerMesh = NULL;
+	for (FConstPlayerControllerIterator Iterator = InWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
+	{
+		APlayerController* PlayerController = *Iterator;
+		if (PlayerController->GetCharacter() != NULL && PlayerController->GetCharacter()->GetMesh())
+		{
+			PlayerPawn = PlayerController->GetCharacter();
+			PlayerMesh = PlayerController->GetCharacter()->GetMesh()->SkeletalMesh;
+			break;
+		}
+	}
+
+	if (PlayerMesh)
+	{
+		if (SourceMeshList.Num() == 0)
+		{
+			SourceMeshList.Add( PlayerMesh );
+			SourceMeshList.Add( PlayerMesh );
+		}
+	}
+	else
+	{
+		// we don't have a pawn (because we couldn't find a mesh), use any pawn as a spawn point
+		for (FConstPlayerControllerIterator Iterator = InWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
+		{
+			APlayerController* PlayerController = *Iterator;
+			if (PlayerController->GetPawn() != NULL)
+			{
+				PlayerPawn = PlayerController->GetPawn();
+				break;
+			}
+		}
+	}
+
+	if (PlayerPawn && SourceMeshList.Num() >= 2)
+	{
+		// create the composite mesh
+		auto CompositeMesh = NewObject<USkeletalMesh>( GetTransientPackage(), NAME_None, RF_Transient );
+
+		TArray<FSkelMeshMergeSectionMapping> InForceSectionMapping;
+		// create an instance of the FSkeletalMeshMerge utility
+		FSkeletalMeshMerge MeshMergeUtil( CompositeMesh, SourceMeshList, InForceSectionMapping, 0 );
+
+		// merge the source meshes into the composite mesh
+		if (!MeshMergeUtil.DoMerge())
+		{
+			// handle errors
+			// ...
+			UE_LOG( LogEngine, Log, TEXT( "DoMerge Error: Merge Mesh Test Failed" ) );
+			return true;
+		}
+
+		FVector SpawnLocation = PlayerPawn->GetActorLocation() + PlayerPawn->GetActorForwardVector()*50.f;
+
+		// set the new composite mesh in the existing skeletal mesh component
+		ASkeletalMeshActor* const SMA = PlayerPawn->GetWorld()->SpawnActor<ASkeletalMeshActor>( SpawnLocation, PlayerPawn->GetActorRotation()*-1 );
+		if (SMA)
+		{
+			SMA->GetSkeletalMeshComponent()->SetSkeletalMesh( CompositeMesh );
+		}
+	}
+
+	return true;
+}
+
 bool UEngine::HandleContentComparisonCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	TArray<FString> Tokens, Switches;
@@ -4897,7 +5086,7 @@ struct FHierarchy
 	}
 };
 
-// #YRX_UObject 2014-09-15 Move to ObjectCommads.cpp or ObjectExec.cpp
+// #TODO Move to ObjectCommads.cpp or ObjectExec.cpp
 bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	if( FParse::Command(&Cmd,TEXT("GARBAGE")) || FParse::Command(&Cmd,TEXT("GC")) )
@@ -5671,72 +5860,8 @@ bool UEngine::HandleToggleAllScreenMessagesCommand( const TCHAR* Cmd, FOutputDev
 	return true;
 }
 
-#endif // !UE_BUILD_SHIPPING
 
-bool UEngine::HandleCeCommand( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	const TCHAR* ErrorMessage = TEXT("No level found for CE processing");
-	bool bResult = false;
 
-	// Try to execute the command on all level script actors
-	for( TArray<ULevel*>::TConstIterator it = InWorld->GetLevels().CreateConstIterator(); it; ++it )
-	{
-		ULevel* CurrentLevel = *it;
-		if( CurrentLevel )
-		{
-			ErrorMessage = TEXT("No LevelScriptActor found for CE processing");
-
-			if( CurrentLevel->GetLevelScriptActor() )
-			{
-				ErrorMessage = 0;
-
-				// return true if at least one level handles the command
-				bResult |= CurrentLevel->GetLevelScriptActor()->CallFunctionByNameWithArguments(Cmd, Ar, NULL, true);
-			}
-		}
-	}
-
-	if(!bResult)
-	{
-		ErrorMessage = TEXT("CE command wasn't processed");
-	}
-
-	if(ErrorMessage)
-	{
-		UE_LOG(LogEngine, Error, TEXT("%s"), ErrorMessage);
-	}
-
-	// the command was processed (resulted in executing the command or an error message) - no other spot handles "CE"
-	return true;
-}
-
-#if STATS
-bool UEngine::HandleDumpParticleMemCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	FParticleMemoryStatManager::DumpParticleMemoryStats(Ar);
-	return true;
-}
-#endif
-
-bool UEngine::HandleStatCommand( UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	const TCHAR* Temp = Cmd;
-	for (int32 StatIdx = 0; StatIdx < EngineStats.Num(); StatIdx++)
-	{
-		const FEngineStatFuncs& EngineStat = EngineStats[StatIdx];
-		if (FParse::Command(&Temp, *EngineStat.CommandNameString))
-		{
-			if (EngineStat.ToggleFunc)
-			{
-				return ViewportClient ? ( this->*(EngineStat.ToggleFunc) )(World, ViewportClient, Temp) : false;
-			}
-			return true;
-		}
-	}
-	return false;
-}
-
-#if !UE_BUILD_SHIPPING
 bool UEngine::HandleTestslateGameUICommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	TSharedRef<SWidget> GameUI = 
@@ -5895,140 +6020,6 @@ bool UEngine::HandleGetIniCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 	return true;
 }
 #endif // !UE_BUILD_SHIPPING
-
-bool UEngine::HandleFlushLogCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	GLog->FlushThreadedLogs();
-	GLog->Flush();
-	return true;
-}
-
-bool UEngine::HandleDumpTicksCommand( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	// Handle optional parameters, will dump all tick functions by default.
-	bool bShowEnabled = true;
-	bool bShowDisabled = true;
-	if (FParse::Command(&Cmd, TEXT("ENABLED")))
-	{
-		bShowDisabled = false;
-	}
-	else if (FParse::Command(&Cmd, TEXT("DISABLED")))
-	{
-		bShowEnabled = false;
-	}
-	FTickTaskManagerInterface::Get().DumpAllTickFunctions(Ar, InWorld, bShowEnabled, bShowDisabled);
-	return true;
-}
-
-bool UEngine::HandleGammaCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	DisplayGamma = (*Cmd != 0) ? FMath::Clamp<float>(FCString::Atof(*FParse::Token(Cmd, false)), 0.5f, 5.0f) : 2.2f;
-	return true;
-}
-
-bool UEngine::HandleRecordAnimationCommand(UWorld* InWorld, const TCHAR* InStr, FOutputDevice& Ar)
-{
-#if WITH_EDITOR
-	const TCHAR* Str = InStr;
-	// parse actor name
-	TCHAR ActorName[128];
-	AActor* FoundActor = nullptr;
-	if (FParse::Token(Str, ActorName, ARRAY_COUNT(ActorName), 0))
-	{
-		FString const ActorNameStr = FString(ActorName);
-		for (ULevel const* Level : InWorld->GetLevels())
-		{
-			if (Level)
-			{
-				for (AActor* Actor : Level->Actors)
-				{
-					if (Actor)
-					{
-						if (Actor->GetName() == ActorNameStr)
-						{
-							FoundActor = Actor;
-							break;
-						}
-					}
-				}
-			}
-		}
-	}
-
-	if (FoundActor)
-	{
-		USkeletalMeshComponent* const SkelComp = FoundActor->FindComponentByClass<USkeletalMeshComponent>();
-		if (SkelComp)
-		{
-			TCHAR AssetPath[256];
-			FParse::Token(Str, AssetPath, ARRAY_COUNT(AssetPath), 0);
-			FString const AssetName = FPackageName::GetLongPackageAssetName(AssetPath);
-			return FAnimationRecorderManager::Get().RecordAnimation(FoundActor, SkelComp, AssetPath, AssetName);
-		}
-	}
-#endif		// WITH_EDITOR
-
-	return false;
-}
-
-bool UEngine::HandleStopRecordAnimationCommand(UWorld* InWorld, const TCHAR* InStr, FOutputDevice& Ar)
-{
-#if WITH_EDITOR
-	const TCHAR* Str = InStr;
-
-	// parse actor name
-	TCHAR ActorName[128];
-	AActor* FoundActor = nullptr;
-	bool bStopAll = false;
-	if (FParse::Token(Str, ActorName, ARRAY_COUNT(ActorName), 0))
-	{
-		FString const ActorNameStr = FString(ActorName);
-
-		if (ActorNameStr.ToLower() == TEXT("all"))
-		{
-			bStopAll = true;
-		}
-		else if (InWorld)
-		{
-			// search for the actor by name
-			for (ULevel* Level : InWorld->GetLevels())
-			{
-				if (Level)
-				{
-					for (AActor* Actor : Level->Actors)
-					{
-						if (Actor)
-						{
-							if (Actor->GetName() == ActorNameStr)
-							{
-								FoundActor = Actor;
-								break;
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	if (bStopAll)
-	{
-		FAnimationRecorderManager::Get().StopRecordingAllAnimations();
-		return true;
-	}
-	else if (FoundActor)
-	{
-		USkeletalMeshComponent* const SkelComp = FoundActor->FindComponentByClass<USkeletalMeshComponent>();
-		if (SkelComp)
-		{
-			FAnimationRecorderManager::Get().StopRecordingAnimation(FoundActor, SkelComp);
-			return true;
-		}
-	}
-#endif		// WITH_EDITOR
-
-	return false;
-}
 
 
 /**
@@ -7131,7 +7122,7 @@ struct FCompareFSoundInfoByWaveInstNum
 /** draws a property of the given object on the screen similarly to stats */
 static void DrawProperty(UCanvas* CanvasObject, UObject* Obj, const FDebugDisplayProperty& PropData, UProperty* Prop, int32 X, int32& Y)
 {
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if UE_BUILD_SHIPPING
 	checkSlow(PropData.bSpecialProperty || Prop != NULL);
 	checkSlow(Prop == NULL || Obj->GetClass()->IsChildOf(Prop->GetOwnerClass()));
 
@@ -7279,7 +7270,7 @@ static void DrawProperty(UCanvas* CanvasObject, UObject* Obj, const FDebugDispla
 			Y += YL;
 		}
 	} while( CommaIdx >= 0 );
-#endif
+#endif // !UE_BUILD_SHIPPING
 }
 
 /** Basic timing collation - cannot use stats as these are not enabled in Win32 shipping */
@@ -11246,7 +11237,7 @@ void UEngine::RenderEngineStats(UWorld* World, FViewport* Viewport, FCanvas* Can
 }
 
 // VERSION
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !UE_BUILD_SHIPPING
 int32 UEngine::RenderStatVersion(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation, const FRotator* ViewRotation)
 {
 	if (!GIsHighResScreenshot && !GIsDumpingMovie && GAreScreenMessagesEnabled)
@@ -11261,7 +11252,7 @@ int32 UEngine::RenderStatVersion(UWorld* World, FViewport* Viewport, FCanvas* Ca
 	}
 	return Y;
 }
-#endif
+#endif // !UE_BUILD_SHIPPING
 
 // DETAILED
 bool UEngine::ToggleStatDetailed(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream)
@@ -11888,7 +11879,7 @@ static FAutoConsoleCommand SetupThreadAffinityCmd(
 	);
 
 // REVERB
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !UE_BUILD_SHIPPING
 int32 UEngine::RenderStatReverb(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation, const FRotator* ViewRotation)
 {
 	if (FAudioDevice* AudioDevice = World->GetAudioDevice())
@@ -12083,7 +12074,7 @@ int32 UEngine::RenderStatSoundCues(UWorld* World, FViewport* Viewport, FCanvas* 
 	Y += 12;
 	return Y;
 }
-#endif
+#endif // !UE_BUILD_SHIPPING
 
 // SOUNDS
 bool UEngine::ToggleStatSounds(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream)
@@ -12158,7 +12149,8 @@ bool UEngine::ToggleStatSounds(UWorld* World, FCommonViewportClient* ViewportCli
 
 int32 UEngine::RenderStatSounds(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation, const FRotator* ViewRotation)
 {
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if UE_BUILD_SHIPPING
+
 #if UE_BUILD_DEBUG
 
 	typedef TMap< const FActiveSound*, FSoundInfo* > TMapSounds;
@@ -12386,7 +12378,7 @@ int32 UEngine::RenderStatSounds(UWorld* World, FViewport* Viewport, FCanvas* Can
 			delete It.Value();
 		}
 	}
-#endif
+#endif // !UE_BUILD_SHIPPING
 	return Y;
 }
 

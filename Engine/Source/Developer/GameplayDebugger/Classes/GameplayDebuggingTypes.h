@@ -25,6 +25,8 @@ namespace EAIDebugDrawDataView
 	};
 }
 
+ENUM_RANGE_BY_FIRST_AND_LAST(EAIDebugDrawDataView::Type, EAIDebugDrawDataView::OverHead, EAIDebugDrawDataView::NavMesh)
+
 struct GAMEPLAYDEBUGGER_API FGameplayDebuggerSettings
 {
 	explicit FGameplayDebuggerSettings(uint32& Flags)

@@ -58,47 +58,6 @@ DECLARE_DELEGATE_TwoParams( FSelectionChangedForTimeDelegate, float /*FrameStart
 
 
 /*-----------------------------------------------------------------------------
-	Basic structures
------------------------------------------------------------------------------*/
-
-// @TODO: GraphDataSource will be replaced later with more abstract class which will allow to use profiler data source or other source to draw the graph.
-
-/** Describes properties of the graph that will be displayed in the SDataGraph widget. */
-class FGraphDescription
-{
-public:
-	FGraphDescription()
-	{}
-
-	FGraphDescription
-	( 
-		const FCombinedGraphDataSourceRef& InGraphDataSource, 
-		const FLinearColor InColorAverage,
-		const FLinearColor InColorExtremes,
-		const FLinearColor InColorBackground
-	)
-		: CombinedGraphDataSource( InGraphDataSource )
-		, ColorAverage( InColorAverage )
-		, ColorExtremes( InColorExtremes )
-		, ColorBackground( InColorBackground )
-	{}
-
-	/** Data source for this graph. */
-	FCombinedGraphDataSourcePtr CombinedGraphDataSource;
-
-	/** A color to visualize average value for the combined data graph. */
-	FLinearColor ColorAverage;
-
-	/** A color to visualize extremes values for the combined data graph, min and max. */
-	FLinearColor ColorExtremes;
-
-	/** A color to visualize background area for the combined data graph. */
-	FLinearColor ColorBackground;
-};
-
-
-
-/*-----------------------------------------------------------------------------
 	Declarations
 -----------------------------------------------------------------------------*/
 
@@ -282,14 +241,7 @@ protected:
 	FSelectionChangedForIndexEvent SelectionChangedForIndexEvent;
 
 public:
-	void AddInnerGraph
-	( 
-		const uint32 InStatID, 	
-		const FLinearColor InColorAverage,
-		const FLinearColor InColorExtremes,
-		const FLinearColor InColorBackground, 
-		const FCombinedGraphDataSourceRef& CombinedGraphDataSource  
-	);
+	void AddInnerGraph( const FTrackedStatPtr& TrackedStat );
 	void RemoveInnerGraph( const uint32 StatID );
 
 	/**
@@ -366,11 +318,7 @@ protected:
 	/** Handles FIsActionChecked for DataGraph_ViewMode_SetTimeBased. */
 	bool ViewMode_SetTimeBased_IsChecked() const;
 
-	const FGraphDescription* GetFirstGraph() const
-	{
-		const FGraphDescription* Result = StatIDToGraphDescriptionMapping.Num() > 0 ? &StatIDToGraphDescriptionMapping.CreateConstIterator().Value() : NULL;
-		return Result;
-	}
+	const FTrackedStatPtr GetFirstGraph() const;
 
 	/*-----------------------------------------------------------------------------
 		Misc
@@ -379,7 +327,7 @@ protected:
 	/** Horizontal box widget where graph descriptions are displayed. */
 	TSharedPtr<SVerticalBox> GraphDescriptionsVBox;
 
-	TMap< uint32, FGraphDescription > StatIDToGraphDescriptionMapping;
+	TMap< uint32, FTrackedStatPtr > StatIDToGraphDescriptionMapping;
 	TMap< uint32, TSharedRef<SWidget> > StatIDToWidgetMapping;
 
 	/** The current mouse position. */

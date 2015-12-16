@@ -77,10 +77,7 @@ public:
 		check(Event);
 		check(Event->IsManualReset() == (PoolType == EEventPoolTypes::ManualReset));
 
-		if (PoolType == EEventPoolTypes::ManualReset)
-		{
-			Event->Reset();
-		}
+		Event->Reset();
 
 		Pool.Push(Event);
 	}

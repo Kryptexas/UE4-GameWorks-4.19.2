@@ -81,30 +81,25 @@ public:
 
 
 /** Contains basic information about tracked stat. */
-class FTrackedStat //: public FNoncopyable, public TSharedFromThis<FTrackedStat>
+class FTrackedStat : public FNoncopyable, public TSharedFromThis<FTrackedStat>
 {
 public:
 	/**
 	 * Initialization constructor.
 	 *
-	 * @param InColorAverage	- color used to draw the average value
-	 * @param InColorExtremes	- color used to draw the extreme values
-	 * @param InColorBackground - color used to draw the background
-	 * @param InStatID			- the ID of the stat which will be tracked
+	 * @param InGraphDataSource - Data source
+	 * @param InGraphColor - color used to draw the average value
+	 * @param InStatID - the ID of the stat which will be tracked
 	 *
 	 */
 	FTrackedStat
 	(
-		FCombinedGraphDataSourceRef InCombinedGraphDataSource,
-		const FLinearColor InColorAverage,
-		const FLinearColor InColorExtremes,
-		const FLinearColor InColorBackground,
+		FGraphDataSourceRefConst InGraphDataSource,
+		const FLinearColor InGraphColor,
 		const uint32 InStatID	
 	)
-		: CombinedGraphDataSource( InCombinedGraphDataSource )
-		, ColorAverage( InColorAverage )
-		, ColorExtremes( InColorExtremes )
-		, ColorBackground( InColorBackground )
+		: GraphDataSource( InGraphDataSource )
+		, GraphColor( InGraphColor )
 		, StatID( InStatID )
 	{}
 
@@ -113,17 +108,11 @@ public:
 	{}
 
 //protected:
-	/** A shared reference to the combined graph data source for all active profiler session instances for the specified stat ID. */
-	FCombinedGraphDataSourceRef CombinedGraphDataSource;
+	/** A shared reference to the graph data source for active profiler session for the specified stat ID. */
+	FGraphDataSourceRefConst GraphDataSource;
 
-	/** A color to visualize average value for the combined data graph. */
-	const FLinearColor ColorAverage;
-
-	/** A color to visualize extremes values for the combined data graph, min and max. */
-	const FLinearColor ColorExtremes;
-
-	/** A color to visualize background area for the combined data graph. */
-	const FLinearColor ColorBackground;
+	/** A color to visualize graph value for the data graph. */
+	const FLinearColor GraphColor;
 
 	/** The ID of the stat. */
 	const uint32 StatID;
@@ -260,14 +249,6 @@ public:
 		return ProfilerSession;
 	}
 
-	/**
-	 * Creates a combined graph data source which will provide data for graph drawing.
-	 *
-	 * @param StatID - the ID of the stat that will used for generating the combined graph data source.
-	 *
-	 */
-	FCombinedGraphDataSourceRef CreateCombinedGraphDataSource( const uint32 StatID );
-
 	/*-----------------------------------------------------------------------------
 		Stat tracking, Session instance management
 	-----------------------------------------------------------------------------*/
@@ -281,9 +262,6 @@ public:
 	 * @return true, if the specified stat is currently tracked by the profiler.
 	 */
 	const bool IsStatTracked( const uint32 StatID ) const;
-	bool TrackStatForSessionInstance( const uint32 StatID, const FGuid& SessionInstanceID );
-	bool UntrackStatForSessionInstance( const uint32 StatID, const FGuid& SessionInstanceID );
-	const bool IsStatTrackedForSessionInstance( const uint32 StatID, const FGuid& SessionInstanceID ) const;
 
 	/**
 	 * @return True, if the profiler has at least one fully processed capture file
@@ -374,10 +352,10 @@ public:
 	/**
 	 * The event to execute when the status of specified tracked stat has changed.
 	 *
-	 * @param const FTrackedStat&	- a reference to the tracked stat whose status has changed, this reference is valid only within the scope of function
-	 * @param bool bIsTracked		- true, if stat has been added for tracking, false, if stat has been removed from tracking
+	 * @param const FTrackedStatPtr& - a reference to the tracked stat whose status has changed, this reference is valid only within the scope of function
+	 * @param bool bIsTracked - true, if stat has been added for tracking, false, if stat has been removed from tracking
 	 */
-	DECLARE_EVENT_TwoParams( FProfilerManager, FTrackedStatChangedEvent, const FTrackedStat&, bool );
+	DECLARE_EVENT_TwoParams( FProfilerManager, FTrackedStatChangedEvent, const FTrackedStatPtr&, bool );
 	FTrackedStatChangedEvent& OnTrackedStatChanged()
 	{
 		return TrackedStatChangedEvent;
@@ -468,7 +446,6 @@ protected:
 	void ProfilerClient_OnProfilerFileTransfer( const FString& Filename, int64 FileProgress, int64 FileSize );
 
 	void SessionManager_OnInstanceSelectionChanged( const TSharedPtr<ISessionInstanceInfo>& Instance, bool Selected );
-	void SessionManager_OnSelectedSessionChanged( const ISessionInfoPtr& Session );
 
 public:
 	const FLinearColor& GetColorForStatID( const uint32 StatID ) const;
@@ -536,7 +513,7 @@ protected:
 	FFrameAddedEvent FrameAddedEvent;
 
 	/** Contains all currently tracked stats, stored as StatID -> FTrackedStat. */
-	TMap<uint32, FTrackedStat> TrackedStats;
+	TMap<uint32, FTrackedStatPtr> TrackedStats;
 
 	
 	/*-----------------------------------------------------------------------------

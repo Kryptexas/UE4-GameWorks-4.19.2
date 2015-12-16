@@ -1676,38 +1676,8 @@ static void PrintStatsHelpToOutputDevice( FOutputDevice& Ar )
 	Ar.Log( TEXT("stat stopfile - stops tracking all memory operations and writes the results to the file"));
 
 	Ar.Log( TEXT("stat namedmarker #markername# - adds a custom marker to the stats stream"));
-}
 
-// @TODO yrx 2014-12-01 Move to StatsFile.cpp/.h
-static void CommandTestFile()
-{
-	const FString& LastFileSaved = FCommandStatsFile::Get().LastFileSaved;
-
-	FStatsThreadState Loaded( LastFileSaved );
-	if( Loaded.GetLatestValidFrame() < 0 )
-	{
-		UE_LOG( LogStats, Log, TEXT( "Failed to stats file: %s" ), *LastFileSaved );
-		return;
-	}
-	UE_LOG( LogStats, Log, TEXT( "Loaded stats file: %s, %lld frame" ), *LastFileSaved, 1 + Loaded.GetLatestValidFrame() - Loaded.GetOldestValidFrame() );
-	{
-		int64 TestFrame = Loaded.GetOldestValidFrame();
-		UE_LOG( LogStats, Log, TEXT( "**************************** Test Frame %lld" ), TestFrame );
-		DumpHistoryFrame( Loaded, TestFrame );
-	}
-	{
-		int64 TestFrame = (Loaded.GetLatestValidFrame() + Loaded.GetOldestValidFrame()) / 2;
-		if( Loaded.IsFrameValid( TestFrame ) )
-		{
-			UE_LOG( LogStats, Log, TEXT( "**************************** Test Frame %lld" ), TestFrame );
-			DumpHistoryFrame( Loaded, TestFrame );
-		}
-	}
-	{
-		int64 TestFrame = Loaded.GetLatestValidFrame();
-		UE_LOG( LogStats, Log, TEXT( "**************************** Test Frame %lld" ), TestFrame );
-		DumpHistoryFrame( Loaded, TestFrame );
-	}
+	Ar.Log( TEXT( "stat testfile - loads the last saved capture and dumps first, middle and last frame" ) );
 }
 
 #endif
@@ -1866,7 +1836,7 @@ static void StatCmd(FString InCmd, bool bStatCommand)
 		}
 		else if (FParse::Command(&Cmd, TEXT("TESTFILE")))
 		{
-			CommandTestFile();
+			FCommandStatsFile::Get().TestLastSaved();
 		}
 		else if (FParse::Command(&Cmd, TEXT("testdisable")))
 		{

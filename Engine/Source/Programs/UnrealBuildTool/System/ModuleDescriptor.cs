@@ -13,6 +13,7 @@ namespace UnrealBuildTool
 		Default,
 		Runtime,
 		RuntimeNoCommandlet,
+		RuntimeNoProgram,
 		Developer,
 		Editor,
 		EditorNoCommandlet,
@@ -184,6 +185,8 @@ namespace UnrealBuildTool
 				case ModuleHostType.Runtime:
 				case ModuleHostType.RuntimeNoCommandlet:
 					return true;
+				case ModuleHostType.RuntimeNoProgram:
+					return TargetType != TargetRules.TargetType.Program;
 				case ModuleHostType.Developer:
 					return bBuildDeveloperTools;
 				case ModuleHostType.Editor:

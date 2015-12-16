@@ -48,6 +48,14 @@ namespace PluginSystemDefs
 			}
 		} while (SearchStr != nullptr);
 
+#if IS_PROGRAM
+		// For programs that have the project dir set, look for plugins under the project directory
+		const FProjectDescriptor *Project = IProjectManager::Get().GetCurrentProject();
+		if (Project != nullptr)
+		{
+			PluginPathsOut.Add(FPaths::GetPath(FPaths::GetProjectFilePath()) / TEXT("Plugins"));
+		}
+#endif
 		return PluginCount;
 	}
 }
@@ -292,6 +300,35 @@ public:
 	}
 };
 
+bool FPluginManager::IsPluginSupportedByCurrentTarget(TSharedRef<FPlugin> Plugin) const
+{
+	bool bSupported = false;
+	if (Plugin->GetDescriptor().Modules.Num())
+	{
+		for (const FModuleDescriptor& Module : Plugin->GetDescriptor().Modules)
+		{
+			// Programs support only program type plugins
+			// Non-program targets don't support from plugins
+#if IS_PROGRAM
+			if (Module.Type == EHostType::Program)
+			{
+				bSupported = true;
+			}
+#else
+			if (Module.Type != EHostType::Program)
+			{
+				bSupported = true;
+			}
+#endif
+		}
+	}
+	else
+	{
+		bSupported = true;
+	}
+	return bSupported;
+}
+
 bool FPluginManager::ConfigureEnabledPlugins()
 {
 	if(!bHaveConfiguredEnabledPlugins)
@@ -343,13 +380,22 @@ bool FPluginManager::ConfigureEnabledPlugins()
 		// If we made it here, we have all the required plugins
 		bHaveAllRequiredPlugins = true;
 
+		const bool bHasProjectFile = IProjectManager::Get().GetCurrentProject() != nullptr;
 		// Get all the enabled plugin names
 		TArray< FString > EnabledPluginNames;
-		#if IS_PROGRAM
-			GConfig->GetArray(TEXT("Plugins"), TEXT("ProgramEnabledPlugins"), EnabledPluginNames, GEngineIni);
-		#else
+	#if IS_PROGRAM
+		// Programs with a project file specified take the list of enabled plugins from the project file
+		if (bHasProjectFile)
+		{
 			FProjectManager::Get().GetEnabledPlugins(EnabledPluginNames);
-		#endif
+		}
+		else
+		{
+			GConfig->GetArray(TEXT("Plugins"), TEXT("ProgramEnabledPlugins"), EnabledPluginNames, GEngineIni);
+		}
+	#else
+		FProjectManager::Get().GetEnabledPlugins(EnabledPluginNames);
+	#endif
 
 		// Build a set from the array
 		TSet< FString > AllEnabledPlugins;
@@ -359,8 +405,8 @@ bool FPluginManager::ConfigureEnabledPlugins()
 		for( const TSharedRef< FPlugin > Plugin : AllPlugins )
 		{
 			if ( AllEnabledPlugins.Contains(Plugin->Name) )
-			{
-				Plugin->bEnabled = true;
+			{				
+				Plugin->bEnabled = (!IS_PROGRAM || !bHasProjectFile) || IsPluginSupportedByCurrentTarget(Plugin);
 			}
 		}
 

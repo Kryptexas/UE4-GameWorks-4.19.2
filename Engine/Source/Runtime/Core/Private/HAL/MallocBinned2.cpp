@@ -9,6 +9,7 @@
 #include "MallocBinned2.h"
 #include "MemoryMisc.h"
 #include "HAL/PlatformAtomics.h"
+#include "MallocVerify.h"
 
 //when modifying the global allocator stats, if we are using COARSE locks, then all callsites for stat modification are covered by the allocator-wide access guard. Thus the stats can be modified directly.
 //If we are using FINE locks, then we must modify the stats through atomics as the locks are either not actually covering the stat callsites, or are locking specific table locks which is not sufficient for stats.
@@ -54,6 +55,7 @@ DEFINE_STAT(STAT_Binned2_UsedPeak);
 DEFINE_STAT(STAT_Binned2_CurrentAllocs);
 DEFINE_STAT(STAT_Binned2_TotalAllocs);
 DEFINE_STAT(STAT_Binned2_SlackCurrent);
+
 
 // Block sizes are based around getting the maximum amount of allocations per pool, with as little alignment waste as possible.
 // Block sizes should be close to even divisors of the POOL_SIZE, and well distributed. They must be 16-byte aligned as well.
@@ -569,6 +571,9 @@ void* FMallocBinned2::Malloc(SIZE_T Size, uint32 Alignment)
 		}
 
 		FFreeMem* Result = Private::AllocateBlockFromPool(*this, *Table, Pool, Alignment);
+#if MALLOC_VERIFY
+		FMallocVerify::Get().Malloc(Result);
+#endif
 		return Result;
 	}
 
@@ -590,6 +595,9 @@ void* FMallocBinned2::Malloc(SIZE_T Size, uint32 Alignment)
 		}
 
 		FFreeMem* Result = Private::AllocateBlockFromPool(*this, *Table, Pool, Alignment);
+#if MALLOC_VERIFY
+		FMallocVerify::Get().Malloc(Result);
+#endif
 		return Result;
 	}
 
@@ -627,11 +635,14 @@ void* FMallocBinned2::Malloc(SIZE_T Size, uint32 Alignment)
 	BINNED2_PEAK_STATCOUNTER(Stats.UsedPeak,  BINNED2_ADD_STATCOUNTER(Stats.UsedCurrent,  Size));
 	BINNED2_PEAK_STATCOUNTER(Stats.WastePeak, BINNED2_ADD_STATCOUNTER(Stats.WasteCurrent, (int64)(AlignedSize - Size)));
 
+#if MALLOC_VERIFY
+	FMallocVerify::Get().Malloc(AlignedResult);
+#endif
 	return AlignedResult;
 }
 
 void* FMallocBinned2::Realloc(void* Ptr, SIZE_T NewSize, uint32 Alignment)
-{
+{	
 	// Handle DEFAULT_ALIGNMENT for binned allocator.
 	Alignment = FMath::Max<uint32>(Alignment, Private::DEFAULT_BINNED_ALLOCATOR_ALIGNMENT);
 
@@ -640,6 +651,8 @@ void* FMallocBinned2::Realloc(void* Ptr, SIZE_T NewSize, uint32 Alignment)
 		void* Result = FMallocBinned2::Malloc(NewSize, Alignment);
 		return Result;
 	}
+
+	//ValidateHeap();
 
 	if (NewSize == 0)
 	{
@@ -664,7 +677,6 @@ void* FMallocBinned2::Realloc(void* Ptr, SIZE_T NewSize, uint32 Alignment)
 			void* Result = FMallocBinned2::Malloc(NewSizeUnmodified, Alignment);
 			FMemory::Memcpy(Result, Ptr, FMath::Min<SIZE_T>(NewSizeUnmodified, MemSizeToPoolTable[Pool->TableIndex]->BlockSize - (Alignment - SpareBytesCount)));
 			FMallocBinned2::Free(Ptr);
-
 			return Result;
 		}
 
@@ -672,6 +684,9 @@ void* FMallocBinned2::Realloc(void* Ptr, SIZE_T NewSize, uint32 Alignment)
 		{
 			void* Result = Align(Ptr, Alignment);
 			FMemory::Memmove(Result, Ptr, NewSize);
+#if MALLOC_VERIFY
+			FMallocVerify::Get().Realloc(Ptr, Result);
+#endif
 			return Result;
 		}
 
@@ -686,7 +701,6 @@ void* FMallocBinned2::Realloc(void* Ptr, SIZE_T NewSize, uint32 Alignment)
 		void* Result = FMallocBinned2::Malloc(NewSizeUnmodified, Alignment);
 		FMemory::Memcpy(Result, Ptr, FMath::Min<SIZE_T>(NewSizeUnmodified, Pool->AllocSize));
 		FMallocBinned2::Free(Ptr);
-
 		return Result;
 	}
 
@@ -700,6 +714,9 @@ void* FMallocBinned2::Realloc(void* Ptr, SIZE_T NewSize, uint32 Alignment)
 
 	Pool->SetAllocationSizes(NewSizeUnmodified, PoolOsBytes, BinnedOSTableIndex, BinnedOSTableIndex);
 
+#if MALLOC_VERIFY
+	FMallocVerify::Get().Realloc(Ptr, Ptr);
+#endif
 	return Ptr;
 }
 
@@ -709,6 +726,10 @@ void FMallocBinned2::Free( void* Ptr )
 	{
 		return;
 	}
+
+#if MALLOC_VERIFY
+	FMallocVerify::Get().Free(Ptr);
+#endif
 
 	BINNED2_DECREMENT_STATCOUNTER(Stats.CurrentAllocs);
 

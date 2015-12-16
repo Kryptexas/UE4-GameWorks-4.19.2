@@ -3477,6 +3477,9 @@ void UClass::Serialize( FArchive& Ar )
 			};
 			Ar.Seek(InterfacesStart + sizeof(NumInterfaces) + NumInterfaces * sizeof(FSerializedInterfaceReference));
 		}
+
+		// At this point token stream is most likely dirty too
+		SetTokenStreamMaybeDirty(true);
 	}
 
 	if (!Ar.IsIgnoringClassGeneratedByRef())

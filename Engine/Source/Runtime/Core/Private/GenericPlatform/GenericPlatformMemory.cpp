@@ -181,6 +181,12 @@ uint32 FGenericPlatformMemory::GetPhysicalGBRam()
 	return FPlatformMemory::GetConstants().TotalPhysicalGB;
 }
 
+bool FGenericPlatformMemory::PageProtect( void* const Ptr, const SIZE_T Size, const uint32 ProtectMode )
+{
+	UE_LOG(LogMemory, Error, TEXT("FGenericPlatformMemory::PageProtect not implemented on this platform"));
+	return false;
+}
+
 void* FGenericPlatformMemory::BinnedAllocFromOS( SIZE_T Size )
 {
 	UE_LOG(LogMemory, Error, TEXT("FGenericPlatformMemory::BinnedAllocFromOS not implemented on this platform"));

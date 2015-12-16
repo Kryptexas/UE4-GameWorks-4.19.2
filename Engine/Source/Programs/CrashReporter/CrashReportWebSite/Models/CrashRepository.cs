@@ -88,7 +88,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				if (Now - LastBranchesDate > TimeSpan.FromHours( 1 ))
 				{
 					var BranchList = Context.Crashes
-					.Where( n => n.TimeOfCrash > DateTime.Now.AddMonths( -3 ) )
+					.Where( n => n.TimeOfCrash > DateTime.Now.AddDays( -14 ) )
+                    .Where(c => c.CrashType != 3) // Ignore ensures
 					// Depot - //depot/UE4* || Stream //UE4, //Something etc.
 					.Where( n => n.Branch.StartsWith( "UE4" ) || n.Branch.StartsWith( "//" ) )
 					.Select( n => n.Branch )
@@ -142,7 +143,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				if (Now - LastVersionDate > TimeSpan.FromHours( 1 ))
 				{
 					var BuildVersions = Context.Crashes
-					.Where( c => c.TimeOfCrash > DateTime.Now.AddMonths( -3 ) )
+					.Where( c => c.TimeOfCrash > DateTime.Now.AddDays( -14 ) )
+                    .Where(c => c.CrashType != 3 ) // Ignore ensures
 					.Select( c => c.BuildVersion )
 					.Distinct()
 					.ToList();

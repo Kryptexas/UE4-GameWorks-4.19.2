@@ -70,6 +70,9 @@ const TCHAR* EHostType::ToString( const EHostType::Type Value )
 		case RuntimeNoCommandlet:
 			return TEXT( "RuntimeNoCommandlet" );
 
+		case RuntimeNoProgram:
+			return TEXT("RuntimeNoProgram");
+
 		case Developer:
 			return TEXT( "Developer" );
 
@@ -278,6 +281,13 @@ bool FModuleDescriptor::IsCompiledInCurrentConfiguration() const
 	case EHostType::RuntimeNoCommandlet:
 		return true;
 
+	case EHostType::RuntimeNoProgram:
+#if IS_PROGRAM
+		return false;
+#else
+		return true;
+#endif
+
 	case EHostType::Developer:
 		#if WITH_UNREAL_DEVELOPER_TOOLS
 			return true;
@@ -315,12 +325,16 @@ bool FModuleDescriptor::IsLoadedInCurrentConfiguration() const
 	// Check that the runtime environment allows it to be loaded
 	switch (Type)
 	{
+	case EHostType::RuntimeNoProgram:
+#if IS_PROGRAM
+		return false;
+#endif // else fall through to EHostType::Runtime below
 	case EHostType::Runtime:
-		#if WITH_ENGINE || WITH_PLUGIN_SUPPORT
+		#if (WITH_ENGINE || WITH_PLUGIN_SUPPORT)
 			return true;
 		#endif
 		break;
-
+	
 	case EHostType::RuntimeNoCommandlet:
 		#if WITH_ENGINE || WITH_PLUGIN_SUPPORT
 			if(!IsRunningCommandlet()) return true;

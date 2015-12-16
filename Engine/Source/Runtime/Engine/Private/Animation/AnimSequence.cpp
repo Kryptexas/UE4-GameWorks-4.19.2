@@ -4700,11 +4700,7 @@ float UAnimSequence::GetNextMatchingPosFromMarkerSyncPos(const FMarkerSyncAnimPo
 	AnimNotify& subclasses
 -----------------------------------------------------------------------------*/
 
-
-
-
-////////////
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !UE_BUILD_SHIPPING
 
 void GatherAnimSequenceStats(FOutputDevice& Ar)
 {
@@ -4794,5 +4790,7 @@ void GatherAnimSequenceStats(FOutputDevice& Ar)
 	Ar.Logf( TEXT("Approx Compressed Memory: %i bytes"), GlobalApproxCompressedSize);
 	Ar.Logf( TEXT("Approx Key Data Memory: %i bytes"), GlobalApproxKeyDataSize);
 }
-#endif
+
+#endif // !UE_BUILD_SHIPPING
+
 #undef LOCTEXT_NAMESPACE 

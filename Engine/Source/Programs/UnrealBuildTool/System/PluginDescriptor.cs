@@ -70,6 +70,9 @@ namespace UnrealBuildTool
 		// Marks the plugin as beta in the UI
 		public bool bIsBetaVersion;
 
+		// Whether this plugin can be used by UnrealHeaderTool
+		public bool bCanBeUsedWithUnrealHeaderTool;
+
 		// Set for plugins which are installed
 		public bool bInstalled;
 
@@ -143,6 +146,7 @@ namespace UnrealBuildTool
 				RawObject.TryGetBoolField("CanContainContent", out Descriptor.bCanContainContent);
 				RawObject.TryGetBoolField("IsBetaVersion", out Descriptor.bIsBetaVersion);
 				RawObject.TryGetBoolField("Installed", out Descriptor.bInstalled);
+				RawObject.TryGetBoolField("CanBeUsedWithUnrealHeaderTool", out Descriptor.bCanBeUsedWithUnrealHeaderTool);
 
 				return Descriptor;
 			}

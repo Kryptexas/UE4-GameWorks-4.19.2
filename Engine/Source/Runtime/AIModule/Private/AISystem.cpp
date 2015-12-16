@@ -128,7 +128,7 @@ void UAISystem::AILoggingVerbose()
 
 void UAISystem::RunEQS(const FString& QueryName, UObject* Target)
 {
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !UE_BUILD_SHIPPING
 	UWorld* OuterWorld = GetOuterWorld();
 	if (OuterWorld == NULL || OuterWorld->GetGameInstance() == NULL)
 	{
@@ -155,7 +155,7 @@ void UAISystem::RunEQS(const FString& QueryName, UObject* Target)
 	{
 		MyPC->ClientMessage(TEXT("No debugging target"));
 	}
-#endif
+#endif // !UE_BUILD_SHIPPING
 }
 
 UAISystem::FBlackboardDataToComponentsIterator::FBlackboardDataToComponentsIterator(FBlackboardDataToComponentsMap& InBlackboardDataToComponentsMap, UBlackboardData* BlackboardAsset)

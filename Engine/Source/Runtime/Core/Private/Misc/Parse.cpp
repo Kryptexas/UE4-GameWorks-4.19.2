@@ -3,7 +3,7 @@
 #include "CorePrivatePCH.h"
 #include "LazyPrintf.h"
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !UE_BUILD_SHIPPING 
 /**
  * Needed for the console command "DumpConsoleCommands"
  * How it works:
@@ -199,7 +199,7 @@ void ConsoleCommandLibrary_DumpLibraryHTML(UWorld* InWorld, FExec& SubSystem, co
 	}
 */
 }
-#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#endif // UE_BUILD_SHIPPING
 
 //
 // Get a string from a text string.
@@ -665,7 +665,7 @@ bool FParse::Value( const TCHAR* Stream, const TCHAR* Match, struct FGuid& Guid 
 //
 bool FParse::Command( const TCHAR** Stream, const TCHAR*  Match, bool bParseMightTriggerExecution )
 {
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !UE_BUILD_SHIPPING
 	if(GConsoleCommandLibrary)
 	{
 		GConsoleCommandLibrary->OnParseCommand(Match);
@@ -676,7 +676,7 @@ bool FParse::Command( const TCHAR** Stream, const TCHAR*  Match, bool bParseMigh
 			return false;
 		}
 	}
-#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#endif // !UE_BUILD_SHIPPING
 
 	while( (**Stream==' ')||(**Stream==9) )
 		(*Stream)++;

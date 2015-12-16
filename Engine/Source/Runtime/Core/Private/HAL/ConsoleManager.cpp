@@ -1497,10 +1497,14 @@ void CreateConsoleVariables()
 	IConsoleManager::Get().RegisterConsoleCommand(TEXT("Vis"),	TEXT("short version of visualizetexture"), ECVF_Cheat);
 	IConsoleManager::Get().RegisterConsoleCommand(TEXT("VisRT"),	TEXT("GUI for visualizetexture"), ECVF_Cheat);
 	IConsoleManager::Get().RegisterConsoleCommand(TEXT("HighResShot"),	TEXT("High resolution screenshots [Magnification = 2..]"), ECVF_Cheat);
-	IConsoleManager::Get().RegisterConsoleCommand(TEXT("DumpConsoleCommands"),	TEXT("Dumps all console vaiables and commands and all exec that can be discovered to the log/console"), ECVF_Default);
 	IConsoleManager::Get().RegisterConsoleCommand(TEXT("DumpUnbuiltLightInteractions"),	TEXT("Logs all lights and primitives that have an unbuilt interaction."), ECVF_Cheat);
 
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
+
+#if	!UE_BUILD_SHIPPING
+	IConsoleManager::Get().RegisterConsoleCommand( TEXT( "DumpConsoleCommands" ), TEXT( "Dumps all console vaiables and commands and all exec that can be discovered to the log/console" ), ECVF_Default );
+#endif // !UE_BUILD_SHIPPING
 
 	// testing code
 	{

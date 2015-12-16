@@ -155,9 +155,9 @@ UGameplayDebuggingComponent::UGameplayDebuggingComponent(const FObjectInitialize
 	{
 		Replicator->OnCycleDetailsView.AddUObject(this, &UGameplayDebuggingComponent::OnCycleDetailsView);
 		FGameplayDebuggerSettings Settings = GameplayDebuggerSettings(Replicator);
-		for (int32 Index = EAIDebugDrawDataView::Empty + 1; Index < EAIDebugDrawDataView::MAX; ++Index)
+		for (EAIDebugDrawDataView::Type View : TEnumRange<EAIDebugDrawDataView::Type>())
 		{
-			ReplicateViewDataCounters[Index] = Settings.CheckFlag(Index);
+			ReplicateViewDataCounters[View] = Settings.CheckFlag(View);
 		}
 	}
 #endif

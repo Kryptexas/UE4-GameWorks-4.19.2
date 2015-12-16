@@ -48,8 +48,7 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 	{
 		const TCHAR* CmdLinePtr = *ShortCmdLine;
 
-		// Parse the game name.  UHT doesn't care about this directly, but the engine init code will be
-		// expecting it when it parses the command-line itself.
+		// Parse the game name or project filename.  UHT reads the list of plugins from there in case one of the plugins is UHT plugin.
 		FString GameName = FParse::Token(CmdLinePtr, false);
 
 		// This parameter is the absolute path to the file which contains information about the modules

@@ -152,7 +152,7 @@ COREUOBJECT_API const FString* GetIniFilenameFromObjectsReference(const FString&
  */
 COREUOBJECT_API FString ResolveIniObjectsReference(const FString& ObjectReference, const FString* IniFilename, bool bThrow = false);
 
-COREUOBJECT_API bool ResolveName( UObject*& Outer, FString& ObjectsReferenceString, bool Create, bool Throw );
+COREUOBJECT_API bool ResolveName(UObject*& Outer, FString& ObjectsReferenceString, bool Create, bool Throw, uint32 LoadFlags = LOAD_None);
 COREUOBJECT_API void SafeLoadError( UObject* Outer, uint32 LoadFlags, const TCHAR* ErrorMessage);
 
 /**

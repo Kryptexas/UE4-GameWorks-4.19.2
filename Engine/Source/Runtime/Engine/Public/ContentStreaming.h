@@ -932,7 +932,7 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 	bool HandleListStreamingTexturesReportReadyCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleListStreamingTexturesReportCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 #endif // STATS
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !UE_BUILD_SHIPPING
 	bool HandleLightmapStreamingFactorCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleCancelTextureStreamingCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleShadowmapStreamingFactorCommand( const TCHAR* Cmd, FOutputDevice& Ar );
@@ -946,7 +946,7 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 	bool HandleStreamingManagerMemoryCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );
 	bool HandleTextureGroupsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleInvestigateTextureCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#endif // !UE_BUILD_SHIPPING
 	/** Adds a new texture to the streaming manager. */
 	virtual void AddStreamingTexture( UTexture2D* Texture ) override;
 

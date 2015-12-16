@@ -27,8 +27,6 @@ FProfilerSession::FProfilerSession( EProfilerSessionTypes::Type InSessionType, c
 , OnTick( FTickerDelegate::CreateRaw( this, &FProfilerSession::HandleTicker ) )
 , DataProvider( MakeShareable( new FArrayDataProvider() ) )
 , StatMetaData( MakeShareable( new FProfilerStatMetaData() ) )
-, EventGraphDataTotal( MakeShareable( new FEventGraphData() ) )
-, EventGraphDataMaximum( MakeShareable( new FEventGraphData() ) )
 , EventGraphDataCurrent( nullptr )
 , CreationTime( FDateTime::Now() )
 , SessionType( InSessionType )
@@ -51,8 +49,6 @@ FProfilerSession::FProfilerSession( const ISessionInstanceInfoPtr InSessionInsta
 , OnTick( FTickerDelegate::CreateRaw( this, &FProfilerSession::HandleTicker ) )
 , DataProvider( MakeShareable( new FArrayDataProvider() ) )
 , StatMetaData( MakeShareable( new FProfilerStatMetaData() ) )
-, EventGraphDataTotal( MakeShareable( new FEventGraphData() ) )
-, EventGraphDataMaximum( MakeShareable( new FEventGraphData() ) )
 , EventGraphDataCurrent( nullptr )
 , CreationTime( FDateTime::Now() )
 , SessionType( EProfilerSessionTypes::Live )
@@ -79,8 +75,6 @@ FProfilerSession::FProfilerSession( const FString& InDataFilepath )
 , OnTick( FTickerDelegate::CreateRaw( this, &FProfilerSession::HandleTicker ) )
 , DataProvider( MakeShareable( new FArrayDataProvider() ) )
 , StatMetaData( MakeShareable( new FProfilerStatMetaData() ) )
-, EventGraphDataTotal( MakeShareable( new FEventGraphData() ) )
-, EventGraphDataMaximum( MakeShareable( new FEventGraphData() ) )
 , EventGraphDataCurrent( nullptr )
 , CreationTime( FDateTime::Now() )
 , SessionType( EProfilerSessionTypes::StatsFile )
@@ -105,47 +99,31 @@ FProfilerSession::~FProfilerSession()
 	FTicker::GetCoreTicker().RemoveTicker( OnTickHandle );	
 }
 
+const FEventGraphDataRef FProfilerSession::GetEventGraphDataTotal() const
+{
+	return EventGraphDataTotal.ToSharedRef();
+}
+
+const FEventGraphDataRef FProfilerSession::GetEventGraphDataMaximum() const
+{
+	return EventGraphDataMaximum.ToSharedRef();
+}
+
+const FEventGraphDataRef FProfilerSession::GetEventGraphDataAverage() const
+{
+	return EventGraphDataAverage.ToSharedRef();
+}
+
 FGraphDataSourceRefConst FProfilerSession::CreateGraphDataSource( const uint32 InStatID )
 {
 	FGraphDataSource* GraphDataSource = new FGraphDataSource( AsShared(), InStatID );
 	return MakeShareable( GraphDataSource );
 }
 
-FEventGraphDataRef FProfilerSession::CreateEventGraphData( const uint32 FrameStartIndex, const uint32 FrameEndIndex, const EEventGraphTypes::Type EventGraphType )
-{
-	static FTotalTimeAndCount Current(0.0f, 0);
-	PROFILER_SCOPE_LOG_TIME( TEXT( "FProfilerSession::CreateEventGraphData" ), &Current );
-
-	FEventGraphData* EventGraphData = new FEventGraphData();
-
-	if( EventGraphType == EEventGraphTypes::Average )
-	{
-		for( uint32 FrameIndex = FrameStartIndex; FrameIndex < FrameEndIndex+1; ++FrameIndex )
-		{
-			// Create a temporary event graph data for the specified frame.
-			const FEventGraphData CurrentEventGraphData( AsShared(), FrameIndex );
-			EventGraphData->CombineAndAdd( CurrentEventGraphData );
-		}
-	
-		EventGraphData->Advance( FrameStartIndex, FrameEndIndex+1 );
-		EventGraphData->Divide( (double)EventGraphData->GetNumFrames() );
-	}
-	else if( EventGraphType == EEventGraphTypes::Maximum )
-	{
-		for( uint32 FrameIndex = FrameStartIndex; FrameIndex < FrameEndIndex+1; ++FrameIndex )
-		{
-			// Create a temporary event graph data for the specified frame.
-			const FEventGraphData CurrentEventGraphData( AsShared(), FrameIndex );
-			EventGraphData->CombineAndFindMax( CurrentEventGraphData );
-		}
-		EventGraphData->Advance( FrameStartIndex, FrameEndIndex+1 );
-	}
-
-	return MakeShareable( EventGraphData );
-}
-
 void FProfilerSession::UpdateAggregatedStats( const uint32 FrameIndex )
 {
+	// #YRX_Profiler 2015-12-08  Move to profiler client manager or ignore hier stats, and move hier stats to PopulateHierarchy_Recurrent
+
 	static FTotalTimeAndCount TimeAndCount( 0.0f, 0 );
 	PROFILER_SCOPE_LOG_TIME( TEXT( "2 FProfilerSession::UpdateAggregatedStats" ), &TimeAndCount );
 
@@ -178,24 +156,63 @@ void FProfilerSession::UpdateAggregatedStats( const uint32 FrameIndex )
 	// @TODO: Create map for stats TMap<uint32, TArray<uint32> >; StatID -> Sample indices for faster lookup in data providers
 }
 
-void FProfilerSession::EventGraphCombineAndMax( const FEventGraphData* Current, const uint32 InNumFrames )
+FEventGraphDataRef FProfilerSession::CreateEventGraphData( const uint32 FrameStartIndex, const uint32 FrameEndIndex, const EEventGraphTypes::Type EventGraphType )
 {
-	EventGraphDataMaximum->CombineAndFindMax( *Current );
+	static FTotalTimeAndCount Current( 0.0f, 0 );
+	PROFILER_SCOPE_LOG_TIME( TEXT( "FProfilerSession::CreateEventGraphData" ), &Current );
+
+	FEventGraphData* EventGraphData = new FEventGraphData( AsShared(), FrameStartIndex );
+	for (uint32 FrameIndex = FrameStartIndex + 1; FrameIndex < FrameEndIndex + 1; ++FrameIndex)
+	{
+		// Create a temporary event graph data for the specified frame.
+		const FEventGraphData CurrentEventGraphData( AsShared(), FrameIndex );
+		EventGraphData->Combine( CurrentEventGraphData );
+	}
+	EventGraphData->Finalize( FrameStartIndex, FrameEndIndex + 1 );
+
+	if (EventGraphType == EEventGraphTypes::Average)
+	{
+		EventGraphData->SetAsAverage();
+	}
+	else if (EventGraphType == EEventGraphTypes::Maximum)
+	{
+
+		EventGraphData->SetAsMaximim();
+	}
+	else if (EventGraphType == EEventGraphTypes::Total)
+	{
+		// Nothing to do.
+	}
+
+	return MakeShareable( EventGraphData );
+}
+
+void FProfilerSession::EventGraphCombine( const FEventGraphData* Current, const uint32 InNumFrames )
+{
+	if (EventGraphDataTotal.IsValid())
+	{
+		EventGraphDataTotal->Combine( *Current );
+	}
+	else
+	{
+		EventGraphDataTotal = MakeShareable( new FEventGraphData( *Current ) );
+	}
 	
 	if (InNumFrames > 0)
 	{
-		EventGraphDataMaximum->Advance( 0, InNumFrames );
+		UpdateAllEventGraphs( InNumFrames );
 	}
 }
 
-void FProfilerSession::EventGraphCombineAndAdd( const FEventGraphData* Current, const uint32 InNumFrames )
+void FProfilerSession::UpdateAllEventGraphs( const uint32 InNumFrames )
 {
-	EventGraphDataTotal->CombineAndAdd( *Current );
+	EventGraphDataTotal->Finalize( 0, DataProvider->GetNumFrames() );
+	
+	EventGraphDataAverage = EventGraphDataTotal->DuplicateAsRef();
+	EventGraphDataAverage->SetAsAverage();
 
-	if (InNumFrames > 0)
-	{
-		EventGraphDataTotal->Advance( 0, InNumFrames );
-	}
+	EventGraphDataMaximum = EventGraphDataTotal->DuplicateAsRef();
+	EventGraphDataMaximum->SetAsMaximim();
 }
 
 void FProfilerSession::UpdateAggregatedEventGraphData( const uint32 FrameIndex )
@@ -210,43 +227,24 @@ void FProfilerSession::UpdateAggregatedEventGraphData( const uint32 FrameIndex )
 	EventGraphDataCurrent = new FEventGraphData( AsShared(), FrameIndex );
 	const uint32 NumFramesLocal = SessionType == EProfilerSessionTypes::Live ? DataProvider->GetNumFrames() : 0;
 
-	static const bool bUseTaskGraph = true;
+	static const bool bUseTaskGraph = false;
 
 	if( bUseTaskGraph )
 	{
-		FGraphEventArray EventGraphCombineTasks;
-
-		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.EventGraphData.CombineAndFindMax"),
-			STAT_FSimpleDelegateGraphTask_EventGraphData_CombineAndFindMax,
-			STATGROUP_TaskGraphTasks);
-		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.EventGraphData.CombineAndAdd"),
-			STAT_FSimpleDelegateGraphTask_EventGraphData_EventGraphCombineAndAdd,
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.EventGraphData.GraphCombine"),
+			STAT_FSimpleDelegateGraphTask_EventGraphData_GraphCombine,
 			STATGROUP_TaskGraphTasks);
 
-		new (EventGraphCombineTasks) FGraphEventRef(FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
+		CompletionSync = FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
 		(
-			FSimpleDelegateGraphTask::FDelegate::CreateRaw( this, &FProfilerSession::EventGraphCombineAndMax, EventGraphDataCurrent, NumFramesLocal ), 
-			GET_STATID(STAT_FSimpleDelegateGraphTask_EventGraphData_CombineAndFindMax), nullptr
-		));
-
-		new (EventGraphCombineTasks) FGraphEventRef(FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
-		(
-			FSimpleDelegateGraphTask::FDelegate::CreateRaw( this, &FProfilerSession::EventGraphCombineAndAdd, EventGraphDataCurrent, NumFramesLocal ), 
-			GET_STATID(STAT_FSimpleDelegateGraphTask_EventGraphData_EventGraphCombineAndAdd), nullptr
-		));
-
-		DECLARE_CYCLE_STAT(TEXT("FNullGraphTask.EventGraphData.CombineJoinAndContinue"),
-			STAT_FNullGraphTask_EventGraphData_CombineJoinAndContinue,
-			STATGROUP_TaskGraphTasks);
-
-		// JoinThreads
-		CompletionSync = TGraphTask<FNullGraphTask>::CreateTask( &EventGraphCombineTasks, ENamedThreads::GameThread )
-			.ConstructAndDispatchWhenReady(GET_STATID(STAT_FNullGraphTask_EventGraphData_CombineJoinAndContinue), ENamedThreads::AnyThread);
+			FSimpleDelegateGraphTask::FDelegate::CreateRaw( this, &FProfilerSession::EventGraphCombine, EventGraphDataCurrent, NumFramesLocal ), 
+			GET_STATID( STAT_FSimpleDelegateGraphTask_EventGraphData_GraphCombine )
+		);
+		
 	}
 	else
 	{
-		EventGraphCombineAndMax( EventGraphDataCurrent, NumFramesLocal );
-		EventGraphCombineAndAdd( EventGraphDataCurrent, NumFramesLocal );
+		EventGraphCombine( EventGraphDataCurrent, NumFramesLocal );
 	}
 }
 
@@ -260,6 +258,8 @@ void FProfilerSession::CompletionSyncAggregatedEventGraphData()
 		FTaskGraphInterface::Get().WaitUntilTaskCompletes( CompletionSync, ENamedThreads::GameThread );
 	}
 }
+
+
 
 bool FProfilerSession::HandleTicker( float DeltaTime )
 {
@@ -426,8 +426,7 @@ bool FProfilerSession::HandleTicker( float DeltaTime )
 			CompletionSyncAggregatedEventGraphData();
 
 			// Advance event graphs.
-			EventGraphDataMaximum->Advance( 0, DataProvider->GetNumFrames() );
-			EventGraphDataTotal->Advance( 0, DataProvider->GetNumFrames() );
+			UpdateAllEventGraphs( DataProvider->GetNumFrames() );
 
 			// Broadcast that a capture file has been fully processed.
 			OnCaptureFileProcessed.ExecuteIfBound( GetInstanceID() );
@@ -687,7 +686,6 @@ void FRawProfilerSession::PrepareLoading()
 	const bool bIsFinalized = Stream.Header.IsFinalized();
 	check( bIsFinalized );
 	check( Stream.Header.Version == EStatMagicWithHeader::VERSION_5 );
-	StatsThreadStats.MarkAsLoaded();
 
 	TArray<FStatMessage> Messages;
 	if( Stream.Header.bRawStatsFile )

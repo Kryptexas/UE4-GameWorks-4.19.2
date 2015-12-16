@@ -625,12 +625,12 @@ const FString* GetIniFilenameFromObjectsReference(const FString& Name)
 //
 // Resolve a package and name.
 //
-bool ResolveName( UObject*& InPackage, FString& InOutName, bool Create, bool Throw )
-	{
+bool ResolveName(UObject*& InPackage, FString& InOutName, bool Create, bool Throw, uint32 LoadFlags /*= LOAD_None*/)
+{
 	const FString* IniFilename = GetIniFilenameFromObjectsReference(InOutName);
 
 	if (IniFilename && InOutName.Contains(TEXT("."), ESearchCase::CaseSensitive))
-		{
+	{
 		InOutName = ResolveIniObjectsReference(InOutName, IniFilename, Throw);
 	}
 
@@ -692,7 +692,7 @@ bool ResolveName( UObject*& InPackage, FString& InOutName, bool Create, bool Thr
 			InPackage = StaticFindObjectFast(UPackage::StaticClass(), InPackage, *PartialName);
 			if (!ScriptPackageName && !InPackage)
 			{
-				InPackage = LoadPackage(dynamic_cast<UPackage*>(InPackage), *PartialName, 0);
+				InPackage = LoadPackage(dynamic_cast<UPackage*>(InPackage), *PartialName, LoadFlags);
 			}
 			if (!InPackage)
 			{
@@ -778,7 +778,7 @@ UObject* StaticLoadObjectInternal(UClass* ObjectClass, UObject* InOuter, const T
 	const bool bContainsObjectName = !!FCString::Strstr(InName, TEXT("."));
 
 	// break up the name into packages, returning the innermost name and its outer
-	ResolveName(InOuter, StrName, true, true);
+	ResolveName(InOuter, StrName, true, true, LoadFlags & LOAD_EditorOnly);
 	if (InOuter)
 	{
 		// If we have a full UObject name then attempt to find the object in memory first,
@@ -836,7 +836,7 @@ UObject* StaticLoadObjectInternal(UClass* ObjectClass, UObject* InOuter, const T
 		Result = StaticLoadObjectInternal(ObjectClass, InOuter, *StrName, Filename, LoadFlags, Sandbox, bAllowObjectReconciliation);
 	}
 #if WITH_EDITORONLY_DATA
-	else if (Result)
+	else if (Result && !(LoadFlags & LOAD_EditorOnly))
 	{
 		Result->GetOutermost()->SetLoadedByEditorPropertiesOnly(false);
 	}
@@ -853,7 +853,7 @@ UObject* StaticLoadObject(UClass* ObjectClass, UObject* InOuter, const TCHAR* In
 	if (!Result)
 	{
 		FString ObjectName = InName;
-		ResolveName(InOuter, ObjectName, true, true);
+		ResolveName(InOuter, ObjectName, true, true, LoadFlags & LOAD_EditorOnly);
 
 		// we haven't created or found the object, error
 		FFormatNamedArguments Arguments;
@@ -1076,7 +1076,7 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 		};
 
 #if WITH_EDITORONLY_DATA
-		if (!(LoadFlags & LOAD_IsVerifying) &&
+		if (!(LoadFlags & (LOAD_IsVerifying|LOAD_EditorOnly)) &&
 			(!ImportLinker || !ImportLinker->GetSerializedProperty() || !ImportLinker->GetSerializedProperty()->IsEditorOnlyProperty()))
 		{
 			// If this package hasn't been loaded as part of import verification and there's no import linker or the

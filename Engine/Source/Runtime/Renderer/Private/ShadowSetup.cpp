@@ -140,7 +140,7 @@ static TAutoConsoleVariable<int32> CVarUseConservativeShadowBounds(
 	TEXT("Whether to use safe and conservative shadow frustum creation that wastes some shadowmap space"),
 	ECVF_RenderThreadSafe);
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !UE_BUILD_SHIPPING
 // read and written on the render thread
 bool GDumpShadowSetup = false;
 void DumpShadowDumpSetup()
@@ -157,7 +157,7 @@ FAutoConsoleCommand CmdDumpShadowDumpSetup(
 	TEXT("Dump shadow setup (for developer only, only for non shiping build)"),
 	FConsoleCommandDelegate::CreateStatic(DumpShadowDumpSetup)
 	);
-#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#endif // !UE_BUILD_SHIPPING
 
 /**
  * Helper function to determine fade alpha value for shadows based on resolution. In the below ASCII art (1) is
@@ -1942,7 +1942,7 @@ void FSceneRenderer::InitProjectedShadowVisibility(FRHICommandListImmediate& RHI
 		}
 	}
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !UE_BUILD_SHIPPING
 	if(GDumpShadowSetup)
 	{
 		GDumpShadowSetup = false;
@@ -1992,7 +1992,7 @@ void FSceneRenderer::InitProjectedShadowVisibility(FRHICommandListImmediate& RHI
 			}
 		}
 	}
-#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#endif // !UE_BUILD_SHIPPING
 }
 
 void FSceneRenderer::GatherShadowDynamicMeshElements()

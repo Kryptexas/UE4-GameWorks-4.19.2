@@ -1739,6 +1739,19 @@ namespace UnrealBuildTool
 							ReasonNotLoaded = "modules to compile have changed";
 						}
 
+						// Invalid makefile if foreign plugins have changed
+						if (UBTMakefile != null && !TargetDescs.SelectMany(x => x.ForeignPlugins)
+								.Select(x => new Tuple<string, bool>(x.FullName.ToLower(), string.IsNullOrWhiteSpace(x.FullName)))
+								.SequenceEqual(
+									UBTMakefile.Targets.SelectMany(x => x.ForeignPlugins)
+									.Select(x => new Tuple<string, bool>(x.FullName.ToLower(), string.IsNullOrWhiteSpace(x.FullName)))
+								)
+							)
+						{
+							UBTMakefile = null;
+							ReasonNotLoaded = "foreign plugins have changed";
+						}
+
 						if (UBTMakefile == null)
 						{
 							// If the Makefile couldn't be loaded, then we're not going to be able to continue in "assembler only" mode.  We'll do both
@@ -2265,7 +2278,7 @@ namespace UnrealBuildTool
 		[Serializable]
 		class UBTMakefile : ISerializable
 		{
-			public const int CurrentVersion = 3;
+			public const int CurrentVersion = 4;
 
 			public int Version;
 

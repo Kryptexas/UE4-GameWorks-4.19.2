@@ -699,19 +699,29 @@ bool FWindowsPlatformStackWalk::InitStackWalking()
 		//		SymOpts |= SYMOPT_CASE_INSENSITIVE;
 
 		SymSetOptions( SymOpts );
-
-		// Initialize the symbol engine.
+	
+		// Initialize the symbol engine.		
 		const FString RemoteStorage = GetRemoteStorage(GetDownstreamStorage());
 		SymInitializeW( GetCurrentProcess(), RemoteStorage.IsEmpty() ? nullptr : *RemoteStorage, true );
 	
 		GNeedToRefreshSymbols = false;
 		GStackWalkingInitialized = true;
+
+		if (!FPlatformProperties::IsMonolithicBuild() && FPlatformStackWalk::WantsDetailedCallstacksInNonMonolithicBuilds())
+		{
+			LoadProcessModules( RemoteStorage );
+		}			
 	}
 #if WINVER > 0x502
 	else if (GNeedToRefreshSymbols)
 	{
 		// Refresh and reload symbols
 		SymRefreshModuleList( GetCurrentProcess() );
+		if (!FPlatformProperties::IsMonolithicBuild() && FPlatformStackWalk::WantsDetailedCallstacksInNonMonolithicBuilds())
+		{
+			const FString RemoteStorage = GetRemoteStorage( GetDownstreamStorage() );
+			LoadProcessModules( RemoteStorage );
+		}
 		GNeedToRefreshSymbols = false;
 	}
 #endif

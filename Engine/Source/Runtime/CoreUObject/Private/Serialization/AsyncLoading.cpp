@@ -329,6 +329,11 @@ void FAsyncLoadingThread::InitializeAsyncThread()
 void FAsyncLoadingThread::CancelAsyncLoadingInternal()
 {
 	{
+		FGCScopeGuard GCGuard;
+		FAsyncObjectsReferencer::Get().EmptyReferencedObjectsAndCancelLoading();
+	}
+
+	{
 		// Packages we haven't yet started processing.
 #if THREADSAFE_UOBJECTS
 		FScopeLock QueueLock(&QueueCritical);
@@ -381,10 +386,6 @@ void FAsyncLoadingThread::CancelAsyncLoadingInternal()
 	QueuedPackagesCounter.Reset();
 
 	FUObjectThreadContext::Get().ObjLoaded.Empty();
-	{
-		FGCScopeGuard GCGuard;
-		FAsyncObjectsReferencer::Get().EmptyReferencedObjectsAndCancelLoading();
-	}
 
 	// Notify everyone streaming is canceled.
 	CancelLoadingEvent->Trigger();
@@ -2034,6 +2035,7 @@ void FAsyncPackage::Cancel()
 	{
 		CompletionCallbacks[CallbackIndex].Callback.ExecuteIfBound(Desc.Name, nullptr, Result);
 	}
+	bLoadHasFailed = true;
 	if (LinkerRoot)
 	{
 		if (Linker)

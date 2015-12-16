@@ -146,15 +146,15 @@ void SProfilerGraphPanel::VerticalScrollBar_OnUserScrolled( float ScrollOffset )
 }
 
 
-void SProfilerGraphPanel::ProfilerManager_OnTrackedStatChanged( const FTrackedStat& TrackedStat, bool bIsTracked )
+void SProfilerGraphPanel::ProfilerManager_OnTrackedStatChanged( const FTrackedStatPtr& TrackedStat, bool bIsTracked )
 {
 	if( bIsTracked )
 	{
-		DataGraph->AddInnerGraph( TrackedStat.StatID, TrackedStat.ColorAverage, TrackedStat.ColorBackground, TrackedStat.ColorExtremes, TrackedStat.CombinedGraphDataSource );
+		DataGraph->AddInnerGraph( TrackedStat );
 	}
 	else
 	{
-		DataGraph->RemoveInnerGraph( TrackedStat.StatID );
+		DataGraph->RemoveInnerGraph( TrackedStat->StatID );
 	}
 }
 
