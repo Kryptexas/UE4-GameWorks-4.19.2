@@ -354,6 +354,8 @@ class COREUOBJECT_API FBlueprintCoreDelegates
 public:
 	// Callback for debugging events such as a breakpoint (Object that triggered event, active stack frame, Info)
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnScriptDebuggingEvent, const UObject*, const struct FFrame&, const FBlueprintExceptionInfo&);
+	// Callback for when script execution terminates.
+	DECLARE_MULTICAST_DELEGATE(FOnScriptExecutionEnd);
 	// Callback for blueprint profiling events
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnScriptInstrumentEvent, const EScriptInstrumentationEvent& );
 	// Callback for blueprint instrumentation enable/disable events
@@ -362,6 +364,8 @@ public:
 public:
 	// Called when a script exception occurs
 	static FOnScriptDebuggingEvent OnScriptException;
+	// Called when a script execution terminates.
+	static FOnScriptExecutionEnd OnScriptExecutionEnd;
 	// Called when a script profiling event is fired
 	static FOnScriptInstrumentEvent OnScriptProfilingEvent;
 	// Called when a script profiler is enabled/disabled

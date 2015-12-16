@@ -63,6 +63,8 @@ public:
 	TSharedPtr<FUICommandInfo> PossessEjectPlayer;
 	TSharedPtr<FUICommandInfo> ShowCurrentStatement;
 	TSharedPtr<FUICommandInfo> StepInto;
+	TSharedPtr<FUICommandInfo> StepOver;
+	TSharedPtr<FUICommandInfo> StepOut;
 
 	/** Launch on device */
 	TSharedPtr<FUICommandInfo> RepeatLastLaunch;

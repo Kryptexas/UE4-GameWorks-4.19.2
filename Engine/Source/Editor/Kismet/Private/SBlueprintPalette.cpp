@@ -144,9 +144,10 @@ static FString GetVarTooltip(UBlueprint* InBlueprint, UClass* VarClass, FName Va
  * @param  ActionIn		The FEdGraphSchemaAction_K2Graph action that the palette item represents.
  * @param  BlueprintIn	The blueprint currently being edited (that the action is for).
  * @param  IconOut		An icon denoting the sub-graph's type.
+ * @param  ColorOut		An output color, further denoting the specified action.
  * @param  ToolTipOut	The tooltip to display when the icon is hovered over (describing the sub-graph type).
  */
-static void GetSubGraphIcon(FEdGraphSchemaAction_K2Graph const* const ActionIn, UBlueprint const* BlueprintIn, FSlateBrush const*& IconOut, FString& ToolTipOut)
+static void GetSubGraphIcon(FEdGraphSchemaAction_K2Graph const* const ActionIn, UBlueprint const* BlueprintIn, FSlateBrush const*& IconOut, FSlateColor& ColorOut, FString& ToolTipOut)
 {
 	check(BlueprintIn != NULL);
 
@@ -224,7 +225,19 @@ static void GetSubGraphIcon(FEdGraphSchemaAction_K2Graph const* const ActionIn, 
 	case EEdGraphSchemaAction_K2Graph::Interface:
 		{
 			IconOut = FEditorStyle::GetBrush(TEXT("GraphEditor.InterfaceFunction_16x"));
-			ToolTipOut = FString::Printf(*LOCTEXT("FunctionFromInterface_Tooltip", "Function (from Interface '%s')").ToString(), *ActionIn->FuncName.ToString());
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("InterfaceName"), FText::FromName(ActionIn->FuncName));
+			FText TooltipText = FText::Format(LOCTEXT("FunctionFromInterface_Tooltip", "Function (from Interface '{InterfaceName}')"), Args);
+			if (UFunction* OverrideFunc = FindField<UFunction>(BlueprintIn->SkeletonGeneratedClass, ActionIn->FuncName))
+			{
+				if (UEdGraphSchema_K2::FunctionCanBePlacedAsEvent(OverrideFunc))
+				{
+					Args.Add(TEXT("BaseTooltip"), TooltipText);
+					TooltipText = FText::Format(LOCTEXT("InterfaceFunctionExpectedAsEvent_Tooltip", "{BaseTooltip}\nInterface '{InterfaceName}' is already implemented as a function graph but is expected as an event. Remove the function graph and reimplement as an event."), Args);
+					ColorOut = FLinearColor::Yellow;
+				}
+			}
+			ToolTipOut = TooltipText.ToString();
 		}
 		break;
 	case EEdGraphSchemaAction_K2Graph::Function:
@@ -312,7 +325,7 @@ static void GetPaletteItemIcon(TSharedPtr<FEdGraphSchemaAction> ActionIn, UBluep
 	else if (ActionIn->GetTypeId() == FEdGraphSchemaAction_K2Graph::StaticGetTypeId())
 	{
 		FEdGraphSchemaAction_K2Graph const* GraphAction = (FEdGraphSchemaAction_K2Graph const*)ActionIn.Get();
-		GetSubGraphIcon(GraphAction, BlueprintIn, BrushOut, ToolTipOut);
+		GetSubGraphIcon(GraphAction, BlueprintIn, BrushOut, ColorOut, ToolTipOut);
 	}
 	else if (ActionIn->GetTypeId() == FEdGraphSchemaAction_K2Delegate::StaticGetTypeId())
 	{
@@ -1446,10 +1459,12 @@ FText SBlueprintPaletteItem::GetToolTipText() const
 			FEdGraphSchemaAction_K2Graph* GraphAction = (FEdGraphSchemaAction_K2Graph*)PaletteAction.Get();
 			if (GraphAction->EdGraph != NULL)
 			{
-				FGraphDisplayInfo DisplayInfo;
-				GraphAction->EdGraph->GetSchema()->GetGraphDisplayInformation(*(GraphAction->EdGraph), DisplayInfo);
-
-				ToolTipText = FText::FromString(DisplayInfo.Tooltip);
+				if (const UEdGraphSchema* GraphSchema = GraphAction->EdGraph->GetSchema())
+				{
+					FGraphDisplayInfo DisplayInfo;
+					GraphSchema->GetGraphDisplayInformation(*(GraphAction->EdGraph), DisplayInfo);
+					ToolTipText = FText::FromString(DisplayInfo.Tooltip);
+				}
 			}
 		}
 		else if (PaletteAction->GetTypeId() == FEdGraphSchemaAction_K2Var::StaticGetTypeId())

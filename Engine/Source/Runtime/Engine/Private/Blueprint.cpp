@@ -303,6 +303,16 @@ UBlueprint::UBlueprint(const FObjectInitializer& ObjectInitializer)
 {
 }
 
+#if WITH_EDITORONLY_DATA
+void UBlueprint::PreSave()
+{
+	Super::PreSave();
+
+	// Cache the BP for use
+	FFindInBlueprintSearchManager::Get().AddOrUpdateBlueprintSearchMetadata(this);
+}
+#endif // WITH_EDITORONLY_DATA
+
 void UBlueprint::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
@@ -375,11 +385,6 @@ void UBlueprint::Serialize(FArchive& Ar)
 		}
 	}
 
-	if(Ar.IsSaving() && !Ar.IsTransacting())
-	{
-		// Cache the BP for use
-		FFindInBlueprintSearchManager::Get().AddOrUpdateBlueprintSearchMetadata(this);
-	}
 #endif // WITH_EDITORONLY_DATA
 }
 

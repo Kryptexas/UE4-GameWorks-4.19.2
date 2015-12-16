@@ -1876,4 +1876,18 @@ COREUOBJECT_API UPackage* FindOrConstructDynamicTypePackage(const TCHAR* Package
 /** Get names of "virtual" packages, that contain Dynamic types  */
 COREUOBJECT_API TMap<FName, FName>& GetConvertedDynamicPackageNameToTypeName();
 
+#if WITH_EDITOR
+/** 
+ * Returns if true if the object is editor-only:
+ * - it's a package marked as PKG_EditorOnly
+ * or
+ * - it's a class from a package marked as PKG_EditorOnly
+ * or
+ * - its class is from a package marked as PKG_EditorOnly
+ * or
+ * - its outer is editor-only
+ */
+COREUOBJECT_API bool IsEditorOnlyObject(const UObject* InObject);
+#endif //WITH_EDITOR
+
 #endif	// __UNOBJGLOBALS_H__

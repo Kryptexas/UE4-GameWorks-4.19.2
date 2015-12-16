@@ -82,9 +82,13 @@ public partial class Project : CommandUtils
         string ScriptPluginArgs = "";
         // if we're utilizing an auto-generated code plugin/module (a product of 
         // the cook process), make sure to compile it along with the targets here
-        if (Params.UseNativizedScriptPlugin())
+        if (Params.RunAssetNativization)
         {
-            ScriptPluginArgs = "-PLUGIN \"" + Params.NativizedScriptPlugin + "\"";
+            // Add every plugin:
+            foreach( var CodePlugin in  Params.BlueprintPluginPaths)
+            {
+                ScriptPluginArgs = "-PLUGIN \"" + CodePlugin + "\""; 
+            }
         }
 
 		// Setup cooked targets

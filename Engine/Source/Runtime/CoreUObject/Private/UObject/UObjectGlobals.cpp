@@ -1515,76 +1515,76 @@ void EndLoad()
  * @return	name is the form BaseName_##, where ## is the number of objects of this
  *			type that have been created since the last time the class was garbage collected.
  */
-FName MakeUniqueObjectName( UObject* Parent, UClass* Class, FName BaseName/*=NAME_None*/ )
+FName MakeUniqueObjectName( UObject* Parent, UClass* Class, FName InBaseName/*=NAME_None*/ )
 {
 	check(Class);
-	if ( BaseName == NAME_None )
-	{
-		BaseName = Class->GetFName();
-	}
+	const FName BaseName = (InBaseName == NAME_None) ? Class->GetFName() : InBaseName;
 
-	// cache the class's name's index for faster name creation later
 	FName TestName;
-	if (!FPlatformProperties::HasEditorOnlyData() && GFastPathUniqueNameGeneration)
+	do
 	{
-		/*   Fast Path Name Generation
-		* A significant fraction of object creation time goes into verifying that the a chosen unique name is really unique.
-		* The idea here is to generate unique names using very high numbers and only in situations where collisions are 
-		* impossible for other reasons.
-		*
-		* Rationale for uniqueness as used here.
-		* - Consoles do not save objects in general, and certainly not animation trees. So we could never load an object that would later clash.
-		* - We assume that we never load or create any object with a "name number" as large as, say, MAX_int32 / 2, other than via 
-		*   HACK_FastPathUniqueNameGeneration.
-		* - After using one of these large "name numbers", we decrement the static UniqueIndex, this no two names generated this way, during the
-		*   same run, could ever clash.
-		* - We assume that we could never create anywhere near MAX_int32/2 total objects at runtime, within a single run. 
-		* - We require an outer for these items, thus outers must themselves be unique. Therefore items with unique names created on the fast path
-		*   could never clash with anything with a different outer. For animation trees, these outers are never saved or loaded, thus clashes are 
-		*   impossible.
-		*/
-		static int32 UniqueIndex = MAX_int32 - 1000;
-		TestName = FName(BaseName, --UniqueIndex);
-		checkSlow(Parent); 
-		checkSlow(Parent!=ANY_PACKAGE); 
-		checkSlow(!StaticFindObjectFastInternal( NULL, Parent, TestName ));
-	}
-	else
-	{
-		UObject* ExistingObject;
-
-		do
+		// cache the class's name's index for faster name creation later
+		if (!FPlatformProperties::HasEditorOnlyData() && GFastPathUniqueNameGeneration)
 		{
-			// create the next name in the sequence for this class
-			if (BaseName.GetComparisonIndex() == NAME_Package)
+			/*   Fast Path Name Generation
+			* A significant fraction of object creation time goes into verifying that the a chosen unique name is really unique.
+			* The idea here is to generate unique names using very high numbers and only in situations where collisions are
+			* impossible for other reasons.
+			*
+			* Rationale for uniqueness as used here.
+			* - Consoles do not save objects in general, and certainly not animation trees. So we could never load an object that would later clash.
+			* - We assume that we never load or create any object with a "name number" as large as, say, MAX_int32 / 2, other than via
+			*   HACK_FastPathUniqueNameGeneration.
+			* - After using one of these large "name numbers", we decrement the static UniqueIndex, this no two names generated this way, during the
+			*   same run, could ever clash.
+			* - We assume that we could never create anywhere near MAX_int32/2 total objects at runtime, within a single run.
+			* - We require an outer for these items, thus outers must themselves be unique. Therefore items with unique names created on the fast path
+			*   could never clash with anything with a different outer. For animation trees, these outers are never saved or loaded, thus clashes are
+			*   impossible.
+			*/
+			static int32 UniqueIndex = MAX_int32 - 1000;
+			TestName = FName(BaseName, --UniqueIndex);
+			checkSlow(Parent);
+			checkSlow(Parent != ANY_PACKAGE);
+			checkSlow(!StaticFindObjectFastInternal(NULL, Parent, TestName));
+		}
+		else
+		{
+			UObject* ExistingObject;
+
+			do
 			{
-				if ( Parent == NULL )
+				// create the next name in the sequence for this class
+				if (BaseName.GetComparisonIndex() == NAME_Package)
 				{
-					//package names should default to "/Temp/Untitled" when their parent is NULL. Otherwise they are a group.
-					TestName = FName( *FString::Printf(TEXT("/Temp/%s"), *FName(NAME_Untitled).ToString()), ++Class->ClassUnique);
+					if (Parent == NULL)
+					{
+						//package names should default to "/Temp/Untitled" when their parent is NULL. Otherwise they are a group.
+						TestName = FName(*FString::Printf(TEXT("/Temp/%s"), *FName(NAME_Untitled).ToString()), ++Class->ClassUnique);
+					}
+					else
+					{
+						//package names should default to "Untitled"
+						TestName = FName(NAME_Untitled, ++Class->ClassUnique);
+					}
 				}
 				else
 				{
-					//package names should default to "Untitled"
-					TestName = FName(NAME_Untitled, ++Class->ClassUnique);
+					TestName = FName(BaseName, ++Class->ClassUnique);
 				}
-			}
-			else
-			{
-				TestName = FName(BaseName, ++Class->ClassUnique);
-			}
 
-			if (Parent == ANY_PACKAGE)
-			{
-				ExistingObject = StaticFindObject( NULL, ANY_PACKAGE, *TestName.ToString() );
-			}
-			else
-			{
-				ExistingObject = StaticFindObjectFastInternal( NULL, Parent, TestName );
-			}
-		} 
-		while( ExistingObject );
-	}
+				if (Parent == ANY_PACKAGE)
+				{
+					ExistingObject = StaticFindObject(NULL, ANY_PACKAGE, *TestName.ToString());
+				}
+				else
+				{
+					ExistingObject = StaticFindObjectFastInternal(NULL, Parent, TestName);
+				}
+			} while (ExistingObject);
+		}
+	// InBaseName can be a name of an object from a different hierarchy (so it's still unique within given parents scope), we don't want to return the same name.
+	} while (TestName == BaseName);
 	return TestName;
 }
 

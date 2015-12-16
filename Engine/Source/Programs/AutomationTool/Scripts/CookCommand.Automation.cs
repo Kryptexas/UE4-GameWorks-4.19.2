@@ -219,17 +219,17 @@ public partial class Project : CommandUtils
                 // into native source code... the cooker needs to 
                 if (Params.RunAssetNativization)
                 {
-                    string GeneratedPluginName = "NativizedScript";
+                    CommandletParams += " -NativizeAssets";
+
+                    // Store plugin paths now, it's easiest to do so while PlatformsToCook is still available:
                     string ProjectDir = Params.RawProjectPath.Directory.ToString();
-                    string GeneratedPluginDirectory = Path.GetFullPath(CommandUtils.CombinePaths(ProjectDir, "Intermediate", "Plugins", GeneratedPluginName));
-                    string PluginDescFilename  = GeneratedPluginName + ".uplugin";
-                    string GeneratedPluginPath = Path.GetFullPath(CommandUtils.CombinePaths(GeneratedPluginDirectory, PluginDescFilename));
-
-                    CommandletParams += " -NativizeAssets -NativizedAssetPlugin=\"" + GeneratedPluginPath + "\"";
-
-                    // fill out this, so as to coordinate with build automation
-                    // (the builder now needs to compile in the generated assets)
-                    Params.NativizedScriptPlugin = new FileReference(GeneratedPluginPath);
+                    foreach (var Platform in PlatformsToCook)
+                    {
+                        // If you change this target path you must also update logic in CookOnTheFlyServer.cpp. Passing a single directory around is cumbersome for testing, so I have hard coded it.
+                        // Similarly if you change the .uplugin name you must update DefaultPluginName in BlueprintNativeCodeGenModule.cpp
+                        string GeneratedPluginPath = CombinePaths(GetDirectoryName(ProjectDir), "Intermediate", Platform, "NativizedAssets/NativizedAssets.uplugin");
+                        Params.BlueprintPluginPaths.Add( new FileReference(GeneratedPluginPath) );
+                    }
                 }
                 if (Params.HasAdditionalCookerOptions)
                 {

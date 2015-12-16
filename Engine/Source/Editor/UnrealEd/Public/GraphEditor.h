@@ -396,6 +396,15 @@ public:
 		}
 	}
 
+	/** Capture keyboard */
+	virtual void CaptureKeyboard()
+	{
+		if (Implementation.IsValid())
+		{
+			Implementation->CaptureKeyboard();
+		}
+	}
+
 protected:
 	/** Invoked when the underlying Graph is being changed. */
 	virtual void OnGraphChanged(const struct FEdGraphEditAction& InAction)

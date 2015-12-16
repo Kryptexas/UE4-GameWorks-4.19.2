@@ -41,6 +41,11 @@ inline bool IsValid(const FScriptInterface& Test)
 	return IsValid(Test.GetObject()) && (nullptr != Test.GetInterface());
 }
 
+inline bool IsValid(const FWeakObjectPtr& Test)
+{
+	return Test.IsValid();
+}
+
 template<class TEnum>
 inline uint8 EnumToByte(TEnumAsByte<TEnum> Val)
 {
@@ -51,6 +56,12 @@ template<class T>
 inline const T* GetDefaultValueSafe(UClass* Class)
 {
 	return IsValid(Class) ? GetDefault<T>(Class) : nullptr;
+}
+
+template<typename ValueType>
+inline ValueType* AccessPrivateProperty(void const* ContainerPtr, int32 PropertyOffset, int32 ElementSize, int32 ArrayIndex = 0)
+{
+	return (ValueType*)((uint8*)ContainerPtr + PropertyOffset + (ElementSize * ArrayIndex));
 }
 
 struct FCustomThunkTemplates

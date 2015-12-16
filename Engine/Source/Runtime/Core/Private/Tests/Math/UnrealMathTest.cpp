@@ -1375,3 +1375,91 @@ bool FVectorRegisterAbstractionTest::RunTest(const FString& Parameters)
 
 	return true;
 }
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FInterpolationFunctionTests, "System.Core.Math.Interpolation Function Test", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::SmokeFilter)
+bool FInterpolationFunctionTests::RunTest(const FString&)
+{
+	// The purpose of this test is to verify that various combinations of the easing functions are actually equivalent.
+	// It currently only tests the InOut versions over different ranges, because the initial implementation was bad.
+	// Further improvements (optimizations, new easing functions) to the easing functions should be accompanied by
+	// expansions to this test suite.
+
+	typedef float(*EasingFunc)(float Percent);
+	auto RunInOutTest = [](const TArray< TPair<EasingFunc, FString> >& Functions, FAutomationTestBase* TestContext)
+	{
+		for (int32 I = 0; I < 100; ++I)
+		{
+			float Percent = (float)I / 100.f;
+			TArray<float> Values;
+			for (const auto& Entry : Functions)
+			{
+				Values.Push(Entry.Key(Percent));
+			}
+
+			bool bSucceeded = true;
+			int32 K = 0;
+			for (int32 J = 1; J < Functions.Num(); ++J)
+			{
+				if (!FMath::IsNearlyEqual(Values[K], Values[J], 0.0001f))
+				{
+					TestContext->AddError(FString::Printf( TEXT("Easing Function tests failed at index %d!"), I ) );
+
+					for (int32 L = 0; L < Values.Num(); ++L)
+					{
+						TestContext->AddLogItem(FString::Printf(TEXT("%s: %f"), *(Functions[L].Value), Values[L]));
+					}
+					// don't record further failures, it would likely create a tremendous amount of spam
+					return;
+				}
+			}
+		}
+	};
+
+#define INTERP_WITH_RANGE( RANGE_MIN, RANGE_MAX, FUNCTION, IDENTIFIER ) \
+	auto FUNCTION##IDENTIFIER = [](float Percent ) \
+	{ \
+		const float Min = RANGE_MIN; \
+		const float Max = RANGE_MAX; \
+		const float Range = Max - Min; \
+		return (FMath::FUNCTION(Min, Max, Percent) - Min) / Range; \
+	};
+
+	{
+		// Test InterpExpoInOut:
+		INTERP_WITH_RANGE(.9f, 1.2f, InterpExpoInOut, A)
+		INTERP_WITH_RANGE(0.f, 1.f, InterpExpoInOut, B)
+		INTERP_WITH_RANGE(-8.6f;, 2.3f, InterpExpoInOut, C)
+		TArray< TPair< EasingFunc, FString > > FunctionsToTest;
+		FunctionsToTest.Push(TPairInitializer<EasingFunc, FString>(InterpExpoInOutA, TEXT("InterpExpoInOutA")));
+		FunctionsToTest.Push(TPairInitializer<EasingFunc, FString>(InterpExpoInOutB, TEXT("InterpExpoInOutB")));
+		FunctionsToTest.Push(TPairInitializer<EasingFunc, FString>(InterpExpoInOutC, TEXT("InterpExpoInOutC")));
+		RunInOutTest(FunctionsToTest, this);
+	}
+
+	{
+		// Test InterpCircularInOut:
+		INTERP_WITH_RANGE(5.f, 9.32f, InterpCircularInOut, A)
+		INTERP_WITH_RANGE(0.f, 1.f, InterpCircularInOut, B)
+		INTERP_WITH_RANGE(-8.1f;, -.75f, InterpCircularInOut, C)
+		TArray< TPair< EasingFunc, FString > > FunctionsToTest;
+		FunctionsToTest.Push(TPairInitializer<EasingFunc, FString>(InterpCircularInOutA, TEXT("InterpCircularInOutA")));
+		FunctionsToTest.Push(TPairInitializer<EasingFunc, FString>(InterpCircularInOutB, TEXT("InterpCircularInOutB")));
+		FunctionsToTest.Push(TPairInitializer<EasingFunc, FString>(InterpCircularInOutC, TEXT("InterpCircularInOutC")));
+		RunInOutTest(FunctionsToTest, this);
+	}
+
+	{
+		// Test InterpSinInOut:
+		INTERP_WITH_RANGE(10.f, 11.2f, InterpSinInOut, A)
+		INTERP_WITH_RANGE(0.f, 1.f, InterpSinInOut, B)
+		INTERP_WITH_RANGE(-5.6f;, -4.3f, InterpSinInOut, C)
+		TArray< TPair< EasingFunc, FString > > FunctionsToTest;
+		FunctionsToTest.Push(TPairInitializer<EasingFunc, FString>(InterpSinInOutA, TEXT("InterpSinInOutA")));
+		FunctionsToTest.Push(TPairInitializer<EasingFunc, FString>(InterpSinInOutB, TEXT("InterpSinInOutB")));
+		FunctionsToTest.Push(TPairInitializer<EasingFunc, FString>(InterpSinInOutC, TEXT("InterpSinInOutC")));
+		RunInOutTest(FunctionsToTest, this);
+	}
+
+	return true;
+}
+

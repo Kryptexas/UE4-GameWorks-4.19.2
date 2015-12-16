@@ -142,8 +142,21 @@ struct FFindHeadersToInclude : public FGatherConvertedClassDependenciesHelperBas
 		}
 
 		auto ObjAsField = Cast<UField>(InObject);
+		if (!ObjAsField && InObject->IsA<UBlueprintFunctionLibrary>())
+		{
+			ObjAsField = InObject->GetClass();
+		}
+
 		if (ObjAsField)
 		{
+			if (ObjAsField->IsA<UProperty>())
+			{
+				ObjAsField = ObjAsField->GetOwnerStruct();
+			}
+			if (ObjAsField->IsA<UFunction>())
+			{
+				ObjAsField = ObjAsField->GetOwnerClass();
+			}
 			IncludeTheHeaderInBody(ObjAsField);
 		}
 

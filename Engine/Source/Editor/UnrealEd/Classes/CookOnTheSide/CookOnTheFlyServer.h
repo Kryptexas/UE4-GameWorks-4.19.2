@@ -673,7 +673,6 @@ public:
 		FProcHandle ProcessHandle;
 		FString ResponseFileName;
 		FString BaseResponseFileName;
-		FString ManifestFilename;
 		void* ReadPipe;
 		int32 ReturnCode;
 		bool bFinished;
@@ -693,7 +692,8 @@ private:
 			bForceEnableCompressedPackages(false),
 			bForceDisableCompressedPackages(false),
 			bIsChildCooker(false),
-			bDisableUnsolicitedPackages(false)
+			bDisableUnsolicitedPackages(false),
+			ChildCookIdentifier(-1)
 		{ }
 
 		/** Should we test for UObject leaks */
@@ -730,8 +730,8 @@ private:
 		bool bForceDisableCompressedPackages;
 		bool bIsChildCooker;
 		bool bDisableUnsolicitedPackages;
+		int32 ChildCookIdentifier;
 		FString ChildCookFilename;
-		FString ChildManifestFilename;
 		TSet<FName> ChildUnsolicitedPackages;
 		TArray<FChildCooker> ChildCookers;
 		TArray<FName> TargetPlatformNames;
@@ -890,7 +890,7 @@ public:
 		FString CreateReleaseVersion;
 		FString BasedOnReleaseVersion;
 		FString ChildCookFileName; // if we are the child cooker 
-		FString ChildManifestFilename; // again, only if you are the child cooker
+		int32 ChildCookIdentifier; // again, only if you are the child cooker
 		bool bGenerateStreamingInstallManifests; 
 		bool bGenerateDependenciesForMaps; 
 		bool bErrorOnEngineContentUse; // this is a flag for dlc, will cause the cooker to error if the dlc references engine content
@@ -898,6 +898,7 @@ public:
 		FCookByTheBookStartupOptions() :
 			CookOptions(ECookByTheBookOptions::None),
 			DLCName(FString()),
+			ChildCookIdentifier(-1),
 			bGenerateStreamingInstallManifests(false),
 			bGenerateDependenciesForMaps(false),
 			bErrorOnEngineContentUse(false),

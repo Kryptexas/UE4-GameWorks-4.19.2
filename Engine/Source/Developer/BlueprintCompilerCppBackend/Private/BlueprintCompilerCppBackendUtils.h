@@ -189,6 +189,8 @@ struct FEmitHelper
 
 	static bool HasAllFlags(uint64 Flags, uint64 FlagsToCheck);
 
+	static bool IsMetaDataValid(const FName Name, const FString& Value);
+
 	static FString HandleRepNotifyFunc(const UProperty* Property);
 
 	static bool MetaDataCanBeNative(const FName MetaDataName, const UField* Field);
@@ -219,6 +221,8 @@ struct FEmitHelper
 
 	static FString DefaultValue(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& Type);
 
+	static FString PinTypeToNativeType(const FEdGraphPinType& InType);
+
 	static UFunction* GetOriginalFunction(UFunction* Function);
 
 	static bool ShouldHandleAsNativeEvent(UFunction* Function);
@@ -240,7 +244,11 @@ struct FEmitHelper
 	static FString GenerateGetPropertyByName(FEmitterLocalContext& EmitterContext, const UProperty* Property);
 
 	static FString AccessInaccessibleProperty(FEmitterLocalContext& EmitterContext, const UProperty* Property
-		, const FString& ContextStr, const FString& ContextAdressOp, const FString& StaticArrayIdx = FString(TEXT(", 0")));
+		, const FString& ContextStr, const FString& ContextAdressOp, int32 StaticArrayIdx = 0);
+
+	// This code works properly as long, as all fields in structures are UProperties!
+	static FString AccessInaccessiblePropertyUsingOffset(FEmitterLocalContext& EmitterContext, const UProperty* Property
+		, const FString& ContextStr, const FString& ContextAdressOp, int32 StaticArrayIdx = 0);
 
 };
 
@@ -295,7 +303,7 @@ struct FBackendHelperUMG
 
 struct FBackendHelperAnim
 {
-	static FString AddHeaders(UClass* GeneratedClass);
+	static void AddHeaders(FEmitterLocalContext& EmitterContext);
 
 	static void CreateAnimClassData(FEmitterLocalContext& Context);
 };

@@ -45,7 +45,13 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 			|| (!Property->Identical_InContainer(DataContainer, OptionalDefaultDataContainer, ArrayIndex) && !IsInstancedSubobjectLambda(ArrayIndex)))
 		{
 			FString PathToMember;
-			auto PropertyOwnerAsBPGC = Cast<UBlueprintGeneratedClass>(Property->GetOwnerClass());
+			UBlueprintGeneratedClass* PropertyOwnerAsBPGC = Cast<UBlueprintGeneratedClass>(Property->GetOwnerClass());
+			UScriptStruct* PropertyOwnerAsScriptStruct = Cast<UScriptStruct>(Property->GetOwnerStruct());
+			const bool bNoexportProperty = PropertyOwnerAsScriptStruct
+				&& PropertyOwnerAsScriptStruct->IsNative()
+				&& (PropertyOwnerAsScriptStruct->StructFlags & STRUCT_NoExport)
+				// && !PropertyOwnerAsScriptStruct->GetBoolMetaData(TEXT("BlueprintType"))
+				&& ensure(EPropertyAccessOperator::Dot == AccessOperator);
 			if (PropertyOwnerAsBPGC && !Context.Dependencies.WillClassBeConverted(PropertyOwnerAsBPGC))
 			{
 				ensure(EPropertyAccessOperator::None != AccessOperator);
@@ -55,13 +61,14 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 				PathToMember = FString::Printf(TEXT("FUnconvertedWrapper__%s(%s).GetRef__%s()"), *FEmitHelper::GetCppName(PropertyOwnerAsBPGC), *ContainerStr
 					, *UnicodeToCPPIdentifier(Property->GetName(), false, nullptr));
 			}
-			else if (Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierPrivate) || (!bAllowProtected && Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierProtected)))
+			else if (bNoexportProperty || Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierPrivate) || (!bAllowProtected && Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierProtected)))
 			{
 				ensure(EPropertyAccessOperator::None != AccessOperator);
 				const FString OperatorStr = (EPropertyAccessOperator::Dot == AccessOperator) ? TEXT("&") : TEXT("");
 				const FString ContainerStr = (EPropertyAccessOperator::None == AccessOperator) ? TEXT("this") : OuterPath;
-				const FString StaticArrayIndexArg = FString::Printf(TEXT(", %d"), ArrayIndex);
-				const FString GetPtrStr = FEmitHelper::AccessInaccessibleProperty(Context, Property, ContainerStr, OperatorStr, StaticArrayIndexArg);
+				const FString GetPtrStr = bNoexportProperty
+					? FEmitHelper::AccessInaccessiblePropertyUsingOffset(Context, Property, ContainerStr, OperatorStr, ArrayIndex)
+					: FEmitHelper::AccessInaccessibleProperty(Context, Property, ContainerStr, OperatorStr, ArrayIndex);
 				PathToMember = Context.GenerateUniqueLocalName();
 				Context.AddLine(FString::Printf(TEXT("auto& %s = %s;"), *PathToMember, *GetPtrStr));
 			}
@@ -264,6 +271,8 @@ struct FNonativeComponentData
 	////
 	FString ParentVariableName;
 	bool bSetNativeCreationMethod;
+	/** Socket/Bone that Component might attach to */
+	FName AttachToName;
 
 	FNonativeComponentData()
 		: ComponentTemplate(nullptr)
@@ -282,7 +291,9 @@ struct FNonativeComponentData
 
 		if (!ParentVariableName.IsEmpty())
 		{
-			Context.AddLine(FString::Printf(TEXT("%s->AttachParent = %s;"), *NativeVariablePropertyName, *ParentVariableName));
+			const FString SocketName = (AttachToName == NAME_None) ? FString() : FString::Printf(TEXT(", TEXT(\"%s\")"), *AttachToName.ToString());
+			Context.AddLine(FString::Printf(TEXT("%s->AttachTo(%s %s);"), *NativeVariablePropertyName, *ParentVariableName, *SocketName));
+			// AttachTo is called first in case some properties will be overridden.
 		}
 
 		UClass* ComponentClass = ComponentTemplate->GetClass();
@@ -293,6 +304,7 @@ struct FNonativeComponentData
 				, reinterpret_cast<const uint8*>(ObjectToCompare)
 				, FEmitDefaultValueHelper::EPropertyAccessOperator::Pointer);
 		}
+
 	}
 };
 
@@ -358,6 +370,7 @@ FString FEmitDefaultValueHelper::HandleNonNativeComponent(FEmitterLocalContext& 
 					ParentVariableName = Context.FindGloballyMappedObject(ParentComponentTemplate, USceneComponent::StaticClass());
 				}
 				NonativeComponentData.ParentVariableName = ParentVariableName;
+				NonativeComponentData.AttachToName = Node->AttachToName;
 			}
 			NonativeComponentData.ObjectToCompare = ObjectToCompare;
 			ComponenntsToInit.Add(NonativeComponentData);

@@ -7,7 +7,7 @@
 #include "BlueprintNativeCodeGenModule.h"
 #include "BlueprintNativeCodeGenUtils.h"
 #include "IBlueprintCompilerCppBackendModule.h"
-#include "NativeCodeGenCommandlineParams.h"
+#include "Engine/Blueprint.h" // for EBlueprintType
 
 /*******************************************************************************
 * NativizationCookControllerImpl
@@ -15,88 +15,8 @@
 
 namespace NativizationCookControllerImpl
 {
-#if WITH_EDITORONLY_DATA
-	static const FString ConvertAssetsCommand = TEXT("NativizeAssets");
-	static const FString ConvertedManifestParam = TEXT("NativizedAssetManifest=");
-	static const FString GeneratedPluginParam = TEXT("NativizedAssetPlugin=");
-
-	//--------------------------------------------------------------------------
-	static bool IsRunningCookCommandlet()
-	{
-		// @TODO: figure out how to determine if this is the cook commandlet
-		return IsRunningCommandlet();
-	}
-#endif // WITH_EDITORONLY_DATA
-}
-
-/*******************************************************************************
-* UBlueprintNativeCodeGenConfig
-*******************************************************************************/
-
-//------------------------------------------------------------------------------
-UBlueprintNativeCodeGenConfig::UBlueprintNativeCodeGenConfig(FObjectInitializer const& ObjectInitializer)
-: Super(ObjectInitializer)
-{
-}
-
-/*******************************************************************************
-* FCookCommandParams
-******************************************************************************/
-
-//------------------------------------------------------------------------------
-FCookCommandParams::FCookCommandParams(const FString& Commandline)
-: bRunConversion(false)
-{
-	using namespace NativizationCookControllerImpl;
-
-#if WITH_EDITORONLY_DATA
-	if (IsRunningCookCommandlet())
-	{
-		IFileManager& FileManager = IFileManager::Get();
-		bRunConversion = FParse::Param(*Commandline, *ConvertAssetsCommand);
-
-		if (FParse::Value(*Commandline, *ConvertedManifestParam, ManifestFilePath))
-		{
-			bRunConversion |= !FileManager.FileExists(*ManifestFilePath);
-		}
-
-		FString PluginPath;
-		if (FParse::Value(*Commandline, *GeneratedPluginParam, PluginPath))
-		{
-			if (PluginPath.EndsWith(TEXT(".uplugin")))
-			{
-				PluginName = FPaths::GetBaseFilename(PluginPath);
-				PluginPath = FPaths::GetPath(PluginPath);
-			}
-			OutputPath = PluginPath;
-			bRunConversion = true;
-		}
-
-		if (bRunConversion && ManifestFilePath.IsEmpty())
-		{
-			ManifestFilePath = FPaths::Combine(*FPaths::Combine(*FPaths::GameIntermediateDir(), TEXT("Cook")), TEXT("BlueprintConversionManifest"));
-		}
-	}
-#endif // WITH_EDITORONLY_DATA
-}
-
-//------------------------------------------------------------------------------
-TArray<FString> FCookCommandParams::ToConversionParams() const
-{
-	TArray<FString> ConversionCmdParams;
-	if (!PluginName.IsEmpty())
-	{
-		ConversionCmdParams.Add(FString::Printf(TEXT("pluginName=%s"), *PluginName));
-	}
-	if (!OutputPath.IsEmpty())
-	{
-		ConversionCmdParams.Add(FString::Printf(TEXT("output=\"%s\""), *OutputPath));
-	}
-	if (!ManifestFilePath.IsEmpty())
-	{
-		ConversionCmdParams.Add(FString::Printf(TEXT("manifest=\"%s\""), *ManifestFilePath));
-	}
-	return ConversionCmdParams;
+	// If you change this plugin name you must update logic in CookCommand.Automation.cs
+	static const TCHAR* DefaultPluginName = TEXT("NativizedAssets");
 }
 
 /*******************************************************************************
@@ -104,57 +24,118 @@ TArray<FString> FCookCommandParams::ToConversionParams() const
  ******************************************************************************/
  
 class FBlueprintNativeCodeGenModule : public IBlueprintNativeCodeGenModule
+									, public IBlueprintNativeCodeGenCore
 {
 public:
 	FBlueprintNativeCodeGenModule()
-		: Manifest(nullptr)
 	{
-		FCookCommandParams CookParams(FCommandLine::Get());
-		FNativeCodeGenCommandlineParams CommandLineParams(CookParams.ToConversionParams());
-		Manifest = new FBlueprintNativeCodeGenManifest(CommandLineParams);
-
-		IBlueprintCompilerCppBackendModule& BackEndModule = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
-		auto& BackendPCHQuery = BackEndModule.OnPCHFilenameQuery();
-
-		FBlueprintNativeCodeGenPaths TargetPaths = GetManifest().GetTargetPaths();
-		BackendPCHQuery.BindLambda([TargetPaths]()->FString
-		{
-			return TargetPaths.RuntimePCHFilename();
-		});
-
-		auto& ConversionQueryDelegate = BackEndModule.OnIsTargetedForConversionQuery();
-		auto ShouldConvert = [](const UObject* AssetObj)
-		{
-			if (FScriptCookReplacementCoordinator::Get())
-			{
-				EReplacementResult ReplacmentResult = FScriptCookReplacementCoordinator::Get()->IsTargetedForReplacement(AssetObj);
-				return ReplacmentResult == EReplacementResult::ReplaceCompletely;
-			}
-			return false;
-		};
-		ConversionQueryDelegate.BindStatic(ShouldConvert);
 	}
 
 	//~ Begin IBlueprintNativeCodeGenModule interface
-	virtual void Convert(UPackage* Package, EReplacementResult ReplacementType) override;
-	virtual void SaveManifest(const TCHAR* Filename) override;
-	virtual void MergeManifest(const TCHAR* Filename) override;
+	virtual void Convert(UPackage* Package, ESavePackageResult ReplacementType, const TCHAR* PlatformName) override;
+	virtual void SaveManifest(int32 Id = -1) override;
+	virtual void MergeManifest(int32 ManifestIdentifier) override;
 	virtual void FinalizeManifest() override;
+protected:
+	virtual void Initialize(const FNativeCodeGenInitData& InitData) override;
+	virtual void InitializeForRerunDebugOnly(const TArray< TPair< FString, FString > >& CodegenTargets) override;
 	//~ End IBlueprintNativeCodeGenModule interface
-private:
-	FBlueprintNativeCodeGenManifest& GetManifest();
 
-	FBlueprintNativeCodeGenManifest* Manifest;
+	//~ Begin FScriptCookReplacmentCoordinator interface
+	virtual EReplacementResult IsTargetedForReplacement(const UPackage* Package) const override;
+	virtual EReplacementResult IsTargetedForReplacement(const UObject* Object) const override;
+	virtual UClass* FindReplacedClass(const UClass* Class) const override;
+	//~ End FScriptCookReplacmentCoordinator interface
+private:
+	FBlueprintNativeCodeGenManifest& GetManifest(const TCHAR* PlatformName);
+
+	TMap< FString, TUniquePtr<FBlueprintNativeCodeGenManifest> > Manifests;
+
+	TArray<FString> ExcludedAssetTypes;
+	TArray<FString> ExcludedBlueprintTypes;
+	TArray<FString> TargetPlatformNames;
 };
 
-FBlueprintNativeCodeGenManifest& FBlueprintNativeCodeGenModule::GetManifest()
+void FBlueprintNativeCodeGenModule::Initialize(const FNativeCodeGenInitData& InitData)
 {
-	check(Manifest);
-	return *Manifest;
+	GConfig->GetArray(TEXT("BlueprintNativizationSettings"), TEXT("ExcludedAssetTypes"), ExcludedAssetTypes, GEditorIni);
+	GConfig->GetArray(TEXT("BlueprintNativizationSettings"), TEXT("ExcludedBlueprintTypes"), ExcludedBlueprintTypes, GEditorIni);
+
+	IBlueprintNativeCodeGenCore::Register(this);
+
+	// Each platform will need a manifest, because each platform could cook different assets:
+	for (auto& Platform : InitData.CodegenTargets)
+	{
+		const TCHAR* TargetDirectory = *Platform.Value;
+		FString OutputPath = FPaths::Combine(TargetDirectory, NativizationCookControllerImpl::DefaultPluginName);
+
+		Manifests.Add(FString(*Platform.Key), TUniquePtr<FBlueprintNativeCodeGenManifest>(new FBlueprintNativeCodeGenManifest(NativizationCookControllerImpl::DefaultPluginName, OutputPath)));
+
+		TargetPlatformNames.Add(Platform.Key);
+	}
+
+	IBlueprintCompilerCppBackendModule& BackEndModule = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
+	auto& ConversionQueryDelegate = BackEndModule.OnIsTargetedForConversionQuery();
+	auto ShouldConvert = [](const UObject* AssetObj)
+	{
+		if (IBlueprintNativeCodeGenCore::Get())
+		{
+			EReplacementResult ReplacmentResult = IBlueprintNativeCodeGenCore::Get()->IsTargetedForReplacement(AssetObj);
+			return ReplacmentResult == EReplacementResult::ReplaceCompletely;
+		}
+		return false;
+	};
+	ConversionQueryDelegate.BindStatic(ShouldConvert);
 }
 
-void FBlueprintNativeCodeGenModule::Convert(UPackage* Package, EReplacementResult ReplacementType)
+void FBlueprintNativeCodeGenModule::InitializeForRerunDebugOnly(const TArray< TPair< FString, FString > >& CodegenTargets)
 {
+	for (const auto& Platform : CodegenTargets)
+	{
+		// load the old manifest:
+		const TCHAR* TargetDirectory = *Platform.Value;
+		FString OutputPath = FPaths::Combine(TargetDirectory, NativizationCookControllerImpl::DefaultPluginName, *FBlueprintNativeCodeGenPaths::GetDefaultManifestPath());
+		Manifests.Add(FString(*Platform.Key), TUniquePtr<FBlueprintNativeCodeGenManifest>(new FBlueprintNativeCodeGenManifest(FPaths::ConvertRelativePathToFull(OutputPath))));
+		//FBlueprintNativeCodeGenManifest OldManifest(FPaths::ConvertRelativePathToFull(OutputPath));
+		// reconvert every assets listed in the manifest:
+		for (const auto& ConversionTarget : GetManifest(*Platform.Key).GetConversionRecord())
+		{
+			// load the package:
+			UPackage* Package = LoadPackage(nullptr, *ConversionTarget.Value.TargetObjPath, LOAD_None);
+
+			// reconvert it:
+			Convert(Package, ESavePackageResult::ReplaceCompletely, *Platform.Key);
+		}
+
+		// reconvert every unconverted dependency listed in the manifest:
+		for (const auto& ConversionTarget : GetManifest(*Platform.Key).GetUnconvertedDependencies())
+		{
+			// load the package:
+			UPackage* Package = LoadPackage(nullptr, *ConversionTarget.Key.GetPlainNameString(), LOAD_None);
+
+			// reconvert it:
+			Convert(Package, ESavePackageResult::GenerateStub, *Platform.Key);
+		}
+	}
+
+}
+
+FBlueprintNativeCodeGenManifest& FBlueprintNativeCodeGenModule::GetManifest(const TCHAR* PlatformName)
+{
+	FString PlatformNameStr(PlatformName);
+	TUniquePtr<FBlueprintNativeCodeGenManifest>* Result = Manifests.Find(PlatformNameStr);
+	check(Result->IsValid());
+	return **Result;
+}
+
+void FBlueprintNativeCodeGenModule::Convert(UPackage* Package, ESavePackageResult CookResult, const TCHAR* PlatformName)
+{
+	if (CookResult != ESavePackageResult::ReplaceCompletely && CookResult != ESavePackageResult::GenerateStub)
+	{
+		// nothing to convert
+		return;
+	}
+
 	// Find the struct/enum to convert:
 	UStruct* Struct = nullptr;
 	UEnum* Enum = nullptr;
@@ -186,32 +167,38 @@ void FBlueprintNativeCodeGenModule::Convert(UPackage* Package, EReplacementResul
 		return;
 	}
 
-	const IAssetRegistry& Registry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry").Get();
-	auto GenerateWrapperSrcFile = [](const FUnconvertedDependencyRecord& UnconvertedDependency, UClass* Class)
+	IBlueprintCompilerCppBackendModule& BackEndModule = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
+	auto& BackendPCHQuery = BackEndModule.OnPCHFilenameQuery();
+
+	FBlueprintNativeCodeGenPaths TargetPaths = GetManifest(PlatformName).GetTargetPaths();
+	BackendPCHQuery.BindLambda([TargetPaths]()->FString
 	{
+		return TargetPaths.RuntimePCHFilename();
+	});
+
+	const IAssetRegistry& Registry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry").Get();
+
+	if (CookResult == ESavePackageResult::GenerateStub)
+	{
+		FAssetData AssetInfo = Registry.GetAssetByObjectPath(*Struct->GetPathName());
 		FString FileContents;
 		TUniquePtr<IBlueprintCompilerCppBackend> Backend_CPP(IBlueprintCompilerCppBackendModuleInterface::Get().Create());
-		FileContents = Backend_CPP->GenerateWrapperForClass(Class);
+		// Apparently we can only generate wrappers for classes, so any logic that results in non classes requesting
+		// wrappers will fail here:
 
+		FileContents = Backend_CPP->GenerateWrapperForClass(CastChecked<UClass>(Struct));
 		if (!FileContents.IsEmpty())
 		{
-			FFileHelper::SaveStringToFile(FileContents, *UnconvertedDependency.GeneratedWrapperPath);
+			FFileHelper::SaveStringToFile(FileContents, *(GetManifest(PlatformName).CreateUnconvertedDependencyRecord(AssetInfo.PackageName, AssetInfo).GeneratedWrapperPath));
 		}
-	};
-
-	if (ReplacementType == EReplacementResult::GenerateStub)
-	{
-		check(ReplacementType == EReplacementResult::GenerateStub);
-		FAssetData AssetInfo = Registry.GetAssetByObjectPath(*Struct->GetPathName());
-		GenerateWrapperSrcFile(GetManifest().CreateUnconvertedDependencyRecord(AssetInfo.PackageName, AssetInfo, FName()), CastChecked<UClass>(Struct));
 		// The stub we generate still may have dependencies on other modules, so make sure the module dependencies are 
 		// still recorded so that the .build.cs is generated correctly. Without this you'll get include related errors 
 		// (or possibly linker errors) in stub headers:
-		GetManifest().GatherModuleDependencies(Package);
+		GetManifest(PlatformName).GatherModuleDependencies(Package);
 	}
 	else
 	{
-		check(ReplacementType == EReplacementResult::ReplaceCompletely);
+		check(CookResult == ESavePackageResult::ReplaceCompletely);
 		// convert:
 		UField* ForConversion = Enum;
 		if (ForConversion == nullptr)
@@ -220,7 +207,7 @@ void FBlueprintNativeCodeGenModule::Convert(UPackage* Package, EReplacementResul
 		}
 
 		FAssetData AssetInfo = Registry.GetAssetByObjectPath(*ForConversion->GetPathName());
-		FConvertedAssetRecord& ConversionRecord = GetManifest().CreateConversionRecord(ForConversion->GetFName(), AssetInfo);
+		FConvertedAssetRecord& ConversionRecord = GetManifest(PlatformName).CreateConversionRecord(*ForConversion->GetPathName(), AssetInfo);
 		TSharedPtr<FString> HeaderSource(new FString());
 		TSharedPtr<FString> CppSource(new FString());
 
@@ -259,29 +246,177 @@ void FBlueprintNativeCodeGenModule::Convert(UPackage* Package, EReplacementResul
 		check(bSuccess);
 		if (bSuccess)
 		{
-			GetManifest().GatherModuleDependencies(Package);
+			GetManifest(PlatformName).GatherModuleDependencies(Package);
 		}
+	}
+
+	BackendPCHQuery.Unbind();
+}
+
+void FBlueprintNativeCodeGenModule::SaveManifest(int32 Id )
+{
+	for (auto& PlatformName : TargetPlatformNames)
+	{
+		GetManifest(*PlatformName).Save(Id);
 	}
 }
 
-void FBlueprintNativeCodeGenModule::SaveManifest(const TCHAR* Filename)
+void FBlueprintNativeCodeGenModule::MergeManifest(int32 ManifestIdentifier)
 {
-	GetManifest().SaveAs(Filename);
-}
-
-void FBlueprintNativeCodeGenModule::MergeManifest(const TCHAR* Filename)
-{
-	GetManifest().Merge(Filename);
+	for (auto& PlatformName : TargetPlatformNames)
+	{
+		FBlueprintNativeCodeGenManifest& CurrentManifest = GetManifest(*PlatformName);
+		FBlueprintNativeCodeGenManifest OtherManifest = FBlueprintNativeCodeGenManifest(CurrentManifest.GetTargetPaths().ManifestFilePath() + FString::FromInt(ManifestIdentifier));
+		CurrentManifest.Merge(OtherManifest);
+	}
 } 
 
 void FBlueprintNativeCodeGenModule::FinalizeManifest()
 {
-	GetManifest().Save();
+	for(auto& PlatformName : TargetPlatformNames)
+	{
+		GetManifest(*PlatformName).Save(-1);
+		check(FBlueprintNativeCodeGenUtils::FinalizePlugin(GetManifest(*PlatformName)));
+	}
+}
 
-	FCookCommandParams CookParams(FCommandLine::Get());
-	FNativeCodeGenCommandlineParams CommandLineParams(CookParams.ToConversionParams());
-	check(FPaths::IsSamePath(CommandLineParams.ManifestFilePath, CommandLineParams.ManifestFilePath));
-	check(FBlueprintNativeCodeGenUtils::FinalizePlugin(GetManifest(), CommandLineParams));
+UClass* FBlueprintNativeCodeGenModule::FindReplacedClass(const UClass* Class) const
+{
+	// we're only looking to replace class types:
+	while (Class)
+	{
+		if (Class == UUserDefinedEnum::StaticClass())
+		{
+			return UEnum::StaticClass();
+		}
+		if (Class == UUserDefinedStruct::StaticClass())
+		{
+			return UScriptStruct::StaticClass();
+		}
+		if (Class == UBlueprintGeneratedClass::StaticClass())
+		{
+			return UDynamicClass::StaticClass();
+		}
+
+		Class = Class->GetSuperClass();
+	}
+
+	return nullptr;
+}
+
+EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const UPackage* Package) const
+{
+	// non-native packages with enums and structs should be converted, unless they are blacklisted:
+	UStruct* Struct = nullptr;
+	UEnum* Enum = nullptr;
+	TArray<UObject*> Objects;
+	GetObjectsWithOuter(Package, Objects, false);
+	for (auto Entry : Objects)
+	{
+		Struct = Cast<UStruct>(Entry);
+		Enum = Cast<UEnum>(Entry);
+		if (Struct || Enum)
+		{
+			break;
+		}
+	}
+
+	UObject* Target = Struct;
+	if (Target == nullptr)
+	{
+		Target = Enum;
+	}
+	return IsTargetedForReplacement(Target);
+}
+
+EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const UObject* Object) const
+{
+	const UStruct* Struct = Cast<UStruct>(Object);
+	const UEnum* Enum = Cast<UEnum>(Object);
+
+	if (Struct == nullptr && Enum == nullptr)
+	{
+		return EReplacementResult::DontReplace;
+	}
+
+	if (const UClass* BlueprintClass = Cast<UClass>(Struct))
+	{
+		if (UBlueprint* Blueprint = Cast<UBlueprint>(BlueprintClass->ClassGeneratedBy))
+		{
+			const EBlueprintType UnconvertableBlueprintTypes[] = {
+				//BPTYPE_Const,		// WTF is a "const" Blueprint?
+				BPTYPE_MacroLibrary,
+				BPTYPE_LevelScript,
+			};
+
+			EBlueprintType BlueprintType = Blueprint->BlueprintType;
+			for (int32 TypeIndex = 0; TypeIndex < ARRAY_COUNT(UnconvertableBlueprintTypes); ++TypeIndex)
+			{
+				if (BlueprintType == UnconvertableBlueprintTypes[TypeIndex])
+				{
+					return EReplacementResult::DontReplace;
+				}
+			}
+		}
+	}
+
+	auto IsObjectFromDeveloperPackage = [](const UObject* Obj) -> bool
+	{
+		return Obj && Obj->GetOutermost()->HasAllPackagesFlags(PKG_Developer);
+	};
+
+	auto IsDeveloperObject = [&](const UObject* Obj) -> bool
+	{
+		if (Obj)
+		{
+			if (IsObjectFromDeveloperPackage(Obj))
+			{
+				return true;
+			}
+			const UStruct* StructToTest = Obj->IsA<UStruct>() ? CastChecked<const UStruct>(Obj) : Obj->GetClass();
+			for (; StructToTest; StructToTest = StructToTest->GetSuperStruct())
+			{
+				if (IsObjectFromDeveloperPackage(StructToTest))
+				{
+					return true;
+				}
+			}
+		}
+		return false;
+	};
+
+	if (Object && (IsEditorOnlyObject(Object) || IsDeveloperObject(Object)))
+	{
+		UE_LOG(LogBlueprintCodeGen, Warning, TEXT("Object %s depends on Editor or Development stuff. Is shouldn't be cooked."), *GetPathNameSafe(Object));
+		return EReplacementResult::DontReplace;
+	}
+
+	// check blacklists:
+	// we can't use FindObject, because we may be converting a type while saving
+	if ((Struct && ExcludedAssetTypes.Find(Struct->GetPathName()) != INDEX_NONE) ||
+		(Enum && ExcludedAssetTypes.Find(Enum->GetPathName()) != INDEX_NONE))
+	{
+		return EReplacementResult::GenerateStub;
+	}
+
+	EReplacementResult Result = EReplacementResult::ReplaceCompletely;
+	while (Struct)
+	{
+		// This happens because the cooker incorrectly cooks editor only packages. Specifically happens for the blackjack sample
+		// project due to a FStringAssetReference in BaseEditor.ini:
+		if (Struct->RootPackageHasAnyFlags(PKG_EditorOnly))
+		{
+			return EReplacementResult::DontReplace;
+		}
+
+		if (ExcludedBlueprintTypes.Find(Struct->GetPathName()) != INDEX_NONE)
+		{
+			Result = EReplacementResult::GenerateStub;
+		}
+		Struct = Struct->GetSuperStruct();
+	}
+
+	return Result;
 }
 
 IMPLEMENT_MODULE(FBlueprintNativeCodeGenModule, BlueprintNativeCodeGen);

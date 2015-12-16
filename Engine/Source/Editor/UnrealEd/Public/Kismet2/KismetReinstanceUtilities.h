@@ -40,7 +40,7 @@ protected:
 	static TSet<TWeakObjectPtr<UBlueprint>> DependentBlueprintsToRefresh;
 	static TSet<TWeakObjectPtr<UBlueprint>> DependentBlueprintsToRecompile;
 	static TSet<TWeakObjectPtr<UBlueprint>> DependentBlueprintsToByteRecompile;
-	static TSet<UBlueprint*> CompiledBlueprintsToSave;
+	static TSet<TWeakObjectPtr<UBlueprint>> CompiledBlueprintsToSave;
 
 	static UClass* HotReloadedOldClass;
 	static UClass* HotReloadedNewClass;
@@ -78,8 +78,8 @@ protected:
 	/** Objects that should keep reference to old class */
 	TSet<UObject*> ObjectsThatShouldUseOldStuff;
 
-	/** TRUE if this is the source reinstancer that all other active reinstancing is spawned from */
-	bool bIsSourceReinstancer;
+	/** TRUE if this is the root reinstancer that all other active reinstancing is spawned from */
+	bool bIsRootReinstancer;
 
 public:
 	// FSerializableObject interface
@@ -147,7 +147,9 @@ protected:
 		, OriginalCDO(NULL)
 		, bHasReinstanced(false)
 		, bSkipGarbageCollection(false)
+		, bIsReinstancingSkeleton(false)
 		, ClassToReinstanceDefaultValuesCRC(0)
+		, bIsRootReinstancer(false)
 	{}
 
 	/** Sets the reinstancer up to work on every object of the specified class */

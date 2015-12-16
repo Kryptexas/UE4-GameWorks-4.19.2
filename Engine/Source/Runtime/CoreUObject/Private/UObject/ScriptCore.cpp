@@ -62,6 +62,7 @@ COREUOBJECT_API void GInitRunaway() {}
 // FBlueprintCoreDelegates
 
 FBlueprintCoreDelegates::FOnScriptDebuggingEvent FBlueprintCoreDelegates::OnScriptException;
+FBlueprintCoreDelegates::FOnScriptExecutionEnd FBlueprintCoreDelegates::OnScriptExecutionEnd;
 FBlueprintCoreDelegates::FOnScriptInstrumentEvent FBlueprintCoreDelegates::OnScriptProfilingEvent;
 FBlueprintCoreDelegates::FOnToggleScriptProfiler FBlueprintCoreDelegates::OnToggleScriptProfiler;
 
@@ -1160,6 +1161,9 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 		EScriptInstrumentationEvent EventInstrumentationInfo(EScriptInstrumentation::Stop, this);
 		FBlueprintCoreDelegates::InstrumentScriptEvent(EventInstrumentationInfo);
 	}
+#if WITH_EDITORONLY_DATA
+	FBlueprintCoreDelegates::OnScriptExecutionEnd.Broadcast();
+#endif
 #endif
 
 #if DO_BLUEPRINT_GUARD

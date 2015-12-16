@@ -4600,7 +4600,7 @@ TArray<UFunction*> FNativeClassHeaderGenerator::ExportCallbackFunctions(FUnrealS
 		FString FunctionName = Function->GetName();
 
 		GeneratedHeaderText.Logf(TEXT("extern %s FName %s_%s;") LINE_TERMINATOR, *GetAPIString(), *API, *FunctionName);
-		ReferencedNames.Add(Function->GetFName());
+		ReferencedNames.Add(Function->GetFName(), GetOverriddenFName(Function));
 
 		const FFuncInfo& FunctionData = CompilerInfo->GetFunctionData();
 
@@ -5304,18 +5304,14 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 
 	GeneratedCPPText.Log(*GeneratedPackageCPP);
 
-	// Add all names marked for export to a list (for sorting)
-	TArray<FString> Names;
-	for (TSet<FName>::TIterator It(ReferencedNames); It; ++It)
 	{
-		Names.Add(It->ToString());
-	}	
+		// Autogenerate names (alphabetically sorted).
+		ReferencedNames.KeySort( TLess<FName>() );
 
-	// Autogenerate names (alphabetically sorted).
-	Names.Sort();
-	for( int32 NameIndex=0; NameIndex<Names.Num(); NameIndex++ )
-	{
-		GeneratedCPPText.Logf( TEXT("FName %s_%s = FName(TEXT(\"%s\"));") LINE_TERMINATOR, *API, *Names[NameIndex], *Names[NameIndex] );
+		for (auto& PairIt : ReferencedNames)
+		{
+			GeneratedCPPText.Logf(TEXT("FName %s_%s = FName(TEXT(\"%s\"));") LINE_TERMINATOR, *API, *PairIt.Key.ToString(), *PairIt.Value.ToString());
+		}
 	}
 
 	GeneratedCPPEpilogue.Logf(

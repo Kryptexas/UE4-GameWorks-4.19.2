@@ -663,7 +663,7 @@ struct FMath : public FPlatformMath
 	template< class T >
 	static FORCEINLINE_DEBUGGABLE T InterpEaseIn(const T& A, const T& B, float Alpha, float Exp)
 	{
-		float const ModifiedAlpha = FMath::Pow(Alpha, Exp);
+		float const ModifiedAlpha = Pow(Alpha, Exp);
 		return Lerp<T>(A, B, ModifiedAlpha);
 	}
 
@@ -671,7 +671,7 @@ struct FMath : public FPlatformMath
 	template< class T >
 	static FORCEINLINE_DEBUGGABLE T InterpEaseOut(const T& A, const T& B, float Alpha, float Exp)
 	{
-		float const ModifiedAlpha = 1.f - FMath::Pow(1.f - Alpha, Exp);
+		float const ModifiedAlpha = 1.f - Pow(1.f - Alpha, Exp);
 		return Lerp<T>(A, B, ModifiedAlpha);
 	}
 
@@ -679,20 +679,22 @@ struct FMath : public FPlatformMath
 	template< class T > 
 	static FORCEINLINE_DEBUGGABLE T InterpEaseInOut( const T& A, const T& B, float Alpha, float Exp )
 	{
-		float const ModifiedAlpha = (Alpha < 0.5f) ?
-			0.5f * Pow(2.f * Alpha, Exp) :
-			1.f - 0.5f * Pow(2.f * (1.f - Alpha), Exp);
-
-		return Lerp<T>(A, B, ModifiedAlpha);
+		return Lerp<T>(A, B, (Alpha < 0.5f) ?
+			InterpEaseIn(0.f, 1.f, Alpha * 2.f, Exp) * 0.5f :
+			InterpEaseOut(0.f, 1.f, Alpha * 2.f - 1.f, Exp) * 0.5f + 0.5f);
 	}
 
 	/** Interpolation between A and B, applying a step function. */
 	template< class T >
 	static FORCEINLINE_DEBUGGABLE T InterpStep(const T& A, const T& B, float Alpha, int32 Steps)
 	{
-		if (Steps <= 1)
+		if (Steps <= 1 || Alpha <= 0)
 		{
 			return A;
+		}
+		else if (Alpha >= 1)
+		{
+			return B;
 		}
 
 		const float StepsAsFloat = static_cast<float>(Steps);
@@ -705,7 +707,7 @@ struct FMath : public FPlatformMath
 	template< class T >
 	static FORCEINLINE_DEBUGGABLE T InterpSinIn(const T& A, const T& B, float Alpha)
 	{
-		float const ModifiedAlpha = -1.f * cos(Alpha * HALF_PI) + 1.f;
+		float const ModifiedAlpha = -1.f * Cos(Alpha * HALF_PI) + 1.f;
 		return Lerp<T>(A, B, ModifiedAlpha);
 	}
 	
@@ -713,7 +715,7 @@ struct FMath : public FPlatformMath
 	template< class T >
 	static FORCEINLINE_DEBUGGABLE T InterpSinOut(const T& A, const T& B, float Alpha)
 	{
-		float const ModifiedAlpha = sin(Alpha * HALF_PI);
+		float const ModifiedAlpha = Sin(Alpha * HALF_PI);
 		return Lerp<T>(A, B, ModifiedAlpha);
 	}
 
@@ -721,16 +723,16 @@ struct FMath : public FPlatformMath
 	template< class T >
 	static FORCEINLINE_DEBUGGABLE T InterpSinInOut(const T& A, const T& B, float Alpha)
 	{
-		return (Alpha < 0.5f) ?
-			InterpSinIn(A, B, Alpha * 2.f) * 0.5f :
-			InterpSinOut(A, B, Alpha * 2.f - 1.f) * 0.5f + 0.5f;
+		return Lerp<T>(A, B, (Alpha < 0.5f) ?
+			InterpSinIn(0.f, 1.f, Alpha * 2.f) * 0.5f :
+			InterpSinOut(0.f, 1.f, Alpha * 2.f - 1.f) * 0.5f + 0.5f);
 	}
 
 	/** Interpolation between A and B, applying an exponential in function. */
 	template< class T >
 	static FORCEINLINE_DEBUGGABLE T InterpExpoIn(const T& A, const T& B, float Alpha)
 	{
-		float const ModifiedAlpha = (Alpha == 0.f) ? 0.f : pow(2.f, 10.f * (Alpha - 1.f));
+		float const ModifiedAlpha = (Alpha == 0.f) ? 0.f : Pow(2.f, 10.f * (Alpha - 1.f));
 		return Lerp<T>(A, B, ModifiedAlpha);
 	}
 
@@ -738,7 +740,7 @@ struct FMath : public FPlatformMath
 	template< class T >
 	static FORCEINLINE_DEBUGGABLE T InterpExpoOut(const T& A, const T& B, float Alpha)
 	{
-		float const ModifiedAlpha = (Alpha == 1.f) ? 1.f : -pow(2.f, -10.f * Alpha) + 1.f;
+		float const ModifiedAlpha = (Alpha == 1.f) ? 1.f : -Pow(2.f, -10.f * Alpha) + 1.f;
 		return Lerp<T>(A, B, ModifiedAlpha);
 	}
 
@@ -746,9 +748,9 @@ struct FMath : public FPlatformMath
 	template< class T >
 	static FORCEINLINE_DEBUGGABLE T InterpExpoInOut(const T& A, const T& B, float Alpha)
 	{
-		return (Alpha < 0.5f) ?
-			InterpExpoIn(A, B, Alpha * 2.f) * 0.5f :
-			InterpExpoOut(A, B, Alpha * 2.f - 1.f) * 0.5f + 0.5f;
+		return Lerp<T>(A, B, (Alpha < 0.5f) ?
+			InterpExpoIn(0.f, 1.f, Alpha * 2.f) * 0.5f :
+			InterpExpoOut(0.f, 1.f, Alpha * 2.f - 1.f) * 0.5f + 0.5f);
 	}
 
 	/** Interpolation between A and B, applying a circular in function. */
@@ -772,9 +774,9 @@ struct FMath : public FPlatformMath
 	template< class T >
 	static FORCEINLINE_DEBUGGABLE T InterpCircularInOut(const T& A, const T& B, float Alpha)
 	{
-		return (Alpha < 0.5f) ?
-			InterpCircularIn(A, B, Alpha * 2.f) * 0.5f :
-			InterpCircularOut(A, B, Alpha * 2.f - 1.f) * 0.5f + 0.5f;
+		return Lerp<T>(A, B, (Alpha < 0.5f) ?
+			InterpCircularIn(0.f, 1.f, Alpha * 2.f) * 0.5f :
+			InterpCircularOut(0.f, 1.f, Alpha * 2.f - 1.f) * 0.5f + 0.5f);
 	}
 
 	// Rotator specific interpolation

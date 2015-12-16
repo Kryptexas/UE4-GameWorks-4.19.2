@@ -1747,126 +1747,21 @@ void FConvertedBlueprintsDependencies::GetAssets(FName PackageName, TArray<FBlue
 	}
 }
 
-/*******************************************************************************
- * FScriptCookReplacementCoordinator
- ******************************************************************************/
 #if WITH_EDITOR
 
-FScriptCookReplacementCoordinator* FScriptCookReplacementCoordinator::CoordinatorInstance = nullptr;
+/*******************************************************************************
+* IBlueprintNativeCodeGenCore
+******************************************************************************/
+static const IBlueprintNativeCodeGenCore* CoordinatorInstance = nullptr;
 
-FScriptCookReplacementCoordinator* FScriptCookReplacementCoordinator::Get()
+const IBlueprintNativeCodeGenCore* IBlueprintNativeCodeGenCore::Get()
 {
 	return CoordinatorInstance;
 }
 
-void FScriptCookReplacementCoordinator::Create(bool bEnabled, const TArray<FString>& ExcludedAssetTypes, const TArray<FString>& ExcludedBlueprintTypes, const TMap<UObject*, UClass*>& ReplacementMap)
+void IBlueprintNativeCodeGenCore::Register(const IBlueprintNativeCodeGenCore* Coordinator)
 {
-	CoordinatorInstance = new FScriptCookReplacementCoordinator(bEnabled, ExcludedAssetTypes, ExcludedBlueprintTypes, ReplacementMap);
-}
-
-FScriptCookReplacementCoordinator::FScriptCookReplacementCoordinator(bool bInEnabled, const TArray<FString>& InExcludedAssetTypes, const TArray<FString>& InExcludedBlueprintTypes, const TMap<UObject*, UClass*>& InReplacementMap)
-	: bEnabled(bInEnabled)
-	, ExcludedAssetTypes(InExcludedAssetTypes)
-	, ExcludedBlueprintTypes(InExcludedBlueprintTypes)
-	, ReplacementMap(InReplacementMap)
-{
-}
-
-bool FScriptCookReplacementCoordinator::Initialize()
-{
-	return true;
-}
-
-DEFINE_LOG_CATEGORY_STATIC(LogDan, Log, All);
-
-UClass* FScriptCookReplacementCoordinator::FindReplacedClass(const UObject* Obj) const
-{
-	if (!bEnabled)
-	{
-		return nullptr;
-	}
-
-	// we're only looking to replace class types:
-	const UClass* AsClass = Obj->GetClass();
-	while (AsClass)
-	{
-		if (UClass* const* ReplacementPtr = ReplacementMap.Find(AsClass))
-		{
-			return *ReplacementPtr;
-		}
-
-		AsClass = AsClass->GetSuperClass();
-	}
-
-	return nullptr;
-}
-
-EReplacementResult FScriptCookReplacementCoordinator::IsTargetedForReplacement(const UPackage* Package) const
-{
-	if (!bEnabled)
-	{
-		return EReplacementResult::DontReplace;
-	}
-
-	// non-native packages with enums and structs should be converted, unless they are blacklisted:
-	UStruct* Struct = nullptr;
-	UEnum* Enum = nullptr;
-	TArray<UObject*> Objects;
-	GetObjectsWithOuter(Package, Objects, false);
-	for (auto Entry : Objects)
-	{
-		Struct = Cast<UStruct>(Entry);
-		Enum = Cast<UEnum>(Entry);
-		if (Struct || Enum)
-		{
-			break;
-		}
-	}
-
-	UObject* Target = Struct;
-	if (Target == nullptr)
-	{
-		Target = Enum;
-	}
-	return IsTargetedForReplacement(Target);
-}
-
-EReplacementResult FScriptCookReplacementCoordinator::IsTargetedForReplacement(const UObject* Object) const
-{
-	const UStruct* Struct = Cast<UStruct>(Object);
-	const UEnum* Enum = Cast<UEnum>(Object);
-
-	if (Struct == nullptr && Enum == nullptr)
-	{
-		return EReplacementResult::DontReplace;
-	}
-
-	// check blacklists:
-	// we can't use FindObject, because we may be converting a type while saving
-	if ((Struct && ExcludedAssetTypes.Find(Struct->GetPathName()) != INDEX_NONE) ||
-		(Enum && ExcludedAssetTypes.Find(Enum->GetPathName()) != INDEX_NONE))
-	{
-		return EReplacementResult::GenerateStub;
-	}
-
-	EReplacementResult Result = EReplacementResult::ReplaceCompletely;
-	while (Struct)
-	{
-		// This happens because the cooker incorrectly cooks editor only packages. Specifically happens for the blackjack sample
-		// project due to a FStringAssetReference in BaseEditor.ini:
-		if (Struct->RootPackageHasAnyFlags(PKG_EditorOnly))
-		{
-			return EReplacementResult::DontReplace;
-		}
-
-		if (ExcludedBlueprintTypes.Find(Struct->GetPathName()) != INDEX_NONE)
-		{
-			Result = EReplacementResult::GenerateStub;
-		}
-		Struct = Struct->GetSuperStruct();
-	}
-
-	return Result;
+	CoordinatorInstance = Coordinator;
 }
 
 #endif // WITH_EDITOR

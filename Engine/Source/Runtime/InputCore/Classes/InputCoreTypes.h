@@ -9,7 +9,7 @@ INPUTCORE_API DECLARE_LOG_CATEGORY_EXTERN(LogInput, Log, All);
 
 /** Defines the controller hands for tracking.  Could be expanded, as needed, to facilitate non-handheld controllers */
 UENUM(BlueprintType)
-enum class EControllerHand
+enum class EControllerHand : uint8
 {
 	Left,
 	Right

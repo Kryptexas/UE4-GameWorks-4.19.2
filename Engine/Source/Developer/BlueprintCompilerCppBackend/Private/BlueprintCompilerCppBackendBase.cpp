@@ -650,19 +650,21 @@ void FBlueprintCompilerCppBackendBase::EmitFileBeginning(const FString& CleanNam
 	{
 		EmitIncludeHeader(EmitterContext.Body, *PCHFilename, false);
 	}
-	/*
-	const FString MainHeaderFilename = FEmitHelper::GetGameMainHeaderFilename();
-	if (!MainHeaderFilename.IsEmpty() && MainHeaderFilename != PCHFilename)
+	else
 	{
-		EmitIncludeHeader(EmitterContext.Body, *MainHeaderFilename, false);
+		// Used when generated code is not in a separate module
+		const FString MainHeaderFilename = FEmitHelper::GetGameMainHeaderFilename();
+		if (!MainHeaderFilename.IsEmpty())
+		{
+			EmitIncludeHeader(EmitterContext.Body, *MainHeaderFilename, false);
+		}
 	}
-	*/
 	EmitIncludeHeader(EmitterContext.Body, *CleanName, true);
 	EmitIncludeHeader(bIncludeCodeHelpersInHeader ? EmitterContext.Header : EmitterContext.Body, TEXT("GeneratedCodeHelpers"), true);
 	EmitIncludeHeader(EmitterContext.Header, TEXT("Blueprint/BlueprintSupport"), true);
 
 	FBackendHelperUMG::AdditionalHeaderIncludeForWidget(EmitterContext);
-	EmitterContext.Header.AddLine(FBackendHelperAnim::AddHeaders(EmitterContext.GetCurrentlyGeneratedClass()));
+	FBackendHelperAnim::AddHeaders(EmitterContext);
 
 	TSet<FString> AlreadyIncluded;
 	AlreadyIncluded.Add(CleanName);

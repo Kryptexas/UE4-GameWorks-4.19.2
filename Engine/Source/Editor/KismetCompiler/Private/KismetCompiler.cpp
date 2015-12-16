@@ -305,10 +305,18 @@ void FKismetCompilerContext::ValidateLink(const UEdGraphPin* PinA, const UEdGrap
 	const FPinConnectionResponse ConnectResponse = Schema->CanCreateConnection(PinA, PinB);
 
 	const bool bForbiddenConnection = (ConnectResponse.Response == CONNECT_RESPONSE_DISALLOW);
-	const bool bMissingConversion = (ConnectResponse.Response == CONNECT_RESPONSE_MAKE_WITH_CONVERSION_NODE);
+	const bool bMissingConversion   = (ConnectResponse.Response == CONNECT_RESPONSE_MAKE_WITH_CONVERSION_NODE);
 	if (bForbiddenConnection || bMissingConversion)
 	{
-		MessageLog.Warning(*FString::Printf(*LOCTEXT("PinTypeMismatch_Error", "Can't connect pins @@ and @@: %s").ToString(), *ConnectResponse.Message.ToString()), PinA, PinB);
+		const FString ErrorMessage = FString::Printf(*LOCTEXT("PinTypeMismatch_Error", "Can't connect pins @@ and @@: %s").ToString(), *ConnectResponse.Message.ToString());
+		if (ConnectResponse.IsFatal())
+		{
+			MessageLog.Error(*ErrorMessage, PinA, PinB);
+		}
+		else
+		{
+			MessageLog.Warning(*ErrorMessage, PinA, PinB);
+		}
 	}
 
 	if (PinA && PinB && PinA->Direction != PinB->Direction)
@@ -2455,8 +2463,27 @@ void FKismetCompilerContext::CreateAndProcessUbergraph()
 			const UFunction* Function = *FunctionIt;
 			const FName FunctionName = Function->GetFName();
 
+			const bool bCanImplementAsEvent = UEdGraphSchema_K2::FunctionCanBePlacedAsEvent(Function);
+			bool bExistsAsGraph = false;
+
+			// Any function that can be implemented as an event needs to check to see if there is already an interface function graph
+			// If there is, we want to warn the user that this is unexpected but proceed to successfully compile the Blueprint
+			if (bCanImplementAsEvent)
+			{
+				for (UEdGraph* InterfaceGraph : InterfaceDesc.Graphs)
+				{
+					if (InterfaceGraph->GetFName() == Function->GetFName())
+					{
+						bExistsAsGraph = true;
+
+						// Having an event override implemented as a function won't cause issues but is something the user should be aware of.
+						MessageLog.Warning(TEXT("Interface '@@' is already implemented as a function graph but is expected as an event. Remove the function graph and reimplement as an event."), InterfaceGraph);
+					}
+				}
+			}
+
 			// If this is an event, check the merged ubergraph to make sure that it has an event handler, and if not, add one
-			if (UEdGraphSchema_K2::FunctionCanBePlacedAsEvent(Function) && UEdGraphSchema_K2::CanKismetOverrideFunction(Function))
+			if (bCanImplementAsEvent && UEdGraphSchema_K2::CanKismetOverrideFunction(Function) && !bExistsAsGraph)
 			{
 				bool bFoundEntry = false;
 				// Search the cached entry points to see if we have a match

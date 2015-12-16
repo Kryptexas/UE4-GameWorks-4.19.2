@@ -11,6 +11,7 @@ class AIMODULE_API UEnvQueryInstanceBlueprintWrapper : public UObject, public IE
 {
 	GENERATED_BODY()
 
+public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEQSQueryDoneSignature, UEnvQueryInstanceBlueprintWrapper*, QueryInstance, EEnvQueryStatus::Type, QueryStatus);
 
 protected:

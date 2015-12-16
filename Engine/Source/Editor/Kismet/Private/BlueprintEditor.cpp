@@ -508,7 +508,10 @@ bool FBlueprintEditor::IsInAScriptingMode() const
 
 bool FBlueprintEditor::OnRequestClose()
 {
-	TabManager->InvokeTab(FBlueprintEditorTabs::BlueprintProfilerID)->RequestCloseTab();
+	if (GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
+	{
+		TabManager->InvokeTab(FBlueprintEditorTabs::BlueprintProfilerID)->RequestCloseTab();
+	}
 	bEditorMarkedAsClosed = true;
 	return FWorkflowCentricApplication::OnRequestClose();
 }
@@ -1252,6 +1255,9 @@ TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FT
 		InEvents.OnCreateActionMenu = SGraphEditor::FOnCreateActionMenu::CreateSP(this, &FBlueprintEditor::OnCreateGraphActionMenu);
 	}
 
+	// Append play world commands
+	GraphEditorCommands->Append( FPlayWorldCommands::GlobalPlayWorldActions.ToSharedRef() );
+
 	TSharedRef<SGraphEditor> Editor = SNew(SGraphEditor)
 		.AdditionalCommands(GraphEditorCommands)
 		.IsEditable(this, &FBlueprintEditor::IsEditable, InGraph)
@@ -1674,7 +1680,12 @@ void FBlueprintEditor::InitBlueprintEditor(
 	PostLayoutBlueprintEditorInitialization();
 
 	// Ensure the profiler UI respects the current state if it had previously been enabled.
-	const bool bShowBlueprintProfilerTab = IsProfilerActive() && GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor;
+	bool bShowBlueprintProfilerTab = false;
+	if (GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
+	{
+		IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
+		bShowBlueprintProfilerTab = ProfilerModule.IsProfilerEnabled();
+	}
 	if (bShowBlueprintProfilerTab)
 	{
 		TabManager->InvokeTab(FBlueprintEditorTabs::BlueprintProfilerID);
@@ -2193,12 +2204,10 @@ void FBlueprintEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlu
 			. BlueprintToWatch(InBlueprint)
 			. IsEnabled(!bIsInterface && !bIsMacro);
 
-		if (GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
-		{
 			this->BlueprintProfiler =
 				SNew(SBlueprintProfilerView)
 				.ProfileViewType(PVT_LiveView);
-		}
+
 		this->Palette = 
 			SNew(SBlueprintPalette, SharedThis(this))
 				.IsEnabled(this, &FBlueprintEditor::IsFocusedGraphEditable);
@@ -7619,7 +7628,12 @@ TSharedPtr<SGraphEditor> FBlueprintEditor::OpenGraphAndBringToFront(UEdGraph* Gr
 	TSharedPtr<SDockTab> TabWithGraph = OpenDocument(Graph, FDocumentTracker::CreateHistoryEvent);
 
 	// We know that the contents of the opened tabs will be a graph editor.
-	return StaticCastSharedRef<SGraphEditor>(TabWithGraph->GetContent());
+	TSharedRef<SGraphEditor> NewGraphEditor = StaticCastSharedRef<SGraphEditor>(TabWithGraph->GetContent());
+
+	// Handover the keyboard focus to the new graph editor widget.
+	NewGraphEditor->CaptureKeyboard();
+
+	return NewGraphEditor;
 }
 
 TSharedPtr<SDockTab> FBlueprintEditor::OpenDocument(UObject* DocumentID, FDocumentTracker::EOpenDocumentCause Cause)
@@ -8250,21 +8264,6 @@ bool FBlueprintEditor::IsFocusedGraphEditable() const
 		return IsEditable(FocusedGraph);
 	}
 	return true;
-}
-
-void FBlueprintEditor::SaveAsset_Execute()
-{
-	for (auto Object : GetEditingObjects())
-	{
-		auto Blueprint = Cast<UBlueprint>(Object);
-		if (Blueprint)
-		{
-			// Update the Blueprint's search data
-			FFindInBlueprintSearchManager::Get().AddOrUpdateBlueprintSearchMetadata(Blueprint);
-		}
-	}
-
-	IBlueprintEditor::SaveAsset_Execute();
 }
 
 void FBlueprintEditor::TryInvokingDetailsTab(bool bFlash)

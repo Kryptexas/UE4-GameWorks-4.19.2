@@ -5,10 +5,13 @@
 #include "Animation/AnimBlueprintGeneratedClass.h"
 #include "Animation/AnimClassData.h"
 
-FString FBackendHelperAnim::AddHeaders(UClass* GeneratedClass)
+void FBackendHelperAnim::AddHeaders(FEmitterLocalContext& Context)
 {
-	auto AnimClass = Cast<UAnimBlueprintGeneratedClass>(GeneratedClass);
-	return AnimClass ? FString(TEXT("#include \"Animation/AnimClassData.h\"")) : FString();
+	if (Cast<UAnimBlueprintGeneratedClass>(Context.GetCurrentlyGeneratedClass()))
+	{
+		Context.Header.AddLine(TEXT("#include \"Animation/AnimClassData.h\""));
+		Context.Body.AddLine(TEXT("#include \"Animation/BlendProfile.h\""));
+	}
 }
 
 void FBackendHelperAnim::CreateAnimClassData(FEmitterLocalContext& Context)

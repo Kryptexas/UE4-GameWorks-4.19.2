@@ -1910,6 +1910,11 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint, bool b
 			UObject* OldCDO = OldBPGC->GetDefaultObject();
 			check(OldCDO != NULL);
 
+			if (FBlueprintDuplicationScopeFlags::HasAnyFlag(FBlueprintDuplicationScopeFlags::ValidatePinsUsingSourceClass))
+			{
+				Blueprint->OriginalClass = OldBPGC;
+			}
+
 			// Grab the old class templates, which needs to be moved to the new class
 			USimpleConstructionScript* SCSRootNode = Blueprint->SimpleConstructionScript;
 			Blueprint->SimpleConstructionScript = NULL;
@@ -5466,51 +5471,14 @@ void FBlueprintEditorUtils::RemoveInterface(UBlueprint* Blueprint, const FName& 
 	{
 		FBPInterfaceDescription& CurrentInterface = Blueprint->ImplementedInterfaces[Idx];
 
-		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-
 		// Remove all the graphs that we implemented
 		for(TArray<UEdGraph*>::TIterator it(CurrentInterface.Graphs); it; ++it)
 		{
 			UEdGraph* CurrentGraph = *it;
 			if(bPreserveFunctions)
 			{
-				CurrentGraph->bAllowDeletion = true;
-				CurrentGraph->bAllowRenaming = true;
-				CurrentGraph->bEditable = true;
-				CurrentGraph->InterfaceGuid.Invalidate();
-
-				// We need to flag the entry node to make sure that the compiled function is callable
-				Schema->AddExtraFunctionFlags(CurrentGraph, (FUNC_BlueprintCallable|FUNC_BlueprintEvent|FUNC_Public));
-				Schema->MarkFunctionEntryAsEditable(CurrentGraph, true);
-
+				PromoteGraphFromInterfaceOverride(Blueprint, CurrentGraph);
 				Blueprint->FunctionGraphs.Add(CurrentGraph);
-
-				// Move all non-exec pins from the function entry node to being user defined pins
-				TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
-				CurrentGraph->GetNodesOfClass(FunctionEntryNodes);
-				if (FunctionEntryNodes.Num() > 0)
-				{
-					UK2Node_FunctionEntry* FunctionEntry = FunctionEntryNodes[0];
-					FunctionEntry->PromoteFromInterfaceOverride();
-				}
-
-				// Move all non-exec pins from the function result node to being user defined pins
-				TArray<UK2Node_FunctionResult*> FunctionResultNodes;
-				CurrentGraph->GetNodesOfClass(FunctionResultNodes);
-				if (FunctionResultNodes.Num() > 0)
-				{
-					UK2Node_FunctionResult* PrimaryFunctionResult = FunctionResultNodes[0];
-					PrimaryFunctionResult->PromoteFromInterfaceOverride();
-
-					// Reconstruct all result nodes so they update their pins accordingly
-					for (UK2Node_FunctionResult* FunctionResult : FunctionResultNodes)
-					{
-						if (PrimaryFunctionResult != FunctionResult)
-						{
-							FunctionResult->PromoteFromInterfaceOverride(false);
-						}
-					}
-				}
 			}
 			else
 			{
@@ -5542,6 +5510,7 @@ void FBlueprintEditorUtils::RemoveInterface(UBlueprint* Blueprint, const FName& 
 					{
 						UEdGraphPin* CurrentPin = *PinIt;
 						UEdGraphPin* TargetPin = NewEvent->FindPinChecked(CurrentPin->PinName);
+						const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 						Schema->MovePinLinks(*CurrentPin, *TargetPin);
 					}
 				}
@@ -5555,6 +5524,46 @@ void FBlueprintEditorUtils::RemoveInterface(UBlueprint* Blueprint, const FName& 
 	
 		// *Now recompile the blueprint (this needs to be done outside of RemoveGraph, after it's been removed from ImplementedInterfaces - otherwise it'll re-add it)
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+	}
+}
+
+void FBlueprintEditorUtils::PromoteGraphFromInterfaceOverride(UBlueprint* InBlueprint, UEdGraph* InInterfaceGraph)
+{
+	InInterfaceGraph->bAllowDeletion = true;
+	InInterfaceGraph->bAllowRenaming = true;
+	InInterfaceGraph->bEditable = true;
+	InInterfaceGraph->InterfaceGuid.Invalidate();
+
+	// We need to flag the entry node to make sure that the compiled function is callable
+	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+	Schema->AddExtraFunctionFlags(InInterfaceGraph, (FUNC_BlueprintCallable | FUNC_BlueprintEvent | FUNC_Public));
+	Schema->MarkFunctionEntryAsEditable(InInterfaceGraph, true);
+
+	// Move all non-exec pins from the function entry node to being user defined pins
+	TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
+	InInterfaceGraph->GetNodesOfClass(FunctionEntryNodes);
+	if (FunctionEntryNodes.Num() > 0)
+	{
+		UK2Node_FunctionEntry* FunctionEntry = FunctionEntryNodes[0];
+		FunctionEntry->PromoteFromInterfaceOverride();
+	}
+
+	// Move all non-exec pins from the function result node to being user defined pins
+	TArray<UK2Node_FunctionResult*> FunctionResultNodes;
+	InInterfaceGraph->GetNodesOfClass(FunctionResultNodes);
+	if (FunctionResultNodes.Num() > 0)
+	{
+		UK2Node_FunctionResult* PrimaryFunctionResult = FunctionResultNodes[0];
+		PrimaryFunctionResult->PromoteFromInterfaceOverride();
+
+		// Reconstruct all result nodes so they update their pins accordingly
+		for (UK2Node_FunctionResult* FunctionResult : FunctionResultNodes)
+		{
+			if (PrimaryFunctionResult != FunctionResult)
+			{
+				FunctionResult->PromoteFromInterfaceOverride(false);
+			}
+		}
 	}
 }
 
@@ -5703,29 +5712,101 @@ void FBlueprintEditorUtils::ConformCallsToParentFunctions(UBlueprint* Blueprint)
 	}
 }
 
+namespace
+{
+	static bool ExtendedIsParent(const UClass* Parent, const UClass* Child)
+	{
+		if (Parent && Child)
+		{
+			if (Child->IsChildOf(Parent))
+			{
+				return true;
+			}
+
+			if (Parent->ClassGeneratedBy)
+			{
+				if (Parent->ClassGeneratedBy == Child->ClassGeneratedBy)
+				{
+					return true;
+				}
+
+				if (const UBlueprint* ParentBP = Cast<UBlueprint>(Parent->ClassGeneratedBy))
+				{
+					if (ParentBP->SkeletonGeneratedClass && Child->IsChildOf(ParentBP->SkeletonGeneratedClass))
+					{
+						return true;
+					}
+
+					if (ParentBP->GeneratedClass && Child->IsChildOf(ParentBP->GeneratedClass))
+					{
+						return true;
+					}
+				}
+			}
+		}
+		return false;
+	}
+
+	static void FixOverriddenEventSignature(UK2Node_Event* EventNode, UBlueprint* Blueprint, UEdGraph* CurrentGraph)
+	{
+		check(EventNode && Blueprint && CurrentGraph);
+		UClass* CurrentClass = EventNode->GetBlueprintClassFromNode();
+		FMemberReference& FuncRef = EventNode->EventReference;
+		const FName EventFuncName = FuncRef.GetMemberName();
+		ensure(EventFuncName != NAME_None);
+		ensure(!EventNode->IsA<UK2Node_CustomEvent>());
+
+		const UFunction* TargetFunction = FuncRef.ResolveMember<UFunction>(CurrentClass);
+		const UClass* FuncOwnerClass = FuncRef.GetMemberParentClass(CurrentClass);
+		const bool bFunctionOwnerIsNotParentOfClass = !FuncOwnerClass || !ExtendedIsParent(FuncOwnerClass, CurrentClass);
+		const bool bNeedsToBeFixed = !TargetFunction || bFunctionOwnerIsNotParentOfClass;
+		if (bNeedsToBeFixed)
+		{
+			const UClass* SuperClass = CurrentClass->GetSuperClass();
+			const UFunction* ActualTargetFunction = SuperClass ? SuperClass->FindFunctionByName(EventFuncName) : nullptr;
+			if (ActualTargetFunction)
+			{
+				ensure(TargetFunction != ActualTargetFunction);
+				if (!ensure(!TargetFunction || TargetFunction->IsSignatureCompatibleWith(ActualTargetFunction)))
+				{
+					UE_LOG(LogBlueprint, Error
+						, TEXT("FixOverriddenEventSignature function \"%s\" is not compatible with \"%s\" node \"%s\"")
+						, *GetPathNameSafe(ActualTargetFunction), *GetPathNameSafe(TargetFunction), *GetPathNameSafe(EventNode));
+				}
+
+				ensure(GetDefault<UEdGraphSchema_K2>()->FunctionCanBePlacedAsEvent(ActualTargetFunction));
+				FuncRef.SetFromField<UFunction>(ActualTargetFunction, false);
+
+				// Emit something to the log to indicate that we've made a change
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("NodeTitle"), EventNode->GetNodeTitle(ENodeTitleType::ListView));
+				Args.Add(TEXT("EventNodeName"), FText::FromString(EventNode->GetName()));
+				Blueprint->Message_Note(FText::Format(LOCTEXT("EventSignatureFixed_Note", "{NodeTitle} ({EventNodeName}) had an invalid function signature - it has now been fixed."), Args).ToString());
+			}
+			else
+			{
+				UEdGraphNode* CustomEventNode = CurrentGraph->GetSchema()->CreateSubstituteNode(EventNode, CurrentGraph, NULL);
+				if (ensure(CustomEventNode))
+				{
+					// Destroy the old event node (this will also break all pin links and remove it from the graph)
+					EventNode->DestroyNode();
+					// Add the new custom event node to the graph
+					CurrentGraph->Nodes.Add(CustomEventNode);
+					// Emit something to the log to indicate that we've made a change
+					FFormatNamedArguments Args;
+					Args.Add(TEXT("NodeTitle"), EventNode->GetNodeTitle(ENodeTitleType::ListView));
+					Args.Add(TEXT("EventNodeName"), FText::FromString(EventNode->GetName()));
+					Blueprint->Message_Note(FText::Format(LOCTEXT("EventNodeReplaced_Note", "{NodeTitle} ({EventNodeName}) was not valid for this Blueprint - it has been converted to a custom event."), Args).ToString());
+				}
+			}
+		}
+	}
+}
+
 // Makes sure that all events we handle exist, and replace with custom events if not
 void FBlueprintEditorUtils::ConformImplementedEvents(UBlueprint* Blueprint)
 {
 	check(NULL != Blueprint);
-
-	// Collect all event graph names
-	// @TODO: currently, in the compile process, Blueprint->EventGraphs gets 
-	//        filled out (in FKismetCompilerContext::CreateFunctionStubForEvent)
-	//        after this function is called... normally this would cause a 
-	//        problem here (as we're relying on a stale set from the last time  
-	//        this Blueprint was compiled), but because both the skeleton class 
-	//        and generated class execute this and CreateFunctionStubForEvent(), 
-	//        then the second time through (for the generated class) EventGraphs 
-	//        should be accurate
-	TArray<FName> EventGraphNames;
-	for(int EventGraphIndex = 0; EventGraphIndex < Blueprint->EventGraphs.Num(); ++EventGraphIndex)
-	{
-		UEdGraph* EventGraph = Blueprint->EventGraphs[EventGraphIndex];
-		if(EventGraph)
-		{
-			EventGraphNames.AddUnique(EventGraph->GetFName());
-		}
-	}
 
 	// Collect all implemented interface classes
 	TArray<UClass*> ImplementedInterfaceClasses;
@@ -5756,55 +5837,7 @@ void FBlueprintEditorUtils::ConformImplementedEvents(UBlueprint* Blueprint)
 					const bool bEventNodeUsedByInterface = ImplementedInterfaceClasses.Contains(EventNode->EventReference.GetMemberParentClass(EventNode->GetBlueprintClassFromNode()));
 					if (Blueprint->GeneratedClass && !bEventNodeUsedByInterface)
 					{
-						FMemberReference& FuncRef = EventNode->EventReference;
-						const FName EventFuncName = FuncRef.GetMemberName();
-
-						// See if the generated class implements an event with the given function signature
-						const UFunction* TargetFunction = EventNode->EventReference.ResolveMember<UFunction>(Blueprint->GeneratedClass);
-						if (TargetFunction || EventGraphNames.Contains(EventFuncName))
-						{
-							UClass* FuncOwnerClass = FuncRef.GetMemberParentClass(EventNode->GetBlueprintClassFromNode());
-							// The generated class implements the event but the function signature is not up-to-date
-							if (!Blueprint->GeneratedClass->IsChildOf(FuncOwnerClass))
-							{
-								FFormatNamedArguments Args;
-								Args.Add(TEXT("NodeTitle"), EventNode->GetNodeTitle(ENodeTitleType::ListView));
-								Args.Add(TEXT("EventNodeName"), FText::FromString(EventNode->GetName()));
-
-								// Emit something to the log to indicate that we've made a change
-								Blueprint->Message_Note( FText::Format(LOCTEXT("EventSignatureFixed_Note", "{NodeTitle} ({EventNodeName}) had an invalid function signature - it has now been fixed."), Args).ToString() );
-
-								// Fix up the event signature
-								if (TargetFunction != nullptr)
-								{
-								EventNode->EventReference.SetFromField<UFunction>(TargetFunction, false);
-							}
-								else
-								{
-									EventNode->EventReference.SetExternalMember(EventFuncName, Blueprint->GeneratedClass);
-								}
-							}
-						}
-						else
-						{
-							// The generated class does not implement this event, so replace it with a custom event node instead (this will persist any existing connections)
-							UEdGraphNode* CustomEventNode = CurrentGraph->GetSchema()->CreateSubstituteNode(EventNode, CurrentGraph, NULL);
-							if(CustomEventNode)
-							{
-								FFormatNamedArguments Args;
-								Args.Add(TEXT("NodeTitle"), EventNode->GetNodeTitle(ENodeTitleType::ListView));
-								Args.Add(TEXT("EventNodeName"), FText::FromString(EventNode->GetName()));
-
-								// Emit something to the log to indicate that we've made a change
-								Blueprint->Message_Note(FText::Format(LOCTEXT("EventNodeReplaced_Note", "{NodeTitle} ({EventNodeName}) was not valid for this Blueprint - it has been converted to a custom event."), Args).ToString());
-
-								// Destroy the old event node (this will also break all pin links and remove it from the graph)
-								EventNode->DestroyNode();
-
-								// Add the new custom event node to the graph
-								CurrentGraph->Nodes.Add(CustomEventNode);
-							}
-						}
+						FixOverriddenEventSignature(EventNode, Blueprint, CurrentGraph);
 					}
 				}
 			}

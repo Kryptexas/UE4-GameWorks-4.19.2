@@ -2304,17 +2304,41 @@ FLinkerLoad::EVerifyResult FLinkerLoad::VerifyImport(int32 ImportIndex)
 			// otherwise just printout warnings, and if in the editor, popup the EdLoadWarnings box
 			else
 			{
+#if UE_BUILD_DEBUG
+				bool bSkipClassWarningCheck = false;
+#endif
 				// try to get a pointer to the class of the original object so that we can display the class name of the missing resource
 				UObject* ClassPackage = FindObject<UPackage>( NULL, *Import.ClassPackage.ToString() );
 				UClass* FindClass = ClassPackage ? FindObject<UClass>( ClassPackage, *OriginalImport.ClassName.ToString() ) : NULL;
 				if( GIsEditor && !IsRunningCommandlet())
 				{
+					static const FName NAME_BlueprintGeneratedClass(TEXT("BlueprintGeneratedClass"));
+					static const UClass* ActorComponentClass = FindObjectChecked<UClass>(ANY_PACKAGE, TEXT("ActorComponent"), true);
+
 					FDeferredMessageLog LoadErrors(NAME_LoadErrors);
 					// put something into the load warnings dialog, with any extra information from above (in WarningAppend)
 					TSharedRef<FTokenizedMessage> TokenizedMessage = LoadErrors.Error(FText());
 					TokenizedMessage->AddToken(FAssetNameToken::Create(LinkerRoot->GetName()));
-					TokenizedMessage->AddToken(FTextToken::Create(FText::Format(LOCTEXT("ImportFailure", " : Failed import for {ImportClass}"), FText::FromName(GetImportClassName(ImportIndex)))));
-					TokenizedMessage->AddToken(FAssetNameToken::Create(GetImportPathName(ImportIndex)));					
+
+					if (Import.OuterIndex.IsImport() && GetImportClassName(Import.OuterIndex) == NAME_BlueprintGeneratedClass && FindClass && FindClass->IsChildOf(ActorComponentClass))
+					{
+						static const FString BPComponentArchetypePostfix(TEXT("_GEN_VARIABLE"));
+#if UE_BUILD_DEBUG
+						bSkipClassWarningCheck = true;
+#endif
+						FString ComponentVariableNameString = Import.ObjectName.ToString();
+						ComponentVariableNameString.RemoveFromEnd(BPComponentArchetypePostfix);
+						TokenizedMessage->AddToken(FTextToken::Create(FText::Format(LOCTEXT("ImportFailure", " : Failed to import {ImportClass} '{ComponentVariableName}' from"),
+							FText::FromName(GetImportClassName(ImportIndex)),
+							FText::FromString(ComponentVariableNameString))));
+						TokenizedMessage->AddToken(FAssetNameToken::Create(GetImportPathName(Import.OuterIndex.ToImport())));
+						TokenizedMessage->AddToken(FTextToken::Create(LOCTEXT("ImportFailureComponentEpilogue", "- it may have been removed or renamed. Re-saving the level may resolve this issue.")));
+					}
+					else
+					{
+						TokenizedMessage->AddToken(FTextToken::Create(FText::Format(LOCTEXT("ImportFailure", " : Failed import for {ImportClass}"), FText::FromName(GetImportClassName(ImportIndex)))));
+						TokenizedMessage->AddToken(FAssetNameToken::Create(GetImportPathName(ImportIndex)));	
+					}				
 
 					if (!WarningAppend.IsEmpty())
 					{
@@ -2326,7 +2350,7 @@ FLinkerLoad::EVerifyResult FLinkerLoad::VerifyImport(int32 ImportIndex)
 				}
 
 #if UE_BUILD_DEBUG
-				if( !IgnoreMissingReferencedClass( Import.ObjectName ) )
+				if( !bSkipClassWarningCheck && !IgnoreMissingReferencedClass( Import.ObjectName ) )
 				{
 					FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
 					// failure to load a class, most likely deleted instead of deprecated
@@ -4352,7 +4376,11 @@ FArchive& FLinkerLoad::operator<<( FName& Name )
 
 	if( !NameMap.IsValidIndex(NameIndex) )
 	{
-		UE_LOG(LogLinker, Fatal, TEXT("Bad name index %i/%i"), NameIndex, NameMap.Num() );
+		UE_LOG(LogLinker, Error, TEXT("Bad name index %i/%i"), NameIndex, NameMap.Num() );
+		ArIsError = true;
+		ArIsCriticalError = true;
+		Name = NAME_None;
+		return *this;
 	}
 
 	// if the name wasn't loaded (because it wasn't valid in this context)

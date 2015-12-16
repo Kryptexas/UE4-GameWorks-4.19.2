@@ -365,6 +365,9 @@ void UK2Node::ReconstructNode()
 
 	UBlueprint* Blueprint = GetBlueprint();
 
+	FLinkerLoad* Linker = Blueprint->GetLinker();
+	const UEdGraphSchema* Schema = GetSchema();
+
 	// Break any links to 'orphan' pins
 	for (int32 PinIndex = 0; PinIndex < Pins.Num(); ++PinIndex)
 	{
@@ -377,6 +380,19 @@ void UK2Node::ReconstructNode()
 			if ((OtherPin == NULL) || !OtherPin->GetOwningNodeUnchecked() || !OtherPin->GetOwningNode()->Pins.Contains(OtherPin))
 			{
 				Pin->LinkedTo.Remove(OtherPin);
+			}
+
+			if (Blueprint->bIsRegeneratingOnLoad && Linker->UE4Ver() < VER_UE4_INJECT_BLUEPRINT_STRUCT_PIN_CONVERSION_NODES)
+			{
+				if ((Pin->PinType.PinCategory != UEdGraphSchema_K2::PC_Struct))
+				{
+					continue;
+				}
+
+				if (Schema->CanCreateConnection(Pin, OtherPin).Response == ECanCreateConnectionResponse::CONNECT_RESPONSE_MAKE_WITH_CONVERSION_NODE)
+				{
+					Schema->CreateAutomaticConversionNodeAndConnections(Pin, OtherPin);
+				}
 			}
 		}
 	}

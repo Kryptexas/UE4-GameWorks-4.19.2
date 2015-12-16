@@ -3108,6 +3108,7 @@ struct FTimerHandle
 	}
 
 private:
+	UPROPERTY(transient)
 	int32 Handle;
 };
 

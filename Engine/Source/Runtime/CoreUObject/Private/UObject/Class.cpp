@@ -1352,7 +1352,10 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				Tag.SerializeTaggedProperty(Ar, Property, DestAddress, DefaultsFromParent);
 
 				AdvanceProperty = true;
-				continue;
+				if (!Ar.IsCriticalError())
+				{
+					continue;
+				}
 			}
 
 			AdvanceProperty = false;
@@ -2440,6 +2443,13 @@ void UScriptStruct::InitializeStruct(void* InDest, int32 ArrayDim) const
 		}
 	}
 }
+
+#if WITH_EDITOR
+void UScriptStruct::InitializeDefaultValue(uint8* InStructData) const
+{
+	InitializeStruct(InStructData);
+}
+#endif // WITH_EDITOR
 
 void UScriptStruct::ClearScriptStruct(void* Dest, int32 ArrayDim) const
 {

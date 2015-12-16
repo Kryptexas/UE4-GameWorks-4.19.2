@@ -892,8 +892,16 @@ namespace EditorUtilities
 			UProperty* InnerProperty = ArrayProperty->Inner;
 			int32 Num = SourceArrayHelper.Num();
 
-			TargetArrayHelper.EmptyAndAddUninitializedValues(Num);
-
+			// here we emulate UArrayProperty::CopyValuesInternal()
+			if (!(InnerProperty->PropertyFlags & CPF_IsPlainOldData))
+			{
+				TargetArrayHelper.EmptyAndAddValues(Num);
+			}
+			else
+			{
+				TargetArrayHelper.EmptyAndAddUninitializedValues(Num);
+			}
+			
 			for (int32 Index = 0; Index < Num; Index++)
 			{
 				CopySinglePropertyRecursive(SourceArrayHelper.GetRawPtr(Index), TargetArrayHelper.GetRawPtr(Index), InTargetObject, InnerProperty);

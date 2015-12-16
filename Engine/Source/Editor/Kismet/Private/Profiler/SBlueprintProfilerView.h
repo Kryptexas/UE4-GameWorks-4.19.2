@@ -60,13 +60,19 @@ protected:
 	/** Returns is the profiler widgets are currently visible */
 	EVisibility IsProfilerVisible() const { return RootTreeItems.Num() > 0 ? EVisibility::Visible : EVisibility::Collapsed; }
 
-	/** Returns is the profiler widgets are currently not visible, used to display the inactive message */
+	/** Returns if the profiler widgets are currently not visible, used to display the inactive message */
 	EVisibility IsProfilerHidden() const { return RootTreeItems.Num() == 0 ? EVisibility::Visible : EVisibility::Collapsed; }
+
+	/** Returns the profiler current status message */
+	FText GetProfilerStatusText() const { return StatusText; }
 
 	/** Called to create the child profiler widgets */
 	void CreateProfilerWidgets();
 
 protected:
+
+	/** Profiler status Text */
+	FText StatusText;
 
 	/** Number formatting options */
 	static FNumberFormattingOptions NumberFormat;

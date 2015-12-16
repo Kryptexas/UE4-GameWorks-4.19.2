@@ -2164,7 +2164,7 @@ void FSlateApplication::RegisterGameViewport( TSharedRef<SViewport> InViewport )
 
 void FSlateApplication::UnregisterGameViewport()
 {
-	ResetToDefaultInputSettings();
+	ResetToDefaultPointerInputSettings();
 
 	if (GameViewportWidget.IsValid())
 	{
@@ -3021,9 +3021,12 @@ void FSlateApplication::SpawnToolTip( const TSharedRef<IToolTip>& InToolTip, con
 void FSlateApplication::CloseToolTip()
 {
 	// Notify the source widget that its tooltip is closing
-	if ( SWidget* SourceWidget = ActiveToolTipWidgetSource.Pin().Get() )
 	{
-		SourceWidget->OnToolTipClosing();
+		TSharedPtr<SWidget> SourceWidget = ActiveToolTipWidgetSource.Pin();
+		if (SourceWidget.IsValid())
+		{
+			SourceWidget->OnToolTipClosing();
+		}
 	}
 
 	// Notify the active tooltip that it's being closed.
@@ -3351,10 +3354,12 @@ void FSlateApplication::EnterDebuggingMode()
 	TSharedPtr<SViewport> PreviousGameViewport;
 
 	// Disable any game viewports while we are in debug mode so that mouse capture is released and the cursor is visible
+	// We need to retain the keyboard input for debugging purposes, so this is called directly rather than calling UnregisterGameViewport which resets input.
 	if (GameViewportWidget.IsValid())
 	{
 		PreviousGameViewport = GameViewportWidget.Pin();
-		UnregisterGameViewport();
+		PreviousGameViewport->SetActive(false);
+		GameViewportWidget.Reset();
 	}
 
 	Renderer->FlushCommands();

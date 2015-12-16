@@ -2013,7 +2013,7 @@ const FPinConnectionResponse UEdGraphSchema_K2::DetermineConnectionResponseOfCom
 	}
 }
 
-static FText GetPinIncompatibilityMessage(const UEdGraphPin* PinA, const UEdGraphPin* PinB)
+static FText GetPinIncompatibilityReason(const UEdGraphPin* PinA, const UEdGraphPin* PinB, bool* bIsFatalOut = nullptr)
 {
 	const FEdGraphPinType& PinAType = PinA->PinType;
 	const FEdGraphPinType& PinBType = PinB->PinType;
@@ -2042,6 +2042,11 @@ static FText GetPinIncompatibilityMessage(const UEdGraphPin* PinA, const UEdGrap
 			if ((OutStruct != nullptr) && (InStruct != nullptr) && OutStruct->IsChildOf(InStruct))
 			{
 				MessageFormat = LOCTEXT("ChildStructIncompatible", "Only exactly matching structures are considered compatible. Derived structures are disallowed.");
+			}
+
+			if (bIsFatalOut != nullptr)
+			{
+				*bIsFatalOut = true;
 			}
 		}
 	}
@@ -2148,8 +2153,15 @@ const FPinConnectionResponse UEdGraphSchema_K2::CanCreateConnection(const UEdGra
 		}
 		else
 		{
-			FText IncompatibilityReasonText = GetPinIncompatibilityMessage(PinA, PinB);
-			return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, IncompatibilityReasonText.ToString());
+			bool bIsFatal = false;
+			FText IncompatibilityReasonText = GetPinIncompatibilityReason(PinA, PinB, &bIsFatal);
+
+			FPinConnectionResponse ConnectionResponse(CONNECT_RESPONSE_DISALLOW, IncompatibilityReasonText.ToString());
+			if (bIsFatal)
+			{
+				ConnectionResponse.SetFatal();
+			}
+			return ConnectionResponse;
 		}
 	}
 }
@@ -2342,7 +2354,9 @@ bool UEdGraphSchema_K2::SearchForAutocastFunction(const UEdGraphPin* OutputPin, 
 		bool const bInputIsUObject = ((InputClass != NULL) && (InputClass == UObject::StaticClass()));
 		if (bInputIsUObject)
 		{
-			TargetFunction = TEXT("Conv_InterfaceToObject");
+			UFunction* Function = UKismetSystemLibrary::StaticClass()->FindFunctionByName(GET_MEMBER_NAME_CHECKED(UKismetSystemLibrary, Conv_InterfaceToObject));
+			TargetFunction = Function->GetFName();
+			FunctionOwner = Function->GetOwnerClass();
 		}
 	}
 	else if (OutputPin->PinType.PinCategory == PC_Object)
@@ -2355,12 +2369,16 @@ bool UEdGraphSchema_K2::SearchForAutocastFunction(const UEdGraphPin* OutputPin, 
 				(InputClass != nullptr) &&
 				OutputClass->IsChildOf(InputClass))
 			{
-				TargetFunction = TEXT("GetObjectClass");
+				UFunction* Function = UGameplayStatics::StaticClass()->FindFunctionByName(GET_MEMBER_NAME_CHECKED(UGameplayStatics, GetObjectClass));
+				TargetFunction = Function->GetFName();
+				FunctionOwner = Function->GetOwnerClass();
 			}
 		}
 		else if (InputPin->PinType.PinCategory == PC_String)
 		{
-			TargetFunction = TEXT("GetDisplayName");
+			UFunction* Function = UKismetSystemLibrary::StaticClass()->FindFunctionByName(GET_MEMBER_NAME_CHECKED(UKismetSystemLibrary, GetDisplayName));
+			TargetFunction = Function->GetFName();
+			FunctionOwner = Function->GetOwnerClass();
 		}
 	}
 	else if (OutputPin->PinType.PinCategory == PC_Struct)
@@ -2371,7 +2389,9 @@ bool UEdGraphSchema_K2::SearchForAutocastFunction(const UEdGraphPin* OutputPin, 
 			const UScriptStruct* InputStructType = Cast<const UScriptStruct>(InputPin->PinType.PinSubCategoryObject.Get());
 			if ((InputPin->PinType.PinCategory == PC_Struct) && (InputStructType == TBaseStructure<FTransform>::Get()))
 			{
-				TargetFunction = TEXT("MakeTransform");
+				UFunction* Function = UKismetMathLibrary::StaticClass()->FindFunctionByName(GET_MEMBER_NAME_CHECKED(UKismetMathLibrary, MakeTransform));
+				TargetFunction = Function->GetFName();
+				FunctionOwner = Function->GetOwnerClass();
 			}
 		}
 	}
@@ -3696,6 +3716,59 @@ bool UEdGraphSchema_K2::ArePinsCompatible(const UEdGraphPin* PinA, const UEdGrap
 	}
 }
 
+namespace
+{
+	static UClass* GetOriginalClassToFixCompatibilit(const UClass* InClass)
+	{
+		const UBlueprint* BP = InClass ? Cast<const UBlueprint>(InClass->ClassGeneratedBy) : nullptr;
+		return BP ? Cast<UClass>(BP->OriginalClass) : nullptr;
+	}
+
+	static bool ExtendedIsChildOf(const UClass* Child, const UClass* Parent)
+	{
+		if (Child->IsChildOf(Parent))
+		{
+			return true;
+		}
+
+		const UClass* OriginalChild = GetOriginalClassToFixCompatibilit(Child);
+		if (OriginalChild && OriginalChild->IsChildOf(Parent))
+		{
+			return true;
+		}
+
+		const UClass* OriginalParent = GetOriginalClassToFixCompatibilit(Parent);
+		if (OriginalParent && Child->IsChildOf(OriginalParent))
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	static bool ExtendedImplementsInterface(const UClass* Class, const UClass* Interface)
+	{
+		if (Class->ImplementsInterface(Interface))
+		{
+			return true;
+		}
+
+		const UClass* OriginalClass = GetOriginalClassToFixCompatibilit(Class);
+		if (OriginalClass && OriginalClass->ImplementsInterface(Interface))
+		{
+			return true;
+		}
+
+		const UClass* OriginalInterface = GetOriginalClassToFixCompatibilit(Interface);
+		if (OriginalInterface && Class->ImplementsInterface(OriginalInterface))
+		{
+			return true;
+		}
+
+		return false;
+	}
+};
+
 bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, const FEdGraphPinType& Input, const UClass* CallingContext, bool bIgnoreArray /*= false*/) const
 {
 	if( !bIgnoreArray && (Output.bIsArray != Input.bIsArray) && (Input.PinCategory != PC_Wildcard || Input.bIsArray) )
@@ -3718,7 +3791,7 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 			UClass const* InputClass = Cast<UClass const>(Input.PinSubCategoryObject.Get());
 			check(InputClass && InputClass->IsChildOf(UInterface::StaticClass()));
 			
-			return OutputClass->IsChildOf(InputClass);
+			return ExtendedIsChildOf(OutputClass, InputClass);
 		}
 		else if (((Output.PinCategory == PC_Asset) && (Input.PinCategory == PC_Asset))
 			|| ((Output.PinCategory == PC_AssetClass) && (Input.PinCategory == PC_AssetClass)))
@@ -3727,7 +3800,7 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 			const UClass* InputObject = (Input.PinSubCategory == PSC_Self) ? CallingContext : Cast<const UClass>(Input.PinSubCategoryObject.Get());
 			if ((OutputObject != NULL) && (InputObject != NULL))
 			{
-				return OutputObject->IsChildOf(InputObject);
+				return ExtendedIsChildOf(OutputObject ,InputObject);
 			}
 		}
 		else if ((Output.PinCategory == PC_Object) || (Output.PinCategory == PC_Struct) || (Output.PinCategory == PC_Class))
@@ -3748,22 +3821,23 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 				const bool bInputIsInterface  = InputObject->IsChildOf(UInterface::StaticClass());
 				const bool bOutputIsInterface = OutputObject->IsChildOf(UInterface::StaticClass());
 
+				UClass const* OutputClass = Cast<const UClass>(OutputObject);
+				UClass const* InputClass = Cast<const UClass>(InputObject);
+
 				if (bInputIsInterface != bOutputIsInterface) 
 				{
-					UClass const* OutputClass = Cast<const UClass>(OutputObject);
-					UClass const* InputClass  = Cast<const UClass>(InputObject);
-
 					if (bInputIsInterface && (OutputClass != NULL))
 					{
-						return OutputClass->ImplementsInterface(InputClass);
+						return ExtendedImplementsInterface(OutputClass, InputClass);
 					}
 					else if (bOutputIsInterface && (InputClass != NULL))
 					{
-						return InputClass->ImplementsInterface(OutputClass);
+						return ExtendedImplementsInterface(InputClass, OutputClass);
 					}
 				}				
 
-				return OutputObject->IsChildOf(InputObject) && (bInputIsInterface == bOutputIsInterface);
+				return (OutputObject->IsChildOf(InputObject) || (OutputClass && InputClass && ExtendedIsChildOf(OutputClass, InputClass)))
+					&& (bInputIsInterface == bOutputIsInterface);
 			}
 		}
 		else if ((Output.PinCategory == PC_Byte) && (Output.PinSubCategory == Input.PinSubCategory))
@@ -3837,7 +3911,7 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 			OutputClass = CallingContext;
 		}
 
-		return OutputClass && (OutputClass->ImplementsInterface(InterfaceClass) || OutputClass->IsChildOf(InterfaceClass));
+		return OutputClass && (ExtendedImplementsInterface(OutputClass, InterfaceClass) || ExtendedIsChildOf(OutputClass, InterfaceClass));
 	}
 
 	// Pins representing BLueprint objects and subclass of UObject can match when EditoronlyBP.bAllowClassAndBlueprintPinMatching=true (BaseEngine.ini)
@@ -5463,30 +5537,6 @@ TSharedPtr<FEdGraphSchemaAction> UEdGraphSchema_K2::GetCreateCommentAction() con
 bool UEdGraphSchema_K2::CanDuplicateGraph(UEdGraph* InSourceGraph) const
 {
 	EGraphType GraphType = GetGraphType(InSourceGraph);
-
-	if(GraphType == GT_Function)
-	{
-		UBlueprint* SourceBP = FBlueprintEditorUtils::FindBlueprintForGraph(InSourceGraph);
-
-		// Do not duplicate graphs in Blueprint Interfaces
-		if(SourceBP->BlueprintType == BPTYPE_Interface)
-		{
-			return false;
-		}
-
-		// Do not duplicate functions from implemented interfaces
-		if( FBlueprintEditorUtils::FindFunctionInImplementedInterfaces(SourceBP, InSourceGraph->GetFName()) )
-		{
-			return false;
-		}
-
-		// Do not duplicate inherited functions
-		if( FindField<UFunction>(SourceBP->ParentClass, InSourceGraph->GetFName()) )
-		{
-			return false;
-		}
-	}
-
 	return GraphType == GT_Function || GraphType == GT_Macro;
 }
 
@@ -5502,6 +5552,41 @@ UEdGraph* UEdGraphSchema_K2::DuplicateGraph(UEdGraph* GraphToDuplicate) const
 
 		if (NewGraph)
 		{
+			bool bIsOverrideGraph = false;
+			if (Blueprint->BlueprintType == BPTYPE_Interface)
+			{
+				bIsOverrideGraph = true;
+			}
+			else if (FBlueprintEditorUtils::FindFunctionInImplementedInterfaces(Blueprint, GraphToDuplicate->GetFName()))
+			{
+				bIsOverrideGraph = true;
+			}
+			else if (FindField<UFunction>(Blueprint->ParentClass, GraphToDuplicate->GetFName()))
+			{
+				bIsOverrideGraph = true;
+			}
+
+			// When duplicating an override function, we must put the graph through some extra work to properly own the data being duplicated, instead of expecting pin information will come from a parent
+			if (bIsOverrideGraph)
+			{
+				FBlueprintEditorUtils::PromoteGraphFromInterfaceOverride(Blueprint, NewGraph);
+				
+				// Remove all calls to the parent function, fix any exec pin links to pass through
+				TArray< UK2Node_CallParentFunction* > ParentFunctionCalls;
+				NewGraph->GetNodesOfClass(ParentFunctionCalls);
+
+				for (UK2Node_CallParentFunction* ParentFunctionCall : ParentFunctionCalls)
+				{
+					UEdGraphPin* ExecPin = ParentFunctionCall->GetExecPin();
+					UEdGraphPin* ThenPin = ParentFunctionCall->GetThenPin();
+					if (ExecPin->LinkedTo.Num() && ThenPin->LinkedTo.Num())
+					{
+						MovePinLinks(*ExecPin, *ThenPin->LinkedTo[0]);
+					}
+					NewGraph->RemoveNode(ParentFunctionCall);
+				}
+			}
+
 			FName NewGraphName = FBlueprintEditorUtils::FindUniqueKismetName(Blueprint, GraphToDuplicate->GetFName().GetPlainNameString());
 			FEdGraphUtilities::RenameGraphCloseToName(NewGraph,NewGraphName.ToString());
 			// can't have two graphs with the same guid... that'd be silly!
@@ -5527,6 +5612,9 @@ UEdGraph* UEdGraphSchema_K2::DuplicateGraph(UEdGraph* GraphToDuplicate) const
 					CustomEvent->RenameCustomEventCloseToName();
 				}
 			}
+
+			// Potentially adjust variable names for any child blueprints
+			FBlueprintEditorUtils::ValidateBlueprintChildVariables(Blueprint, NewGraph->GetFName());
 		}
 	}
 	return NewGraph;

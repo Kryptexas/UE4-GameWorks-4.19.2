@@ -23,8 +23,6 @@ protected:
 
 	static void FillDebugMenu( FMenuBuilder& MenuBuilder );
 
-	static void FillProfilerMenu( FMenuBuilder& MenuBuilder );
-
 	static void FillDeveloperMenu( FMenuBuilder& MenuBuilder );
 
 private:

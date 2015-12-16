@@ -62,6 +62,7 @@ public class UnrealEd : ModuleRules
                 "MessagingRpc",
                 "PortalRpc",
                 "PortalServices",
+                "BlueprintNativeCodeGen",
 			}
 		);
 
@@ -144,7 +145,6 @@ public class UnrealEd : ModuleRules
 				"AddContentDialog",
 				"GameProjectGeneration",
                 "HierarchicalLODUtilities",
-                "BlueprintNativeCodeGen",
                 "Analytics"
 			}
 		);
@@ -216,6 +216,7 @@ public class UnrealEd : ModuleRules
                 "PortalProxies",
                 "PortalServices",
                 "GeometryCacheEd",
+                "BlueprintNativeCodeGen",
 			}
 		);
 

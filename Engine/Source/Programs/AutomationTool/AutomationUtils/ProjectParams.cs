@@ -989,15 +989,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Shared: Ref to an auto-generated plugin file that should be incorporated into the project's build
 		/// </summary>
-		public FileReference NativizedScriptPlugin;
-
-		/// <summary>
-		/// Shared: Used to guard against fatal use of the GeneratedScriptPlugin param
-		/// </summary>
-		public bool UseNativizedScriptPlugin()
-		{
-			return (NativizedScriptPlugin != null) && NativizedScriptPlugin.Exists();
-		}
+        public List<FileReference> BlueprintPluginPaths = new List<FileReference>();
 
 		#endregion
 

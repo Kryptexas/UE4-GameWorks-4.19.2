@@ -2457,7 +2457,21 @@ bool SMyBlueprint::CanDeleteEntry() const
 
 	if (FEdGraphSchemaAction_K2Graph* GraphAction = SelectionAsGraph())
 	{
-		return GraphAction->EdGraph != NULL && GraphAction->EdGraph->bAllowDeletion;
+		if (GraphAction->EdGraph != NULL)
+		{
+			// Allow the user to delete any graphs in the interface section if the function can be placed as an event, 
+			// this allows users to resolve warnings when a previously implemented graph has been changed to be an event.
+			if (GraphAction->GetSectionID() == NodeSectionID::INTERFACE)
+			{
+				UFunction* Function = GetBlueprintObj()->SkeletonGeneratedClass->FindFunctionByName(GraphAction->EdGraph->GetFName());
+				if (UEdGraphSchema_K2::FunctionCanBePlacedAsEvent(Function))
+				{
+					return true;
+				}
+			}
+			return GraphAction->EdGraph->bAllowDeletion;
+		}
+		return false;
 	}
 	else if (FEdGraphSchemaAction_K2Delegate* DelegateAction = SelectionAsDelegate())
 	{

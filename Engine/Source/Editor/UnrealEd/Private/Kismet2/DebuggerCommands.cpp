@@ -97,6 +97,8 @@ public:
 
 	static void ShowCurrentStatement_Clicked();
 	static void StepInto_Clicked();
+	static void StepOver_Clicked();
+	static void StepOut_Clicked();
 
 	static void TogglePlayPause_Clicked();
 
@@ -248,7 +250,9 @@ void FPlayWorldCommands::RegisterCommands()
 	UI_COMMAND( TogglePlayPauseOfPlaySession, "Toggle Play/Pause", "Resume playing if paused, or pause if playing", EUserInterfaceActionType::Button, FInputChord( EKeys::Pause ) );
 	UI_COMMAND( PossessEjectPlayer, "Possess or Eject Player", "Possesses or ejects the player from the camera", EUserInterfaceActionType::Button, FInputChord( EKeys::F8 ) );
 	UI_COMMAND( ShowCurrentStatement, "Find Node", "Show the current node", EUserInterfaceActionType::Button, FInputChord() );
-	UI_COMMAND( StepInto, "Step", "Step to the next node to be executed", EUserInterfaceActionType::Button, FInputChord( EKeys::F10) );
+	UI_COMMAND( StepInto, "Step Into", "Step Into the next node to be executed", EUserInterfaceActionType::Button, FInputChord( EKeys::F10) );
+	UI_COMMAND( StepOver, "Step Over", "Step to the next node to be executed in the current graph", EUserInterfaceActionType::Button, FInputChord() );
+	UI_COMMAND( StepOut, "Step Out", "Step Out to the next node to be executed in the parent graph", EUserInterfaceActionType::Button, FInputChord() );
 
 	// Launch
 	UI_COMMAND( RepeatLastLaunch, "Launch", "Launches the game on the device as the last session launched from the dropdown next to the Play on Device button on the level editor toolbar", EUserInterfaceActionType::Button, FInputChord( EKeys::P, EModifierKey::Alt | EModifierKey::Shift ) )
@@ -407,6 +411,20 @@ void FPlayWorldCommands::BindGlobalPlayWorldCommands()
 
 	ActionList.MapAction( Commands.StepInto,
 		FExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::StepInto_Clicked ),
+		FCanExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::IsStoppedAtBreakpoint ),
+		FIsActionChecked(),
+		FIsActionChecked::CreateStatic( &FInternalPlayWorldCommandCallbacks::IsStoppedAtBreakpoint )
+		);
+
+	ActionList.MapAction( Commands.StepOver,
+		FExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::StepOver_Clicked ),
+		FCanExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::IsStoppedAtBreakpoint ),
+		FIsActionChecked(),
+		FIsActionChecked::CreateStatic( &FInternalPlayWorldCommandCallbacks::IsStoppedAtBreakpoint )
+		);
+
+	ActionList.MapAction( Commands.StepOut,
+		FExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::StepOut_Clicked ),
 		FCanExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::IsStoppedAtBreakpoint ),
 		FIsActionChecked(),
 		FIsActionChecked::CreateStatic( &FInternalPlayWorldCommandCallbacks::IsStoppedAtBreakpoint )
@@ -1698,7 +1716,8 @@ void FInternalPlayWorldCommandCallbacks::PausePlaySession_Clicked()
 void FInternalPlayWorldCommandCallbacks::SingleFrameAdvance_Clicked()
 {
 	// We want to function just like Single stepping where we will stop at a breakpoint if one is encountered but we also want to stop after 1 tick if a breakpoint is not encountered.
-	FKismetDebugUtilities::RequestSingleStepping();
+	const bool bAllowStepIn = true;
+	FKismetDebugUtilities::RequestSingleStepping(bAllowStepIn);
 	if (HasPlayWorld())
 	{
 		GUnrealEd->PlayWorld->bDebugFrameStepExecution = true;
@@ -1730,7 +1749,8 @@ void FInternalPlayWorldCommandCallbacks::ShowCurrentStatement_Clicked()
 
 void FInternalPlayWorldCommandCallbacks::StepInto_Clicked()
 {
-	FKismetDebugUtilities::RequestSingleStepping();
+	const bool bAllowStepIn = true;
+	FKismetDebugUtilities::RequestSingleStepping(bAllowStepIn);
 	if (HasPlayWorld())
 	{
 		LeaveDebuggingMode();
@@ -1738,6 +1758,26 @@ void FInternalPlayWorldCommandCallbacks::StepInto_Clicked()
 	}
 }
 
+void FInternalPlayWorldCommandCallbacks::StepOver_Clicked()
+{
+	const bool bAllowStepIn = false;
+	FKismetDebugUtilities::RequestSingleStepping(bAllowStepIn);
+	if (HasPlayWorld())
+	{
+		LeaveDebuggingMode();
+		GUnrealEd->PlaySessionSingleStepped();
+	}
+}
+
+void FInternalPlayWorldCommandCallbacks::StepOut_Clicked()
+{
+	FKismetDebugUtilities::RequestStepOut();
+	if (HasPlayWorld())
+	{
+		LeaveDebuggingMode();
+		GUnrealEd->PlaySessionSingleStepped();
+	}
+}
 
 void FInternalPlayWorldCommandCallbacks::TogglePlayPause_Clicked()
 {

@@ -452,7 +452,7 @@ FString UProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
 }
 
 void UProperty::ExportCppDeclaration(FOutputDevice& Out, EExportedDeclaration::Type DeclarationType, const TCHAR* ArrayDimOverride, uint32 AdditionalExportCPPFlags
-	, bool bSkipParameterName, const FString* ActualCppType, const FString* ActualExtendedType) const
+	, bool bSkipParameterName, const FString* ActualCppType, const FString* ActualExtendedType, const FString* ActualParameterName) const
 {
 	const bool bIsParameter = (DeclarationType == EExportedDeclaration::Parameter) || (DeclarationType == EExportedDeclaration::MacroParameter);
 	const bool bIsInterfaceProp = dynamic_cast<const UInterfaceProperty*>(this) != nullptr;
@@ -501,14 +501,8 @@ void UProperty::ExportCppDeclaration(FOutputDevice& Out, EExportedDeclaration::T
 	FString NameCpp;
 	if (!bSkipParameterName)
 	{
-		if (AdditionalExportCPPFlags & CPPF_BlueprintCppBackend)
-		{
-			NameCpp = UnicodeToCPPIdentifier(GetName(), HasAnyPropertyFlags(CPF_Deprecated), HasAnyPropertyFlags(CPF_Parm) ? TEXT("bpp__") : TEXT("bpv__"));
-		}
-		else
-		{
-			NameCpp = GetNameCPP();
-		}
+		ensure((0 == (AdditionalExportCPPFlags & CPPF_BlueprintCppBackend)) || ActualParameterName);
+		NameCpp = ActualParameterName ? *ActualParameterName : GetNameCPP();
 	}
 	if (DeclarationType == EExportedDeclaration::MacroParameter)
 	{

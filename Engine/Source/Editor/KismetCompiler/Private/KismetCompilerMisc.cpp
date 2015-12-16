@@ -1883,12 +1883,21 @@ FBPTerminal* FKismetFunctionContext::CreateLocalTerminalFromPinAutoChooseScope(U
 {
 	check(Net);
 	bool bSharedTerm = IsEventGraph();
-
-	const bool bRegularBlueprint = Blueprint && (Blueprint->GetClass() == UBlueprint::StaticClass());
 	static FBoolConfigValueHelper UseLocalGraphVariables(TEXT("Kismet"), TEXT("bUseLocalGraphVariables"), GEngineIni);
-	const bool bUseLocalGraphVariables = UseLocalGraphVariables || bGeneratingCpp;
+
+	auto PinRepresentsDelegate = [](const FEdGraphPinType& PinType) -> bool
+	{
+		return (PinType.PinCategory == UEdGraphSchema_K2::PC_Delegate) 
+			|| (PinType.PinCategory == UEdGraphSchema_K2::PC_MCDelegate);
+	};
+	// Local graph Variables cannot be used with persistent UberGraph frame
+	// Current implementation can change BP behavior, so it cannot be used to generate C++
+	const bool bUseLocalGraphVariables = UseLocalGraphVariables
+		//This is a workaround for UE-24210. UHT doesn't support  delegates with native type form: OtherOwnerClass::DelegateType.
+		|| (bGeneratingCpp && PinRepresentsDelegate(Net->PinType)); 
+
 	const bool OutputPin = EEdGraphPinDirection::EGPD_Output == Net->Direction;
-	if (bSharedTerm && bRegularBlueprint && bUseLocalGraphVariables && OutputPin)
+	if (bSharedTerm && bUseLocalGraphVariables && OutputPin)
 	{
 		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_ChooseTerminalScope);
 

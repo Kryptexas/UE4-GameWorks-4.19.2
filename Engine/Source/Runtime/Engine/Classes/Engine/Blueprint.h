@@ -498,6 +498,10 @@ public:
 	// User Defined Structures, the blueprint depends on
 	TSet<TWeakObjectPtr<UStruct>> CachedUDSDependencies;
 
+	// If this BP is just a duplicate created for a specific compilation, the reference to original GeneratedClass is needed
+	UPROPERTY(transient, duplicatetransient)
+	UClass* OriginalClass;
+
 	bool IsUpToDate() const
 	{
 		return BS_UpToDate == Status || BS_UpToDateWithWarnings == Status;
@@ -611,6 +615,9 @@ public:
 #endif	//#if WITH_EDITOR
 
 	//~ Begin UObject Interface
+#if WITH_EDITORONLY_DATA
+	virtual void PreSave() override;
+#endif // WITH_EDITORONLY_DATA
 	virtual void Serialize(FArchive& Ar) override;
 	virtual FString GetDesc(void) override;
 	virtual void TagSubobjects(EObjectFlags NewFlags) override;

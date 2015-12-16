@@ -1054,6 +1054,14 @@ public:
 	/** Remove an implemented interface, and its associated member function graphs.  If bPreserveFunctions is true, then the interface will move its functions to be normal implemented blueprint functions */
 	static void RemoveInterface(UBlueprint* Blueprint, const FName& InterfaceClassName, bool bPreserveFunctions = false);
 
+	/**
+	* Promotes a Graph from being an Interface Override to a full member function
+	*
+	* @param InBlueprint			Blueprint the graph is contained within
+	* @param InInterfaceGraph		The graph to promote
+	*/
+	static void PromoteGraphFromInterfaceOverride(UBlueprint* InBlueprint, UEdGraph* InInterfaceGraph);
+
 	/** Gets the graphs currently in the blueprint associated with the specified interface */
 	static void GetInterfaceGraphs(UBlueprint* Blueprint, const FName& InterfaceClassName, TArray<UEdGraph*>& ChildGraphs);
 
@@ -1367,6 +1375,8 @@ struct UNREALED_API FBlueprintDuplicationScopeFlags
 		NoFlags = 0,
 		NoExtraCompilation = 1 << 0,
 		TheSameTimelineGuid = 1 << 1,
+		// This flag is needed for C++ backend (while compiler validates graphs). The actual BPGC type is compatible with the original BPGC.
+		ValidatePinsUsingSourceClass = 1 << 2,
 	};
 
 	static uint32 bStaticFlags;

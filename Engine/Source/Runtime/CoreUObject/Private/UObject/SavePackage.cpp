@@ -314,9 +314,9 @@ public:
 	 */
 	void AddReplacementsNames(UObject* Obj)
 	{
-		if (FScriptCookReplacementCoordinator* Coordinator = FScriptCookReplacementCoordinator::Get())
+		if (const IBlueprintNativeCodeGenCore* Coordinator = IBlueprintNativeCodeGenCore::Get())
 		{
-			if (const UClass* ReplObjClass = Coordinator->FindReplacedClass(Obj))
+			if (const UClass* ReplObjClass = Coordinator->FindReplacedClass(Obj->GetClass()))
 			{
 				MarkNameAsReferenced(ReplObjClass->GetFName());
 			}
@@ -363,13 +363,13 @@ public:
 };
 
 /** Returns if true if a class comes from an editor-only package */
-static bool IsEditorOnlyStruct(UStruct* InStruct)
+static bool IsEditorOnlyStruct(const UStruct* InStruct)
 {
 	// If any of the classes in this class' hierarchy comes from editor only package
 	// this class is also classified as editor-only.
-	for (UStruct* Struct = InStruct; Struct; Struct = Struct->GetSuperStruct())
+	for (const UStruct* Struct = InStruct; Struct; Struct = Struct->GetSuperStruct())
 	{
-		UPackage* StructPackage = Struct->GetOutermost();
+		const UPackage* StructPackage = Struct->GetOutermost();
 		check(StructPackage);
 		if (StructPackage->HasAnyPackageFlags(PKG_EditorOnly))
 		{
@@ -389,7 +389,7 @@ static bool IsEditorOnlyStruct(UStruct* InStruct)
  * or
  * - its outer is editor-only
 */
-static bool IsEditorOnlyObject(UObject* InObject)
+bool IsEditorOnlyObject(const UObject* InObject)
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("IsEditorOnlyObject"), STAT_IsEditorOnlyObject, STATGROUP_LoadTime);
 
@@ -418,7 +418,7 @@ static bool IsEditorOnlyObject(UObject* InObject)
 	check(InObject);
 	// If this is a package that is editor only or the object is in editor-only package,
 	// the object is editor-only too.
-	UPackage* Package = Cast<UPackage>(InObject);
+	const UPackage* Package = Cast<const UPackage>(InObject);
 	if (!Package)
 	{
 		Package = InObject->GetOutermost();
@@ -430,7 +430,7 @@ static bool IsEditorOnlyObject(UObject* InObject)
 	if (!bResult && !InObject->IsA(UPackage::StaticClass()))
 	{
 		// Otherwise the object is editor-only if its class is editor-only
-		UStruct* Struct = InObject->IsA(UStruct::StaticClass()) ? CastChecked<UStruct>(InObject) : InObject->GetClass();
+		const UStruct* Struct = InObject->IsA(UStruct::StaticClass()) ? CastChecked<const UStruct>(InObject) : InObject->GetClass();
 		bResult = IsEditorOnlyStruct(Struct);
 		if (!bResult && InObject->GetOuter())
 		{
@@ -3565,9 +3565,9 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 					}
 
 #if WITH_EDITOR
-					if (FScriptCookReplacementCoordinator::Get())
+					if (IBlueprintNativeCodeGenCore::Get())
 					{
-						EReplacementResult ReplacmentResult = FScriptCookReplacementCoordinator::Get()->IsTargetedForReplacement(InOuter);
+						EReplacementResult ReplacmentResult = IBlueprintNativeCodeGenCore::Get()->IsTargetedForReplacement(InOuter);
 						if (ReplacmentResult == EReplacementResult::ReplaceCompletely)
 						{
 							return ESavePackageResult::ReplaceCompletely;
@@ -4029,9 +4029,9 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						UClass* ObjClass = nullptr;
 #if WITH_EDITOR
 						bool bReplaced = false;
-						if (FScriptCookReplacementCoordinator* Coordinator = FScriptCookReplacementCoordinator::Get())
+						if (const IBlueprintNativeCodeGenCore* Coordinator = IBlueprintNativeCodeGenCore::Get())
 						{
-							if (UClass* ReplacedClass = Coordinator->FindReplacedClass(Obj))
+							if (UClass* ReplacedClass = Coordinator->FindReplacedClass(Obj->GetClass()))
 							{
 								ObjClass = ReplacedClass;
 								bReplaced = true;
