@@ -4,8 +4,6 @@
 	MallocVerify.cpp: Helper class to track memory allocations
 =============================================================================*/
 
-#pragma once
-
 #include "CorePrivatePCH.h"
 #include "MemoryMisc.h"
 #include "MallocVerify.h"
