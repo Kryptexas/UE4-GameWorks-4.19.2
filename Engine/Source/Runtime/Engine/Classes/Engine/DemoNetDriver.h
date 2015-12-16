@@ -45,9 +45,6 @@ class ENGINE_API UDemoNetDriver : public UNetDriver
 	/** Current record/playback frame number */
 	int32 DemoFrameNum;
 
-	/** Last time (in real seconds) that we recorded a frame */
-	double LastRecordTime;
-
 	/** Total time of demo in seconds */
 	float DemoTotalTime;
 

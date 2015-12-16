@@ -16,6 +16,7 @@
 
 class FObjectReplicator;
 class FUniqueNetId;
+struct FNetworkObjectInfo;
 
 /*-----------------------------------------------------------------------------
 	Types.
@@ -328,9 +329,6 @@ public:
 	 * Actors the client has not initialized
 	 */
 	TArray<FName> ClientVisibleLevelNames;
-
-	/** @todo document */
-	class TArray<AActor*> OwnedConsiderList;
 
 #if DO_ENABLE_NET_TEST
 	// For development.

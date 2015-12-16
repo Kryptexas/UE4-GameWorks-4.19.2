@@ -217,7 +217,8 @@ enum ELifetimeCondition
 	COND_SimulatedOrPhysics	= 6,		// This property will send to simulated OR bRepPhysics actors
 	COND_InitialOrOwner		= 7,		// This property will send on the initial packet, or to the actors owner
 	COND_Custom				= 8,		// This property has no particular condition, but wants the ability to toggle on/off via SetCustomIsActiveOverride
-	COND_Max				= 9,
+	COND_ReplayOrOwner		= 9,		// This property will only send to the replay connection, or to the actors owner
+	COND_Max				= 10,
 };
 
 

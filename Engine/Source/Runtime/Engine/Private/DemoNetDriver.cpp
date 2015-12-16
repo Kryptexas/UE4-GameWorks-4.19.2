@@ -10,6 +10,7 @@
 #include "Engine/DemoPendingNetGame.h"
 #include "Engine/ActorChannel.h"
 #include "Engine/PackageMapClient.h"
+#include "Engine/NetworkObjectList.h"
 #include "RepLayout.h"
 #include "GameFramework/SpectatorPawn.h"
 #include "Engine/LevelStreamingKismet.h"
@@ -34,6 +35,7 @@ static TAutoConsoleVariable<float> CVarGotoTimeInSeconds( TEXT( "demo.GotoTimeIn
 static TAutoConsoleVariable<int32> CVarDemoFastForwardDestroyTearOffActors( TEXT( "demo.FastForwardDestroyTearOffActors" ), 1, TEXT( "If true, the driver will destroy any torn-off actors immediately while fast-forwarding a replay." ) );
 static TAutoConsoleVariable<int32> CVarDemoFastForwardSkipRepNotifies( TEXT( "demo.FastForwardSkipRepNotifies" ), 1, TEXT( "If true, the driver will optimize fast-forwarding by deferring calls to RepNotify functions until the fast-forward is complete. " ) );
 static TAutoConsoleVariable<int32> CVarDemoQueueCheckpointChannels( TEXT( "demo.QueueCheckpointChannels" ), 1, TEXT( "If true, the driver will put all channels created during checkpoint loading into queuing mode, to amortize the cost of spawning new actors across multiple frames." ) );
+static TAutoConsoleVariable<int32> CVarUseAdaptiveReplayUpdateFrequency( TEXT( "demo.UseAdaptiveReplayUpdateFrequency" ), 0, TEXT( "If 1, NetUpdateFrequency will be calculated based on how often actors actually write something when recording to a replay" ) );
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<int32> CVarDemoForceFailure( TEXT( "demo.ForceFailure" ), 0, TEXT( "" ) );
@@ -434,7 +436,6 @@ struct FNetworkDemoMetadataHeader
 void UDemoNetDriver::ResetDemoState()
 {
 	DemoFrameNum		= 0;
-	LastRecordTime		= FPlatformTime::Seconds();
 	LastCheckpointTime	= FPlatformTime::Seconds();
 	DemoTotalTime		= 0;
 	DemoCurrentTime		= 0;
@@ -767,6 +768,8 @@ void UDemoNetDriver::TickDispatch( float DeltaSeconds )
 
 	if ( IsRecording() )
 	{
+		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Net replay record time"), STAT_ReplayRecordTime, STATGROUP_Net);
+
 		const double StartTime = FPlatformTime::Seconds();
 
 		TickDemoRecord( DeltaSeconds );
@@ -792,7 +795,7 @@ void UDemoNetDriver::TickDispatch( float DeltaSeconds )
 
 			if ( AvgTimeMS > 8.0f )//|| MaxRecordTimeMS > 6.0f )
 			{
-				UE_LOG( LogDemo, Warning, TEXT( "UDemoNetDriver::TickFlush: SLOW FRAME. Avg: %2.2f, Max: %2.2f, Actors: %i" ), AvgTimeMS, MaxRecordTimeMS, World->NetworkActors.Num() );
+				UE_LOG( LogDemo, Warning, TEXT( "UDemoNetDriver::TickFlush: SLOW FRAME. Avg: %2.2f, Max: %2.2f, Actors: %i" ), AvgTimeMS, MaxRecordTimeMS, GetNetworkObjectList().GetObjects().Num() );
 			}
 
 			LastRecordAvgFlush		= EndTime;
@@ -989,7 +992,7 @@ void UDemoNetDriver::StopDemo()
 Demo Recording tick.
 -----------------------------------------------------------------------------*/
 
-static void DemoReplicateActor( AActor* Actor, UNetConnection* Connection, APlayerController* SpectatorController, bool bMustReplicate )
+static bool DemoReplicateActor( AActor* Actor, UNetConnection* Connection, APlayerController* SpectatorController, bool bMustReplicate )
 {
 	// RAII object to swap the Role and RemoteRole of an actor within a scope. Used for recording replays on a client.
 	class FScopedActorRoleSwap
@@ -1018,6 +1021,8 @@ static void DemoReplicateActor( AActor* Actor, UNetConnection* Connection, APlay
 
 	const int32 OriginalOutBunches = Connection->Driver->OutBunches;
 	
+	bool bDidReplicateActor = false;
+
 	if ( Actor != NULL )
 	{
 		// We need to swap roles if:
@@ -1057,7 +1062,7 @@ static void DemoReplicateActor( AActor* Actor, UNetConnection* Connection, APlay
 			if (Channel != NULL && !Channel->Closing)
 			{
 				// Send it out!
-				Channel->ReplicateActor();
+				bDidReplicateActor = Channel->ReplicateActor();
 
 				// Close the channel if this actor shouldn't have one
 				if (!bShouldHaveChannel)
@@ -1072,6 +1077,8 @@ static void DemoReplicateActor( AActor* Actor, UNetConnection* Connection, APlay
 	{
 		UE_LOG( LogDemo, Error, TEXT( "DemoReplicateActor: bMustReplicate is true but nothing was sent: %s" ), Actor ? *Actor->GetName() : TEXT( "NULL" ) );
 	}
+
+	return bDidReplicateActor;
 }
 
 static void SerializeGuidCache( TSharedPtr< class FNetGUIDCache > GuidCache, FArchive* CheckpointArchive )
@@ -1179,13 +1186,11 @@ void UDemoNetDriver::SaveCheckpoint()
 
 	// Replicate *only* the actors that were in the previous frame, we want to be able to re-create up to that point with this single checkpoint
 	// It's important that we don't catch any new actors that the next frame will also catch, that will cause conflict with bOpen (the open will occur twice on the same channel)
-	if ( CheckpointConnection->ActorChannels.Contains( World->GetWorldSettings() ) )
-	{
-		DemoReplicateActor( World->GetWorldSettings(), CheckpointConnection, SpectatorController, true );
-	}
 
-	for ( AActor* Actor : World->NetworkActors )
+	for ( TSharedPtr<FNetworkObjectInfo>& ObjectInfo : GetNetworkObjectList().GetObjects() )
 	{
+		AActor* Actor = ObjectInfo.Get()->Actor;
+
 		if ( CheckpointConnection->ActorChannels.Contains( Actor ) )
 		{
 			Actor->CallPreReplication( this );
@@ -1275,20 +1280,7 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 
 	const double CurrentSeconds = FPlatformTime::Seconds();
 
-	const double RECORD_HZ		= CVarDemoRecordHz.GetValueOnGameThread();
-	const double RECORD_DELAY	= 1.0 / RECORD_HZ;
-
-	if ( CurrentSeconds - LastRecordTime < RECORD_DELAY )
-	{
-		return;		// Not enough real-time has passed to record another frame
-	}
-
-	// Advance by the delay amount to take into account we could be fractionally into the next frame
-	// But don't be more than a fraction of a frame behind either (we don't want to do catch-up frames when there is a long delay)
-	if ( CurrentSeconds - LastRecordTime >= RECORD_DELAY )
-	{
-		LastRecordTime += RECORD_DELAY;
-	}
+	const float RECORD_HZ		= CVarDemoRecordHz.GetValueOnGameThread();
 
 	// Save out a frame
 	DemoFrameNum++;
@@ -1321,28 +1313,89 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 
 	ClientDemoConnection->QueuedDemoPackets.Empty();
 
-	DemoReplicateActor( World->GetWorldSettings(), ClientConnections[0], SpectatorController, false );
-
-	for ( TSet<AActor*>::TIterator ActorIt = World->NetworkActors.CreateIterator(); ActorIt; ++ActorIt)
+	float ServerTickTime = GEngine->GetMaxTickRate( DeltaSeconds );
+	if ( ServerTickTime == 0.0 )
 	{
-		AActor* Actor = *ActorIt;
+		ServerTickTime = DeltaSeconds;
+	}
+	else
+	{
+		ServerTickTime	= 1.0 / ServerTickTime;
+	}
+
+	const bool bUseAdapativeNetFrequency = CVarUseAdaptiveReplayUpdateFrequency.GetValueOnGameThread() > 0;
+
+	for ( auto ActorIt = GetNetworkObjectList().GetObjects().CreateIterator(); ActorIt; ++ActorIt)
+	{
+		FNetworkObjectInfo* ActorInfo = (*ActorIt).Get();
+		AActor* Actor = ActorInfo->Actor;
 		
-		if ( Actor->IsPendingKill() )
+		// Check NetUpdateFrequency for this actor, but clamp it to RECORD_HZ.
+		if (CurrentSeconds > ActorInfo->NextUpdateTime)
 		{
-			ActorIt.RemoveCurrent();
-			continue;
-		}
+			if ( Actor->IsPendingKill() )
+			{
+				ActorIt.RemoveCurrent();
+				continue;
+			}
 
-		// During client recording, a torn-off actor will already have its remote role set to None, but
-		// we still need to replicate it one more time so that the recorded replay knows it's been torn-off as well.
-		if ( Actor->GetRemoteRole() == ROLE_None && !Actor->bTearOff)
-		{
-			ActorIt.RemoveCurrent();
-			continue;
-		}
+			// During client recording, a torn-off actor will already have its remote role set to None, but
+			// we still need to replicate it one more time so that the recorded replay knows it's been torn-off as well.
+			if ( Actor->GetRemoteRole() == ROLE_None && !Actor->bTearOff)
+			{
+				ActorIt.RemoveCurrent();
+				continue;
+			}
 
-		Actor->CallPreReplication( this );
-		DemoReplicateActor( Actor, ClientConnections[0], SpectatorController, false );
+			const float ClampedNetUpdateFrequency = FMath::Clamp(Actor->NetUpdateFrequency, 0.0f, RECORD_HZ);
+			const double NetUpdateDelay = 1.0 / ClampedNetUpdateFrequency;
+
+			// Set defaults if this actor is replicating for first time
+			if ( ActorInfo->LastNetReplicateTime == 0 )
+			{
+				ActorInfo->LastNetReplicateTime		= CurrentSeconds;
+				ActorInfo->OptimalNetUpdateDelta	= NetUpdateDelay;
+			}
+
+			const float LastReplicateDelta = static_cast<float>(CurrentSeconds - ActorInfo->LastNetReplicateTime);
+
+			if ( Actor->MinNetUpdateFrequency == 0.0f )
+			{
+				Actor->MinNetUpdateFrequency = 2.0f;
+			}
+
+			// Calculate min delta (max rate actor will update), and max delta (slowest rate actor will update)
+			const float MinOptimalDelta = NetUpdateDelay;										// Don't go faster than NetUpdateFrequency
+			const float MaxOptimalDelta = FMath::Max( 1.0f / Actor->MinNetUpdateFrequency, MinOptimalDelta );	// Don't go slower than MinNetUpdateFrequency (or NetUpdateFrequency if it's slower)
+
+			const float ScaleDownStartTime = 2.0f;
+			const float ScaleDownTimeRange = 5.0f;				
+
+			if ( LastReplicateDelta > ScaleDownStartTime )
+			{
+				// Interpolate between MinOptimalDelta/MaxOptimalDelta based on how long it's been since this actor actually sent anything
+				const float Alpha = FMath::Clamp( ( LastReplicateDelta - ScaleDownStartTime ) / ScaleDownTimeRange, 0.0f, 1.0f );
+				ActorInfo->OptimalNetUpdateDelta = FMath::Lerp( MinOptimalDelta, MaxOptimalDelta, Alpha );
+			}
+
+			const double NextUpdateDelta = bUseAdapativeNetFrequency ? ActorInfo->OptimalNetUpdateDelta : NetUpdateDelay;
+
+			// Account for being fractionally into the next frame
+			// But don't be more than a fraction of a frame behind either (we don't want to do catch-up frames when there is a long delay)
+			const double ExtraTime = CurrentSeconds - ActorInfo->NextUpdateTime;
+			const double ClampedExtraTime = FMath::Clamp(ExtraTime, 0.0, NetUpdateDelay);
+
+			// Try to spread the updates across multiple frames to smooth out spikes.
+			ActorInfo->NextUpdateTime = (CurrentSeconds + NextUpdateDelta - ClampedExtraTime + ((FMath::SRand() - 0.5) * ServerTickTime));
+
+			Actor->CallPreReplication( this );
+			if ( DemoReplicateActor( Actor, ClientConnections[0], SpectatorController, false ) )
+			{
+				// Choose an optimal time, we choose 70% of the actual rate to allow frequency to go up if needed
+				ActorInfo->OptimalNetUpdateDelta = FMath::Clamp( LastReplicateDelta * 0.7f, MinOptimalDelta, MaxOptimalDelta );
+				ActorInfo->LastNetReplicateTime = CurrentSeconds;
+			}
+		}
 	}
 
 	// Make sure nothing is left over

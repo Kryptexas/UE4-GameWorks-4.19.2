@@ -72,6 +72,7 @@ void AActor::InitializeDefaults()
 	bReplicates = false;
 	NetPriority = 1.0f;
 	NetUpdateFrequency = 100.0f;
+	MinNetUpdateFrequency = 2.0f;
 	bNetLoadOnClient = true;
 #if WITH_EDITORONLY_DATA
 	bEditable = true;

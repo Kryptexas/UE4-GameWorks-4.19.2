@@ -5,6 +5,8 @@
 #include "Sound/AudioVolume.h"
 #include "WorldSettings.generated.h"
 
+class UNetConnection;
+
 UENUM()
 enum EVisibilityAggressiveness
 {
@@ -173,6 +175,9 @@ struct ENGINE_API FNetViewer
 {
 	GENERATED_USTRUCT_BODY()
 
+	UPROPERTY()
+	UNetConnection* Connection;
+
 	/** The "controlling net object" associated with this view (typically player controller) */
 	UPROPERTY()
 	class AActor* InViewer;
@@ -190,7 +195,8 @@ struct ENGINE_API FNetViewer
 	FVector ViewDir;
 
 	FNetViewer()
-		: InViewer(NULL)
+		: Connection(NULL)
+		, InViewer(NULL)
 		, ViewTarget(NULL)
 		, ViewLocation(ForceInit)
 		, ViewDir(ForceInit)

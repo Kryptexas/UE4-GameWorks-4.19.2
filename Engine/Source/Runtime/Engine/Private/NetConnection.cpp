@@ -9,6 +9,7 @@
 #include "Net/NetworkProfiler.h"
 #include "Net/DataReplication.h"
 #include "Engine/ActorChannel.h"
+#include "Engine/NetworkObjectList.h"
 #include "DataChannel.h"
 #include "Engine/PackageMapClient.h"
 #include "GameFramework/GameMode.h"
@@ -377,11 +378,6 @@ void UNetConnection::FinishDestroy()
 void UNetConnection::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	UNetConnection* This = CastChecked<UNetConnection>(InThis);
-	// Let GC know that we're potentially referencing some Actor objects
-	for (int32 ActorIndex = 0; ActorIndex < This->OwnedConsiderList.Num(); ++ActorIndex)
-	{
-		Collector.AddReferencedObject( This->OwnedConsiderList[ActorIndex], This );
-	}
 
 	// Let GC know that we're referencing some UChannel objects
 	for( int32 ChIndex=0; ChIndex < MAX_CHANNELS; ++ChIndex )

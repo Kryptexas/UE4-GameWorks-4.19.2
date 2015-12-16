@@ -3459,6 +3459,8 @@ struct FReplicationFlags
 			uint32 bNetSimulated:1;
 			/** True if this is actor's ReplicatedMovement.bRepPhysics flag is true. */
 			uint32 bRepPhysics:1;
+			/** True if this actor is replicating on a replay connection. */
+			uint32 bReplay:1;
 		};
 
 		uint32	Value;

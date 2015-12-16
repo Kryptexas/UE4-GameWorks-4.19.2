@@ -2545,6 +2545,7 @@ void FRepLayout::RebuildConditionalProperties( FRepState * RESTRICT	RepState, co
 	const bool bIsOwner		= RepFlags.bNetOwner		? true : false;
 	const bool bIsSimulated	= RepFlags.bNetSimulated	? true : false;
 	const bool bIsPhysics	= RepFlags.bRepPhysics		? true : false;
+	const bool bIsReplay	= RepFlags.bReplay			? true : false;
 
 	ConditionMap[COND_None]					= true;
 	ConditionMap[COND_InitialOnly]			= bIsInitial;
@@ -2558,6 +2559,7 @@ void FRepLayout::RebuildConditionalProperties( FRepState * RESTRICT	RepState, co
 	ConditionMap[COND_SimulatedOrPhysics]	= bIsSimulated || bIsPhysics;
 
 	ConditionMap[COND_InitialOrOwner]		= bIsInitial || bIsOwner;
+	ConditionMap[COND_ReplayOrOwner]		= bIsReplay || bIsOwner;
 
 	ConditionMap[COND_Custom]				= true;
 

@@ -36,6 +36,7 @@
 #include "SceneInterface.h"
 #include "Camera/CameraActor.h"
 #include "Engine/DemoNetDriver.h"
+#include "Engine/NetworkObjectList.h"
 #include "Layers/Layer.h"
 #include "GameFramework/GameMode.h"
 #include "GameFramework/GameState.h"
@@ -89,6 +90,28 @@ DEFINE_LOG_CATEGORY_STATIC(LogWorld, Log, All);
 DEFINE_LOG_CATEGORY(LogSpawn);
 
 #define LOCTEXT_NAMESPACE "World"
+
+template<class Function>
+static void ForEachNetDriver(UWorld* const World, const Function InFunction)
+{
+	if (World == nullptr)
+	{
+		return;
+	}
+
+	const UGameInstance* const GameInstance = World->GetGameInstance();
+	if(GameInstance != nullptr)
+	{
+		FWorldContext* const Context = GameInstance->GetWorldContext();
+		if (Context != nullptr)
+		{
+			for (FNamedNetDriver& Driver : Context->ActiveNetDrivers)
+			{
+				InFunction(Driver.NetDriver);
+			}
+		}
+	}
+}
 
 // Deprecation warnings disabled to initialize bNoCollisionFail
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
@@ -1111,7 +1134,13 @@ void UWorld::DestroyWorld( bool bInformEngineOfWorld, UWorld* NewWorld )
 	FlushLevelStreaming();
 	CleanupWorld(true, true, NewWorld);
 
-	check( NetworkActors.Num() == 0 );
+	ForEachNetDriver(this, [](UNetDriver* const Driver)
+	{
+		if (Driver != nullptr)
+		{
+			check(Driver->GetNetworkObjectList().GetObjects().Num() == 0);
+		}
+	});
 
 	// Tell the engine we are destroying the world.(unless we are asked not to)
 	if( ( GEngine ) && ( bInformEngineOfWorld == true ) )
@@ -3193,7 +3222,13 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 		}
 	}
 
-	NetworkActors.Empty();
+	ForEachNetDriver(this, [](UNetDriver* const Driver)
+	{
+		if (Driver != nullptr)
+		{
+			Driver->GetNetworkObjectList().GetObjects().Reset();
+		}
+	});
 
 #if WITH_EDITOR
 	// If we're server traveling, we need to break the reference dependency here (caused by levelscript)
@@ -3388,7 +3423,14 @@ void UWorld::AddNetworkActor( AActor* Actor )
 		return;
 	}
 
-	NetworkActors.Add( Actor );
+	ForEachNetDriver(this, [Actor](UNetDriver* const Driver)
+	{
+		if (Driver != nullptr)
+		{
+			// Special case the demo net driver, since actors currently only have one associated NetDriverName.
+			Driver->GetNetworkObjectList().Add(Actor, Driver->NetDriverName);
+		}
+	});
 }
 
 void UWorld::RemoveNetworkActor( AActor* Actor )
@@ -3398,7 +3440,13 @@ void UWorld::RemoveNetworkActor( AActor* Actor )
 		return;
 	}
 
-	NetworkActors.Remove( Actor );
+	ForEachNetDriver(this, [Actor](UNetDriver* const Driver)
+	{
+		if (Driver != nullptr)
+		{
+			Driver->GetNetworkObjectList().GetObjects().Remove(Actor);
+		}
+	});
 }
 
 FDelegateHandle UWorld::AddOnActorSpawnedHandler( const FOnActorSpawned::FDelegate& InHandler )

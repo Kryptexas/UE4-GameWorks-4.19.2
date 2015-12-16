@@ -311,12 +311,16 @@ public:
 	int32 NetTag;
 
 	/** Next time this actor will be considered for replication, set by SetNetUpdateTime() */
-	UPROPERTY()
+	UPROPERTY(transient)
 	float NetUpdateTime;
 
 	/** How often (per second) this actor will be considered for replication, used to determine NetUpdateTime */
 	UPROPERTY(Category=Replication, EditDefaultsOnly, BlueprintReadWrite)
 	float NetUpdateFrequency;
+
+	/** Used to determine what rate to throttle down to when replicated properties are changing infrequently */
+	UPROPERTY( Category=Replication, EditDefaultsOnly, BlueprintReadWrite )
+	float MinNetUpdateFrequency;
 
 	/** Priority for this actor when checking for replication in a low bandwidth or saturated situation, higher priority means it is more likely to replicate */
 	UPROPERTY(Category=Replication, EditDefaultsOnly, BlueprintReadWrite)

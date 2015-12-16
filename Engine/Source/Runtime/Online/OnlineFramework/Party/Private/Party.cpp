@@ -70,7 +70,14 @@ void UParty::OnLogoutComplete(int32 LocalUserNum, bool bWasSuccessful)
 			UPartyGameState* Party = PartyKeyValue.Value;
 			if (Party && Party->GetPartyId().IsValid())
 			{
-				UE_LOG(LogParty, Log, TEXT("[%s] Removed"), *(Party->GetPartyId()->ToDebugString()));
+				if (Party->GetPartyId().IsValid())
+				{
+					UE_LOG(LogParty, Log, TEXT("[%s] Removed"), *(Party->GetPartyId()->ToDebugString()));
+				}
+				else
+				{
+					UE_LOG(LogParty, Log, TEXT("[%s] Removed - Invalid party Id"));
+				}
 				Party->HandleRemovedFromParty(EMemberExitedReason::Left);
 			}
 		}

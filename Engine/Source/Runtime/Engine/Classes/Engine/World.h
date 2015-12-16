@@ -637,8 +637,6 @@ private:
 	TArray<class ULevel*>						Levels;
 
 public:
-	/** Array of actors that are candidates for sending over the network */
-	TSet<class AActor*>						NetworkActors;
 
 #if WITH_EDITOR
 	/** Hierarchical LOD System. Used when WorldSetting.bEnableHierarchicalLODSystem is true */

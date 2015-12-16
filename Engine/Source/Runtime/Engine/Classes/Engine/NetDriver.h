@@ -5,12 +5,13 @@
 #pragma once
 
 #include "EngineTypes.h"
-
 #include "NetDriver.generated.h"
 
 class FRepChangedPropertyTracker;
 class FRepLayout;
 class FObjectReplicator;
+class FNetworkObjectList;
+struct FNetworkObjectInfo;
 
 //
 // Whether to support net lag and packet loss testing.
@@ -77,18 +78,18 @@ struct ENGINE_API FPacketSimulationSettings
 //
 struct FActorPriority
 {
-	int32					Priority;	// Update priority, higher = more important.
+	int32						Priority;	// Update priority, higher = more important.
 	
-	class AActor*			Actor;		// Actor.	
-	class UActorChannel*	Channel;	// Actor channel.
+	FNetworkObjectInfo*			ActorInfo;	// Actor info.
+	class UActorChannel*		Channel;	// Actor channel.
 
 	struct FActorDestructionInfo *	DestructionInfo;	// Destroy an actor
 
 	FActorPriority() : 
-		Priority(0), Actor(NULL), Channel(NULL), DestructionInfo(NULL)
+		Priority(0), ActorInfo(NULL), Channel(NULL), DestructionInfo(NULL)
 	{}
 
-	FActorPriority(class UNetConnection* InConnection, class UActorChannel* InChannel, class AActor* InActor, const TArray<struct FNetViewer>& Viewers, bool bLowBandwidth);
+	FActorPriority(class UNetConnection* InConnection, class UActorChannel* InChannel, FNetworkObjectInfo* InActorInfo, const TArray<struct FNetViewer>& Viewers, bool bLowBandwidth);
 	FActorPriority(class UNetConnection* InConnection, struct FActorDestructionInfo * DestructInfo, const TArray<struct FNetViewer>& Viewers );
 };
 
@@ -576,6 +577,12 @@ public:
 	/** Returns the actor that corresponds to InGUID, if one can be found. */
 	virtual AActor* GetActorForGUID(FNetworkGUID InGUID) const { return nullptr; }
 
+	/** Returns the object that manages the list of replicated UObjects. */
+	ENGINE_API virtual FNetworkObjectList& GetNetworkObjectList() { return *NetworkObjects; }
+
+	/** Returns the object that manages the list of replicated UObjects. */
+	ENGINE_API virtual const FNetworkObjectList& GetNetworkObjectList() const { return *NetworkObjects; }
+
 protected:
 
 	/** Adds (fully initialized, ready to go) client connection to the ClientConnections list + any other game related setup */
@@ -587,4 +594,18 @@ protected:
 	ENGINE_API void UnregisterTickEvents(class UWorld* InWorld);
 	/** Returns true if this actor is considered to be in a loaded level */
 	ENGINE_API virtual bool IsLevelInitializedForActor( const AActor* InActor, const UNetConnection* InConnection ) const;
+
+#if WITH_SERVER_CODE
+	/**
+	* Helper functions for ServerReplicateActors
+	*/
+	int32 ServerReplicateActors_PrepConnections( const float DeltaSeconds );
+	void ServerReplicateActors_BuildConsiderList( TArray<FNetworkObjectInfo*>& OutConsiderList, const float ServerTickTime );
+	int32 ServerReplicateActors_PrioritizeActors( UNetConnection* Connection, const TArray<FNetViewer>& ConnectionViewers, const TArray<FNetworkObjectInfo*> ConsiderList, const bool bCPUSaturated, FActorPriority*& OutPriorityList, FActorPriority**& OutPriorityActors );
+	int32 ServerReplicateActors_ProcessPrioritizedActors( UNetConnection* Connection, const TArray<FNetViewer>& ConnectionViewers, FActorPriority** PriorityActors, const int32 FinalSortedCount, int32& OutUpdated );
+#endif
+
+private:
+	/** Stores the list of objects to replicate into the replay stream. This should be a TUniquePtr, but it appears the generated.cpp file needs the full definition of the pointed-to type. */
+	TSharedPtr<FNetworkObjectList> NetworkObjects;
 };
