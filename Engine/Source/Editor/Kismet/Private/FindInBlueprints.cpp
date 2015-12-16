@@ -200,6 +200,7 @@ FText FFindInBlueprintsResult::GetDisplayString() const
 
 FFindInBlueprintsGraphNode::FFindInBlueprintsGraphNode(const FText& InValue, TSharedPtr<FFindInBlueprintsResult> InParent)
 	: FFindInBlueprintsResult(InValue, InParent)
+	, GlyphBrush(nullptr)
 	, Class(nullptr)
 {
 }
