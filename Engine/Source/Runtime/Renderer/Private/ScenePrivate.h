@@ -1644,6 +1644,9 @@ public:
 	/** The decals in the scene. */
 	TSparseArray<FDeferredDecalProxy*> Decals;
 
+	/** Potential capsule shadow casters registered to the scene. */
+	TArray<FPrimitiveSceneInfo*> CapsuleIndirectCasterPrimitives; 
+
 	/** State needed for the reflection environment feature. */
 	FReflectionEnvironmentSceneData ReflectionSceneData;
 
