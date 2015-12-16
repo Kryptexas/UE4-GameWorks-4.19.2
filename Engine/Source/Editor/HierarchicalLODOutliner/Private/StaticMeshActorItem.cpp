@@ -81,4 +81,4 @@ void HLODOutliner::FStaticMeshActorDropTarget::OnDrop(FDragDropPayload& DraggedO
 
 }
 
-#undef LOCTEXT_NAMESPACE // "StaticMeshActorItem"
+#undef LOCTEXT_NAMESPACE

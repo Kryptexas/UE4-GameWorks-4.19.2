@@ -1302,7 +1302,7 @@ FReply SCollectionView::HandleDragDropOnCollectionItem(TSharedRef<FCollectionIte
 				FFormatNamedArguments Args;
 				Args.Add(TEXT("AssetName"), FText::FromName(DragDropOp->AssetData[0].AssetName));
 				Args.Add(TEXT("CollectionName"), FText::FromName(CollectionItem->CollectionName));
-				Message = FText::Format(LOCTEXT("CollectionAssetsAdded", "Added {AssetName} to {CollectionName}"), Args);
+				Message = FText::Format(LOCTEXT("CollectionAssetAdded", "Added {AssetName} to {CollectionName}"), Args);
 			}
 			else
 			{

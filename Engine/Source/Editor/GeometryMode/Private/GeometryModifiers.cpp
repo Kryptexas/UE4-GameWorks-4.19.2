@@ -2603,7 +2603,7 @@ UGeomModifier_Split::UGeomModifier_Split(const FObjectInitializer& ObjectInitial
 	: Super(ObjectInitializer)
 {
 	Description = NSLOCTEXT("UnrealEd", "Split", "Split");
-	Tooltip = NSLOCTEXT("UnrealEd.GeomModifier_Pen", "Tooltip", "Split a brush in half, the exact operation depending on which geometry elements are selected.");
+	Tooltip = NSLOCTEXT("UnrealEd.GeomModifier_Pen", "Split_Tooltip", "Split a brush in half, the exact operation depending on which geometry elements are selected.");
 	bPushButton = true;
 }
 

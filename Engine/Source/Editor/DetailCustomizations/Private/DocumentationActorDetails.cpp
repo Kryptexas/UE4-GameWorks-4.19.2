@@ -33,7 +33,7 @@ void FDocumentationActorDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBu
 
 	// Add a button we can click on to open the documentation
 	IDetailCategoryBuilder& HelpCategory = DetailBuilder.EditCategory("Help Data");
-	HelpCategory.AddCustomRow(LOCTEXT("HelpDocumentation", "Help Documentation"))
+	HelpCategory.AddCustomRow(LOCTEXT("HelpDocumentation_Filter", "Help Documentation"))
 		[
 			SNew(SButton)
 			.Text(this, &FDocumentationActorDetails::OnGetButtonText)

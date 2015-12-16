@@ -322,7 +322,7 @@ void STutorialRoot::GoToPreviousStage()
 				}
 				else
 				{
-					FSlateNotificationManager::Get().AddNotification(FNotificationInfo(FText::Format(LOCTEXT("TutorialNotFound", "Could not start previous tutorial {0}"), FText::FromString(CurrentTutorial->PreviousTutorial.ToString()))));
+					FSlateNotificationManager::Get().AddNotification(FNotificationInfo(FText::Format(LOCTEXT("PreviousTutorialNotFound", "Could not start previous tutorial {0}"), FText::FromString(CurrentTutorial->PreviousTutorial.ToString()))));
 				}
 			}
 		}
@@ -388,7 +388,7 @@ void STutorialRoot::GoToNextStage(TWeakPtr<SWindow> InNavigationWindow)
 				}
 				else
 				{
-					FSlateNotificationManager::Get().AddNotification(FNotificationInfo(FText::Format(LOCTEXT("TutorialNotFound", "Could not start next tutorial {0}"), FText::FromString(CurrentTutorial->NextTutorial.ToString()))));
+					FSlateNotificationManager::Get().AddNotification(FNotificationInfo(FText::Format(LOCTEXT("NextTutorialNotFound", "Could not start next tutorial {0}"), FText::FromString(CurrentTutorial->NextTutorial.ToString()))));
 				}
 			}
 		}

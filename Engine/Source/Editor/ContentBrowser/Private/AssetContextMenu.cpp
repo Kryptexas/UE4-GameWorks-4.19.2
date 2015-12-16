@@ -598,8 +598,8 @@ bool FAssetContextMenu::AddDocumentationMenuOptions(FMenuBuilder& MenuBuilder)
 							break;
 						case BPTYPE_MacroLibrary:
 							MenuBuilder.AddMenuEntry(
-								LOCTEXT("GoToDocsForInterfaceBlueprint", "View Documentation - Macro"),
-								LOCTEXT("GoToDocsForInterfaceBlueprint_ToolTip", "Click to open documentation on blueprint macros"),
+								LOCTEXT("GoToDocsForMacroLibrary", "View Documentation - Macro"),
+								LOCTEXT("GoToDocsForMacroLibrary_ToolTip", "Click to open documentation on blueprint macros"),
 								FSlateIcon(FEditorStyle::GetStyleSetName(), "HelpIcon.Hovered" ),
 								FUIAction( FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteGoToDocsForAsset, UBlueprint::StaticClass(), FString(TEXT("UBlueprint_Macro")) ) )
 								);

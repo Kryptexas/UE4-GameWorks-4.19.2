@@ -114,4 +114,4 @@ EVisibility FHierarchicalSimplificationCustomizations::IsMergeMeshSettingVisible
 	return EVisibility::Hidden;
 }
 
-#undef LOCTEXT_NAMESPACE // HierarchicalSimplificationCustomizations
+#undef LOCTEXT_NAMESPACE

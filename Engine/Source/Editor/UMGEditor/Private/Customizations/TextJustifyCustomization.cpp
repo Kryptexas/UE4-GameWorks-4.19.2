@@ -32,7 +32,7 @@ void FTextJustifyCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> Prop
 		[
 			SNew( SCheckBox )
 			.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")
-			.ToolTipText(LOCTEXT("HAlignLeft", "Align Text Left"))
+			.ToolTipText(LOCTEXT("AlignTextLeft", "Align Text Left"))
 			.Padding(ContentPadding)
 			.OnCheckStateChanged(this, &FTextJustifyCustomization::HandleCheckStateChanged, PropertyHandle, ETextJustify::Left)
 			.IsChecked(this, &FTextJustifyCustomization::GetCheckState, PropertyHandle, ETextJustify::Left)
@@ -48,7 +48,7 @@ void FTextJustifyCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> Prop
 		[
 			SNew(SCheckBox)
 			.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")
-			.ToolTipText(LOCTEXT("HAlignCenter", "Align Text Center"))
+			.ToolTipText(LOCTEXT("AlignTextCenter", "Align Text Center"))
 			.Padding(ContentPadding)
 			.OnCheckStateChanged(this, &FTextJustifyCustomization::HandleCheckStateChanged, PropertyHandle, ETextJustify::Center)
 			.IsChecked(this, &FTextJustifyCustomization::GetCheckState, PropertyHandle, ETextJustify::Center)
@@ -64,7 +64,7 @@ void FTextJustifyCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> Prop
 		[
 			SNew(SCheckBox)
 			.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")
-			.ToolTipText(LOCTEXT("HAlignRight", "Align Text Right"))
+			.ToolTipText(LOCTEXT("AlignTextRight", "Align Text Right"))
 			.Padding(ContentPadding)
 			.OnCheckStateChanged(this, &FTextJustifyCustomization::HandleCheckStateChanged, PropertyHandle, ETextJustify::Right)
 			.IsChecked(this, &FTextJustifyCustomization::GetCheckState, PropertyHandle, ETextJustify::Right)

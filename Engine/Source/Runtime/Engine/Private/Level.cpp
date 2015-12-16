@@ -762,6 +762,18 @@ static void SortActorsHierarchy(TTransArray<AActor*>& Actors)
 	StableSortInternal(Actors.GetData(), Actors.Num(), [&](AActor* L, AActor* R) {
 			return CalcAttachDepth(L) < CalcAttachDepth(R);
 	});
+
+	// Since all the null entries got sorted to the end, lop them off right now
+	int32 RemoveAtIndex = Actors.Num();
+	while (RemoveAtIndex > 0 && Actors[RemoveAtIndex - 1] == nullptr)
+	{
+		--RemoveAtIndex;
+	}
+
+	if (RemoveAtIndex < Actors.Num())
+	{
+		Actors.RemoveAt(RemoveAtIndex, Actors.Num() - RemoveAtIndex);
+	}
 }
 
 void ULevel::IncrementalUpdateComponents(int32 NumComponentsToUpdate, bool bRerunConstructionScripts)

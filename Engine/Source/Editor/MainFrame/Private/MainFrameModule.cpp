@@ -781,7 +781,7 @@ void FMainFrameModule::HandleLevelEditorModuleCompileFinished(const FString& Log
 			}
 			else if (CompilationResult == ECompilationResult::Canceled)
 			{
-				NotificationItem->SetText(NSLOCTEXT("MainFrame", "RecompileFailed", "Compile Canceled!"));
+				NotificationItem->SetText(NSLOCTEXT("MainFrame", "RecompileCanceled", "Compile Canceled!"));
 			}
 			else
 			{

@@ -52,4 +52,4 @@ private:
 	FSimpleDelegate OnTargetPlatformChanged;
 };
 
-#undef LOCTEXT_NAMESPACE // "ConfigEditor"
+#undef LOCTEXT_NAMESPACE

@@ -467,12 +467,12 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 
 			if ((Result & ETargetPlatformReadyStatus::CodeUnsupported) != 0)
 			{
-				FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("NotSupported", "Sorry, packaging a code-based project for the selected platform is currently not supported. This feature may be available in a future release."));
+				FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("NotSupported_SelectedPlatform", "Sorry, packaging a code-based project for the selected platform is currently not supported. This feature may be available in a future release."));
 				UnrecoverableError = true;
 			}
 			else if ((Result & ETargetPlatformReadyStatus::PluginsUnsupported) != 0)
 			{
-				FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("NotSupported", "Sorry, packaging a project with third-party plugins is currently not supported for the selected platform. This feature may be available in a future release."));
+				FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("NotSupported_ThirdPartyPlugins", "Sorry, packaging a project with third-party plugins is currently not supported for the selected platform. This feature may be available in a future release."));
 				UnrecoverableError = true;
 			}
 
@@ -690,13 +690,13 @@ void FMainFrameActionCallbacks::OpenIDE()
 void FMainFrameActionCallbacks::ZipUpProject()
 {
 #if PLATFORM_WINDOWS
-	FText PlatformName = LOCTEXT("Platform Name", "Windows");
+	FText PlatformName = LOCTEXT("PlatformName_Windows", "Windows");
 #elif PLATFORM_MAC
-	FText PlatformName = LOCTEXT("Platform Name", "Mac");
+	FText PlatformName = LOCTEXT("PlatformName_Mac", "Mac");
 #elif PLATFORM_LINUX
-	FText PlatformName = LOCTEXT("Platform Name", "Linux");
+	FText PlatformName = LOCTEXT("PlatformName_Linux", "Linux");
 #else
-	FText PlatformName = LOCTEXT("Platform Name", "Other OS");
+	FText PlatformName = LOCTEXT("PlatformName_Other", "Other OS");
 #endif
 
 	bool bOpened = false;
@@ -706,7 +706,7 @@ void FMainFrameActionCallbacks::ZipUpProject()
 	{
 		bOpened = DesktopPlatform->SaveFileDialog(
 			NULL,
-			NSLOCTEXT("UnrealEd", "InterpEd_ExportSoundCueInfoDialogTitle", "Zip file location").ToString(),
+			NSLOCTEXT("UnrealEd", "ZipUpProject", "Zip file location").ToString(),
 			FPaths::GameDir(),
 			FApp::GetGameName(),
 			TEXT("Zip file|*.zip"),

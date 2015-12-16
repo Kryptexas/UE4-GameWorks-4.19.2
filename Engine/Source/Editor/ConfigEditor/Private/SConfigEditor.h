@@ -51,4 +51,4 @@ private:
 	TWeakObjectPtr<UProperty> EditProperty;
 };
 
-#undef LOCTEXT_NAMESPACE // "ConfigEditor"
+#undef LOCTEXT_NAMESPACE
