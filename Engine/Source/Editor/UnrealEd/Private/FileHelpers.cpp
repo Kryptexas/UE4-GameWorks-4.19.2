@@ -943,11 +943,11 @@ void FEditorFileUtils::Import(const FString& InFilename, bool bImportScene)
 	const FScopedBusyCursor BusyCursor;
 
 	FFormatNamedArguments Args;
-	if (bImportScene)
+	//Import scene support only fbx for now
+	//Check the extension because the import map don't support fbx file import
+	if (bImportScene || FPaths::GetExtension(InFilename).Compare(TEXT("fbx"), ESearchCase::IgnoreCase) == 0)
 	{
 		//Ask a root content path to the user
-		//The default path should be the current content browser path
-		//FString DefaultAsset = FPackageName::GetLongPackagePath(Owner->GetOutermost()->GetName()) + TEXT("/") + Owner->GetName() + TEXT("_ExternalCurve");
 		TSharedRef<SDlgPickPath> PickContentPathDlg =
 			SNew(SDlgPickPath)
 			.Title(LOCTEXT("FbxChooseImportRootContentPath", "Choose Location for importing the fbx scene content"));

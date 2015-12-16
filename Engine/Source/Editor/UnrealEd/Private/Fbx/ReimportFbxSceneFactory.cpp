@@ -337,8 +337,6 @@ EReimportResult::Type UReimportFbxSceneFactory::Reimport(UObject* Obj)
 	{
 		ReimportData->NameOptionsMap.Add(kvp.Key, kvp.Value);
 	}
-	ReimportData->Modify();
-	ReimportData->PostEditChange();
 
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 	TArray<FAssetData> AssetDataToDelete;
@@ -419,6 +417,23 @@ EReimportResult::Type UReimportFbxSceneFactory::Reimport(UObject* Obj)
 	{
 		ReimportBlueprint = UpdateOriginalBluePrint(ReimportData->BluePrintFullName, &NodeStatusMap, SceneInfoPtr, ReimportData->SceneInfoSourceData, AssetDataToDelete);
 	}
+
+	//Remove the deleted meshinfo node from the reimport data
+	TArray<TSharedPtr<FFbxMeshInfo>> ToRemoveHierarchyNode;
+	for (TSharedPtr<FFbxMeshInfo> MeshInfo : ReimportData->SceneInfoSourceData->MeshInfo)
+	{
+		EFbxSceneReimportStatusFlags MeshStatus = *(MeshStatusMap.Find(MeshInfo->OriginalImportPath));
+		if ((MeshStatus & EFbxSceneReimportStatusFlags::Removed) != EFbxSceneReimportStatusFlags::None)
+		{
+			ToRemoveHierarchyNode.Add(MeshInfo);
+		}
+	}
+	for (TSharedPtr<FFbxMeshInfo> MeshInfo : ToRemoveHierarchyNode)
+	{
+		ReimportData->SceneInfoSourceData->MeshInfo.Remove(MeshInfo);
+	}
+	ReimportData->Modify();
+	ReimportData->PostEditChange();
 	
 	//Make sure the content browser is in sync before we delete
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
@@ -452,7 +467,6 @@ EReimportResult::Type UReimportFbxSceneFactory::Reimport(UObject* Obj)
 	//Make sure the content browser is in sync
 	ContentBrowserModule.Get().SyncBrowserToAssets(AssetToSyncContentBrowser);
 	
-
 	AllNewAssets.Empty();
 	
 	GlobalImportSettings = nullptr;
