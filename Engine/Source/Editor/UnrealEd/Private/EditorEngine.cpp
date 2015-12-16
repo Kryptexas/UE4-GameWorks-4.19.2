@@ -452,7 +452,7 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 		if ( DesktopPlatform != NULL )
 		{
-			DesktopPlatform->OpenLauncher(false, FString(), FString());
+			DesktopPlatform->OpenLauncher(false, FString(), FString("-silent"));
 		}
 	}
 
