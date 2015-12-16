@@ -29,21 +29,8 @@ if not exist Source\Programs\AutomationToolLauncher\AutomationToolLauncher.cspro
 rem ## Check to see if we're already running under a Visual Studio environment shell
 if not "%INCLUDE%" == "" if not "%LIB%" == "" goto ReadyToCompile
 
-rem ## Check for Visual Studio 2013
-
-for %%P in (%*) do if "%%P" == "-2015" goto NoVisualStudio2013Environment
-
-pushd %~dp0
-call GetVSComnToolsPath 12
-popd
-
-if "%VsComnToolsPath%" == "" goto NoVisualStudio2013Environment
-call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
-goto ReadyToCompile
-
-
 rem ## Check for Visual Studio 2015
-:NoVisualStudio2013Environment
+for %%P in (%*) do if "%%P" == "-2013" goto NoVisualStudio2015Environment
 
 pushd %~dp0
 call GetVSComnToolsPath 14
@@ -56,8 +43,20 @@ call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
 goto ReadyToCompile
 
 
-rem ## Check for Visual Studio 2012
+rem ## Check for Visual Studio 2013
 :NoVisualStudio2015Environment
+
+pushd %~dp0
+call GetVSComnToolsPath 12
+popd
+
+if "%VsComnToolsPath%" == "" goto NoVisualStudio2013Environment
+call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
+goto ReadyToCompile
+
+
+rem ## Check for Visual Studio 2012
+:NoVisualStudio2013Environment
 
 pushd %~dp0
 call GetVSComnToolsPath 11

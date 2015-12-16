@@ -28,17 +28,6 @@ rem ## Check to see if we're already running under a Visual Studio environment s
 if not "%INCLUDE%" == "" if not "%LIB%" == "" goto ReadyToCompile
 
 
-rem ## Check for Visual Studio 2013
-
-pushd %~dp0
-call GetVSComnToolsPath 12
-popd
-
-if "%VsComnToolsPath%" == "" goto NoVisualStudio2013Environment
-call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
-goto ReadyToCompile
-
-:NoVisualStudio2013Environment
 rem ## Check for Visual Studio 2015
 
 pushd %~dp0
@@ -53,6 +42,17 @@ goto ReadyToCompile
 
 :NoVisualStudio2015Environment
 
+rem ## Check for Visual Studio 2013
+
+pushd %~dp0
+call GetVSComnToolsPath 12
+popd
+
+if "%VsComnToolsPath%" == "" goto NoVisualStudio2013Environment
+call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
+goto ReadyToCompile
+
+:NoVisualStudio2013Environment
 rem ## Check for Visual Studio 2012
 
 pushd %~dp0
