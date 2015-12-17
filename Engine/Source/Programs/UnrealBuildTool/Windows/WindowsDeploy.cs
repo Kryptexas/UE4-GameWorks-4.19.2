@@ -13,7 +13,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	///  Base class to handle deploy of a target for a given platform
 	/// </summary>
-	class BaseWindowsDeploy : UEBuildDeploy
+	public class BaseWindowsDeploy : UEBuildDeploy
 	{
 
         // public virtual bool PrepForUATPackageOrDeploy(FileReference ProjectFile, string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bIsDataDeploy)
@@ -52,7 +52,7 @@ namespace UnrealBuildTool
 				string TargetFilename = InTarget.RulesAssembly.GetTargetFileName(InAppName).FullName;
 				string ProjectSourceFolder = new FileInfo(TargetFilename).DirectoryName + "/";
 
-				PrepForUATPackageOrDeploy(InAppName, InTarget.ProjectDirectory.FullName, InTarget.OutputPath.FullName, BuildConfiguration.RelativeEnginePath, false, "");
+                PrepForUATPackageOrDeploy(InTarget.ProjectFile, InAppName, InTarget.ProjectDirectory.FullName, InTarget.OutputPath.FullName, BuildConfiguration.RelativeEnginePath, false, "", false);
 			}
 			return true;
 		}

@@ -159,6 +159,16 @@ public abstract class BaseWinPlatform : Platform
 
 	public override void Package(ProjectParams Params, DeploymentContext SC, int WorkingCL)
 	{
+        // package up the program, potentially with an installer for Windows
+        BaseWindowsDeploy Deploy = new BaseWindowsDeploy();
+        string CookFlavor = SC.FinalCookPlatform.IndexOf("_") > 0 ? SC.FinalCookPlatform.Substring(SC.FinalCookPlatform.IndexOf("_")) : "";
+
+        List<string> ExeNames = GetExecutableNames(SC);
+
+        foreach (string ExeName in ExeNames)
+        {
+            Deploy.PrepForUATPackageOrDeploy(Params.RawProjectPath, Params.ShortProjectName, SC.ProjectRoot, ExeName, SC.LocalRoot + "/Engine", Params.Distribution, CookFlavor, false);
+        }
 		// package up the program, potentially with an installer for Windows
 		PrintRunTime();
 	}
