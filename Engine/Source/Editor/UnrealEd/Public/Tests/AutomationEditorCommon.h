@@ -5,7 +5,7 @@
 #include "AssetRegistryModule.h"
 #include "ModuleManager.h"
 #include "AutomationCommon.h"
-#include "Tests/AutomationTestSettings.h"
+#include "AutomationTests/AutomationTestSettings.h"
 
 namespace AutomationEditorCommonUtils
 {

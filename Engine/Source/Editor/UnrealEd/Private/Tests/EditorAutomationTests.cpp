@@ -2,7 +2,7 @@
 
 
 #include "UnrealEd.h"
-#include "Tests/AutomationTestSettings.h"
+#include "AutomationTests/AutomationTestSettings.h"
 #include "ObjectTools.h"
 #include "AssetRegistryModule.h"
 #include "AssetToolsModule.h"

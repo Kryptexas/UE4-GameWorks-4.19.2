@@ -3811,7 +3811,7 @@ namespace UnrealBuildTool
 							// Don't have a project file for this module with the source file names cached already, so find the source files ourselves
 							SourceFilePaths = SourceFileSearch.FindModuleSourceFiles(ModuleRulesFile: ModuleFileName);
 						}
-						FoundSourceFiles = GetCPlusPlusFilesToBuild(SourceFilePaths, ModuleDirectory, Platform);
+						FoundSourceFiles = GetCPlusPlusFilesToBuild(SourceFilePaths, ModuleDirectory, Platform, TargetInfo.Configuration);
 					}
 				}
 
@@ -4000,7 +4000,7 @@ namespace UnrealBuildTool
 		/// <param name="SourceFilesBaseDirectory">Directory that the source files are in</param>
 		/// <param name="TargetPlatform">The platform we're going to compile for</param>
 		/// <returns>The list of source files to actually compile</returns>
-		static List<FileItem> GetCPlusPlusFilesToBuild(List<FileReference> SourceFiles, DirectoryReference SourceFilesBaseDirectory, UnrealTargetPlatform TargetPlatform)
+		static List<FileItem> GetCPlusPlusFilesToBuild(List<FileReference> SourceFiles, DirectoryReference SourceFilesBaseDirectory, UnrealTargetPlatform TargetPlatform, UnrealTargetConfiguration Configuration)
 		{
 			// Make a list of all platform name strings that we're *not* currently compiling, to speed
 			// up file path comparisons later on
@@ -4065,6 +4065,16 @@ namespace UnrealBuildTool
 								break;
 							}
 						}
+
+                        if (Configuration == UnrealTargetConfiguration.Shipping)
+                        {
+                            //Exclude automation test when we are in shipping
+                            //The automation test should all be under Tests folder so we can skip them easily
+                            if (RelativeFilePath.IndexOf(Path.DirectorySeparatorChar + "Tests" + Path.DirectorySeparatorChar, StringComparison.InvariantCultureIgnoreCase) != -1)
+                            {
+                                IncludeThisFile = false;
+                            }
+                        }
 
 						if (IncludeThisFile)
 						{

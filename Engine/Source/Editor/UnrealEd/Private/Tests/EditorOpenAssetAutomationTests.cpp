@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
-#include "Tests/AutomationTestSettings.h"
+#include "AutomationTests/AutomationTestSettings.h"
 #include "AutomationEditorCommon.h"
 #include "AutomationCommon.h"
 #include "ShaderCompiler.h"
