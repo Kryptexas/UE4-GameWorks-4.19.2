@@ -3,7 +3,7 @@
 #include "CorePrivatePCH.h"
 
 
-float TheCompilerDoesntKnowThisIsAlwaysZero = 0.0f;
+extern float TheCompilerDoesntKnowThisIsAlwaysZero;
 
 
 struct TestA
