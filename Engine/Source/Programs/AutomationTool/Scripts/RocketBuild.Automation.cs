@@ -1152,7 +1152,9 @@ namespace Rocket
 				{
 					if (CodeTargetPlatform == UnrealTargetPlatform.Mac
 					 || CodeTargetPlatform == UnrealTargetPlatform.IOS
-					 || CodeTargetPlatform == UnrealTargetPlatform.Linux)
+					 || CodeTargetPlatform == UnrealTargetPlatform.Linux
+					 || CodeTargetPlatform == UnrealTargetPlatform.Android
+					 || CodeTargetPlatform == UnrealTargetPlatform.HTML5)
 					{
 						ProjectType = EProjectType.Any;
 					}
@@ -1161,7 +1163,8 @@ namespace Rocket
 				{
 					if (CodeTargetPlatform == UnrealTargetPlatform.Win32
 					 || CodeTargetPlatform == UnrealTargetPlatform.Win64
-					 || CodeTargetPlatform == UnrealTargetPlatform.Android)
+					 || CodeTargetPlatform == UnrealTargetPlatform.Android
+					 || CodeTargetPlatform == UnrealTargetPlatform.HTML5)
 					{
 						ProjectType = EProjectType.Any;
 					}

@@ -213,6 +213,7 @@ namespace UnrealBuildTool
 					|| (RunningRocket() ? !UnrealBuildTool.CommandLineContains("-NotInstalledEngine") : UnrealBuildTool.CommandLineContains("-InstalledEngine"));
 				FileReference InstalledBuildFile = FileReference.Combine(RootDirectory, "Engine", "Build", "InstalledBuild.txt");
 				bIsEngineInstalled |= InstalledBuildFile.Exists();
+				bIsEngineInstalled &= !UnrealBuildTool.CommandLineContains("-validateplatform");
 			}
 
 			return bIsEngineInstalled.Value;
