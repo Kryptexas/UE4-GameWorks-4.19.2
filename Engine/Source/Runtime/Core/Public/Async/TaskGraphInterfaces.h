@@ -226,6 +226,11 @@ public:
 		TriggerEventWhenTasksComplete(InEvent, Prerequistes, CurrentThreadIfKnown);
 	}
 
+	/**
+	*	When a set of tasks complete, fire a scoped event
+	*	@param	Callback - function to call prior to shutting down the taskgraph
+	**/
+	virtual void AddShutdownCallback(TFunction<void()>& Callback) = 0;
 };
 
 /** 

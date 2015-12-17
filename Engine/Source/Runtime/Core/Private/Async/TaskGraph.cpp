@@ -1266,6 +1266,11 @@ public:
 	**/
 	virtual ~FTaskGraphImplementation()
 	{
+		for (auto& Callback : ShutdownCallbacks)
+		{
+			Callback();
+		}
+		ShutdownCallbacks.Empty();
 		for (int32 ThreadIndex = 0; ThreadIndex < NumThreads; ThreadIndex++)
 		{
 			Thread(ThreadIndex).RequestQuit(-1);
@@ -1559,6 +1564,12 @@ public:
 		}
 		TGraphTask<FTriggerEventGraphTask>::CreateTask(&Tasks, CurrentThreadIfKnown).ConstructAndDispatchWhenReady(InEvent);
 	}
+
+	virtual void AddShutdownCallback(TFunction<void()>& Callback)
+	{
+		ShutdownCallbacks.Emplace(Callback);
+	}
+
 
 	// Scheduling utilities
 
@@ -2066,6 +2077,9 @@ private:
 	uint32				PerThreadIDTLSSlot;
 	/** Thread safe list of stalled thread "Hints". **/
 	TLockFreePointerListUnordered<FTaskThreadBase>		StalledUnnamedThreads; 
+
+	/** Array of callbacks to call before shutdown. **/
+	TArray<TFunction<void()> > ShutdownCallbacks;
 
 #if USE_NEW_LOCK_FREE_LISTS
 	#if USE_INTRUSIVE_TASKQUEUES

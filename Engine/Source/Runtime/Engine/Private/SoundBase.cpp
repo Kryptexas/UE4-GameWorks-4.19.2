@@ -20,7 +20,13 @@ void USoundBase::PostInitProperties()
 	const FStringAssetReference DefaultSoundClassName = GetDefault<UAudioSettings>()->DefaultSoundClassName;
 	if (DefaultSoundClassName.IsValid())
 	{
-		SoundClassObject = LoadObject<USoundClass>(NULL, *DefaultSoundClassName.ToString());
+		SoundClassObject = LoadObject<USoundClass>(nullptr, *DefaultSoundClassName.ToString());
+	}
+
+	const FStringAssetReference DefaultSoundConcurrencyName = GetDefault<UAudioSettings>()->DefaultSoundConcurrencyName;
+	if (DefaultSoundConcurrencyName.IsValid())
+	{
+		SoundConcurrencySettings = LoadObject<USoundConcurrency>(nullptr, *DefaultSoundConcurrencyName.ToString());
 	}
 }
 

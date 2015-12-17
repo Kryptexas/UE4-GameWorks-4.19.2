@@ -48,7 +48,7 @@ public:
 	 */
 	void SendControllerEvents();
 
-	static void QueueTouchInput(TArray<TouchInput> InTouchEvents);
+	static void QueueTouchInput(const TArray<TouchInput>& InTouchEvents);
 
 	//~ Begin Exec Interface
 	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;

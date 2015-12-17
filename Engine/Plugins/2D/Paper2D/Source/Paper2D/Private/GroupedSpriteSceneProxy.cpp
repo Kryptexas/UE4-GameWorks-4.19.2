@@ -121,5 +121,5 @@ void FGroupedSpriteSceneProxy::SetOneBodySetup_RenderThread(int32 InstanceIndex,
 void FGroupedSpriteSceneProxy::SetAllBodySetups_RenderThread(TArray<TWeakObjectPtr<UBodySetup>> Setups)
 {
 	check(Setups.Num() == NumInstances);
-	BodySetups = Setups;
+	BodySetups = MoveTemp(Setups);
 }

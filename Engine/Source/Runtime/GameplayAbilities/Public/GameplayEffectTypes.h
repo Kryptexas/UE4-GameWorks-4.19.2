@@ -332,11 +332,11 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 		return SourceObject.Get();
 	}
 
-	virtual void AddActors(TArray<TWeakObjectPtr<AActor>> InActor, bool bReset = false);
+	virtual void AddActors(const TArray<TWeakObjectPtr<AActor>>& IActor, bool bReset = false);
 
-	virtual void AddHitResult(const FHitResult InHitResult, bool bReset = false);
+	virtual void AddHitResult(const FHitResult& InHitResult, bool bReset = false);
 
-	virtual const TArray<TWeakObjectPtr<AActor>> GetActors() const
+	virtual const TArray<TWeakObjectPtr<AActor>>& GetActors() const
 	{
 		return Actors;
 	}
@@ -584,7 +584,7 @@ struct FGameplayEffectContextHandle
 		return false;
 	}
 
-	void AddActors(TArray<TWeakObjectPtr<AActor>> InActors, bool bReset = false)
+	void AddActors(const TArray<TWeakObjectPtr<AActor>>& InActors, bool bReset = false)
 	{
 		if (IsValid())
 		{
@@ -592,7 +592,7 @@ struct FGameplayEffectContextHandle
 		}
 	}
 
-	void AddHitResult(const FHitResult InHitResult, bool bReset = false)
+	void AddHitResult(const FHitResult& InHitResult, bool bReset = false)
 	{
 		if (IsValid())
 		{
@@ -600,7 +600,7 @@ struct FGameplayEffectContextHandle
 		}
 	}
 
-	TArray<TWeakObjectPtr<AActor>> GetActors()
+	const TArray<TWeakObjectPtr<AActor>> GetActors()
 	{
 		return Data->GetActors();
 	}
@@ -611,7 +611,7 @@ struct FGameplayEffectContextHandle
 		{
 			return Data->GetHitResult();
 		}
-		return NULL;
+		return nullptr;
 	}
 
 	void AddOrigin(FVector InOrigin)

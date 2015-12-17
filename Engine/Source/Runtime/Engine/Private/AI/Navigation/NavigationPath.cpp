@@ -22,25 +22,20 @@ const FNavPathType FNavigationPath::Type;
 
 FNavigationPath::FNavigationPath()
 	: PathType(FNavigationPath::Type)
-	, bUpToDate(true)
-	, bIsReady(false)
-	, bIsPartial(false)
-	, bReachedSearchLimit(false)
 	, LastUpdateTimeStamp(-1.f)	// indicates that it has not been set
 	, GoalActorLocationTetherDistanceSq(-1.f)
 {
-
+	InternalResetNavigationPath();
 }
 
 FNavigationPath::FNavigationPath(const TArray<FVector>& Points, AActor* InBase)
 	: PathType(FNavigationPath::Type)
-	, bUpToDate(true)
-	, bIsReady(true)
-	, bIsPartial(false)
-	, bReachedSearchLimit(false)
 	, LastUpdateTimeStamp(-1.f)	// indicates that it has not been set
 	, GoalActorLocationTetherDistanceSq(-1.f)
 {
+	InternalResetNavigationPath();
+	MarkReady();
+
 	Base = InBase;
 
 	PathPoints.AddZeroed(Points.Num());
@@ -49,6 +44,34 @@ FNavigationPath::FNavigationPath(const TArray<FVector>& Points, AActor* InBase)
 		FBasedPosition BasedPoint(InBase, Points[i]);
 		PathPoints[i] = FNavPathPoint(*BasedPoint);
 	}
+}
+
+void FNavigationPath::InternalResetNavigationPath()
+{
+	ShortcutNodeRefs.Reset();
+	PathPoints.Reset();
+	Base.Reset();
+
+	bUpToDate = true;
+	bIsReady = false;
+	bIsPartial = false;
+	bReachedSearchLimit = false;
+
+	// keep:
+	// - GoalActor
+	// - GoalActorAsNavAgent
+	// - SourceActor
+	// - SourceActorAsNavAgent
+	// - Querier
+	// - Filter
+	// - PathType
+	// - ObserverDelegate
+	// - bDoAutoUpdateOnInvalidation
+	// - bWaitingForRepath
+	// - NavigationDataUsed
+	// - LastUpdateTimeStamp
+	// - GoalActorLocationTetherDistanceSq
+	// - GoalActorLastLocation
 }
 
 FVector FNavigationPath::GetGoalLocation() const
@@ -134,6 +157,11 @@ void FNavigationPath::RePathFailed()
 {
 	ObserverDelegate.Broadcast(this, ENavPathEvent::RePathFailed);
 	bWaitingForRepath = false;
+}
+
+void FNavigationPath::ResetForRepath()
+{
+	InternalResetNavigationPath();
 }
 
 void FNavigationPath::DebugDraw(const ANavigationData* NavData, FColor PathColor, UCanvas* Canvas, bool bPersistent, const uint32 NextPathPointIndex) const
@@ -369,23 +397,33 @@ FString FNavigationPath::GetDescription() const
 const FNavPathType FNavMeshPath::Type;
 	
 FNavMeshPath::FNavMeshPath()
-	: bCorridorEdgesGenerated(false)
-	, bDynamic(false)
-	, bStringPulled(false)
-	, bWantsStringPulling(true)
+	: bWantsStringPulling(true)
 	, bWantsPathCorridor(false)
 {
 	PathType = FNavMeshPath::Type;
+	InternalResetNavMeshPath();
 }
 
-void FNavMeshPath::Reset()
+void FNavMeshPath::ResetForRepath()
 {
-	PathPoints.Reset();
+	Super::ResetForRepath();
+	InternalResetNavMeshPath();
+}
+
+void FNavMeshPath::InternalResetNavMeshPath()
+{
 	PathCorridor.Reset();
 	PathCorridorCost.Reset();
-	bStringPulled = false;
+	CustomLinkIds.Reset();
+	PathCorridorEdges.Reset();
+
 	bCorridorEdgesGenerated = false;
-	bIsPartial = false;
+	bDynamic = false;
+	bStringPulled = false;
+
+	// keep:
+	// - bWantsStringPulling
+	// - bWantsPathCorridor
 }
 
 float FNavMeshPath::GetStringPulledLength(const int32 StartingPoint) const

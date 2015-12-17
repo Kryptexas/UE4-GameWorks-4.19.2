@@ -48,10 +48,7 @@ void FAnimNode_LayeredBoneBlend::CacheBones(const FAnimationCacheBonesContext& C
 		BlendPoses[ChildIndex].CacheBones(Context);
 	}
 
-	if (Context.AnimInstanceProxy->GetRequiredBones().GetBoneIndicesArray().Num() != DesiredBoneBlendWeights.Num())
-	{
-		ReinitializeBoneBlendWeights(Context.AnimInstanceProxy->GetRequiredBones(), Context.AnimInstanceProxy->GetSkeleton());
-	}
+	ReinitializeBoneBlendWeights(Context.AnimInstanceProxy->GetRequiredBones(), Context.AnimInstanceProxy->GetSkeleton());
 }
 
 void FAnimNode_LayeredBoneBlend::Update(const FAnimationUpdateContext& Context)

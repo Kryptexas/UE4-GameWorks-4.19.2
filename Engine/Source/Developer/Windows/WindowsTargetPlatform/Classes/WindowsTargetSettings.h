@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "AudioDevice.h"
 #include "WindowsTargetSettings.generated.h"
 
 UENUM()
@@ -38,4 +39,9 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, config, Category="OS Info", Meta=(DisplayName = "Minimum OS Version"))
 	TEnumAsByte<EMinimumSupportedOS> MinimumOSVersion;
+
+	/** The audio device name to use if not the default windows audio device. Leave blank to use default audio device. */
+	UPROPERTY(config, EditAnywhere, Category = "Audio")
+	FString AudioDevice;
+
 };

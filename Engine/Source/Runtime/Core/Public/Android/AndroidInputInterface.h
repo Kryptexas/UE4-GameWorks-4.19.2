@@ -194,7 +194,7 @@ public:
 	 */
 	void SendControllerEvents();
 
-	static void QueueTouchInput(TArray<TouchInput> InTouchEvents);
+	static void QueueTouchInput(const TArray<TouchInput>& InTouchEvents);
 
 	static void ResetGamepadAssignments();
 	static void ResetGamepadAssignmentToController(int32 ControllerId);

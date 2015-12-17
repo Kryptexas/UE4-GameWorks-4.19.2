@@ -48,7 +48,7 @@ TArray<FActiveGameplayEffectHandle> FGameplayAbilityTargetData::ApplyGameplayEff
 	return AppliedHandles;
 }
 
-void FGameplayAbilityTargetData::AddTargetDataToContext(FGameplayEffectContextHandle& Context, bool bIncludeActorArray)
+void FGameplayAbilityTargetData::AddTargetDataToContext(FGameplayEffectContextHandle& Context, bool bIncludeActorArray) const
 {
 	if (bIncludeActorArray && (GetActors().Num() > 0))
 	{
@@ -66,10 +66,8 @@ void FGameplayAbilityTargetData::AddTargetDataToContext(FGameplayEffectContextHa
 	}
 }
 
-void FGameplayAbilityTargetData::AddTargetDataToGameplayCueParameters(FGameplayCueParameters& Parameters)
+void FGameplayAbilityTargetData::AddTargetDataToGameplayCueParameters(FGameplayCueParameters& Parameters) const
 {
-	
-	
 }
 
 FString FGameplayAbilityTargetData::ToString() const
@@ -77,7 +75,7 @@ FString FGameplayAbilityTargetData::ToString() const
 	return TEXT("BASE CLASS");
 }
 
-FGameplayAbilityTargetDataHandle FGameplayAbilityTargetingLocationInfo::MakeTargetDataHandleFromHitResult(TWeakObjectPtr<UGameplayAbility> Ability, FHitResult HitResult) const
+FGameplayAbilityTargetDataHandle FGameplayAbilityTargetingLocationInfo::MakeTargetDataHandleFromHitResult(TWeakObjectPtr<UGameplayAbility> Ability, const FHitResult& HitResult) const
 {
 	TArray<FHitResult> HitResults;
 	HitResults.Add(HitResult);
@@ -99,7 +97,7 @@ FGameplayAbilityTargetDataHandle FGameplayAbilityTargetingLocationInfo::MakeTarg
 	return ReturnDataHandle;
 }
 
-FGameplayAbilityTargetDataHandle FGameplayAbilityTargetingLocationInfo::MakeTargetDataHandleFromActors(TArray<TWeakObjectPtr<AActor> > TargetActors, bool OneActorPerHandle) const
+FGameplayAbilityTargetDataHandle FGameplayAbilityTargetingLocationInfo::MakeTargetDataHandleFromActors(const TArray<TWeakObjectPtr<AActor> >& TargetActors, bool OneActorPerHandle) const
 {
 	/** Note: This is cleaned up by the FGameplayAbilityTargetDataHandle (via an internal TSharedPtr) */
 	FGameplayAbilityTargetData_ActorArray* ReturnData = new FGameplayAbilityTargetData_ActorArray();
@@ -109,18 +107,18 @@ FGameplayAbilityTargetDataHandle FGameplayAbilityTargetingLocationInfo::MakeTarg
 	{
 		if (TargetActors.Num() > 0)
 		{
-			if (TargetActors[0].IsValid())
+			if (AActor* TargetActor = TargetActors[0].Get())
 			{
-				ReturnData->TargetActorArray.Add(TargetActors[0].Get());
+				ReturnData->TargetActorArray.Add(TargetActor);
 			}
 
 			for (int32 i = 1; i < TargetActors.Num(); ++i)
 			{
-				if (TargetActors[i].IsValid())
+				if (AActor* TargetActor = TargetActors[i].Get())
 				{
 					FGameplayAbilityTargetData_ActorArray* CurrentData = new FGameplayAbilityTargetData_ActorArray();
 					CurrentData->SourceLocation = *this;
-					CurrentData->TargetActorArray.Add(TargetActors[i].Get());
+					CurrentData->TargetActorArray.Add(TargetActor);
 					ReturnDataHandle.Add(CurrentData);
 				}
 			}

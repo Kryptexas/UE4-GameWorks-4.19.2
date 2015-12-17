@@ -22,6 +22,7 @@ DECLARE_DWORD_COUNTER_STAT(TEXT("Ticks Queued"),STAT_TicksQueued,STATGROUP_Game)
 DECLARE_CYCLE_STAT(TEXT("TG_NewlySpawned"), STAT_TG_NewlySpawned, STATGROUP_TickGroups);
 DECLARE_CYCLE_STAT(TEXT("ReleaseTickGroup"), STAT_ReleaseTickGroup, STATGROUP_TickGroups);
 DECLARE_CYCLE_STAT(TEXT("ReleaseTickGroup Block"), STAT_ReleaseTickGroup_Block, STATGROUP_TickGroups);
+DECLARE_CYCLE_STAT(TEXT("CleanupTasksWait"), STAT_CleanupTasksWait, STATGROUP_TickGroups);
 
 
 
@@ -525,6 +526,9 @@ public:
 		{
 			bAllowConcurrentTicks = !!CVarAllowAsyncComponentTicks.GetValueOnGameThread();
 		}
+
+		WaitForCleanup();
+
 		for (int32 Index = 0; Index < TG_MAX; Index++)
 		{
 			check(!TickCompletionEvents[Index].Num());  // we should not be adding to these outside of a ticking proper and they were already cleared after they were ticked
@@ -547,16 +551,6 @@ public:
 		{
 			UE_LOG(LogTick, Log, TEXT("tick %6d ---------------------------------------- End Frame"),GFrameCounter);
 		}
-		FTaskGraphInterface::Get().WaitUntilTasksComplete(CleanupTasks, ENamedThreads::GameThread);
-		CleanupTasks.Reset();
-		for (int32 Index = 0; Index < TG_MAX; Index++)
-		{
-			check(!TickCompletionEvents[Index].Num());  // we should not be adding to these outside of a ticking proper and they were already cleared after they were ticked
-			for (int32 IndexInner = 0; IndexInner < TG_MAX; IndexInner++)
-			{
-				check(!TickTasks[Index][IndexInner].Num() && !HiPriTickTasks[Index][IndexInner].Num());  // we should not be adding to these outside of a ticking proper and they were already cleared after they were ticked
-			}
-		}
 	}
 private:
 
@@ -565,6 +559,25 @@ private:
 		, bLogTicks(false)
 		, bLogTicksShowPrerequistes(false)
 	{
+		TFunction<void()> ShutdownCallback([this](){WaitForCleanup();});
+		FTaskGraphInterface::Get().AddShutdownCallback(ShutdownCallback);
+	}
+
+	~FTickTaskSequencer()
+	{
+		// Need to clean up oustanding tasks before we destroy this data structure.
+		// Typically it is already gone because the task graph shutdown first.
+		WaitForCleanup();
+	}
+
+	void WaitForCleanup()
+	{
+		if (CleanupTasks.Num() > 0)
+		{
+			SCOPE_CYCLE_COUNTER(STAT_CleanupTasksWait);
+			FTaskGraphInterface::Get().WaitUntilTasksComplete(CleanupTasks, ENamedThreads::GameThread);
+			CleanupTasks.Reset();
+		}
 	}
 
 	void ResetTickGroup(ETickingGroup WorldTickGroup)
@@ -1098,7 +1111,7 @@ public:
 					FTickFunction* PrevComparisionFunction = nullptr;
 					FTickFunction* ComparisonFunction = AllCoolingDownTickFunctions.Head;
 					bool bFound = false;
-					while (ComparisonFunction)
+					while (ComparisonFunction && !bFound)
 					{
 						if (ComparisonFunction == TickFunction)
 						{

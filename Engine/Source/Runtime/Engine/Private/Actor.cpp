@@ -1075,22 +1075,16 @@ void AActor::ClearComponentOverlaps()
 	// Remove owned components from overlap tracking
 	// We don't traverse the RootComponent attachment tree since that might contain
 	// components owned by other actors.
-	TArray<UPrimitiveComponent*> OverlappingComponentsForCurrentComponent;
+	TArray<FOverlapInfo, TInlineAllocator<3>> OverlapsForCurrentComponent;
 	for (UPrimitiveComponent* const PrimComp : PrimitiveComponents)
 	{
-		PrimComp->GetOverlappingComponents(OverlappingComponentsForCurrentComponent);
-
-		for (UPrimitiveComponent* const OverlapComp : OverlappingComponentsForCurrentComponent)
+		OverlapsForCurrentComponent.Reset();
+		OverlapsForCurrentComponent.Append(PrimComp->GetOverlapInfos());
+		for (const FOverlapInfo& CurrentOverlap : OverlapsForCurrentComponent)
 		{
-			if (OverlapComp)
-			{
-				PrimComp->EndComponentOverlap(OverlapComp, true, true);
-
-				if (IsPendingKill())
-				{
-					return;
-				}
-			}
+			const bool bDoNotifies = true;
+			const bool bSkipNotifySelf = false;
+			PrimComp->EndComponentOverlap(CurrentOverlap, bDoNotifies, bSkipNotifySelf);
 		}
 	}
 }

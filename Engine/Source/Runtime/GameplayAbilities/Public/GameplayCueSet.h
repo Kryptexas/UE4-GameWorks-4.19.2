@@ -48,7 +48,7 @@ class GAMEPLAYABILITIES_API UGameplayCueSet : public UDataAsset
 	GENERATED_UCLASS_BODY()
 
 	/** Handles the cue event by spawning the cue actor. Returns true if the event was handled. */
-	virtual bool HandleGameplayCue(AActor* TargetActor, FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
+	virtual bool HandleGameplayCue(AActor* TargetActor, FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType, const FGameplayCueParameters& Parameters);
 
 	/** Adds a list of cues to the set */
 	virtual void AddCues(const TArray<FGameplayCueReferencePair>& CuesToAdd);

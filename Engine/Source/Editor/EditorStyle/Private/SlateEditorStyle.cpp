@@ -5458,6 +5458,7 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 			TEXT("SlateWidgetStyleAsset"),
 			TEXT("SoundAttenuation"),
 			TEXT("SoundClass"),
+			TEXT("SoundConcurrency"),
 			TEXT("SoundCue"),
 			TEXT("SoundMix"),
 			TEXT("SphereReflectionCapture"),

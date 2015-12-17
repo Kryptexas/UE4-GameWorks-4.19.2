@@ -173,6 +173,10 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 	void Invalidate();
 	void RePathFailed();
 
+	/** Resets all variables describing generated path before attempting new pathfinding call. 
+	  * This function will NOT reset setup variables like goal actor, filter, observer, etc */
+	virtual void ResetForRepath();
+
 	virtual void DebugDraw(const ANavigationData* NavData, FColor PathColor, class UCanvas* Canvas, bool bPersistent, const uint32 NextPathPointIndex = 0) const;
 	
 #if ENABLE_VISUAL_LOG
@@ -249,6 +253,9 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 
 private:
 	bool DoesPathIntersectBoxImplementation(const FBox& Box, const FVector& StartLocation, uint32 StartingIndex, int32* IntersectingSegmentIndex, FVector* AgentExtent) const;
+
+	/** reset variables describing built path, leaves setup variables required for rebuilding */
+	void InternalResetNavigationPath();
 
 public:
 

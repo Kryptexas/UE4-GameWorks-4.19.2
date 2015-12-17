@@ -1839,6 +1839,12 @@ protected:
 	/** Array of section elements for each LOD */
 	TArray<FLODSectionElements> LODSections;
 
+	/** 
+	 * BoneIndex->capsule pairs used for rendering sphere/capsule shadows 
+	 * Note that these are in refpose component space, NOT bone space.
+	 */
+	TArray<TPair<int32, FCapsuleShape>> ShadowCapsuleData;
+
 	/** Set of materials used by this scene proxy, safe to access from the game thread. */
 	TSet<UMaterialInterface*> MaterialsInUse_GameThread;
 	bool bMaterialsNeedMorphUsage_GameThread;

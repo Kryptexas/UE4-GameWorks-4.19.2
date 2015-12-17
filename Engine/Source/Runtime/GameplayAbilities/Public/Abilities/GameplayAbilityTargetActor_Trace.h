@@ -44,7 +44,7 @@ public:
 protected:
 	virtual FHitResult PerformTrace(AActor* InSourceActor) PURE_VIRTUAL(AGameplayAbilityTargetActor_Trace, return FHitResult(););
 
-	FGameplayAbilityTargetDataHandle MakeTargetData(FHitResult HitResult) const;
+	FGameplayAbilityTargetDataHandle MakeTargetData(const FHitResult& HitResult) const;
 
 	TWeakObjectPtr<AGameplayAbilityWorldReticle> ReticleActor;
 };

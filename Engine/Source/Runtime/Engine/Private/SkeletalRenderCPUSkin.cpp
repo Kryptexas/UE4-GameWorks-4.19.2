@@ -170,8 +170,6 @@ void FSkeletalMeshObjectCPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* In
 	// this data is only deleted when another update is sent
 	FDynamicSkelMeshObjectDataCPUSkin* NewDynamicData = new FDynamicSkelMeshObjectDataCPUSkin(InMeshComponent,SkeletalMeshResource,LODIndex,ActiveVertexAnims);
 
-	UpdateShadowShapes(InMeshComponent);
-
 	// queue a call to update this data
 	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 		SkelMeshObjectUpdateDataCommand,
@@ -351,6 +349,11 @@ TArray<FTransform>* FSkeletalMeshObjectCPUSkin::GetSpaceBases() const
 	{
 		return NULL;
 	}
+}
+
+const TArray<FMatrix>& FSkeletalMeshObjectCPUSkin::GetReferenceToLocalMatrices() const
+{
+	return DynamicData->ReferenceToLocal;
 }
 
 /**

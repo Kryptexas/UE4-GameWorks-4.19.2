@@ -83,6 +83,8 @@ class FSpatializationHelper;
  */
 class FXAudio2Device : public FAudioDevice
 {
+	virtual void GetAudioDeviceList(TArray<FString>& OutAudioDeviceNames) const override;
+
 	/** Starts up any platform specific hardware/APIs */
 	virtual bool InitializeHardware() override;
 

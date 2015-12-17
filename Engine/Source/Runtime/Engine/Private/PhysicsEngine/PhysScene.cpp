@@ -281,6 +281,8 @@ FPhysScene::FPhysScene()
 	GApexModuleDestructible->setWorldSupportPhysXScene(*ApexScene, SyncPhysXScene);
 	GApexModuleDestructible->setDamageApplicationRaycastFlags(NxDestructibleActorRaycastFlags::AllChunks, *ApexScene);
 #endif
+
+	PreGarbageCollectDelegateHandle = FCoreUObjectDelegates::PreGarbageCollect.AddRaw(this, &FPhysScene::WaitPhysScenes);
 }
 
 void FPhysScene::SetOwningWorld(UWorld* InOwningWorld)
@@ -291,6 +293,7 @@ void FPhysScene::SetOwningWorld(UWorld* InOwningWorld)
 /** Exposes destruction of physics-engine scene outside Engine. */
 FPhysScene::~FPhysScene()
 {
+	FCoreUObjectDelegates::PreGarbageCollect.Remove(PreGarbageCollectDelegateHandle);
 	// Make sure no scenes are left simulating (no-ops if not simulating)
 	WaitPhysScenes();
 	// Loop through scene types to get all scenes
@@ -352,19 +355,29 @@ void FPhysScene::SetKinematicTarget_AssumesLocked(FBodyInstance* BodyInstance, c
 #if WITH_PHYSX
 	if (PxRigidDynamic * PRigidDynamic = BodyInstance->GetPxRigidDynamic_AssumesLocked())
 	{
-#if WITH_SUBSTEPPING
-		uint32 BodySceneType = SceneType_AssumesLocked(BodyInstance);
-		if (bAllowSubstepping && IsSubstepping(BodySceneType))
+		const bool bIsKinematicTarget = IsRigidBodyKinematicAndInSimulationScene_AssumesLocked(PRigidDynamic);
+		if(bIsKinematicTarget)
 		{
-			FPhysSubstepTask * PhysSubStepper = PhysSubSteppers[BodySceneType];
-			PhysSubStepper->SetKinematicTarget_AssumesLocked(BodyInstance, TargetTransform);
+#if WITH_SUBSTEPPING
+			uint32 BodySceneType = SceneType_AssumesLocked(BodyInstance);
+			if (bAllowSubstepping && IsSubstepping(BodySceneType))
+			{
+				FPhysSubstepTask * PhysSubStepper = PhysSubSteppers[BodySceneType];
+				PhysSubStepper->SetKinematicTarget_AssumesLocked(BodyInstance, TargetTransform);
+			}
+			else
+#endif
+			{
+				const PxTransform PNewPose = U2PTransform(TargetTransform);
+				PRigidDynamic->setKinematicTarget(PNewPose);
+			}
 		}
 		else
-#endif
 		{
 			const PxTransform PNewPose = U2PTransform(TargetTransform);
-			PRigidDynamic->setKinematicTarget(PNewPose);
+			PRigidDynamic->setGlobalPose(PNewPose);
 		}
+
 	}
 #endif
 }

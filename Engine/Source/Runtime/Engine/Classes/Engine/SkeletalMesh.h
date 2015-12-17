@@ -748,6 +748,9 @@ private:
 	UPROPERTY()
 	TArray<class USkeletalMeshSocket*> Sockets;
 
+	/** Cached matrices from GetComposedRefPoseMatrix */
+	TArray<FMatrix> CachedComposedRefPoseMatrices;
+
 public:
 	/**
 	* Initialize the mesh's render resources.

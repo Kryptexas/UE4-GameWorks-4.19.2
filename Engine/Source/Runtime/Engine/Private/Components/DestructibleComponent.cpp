@@ -793,7 +793,7 @@ class UDestructibleMesh * UDestructibleComponent::GetDestructibleMesh()
 	return Cast<UDestructibleMesh>(SkeletalMesh);
 }
 
-void UDestructibleComponent::SetSkeletalMesh( USkeletalMesh* InSkelMesh )
+void UDestructibleComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh, bool bReinitPose)
 {
 	if(InSkelMesh != NULL && !InSkelMesh->IsA(UDestructibleMesh::StaticClass()))
 	{

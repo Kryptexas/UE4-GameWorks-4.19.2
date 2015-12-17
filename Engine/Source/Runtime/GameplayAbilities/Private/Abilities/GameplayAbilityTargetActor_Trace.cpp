@@ -203,7 +203,7 @@ void AGameplayAbilityTargetActor_Trace::ConfirmTargetingAndContinue()
 	}
 }
 
-FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_Trace::MakeTargetData(FHitResult HitResult) const
+FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_Trace::MakeTargetData(const FHitResult& HitResult) const
 {
 	/** Note: This will be cleaned up by the FGameplayAbilityTargetDataHandle (via an internal TSharedPtr) */
 	return StartLocation.MakeTargetDataHandleFromHitResult(OwningAbility, HitResult);

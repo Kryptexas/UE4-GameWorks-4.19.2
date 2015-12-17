@@ -272,7 +272,7 @@ struct IConsoleCommand : public IConsoleObject
 	 * @param	InWorld		World context for this command
 	 * @return	True if the delegate for this command was executed successfully
 	 */
-	virtual bool Execute( const TArray< FString > Args, UWorld* InWorld, class FOutputDevice& OutputDevice ) = 0;
+	virtual bool Execute( const TArray< FString >& Args, UWorld* InWorld, class FOutputDevice& OutputDevice ) = 0;
 };
 
 /**

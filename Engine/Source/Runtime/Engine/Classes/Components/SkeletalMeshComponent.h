@@ -297,6 +297,29 @@ struct FSkeletalMeshComponentClothTickFunction : public FTickFunction
 	virtual FString DiagnosticMessage() override;
 };
 
+struct ENGINE_API FClosestPointOnPhysicsAsset
+{
+	/** The closest point in world space */
+	FVector ClosestWorldPosition;
+
+	/** The normal associated with the surface of the closest body */
+	FVector Normal;
+
+	/** The name of the bone associated with the closest body */
+	FName BoneName;
+
+	/** The distance of the closest point and the original world position. 0 Indicates world position is inside the closest body. */
+	float Distance;
+
+	FClosestPointOnPhysicsAsset()
+		: ClosestWorldPosition(FVector::ZeroVector)
+		, Normal(FVector::ZeroVector)
+		, BoneName(NAME_None)
+		, Distance(-1.f)
+	{
+	}
+};
+
 /**
  * SkeletalMeshComponent is used to create an instance of an animated SkeletalMesh asset.
  *
@@ -496,6 +519,10 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Animation)
 	uint32 bPauseAnims:1;
 
+	/** On InitAnim should we set to ref pose (if false use first tick of animation data)*/
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Animation)
+	bool bUseRefPoseOnInitAnim;
+
 	/**
 	* Uses skinned data for collision data.
 	*/
@@ -676,7 +703,7 @@ public:
 	virtual void SkelMeshCompOnParticleSystemFinished( class UParticleSystemComponent* PSC );
 
 	class UAnimSingleNodeInstance * GetSingleNodeInstance() const;
-	void InitializeAnimScriptInstance(bool bForceReinit=true);
+	bool InitializeAnimScriptInstance(bool bForceReinit=true);
 
 	/** @return true if wind is enabled */
 	virtual bool IsWindEnabled() const;
@@ -925,6 +952,26 @@ public:
 	virtual void OnComponentCollisionSettingsChanged() override;
 	virtual void SetPhysMaterialOverride(UPhysicalMaterial* NewPhysMaterial) override;
 	virtual float GetDistanceToCollision(const FVector& Point, FVector& ClosestPointOnCollision) const override;
+
+
+	/** 
+	 *	Given a world position, find the closest point on the physics asset. Note that this is independent of collision and welding. This is based purely on animation position
+	 *  @param	WorldPosition				The point we want the closest point to (i.e. for all bodies in the physics asset, find the one that has a point closest to WorldPosition)
+	 *  @param	ClosestPointOnPhysicsAsset	The data associated with the closest point (position, normal, etc...)
+	 *  @param	bApproximate				The closest body is found using bone transform distance instead of body distance. This approximation means the final point is the closest point on a potentially not closest body. This approximation gets worse as the size of Bodies gets bigger.
+	 *  @return	true if we found a closest point
+	 */
+	bool GetClosestPointOnPhysicsAsset(const FVector& WorldPosition, FClosestPointOnPhysicsAsset& ClosestPointOnPhysicsAsset, bool bApproximate) const;
+
+	/** 
+	 *	Given a world position, find the closest point on the physics asset. Note that this is independent of collision and welding. This is based purely on animation position
+	 *  @param	WorldPosition				The point we want the closest point to (i.e. for all bodies in the physics asset, find the one that has a point closest to WorldPosition)
+	 *  @param	ClosestPointOnPhysicsAsset	The data associated with the closest point (position, normal, etc...)
+	 *  @return	true if we found a closest point
+	 */
+	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh", meta=(DisplayName="GetClosestPointOnPhysicsAsset", Keywords="closest point"))
+	bool K2_GetClosestPointOnPhysicsAsset(const FVector& WorldPosition, FVector& ClosestWorldPosition, FVector& Normal, FName& BoneName, float& Distance) const;
+
 	virtual bool LineTraceComponent( FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionQueryParams& Params ) override;
 	virtual bool SweepComponent( FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionShape& CollisionShape, bool bTraceComplex=false) override;
 	virtual bool OverlapComponent(const FVector& Pos, const FQuat& Rot, const FCollisionShape& CollisionShape) override;
@@ -957,7 +1004,7 @@ public:
 	virtual void HideBone( int32 BoneIndex, EPhysBodyOp PhysBodyOption ) override;
 	virtual void UnHideBone( int32 BoneIndex ) override;
 	virtual void SetPhysicsAsset(class UPhysicsAsset* NewPhysicsAsset,bool bForceReInit = false) override;
-	virtual void SetSkeletalMesh(class USkeletalMesh* NewMesh) override;
+	virtual void SetSkeletalMesh(class USkeletalMesh* NewMesh, bool bReinitPose = true) override;
 	virtual FVector GetSkinnedVertexPosition(int32 VertexIndex) const override;
 
 	void SetSkeletalMeshWithoutResettingAnimation(class USkeletalMesh* NewMesh);
@@ -1267,7 +1314,7 @@ public:
 	void DebugDrawBones(class UCanvas* Canvas, bool bSimpleBones) const;
 
 protected:
-	bool NeedToSpawnAnimScriptInstance(bool bForceInit) const;
+	bool NeedToSpawnAnimScriptInstance() const;
 	
 private:
 

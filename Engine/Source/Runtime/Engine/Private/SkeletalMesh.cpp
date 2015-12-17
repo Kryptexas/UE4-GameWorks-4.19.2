@@ -47,6 +47,8 @@
 
 DEFINE_LOG_CATEGORY(LogSkeletalMesh);
 
+DECLARE_CYCLE_STAT(TEXT("GetShadowShapes"), STAT_GetShadowShapes, STATGROUP_Anim);
+
 #if WITH_APEX_CLOTHING
 /*-----------------------------------------------------------------------------
 	utility functions for apex clothing 
@@ -2514,7 +2516,7 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 			FMultiSizeIndexContainerData AdjacencyIndexData;
 			IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
 
-			UE_LOG(LogSkeletalMesh, Warning, TEXT("Building adjacency information for skeletal mesh '%s'."), *GetPathName() );
+			UE_LOG(LogSkeletalMesh, Warning, TEXT("Building adjacency information for skeletal mesh '%s'. Please resave the asset."), *GetPathName() );
 			LODModel.GetVertices( Vertices );
 			LODModel.MultiSizeIndexContainer.GetIndexBufferData( IndexData );
 			AdjacencyIndexData.DataTypeSize = IndexData.DataTypeSize;
@@ -2690,26 +2692,26 @@ void USkeletalMesh::CalculateInvRefMatrices()
 		RefBasesInvMatrix.Empty(RefSkeleton.GetNum());
 		RefBasesInvMatrix.AddUninitialized(RefSkeleton.GetNum());
 
-		// Temporary storage for calculating mesh-space ref pose
-		TArray<FMatrix> RefBases;
-		RefBases.AddUninitialized( RefSkeleton.GetNum() );
+		// Reset cached mesh-space ref pose
+		CachedComposedRefPoseMatrices.Empty( RefSkeleton.GetNum() );
+		CachedComposedRefPoseMatrices.AddUninitialized( RefSkeleton.GetNum() );
 
 		// Precompute the Mesh.RefBasesInverse.
 		for( int32 b=0; b<RefSkeleton.GetNum(); b++)
 		{
 			// Render the default pose.
-			RefBases[b] = GetRefPoseMatrix(b);
+			CachedComposedRefPoseMatrices[b] = GetRefPoseMatrix(b);
 
 			// Construct mesh-space skeletal hierarchy.
 			if( b>0 )
 			{
 				int32 Parent = RefSkeleton.GetParentIndex(b);
-				RefBases[b] = RefBases[b] * RefBases[Parent];
+				CachedComposedRefPoseMatrices[b] = CachedComposedRefPoseMatrices[b] * CachedComposedRefPoseMatrices[Parent];
 			}
 
 			FVector XAxis, YAxis, ZAxis;
 
-			RefBases[b].GetScaledAxes(XAxis, YAxis, ZAxis);
+			CachedComposedRefPoseMatrices[b].GetScaledAxes(XAxis, YAxis, ZAxis);
 			if(	XAxis.IsNearlyZero(SMALL_NUMBER) &&
 				YAxis.IsNearlyZero(SMALL_NUMBER) &&
 				ZAxis.IsNearlyZero(SMALL_NUMBER))
@@ -2719,7 +2721,7 @@ void USkeletalMesh::CalculateInvRefMatrices()
 			}
 
 			// Precompute inverse so we can use from-refpose-skin vertices.
-			RefBasesInvMatrix[b] = RefBases[b].Inverse(); 
+			RefBasesInvMatrix[b] = CachedComposedRefPoseMatrices[b].Inverse(); 
 		}
 
 #if WITH_EDITORONLY_DATA
@@ -3167,19 +3169,7 @@ FMatrix USkeletalMesh::GetComposedRefPoseMatrix( FName InBoneName ) const
 
 FMatrix USkeletalMesh::GetComposedRefPoseMatrix(int32 InBoneIndex) const
 {
-	FMatrix LocalPose(FMatrix::Identity);
-	int32 BoneIndex = InBoneIndex;
-
-	if(BoneIndex != INDEX_NONE)
-	{
-		while(BoneIndex != INDEX_NONE)
-		{
-			LocalPose = LocalPose * GetRefPoseMatrix(BoneIndex);
-			BoneIndex = RefSkeleton.GetParentIndex(BoneIndex);
-		}
-	}
-
-	return LocalPose;
+	return CachedComposedRefPoseMatrices[InBoneIndex];
 }
 
 TArray<USkeletalMeshSocket*>& USkeletalMesh::GetMeshOnlySocketList()
@@ -3934,6 +3924,32 @@ bool USkeletalMeshSocket::AttachActor(AActor* Actor, class USkeletalMeshComponen
 	return bAttached;
 }
 
+#if WITH_EDITOR
+void USkeletalMeshSocket::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	if (PropertyChangedEvent.Property)
+	{
+		ChangedEvent.Broadcast(this, PropertyChangedEvent.MemberProperty);
+	}
+}
+
+void USkeletalMeshSocket::CopyFrom(const class USkeletalMeshSocket* OtherSocket)
+{
+	if (OtherSocket)
+	{
+		SocketName = OtherSocket->SocketName;
+		BoneName = OtherSocket->BoneName;
+		RelativeLocation = OtherSocket->RelativeLocation;
+		RelativeRotation = OtherSocket->RelativeRotation;
+		RelativeScale = OtherSocket->RelativeScale;
+		bForceAlwaysAnimated = OtherSocket->bForceAlwaysAnimated;
+	}
+}
+
+#endif
+
 /*-----------------------------------------------------------------------------
 	ASkeletalMeshActor
 -----------------------------------------------------------------------------*/
@@ -4227,6 +4243,8 @@ FSkeletalMeshSceneProxy
 #include "LevelUtils.h"
 #include "SkeletalRender.h"
 
+const FQuat SphylBasis(FVector(1.0f / FMath::Sqrt(2.0f), 0.0f, 1.0f / FMath::Sqrt(2.0f)), PI);
+
 /** 
  * Constructor. 
  * @param	Component - skeletal mesh primitive being added
@@ -4365,7 +4383,44 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 	FColor NewPropertyColor;
 	GEngine->GetPropertyColorationColor( (UObject*)Component, NewPropertyColor );
 	PropertyColor = NewPropertyColor;
+
+	// Copy out shadow physics asset data
+	if(SkeletalMeshComponent)
+	{
+		UPhysicsAsset* ShadowPhysicsAsset = SkeletalMeshComponent->SkeletalMesh->ShadowPhysicsAsset;
+
+		if (ShadowPhysicsAsset
+			&& SkeletalMeshComponent->CastShadow
+			&& (SkeletalMeshComponent->bCastCapsuleDirectShadow || SkeletalMeshComponent->bCastCapsuleIndirectShadow))
+		{
+			for (int32 BodyIndex = 0; BodyIndex < ShadowPhysicsAsset->BodySetup.Num(); BodyIndex++)
+			{
+				UBodySetup* BodySetup = ShadowPhysicsAsset->BodySetup[BodyIndex];
+				int32 BoneIndex = SkeletalMeshComponent->GetBoneIndex(BodySetup->BoneName);
+
+				if (BoneIndex != INDEX_NONE)
+				{
+					const FMatrix& RefBoneMatrix = SkeletalMeshComponent->SkeletalMesh->GetComposedRefPoseMatrix(BoneIndex);
+
+					const int32 NumSpheres = BodySetup->AggGeom.SphereElems.Num();
+					for (int32 SphereIndex = 0; SphereIndex < NumSpheres; SphereIndex++)
+					{
+						const FKSphereElem& SphereShape = BodySetup->AggGeom.SphereElems[SphereIndex];
+						ShadowCapsuleData.Add(TPairInitializer<int32, FCapsuleShape>(BoneIndex, FCapsuleShape(RefBoneMatrix.TransformPosition(SphereShape.Center), SphereShape.Radius, FVector(0.0f, 0.0f, 1.0f), 0.0f)));
+					}
+
+					const int32 NumCapsules = BodySetup->AggGeom.SphylElems.Num();
+					for (int32 CapsuleIndex = 0; CapsuleIndex < NumCapsules; CapsuleIndex++)
+					{
+						const FKSphylElem& SphylShape = BodySetup->AggGeom.SphylElems[CapsuleIndex];
+						ShadowCapsuleData.Add(TPairInitializer<int32, FCapsuleShape>(BoneIndex, FCapsuleShape(RefBoneMatrix.TransformPosition(SphylShape.Center), SphylShape.Radius, RefBoneMatrix.TransformVector((SphylShape.Orientation * SphylBasis).Vector()), SphylShape.Length)));
+					}
+				}
+			}
+		}
+	}
 }
+
 
 // FPrimitiveSceneProxy interface.
 
@@ -4727,7 +4782,26 @@ bool FSkeletalMeshSceneProxy::HasDistanceFieldRepresentation() const
 
 void FSkeletalMeshSceneProxy::GetShadowShapes(TArray<FCapsuleShape>& CapsuleShapes) const 
 {
-	CapsuleShapes.Append(MeshObject->ShadowCapsuleShapes);
+	SCOPE_CYCLE_COUNTER(STAT_GetShadowShapes);
+
+	const TArray<FMatrix>& ReferenceToLocalMatrices = MeshObject->GetReferenceToLocalMatrices();
+	const FMatrix& LocalToWorld = GetLocalToWorld();
+
+	int32 CapsuleIndex = CapsuleShapes.Num();
+	CapsuleShapes.SetNum(CapsuleShapes.Num() + ShadowCapsuleData.Num(), false);
+
+	for(const TPair<int32, FCapsuleShape>& CapsuleData : ShadowCapsuleData)
+	{
+		FMatrix ReferenceToWorld = ReferenceToLocalMatrices[CapsuleData.Key] * LocalToWorld;
+		const float MaxScale = ReferenceToWorld.GetScaleVector().GetMax();
+
+		FCapsuleShape& NewCapsule = CapsuleShapes[CapsuleIndex++];
+
+		NewCapsule.Center = ReferenceToWorld.TransformPosition(CapsuleData.Value.Center);
+		NewCapsule.Radius = CapsuleData.Value.Radius * MaxScale;
+		NewCapsule.Orientation = ReferenceToWorld.TransformVector(CapsuleData.Value.Orientation);
+		NewCapsule.Length = CapsuleData.Value.Length * MaxScale;
+	}
 }
 
 /**
@@ -4902,7 +4976,6 @@ USkinnedMeshComponent::USkinnedMeshComponent(const FObjectInitializer& ObjectIni
 	bCastCapsuleIndirectShadow = false;
 
 	bDoubleBufferedBlendSpaces = true;
-	bReInitAnimationOnSetSkeletalMeshCalls = true;
 	CurrentEditableSpaceBases = 0;
 	CurrentReadSpaceBases = 1;
 	bNeedToFlipSpaceBaseBuffers = false;
@@ -5052,15 +5125,4 @@ FPrimitiveSceneProxy* USkinnedMeshComponent::CreateSceneProxy()
 USkeletalMeshComponent* ASkeletalMeshActor::GetSkeletalMeshComponent() { return SkeletalMeshComponent; }
 
 
-#if WITH_EDITOR
-void USkeletalMeshSocket::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
-{
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-
-	if (PropertyChangedEvent.Property)
-	{
-		ChangedEvent.Broadcast(this, PropertyChangedEvent.MemberProperty);
-	}
-}
-#endif
 

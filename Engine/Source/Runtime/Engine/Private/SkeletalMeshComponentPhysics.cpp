@@ -1442,11 +1442,6 @@ void USkeletalMeshComponent::OnUpdateTransform(bool bSkipPhysicsMove, ETeleportT
 #endif
 	}
 
-	if (MeshObject)
-	{
-		MeshObject->UpdateShadowShapes(this);
-	}
-
 #if WITH_APEX_CLOTHING
 	if(ClothingActors.Num() > 0)
 	{
@@ -1963,6 +1958,81 @@ float USkeletalMeshComponent::GetDistanceToCollision(const FVector& Point, FVect
 	}
 
 	return ClosestPointDistance;
+}
+
+DECLARE_CYCLE_STAT(TEXT("GetClosestPointOnPhysicsAsset"), STAT_GetClosestPointOnPhysicsAsset, STATGROUP_Physics);
+
+bool USkeletalMeshComponent::GetClosestPointOnPhysicsAsset(const FVector& WorldPosition, FClosestPointOnPhysicsAsset& ClosestPointOnPhysicsAsset, bool bApproximate) const
+{
+	SCOPE_CYCLE_COUNTER(STAT_GetClosestPointOnPhysicsAsset);
+
+	bool bSuccess = false;
+	const UPhysicsAsset* PhysicsAsset = GetPhysicsAsset();
+	const FReferenceSkeleton* RefSkeleton = SkeletalMesh ? &SkeletalMesh->RefSkeleton : nullptr;
+	if(PhysicsAsset && RefSkeleton)
+	{
+		const TArray<FTransform>& SpaceBases = GetSpaceBases();
+		const bool bHasMasterPoseComponent = MasterPoseComponent.IsValid();
+		const FVector ComponentPosition = ComponentToWorld.InverseTransformPosition(WorldPosition);
+	
+		float CurrentClosestDistance = FLT_MAX;
+		int32 CurrentClosestBoneIndex = INDEX_NONE;
+		const UBodySetup* CurrentClosestBodySetup = nullptr;
+
+		for(const UBodySetup* BodySetupInstance : PhysicsAsset->BodySetup)
+		{
+			ClosestPointOnPhysicsAsset.Distance = FLT_MAX;
+			const FName BoneName = BodySetupInstance->BoneName;
+			const int32 BoneIndex = RefSkeleton->FindBoneIndex(BoneName);
+			if(BoneIndex != INDEX_NONE)
+			{
+				const FTransform BoneTM = bHasMasterPoseComponent ? GetBoneTransform(BoneIndex) : SpaceBases[BoneIndex];
+				const float Dist = bApproximate ? (BoneTM.GetLocation() - ComponentPosition).SizeSquared() : BodySetupInstance->GetShortestDistanceToPoint(ComponentPosition, BoneTM);
+
+				if (Dist < CurrentClosestDistance)
+				{
+					CurrentClosestDistance = Dist;
+					CurrentClosestBoneIndex = BoneIndex;
+					CurrentClosestBodySetup = BodySetupInstance;
+
+					if(Dist <= 0.f) { break; }
+				}
+			}
+		}
+
+		if(CurrentClosestBoneIndex >= 0)
+		{
+			bSuccess = true;
+
+			const FTransform BoneTM = bHasMasterPoseComponent ? GetBoneTransform(CurrentClosestBoneIndex) : (SpaceBases[CurrentClosestBoneIndex] * ComponentToWorld);
+			ClosestPointOnPhysicsAsset.Distance = CurrentClosestBodySetup->GetClosestPointAndNormal(WorldPosition, BoneTM, ClosestPointOnPhysicsAsset.ClosestWorldPosition, ClosestPointOnPhysicsAsset.Normal);
+			ClosestPointOnPhysicsAsset.BoneName = CurrentClosestBodySetup->BoneName;
+		}
+	}
+
+	return bSuccess;
+}
+
+bool USkeletalMeshComponent::K2_GetClosestPointOnPhysicsAsset(const FVector& WorldPosition, FVector& ClosestWorldPosition, FVector& Normal, FName& BoneName, float& Distance) const
+{
+	FClosestPointOnPhysicsAsset ClosestPointOnPhysicsAsset;
+	bool bSuccess = GetClosestPointOnPhysicsAsset(WorldPosition, ClosestPointOnPhysicsAsset, /*bApproximate =*/ false);
+	if(bSuccess)
+	{
+		ClosestWorldPosition = ClosestPointOnPhysicsAsset.ClosestWorldPosition;
+		Normal = ClosestPointOnPhysicsAsset.Normal;
+		BoneName = ClosestPointOnPhysicsAsset.BoneName;
+		Distance = ClosestPointOnPhysicsAsset.Distance;
+	}
+	else
+	{
+		ClosestWorldPosition = FVector::ZeroVector;
+		Normal = FVector::ZeroVector;
+		BoneName = NAME_None;
+		Distance = -1;
+	}
+
+	return bSuccess;
 }
 
 bool USkeletalMeshComponent::LineTraceComponent(struct FHitResult& OutHit, const FVector Start, const FVector End, const struct FCollisionQueryParams& Params)

@@ -276,7 +276,7 @@ bool CalcMeshNegScaleCompensation(const FVector& InScale3D, PxTransform& POutTra
 	return (InScale3D.X * InScale3D.Y * InScale3D.Z) < 0.f;
 }
 
-void SetupNonUniformHelper(FVector& Scale3D, float& MinScale, float& MinScaleAbs, FVector& Scale3DAbs)
+void SetupNonUniformHelper(FVector Scale3D, float& MinScale, float& MinScaleAbs, FVector& Scale3DAbs)
 {
 	// if almost zero, set min scale
 	// @todo fixme
@@ -366,57 +366,52 @@ struct FAddShapesHelper
 	float MaxContactOffset;
 
 public:
-	FORCEINLINE_DEBUGGABLE void AddSpheresToRigidActor_AssumesLocked() const
+	void AddSpheresToRigidActor_AssumesLocked() const
 	{
 		for (int32 i = 0; i < BodySetup->AggGeom.SphereElems.Num(); i++)
 		{
 			const FKSphereElem& SphereElem = BodySetup->AggGeom.SphereElems[i];
+			const FKSphereElem ScaledSphereElem = SphereElem.GetFinalScaled(Scale3D, RelativeTM);
 
 			PxSphereGeometry PSphereGeom;
-			PSphereGeom.radius = (SphereElem.Radius * MinScaleAbs);
+			PSphereGeom.radius = ScaledSphereElem.Radius;
 
 			if (ensure(PSphereGeom.isValid()))
 			{
-				FVector LocalOrigin = RelativeTM.TransformPosition(SphereElem.Center);
-				PxTransform PLocalPose(U2PVector(LocalOrigin));
-				PLocalPose.p *= MinScale;
-
+				PxTransform PLocalPose(U2PVector(ScaledSphereElem.Center));
 				ensure(PLocalPose.isValid());
 				{
 					const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PSphereGeom.radius);
-					PxShape* PShape = AttachShape_AssumesLocked(PSphereGeom, PLocalPose, ContactOffset, &SphereElem);
+					PxShape* PShape = AttachShape_AssumesLocked(PSphereGeom, PLocalPose, ContactOffset, SphereElem.GetUserData());
 				}
 			}
 			else
 			{
-				UE_LOG(LogPhysics, Warning, TEXT("AddSpheresToRigidActor: [%s] SphereElem[%d] invalid"), *GetPathNameSafe(BodySetup->GetOuter()), i);
+				UE_LOG(LogPhysics, Warning, TEXT("AddSpheresToRigidActor: [%s] ScaledSphereElem[%d] invalid"), *GetPathNameSafe(BodySetup->GetOuter()), i);
 			}
 		}
 	}
 
-	FORCEINLINE_DEBUGGABLE void AddBoxesToRigidActor_AssumesLocked() const
+	void AddBoxesToRigidActor_AssumesLocked() const
 	{
 		for (int32 i = 0; i < BodySetup->AggGeom.BoxElems.Num(); i++)
 		{
 			const FKBoxElem& BoxElem = BodySetup->AggGeom.BoxElems[i];
-
+			const FKBoxElem ScaledBoxElem = BoxElem.GetFinalScaled(Scale3D, RelativeTM);
+			const FTransform& BoxTransform = ScaledBoxElem.GetTransform();
+			
 			PxBoxGeometry PBoxGeom;
-			PBoxGeom.halfExtents.x = (0.5f * BoxElem.X * Scale3DAbs.X);
-			PBoxGeom.halfExtents.y = (0.5f * BoxElem.Y * Scale3DAbs.Y);
-			PBoxGeom.halfExtents.z = (0.5f * BoxElem.Z * Scale3DAbs.Z);
+			PBoxGeom.halfExtents.x = ScaledBoxElem.X * 0.5f;
+			PBoxGeom.halfExtents.y = ScaledBoxElem.Y * 0.5f;
+			PBoxGeom.halfExtents.z = ScaledBoxElem.Z * 0.5f;
 
-			FTransform BoxTransform = BoxElem.GetTransform() * RelativeTM;
 			if (PBoxGeom.isValid() && BoxTransform.IsValid())
 			{
 				PxTransform PLocalPose(U2PTransform(BoxTransform));
-				PLocalPose.p.x *= Scale3D.X;
-				PLocalPose.p.y *= Scale3D.Y;
-				PLocalPose.p.z *= Scale3D.Z;
-
 				ensure(PLocalPose.isValid());
 				{
 					const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PBoxGeom.halfExtents.minElement());
-					AttachShape_AssumesLocked(PBoxGeom, PLocalPose, ContactOffset, &BoxElem);
+					AttachShape_AssumesLocked(PBoxGeom, PLocalPose, ContactOffset, BoxElem.GetUserData());
 				}
 			}
 			else
@@ -426,7 +421,7 @@ public:
 		}
 	}
 
-	FORCEINLINE_DEBUGGABLE void AddSphylsToRigidActor_AssumesLocked() const
+	void AddSphylsToRigidActor_AssumesLocked() const
 	{
 		float ScaleRadius = FMath::Max(Scale3DAbs.X, Scale3DAbs.Y);
 		float ScaleLength = Scale3DAbs.Z;
@@ -434,32 +429,21 @@ public:
 		for (int32 i = 0; i < BodySetup->AggGeom.SphylElems.Num(); i++)
 		{
 			const FKSphylElem& SphylElem = BodySetup->AggGeom.SphylElems[i];
-
-			// this is a bit confusing since radius and height is scaled
-			// first apply the scale first 
-			float Radius = FMath::Max(SphylElem.Radius * ScaleRadius, 0.1f);
-			float Length = SphylElem.Length + SphylElem.Radius * 2.f;
-			float HalfLength = FMath::Max(Length * ScaleLength * 0.5f, 0.1f);
-			Radius = FMath::Clamp(Radius, 0.1f, HalfLength);	//radius is capped by half length
-			float HalfHeight = HalfLength - Radius;
-			HalfHeight = FMath::Max(0.1f, HalfHeight);
+			const FKSphylElem ScaledSphylElem = SphylElem.GetFinalScaled(Scale3D, RelativeTM);
 
 			PxCapsuleGeometry PCapsuleGeom;
-			PCapsuleGeom.halfHeight = HalfHeight;
-			PCapsuleGeom.radius = Radius;
+			PCapsuleGeom.halfHeight = ScaledSphylElem.Length * 0.5f;
+			PCapsuleGeom.radius = ScaledSphylElem.Radius;
 
 			if (PCapsuleGeom.isValid())
 			{
 				// The stored sphyl transform assumes the sphyl axis is down Z. In PhysX, it points down X, so we twiddle the matrix a bit here (swap X and Z and negate Y).
-				PxTransform PLocalPose(U2PVector(RelativeTM.TransformPosition(SphylElem.Center)), U2PQuat(SphylElem.Orientation) * U2PSphylBasis);
-				PLocalPose.p.x *= Scale3D.X;
-				PLocalPose.p.y *= Scale3D.Y;
-				PLocalPose.p.z *= Scale3D.Z;
+				PxTransform PLocalPose(U2PVector(ScaledSphylElem.Center), U2PQuat(ScaledSphylElem.Orientation) * U2PSphylBasis);
 
 				ensure(PLocalPose.isValid());
 				{
 					const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PCapsuleGeom.radius);
-					AttachShape_AssumesLocked(PCapsuleGeom, PLocalPose, ContactOffset, &SphylElem);
+					AttachShape_AssumesLocked(PCapsuleGeom, PLocalPose, ContactOffset, SphylElem.GetUserData());
 				}
 			}
 			else
@@ -469,7 +453,7 @@ public:
 		}
 	}
 
-	FORCEINLINE_DEBUGGABLE void AddConvexElemsToRigidActor_AssumesLocked() const
+	void AddConvexElemsToRigidActor_AssumesLocked() const
 	{
 		for (int32 i = 0; i < BodySetup->AggGeom.ConvexElems.Num(); i++)
 		{
@@ -504,7 +488,7 @@ public:
 						ensure(PLocalPose.isValid());
 						{
 							const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PBoundsExtents.minElement());
-							AttachShape_AssumesLocked(PConvexGeom, PLocalPose, ContactOffset, &ConvexElem);
+							AttachShape_AssumesLocked(PConvexGeom, PLocalPose, ContactOffset, ConvexElem.GetUserData());
 						}
 					}
 					else
@@ -524,7 +508,7 @@ public:
 		}
 	}
 
-	FORCEINLINE_DEBUGGABLE void AddTriMeshToRigidActor_AssumesLocked() const
+	void AddTriMeshToRigidActor_AssumesLocked() const
 	{
 		for(PxTriangleMesh* TriMesh : BodySetup->TriMeshes)
 		{
@@ -559,14 +543,14 @@ public:
 
 private:
 
-	PxShape* AttachShape_AssumesLocked(const PxGeometry& PGeom, const PxTransform& PLocalPose, const float ContactOffset, const FKShapeElem* ShapeElem, PxShapeFlags PShapeFlags = PxShapeFlag::eVISUALIZATION | PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eSIMULATION_SHAPE) const
+	PxShape* AttachShape_AssumesLocked(const PxGeometry& PGeom, const PxTransform& PLocalPose, const float ContactOffset, const FPhysxUserData* ShapeElemUserData, PxShapeFlags PShapeFlags = PxShapeFlag::eVISUALIZATION | PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eSIMULATION_SHAPE) const
 	{
 		const PxMaterial* PMaterial = GetDefaultPhysMaterial(); 
 		PxShape* PNewShape = bShapeSharing ? GPhysXSDK->createShape(PGeom, *PMaterial, /*isExclusive =*/ false, PShapeFlags) : PDestActor->createShape(PGeom, *PMaterial, PShapeFlags);
 
 		if (PNewShape)
 		{
-			PNewShape->userData = ShapeElem ? ((void*) ShapeElem->GetUserData()) : nullptr;
+			PNewShape->userData = (void*) ShapeElemUserData;
 			PNewShape->setLocalPose(PLocalPose);
 
 			if (NewShapes)
@@ -606,6 +590,14 @@ void UBodySetup::AddShapesToRigidActor_AssumesLocked(FBodyInstance* OwningInstan
 	// in editor, there are a lot of things relying on body setup to create physics meshes
 	CreatePhysicsMeshes();
 #endif
+
+	// if almost zero, set min scale
+	// @todo fixme
+	if (Scale3D.IsNearlyZero())
+	{
+		// set min scale
+		Scale3D = FVector(0.1f);
+	}
 
 	FAddShapesHelper AddShapesHelper(this, OwningInstance, PDestActor, SceneType, Scale3D, SimpleMaterial, ComplexMaterials, ShapeData, RelativeTM, NewShapes, bShapeSharing);
 
@@ -882,6 +874,92 @@ void UBodySetup::UpdateTriMeshVertices(const TArray<FVector> & NewPositions)
 #endif
 }
 
+template <bool bPositionAndNormal>
+float GetClosestPointAndNormalImpl(const UBodySetup* BodySetup, const FVector& WorldPosition, const FTransform& LocalToWorld, FVector* ClosestWorldPosition, FVector* FeatureNormal)
+{
+	float ClosestDist = FLT_MAX;
+	FVector TmpPosition, TmpNormal;
+
+	//Note that this function is optimized for BodySetup with few elements. This is more common. If we want to optimize the case with many elements we should really return the element during the distance check to avoid pointless iteration
+	for (const FKSphereElem& SphereElem : BodySetup->AggGeom.SphereElems)
+	{
+		
+		if(bPositionAndNormal)
+		{
+			const float Dist = SphereElem.GetClosestPointAndNormal(WorldPosition, LocalToWorld, TmpPosition, TmpNormal);
+
+			if(Dist < ClosestDist)
+			{
+				*ClosestWorldPosition = TmpPosition;
+				*FeatureNormal = TmpNormal;
+				ClosestDist = Dist;
+			}
+		}
+		else
+		{
+			const float Dist = SphereElem.GetShortestDistanceToPoint(WorldPosition, LocalToWorld);
+			ClosestDist = Dist < ClosestDist ? Dist : ClosestDist;
+		}
+	}
+
+	for (const FKSphylElem& SphylElem : BodySetup->AggGeom.SphylElems)
+	{
+		if (bPositionAndNormal)
+		{
+			const float Dist = SphylElem.GetClosestPointAndNormal(WorldPosition, LocalToWorld, TmpPosition, TmpNormal);
+
+			if (Dist < ClosestDist)
+			{
+				*ClosestWorldPosition = TmpPosition;
+				*FeatureNormal = TmpNormal;
+				ClosestDist = Dist;
+			}
+		}
+		else
+		{
+			const float Dist = SphylElem.GetShortestDistanceToPoint(WorldPosition, LocalToWorld);
+			ClosestDist = Dist < ClosestDist ? Dist : ClosestDist;
+		}
+	}
+
+	for (const FKBoxElem& BoxElem : BodySetup->AggGeom.BoxElems)
+	{
+		if (bPositionAndNormal)
+		{
+			const float Dist = BoxElem.GetClosestPointAndNormal(WorldPosition, LocalToWorld, TmpPosition, TmpNormal);
+
+			if (Dist < ClosestDist)
+			{
+				*ClosestWorldPosition = TmpPosition;
+				*FeatureNormal = TmpNormal;
+				ClosestDist = Dist;
+			}
+		}
+		else
+		{
+			const float Dist =  BoxElem.GetShortestDistanceToPoint(WorldPosition, LocalToWorld);
+			ClosestDist = Dist < ClosestDist ? Dist : ClosestDist;
+		}
+	}
+
+	if (ClosestDist == FLT_MAX)
+	{
+		UE_LOG(LogPhysics, Warning, TEXT("GetClosestPointAndNormalImpl ClosestDist for BodySetup %s is coming back as FLT_MAX. WorldPosition = %s, LocalToWorld = %s"), *BodySetup->GetFullName(), *WorldPosition.ToString(), *LocalToWorld.ToHumanReadableString());
+	}
+
+	return ClosestDist;
+}
+
+float UBodySetup::GetShortestDistanceToPoint(const FVector& WorldPosition, const FTransform& LocalToWorld) const
+{
+	return GetClosestPointAndNormalImpl<false>(this, WorldPosition, LocalToWorld, nullptr, nullptr);
+}
+
+float UBodySetup::GetClosestPointAndNormal(const FVector& WorldPosition, const FTransform& LocalToWorld, FVector& ClosestWorldPosition, FVector& FeatureNormal) const
+{
+	return GetClosestPointAndNormalImpl<true>(this, WorldPosition, LocalToWorld, &ClosestWorldPosition, &FeatureNormal);
+}
+
 FByteBulkData* UBodySetup::GetCookedData(FName Format)
 {
 	if (IsTemplate())
@@ -1133,6 +1211,39 @@ void FKSphereElem::Serialize( const FArchive& Ar )
 	}
 }
 
+float FKSphereElem::GetShortestDistanceToPoint(const FVector& WorldPosition, const FTransform& LocalToWorldTM) const
+{
+	FKSphereElem ScaledSphere = GetFinalScaled(LocalToWorldTM.GetScale3D(), FTransform::Identity);
+
+	const FVector Dir = LocalToWorldTM.TransformPositionNoScale(ScaledSphere.Center) - WorldPosition;
+	const float DistToCenter = Dir.Size();
+	const float DistToEdge = DistToCenter - ScaledSphere.Radius;
+	
+	return DistToEdge > SMALL_NUMBER ? DistToEdge : 0.f;
+}
+
+float FKSphereElem::GetClosestPointAndNormal(const FVector& WorldPosition, const FTransform& LocalToWorldTM, FVector& ClosestWorldPosition, FVector& Normal) const
+{
+	FKSphereElem ScaledSphere = GetFinalScaled(LocalToWorldTM.GetScale3D(), FTransform::Identity);
+
+	const FVector Dir = LocalToWorldTM.TransformPositionNoScale(ScaledSphere.Center) - WorldPosition;
+	const float DistToCenter = Dir.Size();
+	const float DistToEdge = FMath::Max(DistToCenter - ScaledSphere.Radius, 0.f);
+
+	if(DistToCenter > SMALL_NUMBER)
+	{
+		Normal = -Dir.GetUnsafeNormal();
+	}
+	else
+	{
+		Normal = FVector::ZeroVector;
+	}
+	
+	ClosestWorldPosition = WorldPosition - Normal*DistToEdge;
+
+	return DistToEdge;
+}
+
 void FKSphereElem::ScaleElem(FVector DeltaSize, float MinSize)
 {
 	// Find element with largest magnitude, btu preserve sign.
@@ -1143,6 +1254,23 @@ void FKSphereElem::ScaleElem(FVector DeltaSize, float MinSize)
 		DeltaRadius = DeltaSize.Z;
 
 	Radius = FMath::Max(Radius + DeltaRadius, MinSize);
+}
+
+FKSphereElem FKSphereElem::GetFinalScaled(const FVector& Scale3D, const FTransform& RelativeTM) const
+{
+	float MinScale, MinScaleAbs;
+	FVector Scale3DAbs;
+
+	SetupNonUniformHelper(Scale3D, MinScale, MinScaleAbs, Scale3DAbs);
+
+	FKSphereElem ScaledSphere = *this;
+	ScaledSphere.Radius *= MinScaleAbs;
+
+	ScaledSphere.Center = RelativeTM.TransformPosition(Center);
+	ScaledSphere.Center *= MinScale;
+
+
+	return ScaledSphere;
 }
 
 void FKBoxElem::Serialize( const FArchive& Ar )
@@ -1160,6 +1288,67 @@ void FKBoxElem::ScaleElem(FVector DeltaSize, float MinSize)
 	X = FMath::Max(X + 2 * DeltaSize.X, MinSize);
 	Y = FMath::Max(Y + 2 * DeltaSize.Y, MinSize);
 	Z = FMath::Max(Z + 2 * DeltaSize.Z, MinSize);
+}
+
+
+FKBoxElem FKBoxElem::GetFinalScaled(const FVector& Scale3D, const FTransform& RelativeTM) const
+{
+	float MinScale, MinScaleAbs;
+	FVector Scale3DAbs;
+
+	SetupNonUniformHelper(Scale3D, MinScale, MinScaleAbs, Scale3DAbs);
+
+	FKBoxElem ScaledBox = *this;
+	ScaledBox.X *= Scale3DAbs.X;
+	ScaledBox.Y *= Scale3DAbs.Y;
+	ScaledBox.Z *= Scale3DAbs.Z;
+
+	FTransform BoxTransform = GetTransform() * RelativeTM;
+	BoxTransform.ScaleTranslation(Scale3D);
+	ScaledBox.SetTransform(BoxTransform);
+
+	return ScaledBox;
+}
+
+float FKBoxElem::GetShortestDistanceToPoint(const FVector& WorldPosition, const FTransform& BoneToWorldTM) const
+{
+	const FKBoxElem& ScaledBox = GetFinalScaled(BoneToWorldTM.GetScale3D(), FTransform::Identity);
+	const FTransform LocalToWorldTM = GetTransform() * BoneToWorldTM;
+	const FVector LocalPosition = LocalToWorldTM.InverseTransformPositionNoScale(WorldPosition);
+	const FVector LocalPositionAbs = LocalPosition.GetAbs();
+
+	const FVector HalfPoint(ScaledBox.X*0.5f, ScaledBox.Y*0.5f, ScaledBox.Z*0.5f);
+	const FVector Delta = LocalPositionAbs - HalfPoint;
+	const FVector Errors = FVector(FMath::Max(Delta.X, 0.f), FMath::Max(Delta.Y, 0.f), FMath::Max(Delta.Z, 0.f));
+	const float Error = Errors.Size();
+
+	return Error > SMALL_NUMBER ? Error : 0.f;
+}
+
+float FKBoxElem::GetClosestPointAndNormal(const FVector& WorldPosition, const FTransform& BoneToWorldTM, FVector& ClosestWorldPosition, FVector& Normal) const
+{
+	const FKBoxElem& ScaledBox = GetFinalScaled(BoneToWorldTM.GetScale3D(), FTransform::Identity);
+	const FTransform LocalToWorldTM = GetTransform() * BoneToWorldTM;
+	const FVector LocalPosition = LocalToWorldTM.InverseTransformPositionNoScale(WorldPosition);
+
+	const float HalfX = ScaledBox.X * 0.5f;
+	const float HalfY = ScaledBox.Y * 0.5f;
+	const float HalfZ = ScaledBox.Z * 0.5f;
+	
+	const FVector ClosestLocalPosition(FMath::Clamp(LocalPosition.X, -HalfX, HalfX), FMath::Clamp(LocalPosition.Y, -HalfY, HalfY), FMath::Clamp(LocalPosition.Z, -HalfZ, HalfZ));
+	ClosestWorldPosition = LocalToWorldTM.TransformPositionNoScale(ClosestLocalPosition);
+
+	const FVector LocalDelta = LocalPosition - ClosestLocalPosition;
+	float Error = LocalDelta.Size();
+	
+	bool bIsOutside = Error > SMALL_NUMBER;
+	
+	const FVector LocalNormal = bIsOutside ? LocalDelta.GetUnsafeNormal() : FVector::ZeroVector;
+
+	ClosestWorldPosition = LocalToWorldTM.TransformPositionNoScale(ClosestLocalPosition);
+	Normal = LocalToWorldTM.TransformVectorNoScale(LocalNormal);
+	
+	return bIsOutside ? Error : 0.f;
 }
 
 void FKSphylElem::Serialize( const FArchive& Ar )
@@ -1189,6 +1378,80 @@ void FKSphylElem::ScaleElem(FVector DeltaSize, float MinSize)
 	Radius = radius;
 	Length = length;
 }
+
+FKSphylElem FKSphylElem::GetFinalScaled(const FVector& Scale3D, const FTransform& RelativeTM) const
+{
+	FKSphylElem ScaledSphylElem = *this;
+
+	float MinScale, MinScaleAbs;
+	FVector Scale3DAbs;
+
+	SetupNonUniformHelper(Scale3D, MinScale, MinScaleAbs, Scale3DAbs);
+
+	float ScaleRadius = FMath::Max(Scale3DAbs.X, Scale3DAbs.Y);
+	float ScaleLength = Scale3DAbs.Z;
+	
+	// this is a bit confusing since radius and height is scaled
+	// first apply the scale first 
+	ScaledSphylElem.Radius = FMath::Max(Radius * ScaleRadius, 0.1f);
+	ScaledSphylElem.Length = Length + Radius * 2.f;
+	float HalfLength = FMath::Max(ScaledSphylElem.Length * ScaleLength * 0.5f, 0.1f);
+	ScaledSphylElem.Radius = FMath::Clamp(ScaledSphylElem.Radius, 0.1f, HalfLength);	//radius is capped by half length
+	ScaledSphylElem.Length = FMath::Max(0.1f, (HalfLength - ScaledSphylElem.Radius) * 2.f);
+
+	FVector LocalOrigin = RelativeTM.TransformPosition(Center) * Scale3D;
+	ScaledSphylElem.Center = LocalOrigin;
+	
+	return ScaledSphylElem;
+}
+
+float FKSphylElem::GetShortestDistanceToPoint(const FVector& WorldPosition, const FTransform& BoneToWorldTM) const
+{
+	const FKSphylElem ScaledSphyl = GetFinalScaled(BoneToWorldTM.GetScale3D(), FTransform::Identity);
+
+	const FTransform LocalToWorldTM = GetTransform() * BoneToWorldTM;
+	const FVector ErrorScale = LocalToWorldTM.GetScale3D();
+	const FVector LocalPosition = LocalToWorldTM.InverseTransformPositionNoScale(WorldPosition);
+	const FVector LocalPositionAbs = LocalPosition.GetAbs();
+	
+	
+	const FVector Target(LocalPositionAbs.X, LocalPositionAbs.Y, FMath::Max(LocalPositionAbs.Z - ScaledSphyl.Length * 0.5f, 0.f));	//If we are above half length find closest point to cap, otherwise to cylinder
+	const float Error = FMath::Max(Target.Size() - ScaledSphyl.Radius, 0.f);
+
+	return Error > SMALL_NUMBER ? Error : 0.f;
+}
+
+float FKSphylElem::GetClosestPointAndNormal(const FVector& WorldPosition, const FTransform& BoneToWorldTM, FVector& ClosestWorldPosition, FVector& Normal) const
+{
+	const FKSphylElem ScaledSphyl = GetFinalScaled(BoneToWorldTM.GetScale3D(), FTransform::Identity);
+
+	const FTransform LocalToWorldTM = GetTransform() * BoneToWorldTM;
+	const FVector ErrorScale = LocalToWorldTM.GetScale3D();
+	const FVector LocalPosition = LocalToWorldTM.InverseTransformPositionNoScale(WorldPosition);
+	
+	const float HalfLength = 0.5f * ScaledSphyl.Length;
+	const float TargetZ = FMath::Clamp(LocalPosition.Z, -HalfLength, HalfLength);	//We want to move to a sphere somewhere along the capsule axis
+
+	const FVector WorldSphere = LocalToWorldTM.TransformPositionNoScale(FVector(0.f, 0.f, TargetZ));
+	const FVector Dir = WorldSphere - WorldPosition;
+	const float DistToCenter = Dir.Size();
+	const float DistToEdge = FMath::Max(DistToCenter - ScaledSphyl.Radius, 0.f);
+
+	bool bIsOutside = DistToCenter > SMALL_NUMBER;
+	if (bIsOutside)
+	{
+		Normal = -Dir.GetUnsafeNormal();
+	}
+	else
+	{
+		Normal = FVector::ZeroVector;
+	}
+
+	ClosestWorldPosition = WorldPosition - Normal*DistToEdge;
+
+	return bIsOutside ? DistToEdge : 0.f;
+}
+
 
 class UPhysicalMaterial* UBodySetup::GetPhysMaterial() const
 {

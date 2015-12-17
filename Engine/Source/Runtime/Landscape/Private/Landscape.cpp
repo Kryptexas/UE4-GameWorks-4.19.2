@@ -1971,7 +1971,7 @@ void ULandscapeInfo::UpdateComponentLayerWhitelist()
 // This handles legacy behavior of landscapes created under world composition
 // We adjust landscape section offsets and set a flag inside landscape that sections offset are static and should never be touched again
 //
-void AdjustLandscapeSectionOffsets(UWorld* InWorld, const TArray<ALandscapeProxy*> InLandscapeList)
+void AdjustLandscapeSectionOffsets(UWorld* InWorld, const TArray<ALandscapeProxy*>& InLandscapeList)
 {
 	// We interested only in registered actors
 	TArray<ALandscapeProxy*> RegisteredLandscapeList = InLandscapeList.FilterByPredicate([](ALandscapeProxy* Proxy) {

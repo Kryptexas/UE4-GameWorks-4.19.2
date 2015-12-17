@@ -321,13 +321,26 @@ bool UCrowdFollowingComponent::UpdateCachedGoal(FVector& NewGoalPos)
 
 void UCrowdFollowingComponent::ApplyCrowdAgentVelocity(const FVector& NewVelocity, const FVector& DestPathCorner, bool bTraversingLink)
 {
-	if (IsCrowdSimulationEnabled() && Status == EPathFollowingStatus::Moving)
+	if (IsCrowdSimulationEnabled() && Status == EPathFollowingStatus::Moving && MovementComp)
 	{
 		if (bAffectFallingVelocity || CharacterMovement == NULL || CharacterMovement->MovementMode != MOVE_Falling)
 		{
-			MovementComp->RequestDirectMove(NewVelocity, false);
-
 			UpdateCachedDirections(NewVelocity, DestPathCorner, bTraversingLink);
+
+			const bool bAccelerationBased = MovementComp->UseAccelerationForPathFollowing();
+			if (bAccelerationBased)
+			{
+				const float MaxSpeed = GetCrowdAgentMaxSpeed();
+				const float NewSpeed = NewVelocity.Size();
+				const float SpeedPct = FMath::Clamp(NewSpeed / MaxSpeed, 0.0f, 1.0f);
+				const FVector MoveInput = FMath::IsNearlyZero(NewSpeed) ? FVector::ZeroVector : ((NewVelocity / NewSpeed) * SpeedPct);
+
+				MovementComp->RequestPathMove(MoveInput);
+			}
+			else
+			{
+				MovementComp->RequestDirectMove(NewVelocity, false);
+			}
 		}
 	}
 }

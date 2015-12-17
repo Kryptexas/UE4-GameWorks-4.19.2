@@ -14,7 +14,7 @@ bool UGameplayCueNotify_HitImpact::HandlesEvent(EGameplayCueEvent::Type EventTyp
 	return (EventType == EGameplayCueEvent::Executed);
 }
 
-void UGameplayCueNotify_HitImpact::HandleGameplayCue(AActor* Self, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters)
+void UGameplayCueNotify_HitImpact::HandleGameplayCue(AActor* Self, EGameplayCueEvent::Type EventType, const FGameplayCueParameters& Parameters)
 {
 	check(EventType == EGameplayCueEvent::Executed);
 	check(Self);

@@ -152,6 +152,7 @@ public:
 	virtual bool IsCPUSkinned() const override { return true; }
 	virtual const FVertexFactory* GetVertexFactory(int32 LODIndex,int32 ChunkIdx) const override;
 	virtual TArray<FTransform>* GetSpaceBases() const override;
+	virtual const TArray<FMatrix>& GetReferenceToLocalMatrices() const override;
 	virtual int32 GetLOD() const override
 	{
 		if(DynamicData)

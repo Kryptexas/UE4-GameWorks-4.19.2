@@ -236,7 +236,8 @@ APhysicsVolume* UMovementComponent::GetPhysicsVolume() const
 
 bool UMovementComponent::IsInWater() const
 {
-	return GetPhysicsVolume() && GetPhysicsVolume()->bWaterVolume;
+	const APhysicsVolume* PhysVolume = GetPhysicsVolume();
+	return PhysVolume && PhysVolume->bWaterVolume;
 }
 
 bool UMovementComponent::ShouldSkipUpdate(float DeltaTime) const

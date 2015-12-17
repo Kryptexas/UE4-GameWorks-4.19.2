@@ -434,7 +434,7 @@ if (Controller.Previous##Gamepad != nil && Gamepad.GCAxis.value != Controller.Pr
 	}
 }
 
-void FIOSInputInterface::QueueTouchInput(TArray<TouchInput> InTouchEvents)
+void FIOSInputInterface::QueueTouchInput(const TArray<TouchInput>& InTouchEvents)
 {
 	FScopeLock Lock(&CriticalSection);
 
@@ -570,7 +570,6 @@ bool FIOSInputInterface::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& 
 
 	return bHandledCommand;
 }
-
 bool FIOSInputInterface::IsControllerAssignedToGamepad(int32 ControllerId)
 {
 	return ControllerId < ARRAY_COUNT(Controllers) &&

@@ -596,6 +596,9 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_INJECT_BLUEPRINT_STRUCT_PIN_CONVERSION_NODES,
 	// Saving tag data for Array Property's inner property
 	VER_UE4_INNER_ARRAY_TAG_INFO,
+	// Fixed duplicating slot node names in skeleton due to skeleton preload on compile
+	VER_UE4_FIX_SLOT_NAME_DUPLICATION,
+
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

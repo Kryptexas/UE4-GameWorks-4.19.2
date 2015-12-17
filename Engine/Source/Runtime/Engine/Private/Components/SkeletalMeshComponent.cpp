@@ -276,13 +276,13 @@ void USkeletalMeshComponent::UpdateClothTickRegisteredState()
 	RegisterClothTick(PrimaryComponentTick.IsTickFunctionRegistered() && ShouldRunClothTick());
 }
 
-bool USkeletalMeshComponent::NeedToSpawnAnimScriptInstance(bool bForceInit) const
+bool USkeletalMeshComponent::NeedToSpawnAnimScriptInstance() const
 {
 	IAnimClassInterface* AnimClassInterface = IAnimClassInterface::GetFromClass(AnimClass);
 	if (AnimationMode == EAnimationMode::AnimationBlueprint && (AnimClassInterface != NULL) &&
 		(SkeletalMesh != NULL) && (SkeletalMesh->Skeleton->IsCompatible(AnimClassInterface->GetTargetSkeleton())))
 	{
-		if (bForceInit || (AnimScriptInstance == NULL) || (AnimScriptInstance->GetClass() != AnimClass) )
+		if ( (AnimScriptInstance == NULL) || (AnimScriptInstance->GetClass() != AnimClass) )
 		{
 			return true;
 		}
@@ -319,7 +319,7 @@ void USkeletalMeshComponent::OnUnregister()
 	ReleaseAllClothingResources();
 #endif// #if WITH_APEX_CLOTHING
 
-	if (AnimScriptInstance && bReInitAnimationOnSetSkeletalMeshCalls)
+	if (AnimScriptInstance)
 	{
 		AnimScriptInstance->UninitializeAnimation();
 	}
@@ -353,21 +353,39 @@ void USkeletalMeshComponent::InitAnim(bool bForceReinit)
 		// this has to be called before Initialize Animation because it will required RequiredBones list when InitializeAnimScript
 		RecalcRequiredBones(0);
 
-		InitializeAnimScriptInstance(bForceReinit);
+		bool bDoRefreshBoneTransform = true;
+		if (InitializeAnimScriptInstance(bForceReinit))
+		{
+			//Make sure we have a valid pose
+			if (bUseRefPoseOnInitAnim)
+			{
+				LocalAtoms = SkeletalMesh->RefSkeleton.GetRefBonePose();
+				//Mini RefreshBoneTransforms (the bit we actually care about)
+				FillSpaceBases(SkeletalMesh, LocalAtoms, GetEditableSpaceBases());
+				bNeedToFlipSpaceBaseBuffers = true; // Have updated space bases so need to flip
+				FlipEditableSpaceBases();
+				bDoRefreshBoneTransform = false;
+			}
+			else
+			{
+				TickAnimation(0.f, false);
+			}
+		}
 
-		//Make sure we have a valid pose		
-		TickAnimation(0.f, false); 
-
-		RefreshBoneTransforms();
+		if (bDoRefreshBoneTransform)
+		{
+			RefreshBoneTransforms();
+		}
 		UpdateComponentToWorld();
 	}
 }
 
-void USkeletalMeshComponent::InitializeAnimScriptInstance(bool bForceReinit)
+bool USkeletalMeshComponent::InitializeAnimScriptInstance(bool bForceReinit)
 {
+	bool bCalledInitialize = false;
 	if (IsRegistered())
 	{
-		if (NeedToSpawnAnimScriptInstance(bForceReinit))
+		if (NeedToSpawnAnimScriptInstance())
 		{
 			SCOPE_CYCLE_COUNTER(STAT_AnimSpawnTime);
 			AnimScriptInstance = NewObject<UAnimInstance>(this, AnimClass);
@@ -375,6 +393,7 @@ void USkeletalMeshComponent::InitializeAnimScriptInstance(bool bForceReinit)
 			if (AnimScriptInstance)
 			{
 				AnimScriptInstance->InitializeAnimation();
+				bCalledInitialize = true;
 			}
 		}
 		else if (AnimationMode == EAnimationMode::AnimationSingleNode)
@@ -392,6 +411,7 @@ void USkeletalMeshComponent::InitializeAnimScriptInstance(bool bForceReinit)
 			if (AnimScriptInstance)
 			{
 				AnimScriptInstance->InitializeAnimation();
+				bCalledInitialize = true;
 			}
 
 			if (OldInstance && AnimScriptInstance)
@@ -402,11 +422,14 @@ void USkeletalMeshComponent::InitializeAnimScriptInstance(bool bForceReinit)
 				CachedData.Initialize(Cast<UAnimSingleNodeInstance>(AnimScriptInstance));
 			}
 		}
-		else if (AnimScriptInstance && bReInitAnimationOnSetSkeletalMeshCalls)
+
+		if (AnimScriptInstance && !bCalledInitialize && bForceReinit)
 		{
 			AnimScriptInstance->InitializeAnimation();
-		}		
+			bCalledInitialize = true;
+		}
 	}
+	return bCalledInitialize;
 }
 
 bool USkeletalMeshComponent::IsWindEnabled() const
@@ -459,7 +482,7 @@ void USkeletalMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Prope
 				}
 				else
 				{
-					if (NeedToSpawnAnimScriptInstance(false))
+					if (NeedToSpawnAnimScriptInstance())
 					{
 						SCOPE_CYCLE_COUNTER(STAT_AnimSpawnTime);
 						AnimScriptInstance = NewObject<UAnimInstance>(this, AnimClass);
@@ -1359,7 +1382,7 @@ FBoxSphereBounds USkeletalMeshComponent::CalcBounds(const FTransform& LocalToWor
 	}
 }
 
-void USkeletalMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh)
+void USkeletalMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh, bool bReinitPose)
 {
 	if (InSkelMesh == SkeletalMesh)
 	{
@@ -1369,7 +1392,7 @@ void USkeletalMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh)
 
 	UPhysicsAsset* OldPhysAsset = GetPhysicsAsset();
 
-	Super::SetSkeletalMesh(InSkelMesh);
+	Super::SetSkeletalMesh(InSkelMesh, bReinitPose);
 
 #if WITH_EDITOR
 	ValidateAnimation();
@@ -1382,7 +1405,7 @@ void USkeletalMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh)
 
 	UpdateHasValidBodies();
 
-	InitAnim(false);
+	InitAnim(bReinitPose);
 
 #if WITH_APEX_CLOTHING
 	RecreateClothingActors();
@@ -1394,9 +1417,7 @@ void USkeletalMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh)
 
 void USkeletalMeshComponent::SetSkeletalMeshWithoutResettingAnimation(USkeletalMesh* InSkelMesh)
 {
-	bReInitAnimationOnSetSkeletalMeshCalls = false;
-	SetSkeletalMesh(InSkelMesh);
-	bReInitAnimationOnSetSkeletalMeshCalls = true;
+	SetSkeletalMesh(InSkelMesh,false);
 }
 
 bool USkeletalMeshComponent::AllocateTransformData()

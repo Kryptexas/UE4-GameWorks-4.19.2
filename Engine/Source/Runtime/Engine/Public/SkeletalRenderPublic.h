@@ -74,6 +74,12 @@ public:
 	 */
 	virtual TArray<FTransform>* GetSpaceBases() const = 0;
 
+	/** 
+	 *	Get the array of refpose->local matrices
+	 *	Not safe to hold this reference between frames, because it exists in dynamic data passed from main thread.
+	 */
+	virtual const TArray<FMatrix>& GetReferenceToLocalMatrices() const = 0;
+
 	/** Get the LOD to render this mesh at. */
 	virtual int32 GetLOD() const = 0;
 	/** 
@@ -155,8 +161,6 @@ public:
 	 * Initialize the array of LODInfo based on the settings of the current skel mesh component
 	 */
 	void InitLODInfos(const USkinnedMeshComponent* InMeshComponent);
-
-	void UpdateShadowShapes(USkinnedMeshComponent* InMeshComponent);
 
 	FORCEINLINE TStatId GetStatId() const 
 	{ 

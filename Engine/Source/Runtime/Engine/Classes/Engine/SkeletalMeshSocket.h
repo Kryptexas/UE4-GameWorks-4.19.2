@@ -94,6 +94,9 @@ class USkeletalMeshSocket : public UObject
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	//~ End UObject Interface
 
+	// Utility function to copy socket 
+	ENGINE_API void CopyFrom(const class USkeletalMeshSocket* OtherSocket);
+
 private: 
 	/** Broadcasts a notification whenever the socket property has changed. */
 	FSocketChangedEvent ChangedEvent;

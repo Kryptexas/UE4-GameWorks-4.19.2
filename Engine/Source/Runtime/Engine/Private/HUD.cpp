@@ -178,7 +178,7 @@ void AHUD::PostRender()
 						ContactPoint += ContactPointOffset;
 					}
 				}
-				UpdateHitBoxCandidates( ContactPoints );
+				UpdateHitBoxCandidates( MoveTemp(ContactPoints) );
 			}
 		}
 		else if (HitBoxesOver.Num() > 0)

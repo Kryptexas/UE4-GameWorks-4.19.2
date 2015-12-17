@@ -81,13 +81,21 @@ inline void AddRadialForceToPxRigidBody(PxRigidBody& PRigidBody, const FVector& 
 	AddRadialForceToPxRigidBody_AssumesLocked(PRigidBody, Origin, Radius, Strength, Falloff, bAccelChange);
 }
 
-bool IsRigidBodyNonKinematic_AssumesLocked(const PxRigidBody* PRigidBody);
+bool IsRigidBodyKinematic_AssumesLocked(const PxRigidBody* PRigidBody);
+
+bool IsRigidBodyKinematicAndInSimulationScene_AssumesLocked(const PxRigidBody* PRigidBody);
+
+DEPRECATED(4.12, "Please call IsRigidBodyKinematic_AssumesLocked")
+inline bool IsRigidBodyNonKinematic_AssumesLocked(const PxRigidBody* PRigidBody)
+{
+	return !IsRigidBodyKinematic_AssumesLocked(PRigidBody);
+}
 
 /** Util to see if a PxRigidActor is non-kinematic */
-DEPRECATED(4.8, "Please call IsRigidBodyNonKinematic_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
+DEPRECATED(4.8, "Please call IsRigidBodyKinematic_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
 inline bool IsRigidBodyNonKinematic(PxRigidBody* PRigidBody)
 {
-	return IsRigidBodyNonKinematic_AssumesLocked(PRigidBody);
+	return !IsRigidBodyKinematic_AssumesLocked(PRigidBody);
 }
 
 

@@ -4,7 +4,7 @@
 #include "Abilities/GameplayAbilityTypes.h"
 #include "AbilityTask_WaitOverlap.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWaitOverlapDelegate, FGameplayAbilityTargetDataHandle, TargetData);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWaitOverlapDelegate, const FGameplayAbilityTargetDataHandle&, TargetData);
 
 class AActor;
 class UPrimitiveComponent;

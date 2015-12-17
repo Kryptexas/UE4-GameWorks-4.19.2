@@ -831,7 +831,7 @@ TSharedRef<FExtender> FWidgetBlueprintEditor::GetContextSensitiveSequencerExtend
 	return AddTrackMenuExtender;
 }
 
-void FWidgetBlueprintEditor::ExtendSequencerAddTrackMenu( FMenuBuilder& AddTrackMenuBuilder, TArray<UObject*> ContextObjects )
+void FWidgetBlueprintEditor::ExtendSequencerAddTrackMenu( FMenuBuilder& AddTrackMenuBuilder, const TArray<UObject*> ContextObjects )
 {
 	if ( ContextObjects.Num() == 1 )
 	{

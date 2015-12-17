@@ -50,6 +50,7 @@ UParticleModuleCollision::UParticleModuleCollision(const FObjectInitializer& Obj
 	bCollideOnlyIfVisible = true;
 	MaxCollisionDistance = 1000.0f;
 	bIgnoreSourceActor = true;
+	bIgnoreTriggerVolumes = true;
 	CollisionTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldStatic));
 }
 
@@ -389,7 +390,7 @@ void UParticleModuleCollision::Update(FParticleEmitterInstance* Owner, int32 Off
 			if (Hit.GetActor())
 			{
 				bDecrementMaxCount = !bPawnsDoNotDecrementCount || !Cast<APawn>(Hit.GetActor());
-				bIgnoreCollision = Hit.GetActor()->IsA(ATriggerBase::StaticClass());
+				bIgnoreCollision = bIgnoreTriggerVolumes && Hit.GetActor()->IsA(ATriggerBase::StaticClass());
 				//@todo.SAS. Allow for PSys to say what it wants to collide w/?
 			}
 
@@ -436,6 +437,7 @@ void UParticleModuleCollision::Update(FParticleEmitterInstance* Owner, int32 Off
 
 						if (bApplyPhysics)
 						{
+							check(IsInGameThread());
 							UPrimitiveComponent* PrimitiveComponent = Hit.Component.Get();
 							if(PrimitiveComponent && PrimitiveComponent->IsAnySimulatingPhysics())
 							{
@@ -465,6 +467,7 @@ void UParticleModuleCollision::Update(FParticleEmitterInstance* Owner, int32 Off
 
 						if (bApplyPhysics)
 						{
+							check(IsInGameThread());
 							UPrimitiveComponent* PrimitiveComponent = Hit.Component.Get();
 							if(PrimitiveComponent && PrimitiveComponent->IsAnySimulatingPhysics())
 							{
@@ -544,6 +547,10 @@ void UParticleModuleCollision::Update(FParticleEmitterInstance* Owner, int32 Off
 	END_UPDATE_LOOP;
 }
 
+bool UParticleModuleCollision::CanTickInAnyThread()
+{
+	return false; //TODO: make all of the update function thread safe before turning this one /*!bIgnoreTriggerVolumes && !bApplyPhysics && !bPawnsDoNotDecrementCount;*/
+}
 
 void UParticleModuleCollision::SetToSensibleDefaults(UParticleEmitter* Owner)
 {

@@ -177,8 +177,8 @@ FGameplayAbilitySpec:: FGameplayAbilitySpec(FGameplayAbilitySpecDef& InDef, int3
 	, Level(InDef.LevelScalableFloat.GetValueAtLevel(InGameplayEffectLevel))
 	, InputID(InDef.InputID)
 	, SourceObject(InDef.SourceObject)
-	, InputPressed(false)
 	, ActiveCount(0)
+	, InputPressed(false)
 	, RemoveAfterActivation(false)
 	, PendingRemove(false)
 {

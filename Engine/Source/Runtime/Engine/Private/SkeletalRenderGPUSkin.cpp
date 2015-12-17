@@ -195,8 +195,6 @@ void FSkeletalMeshObjectGPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* In
 	FDynamicSkelMeshObjectDataGPUSkin* NewDynamicData = FDynamicSkelMeshObjectDataGPUSkin::AllocDynamicSkelMeshObjectDataGPUSkin();		
 	NewDynamicData->InitDynamicSkelMeshObjectDataGPUSkin(InMeshComponent,SkeletalMeshResource,LODIndex,ActiveVertexAnims);
 
-	UpdateShadowShapes(InMeshComponent);
-
 	{
 		// Handle the case of skin caching shaders not done compiling before updates are finished/editor is loading
 		static bool bNeedToWait = GEnableGPUSkinCache != 0;
@@ -986,6 +984,11 @@ TArray<FTransform>* FSkeletalMeshObjectGPUSkin::GetSpaceBases() const
 	{
 		return NULL;
 	}
+}
+
+const TArray<FMatrix>& FSkeletalMeshObjectGPUSkin::GetReferenceToLocalMatrices() const
+{
+	return DynamicData->ReferenceToLocal;
 }
 
 const FTwoVectors& FSkeletalMeshObjectGPUSkin::GetCustomLeftRightVectors(int32 SectionIndex) const

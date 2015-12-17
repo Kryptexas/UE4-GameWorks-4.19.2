@@ -297,6 +297,7 @@ void USkinnedMeshComponent::OnRegister()
 	Super::OnRegister();
 
 	UpdateLODStatus();
+	InvalidateCachedBounds();
 }
 
 void USkinnedMeshComponent::OnUnregister()
@@ -951,7 +952,7 @@ FVector USkinnedMeshComponent::GetRefPosePosition(int32 BoneIndex)
 }
 
 
-void USkinnedMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh)
+void USkinnedMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh, bool bReinitPose)
 {
 	// NOTE: InSkelMesh may be NULL (useful in the editor for removing the skeletal mesh associated with
 	//   this component on-the-fly)
@@ -962,12 +963,27 @@ void USkinnedMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh)
 		return;
 	}
 
-	// Unregister the component, swap the skeletal mesh, and reregister.
+	// Destroy render state, swap skeletal mesh and recreate
+	const bool bWasRenderStateCreated = bRenderStateCreated;
+	if (bWasRenderStateCreated)
 	{
-		FComponentReregisterContext ReregisterContext(this);
-		check(MeshObject == NULL);
-		SkeletalMesh = InSkelMesh;
+		DestroyRenderState_Concurrent();
+	}
+
+	SkeletalMesh = InSkelMesh;
+
+	// Don't init anim state if not registered
+	if (IsRegistered())
+	{
+		AllocateTransformData();
+		UpdateMasterBoneMap();
+		UpdateLODStatus();
 		InvalidateCachedBounds();
+	}
+
+	if (bWasRenderStateCreated)
+	{
+		CreateRenderState_Concurrent();
 	}
 	
 	// TODO: (LH) find better way to call this 

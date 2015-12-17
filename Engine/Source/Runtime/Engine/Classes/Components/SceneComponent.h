@@ -16,12 +16,12 @@ struct ENGINE_API FOverlapInfo
 	FOverlapInfo()
 	{}
 
-	FOverlapInfo(const FHitResult& InSweepResult)
+	explicit FOverlapInfo(const FHitResult& InSweepResult)
 		: bFromSweep(true), OverlapInfo(InSweepResult)
 	{
 	}
 
-	FOverlapInfo(class UPrimitiveComponent* InComponent, int32 InBodyIndex = INDEX_NONE);
+	explicit FOverlapInfo(class UPrimitiveComponent* InComponent, int32 InBodyIndex = INDEX_NONE);
 	
 	int32 GetBodyIndex() const { return OverlapInfo.Item;  }
 

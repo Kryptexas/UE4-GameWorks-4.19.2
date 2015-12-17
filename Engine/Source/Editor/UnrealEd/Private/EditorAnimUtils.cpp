@@ -464,7 +464,8 @@ namespace EditorAnimUtils
 	{
 		// Copy curve data from source asset, preserving data in the target if present.
 		const FSmartNameMapping* OldNameMapping = OldSkeleton->GetSmartNameContainer(ContainerName);
-		const FSmartNameMapping* NewNameMapping = NewSkeleton->GetSmartNameContainer(ContainerName);
+		const FSmartNameMapping* NewNameMapping = NewSkeleton->GetOrAddSmartNameContainer(ContainerName);
+
 		SequenceBase->RawCurveData.UpdateLastObservedNames(OldNameMapping, CurveType);
 
 		switch (CurveType)

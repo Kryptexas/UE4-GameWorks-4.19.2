@@ -3104,7 +3104,6 @@ SIZE_T UParticleSystemComponent::GetResourceSize(EResourceSizeMode::Type Mode)
 
 bool UParticleSystemComponent::ParticleLineCheck(FHitResult& Hit, AActor* SourceActor, const FVector& End, const FVector& Start, const FVector& HalfExtent, const FCollisionObjectQueryParams& ObjectParams)
 {
-	ForceAsyncWorkCompletion(ENSURE_AND_STALL);
 	check(GetWorld());
 	static FName NAME_ParticleCollision = FName(TEXT("ParticleCollision"));
 
@@ -6071,6 +6070,10 @@ void UParticleSystemComponent::GetUsedMaterials( TArray<UMaterialInterface*>& Ou
 	}
 }
 
+FBodyInstance* UParticleSystemComponent::GetBodyInstance(FName BoneName /*= NAME_None*/, bool bGetWelded /*= true*/) const
+{
+	return nullptr;
+}
 
 void UParticleSystemComponent::ReportEventSpawn(const FName InEventName, const float InEmitterTime, 
 	const FVector InLocation, const FVector InVelocity, const TArray<UParticleModuleEventSendToGame*>& InEventData)

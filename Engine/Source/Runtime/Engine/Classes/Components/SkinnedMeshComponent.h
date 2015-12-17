@@ -185,9 +185,6 @@ protected:
 	/** Are we using double buffered blend spaces */
 	bool bDoubleBufferedBlendSpaces;
 
-	/** Are we using double buffered blend spaces */
-	bool bReInitAnimationOnSetSkeletalMeshCalls;
-
 	/** 
 	 * If set, this component has slave pose components that are associated with this 
 	 * Note this is weak object ptr, so it will go away unless you have other strong reference
@@ -442,9 +439,10 @@ public:
 	 * Change the SkeletalMesh that is rendered for this Component. Will re-initialize the animation tree etc. 
 	 *
 	 * @param NewMesh New mesh to set for this component
+	 * @param bReinitPose Whether we should keep current pose or reinitialize.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
-	virtual void SetSkeletalMesh(class USkeletalMesh* NewMesh);
+	virtual void SetSkeletalMesh(class USkeletalMesh* NewMesh, bool bReinitPose = true);
 
 	/** 
 	 * Get Parent Bone of the input bone

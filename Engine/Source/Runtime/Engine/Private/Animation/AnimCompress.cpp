@@ -639,7 +639,7 @@ bool UAnimCompress::Reduce(UAnimSequence* AnimSeq, bool bOutput)
 	return bResult;
 }
 
-bool UAnimCompress::Reduce(TArray<UAnimSequence*> AnimSequences, bool bOutput)
+bool UAnimCompress::Reduce(const TArray<UAnimSequence*>& AnimSequences, bool bOutput)
 {
 	bool bResult = false;
 

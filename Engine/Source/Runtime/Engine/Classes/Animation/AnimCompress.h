@@ -53,7 +53,7 @@ public:
 	 * @param	bOutput			If false don't generate output or compute memory savings.
 	 * @return					false if a skeleton was needed by the algorithm but not provided.
 	 */
-	ENGINE_API bool Reduce(TArray<class UAnimSequence*> AnimSequences, bool bOutput);
+	ENGINE_API bool Reduce(const TArray<class UAnimSequence*>& AnimSequences, bool bOutput);
 
 protected:
 	/**

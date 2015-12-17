@@ -111,7 +111,7 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 
 	void ApplyFlags(int32 NavDataFlags);
 
-	void Reset();
+	virtual void ResetForRepath() override;
 
 	/** get flags of path point or corridor poly (depends on bStringPulled flag) */
 	bool GetNodeFlags(int32 NodeIdx, FNavMeshNodeFlags& Flags) const;
@@ -154,6 +154,8 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 
 private:
 	bool DoesPathIntersectBoxImplementation(const FBox& Box, const FVector& StartLocation, uint32 StartingIndex, int32* IntersectingSegmentIndex, FVector* AgentExtent) const;
+	void InternalResetNavMeshPath();
+
 public:
 
 #if ENABLE_VISUAL_LOG

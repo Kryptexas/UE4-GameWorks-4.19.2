@@ -76,9 +76,6 @@ void USkeleton::PostLoad()
 		ConvertToFReferenceSkeleton();
 	}
 
-	// Build look up table between Slot nodes and their Group.
-	BuildSlotToGroupMap();
-
 	// catch any case if guid isn't valid
 	check(Guid.IsValid());
 
@@ -161,6 +158,17 @@ void USkeleton::Serialize( FArchive& Ar )
 	if(Ar.UE4Ver() >= VER_UE4_SKELETON_ADD_SMARTNAMES)
 	{
 		SmartNames.Serialize(Ar);
+	}
+
+	// Build look up table between Slot nodes and their Group.
+	if(Ar.UE4Ver() < VER_UE4_FIX_SLOT_NAME_DUPLICATION)
+	{
+		// In older assets we may have duplicates, remove these while building the map.
+		BuildSlotToGroupMap(true);
+	}
+	else
+	{
+		BuildSlotToGroupMap();
 	}
 
 #if WITH_EDITORONLY_DATA
@@ -904,16 +912,34 @@ const TArray<FAnimSlotGroup>& USkeleton::GetSlotGroups() const
 	return SlotGroups;
 }
 
-void USkeleton::BuildSlotToGroupMap()
+void USkeleton::BuildSlotToGroupMap(bool bInRemoveDuplicates)
 {
 	SlotToGroupNameMap.Empty();
 
-	for (auto SlotGroup : SlotGroups)
+	for (FAnimSlotGroup& SlotGroup : SlotGroups)
 	{
-		for (auto SlotName : SlotGroup.SlotNames)
+		for (const FName& SlotName : SlotGroup.SlotNames)
 		{
 			SlotToGroupNameMap.Add(SlotName, SlotGroup.GroupName);
 		}
+	}
+
+	// Use the map we've just build to rebuild the slot groups
+	if(bInRemoveDuplicates)
+	{
+		for(FAnimSlotGroup& SlotGroup : SlotGroups)
+		{
+			SlotGroup.SlotNames.Empty(SlotGroup.SlotNames.Num());
+
+			for(TPair<FName, FName>& SlotToGroupPair : SlotToGroupNameMap)
+			{
+				if(SlotToGroupPair.Value == SlotGroup.GroupName)
+				{
+					SlotGroup.SlotNames.Add(SlotToGroupPair.Key);
+				}
+			}
+		}
+
 	}
 }
 

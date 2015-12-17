@@ -369,7 +369,7 @@ public:
 
 	/** Delegate function handlers
 	 */
-	void HandleEvents(float PreviousTrackPos, float CurrentTrackPos, const FBranchingPointMarker* BranchingPointMarker);
+	ENGINE_API void HandleEvents(float PreviousTrackPos, float CurrentTrackPos, const FBranchingPointMarker* BranchingPointMarker);
 private:
 	/** Called by blueprint functions that modify the montages current position. */
 	void OnMontagePositionChanged(FName const & ToSectionName);
@@ -501,7 +501,7 @@ public:
 	bool IsValidAdditiveSlot(const FName& SlotNodeName) const;
 
 	/** Get FCompositeSection with InSectionName */
-	FCompositeSection& GetAnimCompositeSection(int32 SectionIndex);
+	ENGINE_API FCompositeSection& GetAnimCompositeSection(int32 SectionIndex);
 	const FCompositeSection& GetAnimCompositeSection(int32 SectionIndex) const;
 
 	// @todo document

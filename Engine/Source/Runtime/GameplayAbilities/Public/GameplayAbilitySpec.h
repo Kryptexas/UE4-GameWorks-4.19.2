@@ -163,7 +163,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActivationInfo
 
 	/** An ability that runs on multiple game instances can be canceled by a remote instance, but only if that remote instance has already confirmed starting it. */
 	UPROPERTY()
-	bool bCanBeEndedByOtherInstance;
+	uint8 bCanBeEndedByOtherInstance:1;
 
 	void SetActivationConfirmed();
 
@@ -173,7 +173,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActivationInfo
 	/** Called on the server to set the key used by the client to predict this ability */
 	void ServerSetActivationPredictionKey(FPredictionKey PredictionKey);
 
-	FPredictionKey GetActivationPredictionKey() { return PredictionKeyWhenActivated; }
+	const FPredictionKey& GetActivationPredictionKey() const { return PredictionKeyWhenActivated; }
 
 private:
 
@@ -194,13 +194,13 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec : public FFastArraySerializerI
 	GENERATED_USTRUCT_BODY()
 
 	FGameplayAbilitySpec()
-	: Ability(nullptr), Level(1), InputID(INDEX_NONE), SourceObject(nullptr), InputPressed(false), ActiveCount(0), RemoveAfterActivation(false), PendingRemove(false)
+	: Ability(nullptr), Level(1), InputID(INDEX_NONE), SourceObject(nullptr), ActiveCount(0), InputPressed(false), RemoveAfterActivation(false), PendingRemove(false)
 	{
 		
 	}
 
 	FGameplayAbilitySpec(UGameplayAbility* InAbility, int32 InLevel=1, int32 InInputID=INDEX_NONE, UObject* InSourceObject=nullptr)
-		: Ability(InAbility), Level(InLevel), InputID(InInputID), SourceObject(InSourceObject), InputPressed(false), ActiveCount(0), RemoveAfterActivation(false),  PendingRemove(false)
+		: Ability(InAbility), Level(InLevel), InputID(InInputID), SourceObject(InSourceObject), ActiveCount(0), InputPressed(false), RemoveAfterActivation(false), PendingRemove(false)
 	{
 		Handle.GenerateNewHandle();
 	}
@@ -227,17 +227,21 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec : public FFastArraySerializerI
 	UPROPERTY()
 	UObject* SourceObject;
 
-	/** Is input currently pressed. Set to false when input is released */
-	UPROPERTY(NotReplicated)
-	bool	InputPressed;
-
 	/** A count of the number of times this ability has been activated minus the number of times it has been ended. For instanced abilities this will be the number of currently active instances. Can't replicate until prediction accurately handles this.*/
 	UPROPERTY(NotReplicated)
 	uint8	ActiveCount;
 
+	/** Is input currently pressed. Set to false when input is released */
+	UPROPERTY(NotReplicated)
+	uint8 InputPressed:1;
+
 	/** If true, this ability should be removed as soon as it finishes executing */
 	UPROPERTY(NotReplicated)
-	bool	RemoveAfterActivation;
+	uint8 RemoveAfterActivation:1;
+
+	/** Pending removal due to scope lock */
+	UPROPERTY(NotReplicated)
+	uint8 PendingRemove:1;
 
 	/** Activation state of this ability. This is not replicated since it needs to be overwritten locally on clients during prediction. */
 	UPROPERTY(NotReplicated)
@@ -254,10 +258,6 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec : public FFastArraySerializerI
 	/** Handle to GE that granted us (usually invalid) */
 	UPROPERTY(NotReplicated)
 	FActiveGameplayEffectHandle	GameplayEffectHandle;
-
-	/** Pending removal due to scope lock */
-	UPROPERTY(NotReplicated)
-	bool	PendingRemove;
 
 	/** Returns the primary instance, used for instance once abilities */
 	UGameplayAbility* GetPrimaryInstance() const;

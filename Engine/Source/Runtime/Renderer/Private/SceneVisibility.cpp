@@ -2446,10 +2446,7 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 			// now iterate through turn off visibility if hidden by LOD
 			for(FSceneSetBitIterator BitIt(PrimitiveHiddenByLODMap); BitIt; ++BitIt)
 			{
-				if(PrimitiveHiddenByLODMap.AccessCorrespondingBit(BitIt))
-				{
-					View.PrimitiveVisibilityMap.AccessCorrespondingBit(BitIt) = false;
-				}
+				View.PrimitiveVisibilityMap.AccessCorrespondingBit(BitIt) = false;
 			}
 		}
 
@@ -2462,7 +2459,7 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 
 			if (bLODSceneTreeActive)
 			{
-				for (FSceneBitArray::FIterator BitIt(PrimitiveHiddenByLODMap); BitIt; ++BitIt)
+				for (FSceneSetBitIterator BitIt(PrimitiveHiddenByLODMap); BitIt; ++BitIt)
 				{
 					View.PrimitiveViewRelevanceMap[BitIt.GetIndex()].bInitializedThisFrame = true;
 				}

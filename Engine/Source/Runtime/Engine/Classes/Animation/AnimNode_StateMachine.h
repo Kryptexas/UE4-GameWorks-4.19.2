@@ -172,6 +172,8 @@ private:
 
 	TArray<FPoseContext*> StateCachedPoses;
 
+	FGraphTraversalCounter UpdateCounter;
+
 	TArray<FGraphTraversalCounter> StateCacheBoneCounters;
 
 public:

@@ -69,7 +69,7 @@ void FGameplayEffectContext::AddInstigator(class AActor *InInstigator, class AAc
 	}
 }
 
-void FGameplayEffectContext::AddActors(TArray<TWeakObjectPtr<AActor>> InActors, bool bReset)
+void FGameplayEffectContext::AddActors(const TArray<TWeakObjectPtr<AActor>>& InActors, bool bReset)
 {
 	if (bReset && Actors.Num())
 	{
@@ -79,7 +79,7 @@ void FGameplayEffectContext::AddActors(TArray<TWeakObjectPtr<AActor>> InActors, 
 	Actors.Append(InActors);
 }
 
-void FGameplayEffectContext::AddHitResult(const FHitResult InHitResult, bool bReset)
+void FGameplayEffectContext::AddHitResult(const FHitResult& InHitResult, bool bReset)
 {
 	if (bReset && HitResult.IsValid())
 	{

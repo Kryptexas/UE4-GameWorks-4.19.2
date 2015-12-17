@@ -315,7 +315,7 @@ private:
 	/** SlotName to GroupName TMap, only at runtime, not serialized. **/
 	TMap<FName, FName> SlotToGroupNameMap;
 
-	void BuildSlotToGroupMap();
+	void BuildSlotToGroupMap(bool bInRemoveDuplicates = false);
 
 public:
 	ENGINE_API FAnimSlotGroup* FindAnimSlotGroup(const FName& InGroupName);

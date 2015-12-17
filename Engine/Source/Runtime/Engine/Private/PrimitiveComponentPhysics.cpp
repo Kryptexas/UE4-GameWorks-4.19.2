@@ -755,7 +755,7 @@ bool UPrimitiveComponent::WeldToImplementation(USceneComponent * InParent, FName
 			//if root is kinematic simply set child to be kinematic and we're done
 			if (RootComponent->IsSimulatingPhysics(SocketName) == false)
 			{
-				BI->WeldParent = NULL;
+				FPlatformAtomics::InterlockedExchangePtr((void**)&BI->WeldParent, nullptr);
 				SetSimulatePhysics(false);
 				return false;	//return false because we need to continue with regular body initialization
 			}
@@ -809,7 +809,7 @@ void UPrimitiveComponent::UnWeldFromParent()
 
 			NewRootBI->bWelded = false;
 			const FBodyInstance* PrevWeldParent = NewRootBI->WeldParent;
-			NewRootBI->WeldParent = nullptr;
+			FPlatformAtomics::InterlockedExchangePtr((void**)&NewRootBI->WeldParent, nullptr);
 
 			bool bHasBodySetup = GetBodySetup() != nullptr;
 
@@ -843,7 +843,7 @@ void UPrimitiveComponent::UnWeldFromParent()
 					}
 
 					//At this point, NewRootBI must be kinematic because it's being unwelded. It's up to the code that simulates to call Weld on the children as needed
-					ChildBI->WeldParent = nullptr;	//null because we are currently kinematic
+					FPlatformAtomics::InterlockedExchangePtr((void**)&ChildBI->WeldParent, nullptr); //null because we are currently kinematic
 				}
 			}
 		}

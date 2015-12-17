@@ -1818,22 +1818,35 @@ FPathFindingResult ARecastNavMesh::FindPath(const FNavAgentProperties& AgentProp
 		return ENavigationQueryResult::Error;
 	}
 		
-	FPathFindingResult Result;
-	Result.Path = Query.PathInstanceToFill.IsValid() ? Query.PathInstanceToFill : Self->CreatePathInstance<FNavMeshPath>(Query.Owner.Get());
+	FPathFindingResult Result(ENavigationQueryResult::Error);
 
-	FNavMeshPath* NavMeshPath = (FNavMeshPath*)Result.Path.Get();
-	NavMeshPath->SetFilter(Query.QueryFilter);
-	NavMeshPath->ApplyFlags(Query.NavDataFlags);
+	FNavigationPath* NavPath = Query.PathInstanceToFill.Get();
+	FNavMeshPath* NavMeshPath = NavPath ? NavPath->CastPath<FNavMeshPath>() : nullptr;
 
-	if ((Query.StartLocation - Query.EndLocation).IsNearlyZero() == true)
+	if (NavMeshPath)
 	{
-		Result.Path->GetPathPoints().Reset();
-		Result.Path->GetPathPoints().Add(FNavPathPoint(Query.EndLocation));
-		Result.Result = ENavigationQueryResult::Success;
+		Result.Path = Query.PathInstanceToFill;
+		NavMeshPath->ResetForRepath();
 	}
 	else
 	{
-		if(Query.QueryFilter.IsValid())
+		Result.Path = Self->CreatePathInstance<FNavMeshPath>(Query.Owner.Get());
+		NavPath = Result.Path.Get();
+		NavMeshPath = NavPath ? NavPath->CastPath<FNavMeshPath>() : nullptr;
+	}
+
+	if (NavMeshPath)
+	{
+		NavMeshPath->SetFilter(Query.QueryFilter);
+		NavMeshPath->ApplyFlags(Query.NavDataFlags);
+
+		if ((Query.StartLocation - Query.EndLocation).IsNearlyZero() == true)
+		{
+			Result.Path->GetPathPoints().Reset();
+			Result.Path->GetPathPoints().Add(FNavPathPoint(Query.EndLocation));
+			Result.Result = ENavigationQueryResult::Success;
+		}
+		else if (Query.QueryFilter.IsValid())
 		{
 			Result.Result = RecastNavMesh->RecastNavMeshImpl->FindPath(Query.StartLocation, Query.EndLocation, *NavMeshPath,
 				*(Query.QueryFilter.Get()), Query.Owner.Get());
@@ -1843,10 +1856,6 @@ FPathFindingResult ARecastNavMesh::FindPath(const FNavAgentProperties& AgentProp
 			{
 				Result.Result = Query.bAllowPartialPaths ? ENavigationQueryResult::Success : ENavigationQueryResult::Fail;
 			}
-		}
-		else
-		{
-			Result.Result = ENavigationQueryResult::Error;
 		}
 	}
 

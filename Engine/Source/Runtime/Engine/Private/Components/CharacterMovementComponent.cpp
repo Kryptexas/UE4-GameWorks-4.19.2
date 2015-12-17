@@ -1216,9 +1216,9 @@ void UCharacterMovementComponent::SimulatedTick(float DeltaSeconds)
 			CharacterOwner->OnRep_ReplicatedBasedMovement();
 		}
 
-		// Avoid moving the mesh during movement, SmoothClientPosition will take care of it.
+		// Avoid moving the mesh during movement if SmoothClientPosition will take care of it.
 		// TODO: also for root motion stuff above?
-		const FScopedPreventAttachedComponentMove PreventMeshMovement(CharacterOwner->GetMesh());
+		const FScopedPreventAttachedComponentMove PreventMeshMovement(bNetworkSmoothingComplete ? nullptr : CharacterOwner->GetMesh());
 
 		if (CharacterOwner->bReplicateMovement)
 		{
@@ -2632,6 +2632,20 @@ bool UCharacterMovementComponent::CanStartPathFollowing() const
 bool UCharacterMovementComponent::CanStopPathFollowing() const
 {
 	return !IsFalling();
+}
+
+float UCharacterMovementComponent::GetPathFollowingBrakingDistance(float MaxSpeed) const
+{
+	if (bUseFixedBrakingDistanceForPaths)
+	{
+		return FixedPathBrakingDistance;
+	}
+
+	const float BrakingDeceleration = BrakingDecelerationWalking * (bUseSeparateBrakingFriction ? BrakingFriction : GroundFriction);
+
+	// character won't be able to stop with negative or nearly zero deceleration, use MaxSpeed for path length calculations
+	const float BrakingDistance = (BrakingDeceleration < SMALL_NUMBER) ? MaxSpeed : (FMath::Square(MaxSpeed) / BrakingDeceleration);
+	return BrakingDistance;
 }
 
 void UCharacterMovementComponent::CalcAvoidanceVelocity(float DeltaTime)

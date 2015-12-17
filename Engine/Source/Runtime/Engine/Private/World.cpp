@@ -3384,7 +3384,7 @@ void UWorld::RemovePawn( APawn* Pawn )
 	check( Pawn );
 	
 	AController* Controller = Pawn->GetController();
-	if (Controller)
+	if (Controller && (Controller->GetPawn() == Pawn))
 	{
 		Controller->UnPossess();
 	}

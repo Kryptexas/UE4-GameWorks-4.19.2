@@ -513,13 +513,14 @@ void FBodyInstance::SetCollisionEnabled(ECollisionEnabled::Type NewType, bool bU
 			UpdatePhysicsFilterData();
 		}
 
-		// If we used to be QueryOnly we have to set our dynamic properties since they were skipped previously
-		if (OldType == ECollisionEnabled::QueryOnly)
+		//If we are going from QueryOnly to simulation we need to recreate the physics state. This is because physx doesn't have the actors in its simulation scene
+		if (OldType == ECollisionEnabled::QueryOnly && CollisionEnabled != ECollisionEnabled::NoCollision)
 		{
-			ExecuteOnPhysicsReadWrite([&]
+			if(UPrimitiveComponent* PrimComponent = OwnerComponent.Get())
 			{
-				InitDynamicProperties_AssumesLocked();
-			});
+				PrimComponent->RecreatePhysicsState();
+			}
+
 		}
 
 	}
@@ -1121,12 +1122,26 @@ struct FInitBodiesHelper
 	{
 		physx::PxRigidDynamic* PNewDynamic = nullptr;
 
+		const ECollisionEnabled::Type CollisionType = Instance->GetCollisionEnabled();
+		const bool bDisableSim = CollisionType == ECollisionEnabled::QueryOnly || CollisionType == ECollisionEnabled::NoCollision;
+
 		if (bCompileStatic || bStatic)
 		{
 			Instance->RigidActorSync = GPhysXSDK->createRigidStatic(PTransform);
+
+			if(bDisableSim)
+			{
+				Instance->RigidActorSync->setActorFlag(PxActorFlag::eDISABLE_SIMULATION, true);
+			}
+
 			if (PAsyncScene)
 			{
 				Instance->RigidActorAsync = GPhysXSDK->createRigidStatic(PTransform);
+
+				if (bDisableSim)
+				{
+					Instance->RigidActorAsync->setActorFlag(PxActorFlag::eDISABLE_SIMULATION, true);
+				}
 			}
 		}
 		else
@@ -1146,10 +1161,19 @@ struct FInitBodiesHelper
 				PNewDynamic->setRigidDynamicFlag(PxRigidDynamicFlag::eKINEMATIC, true);
 			}
 
+			PxActorFlags ActorFlags = PNewDynamic->getActorFlags();
+			
 			if(Instance->bGenerateWakeEvents)
 			{
-				PNewDynamic->setActorFlag(PxActorFlag::eSEND_SLEEP_NOTIFIES, true);
+				ActorFlags |= PxActorFlag::eSEND_SLEEP_NOTIFIES;
 			}
+
+			if(bDisableSim)
+			{
+				ActorFlags |= PxActorFlag::eDISABLE_SIMULATION;
+			}
+
+			PNewDynamic->setActorFlags(ActorFlags);
 		}
 
 		return PNewDynamic;
@@ -1765,6 +1789,7 @@ const FBodyInstance* FBodyInstance::GetOriginalBodyInstance(const PxShape* PShap
 
 const FTransform& FBodyInstance::GetRelativeBodyTransform(const physx::PxShape* PShape) const
 {
+	check(IsInGameThread());
 	const FBodyInstance* BI = WeldParent ? WeldParent : this;
 	const FWeldInfo* Result = BI->ShapeToBodiesMap.IsValid() ? BI->ShapeToBodiesMap->Find(PShape) : nullptr;
 	return Result ? Result->RelativeTM : FTransform::Identity;
@@ -1919,6 +1944,7 @@ void FBodyInstance::TermBody()
 
 bool FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& TheirTM)
 {
+	check(IsInGameThread());
 	check(TheirBody);
 	if (TheirBody->BodySetup.IsValid() == false)	//attach actor can be called before body has been initialized. In this case just return false
 	{
@@ -2001,6 +2027,8 @@ bool FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& TheirTM)
 
 void FBodyInstance::UnWeld(FBodyInstance* TheirBI)
 {
+	check(IsInGameThread());
+
 	//@TODO: BOX2D: Implement Weld
 
 #if WITH_PHYSX
@@ -2669,8 +2697,9 @@ void FBodyInstance::SetBodyTransform(const FTransform& NewTransform, ETeleportTy
 			// SIMULATED & KINEMATIC
 			if (PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic_AssumesLocked())
 			{
+				const bool bIsRigidBodyKinematic = IsRigidBodyKinematicAndInSimulationScene_AssumesLocked(PRigidDynamic);
 				// If kinematic and not teleporting, set kinematic target
-				if (!IsRigidBodyNonKinematic_AssumesLocked(PRigidDynamic) && Teleport == ETeleportType::None)
+				if (bIsRigidBodyKinematic && Teleport == ETeleportType::None)
 				{
 					if(FPhysScene* PhysScene = GetPhysicsScene(this))
 					{
@@ -2680,7 +2709,7 @@ void FBodyInstance::SetBodyTransform(const FTransform& NewTransform, ETeleportTy
 				// Otherwise, set global pose
 				else
 				{
-					if (!IsRigidBodyNonKinematic_AssumesLocked(PRigidDynamic))  // check if kinematic  (checks the physx bit for this)
+					if (bIsRigidBodyKinematic)  // check if kinematic  (checks the physx bit for this)
 					{
 						PRigidDynamic->setKinematicTarget(PNewPose);  // physx doesn't clear target on setGlobalPose, so overwrite any previous attempt to set this that wasn't yet resolved
 					}
@@ -3356,10 +3385,10 @@ void FBodyInstance::WakeInstance()
 #if WITH_PHYSX
 	ExecuteOnPxRigidDynamicReadWrite(this, [&](PxRigidDynamic* PRigidDynamic)
 	{
-		if (IsRigidBodyNonKinematic_AssumesLocked(PRigidDynamic))
-	{
-		PRigidDynamic->wakeUp();
-	}
+		if (!IsRigidBodyKinematic_AssumesLocked(PRigidDynamic))
+		{
+			PRigidDynamic->wakeUp();
+		}
 	});
 #endif
 
@@ -3376,10 +3405,10 @@ void FBodyInstance::PutInstanceToSleep()
 #if WITH_PHYSX
 	ExecuteOnPxRigidDynamicReadWrite(this, [&](PxRigidDynamic* PRigidDynamic)
 	{
-		if (IsRigidBodyNonKinematic_AssumesLocked(PRigidDynamic))
-	{
-		PRigidDynamic->putToSleep();
-	}
+		if (!IsRigidBodyKinematic_AssumesLocked(PRigidDynamic))
+		{
+			PRigidDynamic->putToSleep();
+		}
 	});
 #endif //WITH_PHYSX
 
@@ -3535,7 +3564,7 @@ void FBodyInstance::AddCustomPhysics(FCalculateCustomPhysics& CalculateCustomPhy
 #if WITH_PHYSX
 	ExecuteOnPxRigidBodyReadOnly(this, [&](const PxRigidBody* PRigidBody)
 	{
-		if (IsRigidBodyNonKinematic_AssumesLocked(PRigidBody))
+		if (!IsRigidBodyKinematic_AssumesLocked(PRigidBody))
 		{
 			if(FPhysScene* PhysScene = GetPhysicsScene(this))
 			{
@@ -3560,7 +3589,7 @@ void FBodyInstance::AddForce(const FVector& Force, bool bAllowSubstepping, bool 
 #if WITH_PHYSX
 	ExecuteOnPxRigidBodyReadWrite(this, [&](PxRigidBody* PRigidBody)
 	{
-		if (IsRigidBodyNonKinematic_AssumesLocked(PRigidBody))
+		if (!IsRigidBodyKinematic_AssumesLocked(PRigidBody))
 		{
 			if(FPhysScene* PhysScene = GetPhysicsScene(this))
 			{
@@ -3588,7 +3617,7 @@ void FBodyInstance::AddForceAtPosition(const FVector& Force, const FVector& Posi
 #if WITH_PHYSX
 	ExecuteOnPxRigidBodyReadWrite(this, [&](PxRigidBody* PRigidBody)
 	{
-		if (IsRigidBodyNonKinematic_AssumesLocked(PRigidBody))
+		if (!IsRigidBodyKinematic_AssumesLocked(PRigidBody))
 		{
 			if(FPhysScene* PhysScene = GetPhysicsScene(this))
 			{
@@ -3617,7 +3646,7 @@ void FBodyInstance::AddTorque(const FVector& Torque, bool bAllowSubstepping, boo
 #if WITH_PHYSX
 	ExecuteOnPxRigidBodyReadWrite(this, [&](PxRigidBody* PRigidBody)
 	{
-		if (IsRigidBodyNonKinematic_AssumesLocked(PRigidBody))
+		if (!IsRigidBodyKinematic_AssumesLocked(PRigidBody))
 		{
 			if(FPhysScene* PhysScene = GetPhysicsScene(this))
 			{
@@ -3644,11 +3673,11 @@ void FBodyInstance::AddAngularImpulse(const FVector& AngularImpulse, bool bVelCh
 #if WITH_PHYSX
 	ExecuteOnPxRigidBodyReadWrite(this, [&](PxRigidBody* PRigidBody)
 	{
-		if (IsRigidBodyNonKinematic_AssumesLocked(PRigidBody))
-	{
-		PxForceMode::Enum Mode = bVelChange ? PxForceMode::eVELOCITY_CHANGE : PxForceMode::eIMPULSE;
-		PRigidBody->addTorque(U2PVector(AngularImpulse), Mode, true);
-	}
+		if (!IsRigidBodyKinematic_AssumesLocked(PRigidBody))
+		{
+			PxForceMode::Enum Mode = bVelChange ? PxForceMode::eVELOCITY_CHANGE : PxForceMode::eIMPULSE;
+			PRigidBody->addTorque(U2PVector(AngularImpulse), Mode, true);
+		}
 	});
 	
 #endif // WITH_PHYSX
@@ -3670,11 +3699,11 @@ void FBodyInstance::AddImpulse(const FVector& Impulse, bool bVelChange)
 #if WITH_PHYSX
 	ExecuteOnPxRigidBodyReadWrite(this, [&](PxRigidBody* PRigidBody)
 	{
-		if (IsRigidBodyNonKinematic_AssumesLocked(PRigidBody))
-	{
-		PxForceMode::Enum Mode = bVelChange ? PxForceMode::eVELOCITY_CHANGE : PxForceMode::eIMPULSE;
-		PRigidBody->addForce(U2PVector(Impulse), Mode, true);
-	}
+		if (!IsRigidBodyKinematic_AssumesLocked(PRigidBody))
+		{
+			PxForceMode::Enum Mode = bVelChange ? PxForceMode::eVELOCITY_CHANGE : PxForceMode::eIMPULSE;
+			PRigidBody->addForce(U2PVector(Impulse), Mode, true);
+		}
 	});
 	
 #endif // WITH_PHYSX
@@ -3696,11 +3725,11 @@ void FBodyInstance::AddImpulseAtPosition(const FVector& Impulse, const FVector& 
 #if WITH_PHYSX
 	ExecuteOnPxRigidBodyReadWrite(this, [&](PxRigidBody* PRigidBody)
 	{
-		if (IsRigidBodyNonKinematic_AssumesLocked(PRigidBody))
-	{
-		PxForceMode::Enum Mode = PxForceMode::eIMPULSE; // does not support eVELOCITY_CHANGE
-		PxRigidBodyExt::addForceAtPos(*PRigidBody, U2PVector(Impulse), U2PVector(Position), Mode, true);
-	}
+		if (!IsRigidBodyKinematic_AssumesLocked(PRigidBody))
+		{
+			PxForceMode::Enum Mode = PxForceMode::eIMPULSE; // does not support eVELOCITY_CHANGE
+			PxRigidBodyExt::addForceAtPos(*PRigidBody, U2PVector(Impulse), U2PVector(Position), Mode, true);
+		}
 	});
 	
 #endif // WITH_PHYSX
@@ -3799,10 +3828,10 @@ void FBodyInstance::AddRadialImpulseToBody(const FVector& Origin, float Radius, 
 #if WITH_PHYSX
 	ExecuteOnPxRigidBodyReadWrite(this, [&](PxRigidBody* PRigidBody)
 	{
-		if (IsRigidBodyNonKinematic_AssumesLocked(PRigidBody))
-	{
+		if (!IsRigidBodyKinematic_AssumesLocked(PRigidBody))
+		{
 			AddRadialImpulseToPxRigidBody_AssumesLocked(*PRigidBody, Origin, Radius, Strength, Falloff, bVelChange);
-	}
+		}
 	});
 	
 #endif // WITH_PHYSX
@@ -3820,7 +3849,7 @@ void FBodyInstance::AddRadialForceToBody(const FVector& Origin, float Radius, fl
 #if WITH_PHYSX
 	ExecuteOnPxRigidBodyReadWrite(this, [&](PxRigidBody* PRigidBody)
 	{
-		if (IsRigidBodyNonKinematic_AssumesLocked(PRigidBody))
+		if (!IsRigidBodyKinematic_AssumesLocked(PRigidBody))
 		{
 			if(FPhysScene* PhysScene = GetPhysicsScene(this))
 			{
@@ -4628,7 +4657,7 @@ void FBodyInstance::InitDynamicProperties_AssumesLocked()
 		if(RigidActor->getScene())
 		{
 			CreateDOFLock();
-			if(IsRigidBodyNonKinematic_AssumesLocked(RigidActor))
+			if(!IsRigidBodyKinematic_AssumesLocked(RigidActor))
 			{
 				if(bStartAwake || bWokenExternally)
 				{
@@ -4934,10 +4963,12 @@ void FBodyInstance::GetShapeFlags_AssumesLocked(FShapeData& ShapeData, TEnumAsBy
 		}
 
 		// enable swept bounds for CCD for this shape
-		PxRigidBody* PBody = GetPxRigidActor_AssumesLocked()->is<PxRigidBody>();
-		if(bSimCollision && !bPhysicsStatic && bUseCCD && PBody)
+		if(bSimCollision && !bPhysicsStatic && bUseCCD )
 		{
-			ShapeData.SyncBodyFlags |= PxRigidBodyFlag::eENABLE_CCD;
+			if(GetPxRigidActor_AssumesLocked()->is<PxRigidBody>())
+			{
+				ShapeData.SyncBodyFlags |= PxRigidBodyFlag::eENABLE_CCD;
+			}
 		}
 	}
 	// No collision enabled

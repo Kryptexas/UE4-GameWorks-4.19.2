@@ -123,8 +123,8 @@ struct ENGINE_API FAnimSequenceTrackContainer
 
 	void Initialize(TArray<FName> InTrackNames)
 	{
-		TrackNames = InTrackNames;
-		int32 NumNode = TrackNames.Num();
+		TrackNames = MoveTemp(InTrackNames);
+		const int32 NumNode = TrackNames.Num();
 		AnimationTracks.Empty(NumNode);
 		AnimationTracks.AddZeroed(NumNode);
 	}

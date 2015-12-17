@@ -207,6 +207,28 @@ public:
 	 */
 	ENGINE_API void UpdateTriMeshVertices(const TArray<FVector> & NewPositions);
 
+	/**	
+	 * Finds the shortest distance between the body setup and a world position. Input and output are given in world space
+	 * @param	WorldPosition	The point we are trying to get close to
+	 * @param	BodyToWorldTM	The transform to convert BodySetup into world space
+	 * @return					The distance between WorldPosition and the body setup. 0 indicates WorldPosition is inside one of the shapes.
+	 *
+	 * NOTE: This function ignores convex and trimesh data
+	 */
+	ENGINE_API float GetShortestDistanceToPoint(const FVector& WorldPosition, const FTransform& BodyToWorldTM) const;
+
+	/** 
+	 * Finds the closest point in the body setup. Input and outputs are given in world space.
+	 * @param	WorldPosition			The point we are trying to get close to
+	 * @param	BodyToWorldTM			The transform to convert BodySetup into world space
+	 * @param	ClosestWorldPosition	The closest point on the body setup to WorldPosition
+	 * @param	FeatureNormal			The normal of the feature associated with ClosestWorldPosition
+	 * @return							The distance between WorldPosition and the body setup. 0 indicates WorldPosition is inside one of the shapes.
+	 *
+	 * NOTE: This function ignores convex and trimesh data
+	 */
+	ENGINE_API float GetClosestPointAndNormal(const FVector& WorldPosition, const FTransform& BodyToWorldTM, FVector& ClosestWorldPosition, FVector& FeatureNormal) const;
+
 	/**
 	 * Given a format name returns its cooked data.
 	 *

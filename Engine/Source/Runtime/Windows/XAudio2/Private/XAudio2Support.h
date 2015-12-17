@@ -639,6 +639,25 @@ struct FXAudioDeviceProperties
 #endif
 	}
 
+	void GetAudioDeviceList(TArray<FString>& OutAudioDeviceList) const
+	{
+		OutAudioDeviceList.Reset();
+
+#if XAUDIO_SUPPORTS_DEVICE_DETAILS
+		uint32 NumDevices = 0;
+		if (XAudio2)
+		{
+			XAudio2->GetDeviceCount(&NumDevices);
+			for (uint32 i = 0; i < NumDevices; ++i)
+			{
+				XAUDIO2_DEVICE_DETAILS Details;
+				XAudio2->GetDeviceDetails(i, &Details);
+				OutAudioDeviceList.Add(FString(Details.DisplayName));
+			}
+		}
+#endif
+	}
+
 	/** Returns either a new IXAudio2SourceVoice or a recycled IXAudio2SourceVoice according to the sound format and max channel count in the voice's effect chain*/
 	void GetFreeSourceVoice(IXAudio2SourceVoice** Voice, const FPCMBufferInfo& BufferInfo, const XAUDIO2_EFFECT_CHAIN* EffectChain = nullptr, int32 MaxEffectChainChannels = 0)
 	{

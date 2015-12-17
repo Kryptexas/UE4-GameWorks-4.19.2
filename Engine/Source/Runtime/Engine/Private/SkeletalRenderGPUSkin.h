@@ -200,6 +200,7 @@ public:
 	virtual void CacheVertices(int32 LODIndex, bool bForce) const override {}
 	virtual bool IsCPUSkinned() const override { return false; }
 	virtual TArray<FTransform>* GetSpaceBases() const override;
+	virtual const TArray<FMatrix>& GetReferenceToLocalMatrices() const override;
 
 	virtual int32 GetLOD() const override
 	{

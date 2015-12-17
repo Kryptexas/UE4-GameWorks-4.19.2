@@ -703,13 +703,14 @@ IStatGroupEnableManager& IStatGroupEnableManager::Get()
 FName FStatNameAndInfo::ToLongName(FName InStatName, char const* InGroup, char const* InCategory, TCHAR const* InDescription)
 {
 	FString LongName;
+	LongName.Reserve(255);
 	if (InGroup)
 	{
 		LongName += TEXT("//");
 		LongName += InGroup;
 		LongName += TEXT("//");
 	}
-	LongName += InStatName.ToString();
+	InStatName.AppendString(LongName);
 	if (InDescription)
 	{
 		LongName += TEXT("///");

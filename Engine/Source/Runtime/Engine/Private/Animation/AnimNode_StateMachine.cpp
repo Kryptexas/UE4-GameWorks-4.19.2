@@ -336,6 +336,14 @@ const FAnimationTransitionBetweenStates& FAnimNode_StateMachine::GetTransitionIn
 
 void FAnimNode_StateMachine::Update(const FAnimationUpdateContext& Context)
 {
+	// If we just became relevant and haven't been initialized yet, then reinitialize state machine.
+	if (!bFirstUpdate && (UpdateCounter.Get() != INDEX_NONE) && !UpdateCounter.WasSynchronizedInTheLastFrame(Context.AnimInstanceProxy->GetUpdateCounter()))
+	{
+		FAnimationInitializeContext InitializationContext(Context.AnimInstanceProxy);
+		this->Initialize(InitializationContext);
+	}
+	UpdateCounter.SynchronizeWith(Context.AnimInstanceProxy->GetUpdateCounter());
+
 	const FBakedAnimationStateMachine* Machine = GetMachineDescription();
 	if (Machine != nullptr)
 	{

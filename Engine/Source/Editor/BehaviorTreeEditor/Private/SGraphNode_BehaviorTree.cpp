@@ -178,6 +178,7 @@ FSlateColor SGraphNode_BehaviorTree::GetBorderBackgroundColor() const
 	const bool bSelectedSubNode = BTParentNode && GetOwnerPanel()->SelectionManager.SelectedNodes.Contains(GraphNode);
 	
 	UBTNode* NodeInstance = BTGraphNode ? Cast<UBTNode>(BTGraphNode->NodeInstance) : NULL;
+	const bool bIsConnectedTreeRoot = BTGraphNode && BTGraphNode->IsA<UBehaviorTreeGraphNode_Root>() && BTGraphNode->Pins.IsValidIndex(0) && BTGraphNode->Pins[0]->LinkedTo.Num() > 0;
 	const bool bIsDisconnected = NodeInstance && NodeInstance->GetExecutionIndex() == MAX_uint16;
 	const bool bIsService = BTGraphNode && BTGraphNode->IsA(UBehaviorTreeGraphNode_Service::StaticClass());
 	const bool bIsRootDecorator = BTGraphNode && BTGraphNode->bRootLevel;
@@ -208,6 +209,7 @@ FSlateColor SGraphNode_BehaviorTree::GetBorderBackgroundColor() const
 		!bIsRootDecorator && !bIsInjected && bIsDisconnected ? BehaviorTreeColors::NodeBorder::Disconnected :
 		bIsInDebuggerActiveState ? BehaviorTreeColors::NodeBorder::ActiveDebugging :
 		bIsInDebuggerPrevState ? BehaviorTreeColors::NodeBorder::InactiveDebugging :
+		bIsConnectedTreeRoot ? BehaviorTreeColors::NodeBorder::Root :
 		BehaviorTreeColors::NodeBorder::Inactive;
 }
 
@@ -230,7 +232,8 @@ FSlateColor SGraphNode_BehaviorTree::GetBackgroundColor() const
 	}
 	else if (BTGraph_Decorator || Cast<UBehaviorTreeGraphNode_CompositeDecorator>(GraphNode))
 	{
-		NodeColor = bIsActiveForDebugger ? BehaviorTreeColors::Debugger::ActiveDecorator : BehaviorTreeColors::NodeBody::Decorator;
+		NodeColor = bIsActiveForDebugger ? BehaviorTreeColors::Debugger::ActiveDecorator : 
+			BTGraphNode->bRootLevel ? BehaviorTreeColors::NodeBody::InjectedSubNode : BehaviorTreeColors::NodeBody::Decorator;
 	}
 	else if (Cast<UBehaviorTreeGraphNode_Task>(GraphNode))
 	{
@@ -244,6 +247,10 @@ FSlateColor SGraphNode_BehaviorTree::GetBackgroundColor() const
 	else if (Cast<UBehaviorTreeGraphNode_Service>(GraphNode))
 	{
 		NodeColor = bIsActiveForDebugger ? BehaviorTreeColors::Debugger::ActiveService : BehaviorTreeColors::NodeBody::Service;
+	}
+	else if (Cast<UBehaviorTreeGraphNode_Root>(GraphNode) && GraphNode->Pins.IsValidIndex(0) && GraphNode->Pins[0]->LinkedTo.Num() > 0)
+	{
+		NodeColor = BehaviorTreeColors::NodeBody::Root;
 	}
 
 	return (FlashAlpha > 0.0f) ? FMath::Lerp(NodeColor, FlashColor, FlashAlpha) : NodeColor;

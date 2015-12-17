@@ -225,6 +225,11 @@ public:
 	{
 	}
 
+	/** Returns an array of available audio devices names for the platform */
+	virtual void GetAudioDeviceList(TArray<FString>& OutAudioDeviceNames) const
+	{
+	}
+
 	/**
 	 * Basic initialisation of the platform agnostic layer of the audio system
 	 */

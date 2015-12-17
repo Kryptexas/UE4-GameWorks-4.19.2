@@ -624,6 +624,8 @@ private:
 
 	/** Map of SkeletalMeshComponents that need their bone transforms sent to the physics engine before simulation. */
 	TMap<USkeletalMeshComponent*, FDeferredKinematicUpdateInfo>	DeferredKinematicUpdateSkelMeshes;
+
+	FDelegateHandle PreGarbageCollectDelegateHandle;
 };
 
 /**

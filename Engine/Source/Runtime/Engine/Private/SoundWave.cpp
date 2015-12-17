@@ -66,8 +66,15 @@ USoundWave::USoundWave(const FObjectInitializer& ObjectInitializer)
 SIZE_T USoundWave::GetResourceSize(EResourceSizeMode::Type Mode)
 {
 	int32 CalculatedResourceSize = 0;
+	
+	FAudioDevice* AudioDevice = nullptr;
+	
+	if (GEngine)
+	{
+		AudioDevice = GEngine->GetMainAudioDevice();
+	}
 
-	if (DecompressionType == DTYPE_Native)
+	if (AudioDevice && AudioDevice->HasCompressedAudioInfoClass(this) && DecompressionType == DTYPE_Native)
 	{
 		// If we've been decompressed, need to account for decompressed and also compressed
 		CalculatedResourceSize += RawPCMDataSize;
@@ -80,13 +87,10 @@ SIZE_T USoundWave::GetResourceSize(EResourceSizeMode::Type Mode)
 		}
 	}
 
-	if (GEngine && GEngine->GetMainAudioDevice())
+	// Don't add compressed data to size of streaming sounds
+	if (AudioDevice && (!FPlatformProperties::SupportsAudioStreaming() || !IsStreaming()))
 	{
-		// Don't add compressed data to size of streaming sounds
-		if (!FPlatformProperties::SupportsAudioStreaming() || !IsStreaming())
-		{
-			CalculatedResourceSize += GetCompressedDataSize(GEngine->GetMainAudioDevice()->GetRuntimeFormat(this));
-		}
+		CalculatedResourceSize += GetCompressedDataSize(AudioDevice->GetRuntimeFormat(this));
 	}
 
 	return CalculatedResourceSize;

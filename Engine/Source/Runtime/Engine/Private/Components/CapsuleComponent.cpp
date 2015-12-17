@@ -163,22 +163,47 @@ void UCapsuleComponent::SetCapsuleSize(float NewRadius, float NewHalfHeight, boo
 	}
 }
 
-void UCapsuleComponent::UpdateBodySetup()
-{
-	if (ShapeBodySetup == NULL || ShapeBodySetup->IsPendingKill())
-	{
-		ShapeBodySetup = NewObject<UBodySetup>(this);
-		ShapeBodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
-		ShapeBodySetup->AggGeom.SphylElems.Add(FKSphylElem());
-		ShapeBodySetup->bNeverNeedsCookedCollisionData = true;
-	}
 
+template <EShapeBodySetupHelper UpdateBodySetupAction>
+bool InvalidateOrUpdateCapsuleBodySetup(UBodySetup*& ShapeBodySetup, bool bUseArchetypeBodySetup, float CapsuleRadius, float CapsuleHalfHeight)
+{
+	check((bUseArchetypeBodySetup && UpdateBodySetupAction == EShapeBodySetupHelper::InvalidateSharingIfStale) || (!bUseArchetypeBodySetup && UpdateBodySetupAction == EShapeBodySetupHelper::UpdateBodySetup));
 	check(ShapeBodySetup->AggGeom.SphylElems.Num() == 1);
 	FKSphylElem* SE = ShapeBodySetup->AggGeom.SphylElems.GetData();
+
+	const float Length = 2 * FMath::Max(CapsuleHalfHeight - CapsuleRadius, 0.f);	//SphylElem uses height from center of capsule spheres, but UCapsuleComponent uses halfHeight from end of the sphere
+
+	if (UpdateBodySetupAction == EShapeBodySetupHelper::UpdateBodySetup)
+	{
+		SE->SetTransform(FTransform::Identity);
+		SE->Radius = CapsuleRadius;
+		SE->Length = Length;
+	}
+	else
+	{
+		if(SE->Radius != CapsuleRadius || SE->Length != Length)
+		{
+			ShapeBodySetup = nullptr;
+			bUseArchetypeBodySetup = false;
+		}
+	}
 	
-	SE->SetTransform(FTransform::Identity);
-	SE->Radius = CapsuleRadius;
-	SE->Length = 2 * FMath::Max(CapsuleHalfHeight - CapsuleRadius, 0.f);	//SphylElem uses height from center of capsule spheres, but UCapsuleComponent uses halfHeight from end of the sphere
+	return bUseArchetypeBodySetup;
+}
+
+void UCapsuleComponent::UpdateBodySetup()
+{
+	if (PrepareSharedBodySetup<UCapsuleComponent>())
+	{
+		bUseArchetypeBodySetup = InvalidateOrUpdateCapsuleBodySetup<EShapeBodySetupHelper::InvalidateSharingIfStale>(ShapeBodySetup, bUseArchetypeBodySetup, CapsuleRadius, CapsuleHalfHeight);
+	}
+
+	CreateShapeBodySetupIfNeeded<FKSphylElem>();
+
+	if (!bUseArchetypeBodySetup)
+	{
+		InvalidateOrUpdateCapsuleBodySetup<EShapeBodySetupHelper::UpdateBodySetup>(ShapeBodySetup, bUseArchetypeBodySetup, CapsuleRadius, CapsuleHalfHeight);
+	}
 }
 
 bool UCapsuleComponent::IsZeroExtent() const

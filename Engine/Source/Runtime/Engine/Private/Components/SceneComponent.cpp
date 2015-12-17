@@ -1022,32 +1022,33 @@ void USceneComponent::SetWorldScale3D(FVector NewScale)
 void USceneComponent::SetWorldTransform(const FTransform& NewTransform, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	// If attached to something, transform into local space
-	FQuat NewRotation = NewTransform.GetRotation();
-	FVector NewLocation = NewTransform.GetTranslation();
-	FVector NewScale = NewTransform.GetScale3D();
-
 	if (AttachParent != nullptr)
 	{
-		FTransform ParentToWorld = AttachParent->GetSocketTransform(AttachSocketName);
+		const FTransform ParentToWorld = AttachParent->GetSocketTransform(AttachSocketName);
 		FTransform RelativeTM = NewTransform.GetRelativeTransform(ParentToWorld);
-		if (!bAbsoluteLocation)
+
+		// Absolute location, rotation, and scale use the world transform directly.
+		if (bAbsoluteLocation)
 		{
-			NewLocation = RelativeTM.GetTranslation();
+			RelativeTM.CopyTranslation(NewTransform);
 		}
 
-		if (!bAbsoluteRotation)
+		if (bAbsoluteRotation)
 		{
-			// Quat multiplication works reverse way, make sure you do Parent(-1) * World = Local, not World*Parent(-) = Local (the way matrix does)
-			NewRotation = RelativeTM.GetRotation();
+			RelativeTM.CopyRotation(NewTransform);
 		}
 
-		if (!bAbsoluteScale)
+		if (bAbsoluteScale)
 		{
-			NewScale = RelativeTM.GetScale3D();
+			RelativeTM.CopyScale3D(NewTransform);
 		}
+
+		SetRelativeTransform(RelativeTM, bSweep, OutSweepHitResult, Teleport);
 	}
-
-	SetRelativeTransform(FTransform(NewRotation, NewLocation, NewScale), bSweep, OutSweepHitResult, Teleport);
+	else
+	{
+		SetRelativeTransform(NewTransform, bSweep, OutSweepHitResult, Teleport);
+	}
 }
 
 void USceneComponent::SetWorldLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)

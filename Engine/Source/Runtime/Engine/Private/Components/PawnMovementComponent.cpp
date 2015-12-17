@@ -66,6 +66,14 @@ FVector UPawnMovementComponent::ConsumeInputVector()
 	return PawnOwner ? PawnOwner->Internal_ConsumeMovementInputVector() : FVector::ZeroVector;
 }
 
+void UPawnMovementComponent::RequestPathMove(const FVector& MoveInput)
+{
+	if (PawnOwner)
+	{
+		PawnOwner->Internal_AddMovementInput(MoveInput);
+	}
+}
+
 // TODO: deprecated, remove
 FVector UPawnMovementComponent::GetInputVector() const
 {

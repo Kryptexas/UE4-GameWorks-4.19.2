@@ -172,7 +172,7 @@ void UAbilitySystemComponent::RefreshAbilityActorInfo()
 	AbilityActorInfo->InitFromActor(AbilityActorInfo->OwnerActor.Get(), AbilityActorInfo->AvatarActor.Get(), this);
 }
 
-FGameplayAbilitySpecHandle UAbilitySystemComponent::GiveAbility(FGameplayAbilitySpec Spec)
+FGameplayAbilitySpecHandle UAbilitySystemComponent::GiveAbility(const FGameplayAbilitySpec& Spec)
 {	
 	check(Spec.Ability);
 	check(IsOwnerActorAuthoritative());	// Should be called on authority
@@ -198,7 +198,7 @@ FGameplayAbilitySpecHandle UAbilitySystemComponent::GiveAbility(FGameplayAbility
 	return OwnedSpec.Handle;
 }
 
-FGameplayAbilitySpecHandle UAbilitySystemComponent::GiveAbilityAndActivateOnce(FGameplayAbilitySpec Spec)
+FGameplayAbilitySpecHandle UAbilitySystemComponent::GiveAbilityAndActivateOnce(const FGameplayAbilitySpec& Spec)
 {
 	check(Spec.Ability);
 
@@ -1734,7 +1734,7 @@ void UAbilitySystemComponent::NotifyAbilityActivated(FGameplayAbilitySpecHandle 
 	AbilityActivatedCallbacks.Broadcast(Ability);
 }
 
-void UAbilitySystemComponent::NotifyAbilityFailed(const FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability, FGameplayTagContainer FailureReason)
+void UAbilitySystemComponent::NotifyAbilityFailed(const FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability, const FGameplayTagContainer& FailureReason)
 {
 	AbilityFailedCallbacks.Broadcast(Ability, FailureReason);
 }
@@ -2310,7 +2310,7 @@ void UAbilitySystemComponent::OnRep_ReplicatedAnimMontage()
 			{
 				int32 NextSectionID = AnimInstance->Montage_GetNextSectionID(LocalAnimMontageInfo.AnimMontage, RepSectionID);
 
-				// If NextSectionID is different thant the replicated one, then set it.
+				// If NextSectionID is different than the replicated one, then set it.
 				if( NextSectionID != RepNextSectionID )
 				{
 					AnimInstance->Montage_SetNextSection(LocalAnimMontageInfo.AnimMontage->GetSectionName(RepSectionID), LocalAnimMontageInfo.AnimMontage->GetSectionName(RepNextSectionID), LocalAnimMontageInfo.AnimMontage);
@@ -2318,10 +2318,11 @@ void UAbilitySystemComponent::OnRep_ReplicatedAnimMontage()
 
 				// Make sure we haven't received that update too late and the client hasn't already jumped to another section. 
 				int32 CurrentSectionID = LocalAnimMontageInfo.AnimMontage->GetSectionIndexFromPosition(AnimInstance->Montage_GetPosition(LocalAnimMontageInfo.AnimMontage));
-				if( (CurrentSectionID != RepSectionID) && (CurrentSectionID != RepNextSectionID) )
+				if ((CurrentSectionID != RepSectionID) && (CurrentSectionID != RepNextSectionID))
 				{
-					// Client is in a wrong section, jump to replicated position.
-					AnimInstance->Montage_SetPosition(LocalAnimMontageInfo.AnimMontage, RepAnimMontageInfo.Position);
+					// Client is in a wrong section, teleport him into the begining of the right section
+					const float SectionStartTime = LocalAnimMontageInfo.AnimMontage->GetAnimCompositeSection(RepSectionID).GetTime();
+					AnimInstance->Montage_SetPosition(LocalAnimMontageInfo.AnimMontage, SectionStartTime);
 				}
 			}
 
@@ -2331,6 +2332,12 @@ void UAbilitySystemComponent::OnRep_ReplicatedAnimMontage()
 			// Only check threshold if we are located in the same section. Different sections require a bit more work as we could be jumping around the timeline.
 			if ((CurrentSectionID == RepSectionID) && (FMath::Abs(CurrentPosition - RepAnimMontageInfo.Position) > MONTAGE_REP_POS_ERR_THRESH) && RepAnimMontageInfo.IsStopped == 0)
 			{
+				// fast forward to server position and trigger notifies
+				if (FAnimMontageInstance* MontageInstance = AnimInstance->GetActiveInstanceForMontage(*RepAnimMontageInfo.AnimMontage))
+				{
+					MontageInstance->HandleEvents(CurrentPosition, RepAnimMontageInfo.Position, nullptr);
+					AnimInstance->TriggerAnimNotifies(0.f);
+				}
 				AnimInstance->Montage_SetPosition(LocalAnimMontageInfo.AnimMontage, RepAnimMontageInfo.Position);
 			}
 
@@ -2710,7 +2717,7 @@ void UAbilitySystemComponent::ClientSetReplicatedEvent_Implementation(EAbilityGe
 
 // -------
 
-void UAbilitySystemComponent::ServerSetReplicatedTargetData_Implementation(FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey, FGameplayAbilityTargetDataHandle ReplicatedTargetDataHandle, FGameplayTag ApplicationTag, FPredictionKey CurrentPredictionKey)
+void UAbilitySystemComponent::ServerSetReplicatedTargetData_Implementation(FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey, const FGameplayAbilityTargetDataHandle& ReplicatedTargetDataHandle, FGameplayTag ApplicationTag, FPredictionKey CurrentPredictionKey)
 {
 	FScopedPredictionWindow ScopedPrediction(this, CurrentPredictionKey);
 
@@ -2733,7 +2740,7 @@ void UAbilitySystemComponent::ServerSetReplicatedTargetData_Implementation(FGame
 	ReplicatedData.TargetSetDelegate.Broadcast(ReplicatedData.TargetData, ReplicatedData.ApplicationTag);
 }
 
-bool UAbilitySystemComponent::ServerSetReplicatedTargetData_Validate(FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey, FGameplayAbilityTargetDataHandle ReplicatedTargetDataHandle, FGameplayTag ApplicationTag, FPredictionKey CurrentPredictionKey)
+bool UAbilitySystemComponent::ServerSetReplicatedTargetData_Validate(FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey, const FGameplayAbilityTargetDataHandle& ReplicatedTargetDataHandle, FGameplayTag ApplicationTag, FPredictionKey CurrentPredictionKey)
 {
 	return true;
 }

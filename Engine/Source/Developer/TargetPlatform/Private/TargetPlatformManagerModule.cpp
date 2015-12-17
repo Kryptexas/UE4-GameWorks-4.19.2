@@ -953,7 +953,7 @@ RETRY_SETUPANDVALIDATE:
 
 private:
 
-	void SetupEnvironmentVariables(TArray<FString> &EnvVarNames, TArray<FString> EnvVarValues)
+	void SetupEnvironmentVariables(TArray<FString> &EnvVarNames, const TArray<FString>& EnvVarValues)
 	{
 		for (int i = 0; i < EnvVarNames.Num(); ++i)
 		{

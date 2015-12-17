@@ -374,7 +374,7 @@ public:
 	,	LandscapeProxy(InLandscapeProxy)
 	,	ComponentSizeQuads(InLandscapeProxy->ComponentSizeQuads)
 	,	ComponentSizeVerts(ComponentSizeQuads + 1)
-	,	GrassTypes(InGrassTypes)
+	,	GrassTypes(MoveTemp(InGrassTypes))
 	,	RenderTargetTexture(nullptr)
 	{
 		check(InLandscapeComponents.Num());

@@ -252,11 +252,23 @@ void AddRadialForceToPxRigidBody_AssumesLocked(PxRigidBody& PRigidBody, const FV
 #endif // WITH_PHYSX
 }
 
-bool IsRigidBodyNonKinematic_AssumesLocked(const PxRigidBody* PRigidBody)
+bool IsRigidBodyKinematic_AssumesLocked(const PxRigidBody* PRigidBody)
 {
 	if (PRigidBody)
 	{
-		return !(PRigidBody->getRigidBodyFlags() & PxRigidBodyFlag::eKINEMATIC);
+		//For some cases we only consider an actor kinematic if it's in the simulation scene. This is in cases where we set a kinematic target
+		return (PRigidBody->getRigidBodyFlags() & PxRigidBodyFlag::eKINEMATIC);
+	}
+
+	return false;
+}
+
+bool IsRigidBodyKinematicAndInSimulationScene_AssumesLocked(const PxRigidBody* PRigidBody)
+{
+	if (PRigidBody)
+	{
+		//For some cases we only consider an actor kinematic if it's in the simulation scene. This is in cases where we set a kinematic target
+		return (PRigidBody->getRigidBodyFlags() & PxRigidBodyFlag::eKINEMATIC) && !(PRigidBody->getActorFlags() & PxActorFlag::eDISABLE_SIMULATION);
 	}
 
 	return false;

@@ -849,9 +849,6 @@ ENavigationQueryResult::Type FPImplRecastNavMesh::FindPath(const FVector& StartL
 		return ENavigationQueryResult::Error;
 	}
 
-	// initialize output
-	Path.Reset();
-
 	// get path corridor
 	dtQueryResult PathResult;
 	const dtStatus FindPathStatus = NavQuery.findPath(StartPolyID, EndPolyID, &RecastStartPos.X, &RecastEndPos.X, QueryFilter, PathResult, 0);
