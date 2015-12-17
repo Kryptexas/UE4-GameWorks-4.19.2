@@ -391,8 +391,8 @@ void FAnimationRuntime::BlendPosesTogetherPerBone(const TFixedSizeArrayView<FCom
 	if (SourceCurves.Num() > 0)
 	{
 		TArray<float, TInlineAllocator<16>> SourceWeights;
-		SourceWeights.AddUninitialized(BlendSampleDataCache.Num());
-		for (int32 CacheIndex = 0; CacheIndex < BlendSampleDataCache.Num(); ++CacheIndex)
+		SourceWeights.AddUninitialized(BlendSampleDataCacheIndices.Num());
+		for (int32 CacheIndex = 0; CacheIndex < BlendSampleDataCacheIndices.Num(); ++CacheIndex)
 		{
 			SourceWeights[CacheIndex] = BlendSampleDataCache[BlendSampleDataCacheIndices[CacheIndex]].TotalWeight;
 		}
