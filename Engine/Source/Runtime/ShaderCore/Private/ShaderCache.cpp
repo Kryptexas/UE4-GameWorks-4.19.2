@@ -1733,31 +1733,34 @@ FTextureRHIRef FShaderCache::CreateTexture(FShaderTextureKey const& TextureKey, 
 	{
 		FRHIResourceCreateInfo Info;
 		
+		// Remove the presentable flag if present because it will be wrong during pre-draw and will cause some RHIs (e.g. Metal) to crash because it is invalid without an attached viewport.
+		uint32 Flags = (TextureKey.Flags & ~(TexCreate_Presentable));
+		
 		switch(TextureKey.Type)
 		{
 			case SCTT_Texture2D:
 			{
-				Tex = RHICreateTexture2D(TextureKey.X, TextureKey.Y, TextureKey.Format, TextureKey.MipLevels, TextureKey.Samples, TextureKey.Flags, Info);
+				Tex = RHICreateTexture2D(TextureKey.X, TextureKey.Y, TextureKey.Format, TextureKey.MipLevels, TextureKey.Samples, Flags, Info);
 				break;
 			}
 			case SCTT_Texture2DArray:
 			{
-				Tex = RHICreateTexture2DArray(TextureKey.X, TextureKey.Y, TextureKey.Z, TextureKey.Format, TextureKey.MipLevels, TextureKey.Flags, Info);
+				Tex = RHICreateTexture2DArray(TextureKey.X, TextureKey.Y, TextureKey.Z, TextureKey.Format, TextureKey.MipLevels, Flags, Info);
 				break;
 			}
 			case SCTT_Texture3D:
 			{
-				Tex = RHICreateTexture3D(TextureKey.X, TextureKey.Y, TextureKey.Z, TextureKey.Format, TextureKey.MipLevels, TextureKey.Flags, Info);
+				Tex = RHICreateTexture3D(TextureKey.X, TextureKey.Y, TextureKey.Z, TextureKey.Format, TextureKey.MipLevels, Flags, Info);
 				break;
 			}
 			case SCTT_TextureCube:
 			{
-				Tex = RHICreateTextureCube(TextureKey.X, TextureKey.Format, TextureKey.MipLevels, TextureKey.Flags, Info);
+				Tex = RHICreateTextureCube(TextureKey.X, TextureKey.Format, TextureKey.MipLevels, Flags, Info);
 				break;
 			}
 			case SCTT_TextureCubeArray:
 			{
-				Tex = RHICreateTextureCubeArray(TextureKey.X, TextureKey.Z, TextureKey.Format, TextureKey.MipLevels, TextureKey.Flags, Info);
+				Tex = RHICreateTextureCubeArray(TextureKey.X, TextureKey.Z, TextureKey.Format, TextureKey.MipLevels, Flags, Info);
 				break;
 			}
 			case SCTT_Buffer:
