@@ -963,6 +963,7 @@ AActor *UFbxSceneImportFactory::CreateActorComponentsHierarchy(TSharedPtr<FFbxSc
 		else
 		{
 			//TODO log which fbx attribute we cannot create an actor from
+			continue;
 		}
 
 		//////////////////////////////////////////////////////////////////////////
