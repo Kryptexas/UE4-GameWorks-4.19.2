@@ -15,26 +15,29 @@ namespace UnrealBuildTool
 	/// </summary>
 	class BaseWindowsDeploy : UEBuildDeploy
 	{
-		public bool PrepForUATPackageOrDeploy(string InProjectName, string InProjectDirectory, string InExecutablePath, string InEngineDir, bool bForDistribution, string CookFlavor)
-		{
-			// set the icon on the original exe this will be used in the task bar when the bootstrap exe runs
-			if (File.Exists(Path.Combine(InProjectDirectory, "Build/Windows/Application.ico")))
-			{
-				GroupIconResource GroupIcon = null;
-				GroupIcon = GroupIconResource.FromIco(Path.Combine(InProjectDirectory, "Build/Windows/Application.ico"));
 
-				// Update the icon on the original exe because this will be used when the game is running in the task bar
-				using (ModuleResourceUpdate Update = new ModuleResourceUpdate(InExecutablePath, false))
-				{
-					const int IconResourceId = 101;
-					if (GroupIcon != null)
-					{
-						Update.SetIcons(IconResourceId, GroupIcon);
-					}
-				}
-			}
-			return true;
-		}
+        // public virtual bool PrepForUATPackageOrDeploy(FileReference ProjectFile, string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bIsDataDeploy)
+        public override bool PrepForUATPackageOrDeploy(FileReference ProjectFile, string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bIsDataDeploy)
+        {
+            // set the icon on the original exe this will be used in the task bar when the bootstrap exe runs
+            if (File.Exists(Path.Combine(ProjectDirectory, "Build/Windows/Application.ico")))
+            {
+                GroupIconResource GroupIcon = null;
+                GroupIcon = GroupIconResource.FromIco(Path.Combine(ProjectDirectory, "Build/Windows/Application.ico"));
+
+                // Update the icon on the original exe because this will be used when the game is running in the task bar
+                using (ModuleResourceUpdate Update = new ModuleResourceUpdate(ExecutablePath, false))
+                {
+                    const int IconResourceId = 101;
+                    if (GroupIcon != null)
+                    {
+                        Update.SetIcons(IconResourceId, GroupIcon);
+                    }
+                }
+            }
+            return true;
+        }
+
 
 
 
