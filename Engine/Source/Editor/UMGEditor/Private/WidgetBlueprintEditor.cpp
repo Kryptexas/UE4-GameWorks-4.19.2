@@ -569,7 +569,7 @@ TSharedPtr<ISequencer>& FWidgetBlueprintEditor::GetSequencer()
 			SequencerInitParams.ViewParams = ViewParams;
 			SequencerInitParams.RootSequence = NullAnimation;
 			SequencerInitParams.bEditWithinLevelEditor = false;
-			SequencerInitParams.ToolkitHost = nullptr;
+			SequencerInitParams.ToolkitHost = GetToolkitHost();
 		};
 
 		Sequencer = FModuleManager::LoadModuleChecked<ISequencerModule>("Sequencer").CreateSequencer(SequencerInitParams);
@@ -677,7 +677,11 @@ void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForc
 	}
 
 	OnWidgetPreviewUpdated.Broadcast();
-	Sequencer->UpdateRuntimeInstances();
+
+	if (Sequencer.IsValid())
+	{
+		Sequencer->UpdateRuntimeInstances();
+	}
 }
 
 FGraphAppearanceInfo FWidgetBlueprintEditor::GetGraphAppearance(UEdGraph* InGraph) const
