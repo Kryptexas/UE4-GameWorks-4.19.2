@@ -2,7 +2,7 @@
 
 
 #include "EnginePrivate.h"
-#include "AutomationTests/AutomationTestSettings.h"
+#include "Tests/AutomationTestSettings.h"
 
 #if WITH_EDITOR
 #include "FileHelpers.h"
@@ -477,4 +477,12 @@ bool FAutomationLogAddError::RunTest(const FString& Parameters)
 	TestEqual<FString>(TEXT("Test error message was not added to the ExecutionInfo.Error array."), CurrentErrorMessage, TEXT("Test error message"));
 	
 	return true;
+}
+
+/* UAutomationTestSettings interface
+ *****************************************************************************/
+
+UAutomationTestSettings::UAutomationTestSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
+{
 }

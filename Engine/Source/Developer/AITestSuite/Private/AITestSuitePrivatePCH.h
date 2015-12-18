@@ -32,7 +32,7 @@
 
 #include "BTBuilder.h"
 
-#include "AITests/AITestsCommon.h"
+#include "Tests/AITestsCommon.h"
 
 #include "Actions/TestPawnAction_Log.h"
 

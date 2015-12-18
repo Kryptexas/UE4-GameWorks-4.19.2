@@ -2,7 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "AutomationTestCommon.h"
-#include "AutomationTests/AutomationTestSettings.h"
+#include "Tests/AutomationTestSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBaseAutomationTests, Log, All);
 

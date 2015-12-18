@@ -3,7 +3,7 @@
 #pragma once
 // Automation
 #include "AutomationCommon.h"
-#include "AutomationTests/AutomationTestSettings.h"
+#include "Tests/AutomationTestSettings.h"
 
 //Materials
 

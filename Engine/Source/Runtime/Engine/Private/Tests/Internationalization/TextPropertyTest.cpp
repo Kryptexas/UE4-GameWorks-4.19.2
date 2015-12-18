@@ -1,8 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Misc/AutomationTest.h"
-#include "AutomationTests/TextPropertyTestObject.h"
+#include "Tests/TextPropertyTestObject.h"
 
 #define LOCTEXT_NAMESPACE "TextPropertyTest"
 

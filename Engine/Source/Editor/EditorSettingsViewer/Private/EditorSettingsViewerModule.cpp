@@ -11,7 +11,7 @@
 #include "ModuleManager.h"
 #include "SDockTab.h"
 
-#include "AutomationTests/AutomationTestSettings.h"
+#include "Tests/AutomationTestSettings.h"
 #include "BlueprintEditorSettings.h"
 
 #include "CrashReporterSettings.h"

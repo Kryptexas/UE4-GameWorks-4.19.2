@@ -3,7 +3,7 @@
 #include "CascadeModule.h"
 
 //Automation
-#include "AutomationTests/AutomationTestSettings.h"
+#include "Tests/AutomationTestSettings.h"
 #include "AutomationEditorCommon.h"
 #include "AutomationEditorPromotionCommon.h"
 

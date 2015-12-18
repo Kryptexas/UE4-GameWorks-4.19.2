@@ -2,7 +2,7 @@
 
 #include "UnrealEd.h"
 
-#include "AutomationTests/AutomationTestSettings.h"
+#include "Tests/AutomationTestSettings.h"
 
 #if WITH_EDITOR
 #include "FileHelpers.h"

@@ -260,7 +260,7 @@
 #include "Camera/CameraStackTypes.h"
 #include "Engine/StreamableManager.h"
 #include "Engine/TextureDefines.h"
-#include "AutomationTests/TextPropertyTestObject.h"
+#include "Tests/TextPropertyTestObject.h"
 #include "Engine/TextureLODSettings.h"
 #include "DeviceProfiles/DeviceProfileManager.h"
 #include "Engine/Texture.h"

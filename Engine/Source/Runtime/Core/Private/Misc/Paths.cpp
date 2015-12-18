@@ -7,7 +7,6 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogPaths, Log, All);
 
-FString FPaths::GameProjectFilePath;
 
 /*-----------------------------------------------------------------------------
 	Path helpers for retrieving game dir, engine dir, etc.
