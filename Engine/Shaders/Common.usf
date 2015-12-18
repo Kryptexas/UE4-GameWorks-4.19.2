@@ -1067,8 +1067,11 @@ float3 SvPositionToTranslatedWorld(float4 SvPosition)
 // Used for vertex factory shaders which need to use the resolved view
 float3 SvPositionToResolvedTranslatedWorld(float4 SvPosition)
 {
+#if COMPILER_HLSLCC
+	float4 HomWorldPos = mul(float4(SvPosition.xyz, 1), View.SVPositionToTranslatedWorld);
+#else
 	float4 HomWorldPos = mul(float4(SvPosition.xyz, 1), ResolvedView.SVPositionToTranslatedWorld);
-
+#endif
 	return HomWorldPos.xyz / HomWorldPos.w;
 }
 

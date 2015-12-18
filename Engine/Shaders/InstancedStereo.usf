@@ -97,7 +97,9 @@ ViewDependentState ResolveView()
 	return Result;
 }
 
+#if !COMPILER_HLSLCC
 static ViewDependentState ResolvedView;
+#endif
 
 #if INSTANCED_STEREO
 static const float EyeOffsetScale[2] = { -0.5, 0.5 };
