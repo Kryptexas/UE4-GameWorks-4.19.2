@@ -72,7 +72,7 @@ float FGenericPlatformMath::Atan2(float Y, float X)
 	return t3;
 }
 
-float TheCompilerDoesntKnowThisIsAlwaysZero = 0.0f;
+extern float TheCompilerDoesntKnowThisIsAlwaysZero;
 
 void FGenericPlatformMath::AutoTest() 
 {
