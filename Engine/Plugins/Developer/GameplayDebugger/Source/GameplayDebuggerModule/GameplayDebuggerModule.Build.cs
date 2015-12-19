@@ -73,6 +73,8 @@ namespace UnrealBuildTool.Rules
                 PrivateIncludePaths.Add("Editor/DetailCustomizations/Private");
                 PrivateIncludePaths.Add("Editor/PropertyEditor/Private");
             }
+
+			PrecompileForTargets = PrecompileTargetsType.Editor;
         }
 	}
 }

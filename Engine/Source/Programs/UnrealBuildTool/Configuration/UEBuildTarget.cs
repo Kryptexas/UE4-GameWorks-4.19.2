@@ -2000,12 +2000,10 @@ namespace UnrealBuildTool
 				var DependencyModules = Binary.GetAllDependencyModules(bIncludeDynamicallyLoaded: false, bForceCircular: false);
 				foreach (var Module in DependencyModules.OfType<UEBuildModuleCPP>())
 				{
-					if (Module.Binary == null)
+					if (Module.Binary != null)
 					{
-						throw new BuildException("Expecting module {0} to have a binary set", Module.Name);
+						Output.Add(Module);
 					}
-
-					Output.Add(Module);
 				}
 			}
 
@@ -2899,6 +2897,9 @@ namespace UnrealBuildTool
 				// If we're precompiling a base engine target, create binaries for all the engine modules that are compatible with it.
 				if (bPrecompile && ProjectFile == null && TargetType != TargetRules.TargetType.Program)
 				{
+					// Whether to build static libraries for developer modules. Currently disabled to reduce the size of installed builds.
+					bool bIncludeDeveloperModules = (TargetType == TargetRules.TargetType.Editor); // UEBuildConfiguration.bBuildDeveloperTools
+
 					// Find all the known module names in this assembly
 					List<string> ModuleNames = new List<string>();
 					RulesAssembly.GetAllModuleNames(ModuleNames);
@@ -2927,15 +2928,18 @@ namespace UnrealBuildTool
 
 					// Find all the directories containing engine modules that may be compatible with this target
 					List<DirectoryReference> Directories = new List<DirectoryReference>();
-					if (TargetType == TargetRules.TargetType.Editor)
+					if(bIncludeDeveloperModules)
 					{
 						Directories.Add(DirectoryReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Developer"));
+					}
+					if (TargetType == TargetRules.TargetType.Editor)
+					{
 						Directories.Add(DirectoryReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Editor"));
 					}
 					Directories.Add(DirectoryReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Runtime"));
 
 					// Find all the modules that are not part of the standard set
-					List<string> CompatibleModuleNames = new List<string>();
+					HashSet<string> FilteredModuleNames = new HashSet<string>();
 					foreach (string ModuleName in ModuleNames)
 					{
 						FileReference ModuleFileName = RulesAssembly.GetModuleFileName(ModuleName);
@@ -2944,68 +2948,71 @@ namespace UnrealBuildTool
 							string RelativeFileName = ModuleFileName.MakeRelativeTo(UnrealBuildTool.EngineSourceDirectory);
 							if (!ExcludeFolders.Any(x => RelativeFileName.Contains(x)) && !PrecompiledModules.Any(x => x.Name == ModuleName))
 							{
-								// Try to create the rules object, but catch any exceptions if it fails. Some modules (eg. SQLite) may determine that they are unavailable in the constructor.
-								ModuleRules Rules;
-								try
-								{
-									Rules = RulesAssembly.CreateModuleRules(ModuleName, TargetInfo);
-								}
-								catch (BuildException)
-								{
-									Rules = null;
-								}
+								FilteredModuleNames.Add(ModuleName);
+							}
+						}
+					}
 
-								// Figure out if it can be precompiled
-								bool bCanPrecompile = false;
-								if (Rules != null && Rules.Type == ModuleRules.ModuleType.CPlusPlus)
+					// Add all the plugins which aren't already being built
+					foreach (PluginInfo Plugin in ValidPlugins.Except(BuildPlugins))
+					{
+						if (Plugin.LoadedFrom == PluginLoadedFrom.Engine && Plugin.Descriptor.Modules != null)
+						{
+							foreach (ModuleDescriptor ModuleDescriptor in Plugin.Descriptor.Modules)
+							{
+								if (ModuleDescriptor.IsCompiledInConfiguration(Platform, TargetType, bIncludeDeveloperModules, UEBuildConfiguration.bBuildEditor))
 								{
-									switch (Rules.PrecompileForTargets)
+									string RelativeFileName = RulesAssembly.GetModuleFileName(ModuleDescriptor.Name).MakeRelativeTo(UnrealBuildTool.EngineDirectory);
+									if (!ExcludeFolders.Any(x => RelativeFileName.Contains(x)) && !PrecompiledModules.Any(x => x.Name == ModuleDescriptor.Name))
 									{
-										case ModuleRules.PrecompileTargetsType.None:
-											bCanPrecompile = false;
-											break;
-										case ModuleRules.PrecompileTargetsType.Default:
-											bCanPrecompile = true;
-											break;
-										case ModuleRules.PrecompileTargetsType.Game:
-											bCanPrecompile = (TargetType == TargetRules.TargetType.Client || TargetType == TargetRules.TargetType.Server || TargetType == TargetRules.TargetType.Game);
-											break;
-										case ModuleRules.PrecompileTargetsType.Editor:
-											bCanPrecompile = (TargetType == TargetRules.TargetType.Editor);
-											break;
+										FilteredModuleNames.Add(ModuleDescriptor.Name);
 									}
-								}
-
-								// Create the module
-								if (bCanPrecompile)
-								{
-									UEBuildModule Module = FindOrCreateModuleByName(ModuleName);
-									Module.RecursivelyCreateModules();
-									PrecompiledModules.Add(Module);
 								}
 							}
 						}
 					}
 
-					// Add all the plugin binaries that need to be precompiled
-					List<PluginInfo> PrecompilePlugins = ValidPlugins.Except(BuildPlugins).ToList();
-					foreach (PluginInfo PrecompilePlugin in PrecompilePlugins)
+					// Create rules for each remaining module, and check that it's set to be precompiled
+					foreach(string FilteredModuleName in FilteredModuleNames)
 					{
-						if (PrecompilePlugin.LoadedFrom == PluginLoadedFrom.Engine && PrecompilePlugin.Descriptor.Modules != null)
+						// Try to create the rules object, but catch any exceptions if it fails. Some modules (eg. SQLite) may determine that they are unavailable in the constructor.
+						ModuleRules Rules;
+						try
 						{
-							foreach (ModuleDescriptor ModuleDescriptor in PrecompilePlugin.Descriptor.Modules)
+							Rules = RulesAssembly.CreateModuleRules(FilteredModuleName, TargetInfo);
+						}
+						catch (BuildException)
+						{
+							Rules = null;
+						}
+
+						// Figure out if it can be precompiled
+						bool bCanPrecompile = false;
+						if (Rules != null && Rules.Type == ModuleRules.ModuleType.CPlusPlus)
+						{
+							switch (Rules.PrecompileForTargets)
 							{
-								if (ModuleDescriptor.IsCompiledInConfiguration(Platform, TargetType, UEBuildConfiguration.bBuildDeveloperTools, UEBuildConfiguration.bBuildEditor))
-								{
-									string ModuleRelativePath = RulesAssembly.GetModuleFileName(ModuleDescriptor.Name).MakeRelativeTo(UnrealBuildTool.EngineSourceDirectory);
-									if (!ExcludeFolders.Any(x => ModuleRelativePath.Contains(x)))
-									{
-										UEBuildModule Module = (UEBuildModuleCPP)FindOrCreateModuleByName(ModuleDescriptor.Name);
-										Module.RecursivelyCreateModules();
-										PrecompiledModules.Add(Module);
-									}
-								}
+								case ModuleRules.PrecompileTargetsType.None:
+									bCanPrecompile = false;
+									break;
+								case ModuleRules.PrecompileTargetsType.Default:
+									bCanPrecompile = true;
+									break;
+								case ModuleRules.PrecompileTargetsType.Game:
+									bCanPrecompile = (TargetType == TargetRules.TargetType.Client || TargetType == TargetRules.TargetType.Server || TargetType == TargetRules.TargetType.Game);
+									break;
+								case ModuleRules.PrecompileTargetsType.Editor:
+									bCanPrecompile = (TargetType == TargetRules.TargetType.Editor);
+									break;
 							}
+						}
+
+						// Create the module
+						if (bCanPrecompile)
+						{
+							UEBuildModule Module = FindOrCreateModuleByName(FilteredModuleName);
+							Module.RecursivelyCreateModules();
+							PrecompiledModules.Add(Module);
 						}
 					}
 				}
