@@ -204,13 +204,6 @@ namespace UnrealBuildTool
 		public virtual void CreateAllDependentModules() { }
 
 		/// <summary>
-		/// Called to resolve module names and uniquely bind modules to a binary.
-		/// </summary>
-		/// <param name="BuildTarget">The build target the modules are being bound for</param>
-		/// <param name="Target">The target info</param>
-		public virtual void BindModules() { }
-
-		/// <summary>
 		/// Builds the binary.
 		/// </summary>
 		/// <param name="ToolChain">The toolchain which to use for building</param>
@@ -255,14 +248,6 @@ namespace UnrealBuildTool
 		public virtual List<UEBuildModule> GetAllDependencyModules(bool bIncludeDynamicallyLoaded, bool bForceCircular)
 		{
 			return new List<UEBuildModule>();
-		}
-
-		/// <summary>
-		/// Process all modules that aren't yet bound, creating binaries for modules that don't yet have one (if needed),
-		/// and updating modules for circular dependencies.
-		/// </summary>
-		public virtual void ProcessUnboundModules()
-		{
 		}
 
 		/// <summary>
@@ -458,31 +443,6 @@ namespace UnrealBuildTool
 			}
 		}
 
-
-		/// <summary>
-		/// Called to resolve module names and uniquely bind modules to a binary.
-		/// </summary>
-		/// <param name="BuildTarget">The build target the modules are being bound for</param>
-		/// <param name="Target">The target info</param>
-		public override void BindModules()
-		{
-			foreach (var Module in Modules)
-			{
-				if (Config.bHasModuleRules)
-				{
-					if (Module.Binary == null)
-					{
-						Module.Binary = this;
-						Module.bIncludedInTarget = true;
-					}
-					else if (Module.Binary.Config.Type != UEBuildBinaryType.StaticLibrary)
-					{
-						throw new BuildException("Module \"{0}\" linked into both {1} and {2}, which creates ambiguous linkage for dependents.", Module.Name, Module.Binary.Config.OutputFilePath, Config.OutputFilePath);
-					}
-				}
-			}
-		}
-
 		/// <summary>
 		/// Generates a list of all modules referenced by this binary
 		/// </summary>
@@ -505,23 +465,6 @@ namespace UnrealBuildTool
 			}
 
 			return ReferencedModules.Values.OrderBy(M => M.Index).Select(M => M.Module).ToList();
-		}
-
-		/// <summary>
-		/// Process all modules that aren't yet bound, creating binaries for modules that don't yet have one (if needed),
-		/// and updating modules for circular dependencies.
-		/// </summary>
-		/// <returns>List of newly-created binaries (may be empty)</returns>
-		public override void ProcessUnboundModules()
-		{
-			if (Config.bHasModuleRules)
-			{
-				// Modules may be added to this binary during this process, so don't foreach over ModuleNames
-				foreach (UEBuildModule Module in Modules)
-				{
-					Module.RecursivelyProcessUnboundModules();
-				}
-			}
 		}
 
 		/// <summary>
