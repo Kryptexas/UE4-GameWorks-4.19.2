@@ -65,6 +65,9 @@ public class UnrealLightmass : ModuleRules
             PublicIncludePaths.Add(SDKDir + "include");
             PublicLibraryPaths.Add(SDKDir + "lib");
             PublicAdditionalLibraries.Add("embree.lib");
+			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Win64/embree.dll"));
+			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Win64/tbb.dll"));
+			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Win64/tbbmalloc.dll"));
             Definitions.Add("USE_EMBREE=1");
         }
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
