@@ -2997,9 +2997,13 @@ namespace UnrealBuildTool
 							{
 								if (ModuleDescriptor.IsCompiledInConfiguration(Platform, TargetType, UEBuildConfiguration.bBuildDeveloperTools, UEBuildConfiguration.bBuildEditor))
 								{
-									UEBuildModule Module = (UEBuildModuleCPP)FindOrCreateModuleByName(ModuleDescriptor.Name);
-									Module.RecursivelyCreateModules();
-									PrecompiledModules.Add(Module);
+									string ModuleRelativePath = RulesAssembly.GetModuleFileName(ModuleDescriptor.Name).MakeRelativeTo(UnrealBuildTool.EngineSourceDirectory);
+									if (!ExcludeFolders.Any(x => ModuleRelativePath.Contains(x)))
+									{
+										UEBuildModule Module = (UEBuildModuleCPP)FindOrCreateModuleByName(ModuleDescriptor.Name);
+										Module.RecursivelyCreateModules();
+										PrecompiledModules.Add(Module);
+									}
 								}
 							}
 						}
