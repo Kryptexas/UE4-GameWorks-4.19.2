@@ -1729,6 +1729,13 @@ com_start:
                 goto  end_line;
             default:                        /* Not a comment        */
 not_comment:
+// EPIC BEGIN
+				if (limit < tp) {
+					cfatal( "Failed to parse non-comment and wrote beyond temp area"     /* _F_  */
+						   , NULL, 0L, NULL);
+					*tp = EOS;
+				}
+// EPIC END
                 *tp++ = '/';
                 sp--;                       /* To re-read           */
                 break;
