@@ -76,6 +76,9 @@ public class UnrealLightmass : ModuleRules
 
             PublicIncludePaths.Add(SDKDir + "include");
             PublicAdditionalLibraries.Add(SDKDir + "lib/libembree.2.dylib");
+			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Mac/libembree.2.dylib"));
+			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Mac/libtbb.dylib"));
+			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Mac/libtbbmalloc.dylib"));
             Definitions.Add("USE_EMBREE=1");
 		}
         else
