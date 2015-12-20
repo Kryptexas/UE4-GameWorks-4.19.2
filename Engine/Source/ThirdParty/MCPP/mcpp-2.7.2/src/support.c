@@ -1750,17 +1750,24 @@ not_comment:
                     , NULL, (long) c, NULL);
         case '\t':                          /* Horizontal space     */
         case ' ':
+// EPIC BEGIN
+			if (limit < tp) {
+				cfatal( "Failed to parse space and wrote beyond temp area"     /* _F_  */
+					   , NULL, 0L, NULL);
+				*tp = EOS;
+			}
             if (keep_spaces) {
                 if (c == '\t')
                     *tp++ = '\t';
                 else
-                    *tp++ = ' ';            /* Convert to ' '       */
-            } else if (! (char_type[ *(tp - 1) & UCHARMAX] & HSP)) {
+					*tp++ = ' ';            /* Convert to ' '       */
+            } else if (tp > temp && !(char_type[ *(tp - 1) & UCHARMAX] & HSP)) {
                 *tp++ = ' ';                /* Squeeze white spaces */
-            } else if (mcpp_mode == OLD_PREP && *(tp - 1) == COM_SEP) {
+            } else if (mcpp_mode == OLD_PREP && tp > temp && *(tp - 1) == COM_SEP) {
                 *(tp - 1) = ' ';    /* Replace COM_SEP with ' '     */
             }
-            break;
+// EPIC END
+			break;
         case '"':                           /* String literal       */
         case '\'':                          /* Character constant   */
             infile->bptr = sp;
