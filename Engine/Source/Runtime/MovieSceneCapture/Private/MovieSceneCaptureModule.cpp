@@ -14,6 +14,7 @@
 #if WITH_EDITOR
 	#include "EditorStyle.h"
 	#include "Editor.h"
+	#include "FileHelpers.h"
 	#include "PropertyEditing.h"
 #endif
 
