@@ -74,7 +74,7 @@ void UMovieSceneCapture::StartCapture()
 {
 	if (!CaptureStrategy.IsValid())
 	{
-		CaptureStrategy = MakeShareable(new FRealTimeCaptureStrategy(Settings.FrameRate));
+		CaptureStrategy = MakeShareable(new FFixedTimeStepCaptureStrategy(Settings.FrameRate));
 	}
 
 	CaptureStrategy->OnStart();
@@ -94,6 +94,9 @@ void UMovieSceneCapture::StartCapture()
 	CachedMetrics.Height = Viewport->GetSizeXY().Y;
 
 	Viewport->SetMovieSceneCapture(Handle);
+
+	// Ensure the destination folder exists
+	FPlatformFileManager::Get().GetPlatformFile().CreateDirectory(*Settings.OutputDirectory.Path);
 
 	if (Settings.CaptureType == EMovieCaptureType::AVI)
 	{

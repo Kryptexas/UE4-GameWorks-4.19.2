@@ -334,6 +334,11 @@ void UGameEngine::SwitchGameWindowToUseGameViewport()
 		if( !GameViewportWidget.IsValid() )
 		{
 			CreateGameViewport( GameViewport );
+			// Temp fix for 4.10 - ensure the viewport is bound to a movie capture implementation if required
+			if (StartupMovieCaptureHandle.IsValid())
+			{
+				SceneViewport->GetViewport()->SetMovieSceneCapture(StartupMovieCaptureHandle);
+			}
 		}
 		
 		TSharedRef<SViewport> GameViewportWidgetRef = GameViewportWidget.ToSharedRef();
@@ -473,7 +478,6 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 		if (MovieSceneCaptureImpl)
 		{
 			StartupMovieCaptureHandle = MovieSceneCaptureImpl->GetHandle();
-			GameInstance->InitialMapOverride = MovieSceneCaptureImpl->GetPackageName();
 		}
 	}
 #endif
@@ -501,6 +505,12 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 		}
 
 		CreateGameViewport( ViewportClient );
+
+		// Temp fix for 4.10 - ensure the viewport is bound to a movie capture implementation if required
+		if (StartupMovieCaptureHandle.IsValid())
+		{
+			ViewportClient->Viewport->SetMovieSceneCapture(StartupMovieCaptureHandle);
+		}
 
 		if( !bWindowAlreadyExists )
 		{

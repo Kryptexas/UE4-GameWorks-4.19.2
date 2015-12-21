@@ -465,10 +465,24 @@ private:
 
 	FText OnStartCapture(UMovieSceneCapture* CaptureObject)
 	{
+#if !WITH_EDITOR
+		return LOCTEXT("NotInEditor", "Unable to start capturing when not built with the editor.");
+#else
 		if (InProgressCaptureNotification.IsValid())
 		{
 			return LOCTEXT("AlreadyCapturing", "There is already a movie scene capture process open. Please close it and try again.");
 		}
+
+		// Prompt the user to save their changes so that they'll be in the movie, since we're not saving temporary copies of the level.
+		bool bPromptUserToSave = true;
+		bool bSaveMapPackages = true;
+		bool bSaveContentPackages = true;
+		if( !FEditorFileUtils::SaveDirtyPackages( bPromptUserToSave, bSaveMapPackages, bSaveContentPackages ) )
+		{
+			return LOCTEXT( "UserCancelled", "Capturing was cancelled from the save dialog." );
+		}
+
+		const FString WorldPackageName = GWorld->GetOutermost()->GetName();
 
 		// If buffer visualization dumping is enabled, we need to tell capture process to enable it too
 		static const auto CVarDumpFrames = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BufferVisualizationDumpFrames"));
@@ -541,14 +555,15 @@ private:
 
 		CaptureObject->SaveConfig();
 
+
 		FString Params;
 		if (FPaths::IsProjectFilePathSet())
 		{
-			Params = FString::Printf(TEXT("\"%s\" %s %s"), *FPaths::GetProjectFilePath(), *EditorCommandLine, *FCommandLine::GetSubprocessCommandline());
+			Params = FString::Printf(TEXT("\"%s\" \"%s\" %s %s"), *FPaths::GetProjectFilePath(), *WorldPackageName, *EditorCommandLine, *FCommandLine::GetSubprocessCommandline());
 		}
 		else
 		{
-			Params = FString::Printf(TEXT("%s %s %s"), FApp::GetGameName(), *EditorCommandLine, *FCommandLine::GetSubprocessCommandline());
+			Params = FString::Printf(TEXT("%s \"%s\" %s %s"), FApp::GetGameName(), *WorldPackageName, *EditorCommandLine, *FCommandLine::GetSubprocessCommandline());
 		}
 
 		FString GamePath = FPlatformProcess::GenerateApplicationPath(FApp::GetName(), FApp::GetBuildConfiguration());
@@ -570,6 +585,7 @@ private:
 		
 
 		return FText();
+#endif
 	}
 private:
 	/** */

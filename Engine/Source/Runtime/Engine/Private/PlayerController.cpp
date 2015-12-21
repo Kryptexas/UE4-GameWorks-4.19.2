@@ -2297,8 +2297,16 @@ void APlayerController::PostProcessInput(const float DeltaTime, const bool bGame
 
 void APlayerController::ResetIgnoreInputFlags()
 {
-	IgnoreMoveInput = GetDefault<APlayerController>()->IgnoreMoveInput;
-	IgnoreLookInput = GetDefault<APlayerController>()->IgnoreLookInput;
+	// The movement locks can be set in cinematic mode, but if a restart occurs, we don't want them to be reset.
+	if (!bCinemaDisableInputMove)
+	{
+		IgnoreMoveInput = GetDefault<APlayerController>()->IgnoreMoveInput;
+	}
+
+	if (!bCinemaDisableInputLook)
+	{
+		IgnoreLookInput = GetDefault<APlayerController>()->IgnoreLookInput;
+	}
 }
 
 void APlayerController::SetCinematicMode( bool bInCinematicMode, bool bAffectsMovement, bool bAffectsTurning)
