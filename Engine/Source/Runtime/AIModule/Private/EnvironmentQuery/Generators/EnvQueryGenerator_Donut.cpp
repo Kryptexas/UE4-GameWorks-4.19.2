@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "EnvironmentQuery/Contexts/EnvQueryContext_Querier.h"
@@ -140,7 +140,7 @@ FText UEnvQueryGenerator_Donut::GetDescriptionTitle() const
 	Args.Add(TEXT("DescriptionTitle"), Super::GetDescriptionTitle());
 	Args.Add(TEXT("DescribeContext"), UEnvQueryTypes::DescribeContext(Center));
 
-	return FText::Format(LOCTEXT("DescriptionGenerateCircleAroundContext", "{DescriptionTitle}: generate items around {DescribeContext}"), Args);
+	return FText::Format(LOCTEXT("DescriptionGenerateDonutAroundContext", "{DescriptionTitle}: generate items around {DescribeContext}"), Args);
 }
 
 FText UEnvQueryGenerator_Donut::GetDescriptionDetails() const

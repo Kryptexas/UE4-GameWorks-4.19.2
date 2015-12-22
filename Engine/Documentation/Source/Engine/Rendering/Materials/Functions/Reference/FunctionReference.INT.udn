@@ -2,9 +2,10 @@ Availability: Public
 title:Material Function Reference
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:Reference page for each of the material functions, separated by category.
+Version: 4.9
 
 
-Below is breakdown of the various material functions included within Unreal Editor by default, sorted by category.
+Below is breakdown of the various **Material Functions** included within Unreal Editor by default, sorted by category.
 
 [EXCERPT:Categories]
 [REGION:topics fourth]

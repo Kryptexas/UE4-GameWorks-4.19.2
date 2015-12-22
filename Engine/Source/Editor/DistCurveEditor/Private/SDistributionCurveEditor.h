@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -148,7 +148,7 @@ private:
 	TSharedPtr<FString> GetSelectedTab() const;
 
 	/** Helper function to iterate all selected curve keys if any are selected, otherwise all the keys in all the curves */
-	void IterateKeys(const TFunctionRef<void(int32, int32, FCurveEdEntry&, FCurveEdInterface&)>& IteratorCallback);
+	void IterateKeys(TFunctionRef<void(int32, int32, FCurveEdEntry&, FCurveEdInterface&)> IteratorCallback);
 
 private:
 	/** A list commands to execute if a user presses the corresponding keybinding in the text box */

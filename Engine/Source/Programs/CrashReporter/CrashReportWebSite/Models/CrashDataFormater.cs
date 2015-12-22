@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -257,7 +257,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				break;
 			case 3:
 				bSkipping = true;
-				LineToSkipUpto = "FDebug::Ensure";
+				LineToSkipUpto = "FDebug::";
 				break;
 			}
 

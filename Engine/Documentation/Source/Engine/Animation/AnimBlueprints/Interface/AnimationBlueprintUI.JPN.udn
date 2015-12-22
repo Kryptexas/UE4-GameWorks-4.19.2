@@ -1,39 +1,41 @@
-﻿INTSourceChangelist:2615776
+﻿INTSourceChangelist:2659802
 Availability:Public
 Title:Animation ブループリントのユーザー インターフェース
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
-Description:アニメーション ブループリントの UI の概要
+Description:Animation ブループリントの UI の概要
+バージョン：4.9
 
 [TOC(start:2 end:2)]
 
-## 概要
-
-以下のセクションでは、アニメーション ブループリントのユーザー インターフェース (UI) のエリアについて説明します。
 
 
-![](AnimGraphUI.png)(w:900)
+以下のセクションでは、Animation ブループリントのユーザー インターフェース (UI) のエリアについて説明します。
 
-1. **メニューバー**
-1. **ツールバー**
-1. **Viewport (ビューポート)**
-1. **クラス デフォルト パネル**
-1. **グラフ**
-1. **Asset Browser (アセット ブラウザ) タブ**
-1. **My Blueprint タブ**
-1. **[Details (詳細)] パネル**
-1. **Palette (パレット)**
+
+![](AnimGraphUI.png)
+
+1. メニューバー
+1. ツールバー
+1. ビューポート
+1. Anim プレビュー エディタ
+1. アセット オーバーライド エディタ
+1. グラフ
+1. Asset Browser (アセット ブラウザ) タブ
+1. My Blueprint タブ
+1. Details (詳細) パネル
+1. Palette (パレット)
 
 ##メニュー バー
 
-**メニューバー** では、保存、元に戻す、やり直し、およびいくつかのペルソナ固有のメニューなどの一般的なエディタ操作を利用できます。例えば、**Asset** メニューでは、
+**メニューバー** では、保存、元に戻す、やり直し、およびいくつかのペルソナ固有のメニューなどの一般的なエディタ操作を利用できます。例えば、**Asset Browser (アセット ブラウザ)** タブでは、
 デフォルトのプレビュー メッシュの変更、スケルトンから使用されていないボーンを取り除く、アニメーションを記録することができます。 
 
 
 ## ツールバー
 
-アニメーション ブループリントのツールバーには、他のブループリントのツールバーと同じオプションが多く含まれています。
+Animation ブループリントの **ツールバー** には、他のブループリントのツールバーと同じオプションが多くあります。
 
-![](AnimGraphUI_Toolbar.png)(w:900)
+![](AnimGraphUI_Toolbar.png)
 
 [EXCERPT:Toolbar]
 | アイテム | 説明 |
@@ -48,9 +50,9 @@ Description:アニメーション ブループリントの UI の概要
 | ![Debug Dropdown](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_debug_dropdown.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions/#DebugObject]  | 
 [/EXCERPT:Toolbar]
 
-ブループリント ツールバーに関する詳細は、[](Engine/Blueprints\Editor/UIComponents\Toolbar) をご覧ください。
+ブループリントのツールバーに関する詳細は、[](Engine/Blueprints\Editor/UIComponents\Toolbar) をご覧ください。
 
-上記のオプション以外にアニメーション ブループリント ツールバーには、ペルソナ(Persona) の様々なモードに対するタブもあります。
+上記のオプション以外に Animation ブループリント ツールバーには、ペルソナ(Persona) の様々なモード用のタブもあります。
 
 | アイテム | 説明 |
 | ---- | ----------- |
@@ -62,70 +64,70 @@ Description:アニメーション ブループリントの UI の概要
 
 
 ## ビューポート
-ビューポートには、現在の変数値によってアクティベートされたアニメーションと共にそのスケルタルメッシュが表示されます。
+**ビューポート** には、現在の変数値によってアクティベートされたアニメーションと共にそのスケルタルメッシュが表示されます。
 
 ![](AnimGraphUI_Viewport.png)
 
 ## クラスのデフォルト
 
-**[Class Defaults (クラスのデフォルト)]** パネルには、すべてのアニメーション ブループリントのすべての変数がカテゴリ別に表示されます。ここで手動で変数値を変更し、ビューポートで様々なアニメーションをプレビューし表示できます。
+**[Class Defaults (クラスのデフォルト)]** パネルには、すべての Animation ブループリントのすべての変数がカテゴリ別に表示されます。ここで手動で変数値を変更し、ビューポートで様々なアニメーションをプレビューしてテストすることができます。
 
 ![](AnimGraphUI_BPDefaults.png)
 
-詳細は、 [](Engine/Animation/Persona\BlueprintDefaults) を参照してください。
+詳細は、 [](Engine/Animation/Persona\BlueprintDefaults) をご覧ください。
 
 ## グラフ
 
-タブで表示されるグラフ パネルは、現在選択されているグラフが表示されます。
+タブで表示される **グラフ** パネルには、現在選択されているグラフが表示されます。
 
-### EventGraph（イベントグラフ）タブ
+### EventGraph タブ
 
-**[EventGraph (イベントグラフ)]** タブには、スケルタル メッシュのポーズの更新をトリガーするアニメーション イベントノードがあります。どのアニメーション アセットをいつ再生するかを決定する変数値を設定するアニメーション ノードも含まれる場合があります。
+**[EventGraph (イベントグラフ)]** タブには、スケルタル メッシュのポーズの更新をトリガーする animation event ノードがあります。どのアニメーション アセットをいつ再生するかを決定する変数値を設定するアニメーション ノードも含まれる場合があります。
 
 ![](AnimGraphUI_Graph.png)(w:900)
 
 ### [AnimGraph] タブ
 
-**[AnimGraph]** タブには、すべての実際のアニメーションとステートを、必要なアニメーション ノードにつなげるステートマシーンがあります。
+**[AnimGraph]** タブには、必要なアニメーション ノードと共に、すべての実際のアニメーションとステートをつなげるステートマシーンがあります。
 
 ![](AnimGraphUI_AnimGraph.png)
 
-ステートマシンに関する詳細については、[](Engine/Animation/StateMachines) をご覧ください。
+ステートマシンに関する詳細は、[](Engine/Animation/StateMachines) をご覧ください。
 
 [REGION:note]
-すべてのアニメーションノードを直接 **[AnimGraph]** タブに入れることもできます。しかし、維持管理しやすく単純化するには、ステートマシーン、ステート、トランジション (ルール) で構成すると効率が高まります。
+すべてのアニメーションノードを直接 [AnimGraph] タブに入れることもできます。しかし、維持管理しやすく単純化するには、ステートマシーン、ステート、トランジション (ルール) で構成すると効率が高まります。
 [/REGION]
 
 ##[Asset Browser (アセット ブラウザ)] タブ
 
-**[Asset Browser]** タブには、アニメーション ブループリントのすべてのアニメーション アセットのリストがあります。
+[Asset Browser] タブには、Animation ブループリントのすべてのアニメーション アセットのリストがあります。
 
 ![](AnimGraphUI_AssetBrowser.png)
 
-デフォルトで、グラフの下の** [My Blueprint]**タブの隣に **[アセット ブラウザ]** タブがあります。
+デフォルトで、グラフの下の **[My Blueprint]** タブの隣に [アセット ブラウザ] タブがあります。
 
 
 ## [My Blueprint] タブ
 
-**[My Blueprint]** タブには、アニメーション ブループリントのすべてのグラフと変数のリストがあります。
+[My Blueprint] タブには、Animation ブループリントのすべてのグラフと変数のリストがあります。
 
 ![](AnimGraphUI_MyBP.png)
 
-デフォルトで、グラフの下の**[アセット ブラウザ]**タブの隣に **[My Blueprint]** タブがあります。
+デフォルトで、グラフの下の **[Asset Browser]**タブの隣に **[My Blueprint]** タブがあります。
 
 
 ## [Details (詳細)] パネル
 
-**[Details** パネルには、選択した要素のプロパティが表示されます。
+**[Details (詳細)]** パネルには、選択した要素のプロパティが表示されます。
 
 ![](AnimGraphUI_Details.png)
 
-## Palette（パレット）
+## Palette
 
-**[Palette]** パネルには、アニメーション ブループリントの様々なグラフで使用可能なすべてのノードがあります。
+**[Palette (パレット)]** パネルには、Animation ブループリントの様々なグラフで使用可能なすべてのノードがあります。
 
 ![](AnimGraphUI_Palette.png)
 
 [REGION:note]
-デフォルトでは **[Palette]** は表示されない場合があります。表示されていない場合は、**[ウィンドウ]** メニューで **[Palette]** をクリックして開くことができます。
+デフォルトでは [Palette (パレット)] は表示されない場合があります。表示されていない場合は、**[ウィンドウ]** メニューで **[Palette]** をクリックして開くことができます。
 [/REGION]

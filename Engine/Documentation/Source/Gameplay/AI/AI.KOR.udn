@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2662759
 Availability:Public
-Title: AI & 비헤이비어 트리
+Title: AI 및 비헤이비어 트리
 Crumbs:%ROOT%, Engine, Gameplay
 Description:비헤이비어 트리, 내비 메시 사용법을 포함한 인공 지능 관련 정보입니다.
 
@@ -36,7 +36,7 @@ Description:비헤이비어 트리, 내비 메시 사용법을 포함한 인공 
 	* [](Engine/AI/EnvironmentQuerySystem/UserGuide "%Engine/AI/EnvironmentQuerySystem/UserGuide:description%")
 	* [](Engine/AI/EnvironmentQuerySystem/EQSPawn "%Engine/AI/EnvironmentQuerySystem/EQSPawn:description%")
 	* [](Engine/AI/EnvironmentQuerySystem/NodeReference "%Engine/AI/EnvironmentQuerySystem/NodeReference:description%")
-	* [](Engine/AI/EnvironmentQuerySystem/AskingSmartQuestions "%Engine/AI/EnvironmentQuerySystem/AskingSmartQuestions:description%")
+	<!--* [](Engine/AI/EnvironmentQuerySystem/AskingSmartQuestions "%Engine/AI/EnvironmentQuerySystem/AskingSmartQuestions:description%")-->
 	[/PARAM]
 [/OBJECT]
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "MessageLog.h"
@@ -14,6 +14,8 @@ UEditorPerProjectUserSettings::UEditorPerProjectUserSettings(const FObjectInitia
 	bMonitorEditorPerformance = true;
 	BlueprintFavorites = CreateDefaultSubobject<UBlueprintPaletteFavorites>(TEXT("BlueprintFavorites"));
 	SCSViewportCameraSpeed = 4;
+
+	SimplygonServerIP = "127.0.0.1";
 }
 
 void UEditorPerProjectUserSettings::PostInitProperties()

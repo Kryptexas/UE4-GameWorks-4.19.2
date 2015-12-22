@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BlendSpace1D.cpp: 1D BlendSpace functionality
@@ -62,7 +62,7 @@ bool UBlendSpace1D::IsSameSamplePoint(const FVector& SamplePointA, const FVector
 	return (Diff.X < Threshold);
 }
 
-void UBlendSpace1D::GetRawSamplesFromBlendInput(const FVector &BlendInput, TArray<FGridBlendSample> & OutBlendSamples) const
+void UBlendSpace1D::GetRawSamplesFromBlendInput(const FVector &BlendInput, TArray<FGridBlendSample, TInlineAllocator<4> > & OutBlendSamples) const
 {
 
 	FVector NormalizedBlendInput = GetNormalizedBlendInput(BlendInput);

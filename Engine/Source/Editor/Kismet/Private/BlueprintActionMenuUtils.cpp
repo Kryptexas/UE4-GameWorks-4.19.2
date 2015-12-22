@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintEditorPrivatePCH.h"
 #include "BlueprintActionMenuUtils.h"
@@ -293,7 +293,7 @@ static FBlueprintActionFilter BlueprintActionMenuUtilsImpl::MakeCallOnMemberFilt
 
 	bool bForceAddComponents = ((ContextTargetMask & EContextTargetFlags::TARGET_SubComponents) != 0);
 
-	TArray<UClass*> TargetClasses = MainMenuFilter.TargetClasses;
+	auto TargetClasses = MainMenuFilter.TargetClasses;
 	if (bForceAddComponents && (TargetClasses.Num() == 0))
 	{
 		for (UBlueprint const* TargetBlueprint : MainMenuFilter.Context.Blueprints)
@@ -301,13 +301,14 @@ static FBlueprintActionFilter BlueprintActionMenuUtilsImpl::MakeCallOnMemberFilt
 			UClass* BpClass = TargetBlueprint->SkeletonGeneratedClass;
 			if (BpClass != nullptr)
 			{
-				TargetClasses.AddUnique(BpClass);
+				FBlueprintActionFilter::AddUnique(TargetClasses, BpClass);
 			}
 		}
 	}
 
-	for (UClass const* TargetClass : TargetClasses)
+	for ( const auto& ClassData : TargetClasses)
 	{
+		UClass const* TargetClass = ClassData.TargetClass;
 		for (TFieldIterator<UObjectProperty> PropertyIt(TargetClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
 		{
  			UObjectProperty* ObjectProperty = *PropertyIt;
@@ -337,7 +338,7 @@ static void BlueprintActionMenuUtilsImpl::AddComponentSections(FBlueprintActionF
 	{
 		FText const ComponentName = FText::FromName(ComponentsFilter.Context.SelectedObjects.Last()->GetFName());
 		FuncSectionHeading  = FText::Format(LOCTEXT("SingleComponentFuncCategory", "Call Function on {0}"), ComponentName);
-		EventSectionHeading = FText::Format(LOCTEXT("SingleComponentFuncCategory", "Add Event for {0}"), ComponentName);
+		EventSectionHeading = FText::Format(LOCTEXT("SingleComponentEventCategory", "Add Event for {0}"), ComponentName);
 	}
 
 	FBlueprintActionFilter ComponentFunctionsFilter = ComponentsFilter;
@@ -359,7 +360,7 @@ static void BlueprintActionMenuUtilsImpl::AddLevelActorSections(FBlueprintAction
 	{
 		FText const ActorName = FText::FromName(LevelActorsFilter.Context.SelectedObjects.Last()->GetFName());
 		FuncSectionHeading  = FText::Format(LOCTEXT("SingleActorFuncCategory", "Call Function on {0}"), ActorName);
-		EventSectionHeading = FText::Format(LOCTEXT("SingleActorFuncCategory", "Add Event for {0}"), ActorName);
+		EventSectionHeading = FText::Format(LOCTEXT("SingleActorEventCategory", "Add Event for {0}"), ActorName);
 	}
 
 	FBlueprintActionFilter ActorFunctionsFilter = LevelActorsFilter;
@@ -425,7 +426,7 @@ void FBlueprintActionMenuUtils::MakePaletteMenu(FBlueprintActionContext const& C
 	
 	if (FilterClass != nullptr)
 	{
-		MenuFilter.TargetClasses.Add(FilterClass);
+		FBlueprintActionFilter::Add(MenuFilter.TargetClasses, FilterClass);
 	}
 
 	MenuOut.AddMenuSection(MenuFilter, LOCTEXT("PaletteRoot", "Library"), /*MenuOrder =*/0, FBlueprintActionMenuBuilder::ConsolidatePropertyActions);
@@ -480,7 +481,7 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 			bCanOperateOnLevelActors &= BlueprintClass->IsChildOf<ALevelScriptActor>();
 			if (bIsContextSensitive && (ClassTargetMask & EContextTargetFlags::TARGET_Blueprint))
 			{
-				MainMenuFilter.TargetClasses.AddUnique(BlueprintClass);
+				FBlueprintActionFilter::AddUnique(MainMenuFilter.TargetClasses, BlueprintClass);
 			}
 		}
 		bCanHaveActorComponents &= FBlueprintEditorUtils::DoesSupportComponents(Blueprint);
@@ -567,7 +568,7 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 			{
 				if (ClassTargetMask & EContextTargetFlags::TARGET_PinObject)
 				{
-					MainMenuFilter.TargetClasses.AddUnique(PinObjClass);
+					FBlueprintActionFilter::AddUnique(MainMenuFilter.TargetClasses, PinObjClass);
 				}
 			}
 
@@ -579,7 +580,7 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 				{
 					if (UClass* TargetClass = GetPinClassType(TargetPin))
 					{
-						MainMenuFilter.TargetClasses.AddUnique(TargetClass);
+						FBlueprintActionFilter::AddUnique(MainMenuFilter.TargetClasses, TargetClass);
 					}
 				}
 			}
@@ -595,7 +596,7 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 				{
 					if (UClass* PinClass = GetPinClassType(NodePin))
 					{
-						MainMenuFilter.TargetClasses.AddUnique(PinClass);
+						FBlueprintActionFilter::AddUnique(MainMenuFilter.TargetClasses, PinClass);
 					}
 				}
 			}
@@ -746,7 +747,6 @@ const UK2Node* FBlueprintActionMenuUtils::ExtractNodeTemplateFromAction(TSharedP
 			ActionId == FEdGraphSchemaAction_K2AddTimeline::StaticGetTypeId() ||
 			ActionId == FEdGraphSchemaAction_K2AddCustomEvent::StaticGetTypeId() ||
 			ActionId == FEdGraphSchemaAction_K2AddCallOnActor::StaticGetTypeId() ||
-			ActionId == FEdGraphSchemaAction_K2AddCallOnVariable::StaticGetTypeId() ||
 			ActionId == FEdGraphSchemaAction_K2TargetNode::StaticGetTypeId() ||
 			ActionId == FEdGraphSchemaAction_K2PasteHere::StaticGetTypeId() ||
 			ActionId == FEdGraphSchemaAction_K2Event::StaticGetTypeId() || 

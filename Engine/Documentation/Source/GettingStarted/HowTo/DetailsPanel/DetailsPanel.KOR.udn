@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2612789
+﻿INTSourceChangelist:2652661
 Availability:Public
 Title:액터 프로퍼티 편집
 Crumbs: %ROOT%, Gameplay, GettingStarted\HowTo
@@ -140,17 +140,17 @@ Related: Engine/UI/PropertyMatrix
 
 	그러면 구체가 무언가에 닿으면 이벤트를 발동합니다.
 
-1.	**OnActorHit** 노드에서 **Other Actor** 핀을 끌어놓은 다음 **cast to mycharacter** 를 검색하여 선택합니다.
+1.	**OnActorHit** 노드에서 **Other Actor** 핀을 끌어놓은 다음 **Cast To ThirdPersonCharacter** 를 검색하여 선택합니다.
 
 	![](Details21.png)
 
-	여기서는 구체가 뭔가에 맞으면, **Other Actor** 가 (플레이어 캐릭터인) **MyCharacter** 에 맞은 것인지 묻는 것입니다.
+	여기서는 구체가 뭔가에 맞으면, **Other Actor** 가 (플레이어 캐릭터인) **ThirdPersonCharacter** 에 맞은 것인지 묻는 것입니다.
 
-1.	**Cast** 노드의 **As My Character** 핀을 끌어놓은 다음 **Destroy Actor** 노드를 검색 추가합니다.
+1.	**Cast** 노드의 **As Third Person Character** 핀을 끌어놓은 다음 **Destroy Actor** 노드를 검색 추가합니다.
 
 	![](Details22.png)
 
-	**MyCharacter** 가 맞은 **Other Actor** 라면, **MyCharacter** 를 소멸시킵니다 (플레이어 캐릭터를 죽입니다).
+	**ThirdPersonCharacter** 가 맞은 **Other Actor** 라면, **ThirdPersonCharacter** 를 소멸시킵니다 (플레이어 캐릭터를 죽입니다).
 
 1.	창 좌상단 구석의 **컴파일** 버튼을 클릭하여 블루프린트를 마무리하고 창을 닫습니다.
 

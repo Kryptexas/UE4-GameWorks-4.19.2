@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalMesh.cpp: Unreal skeletal mesh and animation implementation.
@@ -1367,7 +1367,7 @@ void FStaticLODModel::GetChunkAndSkinType(int32 InVertIndex, int32& OutChunkInde
 		{
 			OutVertIndex = InVertIndex - VertCount;
 			bOutSoftVert = false;
-			bOutHasExtraBoneInfluences = Chunk.HasExtraBoneInfluences();
+			bOutHasExtraBoneInfluences = VertexBufferGPUSkin.HasExtraBoneInfluences();
 			return;
 		}
 		VertCount += Chunk.GetNumRigidVertices();
@@ -1377,7 +1377,7 @@ void FStaticLODModel::GetChunkAndSkinType(int32 InVertIndex, int32& OutChunkInde
 		{
 			OutVertIndex = InVertIndex - VertCount;
 			bOutSoftVert = true;
-			bOutHasExtraBoneInfluences = Chunk.HasExtraBoneInfluences();
+			bOutHasExtraBoneInfluences = VertexBufferGPUSkin.HasExtraBoneInfluences();
 			return;
 		}
 		VertCount += Chunk.GetNumSoftVertices();
@@ -1636,13 +1636,16 @@ SIZE_T FStaticLODModel::GetResourceSize() const
 	ResourceSize += ActiveBoneIndices.GetAllocatedSize();  
 	ResourceSize += RequiredBones.GetAllocatedSize();
 
-	const FRawStaticIndexBuffer16or32Interface* IndexBuffer = MultiSizeIndexContainer.GetIndexBuffer();
-	if (IndexBuffer)
+	if(MultiSizeIndexContainer.IsIndexBufferValid())
 	{
-		ResourceSize += IndexBuffer->GetResourceDataSize(); 
+		const FRawStaticIndexBuffer16or32Interface* IndexBuffer = MultiSizeIndexContainer.GetIndexBuffer();
+		if (IndexBuffer)
+		{
+			ResourceSize += IndexBuffer->GetResourceDataSize(); 
+		}
 	}
 
-	if( AdjacencyMultiSizeIndexContainer.IsIndexBufferValid() )
+	if(AdjacencyMultiSizeIndexContainer.IsIndexBufferValid())
 	{
 		const FRawStaticIndexBuffer16or32Interface* AdjacentIndexBuffer = AdjacencyMultiSizeIndexContainer.GetIndexBuffer();
 		if(AdjacentIndexBuffer)
@@ -1664,6 +1667,33 @@ SIZE_T FStaticLODModel::GetResourceSize() const
 
 	return ResourceSize;
 }
+
+void FStaticLODModel::RebuildIndexBuffer(FMultiSizeIndexContainerData* IndexBufferData, FMultiSizeIndexContainerData* AdjacencyIndexBufferData)
+{
+	if (IndexBufferData)
+	{
+		MultiSizeIndexContainer.RebuildIndexBuffer(*IndexBufferData);
+	}
+
+	if (AdjacencyIndexBufferData)
+	{
+		AdjacencyMultiSizeIndexContainer.RebuildIndexBuffer(*AdjacencyIndexBufferData);
+	}
+}
+
+#if WITH_EDITOR
+void FStaticLODModel::RebuildIndexBuffer()
+{
+	// The index buffer needs to be rebuilt on copy.
+	FMultiSizeIndexContainerData IndexBufferData;
+	MultiSizeIndexContainer.GetIndexBufferData(IndexBufferData);
+
+	FMultiSizeIndexContainerData AdjacencyIndexBufferData;
+	AdjacencyMultiSizeIndexContainer.GetIndexBufferData(AdjacencyIndexBufferData);
+
+	RebuildIndexBuffer(&IndexBufferData, &AdjacencyIndexBufferData);
+}
+#endif
 /*-----------------------------------------------------------------------------
 FStaticMeshSourceData
 -----------------------------------------------------------------------------*/
@@ -1731,9 +1761,10 @@ void FSkeletalMeshSourceData::Init( const USkeletalMesh* SkeletalMesh, FStaticLO
 	InLODModel.LegacyRawPointIndices.Unlock();
 
 	/** The index buffer needs to be rebuilt on copy. */
-	FMultiSizeIndexContainerData IndexBufferData;
+	FMultiSizeIndexContainerData IndexBufferData, AdjacencyIndexBufferData;
 	InLODModel.MultiSizeIndexContainer.GetIndexBufferData( IndexBufferData );
-	LODModel->MultiSizeIndexContainer.RebuildIndexBuffer( IndexBufferData );
+	InLODModel.AdjacencyMultiSizeIndexContainer.GetIndexBufferData(AdjacencyIndexBufferData);
+	LODModel->RebuildIndexBuffer( &IndexBufferData, &AdjacencyIndexBufferData );
 
 	/** Vertex buffers also need to be rebuilt. Source data is always stored with full precision position data. */
 	LODModel->BuildVertexBuffers(SkeletalMesh->GetVertexBufferFlags());
@@ -1799,7 +1830,10 @@ void FreeSkeletalMeshBuffersSinkCallback()
 		FlushRenderingCommands();
 		for (TObjectIterator<USkeletalMesh> It;It;++It)
 		{
-			It->ReleaseCPUResources();
+			if (!It->GetImportedResource()->RequiresCPUSkinning(GMaxRHIFeatureLevel))
+			{
+				It->ReleaseCPUResources();
+			}
 		}
 	}
 }
@@ -2422,6 +2456,31 @@ bool USkeletalMesh::IsReadyForFinishDestroy()
 	return ReleaseResourcesFence.IsFenceComplete();
 }
 
+#if WITH_APEX_CLOTHING
+// convert a bone name from APEX stype to FBX style
+FName GetConvertedBoneName(NxClothingAsset* ApexClothingAsset, int32 BoneIndex);
+
+
+void USkeletalMesh::BuildApexToUnrealBoneMapping()
+{
+	for(FClothingAssetData& ClothingAsset : ClothingAssets)
+	{
+		NxClothingAsset* ApexClothingAsset = ClothingAsset.ApexClothingAsset;
+		uint32 NumUsedBones = ClothingAsset.ApexClothingAsset->getNumUsedBones();
+
+		ClothingAsset.ApexToUnrealBoneMapping.Empty();
+		ClothingAsset.ApexToUnrealBoneMapping.AddUninitialized(NumUsedBones);
+
+		for (uint32 Index = 0; Index < NumUsedBones; Index++)
+		{
+			FName BoneName = GetConvertedBoneName(ApexClothingAsset, Index);
+			int32 BoneIndex = RefSkeleton.FindBoneIndex(BoneName);
+			ClothingAsset.ApexToUnrealBoneMapping[Index] = BoneIndex;
+		}
+	}
+}
+#endif
+
 void USkeletalMesh::Serialize( FArchive& Ar )
 {
 	DECLARE_SCOPE_CYCLE_COUNTER( TEXT("USkeletalMesh::Serialize"), STAT_SkeletalMesh_Serialize, STATGROUP_LoadTime );
@@ -2706,7 +2765,8 @@ void USkeletalMesh::PostLoad()
 		}
 	}
 
-	for(int32 LodIndex=0; LodIndex<LODInfo.Num(); LodIndex++)
+	int32 TotalLODNum = LODInfo.Num();
+	for (int32 LodIndex = 0; LodIndex<TotalLODNum; LodIndex++)
 	{
 		FSkeletalMeshLODInfo& ThisLODInfo = LODInfo[LodIndex];
 		FStaticLODModel& ThisLODModel = ImportedResource->LODModels[LodIndex];
@@ -2728,6 +2788,26 @@ void USkeletalMesh::PostLoad()
 		{
 			check(ThisLODModel.Sections[SectionIndex].ChunkIndex == SectionIndex);
 		}
+
+#if WITH_EDITOR
+		if (ThisLODInfo.ReductionSettings.BonesToRemove_DEPRECATED.Num() > 0)
+		{
+			for (auto& BoneToRemove : ThisLODInfo.ReductionSettings.BonesToRemove_DEPRECATED)
+			{
+				AddBoneToReductionSetting(LodIndex, BoneToRemove.BoneName);
+			}
+
+			// since in previous system, we always removed from previous LOD, I'm adding this 
+			// here for previous LODs
+			for (int32 CurLodIndx = LodIndex + 1; CurLodIndx < TotalLODNum; ++CurLodIndx)
+			{
+				AddBoneToReductionSetting(CurLodIndx, ThisLODInfo.RemovedBones);
+			}
+
+			// we don't apply this change here, but this will be applied when you re-gen simplygon
+			ThisLODInfo.ReductionSettings.BonesToRemove_DEPRECATED.Empty();
+		}
+#endif
 	}
 
 	// Revert to using 32 bit Float UVs on hardware that doesn't support rendering with 16 bit Float UVs 
@@ -2834,6 +2914,14 @@ void USkeletalMesh::PostLoad()
 		// Rebuild name table.
 		RefSkeleton.RebuildNameToIndexMap();
 	}
+
+#if WITH_APEX_CLOTHING
+	//We can't build apex map until this point because old content needs to call RebuildNameToIndexMap
+	if(GetLinkerUE4Version() >= VER_UE4_APEX_CLOTH)
+	{
+		BuildApexToUnrealBoneMapping();
+	}
+#endif
 
 	if (GetLinkerUE4Version() < VER_UE4_SORT_ACTIVE_BONE_INDICES)
 	{
@@ -3687,6 +3775,26 @@ bool USkeletalMesh::IsSectionUsingCloth(int32 InSectionIndex, bool bCheckCorresp
 	return false;
 }
 
+#if WITH_EDITOR
+void USkeletalMesh::AddBoneToReductionSetting(int32 LODIndex, const TArray<FName>& BoneNames)
+{
+	if (LODInfo.IsValidIndex(LODIndex))
+	{
+		for (auto& BoneName : BoneNames)
+		{
+			LODInfo[LODIndex].RemovedBones.AddUnique(BoneName);
+		}
+	}
+}
+void USkeletalMesh::AddBoneToReductionSetting(int32 LODIndex, FName BoneName)
+{
+	if (LODInfo.IsValidIndex(LODIndex))
+	{
+		LODInfo[LODIndex].RemovedBones.AddUnique(BoneName);
+	}
+}
+
+#endif // WITH_EDITOR
 /*-----------------------------------------------------------------------------
 USkeletalMeshSocket
 -----------------------------------------------------------------------------*/
@@ -3877,7 +3985,7 @@ void ASkeletalMeshActor::PreviewFinishAnimControl(UInterpGroup* InInterpGroup)
 			if(AnimInst)
 			{
 				AnimInst->Montage_Stop(0.f);
-				AnimInst->UpdateAnimation(0.f);
+				AnimInst->UpdateAnimation(0.f, false);
 			}
 		}
 		// Update space bases to reset it back to ref pose
@@ -3890,69 +3998,11 @@ void ASkeletalMeshActor::PreviewFinishAnimControl(UInterpGroup* InInterpGroup)
 
 void ASkeletalMeshActor::PreviewSetAnimPosition(FName SlotName, int32 ChannelIndex, UAnimSequence* InAnimSequence, float InPosition, bool bLooping, bool bFireNotifies, float DeltaTime)
 {
-	UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance();
-	if (AnimInst && CanPlayAnimation(InAnimSequence))
+	if(CanPlayAnimation(InAnimSequence))
 	{
-		UAnimSingleNodeInstance * SingleNodeInst = SkeletalMeshComponent->GetSingleNodeInstance();
-		if(SingleNodeInst)
-		{
-			if(SingleNodeInst->CurrentAsset != InAnimSequence)
-			{
-				SingleNodeInst->SetAnimationAsset(InAnimSequence, bLooping);
-			}
-
-			SingleNodeInst->SetLooping(bLooping);
-			SingleNodeInst->SetPosition(InPosition, bFireNotifies);
-		}
-		else
-		{
-			bool bShouldChange = AnimInst->IsPlayingSlotAnimation(InAnimSequence, SlotName ) == false; 
-			if(bShouldChange)
-			{
-				if (CurrentlyPlayingMontage.IsValid())
-				{
-					// set it's weight to 0
-					struct FAnimMontageInstance* PrevAnimMontageInst = AnimInst->GetActiveInstanceForMontage(*CurrentlyPlayingMontage);
-					if (PrevAnimMontageInst)
-					{
-						PrevAnimMontageInst->Weight=0.f;
-					}
-				}
-
-				AnimInst->PlaySlotAnimationAsDynamicMontage(InAnimSequence, SlotName, 0.0f, 0.0f, 0.f, 1);
-				CurrentlyPlayingMontage = AnimInst->GetCurrentActiveMontage();
-			}
-
-			ensure(CurrentlyPlayingMontage.IsValid());
-
-			struct FAnimMontageInstance* AnimMontageInst = AnimInst->GetActiveInstanceForMontage(*CurrentlyPlayingMontage);
-			if (AnimMontageInst)
-			{
-				AnimMontageInst->Weight = 1.f;
-
-				float OldMontagePosition = AnimInst->Montage_GetPosition(CurrentlyPlayingMontage.Get());
-				AnimInst->Montage_SetPosition(CurrentlyPlayingMontage.Get(), InPosition);
-				AnimInst->UpdateAnimation(DeltaTime);
-
-				// since we don't advance montage in the tick, we manually have to handle notifies
-				AnimMontageInst->HandleEvents(OldMontagePosition, InPosition, NULL);
-				AnimInst->TriggerAnimNotifies(DeltaTime);
-			}
-			else
-			{
-				UE_LOG(LogSkeletalMesh, Warning, TEXT("Invalid Slot Node Name: %s"), *SlotName.ToString() );
-			}
-		}
-
-		// Update space bases so new animation position has an effect.
-		SkeletalMeshComponent->UpdateMaterialParameters();
-		SkeletalMeshComponent->RefreshBoneTransforms();
-		SkeletalMeshComponent->RefreshSlaveComponents();
-		SkeletalMeshComponent->UpdateComponentToWorld();
+		FAnimMontageInstance::PreviewMatineeSetAnimPositionInner(SlotName, SkeletalMeshComponent, InAnimSequence, CurrentlyPlayingMontage, InPosition, bLooping, bFireNotifies, DeltaTime);
 	}
-	SkeletalMeshComponent->FinalizeBoneTransform();
 }
-
 
 void ASkeletalMeshActor::PreviewSetAnimWeights(TArray<FAnimSlotInfo>& SlotInfos)
 {
@@ -4092,75 +4142,11 @@ bool ASkeletalMeshActor::CanPlayAnimation(class UAnimSequenceBase* AnimAssetBase
 		(!AnimAssetBase || SkeletalMeshComponent->SkeletalMesh->Skeleton->IsCompatible(AnimAssetBase->GetSkeleton())));
 }
 
-void SetAnimPositionInner(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequence* InAnimSequence, TWeakObjectPtr<UAnimMontage>& CurrentlyPlayingMontage, float InPosition, bool bLooping)
-{
-	UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance();
-	if(AnimInst)
-	{
-		UAnimSingleNodeInstance * SingleNodeInst = SkeletalMeshComponent->GetSingleNodeInstance();
-		if(SingleNodeInst)
-		{
-			if(SingleNodeInst->CurrentAsset != InAnimSequence)
-			{
-				SingleNodeInst->SetAnimationAsset(InAnimSequence, bLooping);
-				SingleNodeInst->SetPosition(0.0f);
-				SingleNodeInst->bPlaying = false;
-			}
-
-			if(SingleNodeInst->bLooping!=bLooping)
-			{
-				SingleNodeInst->SetLooping(bLooping);
-			}
-			if(SingleNodeInst->CurrentTime != InPosition)
-			{
-				SingleNodeInst->SetPosition(InPosition);
-			}
-		}
-		else
-		{
-			bool bShouldChange = AnimInst->IsPlayingSlotAnimation(InAnimSequence, SlotName) == false;
-			if(bShouldChange)
-			{
-				if(CurrentlyPlayingMontage.IsValid())
-				{
-					// set it's weight to 0
-					struct FAnimMontageInstance* PrevAnimMontageInst = AnimInst->GetActiveInstanceForMontage(*CurrentlyPlayingMontage);
-					if(PrevAnimMontageInst)
-					{
-						PrevAnimMontageInst->Weight=0.f;
-					}
-				}
-
-				AnimInst->PlaySlotAnimationAsDynamicMontage(InAnimSequence, SlotName, 0.0f, 0.0f, 0.f, 1);
-				CurrentlyPlayingMontage = AnimInst->GetCurrentActiveMontage();
-			}
-
-			ensure(CurrentlyPlayingMontage.IsValid());
-
-			struct FAnimMontageInstance* AnimMontageInst = AnimInst->GetActiveInstanceForMontage(*CurrentlyPlayingMontage);
-			if(AnimMontageInst)
-			{
-				AnimMontageInst->Weight = 1.f;
-
-				float OldMontagePosition = AnimInst->Montage_GetPosition(CurrentlyPlayingMontage.Get());
-				AnimInst->Montage_SetPosition(CurrentlyPlayingMontage.Get(), InPosition);
-
-				// since we don't advance montage in the tick, we manually have to handle notifies
-				AnimMontageInst->HandleEvents(OldMontagePosition, InPosition, NULL);
-				AnimInst->TriggerAnimNotifies(0.f);
-			}
-			else
-			{
-				UE_LOG(LogSkeletalMesh, Warning, TEXT("Invalid Slot Node Name: %s"), *SlotName.ToString() );
-			}
-		}
-	}
-}
 void ASkeletalMeshActor::SetAnimPosition(FName SlotName, int32 ChannelIndex, UAnimSequence* InAnimSequence, float InPosition, bool bFireNotifies, bool bLooping)
 {
 	if (CanPlayAnimation(InAnimSequence))
 	{
-		SetAnimPositionInner(SlotName, SkeletalMeshComponent, InAnimSequence, CurrentlyPlayingMontage, InPosition, bLooping);
+		FAnimMontageInstance::SetMatineeAnimPositionInner(SlotName, SkeletalMeshComponent, InAnimSequence, CurrentlyPlayingMontage, InPosition, bLooping);
 	}
 }
 
@@ -4172,7 +4158,7 @@ void ASkeletalMeshActor::FinishAnimControl(UInterpGroup* InInterpGroup)
 		if(AnimInst)
 	{
 			AnimInst->Montage_Stop(0.f);
-			AnimInst->UpdateAnimation(0.f);
+			AnimInst->UpdateAnimation(0.f, false);
 		}
 
 		// Update space bases to reset it back to ref pose
@@ -4262,6 +4248,12 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 	check(SkeletalMeshForDebug);
 
 	bIsCPUSkinned = MeshObject->IsCPUSkinned();
+
+	bCastCapsuleDirectShadow = Component->bCastDynamicShadow && Component->CastShadow && Component->bCastCapsuleDirectShadow;
+	bCastCapsuleIndirectShadow = Component->bCastDynamicShadow && Component->CastShadow && Component->bCastCapsuleIndirectShadow;
+
+	// Force inset shadows if capsule shadows are requested, as they can't be supported with full scene shadows
+	bCastInsetShadow = bCastInsetShadow || bCastCapsuleDirectShadow;
 
 	const USkeletalMeshComponent* SkeletalMeshComponent = Cast<const USkeletalMeshComponent>(Component);
 	if(SkeletalMeshComponent && SkeletalMeshComponent->bPerBoneMotionBlur)
@@ -4511,7 +4503,7 @@ void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArra
 	{
 		return;
 	}	
-	MeshObject->PreGDMECallback();
+	MeshObject->PreGDMECallback(ViewFamily.FrameNumber);
 
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
@@ -4541,7 +4533,7 @@ void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArra
 
 #if WITH_EDITORONLY_DATA
 			// TODO: This is not threadsafe! A render command should be used to propagate SelectedEditorSection to the scene proxy.
-			Section.bSelected = (SkeletalMeshForDebug->SelectedEditorSection == SectionElementInfo.UseMaterialIndex);
+			Section.bSelected = (SkeletalMeshForDebug->SelectedEditorSection == Iter.GetSectionElementIndex());
 #endif
 			// If hidden skip the draw
 			if (MeshObject->IsMaterialHidden(LODIndex, SectionElementInfo.UseMaterialIndex))
@@ -4586,6 +4578,15 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 	if (Section.bDisabled || MeshObject->IsMaterialHidden(LODIndex,SectionElementInfo.UseMaterialIndex))
 	{
 		return;
+	}
+
+	// If we have a material, make sure it is valid.
+	if (SectionElementInfo.Material)
+	{
+		if (!ensureMsgf(SectionElementInfo.Material->IsValidLowLevelFast(), TEXT("GetDynamicElementsSection with invalid Material. Owner:%s LODIndex:%d UseMaterialIndex:%d"), *GetOwnerName().ToString(), LODIndex, SectionElementInfo.UseMaterialIndex))
+		{
+			return;
+		}
 	}
 
 #if !WITH_EDITOR
@@ -4717,6 +4718,18 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 	}
 }
 
+bool FSkeletalMeshSceneProxy::HasDistanceFieldRepresentation() const
+{
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GenerateMeshDistanceFields"));
+	// Self shadowing detection reuses the distance field GBuffer bit, so disable when distance field features are in use
+	return CastsDynamicShadow() && CastsCapsuleIndirectShadow() && CVar->GetValueOnRenderThread() == 0;
+}
+
+void FSkeletalMeshSceneProxy::GetShadowShapes(TArray<FCapsuleShape>& CapsuleShapes) const 
+{
+	CapsuleShapes.Append(MeshObject->ShadowCapsuleShapes);
+}
+
 /**
  * Returns the world transform to use for drawing.
  * @param OutLocalToWorld - Will contain the local-to-world transform when the function returns.
@@ -4738,7 +4751,7 @@ bool FSkeletalMeshSceneProxy::GetWorldMatrices( FMatrix& OutLocalToWorld, FMatri
 /**
  * Relevance is always dynamic for skel meshes unless they are disabled
  */
-FPrimitiveViewRelevance FSkeletalMeshSceneProxy::GetViewRelevance(const FSceneView* View)
+FPrimitiveViewRelevance FSkeletalMeshSceneProxy::GetViewRelevance(const FSceneView* View) const
 {
 	FPrimitiveViewRelevance Result;
 	Result.bDrawRelevance = IsShown(View) && View->Family->EngineShowFlags.SkeletalMeshes;
@@ -4746,6 +4759,7 @@ FPrimitiveViewRelevance FSkeletalMeshSceneProxy::GetViewRelevance(const FSceneVi
 	Result.bDynamicRelevance = true;
 	Result.bRenderCustomDepth = ShouldRenderCustomDepth();
 	Result.bRenderInMainPass = ShouldRenderInMainPass();
+	Result.bUsesLightingChannels = GetLightingChannelMask() != GetDefaultLightingChannelMask();
 	MaterialRelevance.SetPrimitiveViewRelevance(Result);
 	return Result;
 }
@@ -4798,7 +4812,8 @@ void FSkeletalMeshSceneProxy::DebugDrawPhysicsAsset(int32 ViewIndex, FMeshElemen
 			}
 			if( EngineShowFlags.Constraints )
 			{
-				PhysicsAssetForDebug->DrawConstraints(Collector.GetPDI(ViewIndex), SkeletalMeshForDebug, *BoneSpaceBases, LocalToWorldTransform, TotalScale.X);
+				// TODO: Currently doesn't work because the PDI returned here (FSimpleElementCollector) can't draw meshes
+				//PhysicsAssetForDebug->DrawConstraints(Collector.GetPDI(ViewIndex), SkeletalMeshForDebug, *BoneSpaceBases, LocalToWorldTransform, TotalScale.X);
 			}
 		}
 	}
@@ -4883,6 +4898,8 @@ USkinnedMeshComponent::USkinnedMeshComponent(const FObjectInitializer& ObjectIni
 	SectionIndexPreview = -1;
 #endif // WITH_EDITORONLY_DATA
 	bPerBoneMotionBlur = true;
+	bCastCapsuleDirectShadow = false;
+	bCastCapsuleIndirectShadow = false;
 
 	bDoubleBufferedBlendSpaces = true;
 	bReInitAnimationOnSetSkeletalMeshCalls = true;
@@ -4891,6 +4908,7 @@ USkinnedMeshComponent::USkinnedMeshComponent(const FObjectInitializer& ObjectIni
 	bNeedToFlipSpaceBaseBuffers = false;
 
 	bCanEverAffectNavigation = false;
+	MasterBoneMapCacheCount = 0;
 }
 
 
@@ -4921,6 +4939,7 @@ void USkinnedMeshComponent::Serialize(FArchive& Ar)
 
 void USkeletalMeshComponent::Serialize(FArchive& Ar)
 {
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 #if WITH_EDITORONLY_DATA
 	if (Ar.IsSaving())
 	{
@@ -4930,6 +4949,14 @@ void USkeletalMeshComponent::Serialize(FArchive& Ar)
 		}
 	}
 #endif
+
+	if (Ar.IsSaving() && Ar.UE4Ver() < VER_UE4_NO_ANIM_BP_CLASS_IN_GAMEPLAY_CODE)
+	{
+		if ((nullptr != AnimBlueprintGeneratedClass) && (nullptr == AnimClass))
+		{
+			AnimClass = AnimBlueprintGeneratedClass;
+		}
+	}
 
 	Super::Serialize(Ar);
 			
@@ -4955,6 +4982,7 @@ void USkeletalMeshComponent::Serialize(FArchive& Ar)
 	{
 		bBlendPhysics = true;
 	}
+
 #if WITH_EDITORONLY_DATA
 	if (Ar.IsLoading() && (Ar.UE4Ver() < VER_UE4_EDITORONLY_BLUEPRINTS))
 	{
@@ -4967,10 +4995,19 @@ void USkeletalMeshComponent::Serialize(FArchive& Ar)
 	}
 #endif
 
+	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_NO_ANIM_BP_CLASS_IN_GAMEPLAY_CODE)
+	{
+		if ((nullptr != AnimBlueprintGeneratedClass) && (nullptr == AnimClass))
+		{
+			AnimClass = AnimBlueprintGeneratedClass;
+		}
+	}
+
 	if (Ar.IsLoading() && (Ar.UE4Ver() < VER_UE4_AUTO_WELDING))
 	{
 		BodyInstance.bAutoWeld = false;
 	}
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 

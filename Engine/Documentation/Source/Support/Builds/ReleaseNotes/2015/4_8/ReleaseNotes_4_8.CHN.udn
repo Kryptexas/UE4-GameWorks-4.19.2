@@ -1,13 +1,12 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title: Unreal Engine 4.8 Release Notes
+﻿Availability: Public
+Title: 虚幻引擎4.8版本信息
 Crumbs: %ROOT%, Engine
-Description:4.8 Release Notes
+Description:4.8版本信息
 
 [TOC(start:2 end:2)]
 
 [PUBLISH:Licensee]
-## Build Info
+## 版本信息
 
 [REGION:simpletable]
 | Item | Info |
@@ -40,523 +39,523 @@ Description:4.8 Release Notes
 -->
 [/PUBLISH:Licensee]
 
-This release includes 189 great changes that were submitted from Unreal Engine's amazing community of developers.  Thanks to all of these contributors to Unreal Engine 4.8:
+此次发布包括了189项重大变更，它们都是由虚幻引擎的杰出开发者社区提交的。  感谢所有虚幻引擎4.8版本的贡献者们：
 
 3dluvr, Adrian Gasinski (gasnica), Adrian Irwin (adrianirwin), Albino Rodrigues (Bino-), Alexander O'Mara (AlexanderOMara), Andrew Zhilin (zoon), Angelo Miner (angjminer), Artem V. Navrotskiy (bozaro), Ash Matheson (Nuclearfossil), Audiokinetic Inc. (audiokinetic), Ben Rog-Wilhelm(zorbathut), BhaaL (BhaaLseN), Black Phoenix (PheonixBlack), Błażej Szczygieł (zaps166), Cengiz Terzibas (yaakuro), Christopher P. Yarger (cpyarger), codetackler, Craig Wilson (hamo2k1), Dainius Masiliūnas (GreatEmerald), Daniel Mahashin (dmahashin), Daniel Zeligman (dzeligman), David Palacios (hevedy), Derek van Vliet (derekvanvliet), devbm, Dewitt Buckingham (DaJoker29), Eugene Elkin (eelkin2000), Ezekiel Warren (zaucy), gatools, Henrik Danielsson (TwoD), Jackson Egan (Sneagan), JaredTherriault, Jason (Abatron), Jason Maskell (TamedTornado), Jay Mattis (braindx), jdh84, Jeff Rous (JeffRous), Jefferson Pinheiro (Ixiguis), Jeremy (OPTIPlanet), jlamarche, Joshua Sheard (jsheard), karolz, Kazumasa Ohashi (KazumasaOhashi), Korshikov Anton (tnako), korypostma, Lee Berger (MrCrowbar), Leon Rosengarten (lion03), Leszek Godlewski (inequation), Lucas Dohring (nykac), Lukasz Baran (iniside), Luna Duclos (PSG-Luna), Marat Radchenko (slonopotamus), Marc Kamradt (MarcKamradt), Marco Antonio Alvarez (surakin), marynate, Maurice Laveaux (mlaveaux), Michael Allar (Allar), nsf, Omar Pakker (Omar007), Paul Eremeeff (PaulEremeeff), Pierdek, PjotrSvetachov, radu-danciu, Rama (EverNewJoy), Rene Rivera (grafikrobot), Richárd Németh (hsdxpro), Richard Biely (richardbiely), Robert Chubb (SaxonRah), Robert Williams (Rottbott), Salamanderrake, Sasha Petrovich (xulture), Satheesh (ryanjon2040), Sebastian Köcke (byte3), Sébastien Rombauts (SRombauts), Stephen Whittle (stephenwhittle), Simon Taylor (simontaylor81), Spencer Brown (JedTheKrampus), thk123, Thomas Mayer (tommybear), threadlock, Tobias Mollstam (mollstam), Tore Lervik (hallatore), Will Stahl (merlin91), x414e54, Yohann Martel (ymartel06), zombiesnu
 
-## Major Features
+## 主要新功能 
 
-### Improved Editor Stability and Quality of Life
+### 改进的编辑器稳定性和质量
 
-This was a really big focus for Unreal Engine 4.8.  With every Unreal Engine release we fix hundreds of bugs and add many new features, but with Unreal Engine 4.8 we've worked hard to improve editor and game stability, as well as to address many of the most common engine bugs and small feature requests.  We hope that the result is a very solid engine runtime and editor, and we'll continue to make stability a big focus of future releases.
+这对于虚幻引擎4.8是一项非常大的关注。  在每个虚幻引擎4的发布版本中，我们都会修复数以百计的bug并添加许多新功能，但在虚幻引擎4.8中，我们主要改善了编辑器和游戏的稳定性，并处理了许多最为常见的引擎问题和小功能的申请。  我们期待能让引擎和编辑器的运行非常顺畅，我们会继续关注未来发布版本的稳定性。
 
-### New:  SteamVR/HTC Vive Support
+### 新增内容：  支持SteamVR/HTC Vive
 
-Unreal Engine now has comprehensive support for Valve's SteamVR API and HTC Vive hardware!
+虚幻引擎现在全面支持Valve的SteamVR API和HTC Vive硬件！
 
 ![image alt text](image_0.jpg)
 
-* Preview your game instantly on a connected HTC Vive using the "VR Preview" button!
+* 使用"VR Preview（VR预览）"按钮在连接的HTC Vive上实时预览您的游戏！
 
-* All HTC Vive motion controller features are supported, and controller buttons/touchpads are bindable
+* 支持所有的HTC Vive动作控制器功能，并且可以绑定控制器按钮/触摸板
 
-* Full support for both room scale and seated experiences.
+* 完整支持房间缩放和坐着的体验。
 
-### New:  Playstation 4 Morpheus VR with 120Hz Reprojection
+### 新增内容：  具有120Hz二次投影的Playstation 4 Morpheus VR
 
-The latest Sony Morpheus hardware is now supported, along with support for 120Hz rendering using temporal reprojection.
+现在支持最新的Sony Morpheus硬件，并支持使用临时二次投影的120Hz渲染。
 
 ![image alt text](image_1.jpg)
 
-* Unreal Engine now supports both 60hz and 120hz Morpheus development kits
+* 虚幻引擎现在同时支持60hz和120hz的Morpheus开发套件
 
-* 3D audio playback in VR has also been greatly improved for this release.
+* 在这个版本中，极大改进了VR中的三维音频回放。
 
-### New:  Landscape Grass Renderer
+### 新增内容：  地貌草地的渲染程序
 
-The new grass system dynamically renders instanced grass and other ground clutter meshes on the landscape around the player.
+新的草地系统动态渲染实例化的草地和其它位于玩家周围的地貌上的地面杂物网格物体。
 
 ![image alt text](image_2.png)
 
-* As the player moves through the world, new instances are added, and instances no longer in range are removed.  
+* 随着玩家在世界中的移动，会添加新的实例，而不再处于范围内的实例会被移除。  
 
-* Artists author grass density through the landscape material, by outputting density to a Landscape Grass Output node.  This allows the grass placement to match the terrain texturing!
+* 美术通过输出密度到地貌草地输出节点来使用地貌材质修改草地密度。  这样可以让草地的放置能够匹配地形的贴图！
 
-* Grass instances are procedurally generated by a background task according to the grass density map.
+* 草地实例根据草地密度贴图由后台任务进行程序化生成。
 
-* Grass is efficiently rendered using a hierarchical instancing system that implements culling while keeping draw calls to a minimum. LOD transitions are per-pixel and fairly seamless due to Temporal AA. 
+* 草地使用应用了剔除的层次化实例系统并保持描画调用为最低来进行高效渲染。 由于临时AA，LOD变换是逐帧的，并且基本上是无缝的。 
 
-* See the "Landscape Grass Tools" section below for information about how to set this up!
+* 请参阅下方的"Landscape Grass Tools（地貌草地工具）"部分来了解如何设置。
 
-### New:  Hierarchical Level-Of-Detail System
+### 新增内容：  层次的细节层次系统
 
-This new Hierarchical LOD feature automatically creates LODs for groups of meshes!  This greatly reduces draw calls and polygon counts when they are visible from a distance. This is great for open world games!
+这个新的层次化LOD功能会自动为一组网格物体创建LOD。  这样可以极大降低从一定距离处可见的描画调用和多边形数量的数量。 这样对于开放世界的游戏很好用。
 
 ![image alt text](image_3.jpg)
 
-* Groups of meshes to combine are found automatically. If Simplygon is available, it will be used to generate the low-detail mesh for a group. If not, the LOD version of each mesh will be combined (using the *Merge Actors* feature). Materials are merged automatically if possible, to reduce section (material) count.
+* 需要组合的网格物体组是自动进行搜寻的。 如果Simplygon可用，我们可以用它来生成组的低细节网格物体。 如果不是这样，那么会组合每个网格物体的LOD版本（使用 *Merge Actors* 功能）。 如果可能，会自动融合材质，以减少部分（材质）的数量。
 
-* To use Hierarchical LOD, set *Enable Hierarchical LOD System* to be true in *World Settings*. Once enabled, you'll be able to edit settings in the *LODSystem* section.
+* 如需使用层次化LOD，您可以在 *World Settings（世界设置）* 中将 *Enable Hierarchical LOD System（启用层次化LOD系统）* 设置为true。 启用后，您将可以在 *LODSystem* 部分编辑设置。
 
-* Individual Actors can opt out by disabling their *Enable Auto LOD Generation* option.
+* 您可以通过禁用其 *Enable Auto LOD Generation（启用自动LOD生成）* 选项来禁用单个Actor。
 
-* LOD meshes are generated as part of the 'Level Build' process, or by selecting *Build LODs* in the Build menu.
+* LOD网格物体作为'Level Build（关卡编译）'过程的一部分进行生成，也可以通过在编译菜单中选择 *Build LODs（编译LOD）* 来生成。
 
-### New:  Procedural Foliage Generator (Experimental)
+### 新增内容：  程序化植被生成程序（实验性功能）
 
-There is a new experimental feature for procedurally generating huge (or tiny, or medium-sized) regions of foliage instances quickly.
+这是一个程序化快速生成大量（或少量、或中等大小）植被实例的新型实验性功能。
 
 ![image alt text](image_4.png)
 
-* Foliage Type assets now have properties to customize how they spread and grow over the course of a simulation.
+* 植被类型资源现在具有一些属性，可以在模拟的过程中自定义如何对其进行扩散和增长。
 
-* Multiple procedural foliage types can be simulated alongside one another to generate the foundations of an entire forest!
+* 多个程序化植被类型可以一个接一个地进行模拟，从而生成整个森林的基础内容。
 
-### New:  Scrubbable Network Replays
+### 新增内容：  拉动网络回放
 
-Unreal Engine games have full game replay recording and playback.  New in 4.8, you can now "scrub" to a specific time while viewing network replays!
+虚幻引擎游戏具有完整的游戏回放录制和回放功能。  现在在4.8版本中，您可以在查看网络回放时马上拉动到特定的时间。
 
 ![image alt text](image_5.jpg)
 
-Take a look at Shooter Game to check out this feature.
+请看一下Shooter Game 来了解这项功能。
 
-* At the main menu, host a new game
+* 在主菜单中，主持一场新游戏
 
-* Fill it up with bots (to make it interesting!)
+* 用机器人填满游戏（这样更有趣）。
 
-* Make sure "Record Demo" is on
+* 确认开启了 "Record Demo（记录演示）"
 
-* Play the match
+* 玩游戏
 
-* Exit to the main menu when you have enough footage
+* 当您具有足够的植被时，请退出到主菜单
 
-* At the main menu, select "Demos"
+* 从主菜单中选择"Demos（演示）"
 
-* Find your replay in the replay browser, and select it to play it
-
- 
-
-While viewing a replay:
-
-* Mouse wheel will control playback speed
-
-* There is a button on screen to pause/play
-
-* You can click anywhere on the timeline bar to scrub to that location!
+* 在回放浏览器中搜寻您的回放内容，然后选择它以播放
 
  
 
-Out of the box, the engine is configured to store replays locally. We have a system that allows you to easily swap out replay streamers. This allows you to use a streamer that saves replays locally, or you can use a streamer that is designed to save replays to the cloud with full streaming support. More on that in future releases!
+当您在查看一段回放时：
 
-### New:  High Quality Depth of Field and Tone Mapping
+* 您可以使用鼠标滚轮来控制回放速度
+
+* 此处的屏幕上有一个按钮可用于暂停/播放
+
+* 您可以点击时间条的任意位置来拉动到该位置。
+
+ 
+
+和以往不同，引擎被配置为本地存储回放。 我们有个系统，它可以让您方便地替换回放动态载入程序。 这样您可以使用本地存储回放的动态载入程序，您也可以根据支持的动态载入程序而使用用于保存回放到云端的动态载入程序。 我们会在未来的版本中发布更多内容！
+
+### 新增内容：  高质量景深和色调映射
 
 ![image alt text](image_6.gif)(convert:false)
 
-* New depth of field algorithm called "Circle DOF"
+* 我们把新景深的算法称为"Circle DOF"
 
-    * High performance DOF technique with circle bokeh and nice transitions from in to out of focus
+    * 具有圆形散景和从聚焦到失焦的平滑转换的高性能DPF技术
 
-    * Circle DOF controlled by physical camera parameters: fstop, focal length, focal distance
+    * 圆圈DOF受物理相机参数的控制： fstop, focal length（焦距长度）, focal distance（焦距）
 
-    * Supports a distance based blur to simulate light scattering through the atmosphere
+    * 支持基于距离的模糊以模拟穿过大气的光散射
 
-* New film like color and tone response
+* 新的类似于薄膜的颜色和色调响应
 
-    * Matches the Academy Color Encoding System (ACES) ([http://www.oscars.org/science-technology/sci-tech-projects/aces](http://www.oscars.org/science-technology/sci-tech-projects/aces))
+    * 匹配学院颜色编码系统 (ACES) ([http://www.oscars.org/science-technology/sci-tech-projects/aces](http://www.oscars.org/science-technology/sci-tech-projects/aces))
 
-    * Added additional color grading and white balance.
+    * 添加额外的颜色分级和白平衡。
 
-    * Baked into 32x32x32 LUT so it is 50% faster than before.
+    * 烘焙到32x32x32 LUT，这样比之前快了50%。
 
-    * r.TonemapperFilm 1 to enable
+    * 把r.TonemapperFilm设置为1以启用
 
-### New:  Redesigned Foliage Editor
+### 新增内容：  重新设计的植被编辑器
 
-The foliage editor has recently undergone a redesign!  Besides improved usability, the new layout gives you the ability to more easily work with a large number of foliage types in the palette at once.
+最近我们对植被编辑器进行了重新设计。  除了改善可用性外，新的布局让您能更方便地同时在调色板中使用大量的植被类型。
 
 ![image alt text](image_7.jpg)
 
-* Easily create new Foliage Types directly from the foliage view with the "Add Foliage Type" button.
+* 使用"Add Foliage Type（添加植被类型）"按钮来方便地直接从植被视图中创建新的植被类型。
 
-* Foliage thumbnails have buttons for toggling visibility and saving the asset, as well as the total instance count.
+* 植被缩略图上有按钮，可以切换可视度并保存资源，以及总体的实例数量。
 
-* You can now activate or deactivate multiple foliage types at once with multi-select.
+* 您现在可以使用多选来一次激活或反激活多个植被类型。
 
-### New:  Dynamic Navigation Mesh for Open Worlds
+### 新增内容：  开放世界的动态浏览网格物体
 
-We have a brand new system for supporting dynamic NavMeshes in large open worlds.
+我们有一个全新的系统，可支持大型开放世界中的动态NavMeshes。
 
 ![image alt text](image_8.gif)(convert:false)
 
-* The engine now dynamically generates NavMesh on demand in the areas where it is needed. 
+* 该引擎现在按需可在区域中动态生成NavMesh（导航网格物体）。 
 
-* To enable this, configure your project's Navigation System for this mode and add a Navigation Invoker Component to relevant actors.
+* 如需启用此内容，请为此模式配置您项目的导航系统，并添加导航调用程序组件到相关actor。
 
-### New:  New Unreal Example Character
+### 新增内容：  新虚幻示例角色
 
-We've designed a new, high resolution version of the Unreal Example Character included with our templates!
+我们在模板中附带了一个全新的、高分辨率的虚幻示例角色版本。
 
 ![image alt text](image_9.jpg)
 
-* There are two versions, a high resolution model and a low resolution version suitable for mobile devices.
+* 有两个版本，一个高分辨率的模型和一个用于移动设备的低分辨率版本。
 
-* The high resolution version is included -- you can grab the low resolution character from the Marketplace for free!
+* 高分辨率版本已经包含在内 -- 您可以从虚幻商城中免费下载低分辨率的角色。
 
-### New:  Curve Editing for Unreal Motion Graphics UI
+### 新增内容：  虚幻运动图形UI的曲线编辑
 
-Unreal Motion Graphics now has a curve editor!
+虚幻运动图形现在具有曲线编辑器。
 
 ![image alt text](image_10.png)
 
-* You can select numeric value tracks in a widget animation and animate those using the new curve editor.  
+* 您可以在控件动画中选择多个值的轨迹，并使用新曲线编辑器来对其进行动画处理。  
 
-* You can also play, rewind and loop your animation while previewing it using the new Transport control buttons.
+* 您也可以在使用新传输控制按钮预览时播放、回退并循环您的动画。
 
-### New:  Screen-Space Reflections for Translucent Surfaces
+### 新增内容：  半透明次表面的屏幕空间反射
 
-Translucent surfaces can now dynamically reflect other objects on the screen!
+半透明次表面现在可以在屏幕上动态反射其它对象。
 
-* Enable on translucent materials with the 'Screen space reflections' option
+* 使用'Screen space reflections（屏幕空间反射）' 选项来启用半透明材质。
 
 ![image alt text](image_11.jpg)
 
-### New:  Quick Window Switching (Control+Tab)
+### 新增内容：  快速窗口切换(Control+Tab)
 
-You can now summon a pop-up menu to quickly switch between different asset editors and tool tabs by pressing Ctrl+Tab.
+您现在可以通过按下Ctrl+Tab来呼出弹出菜单，从而在不同的资源编辑器和工具选项卡间切换。
 
 ![image alt text](image_12.jpg)
 
-* You can Ctrl+Tab or Shift+Ctrl+Tab to cycle thru open assets, sorted by last activation time; releasing Ctrl activates the asset you picked
+* 您可以按下Ctrl+Tab或Shift+Ctrl+Tab在打开的资源间循环，这是按照上次激活的时间进行排序的内容；松开Ctrl会激活您选取的资源
 
-* You can also activate a tool tab in the editor for the current selected asset or show the asset in the content browser by using the mouse
+* 您也可以对当前选择的资源激活工具选项卡，或者通过鼠标在内容浏览器中显示资源。
 
-### New:  Landscape Grass Tools
+### 新增内容：  地貌草地工具
 
-New editor features have been added for setting up instanced meshes for the grass rendering system.
+已经对草地渲染系统的实例化网格物体设置添加了新编辑器功能。
 
 ![image alt text](image_13.jpg)
 
-* Each type of grass is described by a new Landscape Grass Type asset type, and each grass type can specify multiple static meshes for variation.
+* 每种类型的草地都由新地貌草地类型的资源类型来进行描述，每种草地类型都可以指定多种静态网格物体。
 
-* A grass density map is generated from the landscape's material. A Landscape Grass Output node should be added to your landscape material, and one or more Landscape Grass Type assets can be assigned. For each grass type, a new input connection will appear, which is used to specify the grass density.
+* 草地密度贴图根据地貌材质生成。 地貌草地输出节点应被添加到您的地貌材质中，而且可以分配一个或更多的地貌草地类型资源。 对于每种草地类型，都会出现一个新输入连接，您可以使用它来指定草地密度。
 
-* Connecting a Landscape Layer Sample node directly will allow a landscape layer to specify the grass density. You can also connect a network of nodes to create more complex placement rules such as automatically removing grass based on surface normal or altitude or using multiple landscape layers.
+* 直接连接地貌层示例节点将会启用地貌层以指定草地密度。 您还可以连接节点网络以创建更为复杂的放置规则，诸如基于表面法线或高度或使用多个地貌层来自动移除草地。
 
-### New:  Edit Properties on Instances of Actor Blueprints
+### 新增内容：  对Actor蓝图实例编辑属性
 
-Just as you can in subclasses, properties of components added in the components section of the Blueprint can be modified on a per-actor instance basis.
+正如您可以修改子类的属性，您也可以基于每个actor的实例来修改蓝图组件部分添加的组件属性。
 
-* Just as with Actor properties, modified Component properties can be applied to the Blueprint defaults with the Apply to Blueprint
+* 正如Actor属性，通过应用到蓝图按钮，您可以应用修改的组件属性到蓝图默认值。
 
-* A few caveats:  Components created by the Construction Script cannot be modified, and properties that are modified on components by the Construction Script cannot be modified on the instance and will appear as read-only in the Actor details panel. However, if the Construction Script explicitly sets the property value to the default, we cannot distinguish that from not having set it at all and it will be editable at the instance level.
+* 一些警告信息：  由构建脚本所创建的组件无法进行修改，有构建脚本在组件上进行修改的属性无法在实例上进行修改，并且在Actor详细信息面板中将显示为只读。 但是，如果构建脚本明确将属性值设置为默认值，我们无法将其与不进行设置进行区分，它在实例层上将可编辑。
 
-### New:  Asset Size Mapper
+### 新增内容：  资源尺寸的映射函数
 
-Ever wondered how much memory an asset takes up? Well, we have a new editor feature called "**Size Mapper**" that helps you figure that out!
+是不是一直在迷惑，一个资源要占据多少内存? 我们有一个新的编辑器功能，它的名称是"**Size Mapper（大小映射函数）**"，这可以帮助您了解这个问题！
 
 ![image alt text](image_14.gif)(convert:false)
 
-* It shows the memory used by an asset along with everything it depends on. Use the mouse wheel to "drill down" into referenced assets, and double-click to jump to that asset in Content Browser.
+* 它显示了由资源使用的内存，以及其依赖项。 使用鼠标滚轮来"下滑"到引用的资源，然后双击以跳转到内容浏览器中的该资源。
 
-* You can also view the sizes of lots of assets at once! Size Mapper will show all assets that are shared between your selected assets inside its own top-level group.
+* 您还可以同时查看诸多资源的大小！ 尺寸映射函数将会在其顶级层中显示在您选择的资源间共享的所有资源。
 
-* You can access this feature all over the editor:
+* 您可以在整个编辑器中使用这项功能：
 
-* **Content Browser**:  Right-click on assets (or a whole folder full of assets) and select "Size Map."
+* **内容浏览器**：  右键点击资源（或包含全部资源的整个文件夹）并选择"Size Map（大小映射）"。
 
-* **Level Editor**:  Right-click on actors and select "Size Map", or press Alt+Shift+M with actors selected.
+* **关卡编辑器**：  右键点击actors并选择"Size Map（大小映射）"，或者在选择了actors的情况下，按下Alt+Shift+M。
 
-* **Reference Viewer**:  Right-click on some nodes and select "Size Map."
+* **引用查看器**：  右键点击节点并选择"Size Map（大小映射）"。
 
-* **Any asset editor**:  Open the File menu and choose "Size Map."
+* **任意资源编辑器**:  打开文件菜单，然后选择"Size Map（大小映射）"。
 
-### Shared Editor Layout and Keybinds
+### 共享的编辑器布局和按键绑定
 
-Your editor layout and keybinding settings are now shared between all of your projects!  
+您的编辑器布局和按键绑定设置现在可在所有项目间共享！  
 
-Previously, every project had its own saved layout/keybinding settings, and it was cumbersome to rebuild your layout with every project you switch to.  In the future we'll be moving even more editor preferences to be globally shared between all projects.
+之前，每个项目都有其保存的布局/按键绑定设置，而且要重新构建您切换到的每个项目的布局是比较麻烦的。  未来我们会把更多编辑器的参数在所有项目间全局共享。
 
-### New:  Interactive Wires in Graph Editors
+### 新增内容：  在图表编辑器中可互动的连线
 
-You can now interact with wires directly in any graph editor!
+您现在可以在任意图表编辑器中直接与连线互动。
 
 ![image alt text](image_15.gif)(convert:false)
 
-* Alt+LMB Click to break the connection
+* Alt+鼠标左键来中断连接
 
-* Ctrl+LMB Drag to move the connection to a different pin
+* Ctrl+鼠标左键来把连接移动到不同的引脚
 
-* Hover over the wire to highlight it or see the tool-tip for the associated pin
+* 把鼠标停留在连线上来高亮它，或查看相关引脚的工具提示
 
-* Double-click to insert a reroute node (Blueprint graphs only)
+* 双击来插入重定位节点（仅蓝图图表）
 
-### New:  Procedural Mesh Component (Experimental)
+### 新增内容：  程序化网格物体组件（程序化）
 
-The new Procedural Mesh Component lets you create meshes at runtime using C++ or Blueprints. 
+新的程序化网格物体组件让您可以在运行时使用C++或蓝图来创建网格物体。 
 
 ![image alt text](image_16.jpg)
 
-* This is similar to the existing Custom Mesh Component, but has many new features such as multiple sections (materials), collision support, and the ability to specify normal, tangent, UV and color per vertex. 
+* 这个类似于已存的自定义网格物体组件，但有许多新的功能，诸如多部分（材质），碰撞支持，以及指定每个顶点的法线、切线、UV和颜色的能力。 
 
-* We have also added a utility library, including a function to generate smooth normals and tangents, given mesh vertex positions and UVs.
+* 我们还添加了工具库，包括了生成平滑法线和切线、给定网格物体顶点位置和UVs的函数。
 
-### New:  Improved Automatic Convex Collision Meshes
+### 新增内容：  改进的自动凸面碰撞网格物体
 
-When using the Static Mesh Editor to automatically generate a collision mesh for your model, the generated mesh will be of much higher quality and will complete more quickly!
+在使用静态网格物体编辑器来自动为您的模型生成碰撞网格物体时，生成的网格物体的质量将会更高，并且完成地更快。
 
 ![image alt text](image_17.jpg)
 
-### New:  Configurable Animation Notify Triggers
+### 新增内容：  可配置的动画通知触发器
 
-There are helpful new settings on all notifies to control when animation notifies trigger:
+当动画通知触发时，所有通知都会有好用的新设置：
 
 ![image alt text](image_18.jpg)
 
-* **Notify Trigger Chance **- A number between 0.0 and 1.0 to denote a random change for the notify to trigger (0.0 = Never Trigger, 1.0 = Always Trigger)
+* **Notify Trigger Chance（通知触发几率） **- 这个值在0.0到1.0之间，可以对通知展示随机变化来触发（0.0 = 从不触发，1.0 =总是触发）
 
-* **Notify Filter Type **- The Filtering mode to apply to the notify, currently there are two choices:
+* **Notify Filter Type（通知筛选类型） **- 应用于通知的筛选模式，当前有两种选择：
 
-    * *No Filtering *- Notify will always trigger (assuming it passes the Trigger Chance setting)
+    * *No Filtering（无筛选） *- 总是触发通知 (假设其传输触发几率设置)
 
-    * *LOD *- Only trigger this notify if the owning mesh is below this LOD. For example a setting of 2 will mean that the LOD will only trigger if the mesh component is rendering at LODs 0 and 1
+    * *LOD *- 仅在其所具有的网格物体位于此LOD下方时触发。 举例来说，设置为2就表示只有网格物体组件在LODs 0和1时进行渲染，才会触发LOD
 
-### New:  On-Demand Asset Cooking ("Cook on the Side")
+### 新增内容：  根据需求进行资源烘焙（"在侧面烘焙"）
 
-* "Cook on the Side" is a new Project Setting that allows your game to startup on a device very quickly.
+* "Cook on the Side（在侧面烘焙）" 是一项新的项目设置，让您的游戏可以非常快速地在设备上进行启动。
 
-* To enable this for your game, check out the "Enable cook on the side" option in the Cooker section of your project's settings.
+* 如需对您的游戏启用此设置，请查看您项目设置的烘焙器部分中的"Enable cook on the side（启用一侧的烘焙）" 选项。
 
-    * When enabled, the Launch On button will now do perform all asset cooking inside the editor, on demand, over the network.  This will allow your game to start much more quickly (similar to when using the "Cook on the Fly" feature.)
+    * 在启用时，Launch On（启动）按钮现在将会按照您的需要执行网络上编辑器中的所有资源的烘焙。  这样可以让您的游戏更快启动（类似于使用"实时烘焙"功能）。
 
-    * When running the game in a debugger or similar, you will need to add -filehostip=xx.xx.xx.xx (using the IP address of the computer running the editor)
+    * 当您在调试程序或类似程序上运行游戏时，您需要添加-filehostip=xx.xx.xx.xx（使用电脑的IP地址来运行编辑器）
 
-* Previously to 4.8, this feature was available as an Experimental setting.  It's now fully supported in 4.8!
+* 在之前的版本中，这个功能是实验性设置。  在4.8版本中完全支持这项功能！
 
-### New:  Downloadable Content (DLC) Support
+### 新增内容：  对可下载内容（DLC）的支持
 
-* Added support for cooking DLC (Downloadable Content).  This allows you to create Pak files that can be distributed to users later.
+* 添加了对烘焙DLC（可下载内容）的支持。  这样您可以创建可稍后发布给用户的Pak文件。
 
-    * Games can choose to make sure DLC doesn't reference Engine content (that Epic will be changing over time).
+    * 游戏可用于确保DLC不会引用引擎内容（Epic会根据时间来进行变更）。
 
-    * In Unreal Frontend, make a custom profile, then select Cook -> Release / DLC / Patch Settings -> Include Engine Content. 
+    * 在Unreal Frontend中，制作一个自定义档案，然后选择Cook（烘焙） -> Release / DLC / Patch Settings（发布/可下载内容/打包设置） -> Include Engine Content（包含引擎内容）。 
 
-### New:  Content Patching Support
+### 新增内容：  内容打包支持
 
-You can now generate Patch Files for your game that have only the content files that have changed since a previous release! 
+您现在可以对自上次发布以来只变更了内容文件夹的游戏生成补丁文件！ 
 
 ![image alt text](image_19.jpg)
 
-* These are generated by comparing new assets with the files that were originally in the shipped game.  Check out the new Unreal Frontend settings for this (shown above.)
+* 它们是通过把新资源和之前发布游戏的初始文件进行比较来生成的。  请查看此设置的新Unreal Frontend（虚幻前端）设置（如上所示）。
 
-* When releasing games use the "Create release version" check box in project launcher and give it a name (example "1.0")
+* 当您勾选项目启动程序中的"Create release version（创建发布版本）"来发布游戏并赋予其名称时（示例"1.0"）
 
-* To generate a patch off that release use the "generate patch" check box in project launcher
+* 如需使用项目启动程序中的"generate patch（生成补丁）"勾选框来生成该发布内容的补丁
 
-### New:  Localization Dashboard
+### 新增内容：  本地化控制板
 
-The Localization Dashboard is now usable as an experimental feature. Use this feature to manage your project's localization pipeline.
+本地化控制板现在作为实验性功能可供使用。 您可以使用这项功能来管理您项目的本地化管道。
 
 ![image alt text](image_20.jpg)
 
-* You can organize localization targets (sets of localization data), and which cultures (languages, regions, and scripts) should be localized for are specified.
+* 您可以管理本地化对象（本地化数据集），以及需要为指定内容本地化哪些文化（语言、区域和脚本）。
 
-* You can also manage outstanding issues with any of the existing localization data, as well as control all aspects of localization data gathering here.
+* 您还可以管理具有任意已存本地化数据的突出问题，并控制本地化数据收集的所有方面的工作。
 
-### Paper2D:  Paint Directly on Sprite Textures
+### Paper2D:  直接在平面粒子贴图上描画
 
-Sprite components can be selected and painted on when in Mesh Paint mode
+您可以在网格物体描画模式中选择平面粒子组件并描画
 
 ![image alt text](image_21.gif)(convert:false)
 
-* The source texture, any additional textures, or textures referenced via the material can be selected and painted on
+* 您可以选择并描画源贴图、任意额外贴图、或通过材质引用的贴图
 
-* Note: Only texture painting mode is supported, vertex painting does not currently work with sprite components.
+* 注意: 只支持贴图描画模式，顶点描画当前无法与平面粒子组件共同发挥作用。
 
-### Paper2D:  Tile Maps are promoted out of experimental into Early Access Preview
+### Paper2D:  拼贴式贴图已经从实验性功能转入早期预览功能
 
 ![image alt text](image_22.png)
 
-* Programmatically working with Tile Map Components from Blueprints (both querying and building from scratch) is now fully supported
+* 从编程的角度说，现在完全支持来自蓝图的平铺贴图组件（从头进行查询和构建）
 
-* Tile map color can now be controlled both per-layer and across the entire tile map
+* 平铺贴图颜色现在可以在层级和整个平铺贴图间进行控制
 
-* Staggered Isometric and Staggered Hexagonal projections are now supported, and the grid/cursor previews are improved in all modes
+* 现在支持错开的等距和错开的六角形投射，并且对所有模式的网格/指针预览都进行了改善。
 
-* Added support for rotated and flipped tiles
+* 添加了对于旋转和翻转平铺的支持
 
-* Various workflow/editing improvements (key binds for layer operations, drag-drop works as expected, existing painted tiles can be selected using Shift+LMB+Drag, etc...)
+* 多种工作流程/编辑改进（对层操作的关键帧绑定，如预期的拖曳操作，您可以使用Shift+鼠标左键+拖曳来选择已存的描画平铺，等等...）
 
-* Collision geometry and a custom metadata key can now be specified on a per-tile basis in the tile set editor
+* 碰撞几何体和自定义元数据关键帧现在可以在平铺设置的编辑器中逐层定义
 
 	![image alt text](image_23.png)
 
-### Paper2D:  Support for sprites that require multiple paired textures
+### Paper2D:  支持需要多个配对贴图的平面粒子
 
-Materials for sprites can define additional texture 'slots', with the actual textures defined in each sprite asset, allowing multi-texture sprites to be easily used.
+平面粒子的材质可以定义额外的贴图'slots（插槽）'，实际的贴图在每个平面粒子资源中进行定义，这样可以方便地使用多贴图的平面粒子。
 
-* Some examples where you might want to use this are custom materials requiring additional mask textures (e.g., pulsating emissive eyes/lines), a lit sprite with an associated normal map, or splitting a translucent texture into two opaque textures (one containing alpha data) for ETC1 compression on Android.
+* 在一些情况下，您可能需要使用这个功能，比如自定义材质需要额外蒙板贴图时（举例来说，跳动的自发光眼睛/线），具有相关法线贴图的带光照平面粒子，或将半透明贴图分为两个不透明贴图（一个包含alpha数据）以供在安卓平台上的ETC1压缩之用。
 
-* Place SpriteTextureSampler nodes in the material, defining whether each should sample from the source texture or one of the additional textures
+* 把SpriteTextureSampler节点放置在材质中，这定义了每个节点是否应从源贴图或额外贴图之一来取样。
 
-* Connect your additional textures in the sprite asset.
+* 在平面粒子资源中连接您的额外贴图。
 
 	![image alt text](image_24.png)
 
-* When you create a sprite or import a sprite sheet, the source folder is automatically checked for an associated normal map named the same as the base texture with a _N or _Normal suffix, which will be plugged into additional texture slot 0 for you. This can be configured in Project Settings (Paper2D - Import)
+* 当您创建平面粒子或导入平面粒子片时，源文件夹会自动检查和基础贴图具有相同名称的关联法线贴图（有 _N 或 _Normal的后缀，它会插入额外的贴图插槽0。 您可以在项目设置中配置此选项（Paper2D - 导入）
 
-* Note: Each texture does not have to be the same size, but the portion corresponding to a specific sprite must be at the same relative location in each (there is only one source region defined per sprite)
+* 注意: 每个贴图不必都一样大，但对特定平面粒子的相关部分必须处于相同的相对位置（每个平面粒子只有一个定义的源区域）
 
-### Paper2D:  Snap layers for speedy 2D level layout
+### Paper2D:  快速二维关卡布局的对齐层
 
-2D Snap Layers are an easy way to manage level layout when working with a 2D game (or a 3D game with 2D gameplay)
+二维Snap Layer（对齐层）是制作二维游戏时用来管理关卡布局的简单方式（或者具有二维玩法的三维游戏）
 
-* Snap layers can be used to either automatically or manually snap actors to a specified layer (e.g., Foreground, Playfield, or Background)
+* 对齐层可用于自动或手动对齐actor到指定层（例如，前景、游玩区域或背景）
 
-* The settings for the snap layers feature are in Project Settings - 2D
+* 对齐层的设置位于Project Settings - 2D（项目设置-二维）中。
 
 	![image alt text](image_25.jpg)
 
-* The overall feature can be enabled or disabled, controlling the presence of the Snap Layers control in the editor viewport
+* 可以启用或禁用总体功能，从而控制位于编辑器视口中的对齐层
 
-* The snap axis and snap depths / names are customizable as well
+* 同时可以对对齐轴和对齐深度/名称进行自定义
 
-* When the layer snap mode is enabled, any newly placed actors will automatically snap to the active snap layer
+* 当启用了层对齐模式，任何最近放置的actor都会自动与激活的对齐层相对齐
 
-* At any time (even when disabled), a series of keyboard shortcuts can be used to snap to the active snap layer or change layers
+* 在任何时候（即使在禁用时），都可以使用键盘快捷方式来对齐到激活的对齐层或变更层。
 
 	![image alt text](image_26.jpg)
 
-* Snap to the current layer (Ctrl+SpaceBar)
+* 对齐到当前层(Ctrl+空格)
 
-* Move selection up a layer (Ctrl+PageUp, also changes active layer)
+* 把选择内容上移一层（Ctrl+PageUp，同时变更激活层）
 
-* Move selection down a layer (Ctrl+PageDown, also changes active layer)
+* 把选择内容下移一层（Ctrl+PageDown，同时变更激活层）
 
-* Move selection to the top layer (Shift+Ctrl+PageUp, also changes active layer)
+* 把选择内容移到到顶层（Shift+Ctrl+PageUp，同时变更激活层）
 
-* Move selection to the bottom layer (Shift+Ctrl+PageDown, also changes active layer)
+* 把选择内容移到到底层（Shift+Ctrl+PageDown，同时变更激活层）
 
-* Cycle active snap layer forwards (Alt+PageUp)
+* 将激活的对齐层向前循环（Alt+PageUp）
 
-* Cycle active snap layer backwards (Alt+PageDown)
+* 将激活的对齐层向后循环（Alt+PageDown）
 
-### Paper2D:  Interactive Extract Sprites Dialog
+### Paper2D:  互动提取的平面粒子对话框
 
-The Extract sprites dialog allows more control over how sprites are split out from a texture, making it quicker and easier to import/prepare assets for use with Paper2D
+提取平面粒子对话框使得我们可以对贴图中分割的平面粒子具有更多的控制，使得我们在使用Paper2D时能更快更方便地导入/准备资源
 
-* The dialog can be triggered on a texture via the Content Browser context menu Sprite Actions..Extract Sprites, or on an existing sprite in the Source Region Edit mode using the toolbar button
+* 对话框可以通过内容浏览器的关联菜单的Sprite Actions（平面粒子操作）..Extract Sprites（提取平面粒子）在贴图上触发，或者在源区域编辑模式中的已存平面粒子上使用工具条按钮
 
 	![image alt text](image_27.gif)(convert:false)
 
-* You can specify a naming pattern and starting offset for the created sprites
+* 您可以指定命名的样式并对创建的平面粒子启用偏移
 
-* There are two modes: Automatic and Grid-based
+* 有两种模式： 自动模式和基于网格物体的模式
 
-    * Automatic will identify islands of continuous pixels and treat each one as a sprite, which works well for many kinds of assets, but may require custom pivots for flipbook animations that are different heights or create too many sprites for things like particle systems
+    * 自动模式将会辨认连续像素的范围，并将各像素作为平面粒子来处理，这对于许多资源是没问题的，但对于具有不同高度或创建了过多诸如粒子系统的平面粒子的翻书贴图可能需要自定义指针
 
-    * Grid-based allows you to specify the width/height of one grid cell, and optionally how many cells wide/tall to extract (in case there are different sized grids sharing the same texture)
+    * 基于网格物体的对象让您可以指定单个网格单元的宽度/高度，并可让您选择需提取的单元宽度/高度（可能有不同大小的网格共享同一贴图）
 
-### Paper2D:  Grouped Sprite Components
+### Paper2D:  分组的平面粒子组件
 
- A grouped sprite component allows many instances of one or more sprite assets to be drawn together in a minimal number of batches (separate materials or textures will still split batches).
+ 分组的平面粒子组件使得一个或更多平面粒子资源的诸多实例能够被描画到最小数量的批处理程序中（单独的材质或贴图仍将会分割批处理文件）。
 
 ![image alt text](image_28.png)
 
-* Working with groups is pretty simple:
+* 使用组非常简单：
 
-    * You can build them programmatically in the same way you might use a UInstancedStaticMeshComponent for 3D meshes, but they have fewer limitations (you can mix/match sprites and materials in one, it will generate additional draw calls as necessary)
+    * 您可以按照使用三维网格物体UInstancedStaticMeshComponent 的相同的交互方式来进行程序编译，但限制更少（您也可以混合/匹配平面粒子和材质，它会按需生成额外的描画调用。）
 
-    * You can convert selections in the level editor into a grouped component using the Merge button in the details panel if all selected items are sprite actors, or the right-click context menu if the selection is mixed (it will leave non-sprite objects alone but delete sprite actors, replacing them with a merged actor).
+    * 如果所有的选择项目为平面粒子actors,或者通过混合选项的右键关联菜单，您可以通过详细信息面板中的融合按钮来转换关卡编辑器张的选项到分组组件（它不会处理费平面粒子对象，但会删除平面粒子 actor，将它们替换为合并的 actor）。
 
-    * You can split a sprite group back into separate actors if you need to move/reposition something, and can then re-merge them.
+    * 如果您需要移动/重定位某对象，您可以把平面粒子组分割为单个actor，并且可以随后重新融合它们。
 
-    * You can sort them based on the rendering project settings TranslucencySortAxis, so that batches that contain translucent sprites render as expected.
+    * 您可以基于渲染项目设置TranslucencySortAxis来对它们进行排序，这样会对包含半透明平面粒子的渲染进行预期的烘焙。
 
-* Note: All sprites in a group will be drawn as one or a few draw calls (the minimum required given the materials and textures). This means that:
+* 注意: 组中的所有平面粒子都会被描画为一个或多个描画调用（在有材质和贴图的情况下的最低所需调用） 这意味着：
 
-    * Culling will be done as a whole unit. Either all instances are drawn or none of the instances are drawn. You probably don't want to group sprites from opposite ends of the map together.
+    * 剔除将作为整体来执行。 要么描画所有实例，要么不描画任何实例。 您很可能不会想让来自于地图相反位置的平面粒子组合到一起。
 
-    * Sorting will be done as a whole unit. If you have some translucent foreground sprites and some translucent background sprites, you probably don't want to group them together. With the sort button they'll sort correctly relative to each other, but a translucent player in the mid-ground can't pass in between the two of them, it'll either draw in front of both or behind both.
+    * 排序将作为整体来执行。 如果您具有一些半透明前景平面粒子和一些半透明背景平面粒子，您很可能不会相把它们组合到一起。 在点击了排序按钮后，它们会在相对位置进行正确排序，但是位于中间位置的半透明玩家无法在两者之间传递，它会在两者前方或后方描画。
 
-    * These kinds of sorting issues only apply to Translucent materials, Masked materials don't have the same issues but they only work for binary (0 or 1) opacity.
+    * 这些种类的排序方法仅适用于半透明材质，蒙板材质没有同样问题，但仅对二进制 (0或1) 不透明度有效。
 
-### New:  'Interpolate To' Component
+### 新增内容：  'Interpolate To（插值到）' 组件
 
-The new "Interpolate To" Movement Component can be dropped onto actors.  This will let the actor move automatically!
+新的"Interpolate To（插值到）"移动组件可被拖曳到actor上。  这样可以让actor自动移动！
 
 ![image alt text](image_29.gif)(convert:false)
 
-* You can specify multiple points to interpolate between, and a number of different behaviour options are available (e.g. looping, ping pong, etc.)
+* 您可以定义多点以供插值，并且可用多个不同的操作选项（例如，循环、往返等等）。
 
-### New:  Support for Large Android Games
+### 新增内容：  对大型安卓游戏的支持
 
-Added support for downloading .obb (large data) files from the Google Play Store has been added.
+添加了从Google Play 商店下载.obb（大型数据）文件的支持。
 
 ![image alt text](image_30.png)
 
-* Sometimes the data file isn't downloaded from the Store, this ensures the game downloads it and can run.
+* 有时数据文件并不从商店中下载，这样能让游戏下载这些数据并且能够运行。
 
-* Allows for a custom background image support for the download screen.
+* 可对下载屏幕自定义背景图像。
 
-### New:  Build iOS Projects from Windows (Remotely)
+### 新增内容：  从Windows编译iOS项目（远程）
 
-Added support for building iOS Code Projects on a remote Mac using SSH.
+使用SSH在远程Mac上添加对编译iOS代码项目的支持。
 
 ![image alt text](image_31.png)
 
-* Requirements: 
+* 要求： 
 
-    * A login to a Mac with Xcode installed.
+    * 在安装了Xcode的情况下登陆到Mac。
 
-    * An iOS signing certificate installed in the **system keychain** 
+    * 安装于 **system keychain（系统密钥链）** 的iOS签名认证 
 
-    * [DeltaCopy](http://www.aboutmyip.com/AboutMyXApp/DeltaCopy.jsp) or other SSH and Rsync software for Windows
+    * Windows系统的[DeltaCopy](http://www.aboutmyip.com/AboutMyXApp/DeltaCopy.jsp)或其它SSH和Rsync软件
 
-* Use the Generate SSH Key button to generate local credentials to a password isn't needed when compiling
+* 使用生成SSH键按钮来生成本地凭证为编译时不需要的密码
 
-    * You can check the key into source control to share with your team.
+    * 您可以把关键帧迁入到源控制，从而与您的团队进行共享。
 
-    * The previous, but unsupported, method (UnrealRemoteTool) can still be used if you set bUseRsync to false DefaultEngine.ini
+    * 如果您设置bUseRsync为错误的DefaultEngine.ini，则之前不受支持的方式(UnrealRemoteTool)仍可被使用
 
-### New:  Motion Blur and Anti-aliasing for Vertex Animation Materials
+### 新增内容：  顶点动画材质的运动模糊和抗锯齿
 
-Materials that animate vertices using World Position Offset can now output accurate motion vectors.  The motion vectors allow per-pixel motion blur from the procedural animation. Additionally Temporal Anti-Aliasing and Distance Field Ambient Occlusion can correctly reproject to prevent undesirable blurring.  
+使用世界位置偏移来对顶点进行动画处理的材质现在可以输出准确的运动向量。  运动向量使得来自于程序化动画的逐帧动画模糊成为可能。 可以正确地重新投射额外的临时抗锯齿和距离场环境遮挡以防止不需要的模糊。  
 
-Visualization of per-pixel velocities from a tree animated with World Position Offset.
+来自于树的逐像素运动的可视化使用了World Position Offset（世界位置偏移）来进行动画处理。
 
 ![image alt text](image_32.png)
 
-* You must enable the new project setting 'Accurate velocities from Vertex Deformation'. This feature causes motion vectors to be output during the base pass which has a small performance cost whether you use these materials or not.  Changing this setting requires a restart of the editor.
+* 您必须启用新项目设置'Accurate velocities from Vertex Deformation（来自顶点变形的准确速度）'。 这项功能使得运动向量在基础渲染的过程中能够进行输出，无论您是否使用这些材质，它都会有小的性能损耗。  变更此设置需要重启编辑器。
 
-* You can disable the feature per-material with the setting 'Support accurate velocities from Vertex Deformation'
+* 您可以禁用设置'Support accurate velocities from Vertex Deformation（支持来自顶点变形的准确速度）'来禁用每个材质上的该功能。
 
-* The Speedtree wind node needs 'Accurate Wind Velocities' to be enabled
+* Speedtree的wind（风）节点需要启用'Accurate Wind Velocities（准确风速）' 。
 
-* Note that this feature can only support velocities from changing time, not parameters set by blueprint or gameplay code. 
+* 注意此功能仅支持不同时间的速度，而不支持由蓝图或游戏代码设置的参数。 
 
-### New:  Multi-threaded Asynchronous Asset Loading
+### 新增内容：  多线程异步资源载入
 
-Cooked builds can use a dedicated thread for package streaming instead of using time-slicing approach.  You can enable this in your project with a new config option.  This can make asynchronous loading of assets up to three times faster!
+烘焙的版本可以使用专用线程以用于包的动态载入，而不用使用时间分割的方法。  您可以使用新的配置选项在您的项目中启用它。  这样可以让资源的异步载入快三倍！
 
-* PostLoad is still performed on the main thread and is time-sliced due to most of the PostLoad functions not being thread safe yet.
+* PostLoad仍在主线程执行，并且由于大部分PostLoad函数尚未线程安全化，将进行时间分割。
 
-* All Serialize functions defined for UObjects and UStructs are now required to be thread safe.
+* 所有为UObjects和UStructs定义的序列函数现在都必须为线程安全的。
 
-* Due to the above restrictions, async loading thread is disabled by default to give everyone time to make sure their code meets the thread-safety requirements. Async loading thread can be enabled via AsyncLoadingThreadEnabled ini setting under [Core.System] section.
+* 出于上述限制，异步载入线程默认是禁止的，这样每个人都有时间来确认他们的代码符合线程安全的要求。 异步载入线程可以通过[Core.System]部分下的AsyncLoadingThreadEnabled ini设置来启用。
 
-* Async loading thread will be automatically disabled on platforms that do not support multithreading and on dedicated servers.
+* 在不支持多线程的平台和专用服务器上，异步载入线程会被自动禁用。
 
-* UObjects construction is now thread safe and can be performed on worker threads. This requires all UObject-derived class constructors to be thread safe.
+* UObjects构建函数现在为线程安全，并且可以在工作线程上执行。 这需要所有的来自于UObject类的构建函数为线程安全。
 
-* StaticFindObject, FindObject and FindObjectFast functions are now thread safe too. Keep in mind that if they're used on a worker thread and the return value is referenced only on the stack, garbage collector may claim the object if not referenced by anything.
+* StaticFindObject, FindObject和FindObjectFast函数现在也为线程安全。 如果在工作线程上使用它们，并且返回值仅在堆栈上进行引用，在其没有被任何对象引用的情况下，垃圾收集程序可能会声明该对象。
 
-* Introduced FGCScopeGuard helper struct that works on a similar basis to FScopeLock except that it prevents GC from running while the current scope is being executed on a worker thread.
+* 引入的FGCScopeGuard辅助结构体对FScopeLock基于同样的原理运行，但是它会在当前范围运行于工作线程上时防止GC的运行。
 
-* Introduced TryCollectGarbage function which skips garbage collection if any of the worker threads executes code inside of FGCScopeGuard scope. TryCollectGarbage is now used by default by level ticking code.
+* 如果任意工作线程执行位于FGCScopeGuard范围内的代码，则引入的TryCollectGarbage函数会跳过垃圾收集。 TryCollectGarbage现在默认由关卡更新代码来使用。
 
-* Async load percentage accessible via 'stat levels' now takes PostLoad into account
+* 可通过'stat levels（统计数据层）' 的异步载入百分比现在会考虑PostLoad
 
-## Release Notes
+## 版本信息
 
 ### AI
 
@@ -5223,7 +5222,7 @@ Cooked builds can use a dedicated thread for package streaming instead of using 
 
 * We now use bilinear sampling rather than point sampling.
 
-## Programming Release Notes
+## 编程版本信息
 
 ### AI
 
@@ -6877,7 +6876,7 @@ Cooked builds can use a dedicated thread for package streaming instead of using 
 
 * Now using IsBindableEvent="True" for widgets that expose bindable single cast delegates. Using the old trick of scanning for ones ending with "Event", will eventually stop working.
 
-## Upgrade Notes
+## 更新信息
 
 ### Programming
 

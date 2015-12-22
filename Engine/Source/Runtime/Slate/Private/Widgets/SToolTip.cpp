@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 
@@ -60,7 +60,7 @@ void SToolTip::SetContentWidget(const TSharedRef<SWidget>& InContentWidget)
 		ToolTipContent =
 			SNew( STextBlock )
 			.Text( TextContent )
-			.Font( FCoreStyle::Get().GetFontStyle( "ToolTip.LargerFont" ) )
+			.Font( Font )
 			.ColorAndOpacity( FLinearColor::Black )
 			.WrapTextAt_Static( &SToolTip::GetToolTipWrapWidth );
 

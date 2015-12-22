@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2604630
+﻿INTSourceChangelist:2693543
 Availability:Public
 Title:하드웨어 & 소프트웨어 사양
 SEO-Title:하드웨어 & 소프트웨어 사양
@@ -71,8 +71,7 @@ Description:언리얼 엔진으로 개발하는 데 있어 최소/추천 하드�
 | **운영 체제** | 윈도우 7/8 64 비트 |
 | **프로세서** | 쿼드코어 인텔 또는 AMD 2.5 GHz 이상|
 | **메모리** | 8 GB 램 |
-| **비디오 카드** | DirectX 11 호환 그래픽 카드 |
-| **DirectX 버전** | [DirectX End-User Runtimes (June 2010)](http://www.microsoft.com/en-us/download/details.aspx?id=8109) |
+| **비디오 카드/DirectX 버전** | DirectX 11 호환 그래픽 카드 |
 [/EXCERPT:WindowsMinHardware]
 [EXCERPT:MacOSMinHardware]
 |||
@@ -197,7 +196,7 @@ Description:언리얼 엔진으로 개발하는 데 있어 최소/추천 하드�
 | 엔진 실행 ||
 | -------- | --- |
 | **운영체제** | Windows 7/8 64-bit |
-| **DirectX 버전** | [DirectX End-User Runtimes (June 2010)](http://www.microsoft.com/en-us/download/details.aspx?id=8109) |
+| **DirectX 런타임** | [DirectX End-User Runtimes (June 2010)](http://www.microsoft.com/en-us/download/details.aspx?id=8109) |
 
 [/EXCERPT:WindowsMinSoftware]
 

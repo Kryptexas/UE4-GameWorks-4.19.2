@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -13,6 +13,9 @@ using Tools.DotNETCommon.XmlHandler;
 using UnrealBuildTool;
 using System.Runtime.CompilerServices;
 using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
+using Tools.DotNETCommon;
 using Tools.DotNETCommon.CaselessDictionary;
 using Tools.DotNETCommon.HarvestEnvVars;
 
@@ -107,97 +110,129 @@ namespace AutomationTool
 		#region Logging
 
 		/// <summary>
-		/// Returns a formatted string for the specified exception (including inner exception if any).
-		/// </summary>
-		/// <param name="Ex"></param>
-		/// <returns>Formatted exception string.</returns>
-		public static string ExceptionToString(Exception Ex)
-		{
-			return LogUtils.FormatException(Ex);
-		}
-
-		/// <summary>
-		/// Writes formatted text to log (with TraceEventType.Log).
+		/// Writes formatted text to log (with LogEventType.Console).
 		/// </summary>
 		/// <param name="Format">Format string</param>
 		/// <param name="Args">Parameters</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void Log(string Format, params object[] Args)
 		{
-			UnrealBuildTool.Log.WriteLine(1, null, TraceEventType.Information, Format, Args);
+			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Console, Format, Args);
 		}
 
 		/// <summary>
-		/// Writes formatted text to log (with TraceEventType.Log).
+		/// Writes formatted text to log (with LogEventType.Console).
 		/// </summary>
 		/// <param name="Message">Text</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void Log(string Message)
 		{
-            UnrealBuildTool.Log.WriteLine(1, null, TraceEventType.Information, Message);
+			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Console, Message);
 		}
 
 		/// <summary>
-		/// Writes formatted text to log (with TraceEventType.Error).
+		/// Writes formatted text to log (with LogEventType.Error).
 		/// </summary>
 		/// <param name="Format">Format string</param>
 		/// <param name="Args">Parameters</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void LogError(string Format, params object[] Args)
 		{
-            UnrealBuildTool.Log.WriteLine(1, null, TraceEventType.Error, Format, Args);
+			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Error, Format, Args);
 		}
 
 		/// <summary>
-		/// Writes formatted text to log (with TraceEventType.Error).
+		/// Writes formatted text to log (with LogEventType.Error).
 		/// </summary>
 		/// <param name="Message">Text</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void LogError(string Message)
 		{
-            UnrealBuildTool.Log.WriteLine(1, null, TraceEventType.Error, Message);
+			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Error, Message);
 		}
 
 		/// <summary>
-		/// Writes formatted text to log (with TraceEventType.Warning).
+		/// Writes formatted text to log (with LogEventType.Warning).
 		/// </summary>
 		/// <param name="Format">Format string</param>
 		/// <param name="Args">Parameters</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void LogWarning(string Format, params object[] Args)
 		{
-            UnrealBuildTool.Log.WriteLine(1, null, TraceEventType.Warning, Format, Args);
+			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Warning, Format, Args);
 		}
 
 		/// <summary>
-		/// Writes a message to log (with TraceEventType.Warning).
+		/// Writes a message to log (with LogEventType.Warning).
 		/// </summary>
 		/// <param name="Message">Text</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void LogWarning(string Message)
 		{
-            UnrealBuildTool.Log.WriteLine(1, null, TraceEventType.Warning, Message);
+			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Warning, Message);
 		}
 
 		/// <summary>
-		/// Writes formatted text to log (with TraceEventType.Verbose).
+		/// Writes formatted text to log (with LogEventType.Verbose).
 		/// </summary>
 		/// <param name="Foramt">Format string</param>
 		/// <param name="Args">Arguments</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void LogVerbose(string Format, params object[] Args)
 		{
-            UnrealBuildTool.Log.WriteLine(1, null, TraceEventType.Verbose, Format, Args);
+			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Verbose, Format, Args);
 		}
 
 		/// <summary>
-		/// Writes formatted text to log (with TraceEventType.Verbose).
+		/// Writes formatted text to log (with LogEventType.Verbose).
 		/// </summary>
 		/// <param name="Message">Text</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void LogVerbose(string Message)
 		{
-            UnrealBuildTool.Log.WriteLine(1, null, TraceEventType.Verbose, Message);
+			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Verbose, Message);
+		}
+
+		/// <summary>
+		/// Writes formatted text to log (with LogEventType.VeryVerbose).
+		/// </summary>
+		/// <param name="Foramt">Format string</param>
+		/// <param name="Args">Arguments</param>
+		[MethodImplAttribute(MethodImplOptions.NoInlining)]
+		public static void LogVeryVerbose(string Format, params object[] Args)
+		{
+			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.VeryVerbose, Format, Args);
+		}
+
+		/// <summary>
+		/// Writes formatted text to log (with LogEventType.VeryVerbose).
+		/// </summary>
+		/// <param name="Message">Text</param>
+		[MethodImplAttribute(MethodImplOptions.NoInlining)]
+		public static void LogVeryVerbose(string Message)
+		{
+			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.VeryVerbose, Message);
+		}
+
+		/// <summary>
+		/// Writes formatted text to log (with LogEventType.Log).
+		/// </summary>
+		/// <param name="Foramt">Format string</param>
+		/// <param name="Args">Arguments</param>
+		[MethodImplAttribute(MethodImplOptions.NoInlining)]
+		public static void LogLog(string Format, params object[] Args)
+		{
+			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Log, Format, Args);
+		}
+
+		/// <summary>
+		/// Writes formatted text to log (with LogEventType.Log).
+		/// </summary>
+		/// <param name="Message">Text</param>
+		[MethodImplAttribute(MethodImplOptions.NoInlining)]
+		public static void LogLog(string Message)
+		{
+			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Log, Message);
 		}
 
 		/// <summary>
@@ -207,7 +242,7 @@ namespace AutomationTool
 		/// <param name="Format">Format string</param>
 		/// <param name="Args">Arguments</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void Log(TraceEventType Verbosity, string Format, params object[] Args)
+		public static void LogWithVerbosity(UnrealBuildTool.LogEventType Verbosity, string Format, params object[] Args)
 		{
             UnrealBuildTool.Log.WriteLine(1, null, Verbosity, Format, Args);
 		}
@@ -218,7 +253,7 @@ namespace AutomationTool
 		/// <param name="Verbosity">Verbosity</param>
 		/// <param name="Message">Text</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void Log(TraceEventType Verbosity, string Message)
+		public static void LogWithVerbosity(UnrealBuildTool.LogEventType Verbosity, string Message)
 		{
             UnrealBuildTool.Log.WriteLine(1, null, Verbosity, Message);
 		}
@@ -229,7 +264,7 @@ namespace AutomationTool
 		/// <param name="Verbosity">Verbosity</param>
 		/// <param name="Ex">Exception</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void Log(TraceEventType Verbosity, Exception Ex)
+		public static void LogWithVerbosity(UnrealBuildTool.LogEventType Verbosity, Exception Ex)
 		{
             UnrealBuildTool.Log.WriteLine(1, null, Verbosity, LogUtils.FormatException(Ex));
 		}
@@ -335,6 +370,7 @@ namespace AutomationTool
         /// <summary>
         /// Finds files in specified paths. 
         /// </summary>
+        /// <param name="bQuiet">When true, logging is suppressed.</param>
         /// <param name="SearchPattern">Pattern</param>
         /// <param name="Recursive">Recursive search</param>
         /// <param name="Paths">Paths to search</param>
@@ -359,7 +395,8 @@ namespace AutomationTool
 		/// <summary>
 		/// Finds files in specified paths. 
 		/// </summary>
-		/// <param name="SearchPattern">Pattern</param>
+        /// <param name="bQuiet">When true, logging is suppressed.</param>
+        /// <param name="SearchPattern">Pattern</param>
 		/// <param name="Recursive">Recursive search</param>
 		/// <param name="Paths">Paths to search</param>
 		/// <returns>An array of files found in the specified paths</returns>
@@ -384,7 +421,8 @@ namespace AutomationTool
 		/// <summary>
 		/// Finds Directories in specified paths. 
 		/// </summary>
-		/// <param name="SearchPattern">Pattern</param>
+        /// <param name="bQuiet">When true, logging is suppressed.</param>
+        /// <param name="SearchPattern">Pattern</param>
 		/// <param name="Recursive">Recursive search</param>
 		/// <param name="Paths">Paths to search</param>
 		/// <returns>An array of files found in the specified paths</returns>
@@ -410,7 +448,7 @@ namespace AutomationTool
 		/// If the file does not exist, silently succeeds.
 		/// If the deletion of the file fails, this function throws an Exception.
 		/// </summary>
-		/// <param name="Filename">Filename</param>
+		/// <param name="Filenames">Filename</param>
 		public static void DeleteFile(params string[] Filenames)
 		{
 			foreach (var Filename in Filenames)
@@ -427,7 +465,8 @@ namespace AutomationTool
         /// If the file does not exist, silently succeeds.
         /// If the deletion of the file fails, this function throws an Exception.
         /// </summary>
-        /// <param name="Filename">Filename</param>
+        /// <param name="bQuiet">When true, logging is suppressed.</param>
+        /// <param name="Filenames">Filename</param>
         public static void DeleteFile(bool bQuiet, params string[] Filenames)
         {
             foreach (var Filename in Filenames)
@@ -444,7 +483,7 @@ namespace AutomationTool
 		/// Deletes a file(s). 
 		/// If the deletion of the file fails, prints a warning.
 		/// </summary>
-		/// <param name="Filename">Filename</param>
+		/// <param name="Filenames">Filename</param>
         public static bool DeleteFile_NoExceptions(params string[] Filenames)
 		{
 			bool Result = true;
@@ -453,7 +492,7 @@ namespace AutomationTool
 				var NormalizedFilename = ConvertSeparators(PathSeparator.Default, Filename);
 				if (!InternalUtils.SafeDeleteFile(NormalizedFilename))
 				{
-					Log(TraceEventType.Warning, "Failed to delete file '{0}'", NormalizedFilename);
+					LogWarning("Failed to delete file '{0}'", NormalizedFilename);
 					Result = false;
 				}
 			}
@@ -471,7 +510,7 @@ namespace AutomationTool
 			var NormalizedFilename = ConvertSeparators(PathSeparator.Default, Filename);
 			if (!InternalUtils.SafeDeleteFile(NormalizedFilename, bQuiet))
 			{
-				Log(bQuiet ? TraceEventType.Information : TraceEventType.Warning, "Failed to delete file '{0}'", NormalizedFilename);
+				LogWithVerbosity(bQuiet ? LogEventType.Log : LogEventType.Warning, "Failed to delete file '{0}'", NormalizedFilename);
 				Result = false;
 			}
 			return Result;
@@ -482,7 +521,7 @@ namespace AutomationTool
 		/// If the deletion of the directory fails, this function throws an Exception.
 		/// </summary>
 		/// <param name="bQuiet">Suppresses log output if true</param>
-		/// <param name="Directory">Directory</param>
+		/// <param name="Directories">Directories</param>
 		public static void DeleteDirectory(bool bQuiet, params string[] Directories)
 		{
 			foreach (var Directory in Directories)
@@ -499,8 +538,8 @@ namespace AutomationTool
 		/// Deletes a directory(or directories) including its contents (recursively, will delete read-only files).
 		/// If the deletion of the directory fails, this function throws an Exception.
 		/// </summary>
-		/// <param name="Directory">Directory</param>
-		public static void DeleteDirectory(params string[] Directories)
+        /// <param name="Directories">Directories</param>
+        public static void DeleteDirectory(params string[] Directories)
 		{
 			DeleteDirectory(false, Directories);
 		}
@@ -510,8 +549,8 @@ namespace AutomationTool
 		/// If the deletion of the directory fails, prints a warning.
 		/// </summary>
 		/// <param name="bQuiet">Suppresses log output if true</param>
-		/// <param name="Directory">Directory</param>
-		public static bool DeleteDirectory_NoExceptions(bool bQuiet, params string[] Directories)
+        /// <param name="Directories">Directories</param>
+        public static bool DeleteDirectory_NoExceptions(bool bQuiet, params string[] Directories)
 		{
 			bool Result = true;
             foreach (var Directory in Directories)
@@ -521,7 +560,7 @@ namespace AutomationTool
                 {
                     if (!InternalUtils.SafeDeleteDirectory(NormalizedDirectory, bQuiet))
                     {
-                        Log(TraceEventType.Warning, "Failed to delete directory '{0}'", NormalizedDirectory);
+                        LogWarning("Failed to delete directory '{0}'", NormalizedDirectory);
                         Result = false;
                     }
                 }
@@ -529,8 +568,8 @@ namespace AutomationTool
                 {
 					if (!bQuiet)
 					{
-						Log(TraceEventType.Warning, "Failed to delete directory, exception '{0}'", NormalizedDirectory);
-						Log(TraceEventType.Warning, Ex);
+						LogWarning("Failed to delete directory, exception '{0}'", NormalizedDirectory);
+						LogWarning(Ex.Message);
 					}
                     Result = false;
                 }
@@ -544,8 +583,8 @@ namespace AutomationTool
 		/// Deletes a directory(or directories) including its contents (recursively, will delete read-only files).
 		/// If the deletion of the directory fails, prints a warning.
 		/// </summary>
-		/// <param name="Directory">Directory</param>
-		public static bool DeleteDirectory_NoExceptions(params string[] Directories)
+        /// <param name="Directories">Directories</param>
+        public static bool DeleteDirectory_NoExceptions(params string[] Directories)
 		{
 			return DeleteDirectory_NoExceptions(false, Directories);
 		}
@@ -559,7 +598,7 @@ namespace AutomationTool
 		/// <param name="DirectoryName"></param>
 		public static void DeleteDirectoryContents(string DirectoryName)
 		{
-			Log("DeleteDirectoryContents({0})", DirectoryName);
+			LogVerbose("DeleteDirectoryContents({0})", DirectoryName);
 			const bool bQuiet = true;
 			var Files = CommandUtils.FindFiles_NoExceptions(bQuiet, "*", false, DirectoryName);
 			foreach (var Filename in Files)
@@ -576,8 +615,8 @@ namespace AutomationTool
 		/// <summary>
 		/// Checks if a directory(or directories) exists.
 		/// </summary>
-		/// <param name="Directory">Directory</param>
-		/// <returns>True if the directory exists, false otherwise.</returns>
+        /// <param name="Directories">Directories</param>
+        /// <returns>True if the directory exists, false otherwise.</returns>
 		public static bool DirectoryExists(params string[] Directories)
 		{
 			bool bExists = Directories.Length > 0;
@@ -592,8 +631,8 @@ namespace AutomationTool
 		/// <summary>
 		/// Checks if a directory(or directories) exists.
 		/// </summary>
-		/// <param name="Directory">Directory</param>
-		/// <returns>True if the directory exists, false otherwise.</returns>
+        /// <param name="Directories">Directories</param>
+        /// <returns>True if the directory exists, false otherwise.</returns>
 		public static bool DirectoryExists_NoExceptions(params string[] Directories)
 		{
 			bool bExists = Directories.Length > 0;
@@ -606,8 +645,8 @@ namespace AutomationTool
 				}
 				catch (Exception Ex)
 				{
-					Log(TraceEventType.Warning, "Unable to check if directory exists: {0}", NormalizedDirectory);
-					Log(TraceEventType.Warning, Ex);
+					LogWarning("Unable to check if directory exists: {0}", NormalizedDirectory);
+					LogWarning(Ex.Message);
 					bExists = false;
 					break;
 				}
@@ -619,8 +658,8 @@ namespace AutomationTool
 		/// Creates a directory(or directories).
 		/// If the creation of the directory fails, this function throws an Exception.
 		/// </summary>
-		/// <param name="Directory">Directory</param>
-		public static void CreateDirectory(params string[] Directories)
+        /// <param name="Directories">Directories</param>
+        public static void CreateDirectory(params string[] Directories)
 		{
 			foreach (var DirectoryName in Directories)
 			{
@@ -636,7 +675,8 @@ namespace AutomationTool
         /// Creates a directory(or directories).
         /// If the creation of the directory fails, this function throws an Exception.
         /// </summary>
-        /// <param name="Directory">Directory</param>
+        /// <param name="bQuiet">When true, logging is suppressed.</param>
+        /// <param name="Directories">Directories</param>
         public static void CreateDirectory(bool bQuiet, params string[] Directories)
         {
             foreach (var DirectoryName in Directories)
@@ -653,8 +693,8 @@ namespace AutomationTool
 		/// Creates a directory (or directories).
 		/// If the creation of the directory fails, this function prints a warning.
 		/// </summary>
-		/// <param name="Directory">Directory</param>
-		public static bool CreateDirectory_NoExceptions(params string[] Directories)
+        /// <param name="Directories">Directories</param>
+        public static bool CreateDirectory_NoExceptions(params string[] Directories)
 		{
 			bool Result = true;
 			foreach (var DirectoryName in Directories)
@@ -662,7 +702,7 @@ namespace AutomationTool
 				var NormalizedDirectory = ConvertSeparators(PathSeparator.Default, DirectoryName);
 				if (!InternalUtils.SafeCreateDirectory(NormalizedDirectory))
 				{
-					Log(TraceEventType.Warning, "Failed to create directory '{0}'", NormalizedDirectory);
+					LogWarning("Failed to create directory '{0}'", NormalizedDirectory);
 					Result = false;
 				}
 			}
@@ -673,7 +713,8 @@ namespace AutomationTool
 		/// Renames/moves a file.
 		/// If the rename of the file fails, this function throws an Exception.
 		/// </summary>
-		/// <param name="OldName">Old name</param>
+        /// <param name="bQuiet">When true, logging is suppressed.</param>
+        /// <param name="OldName">Old name</param>
 		/// <param name="NewName">new name</param>
         public static void RenameFile(string OldName, string NewName, bool bQuiet = false)
 		{
@@ -698,7 +739,7 @@ namespace AutomationTool
 			var Result = InternalUtils.SafeRenameFile(OldNormalized, NewNormalized);
 			if (!Result)
 			{
-				Log(TraceEventType.Warning, "Failed to rename/move file '{0}' to '{1}'", OldName, NewName);
+				LogWarning("Failed to rename/move file '{0}' to '{1}'", OldName, NewName);
 			}
 			return Result;
 		}
@@ -706,7 +747,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Checks if a file(s) exists.
 		/// </summary>
-		/// <param name="Filename">Filename.</param>
+		/// <param name="Filenames">Filename.</param>
 		/// <returns>True if the file exists, false otherwise.</returns>
 		public static bool FileExists(params string[] Filenames)
 		{
@@ -722,7 +763,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Checks if a file(s) exists.
 		/// </summary>
-		/// <param name="Filename">Filename.</param>
+		/// <param name="Filenames">Filename.</param>
 		/// <returns>True if the file exists, false otherwise.</returns>
 		public static bool FileExists_NoExceptions(params string[] Filenames)
 		{
@@ -732,7 +773,8 @@ namespace AutomationTool
         /// <summary>
         /// Checks if a file(s) exists.
         /// </summary>
-        /// <param name="Filename">Filename.</param>
+        /// <param name="bQuiet">When true, logging is suppressed.</param>
+        /// <param name="Filenames">Filename.</param>
         /// <returns>True if the file exists, false otherwise.</returns>
         public static bool FileExists(bool bQuiet, params string[] Filenames)
         {
@@ -748,7 +790,8 @@ namespace AutomationTool
         /// <summary>
         /// Checks if a file(s) exists.
         /// </summary>
-        /// <param name="Filename">Filename.</param>
+        /// <param name="bQuiet">When true, logging is suppressed.</param>
+        /// <param name="Filenames">Filename.</param>
         /// <returns>True if the file exists, false otherwise.</returns>
         public static bool FileExists_NoExceptions(bool bQuiet, params string[] Filenames)
         {
@@ -794,7 +837,7 @@ namespace AutomationTool
 			}
 			catch
 			{
-				Log(TraceEventType.Warning, "Unable to change current directory to {0}", WorkingDirectory);
+				LogWarning("Unable to change current directory to {0}", WorkingDirectory);
 				Result = false;
 			}
 			return Result;
@@ -827,7 +870,7 @@ namespace AutomationTool
 			}
 			else
 			{
-				Log(TraceEventType.Warning, "Unable to PopDir. WorkingDirectoryStack is empty.");
+				LogWarning("Unable to PopDir. WorkingDirectoryStack is empty.");
 				Result = false;
 			}
 			return Result;
@@ -875,10 +918,33 @@ namespace AutomationTool
 			}
 			catch
 			{
-				Log(TraceEventType.Warning, "Unable to change current directory to {0}", WorkingDirectory);
+				LogWarning("Unable to change current directory to {0}", WorkingDirectory);
 				Result = false;
 			}
 			return Result;
+		}
+
+		/// <summary>
+		/// Updates a file with the specified modified and access date, creating the file if it does not already exist.
+		/// An exception will be thrown if the directory does not already exist.
+		/// </summary>
+		/// <param name="Filename">The filename to touch, will be created if it does not exist.</param>
+		/// <param name="UtcDate">The accessed and modified date to set.  If not specified, defaults to the current date and time.</param>
+		public static void TouchFile(string Filename, DateTime? UtcDate = null)
+		{
+			var Date = UtcDate ?? DateTime.UtcNow;
+			Filename = ConvertSeparators(PathSeparator.Slash, Filename);
+			if (!File.Exists(Filename))
+			{
+				var Dir = GetDirectoryName(Filename);
+				if (!DirectoryExists_NoExceptions(Dir))
+				{
+					throw new AutomationException(new DirectoryNotFoundException("Directory not found: " + Dir), "Unable to create file {0} as directory does not exist.", Filename);
+				}
+				File.Create(Filename).Dispose();
+			}
+			File.SetLastAccessTimeUtc(Filename, Date);
+			File.SetLastWriteTimeUtc(Filename, Date);
 		}
 
 		/// <summary>
@@ -913,7 +979,7 @@ namespace AutomationTool
 			Filename = ConvertSeparators(PathSeparator.Default, Filename);
 			if (!File.Exists(Filename))
 			{
-				Log(TraceEventType.Warning, "Unable to set attributes for a non-exisiting file ({0})", Filename);
+				LogWarning("Unable to set attributes for a non-exisiting file ({0})", Filename);
 				return false;
 			}
 
@@ -926,8 +992,8 @@ namespace AutomationTool
 			}
 			catch (Exception Ex)
 			{
-				Log(TraceEventType.Warning, "Error trying to set file attributes for: {0}", Filename);
-				Log(TraceEventType.Warning, Ex);
+				LogWarning("Error trying to set file attributes for: {0}", Filename);
+				LogWarning(Ex.Message);
 				Result = false;
 			}
 			return Result;
@@ -976,47 +1042,17 @@ namespace AutomationTool
 		/// If the file does exists, appends a new line.
 		/// </summary>
 		/// <param name="Filename">Filename</param>
-		/// <param name="Format">Format string</param>
-		/// <param name="Args">Arguments</param>
-		public static void WriteToFile(string Filename, string Format, params object[] Args)
-		{
-			WriteToFile(Filename, String.Format(Format, Args));
-		}
-
-		/// <summary>
-		/// Writes a line of formatted string to a file. Creates the file if it does not exists.
-		/// If the file does exists, appends a new line.
-		/// </summary>
-		/// <param name="Filename">Filename</param>
 		/// <param name="Text">Text to write</param>
 		public static void WriteToFile(string Filename, string Text)
 		{
-			try
+            Filename = ConvertSeparators(PathSeparator.Default, Filename);
+            try
 			{
-				Filename = ConvertSeparators(PathSeparator.Default, Filename);
-				FileStream Stream;
-				if (File.Exists(Filename))
-				{
-					Stream = new FileStream(Filename, FileMode.Append, FileAccess.Write, FileShare.Read);
-				}
-				else
-				{
-					Stream = new FileStream(Filename, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read);
-				}
-				if (Stream != null)
-				{
-					using (StreamWriter Writer = new StreamWriter(Stream))
-					{
-						Writer.WriteLine(Text);
-						Writer.Flush();
-						Writer.Close();
-					}
-					Stream.Dispose();
-				}
+        		        File.AppendAllText(Filename, Text + Environment.NewLine);
 			}
 			catch (Exception Ex)
 			{
-				throw new AutomationException(Ex, String.Format("Failed to Write to file {0}", Filename));
+				throw new AutomationException(Ex, "Failed to Write to file {0}", Filename);
 			}
 		}
 
@@ -1071,7 +1107,7 @@ namespace AutomationTool
 		/// Writes text to a file.
 		/// </summary>
 		/// <param name="Filename">Filename</param>
-		/// <param name="Lines">Text</param>
+		/// <param name="Text">Text</param>
 		public static void WriteAllText(string Filename, string Text)
 		{
 			Filename = ConvertSeparators(PathSeparator.Default, Filename);
@@ -1085,7 +1121,7 @@ namespace AutomationTool
 		/// Writes text to a file.
 		/// </summary>
 		/// <param name="Filename">Filename</param>
-		/// <param name="Lines">Text</param>
+		/// <param name="Text">Text</param>
 		public static bool WriteAllText_NoExceptions(string Filename, string Text)
 		{
 			Filename = ConvertSeparators(PathSeparator.Default, Filename);
@@ -1232,20 +1268,32 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Source"></param>
 		/// <param name="Dest"></param>
-		/// <returns>True if the operation was successful, false otherwise.</returns>
+        /// <param name="bQuiet">When true, logging is suppressed.</param>
+        /// <returns>True if the operation was successful, false otherwise.</returns>
         public static void CopyFile(string Source, string Dest, bool bQuiet = false)
 		{
 			Source = ConvertSeparators(PathSeparator.Default, Source);
 			Dest = ConvertSeparators(PathSeparator.Default, Dest);
+
+			String DestDirName = "";
+			try
+			{
+				DestDirName = Path.GetDirectoryName(Dest);
+			}
+			catch (Exception Ex)
+			{
+				throw new AutomationException(String.Format("Failed to get directory name for dest: {0}, {1}", Dest, Ex.Message));
+			}
+
 			if (InternalUtils.SafeFileExists(Dest, true))
 			{
 				InternalUtils.SafeDeleteFile(Dest, bQuiet);
 			}
-			else if (!InternalUtils.SafeDirectoryExists(Path.GetDirectoryName(Dest), true))
+			else if (!InternalUtils.SafeDirectoryExists(DestDirName, true))
 			{
-				if (!InternalUtils.SafeCreateDirectory(Path.GetDirectoryName(Dest), bQuiet))
+				if (!InternalUtils.SafeCreateDirectory(DestDirName, bQuiet))
 				{
-					throw new AutomationException("Failed to create directory {0} for copy", Path.GetDirectoryName(Dest));
+					throw new AutomationException("Failed to create directory {0} for copy", DestDirName);
 				}
 			}
 			if (InternalUtils.SafeFileExists(Dest, true))
@@ -1263,7 +1311,8 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Source"></param>
 		/// <param name="Dest"></param>
-		/// <returns>True if the operation was successful, false otherwise.</returns>
+        /// <param name="bQuiet">When true, logging is suppressed.</param>
+        /// <returns>True if the operation was successful, false otherwise.</returns>
         public static bool CopyFile_NoExceptions(string Source, string Dest, bool bQuiet = false)
 		{
 			Source = ConvertSeparators(PathSeparator.Default, Source);
@@ -1301,13 +1350,13 @@ namespace AutomationTool
 			{
 				if (bAllowDifferingTimestamps == true)
 				{
-					Log("CopyFileIncremental Skipping {0}, already exists", Dest);
+					LogVerbose("CopyFileIncremental Skipping {0}, already exists", Dest);
 					return;
 				}
 				TimeSpan Diff = File.GetLastWriteTimeUtc(Dest) - File.GetLastWriteTimeUtc(Source);
 				if (Diff.TotalSeconds > -1 && Diff.TotalSeconds < 1)
 				{
-					Log("CopyFileIncremental Skipping {0}, up to date.", Dest);
+					LogVerbose("CopyFileIncremental Skipping {0}, up to date.", Dest);
 					return;
 				}
 				InternalUtils.SafeDeleteFile(Dest);
@@ -1340,7 +1389,8 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Source"></param>
 		/// <param name="Dest"></param>
-		/// <returns>True if the operation was successful, false otherwise.</returns>
+        /// <param name="bQuiet">When true, logging is suppressed.</param>
+        /// <returns>True if the operation was successful, false otherwise.</returns>
 		public static bool CopyDirectory_NoExceptions(string Source, string Dest, bool bQuiet = false)
 		{
 			Source = ConvertSeparators(PathSeparator.Default, Source);
@@ -1497,39 +1547,8 @@ namespace AutomationTool
 
 		#region Threaded Copy
 
-		/// <summary>
-		/// Single batch of files to copy on a thread
-		/// </summary>
-		class CopyRequest
-		{
-			public string[] Source;
-			public string[] Dest;
-			public Exception Result;
-			public Thread Worker;
-		}
-
-		/// <summary>
-		/// Main thread procedure for copying files
-		/// </summary>
-		private static void CopyThreadProc(object Request)
-		{
-			const bool bQuiet = true;
-			var FileToCopy = (CopyRequest)Request;
-			try
-			{
-				for (int Index = 0; Index < FileToCopy.Source.Length; ++Index)
-				{
-					CopyFile(FileToCopy.Source[Index], FileToCopy.Dest[Index], bQuiet);
-				}
-			}
-			catch (Exception Ex)
-			{
-				FileToCopy.Result = Ex;
-			}
-		}
-
-		/// <summary>
-		/// Copies files using miltiple threads
+        /// <summary>
+		/// Copies files using multiple threads
 		/// </summary>
 		/// <param name="SourceDirectory"></param>
 		/// <param name="DestDirectory"></param>
@@ -1537,83 +1556,37 @@ namespace AutomationTool
 		public static void ThreadedCopyFiles(string SourceDirectory, string DestDirectory, int MaxThreads = 64)
 		{
 			CreateDirectory(DestDirectory);
-
-			var SourceFiles = Directory.GetFiles(SourceDirectory, "*", SearchOption.AllDirectories);
-			var SourceBase = GetDirectoryName(SourceDirectory) + GetPathSeparatorChar(PathSeparator.Default);
-			var DestBase = GetDirectoryName(DestDirectory) + GetPathSeparatorChar(PathSeparator.Default);
-			var DestFiles = new string[SourceFiles.Length];
-			for (int Index = 0; Index < SourceFiles.Length; ++Index)
-			{
-				DestFiles[Index] = SourceFiles[Index].Replace(SourceBase, DestBase);
-			}
+            var SourceFiles = Directory.EnumerateFiles(SourceDirectory, "*", SearchOption.AllDirectories).ToList();
+            var DestFiles = SourceFiles.Select(SourceFile => CommandUtils.MakeRerootedFilePath(SourceFile, SourceDirectory, DestDirectory)).ToList();
 			ThreadedCopyFiles(SourceFiles, DestFiles, MaxThreads);
 		}
 
 		/// <summary>
 		/// Copies files using multiple threads
-		/// </summary>
-		/// <param name="SourceDirectory"></param>
-		/// <param name="DestDirectory"></param>
+        /// </summary>
+		/// <param name="Source"></param>
+		/// <param name="Dest"></param>
 		/// <param name="MaxThreads"></param>
-		public static void ThreadedCopyFiles(string[] Source, string[] Dest, int MaxThreads = 64)
+		public static void ThreadedCopyFiles(List<string> Source, List<string> Dest, int MaxThreads = 64)
 		{
-			Log("Copying {0} file(s) using max {1} thread(s)", Source.Length, MaxThreads);
+			Log("Copying {0} file(s) using max {1} thread(s)", Source.Count, MaxThreads);
 
-			if (Source.Length != Dest.Length)
+            if (Source.Count != Dest.Count)
 			{
-				throw new AutomationException("Source count ({0}) does not match Dest count ({1})", Source.Length, Dest.Length);
+                throw new AutomationException("Source count ({0}) does not match Dest count ({1})", Source.Count, Dest.Count);
 			}
-			const int MinFilesPerThread = 10;
-			if (MaxThreads > 1 && Source.Length > MinFilesPerThread)
-			{
-				// Split evenly across the threads
-				int FilesPerThread = Math.Max(Source.Length / MaxThreads, MinFilesPerThread);
-				int ThreadCount = Math.Min(Source.Length / FilesPerThread + 1, MaxThreads);
-				FilesPerThread = Source.Length / ThreadCount + 1;
-
-				// Divide and copy
-				var WorkerThreads = new List<CopyRequest>(ThreadCount);
-				var FilesToCopy = Source.Length;
-				var FirstFileIndex = 0;
-				while (FilesToCopy > 0)
-				{
-					var Request = new CopyRequest();
-					WorkerThreads.Add(Request);
-
-					Request.Source = new string[Math.Min(FilesToCopy, FilesPerThread)];
-					Request.Dest = new string[Request.Source.Length];
-					Array.Copy(Source, FirstFileIndex, Request.Source, 0, Request.Source.Length);
-					Array.Copy(Dest, FirstFileIndex, Request.Dest, 0, Request.Dest.Length);
-
-					Request.Worker = new Thread(new ParameterizedThreadStart(CopyThreadProc));
-					Request.Worker.Start(Request);
-
-					FirstFileIndex += Request.Source.Length;
-					FilesToCopy -= Request.Source.Length;
-				}
-
-				// Wait for completion
-				foreach (var Request in WorkerThreads)
-				{
-					if (Request.Worker.IsAlive)
-					{
-						Request.Worker.Join();
-					}
-					if (Request.Result != null)
-					{
-						throw new AutomationException(Request.Result, "Failed to thread-copy files: {0}", Request.Result.Message);
-					}
-				}
-			}
-			else
-			{
-				const bool bQuiet = true;
-				for (int Index = 0; Index < Source.Length; ++Index)
-				{
-					CopyFile(Source[Index], Dest[Index], bQuiet);
-				}
-			}
-		}
+            try
+            {
+                Parallel.ForEach(Source.Zip(Dest, (Src, Dst) => new { SourceFile = Src, DestFile = Dst }), new ParallelOptions { MaxDegreeOfParallelism = MaxThreads }, (Pair) =>
+                {
+                    CommandUtils.CopyFile(Pair.SourceFile, Pair.DestFile, true);
+                });
+            }
+            catch (AggregateException Ex)
+            {
+                throw new AutomationException(Ex, "Failed to thread-copy files.");
+            }
+        }
 
 		/// <summary>
 		/// Copies a set of files from one folder to another
@@ -1621,18 +1594,12 @@ namespace AutomationTool
 		/// <param name="SourceDir">Source directory</param>
 		/// <param name="TargetDir">Target directory</param>
 		/// <param name="RelativePaths">Paths relative to the source directory to copy</param>
-		/// <param name="bIgnoreSymlinks">Whether to ignore symlinks during the copy</param>
 		/// <param name="MaxThreads">Maximum number of threads to create</param>
-		/// <returns>Array of filenames copied to the target directory</returns>
-		public static string[] ThreadedCopyFiles(string SourceDir, string TargetDir, string[] RelativePaths, int MaxThreads = 64)
+		/// <returns>List of filenames copied to the target directory</returns>
+		public static List<string> ThreadedCopyFiles(string SourceDir, string TargetDir, List<string> RelativePaths, int MaxThreads = 64)
 		{
-			string[] SourceFileNames = new string[RelativePaths.Length];
-			string[] TargetFileNames = new string[RelativePaths.Length];
-			for(int Idx = 0; Idx < RelativePaths.Length; Idx++)
-			{
-				SourceFileNames[Idx] = CommandUtils.CombinePaths(SourceDir, RelativePaths[Idx]);
-				TargetFileNames[Idx] = CommandUtils.CombinePaths(TargetDir, RelativePaths[Idx]);
-			}
+            var SourceFileNames = RelativePaths.Select(RelativePath => CommandUtils.CombinePaths(SourceDir, RelativePath)).ToList();
+            var TargetFileNames = RelativePaths.Select(RelativePath => CommandUtils.CombinePaths(TargetDir, RelativePath)).ToList();
 			CommandUtils.ThreadedCopyFiles(SourceFileNames, TargetFileNames, MaxThreads);
 			return TargetFileNames;
 		}
@@ -1645,12 +1612,12 @@ namespace AutomationTool
 		/// <param name="Filter">Filter which selects files from the source directory to copy</param>
 		/// <param name="bIgnoreSymlinks">Whether to ignore symlinks during the copy</param>
 		/// <param name="MaxThreads">Maximum number of threads to create</param>
-		/// <returns>Array of filenames copied to the target directory</returns>
-		public static string[] ThreadedCopyFiles(string SourceDir, string TargetDir, FileFilter Filter, bool bIgnoreSymlinks, int MaxThreads = 64)
+		/// <returns>List of filenames copied to the target directory</returns>
+		public static List<string> ThreadedCopyFiles(string SourceDir, string TargetDir, FileFilter Filter, bool bIgnoreSymlinks, int MaxThreads = 64)
 		{
 			// Filter all the relative paths
-			CommandUtils.Log("Applying filter to {0}...", SourceDir);
-			string[] RelativePaths = Filter.ApplyToDirectory(SourceDir, bIgnoreSymlinks).ToArray();
+			Log("Applying filter to {0}...", SourceDir);
+			var RelativePaths = Filter.ApplyToDirectory(SourceDir, bIgnoreSymlinks);
 			return ThreadedCopyFiles(SourceDir, TargetDir, RelativePaths);
 		}
 
@@ -1689,7 +1656,7 @@ namespace AutomationTool
 		{
 			try
 			{
-				Log("SetEnvVar {0}={1}", Name, Value);
+				LogLog("SetEnvVar {0}={1}", Name, Value);
 				Environment.SetEnvironmentVariable(Name, Value.ToString());
 			}
 			catch (Exception Ex)
@@ -1832,6 +1799,43 @@ namespace AutomationTool
 		}
 
 		/// <summary>
+		/// Parses the argument list for any number of parameters.
+		/// </summary>
+		/// <param name="ArgList">Argument list.</param>
+		/// <param name="Param">Param to read its value.</param>
+		/// <returns>Returns an array of values for this parameter (or an empty array if one was not found.</returns>
+		public static string[] ParseParamValues(object[] ArgList, string Param)
+		{
+			string ParamEquals = Param;
+			if (!ParamEquals.EndsWith("="))
+			{
+				ParamEquals += "=";
+			}
+
+			List<string> Values = new List<string>();
+			foreach (object Arg in ArgList)
+			{
+				string ArgStr = Arg.ToString();
+				if (ArgStr.StartsWith(ParamEquals, StringComparison.InvariantCultureIgnoreCase))
+				{
+					Values.Add(ArgStr.Substring(ParamEquals.Length));
+				}
+			}
+			return Values.ToArray();
+		}
+
+		/// <summary>
+		/// Parses the argument list for any number of parameters.
+		/// </summary>
+		/// <param name="ArgList">Argument list.</param>
+		/// <param name="Param">Param to read its value.</param>
+		/// <returns>Returns an array of values for this parameter (or an empty array if one was not found.</returns>
+		public string[] ParseParamValues(string Param)
+		{
+			return ParseParamValues(Params, Param);
+		}
+
+		/// <summary>
 		/// Parses the command's Params list for a parameter and reads its value. 
 		/// Ex. ParseParamValue(Args, "map=")
 		/// </summary>
@@ -1885,58 +1889,14 @@ namespace AutomationTool
 			{
 				if (UBTTargetPlatforms == null || UBTTargetPlatforms.Length == 0)
 				{
-					UBTTargetPlatforms = new UnrealBuildTool.UnrealTargetPlatform[UnrealBuildTool.UEBuildPlatform.BuildPlatformDictionary.Count];
-					int Index = 0;
-					foreach (var Platform in UnrealBuildTool.UEBuildPlatform.BuildPlatformDictionary)
-					{
-						UBTTargetPlatforms[Index++] = Platform.Key;
-					}
+					UBTTargetPlatforms = UnrealBuildTool.UEBuildPlatform.GetRegisteredPlatforms().ToArray();
 				}
 				return UBTTargetPlatforms;
 			}
 		}
-		private static UnrealBuildTool.UnrealTargetPlatform[] UBTTargetPlatforms; 
+		private static UnrealBuildTool.UnrealTargetPlatform[] UBTTargetPlatforms;
 
-		public class TelemetryStopwatch : IDisposable
-		{
-			string Name;
-			DateTime StartTime;
-			bool bFinished;
-
-			public TelemetryStopwatch(string Format, params object[] Args)
-			{
-				Name = String.Format(Format, Args);
-				StartTime = DateTime.Now;
-			}
-
-			public void Cancel()
-			{
-				bFinished = true;
-			}
-
-			public void Finish()
-			{
-				if(!bFinished && IsBuildMachine && !String.IsNullOrEmpty(CmdEnv.CSVFile) && CmdEnv.CSVFile != "nul")
-				{
-					try
-					{
-						File.AppendAllText(CmdEnv.CSVFile, String.Format("UAT,{0},{1},{2}" + Environment.NewLine, Name, StartTime.ToString(), DateTime.Now.ToString()));
-					}
-					catch (Exception Ex)
-					{
-						Log(System.Diagnostics.TraceEventType.Warning, "Could not append to csv file ({0}) : {1}", CmdEnv.CSVFile, Ex.ToString());
-					}
-					bFinished = true;
-				}
-			}
-
-			public void Dispose()
-			{
-				Finish();
-			}
-		}
-
-		#endregion
+	    #endregion
 
 		#region Properties
 
@@ -1951,31 +1911,6 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// Path to the AutomationTool executable.
-		/// </summary>
-		public static string ExeFilename
-		{
-			get { return InternalUtils.ExecutingAssemblyLocation; }
-		}
-
-		/// <summary>
-		/// Directory where the AutomationTool executable sits.
-		/// </summary>
-		public static string ExeDirectory
-		{
-			get { return InternalUtils.ExecutingAssemblyDirectory; }
-		}
-
-		/// <summary>
-		/// Current directory.
-		/// </summary>
-		public static string CurrentDirectory
-		{
-			get { return Environment.CurrentDirectory; }
-			set { ChDir(value); }
-		}
-
-		/// <summary>
 		/// Checks if this command is running on a build machine.
 		/// </summary>
 		public static bool IsBuildMachine
@@ -1985,26 +1920,45 @@ namespace AutomationTool
 
 		#endregion
 
+        /// <summary>
+        /// Cached location of the build root storage because the logic to compute it is a little non-trivial.
+        /// </summary>
+        private static string CachedRootBuildStorageDirectory;
 
-        public static string RootSharedTempStorageDirectory()
+        /// <summary>
+        /// "P:\Builds" or "/Volumes/Builds". Root Folder for all build storage.
+        /// </summary>
+        /// <returns>"P:\Builds" or "/Volumes/Builds" unless overridden by -UseLocalBuildStorage from the commandline, where is uses Engine\Saved\LocalBuilds\.</returns>
+        public static string RootBuildStorageDirectory()
         {
-            string StorageDirectory = "";
-            if (UnrealBuildTool.Utils.IsRunningOnMono)
+            if (string.IsNullOrEmpty(CachedRootBuildStorageDirectory))
             {
-                StorageDirectory = "/Volumes/Builds";
+                if (GlobalCommandLine.UseLocalBuildStorage)
+                {
+                    CachedRootBuildStorageDirectory = CombinePaths(CmdEnv.LocalRoot, "Engine", "Saved", "LocalBuilds");
+                    // Must create the directory because much of the system assumes it is already there.
+                    CreateDirectory(CombinePaths(CachedRootBuildStorageDirectory, "UE4"));
+                }
+                else
+                {
+                    CachedRootBuildStorageDirectory = Utils.IsRunningOnMono ? "/Volumes/Builds" : CombinePaths("P:", "Builds");
+                }
             }
-            else
-            {
-                StorageDirectory = CombinePaths("P:", "Builds");
-            }
-            return StorageDirectory;
+            return CachedRootBuildStorageDirectory;
         }
+
+		// Included for compatibility during //UE4/Main import
+		[Obsolete]
+		public static string RootSharedTempStorageDirectory()
+		{
+			return RootBuildStorageDirectory();
+		}
 
         public static bool DirectoryExistsAndIsWritable_NoExceptions(string Dir)
         {
             if (!DirectoryExists_NoExceptions(Dir))
             {
-				Log(System.Diagnostics.TraceEventType.Information, "Directory {0} does not exist", Dir);
+				LogLog("Directory {0} does not exist", Dir);
 				return false;
 			}
 
@@ -2019,7 +1973,7 @@ namespace AutomationTool
 				if(File.Exists(NativeFilename))
 				{
 		            DeleteFile_NoExceptions(Filename, true);
-		            Log(System.Diagnostics.TraceEventType.Information, "Directory {0} is writable", Dir);
+		            LogLog("Directory {0} is writable", Dir);
 					return true;
 				}
 			}
@@ -2027,13 +1981,13 @@ namespace AutomationTool
 			{
 			}
 
-			Log(System.Diagnostics.TraceEventType.Information, "Directory {0} is not writable", Dir);
+			LogLog("Directory {0} is not writable", Dir);
 			return false;
 		}
 
         public static void CleanFormalBuilds(string DirectoryForThisBuild, string CLString = "", int MaximumDaysToKeepTempStorage = 4)
         {
-            if (CLString == "" && (!IsBuildMachine || !DirectoryForThisBuild.StartsWith(RootSharedTempStorageDirectory()) || !P4Enabled))
+            if (CLString == "" && (!IsBuildMachine || !DirectoryForThisBuild.StartsWith(RootBuildStorageDirectory()) || !P4Enabled))
             {
                 return;
             }
@@ -2060,7 +2014,7 @@ namespace AutomationTool
 
                 DirectoryInfo DirInfo = new DirectoryInfo(ParentDir);
                 var TopLevelDirs = DirInfo.GetDirectories();
-                Log("Looking for directories to delete in {0}   {1} dirs", ParentDir, TopLevelDirs.Length);
+				Log("Looking for directories to delete in {0}   {1} dirs", ParentDir, TopLevelDirs.Length);
                 foreach (var TopLevelDir in TopLevelDirs)
                 {
                     if (DirectoryExists_NoExceptions(TopLevelDir.FullName))
@@ -2081,30 +2035,30 @@ namespace AutomationTool
                                 }
                                 if (bOld)
                                 {
-                                    Log("Deleting temp storage directory {0}, because it is more than {1} days old.", TopLevelDir.FullName, MaximumDaysToKeepTempStorage);
+                                    LogVerbose("Deleting temp storage directory {0}, because it is more than {1} days old.", TopLevelDir.FullName, MaximumDaysToKeepTempStorage);
                                     DeleteDirectory_NoExceptions(true, TopLevelDir.FullName);
                                 }
                                 else
                                 {
-                                    Log("Not Deleteing temp storage directory {0}, because it is less than {1} days old.", TopLevelDir.FullName, MaximumDaysToKeepTempStorage);
+                                    LogVerbose("Not Deleteing temp storage directory {0}, because it is less than {1} days old.", TopLevelDir.FullName, MaximumDaysToKeepTempStorage);
                                 }
                             }
                             else
                             {
-                                Log("skipping {0}, because the CL part {1} had weird characters", JustDir, CLPart);
+                                LogVerbose("skipping {0}, because the CL part {1} had weird characters", JustDir, CLPart);
                             }
                         }
                         else
                         {
-                            Log("skipping {0}, because it didn't start with {1} or end with {2}", JustDir, StartString, EndString);
+                            LogVerbose("skipping {0}, because it didn't start with {1} or end with {2}", JustDir, StartString, EndString);
                         }
                     }
                 }
             }
             catch (Exception Ex)
             {
-                Log(System.Diagnostics.TraceEventType.Warning, "Unable to Clean Directory with DirectoryForThisBuild {0}", DirectoryForThisBuild);
-                Log(System.Diagnostics.TraceEventType.Warning, " Exception was {0}", LogUtils.FormatException(Ex));
+                LogWarning("Unable to Clean Directory with DirectoryForThisBuild {0}", DirectoryForThisBuild);
+                LogWarning(" Exception was {0}", LogUtils.FormatException(Ex));
             }
         }
 
@@ -2132,14 +2086,38 @@ namespace AutomationTool
 		/// <param name="BaseDirectory">Base directory to store relative paths in the zip file to</param>
 		public static void ZipFiles(string ZipFileName, string BaseDirectory, FileFilter Filter)
 		{
-			Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile();
-			Zip.UseZip64WhenSaving = Ionic.Zip.Zip64Option.Always;
-			foreach(string FilteredFile in Filter.ApplyToDirectory(BaseDirectory, true))
+			// Ionic.Zip.Zip64Option.Always option produces broken archives on Mono, so we use system zip tool instead
+			if (Utils.IsRunningOnMono)
 			{
-				Zip.AddFile(Path.Combine(BaseDirectory, FilteredFile), Path.GetDirectoryName(FilteredFile));
+				CommandUtils.CreateDirectory(Path.GetDirectoryName(ZipFileName));
+ 				CommandUtils.PushDir(BaseDirectory);
+ 				string FilesList = "";
+				foreach(string FilteredFile in Filter.ApplyToDirectory(BaseDirectory, true))
+				{
+					FilesList += " \"" + FilteredFile + "\"";
+					if (FilesList.Length > 32000)
+					{
+						CommandUtils.RunAndLog(CommandUtils.CmdEnv, "zip", "-g -q " + ZipFileName + FilesList);
+						FilesList = "";
+					}
+				}
+				if (FilesList.Length > 0)
+				{
+					CommandUtils.RunAndLog(CommandUtils.CmdEnv, "zip", "-g -q " + ZipFileName + FilesList);
+				}
+				CommandUtils.PopDir();
 			}
-			CommandUtils.CreateDirectory(Path.GetDirectoryName(ZipFileName));
-			Zip.Save(ZipFileName);
+			else
+			{
+				Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile();
+				Zip.UseZip64WhenSaving = Ionic.Zip.Zip64Option.Always;
+				foreach(string FilteredFile in Filter.ApplyToDirectory(BaseDirectory, true))
+				{
+					Zip.AddFile(Path.Combine(BaseDirectory, FilteredFile), Path.GetDirectoryName(FilteredFile));
+				}
+				CommandUtils.CreateDirectory(Path.GetDirectoryName(ZipFileName));
+				Zip.Save(ZipFileName);
+			}
 		}
 
 		/// <summary>
@@ -2150,9 +2128,10 @@ namespace AutomationTool
 		/// <returns>List of files written</returns>
 		public static IEnumerable<string> UnzipFiles(string ZipFileName, string BaseDirectory)
 		{
-			using(Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile(ZipFileName))
+            // manually extract the files. There was a problem with the Ionic.Zip library that required this on non-PC at one point,
+            // but that problem is now fixed. Leaving this code as is as we need to return the list of created files and fix up their permissions anyway.
+            using (Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile(ZipFileName))
 			{
-				// For some reason, calling ExtractAll() under Mono throws an exception from a call to Directory.CreateDirectory(). Manually extract all the files instead.
 				List<string> OutputFileNames = new List<string>();
 				foreach(Ionic.Zip.ZipEntry Entry in Zip.Entries)
 				{
@@ -2173,7 +2152,84 @@ namespace AutomationTool
 		}
 	}
 
-	/// <summary>
+    /// <summary>
+    /// Timer class used for telemetry reporting.
+    /// </summary>
+    public class TelemetryStopwatch : IDisposable
+    {
+        string Name;
+        DateTime StartTime;
+        bool bFinished;
+
+        public TelemetryStopwatch(string Format, params object[] Args)
+        {
+            Name = String.Format(Format, Args);
+            StartTime = DateTime.Now;
+        }
+
+        public void Cancel()
+        {
+            bFinished = true;
+        }
+
+        /// <summary>
+        /// Flushes the time to <see cref="CmdEnv.CSVFile"/> if we are the build machine and that environment variable is specified.
+        /// Call Finish manually with an alternate name to use that one instead. Useful for dynamically generated names that you can't specify at construction.
+        /// </summary>
+        /// <param name="AlternateName">Used in place of the Name specified during construction.</param>
+        public void Finish(string AlternateName = null)
+        {
+            if(!bFinished)
+            {
+                if (!String.IsNullOrEmpty(AlternateName))
+                {
+                    Name = AlternateName;
+                }
+
+                var OutputStr = String.Format("UAT,{0},{1},{2}" + Environment.NewLine, Name, StartTime, DateTime.Now);
+                CommandUtils.LogVerbose(OutputStr);
+                if (CommandUtils.IsBuildMachine && !String.IsNullOrEmpty(CommandUtils.CmdEnv.CSVFile) && CommandUtils.CmdEnv.CSVFile != "nul")
+                {
+                    try
+                    {
+                        File.AppendAllText(CommandUtils.CmdEnv.CSVFile, OutputStr);
+                    }
+                    catch (Exception Ex)
+                    {
+                        CommandUtils.LogWarning("Could not append to csv file ({0}) : {1}", CommandUtils.CmdEnv.CSVFile, Ex.ToString());
+                    }
+                }
+            }
+            bFinished = true;
+        }
+
+        public void Dispose()
+        {
+            Finish();
+        }
+    }
+
+    /// <summary>
+    /// Stopwatch that uses DateTime.UtcNow for timing. Not hi-res, but also not subject to short time limitations of System.Diagnostics.Stopwatch.
+    /// </summary>
+    public class DateTimeStopwatch
+    {
+        public static DateTimeStopwatch Start()
+        {
+            return new DateTimeStopwatch();
+        }
+
+        /// <summary>
+        /// Hide public ctor.
+        /// </summary>
+        private DateTimeStopwatch() { }
+
+        readonly DateTime StartTime = DateTime.UtcNow;
+
+        public TimeSpan ElapsedTime { get { return DateTime.UtcNow - StartTime; } }
+    }
+
+    /// <summary>
 	/// Use with "using" syntax to push and pop directories in a convenient, exception-safe way
 	/// </summary>
 	public class PushedDirectory : IDisposable
@@ -2272,7 +2328,7 @@ namespace AutomationTool
 		{
             if (UnrealBuildTool.Utils.IsRunningOnMono)
             {
-                CommandUtils.Log(TraceEventType.Information, String.Format("Can't sign '{0}', we are running under mono.", Filename));
+                CommandUtils.LogLog(String.Format("Can't sign '{0}', we are running under mono.", Filename));
                 return;
             }
             if (!CommandUtils.FileExists(Filename))
@@ -2299,7 +2355,7 @@ namespace AutomationTool
 			}
 			if (!IsExecutable)
 			{
-				CommandUtils.Log(TraceEventType.Verbose, String.Format("Won't sign '{0}', not an executable.", TargetFileInfo.FullName));
+				CommandUtils.LogLog(String.Format("Won't sign '{0}', not an executable.", TargetFileInfo.FullName));
 				return;
 			}
 
@@ -2326,20 +2382,25 @@ namespace AutomationTool
 			TargetFileInfo.IsReadOnly = false;
 
 			// Code sign the executable
-			string TimestampServer = "http://timestamp.verisign.com/scripts/timestamp.dll";
+			string[] TimestampServer = { "http://timestamp.verisign.com/scripts/timestamp.dll",
+									     "http://timestamp.globalsign.com/scripts/timstamp.dll",
+										 "http://timestamp.comodoca.com/authenticode",
+										 "http://www.startssl.com/timestamp"
+									   };
+			int TimestampServerIndex = 0;
 
 			string SpecificStoreArg = bUseMachineStoreInsteadOfUserStore ? " /sm" : "";
-
-			//@TODO: Verbosity choosing
-			//  /v will spew lots of info
-			//  /q does nothing on success and minimal output on failure
-			string CodeSignArgs = String.Format("sign{0} /a /n \"{1}\" /t {2} /d \"{3}\" /v \"{4}\"", SpecificStoreArg, SigningIdentity, TimestampServer, TargetFileInfo.Name, TargetFileInfo.FullName);
 
 			DateTime StartTime = DateTime.Now;
 
 			int NumTrials = 0;
 			for (; ; )
 			{
+				//@TODO: Verbosity choosing
+				//  /v will spew lots of info
+				//  /q does nothing on success and minimal output on failure
+				string CodeSignArgs = String.Format("sign{0} /a /n \"{1}\" /t {2} /d \"{3}\" /v \"{4}\"", SpecificStoreArg, SigningIdentity, TimestampServer[TimestampServerIndex], TargetFileInfo.Name, TargetFileInfo.FullName);
+
 				ProcessResult Result = CommandUtils.Run(SignToolName, CodeSignArgs, null, CommandUtils.ERunOptions.AllowSpew);
 				++NumTrials;
 
@@ -2347,13 +2408,21 @@ namespace AutomationTool
 				{
 					if (Result.ExitCode == 2)
 					{
-						CommandUtils.Log(TraceEventType.Error, String.Format("Signtool returned a warning."));
+						CommandUtils.LogError(String.Format("Signtool returned a warning."));
 					}
 					// Success!
 					break;
 				}
 				else
 				{
+					// try another timestamp server on the next iteration
+					TimestampServerIndex++;
+					if (TimestampServerIndex >= TimestampServer.Count())
+					{
+						// loop back to the first timestamp server
+						TimestampServerIndex = 0;
+					}
+
 					// Keep retrying until we run out of time
 					TimeSpan RunTime = DateTime.Now - StartTime;
 					if (RunTime > CodeSignTimeOut)
@@ -2375,10 +2444,18 @@ namespace AutomationTool
 				throw new AutomationException("Can't sign '{0}', file or folder does not exist.", InPath);
 			}
 
+			// @todo: OS X 10.9.5/Xcode 6 can't sign libsteam_api.dylib, so we temporarily disable signing of the editor and games,
+			// which code sign individual files (contrary to the Launcher, which signs the whole app bundle)
+			if (CommandUtils.FileExists(InPath))
+			{
+				return;
+			}
+
 			// Executable extensions
 			List<string> Extensions = new List<string>();
 			Extensions.Add(".dylib");
 			Extensions.Add(".app");
+			Extensions.Add(".framework");
 
 			bool IsExecutable = bIgnoreExtension || (Path.GetExtension(InPath) == "" && !InPath.EndsWith("PkgInfo"));
 
@@ -2392,13 +2469,13 @@ namespace AutomationTool
 			}
 			if (!IsExecutable)
 			{
-				CommandUtils.Log(TraceEventType.Verbose, String.Format("Won't sign '{0}', not an executable.", InPath));
+				CommandUtils.LogLog(String.Format("Won't sign '{0}', not an executable.", InPath));
 				return;
 			}
 
 			string SignToolName = "/usr/bin/codesign";
 
-			string CodeSignArgs = String.Format("-f --deep -s \"{0}\" -v \"{1}\" --no-strict", "Developer ID Application", InPath);
+			string CodeSignArgs = String.Format("-f --deep -s \"{0}\" -v \"{1}\"", "Developer ID Application", InPath);
 
 			DateTime StartTime = DateTime.Now;
 
@@ -2459,7 +2536,7 @@ namespace AutomationTool
 			}
 			else
 			{
-				CommandUtils.Log("Skipping signing {0} files due to -nosign.", Files.Count);
+				CommandUtils.LogLog("Skipping signing {0} files due to -nosign.", Files.Count);
 			}
 		}
 
@@ -2491,19 +2568,26 @@ namespace AutomationTool
 				return;
 			}
 
-			string TimestampServer = "http://timestamp.verisign.com/scripts/timestamp.dll";
+			// Code sign the executable
+			string[] TimestampServer = { "http://timestamp.verisign.com/scripts/timestamp.dll",
+									     "http://timestamp.globalsign.com/scripts/timstamp.dll",
+										 "http://timestamp.comodoca.com/authenticode",
+										 "http://www.startssl.com/timestamp"
+									   };
+			int TimestampServerIndex = 0;
 
 			string SpecificStoreArg = bUseMachineStoreInsteadOfUserStore ? " /sm" : "";	
-			//@TODO: Verbosity choosing
-			//  /v will spew lots of info
-			//  /q does nothing on success and minimal output on failure
-			string CodeSignArgs = String.Format("sign{0} /a /n \"{1}\" /t {2} /d /v {3}", SpecificStoreArg, SigningIdentity, TimestampServer, FilesToSign);
-
+			
 			DateTime StartTime = DateTime.Now;
 
 			int NumTrials = 0;
 			for (; ; )
 			{
+				//@TODO: Verbosity choosing
+				//  /v will spew lots of info
+				//  /q does nothing on success and minimal output on failure
+				string CodeSignArgs = String.Format("sign{0} /a /n \"{1}\" /t {2} /v {3}", SpecificStoreArg, SigningIdentity, TimestampServer[TimestampServerIndex], FilesToSign);
+
 				ProcessResult Result = CommandUtils.Run(SignToolName, CodeSignArgs, null, CommandUtils.ERunOptions.AllowSpew);
 				++NumTrials;
 
@@ -2511,13 +2595,21 @@ namespace AutomationTool
 				{
 					if (Result.ExitCode == 2)
 					{
-						CommandUtils.Log(TraceEventType.Error, String.Format("Signtool returned a warning."));
+						CommandUtils.LogError(String.Format("Signtool returned a warning."));
 					}
 					// Success!
 					break;
 				}
 				else
 				{
+					// try another timestamp server on the next iteration
+					TimestampServerIndex++;
+					if (TimestampServerIndex >= TimestampServer.Count())
+					{
+						// loop back to the first timestamp server
+						TimestampServerIndex = 0;
+					}
+					
 					// Keep retrying until we run out of time
 					TimeSpan RunTime = DateTime.Now - StartTime;
 					if (RunTime > CodeSignTimeOut)
@@ -2532,7 +2624,7 @@ namespace AutomationTool
 		{
 			if (UnrealBuildTool.Utils.IsRunningOnMono)
 			{
-				CommandUtils.Log(TraceEventType.Information, String.Format("Can't sign we are running under mono."));
+				CommandUtils.LogLog(String.Format("Can't sign we are running under mono."));
 				return;
 			}
 			List<string> FinalFiles = new List<string>();

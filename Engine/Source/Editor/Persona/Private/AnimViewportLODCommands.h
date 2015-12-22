@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __AnimViewportLODCommands_h_
@@ -26,15 +26,6 @@ public:
 
 	/** LOD 0 */
 	TSharedPtr< FUICommandInfo > LOD0;
-
-	/** LOD 1 */
-	TSharedPtr< FUICommandInfo > LOD1;
-
-	/** LOD 2 */
-	TSharedPtr< FUICommandInfo > LOD2;
-
-	/** LOD 3 */
-	TSharedPtr< FUICommandInfo > LOD3;
 
 public:
 	/** Registers our commands with the binding system */

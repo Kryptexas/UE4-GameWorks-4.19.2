@@ -1,0 +1,476 @@
+Availability: Public
+Title:Physics Asset Properties Reference
+Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhAT
+Description:A listing of properties and descriptions for Physics Bodies, Physics Constraints, and Physics Assets accessible in the Physics Asset Tool.
+Version: 4.9
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Physics/PhAT/Properties:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhAT/Properties:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhAT/Properties:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/PhAT/Properties]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Physics/PhAT/Properties:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhAT/Properties:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhAT/Properties:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/PhAT/Properties]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
+
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
+
+This page contains a reference listing of properties you will find while working in the Physics Asset Tool.
+
+## Properties
+
+Below are the properties for Physics Asset Tool, separated into 3 expandable sections based on what is selected in the viewport.
+
+[OBJECT:modulesection]
+	[PARAMLITERAL:id]
+		PhatP
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Physics Asset Tool Properties
+	[/PARAM]
+	[PARAM:content]
+		%c1%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:c1]
+
+When no Physics Body or Physics Constraint is selected (regardless of mode), the properties for the Physics Asset Tool are show in the Details panel.
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		Anim1
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Anim
+	[/PARAM]
+	[PARAM:content]
+		%p11%
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		Sim1
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Simulation
+	[/PARAM]
+	[PARAM:content]
+		%p12%
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		MousS
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Mouse Spring
+	[/PARAM]
+	[PARAM:content]
+		%p13%
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		Poke
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Poking
+	[/PARAM]
+	[PARAM:content]
+		%p14%
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		Adv
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Advanced
+	[/PARAM]
+	[PARAM:content]
+		%p15%
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		Draw
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Drawing
+	[/PARAM]
+	[PARAM:content]
+		%p16%
+	[/PARAM]
+[/OBJECT]
+
+[/VAR]
+
+[VAR:p11]
+
+![](PhATDef1.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Physics Blend** || %doxygen:UPhATSimOptions::PhysicsBlend% |
+| **Update Joints from Animation** || |
+| **Poke Pause Time** || %doxygen:UPhATSimOptions::PokePauseTime% |
+| **Poke Blend Time** || %doxygen:UPhATSimOptions::PokeBlendTime% |
+[/REGION]
+
+[/VAR]
+
+[VAR:p12]
+
+![](PhATDef2.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+|**Floor Gap** || %doxygen:UPhATSimOptions::FloorGap% |
+|**Grav Scale** || %doxygen:UPhATSimOptions::GravScale% |
+|**Max FPS** || Max FPS for simulation in PhAT. This is helpful for targeting the same FPS as your game. -1 means this is disabled.  |
+|**Time Dilation** || This will dilate the time by scale.  |
+[/REGION]
+
+[/VAR]
+
+[VAR:p13]
+
+![](PhATDef3.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+|**Handle Linear Damping** || %doxygen:UPhATSimOptions::HandleLinearDamping% |
+|**Handle Linear Stiffness** || %doxygen:UPhATSimOptions::HandleLinearStiffness% |
+|**Handle Angular Damping** || %doxygen:UPhATSimOptions::HandleAngularDamping% |
+|**Handle Angular Stiffness** || %doxygen:UPhATSimOptions::HandleAngularStiffness% |
+|**Interpolation Speed** || %doxygen:UPhATSimOptions::InterpolationSpeed%|
+[/REGION]
+
+[/VAR]
+
+[VAR:p14]
+
+![](PhATDef4.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Poke Strength** || %doxygen:UPhATSimOptions::PokeStrength% |
+[/REGION]
+
+[/VAR]
+
+[VAR:p15]
+
+![](PhATDef5.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Show Constraints as Points** || %doxygen:UPhATSimOptions::bShowConstraintsAsPoints% |
+| **Show Names in Hierarchy** || %doxygen:UPhATSimOptions::bShowNamesInHierarchy% |
+[/REGION]
+
+[/VAR]
+
+[VAR:p16]
+
+![](PhATDef6.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Constraint Draw Size** || %doxygen:UPhATSimOptions::ConstraintDrawSize% |
+[/REGION]
+
+[/VAR]
+
+---
+
+[OBJECT:modulesection]
+	[PARAMLITERAL:id]
+		BodyM
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Body Mode
+	[/PARAM]
+	[PARAM:content]
+		%c2%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:c2]
+
+When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the Details panel will display the properties for that Physics Body.
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		Body1
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Body Setup
+	[/PARAM]
+	[PARAM:content]
+		%p21%
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		Phys1
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Physics
+	[/PARAM]
+	[PARAM:content]
+		%p22%
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		Coll
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Collision
+	[/PARAM]
+	[PARAM:content]
+		%p23%
+	[/PARAM]
+[/OBJECT]
+
+[/VAR]
+
+[VAR:p21]
+
+![](PhATBody1.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Bone Name** || %doxygen:UBodySetup::BoneName% |
+| **Consider for Bounds** || %doxygen:UBodySetup::bConsiderForBounds% |
+[/REGION]
+
+[/VAR]
+
+[VAR:p22]
+
+![](PhATBody2.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Mass in KG** || Mass of the body in KG. |
+| **Linear Damping** || %doxygen:FBodyInstance::LinearDamping% |
+| **Angular Damping** || %doxygen:FBodyInstance::AngularDamping% |
+| **Enable Gravity** || %doxygen:FBodyInstance::bEnableGravity% |
+| **Physics Type** || %doxygen:UBodySetup::PhysicsType% |
+| **Double Sided Geometry** || If true, the physics triangle mesh will use double sided faces when doing scene queries. Thsi is useful for planes and single sided meshes that need traces to work on both sides. |
+| **Simple Collision Physical Material** || %doxygen:UBodySetup::PhysMaterial% |
+[/REGION]
+
+### Advanced
+
+![](PhATBody2_adv.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Start Awake** || %doxygen:FBodyInstance::bStartAwake% |
+| **Center of Mass Offset** || %doxygen:FBodyInstance::COMNudge% |
+| **Mass Scale** || %doxygen:FBodyInstance::MassScale% |
+| **Max Angular Velocity** || The maximum angular velocity for this instance. |
+| **Use Async Scene** || %doxygen:FBodyInstance::bUseAsyncScene% |
+| **Generate Wake Events** ||  |
+| **Max Depenetration Velocity** || The maximum velocity used to depenetrate this object.  |
+| **Walkable Slope Override** || %doxygen:UBodySetup::WalkableSlopeOverride% |
+| **Walkable Slope Behavior** || Behavior of this surface (whether we affect the walkable slope). Determines how the Walkable Slope Angle operates on the existing walkable angle, whether it increases or decreases it. |
+| **Walkable Slope Angle** || %doxygen:FWalkableSlopeOverride::WalkableSlopeAngle% |
+| **Custom Sleep Threshold Multiplier** || |
+| **Position Solver Iteration Count** || %doxygen:FBodyInstance::PositionSolverIterationCount% |
+| **Velocity Solver Iteration Count** || %doxygen:FBodyInstance::VelocitySolverIterationCount% |
+| **Sleep Family** || %doxygen:FBodyInstance::SleepFamily% |
+[/REGION]
+
+[/VAR]
+
+[VAR:p23]
+
+![](PhATBody3.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Simulation Generates Hit Events** || %doxygen:FBodyInstance::bNotifyRigidBodyCollision% |
+| **Phys Material Override** || %doxygen:FBodyInstance::PhysMaterialOverride% |
+| **Collision Response** || %doxygen:UBodySetup::CollisionReponse% |
+
+[/REGION]
+### Advanced
+
+![](PhATBody3_adv.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Use CCD** || %doxygen:FBodyInstance::bUseCCD% |
+[/REGION]
+
+[/VAR]
+
+
+---
+
+[OBJECT:modulesection]
+	[PARAMLITERAL:id]
+		ConsM
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Constraint Mode
+	[/PARAM]
+	[PARAM:content]
+		%c3%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:c3]
+
+When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the Details panel will display the properties for that Physics Body.
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		Cons2
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Constraint
+	[/PARAM]
+	[PARAM:content]
+		%p31%
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		Line1
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Linear Limits
+	[/PARAM]
+	[PARAM:content]
+		%Engine/Physics/Constraints/ConstraintsReference:p2%
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		Proj2
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Projection
+	[/PARAM]
+	[PARAM:content]
+		%Engine/Physics/Constraints/ConstraintsReference:p3%
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		Angu2
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Angular Limits
+	[/PARAM]
+	[PARAM:content]
+		%Engine/Physics/Constraints/ConstraintsReference:p4%
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		Lmoto
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Linear Motor
+	[/PARAM]
+	[PARAM:content]
+		%Engine/Physics/Constraints/ConstraintsReference:p5%
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		Amoto
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Angular Motor
+	[/PARAM]
+	[PARAM:content]
+		%Engine/Physics/Constraints/ConstraintsReference:p6%
+	[/PARAM]
+[/OBJECT]
+
+[/VAR]
+
+[VAR:p31]
+
+![](PhATCon1.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Joint Name** || %doxygen:FConstraintInstance::JointName% |
+| **Constraint Bone 1** || %doxygen:FConstraintInstance::ConstraintBone1% |
+| **Constraint Bone 2** || %doxygen:FConstraintInstance::ConstraintBone2% |
+| **Disable Collision** || Disable collision between bodies joined by this constraint. |
+[/REGION]
+[/VAR]
+
+
+
+
+
+
+

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2627837
 Availability:Public
 Title:버텍스 애니메이션 툴
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -9,7 +9,7 @@ Version: 4.8
 
 [TOC(start:2 end:3)]
 
-## 개요
+
 2D 텍스처나 메시의 UV 에 복잡한 애니메이션 데이터를 저장하면, 애니메이션 부하를 줄이면서도 애니메이션에 필요한 모양과 느낌을 유지시키는 데 좋습니다.
 과거에는 그렇게 하기 위해 [모프 타겟](Engine/Content/FBX/MorphTargets) 을 사용했겠지만, 이 새로운 방법에는 전에 없던 장점이 몇 가지 있습니다.
 그 중 하나는, 기존에 캐스케이드 파티클 에디터에서 모프 타겟을 활용하거나 하지 않으면 불가능했을 복잡한 시스템 내 애니메이션 데이터를 사용할 수 있다는 점입니다.
@@ -70,7 +70,17 @@ Version: 4.8
 다른 버전에서도 작동이 가능할 수는 있지만, 테스트를 거치진 않았으므로 다른 버전을 사용하는 경우 직접 위험을 감수하셔야 합니다.
 스크립트 설치는 간단히 **4.8\Engine\Extras\3dsMaxScripts** 에서 3Ds Max 뷰포트에 끌어놓으면 스크립트가 저절로 실행됩니다.
 
-![](VAT_Max_Install.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+koPxpL0CgA8
+[/PARAMLITERAL]
+[/OBJECT]
 
 [region:tip]
 이 스크립트를 자주 사용하시는 경우, 언제든 툴바나 쿼드 메뉴에 스크립트를 추가하실 수 있습니다. 자세한 방법은 [Autodesk site](http://knowledge.autodesk.com/support/3ds-max/learn-explore/caas/CloudHelp/cloudhelp/2015/ENU/3DSMax/files/GUID-A2CF8BAA-7B52-40A8-8C40-803B1AB5FC05-htm.html) 에 그 방법이 매우 자세히 소개되어 있습니다.
@@ -85,7 +95,17 @@ UE4 는 센티미터를 기본 측정단위로 사용하므로 3Ds Max 에서도
 1. 다음 **System Unit Setup** 을 클릭한 다음 Inches 에서 **Centimeters** 로 변경한 뒤 **OK** 버튼을 누릅니다.
 1. 마지막으로 **Display Unit Scale** 을 **Generic Units** 으로 변경한 다음 **OK** 버튼을 누릅니다.
 
-	![](VAT_3DsMax_Unit_Setup.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	lZ6d6Q902qw
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 [region:note]
 이 단계는 매우 중요하므로 건너뛰시면 **안됩니다**. 이 단계를 건너뛰면 UE4 와 3Ds Max 의 단위가 달라 콘텐츠 임포트시 렌더링 오류가 생길 수 있습니다.

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,55 +8,19 @@
 #include "SkeletalMeshTypes.h"
 #include "Animation/AnimationAsset.h"
 #include "AnimCurveTypes.h"
+#include "ClothSimData.h"
+#include "SingleAnimationPlayData.h"
 #include "SkeletalMeshComponent.generated.h"
+
+
 
 class UAnimInstance;
 struct FEngineShowFlags;
 struct FConvexVolume;
 
-struct FAnimationEvaluationContext
-{
-	// The anim instance we are evaluating
-	UAnimInstance* AnimInstance;
 
-	// The SkeletalMesh we are evaluating for
-	USkeletalMesh* SkeletalMesh;
 
-	// Double buffer evaluation data
-	TArray<FTransform> SpaceBases;
-	TArray<FTransform> LocalAtoms;
-	TArray<FActiveVertexAnim> VertexAnims;
-	FVector RootBoneTranslation;
 
-	// Double buffer curve data
-	FBlendedCurve	Curve;
-
-	// Are we performing interpolation this tick
-	bool bDoInterpolation;
-
-	// Are we evaluating this tick
-	bool bDoEvaluation;
-
-	// Are we storing data in cache bones this tick
-	bool bDuplicateToCacheBones;
-
-	// duplicate the cache curves
-	bool bDuplicateToCacheCurve;
-
-	FAnimationEvaluationContext()
-	{
-		Clear();
-	}
-
-	void Clear()
-	{
-		AnimInstance = NULL;
-		SkeletalMesh = NULL;
-	}
-
-};
-
-//#if WITH_APEX
 namespace physx
 { 
 	namespace apex 
@@ -66,7 +30,6 @@ namespace physx
 		class NxClothingCollision;
 	}
 }
-//#endif // WITH_APEX
 
 class FPhysScene;
 
@@ -100,15 +63,99 @@ public:
 	physx::apex::NxClothingAsset*	ParentClothingAsset;
 	/** APEX clothing actor is created from APEX clothing asset for cloth simulation */
 	physx::apex::NxClothingActor*		ApexClothingActor;
-	FPhysScene * PhysScene;
-	uint32 SceneType;
+
+	/** The corresponding clothing asset index */
+	int32 ParentClothingAssetIndex;
+
+	/** Whether this cloth actor is simulating for the current LOD */
+	bool bSimulateForCurrentLOD;
 };
 
-/** data for updating cloth section from the results of clothing simulation */
-struct FClothSimulData
+//The data that cloth needs for simulation prep in parallel. These properties are accessible via double buffer
+struct FClothSimulationContext
 {
-	TArray<FVector4> ClothSimulPositions;
-	TArray<FVector4> ClothSimulNormals;
+	FClothSimulationContext();
+private:
+	/** whether we need to teleport cloth. There are functions which allow you to modify this accordingly. Do not access directly as double buffer strategy relies on internal logic being consistent */
+	FClothingActor::TeleportMode ClothTeleportMode;
+
+	TArray<FTransform> BoneTransforms;
+	TArray<FClothingActor> ClothingActors;
+	TArray<FClothingAssetData> ClothingAssets;	//This is only here because we don't have proper cloth assets and instead embed the data into an array in SkeletalMesh. For now we must copy the data
+	TArray<int32> InMasterBoneMap;
+	int32 InMasterBoneMapCacheCount;
+	bool bUseMasterPose;
+	FTransform ComponentToWorld;
+
+	FVector WindDirection;
+	float WindAdaption;
+
+	friend class USkeletalMeshComponent;
+};
+
+struct FAnimationEvaluationContext
+{
+	// The anim instance we are evaluating
+	UAnimInstance* AnimInstance;
+
+	// The SkeletalMesh we are evaluating for
+	USkeletalMesh* SkeletalMesh;
+
+	// Double buffer evaluation data
+	TArray<FTransform> SpaceBases;
+	TArray<FTransform> LocalAtoms;
+	TArray<FActiveVertexAnim> VertexAnims;
+	FVector RootBoneTranslation;
+
+	// Double buffer curve data
+	FBlendedCurve	Curve;
+
+	// Are we performing interpolation this tick
+	bool bDoInterpolation;
+
+	// Are we evaluating this tick
+	bool bDoEvaluation;
+
+	// Are we updating the anim instance this tick
+	bool bDoUpdate;
+
+	// Are we storing data in cache bones this tick
+	bool bDuplicateToCacheBones;
+
+	// duplicate the cache curves
+	bool bDuplicateToCacheCurve;
+
+	FAnimationEvaluationContext()
+	{
+		Clear();
+	}
+
+	void Copy(const FAnimationEvaluationContext& Other)
+	{
+		AnimInstance = Other.AnimInstance;
+		SkeletalMesh = Other.SkeletalMesh;
+		SpaceBases.Reset();
+		SpaceBases.Append(Other.SpaceBases);
+		LocalAtoms.Reset();
+		LocalAtoms.Append(Other.LocalAtoms);
+		VertexAnims.Reset();
+		VertexAnims.Append(Other.VertexAnims);
+		RootBoneTranslation = Other.RootBoneTranslation;
+		Curve.InitFrom(Other.Curve);
+		bDoInterpolation = Other.bDoInterpolation;
+		bDoEvaluation = Other.bDoEvaluation;
+		bDoUpdate = Other.bDoUpdate;
+		bDuplicateToCacheBones = Other.bDuplicateToCacheBones;
+		bDuplicateToCacheCurve = Other.bDuplicateToCacheCurve;
+	}
+
+	void Clear()
+	{
+		AnimInstance = NULL;
+		SkeletalMesh = NULL;
+		Curve.Empty();
+	}
+
 };
 
 /**  for storing precomputed cloth morph target data */
@@ -197,65 +244,24 @@ namespace EAnimationMode
 	};
 }
 
-USTRUCT()
-struct FSingleAnimationPlayData
+/** Enum for indicating whether kinematic updates can be deferred */
+enum class EAllowKinematicDeferral
 {
-	GENERATED_USTRUCT_BODY()
-
-	// @todo in the future, we should make this one UObject
-	// and have detail customization to display different things
-	// The default sequence to play on this skeletal mesh
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation)
-	class UAnimationAsset* AnimToPlay;
-
-	// @fixme : until we properly support it I'm commenting out editable property part
-	// The default sequence to play on this skeletal mesh
-	UPROPERTY()//EditAnywhere, BlueprintReadWrite, Category=Animation)
-	class UVertexAnimation* VertexAnimToPlay;
-
-	/** Default setting for looping for SequenceToPlay. This is not current state of looping. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(DisplayName="Looping"))
-	uint32 bSavedLooping:1;
-
-	/** Default setting for playing for SequenceToPlay. This is not current state of playing. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(DisplayName="Playing"))
-	uint32 bSavedPlaying:1;
-
-	/** Default setting for position of SequenceToPlay to play. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(DisplayName="Initial Position"))
-	float SavedPosition;
-
-	/** Default setting for play rate of SequenceToPlay to play. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Animation, meta=(DisplayName="PlayRate"))
-	float SavedPlayRate;
-
-	FSingleAnimationPlayData()
-	{
-		SavedPlayRate = 1.0f;
-		bSavedLooping = true;
-		bSavedPlaying = true;
-		SavedPosition = 0.f;
-	}
-
-	/** Called when initialized. */
-	ENGINE_API void Initialize(class UAnimSingleNodeInstance* Instance);
-
-	/** Populates this play data with the current state of the supplied instance. */
-	ENGINE_API void PopulateFrom(UAnimSingleNodeInstance* Instance);
-
-	void ValidatePosition();
+	AllowDeferral,
+	DisallowDeferral
 };
 
+class USkeletalMeshComponent;
+
 /**
-* Tick function that prepares for cloth tick
+* Tick function that does post physics work on skeletal mesh component
 **/
 USTRUCT()
-struct FSkeletalMeshComponentPreClothTickFunction : public FTickFunction
+struct FSkeletalMeshComponentPostPhysicsTickFunction : public FTickFunction
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** World this tick function belongs to. */
-	class USkeletalMeshComponent*	Target;
+	 USkeletalMeshComponent*	Target;
 
 	/**
 	* Abstract function to execute the tick.
@@ -269,6 +275,27 @@ struct FSkeletalMeshComponentPreClothTickFunction : public FTickFunction
 	virtual FString DiagnosticMessage() override;
 };
 
+/**
+* Tick function that prepares and simulates cloth
+**/
+USTRUCT()
+struct FSkeletalMeshComponentClothTickFunction : public FTickFunction
+{
+	GENERATED_USTRUCT_BODY()
+
+	USkeletalMeshComponent*	Target;
+
+	/**
+	* Abstract function to execute the tick.
+	* @param DeltaTime - frame time to advance, in seconds.
+	* @param TickType - kind of tick for this frame.
+	* @param CurrentThread - thread we are executing on, useful to pass along as new tasks are created.
+	* @param MyCompletionGraphEvent - completion event for this task. Useful for holding the completetion of this task until certain child tasks are complete.
+	*/
+	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
+	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph. */
+	virtual FString DiagnosticMessage() override;
+};
 
 /**
  * SkeletalMeshComponent is used to create an instance of an animated SkeletalMesh asset.
@@ -301,9 +328,13 @@ public:
 	class UAnimBlueprint* AnimationBlueprint_DEPRECATED;
 #endif
 
-	/* The AnimBlueprint class to use. Use 'SetAnimInstanceClass' to change at runtime. */
+	DEPRECATED(4.11, "This property is deprecated. Please use AnimClass instead")
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Animation)
 	class UAnimBlueprintGeneratedClass* AnimBlueprintGeneratedClass;
+
+	/* The AnimBlueprint class to use. Use 'SetAnimInstanceClass' to change at runtime. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Animation)
+	class TSubclassOf<UAnimInstance> AnimClass;
 
 	/** The active animation graph program instance. */
 	UPROPERTY(transient)
@@ -341,6 +372,9 @@ public:
 
 	/** Set during InitArticulated, to indicate if there are bodies in the async scene */
 	uint32 bHasBodiesInAsyncScene:1;
+
+	/** Indicates that this SkeletalMeshComponent has deferred kinematic bone updates until next physics sim.  */
+	uint32 bDeferredKinematicUpdate:1;
 
 	/** If we are running physics, should we update non-simulated bones based on the animation bone positions. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=SkeletalMesh)
@@ -693,50 +727,65 @@ public:
 
 #endif	//WITH_PHYSX
 
-	FSkeletalMeshComponentPreClothTickFunction PreClothTickFunction;
+	FSkeletalMeshComponentClothTickFunction ClothTickFunction;
 
 #if WITH_APEX_CLOTHING
-	/** 
-	* clothing actors will be created from clothing assets for cloth simulation 
-	* 1 actor should correspond to 1 asset
-	*/
-	TArray<FClothingActor> ClothingActors;
 
-	float ClothMaxDistanceScale;
-
-	FClothingActor::TeleportMode ClothTeleportMode;
-	/** previous root bone matrix to compare the difference and decide to do clothing teleport  */
-	FMatrix	PrevRootBoneMatrix;
 	/** used for pre-computation using TeleportRotationThreshold property */
 	float ClothTeleportCosineThresholdInRad;
 	/** used for pre-computation using tTeleportDistanceThreshold property */
 	float ClothTeleportDistThresholdSquared;
-	/** 
-	 * clothing reset is needed once more to avoid clothing pop up 
-	 * use until Apex clothing bug is resolved 
-	 */
-	bool bNeedTeleportAndResetOnceMore;
-	/** used for checking whether cloth morph target data were pre-computed or not */
-	bool bPreparedClothMorphTargets;
-	/** precomputed actual cloth morph target data */
-	TArray<FClothMorphTargetData> ClothMorphTargets;
+
+	/** whether we need to teleport cloth. */
+	FClothingActor::TeleportMode ClothTeleportMode;
+
+	bool IsClothBoundToMasterComponent() const { return bBindClothToMasterComponent; }
+
+private:
+
+	friend FSkeletalMeshComponentClothTickFunction;
+
+   /** Double buffer for the current cloth simulation context */
+	FClothSimulationContext InternalClothSimulationContext;
 
 	/** Whether or not we're taking cloth sim information from our master component */
 	bool bBindClothToMasterComponent;
 	/** The previous state of the master component simulation coord space, so we can restore on unbind */
 	bool bPrevMasterSimulateLocalSpace;
 
-#if WITH_CLOTH_COLLISION_DETECTION
+	/** Copies the data from the external cloth simulation context. We copy instead of flipping because the API has to return the full struct to make backwards compat easy*/
+	void UpdateClothSimulationContext();
+
+   /** 
+	* clothing actors will be created from clothing assets for cloth simulation 
+	* 1 actor should correspond to 1 asset
+	*/
+	TArray<FClothingActor> ClothingActors;
+
+	/** previous root bone matrix to compare the difference and decide to do clothing teleport  */
+	FMatrix	PrevRootBoneMatrix;
+
+public:
+
+	const TArray<FClothingActor>& GetClothingActors(){ return ClothingActors; }
+
+	float ClothMaxDistanceScale;
+	/** used for checking whether cloth morph target data were pre-computed or not */
+	bool bPreparedClothMorphTargets;
+
+	/** precomputed actual cloth morph target data */
+	TArray<FClothMorphTargetData> ClothMorphTargets;
+
+	#if WITH_CLOTH_COLLISION_DETECTION
 	/** increase every tick to update clothing collision  */
-	uint32 ClothingCollisionRevision; 
+	uint32 ClothingCollisionRevision;
 
 	TArray<physx::apex::NxClothingCollision*>	ParentCollisions;
 	TArray<physx::apex::NxClothingCollision*>	EnvironmentCollisions;
 	TArray<physx::apex::NxClothingCollision*>	ChildrenCollisions;
 
 	TMap<TWeakObjectPtr<UPrimitiveComponent>, FApexClothCollisionInfo> ClothOverlappedComponentsMap;
-#endif // WITH_CLOTH_COLLISION_DETECTION
-
+	#endif // WITH_CLOTH_COLLISION_DETECTION
 #endif // WITH_APEX_CLOTHING
 
 	/** 
@@ -751,18 +800,17 @@ public:
 	virtual void InitAnim(bool bForceReinit);
 
 	/** Tick Animation system */
-	void TickAnimation(float DeltaTime);
+	void TickAnimation(float DeltaTime, bool bNeedsValidRootMotion);
 
 	/** Tick Clothing Animation , basically this is called inside TickComponent */
 	void TickClothing(float DeltaTime, FTickFunction& ThisTickFunction);
 
 	/** Store cloth simulation data into OutClothSimData */
 	void GetUpdateClothSimulationData(TArray<FClothSimulData>& OutClothSimData, USkeletalMeshComponent* OverrideLocalRootComponent = nullptr);
-	void ApplyWindForCloth(FClothingActor& ClothingActor);
 	void RemoveAllClothingActors();
 	void ReleaseAllClothingResources();
 
-	bool IsValidClothingActor(int32 ActorIndex) const;
+	bool IsValidClothingActor(const FClothingActor& ClothingActor) const;
 	/** Draws APEX Clothing simulated normals on cloth meshes **/
 	void DrawClothingNormals(FPrimitiveDrawInterface* PDI);
 	/** Draws APEX Clothing Graphical Tangents on cloth meshes **/
@@ -784,7 +832,7 @@ public:
 	/** Loads clothing extra infos dynamically just for Previewing in Editor 
 	 *  such as MaxDistances, Physical mesh wire
 	 **/
-	void LoadClothingVisualizationInfo(int32 AssetIndex);
+	void LoadClothingVisualizationInfo(FClothingAssetData& ClothAssetData);
 	void LoadAllClothingVisualizationInfos();
 
 	/** freezing clothing actor now */
@@ -799,7 +847,7 @@ public:
 	void RecalcRequiredBones(int32 LODIndex);
 
 public:
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual void Serialize(FArchive& Ar) override;
 #if WITH_EDITOR
 	DECLARE_MULTICAST_DELEGATE(FOnSkeletalMeshPropertyChangedMulticaster)
@@ -819,9 +867,9 @@ public:
 	virtual void UpdateCollisionProfile() override;
 #endif // WITH_EDITOR
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
-	// End UObject interface.
+	//~ End UObject Interface.
 
-	// Begin UActorComponent interface.
+	//~ Begin UActorComponent Interface.
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
 	virtual void CreateRenderState_Concurrent() override;
@@ -832,19 +880,19 @@ public:
 	virtual void RegisterComponentTickFunctions(bool bRegister) override;
 
 	//Handle registering our pre cloth tick function
-	void RegisterPreClothTick(bool bRegister);
+	void RegisterPostPhysicsTick(bool bRegister);
+	void RegisterClothTick(bool bRegister);
 
-	// End UActorComponent interface.
+	//~ End UActorComponent Interface.
 
-	// Begin USceneComponent interface.
-	virtual void UpdateBounds() override;
+	//~ Begin USceneComponent Interface.
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual bool IsAnySimulatingPhysics() const override;
 	virtual void OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Teleport = ETeleportType::None) override;
 	virtual void UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps=NULL, bool bDoNotifies=true, const TArray<FOverlapInfo>* OverlapsAtEndLocation=NULL) override;
-	// End USceneComponent interface.
+	//~ End USceneComponent Interface.
 
-	// Begin UPrimitiveComponent interface.
+	//~ Begin UPrimitiveComponent Interface.
 protected:
 	/**
 	 *  Test the collision of the supplied component at the supplied location/rotation, and determine the set of components that it overlaps
@@ -872,6 +920,8 @@ public:
 	virtual void WakeAllRigidBodies() override;
 	virtual void PutAllRigidBodiesToSleep() override;
 	virtual bool IsAnyRigidBodyAwake() override;
+	virtual void SetEnableGravity(bool bGravityEnabled);
+	virtual bool IsGravityEnabled() const override;
 	virtual void OnComponentCollisionSettingsChanged() override;
 	virtual void SetPhysMaterialOverride(UPhysicalMaterial* NewPhysMaterial) override;
 	virtual float GetDistanceToCollision(const FVector& Point, FVector& ClosestPointOnCollision) const override;
@@ -892,10 +942,10 @@ public:
 #endif
 protected:
 	virtual FTransform GetComponentTransformFromBodyInstance(FBodyInstance* UseBI) override;
-	// End UPrimitiveComponent interface.
+	//~ End UPrimitiveComponent Interface.
 
 public:
-	// Begin USkinnedMeshComponent interface
+	//~ Begin USkinnedMeshComponent Interface
 	virtual bool UpdateLODStatus() override;
 	virtual void RefreshBoneTransforms( FActorComponentTickFunction* TickFunction = NULL ) override;
 	virtual void TickPose(float DeltaTime, bool bNeedsValidRootMotion) override;
@@ -915,7 +965,7 @@ public:
 	virtual bool IsPlayingRootMotion() override;
 	virtual bool IsPlayingRootMotionFromEverything() override;
 	virtual void FinalizeBoneTransform() override;
-	// End USkinnedMeshComponent interface
+	//~ End USkinnedMeshComponent Interface
 	/** 
 	 *	Iterate over each joint in the physics for this mesh, setting its AngularPositionTarget based on the animation information.
 	 */
@@ -1034,13 +1084,6 @@ public:
 
 	void GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodies, TArray<FName> & OutChildrenLabels) override;
 
-	/**
-	 * Return Transform Matrix for SkeletalMeshComponent considering root motion setups
-	 * 
-	 * @return Matrix Transform matrix
-	 */
-	FMatrix GetTransformMatrix() const;
-	
 	/** 
 	 * Change whether to force mesh into ref pose (and use cheaper vertex shader) 
 	 *
@@ -1075,8 +1118,11 @@ public:
 	/** 
 	 *	Iterate over each physics body in the physics for this mesh, and for each 'kinematic' (ie fixed or default if owner isn't simulating) one, update its
 	 *	transform based on the animated transform.
+	 *	@param	Teleport		Whether movement is a 'teleport' (ie infers no physics velocity, but moves simulating bodies) or not
+	 *	@param	bNeedsSkinning	Whether we may need  to send new triangle data for per-poly skeletal mesh collision
+	 *	@perem	AllowDeferral	Whether we can defer actual update of bodies (if 'physics only' collision)
 	 */
-	void UpdateKinematicBonesToAnim(const TArray<FTransform>& InSpaceBases, ETeleportType Teleport, bool bNeedsSkinning);
+	void UpdateKinematicBonesToAnim(const TArray<FTransform>& InSpaceBases, ETeleportType Teleport, bool bNeedsSkinning, EAllowKinematicDeferral DeferralAllowed = EAllowKinematicDeferral::AllowDeferral);
 
 	DEPRECATED(4.9, "bForceUpdate is no longer used. Please use Teleport")
 	void UpdateKinematicBonesToAnim(const TArray<FTransform>& InSpaceBases, bool bTeleport, bool bNeedsSkinning, bool bForceUpdate)
@@ -1102,17 +1148,34 @@ public:
 	 * @param	HitLocation	location of the hit
 	 * @param	InBoneName	Name of bone to break constraint for
 	 */
+	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh", meta = (Keywords = "Constraint"))
 	void BreakConstraint(FVector Impulse, FVector HitLocation, FName InBoneName);
-	
+
+	/** Sets the Angular Motion Ranges for a named bone
+	*  @param InBoneName  Name of bone to adjust constraint ranges for
+	*  @param Swing1LimitAngle	 Size of limit in degrees, 0 means locked, 180 means free
+	*  @param TwistLimitAngle	 Size of limit in degrees, 0 means locked, 180 means free
+	*  @param Swing2LimitAngle	 Size of limit in degrees, 0 means locked, 180 means free
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh")
+	void  SetAngularLimits(FName InBoneName,float Swing1LimitAngle, float TwistLimitAngle, float Swing2LimitAngle);
+
+	/** Gets the current Angular state for a named bone constraint 
+	*  @param InBoneName  Name of bone to get constraint ranges for
+	*  @param Swing1Angle current angular state of the constraint
+	*  @param TwistAngle  current angular state of the constraint
+	*  @param Swing2Angle current angular state of the constraint
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh")
+	void GetCurrentJointAngles(FName InBoneName,float& Swing1Angle, float& TwistAngle, float& Swing2Angle) ;
+
+
 	/** iterates through all bodies in our PhysicsAsset and returns the location of the closest bone associated
 	 * with a body that has collision enabled.
 	 * @param TestLocation - location to check against
 	 * @return location of closest colliding rigidbody, or TestLocation if there were no bodies to test
 	 */
 	FVector GetClosestCollidingRigidBodyLocation(const FVector& TestLocation) const;
-
-	/** Calls needed cloth updates */
-	void PreClothTick(float DeltaTime, FTickFunction& ThisTickFunction);
 	
 	/** Set physics transforms for all bodies */
 	void ApplyDeltaToAllPhysicsTransforms(const FVector& DeltaLocation, const FQuat& DeltaRotation);
@@ -1125,14 +1188,13 @@ public:
 	*/
 	bool CreateClothingActor(int32 AssetIndex, physx::apex::NxClothingAsset* ClothingAsset, TArray<FVector>* BlendedDelta = NULL);
 	/** should call this method if occurred any changes in clothing assets */
-	void ValidateClothingActors();
+	void RecreateClothingActors();
 	/** add bounding box for cloth */
 	void AddClothingBounds(FBoxSphereBounds& InOutBounds) const;
 	/** changes clothing LODs, if clothing LOD is disabled or LODIndex is greater than apex clothing LODs, simulation will be disabled */
 	void SetClothingLOD(int32 LODIndex);
 	/** check whether clothing teleport is needed or not to avoid a weird simulation result */
-	virtual void CheckClothTeleport(float DeltaTime);
-
+	virtual void CheckClothTeleport();
 	/** 
 	* methods for cloth morph targets 
 	*/
@@ -1144,9 +1206,9 @@ public:
 	void UpdateClothMorphTarget();
 
 	/** 
-	 * Updates all clothing animation states including ComponentToWorld-related states.
+	 * Updates all clothing animation states including ComponentToWorld-related states. Triggers the simulation tasks
 	 */
-	void UpdateClothState(float DeltaTime);
+	void UpdateClothStateAndSimulate(float DeltaTime, FTickFunction& ThisTickFunction);
 	/** 
 	 * Updates clothing actor's global pose.
 	 * So should be called when ComponentToWorld is changed.
@@ -1154,7 +1216,7 @@ public:
 	void UpdateClothTransform();
 
 	/** only check whether there are valid clothing actors or not */
-	bool HasValidClothingActors();
+	bool HasValidClothingActors() const;
 
 	/** get root bone matrix by the root bone index which Apex cloth asset is holding */
 	void GetClothRootBoneMatrix(int32 AssetIndex, FMatrix& OutRootBoneMatrix) const;
@@ -1208,6 +1270,13 @@ protected:
 	bool NeedToSpawnAnimScriptInstance(bool bForceInit) const;
 	
 private:
+
+	FSkeletalMeshComponentPostPhysicsTickFunction PostPhysicsTickFunction;
+	friend struct FSkeletalMeshComponentPostPhysicsTickFunction;
+
+	/** Update systems after physics sim is done */
+	void PostPhysicsTickComponent(FSkeletalMeshComponentPostPhysicsTickFunction& ThisTickFunction);
+
 	/** Evaluate Anim System **/
 	void EvaluateAnimation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutLocalAtoms, TArray<struct FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation, FBlendedCurve& OutCurve) const;
 
@@ -1226,6 +1295,11 @@ private:
 	void ClearAnimScriptInstance();
 	virtual void RefreshActiveVertexAnims() override;
 
+#if WITH_APEX_CLOTHING
+	void GetWindForCloth_GameThread(FVector& WindVector, float& WindAdaption) const;
+	static void ApplyWindForCloth_Concurrent(physx::apex::NxClothingActor& ClothingActor, const FVector& WindVector, float WindAdaption);
+#endif
+	
 	//Data for parallel evaluation of animation
 	FAnimationEvaluationContext AnimEvaluationContext;
 
@@ -1237,22 +1311,9 @@ private:
 
 public:
 	// Parallel evaluation wrappers
-	void ParallelAnimationEvaluation() { PerformAnimationEvaluation(AnimEvaluationContext.SkeletalMesh, AnimEvaluationContext.AnimInstance, AnimEvaluationContext.SpaceBases, AnimEvaluationContext.LocalAtoms, AnimEvaluationContext.VertexAnims, AnimEvaluationContext.RootBoneTranslation, AnimEvaluationContext.Curve); }
-	void CompleteParallelAnimationEvaluation(bool bDoPostAnimEvaluation)
-	{
-		ParallelAnimationEvaluationTask.SafeRelease(); //We are done with this task now, clean up!
+	void ParallelAnimationEvaluation();
+	void CompleteParallelAnimationEvaluation(bool bDoPostAnimEvaluation);
 
-		if (bDoPostAnimEvaluation && (AnimEvaluationContext.AnimInstance == AnimScriptInstance) && (AnimEvaluationContext.SkeletalMesh == SkeletalMesh) && (AnimEvaluationContext.SpaceBases.Num() == GetNumSpaceBases()))
-		{
-			Exchange(AnimEvaluationContext.SpaceBases, AnimEvaluationContext.bDoInterpolation ? CachedSpaceBases : GetEditableSpaceBases() );
-			Exchange(AnimEvaluationContext.LocalAtoms, AnimEvaluationContext.bDoInterpolation ? CachedLocalAtoms : LocalAtoms);
-			Exchange(AnimEvaluationContext.VertexAnims, ActiveVertexAnims);
-			Exchange(AnimEvaluationContext.RootBoneTranslation, RootBoneTranslation);
-
-			PostAnimEvaluation(AnimEvaluationContext);
-		}
-		AnimEvaluationContext.Clear();
-	}
 
 	// Returns whether we are currently trying to run a parallel animation evaluation task
 	bool IsRunningParallelEvaluation() const { return IsValidRef(ParallelAnimationEvaluationTask); }
@@ -1265,12 +1326,25 @@ public:
 
 	friend class FSkeletalMeshComponentDetails;
 
+	/** Returns array containing cachec animation curve mapping UIDs (which are copied over from USkeleton) */
+	TArray<FSmartNameMapping::UID> const * GetCachedAnimCurveMappingNameUids();
+
 private:
 	// Returns whether we need to run the Pre Cloth Tick or not
-	bool ShouldRunPreClothTick() const;
+	bool ShouldRunPostPhysicsTick() const;
+
+	// Returns whether we need to run the Cloth Tick or not
+	bool ShouldRunClothTick() const;
 
 	// Handles registering/unregistering the pre cloth tick as it is needed
-	void UpdatePreClothTickRegisteredState();
+	void UpdatePostPhysicsTickRegisteredState();
+
+	// Handles registering/unregistering the cloth tick as it is needed
+	void UpdateClothTickRegisteredState();
+
+	// Handles registering/unregistering the 'during animation' tick as it is needed
+	void UpdateDuringAnimationTickRegisteredState();
+
 	friend class FParallelBlendPhysicsTask;
 	
 	//wrapper for parallel blend physics
@@ -1278,12 +1352,15 @@ private:
 
 	void PerformBlendPhysicsBones(const TArray<FBoneIndexType>& InRequiredBones, TArray<FTransform>& InLocalAtoms);
 
+	friend class FParallelClothTask;
+	// This is the parallel function that updates the cloth data and runs the simulation. This is safe to call from worker threads.
+	static void ParallelEvaluateCloth(float DeltaTime, const FClothingActor& ClothingActor, const FClothSimulationContext& ClothSimulationContext);
+
 	friend class FParallelBlendPhysicsCompletionTask;
 	void CompleteParallelBlendPhysics();
 	void PostBlendPhysics();
 
 	friend class FTickClothingTask;
-	void PerformTickClothing(float DeltaTime);
 
 	// these are deprecated variables from removing SingleAnimSkeletalComponent
 	// remove if this version goes away : VER_UE4_REMOVE_SINGLENODEINSTANCE
@@ -1310,7 +1387,12 @@ private:
 	// Default setting for playrate of SequenceToPlay to play. 
 	UPROPERTY()
 	float DefaultPlayRate_DEPRECATED;
+	
+	/** Caches the anim curve mapping smart name UIDs, by copying cached data from the Skeleton */
+	void UpdateCachedAnimCurveMappingNameUids();
 
+	/** Cached animation curves smart name mapping UIDs, only at runtime, not serialized. (used for FBlendedCurve::InitFrom) */
+	TArray<FSmartNameMapping::UID> CachedAnimCurveMappingNameUids;
 public:
 	/** Keep track of when animation has been ticked to ensure it is ticked only once per frame. */
 	UPROPERTY(Transient)

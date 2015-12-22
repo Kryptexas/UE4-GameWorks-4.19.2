@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346177
+﻿INTSourceChangelist:2653187
 Availability: Public
 Title:1 - 프로토타입 패스
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/LevelDesign
@@ -8,6 +8,22 @@ Related:Engine/UI/LevelEditor
 Related: Engine/UI/LevelEditor/Modes
 Related: Engine/Actors/Volumes
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[레벨 디자인 홈](Resources/ContentExamples/LevelDesign)
+	[/PARAM]
+	[PARAM:next]
+		[다음 예제](Resources/ContentExamples/LevelDesign/2 "%Resources/ContentExamples/LevelDesign/2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]

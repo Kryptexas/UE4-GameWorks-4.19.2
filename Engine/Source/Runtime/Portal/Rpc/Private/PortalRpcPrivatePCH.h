@@ -1,5 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
-
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 
@@ -26,6 +25,3 @@
 /* Private includes
  *****************************************************************************/
 
-#include "PortalRpcLocator.h"
-#include "PortalRpcMessages.h"
-#include "PortalRpcResponder.h"

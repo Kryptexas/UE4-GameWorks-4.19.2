@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2615425
+﻿INTSourceChangelist:2688371
 Availability:Public
 Title:이벤트
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description: 키즈멧에서 사용할 수 있는 Event 노드에 대한 문서입니다.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -63,7 +64,7 @@ _Blueprint_ 에서 이러한 이벤트에 접근하여 새로운 함수성을 �
  이벤트에서 여러 동작을 발동시키려는 경우, 순차적으로 엮어 줘야 합니다.
 [/REGION]
 
-[REGION:tip]
+[REGION:note]
 마티네를 사용해서 시네마틱 시퀀스 재생 도중의 특정 시간에 이벤트를 발동시키는 방법은, [](Engine/Matinee\UserGuide\BlueprintComponents) 문서를 참고하세요.
 [/REGION]
 
@@ -104,8 +105,8 @@ LevelReset (레벨 리셋) 이벤트는 레벨 재시작시 실행 신호를 보
 
 다수의 조건이 동시에 만족했을 때 실행되는 이벤트입니다:
 
-* 두 액터 모두 Overlap (겹침) 설정되어 있어야 합니다.
-* 이벤트 실행을 위한 액터에는 **Generate Overlap Events** 가 True 설정되어 있어야 합니다.
+* 액터간의 콜리전 반응은 오버랩을 허용해야 합니다.
+* 실행할 두 액터 모두 **Generate Overlap Events** 가 _true_ 설정되어 있어야 합니다.
 * 마지막으로 두 액터의 콜리전이 겹치기 시작해야, 즉 둘 다 움직이거나, 하나가 다른 것에 겹쳐 생성되어야 합니다.
 
 콜리전 관련 상세 정보: [**콜리전 반응**](Engine\Physics\Collision).
@@ -126,8 +127,8 @@ _이 블루프린트 액터가 Player Actor 변수에 저장된 액터에 겹치
 
 다수의 조건이 동시에 충족되면 발동되는 이벤트입니다:
 
-* 두 액터 모두 Overlap 으로 설정되어 있어야 합니다.
-* 이벤트를 실행해야 하는 액터에는 **Generate Overlap Events** 옵션이 True 설정되어 있어야 합니다.
+* 액터간의 콜리전 반응은 오버랩을 허용해야 합니다.
+* 이벤트를 실행할 두 액터 모두 **Generate Overlap Events** 가 _true_ 설정되어 있어야 합니다.
 * 마지막으로 두 액터의 콜리전 겹치기가 중단되어야, 즉 서로 멀어지거나 하나가 소멸되어야 합니다.
 
 콜리전 관련 상세 정보: [**콜리전 반응**](Engine\Physics\Collision).
@@ -219,7 +220,7 @@ _이 예제에서는, 대미지를 받으면 액터의 생명력에서 입은 �
 
 ![](RadialDamage.png)
 
-이 시퀀스의 부모 액터가 방사형 대미지를 받을 때마다 ReceiveRadiusDamage 액터가 호출됩니다. 폭발형 대미지, 또는 간접적으로 유발된 대미지 처리에 좋습니다.
+이 시퀀스의 부모 액터가 방사형 대미지를 받을 때마다 **Radial Damage** 이벤트가 호출됩니다. 폭발형 대미지, 또는 간접적으로 유발된 대미지 처리에 좋습니다.
 
 | 항목 | 설명 |
 | -------- | ----------- |
@@ -307,7 +308,7 @@ _이 예제에서, **Score** 변수는 **Value** 에 **Score** 를 더한 값으
 | 항목 | 설명 |
 | -------- | ----------- |
 | [REGION:tablesection]출력 핀[/REGION] ||
-| **Delta Seconds** | 프레임 사이에 경과되는 시간을 출력합니다. |
+| **Delta Seconds** | Float - 프레임 사이에 경과되는 시간을 출력합니다. |
 
 [![](TickEX.png)(w:940)](TickEX.png)
 
@@ -327,8 +328,8 @@ HUD 클래스를 상속받은 블루프린트 클래스에서만 사용할 수 �
 | 항목 | 설명 |
 | -------- | ----------- |
 | [REGION:tablesection]출력 핀[/REGION] ||
-| **Size X** | **Int** - 렌더링 창의 픽셀 단위 너비입니다. |
-| **Size Y** | **Int** - 렌더링 창의 픽셀 단위 높이입니다. |
+| **Size X** | Int - 렌더링 창의 픽셀 단위 너비입니다. |
+| **Size Y** | Int - 렌더링 창의 픽셀 단위 높이입니다. |
 
 
 [REGION:lightbox]

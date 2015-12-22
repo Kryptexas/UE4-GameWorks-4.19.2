@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -8,7 +8,7 @@ public class UnrealLightmass : ModuleRules
 	{
 		PublicIncludePaths.Add("Runtime/Launch/Public");
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "zlib", "SwarmInterface", "Projects" });
+        PrivateDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "zlib", "SwarmInterface", "Projects" });
 
 		if ((Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Win32))
 		{
@@ -56,5 +56,34 @@ public class UnrealLightmass : ModuleRules
 		PrivateIncludePaths.Add("Programs/UnrealLightmass/Private/LightmassCore/Math");
 		PrivateIncludePaths.Add("Programs/UnrealLightmass/Private/LightmassCore/Templates");
 		PrivateIncludePaths.Add("Programs/UnrealLightmass/Private/LightmassCore/Types");
-	}
+
+        // EMBREE
+        if (Target.Platform == UnrealTargetPlatform.Win64)
+        {
+            string SDKDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "IntelEmbree/Embree270/Win64/";
+
+            PublicIncludePaths.Add(SDKDir + "include");
+            PublicLibraryPaths.Add(SDKDir + "lib");
+            PublicAdditionalLibraries.Add("embree.lib");
+			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Win64/embree.dll"));
+			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Win64/tbb.dll"));
+			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Win64/tbbmalloc.dll"));
+            Definitions.Add("USE_EMBREE=1");
+        }
+		else if (Target.Platform == UnrealTargetPlatform.Mac)
+		{
+            string SDKDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "IntelEmbree/Embree270/MacOSX/";
+
+            PublicIncludePaths.Add(SDKDir + "include");
+            PublicAdditionalLibraries.Add(SDKDir + "lib/libembree.2.dylib");
+			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Mac/libembree.2.dylib"));
+			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Mac/libtbb.dylib"));
+			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Mac/libtbbmalloc.dylib"));
+            Definitions.Add("USE_EMBREE=1");
+		}
+        else
+        {
+            Definitions.Add("USE_EMBREE=0");
+        }
+    }
 }

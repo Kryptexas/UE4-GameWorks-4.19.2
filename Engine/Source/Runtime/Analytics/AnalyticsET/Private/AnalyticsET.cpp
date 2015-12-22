@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "Runtime/Analytics/AnalyticsET/Private/AnalyticsETPrivatePCH.h"
 
@@ -11,9 +11,8 @@
 #include "Runtime/Online/HTTP/Public/Http.h"
 #include "EngineVersion.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogAnalytics, Display, All);
-
 IMPLEMENT_MODULE( FAnalyticsET, AnalyticsET );
+DEFINE_LOG_CATEGORY(LogAnalytics);
 
 class FAnalyticsProviderET : 
 	public IAnalyticsProvider,
@@ -69,6 +68,8 @@ private:
 	float FlushEventsCountdown;
 	/** Track destructing for unbinding callbacks when firing events at shutdown */
 	bool bInDestructor;
+	/** True to use the legacy backend server protocol that uses URL params. */
+	bool UseLegacyProtocol;
 	/**
 	 * Analytics event entry to be cached
 	 */
@@ -119,6 +120,7 @@ TSharedPtr<IAnalyticsProvider> FAnalyticsET::CreateAnalyticsProvider(const FAnal
 		ConfigValues.APIKeyET = GetConfigValue.Execute(Config::GetKeyNameForAPIKey(), true);
 		ConfigValues.APIServerET = GetConfigValue.Execute(Config::GetKeyNameForAPIServer(), false);
 		ConfigValues.AppVersionET = GetConfigValue.Execute(Config::GetKeyNameForAppVersion(), false);
+		ConfigValues.UseLegacyProtocol = FCString::ToBool(*GetConfigValue.Execute(Config::GetKeyNameForUseLegacyProtocol(), false));
 		return CreateAnalyticsProvider(ConfigValues);
 	}
 	else
@@ -149,6 +151,7 @@ FAnalyticsProviderET::FAnalyticsProviderET(const FAnalyticsET::Config& ConfigVal
 	, bShouldCacheEvents(!FParse::Param(FCommandLine::Get(), TEXT("ANALYTICSDISABLECACHING")))
 	, FlushEventsCountdown(MaxCachedElapsedTime)
 	, bInDestructor(false)
+	, UseLegacyProtocol(ConfigValues.UseLegacyProtocol)
 {
 	// if we are not caching events, we are operating in debug mode. Turn on super-verbose analytics logging
 	if (!bShouldCacheEvents)
@@ -164,13 +167,13 @@ FAnalyticsProviderET::FAnalyticsProviderET(const FAnalyticsET::Config& ConfigVal
 		? FAnalyticsET::Config::GetDefaultAPIServer()
 		: ConfigValues.APIServerET;
 
-	// default to GEngineVersion if one is not provided, append GEngineVersion otherwise.
+	// default to FEngineVersion::Current() if one is not provided, append FEngineVersion::Current() otherwise.
 	FString ConfigAppVersion = ConfigValues.AppVersionET;
 	// Allow the cmdline to force a specific AppVersion so it can be set dynamically.
 	FParse::Value(FCommandLine::Get(), TEXT("ANALYTICSAPPVERSION="), ConfigAppVersion, false);
 	AppVersion = ConfigAppVersion.IsEmpty() 
-		? GEngineVersion.ToString() 
-		: ConfigAppVersion.Replace(TEXT("%VERSION%"), *GEngineVersion.ToString(), ESearchCase::CaseSensitive);
+		? FEngineVersion::Current().ToString() 
+		: ConfigAppVersion.Replace(TEXT("%VERSION%"), *FEngineVersion::Current().ToString(), ESearchCase::CaseSensitive);
 
 	UE_LOG(LogAnalytics, Log, TEXT("[%s] APIServer = %s. AppVersion = %s"), *APIKey, *APIServer, *AppVersion);
 
@@ -261,8 +264,8 @@ void FAnalyticsProviderET::EndSession()
 	{
 		RecordEvent(TEXT("SessionEnd"), TArray<FAnalyticsEventAttribute>());
 	}
-	FlushEvents();
-	SessionID.Empty();
+		FlushEvents();
+		SessionID.Empty();
 
 	bSessionInProgress = false;
 }
@@ -285,6 +288,8 @@ void FAnalyticsProviderET::FlushEvents()
 
 		FDateTime CurrentTime = FDateTime::UtcNow();
 
+		if (!UseLegacyProtocol)
+		{
 		TSharedRef< TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR> > > JsonWriter = TJsonWriterFactory<TCHAR, TCondensedJsonPrintPolicy<TCHAR> >::Create(&Payload);
 		JsonWriter->WriteObjectStart();
 		JsonWriter->WriteArrayStart(TEXT("Events"));
@@ -302,7 +307,7 @@ void FAnalyticsProviderET::FlushEvents()
 				// optional attributes for this event
 				for (int32 AttrIdx = 0; AttrIdx < Entry.Attributes.Num(); AttrIdx++)
 				{
-					const FAnalyticsEventAttribute& Attr = Entry.Attributes[AttrIdx];				
+						const FAnalyticsEventAttribute& Attr = Entry.Attributes[AttrIdx];
 					JsonWriter->WriteValue(Attr.AttrName, Attr.AttrValue);
 				}
 			}
@@ -313,15 +318,15 @@ void FAnalyticsProviderET::FlushEvents()
 		JsonWriter->Close();
 
 		FString URLPath = FString::Printf(TEXT("CollectData.1?SessionID=%s&AppID=%s&AppVersion=%s&UserID=%s"),
-			*FGenericPlatformHttp::UrlEncode(SessionID),
-			*FGenericPlatformHttp::UrlEncode(APIKey),
-			*FGenericPlatformHttp::UrlEncode(AppVersion),
-			*FGenericPlatformHttp::UrlEncode(UserID));
+			*FPlatformHttp::UrlEncode(SessionID),
+			*FPlatformHttp::UrlEncode(APIKey),
+			*FPlatformHttp::UrlEncode(AppVersion),
+			*FPlatformHttp::UrlEncode(UserID));
 
 		// Recreate the URLPath for logging because we do not want to escape the parameters when logging.
 		// We cannot simply UrlEncode the entire Path after logging it because UrlEncode(Params) != UrlEncode(Param1) & UrlEncode(Param2) ...
-		UE_LOG(LogAnalytics, VeryVerbose, TEXT("[%s] AnalyticsET URL:CollectData.1?SessionID=%s&AppID=%s&AppVersion=%s&UserID=%s. Payload:%s"), 
-			*APIKey, 
+			UE_LOG(LogAnalytics, VeryVerbose, TEXT("[%s] AnalyticsET URL:CollectData.1?SessionID=%s&AppID=%s&AppVersion=%s&UserID=%s. Payload:%s"),
+				*APIKey,
 			*SessionID,
 			*APIKey,
 			*AppVersion,
@@ -341,6 +346,52 @@ void FAnalyticsProviderET::FlushEvents()
 			HttpRequest->OnProcessRequestComplete().BindSP(this, &FAnalyticsProviderET::EventRequestComplete);
 		}
  		HttpRequest->ProcessRequest();
+		}
+		else
+		{
+			// this is a legacy pathway that doesn't accept batch payloads of cached data. We'll just send one request for each event, which will be slow for a large batch of requests at once.
+			for (const auto& Event : CachedEvents)
+			{
+				FString EventParams;
+				if (Event.Attributes.Num() > 0)
+				{
+					for (int Ndx = 0; Ndx<FMath::Min(Event.Attributes.Num(), 10); ++Ndx)
+					{
+						EventParams += FString::Printf(TEXT("&AttributeName%d=%s&AttributeValue%d=%s"), 
+							Ndx, 
+							*FPlatformHttp::UrlEncode(Event.Attributes[Ndx].AttrName), 
+							Ndx, 
+							*FPlatformHttp::UrlEncode(Event.Attributes[Ndx].AttrValue));
+					}
+				}
+
+				// log out the un-encoded values to make reading the log easier.
+				UE_LOG(LogAnalytics, VeryVerbose, TEXT("[%s] AnalyticsET URL:SendEvent.1?SessionID=%s&AppID=%s&AppVersion=%s&UserID=%s&EventName=%s%s"), 
+					*APIKey,
+					*SessionID,
+					*APIKey,
+					*AppVersion,
+					*UserID,
+					*Event.EventName,
+					*EventParams);
+
+				// Create/send Http request for an event
+				TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+				HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("text/plain"));
+				// Don't need to URL encode the APIServer or the EventParams, which are already encoded, and contain parameter separaters that we DON'T want encoded.
+				HttpRequest->SetURL(FString::Printf(TEXT("%sSendEvent.1?SessionID=%s&AppID=%s&AppVersion=%s&UserID=%s&EventName=%s%s"),
+					*APIServer, 
+					*FPlatformHttp::UrlEncode(SessionID), 
+					*FPlatformHttp::UrlEncode(APIKey), 
+					*FPlatformHttp::UrlEncode(AppVersion), 
+					*FPlatformHttp::UrlEncode(UserID), 
+					*FPlatformHttp::UrlEncode(Event.EventName), 
+					*EventParams));
+				HttpRequest->SetVerb(TEXT("GET"));
+				HttpRequest->OnProcessRequestComplete().BindRaw(this, &FAnalyticsProviderET::EventRequestComplete);
+				HttpRequest->ProcessRequest();
+			}
+		}
 
 		FlushEventsCountdown = MaxCachedElapsedTime;
 		CachedEvents.Empty();

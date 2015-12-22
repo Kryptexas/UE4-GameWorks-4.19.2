@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "Landscape.h"
 #include "LandscapeModule.h"
@@ -136,7 +136,7 @@ void WorldDuplicateEventFunction(UWorld* World, bool bDuplicateForPIE, TMap<UObj
 	if (World->PerModuleDataObjects.FindItemByClass(&InfoMap, &Index))
 	{
 		World->PerModuleDataObjects[Index] = Cast<ULandscapeInfoMap>(
-			StaticDuplicateObject(InfoMap, InfoMap->GetOuter(), nullptr)
+			StaticDuplicateObject(InfoMap, InfoMap->GetOuter())
 			);
 	}
 	else
@@ -157,7 +157,7 @@ void WorldDuplicateEventFunction(UWorld* World, bool bDuplicateForPIE, TMap<UObj
 			if (OldTexOrMat && OldTexOrMat->GetOuter() != WorldPackage)
 			{
 				// The names for these objects are not important, just generate a new name to avoid collisions
-				UObject* NewTextureOrMaterial = StaticDuplicateObject(OldTexOrMat, WorldPackage, nullptr);
+				UObject* NewTextureOrMaterial = StaticDuplicateObject(OldTexOrMat, WorldPackage);
 				ReplacementMap.Add(OldTexOrMat, NewTextureOrMaterial);
 
 				// Materials hold references to the textures being moved, so they will need references fixed up as well

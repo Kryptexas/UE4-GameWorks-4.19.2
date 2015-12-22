@@ -1,7 +1,7 @@
-Availability: Public
+﻿Availability: Public
 Title:环境音Actor用户指南
 Crumbs: %ROOT%, Engine, Engine/Audio
-Description: 关于使用Ambient Sound Actor(环境音Actor)创建游戏中的环境音效和局部音效的指南。
+Description:关于使用环境音Actor创建游戏中的环境音效和局部音效的指南。
 
 [TOC(start:2 end:2)]
 

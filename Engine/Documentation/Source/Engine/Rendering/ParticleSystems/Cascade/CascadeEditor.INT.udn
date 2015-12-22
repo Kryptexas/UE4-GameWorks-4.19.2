@@ -2,6 +2,7 @@ Availability: Public
 Title:Cascade Particle Editor Reference
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
 Description:An overview of the Cascade Editor's UI, breaking down each key area.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -23,7 +24,7 @@ Description:An overview of the Cascade Editor's UI, breaking down each key area.
 [/OBJECT]
 [/VAR]
 
-[TOC]
+[TOC (start:2 end:3)]
 
 Cascade is a tool for creating modular particle-based effects using emitters in the Unreal Engine.
 
@@ -114,7 +115,7 @@ The toolbar contains the following controls (from left to right on the toolbar):
 | ![Cascade_Toolbar_RestartLevel.png](Cascade_Toolbar_RestartLevel.png)| **Restart in Level** | This resets the particle system, and any instance of the system in the level. |
 | ![Cascade_Toolbar_Undo.png](Cascade_Toolbar_Undo.png)| **Undo** | Undoes the previous operation. You can also use **Ctrl+Z**. |
 | ![Cascade_Toolbar_Redo.png](Cascade_Toolbar_Redo.png)| **Redo** | Redoes the previously undone operation. You can also use **Ctrl+Y**. |
-| ![Cascade_Toolbar_Thumbnail.png](Cascade_Toolbar_Thumbnail.png)| **Save Thumbnail Image** | Saves the viewpoint from the viewport pane's camera out as the thumbnail for the particle system in the **Content Browser**. |
+| ![Cascade_Toolbar_Thumbnail.png](Cascade_Toolbar_Thumbnail.png)| **Save Thumbnail Image** | Saves the viewpoint from the viewport pane's camera out as the thumbnail for the particle system in the Content Browser. |
 |![](Cascade_Toolbar_Bounds.png)|**Toggle Bounds**|Toggles the display of the particle system's current bounds in the viewport pane.|
 |![](Cascade_Toolbar_BoundsOptions.png)|**Bounds Options**|Clicking this allows for the setup of fixed bounds for GPU Sprite particle systems. Fixed bounds limit the distance GPU sprite particles can travel.|
 |![](Cascade_Toolbar_OriginAxis.png)|**Toggle Origin Axis**| Shows or hides the origin axis in the particle viewport window. |
@@ -170,8 +171,8 @@ The View menu allows you show and hide various diagnostic and visualization feat
 | **View Overlays** | Accesses the View Overlays submenu. See below. |
 | **View Modes** | Accesses the View Modes submenu. See below. |
 | **Detail Modes** | Accesses the Detail Modes submenu. See below. |
-| **Background Color** | Brings up a color picker where you can change the color of the **Viewport** pane's background. |
-| **Orbit Mode** | Toggles camera behavior between orbiting around the particle system and free moving in the **Viewport** pane. | 
+| **Background Color** | Brings up a color picker where you can change the color of the Viewport pane's background. |
+| **Orbit Mode** | Toggles camera behavior between orbiting around the particle system and free moving in the Viewport pane. | 
 | **Origin Axis** | Toggles visibility for the origin axis gizmo, typically located in the lower left corner. | 
 | **Vector Fields** | Toggles visibility for any vector fields applied to the particle system. |
 | **Grid** | Toggles visibility for the grid. |
@@ -182,7 +183,7 @@ The View menu allows you show and hide various diagnostic and visualization feat
 | **Geometry** | Shows or hides the default test mesh. |
 | **Geometry Properties** | Brings up the geometry properties window, where you can adjust the properties of the default geometry, adjusting placement, swapping out the mesh used, and many other options. |
 | **Bounds** | Toggles visibility for the particle system bounds. These are shown as both a bounding box and bounding sphere. |
-| **Set Fixed Bounds** | This activated fixed boundaries for the particle system and automatically sets the values to the largest setting calculated thus far. |
+| **Set Fixed Bounds** | This activates fixed boundaries for the particle system and automatically sets the values to the largest setting calculated thus far. |
 
 
 ##### View Overlay Submenu
@@ -204,7 +205,7 @@ The View Overlays submenu allows you to toggle a series of data readouts which g
 
 ![ViewModeMenu.png](ViewModeMenu.png)
 
-The View Modes submenu allows you to switch between a variety of different draw modes in the **Viewport** pane.
+The View Modes submenu allows you to switch between a variety of different draw modes in the Viewport pane.
 
 ###### Wireframe
 
@@ -250,7 +251,7 @@ The Detail Modes submenu allows you to switch the viewport window between *low*,
 
 ![TimeMenu.png](TimeMenu.png)
 
-The time menu allows you to make adjustments to playback speed of the **Viewport** pane.
+The time menu allows you to make adjustments to playback speed of the Viewport pane.
 
 | Item | Description |
 | --- | --- |
@@ -336,7 +337,7 @@ For more information on particle modules, please see the [Module Reference secti
 
 ![PropertiesWindow.png](PropertiesWindow.png)(w:400)
 
-The **Details** pane contains a standard Unreal Editor 4 details window. The properties displayed in this pane depend on what is currently selected in Cascade. For instance, if a particle module is selected, the properties for that particular particle module are displayed.
+The **Details** panel contains a standard Unreal Editor 4 details window. The properties displayed in this pane depend on what is currently selected in Cascade. For instance, if a particle module is selected, the properties for that particular particle module are displayed.
 
 [REGION:note]
 	The main properties for the particle system as a whole can be accessed by either selecting *nothing* in the Emitter List, or by **right-clicking** in the Emitter List and choosing *Particle System > Select Particle System* from the context menu.

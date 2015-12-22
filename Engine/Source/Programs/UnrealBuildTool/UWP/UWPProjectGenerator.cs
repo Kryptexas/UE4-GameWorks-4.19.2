@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -10,32 +10,32 @@ using System.IO;
 
 namespace UnrealBuildTool
 {
-	/**
-	 *	Base class for platform-specific project generators 
-	 */
+	/// <summary>
+	/// Base class for platform-specific project generators
+	/// </summary>
 	public class UWPProjectGenerator : UEPlatformProjectGenerator
 	{
-		/**
-		 *	Register the platform with the UEPlatformProjectGenerator class
-		 */
+		/// <summary>
+		/// Register the platform with the UEPlatformProjectGenerator class
+		/// </summary>
 		public override void RegisterPlatformProjectGenerator()
 		{
-			if( UWPPlatform.bEnableUWPSupport )
-			{ 
+			if (UWPPlatform.bEnableUWPSupport)
+			{
 				// Register this project generator for UWP
 				Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.UWP.ToString());
-			
+
 				UEPlatformProjectGenerator.RegisterPlatformProjectGenerator(UnrealTargetPlatform.UWP, this);
 			}
 		}
 
-		public static void GetTargetUWPPaths(string InTargetName, TargetRules InTargetRules,
+		public static void GetTargetUWPPaths(RulesAssembly InTargetRulesAssembly, string InTargetName, TargetRules InTargetRules,
 			out string OutEngineSourceRelativeBinaryPath, out string OutRelativeTargetPath)
 		{
 			OutEngineSourceRelativeBinaryPath = "";
 			OutRelativeTargetPath = "";
 
-			string TargetFilename = RulesCompiler.GetTargetFilename(InTargetName);
+			string TargetFilename = InTargetRulesAssembly.GetTargetFileName(InTargetName).FullName;
 
 			string ProjectSourceFolder = new FileInfo(TargetFilename).DirectoryName;
 
@@ -74,24 +74,21 @@ namespace UnrealBuildTool
 		///
 		///	VisualStudio project generation functions
 		///	
-		/**
-		 *	Whether this build platform has native support for VisualStudio
-		 *	
-		 *	@param	InPlatform			The UnrealTargetPlatform being built
-		 *	@param	InConfiguration		The UnrealTargetConfiguration being built
-		 *	
-		 *	@return	bool				true if native VisualStudio support (or custom VSI) is available
-		 */
+		/// <summary>
+		/// Whether this build platform has native support for VisualStudio
+		/// </summary>
+		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
+		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
+		/// <returns>bool    true if native VisualStudio support (or custom VSI) is available</returns>
 		public override bool HasVisualStudioSupport(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
 		{
 			return false;
 		}
 
-		/**
-		 * Get whether this platform deploys 
-		 * 
-		 * @return	bool		true if the 'Deploy' option should be enabled
-		 */
+		/// <summary>
+		/// Get whether this platform deploys
+		/// </summary>
+		/// <returns>bool  true if the 'Deploy' option should be enabled</returns>
 		public override bool GetVisualStudioDeploymentEnabled(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
 		{
 			return true;
@@ -398,7 +395,7 @@ namespace UnrealBuildTool
 		}
 
 
-		public override void GenerateGameProperties(UnrealTargetConfiguration Configuration, StringBuilder VCProjectFileContent, TargetRules.TargetType TargetType, string RootDirectory, string TargetFilePath)
+		public override void GenerateGameProperties(UnrealTargetConfiguration Configuration, StringBuilder VCProjectFileContent, TargetRules.TargetType TargetType, DirectoryReference RootDirectory, FileReference TargetFilePath)
 		{
 			// @todo UWP: This used to be "WINUAP=1".  Need to verify that 'UWP' is the correct define that we want here.
 			VCProjectFileContent.Append("		<NMakePreprocessorDefinitions>$(NMakePreprocessorDefinitions);PLATFORM_UWP=1;UWP=1;</NMakePreprocessorDefinitions>" + ProjectFileGenerator.NewLine);

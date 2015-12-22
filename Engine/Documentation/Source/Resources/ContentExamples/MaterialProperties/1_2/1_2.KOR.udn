@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2653552
 Availability: Public
 Title:1.2 - 라이팅 모델
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
@@ -13,7 +13,23 @@ Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
 Related: Engine/Actors/DecalActor
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 예제](Resources/ContentExamples/MaterialProperties/1_1 "%Resources/ContentExamples/MaterialProperties/1_1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[콘텐츠 예제 홈](Resources/ContentExamples)
+	[/PARAM]
+	[PARAM:next]
+		[다음 예제](Resources/ContentExamples/MaterialProperties/1_3 "%Resources/ContentExamples/MaterialProperties/1_3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]

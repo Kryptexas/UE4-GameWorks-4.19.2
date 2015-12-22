@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "LandscapeEditorPrivatePCH.h"
 #include "ObjectTools.h"
@@ -58,8 +58,8 @@ template<class ToolTarget>
 class FLandscapeToolStrokePaintBase : public FLandscapeToolStrokeBase
 {
 public:
-	FLandscapeToolStrokePaintBase(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
-		: FLandscapeToolStrokeBase(InEdMode, InTarget)
+	FLandscapeToolStrokePaintBase(FEdModeLandscape* InEdMode, FEditorViewportClient* InViewportClient, const FLandscapeToolTarget& InTarget)
+		: FLandscapeToolStrokeBase(InEdMode, InViewportClient, InTarget)
 		, Cache(InTarget)
 	{
 	}
@@ -72,23 +72,70 @@ protected:
 
 // 
 // FLandscapeToolPaint
-// TODO: Split heightmap sculpting into its own stroke type
 //
-template<class ToolTarget>
-class FLandscapeToolStrokePaint : public FLandscapeToolStrokePaintBase<ToolTarget>
+class FLandscapeToolStrokePaint : public FLandscapeToolStrokePaintBase<FWeightmapToolTarget>
 {
-	TMap<FIntPoint, float> TotalInfluenceMap;	// amount of time and weight the brush has spent on each vertex.
+	typedef FWeightmapToolTarget ToolTarget;
+
+	TMap<FIntPoint, float> TotalInfluenceMap; // amount of time and weight the brush has spent on each vertex.
+
+	bool bIsWhitelistMode;
+	bool bAddToWhitelist;
 public:
 	// Heightmap sculpt tool will continuously sculpt in the same location, weightmap paint tool doesn't
-	enum { UseContinuousApply = (ToolTarget::TargetType == ELandscapeToolTargetType::Heightmap) };
+	enum { UseContinuousApply = false };
 
-	FLandscapeToolStrokePaint(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
-		: FLandscapeToolStrokePaintBase<ToolTarget>(InEdMode, InTarget)
+	FLandscapeToolStrokePaint(FEdModeLandscape* InEdMode, FEditorViewportClient* InViewportClient, const FLandscapeToolTarget& InTarget)
+		: FLandscapeToolStrokePaintBase<FWeightmapToolTarget>(InEdMode, InViewportClient, InTarget)
+		, bIsWhitelistMode(EdMode->UISettings->PaintingRestriction == ELandscapeLayerPaintingRestriction::UseComponentWhitelist &&
+		                   (InViewportClient->Viewport->KeyState(EKeys::Equals) || InViewportClient->Viewport->KeyState(EKeys::Hyphen)))
+		, bAddToWhitelist(bIsWhitelistMode && InViewportClient->Viewport->KeyState(EKeys::Equals))
 	{
 	}
 
 	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
+		// Invert when holding Shift
+		//UE_LOG(LogLandscape, Log, TEXT("bInvert = %d"), bInvert);
+		bool bInvert = MousePositions.Last().bShiftDown;
+
+		if (bIsWhitelistMode)
+		{
+			// Get list of components to delete from brush
+			// TODO - only retrieve bounds as we don't need the vert data
+			FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
+			if (!BrushInfo)
+			{
+				return;
+			}
+
+			int32 X1, Y1, X2, Y2;
+			BrushInfo.GetInclusiveBounds(X1, Y1, X2, Y2);
+
+			// Shrink bounds by 1,1 to avoid GetComponentsInRegion picking up extra components on all sides due to the overlap between components
+			TSet<ULandscapeComponent*> SelectedComponents;
+			LandscapeInfo->GetComponentsInRegion(X1 + 1, Y1 + 1, X2 - 1, Y2 - 1, SelectedComponents);
+
+			if (bAddToWhitelist)
+			{
+				for (ULandscapeComponent* Component : SelectedComponents)
+				{
+					Component->LayerWhitelist.AddUnique(Target.LayerInfo.Get());
+				}
+			}
+			else
+			{
+				FLandscapeEditDataInterface LandscapeEdit(LandscapeInfo);
+				for (ULandscapeComponent* Component : SelectedComponents)
+				{
+					Component->LayerWhitelist.RemoveSingle(Target.LayerInfo.Get());
+					Component->DeleteLayer(Target.LayerInfo.Get(), &LandscapeEdit);
+				}
+			}
+
+			return;
+		}
+
 		// Get list of verts to update
 		FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
 		if (!BrushInfo)
@@ -102,32 +149,19 @@ public:
 		// Tablet pressure
 		float Pressure = ViewportClient->Viewport->IsPenActive() ? ViewportClient->Viewport->GetTabletPressure() : 1.0f;
 
-		// expand the area by one vertex in each direction to ensure normals are calculated correctly
-		if (ToolTarget::TargetType == ELandscapeToolTargetType::Heightmap)
-		{
-			X1 -= 1;
-			Y1 -= 1;
-			X2 += 1;
-			Y2 += 1;
-		}
-
 		this->Cache.CacheData(X1, Y1, X2, Y2);
 
-		// Invert when holding Shift
-		bool bInvert = MousePositions[MousePositions.Num() - 1].bShiftDown;
-		//UE_LOG(LogLandscape, Log, TEXT("bInvert = %d"), bInvert);
-		bool bUseClayBrush = UISettings->bUseClayBrush && ToolTarget::TargetType == ELandscapeToolTargetType::Heightmap;
-		bool bUseWeightTargetValue = UISettings->bUseWeightTargetValue && ToolTarget::TargetType == ELandscapeToolTargetType::Weightmap;
+		bool bUseWeightTargetValue = UISettings->bUseWeightTargetValue;
 
 		// The data we'll be writing to
-		TArray<typename ToolTarget::CacheClass::DataType> Data;
+		TArray<ToolTarget::CacheClass::DataType> Data;
 		this->Cache.GetCachedData(X1, Y1, X2, Y2, Data);
 
 		// The source data we use for editing. 
-		TArray<typename ToolTarget::CacheClass::DataType>* SourceDataArrayPtr = &Data;
-		TArray<typename ToolTarget::CacheClass::DataType> OriginalData;
+		TArray<ToolTarget::CacheClass::DataType>* SourceDataArrayPtr = &Data;
+		TArray<ToolTarget::CacheClass::DataType> OriginalData;
 
-		if ((ToolTarget::TargetType == ELandscapeToolTargetType::Weightmap) && !bUseWeightTargetValue)
+		if (!bUseWeightTargetValue)
 		{
 			// When painting weights (and not using target value mode), we use a source value that tends more
 			// to the current value as we paint over the same region multiple times.
@@ -151,18 +185,159 @@ public:
 			}
 		}
 
+		// Adjust strength based on brush size and drawscale, so strength 1 = one hemisphere
+		const float AdjustedStrength = ToolTarget::StrengthMultiplier(this->LandscapeInfo, UISettings->BrushRadius);
+		FWeightmapToolTarget::CacheClass::DataType DestValue = FWeightmapToolTarget::CacheClass::ClampValue(255.0f * UISettings->WeightTargetValue);
+
+		float PaintStrength = UISettings->ToolStrength * Pressure * AdjustedStrength;
+
+		// TODO: make paint tool framerate independent like the sculpt tool
+		// const float DeltaTime = FMath::Min<float>(FApp::GetDeltaTime(), 0.1f); // Under 10 fps slow down paint speed
+		// SculptStrength *= DeltaTime * 3.0f; // * 3.0f to partially compensate for impact of DeltaTime on slowing the tools down compared to the old framerate-dependent version
+
+		if (PaintStrength <= 0.0f)
+		{
+			return;
+		}
+
+		if (!bUseWeightTargetValue)
+		{
+			PaintStrength = FMath::Max(PaintStrength, 1.0f);
+		}
+
+		// Apply the brush
+		for (int32 Y = BrushInfo.GetBounds().Min.Y; Y < BrushInfo.GetBounds().Max.Y; Y++)
+		{
+			const float* BrushScanline = BrushInfo.GetDataPtr(FIntPoint(0, Y));
+			auto* DataScanline = Data.GetData() + (Y - Y1) * (X2 - X1 + 1) + (0 - X1);
+			auto* SourceDataScanline = SourceDataArrayPtr->GetData() + (Y - Y1) * (X2 - X1 + 1) + (0 - X1);
+
+			for (int32 X = BrushInfo.GetBounds().Min.X; X < BrushInfo.GetBounds().Max.X; X++)
+			{
+				const FIntPoint Key = ALandscape::MakeKey(X, Y);
+				const float BrushValue = BrushScanline[X];
+
+				// Update influence map
+				float VertexInfluence = TotalInfluenceMap.FindRef(Key);
+				TotalInfluenceMap.Add(Key, VertexInfluence + BrushValue);
+
+				float PaintAmount = BrushValue * PaintStrength;
+				auto& CurrentValue = DataScanline[X];
+				const auto& SourceValue = SourceDataScanline[X];
+
+				if (bUseWeightTargetValue)
+				{
+					CurrentValue = FMath::Lerp(CurrentValue, DestValue, PaintAmount / AdjustedStrength);
+				}
+				else
+				{
+					if (bInvert)
+					{
+						CurrentValue = ToolTarget::CacheClass::ClampValue(FMath::Min<int32>(SourceValue - FMath::RoundToInt(PaintAmount), CurrentValue));
+					}
+					else
+					{
+						CurrentValue = ToolTarget::CacheClass::ClampValue(FMath::Max<int32>(SourceValue + FMath::RoundToInt(PaintAmount), CurrentValue));
+					}
+				}
+			}
+		}
+
+		this->Cache.SetCachedData(X1, Y1, X2, Y2, Data, UISettings->PaintingRestriction);
+		this->Cache.Flush();
+	}
+};
+
+class FLandscapeToolPaint : public FLandscapeToolPaintBase<FWeightmapToolTarget, FLandscapeToolStrokePaint>
+{
+public:
+	FLandscapeToolPaint(FEdModeLandscape* InEdMode)
+		: FLandscapeToolPaintBase<FWeightmapToolTarget, FLandscapeToolStrokePaint>(InEdMode)
+	{
+	}
+
+	virtual const TCHAR* GetToolName() override { return TEXT("Paint"); }
+	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Paint", "Paint"); };
+
+	virtual void EnterTool()
+	{
+		if (EdMode->UISettings->PaintingRestriction == ELandscapeLayerPaintingRestriction::UseComponentWhitelist)
+		{
+			EdMode->UISettings->UpdateComponentLayerWhitelist();
+		}
+
+		FLandscapeToolPaintBase::EnterTool();
+	}
+};
+
+//
+class FLandscapeToolStrokeSculpt : public FLandscapeToolStrokePaintBase<FHeightmapToolTarget>
+{
+	typedef FHeightmapToolTarget ToolTarget;
+
+public:
+	// Heightmap sculpt tool will continuously sculpt in the same location, weightmap paint tool doesn't
+	enum { UseContinuousApply = true };
+
+	FLandscapeToolStrokeSculpt(FEdModeLandscape* InEdMode, FEditorViewportClient* InViewportClient, const FLandscapeToolTarget& InTarget)
+		: FLandscapeToolStrokePaintBase<FHeightmapToolTarget>(InEdMode, InViewportClient, InTarget)
+	{
+	}
+
+	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
+	{
+		// Invert when holding Shift
+		//UE_LOG(LogLandscape, Log, TEXT("bInvert = %d"), bInvert);
+		bool bInvert = MousePositions.Last().bShiftDown;
+
+		// Get list of verts to update
+		FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
+		if (!BrushInfo)
+		{
+			return;
+		}
+
+		int32 X1, Y1, X2, Y2;
+		BrushInfo.GetInclusiveBounds(X1, Y1, X2, Y2);
+
+		// Tablet pressure
+		float Pressure = ViewportClient->Viewport->IsPenActive() ? ViewportClient->Viewport->GetTabletPressure() : 1.0f;
+
+		// expand the area by one vertex in each direction to ensure normals are calculated correctly
+		X1 -= 1;
+		Y1 -= 1;
+		X2 += 1;
+		Y2 += 1;
+
+		this->Cache.CacheData(X1, Y1, X2, Y2);
+
+		bool bUseClayBrush = UISettings->bUseClayBrush;
+
+		// The data we'll be writing to
+		TArray<ToolTarget::CacheClass::DataType> Data;
+		this->Cache.GetCachedData(X1, Y1, X2, Y2, Data);
+
+		// The source data we use for editing. 
+		TArray<ToolTarget::CacheClass::DataType>* SourceDataArrayPtr = &Data;
+
 		FMatrix ToWorld = ToolTarget::ToWorldMatrix(this->LandscapeInfo);
 		FMatrix FromWorld = ToolTarget::FromWorldMatrix(this->LandscapeInfo);
 
 		// Adjust strength based on brush size and drawscale, so strength 1 = one hemisphere
-		float AdjustedStrength = ToolTarget::StrengthMultiplier(this->LandscapeInfo, UISettings->BrushRadius);
-		typename ToolTarget::CacheClass::DataType DestValue = ToolTarget::CacheClass::ClampValue(255.0f * UISettings->WeightTargetValue);
+		const float AdjustedStrength = ToolTarget::StrengthMultiplier(this->LandscapeInfo, UISettings->BrushRadius);
 
-		float PaintStrength = UISettings->ToolStrength * Pressure * AdjustedStrength;
-		if (ToolTarget::TargetType == ELandscapeToolTargetType::Heightmap)
+		float SculptStrength = UISettings->ToolStrength * Pressure * AdjustedStrength;
+		const float DeltaTime = FMath::Min<float>(FApp::GetDeltaTime(), 0.1f); // Under 10 fps slow down paint speed
+		SculptStrength *= DeltaTime * 3.0f; // * 3.0f to partially compensate for impact of DeltaTime on slowing the tools down compared to the old framerate-dependent version
+
+		if (SculptStrength <= 0.0f)
 		{
-			float DeltaTime = FMath::Min<float>(FApp::GetDeltaTime(), 0.1f); // Under 10 fps slow down paint speed
-			PaintStrength *= DeltaTime * 3.0f; // * 3.0f to partially compensate for impact of DeltaTime on slowing the tools down compared to the old framerate-dependent version
+			return;
+		}
+
+		if (!bUseClayBrush)
+		{
+			SculptStrength = FMath::Max(SculptStrength, 1.0f);
 		}
 
 		FPlane BrushPlane;
@@ -240,7 +415,7 @@ public:
 
 			// Convert to world space
 			FVector AverageLocation = ToWorld.TransformPosition(AveragePoint);
-			FVector StrengthVector = ToWorld.TransformVector(FVector(0, 0, PaintStrength));
+			FVector StrengthVector = ToWorld.TransformVector(FVector(0, 0, SculptStrength));
 
 			// Brush pushes out in the normal direction
 			FVector OffsetVector = AverageNormal * StrengthVector.Z;
@@ -265,19 +440,11 @@ public:
 				const FIntPoint Key = ALandscape::MakeKey(X, Y);
 				const float BrushValue = BrushScanline[X];
 
-				// Update influence map
-				float VertexInfluence = TotalInfluenceMap.FindRef(Key);
-				TotalInfluenceMap.Add(Key, VertexInfluence + BrushValue);
-
-				float PaintAmount = BrushValue * PaintStrength;
+				float SculptAmount = BrushValue * SculptStrength;
 				auto& CurrentValue = DataScanline[X];
 				const auto& SourceValue = SourceDataScanline[X];
 
-				if (bUseWeightTargetValue)
-				{
-					CurrentValue = FMath::Lerp(CurrentValue, DestValue, PaintAmount / AdjustedStrength);
-				}
-				else if (bUseClayBrush)
+				if (bUseClayBrush)
 				{
 					// Brush application starts from original world location at start of stroke
 					FVector WorldLoc = ToWorld.TransformPosition(FVector(X, Y, SourceValue));
@@ -301,38 +468,26 @@ public:
 				{
 					if (bInvert)
 					{
-						CurrentValue = ToolTarget::CacheClass::ClampValue(FMath::Min<int32>(SourceValue - FMath::RoundToInt(PaintAmount), CurrentValue));
+						CurrentValue = ToolTarget::CacheClass::ClampValue(FMath::Min<int32>(SourceValue - FMath::RoundToInt(SculptAmount), CurrentValue));
 					}
 					else
 					{
-						CurrentValue = ToolTarget::CacheClass::ClampValue(FMath::Max<int32>(SourceValue + FMath::RoundToInt(PaintAmount), CurrentValue));
+						CurrentValue = ToolTarget::CacheClass::ClampValue(FMath::Max<int32>(SourceValue + FMath::RoundToInt(SculptAmount), CurrentValue));
 					}
 				}
 			}
 		}
 
-		this->Cache.SetCachedData(X1, Y1, X2, Y2, Data, UISettings->PaintingRestriction);
+		this->Cache.SetCachedData(X1, Y1, X2, Y2, Data);
 		this->Cache.Flush();
 	}
 };
 
-class FLandscapeToolPaint : public FLandscapeToolPaintBase<FWeightmapToolTarget, FLandscapeToolStrokePaint<FWeightmapToolTarget>>
-{
-public:
-	FLandscapeToolPaint(FEdModeLandscape* InEdMode)
-		: FLandscapeToolPaintBase<FWeightmapToolTarget, FLandscapeToolStrokePaint<FWeightmapToolTarget>>(InEdMode)
-	{
-	}
-
-	virtual const TCHAR* GetToolName() override { return TEXT("Paint"); }
-	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Paint", "Paint"); };
-};
-
-class FLandscapeToolSculpt : public FLandscapeToolPaintBase<FHeightmapToolTarget, FLandscapeToolStrokePaint<FHeightmapToolTarget>>
+class FLandscapeToolSculpt : public FLandscapeToolPaintBase<FHeightmapToolTarget, FLandscapeToolStrokeSculpt>
 {
 public:
 	FLandscapeToolSculpt(FEdModeLandscape* InEdMode)
-		: FLandscapeToolPaintBase<FHeightmapToolTarget, FLandscapeToolStrokePaint<FHeightmapToolTarget>>(InEdMode)
+		: FLandscapeToolPaintBase<FHeightmapToolTarget, FLandscapeToolStrokeSculpt>(InEdMode)
 	{
 	}
 
@@ -348,8 +503,8 @@ template<class ToolTarget>
 class FLandscapeToolStrokeSmooth : public FLandscapeToolStrokePaintBase<ToolTarget>
 {
 public:
-	FLandscapeToolStrokeSmooth(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
-		: FLandscapeToolStrokePaintBase<ToolTarget>(InEdMode, InTarget)
+	FLandscapeToolStrokeSmooth(FEdModeLandscape* InEdMode, FEditorViewportClient* InViewportClient, const FLandscapeToolTarget& InTarget)
+		: FLandscapeToolStrokePaintBase<ToolTarget>(InEdMode, InViewportClient, InTarget)
 	{
 	}
 
@@ -379,39 +534,26 @@ public:
 			Y2 += 1;
 		}
 
+		this->Cache.CacheData(X1, Y1, X2, Y2);
+
+		TArray<typename ToolTarget::CacheClass::DataType> Data;
+		this->Cache.GetCachedData(X1, Y1, X2, Y2, Data);
+
 		const float ToolStrength = FMath::Clamp<float>(UISettings->ToolStrength * Pressure, 0.0f, 1.0f);
 
 		// Apply the brush
 		if (UISettings->bDetailSmooth)
 		{
-			this->Cache.CacheData(X1, Y1, X2, Y2);
-
-			TArray<typename ToolTarget::CacheClass::DataType> Data;
-			this->Cache.GetCachedData(X1, Y1, X2, Y2, Data);
-
 			LowPassFilter<typename ToolTarget::CacheClass::DataType>(X1, Y1, X2, Y2, BrushInfo, Data, UISettings->DetailScale, ToolStrength);
-
-			this->Cache.SetCachedData(X1, Y1, X2, Y2, Data, UISettings->PaintingRestriction);
 		}
 		else
 		{
 			const int32 FilterRadius = UISettings->SmoothFilterKernelSize;
 
-			// Expand the cached area by the filter radius so we can run the filter at full size on the edge of the brush
-			const int32 CacheX1 = X1 - FilterRadius;
-			const int32 CacheY1 = Y1 - FilterRadius;
-			const int32 CacheX2 = X2 + FilterRadius;
-			const int32 CacheY2 = Y2 + FilterRadius;
-
-			this->Cache.CacheData(CacheX1, CacheY1, CacheX2, CacheY2);
-
-			TArray<typename ToolTarget::CacheClass::DataType> Data;
-			this->Cache.GetCachedData(CacheX1, CacheY1, CacheX2, CacheY2, Data);
-
 			for (int32 Y = BrushInfo.GetBounds().Min.Y; Y < BrushInfo.GetBounds().Max.Y; Y++)
 			{
 				const float* BrushScanline = BrushInfo.GetDataPtr(FIntPoint(0, Y));
-				auto* DataScanline = Data.GetData() + (Y - CacheY1) * (CacheX2 - CacheX1 + 1) + (0 - CacheX1);
+				auto* DataScanline = Data.GetData() + (Y - Y1) * (X2 - X1 + 1) + (0 - X1);
 
 				for (int32 X = BrushInfo.GetBounds().Min.X; X < BrushInfo.GetBounds().Max.X; X++)
 				{
@@ -422,21 +564,34 @@ public:
 						// needs to be ~12 bits larger than ToolTarget::CacheClass::DataType (for max FilterRadius (31))
 						// the editor is 64-bit native so just go the whole hog :)
 						int64 FilterValue = 0;
+						int32 FilterSamplingNumber = 0;
 
-						const int32 SampleX1 = X - FilterRadius;
-						const int32 SampleY1 = Y - FilterRadius;
-						const int32 SampleX2 = X + FilterRadius;
-						const int32 SampleY2 = Y + FilterRadius;
+						const int32 XRadius = FMath::Min3<int32>(FilterRadius, X - BrushInfo.GetBounds().Min.X, BrushInfo.GetBounds().Max.X - X - 1);
+						const int32 YRadius = FMath::Min3<int32>(FilterRadius, Y - BrushInfo.GetBounds().Min.Y, BrushInfo.GetBounds().Max.Y - Y - 1);
 
-						const int32 FilterSamplingNumber = FMath::Square(FilterRadius + 1 + FilterRadius);
-
+						const int32 SampleX1 = X - XRadius; checkSlow(SampleX1 >= BrushInfo.GetBounds().Min.X);
+						const int32 SampleY1 = Y - YRadius; checkSlow(SampleY1 >= BrushInfo.GetBounds().Min.Y);
+						const int32 SampleX2 = X + XRadius; checkSlow(SampleX2 <  BrushInfo.GetBounds().Max.X);
+						const int32 SampleY2 = Y + YRadius; checkSlow(SampleY2 <  BrushInfo.GetBounds().Max.Y);
 						for (int32 SampleY = SampleY1; SampleY <= SampleY2; SampleY++)
 						{
-							auto* SampleDataScanline = Data.GetData() + (SampleY - CacheY1) * (CacheX2 - CacheX1 + 1) + (0 - CacheX1);
+							const float* SampleBrushScanline = BrushInfo.GetDataPtr(FIntPoint(0, SampleY));
+							const float* SampleBrushScanline2 = BrushInfo.GetDataPtr(FIntPoint(0, Y + (Y - SampleY)));
+							auto* SampleDataScanline = Data.GetData() + (SampleY - Y1) * (X2 - X1 + 1) + (0 - X1);
 
 							for (int32 SampleX = SampleX1; SampleX <= SampleX2; SampleX++)
 							{
-								FilterValue += SampleDataScanline[SampleX];
+								// constrain sample to within the brush, symmetrically to prevent flattening bug
+								const float SampleBrushValue =
+									FMath::Min(
+										FMath::Min<float>(SampleBrushScanline [SampleX], SampleBrushScanline [X + (X - SampleX)]),
+										FMath::Min<float>(SampleBrushScanline2[SampleX], SampleBrushScanline2[X + (X - SampleX)])
+										);
+								if (SampleBrushValue > 0.0f)
+								{
+									FilterValue += SampleDataScanline[SampleX];
+									FilterSamplingNumber++;
+								}
 							}
 						}
 
@@ -446,10 +601,9 @@ public:
 					}
 				}
 			}
-
-			// TODO: only need to set the modified area, not the extra data we cached for the filter, but the interface to this takes an entire TArray
-			this->Cache.SetCachedData(CacheX1, CacheY1, CacheX2, CacheY2, Data, UISettings->PaintingRestriction);
 		}
+
+		this->Cache.SetCachedData(X1, Y1, X2, Y2, Data, UISettings->PaintingRestriction);
 		this->Cache.Flush();
 	}
 };
@@ -482,8 +636,8 @@ class FLandscapeToolStrokeFlatten : public FLandscapeToolStrokePaintBase<ToolTar
 	bool bTargetIsHeightmap;
 
 public:
-	FLandscapeToolStrokeFlatten(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
-		: FLandscapeToolStrokePaintBase<ToolTarget>(InEdMode, InTarget)
+	FLandscapeToolStrokeFlatten(FEdModeLandscape* InEdMode, FEditorViewportClient* InViewportClient, const FLandscapeToolTarget& InTarget)
+		: FLandscapeToolStrokePaintBase<ToolTarget>(InEdMode, InViewportClient, InTarget)
 		, bInitializedFlattenHeight(false)
 		, bTargetIsHeightmap(InTarget.TargetType == ELandscapeToolTargetType::Heightmap)
 	{
@@ -710,8 +864,8 @@ template<class ToolTarget>
 class FLandscapeToolStrokeNoise : public FLandscapeToolStrokePaintBase<ToolTarget>
 {
 public:
-	FLandscapeToolStrokeNoise(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
-		: FLandscapeToolStrokePaintBase<ToolTarget>(InEdMode, InTarget)
+	FLandscapeToolStrokeNoise(FEdModeLandscape* InEdMode, FEditorViewportClient* InViewportClient, const FLandscapeToolTarget& InTarget)
+		: FLandscapeToolStrokePaintBase<ToolTarget>(InEdMode, InViewportClient, InTarget)
 	{
 	}
 

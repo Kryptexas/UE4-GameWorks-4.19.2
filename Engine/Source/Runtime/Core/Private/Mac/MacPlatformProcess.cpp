@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MacPlatformProcess.mm: Mac implementations of Process functions
@@ -364,7 +364,7 @@ bool FMacPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, in
 	return false;
 }
 
-FProcHandle FMacPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWrite )
+FProcHandle FMacPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWriteChild, void * PipeReadChild)
 {
 	// bLaunchDetached, bLaunchHidden, bLaunchReallyHidden are ignored
 
@@ -483,10 +483,15 @@ FProcHandle FMacPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* Parm
 			CFRelease((CFStringRef)WorkingDirectory);
 		}
 
-		if (PipeWrite)
+		if (PipeWriteChild)
 		{
-			[ProcessHandle setStandardOutput: (id)PipeWrite];
-			[ProcessHandle setStandardError: (id)PipeWrite];
+			[ProcessHandle setStandardOutput: (id)PipeWriteChild];
+			[ProcessHandle setStandardError: (id)PipeWriteChild];
+		}
+
+		if (PipeReadChild)
+		{
+			[ProcessHandle setStandardInput : (id)PipeReadChild];
 		}
 
 		@try
@@ -696,6 +701,16 @@ const TCHAR* FMacPlatformProcess::UserDir()
 		FCString::Strcat(Result, TEXT("/"));
 	}
 	return Result;
+}
+
+const TCHAR* FMacPlatformProcess::UserTempDir()
+{
+	static FString MacUserTempDir;
+	if (!MacUserTempDir.Len())
+	{
+		MacUserTempDir = NSTemporaryDirectory();
+	}
+	return *MacUserTempDir;
 }
 
 const TCHAR* FMacPlatformProcess::UserSettingsDir()
@@ -937,12 +952,15 @@ FString FMacPlatformProcess::ReadPipe( void* ReadPipe )
 
 	if(ReadPipe)
 	{
+		do
+		{
 		BytesRead = read([(NSFileHandle*)ReadPipe fileDescriptor], Buffer, READ_SIZE);
 		if (BytesRead > 0)
 		{
 			Buffer[BytesRead] = '\0';
 			Output += StringCast<TCHAR>(Buffer).Get();
 		}
+		} while (BytesRead > 0);
 	}
 
 	return Output;
@@ -985,21 +1003,23 @@ bool FMacPlatformProcess::WritePipe(void* WritePipe, const FString& Message, FSt
 		return false;
 	}
 
-	// convert input to UTF8CHAR
+	// Convert input to UTF8CHAR
 	uint32 BytesAvailable = Message.Len();
-	UTF8CHAR* Buffer = new UTF8CHAR[BytesAvailable + 1];
-
-	if (!FString::ToBlob(Message, Buffer, BytesAvailable))
+	UTF8CHAR * Buffer = new UTF8CHAR[BytesAvailable + 1];
+	for (uint32 i = 0; i < BytesAvailable; i++)
 	{
-		return false;
+		Buffer[i] = Message[i];
 	}
+	Buffer[BytesAvailable] = '\n';
 
 	// Write to pipe
-	uint32 BytesWritten = write(*(int*)WritePipe, Buffer, BytesAvailable);
+	uint32 BytesWritten = write([(NSFileHandle*)WritePipe fileDescriptor], Buffer, BytesAvailable);
 
-	if (OutWritten != nullptr)
+	// Get written message
+	if (OutWritten)
 	{
-		OutWritten->FromBlob(Buffer, BytesWritten);
+		Buffer[BytesWritten] = '\0';
+		*OutWritten = FUTF8ToTCHAR((const ANSICHAR*)Buffer).Get();
 	}
 
 	return (BytesWritten == BytesAvailable);

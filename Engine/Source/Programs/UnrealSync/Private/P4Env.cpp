@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealSync.h"
 
@@ -798,7 +798,7 @@ private:
 bool GetCurrentBranch(FString& Output, const FP4Env& Env)
 {
 	FString FilesOutput;
-	if (!RunProcessOutput(Env.GetPath(), FString::Printf(TEXT("-p%s -u%s -c%s files %s"),
+	if (!RunProcessOutput(Env.GetPath(), FString::Printf(TEXT("-p%s -u%s -c%s files \"%s\""),
 		*Env.GetPort(), *Env.GetUser(), *Env.GetClient(), *GetKnownPath()), FilesOutput))
 	{
 		UE_LOG(LogP4Env, Log,

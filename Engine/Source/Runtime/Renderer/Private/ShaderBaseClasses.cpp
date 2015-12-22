@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShaderBaseClasses.cpp: Shader base classes
@@ -17,12 +17,16 @@ FAutoConsoleVariableRef FMaterialShader::CVarAllowCachedUniformExpressions(
 	TEXT("Allow uniform expressions to be cached."),
 	ECVF_RenderThreadSafe);
 
+FName FMaterialShader::UniformBufferLayoutName(TEXT("Material"));
+
 FMaterialShader::FMaterialShader(const FMaterialShaderType::CompiledShaderInitializerType& Initializer)
 :	FShader(Initializer)
 ,	DebugUniformExpressionSet(Initializer.UniformExpressionSet)
+,	DebugUniformExpressionUBLayout(FRHIUniformBufferLayout::Zero)
 ,	DebugDescription(Initializer.DebugDescription)
 {
 	check(!DebugDescription.IsEmpty());
+	DebugUniformExpressionUBLayout.CopyFrom(Initializer.UniformExpressionSet.GetUniformBufferStruct().GetLayout());
 
 	// Bind the material uniform buffer parameter.
 	MaterialUniformBuffer.Bind(Initializer.ParameterMap,TEXT("Material"));
@@ -91,7 +95,8 @@ void FMaterialShader::SetParameters(
 	const FMaterial& Material,
 	const FSceneView& View, 
 	bool bDeferredPass, 
-	ESceneRenderTargetsMode::Type TextureMode)
+	ESceneRenderTargetsMode::Type TextureMode, 
+	const bool bIsInstancedStereo)
 {
 	ERHIFeatureLevel::Type FeatureLevel = View.GetFeatureLevel();
 	FUniformExpressionCache TempUniformExpressionCache;
@@ -121,16 +126,62 @@ void FMaterialShader::SetParameters(
 	// Validate that the shader is being used for a material that matches the uniform expression set the shader was compiled for.
 	const FUniformExpressionSet& MaterialUniformExpressionSet = Material.GetRenderingThreadShaderMap()->GetUniformExpressionSet();
 
-#if NO_LOGGING == 0
-	
-	const bool bUniformExpressionSetMismatch = !DebugUniformExpressionSet.Matches(MaterialUniformExpressionSet)
+	//#todo-rco: Enable always for now to get better logging on Test builds
+#if 1//NO_LOGGING == 0
+	bool bUniformExpressionSetMismatch = !DebugUniformExpressionSet.Matches(MaterialUniformExpressionSet)
 		|| UniformExpressionCache->CachedUniformExpressionShaderMap != Material.GetRenderingThreadShaderMap();
-
+	if (!bUniformExpressionSetMismatch)
+	{
+		auto DumpUB = [](const FRHIUniformBufferLayout& Layout)
+		{
+			FString DebugName = Layout.GetDebugName().GetPlainNameString();
+			UE_LOG(LogShaders, Warning, TEXT("Layout %s, Hash %08x"), *DebugName, Layout.GetHash());
+			FString ResourcesString;
+			for (int32 Index = 0; Index < Layout.Resources.Num(); ++Index)
+			{
+				ResourcesString += FString::Printf(TEXT("%d "), Layout.Resources[Index]);
+			}
+			UE_LOG(LogShaders, Warning, TEXT("Layout CB Size %d Res Offs %d; %d Resources: %s"), Layout.ConstantBufferSize, Layout.ResourceOffset, Layout.Resources.Num(), *ResourcesString);
+		};
+		if (UniformExpressionCache->LocalUniformBuffer.IsValid())
+		{
+			if (UniformExpressionCache->LocalUniformBuffer.BypassUniform)
+			{
+				if (DebugUniformExpressionUBLayout.GetHash() != UniformExpressionCache->LocalUniformBuffer.BypassUniform->GetLayout().GetHash())
+				{
+					UE_LOG(LogShaders, Warning, TEXT("Material Expression UB mismatch!"));
+					DumpUB(DebugUniformExpressionUBLayout);
+					DumpUB(UniformExpressionCache->LocalUniformBuffer.BypassUniform->GetLayout());
+					bUniformExpressionSetMismatch = true;
+				}
+			}
+			else
+			{
+				if (DebugUniformExpressionUBLayout.GetHash() != UniformExpressionCache->LocalUniformBuffer.WorkArea->Layout->GetHash())
+				{
+					UE_LOG(LogShaders, Warning, TEXT("Material Expression UB mismatch!"));
+					DumpUB(DebugUniformExpressionUBLayout);
+					DumpUB(*UniformExpressionCache->LocalUniformBuffer.WorkArea->Layout);
+					bUniformExpressionSetMismatch = true;
+				}
+			}
+		}
+		else
+		{
+			if (DebugUniformExpressionUBLayout.GetHash() != UniformExpressionCache->UniformBuffer->GetLayout().GetHash())
+			{
+				UE_LOG(LogShaders, Warning, TEXT("Material Expression UB mismatch!"));
+				DumpUB(DebugUniformExpressionUBLayout);
+				DumpUB(UniformExpressionCache->UniformBuffer->GetLayout());
+				bUniformExpressionSetMismatch = true;
+			}
+		}
+	}
 	if (bUniformExpressionSetMismatch)
 	{
 		UE_LOG(
 			LogShaders,
-			Fatal,
+			Warning,	// TEMP workaround only!!!!
 			TEXT("%s shader uniform expression set mismatch for material %s/%s.\n")
 			TEXT("Shader compilation info:                %s\n")
 			TEXT("Material render proxy compilation info: %s\n")
@@ -271,7 +322,7 @@ void FMaterialShader::SetParameters(
 	//Use of the eye adaptation texture here is experimental and potentially dangerous as it can introduce a feedback loop. May be removed.
 	if(EyeAdaptation.IsBound())
 	{
-		FTextureRHIRef& EyeAdaptationTex = GetEyeAdaptation(View);
+		FTextureRHIRef& EyeAdaptationTex = GetEyeAdaptation(RHICmdList, View);
 		SetTextureParameter(RHICmdList, ShaderRHI, EyeAdaptation, EyeAdaptationTex);
 	}
 
@@ -317,7 +368,8 @@ void FMaterialShader::SetParameters(
 		const FMaterial& Material,						\
 		const FSceneView& View,							\
 		bool bDeferredPass,								\
-		ESceneRenderTargetsMode::Type TextureMode		\
+		ESceneRenderTargetsMode::Type TextureMode,		\
+		const bool bIsInstancedStereo					\
 	);
 
 IMPLEMENT_MATERIAL_SHADER_SetParameters( FVertexShaderRHIParamRef );
@@ -338,6 +390,24 @@ bool FMaterialShader::Serialize(FArchive& Ar)
 	Ar << LightAttenuation;
 	Ar << LightAttenuationSampler;
 	Ar << DebugUniformExpressionSet;
+	if (Ar.IsLoading())
+	{
+		FName LayoutName;
+		Ar << LayoutName;
+		FRHIUniformBufferLayout Layout(LayoutName);
+		Ar << Layout.ConstantBufferSize;
+		Ar << Layout.ResourceOffset;
+		Ar << Layout.Resources;
+		DebugUniformExpressionUBLayout.CopyFrom(Layout);
+	}
+	else
+	{
+		FName LayoutName = DebugUniformExpressionUBLayout.GetDebugName();
+		Ar << LayoutName;
+		Ar << DebugUniformExpressionUBLayout.ConstantBufferSize;
+		Ar << DebugUniformExpressionUBLayout.ResourceOffset;
+		Ar << DebugUniformExpressionUBLayout.Resources;
+	}
 	Ar << DebugDescription;
 	Ar << AtmosphericFogTextureParameters;
 	Ar << EyeAdaptation;
@@ -355,13 +425,13 @@ bool FMaterialShader::Serialize(FArchive& Ar)
 	return bShaderHasOutdatedParameters;
 }
 
-FTextureRHIRef& FMaterialShader::GetEyeAdaptation(const FSceneView& View)
+FTextureRHIRef& FMaterialShader::GetEyeAdaptation(FRHICommandList& RHICmdList, const FSceneView& View)
 {
 	IPooledRenderTarget* EyeAdaptationRT = NULL;
 	if( View.bIsViewInfo )
 	{
 		const FViewInfo& ViewInfo = static_cast<const FViewInfo&>(View);
-		EyeAdaptationRT = ViewInfo.GetEyeAdaptation();
+		EyeAdaptationRT = ViewInfo.GetEyeAdaptation(RHICmdList);
 	}
 
 	if( EyeAdaptationRT )
@@ -388,7 +458,7 @@ void FMeshMaterialShader::SetMesh(
 	const FSceneView& View,
 	const FPrimitiveSceneProxy* Proxy,
 	const FMeshBatchElement& BatchElement,
-	float DitheredLODTransitionValue,
+	const FMeshDrawingRenderState& DrawRenderState,
 	uint32 DataFlags )
 {
 	// Set the mesh for the vertex factory
@@ -411,20 +481,20 @@ void FMeshMaterialShader::SetMesh(
 	}
 	if (NonInstancedDitherLODFactorParameter.IsBound())
 	{
-		SetShaderValue(RHICmdList, ShaderRHI, NonInstancedDitherLODFactorParameter, DitheredLODTransitionValue);
+		SetShaderValue(RHICmdList, ShaderRHI, NonInstancedDitherLODFactorParameter, DrawRenderState.DitheredLODTransitionAlpha);
 	}
 }
 
 #define IMPLEMENT_MESH_MATERIAL_SHADER_SetMesh( ShaderRHIParamRef ) \
 	template RENDERER_API void FMeshMaterialShader::SetMesh< ShaderRHIParamRef >( \
-		FRHICommandList& RHICmdList,			\
-		const ShaderRHIParamRef ShaderRHI,		\
-		const FVertexFactory* VertexFactory,	\
-		const FSceneView& View,					\
-		const FPrimitiveSceneProxy* Proxy,		\
-		const FMeshBatchElement& BatchElement,	\
-		float DitheredLODTransitionValue,		\
-		uint32 DataFlags						\
+		FRHICommandList& RHICmdList,					\
+		const ShaderRHIParamRef ShaderRHI,				\
+		const FVertexFactory* VertexFactory,			\
+		const FSceneView& View,							\
+		const FPrimitiveSceneProxy* Proxy,				\
+		const FMeshBatchElement& BatchElement,			\
+		const FMeshDrawingRenderState& DrawRenderState,	\
+		uint32 DataFlags								\
 	);
 
 IMPLEMENT_MESH_MATERIAL_SHADER_SetMesh( FVertexShaderRHIParamRef );

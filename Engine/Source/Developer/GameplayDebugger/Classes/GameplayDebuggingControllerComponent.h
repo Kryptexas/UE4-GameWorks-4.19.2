@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /**
  * GameplayDebuggingComponent is used to replicate debug data from server to client(s).
@@ -151,16 +151,16 @@ public:
 	FInputChord GameHUDBind;
 };
 
-UCLASS()
+UCLASS(NotBlueprintable, Transient, NotBlueprintType, hidedropdown, hidecategories = Actor, notplaceable)
 class AGaneplayDebuggerProxyHUD : public AHUD
 {
 	GENERATED_UCLASS_BODY()
 
 	FFontRenderInfo TextRenderInfo;
 
-	// Begin AActor Interface
+	//~ Begin AActor Interface
 	virtual void PostRender() override;
-	// End AActor Interface
+	//~ End AActor Interface
 
 	TWeakObjectPtr<AHUD> RedirectedHUD;
 };

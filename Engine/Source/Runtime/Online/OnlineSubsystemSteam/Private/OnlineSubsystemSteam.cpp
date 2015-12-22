@@ -1,12 +1,10 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemSteamPrivatePCH.h"
 #include "OnlineSubsystemSteam.h"
 #include "ModuleManager.h"
 
 #include "IPAddressSteam.h"
-#include "OnlineSubsystemUtilsClasses.h"
-#include "OnlineSubsystemSteamClasses.h"
 
 
 #include "SocketSubsystemSteam.h"

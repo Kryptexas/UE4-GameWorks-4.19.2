@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -94,7 +94,7 @@ public:
 						const bool bNotHandledYet = !ReferenceReplacementMap.Contains(Obj);
 						if (bKeptByOld && bNotHandledYet)
 						{
-							UObject* NewEditInlineSubobject = StaticDuplicateObject(Obj, NewObject, NULL);
+							UObject* NewEditInlineSubobject = StaticDuplicateObject(Obj, NewObject);
 							ReferenceReplacementMap.Add(Obj, NewEditInlineSubobject);
 
 							TArray<UObject*> OutDefaultOuters;

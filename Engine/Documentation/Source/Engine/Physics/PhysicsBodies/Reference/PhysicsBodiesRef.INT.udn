@@ -1,0 +1,203 @@
+Availability: Public
+Title:Physics Bodies Reference
+Crumbs: %ROOT%
+Description:Physics Body, or Body Instance, property reference.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Physics/PhysicsBodies:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhysicsBodies:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhysicsBodies:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/PhysicsBodies]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Physics/PhysicsBodies:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhysicsBodies:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhysicsBodies:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/PhysicsBodies]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+This page contains a reference listing of properties in the Physics and Collision categories of properties. If you are looking for reference on Collision Responses or Collision Presets please see: [](Engine/Physics/Collision/Reference).
+
+
+## Properties
+
+Below are the properties for Physics Bodies (Body Instances) separated by major category.
+
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		phys
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Physics
+	[/PARAM]
+	[PARAM:content]
+		%p1%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p1]
+
+![](physicsProps.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Simulate Physics** || %doxygen:FBodyInstance::bSimulatePhysics% |
+| **Mass in KG** || Mass of the body in KG. |
+| **Angular Damping** || %doxygen:FBodyInstance::AngularDamping% |
+| **Linear Damping** || %doxygen:FBodyInstance::LinearDamping% |
+| **Enable Gravity** || %doxygen:FBodyInstance::bEnableGravity% |
+|[REGION:tablesection]**Constraints**[/REGION]|||
+| **Lock Position** || [INCLUDE:#lockpos] |
+| **Lock Rotation** || [INCLUDE:#lockrot] |
+| **Mode** || [INCLUDE:#mode] |
+[/REGION]
+
+### Advanced
+
+![](physicsPropsAdv.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Auto Weld** || %doxygen:FBodyInstance::bAutoWeld% |
+| **Start Awake** || %doxygen:FBodyInstance::bStartAwake% |
+| **Center Of Mass Offset** || %doxygen:FBodyInstance::COMNudge% |
+| **Mass Scale** || %doxygen:FBodyInstance::MassScale% |
+| **Max Angular Velocity** || %doxygen:FBodyInstance::MaxAngularVelocity% |
+| **Use Async Scene** || %doxygen:FBodyInstance::bUseAsyncScene% |
+| **Override Max Depenetration Velocity** || %doxygen:FBodyInstance::bOverrideMaxDepenetrationVelocity% |
+| **Max Depenetration Velocity** || %doxygen:FBodyInstance::MaxDepenetrationVelocity% |
+| **Override Walkable Slope on Instance** || %doxygen:FBodyInstance::bOverrideWalkableSlopeOnInstance% |
+| **Walkable Slope Override** || %doxygen:UBodySetup::WalkableSlopeOverride% See the **[](Engine/Physics/WalkableSlope)** documentation for usage information. |
+| **Walkable Slope Behavior** || %doxygen:FWalkableSlopeOverride::WalkableSlopeBehavior% |
+| **Walkable Slope Angle** || %doxygen:FWalkableSlopeOverride::WalkableSlopeAngle% 
+| **Sleep Family** || %doxygen:FBodyInstance::SleepFamily% |
+| **Position Solver Iteration Count** || %doxygen:FBodyInstance::PositionSolverIterationCount% |
+| **Velocity Solver Iteration Count** || %doxygen:FBodyInstance::VelocitySolverIterationCount% |
+| **Should Update Physics Volume** || %doxygen:USceneComponent::bShouldUpdatePhysicsVolume% |
+
+[/REGION]
+
+[/VAR]
+
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		coll
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Collision
+	[/PARAM]
+	[PARAM:content]
+		%p2%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p2]
+
+![](collisionProps.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Simulation Generates Hit Events** || %doxygen:FBodyInstance::bNotifyRigidBodyCollision% |
+| **Phys Material Override** || %doxygen:FBodyInstance::PhysMaterialOverride% |
+| **Generate Overlap Events** || %doxygen:UPrimitiveComponent::bGenerateOverlapEvents% |
+| **Collision Responses** || See the **[](Engine/Physics/Collision/Reference)** documentation for more information. |
+[/REGION]
+
+### Advanced
+
+![](collisionPropsAdv.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Use CCD** || %doxygen:FBodyInstance::bUseCCD% |
+| **Always Create Physics State** || %doxygen:UPrimitiveComponent::bAlwaysCreatePhysicsState% |
+| **Multi Body Overlap** || %doxygen:UPrimitiveComponent::bMultiBodyOverlap% | 
+| **Check Async Scene On Move** || %doxygen:UPrimitiveComponent::bCheckAsyncSceneOnMove% |
+| **Trace Complex On Move** || %doxygen:UPrimitiveComponent::bTraceComplexOnMove% |
+| **Return Material On Move** || %doxygen:UPrimitiveComponent::bReturnMaterialOnMove% |
+| **Can Ever Affect Navigation** || %doxygen:UPrimitiveComponent::bCanEverAffectNavigation% |
+
+[/REGION]
+
+[/VAR]
+
+[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
+
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
+
+<!--
+[EXCERPT:lockpos]
+
+%doxygen:FBodyInstance::bLockTranslation%
+
+[REGION:raw]
+| Property | %spacer2% | Description |
+| --- | :---: | :--- |
+| **Lock X Translation** || %doxygen:FBodyInstance::bLockXTranslation% |
+| **Lock Y Translation** || %doxygen:FBodyInstance::bLockYTranslation% |
+| **Lock Z Translation** || %doxygen:FBodyInstance::bLockZTranslation% |
+[/REGION]
+[/EXCERPT]
+
+[EXCERPT:lockrot]
+
+%doxygen:FBodyInstance::bLockRotation%
+
+[REGION:raw]
+| Property | %spacer2% | Description |
+| --- | :---: | :--- |
+| **Lock X Rotation** || %doxygen:FBodyInstance::bLockXRotation% |
+| **Lock Y Rotation** || %doxygen:FBodyInstance::bLockYRotation% |
+| **Lock Z Rotation** || %doxygen:FBodyInstance::bLockZRotation% |
+[/REGION]
+[/EXCERPT]
+
+[EXCERPT:mode]
+
+%doxygen:FBodyInstance::DOFMode%
+
+[REGION:raw]
+| Property | %spacer2% | Description |
+| --- | :---: | :--- |
+| **Default** || Inherits the degrees of freedom from the project settings. |
+| **Six DOF** || Specifies which axis to freeze rotation and movement along. |
+| **YZPlane** || Allows 2D movement along the Y-Z plane. |
+| **XZPlane** || Allows 2D movement along the X-Z plane. |
+| **XYPlane** || Allows 2D movement along the X-Y plane. |
+| **Custom Plane** || Allows 2D movement along the plane of a given normal. |
+| **None** || No constraints. |
+[/REGION]
+[/EXCERPT]
+-->

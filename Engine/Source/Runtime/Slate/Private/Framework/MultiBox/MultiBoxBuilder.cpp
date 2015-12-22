@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "MultiBox.h"
@@ -82,7 +82,7 @@ FMultiBoxCustomization FMultiBoxBuilder::GetCustomization() const
 
 TSharedRef< class SWidget > FMultiBoxBuilder::MakeWidget()
 {
-	return MultiBox->MakeWidget();
+	return MultiBox->MakeWidget( false );
 }
 
 TSharedRef< class FMultiBox > FMultiBoxBuilder::GetMultiBox()
@@ -163,6 +163,12 @@ void FBaseMenuBuilder::AddMenuEntry( const FUIAction& UIAction, const TSharedRef
 	ApplyHook(InExtensionHook, EExtensionHook::After);
 }
 
+TSharedRef< class SWidget > FMenuBuilder::MakeWidget()
+{
+	// Make menu builders searchable
+	return MultiBox->MakeWidget( true );
+}
+
 void FMenuBuilder::BeginSection( FName InExtensionHook, const TAttribute< FText >& InHeadingText )
 {
 	check(CurrentSectionExtensionHook == NAME_None && !bSectionNeedsToBeApplied);
@@ -180,7 +186,7 @@ void FMenuBuilder::BeginSection( FName InExtensionHook, const TAttribute< FText 
 	{
 		ApplySectionBeginning();
 	}
-	
+
 	ApplyHook(InExtensionHook, EExtensionHook::First);
 }
 
@@ -270,12 +276,23 @@ void FMenuBuilder::AddWrapperSubMenu( const FText& InMenuLabel, const FText& InT
 	MultiBox->AddMultiBlock( NewMenuEntryBlock );
 }
 
-void FMenuBuilder::AddWidget( TSharedRef<SWidget> InWidget, const FText& Label, bool bNoIndent )
+void FMenuBuilder::AddWidget( TSharedRef<SWidget> InWidget, const FText& Label, bool bNoIndent, bool bSearchable )
 {
 	ApplySectionBeginning();
 
-	TSharedRef< FWidgetBlock > NewWidgetBlock( new FWidgetBlock( InWidget, Label, bNoIndent ) );
+	TSharedRef< FWidgetBlock > NewWidgetBlock(new FWidgetBlock( InWidget, Label, bNoIndent ));
+	NewWidgetBlock->SetSearchable( bSearchable );
+
 	MultiBox->AddMultiBlock( NewWidgetBlock );
+}
+
+void FMenuBuilder::AddSearchWidget()
+{
+	MultiBox->SearchTextWidget = SNew(STextBlock)
+		.Visibility( EVisibility::Visible )
+		.Text( FText::FromString("Search Start") );
+
+	AddWidget( MultiBox->SearchTextWidget.ToSharedRef(), FText::GetEmpty(), false, false );
 }
 
 void FMenuBuilder::ApplyHook(FName InExtensionHook, EExtensionHook::Position HookPosition)
@@ -292,7 +309,8 @@ void FMenuBuilder::ApplySectionBeginning()
 {
 	if (bSectionNeedsToBeApplied)
 	{
-		if( MultiBox->GetBlocks().Num() > 0 || FMultiBoxSettings::DisplayMultiboxHooks.Get() )
+		// Do not count search block, which starts as invisible
+		if( MultiBox->GetBlocks().Num() > 1 || FMultiBoxSettings::DisplayMultiboxHooks.Get() )
 		{
 			MultiBox->AddMultiBlock( MakeShareable( new FMenuSeparatorBlock(CurrentSectionExtensionHook) ) );
 		}
@@ -321,7 +339,7 @@ void FMenuBarBuilder::AddPullDownMenu( const FText& InMenuLabel, const FText& In
 	NewMenuEntryBlock->SetTutorialHighlightName(GenerateTutorialIdentfierName(TutorialHighlightName, InTutorialHighlightName, nullptr, MultiBox->GetBlocks().Num()));
 
 	MultiBox->AddMultiBlock( NewMenuEntryBlock );
-	
+
 	ApplyHook(InExtensionHook, EExtensionHook::After);
 }
 
@@ -335,7 +353,7 @@ void FMenuBarBuilder::ApplyHook(FName InExtensionHook, EExtensionHook::Position 
 	}
 }
 
-void FToolBarBuilder::AddToolBarButton( const TSharedPtr< const FUICommandInfo > InCommand, FName InExtensionHook, const TAttribute<FText>& InLabelOverride, const TAttribute<FText>& InToolTipOverride, const TAttribute<FSlateIcon>& InIconOverride, FName InTutorialHighlightName)
+void FToolBarBuilder::AddToolBarButton(const TSharedPtr< const FUICommandInfo > InCommand, FName InExtensionHook, const TAttribute<FText>& InLabelOverride, const TAttribute<FText>& InToolTipOverride, const TAttribute<FSlateIcon>& InIconOverride, FName InTutorialHighlightName )
 {
 	ApplySectionBeginning();
 
@@ -357,7 +375,7 @@ void FToolBarBuilder::AddToolBarButton( const TSharedPtr< const FUICommandInfo >
 	ApplyHook(InExtensionHook, EExtensionHook::After);
 }
 
-void FToolBarBuilder::AddToolBarButton( const FUIAction& InAction, FName InExtensionHook, const TAttribute<FText>& InLabelOverride, const TAttribute<FText>& InToolTipOverride, const TAttribute<FSlateIcon>& InIconOverride, const EUserInterfaceActionType::Type UserInterfaceActionType, FName InTutorialHighlightName )
+void FToolBarBuilder::AddToolBarButton(const FUIAction& InAction, FName InExtensionHook, const TAttribute<FText>& InLabelOverride, const TAttribute<FText>& InToolTipOverride, const TAttribute<FSlateIcon>& InIconOverride, const EUserInterfaceActionType::Type UserInterfaceActionType, FName InTutorialHighlightName )
 {
 	ApplySectionBeginning();
 
@@ -396,7 +414,7 @@ void FToolBarBuilder::AddComboButton( const FUIAction& InAction, const FOnGetCon
 	MultiBox->AddMultiBlock( NewToolBarComboButtonBlock );
 }
 
-void FToolBarBuilder::AddWidget( TSharedRef<SWidget> InWidget, FName InTutorialHighlightName )
+void FToolBarBuilder::AddWidget( TSharedRef<SWidget> InWidget, FName InTutorialHighlightName, bool bSearchable )
 {
 	ApplySectionBeginning();
 
@@ -413,6 +431,7 @@ void FToolBarBuilder::AddWidget( TSharedRef<SWidget> InWidget, FName InTutorialH
 	
 	TSharedRef< FWidgetBlock > NewWidgetBlock( new FWidgetBlock( InWidget, FText::GetEmpty(), true ) );
 	MultiBox->AddMultiBlock( NewWidgetBlock );
+	NewWidgetBlock->SetSearchable(bSearchable);
 }
 
 void FToolBarBuilder::AddSeparator(FName InExtensionHook)

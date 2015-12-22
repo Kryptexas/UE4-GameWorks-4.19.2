@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "Engine/StaticMesh.h"
@@ -9,9 +9,11 @@ UFbxStaticMeshImportData::UFbxStaticMeshImportData(const FObjectInitializer& Obj
 	StaticMeshLODGroup = NAME_None;
 	bRemoveDegenerates = true;
 	bBuildAdjacencyBuffer = true;
+	bBuildReversedIndexBuffer = true;
 	bGenerateLightmapUVs = true;
 	bOneConvexHullPerUCX = true;
 	bAutoGenerateCollision = true;
+	bTransformVertexToAbsolute = true;
 	VertexOverrideColor = FColor(255, 255, 255, 255);
 }
 

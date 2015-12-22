@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -336,8 +336,8 @@ struct FImportObjectParams
 		not necessary to specify a value when calling this function from other code */
 	FObjectInstancingGraph* InInstanceGraph;
 
-	/** provides a mapping from an actor name to a new instance to which it should be remapped */
-	const TMap<FName, AActor*>* ActorRemapper;
+	/** provides a mapping from an existing actor to a new instance to which it should be remapped */
+	const TMap<AActor*, AActor*>* ActorRemapper;
 
 	/** True if we should call PreEditChange/PostEditChange on the object as it's imported.  Pass false here
 		if you're going to do that on your own. */
@@ -402,7 +402,7 @@ const TCHAR* ImportObjectProperties(
 	int32					Depth,
 	int32					LineNumber = INDEX_NONE,
 	FObjectInstancingGraph* InstanceGraph = NULL,
-	const TMap<FName, AActor*>* ActorRemapper = NULL
+	const TMap<AActor*, AActor*>* ActorRemapper = NULL
 	);
 
 //
@@ -600,6 +600,25 @@ namespace EditorUtilities
 	}
 
 
+	/** Copy options structure for CopyActorProperties */
+	struct FCopyOptions
+	{
+		/** Implicit construction for an options enumeration */
+		FCopyOptions(const ECopyOptions::Type InFlags) : Flags(InFlags) {}
+
+		/** Check whether we can copy the specified property */
+		bool CanCopyProperty(UProperty& Property, UObject& Object) const
+		{
+			return !PropertyFilter || PropertyFilter(Property, Object);
+		}
+
+		/** User-specified flags for the copy */
+		ECopyOptions::Type Flags;
+
+		/** User-specified custom property filter predicate */
+		TFunction<bool(UProperty&, UObject&)> PropertyFilter;
+	};
+
 	/**
 	 * Copies properties from one actor to another.  Designed for propagating changes made to PIE actors back to their EditorWorld
 	 * counterpart, or pushing spawned actor changes back to a Blueprint CDO object.  You can pass the 'PreviewOnly' option to
@@ -611,7 +630,7 @@ namespace EditorUtilities
 	 *
 	 * @return	The number of properties that were copied over (properties that were filtered out, or were already identical, are not counted.)
 	 */
-	UNREALED_API int32 CopyActorProperties( AActor* SourceActor, AActor* TargetActor, const ECopyOptions::Type Options = ECopyOptions::Default );
+	UNREALED_API int32 CopyActorProperties( AActor* SourceActor, AActor* TargetActor, const FCopyOptions& Options = FCopyOptions(ECopyOptions::Default) );
 }
 
 

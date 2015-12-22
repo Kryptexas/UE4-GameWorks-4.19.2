@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,4 +6,4 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogPaperTiledImporter, Verbose, All);
 
-#include "PaperTiledImporterClasses.h"
+#include "Classes/PaperTiledImporterFactory.h"

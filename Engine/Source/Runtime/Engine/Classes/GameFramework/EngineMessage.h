@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "LocalMessage.h"
@@ -41,7 +41,7 @@ class  UEngineMessage : public ULocalMessage
 	UPROPERTY()
 	FString NewSpecMessage;
 
-	// Begin ULocalMessage interface
+	//~ Begin ULocalMessage Interface
 	virtual void ClientReceive(const FClientReceiveData& ClientData) const override;
-	// End ULocalMessage interface
+	//~ End ULocalMessage Interface
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 
@@ -65,6 +65,7 @@ const FName FBlueprintMetadata::MD_HideSelfPin(TEXT("HideSelfPin"));
 const FName FBlueprintMetadata::MD_DefaultToSelf(TEXT("DefaultToSelf"));
 const FName FBlueprintMetadata::MD_WorldContext(TEXT("WorldContext"));
 const FName FBlueprintMetadata::MD_CallableWithoutWorldContext(TEXT("CallableWithoutWorldContext"));
+const FName FBlueprintMetadata::MD_DevelopmentOnly(TEXT("DevelopmentOnly"));
 const FName FBlueprintMetadata::MD_AutoCreateRefTerm(TEXT("AutoCreateRefTerm"));
 
 const FName FBlueprintMetadata::MD_ShowWorldContextPin(TEXT("ShowWorldContextPin"));
@@ -941,7 +942,7 @@ void UEdGraphSchema_K2::AddExtraFunctionFlags(const UEdGraph* CurrentGraph, int3
 	{
 		if (UK2Node_FunctionEntry* Node = Cast<UK2Node_FunctionEntry>(*It))
 		{
-			Node->ExtraFlags |= ExtraFlags;
+			Node->AddExtraFlags(ExtraFlags);
 		}
 	}
 }
@@ -1528,11 +1529,61 @@ void UEdGraphSchema_K2::GetContextMenuActions(const UEdGraph* CurrentGraph, cons
 				MenuBuilder->EndSection();
 			}
 
-			// Add breakpoint actions
 			if (const UK2Node* K2Node = Cast<const UK2Node>(InGraphNode))
 			{
 				if (!K2Node->IsNodePure())
 				{
+					const UBlueprintEditorSettings* EditorSettings = GetDefault<UBlueprintEditorSettings>();
+					if (EditorSettings && EditorSettings->bAllowExplicitImpureNodeDisabling)
+					{
+						// Don't expose the enabled state for disabled nodes that were not explicitly disabled by the user
+						if (!bIsDebugging && (K2Node->bUserSetEnabledState || K2Node->EnabledState != ENodeEnabledState::Disabled))
+						{
+							// Add compile options
+							MenuBuilder->BeginSection("EdGraphSchemaCompileOptions", LOCTEXT("CompileOptionsHeader", "Compile Options"));
+							{
+								MenuBuilder->AddMenuEntry(
+									FGraphEditorCommands::Get().DisableNodes,
+									NAME_None,
+									LOCTEXT("DisableCompile", "Disable (Do Not Compile)"),
+									LOCTEXT("DisableCompileToolTip", "Selected node(s) will not be compiled."));
+
+								TSharedPtr<const FUICommandList> MenuCommandList = MenuBuilder->GetTopCommandList();
+								if(ensure(MenuCommandList.IsValid()))
+								{
+									const FUIAction* SubMenuUIAction = MenuCommandList->GetActionForCommand(FGraphEditorCommands::Get().EnableNodes);
+									if(ensure(SubMenuUIAction))
+									{
+										MenuBuilder->AddSubMenu(
+											LOCTEXT("EnableCompileSubMenu", "Enable Compile"),
+											LOCTEXT("EnableCompileSubMenuToolTip", "Options to enable selected node(s) for compile."),
+											FNewMenuDelegate::CreateLambda([MenuCommandList](FMenuBuilder& SubMenuBuilder)
+											{
+												SubMenuBuilder.PushCommandList(MenuCommandList.ToSharedRef());
+
+												SubMenuBuilder.AddMenuEntry(
+													FGraphEditorCommands::Get().EnableNodes_Always,
+													NAME_None,
+													LOCTEXT("EnableCompileAlways", "Always"),
+													LOCTEXT("EnableCompileAlwaysToolTip", "Always compile selected node(s)."));
+												SubMenuBuilder.AddMenuEntry(
+													FGraphEditorCommands::Get().EnableNodes_DevelopmentOnly,
+													NAME_None,
+													LOCTEXT("EnableCompileDevelopmentOnly", "Development Only"),
+													LOCTEXT("EnableCompileDevelopmentOnlyToolTip", "Compile selected node(s) for development only."));
+
+												SubMenuBuilder.PopCommandList();
+											}),
+											*SubMenuUIAction,
+											NAME_None, FGraphEditorCommands::Get().EnableNodes->GetUserInterfaceType());
+									}
+								}
+							}
+							MenuBuilder->EndSection();
+						}
+					}
+					
+					// Add breakpoint actions
 					MenuBuilder->BeginSection("EdGraphSchemaBreakpoints", LOCTEXT("BreakpointsHeader", "Breakpoints"));
 					{
 						MenuBuilder->AddMenuEntry( FGraphEditorCommands::Get().ToggleBreakpoint );
@@ -1565,7 +1616,8 @@ void UEdGraphSchema_K2::OnCreateNonExistentVariable( UK2Node_Variable* Variable,
 
 		if (FBlueprintEditorUtils::AddMemberVariable(OwnerBlueprint,Variable->GetVarName(), Pin->PinType))
 		{
-			Variable->VariableReference.SetSelfMember( Variable->GetVarName() );
+			FGuid Guid = FBlueprintEditorUtils::FindMemberVariableGuidByName(OwnerBlueprint, Variable->GetVarName());
+			Variable->VariableReference.SetSelfMember( Variable->GetVarName(), Guid );
 		}
 	}	
 }
@@ -1582,7 +1634,18 @@ void UEdGraphSchema_K2::OnCreateNonExistentLocalVariable( UK2Node_Variable* Vari
 			FGuid LocalVarGuid = FBlueprintEditorUtils::FindLocalVariableGuidByName(OwnerBlueprint, Variable->GetGraph(), VarName);
 			if (LocalVarGuid.IsValid())
 			{
-				Variable->VariableReference.SetLocalMember(VarName, Variable->GetGraph()->GetName(), LocalVarGuid);
+				// Loop through every variable in the graph, check if the variable references are the same, and update them
+				FMemberReference OldReference = Variable->VariableReference;
+				TArray<UK2Node_Variable*> VariableNodeList;
+				Variable->GetGraph()->GetNodesOfClass(VariableNodeList);
+				for( UK2Node_Variable* VariableNode : VariableNodeList)
+				{
+					if (VariableNode->VariableReference.IsSameReference(OldReference))
+					{
+						VariableNode->VariableReference.SetLocalMember(VarName, FBlueprintEditorUtils::GetTopLevelGraph(Variable->GetGraph())->GetName(), LocalVarGuid);
+						VariableNode->ReconstructNode();
+					}
+				}
 			}
 		}
 	}	
@@ -1598,7 +1661,9 @@ void UEdGraphSchema_K2::OnReplaceVariableForVariableNode( UK2Node_Variable* Vari
 
 		if (bIsSelfMember)
 		{
-			Variable->VariableReference.SetSelfMember( FName(*VariableName) );
+			FName VarName = FName(*VariableName);
+			FGuid Guid = FBlueprintEditorUtils::FindMemberVariableGuidByName(OwnerBlueprint, VarName);
+			Variable->VariableReference.SetSelfMember( VarName, Guid );
 		}
 		else
 		{
@@ -3087,7 +3152,7 @@ void UEdGraphSchema_K2::CreateFunctionGraphTerminators(UEdGraph& Graph, UClass* 
 	if (InterfaceToImplement)
 	{
 		// Add modifier flags from the declaration
-		EntryNode->ExtraFlags |= InterfaceToImplement->FunctionFlags & (FUNC_Const | FUNC_Static | FUNC_BlueprintPure);
+		EntryNode->AddExtraFlags(InterfaceToImplement->FunctionFlags & (FUNC_Const | FUNC_Static | FUNC_BlueprintPure));
 
 		UK2Node* NextNode = EntryNode;
 		UEdGraphPin* NextExec = FindExecutionPin(*EntryNode, EGPD_Output);
@@ -3852,7 +3917,7 @@ void UEdGraphSchema_K2::ReconstructNode(UEdGraphNode& TargetNode, bool bIsBatchR
 		{
 			UEdGraphPin* Pin = Cast<UEdGraphPin>(NodeChildren[Iter]);
 			const bool bIsValidPin = !Pin 
-				|| (Pin->HasAllFlags(RF_PendingKill) && !Pin->LinkedTo.Num()) 
+				|| (Pin->IsPendingKill() && !Pin->LinkedTo.Num()) 
 				|| TargetNode.Pins.Contains(Pin);
 			if (!bIsValidPin)
 			{
@@ -3920,13 +3985,19 @@ void UEdGraphSchema_K2::HandleGraphBeingDeleted(UEdGraph& GraphBeingRemoved) con
 void UEdGraphSchema_K2::TrySetDefaultValue(UEdGraphPin& Pin, const FString& NewDefaultValue) const
 {
 	FString UseDefaultValue;
-	UObject* UseDefaultObject = NULL;
+	UObject* UseDefaultObject = nullptr;
 	FText UseDefaultText;
 
-	if ((Pin.PinType.PinCategory == PC_Object) || (Pin.PinType.PinCategory == PC_Class) || (Pin.PinType.PinCategory == PC_Interface))
+	if ((Pin.PinType.PinCategory == PC_Object) 
+		|| (Pin.PinType.PinCategory == PC_Class) 
+		|| (Pin.PinType.PinCategory == PC_Interface)
+		|| (Pin.PinType.PinCategory == PC_Asset)
+		|| (Pin.PinType.PinCategory == PC_AssetClass))
 	{
-		UseDefaultObject = FindObject<UObject>(ANY_PACKAGE, *NewDefaultValue);
-		UseDefaultValue = NULL;
+		FString ObjectPathLocal = NewDefaultValue;
+		ConstructorHelpers::StripObjectClass(ObjectPathLocal);
+		UseDefaultObject = FindObject<UObject>(ANY_PACKAGE, *ObjectPathLocal);
+		UseDefaultValue.Empty();
 	}
 	else if(Pin.PinType.PinCategory == PC_Text)
 	{
@@ -3938,7 +4009,7 @@ void UEdGraphSchema_K2::TrySetDefaultValue(UEdGraphPin& Pin, const FString& NewD
 	}
 	else
 	{
-		UseDefaultObject = NULL;
+		UseDefaultObject = nullptr;
 		UseDefaultValue = NewDefaultValue;
 	}
 
@@ -4421,7 +4492,7 @@ void UEdGraphSchema_K2::GetGraphDisplayInformation(const UEdGraph& Graph, /*out*
 
 	UFunction* Function = NULL;
 	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(&Graph);
-	if (Blueprint)
+	if (Blueprint && Blueprint->SkeletonGeneratedClass)
 	{
 		Function = Blueprint->SkeletonGeneratedClass->FindFunctionByName(Graph.GetFName());
 	}
@@ -4602,7 +4673,7 @@ bool UEdGraphSchema_K2::IsConstFunctionGraph( const UEdGraph* TestEdGraph, bool*
 					*bOutIsEnforcingConstCorrectness = EntryNode->bEnforceConstCorrectness;
 				}
 
-				return (EntryNode->ExtraFlags & FUNC_Const) != 0;
+				return (EntryNode->GetFunctionFlags() & FUNC_Const) != 0;
 			}
 		}
 	}
@@ -4634,7 +4705,7 @@ bool UEdGraphSchema_K2::IsStaticFunctionGraph( const UEdGraph* TestEdGraph ) con
 			UEdGraphNode* Node = *I;
 			if(auto EntryNode = Cast<UK2Node_FunctionEntry>(Node))
 			{
-				return (EntryNode->ExtraFlags & FUNC_Static) != 0;
+				return (EntryNode->GetFunctionFlags() & FUNC_Static) != 0;
 			}
 		}
 	}
@@ -5252,7 +5323,7 @@ UEdGraphNode* UEdGraphSchema_K2::CreateSubstituteNode(UEdGraphNode* Node, const 
 			UObject* Found = FindObject<UObject>(EventNode->GetOuter(), *ObjName.ToString());
 			if(Found)
 			{
-				Found->Rename(NULL, NULL, REN_DontCreateRedirectors | RenameFlags);
+				Found->Rename(NULL, NULL, REN_DontCreateRedirectors | RenameFlags | (Found->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects) ? REN_ForceNoResetLoaders : RF_NoFlags));
 			}
 
 			// Create a custom event node to replace the original event node imported from text
@@ -5339,7 +5410,7 @@ UEdGraphNode* UEdGraphSchema_K2::CreateSubstituteNode(UEdGraphNode* Node, const 
 				check(Pin);
 
 				// Reparent the pin to the new custom event node
-				Pin->Rename(*Pin->GetName(), CustomEventNode, RenameFlags);
+				Pin->Rename(*Pin->GetName(), CustomEventNode, RenameFlags | (Pin->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects) ? REN_ForceNoResetLoaders : RF_NoFlags));
 
 				// Don't include execution or delegate output pins as user-defined pins
 				if(!bOriginalWasCustomEvent && !IsExecPin(*Pin) && !IsDelegateCategory(Pin->PinType.PinCategory))
@@ -5387,11 +5458,6 @@ int32 UEdGraphSchema_K2::GetNodeSelectionCount(const UEdGraph* Graph) const
 TSharedPtr<FEdGraphSchemaAction> UEdGraphSchema_K2::GetCreateCommentAction() const
 {
 	return TSharedPtr<FEdGraphSchemaAction>(static_cast<FEdGraphSchemaAction*>(new FEdGraphSchemaAction_K2AddComment));
-}
-
-TSharedPtr<FEdGraphSchemaAction> UEdGraphSchema_K2::GetCreateDocumentNodeAction() const
-{
-	return TSharedPtr<FEdGraphSchemaAction>(static_cast<FEdGraphSchemaAction*>(new FEdGraphSchemaAction_K2AddDocumentation));
 }
 
 bool UEdGraphSchema_K2::CanDuplicateGraph(UEdGraph* InSourceGraph) const
@@ -5920,17 +5986,20 @@ void UEdGraphSchema_K2::OnPinConnectionDoubleCicked(UEdGraphPin* PinA, UEdGraphP
 
 	// Create a new knot
 	UEdGraph* ParentGraph = PinA->GetOwningNode()->GetGraph();
-	UK2Node_Knot* NewKnot = FEdGraphSchemaAction_K2NewNode::SpawnNodeFromTemplate<UK2Node_Knot>(ParentGraph, NewObject<UK2Node_Knot>(), KnotTopLeft);
+	if (!FBlueprintEditorUtils::IsGraphReadOnly(ParentGraph))
+	{
+		UK2Node_Knot* NewKnot = FEdGraphSchemaAction_K2NewNode::SpawnNodeFromTemplate<UK2Node_Knot>(ParentGraph, NewObject<UK2Node_Knot>(), KnotTopLeft);
 
-	// Move the connections across (only notifying the knot, as the other two didn't really change)
-	PinA->BreakLinkTo(PinB);
-	PinA->MakeLinkTo((PinA->Direction == EGPD_Output) ? NewKnot->GetInputPin() : NewKnot->GetOutputPin());
-	PinB->MakeLinkTo((PinB->Direction == EGPD_Output) ? NewKnot->GetInputPin() : NewKnot->GetOutputPin());
-	NewKnot->PostReconstructNode();
+		// Move the connections across (only notifying the knot, as the other two didn't really change)
+		PinA->BreakLinkTo(PinB);
+		PinA->MakeLinkTo((PinA->Direction == EGPD_Output) ? NewKnot->GetInputPin() : NewKnot->GetOutputPin());
+		PinB->MakeLinkTo((PinB->Direction == EGPD_Output) ? NewKnot->GetInputPin() : NewKnot->GetOutputPin());
+		NewKnot->PostReconstructNode();
 
-	// Dirty the blueprint
-	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(CastChecked<UEdGraph>(ParentGraph));
-	FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+		// Dirty the blueprint
+		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(CastChecked<UEdGraph>(ParentGraph));
+		FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+	}
 }
 
 void UEdGraphSchema_K2::ConfigureVarNode(UK2Node_Variable* InVarNode, FName InVariableName, UStruct* InVariableSource, UBlueprint* InTargetBlueprint)
@@ -5938,11 +6007,18 @@ void UEdGraphSchema_K2::ConfigureVarNode(UK2Node_Variable* InVarNode, FName InVa
 	// See if this is a 'self context' (ie. blueprint class is owner (or child of owner) of dropped var class)
 	if ((InVariableSource == NULL) || InTargetBlueprint->SkeletonGeneratedClass->IsChildOf(InVariableSource))
 	{
-		InVarNode->VariableReference.SetSelfMember(InVariableName);
+		FGuid Guid = FBlueprintEditorUtils::FindMemberVariableGuidByName(InTargetBlueprint, InVariableName);
+		InVarNode->VariableReference.SetSelfMember(InVariableName, Guid);
 	}
 	else if (InVariableSource->IsA(UClass::StaticClass()))
 	{
-		InVarNode->VariableReference.SetExternalMember(InVariableName, CastChecked<UClass>(InVariableSource));
+		FGuid Guid;
+		if (UBlueprint* VariableOwnerBP = Cast<UBlueprint>(Cast<UClass>(InVariableSource)->ClassGeneratedBy))
+		{
+			Guid = FBlueprintEditorUtils::FindMemberVariableGuidByName(VariableOwnerBP, InVariableName);
+		}
+
+		InVarNode->VariableReference.SetExternalMember(InVariableName, CastChecked<UClass>(InVariableSource), Guid);
 	}
 	else
 	{
@@ -5979,13 +6055,14 @@ UEdGraphPin* UEdGraphSchema_K2::DropPinOnNode(UEdGraphNode* InTargetNode, const 
 	UEdGraphPin* ResultPin = nullptr;
 	if (UK2Node_EditablePinBase* EditablePinNode = Cast<UK2Node_EditablePinBase>(InTargetNode))
 	{
+		TArray<UK2Node_EditablePinBase*> EditablePinNodes;
 		EditablePinNode->Modify();
 
 		if (InSourcePinDirection == EGPD_Output && Cast<UK2Node_FunctionEntry>(InTargetNode))
 		{
-			if (UK2Node_EditablePinBase* ResultNode = FBlueprintEditorUtils::FindOrCreateFunctionResultNode(EditablePinNode))
+			if (UK2Node_FunctionResult* ResultNode = FBlueprintEditorUtils::FindOrCreateFunctionResultNode(EditablePinNode))
 			{
-				EditablePinNode = ResultNode;
+				EditablePinNodes.Add(ResultNode);
 			}
 			else
 			{
@@ -6000,7 +6077,7 @@ UEdGraphPin* UEdGraphSchema_K2::DropPinOnNode(UEdGraphNode* InTargetNode, const 
 
 			if (FunctionEntryNode.Num() == 1)
 			{
-				EditablePinNode = FunctionEntryNode[0];
+				EditablePinNodes.Add(FunctionEntryNode[0]);
 			}
 			else
 			{
@@ -6008,9 +6085,31 @@ UEdGraphPin* UEdGraphSchema_K2::DropPinOnNode(UEdGraphNode* InTargetNode, const 
 				return nullptr;
 			}
 		}
+		else
+		{
+			if (UK2Node_FunctionResult* ResultNode = Cast<UK2Node_FunctionResult>(EditablePinNode))
+			{
+				EditablePinNodes.Append(ResultNode->GetAllResultNodes());
+			}
+			else
+			{
+				EditablePinNodes.Add(EditablePinNode);
+			}
+		}
 
 		FString NewPinName = InSourcePinName;
-		ResultPin = EditablePinNode->CreateUserDefinedPin(NewPinName, InSourcePinType, (InSourcePinDirection == EGPD_Input)? EGPD_Output : EGPD_Input);
+		for (UK2Node_EditablePinBase* CurrentEditablePinNode : EditablePinNodes)
+		{
+			CurrentEditablePinNode->Modify();
+			UEdGraphPin* CreatedPin = nullptr;
+			CreatedPin = CurrentEditablePinNode->CreateUserDefinedPin(NewPinName, InSourcePinType, (InSourcePinDirection == EGPD_Input)? EGPD_Output : EGPD_Input);
+
+			// The final ResultPin is from the node the user dragged and dropped to
+			if (EditablePinNode == CurrentEditablePinNode)
+			{
+				ResultPin = CreatedPin;
+			}
+		}
 
 		FParamsChangedHelper ParamsChangedHelper;
 		ParamsChangedHelper.ModifiedBlueprints.Add(FBlueprintEditorUtils::FindBlueprintForNode(InTargetNode));

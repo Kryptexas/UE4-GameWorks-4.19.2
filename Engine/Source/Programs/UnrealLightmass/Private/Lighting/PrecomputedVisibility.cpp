@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "stdafx.h"
@@ -573,10 +573,10 @@ void FStaticLightingSystem::SetupPrecomputedVisibility()
 				MeshBounds += VisibilityMeshes[VisibilityMeshIndex].Meshes[OriginalMeshIndex]->BoundingBox;
 			}
 
-			const float MeshBoundingRadius = MeshBounds.GetExtent().Size();
+			const float MeshBoundingRadiusSqr = MeshBounds.GetExtent().SizeSquared();
 
 			// Only put the mesh in a group if its radius is small enough to keep the group effective
-			bool bPutInGroup = MeshBoundingRadius < GridCellBoundingRadius * MeshGroupingCellRadiusThreshold;
+			bool bPutInGroup = MeshBoundingRadiusSqr < FMath::Square(GridCellBoundingRadius * MeshGroupingCellRadiusThreshold);
 
 			if (bPutInGroup)
 			{
@@ -692,7 +692,7 @@ struct FVisibilityQuerySample
  * The TArrays are passed in to avoid allocations between cells, the same arrays are reused.
  */
 bool ComputeBoxVisibility(
-	FStaticLightingAggregateMesh& AggregateMesh,
+	FStaticLightingAggregateMeshType& AggregateMesh,
 	FPrecomputedVisibilitySettings& PrecomputedVisibilitySettings,
 	FPrecomputedVisibilityCell& CurrentCell, 
 	FAxisAlignedCellFace* CellFaces,
@@ -1094,7 +1094,7 @@ void FStaticLightingSystem::CalculatePrecomputedVisibility(int32 BucketIndex)
 			bool bDebugThisMesh = false;
 
 			bool bVisible = ComputeBoxVisibility(
-				AggregateMesh, 
+				*AggregateMesh, 
 				PrecomputedVisibilitySettings, 
 				CurrentCell, 
 				CellFaces, 
@@ -1177,7 +1177,7 @@ void FStaticLightingSystem::CalculatePrecomputedVisibility(int32 BucketIndex)
 				if (bGroupVisible)
 				{
 					bVisible = ComputeBoxVisibility(
-						AggregateMesh, 
+						*AggregateMesh, 
 						PrecomputedVisibilitySettings, 
 						CurrentCell, 
 						CellFaces, 

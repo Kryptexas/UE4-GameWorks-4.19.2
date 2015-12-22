@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "WorldBrowserPrivatePCH.h"
 #include "SourceControlWindows.h"
@@ -81,6 +81,10 @@ void FLevelCollectionModel::BindCommands()
 		FExecuteAction::CreateSP(this, &FLevelCollectionModel::MakeLevelCurrent_Executed),
 		FCanExecuteAction::CreateSP(this, &FLevelCollectionModel::IsOneLevelSelected));
 	
+	ActionList.MapAction(Commands.World_FindInContentBrowser,
+		FExecuteAction::CreateSP(this, &FLevelCollectionModel::FindInContentBrowser_Executed),
+		FCanExecuteAction::CreateSP(this, &FLevelCollectionModel::IsValidFindInContentBrowser));
+	
 	ActionList.MapAction(Commands.MoveActorsToSelected,
 		FExecuteAction::CreateSP(this, &FLevelCollectionModel::MoveActorsToSelected_Executed),
 		FCanExecuteAction::CreateSP(this, &FLevelCollectionModel::IsValidMoveActorsToLevel));
@@ -143,7 +147,7 @@ void FLevelCollectionModel::BindCommands()
 		FCanExecuteAction::CreateSP( this, &FLevelCollectionModel::AreAnySelectedLevelsEditable ) );
 	
 	ActionList.MapAction( Commands.World_UnockSelectedLevels,
-		FExecuteAction::CreateSP( this, &FLevelCollectionModel::UnockSelectedLevels_Executed  ),
+		FExecuteAction::CreateSP( this, &FLevelCollectionModel::UnlockSelectedLevels_Executed  ),
 		FCanExecuteAction::CreateSP( this, &FLevelCollectionModel::AreAnySelectedLevelsEditable ) );
 	
 	ActionList.MapAction( Commands.World_LockAllLevels,
@@ -442,27 +446,35 @@ void FLevelCollectionModel::ShowLevels(const FLevelModelList& InLevelList)
 
 void FLevelCollectionModel::UnlockLevels(const FLevelModelList& InLevelList)
 {
-	if (IsReadOnly())
+	if (!IsReadOnly())
 	{
-		return;
-	}
-	
-	for (auto It = InLevelList.CreateConstIterator(); It; ++It)
-	{
-		(*It)->SetLocked(false);
+		const FText UndoTransactionText = (InLevelList.Num() == 1) ?
+			LOCTEXT("UnlockLevel", "Unlock Level") :
+			LOCTEXT("UnlockMultipleLevels", "Unlock Multiple Levels");
+
+		const FScopedTransaction Transaction(UndoTransactionText);
+
+		for (auto It = InLevelList.CreateConstIterator(); It; ++It)
+		{
+			(*It)->SetLocked(false);
+		}
 	}
 }
 	
 void FLevelCollectionModel::LockLevels(const FLevelModelList& InLevelList)
 {
-	if (IsReadOnly())
+	if (!IsReadOnly())
 	{
-		return;
-	}
-	
-	for (auto It = InLevelList.CreateConstIterator(); It; ++It)
-	{
-		(*It)->SetLocked(true);
+		const FText UndoTransactionText = (InLevelList.Num() == 1) ?
+			LOCTEXT("LockLevel", "Lock Level") :
+			LOCTEXT("LockMultipleLevels", "Lock Multiple Levels");
+
+		const FScopedTransaction Transaction(UndoTransactionText);
+
+		for (auto It = InLevelList.CreateConstIterator(); It; ++It)
+		{
+			(*It)->SetLocked(true);
+		}
 	}
 }
 
@@ -1454,19 +1466,27 @@ void FLevelCollectionModel::LockSelectedLevels_Executed()
 	LockLevels(GetSelectedLevels());
 }
 
-void FLevelCollectionModel::UnockSelectedLevels_Executed()
+void FLevelCollectionModel::UnlockSelectedLevels_Executed()
 {
 	UnlockLevels(GetSelectedLevels());
 }
 
 void FLevelCollectionModel::LockAllLevels_Executed()
 {
-	LockLevels(GetFilteredLevels());
+	if (!IsReadOnly())
+	{
+		const FScopedTransaction Transaction(LOCTEXT("LockAllLevels", "Lock All Levels"));
+		LockLevels(GetFilteredLevels());
+	}
 }
 
 void FLevelCollectionModel::UnockAllLevels_Executed()
 {
-	UnlockLevels(GetFilteredLevels());
+	if (!IsReadOnly())
+	{
+		const FScopedTransaction Transaction(LOCTEXT("UnlockAllLevels", "Unlock All Levels"));
+		UnlockLevels(GetFilteredLevels());
+	}
 }
 
 void FLevelCollectionModel::ToggleReadOnlyLevels_Executed()
@@ -1487,6 +1507,31 @@ void FLevelCollectionModel::MakeLevelCurrent_Executed()
 {
 	check( SelectedLevelsList.Num() == 1 );
 	SelectedLevelsList[0]->MakeLevelCurrent();
+}
+
+void FLevelCollectionModel::FindInContentBrowser_Executed()
+{
+	TArray<UObject*> Objects;
+	for (auto It = SelectedLevelsList.CreateConstIterator(); It; ++It)
+	{
+		ULevel* Level = (*It)->GetLevelObject();
+		if (Level)
+		{
+			UObject* LevelOuter = Level->GetOuter();
+			if (LevelOuter)
+			{
+				// Search for the level's outer (the UWorld) as this is the actual asset shown by the content browser
+				Objects.AddUnique(LevelOuter);
+			}
+		}
+	}
+
+	GEditor->SyncBrowserToObjects(Objects);
+}
+
+bool FLevelCollectionModel::IsValidFindInContentBrowser()
+{
+	return true;
 }
 
 void FLevelCollectionModel::MoveActorsToSelected_Executed()

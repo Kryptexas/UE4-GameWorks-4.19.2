@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -18,7 +18,10 @@ public:
 		SLATE_ARGUMENT(FName, StyleName)
 	SLATE_END_ARGS()
 
-	FORCENOINLINE SClippingHorizontalBox() { }
+	FORCENOINLINE SClippingHorizontalBox() 
+	{
+		bCanTick = true;
+	}
 
 	/** SWidget interface */
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;

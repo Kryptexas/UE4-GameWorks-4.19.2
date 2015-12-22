@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 //
 // List of FPolys.
@@ -598,10 +598,10 @@ class UPolys : public UObject
 	{}
 #endif // WITH_HOT_RELOAD_CTORS
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	ENGINE_API virtual bool Modify(bool bAlwaysMarkDirty = false) override;	
 	ENGINE_API virtual void Serialize( FArchive& Ar ) override;
 	virtual bool IsAsset() const override { return false; }
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	// End UObject Interface
+	//~ End UObject Interface
 };

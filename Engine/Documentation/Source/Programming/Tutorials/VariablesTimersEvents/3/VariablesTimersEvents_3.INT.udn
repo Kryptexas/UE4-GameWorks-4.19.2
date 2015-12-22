@@ -33,7 +33,7 @@ version:4.9
 
 	This will create a new asset that represents a Blueprint version of Countdown1. It will also replace Countdown1 with an instance of this new Blueprint, so that changes we make to the Blueprint will affect Countdown1 in the game.
 
-1. The **Unreal Editor** will automatically take us to our new asset in the **Content Browser**, and we can right-click it and choose "Edit..." to modify its **Blueprint Graph**, **Component** hierararchy, and **Default Values**.
+1. The **Unreal Editor** will automatically take us to our new asset in the **Content Browser**, and we can **Right-click** it and choose "Edit..." to modify its **Blueprint Graph**, **Component** hierararchy, and **Default Values**.
 
 	[![](BlueprintInContentBrowser.png)](BlueprintInContentBrowser.png)
 
@@ -43,7 +43,7 @@ version:4.9
 
 	[![](SelectEventGraph.png)](SelectEventGraph.png)
 
-	Then, by righting-click anywhere in the **Event Graph** window, we can add our **CountdownHasFinished** function as an event node to define its behavior.
+	Then, by **Right-clicking** anywhere in the **Event Graph** window, we can add our **CountdownHasFinished** function as an event node to define its behavior.
 
 	[![](SelectEvent.png)](SelectEvent.png)
 
@@ -73,7 +73,7 @@ version:4.9
 
 	[![](CallToParent_ConnectPins.png)](CallToParent_ConnectPins.png)
 
-	Note that this will replace the connection to **Spawn Emitter At Location**, so we'll need to connect our **Parent: Countdown Has Finished** node's right-side (outgoing) execution pin to it or it won't run.
+	Note that this will replace the connection to **Spawn Emitter At Location**, so we'll need to connect our **Parent: Countdown Has Finished** node's right side (outgoing) execution pin to it or it won't run.
 
 	[![](CallToParent_FixPins.png)](CallToParent_FixPins.png)
 
@@ -92,7 +92,7 @@ version:4.9
     [/PARAM]
     [PARAM:content]
 		**Countdown.h**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -133,7 +133,7 @@ version:4.9
 
 
 		**Countdown.cpp**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_VTE.h"
 			#include "Countdown.h"

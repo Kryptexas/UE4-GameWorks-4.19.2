@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BRDF.usf: Bidirectional reflectance distribution functions.
@@ -12,38 +12,6 @@
 
 // Microfacet specular = D*G*F / (4*NoL*NoV) = D*Vis*F
 // Vis = G / (4*NoL*NoV)
-
-// Diffuse model
-// 0: Lambert
-// 1: Burley
-// 2: Oren-Nayar
-#define PHYSICAL_DIFFUSE	0
-
-// Microfacet distribution function
-// 0: Blinn
-// 1: Beckmann
-// 2: GGX
-#define PHYSICAL_SPEC_D		2
-
-// Geometric attenuation or shadowing
-// 0: Implicit
-// 1: Neumann
-// 2: Kelemen
-// 3: Schlick
-// 4: Smith (matched to GGX)
-#define PHYSICAL_SPEC_G		3
-
-// Fresnel
-// 0: None
-// 1: Schlick
-// 2: Fresnel
-#define PHYSICAL_SPEC_F		1
-
-float Pow5( float x )
-{
-	float x2 = x*x;
-	return x2 * x2 * x;
-}
 
 
 float3 Diffuse_Lambert( float3 DiffuseColor )
@@ -155,7 +123,8 @@ float Vis_Neumann( float NoV, float NoL )
 // [Kelemen 2001, "A microfacet based coupled specular-matte brdf model with importance sampling"]
 float Vis_Kelemen( float VoH )
 {
-	return rcp( 4 * VoH * VoH );
+	// constant to prevent NaN
+	return rcp( 4 * VoH * VoH + 1e-5);
 }
 
 // Tuned to match behavior of Vis_Smith
@@ -214,55 +183,6 @@ float3 F_Fresnel( float3 SpecularColor, float VoH )
 	return 0.5 * Square( (g - VoH) / (g + VoH) ) * ( 1 + Square( ((g+VoH)*VoH - 1) / ((g-VoH)*VoH + 1) ) );
 }
 
-
-float3 Diffuse( float3 DiffuseColor, float Roughness, float NoV, float NoL, float VoH )
-{
-#if   PHYSICAL_DIFFUSE == 0
-	return Diffuse_Lambert( DiffuseColor );
-#elif PHYSICAL_DIFFUSE == 1
-	return Diffuse_Burley( DiffuseColor, Roughness, NoV, NoL, VoH );
-#elif PHYSICAL_DIFFUSE == 2
-	return Diffuse_OrenNayar( DiffuseColor, Roughness, NoV, NoL, VoH );
-#endif
-}
-
-float Distribution( float Roughness, float NoH )
-{
-#if   PHYSICAL_SPEC_D == 0
-	return D_Blinn( Roughness, NoH );
-#elif PHYSICAL_SPEC_D == 1
-	return D_Beckmann( Roughness, NoH );
-#elif PHYSICAL_SPEC_D == 2
-	return D_GGX( Roughness, NoH );
-#endif
-}
-
-// Vis = G / (4*NoL*NoV)
-float GeometricVisibility( float Roughness, float NoV, float NoL, float VoH )
-{
-#if   PHYSICAL_SPEC_G == 0
-	return Vis_Implicit();
-#elif PHYSICAL_SPEC_G == 1
-	return Vis_Neumann( NoV, NoL );
-#elif PHYSICAL_SPEC_G == 2
-	return Vis_Kelemen( VoH );
-#elif PHYSICAL_SPEC_G == 3
-	return Vis_Schlick( Roughness, NoV, NoL );
-#elif PHYSICAL_SPEC_G == 4
-	return Vis_Smith( Roughness, NoV, NoL );
-#endif
-}
-
-float3 Fresnel( float3 SpecularColor, float VoH )
-{
-#if   PHYSICAL_SPEC_F == 0
-	return F_None( SpecularColor );
-#elif PHYSICAL_SPEC_F == 1
-	return F_Schlick( SpecularColor, VoH );
-#elif PHYSICAL_SPEC_F == 2
-	return F_Fresnel( SpecularColor, VoH );
-#endif
-}
 
 
 //---------------
@@ -332,6 +252,15 @@ float D_InvBeckmann( float Roughness, float NoH )
 	float Sin2h = 1 - Cos2h;
 	float Sin4h = Sin2h * Sin2h;
 	return rcp( PI * (1 + A*m2) * Sin4h ) * ( Sin4h + A * exp( -Cos2h / (m2 * Sin2h) ) );
+}
+
+float D_InvGGX( float Roughness, float NoH )
+{
+	float a = Roughness * Roughness;
+	float a2 = a * a;
+	float A = 4;
+	float d = ( NoH - a2 * NoH ) * NoH + a2;
+	return rcp( PI * (1 + A*a2) ) * ( 1 + 4 * a2*a2 / ( d*d ) );
 }
 
 float Vis_Cloth( float NoV, float NoL )

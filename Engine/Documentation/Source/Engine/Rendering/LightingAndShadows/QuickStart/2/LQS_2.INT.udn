@@ -1,7 +1,9 @@
 Availability: Public
-Title:2. Atmospheric & Directional Lighting
+Title:2. Atmospheric and Directional Lighting
 Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
 Description:In this step we will create the basic level lighting using Atmospheric Fog and a Directional Light. 
+Version: 4.9
+SkillLevel: Beginner
 
 
 [VAR:Steps]

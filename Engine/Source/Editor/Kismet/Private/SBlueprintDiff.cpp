@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintEditorPrivatePCH.h"
 
@@ -141,7 +141,6 @@ class FCDODiffControl	: public TSharedFromThis<FCDODiffControl>
 public:
 	FCDODiffControl( const UObject* InOldCDO
 					, const UObject* InNewCDO
-					, TArray< FSingleObjectDiffEntry > const& InDifferences
 					, TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& OutTreeEntries
 					, TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& OutRealDifferences
 					, FOnCDODiffControlChanged SelectionCallback );
@@ -164,13 +163,17 @@ private:
 FCDODiffControl::FCDODiffControl( 
 		const UObject* InOldCDO
 		, const UObject* InNewCDO
-		, TArray< FSingleObjectDiffEntry > const& InDifferences
 		, TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& OutTreeEntries
 		, TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& OutRealDifferences
 		, FOnCDODiffControlChanged SelectionCallback )
-	: OldDetails(InOldCDO, DiffUtils::ResolveAll( InOldCDO, InDifferences), FDetailsDiff::FOnDisplayedPropertiesChanged() )
-	, NewDetails(InNewCDO, DiffUtils::ResolveAll( InNewCDO, InDifferences), FDetailsDiff::FOnDisplayedPropertiesChanged() )
-{// OrderedProperties will contain differences in the order they are displayed:
+	: OldDetails(InOldCDO, FDetailsDiff::FOnDisplayedPropertiesChanged() )
+	, NewDetails(InNewCDO, FDetailsDiff::FOnDisplayedPropertiesChanged() )
+{
+	// @todo: (doc): rename InDifferences
+	TArray< FSingleObjectDiffEntry > DifferingProperties;
+	OldDetails.DiffAgainst(NewDetails, DifferingProperties);
+
+	// OrderedProperties will contain differences in the order they are displayed:
 	TArray< const FSingleObjectDiffEntry* > OrderedProperties;
 
 	// create differing properties list based on what is displayed by the old properties..
@@ -198,29 +201,48 @@ FCDODiffControl::FCDODiffControl(
 		if (IterOld != OldProperties.Num() && IterNew != NewProperties.Num()
 			&& OldProperties[IterOld] == NewProperties[IterNew])
 		{
-			if (const FSingleObjectDiffEntry* Differing = FindDiffering(InDifferences, OldProperties[IterOld]))
+			if (const FSingleObjectDiffEntry* Differing = FindDiffering(DifferingProperties, OldProperties[IterOld]))
 			{
 				OrderedProperties.Push(Differing);
 			}
 			++IterOld;
 			++IterNew;
-		}
-		else if (IterOld != OldProperties.Num())
-		{
-			if (const FSingleObjectDiffEntry* Differing = FindDiffering(InDifferences, OldProperties[IterOld]))
-			{
-				OrderedProperties.Push(Differing);
-			}
-			++IterOld;
 		}
 		else
 		{
-			check(IterNew != NewProperties.Num());
-			if (const FSingleObjectDiffEntry* Differing = FindDiffering(InDifferences, NewProperties[IterNew]))
+			if (IterOld != OldProperties.Num())
 			{
-				OrderedProperties.Push(Differing);
+				bool bFoundDifference = false;
+				if (const FSingleObjectDiffEntry* OldDiffering = FindDiffering(DifferingProperties, OldProperties[IterOld]))
+				{
+					bFoundDifference = true;
+					OrderedProperties.Push(OldDiffering);
+					++IterOld;
+				}
+				else if (IterNew != NewProperties.Num())
+				{
+					if (const FSingleObjectDiffEntry* NewDiffering = FindDiffering(DifferingProperties, NewProperties[IterNew]))
+					{
+						bFoundDifference = true;
+						OrderedProperties.Push(NewDiffering);
+						++IterNew;
+					}
+				}
+				if (!bFoundDifference)
+				{
+					++IterOld;
+					++IterNew;
+				}
 			}
-			++IterNew;
+			else
+			{
+				check(IterNew != NewProperties.Num());
+				if (const FSingleObjectDiffEntry* Differing = FindDiffering(DifferingProperties, NewProperties[IterNew]))
+				{
+					OrderedProperties.Push(Differing);
+				}
+				++IterNew;
+			}
 		}
 	}
 
@@ -1274,10 +1296,8 @@ SBlueprintDiff::FDiffControl SBlueprintDiff::GenerateDefaultsPanel()
 {
 	const UObject* A = DiffUtils::GetCDO(PanelOld.Blueprint);
 	const UObject* B = DiffUtils::GetCDO(PanelNew.Blueprint);
-	TArray<FSingleObjectDiffEntry> DifferingProperties;
-	DiffUtils::CompareUnrelatedObjects( A, B, DifferingProperties);
 
-	auto NewDiffControl = TSharedPtr<FCDODiffControl>(new FCDODiffControl(A, B, DifferingProperties, MasterDifferencesList, RealDifferences, FOnCDODiffControlChanged::CreateRaw(this, &SBlueprintDiff::SetCurrentMode, FBlueprintEditorApplicationModes::BlueprintDefaultsMode)));
+	auto NewDiffControl = TSharedPtr<FCDODiffControl>(new FCDODiffControl(A, B, MasterDifferencesList, RealDifferences, FOnCDODiffControlChanged::CreateRaw(this, &SBlueprintDiff::SetCurrentMode, FBlueprintEditorApplicationModes::BlueprintDefaultsMode)));
 
 	SBlueprintDiff::FDiffControl Ret;
 	//Splitter for left and right blueprint. Current convention is for the local (probably newer?) blueprint to be on the right:

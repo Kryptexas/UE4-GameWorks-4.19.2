@@ -1,8 +1,9 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "GeometryCacheModulePrivatePCH.h"
 #include "GeometryCacheTrackTransformAnimation.h"
 #include "GeometryCacheTrackFlipbookAnimation.h"
+#include "EditorFramework/AssetImportData.h"
 
 UGeometryCache::UGeometryCache(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/) : UObject(ObjectInitializer)
 {

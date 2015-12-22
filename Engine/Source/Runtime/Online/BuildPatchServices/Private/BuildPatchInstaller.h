@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BuildPatchInstaller.h: Declares the FBuildPatchInstaller class which
@@ -42,6 +42,12 @@ private:
 	// The directory created in staging to construct install files to
 	FString InstallStagingDir;
 
+	// The base path for the data cloud
+	FString CloudDirectory;
+
+	// The backup directory
+	FString BackupDirectory;
+
 	// The filename used to mark a previous install that did not complete but moved staged files into the install directory
 	FString PreviousMoveMarker;
 
@@ -71,6 +77,9 @@ private:
 
 	// The download speed value
 	double DownloadSpeedValue;
+
+	// The current download health value
+	EBuildPatchDownloadHealth DownloadHealthValue;
 
 	// The number of bytes left to download
 	int64 DownloadBytesLeft;
@@ -102,7 +111,10 @@ private:
 	// Holds the files which are all required
 	TSet<FString> TaggedFiles;
 
-	// Referecne to the module's installation info
+	// The list of prerequisites that have already been installed. Will also be updated on successful installation
+	TSet<FString> InstalledPrereqs;
+
+	// Reference to the module's installation info
 	FBuildPatchInstallationInfo& InstallationInfo;
 
 public:
@@ -134,6 +146,7 @@ public:
 	virtual bool IsPaused() override;
 	virtual bool IsResumable() override;
 	virtual bool HasError() override;
+	virtual EBuildPatchInstallError GetErrorType() override;
 	//@todo this is deprecated and shouldn't be used anymore [6/4/2014 justin.sargent]
 	virtual FText GetPercentageText() override;
 	//@todo this is deprecated and shouldn't be used anymore [6/4/2014 justin.sargent]
@@ -144,6 +157,7 @@ public:
 	virtual FText GetStatusText(bool ShortError = false) override;
 	virtual float GetUpdateProgress() override;
 	virtual FBuildInstallStats GetBuildStatistics() override;
+	virtual EBuildPatchDownloadHealth GetDownloadHealth() const override;
 	virtual FText GetErrorText() override;
 	virtual void CancelInstall() override;
 	virtual bool TogglePauseInstall() override;
@@ -251,6 +265,12 @@ private:
 	void SetDownloadBytesLeft( const int64& BytesLeft );
 
 	/**
+	 * Sets the current download health
+	 * @param DownloadHealth	The download health
+	 */
+	void SetDownloadHealth(EBuildPatchDownloadHealth DownloadHealth);
+
+	/**
 	 * Helper to calculate new chunk progress values
 	 * @param bReset	Resets internals without updating
 	 */
@@ -267,4 +287,14 @@ private:
 	 * @param RootDirectory	 Root Directory for search
 	 */
 	void CleanupEmptyDirectories( const FString& RootDirectory );
+
+	/**
+	 * Loads configuration values, call from main thread.
+	 */
+	void LoadConfig();
+
+	/**
+	 * Saves updated configuration values, call from main thread.
+	 */
+	void SaveConfig();
 };

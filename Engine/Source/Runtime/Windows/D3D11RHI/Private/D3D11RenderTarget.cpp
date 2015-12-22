@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D11RenderTarget.cpp: D3D render target implementation.
@@ -79,6 +79,10 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 		&&	DestRect.X2 == ResolveTargetDesc.Width
 		&&	DestRect.Y2 == ResolveTargetDesc.Height;
 	
+	//we may change rendertargets and depth state behind the RHI's back here.
+	//save off this original state to restore it.
+	FExclusiveDepthStencil OriginalDSVAccessType = CurrentDSVAccessType;
+
 	if(ResolveTargetDesc.BindFlags & D3D11_BIND_DEPTH_STENCIL)
 	{
 		// Clear the destination texture.
@@ -89,6 +93,8 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 			Direct3DDeviceContext->ClearDepthStencilView(DestTextureDSV,D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,0,0);
 		}
 
+		//hack this to  pass validation in SetDepthStencil state since we are directly changing targets with a call to OMSetRenderTargets later.
+		CurrentDSVAccessType = FExclusiveDepthStencil::DepthWrite_StencilWrite;
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true,CF_Always>::GetRHI(),0);
 		RHICmdList.Flush(); // always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.
 
@@ -143,7 +149,7 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 
 	if (SourceTexture)
 	{
-		SetShaderResourceView<SF_Pixel>(SourceTexture, SourceTexture->GetShaderResourceView(), TextureIndex);
+		SetShaderResourceView<SF_Pixel>(SourceTexture, SourceTexture->GetShaderResourceView(), TextureIndex, SourceTexture->GetName());
 	}
 
 	// Generate the vertices used
@@ -182,6 +188,9 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 
 	// Reset saved viewport
 	RHISetMultipleViewports(1,(FViewportBounds*)&SavedViewport);
+
+	//reset DSVAccess.
+	CurrentDSVAccessType = OriginalDSVAccessType;
 }
 
 /**
@@ -192,14 +201,16 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 */
 void FD3D11DynamicRHI::RHICopyToResolveTarget(FTextureRHIParamRef SourceTextureRHI, FTextureRHIParamRef DestTextureRHI, bool bKeepOriginalSurface, const FResolveParams& ResolveParams)
 {
-	if(!SourceTextureRHI || !DestTextureRHI)
+	if (!SourceTextureRHI || !DestTextureRHI)
 	{
 		// no need to do anything (sliently ignored)
 		return;
 	}
 
-	FRHICommandList_RecursiveHazardous RHICmdList(this);
+	RHITransitionResources(EResourceTransitionAccess::EReadable, &SourceTextureRHI, 1);
 
+	FRHICommandList_RecursiveHazardous RHICmdList(this);
+	
 
 	FD3D11Texture2D* SourceTexture2D = static_cast<FD3D11Texture2D*>(SourceTextureRHI->GetTexture2D());
 	FD3D11Texture2D* DestTexture2D = static_cast<FD3D11Texture2D*>(DestTextureRHI->GetTexture2D());
@@ -209,39 +220,6 @@ void FD3D11DynamicRHI::RHICopyToResolveTarget(FTextureRHIParamRef SourceTextureR
 
 	FD3D11Texture3D* SourceTexture3D = static_cast<FD3D11Texture3D*>(SourceTextureRHI->GetTexture3D());
 	FD3D11Texture3D* DestTexture3D = static_cast<FD3D11Texture3D*>(DestTextureRHI->GetTexture3D());
-
-#if CHECK_SRV_TRANSITIONS
-	//check first, as some of the resolve shaders could trigger the resource we're currently resolving.
-	ID3D11Resource* SourceResource = nullptr;
-	int32 ResolveSlice = -1;
-	if (SourceTexture2D)
-	{
-		SourceResource = SourceTexture2D->GetResource();
-	}
-	if (SourceTextureCube)
-	{
-		SourceResource = SourceTextureCube->GetResource();
-		ResolveSlice = ResolveParams.SourceArrayIndex * 6 + ResolveParams.CubeFace;
-	}
-	if (SourceTexture3D)
-	{
-		SourceResource = SourceTexture3D->GetResource();
-	}
-
-	if (SourceResource)
-	{
-		// if we don't have specific resolve data remove all references.
-		// this is helpful when you clear many mips/slices but only want to do one resolve.
-		if (ResolveParams.MipIndex == -1 && ResolveParams.SourceArrayIndex == -1)
-		{
-			UnresolvedTargets.Remove(SourceResource);
-		}
-		else
-		{
-			UnresolvedTargets.Remove(SourceResource, FUnresolvedRTInfo(SourceTextureRHI->GetName(), ResolveParams.MipIndex, 1, ResolveSlice, 1));
-		}
-	}
-#endif
 		
 	if(SourceTexture2D && DestTexture2D)
 	{
@@ -469,10 +447,12 @@ static uint32 ComputeBytesPerPixel(DXGI_FORMAT Format)
 		case DXGI_FORMAT_R16_TYPELESS:
 			BytesPerPixel = 2;
 			break;
-		case DXGI_FORMAT_B8G8R8A8_TYPELESS:
-		case DXGI_FORMAT_B8G8R8A8_UNORM:
 		case DXGI_FORMAT_R8G8B8A8_TYPELESS:
 		case DXGI_FORMAT_R8G8B8A8_UNORM:
+		case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
+		case DXGI_FORMAT_B8G8R8A8_TYPELESS:
+		case DXGI_FORMAT_B8G8R8A8_UNORM:
+		case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
 		case DXGI_FORMAT_R24G8_TYPELESS:
 		case DXGI_FORMAT_R10G10B10A2_UNORM:
 		case DXGI_FORMAT_R11G11B10_FLOAT:
@@ -665,7 +645,7 @@ static void ConvertRAWSurfaceDataToFColor(DXGI_FORMAT Format, uint32 Width, uint
 			}
 		}
 	}
-	else if(Format == DXGI_FORMAT_R8G8B8A8_TYPELESS || Format == DXGI_FORMAT_R8G8B8A8_UNORM)
+	else if(Format == DXGI_FORMAT_R8G8B8A8_TYPELESS || Format == DXGI_FORMAT_R8G8B8A8_UNORM || Format == DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)
 	{
 		// Read the data out of the buffer, converting it from ABGR to ARGB.
 		for(uint32 Y = 0; Y < Height; Y++)

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D11VertexBuffer.cpp: D3D texture RHI implementation.
@@ -573,9 +573,9 @@ TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32
 	if(Flags & TexCreate_RenderTargetable)
 	{
 		check(!(Flags & TexCreate_DepthStencilTargetable));
-		check(!(Flags & TexCreate_ResolveTargetable));
+		check(!(Flags & TexCreate_ResolveTargetable));		
 		TextureDesc.BindFlags |= D3D11_BIND_RENDER_TARGET;
-		bCreateRTV = true;
+		bCreateRTV = true;		
 	}
 	else if(Flags & TexCreate_DepthStencilTargetable)
 	{
@@ -843,6 +843,11 @@ TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32
 
 	Texture2D->ResourceInfo.VRamAllocation = VRamAllocation;
 
+	if (Flags & TexCreate_RenderTargetable)
+	{
+		Texture2D->SetCurrentGPUAccess(EResourceTransitionAccess::EWritable);
+	}
+
 	D3D11TextureAllocated(*Texture2D);
 
 	return Texture2D;
@@ -886,7 +891,7 @@ FD3D11Texture3D* FD3D11DynamicRHI::CreateD3D11Texture3D(uint32 SizeX,uint32 Size
 
 	if(Flags & TexCreate_RenderTargetable)
 	{
-		TextureDesc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+		TextureDesc.BindFlags |= D3D11_BIND_RENDER_TARGET;		
 		bCreateRTV = true;
 	}
 
@@ -964,6 +969,11 @@ FD3D11Texture3D* FD3D11DynamicRHI::CreateD3D11Texture3D(uint32 SizeX,uint32 Size
 	FD3D11Texture3D* Texture3D = new FD3D11Texture3D(this,TextureResource,ShaderResourceView,RenderTargetViews,SizeX,SizeY,SizeZ,NumMips,(EPixelFormat)Format,Flags, CreateInfo.ClearValueBinding);
 
 	Texture3D->ResourceInfo.VRamAllocation = VRamAllocation;
+
+	if (Flags & TexCreate_RenderTargetable)
+	{
+		Texture3D->SetCurrentGPUAccess(EResourceTransitionAccess::EWritable);
+	}
 
 	D3D11TextureAllocated(*Texture3D);
 

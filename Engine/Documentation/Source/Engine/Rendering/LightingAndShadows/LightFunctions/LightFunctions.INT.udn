@@ -2,6 +2,7 @@ Availability: Public
 Title:Light Functions
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:Lighting projected using a Material as the source.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -51,6 +52,10 @@ Description:Lighting projected using a Material as the source.
 [EXCERPT:LightFunctions]
 **Light Functions** are - in essence - a Material that can be applied to filter a light's intensity.  
 
+[Region:note]
+It should be noted, however, that you cannot change the color of lights using a Light Function, only the Light Color setting can do that. Also, Static Lights cannot not use Light Functions, as this feature is only available for non-lightmapped lights, like Stationary and Movable lights.
+[/Region]
+
 It should be noted however that you cannot change the color of lights using a Light Function, only the Light Color setting can do that. 
 [/EXCERPT:LightFunctions]
 
@@ -69,6 +74,6 @@ You can create a Light Function by setting the Material Domain of a Material to 
 
 ## Applying a Light Function 
 
-You can apply a Light Function to a light from inside the **Details** panel under the Light Function Material setting. 
+You can apply a Light Function to a light from inside the **Details** panel under the **Light Function Material** setting. 
 
 ![](AddLightFunction.png)(w:640)

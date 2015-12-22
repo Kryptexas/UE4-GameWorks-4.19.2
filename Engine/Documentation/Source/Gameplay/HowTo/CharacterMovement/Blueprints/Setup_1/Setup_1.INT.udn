@@ -2,6 +2,8 @@ Availability: Public
 Title:1. Character Setup
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:Here we will set up our character and create some assets that we will need later in this guide. 
+Version: 4.9
+SkillLevel: Advanced
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -48,7 +50,7 @@ For this project, we are using the **Blank** Project Template in order to start 
 
 	![](ClickMesh.png)
 
-1.	In the **Details** panel, click the **None** box next to **Skeletal Mesh** and assign the **UE4_Mannequin_Skeleton** Skeletal Mesh. 
+1.	In the **Details** panel, click the **None** box next to **Skeletal Mesh** and assign the **SK_Mannequin_Skeleton** Skeletal Mesh. 
 
 	![](Characters_2.png)
 

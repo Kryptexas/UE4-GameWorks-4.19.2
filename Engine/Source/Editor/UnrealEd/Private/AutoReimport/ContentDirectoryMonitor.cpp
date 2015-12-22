@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 
@@ -169,43 +169,50 @@ void FContentDirectoryMonitor::ProcessAdditions(const IAssetRegistry& Registry, 
 	{
 		auto& Addition = AddedFiles[Index];
 
-		Context.MainTask->EnterProgressFrame();
-
 		if (bCancelled)
 		{
 			// Just update the cache immediately if the user cancelled
 			Cache.CompleteTransaction(MoveTemp(Addition));
+			Context.MainTask->EnterProgressFrame();
 			continue;
 		}
 
 		const FString FullFilename = Cache.GetDirectory() + Addition.Filename.Get();
 
+		FString NewAssetName = ObjectTools::SanitizeObjectName(FPaths::GetBaseFilename(FullFilename));
+		FString PackagePath = PackageTools::SanitizePackageName(MountedContentPath / FPaths::GetPath(Addition.Filename.Get()) / NewAssetName);
+
 		// Don't create assets for new files if assets already exist for the filename
 		auto ExistingReferences = Utils::FindAssetsPertainingToFile(Registry, FullFilename);
 		if (ExistingReferences.Num() != 0)
 		{
-			if (ExistingReferences.Num() == 1)
-			{
-				FText Message = FText::Format(LOCTEXT("Info_AlreadyImported_Single", "Ignoring new file {0} as it's already imported by {1}."), FText::FromString(FPaths::GetCleanFilename(FullFilename)), FText::FromName(ExistingReferences[0].AssetName));
-				Context.GetMessageLog().Message(EMessageSeverity::Info, Message);
-			}
-			else
-			{
-				FText Message = FText::Format(LOCTEXT("Info_AlreadyImported_Multiple", "Ignoring new file {0} as it's already imported by {1} assets."), FText::FromString(FPaths::GetCleanFilename(FullFilename)), FText::AsNumber(ExistingReferences.Num()));
-				Context.GetMessageLog().Message(EMessageSeverity::Info, Message);
-			}
-
-			// We don't try and import new files that are already associated with an asset
-			Cache.CompleteTransaction(MoveTemp(Addition));
+			// Treat this as a modified file that will attempt to reimport it (if applicable). We don't update the progress for this item until it is processed by ProcessModifications
+			ModifiedFiles.Add(MoveTemp(Addition));
 			continue;
 		}
 
-		FString NewAssetName = ObjectTools::SanitizeObjectName(FPaths::GetBaseFilename(FullFilename));
-		FString PackagePath = PackageTools::SanitizePackageName(MountedContentPath / FPaths::GetPath(Addition.Filename.Get()) / NewAssetName);
+		// Move the progress on now that we know we're going to process the file
+		Context.MainTask->EnterProgressFrame();
 
 		if (FPackageName::DoesPackageExist(*PackagePath))
 		{
-			Context.AddMessage(EMessageSeverity::Warning, FText::Format(LOCTEXT("Warning_ExistingAsset", "Can't create a new asset at {0} - one already exists."), FText::FromString(PackagePath)));
+			// Package already exists, so try and import over the top of it, if it doesn't already have a source file path
+			TArray<FAssetData> Assets;
+			if (Registry.GetAssetsByPackageName(*PackagePath, Assets) && Assets.Num() == 1)
+			{
+				if (UObject* ExistingAsset = Assets[0].GetAsset())
+				{
+					// We're only eligible for reimport if the existing asset doesn't reference a source file already
+					const bool bEligibleForReimport = !Utils::ExtractSourceFilePaths(ExistingAsset).ContainsByPredicate([&](const FString& In){
+						return !In.IsEmpty() && In == FullFilename;
+					});
+
+					if (bEligibleForReimport)
+					{
+						ReimportAssetWithNewSource(ExistingAsset, FullFilename, Addition.FileData.FileHash, OutPackagesToSave, Context);
+					}
+				}
+			}
 		}
 		else
 		{
@@ -360,40 +367,14 @@ void FContentDirectoryMonitor::ProcessModifications(const IAssetRegistry& Regist
 				}
 			}
 		}
-		else if (Change.Action == DirectoryWatcher::EFileAction::Modified)
+		else
 		{
+			// Modifications or additions are treated the same by this point
 			for (const auto& AssetData : Utils::FindAssetsPertainingToFile(Registry, FullFilename))
 			{
-				UObject* Asset = AssetData.GetAsset();
-				if (Asset)
+				if (UObject* Asset = AssetData.GetAsset())
 				{
-					TArray<UObject::FAssetRegistryTag> Tags;
-					Asset->GetAssetRegistryTags(Tags);
-					TOptional<FAssetImportInfo> Info = FAssetSourceFilenameCache::ExtractAssetImportInfo(Tags);
-
-					// Check if the source file that this asset last imported was the same as the one we're going to reimport.
-					// If it is, there's no reason to auto-reimport it
-					if (Info.IsSet() && Info->SourceFiles.Num() == 1)
-					{
-						if (Info->SourceFiles[0].FileHash == Change.FileData.FileHash)
-						{
-							continue;
-						}
-					}
-
-					const bool bAssetWasDirty = IsAssetDirty(Asset);
-					if (!ReimportManager->Reimport(Asset, false /* Ask for new file */, false /* Show notification */))
-					{
-						Context.AddMessage(EMessageSeverity::Error, FText::Format(LOCTEXT("Error_FailedToReimportAsset", "Failed to reimport asset {0}."), FText::FromString(Asset->GetName())));
-					}
-					else
-					{
-						Context.AddMessage(EMessageSeverity::Info, FText::Format(LOCTEXT("Success_CreatedNewAsset", "Reimported asset {0} from {1}."), FText::FromString(Asset->GetName()), FText::FromString(FullFilename)));
-						if (!bAssetWasDirty)
-						{
-							OutPackagesToSave.Add(Asset->GetOutermost());
-						}
-					}
+					ReimportAsset(Asset, FullFilename, Change.FileData.FileHash, OutPackagesToSave, Context);
 				}
 			}
 		}
@@ -409,6 +390,46 @@ void FContentDirectoryMonitor::ProcessModifications(const IAssetRegistry& Regist
 	}
 
 	ModifiedFiles.Empty();
+}
+
+void FContentDirectoryMonitor::ReimportAssetWithNewSource(UObject* InAsset, const FString& FullFilename, const FMD5Hash& NewFileHash, TArray<UPackage*>& OutPackagesToSave, FReimportFeedbackContext& Context)
+{
+	TArray<FString> Filenames;
+	Filenames.Add(FullFilename);
+	FReimportManager::Instance()->UpdateReimportPaths(InAsset, Filenames);
+
+	ReimportAsset(InAsset, FullFilename, NewFileHash, OutPackagesToSave, Context);
+}
+
+void FContentDirectoryMonitor::ReimportAsset(UObject* Asset, const FString& FullFilename, const FMD5Hash& NewFileHash, TArray<UPackage*>& OutPackagesToSave, FReimportFeedbackContext& Context)
+{
+	TArray<UObject::FAssetRegistryTag> Tags;
+	Asset->GetAssetRegistryTags(Tags);
+	TOptional<FAssetImportInfo> Info = FAssetSourceFilenameCache::ExtractAssetImportInfo(Tags);
+
+	// Check if the source file that this asset last imported was the same as the one we're going to reimport.
+	// If it is, there's no reason to auto-reimport it
+	if (Info.IsSet() && Info->SourceFiles.Num() == 1)
+	{
+		if (Info->SourceFiles[0].FileHash == NewFileHash)
+		{
+			return;
+		}
+	}
+
+	const bool bAssetWasDirty = IsAssetDirty(Asset);
+	if (!FReimportManager::Instance()->Reimport(Asset, false /* Ask for new file */, false /* Show notification */))
+	{
+		Context.AddMessage(EMessageSeverity::Error, FText::Format(LOCTEXT("Error_FailedToReimportAsset", "Failed to reimport asset {0}."), FText::FromString(Asset->GetName())));
+	}
+	else
+	{
+		Context.AddMessage(EMessageSeverity::Info, FText::Format(LOCTEXT("Success_CreatedNewAsset", "Reimported asset {0} from {1}."), FText::FromString(Asset->GetName()), FText::FromString(FullFilename)));
+		if (!bAssetWasDirty)
+		{
+			OutPackagesToSave.Add(Asset->GetOutermost());
+		}
+	}
 }
 
 void FContentDirectoryMonitor::ExtractAssetsToDelete(const IAssetRegistry& Registry, TArray<FAssetData>& OutAssetsToDelete)

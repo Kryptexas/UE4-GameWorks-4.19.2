@@ -1,0 +1,40 @@
+﻿INTSourceChangelist:2672552
+Availability:Docs
+Title:C++ FPS チュートリアル
+Crumbs: %ROOT%, GettingStarted, Programming/Tutorials
+Description:ファーストパーソン シューティング ゲームの開発方法。
+スキルレベル:初心者向け
+バージョン：4.9
+
+![](FPS_CoverImage.png)
+_このチュートリアルの最後まで終了すると、この画面のようになります。_
+
+## 目標
+
+このチュートリアルでは、C++ とブループリントを使用した基本的なファーストパーソン シューティング ゲーム (FPS) の構築方法について説明します。
+
+## 目的
+
+このクイックスタートの最後まで進むと、以下ができるようになります。
+
+* プロジェクトのセットアップ
+* キャラクターの実装
+* 発射物の実装
+* キャラクターのアニメート
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		セクション
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Programming/Tutorials/FirstPersonShooter/1 "%Programming/Tutorials/FirstPersonShooter/1:description%")
+	* [](Programming/Tutorials/FirstPersonShooter/2 "%Programming/Tutorials/FirstPersonShooter/2:description%")
+	* [](Programming/Tutorials/FirstPersonShooter/3 "%Programming/Tutorials/FirstPersonShooter/3:description%")
+	* [](Programming/Tutorials/FirstPersonShooter/4 "%Programming/Tutorials/FirstPersonShooter/4:description%")
+	[/PARAM]
+[/OBJECT]

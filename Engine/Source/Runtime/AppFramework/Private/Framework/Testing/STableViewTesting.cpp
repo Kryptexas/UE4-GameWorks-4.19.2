@@ -1,7 +1,10 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AppFrameworkPrivatePCH.h"
 #include "STableViewTesting.h"
+
+#if !UE_BUILD_SHIPPING
+
 #include "SNumericEntryBox.h"
 
 #define LOCTEXT_NAMESPACE "STableViewTesting"
@@ -1279,3 +1282,5 @@ TSharedRef<SWidget> MakeTableViewTesting()
 
 
 #undef LOCTEXT_NAMESPACE
+
+#endif // #if !UE_BUILD_SHIPPING

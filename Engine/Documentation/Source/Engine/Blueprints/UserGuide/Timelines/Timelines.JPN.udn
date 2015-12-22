@@ -1,7 +1,9 @@
-﻿Availability:Public
-Title: タイムライン
+﻿INTSourceChangelist:2690818
+Availability:Public
+Title: Timelines ノード
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
-Description:このドキュメントは、アンリアル エンジン 4 のブループリントの Timeline ノードに関する概要です。
+Description:アンリアル エンジン 4 のブループリントの Timeline ノードの概要を説明します。
+version:4.9
 
 ![k2_timeline_demo.png](k2_timeline_demo.png)
 
@@ -76,29 +78,29 @@ Description:このドキュメントは、アンリアル エンジン 4 のブ�
 
 ![k2_timeline_node.png](k2_timeline_node.png)
 
-_Timelines_ には以下の入力/出力ピンがあります。
+Timelines には以下の入力ピンと出力ピンがあります。
 
 | アイテム | 説明 |
 | -------- | ----------- |
 | [REGION:tablesection]入力ピン[/REGION] ||
-| **Play** | _Timeline_ を現在の時刻から順再生させます。 |
-| **Play from Start** | _Timeline_ を最初から順再生させます。 |
-| **Stop** | 現在時刻で _Timeline_ の再生をフリーズさせます。 |
-| **Reverse** | _Timeline_ を現在の時刻から逆再生させます。 |
-| **Reverse from End** | _Timeline_ を最初から逆再生させます。 |
+| **Play** | Timeline を現在の時刻から順再生させます。 |
+| **Play from Start** | Timeline を最初から順再生させます。 |
+| **Stop** | 現在時刻で Timeline の再生をフリーズさせます。 |
+| **Reverse** | Timeline を現在の時刻から逆再生させます。 |
+| **Reverse from End** | Timeline を最初から逆再生させます。 |
 | **Set New Time** | 現在時刻を New Time 入力の値設定 (または入力) に設定します。 |
-| **New Time** | Set New Time 入力が呼び出されると _Timeline_ がジャンプできる時間へ秒時間を表す浮動小数点値を送るデータピンです。 |
+| **New Time** | Set New Time 入力が呼び出されると Timeline がジャンプできる時間へ秒時間を表す浮動小数点値を送るデータピンです。 |
 | [REGION:tablesection]出力ピン[/REGION] ||
-| **Update** | _Timeline_ が呼び出されるとすぐに実行シグナルを出力します。 |
+| **Update** | Timeline が呼び出されるとすぐに実行シグナルを出力します。 |
 | **Finished** | 再生が終了すると実行シグナルを出力します。Stop 関数ではトリガーされません。  |
-| **Direction** | _Timeline_ が再生される方向を示す列挙型変数を出力します。 |
+| **Direction** | Timeline が再生される方向を示す列挙型変数を出力します。 |
 
 [REGION:note]
-	_Timelines_ には、その中で作成されるトラック タイプを反映する出力データピンを好きな数だけ追加できます。Float 、 Vector 、 Event トラックが含まれます。
+	Timelines には、その中で作成されるトラック タイプを反映する出力データピンを好きな数だけ追加できます。Float 、 Vector 、 Event トラックが含まれます。
 [/REGION]
 
 
-## Timeline の例
+## Timeline ノードのサンプル
 
 [REGION:topics fourth]
 	[OBJECT:TopicCompact]

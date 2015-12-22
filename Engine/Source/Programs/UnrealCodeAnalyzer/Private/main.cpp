@@ -1,9 +1,10 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealCodeAnalyzerPCH.h"
 #include "Action.h"
 
 #include "RequiredProgramMainCPPInclude.h"
+#include "ThreadSafety/TSAction.h"
 
 DEFINE_LOG_CATEGORY(LogUnrealCodeAnalyzer)
 
@@ -348,6 +349,24 @@ int AnalyzePCHFile(const FString& CmdLine)
 	return 0;
 }
 
+int32 CheckThreadSafety(int32 ArgC, const char** ArgV)
+{
+	LLVMInitializeX86TargetInfo();
+	LLVMInitializeX86TargetMC();
+	LLVMInitializeX86AsmParser();
+
+	// First argument decides which control flow path we follow, second is output file. They're not relevant from clang's point of view.
+	ArgC -= 2;
+	ArgV[3] = ArgV[2];
+	ArgV[2] = ArgV[0];
+	CommonOptionsParser OptionsParser(ArgC, &(ArgV[2]), MyToolCategory);
+
+	ClangTool Tool(OptionsParser.getCompilations(), OptionsParser.getSourcePathList());
+	Tool.clearArgumentsAdjusters();
+
+	return Tool.run(newFrontendActionFactory<UnrealCodeAnalyzer::FTSAction>().get());
+}
+
 //
 // If analysis/clang compilation gives an error, we still can provide some meaningful data to user,
 // which is why we return 0 in such cases. We return error only when -OutputFile is not provided and
@@ -376,6 +395,11 @@ int main(int32 ArgC, const char* ArgV[])
 	if (FParse::Param(*CmdLine, TEXT("CreateIncludeFiles")))
 	{
 		CreateIncludeFiles(ArgC, ArgV);
+	}
+
+	if (FParse::Param(*CmdLine, TEXT("CheckThreadSafety")))
+	{
+		CheckThreadSafety(ArgC, ArgV);
 	}
 
 	if (!FFileHelper::SaveStringToFile(OutputFileContents, *OutputFileName))

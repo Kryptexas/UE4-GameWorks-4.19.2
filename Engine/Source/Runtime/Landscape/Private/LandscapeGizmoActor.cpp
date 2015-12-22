@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "Landscape.h"
@@ -323,7 +323,7 @@ public:
 #endif
 	};
 
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
 	{
 		FPrimitiveViewRelevance Result;
 #if WITH_EDITOR
@@ -870,7 +870,7 @@ void ALandscapeGizmoActiveActor::SampleData(int32 SizeX, int32 SizeY)
 
 		GizmoTexture->TemporarilyDisableStreaming();
 		FUpdateTextureRegion2D Region(0, 0, 0, 0, TexSizeX, TexSizeY);
-		GizmoTexture->UpdateTextureRegions(0, 1, &Region, GizmoTexSizeX, sizeof(uint8), TexData, false);
+		GizmoTexture->UpdateTextureRegions(0, 1, &Region, GizmoTexSizeX, sizeof(uint8), TexData);
 		FlushRenderingCommands();
 		GizmoTexture->Source.UnlockMip(0);
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "GeometryCacheTrack.generated.h"
@@ -13,10 +13,10 @@ class UGeometryCacheTrack : public UObject
 
 	virtual ~UGeometryCacheTrack();
 	
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual void Serialize(FArchive& Ar) override;
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
-	// End UObject interface
+	//~ End UObject Interface
 			
 	/**
 	* UpdateMatrixData

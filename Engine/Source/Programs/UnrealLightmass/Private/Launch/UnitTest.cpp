@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "stdafx.h"
 #include "UnitTest.h"
@@ -218,7 +218,7 @@ void TestLightmass()
 	FTestCollisionDataProvider TestDataProvider(TestkDOP);
 	FHitResult TestResult;
 	
-	FkDOPBuildCollisionTriangle<uint16> TestTri(0, FVector4(0,0,0,0), FVector4(1,1,1,0), FVector4(2,2,2,0), INDEX_NONE, INDEX_NONE, false, true);
+	FkDOPBuildCollisionTriangle<uint16> TestTri(0, FVector4(0,0,0,0), FVector4(1,1,1,0), FVector4(2,2,2,0), INDEX_NONE, INDEX_NONE, INDEX_NONE, false, true);
 	TArray<FkDOPBuildCollisionTriangle<uint16> > TestTriangles;
 	TestTriangles.Add(TestTri);
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #if WITH_BUILDPATCHGENERATION
 
@@ -43,7 +43,7 @@ namespace BuildPatchServices
 		, NumFilesFound(0)
 	{
 		TFunction<void()> Task = [this]() { EnumerateCloud(); };
-		Future = Async(EAsyncExecution::Thread, Task);
+		Future = Async(EAsyncExecution::Thread, MoveTemp(Task));
 	}
 
 	FCloudEnumerationImpl::~FCloudEnumerationImpl()

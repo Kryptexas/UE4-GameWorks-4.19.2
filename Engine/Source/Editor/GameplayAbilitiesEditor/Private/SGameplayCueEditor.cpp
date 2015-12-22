@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemEditorPrivatePCH.h"
 #include "SGameplayCueEditor.h"
@@ -211,7 +211,6 @@ void SGameplayCuePickerDialog::Construct(const FArguments& InArgs)
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-
 static const FName CueTagColumnName("GameplayCueTags");
 static const FName CueHandlerColumnName("GameplayCueHandlers");
 
@@ -406,59 +405,17 @@ private:
 		FScopedSlowTask SlowTask(0.f, LOCTEXT("AddingNewGameplaycue", "Adding new GameplayCue Tag"));
 		SlowTask.MakeDialog();
 
-
 		FString str = NewGameplayCueTextBox->GetText().ToString();
+		if (str.IsEmpty())
+		{
+			return;
+		}
 
 		AutoSelectTag = str;
 
-		UGameplayTagsSettings* Settings = GetMutableDefault<UGameplayTagsSettings>();
+		UGameplayTagsManager::AddNewGameplayTagToINI(str);
 
-		if (Settings)
-		{
-
-			FString RelativeConfigFilePath = Settings->GetDefaultConfigFilename();
-			FString ConfigPath = FPaths::ConvertRelativePathToFull(RelativeConfigFilePath);
-
-			if (ISourceControlModule::Get().IsEnabled())
-			{
-				FText ErrorMessage;
-
-				if (!SourceControlHelpers::CheckoutOrMarkForAdd(ConfigPath, FText::FromString(ConfigPath), NULL, ErrorMessage))
-				{
-					FNotificationInfo Info(ErrorMessage);
-					Info.ExpireDuration = 3.0f;
-					FSlateNotificationManager::Get().AddNotification(Info);
-				}
-			}
-			else
-			{
-				if (!FPlatformFileManager::Get().GetPlatformFile().SetReadOnly(*ConfigPath, false))
-				{
-					FText NotificationErrorText = FText::Format(LOCTEXT("FailedToMakeWritable", "Could not make {0} writable."), FText::FromString(ConfigPath));
-
-					FNotificationInfo Info(NotificationErrorText);
-					Info.ExpireDuration = 3.0f;
-
-					FSlateNotificationManager::Get().AddNotification(Info);
-				}
-			}
-
-			Settings->GameplayTags.Add(str);
-			Settings->SortTags();
-			IGameplayTagsModule::Get().GetGameplayTagsManager().DestroyGameplayTagTree();
-
-			{
-#if STATS
-				FString PerfMessage = FString::Printf(TEXT("ConstructGameplayTagTree GameplayTag tables"));
-				SCOPE_LOG_TIME_IN_SECONDS(*PerfMessage, nullptr)
-#endif
-					IGameplayTagsModule::Get().GetGameplayTagsManager().ConstructGameplayTagTree();
-			}
-
-			Settings->UpdateDefaultConfigFile();
-
-			UpdateGameplayCueListItems();
-		}
+		UpdateGameplayCueListItems();
 
 		NewGameplayCueTextBox->SetText(FText::GetEmpty());
 	}
@@ -560,11 +517,22 @@ private:
 				}
 				else if (ColumnName == CueHandlerColumnName)
 				{
+					bool HasNotifies = false;
+					for (auto& HandlerItem : Item->HandlerItems)
+					{
+						if (HandlerItem->GameplayCueNotifyObj.IsValid())
+						{
+							HasNotifies = true;
+							break;
+						}
+					}
+
 					return
 					SNew(SBox)
 					.Padding( FMargin(2.0f, 0.0f) )
 					.HAlign(HAlign_Left)
 					.VAlign(VAlign_Center)
+					.Visibility(HasNotifies ? EVisibility::Collapsed : EVisibility::Visible)
 					[
 						SNew(SButton)
 						.Text(LOCTEXT("AddNew", "Add New"))
@@ -581,43 +549,8 @@ private:
 			/** Create new GameplayCueNotify: brings up dialogue to pick class, then creates it via the content browser. */
 			FReply OnAddNewClicked()
 			{
-				FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
-				FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-
-				TArray<UClass*>	NotifyClasses;
-				auto del = IGameplayAbilitiesEditorModule::Get().GetGameplayCueNotifyClassesDelegate();
-				del.ExecuteIfBound(NotifyClasses);
-				if (NotifyClasses.Num() == 0)
-				{
-					NotifyClasses.Add(UGameplayCueNotify_Static::StaticClass());
-					NotifyClasses.Add(AGameplayCueNotify_Actor::StaticClass());
-				}
-
-				// --------------------------------------------------
-
-				// Null the parent class to ensure one is selected	
-
-				const FText TitleText = LOCTEXT("CreateBlueprintOptions", "New GameplayCue Handler");
-				UClass* ChosenClass = nullptr;
-				const bool bPressedOk = SGameplayCuePickerDialog::PickGameplayCue(TitleText, NotifyClasses, ChosenClass, Item->GameplayCueTagName.ToString());
-				if (bPressedOk)
-				{
-					FString NewDefaultPathName = SGameplayCueEditor::GetPathNameForGameplayCueTag(Item->GameplayCueTagName.ToString());
-
-					// Make sure the name is unique
-					FString AssetName;
-					FString PackageName;
-					AssetToolsModule.Get().CreateUniqueAssetName(NewDefaultPathName, TEXT(""), /*out*/ PackageName, /*out*/ AssetName);
-					const FString PackagePath = FPackageName::GetLongPackagePath(PackageName);
-
-					// Create the GameplayCue Notify
-					UBlueprintFactory* BlueprintFactory = NewObject<UBlueprintFactory>();
-					BlueprintFactory->ParentClass = ChosenClass;
-					ContentBrowserModule.Get().CreateNewAsset(AssetName, PackagePath, UBlueprint::StaticClass(), BlueprintFactory);
-
-					RefreshDelegate.ExecuteIfBound();
-				}
-
+				SGameplayCueEditor::CreateNewGameplayCueNotifyDialogue(Item->GameplayCueTagName.ToString());
+				RefreshDelegate.ExecuteIfBound();
 				return FReply::Handled();
 			}
 
@@ -647,9 +580,9 @@ private:
 				}
 				else if (ColumnName == CueHandlerColumnName)
 				{
-					if (CueHandlerItem->GameplayCueNotifyObj.AssetLongPathname.IsEmpty() == false)
+					if (CueHandlerItem->GameplayCueNotifyObj.ToString().IsEmpty() == false)
 					{
-						FString ObjName = CueHandlerItem->GameplayCueNotifyObj.AssetLongPathname;
+						FString ObjName = CueHandlerItem->GameplayCueNotifyObj.ToString();
 
 						int32 idx;
 						if (ObjName.FindLastChar(TEXT('.'), idx))
@@ -706,26 +639,17 @@ private:
 			{
 				if (CueHandlerItem->GameplayCueNotifyObj.IsValid())
 				{
-					TArray<FString>	AssetList;
-					AssetList.Add(CueHandlerItem->GameplayCueNotifyObj.ToString());
-					FAssetEditorManager::Get().OpenEditorsForAssets(AssetList);
+					SGameplayCueEditor::OpenEditorForNotify(CueHandlerItem->GameplayCueNotifyObj.ToString());
+					
 				}
 				else if (CueHandlerItem->FunctionPtr.IsValid())
 				{
-					TArray<FString>	AssetList;
-					AssetList.Add(CueHandlerItem->FunctionPtr->GetOuter()->GetPathName());
-					FAssetEditorManager::Get().OpenEditorsForAssets(AssetList);
+					SGameplayCueEditor::OpenEditorForNotify(CueHandlerItem->FunctionPtr->GetOuter()->GetPathName());
 				}
 			}
 
 			TSharedPtr<FCueHandlerItem> CueHandlerItem;
 		};
-
-
-
-
-
-
 
 		TSharedPtr<FCueItem> CueItem = InItem->AsCueItem();
 		TSharedPtr<FCueHandlerItem> CueHandlerItem = InItem->AsCueHandlerItem();
@@ -747,6 +671,11 @@ private:
 				.Text(LOCTEXT("UnknownItemType", "Unknown Item Type"))
 			];
 		}
+	}
+
+	void OnPropertyValueChanged()
+	{
+		UpdateGameplayCueListItems();
 	}
 
 
@@ -936,6 +865,12 @@ private:
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SGameplayCueEditorImpl::Construct(const FArguments& InArgs)
 {
+	UGameplayCueManager* CueManager = UAbilitySystemGlobals::Get().GetGameplayCueManager();
+	if (CueManager)
+	{
+		CueManager->OnGameplayCueNotifyAddOrRemove.AddSP(this, &SGameplayCueEditorImpl::OnPropertyValueChanged);
+	}
+
 	bShowAll = true;
 	bool CanAddFromINI = UGameplayTagsManager::ShouldImportTagsFromINI(); // We only support adding new tags to the ini files.
 	ChildSlot
@@ -1046,13 +981,75 @@ void SGameplayCueEditorImpl::Construct(const FArguments& InArgs)
 
 	UpdateGameplayCueListItems();
 }
+
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 TSharedRef<SGameplayCueEditor> SGameplayCueEditor::New()
 {
 	return MakeShareable(new SGameplayCueEditorImpl());
 }
-END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+void SGameplayCueEditor::CreateNewGameplayCueNotifyDialogue(FString GameplayCue)
+{
+	FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+
+	TArray<UClass*>	NotifyClasses;
+	auto del = IGameplayAbilitiesEditorModule::Get().GetGameplayCueNotifyClassesDelegate();
+	del.ExecuteIfBound(NotifyClasses);
+	if (NotifyClasses.Num() == 0)
+	{
+		NotifyClasses.Add(UGameplayCueNotify_Static::StaticClass());
+		NotifyClasses.Add(AGameplayCueNotify_Actor::StaticClass());
+	}
+
+	// --------------------------------------------------
+
+	// Null the parent class to ensure one is selected	
+
+	const FText TitleText = LOCTEXT("CreateBlueprintOptions", "New GameplayCue Handler");
+	UClass* ChosenClass = nullptr;
+	const bool bPressedOk = SGameplayCuePickerDialog::PickGameplayCue(TitleText, NotifyClasses, ChosenClass, GameplayCue);
+	if (bPressedOk)
+	{
+		FString NewDefaultPathName = SGameplayCueEditor::GetPathNameForGameplayCueTag(GameplayCue);
+
+		// Make sure the name is unique
+		FString AssetName;
+		FString PackageName;
+		AssetToolsModule.Get().CreateUniqueAssetName(NewDefaultPathName, TEXT(""), /*out*/ PackageName, /*out*/ AssetName);
+		const FString PackagePath = FPackageName::GetLongPackagePath(PackageName);
+
+		// Create the GameplayCue Notify
+		UBlueprintFactory* BlueprintFactory = NewObject<UBlueprintFactory>();
+		BlueprintFactory->ParentClass = ChosenClass;
+		ContentBrowserModule.Get().CreateNewAsset(AssetName, PackagePath, UBlueprint::StaticClass(), BlueprintFactory);
+	}
+}
+
+void SGameplayCueEditor::OpenEditorForNotify(FString NotifyFullPath)
+{
+	// This nonsense is to handle the case where the asset only exists in memory
+	// and there for does not have a linker/exist on disk. (The FString version
+	// of OpenEditorForAsset does not handle this).
+	FStringAssetReference AssetRef(NotifyFullPath);
+
+	UObject* Obj = AssetRef.ResolveObject();
+	if (!Obj)
+	{
+		Obj = AssetRef.TryLoad();
+	}
+
+	if (Obj)
+	{
+		UPackage* pkg = Cast<UPackage>(Obj->GetOuter());
+		if (pkg)
+		{
+			FString AssetName = FPaths::GetBaseFilename(AssetRef.ToString());
+			UObject* AssetObject = FindObject<UObject>(pkg, *AssetName);
+			FAssetEditorManager::Get().OpenEditorForAsset(AssetObject);
+		}
+	}
+}
 
 #undef LOCTEXT_NAMESPACE

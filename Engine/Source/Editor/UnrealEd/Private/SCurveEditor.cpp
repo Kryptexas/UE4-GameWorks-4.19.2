@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "UnrealEd.h"
@@ -95,13 +95,16 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 		FExecuteAction::CreateSP(this, &SCurveEditor::RedoAction));
 
 	Commands->MapAction(FRichCurveEditorCommands::Get().ZoomToFitHorizontal,
-		FExecuteAction::CreateSP(this, &SCurveEditor::ZoomToFitHorizontal));
+		FExecuteAction::CreateSP(this, &SCurveEditor::ZoomToFitHorizontal, false));
 
 	Commands->MapAction(FRichCurveEditorCommands::Get().ZoomToFitVertical,
-		FExecuteAction::CreateSP(this, &SCurveEditor::ZoomToFitVertical));
+		FExecuteAction::CreateSP(this, &SCurveEditor::ZoomToFitVertical, false));
 
 	Commands->MapAction(FRichCurveEditorCommands::Get().ZoomToFit,
-		FExecuteAction::CreateSP(this, &SCurveEditor::ZoomToFit));
+		FExecuteAction::CreateSP(this, &SCurveEditor::ZoomToFit, false));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().ZoomToFitAll,
+		FExecuteAction::CreateSP(this, &SCurveEditor::ZoomToFit, true));
 
 	Commands->MapAction(FRichCurveEditorCommands::Get().ToggleSnapping,
 		FExecuteAction::CreateSP(this, &SCurveEditor::ToggleSnapping),
@@ -231,7 +234,13 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 		FIsActionChecked::CreateLambda( [this]{ return Settings->GetAutoFrameCurveEditor(); } ) );
 
 	Commands->MapAction(FRichCurveEditorCommands::Get().ToggleShowCurveEditorCurveToolTips,
-		FExecuteAction::CreateLambda( [this]{ Settings->SetShowCurveEditorCurveToolTips( !Settings->GetShowCurveEditorCurveToolTips() ); } ),
+		FExecuteAction::CreateLambda( [this]{ 
+		Settings->SetShowCurveEditorCurveToolTips( !Settings->GetShowCurveEditorCurveToolTips() ); 
+		if (!Settings->GetShowCurveEditorCurveToolTips())
+		{
+			CurveToolTip.Reset();
+			SetToolTip(CurveToolTip);
+		} } ),
 		FCanExecuteAction::CreateLambda( []{ return true; } ),
 		FIsActionChecked::CreateLambda( [this]{ return Settings->GetShowCurveEditorCurveToolTips(); } ) );
 
@@ -1494,7 +1503,7 @@ void SCurveEditor::TryStartDrag(const FGeometry& InMyGeometry, const FPointerEve
 
 	FVector2D MousePosition = InMyGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
 	FVector2D DragVector = MousePosition - MouseDownLocation;
-	if (DragVector.Size() >= DragThreshold)
+	if (DragVector.SizeSquared() >= FMath::Square(DragThreshold))
 	{
 		if (bShiftDown)
 		{
@@ -2111,6 +2120,8 @@ SCurveEditor::FSelectedCurveKey SCurveEditor::HitTestKeys(const FGeometry& InMyG
 
 void SCurveEditor::MoveSelectedKeys(FVector2D Delta)
 {
+	TArray<FRichCurveEditInfo> ChangedCurveEditInfos;
+
 	const FScopedTransaction Transaction( LOCTEXT("CurveEditor_MoveKeys", "Move Keys") );
 	CurveOwner->ModifyOwner();
 
@@ -2154,12 +2165,18 @@ void SCurveEditor::MoveSelectedKeys(FVector2D Delta)
 		}
 
 		UniqueCurves.Add(Curve);
+		ChangedCurveEditInfos.Add(GetViewModelForCurve(Curve)->CurveInfo);
 	}
 
 	// update auto tangents for all curves encountered, once each only
 	for(TSet<FRichCurve*>::TIterator SetIt(UniqueCurves);SetIt;++SetIt)
 	{
 		(*SetIt)->AutoSetTangents();
+	}
+
+	if (ChangedCurveEditInfos.Num())
+	{
+		CurveOwner->OnCurveChanged(ChangedCurveEditInfos);
 	}
 }
 
@@ -2307,7 +2324,7 @@ TArray<FRichCurve*> SCurveEditor::GetCurvesToFit() const
 }
 
 
-void SCurveEditor::ZoomToFitHorizontal()
+void SCurveEditor::ZoomToFitHorizontal(const bool bZoomToFitAll)
 {
 	TArray<FRichCurve*> CurvesToFit = GetCurvesToFit();
 
@@ -2317,7 +2334,7 @@ void SCurveEditor::ZoomToFitHorizontal()
 		float InMax = -FLT_MAX;
 		int32 TotalKeys = 0;
 
-		if (SelectedKeys.Num())
+		if (SelectedKeys.Num() && !bZoomToFitAll)
 		{
 			for (auto SelectedKey : SelectedKeys)
 			{
@@ -2395,7 +2412,7 @@ void SCurveEditor::SetDefaultOutput(const float MinZoomRange)
 	SetOutputMinMax(NewMinOutput, NewMaxOutput);
 }
 
-void SCurveEditor::ZoomToFitVertical()
+void SCurveEditor::ZoomToFitVertical(const bool bZoomToFitAll)
 {
 	TArray<FRichCurve*> CurvesToFit = GetCurvesToFit();
 
@@ -2405,7 +2422,7 @@ void SCurveEditor::ZoomToFitVertical()
 		float InMax = -FLT_MAX;
 		int32 TotalKeys = 0;
 
-		if (SelectedKeys.Num() != 0)
+		if (SelectedKeys.Num() != 0 && !bZoomToFitAll)
 		{
 			for (auto SelectedKey : SelectedKeys)
 			{
@@ -2476,10 +2493,10 @@ FReply SCurveEditor::ZoomToFitVerticalClicked()
 	return FReply::Handled();
 }
 
-void SCurveEditor::ZoomToFit()
+void SCurveEditor::ZoomToFit(const bool bZoomToFitAll)
 {
-	ZoomToFitHorizontal();
-	ZoomToFitVertical();
+	ZoomToFitHorizontal(bZoomToFitAll);
+	ZoomToFitVertical(bZoomToFitAll);
 }
 
 void SCurveEditor::ToggleSnapping()
@@ -2497,6 +2514,37 @@ bool SCurveEditor::IsSnappingEnabled()
 
 void SCurveEditor::CreateContextMenu(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
 {
+	TSharedPtr<TArray<TSharedPtr<FCurveViewModel>>> CurvesToAddKeysTo = MakeShareable(new TArray<TSharedPtr<FCurveViewModel>>());
+
+	bool bHoveredCurveValid = false;
+	TSharedPtr<FCurveViewModel> HoveredCurve = HitTestCurves(InMyGeometry, InMouseEvent);
+	//Curve must be visible and unlocked to show context menu
+	if (HoveredCurve.IsValid() && !HoveredCurve->bIsLocked && HoveredCurve->bIsVisible)
+	{
+		CurvesToAddKeysTo->Add(HoveredCurve);
+		bHoveredCurveValid = true;
+	}
+	else
+	{
+		// Get all editable curves
+		for (auto CurveViewModel : CurveViewModels)
+		{
+			if (!CurveViewModel->bIsLocked)
+			{
+				CurvesToAddKeysTo->Add(CurveViewModel);
+			}
+		}
+	}
+
+	const bool bCreateExternalCurve = OnCreateAsset.IsBound() && IsEditingEnabled();
+	const bool bShowLinearColorCurve = IsLinearColorCurve();
+
+	// Early out if there's no menu items to show
+	if (CurvesToAddKeysTo->Num() == 0 && !bCreateExternalCurve && !bShowLinearColorCurve)
+	{
+		return;
+	}	
+
 	const FVector2D& ScreenPosition = InMouseEvent.GetScreenSpacePosition();
 
 	const bool CloseAfterSelection = true;
@@ -2506,33 +2554,21 @@ void SCurveEditor::CreateContextMenu(const FGeometry& InMyGeometry, const FPoint
 	{
 		FText MenuItemLabel;
 		FText MenuItemToolTip;
-		TSharedPtr<TArray<TSharedPtr<FCurveViewModel>>> CurvesToAddKeysTo = MakeShareable(new TArray<TSharedPtr<FCurveViewModel>>());
 
 		FText AddKeyToCurveLabelFormat = LOCTEXT("AddKeyToCurveLabelFormat", "Add key to {0}");
 		FText AddKeyToCurveToolTipFormat = LOCTEXT("AddKeyToCurveToolTipFormat", "Add a new key at the hovered time to the {0} curve.  Keys can also be added with Shift + Click.");
 
 		FVector2D Position = InMouseEvent.GetScreenSpacePosition();
-
-		TSharedPtr<FCurveViewModel> HoveredCurve = HitTestCurves(InMyGeometry, InMouseEvent);
-		//Curve must be visible and unlock to show context menu
-		if (HoveredCurve.IsValid() && !HoveredCurve->bIsLocked && HoveredCurve->bIsVisible)
+	
+		if (bHoveredCurveValid)
 		{
 			MenuItemLabel = FText::Format(AddKeyToCurveLabelFormat, FText::FromName(HoveredCurve->CurveInfo.CurveName));
 			MenuItemToolTip = FText::Format(AddKeyToCurveToolTipFormat, FText::FromName(HoveredCurve->CurveInfo.CurveName));
-			CurvesToAddKeysTo->Add(HoveredCurve);
 			FUIAction Action = FUIAction(FExecuteAction::CreateSP(this, &SCurveEditor::AddNewKey, InMyGeometry, Position, CurvesToAddKeysTo, true));
 			MenuBuilder.AddMenuEntry(MenuItemLabel, MenuItemToolTip, FSlateIcon(), Action);
 		}
 		else
 		{
-			//Get all editable curve
-			for (auto CurveViewModel : CurveViewModels)
-			{
-				if (!CurveViewModel->bIsLocked)
-				{
-					CurvesToAddKeysTo->Add(CurveViewModel);
-				}
-			}
 			if (CurvesToAddKeysTo->Num() == 1)
 			{
 				MenuItemLabel = FText::Format(AddKeyToCurveLabelFormat, FText::FromName((*CurvesToAddKeysTo)[0]->CurveInfo.CurveName));
@@ -2564,7 +2600,7 @@ void SCurveEditor::CreateContextMenu(const FGeometry& InMyGeometry, const FPoint
 
 	MenuBuilder.BeginSection("CurveEditorActions", LOCTEXT("CurveAction", "Curve Actions") );
 	{
-		if( OnCreateAsset.IsBound() && IsEditingEnabled() )
+		if( bCreateExternalCurve )
 		{
 			FUIAction Action = FUIAction( FExecuteAction::CreateSP( this, &SCurveEditor::OnCreateExternalCurveClicked ) );
 			MenuBuilder.AddMenuEntry
@@ -3074,6 +3110,8 @@ bool SCurveEditor::IsPostInfinityExtrapSelected(ERichCurveExtrapolation Extrapol
 
 void SCurveEditor::MoveTangents(FTrackScaleInfo& ScaleInfo, FVector2D Delta)
 {
+	TArray<FRichCurveEditInfo> ChangedCurveEditInfos;
+
 	for (auto SelectedTangent : SelectedTangents)
 	{
 		auto& RichKey = SelectedTangent.Key.Curve->GetKey(SelectedTangent.Key.KeyHandle);
@@ -3147,6 +3185,15 @@ void SCurveEditor::MoveTangents(FTrackScaleInfo& ScaleInfo, FVector2D Delta)
 				RichKey.LeaveTangent = NewLeaveTangent;
 			}
 		}	
+
+		RichKey.InterpMode = RCIM_Cubic;
+
+		ChangedCurveEditInfos.Add(GetViewModelForCurve(SelectedTangent.Key.Curve)->CurveInfo);
+	}
+
+	if (ChangedCurveEditInfos.Num())
+	{
+		CurveOwner->OnCurveChanged(ChangedCurveEditInfos);
 	}
 }
 

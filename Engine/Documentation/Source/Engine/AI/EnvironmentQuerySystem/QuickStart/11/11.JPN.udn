@@ -1,27 +1,29 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2654592
+Availability:Public
 Title:11.FindPlayer EQS を作成する
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
-Description:レベル内でプレイヤーの TopDownCharacter のすべてのインスタンスを見つける Environment Query (環境クエリ) を作成します。
+Description:レベル内でプレイヤーの TopDownCharacter のすべてのインスタンスを見つける環境クエリを作成します。
+バージョン：4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Engine/AI/EnvironmentQuerySystem/QuickStart/10 "%Engine/AI/EnvironmentQuerySystem/QuickStart/10:title%")
+		[前のステップ](Engine/AI/EnvironmentQuerySystem/QuickStart/10 "%Engine/AI/EnvironmentQuerySystem/QuickStart/10:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Quick Start Home](Engine/AI/EnvironmentQuerySystem/QuickStart)
+		[クイックスタート ホーム](Engine/AI/EnvironmentQuerySystem/QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Engine/AI/EnvironmentQuerySystem/QuickStart/12 "%Engine/AI/EnvironmentQuerySystem/QuickStart/12:title%")
+		[次のステップ](Engine/AI/EnvironmentQuerySystem/QuickStart/12 "%Engine/AI/EnvironmentQuerySystem/QuickStart/12:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-これは 2 つある **Environment Queries** (環境クエリ) の中でより単純なものです。AI の 1500 ユニット内ですべての TopDownCharacters のリストを戻して、次に AI が TopDownCharacters を見ることができるかをテストします。AI が TopDownCharacters を見ることができれば、ビヘイビア ツリー 用に ActorToFleeFrom を取得します。
+これは 2 つある **Environment Queries(環境クエリ)** の中でより単純なものです。AI の 1500 ユニット内ですべての TopDownCharacters のリストを戻して、次に AI が TopDownCharacters を見ることができるかをテストします。AI が TopDownCharacters を見ることができれば、ビヘイビア ツリーのために ActorToFleeFrom を取得します。
 
 このプロセスを実現するには多くの方法があります。それぞれ長所と短所があります。この場合 EQS を使用すると、後でさらにテストを追加して、そこから実行する _一番良い_ 敵 (TopDownCharacter) を選ぶことができます。
 
@@ -33,11 +35,11 @@ Description:レベル内でプレイヤーの TopDownCharacter のすべての�
 
 ## ステップ
 
-1. はじめに、**コンテンツ ブラウザ** にある `FindPlayer` **Environment Query** アセットをダブルクリックします。
+1. はじめに、**コンテンツ ブラウザ** にある FindPlayer **Environment Query** アセットをダブルクリックします。
 
 	![](findPlayerAsset.png)
 
-	これで以下のような **Environment Query** が開きます。
+	これで以下のような **Environment Query** エディタが開きます。
 
 	![](startingEQ.png)
 
@@ -64,7 +66,7 @@ Description:レベル内でプレイヤーの TopDownCharacter のすべての�
 	* **Search Radius** = 1500
 	* **Searched Actor Class** = TopDownCharacter
 
-	この Generator は、この半径内で、特定のクラスのすべてのアクタを見つけて、そこから Items を作成します。
+	この Generator は、この半径内で、特定クラスのすべてのアクタを見つけて、そこから Items を作成します。
 
 1. **Trace** テストを **ActorsOfClass** ノードに追加します。
 
@@ -72,7 +74,7 @@ Description:レベル内でプレイヤーの TopDownCharacter のすべての�
 
 	トレース テストはコンテキストがアイテムに対して視線を持っているかをチェックするのに役立ちます。この場合、AI から Item (この場合 TopDownCharacters/Players )です。
 
-1. **ActorsOfClass** ノードを左クリックして Trace Test を選択します。[Details] （詳細） パネルで、 **Bool Match** Property を `false` に変更します。
+1. **ActorsOfClass** ノードを左クリックして Trace Test を選択します。[Details] パネルで、 **Bool Match** プロパティを false に変更します (チェックを外す)。
 
 	![](aoc_TraceFinal.png)
 

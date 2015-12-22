@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MacPlatformMisc.mm: Mac implementations of misc functions
@@ -133,7 +133,7 @@ struct FMacApplicationInfo
 		
 		FString CrashVideoPath = FPaths::GameLogDir() + TEXT("CrashVideo.avi");
 		
-		BranchBaseDir = FString::Printf( TEXT( "%s!%s!%s!%d" ), *FApp::GetBranchName(), FPlatformProcess::BaseDir(), FPlatformMisc::GetEngineMode(), GEngineVersion.GetChangelist() );
+		BranchBaseDir = FString::Printf( TEXT( "%s!%s!%s!%d" ), *FApp::GetBranchName(), FPlatformProcess::BaseDir(), FPlatformMisc::GetEngineMode(), FEngineVersion::Current().GetChangelist() );
 		
 		// Get the paths that the files will actually have been saved to
 		FString LogDirectory = FPaths::GameLogDir();
@@ -309,6 +309,11 @@ void FMacPlatformMisc::PlatformPreInit()
 	FGenericPlatformMisc::PlatformPreInit();
 	
 	GMacAppInfo.Init();
+
+	FMacApplication::UpdateScreensArray();
+	
+	// No SIGPIPE crashes please - they are a pain to debug!
+	signal(SIGPIPE, SIG_IGN);
 
 	// Increase the maximum number of simultaneously open files
 	uint32 MaxFilesPerProc = OPEN_MAX;
@@ -1004,12 +1009,26 @@ void FMacPlatformMisc::NormalizePath(FString& InPath)
 	SCOPED_AUTORELEASE_POOL;
 	if (InPath.Len() > 1)
 	{
+#if WITH_EDITOR
 		const bool bAppendSlash = InPath[InPath.Len() - 1] == '/'; // NSString will remove the trailing slash, if present, so we need to restore it after conversion
 		InPath = [[InPath.GetNSString() stringByStandardizingPath] stringByResolvingSymlinksInPath];
 		if (bAppendSlash)
 		{
 			InPath += TEXT("/");
 		}
+#else
+		InPath.ReplaceInline(TEXT("\\"), TEXT("/"));
+		// This replacement addresses a "bug" where some callers
+		// pass in paths that are badly composed with multiple
+		// subdir separators.
+		InPath.ReplaceInline(TEXT("//"), TEXT("/"));
+		if (!InPath.IsEmpty() && InPath[InPath.Len() - 1] == TEXT('/'))
+		{
+			InPath.LeftChop(1);
+		}
+		// Remove redundant current-dir references.
+		InPath.ReplaceInline(TEXT("/./"), TEXT("/"));
+#endif
 	}
 }
 
@@ -1080,6 +1099,19 @@ void FMacPlatformMisc::GetOSVersions( FString& out_OSVersionLabel, FString& out_
 	out_OSSubVersionLabel = GMacAppInfo.OSBuild;
 }
 
+bool FMacPlatformMisc::GetDiskTotalAndFreeSpace(const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes)
+{
+	struct statfs FSStat = { 0 };
+	FTCHARToUTF8 Converter(*InPath);
+	int Err = statfs((ANSICHAR*)Converter.Get(), &FSStat);
+	if (Err == 0)
+	{
+		TotalNumberOfBytes = FSStat.f_blocks * FSStat.f_bsize;
+		NumberOfFreeBytes = FSStat.f_bavail * FSStat.f_bsize;
+	}
+	return (Err == 0);
+}
+
 #include "ModuleManager.h"
 
 void FMacPlatformMisc::LoadPreInitModules()
@@ -1139,45 +1171,6 @@ uint32 FMacPlatformMisc::GetCPUInfo()
 
 	return Args[0];
 }
-
-int32 FMacPlatformMisc::ConvertSlateYPositionToCocoa(int32 YPosition)
-{
-	NSArray* AllScreens = [NSScreen screens];
-	NSScreen* PrimaryScreen = (NSScreen*)[AllScreens objectAtIndex: 0];
-	NSRect ScreenFrame = [PrimaryScreen frame];
-	NSRect WholeWorkspace = {{0,0},{0,0}};
-	for(NSScreen* Screen in AllScreens)
-	{
-		if(Screen)
-		{
-			WholeWorkspace = NSUnionRect(WholeWorkspace, [Screen frame]);
-		}
-	}
-	
-	const float WholeWorkspaceOrigin = FMath::Min((ScreenFrame.size.height - (WholeWorkspace.origin.y + WholeWorkspace.size.height)), 0.0);
-	const float WholeWorkspaceHeight = WholeWorkspace.origin.y + WholeWorkspace.size.height;
-	return -((YPosition - WholeWorkspaceOrigin) - WholeWorkspaceHeight + 1);
-}
-
-int32 FMacPlatformMisc::ConvertCocoaYPositionToSlate(int32 YPosition)
-{
-	NSArray* AllScreens = [NSScreen screens];
-	NSScreen* PrimaryScreen = (NSScreen*)[AllScreens objectAtIndex: 0];
-	NSRect ScreenFrame = [PrimaryScreen frame];
-	NSRect WholeWorkspace = {{0,0},{0,0}};
-	for(NSScreen* Screen in AllScreens)
-	{
-		if(Screen)
-		{
-			WholeWorkspace = NSUnionRect(WholeWorkspace, [Screen frame]);
-		}
-	}
-	
-	CGFloat const OffsetToPrimary = ((ScreenFrame.origin.y + ScreenFrame.size.height) - (WholeWorkspace.origin.y + WholeWorkspace.size.height));
-	CGFloat const OffsetToWorkspace = (WholeWorkspace.size.height - (YPosition)) + WholeWorkspace.origin.y;
-	return OffsetToWorkspace + OffsetToPrimary;
-}
-
 
 FString FMacPlatformMisc::GetDefaultLocale()
 {
@@ -1476,11 +1469,11 @@ void FMacCrashContext::GenerateWindowsErrorReport(char const* WERPath) const
 		WriteLine(ReportFile, TEXT("</Parameter0>"));
 		
 		WriteUTF16String(ReportFile, TEXT("\t\t<Parameter1>"));
-		WriteUTF16String(ReportFile, ItoTCHAR(GEngineVersion.GetMajor(), 10));
+		WriteUTF16String(ReportFile, ItoTCHAR(FEngineVersion::Current().GetMajor(), 10));
 		WriteUTF16String(ReportFile, TEXT("."));
-		WriteUTF16String(ReportFile, ItoTCHAR(GEngineVersion.GetMinor(), 10));
+		WriteUTF16String(ReportFile, ItoTCHAR(FEngineVersion::Current().GetMinor(), 10));
 		WriteUTF16String(ReportFile, TEXT("."));
-		WriteUTF16String(ReportFile, ItoTCHAR(GEngineVersion.GetPatch(), 10));
+		WriteUTF16String(ReportFile, ItoTCHAR(FEngineVersion::Current().GetPatch(), 10));
 		WriteLine(ReportFile, TEXT("</Parameter1>"));
 
 		// App time stamp
@@ -1662,9 +1655,9 @@ void FMacCrashContext::GenerateInfoInFolder(char const* const InfoFolder) const
 			WriteLine(ReportFile, *GMacAppInfo.AppName);
 			
 			WriteUTF16String(ReportFile, TEXT("BuildVersion 1.0."));
-			WriteUTF16String(ReportFile, ItoTCHAR(GEngineVersion.GetChangelist() >> 16, 10));
+			WriteUTF16String(ReportFile, ItoTCHAR(FEngineVersion::Current().GetChangelist() >> 16, 10));
 			WriteUTF16String(ReportFile, TEXT("."));
-			WriteLine(ReportFile, ItoTCHAR(GEngineVersion.GetChangelist() & 0xffff, 10));
+			WriteLine(ReportFile, ItoTCHAR(FEngineVersion::Current().GetChangelist() & 0xffff, 10));
 			
 			WriteUTF16String(ReportFile, TEXT("CommandLine "));
 			WriteLine(ReportFile, *GMacAppInfo.CommandLine);
@@ -1844,3 +1837,29 @@ void NewReportEnsure( const TCHAR* ErrorMessage )
 	bReentranceGuard = false;
 	EnsureLock.Unlock();
 }
+typedef NSArray* (*MTLCopyAllDevices)(void);
+
+bool FMacPlatformMisc::HasPlatformFeature(const TCHAR* FeatureName)
+{
+	if (FCString::Stricmp(FeatureName, TEXT("Metal")) == 0 && !FParse::Param(FCommandLine::Get(),TEXT("opengl")) && FModuleManager::Get().ModuleExists(TEXT("MetalRHI")))
+	{
+		// Find out if there are any Metal devices on the system - some Mac's have none
+		void* DLLHandle = FPlatformProcess::GetDllHandle(TEXT("/System/Library/Frameworks/Metal.framework/Metal"));
+		if (DLLHandle)
+		{
+			// Use the copy all function because we don't want to invoke a GPU switch at this point on dual-GPU Macbooks
+			MTLCopyAllDevices CopyDevicesPtr = (MTLCopyAllDevices)FPlatformProcess::GetDllExport(DLLHandle, TEXT("MTLCopyAllDevices"));
+			if (CopyDevicesPtr)
+			{
+				SCOPED_AUTORELEASE_POOL;
+				NSArray* MetalDevices = CopyDevicesPtr();
+				[MetalDevices autorelease];
+				FPlatformProcess::FreeDllHandle(DLLHandle);
+				return MetalDevices && [MetalDevices count] > 0;
+			}
+		}
+	}
+
+	return FGenericPlatformMisc::HasPlatformFeature(FeatureName);
+}
+

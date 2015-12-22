@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -23,9 +23,15 @@ public class ImageWrapper : ModuleRules
         if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Mac)
         {
             Definitions.Add("WITH_UNREALEXR=1");
-            AddThirdPartyPrivateStaticDependencies(Target, "UEOpenEXR");
+            AddThirdPartyPrivateStaticDependencies(Target, "UEOpenExr");
         }
 
         bEnableShadowVariableWarnings = false;
+
+		// Enable exceptions to allow error handling
+		bEnableExceptions = true;
+
+		// Disable shared PCHs to handle warning C4652
+		PCHUsage = ModuleRules.PCHUsageMode.NoSharedPCHs;
     }
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -96,7 +96,7 @@ protected:
 	// Clears and regenerates the displayed info list for the window
 	void GenerateDisplayedList(const FText& FilterText);
 
-	// Attempt to delete a smartname. This can be overriden in derived classes to handle the
+	// Attempt to delete a smartname. This can be overridden in derived classes to handle the
 	// delete as this version will simply find the correct name container in the skeleton and
 	// remove the name.
 	virtual void OnDeleteNameClicked();

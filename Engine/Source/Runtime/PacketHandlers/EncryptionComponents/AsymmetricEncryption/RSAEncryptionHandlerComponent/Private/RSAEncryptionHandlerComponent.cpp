@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "RSAEncryptionHandlerComponent.h"
 
@@ -287,12 +287,7 @@ void RSAEncryptionHandlerComponent::DecryptWithPrivate(const TArray<byte>& InCip
 }
 
 // MODULE INTERFACE
-HandlerComponent* FRSAEncryptorHandlerComponentModuleInterface::CreateComponentInstance()
+TSharedPtr<HandlerComponent> FRSAEncryptorHandlerComponentModuleInterface::CreateComponentInstance(FString& Options)
 {
-	return new RSAEncryptionHandlerComponent;
-}
-
-HandlerComponent* FRSAEncryptorHandlerComponentModuleInterface::CreateComponentInstance(FString& Options)
-{
-	return new RSAEncryptionHandlerComponent;
+	return MakeShareable(new RSAEncryptionHandlerComponent);
 }

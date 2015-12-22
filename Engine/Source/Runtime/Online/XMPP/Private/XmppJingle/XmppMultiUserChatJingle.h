@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -207,6 +207,11 @@ private:
 	FOnXmppRoomMemberExit OnXmppRoomMemberExitDelegate;
 	FOnXmppRoomMemberChanged OnXmppRoomMemberChangedDelegate;
 	FOnXmppRoomChatReceived OnXmppRoomChatReceivedDelegate;
+
+	// Number of Muc room op requests generated */
+	int32 NumOpRequests;
+	/** Number of Muc room op responses generated */
+	int32 NumMucResponses;
 
 	friend class FXmppChatRoomOpResult;
 	friend class FXmppChatRoomCreateOpResult;

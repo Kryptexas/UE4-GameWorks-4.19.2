@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "Toolkits/AssetEditorToolkit.h"
@@ -287,6 +287,9 @@ public:
 	FPropertyTypeLayoutCallback GetPropertyTypeCustomization(const UProperty* InProperty,const IPropertyHandle& PropertyHandle, TSharedPtr<IDetailsView> DetailsViewInstance );
 	bool IsCustomizedStruct(const UStruct* Struct, TSharedPtr<IDetailsView> DetailsViewInstance ) const;
 
+	DECLARE_EVENT(PropertyEditorModule, FPropertyEditorOpenedEvent);
+	virtual FPropertyEditorOpenedEvent& OnPropertyEditorOpened() { return PropertyEditorOpened; }
+
 private:
 
 	/**
@@ -315,4 +318,7 @@ private:
 	FCustomPropertyTypeLayoutMap GlobalPropertyTypeToLayoutMap;
 	/** Instanced property type customization mapped to a specific details view */
 	TMap< TWeakPtr<IDetailsView>, FCustomPropertyTypeLayoutMap > InstancePropertyTypeLayoutMap;
+	/** Event to be called when a property editor is opened */
+	FPropertyEditorOpenedEvent PropertyEditorOpened;
+
 };

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -204,11 +204,30 @@ struct FGatherTextFromMetaDataConfiguration
 	UPROPERTY(config, EditAnywhere, Category = "MetaData")
 	TArray<FMetaDataKeyGatherSpecification> KeySpecifications;
 
-	/* If enable, data that is specified as editor-only may be processed for gathering. */
+	/* If enabled, data that is specified as editor-only may be processed for gathering. */
 	UPROPERTY(config, EditAnywhere, Category = "Filter")
 	bool ShouldGatherFromEditorOnlyData;
 
 	LOCALIZATION_API bool Validate(const FString& RootDirectory, FText& OutError) const;
+};
+
+USTRUCT()
+struct FLocalizationExportingSettings
+{
+	GENERATED_BODY()
+
+	FLocalizationExportingSettings()
+	: ShouldPersistCommentsOnExport(false)
+	, ShouldAddSourceLocationsAsComments(true)
+	{}
+
+	/* Should user comments in existing PO files be persisted after export? Useful if using a third party service that stores editor/translator notes in the PO format's comment fields. */
+	UPROPERTY(config, EditAnywhere, Category = "Comments")
+	bool ShouldPersistCommentsOnExport;
+
+	/* Should source locations be added to PO file entries as comments? Useful if a third party service doesn't expose PO file reference comments, which typically store the source location. */
+	UPROPERTY(config, EditAnywhere, Category = "Comments")
+	bool ShouldAddSourceLocationsAsComments;
 };
 
 USTRUCT()
@@ -300,6 +319,10 @@ struct FLocalizationTargetSettings
 	/* Parameters for defining what text is gathered from metadata and how. */
 	UPROPERTY(config, EditAnywhere, Category = "Gather")
 	FGatherTextFromMetaDataConfiguration GatherFromMetaData;
+
+	/* Settings for import/export of translations. */
+	UPROPERTY(config, EditAnywhere, Category = "Import & Export")
+	FLocalizationExportingSettings ExportSettings;
 
 	/* The index of the native culture among the supported cultures. */
 	UPROPERTY(config, EditAnywhere, Category = "Cultures")

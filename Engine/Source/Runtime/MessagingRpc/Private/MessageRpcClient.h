@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -30,6 +30,7 @@ public:
 
 	// IMessageRpcClient interface
 
+	virtual bool IsConnected() const override;
 	virtual void Connect(const FMessageAddress& InServerAddress) override;
 	virtual void Disconnect() override;
 
@@ -60,7 +61,9 @@ protected:
 private:
 
 	/** Handles FMessageRpcProgress messages. */
-	void HandleMessage(const FMessageRpcProgress& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
+	void HandleProgressMessage(const FMessageRpcProgress& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
+
+	void HandleMessage(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
 
 	/** Handles the ticker. */
 	bool HandleTicker(float DeltaTime);

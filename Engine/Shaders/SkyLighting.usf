@@ -1,13 +1,14 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	SkyLighting.usf
+	SkyLighting.usf - implementation of dynamic sky lighting
 =============================================================================*/
 
 #include "Common.usf"
 #include "DeferredShadingCommon.usf"
 #include "ReflectionEnvironmentShared.usf"
 #include "BRDF.usf"
+#include "ShadingModels.usf"
 
 Texture2D BentNormalAOTexture;
 SamplerState BentNormalAOSampler;
@@ -18,6 +19,7 @@ SamplerState IrradianceSampler;
 float3 ContrastAndNormalizeMulAdd;
 float4 OcclusionTintAndMinOcclusion;
 
+/** Note: used by movable skylights only.  Stationary sky light diffuse is evaluated in the base pass, and Static sky lighting is baked into lightmaps. */
 void SkyLightDiffusePS(
 	in float4 UVAndScreenPos : TEXCOORD0, 
 	out float4 OutColor : SV_Target0)
@@ -60,13 +62,6 @@ void SkyLightDiffusePS(
 		}
 		#endif
 
-		/*
-		float OcclusionExponent = 1;
-		// Maintain integral of .5 for orthogonal contrast and brightness
-		float NormalizationConstant = .5f * (OcclusionExponent + 1);
-		SkyVisibility = NormalizationConstant * pow(SkyVisibility, OcclusionExponent);
-		*/
-
 		float ContrastCurve = 1 / (1 + exp(-ContrastAndNormalizeMulAdd.x * (SkyVisibility * 10 - 5)));
 		SkyVisibility = saturate(ContrastCurve * ContrastAndNormalizeMulAdd.y + ContrastAndNormalizeMulAdd.z);
 		
@@ -81,20 +76,31 @@ void SkyLightDiffusePS(
 
 		if (ShadingModelId == SHADINGMODELID_TWOSIDED_FOLIAGE)
 		{
-			float3 SubsurfaceLookup = GetSkySHDiffuse(-GBuffer.WorldNormal) * View.SkyLightColor.rgb;
+			float3 SubsurfaceLookup = GetSkySHDiffuse(-GBuffer.WorldNormal) * Frame.SkyLightColor.rgb;
 			float3 SubsurfaceColor = ExtractSubsurfaceColor(GBuffer);
 			Lighting += ScalarFactors * SubsurfaceLookup * SubsurfaceColor;
 		}
 
+		float3 DiffuseColor = GBuffer.DiffuseColor;
+
+		BRANCH if( GBuffer.ShadingModelID == SHADINGMODELID_HAIR )
+		{
+			float3 N = GBuffer.WorldNormal;
+			float3 V = -normalize(mul(float4(UVAndScreenPos.zw, 1, 0), View.ScreenToWorld).xyz);
+			float3 L = normalize( V - N * dot(V,N) );
+			SkyLightingNormal = L;
+			DiffuseColor = PI * HairShading( GBuffer, L, V, N, 1, 0, 0.2, uint2(0,0) );
+		}
+
 		// Compute the preconvolved incoming lighting with the bent normal direction
-		float3 DiffuseLookup = GetSkySHDiffuse(SkyLightingNormal) * View.SkyLightColor.rgb;
+		float3 DiffuseLookup = GetSkySHDiffuse(SkyLightingNormal) * Frame.SkyLightColor.rgb;
 
 		// darken by DirectionalOcclusion feature from LightPropagationVolume (could be optimized if the feature is not used)
 		float DirectionalOcclusion = ScreenSpaceData.DirectionalOcclusion.r;
 		DiffuseLookup *= DirectionalOcclusion;
 
 		// Apply AO to the sky diffuse and account for darkening due to the geometry term
-		Lighting += (ScalarFactors * DotProductFactor) * DiffuseLookup * GBuffer.DiffuseColor + (1 - SkyVisibility) * OcclusionTintAndMinOcclusion.xyz;
+		Lighting += (ScalarFactors * DotProductFactor) * DiffuseLookup * DiffuseColor + (1 - SkyVisibility) * OcclusionTintAndMinOcclusion.xyz;
 
 		Lighting += DiffuseIrradiance * GBuffer.DiffuseColor * (GBuffer.GBufferAO * ScreenSpaceData.AmbientOcclusion);
 

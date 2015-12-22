@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -10,6 +10,7 @@ class UParticleEmitter;
 class UParticleLODLevel;
 struct FCurveEdEntry;
 struct FParticleEmitterInstance;
+class UParticleModuleTypeDataBase;
 
 /** ModuleType
  *	Indicates the kind of emitter the module can be applied to.
@@ -209,11 +210,11 @@ class UParticleModule : public UObject
 
 #endif // WITH_EDITORONLY_DATA
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	// End UObject Interface
+	//~ End UObject Interface
 
 	/**
 	 * Called once to compile the effects of this module on runtime simulation.
@@ -250,19 +251,24 @@ class UParticleModule : public UObject
 	/**
 	 *	Returns the number of bytes that the module requires in the particle payload block.
 	 *
-	 *	@param	Owner		The FParticleEmitterInstance that 'owns' the particle.
+	 *	@param	TypeData	The UParticleModuleTypeDataBase for the emitter that contains this module
 	 *
 	 *	@return	uint32		The number of bytes the module needs per particle.
 	 */
-	virtual uint32	RequiredBytes(FParticleEmitterInstance* Owner = NULL);
+	virtual uint32	RequiredBytes(UParticleModuleTypeDataBase* TypeData);
 	/**
 	 *	Returns the number of bytes the module requires in the emitters 'per-instance' data block.
 	 *	
-	 *	@param	Owner		The FParticleEmitterInstance that 'owns' the particle.
-	 *
 	 *	@return uint32		The number of bytes the module needs per emitter instance.
 	 */
-	virtual uint32	RequiredBytesPerInstance(FParticleEmitterInstance* Owner = NULL);
+	virtual uint32	RequiredBytesPerInstance();
+
+	DEPRECATED(4.11, "RequiredBytes now takes a UParticleModuleTypeDataBase*, not per-instance information.")
+	virtual uint32	RequiredBytes(FParticleEmitterInstance* Owner);
+
+	DEPRECATED(4.11, "RequiredBytesPerInstance no longer takes per-instance information.")
+	virtual uint32	RequiredBytesPerInstance(FParticleEmitterInstance* Owner);
+
 	/**
 	 *	Allows the module to prep its 'per-instance' data block.
 	 *	

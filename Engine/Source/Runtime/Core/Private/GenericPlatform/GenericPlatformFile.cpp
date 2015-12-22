@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "ModuleManager.h"
@@ -18,6 +18,19 @@ const TCHAR* IPlatformFile::GetPhysicalTypeName()
 	return TEXT("PhysicalFile");
 }
 
+void IPlatformFile::GetTimeStampPair(const TCHAR* PathA, const TCHAR* PathB, FDateTime& OutTimeStampA, FDateTime& OutTimeStampB)
+{
+	if (GetLowerLevel())
+	{
+		GetLowerLevel()->GetTimeStampPair(PathA, PathB, OutTimeStampA, OutTimeStampB);
+	}
+	else
+	{
+		OutTimeStampA = GetTimeStamp(PathA);
+		OutTimeStampB = GetTimeStamp(PathB);
+	}
+}
+
 bool IPlatformFile::IterateDirectoryRecursively(const TCHAR* Directory, FDirectoryVisitor& Visitor)
 {
 	class FRecurse : public FDirectoryVisitor
@@ -30,7 +43,7 @@ bool IPlatformFile::IterateDirectoryRecursively(const TCHAR* Directory, FDirecto
 			, Visitor(InVisitor)
 		{
 		}
-		virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory)
+		virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
 		{
 			bool Result = Visitor.Visit(FilenameOrDirectory, bIsDirectory);
 			if (Result && bIsDirectory)
@@ -42,6 +55,32 @@ bool IPlatformFile::IterateDirectoryRecursively(const TCHAR* Directory, FDirecto
 	};
 	FRecurse Recurse(*this, Visitor);
 	return IterateDirectory(Directory, Recurse);
+}
+
+bool IPlatformFile::IterateDirectoryStatRecursively(const TCHAR* Directory, FDirectoryStatVisitor& Visitor)
+{
+	class FStatRecurse : public FDirectoryStatVisitor
+	{
+	public:
+		IPlatformFile&			PlatformFile;
+		FDirectoryStatVisitor&	Visitor;
+		FStatRecurse(IPlatformFile&	InPlatformFile, FDirectoryStatVisitor& InVisitor)
+			: PlatformFile(InPlatformFile)
+			, Visitor(InVisitor)
+		{
+		}
+		virtual bool Visit(const TCHAR* FilenameOrDirectory, const FFileStatData& StatData) override
+		{
+			bool Result = Visitor.Visit(FilenameOrDirectory, StatData);
+			if (Result && StatData.bIsDirectory)
+			{
+				Result = PlatformFile.IterateDirectoryStat(FilenameOrDirectory, *this);
+			}
+			return Result;
+		}
+	};
+	FStatRecurse Recurse(*this, Visitor);
+	return IterateDirectoryStat(Directory, Recurse);
 }
 
 bool IPlatformFile::DeleteDirectoryRecursively(const TCHAR* Directory)

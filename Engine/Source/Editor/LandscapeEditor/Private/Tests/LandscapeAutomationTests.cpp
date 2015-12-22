@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "../LandscapeEditorPrivatePCH.h"
 
@@ -117,7 +117,7 @@ bool FEndModifyLandscapeCommand::Update()
 /**
 * Landscape creation / edit test
 */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLandscapeEditorTest, "System.Promotion.Editor.Landscape Editor", EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_NonNullRHI );
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLandscapeEditorTest, "System.Promotion.Editor.Landscape Editor", EAutomationTestFlags::EditorContext | EAutomationTestFlags::NonNullRHI | EAutomationTestFlags::EngineFilter);
 bool FLandscapeEditorTest::RunTest(const FString& Parameters)
 {
 	//New level
@@ -161,7 +161,7 @@ bool FLandscapeEditorTest::RunTest(const FString& Parameters)
 		const FString TestName = TEXT("NewLandscapeTest");
 		FString PathName = FPaths::AutomationDir() + TestName / FPlatformProperties::PlatformName();
 		FPaths::MakePathRelativeTo(PathName, *FPaths::RootDir());
-		ScreenshotParameters.ScreenshotName = FString::Printf(TEXT("%s/%d.png"), *PathName, GEngineVersion.GetChangelist());
+		ScreenshotParameters.ScreenshotName = FString::Printf(TEXT("%s/%d.png"), *PathName, FEngineVersion::Current().GetChangelist());
 
 		//Take a screenshot
 		ADD_LATENT_AUTOMATION_COMMAND(FTakeEditorScreenshotCommand(ScreenshotParameters));

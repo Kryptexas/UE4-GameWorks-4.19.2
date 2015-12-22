@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,7 +10,7 @@ class FAssetEditorCommonCommands : public TCommands< FAssetEditorCommonCommands 
 public:
 
 	FAssetEditorCommonCommands()
-		: TCommands< FAssetEditorCommonCommands >( TEXT("AssetEditor"), NSLOCTEXT("Contexts", "AssetEditor", "Asset Editor"), NAME_None, FEditorStyle::GetStyleSetName() )
+		: TCommands< FAssetEditorCommonCommands >( TEXT("AssetEditor"), NSLOCTEXT("Contexts", "AssetEditor", "Asset Editor"), TEXT("EditorViewport"), FEditorStyle::GetStyleSetName() )
 	{
 	}	
 

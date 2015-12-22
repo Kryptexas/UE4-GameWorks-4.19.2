@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 //=============================================================================
 // INetworkPredictionInterface is an interface for objects that want to perform
@@ -33,8 +33,8 @@ class ENGINE_API INetworkPredictionInterface
 	// Client hooks
 	//--------------------------------
 
-	/** (Client) After receiving a network update of position, allow some custom smoothing, given the old location before the correction. */
-	virtual void SmoothCorrection(const FVector& OldLocation, const FQuat& OldRotation) PURE_VIRTUAL(INetworkPredictionInterface::SmoothCorrection,);
+	/** (Client) After receiving a network update of position, allow some custom smoothing, given the old transform before the correction and new transform from the update. */
+	virtual void SmoothCorrection(const FVector& OldLocation, const FQuat& OldRotation, const FVector& NewLocation, const FQuat& NewRotation) PURE_VIRTUAL(INetworkPredictionInterface::SmoothCorrection,);
 
 	//--------------------------------
 	// Other

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2610008
+﻿INTSourceChangelist:2632887
 Availability:Public
 Title: 레벨 디자이너 퀵스타트 가이드
 Crumbs: %ROOT%, GettingStarted
 Description: 언리얼 에디터의 기본적인 준비를 돕는 문서입니다.
+prereq:GettingStarted/Installation
 prereq:Engine/Basics/Projects/Browser
 SkillLevel: Beginner
 Version: 4.8

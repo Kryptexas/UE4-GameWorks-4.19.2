@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2597122
+﻿INTSourceChangelist:2683038
 Availability:Public
 Title:Blueprint クラスの UI
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
 Description:Blueprint クラスで作業する際のブループリント エディタの UI エレメントの分類
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -26,7 +27,7 @@ Description:Blueprint クラスで作業する際のブループリント エデ
 
 ![](ClassBlueprint.png)
 
-**Blueprint クラス** エディタには、デフォルトでいくつかのタブがあります。
+**Blueprint クラス** エディタには、以下のようにいくつかのデフォルトのタブがあります。
 
 
 |デフォルトで表示される UI コンポーネント| [Window] メニューで利用可能な機能|
@@ -37,11 +38,12 @@ Description:Blueprint クラスで作業する際のブループリント エデ
 
 <!----------
 [EXCERPT:Visible]
-1. [メニュー](Engine/Blueprints/Editor/UIComponents/Menu)
+1. [メニュー](Engine/Blueprints/Editor\UIComponents\Menu)
 1. [ツールバー](Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions)
 1. [コンポーネント](Engine/Blueprints/UserGuide/Components)
 1. [My Blueprint](Engine/Blueprints/Editor/UIComponents/MyBlueprint)
 1. [グラフ エディタ](Engine/Blueprints/Editor/UIComponents/GraphEditor)
+1. [詳細](Engine/Blueprints/Editor/UIComponents/Details)
  
 [/EXCERPT:Visible]
 
@@ -49,7 +51,7 @@ Description:Blueprint クラスで作業する際のブループリント エデ
 * [デバッグ](Engine/Blueprints/Editor/UIComponents/Debug)
 * [クラスのデフォルト](Engine/Blueprints/Editor/Modes/Defaults/DefaultsTab)
 * [コンパイラの結果](Engine/Blueprints/Editor/UIComponents/CompilerResults)
-* [Find Results](Engine/Blueprints/Editor/UIComponents/FindResults)
+* [結果検索](Engine/Blueprints/Editor/UIComponents/FindResults)
 * [ビューポート](Engine/Blueprints/Editor/UIComponents/Viewport)
 [/EXCERPT:Invisible]
 ------------->
@@ -65,7 +67,7 @@ Description:Blueprint クラスで作業する際のブループリント エデ
 
 
 
-Blueprint クラスの作成に関する情報は、 [](Engine/Blueprints\UserGuide\Types\ClassBlueprint\Creation) を参照してください。
+Blueprint クラスの作成に関する情報は、 [](Engine/Blueprints\UserGuide\Types\ClassBlueprint\Creation) をご覧ください。
 
-Blueprint クラスの詳細情報は [Blueprint クラス](Engine/Blueprints\UserGuide\Types\ClassBlueprint) を参照してください。
+Blueprint クラスの詳細情報は [Blueprint クラス](Engine/Blueprints\UserGuide\Types\ClassBlueprint) をご覧ください。
 

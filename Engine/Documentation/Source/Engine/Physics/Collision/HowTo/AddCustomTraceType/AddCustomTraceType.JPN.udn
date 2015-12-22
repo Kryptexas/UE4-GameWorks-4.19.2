@@ -1,0 +1,33 @@
+﻿INTSourceChangelist:2733709
+Availability:Docs
+Title:カスタム仕様のトレース タイプをプロジェクトに追加する
+Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/Collision
+Description:コリジョン ジオメトリの作成および設定のコンテンツ ガイド
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Physics/Collision/Reference:title%](Engine/Physics/Collision/Reference/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/Collision:/Reference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/Collision/Reference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/Collision/Reference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+
+
+
+
+

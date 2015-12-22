@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #ifndef _ASSET_REGISTRY_PRIVATE_
 #define _ASSET_REGISTRY_PRIVATE_
@@ -11,8 +11,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogAssetRegistry, Log, All);
 #include "NameTableArchive.h"
 #include "IAssetRegistry.h"
 #include "DependsNode.h"
-#include "PathTreeNode.h"
-#include "BackgroundAssetData.h"
+#include "PathTree.h"
 #include "PackageDependencyData.h"
 #include "DiskCachedAssetData.h"
 #include "PackageReader.h"

@@ -55,7 +55,7 @@ float3 LpvSpecularHighQuality( float3 WorldPosition, float3 R, float Roughness )
 	return specularOut;
 }
 
-void MainPS(in float4 UVAndScreenPos : TEXCOORD0, float4 SVPos: SV_POSITION, out float4 OutColor : SV_Target0
+void MainPS(in noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SVPos: SV_POSITION, out float4 OutColor : SV_Target0
 #if APPLY_SEPARATE_SPECULAR_RT
 			,out float4 OutSpecular : SV_Target1
 #endif
@@ -83,7 +83,7 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, float4 SVPos: SV_POSITION, out
 	float3 ScreenVector = normalize(ScreenVectorU); 
 
 	float SceneDepth = CalcSceneDepth(UV);
-	float3 WorldPosition = ScreenVectorU * SceneDepth + View.ViewOrigin.xyz;
+	float3 WorldPosition = ScreenVectorU * SceneDepth + View.WorldCameraOrigin;
 
 	float3 grid = WorldToGrid( WorldPosition );
 
@@ -152,7 +152,7 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, float4 SVPos: SV_POSITION, out
 
 
 
-void DirectionalOcclusionPS(in float4 UVAndScreenPos : TEXCOORD0, float4 SVPos: SV_POSITION, out float4 OutColor : SV_Target0 )
+void DirectionalOcclusionPS(in noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SVPos: SV_POSITION, out float4 OutColor : SV_Target0 )
 {
 	OutColor = float4(1,1,1,1);
 #if ENABLE_DIRECTIONAL_OCCLUSION 
@@ -169,7 +169,7 @@ void DirectionalOcclusionPS(in float4 UVAndScreenPos : TEXCOORD0, float4 SVPos: 
 		float3 ScreenVector = normalize(ScreenVectorU); 
 
 		float SceneDepth = CalcSceneDepth(UV);
-		float3 WorldPosition = ScreenVectorU * SceneDepth + View.ViewOrigin.xyz;
+		float3 WorldPosition = ScreenVectorU * SceneDepth + View.WorldCameraOrigin;
 
 		float3 grid = WorldToGrid( WorldPosition );
 

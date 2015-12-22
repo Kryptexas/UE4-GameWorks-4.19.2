@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 // 
 // Public defines form the Engine
 
@@ -55,7 +55,7 @@
 #endif //WITH_APEX_CLOTHING
 
 #ifndef ENABLE_VISUAL_LOG
-#	define ENABLE_VISUAL_LOG (1 && !NO_LOGGING && !USING_CODE_ANALYSIS && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
+	#define ENABLE_VISUAL_LOG (PLATFORM_DESKTOP && !NO_LOGGING && !USING_CODE_ANALYSIS && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
 #endif
 
 #ifndef WITH_FIXED_AREA_ENTERING_COST

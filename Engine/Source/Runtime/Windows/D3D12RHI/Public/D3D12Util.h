@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12Util.h: D3D RHI utility definitions.
@@ -245,7 +245,7 @@ public:
 	/** Unlocks the buffer returning the underlying D3D12 buffer to use as a resource. */
 	FD3D12ResourceLocation* Unlock();
 
-	// Begin FRenderResource interface.
+	//~ Begin FRenderResource Interface.
 	virtual void InitRHI() override;
 	virtual void ReleaseRHI() override;
 	// End FRenderResource interface.

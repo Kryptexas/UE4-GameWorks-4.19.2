@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D11Resources.h: D3D resource RHI definitions.
@@ -32,8 +32,15 @@ public:
 	}
 };
 
+struct FD3D11ShaderData
+{
+	FD3D11ShaderResourceTable	ShaderResourceTable;
+	TArray<FName>				UniformBuffers;
+	bool						bShaderNeedsGlobalConstantBuffer;
+};
+
 /** This represents a vertex shader that hasn't been combined with a specific declaration to create a bound shader. */
-class FD3D11VertexShader : public FRHIVertexShader
+class FD3D11VertexShader : public FRHIVertexShader, public FD3D11ShaderData
 {
 public:
 	enum { StaticFrequency = SF_Vertex };
@@ -41,80 +48,56 @@ public:
 	/** The vertex shader resource. */
 	TRefCountPtr<ID3D11VertexShader> Resource;
 
-	FD3D11ShaderResourceTable ShaderResourceTable;
-
-	/** The vertex shader's bytecode, with custom data in the last byte. */
+	/** The vertex shader's bytecode, with custom data attached. */
 	TArray<uint8> Code;
 
 	// TEMP remove with removal of bound shader state
 	int32 Offset;
-
-	bool bShaderNeedsGlobalConstantBuffer;
 };
 
-class FD3D11GeometryShader : public FRHIGeometryShader
+class FD3D11GeometryShader : public FRHIGeometryShader, public FD3D11ShaderData
 {
 public:
 	enum { StaticFrequency = SF_Geometry };
 
 	/** The shader resource. */
 	TRefCountPtr<ID3D11GeometryShader> Resource;
-
-	FD3D11ShaderResourceTable ShaderResourceTable;
-
-	bool bShaderNeedsGlobalConstantBuffer;
 };
 
-class FD3D11HullShader : public FRHIHullShader
+class FD3D11HullShader : public FRHIHullShader, public FD3D11ShaderData
 {
 public:
 	enum { StaticFrequency = SF_Hull };
 
 	/** The shader resource. */
 	TRefCountPtr<ID3D11HullShader> Resource;
-
-	FD3D11ShaderResourceTable ShaderResourceTable;
-
-	bool bShaderNeedsGlobalConstantBuffer;
 };
 
-class FD3D11DomainShader : public FRHIDomainShader
+class FD3D11DomainShader : public FRHIDomainShader, public FD3D11ShaderData
 {
 public:
 	enum { StaticFrequency = SF_Domain };
 
 	/** The shader resource. */
 	TRefCountPtr<ID3D11DomainShader> Resource;
-
-	FD3D11ShaderResourceTable ShaderResourceTable;
-
-	bool bShaderNeedsGlobalConstantBuffer;
 };
 
-class FD3D11PixelShader : public FRHIPixelShader
+class FD3D11PixelShader : public FRHIPixelShader, public FD3D11ShaderData
 {
 public:
 	enum { StaticFrequency = SF_Pixel };
 
 	/** The shader resource. */
 	TRefCountPtr<ID3D11PixelShader> Resource;
-
-	FD3D11ShaderResourceTable ShaderResourceTable;
-
-	bool bShaderNeedsGlobalConstantBuffer;
 };
 
-class FD3D11ComputeShader : public FRHIComputeShader
+class FD3D11ComputeShader : public FRHIComputeShader, public FD3D11ShaderData
 {
 public:
 	enum { StaticFrequency = SF_Compute };
 
 	/** The shader resource. */
 	TRefCountPtr<ID3D11ComputeShader> Resource;
-
-	FD3D11ShaderResourceTable ShaderResourceTable;
-
-	bool bShaderNeedsGlobalConstantBuffer;
 };
 
 /**
@@ -163,6 +146,49 @@ public:
 /** The base class of resources that may be bound as shader resources. */
 class FD3D11BaseShaderResource : public IRefCountedObject
 {
+public:
+	FD3D11BaseShaderResource()
+		: CurrentGPUAccess(EResourceTransitionAccess::EReadable)
+		, LastFrameWritten(-1)
+		, bDirty(false)
+	{}
+
+	void SetCurrentGPUAccess(EResourceTransitionAccess Access)
+	{
+		if (Access == EResourceTransitionAccess::EReadable)
+		{
+			bDirty = false;
+		}
+		CurrentGPUAccess = Access;
+	}
+
+	EResourceTransitionAccess GetCurrentGPUAccess() const
+	{
+		return CurrentGPUAccess;
+	}
+
+	uint32 GetLastFrameWritten() const
+	{
+		return LastFrameWritten;
+	}	
+
+	void SetDirty(bool bInDirty, uint32 CurrentFrame);
+
+	bool IsDirty() const
+	{
+		return bDirty;
+	}
+
+private:
+	
+	/** Whether the current resource is logically GPU readable or writable.  Mostly for validation for newer RHI's*/
+	EResourceTransitionAccess CurrentGPUAccess;
+
+	/** Most recent frame this resource was written to. */
+	uint32 LastFrameWritten;
+
+	/** Resource has been written to without a subsequent read barrier.  Mostly for UAVs */
+	bool bDirty;
 };
 
 /** Texture base class. */
@@ -285,8 +311,7 @@ protected:
 	TRefCountPtr<ID3D11DepthStencilView> DepthStencilViews[FExclusiveDepthStencil::MaxIndex];
 
 	/** Number of Depth Stencil Views - used for fast call tracking. */
-	uint32	NumDepthStencilViews;
-
+	uint32	NumDepthStencilViews;	
 };
 
 /** 2D texture (vanilla, cubemap or 2D array) */
@@ -618,9 +643,21 @@ public:
 
 	/** Cached resources need to retain the associated shader resource for bookkeeping purposes. */
 	struct FResourcePair
-	{
+	{		
 		FD3D11BaseShaderResource* ShaderResource;
 		IUnknown* D3D11Resource;
+		
+#if SUPPORT_RESOURCE_NAME
+		// useful to log resource transitions
+		void SetResourceName(const FName InName) { ResourceName = InName; }
+		FName GetResourceName() const { return ResourceName; }
+	private:
+		FName ResourceName;
+	public:
+#else
+		void SetResourceName(const FName InName) {}
+		FName GetResourceName() const { return NAME_None; }
+#endif
 	};
 
 	/** Raw resource table, cached once per frame. */
@@ -699,7 +736,9 @@ public:
 	FD3D11StructuredBuffer(ID3D11Buffer* InResource, uint32 InStride, uint32 InSize, uint32 InUsage)
 	: FRHIStructuredBuffer(InStride,InSize,InUsage)
 	, Resource(InResource)
-	{}
+	{
+		SetCurrentGPUAccess(EResourceTransitionAccess::ERWBarrier);
+	}
 
 	virtual ~FD3D11StructuredBuffer()
 	{
@@ -773,8 +812,8 @@ class FD3D11UnorderedAccessView : public FRHIUnorderedAccessView
 public:
 	
 	TRefCountPtr<ID3D11UnorderedAccessView> View;
-	TRefCountPtr<FD3D11BaseShaderResource> Resource;
-
+	TRefCountPtr<FD3D11BaseShaderResource> Resource;	
+	
 	FD3D11UnorderedAccessView(ID3D11UnorderedAccessView* InView,FD3D11BaseShaderResource* InResource)
 	: View(InView)
 	, Resource(InResource)

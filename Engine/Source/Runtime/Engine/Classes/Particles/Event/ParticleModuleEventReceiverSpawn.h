@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -53,9 +53,9 @@ class UParticleModuleEventReceiverSpawn : public UParticleModuleEventReceiverBas
 	virtual void PostInitProperties() override;
 	//End UObject Interface
 
-	// Begin UParticleModuleEventBase Interface
+	//~ Begin UParticleModuleEventBase Interface
 	virtual bool ProcessParticleEvent(FParticleEmitterInstance* Owner, FParticleEventData& InEvent, float DeltaTime) override;
-	// End UParticleModuleEventBase Interface
+	//~ End UParticleModuleEventBase Interface
 };
 
 

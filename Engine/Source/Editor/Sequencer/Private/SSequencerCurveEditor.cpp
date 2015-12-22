@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
 #include "SCurveEditor.h"
@@ -23,7 +23,7 @@ void SSequencerCurveEditor::Construct( const FArguments& InArgs, TSharedRef<FSeq
 		SCurveEditor::FArguments()
 		.ViewMinInput_Lambda( [=]{ return ViewRange.Get().GetLowerBoundValue(); } )
 		.ViewMaxInput_Lambda( [=]{ return ViewRange.Get().GetUpperBoundValue(); } )
-		.OnSetInputViewRange_Lambda( [=](float InLowerBound, float InUpperBound){ OnViewRangeChanged.ExecuteIfBound(TRange<float>(InLowerBound, InUpperBound), EViewRangeInterpolation::Immediate, true); } )
+		.OnSetInputViewRange_Lambda( [=](float InLowerBound, float InUpperBound){ OnViewRangeChanged.ExecuteIfBound(TRange<float>(InLowerBound, InUpperBound), EViewRangeInterpolation::Immediate); } )
 		.HideUI( false )
 		.ZoomToFitHorizontal( true )
 		.ShowCurveSelector( false )
@@ -48,7 +48,7 @@ FReply SSequencerCurveEditor::OnMouseButtonDown( const FGeometry& MyGeometry, co
 		return Reply;
 	}
 
-	return TimeSliderController->OnMouseButtonDown( AsShared(), MyGeometry, MouseEvent );
+	return TimeSliderController->OnMouseButtonDown( *this, MyGeometry, MouseEvent );
 }
 
 
@@ -61,7 +61,7 @@ FReply SSequencerCurveEditor::OnMouseButtonUp( const FGeometry& MyGeometry, cons
 		return Reply;
 	}
 
-	return TimeSliderController->OnMouseButtonUp( AsShared(), MyGeometry, MouseEvent );
+	return TimeSliderController->OnMouseButtonUp( *this, MyGeometry, MouseEvent );
 }
 
 
@@ -73,12 +73,12 @@ FReply SSequencerCurveEditor::OnMouseMove( const FGeometry& MyGeometry, const FP
 		return Reply;
 	}
 
-	return TimeSliderController->OnMouseMove( AsShared(), MyGeometry, MouseEvent );
+	return TimeSliderController->OnMouseMove( *this, MyGeometry, MouseEvent );
 }
 
 FReply SSequencerCurveEditor::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	FReply Reply = TimeSliderController->OnMouseWheel( AsShared(), MyGeometry, MouseEvent );
+	FReply Reply = TimeSliderController->OnMouseWheel( *this, MyGeometry, MouseEvent );
 	if ( Reply.IsEventHandled() )
 	{
 		return Reply;
@@ -168,6 +168,8 @@ void SSequencerCurveEditor::NodeTreeSelectionChanged()
 {
 	if (SequencerNodeTree.IsValid())
 	{
+		ValidateSelection();
+
 		if (GetSettings()->GetCurveVisibility() == ECurveEditorCurveVisibility::SelectedCurves)
 		{
 			UpdateCurveOwner();

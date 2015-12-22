@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "DynamicMeshBuilder.h"
@@ -42,7 +42,7 @@ public:
 class GEOMETRYCACHE_API FGeomCacheIndexBuffer : public FIndexBuffer
 {
 public:
-	TArray<int32> Indices;
+	TArray<uint32> Indices;
 
 	virtual void InitRHI() override;
 
@@ -85,27 +85,26 @@ public:
 class GEOMETRYCACHE_API FGeometryCacheSceneProxy : public FPrimitiveSceneProxy
 {
 public:
-	// QQ interfaces/comments
+	
 	FGeometryCacheSceneProxy(class UGeometryCacheComponent* Component);
 
 	virtual ~FGeometryCacheSceneProxy();
 
+	// Begin FPrimitiveSceneProxy interface.
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
-
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View);
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override;
 
 	virtual bool CanBeOccluded() const override;
-
 	virtual uint32 GetMemoryFootprint(void) const;
-
 	uint32 GetAllocatedSize(void) const;
+	// End FPrimitiveSceneProxy interface.
 
 	/** Update world matrix for specific section */
 	void UpdateSectionWorldMatrix(const int32 SectionIndex, const FMatrix& WorldMatrix);
 	/** Update vertex buffer for specific section */
 	void UpdateSectionVertexBuffer(const int32 SectionIndex, FGeometryCacheMeshData* MeshData );
 	/** Update index buffer for specific section */
-	void UpdateSectionIndexBuffer(const int32 SectionIndex, const TArray<int32>& Indices);
+	void UpdateSectionIndexBuffer(const int32 SectionIndex, const TArray<uint32>& Indices);
 
 	/** Clears the Sections array*/
 	void ClearSections();

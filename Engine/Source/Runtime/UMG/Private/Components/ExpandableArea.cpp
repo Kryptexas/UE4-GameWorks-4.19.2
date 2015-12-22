@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 
@@ -16,7 +16,14 @@ UExpandableArea::UExpandableArea(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, bIsExpanded(false)
 {
-	bIsVariable = false;
+	bIsVariable = true;
+
+	SExpandableArea::FArguments ExpandableDefaults;
+	Style       = *ExpandableDefaults._Style;
+	BorderColor = ExpandableDefaults._BorderBackgroundColor.Get( FLinearColor::White );
+	BorderBrush = *ExpandableDefaults._BorderImage;
+	AreaPadding = ExpandableDefaults._Padding.Get();
+	HeaderPadding = ExpandableDefaults._HeaderPadding.Get();
 }
 
 bool UExpandableArea::GetIsExpanded() const
@@ -38,9 +45,10 @@ void UExpandableArea::SetIsExpanded(bool IsExpanded)
 	}
 }
 
-void UExpandableArea::ReleaseSlateResources(bool bReleaseChildren)
+void UExpandableArea::ReleaseSlateResources( bool bReleaseChildren )
 {
 	Super::ReleaseSlateResources(bReleaseChildren);
+	ReleaseNamedSlotSlateResources(bReleaseChildren);
 
 	MyExpandableArea.Reset();
 }
@@ -69,10 +77,22 @@ void UExpandableArea::SetContentForSlot(FName SlotName, UWidget* Content)
 {
 	if ( SlotName == HeaderName )
 	{
+		if ( HeaderContent )
+		{
+			const bool bReleaseChildren = true;
+			HeaderContent->ReleaseSlateResources(bReleaseChildren);
+		}
+
 		HeaderContent = Content;
 	}
 	else if ( SlotName == BodyName )
 	{
+		if ( BodyContent )
+		{
+			const bool bReleaseChildren = true;
+			BodyContent->ReleaseSlateResources(bReleaseChildren);
+		}
+
 		BodyContent = Content;
 	}
 }
@@ -83,8 +103,12 @@ TSharedRef<SWidget> UExpandableArea::RebuildWidget()
 	TSharedRef<SWidget> BodyWidget = BodyContent ? BodyContent->TakeWidget() : SNullWidget::NullWidget;
 
 	MyExpandableArea = SNew(SExpandableArea)
+		.Style(&Style)
+		.BorderImage(&BorderBrush)
+		.BorderBackgroundColor(BorderColor)
 		.MaxHeight(MaxHeight)
 		.Padding(AreaPadding)
+		.HeaderPadding(HeaderPadding)
 		.OnAreaExpansionChanged(BIND_UOBJECT_DELEGATE(FOnBooleanValueChanged, SlateExpansionChanged))
 		.HeaderContent()
 		[
@@ -111,7 +135,7 @@ void UExpandableArea::SlateExpansionChanged(bool NewState)
 
 	if ( OnExpansionChanged.IsBound() )
 	{
-		OnExpansionChanged.Broadcast(NewState);
+		OnExpansionChanged.Broadcast(this, NewState);
 	}
 }
 

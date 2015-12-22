@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "LocalizationDashboardPrivatePCH.h"
 #include "LocalizationDashboard.h"
@@ -240,7 +240,7 @@ void FLocalizationDashboard::RegisterTabSpawner()
 		return DockTab;
 	};
 
-	FGlobalTabmanager::Get()->RegisterTabSpawner(TabName, FOnSpawnTab::CreateLambda( TFunction<TSharedRef<SDockTab> (const FSpawnTabArgs&)>(SpawnMainTab) ) )
+	FGlobalTabmanager::Get()->RegisterTabSpawner(TabName, FOnSpawnTab::CreateLambda( MoveTemp(SpawnMainTab) ) )
 		.SetDisplayName(LOCTEXT("MainTabTitle", "Localization Dashboard"));
 }
 

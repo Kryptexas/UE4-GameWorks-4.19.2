@@ -1,7 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "EdGraphSchema_K2.h"
 #include "AnimationConduitGraphSchema.generated.h"
 
 //@TODO: Should this derive from AnimationTransitionSchema (with appropriate suppression of state-based queries)

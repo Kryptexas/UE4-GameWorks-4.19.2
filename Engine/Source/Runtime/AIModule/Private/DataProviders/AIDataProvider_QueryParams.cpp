@@ -1,16 +1,12 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "DataProviders/AIDataProvider_QueryParams.h"
 #include "EnvironmentQuery/EnvQueryManager.h"
 
-UAIDataProvider_QueryParams::UAIDataProvider_QueryParams(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+void UAIDataProvider_QueryParams::BindData(const UObject& Owner, int32 RequestId)
 {
-}
-
-void UAIDataProvider_QueryParams::BindData(UObject* Owner, int32 RequestId)
-{
-	UEnvQueryManager* QueryManager = UEnvQueryManager::GetCurrent(Owner);
+	UEnvQueryManager* QueryManager = UEnvQueryManager::GetCurrent(&Owner);
 	if (QueryManager)
 	{
 		FloatValue = QueryManager->FindNamedParam(RequestId, ParamName);

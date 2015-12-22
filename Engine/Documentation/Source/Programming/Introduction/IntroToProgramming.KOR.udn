@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2612393
+﻿INTSourceChangelist:2723194
 Title:UE4 C++ 프로그래밍 입문
 Crumbs:
 Description:언리얼 엔진이 처음이신 C++ 프로그래머를 위한 입문 안내서입니다.
@@ -93,7 +93,7 @@ Version:4.9
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage")
 	int32 TotalDamage;
 
-보시다시피 프로퍼티를 읽고 쓸 수 있도록 만들기 위한 블루프린트 전용 파라미터가 있습니다. 프로퍼티가 블루프린트에서 *const* (상수) 취급하도록 하고자 하는 경우 사용할 수 있는 옵션도 BlueprintReadOnly 라고 따로 있습니다. 엔진에 프로퍼티를 노출시키는 방법을 제어할 수 있는 옵션은 몇 가지 더 있습니다. 자세한 정보는 [](Programming/UnrealArchitecture/Reference/Properties/Specifiers) 문서를 참고하세요.
+보시다시피 프로퍼티를 읽고 쓸 수 있도록 만들기 위한 블루프린트 전용 파라미터가 있습니다. 프로퍼티가 블루프린트에서 const (상수) 취급하도록 하고자 하는 경우 사용할 수 있는 옵션도 BlueprintReadOnly 라고 따로 있습니다. 엔진에 프로퍼티를 노출시키는 방법을 제어할 수 있는 옵션은 몇 가지 더 있습니다. 자세한 정보는 [](Programming/UnrealArchitecture/Reference/Properties/Specifiers) 문서를 참고하세요.
 
 다음 섹션으로 넘어가기 전, 이 샘플 클래스에 프로퍼티를 몇 가지 추가해 봅시다. 이 액터가 내는 총 대미지 양 조절을 위한 프로퍼티는 이미 있습니다. 하지만 이를 토대로 시간에 걸쳐 서서히 대미지를 입히도록 만들어 봅시다. 아래 코드는 디자이너 설정가능 프로퍼티를 하나, 디자이너에게 보이긴 하지만 변경은 불가능한 프로퍼티를 하나 추가합니다.
 
@@ -156,17 +156,17 @@ DamageTimeInSeconds 는 디자이너 변경가능 프로퍼티입니다. DamageP
 
 다른 프로젝트에서 C++ 프로그래밍에 익숙했다면 놀라실만한 언리얼의 멋진 기능입니다. **에디터를 닫지 않고도 C++ 변경내용을 컴파일** 할 수 있습니다! 그 방법은 두 가지입니다:
 
-1. 에디터를 열어둔 채로, 평소처럼 **Visual Studio 나 Xcode 에서 Build** 를 합니다. 에디터가 새로 컴파일된 DLL 을 감지하여 변경내용을 즉시 리로드합니다!
+1. 에디터를 열어둔 채로, 평소처럼 Visual Studio 나 Xcode 에서 빌드합니다. 에디터가 새로 컴파일된 DLL 을 감지하여 변경내용을 즉시 리로드합니다!
 
 	![image alt text](image_6.png)
-
-	(참고로 디버거가 붙어있는 경우, Visual Studio 에서 Build 를 할 수 있도록 하려면 먼저 떼어줘야 합니다.)
-
+	[REGION:note]
+	참고로 디버거가 붙어있는 경우, Visual Studio 에서 Build 를 할 수 있도록 하려면 먼저 떼어줘야 합니다.
+	[/REGION]
 2. 아니면 그냥 에디터 메인 툴바의 **컴파일** 버튼을 클릭합니다!
 
 	![image alt text](image_7.png)
 
-이 기능의 덕은 튜토리얼을 진행하면서 앞으로 느껴보실 수 있습니다. 시간이 얼마나 절약되는지를요!
+이 기능의 덕은 튜토리얼을 진행하면서 앞으로 느껴보실 수 있습니다.
 
 ### 블루프린트를 통한 C++ 클래스 확장
 
@@ -245,7 +245,7 @@ UFUNCTION() 매크로가 반영 시스템으로의 C++ 함수 노출을 처리�
 		// 여기서 어떤 작업을 해라
 	}
 
-이제 이 버전의 함수가 호출되면 해당 블루프린트는 메소드를 덮어쓰지 않습니다. 한 가지 참고할 것은, 빌드 툴 미래 버전에서는 자동 생성되는 _Implementation() 선언이 없어져 헤더에 명시적으로 추가해 줘야 할 수도 있습니다. 4.7 버전을 기준으로, 그 선언 자동 생성은 여전히 일어나고 있습니다.
+이제 이 버전의 함수가 호출되면 해당 블루프린트는 메소드를 덮어쓰지 않습니다. 한 가지 참고할 것은, 예전 버전의 빌드 툴에서는 _Implementation() 선언이 자동 생성되었었습니다. 4.8 버전 이상에서는 헤더에 명시적으로 추가해 줘야 합니다.
 
 일반적인 게임플레이 프로그래머 작업방식과 디자이너와 함께 게임플레이 기능을 만들어 나가는 방법을 안내해 드렸으니, 여러분 자신의 여정을 선택할 시간입니다. 이 문서를 계속 읽어보면서 엔진에서 C++ 를 어떻게 사용하는지 더 알아보거나, 런처에 포함된 샘플 중 하나에 바로 뛰어들어 실전 경험을 쌓아 보실 수도 있겠습니다. (역주: 기술적 심화 내용은 번역 제공하지 않습니다.)
 
@@ -390,9 +390,9 @@ You can limit the scope of the search by providing a more specific type to the i
 	{
 		// ...
 	}
-
-Warning: Using object iterators in PIE (Play In Editor) can lead to unexpected results.  Since the editor is loaded, the object iterator will return all UObjects created for your game world instance, in addition to those that are just being used by the editor.
-
+[REGION:warning]
+Using object iterators in PIE (Play In Editor) can lead to unexpected results.  Since the editor is loaded, the object iterator will return all UObjects created for your game world instance, in addition to those that are just being used by the editor.
+[/REGION]
 Actor iterators work in much the same way as object iterators, but only work for objects that derive from AActor.  Actor iterators do not have the problem noted below, and will only return objects being used by the current game world instance.
 
 When creating an actor iterator, you need to give it a pointer to a **UWorld** instance.  Many UObject classes, such as **APlayerController**, provide a **GetWorld** method to help you.  If you are not sure, you can check the **ImplementsGetWorld** method on a UObject to see if it implements the GetWorld method.
@@ -419,7 +419,7 @@ In this section we will go over basic memory management and the garbage collecti
 
 ### UObjects and Garbage Collection
 
-UE4 uses the reflection system to implement a garbage collection system.  With garbage collection, you will not have to manually manage deleting your UObjects, you just need to maintain valid references to them.  Your classes needs to derive from UObject in order to be enabled for garbage collection.  Here is the simple example class we will be using:
+UE4 uses the reflection system to implement a garbage collection system.  With garbage collection, you will not have to manually manage deleting your UObjects, you just need to maintain valid references to them.  Your classes need to derive from UObject in order to be enabled for garbage collection.  Here is the simple example class we will be using:
 
 	UCLASS()
 	class MyGCType : public UObject
@@ -427,7 +427,7 @@ UE4 uses the reflection system to implement a garbage collection system.  With g
 		GENERATED_BODY()
 	};
 
-In the garbage collector, there is this concept called the root set.  This root set is basically a list of objects that the collector knows about will never be garbage collected.  An object will not be garbage collected as long as there is a path of references from an object in the root set to the object in question.  If no such path to the root set exists for an object, it is called *unreachable *and will be collected (deleted) the next time the garbage collector is ran.  The engine runs the garbage collector at certain intervals.
+In the garbage collector, there is this concept called the root set.  This root set is basically a list of objects that the collector knows about will never be garbage collected.  An object will not be garbage collected as long as there is a path of references from an object in the root set to the object in question.  If no such path to the root set exists for an object, it is called unreachable and will be collected (deleted) the next time the garbage collector is ran.  The engine runs the garbage collector at certain intervals.
 
 What counts as a "reference"?  Any UObject pointer stored in a UPROPERTY.  Let us start with a simple example.
 
@@ -440,7 +440,7 @@ When we call the above function, we create a new UObject, but we do not store a 
 
 ### Actors and Garbage collection
 
-Actors are not usually garbage collected.  Once spawned, you must manually call Destroy() on them.  They will not be deleted immediately, and instead will be cleaned up during the next garbage collection phase.
+Actors are not usually garbage collected.  Once spawned, you must manually call **Destroy()** on them.  They will not be deleted immediately, and instead will be cleaned up during the next garbage collection phase.
 
 This is a more common case, where you have actors with UObject properties.
 
@@ -468,7 +468,7 @@ This is a more common case, where you have actors with UObject properties.
 		World->SpawnActor<AMyActor>(Location, Rotation);
 	}
 
-When we call the above function, we spawn an actor into the world.  The actor’s constructor creates two objects.  One gets assigned to a UPROPERTY, the other to a bare pointer.  Since actors are automatically a part of the root set, SafeObject will not be garbage collected because it can be reached from a root set object.  DoomedObject, however, will not fare so well.  We didn’t mark it with UPROPERTY, so the collector does not know its being referenced, and will eventually destroy it.
+When we call the above function, we spawn an actor into the world.  The actor’s constructor creates two objects.  One gets assigned to a UPROPERTY, the other to a bare pointer.  Since actors are automatically a part of the root set, SafeObject will not be garbage collected because it can be reached from a root set object.  DoomedObject, however, will not fare so well.  We didn’t mark it with UPROPERTY, so the collector does not know it is being referenced, and will eventually destroy it.
 
 When a UObject is garbage collected, all UPROPERTY references to it will be set to nullptr for you.  This makes it safe for you to check if an object has been garbage collected or not.
 

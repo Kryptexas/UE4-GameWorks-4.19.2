@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -29,13 +29,6 @@ public:
 	void SetContext( FContextSupplier* InSupplier );
 
 private:
-	struct FBufferedLine
-	{
-		FString Text;
-		ELogVerbosity::Type Verbosity;
-		FName Category;
-	};
-
 	struct FWindowParams
 	{
 		FWindowsNativeFeedbackContext* Context;

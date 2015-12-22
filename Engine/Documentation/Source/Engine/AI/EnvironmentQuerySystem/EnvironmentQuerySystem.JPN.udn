@@ -1,50 +1,52 @@
-﻿INTSourceChangelist:2572470
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:Environment Query System
 Crumbs:%ROOT%, Engine, Gameplay/AI
 Description:Environment Query System に関連する全ドキュメントへのランディング ページ
+parent:Engine
+order:6
 
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Engine/AI/BehaviorTrees:title%](AI_Topic.png)
+		![%Engine/AI/EnvironmentQuerySystem:title%](Engine/AI/EnvironmentQuerySystem/EQStopic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Engine/AI/BehaviorTrees:title%
+		%Engine/AI/EnvironmentQuerySystem:title%
 	[/PARAM]
 	[PARAM:description]
-		%Engine/AI/BehaviorTrees:description%
+		%Engine/AI/EnvironmentQuerySystem:description%
 	[/PARAM]
 	[PARAM:path]
-		[RELATIVE:Engine/AI/BehaviorTrees]
+		[RELATIVE:Engine/AI/EnvironmentQuerySystem]
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Engine/AI/BehaviorTrees:title%](AI_Topic.png)
+		![%Engine/AI/EnvironmentQuerySystem:title%](Engine/AI/EnvironmentQuerySystem/EQStopic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Engine/AI/BehaviorTrees:title%
+		%Engine/AI/EnvironmentQuerySystem:title%
 	[/PARAM]
 	[PARAM:description]
-		%Engine/AI/BehaviorTrees:description%
+		%Engine/AI/EnvironmentQuerySystem:description%
 	[/PARAM]
 	[PARAM:path]
-		[RELATIVE:Engine/AI/BehaviorTrees]
+		[RELATIVE:Engine/AI/EnvironmentQuerySystem]
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
-**Environment Query System** はアンリアル エンジン 4 の **Artificial Intelligence** システムの機能です。
-環境のデータを収集し、**テスト** を使ってデータの質問をし、質問の答えとして最もよい **Item** を 1 つ返します。
+**Environment Query System** はアンリアル エンジン 4 の Artificial Intelligence システムの機能です。
+環境のデータを収集し、テストを使ってデータの質問をし、質問の答えとして最もよい Item を 1 つ返します。
 
 これを使って、一番近くのパワーアップを見つけたり、最も脅威的な敵がどれかを見分けたり、カバーを探すことができます。
 

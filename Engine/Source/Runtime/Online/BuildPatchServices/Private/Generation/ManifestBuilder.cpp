@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #if WITH_BUILDPATCHGENERATION
 
@@ -94,7 +94,7 @@ namespace BuildPatchServices
 			}
 		}
 		TFunction<void()> Task = [this]() { BuildManifest(); };
-		Future = Async(EAsyncExecution::Thread, Task);
+		Future = Async(EAsyncExecution::Thread, MoveTemp(Task));
 	}
 
 	FManifestBuilderImpl::~FManifestBuilderImpl()

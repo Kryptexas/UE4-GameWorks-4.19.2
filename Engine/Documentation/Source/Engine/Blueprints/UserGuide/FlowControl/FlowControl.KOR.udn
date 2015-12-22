@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2599455
+﻿INTSourceChangelist:2695230
 Availability:Public
 Title:플로우 콘트롤
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description: 조건에 따라 실행 흐름을 제어할 수 있는 노드입니다.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -47,7 +48,7 @@ Description: 조건에 따라 실행 흐름을 제어할 수 있는 노드입니
 
 [EXCERPT:Intro]
 
-[INCLUDE:Shared/Glossary/F/#Glossary_Flow_Control]
+[INCLUDE:Shared/Glossary/F#Glossary_Flow_Control]
 
 [/EXCERPT:Intro]
 

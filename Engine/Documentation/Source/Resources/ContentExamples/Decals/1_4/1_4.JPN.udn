@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2714387
 Availability:Public
 Title:1.4 - 複数サーフェスへの投影
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Decals
-Description:デカールの事例概要、例 1.4：複数サーフェスへの投影
+Description:デカールのサンプル レベルの概要、 1.4：複数サーフェスへの投影
 Related: Engine/Actors/DecalActor
 Related: Engine/Rendering/Materials/PhysicallyBased
 Related: Engine/Rendering/Materials
@@ -11,6 +11,25 @@ Related: Engine/Rendering/Materials/ExpressionReference
 Related: Engine/Rendering/Materials/MaterialInputs
 Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
+Version:4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/Decals/1_3 "%Resources/ContentExamples/Decals/1_3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[デカールのホーム](Resources/ContentExamples/Decals)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/Decals/1_5 "%Resources/ContentExamples/Decals/1_5:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -54,10 +73,10 @@ Related: Engine/Rendering/Materials/MaterialInstances
 
 ![%Resources/ContentExamples/Decals/1_1:title%](Resources\ContentExamples\Decals\Decals_4.png)
 
-## 概要
 
 
-この例では、デカールがどのように複数サーフェスに投影されるかがわかります。サーフェスが投影方向に対して、より平行になるにつれて、予測された伸縮が起きていることがわかります。デカールは、スケルタルメッシュを含む静的メッシュと動的メッシュの両方に投影することを覚えておいてください。
+
+このサンプルでは、デカールがどのように複数サーフェスに投影されるかがわかります。サーフェスが投影方向に対して、一段と平行になるにつれて、予測された伸縮が起きていることがわかります。デカールは、スケルタルメッシュを含む静的メッシュと動的メッシュの両方に投影することを覚えておいてください。
 
 
 [/REGION]

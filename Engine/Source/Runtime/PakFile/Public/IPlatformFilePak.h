@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -716,7 +716,7 @@ public:
 		}
 	}
 
-	// BEGIN IFileHandle Interface
+	//~ Begin IFileHandle Interface
 	virtual int64 Tell() override
 	{
 		return ReadPos;
@@ -774,7 +774,7 @@ public:
 	{
 		return Reader.FileSize();
 	}
-	/// END IFileHandle Interface
+	///~ End IFileHandle Interface
 };
 
 /**
@@ -984,7 +984,7 @@ public:
 		return FindFileInPakFiles(Paks, Filename, OutPakFile);
 	}
 
-	// BEGIN IPlatformFile Interface
+	//~ Begin IPlatformFile Interface
 	virtual bool FileExists(const TCHAR* Filename) override
 	{
 		// Check pak files first.
@@ -1070,6 +1070,27 @@ public:
 		// Fall back to lower level.
 		FDateTime Result = LowerLevel->GetTimeStamp(Filename);
 		return Result;
+	}
+
+	virtual void GetTimeStampPair(const TCHAR* FilenameA, const TCHAR* FilenameB, FDateTime& OutTimeStampA, FDateTime& OutTimeStampB) override
+	{
+		FPakFile* PakFileA = nullptr;
+		FPakFile* PakFileB = nullptr;
+		FindFileInPakFiles(FilenameA, &PakFileA);
+		FindFileInPakFiles(FilenameB, &PakFileB);
+
+		// If either file exists, we'll assume both should exist here and therefore we can skip the
+		// request to the lower level platform file.
+		if (PakFileA != nullptr || PakFileB != nullptr)
+		{
+			OutTimeStampA = PakFileA != nullptr ? PakFileA->GetTimestamp() : FDateTime::MinValue();
+			OutTimeStampB = PakFileB != nullptr ? PakFileB->GetTimestamp() : FDateTime::MinValue();
+		}
+		else
+		{
+			// Fall back to lower level.
+			LowerLevel->GetTimeStampPair(FilenameA, FilenameB, OutTimeStampA, OutTimeStampB);
+		}
 	}
 
 	virtual void SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) override
@@ -1158,6 +1179,40 @@ public:
 		}
 		// Directory does not exist in pak files so it's safe to delete.
 		return LowerLevel->DeleteDirectory(Directory);
+	}
+
+	virtual FFileStatData GetStatData(const TCHAR* FilenameOrDirectory) override
+	{
+		// Check pak files first.
+		FPakFile* PakFile = nullptr;
+		const FPakEntry* FileEntry = FindFileInPakFiles(FilenameOrDirectory, &PakFile);
+		if (FileEntry)
+		{
+			return FFileStatData(
+				PakFile->GetTimestamp(),
+				PakFile->GetTimestamp(),
+				PakFile->GetTimestamp(),
+				(FileEntry->CompressionMethod != COMPRESS_None) ? FileEntry->UncompressedSize : FileEntry->Size, 
+				false,	// IsDirectory
+				true	// IsReadOnly
+				);
+		}
+
+		// Then check pak directories
+		if (DirectoryExistsInPakFiles(FilenameOrDirectory))
+		{
+			return FFileStatData(
+				PakFile->GetTimestamp(),
+				PakFile->GetTimestamp(),
+				PakFile->GetTimestamp(),
+				-1,		// FileSize
+				true,	// IsDirectory
+				true	// IsReadOnly
+				);
+		}
+
+		// Fall back to lower level.
+		return LowerLevel->GetStatData(FilenameOrDirectory);
 	}
 
 	/**
@@ -1264,6 +1319,130 @@ public:
 		return IPlatformFile::IterateDirectoryRecursively(Directory, PakVisitor);
 	}
 
+	/**
+	 * Helper class to filter out files which have already been visited in one of the pak files.
+	 */
+	class FPakStatVisitor : public IPlatformFile::FDirectoryStatVisitor
+	{
+	public:
+		/** Wrapped visitor. */
+		FDirectoryStatVisitor&	Visitor;
+		/** Visited pak files. */
+		TSet<FString>& VisitedPakFiles;
+		/** Cached list of pak files. */
+		TArray<FPakListEntry>& Paks;
+
+		/** Constructor. */
+		FPakStatVisitor(FDirectoryStatVisitor& InVisitor, TArray<FPakListEntry>& InPaks, TSet<FString>& InVisitedPakFiles)
+			: Visitor(InVisitor)
+			, VisitedPakFiles(InVisitedPakFiles)
+			, Paks(InPaks)
+		{}
+		virtual bool Visit(const TCHAR* FilenameOrDirectory, const FFileStatData& StatData)
+		{
+			if (StatData.bIsDirectory == false)
+			{
+				FString StandardFilename(FilenameOrDirectory);
+				FPaths::MakeStandardFilename(StandardFilename);
+
+				if (VisitedPakFiles.Contains(StandardFilename))
+				{
+					// Already visited, continue iterating.
+					return true;
+				}
+				else if (FPakPlatformFile::FindFileInPakFiles(Paks, FilenameOrDirectory, NULL))
+				{
+					VisitedPakFiles.Add(StandardFilename);
+				}
+			}			
+			return Visitor.Visit(FilenameOrDirectory, StatData);
+		}
+	};
+
+	virtual bool IterateDirectoryStat(const TCHAR* Directory, IPlatformFile::FDirectoryStatVisitor& Visitor) override
+	{
+		bool Result = true;
+		TSet<FString> FilesVisitedInPak;
+
+		TArray<FPakListEntry> Paks;
+		GetMountedPaks(Paks);
+
+		// Iterate pak files first
+		for (int32 PakIndex = 0; PakIndex < Paks.Num(); PakIndex++)
+		{
+			FPakFile& PakFile = *Paks[PakIndex].PakFile;
+			
+			const bool bIncludeFiles = true;
+			const bool bIncludeFolders = true;
+			TSet<FString> FilesVisitedInThisPak;
+			FString StandardDirectory = Directory;
+			FPaths::MakeStandardFilename(StandardDirectory);
+
+			PakFile.FindFilesAtPath(FilesVisitedInThisPak, *StandardDirectory, bIncludeFiles, bIncludeFolders);
+			for (TSet<FString>::TConstIterator SetIt(FilesVisitedInThisPak); SetIt && Result; ++SetIt)
+			{
+				const FString& Filename = *SetIt;
+				if (!FilesVisitedInPak.Contains(Filename))
+				{
+					bool bIsDir = Filename.Len() && Filename[Filename.Len() - 1] == '/';
+
+					int64 FileSize = -1;
+					if (!bIsDir)
+					{
+						const FPakEntry* FileEntry = FindFileInPakFiles(*Filename);
+						if (FileEntry)
+						{
+							FileSize = (FileEntry->CompressionMethod != COMPRESS_None) ? FileEntry->UncompressedSize : FileEntry->Size;
+						}
+					}
+
+					const FFileStatData StatData(
+						PakFile.GetTimestamp(),
+						PakFile.GetTimestamp(),
+						PakFile.GetTimestamp(),
+						FileSize, 
+						bIsDir,
+						true	// IsReadOnly
+						);
+
+					if (bIsDir)
+					{
+						Result = Visitor.Visit(*Filename.LeftChop(1), StatData) && Result;
+					}
+					else
+					{
+						Result = Visitor.Visit(*Filename, StatData) && Result;
+					}
+					FilesVisitedInPak.Add(Filename);
+				}
+			}
+		}
+		if (Result && LowerLevel->DirectoryExists(Directory))
+		{
+			if (FilesVisitedInPak.Num())
+			{
+				// Iterate inner filesystem using FPakVisitor
+				FPakStatVisitor PakVisitor(Visitor, Paks, FilesVisitedInPak);
+				Result = LowerLevel->IterateDirectoryStat(Directory, PakVisitor);
+			}
+			else
+			{
+				 // No point in using FPakVisitor as it will only slow things down.
+				Result = LowerLevel->IterateDirectoryStat(Directory, Visitor);
+			}
+		}
+		return Result;
+	}
+
+	virtual bool IterateDirectoryStatRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryStatVisitor& Visitor) override
+	{
+		TSet<FString> FilesVisitedInPak;
+		TArray<FPakListEntry> Paks;
+		GetMountedPaks(Paks);
+		FPakStatVisitor PakVisitor(Visitor, Paks, FilesVisitedInPak);
+		return IPlatformFile::IterateDirectoryStatRecursively(Directory, PakVisitor);
+	}
+
 	virtual bool DeleteDirectoryRecursively(const TCHAR* Directory) override
 	{
 		// Can't delete directories existing in pak files. See DeleteDirectory(..) for more info.
@@ -1323,7 +1502,7 @@ public:
 			return LowerLevel->ConvertToAbsolutePathForExternalAppForWrite(Filename);
 		}
 	}
-	// END IPlatformFile Interface
+	//~ End IPlatformFile Interface
 
 	// BEGIN Console commands
 #if !UE_BUILD_SHIPPING

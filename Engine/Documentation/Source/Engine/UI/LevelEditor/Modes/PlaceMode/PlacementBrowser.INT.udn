@@ -2,6 +2,8 @@ Availability: Public
 Title:Place Mode
 Crumbs:%ROOT%, Engine
 Description:Guide to the Place Mode, which allows for rapid deployment of placeable Actors in your levels.
+Version: 4.9
+SkillLevel:Beginner
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -47,13 +49,12 @@ Description:Guide to the Place Mode, which allows for rapid deployment of placea
 	![](PlacementBrowser_Title.png)
 [/REGION]
 
-## Overview
 
-**Place Mode** is a specialized tool for speeding up and simplifying environment creation in Unreal Engine 4. Similar in nature to the **Content Browser**, the Place Mode focuses only on those assets that can be directly placed within your level (i.e. _Actors_). While active, this browser gives you immediate access to all placeable objects that exist within your project, without having to navigate to specific project folders as you would with the **Content Browser**.
+**Place Mode** is a specialized tool for speeding up and simplifying environment creation in Unreal Engine 4. Similar in nature to the **Content Browser**, the Place Mode focuses only on those assets that can be directly placed within your level (i.e. _Actors_). While active, this browser gives you immediate access to all placeable objects that exist within your project, without having to navigate to specific project folders as you would with the Content Browser.
 
 Place Mode also makes it easier to add special types of Actors, such as Lights, that would have otherwise required that you dig through the hierarchy of the **Class Viewer** window. Further, it simplifies the creation of special subtypes of Actors, such as creating Physics Actors from selected Static Meshes.
 
-It should be noted that Place Mode is an efficiency- and convenience-driven tool, and is not intended to _replace_ the **Content Browser**. Instead, it exists as a way to greatly speed up design times when adding various props and other elements into your level, as it is optimized for fast Actor placement while offering you the convenience of quick access to common environment assets. However, whenever you need access to only those assets within a specific project folder, or any type of asset that is not natively placeable (such as a Material), you will still need to use the **Content Browser**.
+It should be noted that Place Mode is an efficiency- and convenience-driven tool, and is not intended to _replace_ the Content Browser. Instead, it exists as a way to greatly speed up design times when adding various props and other elements into your level, as it is optimized for fast Actor placement while offering you the convenience of quick access to common environment assets. However, whenever you need access to only those assets within a specific project folder, or any type of asset that is not natively placeable (such as a Material), you will still need to use the Content Browser.
 
 Place Mode is the default state of the Level Editor and can be activated in the **Modes** panel, which by default rests in the upper left corner of the Editor's main interface. You may also switch to this mode at any time by pressing **Shift + 1**.
 

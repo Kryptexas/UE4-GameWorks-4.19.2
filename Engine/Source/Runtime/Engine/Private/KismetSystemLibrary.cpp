@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Engine/GameEngine.h"
@@ -47,6 +47,11 @@ FString UKismetSystemLibrary::GetObjectName(const UObject* Object)
 	return GetNameSafe(Object);
 }
 
+FString UKismetSystemLibrary::GetPathName(const UObject* Object)
+{
+	return GetPathNameSafe(Object);
+}
+
 FString UKismetSystemLibrary::GetDisplayName(const UObject* Object)
 {
 #if WITH_EDITOR
@@ -71,7 +76,7 @@ FString UKismetSystemLibrary::GetClassDisplayName(UClass* Class)
 
 FString UKismetSystemLibrary::GetEngineVersion()
 {
-	return GEngineVersion.ToString();
+	return FEngineVersion::Current().ToString();
 }
 
 FString UKismetSystemLibrary::GetGameName()
@@ -3030,6 +3035,15 @@ void UKismetSystemLibrary::LaunchURL(const FString& URL)
 	}
 }
 
+bool UKismetSystemLibrary::CanLaunchURL(const FString& URL)
+{
+	if (!URL.IsEmpty())
+	{
+		return FPlatformProcess::CanLaunchURL(*URL);
+	}
+
+	return false;
+}
 void UKismetSystemLibrary::CollectGarbage()
 {
 	GEngine->DeferredCommands.Add(TEXT("obj gc"));

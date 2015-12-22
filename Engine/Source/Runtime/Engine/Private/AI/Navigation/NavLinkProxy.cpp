@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "ObjectEditorUtils.h"
@@ -75,7 +75,7 @@ void ANavLinkProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
 		if (NavSys)
 		{
-			NavSys->UpdateNavOctree(this);
+			NavSys->UpdateActorInNavOctree(*this);
 		}
 	}
 
@@ -107,7 +107,7 @@ FBox ANavLinkProxy::GetNavigationBounds() const
 
 bool ANavLinkProxy::IsNavigationRelevant() const
 {
-	return (PointLinks.Num() > 0) || (SegmentLinks.Num() > 0);
+	return (PointLinks.Num() > 0) || (SegmentLinks.Num() > 0) || bSmartLinkIsRelevant;
 }
 
 bool ANavLinkProxy::GetNavigationLinksClasses(TArray<TSubclassOf<UNavLinkDefinition> >& OutClasses) const

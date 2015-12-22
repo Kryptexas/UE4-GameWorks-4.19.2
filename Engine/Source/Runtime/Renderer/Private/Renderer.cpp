@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Renderer.cpp: Renderer module implementation.
@@ -30,6 +30,11 @@ void FRendererModule::SceneRenderTargetsSetBufferSize(uint32 SizeX, uint32 SizeY
 {
 	FSceneRenderTargets::Get_Todo_PassContext().SetBufferSize(SizeX, SizeY);
 	FSceneRenderTargets::Get_Todo_PassContext().UpdateRHI();
+}
+
+void FRendererModule::InitializeSystemTextures(FRHICommandListImmediate& RHICmdList)
+{
+	GSystemTextures.InitializeTextures(RHICmdList, GMaxRHIFeatureLevel);
 }
 
 void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const FSceneView& SceneView, const FMeshBatch& Mesh, bool bIsHitTesting, const FHitProxyId& HitProxyId)
@@ -75,20 +80,20 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const F
 			{
 				if (FeatureLevel >= ERHIFeatureLevel::SM4)
 				{
-					FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::SetTextures), Mesh, false, false, NULL, HitProxyId);
+					FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), Mesh, false, false, NULL, HitProxyId);
 				}
 				else
 				{
-					FBasePassForwardOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FBasePassForwardOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::SetTextures), Mesh, false, false, NULL, HitProxyId);
+					FBasePassForwardOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FBasePassForwardOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), Mesh, false, false, NULL, HitProxyId);
 				}
 			}
 		}	
 	}
 }
 
-void FRendererModule::RenderTargetPoolFindFreeElement(const FPooledRenderTargetDesc& Desc, TRefCountPtr<IPooledRenderTarget> &Out, const TCHAR* InDebugName)
+void FRendererModule::RenderTargetPoolFindFreeElement(FRHICommandListImmediate& RHICmdList, const FPooledRenderTargetDesc& Desc, TRefCountPtr<IPooledRenderTarget> &Out, const TCHAR* InDebugName)
 {
-	GRenderTargetPool.FindFreeElement(Desc, Out, InDebugName);
+	GRenderTargetPool.FindFreeElement(RHICmdList, Desc, Out, InDebugName);
 }
 
 void FRendererModule::TickRenderTargetPool()

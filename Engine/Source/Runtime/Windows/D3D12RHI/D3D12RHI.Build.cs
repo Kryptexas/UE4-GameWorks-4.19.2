@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -22,7 +22,6 @@ public class D3D12RHI : ModuleRules
         AddThirdPartyPrivateStaticDependencies(Target, "DX12");
 		AddThirdPartyPrivateStaticDependencies(Target, "DX11");
         AddThirdPartyPrivateStaticDependencies(Target, "NVAPI");
-        AddThirdPartyPrivateStaticDependencies(Target, "AMD");
         
 		if (Target.Configuration != UnrealTargetConfiguration.Shipping)
 		{

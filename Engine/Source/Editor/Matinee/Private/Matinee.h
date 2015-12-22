@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -1453,6 +1453,9 @@ protected:
 
 	/**List of saved viewport clients' tansforms before entering Matinee editor*/
 	TArray< FMatineeViewSaveData > SavedViewportData;
+
+	/** Guard to prevent infinite looping on camera movement and update. */
+	bool bUpdatingCameraGuard;
 
 public:
 	/** Menu Helpers */

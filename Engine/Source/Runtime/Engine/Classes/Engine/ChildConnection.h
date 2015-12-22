@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -50,7 +50,7 @@ public:
 		Parent->AssertValid();
 	}
 
-	virtual void SendAck( int32 PacketId, bool FirstTime=1, bool bHavePingAckData=0, uint32 PingAckData=0 ) override
+	virtual void SendAck(int32 PacketId, bool FirstTime=1) override
 	{
 	}
 

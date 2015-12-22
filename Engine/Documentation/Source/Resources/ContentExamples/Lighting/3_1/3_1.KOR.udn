@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2618626
+﻿INTSourceChangelist:2653227
 Availability: Public
 Title:3.1 - IES 라이트 프로파일
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
@@ -14,6 +14,22 @@ Related: Engine/Rendering/LightingAndShadows/Shadows
 Related: Engine/Rendering/LightingAndShadows/IndirectLightingCache
 Related: Engine/Rendering/LightingAndShadows/LightMobility
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[라이팅 홈](Resources/ContentExamples/Lighting)
+	[/PARAM]
+	[PARAM:next]
+		[다음 예제](Resources/ContentExamples/Lighting/3_2 "%Resources/ContentExamples/Lighting/3_2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:TopicCompact]

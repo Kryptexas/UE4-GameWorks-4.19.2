@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "ModuleManager.h"
@@ -204,6 +204,7 @@ FString					GSystemStartTime;
 bool					GIsInitialLoad					= true;
 /** Steadily increasing frame counter.																		*/
 uint64					GFrameCounter					= 0;
+uint64					GLastGCFrame					= 0;
 /** Incremented once per frame before the scene is being rendered. In split screen mode this is incremented once for all views (not for each view). */
 uint32					GFrameNumber					= 1;
 /** Render Thread copy of the frame number. */
@@ -211,10 +212,12 @@ uint32					GFrameNumberRenderThread		= 1;
 #if !(UE_BUILD_SHIPPING && WITH_EDITOR)
 // We cannot count on this variable to be accurate in a shipped game, so make sure no code tries to use it
 /** Whether we are the first instance of the game running.													*/
+#if !PLATFORM_LINUX
 bool					GIsFirstInstance				= true;
 #endif
-/** Threshold for a frame to be considered a hitch (in seconds. */
-float GHitchThreshold = 0.075f;
+#endif
+/** Threshold for a frame to be considered a hitch (in milliseconds). */
+float GHitchThresholdMS = 60.0f;
 /** Size to break up data into when saving compressed data													*/
 int32					GSavingCompressionChunkSize		= SAVING_COMPRESSION_CHUNK_SIZE;
 /** Whether we are using the seekfree/ cooked loading codepath.												*/
@@ -236,6 +239,8 @@ bool					GShouldSuspendRenderingThread	= false;
 FName					GCurrentTraceName				= NAME_None;
 /** How to print the time in log output																		*/
 ELogTimes::Type			GPrintLogTimes					= ELogTimes::None;
+/** How to print the category in log output. */
+bool					GPrintLogCategory = true;
 /** Global screen shot index, which is a way to make it so we don't have overwriting ScreenShots			*/
 int32                     GScreenshotBitmapIndex           = -1;
 /** Whether stats should emit named events for e.g. PIX.													*/
@@ -249,9 +254,6 @@ bool					GPumpingMessagesOutsideOfMainLoop = false;
 
 /** Total blueprint compile time.																			*/
 double GBlueprintCompileTime = 0.0;
-
-/** Stack names from the VM to be unrolled when we assert */
-TArray<FScriptTraceStackNode> GScriptStack;
 
 DEFINE_STAT(STAT_AudioMemory);
 DEFINE_STAT(STAT_TextureMemory);

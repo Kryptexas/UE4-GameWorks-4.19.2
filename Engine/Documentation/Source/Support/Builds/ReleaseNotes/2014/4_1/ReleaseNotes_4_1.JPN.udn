@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2618157
-Title:Unreal Engine 4.1 リリース ノート
+﻿INTSourceChangelist:2735872
+Title:Unreal Engine 4.1 リリースノート
 Crumbs:%ROOT%, Support/Builds
 Description:
 Availability:Public
-
-
+version: 4.1
+order:1
 [TOC(start:2 end:2)]
 
 [PUBLISH:Licensee]
@@ -38,8 +38,8 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 ##### PlayStation 4 と Xbox One をサポート
 
 * PlayStation 4 と Xbox One に完全に対応しました。
-	![](xboxone_ps4.png)
 
+	![](xboxone_ps4.png)
 
 * Microsoft または SCE で開発者登録しているデベロッパーは、Xbox One または PlayStation 4 のためのエンジン ソースをそれぞれ利用できるようになりました。
 * 現在のところ、PlayStation 4 または Xbox One にプロジェクトをデプロイするには、Windows コンピュータを使って GitHub から得たソースをコンパイルする必要があります。 
@@ -64,7 +64,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 
 [/PUBLISH:Rocket]
 
-#####新たなコンテンツ見本用レベル Math Hall
+#####新たなコンテンツ サンプル レベル Math Hall
 
 * Math Hall では、基本的なベクター演算と各種数学関数のコンセプトについて説明しています。
 
@@ -89,8 +89,8 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 ##### 新たな内蔵型エディタ チュートリアル
 
 * エディタ内にチュートリアルが新たに内蔵されました。チュートリアルは、次のような機能を初めて使用する場合に自動的に表示されます。
-	[REGION:raw]
 
+	[REGION:raw]
 	![](editor_tutorials.png)
 	[/REGION]
 

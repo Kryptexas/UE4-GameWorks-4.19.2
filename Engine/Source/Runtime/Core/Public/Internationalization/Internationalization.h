@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #define ENABLE_LOC_TESTING ( UE_BUILD_DEBUG | UE_BUILD_DEVELOPMENT | UE_BUILD_TEST )
@@ -21,10 +21,7 @@ public:
 
 	static CORE_API void TearDown();
 
-	static CORE_API FText ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText( const TCHAR* InTextLiteral, const TCHAR* Namespace, const TCHAR* Key )
-	{
-		return FText( InTextLiteral, Namespace, Key, ETextFlag::Immutable );
-	}
+	static CORE_API FText ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText(const TCHAR* InTextLiteral, const TCHAR* InNamespace, const TCHAR* InKey);
 
 	//Set the current culture by name
 	CORE_API bool SetCurrentCulture(const FString& Name);

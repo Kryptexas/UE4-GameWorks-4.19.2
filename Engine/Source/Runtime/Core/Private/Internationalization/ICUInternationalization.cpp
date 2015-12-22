@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #include "CorePrivatePCH.h"
 #include "ICUInternationalization.h"
 
@@ -210,9 +210,8 @@ void FICUInternationalization::LoadDLLs()
 		FString LibraryName = "lib" "icu" + Stem + ".53.1" + LibraryNamePostfix + "." "dylib";
 #endif //PLATFORM_*
 
-		const FString DLLFilename = TargetSpecificPath / LibraryName;
-		void* DLLHandle = FPlatformProcess::GetDllHandle(*DLLFilename);
-		checkf(DLLHandle != nullptr, TEXT("Failed to load DLL: %s"), *DLLFilename);
+		void* DLLHandle = FPlatformProcess::GetDllHandle(*(TargetSpecificPath / LibraryName));
+		check(DLLHandle != nullptr);
 		DLLHandles.Add(DLLHandle);
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 /**
@@ -57,6 +57,7 @@ public:
 	bool			IsDynamicObject( const UObject* Object );
 	bool			IsNetGUIDAuthority() const;
 	FNetworkGUID	GetOrAssignNetGUID( const UObject* Object );
+	FNetworkGUID	GetNetGUID( const UObject* Object ) const;
 	FNetworkGUID	AssignNewNetGUID_Server( const UObject* Object );
 	void			RegisterNetGUID_Internal( const FNetworkGUID& NetGUID, const FNetGuidCacheObject& CacheObject );
 	void			RegisterNetGUID_Server( const FNetworkGUID& NetGUID, const UObject* Object );
@@ -150,11 +151,14 @@ public:
 
 	virtual bool PrintExportBatch() override;
 
-	virtual void		LogDebugInfo( FOutputDevice & Ar) override;
-	virtual UObject *	GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const bool bIgnoreMustBeMapped ) override;
-	virtual bool		IsGUIDBroken( const FNetworkGUID& NetGUID, const bool bMustBeRegistered ) const override { return GuidCache->IsGUIDBroken( NetGUID, bMustBeRegistered ); }
+	virtual void			LogDebugInfo( FOutputDevice & Ar) override;
+	virtual UObject *		GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const bool bIgnoreMustBeMapped ) override;
+	virtual FNetworkGUID	GetNetGUIDFromObject( const UObject* InObject) const override;
+	virtual bool			IsGUIDBroken( const FNetworkGUID& NetGUID, const bool bMustBeRegistered ) const override { return GuidCache->IsGUIDBroken( NetGUID, bMustBeRegistered ); }
 
 	TArray< FNetworkGUID > & GetMustBeMappedGuidsInLastBunch() { return MustBeMappedGuidsInLastBunch; }
+
+	class UNetConnection* GetConnection() { return Connection; }
 
 protected:
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "SEditableTextBlock.h"
@@ -52,6 +52,10 @@ void SEditableTextBlock::BuildMultiBlockWidget( const ISlateStyle* StyleSet, con
 	const TAttribute<FText>& Label = !EditableTextBlock->LabelOverride.IsBound() && EditableTextBlock->LabelOverride.Get().IsEmpty() && UICommand.IsValid() ? UICommand->GetLabel() : EditableTextBlock->LabelOverride;
 	const TAttribute<FText>& TextBlockToolTip = !EditableTextBlock->ToolTipOverride.IsBound() && EditableTextBlock->ToolTipOverride.Get().IsEmpty() && UICommand.IsValid() ? UICommand->GetDescription() : EditableTextBlock->ToolTipOverride;
 	const bool bHasLabel = !Label.Get().IsEmpty();
+
+	// Add this widget to the search list of the multibox
+	if (MultiBlock->GetSearchable())
+		OwnerMultiBoxWidget.Pin()->AddSearchElement(this->AsWidget(), Label.Get());
 
 	// See if the action is valid and if so we will use the actions icon if we dont override it later
 	const FSlateIcon ActionIcon = UICommand.IsValid() ? UICommand->GetIcon() : FSlateIcon();

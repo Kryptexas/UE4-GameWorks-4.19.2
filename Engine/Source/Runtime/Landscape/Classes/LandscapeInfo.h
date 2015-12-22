@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "LandscapeInfo.generated.h"
@@ -139,12 +139,12 @@ public:
 
 	TMap<FIntPoint,float> SelectedRegion;
 
-	// Begin UObject Interface.
+	//~ Begin UObject Interface.
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void BeginDestroy() override;
 #if WITH_EDITOR
 	virtual void PostEditUndo() override;
-	// End UObject Interface
+	//~ End UObject Interface
 
 	// @todo document 
 	// all below.
@@ -221,7 +221,7 @@ public:
 	
 	/** Deassociates passed landscape component with this info object*/
 	LANDSCAPE_API void UnregisterActorComponent(ULandscapeComponent* Component);
-		
+
 	/** Resets all actors, proxies, components registrations */
 	LANDSCAPE_API void Reset();
 
@@ -241,6 +241,9 @@ public:
 	/** Fix up component layers, weightmaps for all registered proxies
 	 */
 	LANDSCAPE_API void FixupProxiesWeightmaps();
+
+	// Update per-component layer whitelists to include the currently painted layers
+	LANDSCAPE_API void UpdateComponentLayerWhitelist();
 
 	LANDSCAPE_API void RecreateCollisionComponents();
 

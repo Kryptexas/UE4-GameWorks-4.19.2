@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -26,6 +26,13 @@ public:
 		SLATE_EVENT( FPointerEventHandler, OnMouseButtonDown )
 
 	SLATE_END_ARGS()
+
+	/** Constructor */
+	SImage()
+	{
+		bCanTick = false;
+		bCanSupportFocus = false;
+	}
 
 	/**
 	 * Construct this widget

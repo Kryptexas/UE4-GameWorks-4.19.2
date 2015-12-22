@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,7 +8,7 @@ public:
 	SLATE_BEGIN_ARGS(SGraphNode_MultiCompareGameplayTag){}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, UGameplayTagsK2Node_MultiCompareBase* InNode);
+	void Construct(const FArguments& InArgs, class UGameplayTagsK2Node_MultiCompareBase* InNode);
 
 protected:
 

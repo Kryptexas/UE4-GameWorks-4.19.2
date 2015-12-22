@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -16,19 +16,15 @@ struct FAssetEditorRequestOpenAsset
 	/**
 	 * Holds the name of the asset to open.
 	 */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Message")
 	FString AssetName;
 
 
-	/**
-	 * Default constructor.
-	 */
-	FAssetEditorRequestOpenAsset( ) { }
+	/** Default constructor. */
+	FAssetEditorRequestOpenAsset() { }
 
-	/**
-	 * Creates and initializes a new instance.
-	 */
-	FAssetEditorRequestOpenAsset( const FString& InAssetName )
+	/** Creates and initializes a new instance. */
+	FAssetEditorRequestOpenAsset(const FString& InAssetName)
 		: AssetName(InAssetName)
 	{ }
 };

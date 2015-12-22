@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2717064
 Availability:Public
-Title:1.4 - Two Sided
+Title:1.4 - Two Sided（両面）
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
-Description:マテリアル インスタンスの事例概要、例 1.4：Two Sided
+Description:マテリアル インスタンスのサンプル レベルの概要、サンプル 1.4：Two Sided
 Related: Engine/Rendering/Materials/PhysicallyBased
 Related: Engine/Rendering/Materials
 Related: Engine/Rendering/Materials/MaterialProperties/LightingModels
@@ -12,7 +12,25 @@ Related: Engine/Rendering/Materials/MaterialInputs
 Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
 Related: Engine/Actors/DecalActor
+Version:4.9
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/MaterialProperties/1_3 "%Resources/ContentExamples/MaterialProperties/1_3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[コンテンツ サンプル ホーム](Resources/ContentExamples)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/MaterialProperties/1_5 "%Resources/ContentExamples/MaterialProperties/1_5:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -61,5 +79,5 @@ Related: Engine/Actors/DecalActor
 ![](MP_1_4_002.png)(h:300) ![](MP_1_4_003.png)(h:300)
 </div>
 
-メッシュに適用される全てのマテリアルは、裏面でもレンダリングされます。**Translucent Blend モード** を使用しているマテリアル上で使用する場合は、オーバードローが多くなるためレンダリングコストが高くなります。
+メッシュに適用される全てのマテリアルは、裏面でもレンダリングされます。**Translucent Blend (透過ブレンド) モード** を使用しているマテリアル上で使用する場合は、オーバードローが多くなるためレンダリングの負荷が高くなります。
 

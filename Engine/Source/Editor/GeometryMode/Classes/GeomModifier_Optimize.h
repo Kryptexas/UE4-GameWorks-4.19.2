@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 /**
@@ -14,10 +14,10 @@ class UGeomModifier_Optimize : public UGeomModifier_Triangulate
 	GENERATED_UCLASS_BODY()
 
 
-	// Begin UGeomModifier Interface
+	//~ Begin UGeomModifier Interface
 protected:
 	virtual bool OnApply() override;
-	// End UGeomModifier Interface
+	//~ End UGeomModifier Interface
 };
 
 

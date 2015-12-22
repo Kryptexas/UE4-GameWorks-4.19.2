@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "NetcodeUnitTestPCH.h"
 
@@ -89,6 +89,10 @@ FString FUnitTestEnvironment::GetDefaultServerParameters(FString InLogCmds/*=TEX
 		ReturnVal += FString::Printf(TEXT(" -ExecCmds=\"%s\""), *FullExecCmds);
 	}
 
+	// Need to force all shader compilation, to happen with ShaderCompileWorker, so it can be detected easily;
+	// sometimes it would occur within threads in the main UE4 process, which was not possible to detect, and which this disables
+	ReturnVal += TEXT(" -ini:Engine:[DevOptions.Shaders]:bAllowAsynchronousShaderCompiling=False");
+
 	return ReturnVal;
 }
 
@@ -97,7 +101,16 @@ FString FUnitTestEnvironment::GetDefaultClientParameters()
 	FString ReturnVal = TEXT("");
 	FString CmdLineClientParms;
 
-	ReturnVal = TEXT("-nullrhi -windowed -resx=640 -resy=480");
+	bool bDebugClient = FParse::Param(FCommandLine::Get(), TEXT("UnitTestClientDebug"));
+
+	if (!bDebugClient)
+	{
+		ReturnVal = TEXT("-nullrhi -windowed -resx=640 -resy=480");
+	}
+	else
+	{
+		ReturnVal = TEXT("-windowed -resx=1024 -resy=768");
+	}
 
 	// @todo JohnB: Add merging of LogCmds, from above function, if adding default LogCmds for any game
 
@@ -106,6 +119,10 @@ FString FUnitTestEnvironment::GetDefaultClientParameters()
 		ReturnVal += TEXT(" ");
 		ReturnVal += CmdLineClientParms;
 	}
+
+	// Need to force all shader compilation, to happen with ShaderCompileWorker, so it can be detected easily;
+	// sometimes it would occur within threads in the main UE4 process, which was not possible to detect, and which this disables
+	ReturnVal += TEXT(" -ini:Engine:[DevOptions.Shaders]:bAllowAsynchronousShaderCompiling=False");
 
 	SetupDefaultClientParameters(ReturnVal);
 
@@ -138,6 +155,7 @@ void FUnitTestEnvironment::GetServerProgressLogs(const TArray<FString>*& OutStar
 		// Logs which should trigger a timeout reset for all games
 		TimeoutResetLogs.Add(TEXT("LogStaticMesh: Building static mesh "));
 		TimeoutResetLogs.Add(TEXT("LogMaterial: Missing cached shader map for material "));
+		TimeoutResetLogs.Add(TEXT("LogTexture:Display: Building textures: "));
 		TimeoutResetLogs.Add(TEXT("Dumping tracked stack traces for TraceName '"));
 		TimeoutResetLogs.Add(TEXT("Dumping once-off stack trace for TraceName '"));
 
@@ -161,7 +179,9 @@ void FUnitTestEnvironment::GetClientProgressLogs(const TArray<FString>*& OutTime
 	if (!bSetupLogs)
 	{
 		// Logs which should trigger a timeout reset for all games
+		TimeoutResetLogs.Add(TEXT("LogStaticMesh: Building static mesh "));
 		TimeoutResetLogs.Add(TEXT("LogMaterial: Missing cached shader map for material "));
+		TimeoutResetLogs.Add(TEXT("LogTexture:Display: Building textures: "));
 
 		InitializeClientProgressLogs(TimeoutResetLogs);
 
@@ -169,5 +189,22 @@ void FUnitTestEnvironment::GetClientProgressLogs(const TArray<FString>*& OutTime
 	}
 
 	OutTimeoutResetLogs = &TimeoutResetLogs;
+}
+
+void FUnitTestEnvironment::GetProgressBlockingProcesses(const TArray<FString>*& OutBlockingProcesses)
+{
+	static TArray<FString> BlockingProcesses;
+	static bool bSetupLogs = false;
+
+	if (!bSetupLogs)
+	{
+		BlockingProcesses.Add(TEXT("ShaderCompileWorker"));
+
+		InitializeProgressBlockingProcesses(BlockingProcesses);
+
+		bSetupLogs = true;
+	}
+
+	OutBlockingProcesses = &BlockingProcesses;
 }
 

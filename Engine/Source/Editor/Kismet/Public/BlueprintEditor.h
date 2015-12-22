@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -12,6 +12,7 @@
 #include "Engine/UserDefinedEnum.h"
 #include "PreviewScene.h"
 #include "Developer/Merge/Public/Merge.h" // for FOnMergeResolved
+#include "TickableEditorObject.h"
 
 class USCS_Node;
 
@@ -113,9 +114,9 @@ class KISMET_API FBlueprintEditor : public IBlueprintEditor, public FGCObject, p
 	};
 
 public:
-	// IToolkit interface
+	//~ Begin IToolkit Interface
 	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
-	// End of IToolkit interface
+	//~ End IToolkit Interface
 
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnModeSet, FName);
 	FOnModeSet& OnModeSet() { return OnModeSetData; }
@@ -133,13 +134,13 @@ public:
 	void InitBlueprintEditor(const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, const TArray<class UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode);
 
 public:
-	// FAssetEditorToolkit interface
+	//~ Begin FAssetEditorToolkit Interface
 	virtual bool OnRequestClose() override;
 	virtual void ToolkitBroughtToFront() override;
 	virtual void SaveAsset_Execute() override;
 	// End of FAssetEditorToolkit 
 
-	// IToolkit interface
+	//~ Begin IToolkit Interface
 	virtual FName GetToolkitContextFName() const override;
 	virtual FName GetToolkitFName() const override;
 	virtual FText GetBaseToolkitName() const override;
@@ -148,28 +149,29 @@ public:
 	virtual FString GetWorldCentricTabPrefix() const override;
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 	virtual bool IsBlueprintEditor() const override;
-	// End of IToolkit interface
+	//~ End IToolkit Interface
 
-	// FGCObject interface
+	//~ Begin FGCObject Interface
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
-	// End of FGCObject interface
+	//~ End FGCObject Interface
 
-	// IBlueprintEditor interface
+	//~ Begin IBlueprintEditor Interface
 	virtual void RefreshEditors(ERefreshBlueprintEditorReason::Type Reason = ERefreshBlueprintEditorReason::UnknownReason) override;
 	virtual void JumpToHyperlink(const UObject* ObjectReference, bool bRequestRename = false) override;
 	virtual void SummonSearchUI(bool bSetFindWithinBlueprint, FString NewSearchTerms = FString(), bool bSelectFirstResult = false) override;
+	virtual void SummonFindAndReplaceUI() override;
 	virtual TArray<TSharedPtr<class FSCSEditorTreeNode> > GetSelectedSCSEditorTreeNodes() const override;
 	virtual TSharedPtr<class FSCSEditorTreeNode> FindAndSelectSCSEditorTreeNode(const UActorComponent* InComponent, bool IsCntrlDown) override;
 	virtual int32 GetNumberOfSelectedNodes() const override;
 	virtual void AnalyticsTrackNodeEvent( UBlueprint* Blueprint, UEdGraphNode *GraphNode, bool bNodeDelete = false ) const override;
 	void AnalyticsTrackCompileEvent( UBlueprint* Blueprint, int32 NumErrors, int32 NumWarnings ) const;
-	// End of IBlueprintEditor interface
+	//~ End IBlueprintEditor Interface
 
-	// FTickableEditorObject interface
+	//~ Begin FTickableEditorObject Interface
 	virtual void Tick(float DeltaTime) override;
 	virtual bool IsTickable() const override { return true; }
 	virtual TStatId GetStatId() const override;
-	// End of FTickableEditorObject interface
+	//~ End FTickableEditorObject Interface
 
 public:
 	FBlueprintEditor();
@@ -195,6 +197,7 @@ public:
 	TSharedRef<class SKismetInspector> GetInspector() const {return Inspector.ToSharedRef();}
 	TSharedRef<class SKismetInspector> GetDefaultEditor() const {return DefaultEditor.ToSharedRef();}
 	TSharedRef<class SKismetDebuggingView> GetDebuggingView() const {return DebuggingView.ToSharedRef();}
+	TSharedRef<class SBlueprintProfilerView> GetBlueprintProfilerView() const {return BlueprintProfiler.ToSharedRef();}
 	TSharedRef<class SBlueprintPalette> GetPalette() const {return Palette.ToSharedRef();}
 	TSharedRef<class SWidget> GetCompilerResults() const {return CompilerResults.ToSharedRef();}
 	TSharedRef<class SFindInBlueprints> GetFindResults() const {return FindResults.ToSharedRef();}
@@ -203,6 +206,7 @@ public:
 	TSharedPtr<class SSCSEditor> GetSCSEditor() const {return SCSEditor;}
 	TSharedPtr<class SSCSEditorViewport> GetSCSViewport() const {return SCSViewport;}
 	TSharedPtr<class SMyBlueprint> GetMyBlueprintWidget() const {return MyBlueprintWidget;}
+	TSharedPtr<class SReplaceNodeReferences> GetReplaceReferencesWidget() const {return ReplaceReferencesWidget;}
 
 	/**
 	 * Provides access to the preview actor.
@@ -264,8 +268,6 @@ public:
 
 	/** Returns whether a graph is editable or not */
 	virtual bool IsEditable(UEdGraph* InGraph) const;
-	/** Determines if the graph's title bar should be the only interactable widget .*/
-	bool IsGraphPanelEnabled(UEdGraph* InGraph) const;
 	/** Determines if the graph is ReadOnly, this differs from editable in that it is never expected to be edited and is in a read-only state */
 	bool IsGraphReadOnly(UEdGraph* InGraph) const;
 
@@ -506,6 +508,12 @@ public:
 	/** Can generate native code for current blueprint */
 	bool CanGenerateNativeCode() const;
 
+	/** Returns if the blueprint profiler is currently active. */
+	bool IsProfilerActive() const;
+
+	/** Toggle blueprint profiler state */
+	void ToggleProfiler();
+
 	/** 
 	 * Check to see if we can customize the SCS editor for the passed-in scene component 
 	 * @param	InComponentToCustomize	The component to check to see if a customization exists
@@ -532,6 +540,9 @@ public:
 
 	/** Get the context to use from the Blueprint type */
 	static FName GetContextFromBlueprintType(EBlueprintType InType);
+
+	/* Selects an item in "My Blueprint" by name. */
+	void SelectGraphActionItemByName(const FName& ItemName, ESelectInfo::Type SelectInfo = ESelectInfo::Direct, int32 SectionId = INDEX_NONE, bool bIsCategory = false);
 
 protected:
 	/** Called during initialization of the blueprint editor to register any application modes. */
@@ -869,10 +880,10 @@ protected:
 	/** Called when Find In Blueprints menu is opened is clicked */
 	void FindInBlueprints_OnClicked();
 
-	// FNotifyHook interface
+	//~ Begin FNotifyHook Interface
 	virtual void NotifyPreChange( UProperty* PropertyAboutToChange ) override;
 	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged) override;
-	// End of FNotifyHook interface
+	//~ End FNotifyHook Interface
 
 	/** Callback when properties have finished being handled */
 	void OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent);
@@ -890,7 +901,7 @@ protected:
 	/**Load macro & function blueprint libraries from asset registry*/
 	void LoadLibrariesFromAssetRegistry();
 
-	// Begin FEditorUndoClient Interface
+	//~ Begin FEditorUndoClient Interface
 	virtual void	PostUndo(bool bSuccess) override;
 	virtual void	PostRedo(bool bSuccess) override;
 	// End of FEditorUndoClient
@@ -970,8 +981,19 @@ private:
 	/** Util to try and get doc link for the currently selected node */
 	FString GetDocLinkForSelectedNode();
 
+	/** Set the enabled state for currently-selected nodes */
+	void OnSetEnabledStateForSelectedNodes(ENodeEnabledState NewState);
+
+	/** Returns the appropriate check box state representing whether or not the selected nodes are enabled */
+	ECheckBoxState GetEnabledCheckBoxStateForSelectedNodes();
+
+	/** Attempt to match the given enabled state for currently-selected nodes */
+	ECheckBoxState CheckEnabledStateForSelectedNodes(ENodeEnabledState CheckState);
+
 	/** Fixes SubObject references of the passed object so they match up to sub-object UProperty references */
 	void FixSubObjectReferencesPostUndoRedo(UObject* InObject);
+
+
 
 public://@TODO
 	TSharedPtr<FDocumentTracker> DocumentManager;
@@ -1014,12 +1036,18 @@ protected:
 	/** Debugging window (watches, breakpoints, etc...) */
 	TSharedPtr<class SKismetDebuggingView> DebuggingView;
 
+	/** Performance Analsys View */
+	TSharedPtr<class SBlueprintProfilerView> BlueprintProfiler;
+
 	/** Palette of all classes with funcs/vars */
 	TSharedPtr<class SBlueprintPalette> Palette;
 
 	/** All of this blueprints' functions and variables */
 	TSharedPtr<class SMyBlueprint> MyBlueprintWidget;
 	
+	/** Widget for replacing node references */
+	TSharedPtr<class SReplaceNodeReferences> ReplaceReferencesWidget;
+
 	/** Compiler results log, with the log listing that it reflects */
 	TSharedPtr<class SWidget> CompilerResults;
 	TSharedPtr<class IMessageLogListing> CompilerResultsListing;

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 
@@ -207,6 +207,7 @@ SMultiLineEditableText::SMultiLineEditableText()
 	, IsReadOnly(false)
 	, UICommandList(new FUICommandList())
 	, bTextChangedByVirtualKeyboard(false)
+	, bTextCommittedByVirtualKeyboard(false)
 	, AmountScrolledWhileRightMouseDown(0.0f)
 	, bIsSoftwareCursor(false)
 {
@@ -275,6 +276,7 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 	bSelectAllTextWhenFocused = InArgs._SelectAllTextWhenFocused;
 	bClearTextSelectionOnFocusLoss = InArgs._ClearTextSelectionOnFocusLoss;
 	bClearKeyboardFocusOnCommit = InArgs._ClearKeyboardFocusOnCommit;
+	AllowContextMenu = InArgs._AllowContextMenu;
 	OnContextMenuOpening = InArgs._OnContextMenuOpening;
 	bRevertTextOnEscape = InArgs._RevertTextOnEscape;
 	OnHScrollBarUserScrolled = InArgs._OnHScrollBarUserScrolled;
@@ -291,6 +293,16 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 	TextCompositionHighlighter = FTextCompositionHighlighter::Create();
 	TextSelectionRunRenderer = FTextSelectionRunRenderer::Create();
 	TextLayout = FSlateTextLayout::Create(TextStyle);
+
+	if (InArgs._TextShapingMethod.IsSet())
+	{
+		TextLayout->SetTextShapingMethod(InArgs._TextShapingMethod.GetValue());
+	}
+
+	if (InArgs._TextFlowDirection.IsSet())
+	{
+		TextLayout->SetTextFlowDirection(InArgs._TextFlowDirection.GetValue());
+	}
 
 	BoundText = InArgs._Text;
 
@@ -317,7 +329,7 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 	if (HintText.IsBound() || !HintText.Get(FText::GetEmpty()).IsEmpty())
 	{
 		HintTextStyle = MakeShareable(new FTextBlockStyle(TextStyle));
-		HintTextLayout = FTextBlockLayout::Create(*HintTextStyle, Marshaller.ToSharedRef(), nullptr);
+		HintTextLayout = FTextBlockLayout::Create(*HintTextStyle, TextLayout->GetTextShapingMethod(), TextLayout->GetTextFlowDirection(), Marshaller.ToSharedRef(), nullptr);
 	}
 
 	// Map UI commands to delegates which are called when the command should be executed
@@ -409,7 +421,7 @@ void SMultiLineEditableText::SetHintText(const TAttribute< FText >& InHintText)
 	if (HintText.IsBound() || !HintText.Get(FText::GetEmpty()).IsEmpty())
 	{
 		HintTextStyle = MakeShareable(new FTextBlockStyle(TextStyle));
-		HintTextLayout = FTextBlockLayout::Create(*HintTextStyle, Marshaller.ToSharedRef(), nullptr);
+		HintTextLayout = FTextBlockLayout::Create(*HintTextStyle, TextLayout->GetTextShapingMethod(), TextLayout->GetTextFlowDirection(), Marshaller.ToSharedRef(), nullptr);
 	}
 	else
 	{
@@ -425,7 +437,47 @@ void SMultiLineEditableText::SetFont(const TAttribute< FSlateFontInfo >& InNewFo
 	// @todo: Chris.Wood - this doesn't update the font (needs the TextLayout updating?)
 }
 
-void SMultiLineEditableText::SetTextFromVirtualKeyboard(const FText& InNewText)
+void SMultiLineEditableText::SetTextShapingMethod(const TOptional<ETextShapingMethod>& InTextShapingMethod)
+{
+	TextLayout->SetTextShapingMethod((InTextShapingMethod.IsSet()) ? InTextShapingMethod.GetValue() : GetDefaultTextShapingMethod());
+}
+
+void SMultiLineEditableText::SetTextFlowDirection(const TOptional<ETextFlowDirection>& InTextFlowDirection)
+{
+	TextLayout->SetTextFlowDirection((InTextFlowDirection.IsSet()) ? InTextFlowDirection.GetValue() : GetDefaultTextFlowDirection());
+}
+
+void SMultiLineEditableText::SetWrapTextAt(const TAttribute<float>& InWrapTextAt)
+{
+	WrapTextAt = InWrapTextAt;
+}
+
+void SMultiLineEditableText::SetAutoWrapText(const TAttribute<bool>& InAutoWrapText)
+{
+	AutoWrapText = InAutoWrapText;
+}
+
+void SMultiLineEditableText::SetLineHeightPercentage(const TAttribute<float>& InLineHeightPercentage)
+{
+	LineHeightPercentage = InLineHeightPercentage;
+}
+
+void SMultiLineEditableText::SetMargin(const TAttribute<FMargin>& InMargin)
+{
+	Margin = InMargin;
+}
+
+void SMultiLineEditableText::SetJustification(const TAttribute<ETextJustify::Type>& InJustification)
+{
+	Justification = InJustification;
+}
+
+void SMultiLineEditableText::SetAllowContextMenu(const TAttribute< bool >& InAllowContextMenu)
+{
+	AllowContextMenu = InAllowContextMenu;
+}
+
+void SMultiLineEditableText::SetTextFromVirtualKeyboard(const FText& InNewText, ESetTextType SetTextType, ETextCommit::Type CommitType)
 {
 	// Only set the text if the text attribute doesn't have a getter binding (otherwise it would be blown away).
 	// If it is bound, we'll assume that OnTextCommitted will handle the update.
@@ -439,8 +491,16 @@ void SMultiLineEditableText::SetTextFromVirtualKeyboard(const FText& InNewText)
 	{
 		// This method is called from the main thread (i.e. not the game thread) of the device with the virtual keyboard
 		// This causes the app to crash on those devices, so we're using polling here to ensure delegates are
-		// fired on the game thread in Tick.
-		bTextChangedByVirtualKeyboard = true;
+		// fired on the game thread in Tick.		
+		if (SetTextType == ESetTextType::Changed)
+		{
+			bTextChangedByVirtualKeyboard = true;
+		}
+	}
+	if (SetTextType == ESetTextType::Commited)
+	{
+		VirtualKeyboardTextCommitType = CommitType;
+		bTextCommittedByVirtualKeyboard = true;
 	}
 }
 
@@ -558,8 +618,11 @@ FReply SMultiLineEditableText::OnFocusReceived( const FGeometry& MyGeometry, con
 		FSlateApplication& SlateApplication = FSlateApplication::Get();
 		if (FPlatformMisc::GetRequiresVirtualKeyboard())
 		{
-			// @TODO: Create ITextInputMethodSystem derivations for mobile
-			SlateApplication.ShowVirtualKeyboard(true, InFocusEvent.GetUser(), SharedThis(this));
+			if (!GetIsReadOnly())
+			{
+				// @TODO: Create ITextInputMethodSystem derivations for mobile
+				SlateApplication.ShowVirtualKeyboard(true, InFocusEvent.GetUser(), SharedThis(this));
+			}
 		}
 		else
 		{
@@ -2331,6 +2394,11 @@ TSharedRef< SWidget > SMultiLineEditableText::GetWidget()
 
 void SMultiLineEditableText::SummonContextMenu(const FVector2D& InLocation, TSharedPtr<SWindow> ParentWindow, const FWidgetPath& EventPath)
 {
+	if (!AllowContextMenu.Get())
+	{
+		return;
+	}
+
 	TSharedPtr<SWidget> MenuContentWidget;
 
 	if (OnContextMenuOpening.IsBound())
@@ -2432,10 +2500,16 @@ void SMultiLineEditableText::LoadText()
 
 void SMultiLineEditableText::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	if (bTextChangedByVirtualKeyboard)
+	if (bTextCommittedByVirtualKeyboard)
 	{
 		// Let outsiders know that the text content has been changed
-		OnTextCommitted.ExecuteIfBound(GetEditableText(), ETextCommit::OnUserMovedFocus);
+		OnTextCommitted.ExecuteIfBound(GetEditableText(), VirtualKeyboardTextCommitType);
+		bTextCommittedByVirtualKeyboard = false;
+	}
+	else if (bTextChangedByVirtualKeyboard)
+	{
+		// Let outsiders know that the text content has been changed
+		OnTextChanged.ExecuteIfBound(GetEditableText());
 		bTextChangedByVirtualKeyboard = false;
 	}
 
@@ -2824,6 +2898,11 @@ FCursorReply SMultiLineEditableText::OnCursorQuery( const FGeometry& MyGeometry,
 	{
 		return FCursorReply::Cursor(EMouseCursor::TextEditBeam);
 	}
+}
+
+bool SMultiLineEditableText::IsInteractable() const
+{
+	return IsEnabled();
 }
 
 bool SMultiLineEditableText::IsRightClickScrolling() const

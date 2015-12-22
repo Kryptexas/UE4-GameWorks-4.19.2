@@ -3,6 +3,7 @@ Title:Virtual Reality Development
 Crumbs:%ROOT%, Platforms
 Description:Information over developing for virtual reality platforms.
 Navigation:platform
+Version: 4.9
 
 
 [VAR:Params]
@@ -57,6 +58,7 @@ vr
 	[PARAM:links]
 		* [](Platforms/VR/CheatSheet "%Platforms/VR/CheatSheet:description%")
 		* [](Platforms/VR/ContentSetup "%Platforms/VR/ContentSetup:description%")
+		* [](Platforms/VR/MotionController "%Platforms/VR/ContentSetup:description%")
 	[/PARAM]
 [/OBJECT]
 
@@ -87,5 +89,21 @@ vr
 	[PARAM:links]
 		* [](Platforms/GearVR/BestPractices "%Platforms/GearVR/BestPractices:description%")
 		* [](Platforms/GearVR/QuickStart "%Platforms/GearVR/QuickStart:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/SteamVR_Icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		[](Platforms/SteamVR "%Platforms/GearVR:description%")
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Platforms/SteamVR/BestPractices   "%Platforms/GearVR/BestPractices:description%")
+		* [](Platforms/SteamVR/QuickStart      "%Platforms/GearVR/QuickStart:description%")
+		* [](Platforms/SteamVR/Tips_And_Tricks "%Platforms/GearVR/QuickStart:description%")
 	[/PARAM]
 [/OBJECT]

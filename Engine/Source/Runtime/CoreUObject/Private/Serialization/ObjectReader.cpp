@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
 
@@ -46,7 +46,16 @@ FArchive& FObjectReader::operator<<( class FAssetPtr& AssetPtr )
 
 FArchive& FObjectReader::operator<<(FStringAssetReference& Value)
 {
-	return *this << Value.AssetLongPathname;
+	FString Path = Value.ToString();
+
+	*this << Path;
+
+	if (IsLoading())
+	{
+		Value.SetPath(MoveTemp(Path));
+	}
+
+	return *this;
 }
 
 FString FObjectReader::GetArchiveName() const

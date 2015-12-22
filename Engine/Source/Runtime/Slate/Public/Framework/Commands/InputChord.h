@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "GenericApplication.h"
@@ -217,3 +217,4 @@ public:
 		return GetTypeHash(Chord.Key) ^ (Chord.bShift | Chord.bCtrl >> 1 | Chord.bAlt >> 2 | Chord.bCmd >> 3);
 	}
 };
+

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #if WITH_FANCY_TEXT
@@ -12,7 +12,7 @@ class SLATE_API FBaseTextLayoutMarshaller : public ITextLayoutMarshaller
 {
 public:
 
-	// BEGIN ITextLayoutMarshaller interface
+	//~ Begin ITextLayoutMarshaller Interface
 	virtual bool RequiresLiveUpdate() const override
 	{
 		return false;
@@ -32,7 +32,7 @@ public:
 	{
 		return bIsDirty;
 	}
-	// END ITextLayoutMarshaller interface
+	//~ End ITextLayoutMarshaller Interface
 
 protected:
 

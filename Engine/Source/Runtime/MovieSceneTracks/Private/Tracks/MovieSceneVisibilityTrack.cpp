@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneVisibilityTrack.h"
@@ -21,27 +21,4 @@ UMovieSceneSection* UMovieSceneVisibilityTrack::CreateNewSection()
 TSharedPtr<IMovieSceneTrackInstance> UMovieSceneVisibilityTrack::CreateInstance()
 {
 	return MakeShareable( new FMovieSceneVisibilityTrackInstance( *this ) );
-}
-
-
-bool UMovieSceneVisibilityTrack::AddKeyToSection( float Time, bool Value, FKeyParams KeyParams )
-{
-	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Time );
-	if (!NearestSection || KeyParams.bAddKeyEvenIfUnchanged || CastChecked<UMovieSceneVisibilitySection>(NearestSection)->NewKeyIsNewData(Time, Value, KeyParams))
-	{
-		Modify();
-
-		UMovieSceneVisibilitySection* NewSection = CastChecked<UMovieSceneVisibilitySection>(FindOrAddSection(  Time ));
-	
-		NewSection->AddKey( Time, Value, KeyParams );
-
-		return true;
-	}
-	return false;
-}
-
-bool UMovieSceneVisibilityTrack::CanKeyTrack(float Time, bool Value, FKeyParams KeyParams) const
-{
-	// The property that's being changed is bHiddenInGame. But we want to store the inverse of that as visibility, so invert the incoming value.
-	return Super::CanKeyTrack(Time, !Value, KeyParams);
 }

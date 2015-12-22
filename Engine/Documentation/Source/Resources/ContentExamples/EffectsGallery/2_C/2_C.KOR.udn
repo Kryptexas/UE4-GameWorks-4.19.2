@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2346406
+﻿INTSourceChangelist:2653104
 Availability: Public
-Title:2.3 - 블랙 바디 노드 (다이내믹 파라미터 콘트롤)
+Title:2.3 - 블랙 바디 노드 [다이내믹 파라미터 콘트롤]
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
 Description:Effects Gallery 예제 레벨에 대한 개요입니다.
 Related: Engine/Rendering/Materials/MaterialInstances
@@ -10,6 +10,24 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 예제](Resources/ContentExamples/EffectsGallery/2_B "%Resources/ContentExamples/EffectsGallery/2_B:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[이펙트 갤러리 홈](Resources/ContentExamples/EffectsGallery)
+	[/PARAM]
+	[PARAM:next]
+		[다음 예제](Resources/ContentExamples/EffectsGallery/2_D "%Resources/ContentExamples/EffectsGallery/2_D:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]

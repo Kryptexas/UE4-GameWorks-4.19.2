@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EnginePrivate.h"
@@ -152,7 +152,7 @@ void USoundNodeMature::PostLoad()
 {
 	Super::PostLoad();
 
-	if( !GIsEditor && GEngine && !HasAnyFlags(RF_RootSet) && ChildNodes.Num() >= 2 )
+	if( !GIsEditor && GEngine && !IsRooted() && ChildNodes.Num() >= 2 )
 	{
 		// Make sure the SoundCue has gotten all the SoundWavePlayers in to memory
 		GetOuter()->ConditionalPostLoad();

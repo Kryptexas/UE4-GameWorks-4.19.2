@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "NewsFeedPrivatePCH.h"
 
@@ -141,7 +141,7 @@ void FNewsFeedCache::LoadTitleFile( )
 	}
 	else if (NewsFeedSettings->Source == NEWSFEED_Mcp)
 	{
-		TitleFile = Online::GetTitleFileInterface(TEXT("MCP"));
+		TitleFile = Online::GetTitleFileInterface(MCP_SUBSYSTEM);
 	}
 
 	// fetch news feed

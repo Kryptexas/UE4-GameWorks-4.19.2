@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Player.cpp: Unreal player implementation.
@@ -70,6 +70,24 @@ FString UPlayer::ConsoleCommand(const FString& Cmd, bool bWriteToLog)
 	}
 
 	return TEXT("");
+}
+
+APlayerController* UPlayer::GetPlayerController(UWorld* InWorld) const
+{
+	if (InWorld == nullptr)
+	{
+		return PlayerController;
+	}
+
+	for ( FConstPlayerControllerIterator Iterator = InWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
+	{
+		if ( (*Iterator)->GetLocalPlayer() == this )
+		{
+			return *Iterator;
+		}
+	}
+
+	return nullptr;
 }
 
 bool UPlayer::Exec( UWorld* InWorld, const TCHAR* Cmd,FOutputDevice& Ar)

@@ -3,12 +3,29 @@ Title:1.1 - Simulating Physics
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Physics
 Description:An overview of the Physics example level, example 1.1: Object SImulating Physics
 Related: Engine/Physics/PhysicsBodies
-Related: Engine/Physics/PhAT/UserGuide
+Related: Engine/Physics/PhAT/HowTo
 Related: Engine/Physics/Constraints/ConstraintsReference
 Related: Engine/Physics/Constraints/ConstraintsUserGuide
 Related: Engine/Physics/Collision
-Related: Engine/Physics/PhysicalMaterials/PhysMatReference
+Related: Engine/Physics/PhysicalMaterials/Reference
+Version: 4.9
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Physics Home](Resources/ContentExamples/Physics)
+	[/PARAM]
+	[PARAM:next]
+		[Next Example](Resources/ContentExamples/Physics/1_2 "%Resources/ContentExamples/Physics/1_2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]

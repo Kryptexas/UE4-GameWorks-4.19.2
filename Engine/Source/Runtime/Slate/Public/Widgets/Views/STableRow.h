@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "TableViewTypeTraits.h"
@@ -81,12 +81,14 @@ public:
 
 	SLATE_BEGIN_ARGS( STableRow< ItemType > )
 		: _Style( &FCoreStyle::Get().GetWidgetStyle<FTableRowStyle>("TableView.Row") )
+		, _ExpanderStyleSet( &FCoreStyle::Get() )
 		, _Padding( FMargin(0) )
-		, _ShowSelection(true)
+		, _ShowSelection( true )
 		, _Content()
 		{}
 	
 		SLATE_STYLE_ARGUMENT( FTableRowStyle, Style )
+		SLATE_ARGUMENT(const ISlateStyle*, ExpanderStyleSet)
 
 		// High Level DragAndDrop
 
@@ -175,6 +177,7 @@ public:
 				.VAlign(VAlign_Fill)
 				[
 					SNew(SExpanderArrow, SharedThis(this) )
+					.StyleSet(ExpanderStyleSet)
 				]
 
 				+ SHorizontalBox::Slot()
@@ -873,6 +876,9 @@ protected:
 		check(InArgs._Style);
 		Style = InArgs._Style;
 
+		check(InArgs._ExpanderStyleSet);
+		ExpanderStyleSet = InArgs._ExpanderStyleSet;
+
 		this->BorderImage = TAttribute<const FSlateBrush*>( this, &STableRow::GetBorder );
 
 		this->ForegroundColor = TAttribute<FSlateColor>( this, &STableRow::GetForegroundBasedOnSelection );
@@ -938,6 +944,9 @@ protected:
 	/** Style used to draw this table row */
 	const FTableRowStyle* Style;
 
+	/** The slate style to use with the expander */
+	const ISlateStyle* ExpanderStyleSet;
+
 	/** @see STableRow's OnCanAcceptDrop event */
 	FOnCanAcceptDrop OnCanAcceptDrop;
 
@@ -1000,6 +1009,7 @@ protected:
 		STableRow<ItemType>::Construct(
 			FTableRowArgs()
 			.Style(InArgs._Style)
+			.ExpanderStyleSet(InArgs._ExpanderStyleSet)
 			.Padding(InArgs._Padding)
 			.ShowSelection(InArgs._ShowSelection)
 			.OnCanAcceptDrop(InArgs._OnCanAcceptDrop)

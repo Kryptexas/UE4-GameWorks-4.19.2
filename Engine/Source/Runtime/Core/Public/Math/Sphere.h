@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -172,4 +172,19 @@ public:
 
 		return Ar;
 	}
+};
+
+struct FCapsuleShape
+{
+	FVector Center;
+	float Radius;
+	FVector Orientation;
+	float Length;
+
+	FCapsuleShape(FVector InCenter, float InRadius, FVector InOrientation, float InLength) :
+		Center(InCenter),
+		Radius(InRadius),
+		Orientation(InOrientation),
+		Length(InLength)
+	{}
 };

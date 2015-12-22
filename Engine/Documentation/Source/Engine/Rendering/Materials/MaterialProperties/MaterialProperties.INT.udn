@@ -2,19 +2,23 @@ Availability: Public
 Title:Material Properties
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/IntroductionToMaterials
 Description:An introductory document on UE4 Materials and how they work.
+Version: 4.9
 
 [TOC(start:2 end:2)]
 
 
 
-This document breaks down the properties available on a Material. These properties are accessible by selecting the Main Material node in the Material Editor, 
+This document breaks down the properties available on a Material. These properties are accessible by selecting the Main Material node in the Material Editor.
+
+<!---, 
 or by **Right-Clicking** the Material in the **Content Browser** then selecting **Asset Actions** then [Property Matrix](Engine/UI/PropertyMatrix).
+--->
 
 * Properties inside Material:
 
 ![](PropertiesPanelMaterialEditor_Mat.png)(h:445) 
 
-
+<!---
 * Accessing the Property Matrix:
 
 ![](PropertiesContextMenu_Mat.png)(h:445) 
@@ -22,6 +26,8 @@ or by **Right-Clicking** the Material in the **Content Browser** then selecting 
 * The Property Matrix:
 
 ![](PropertyMatrix.png)(h:445)
+--->
+
 
 The base material node has a number of properties which affect how the material behaves. These properties are described below, with each category divided into its own document section, and presented in the order in which they appear in the **Properties** panel.
 
@@ -96,8 +102,9 @@ The Usage flags are used to control the types of objects on which the Material w
 
 In the editor, these flags will be set automatically for any objects that already exist within your maps. For instance, if you have a Particle System that uses your Material placed somewhere in a level, when you load that map in the editor, it will automatically set the _Used with Particle System_ flag.  The material asset will need to be saved to allow the game to use the material on that specific mesh.
 
-**Warning: If you do not have the appropriate usage flag set, the default material will be used in game instead!**  This will have an appropriate message in the log of the game client.
-
+[REGION:warning]
+ If you do not have the appropriate usage flag set, the default world grid material will be used in-game instead! This will have an appropriate message in the log of the game client.
+[/REGION]
 
 | Property | Description |
 | -------- | ----------- |

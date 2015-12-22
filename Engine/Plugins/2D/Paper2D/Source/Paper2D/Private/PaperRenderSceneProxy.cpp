@@ -1,10 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DPrivatePCH.h"
 #include "PaperRenderSceneProxy.h"
 #include "PhysicsEngine/BodySetup.h"
-#include "Rendering/PaperBatchManager.h"
-#include "Rendering/PaperBatchSceneProxy.h"
 #include "PhysicsEngine/BodySetup2D.h"
 #include "LocalVertexFactory.h"
 #include "MeshBatch.h"
@@ -282,25 +280,8 @@ FPaperRenderSceneProxy::FPaperRenderSceneProxy(const UPrimitiveComponent* InComp
 
 FPaperRenderSceneProxy::~FPaperRenderSceneProxy()
 {
-#if TEST_BATCHING
-	if (FPaperBatchSceneProxy* Batcher = FPaperBatchManager::GetBatcher(GetScene()))
-	{
-		Batcher->UnregisterManagedProxy(this);
-	}
-#endif
-
 	VertexBuffer.ReleaseResource();
 	MyVertexFactory.ReleaseResource();
-}
-
-void FPaperRenderSceneProxy::CreateRenderThreadResources()
-{
-#if TEST_BATCHING
-	if (FPaperBatchSceneProxy* Batcher = FPaperBatchManager::GetBatcher(GetScene()))
-	{
-		Batcher->RegisterManagedProxy(this);
-	}
-#endif
 }
 
 void FPaperRenderSceneProxy::DebugDrawBodySetup(const FSceneView* View, int32 ViewIndex, FMeshElementCollector& Collector, UBodySetup* BodySetup, const FMatrix& GeomTransformMatrix, const FLinearColor& CollisionColor, bool bDrawSolid) const
@@ -371,10 +352,7 @@ void FPaperRenderSceneProxy::GetDynamicMeshElements(const TArray<const FSceneVie
 			{
 				const FSceneView* View = Views[ViewIndex];
 
-#if TEST_BATCHING
-#else
 				GetDynamicMeshElementsForView(View, ViewIndex, Collector);
-#endif
 			}
 		}
 	}
@@ -588,7 +566,7 @@ void FPaperRenderSceneProxy::GetBatchMesh(const FSceneView* View, class UMateria
 	}
 }
 
-FPrimitiveViewRelevance FPaperRenderSceneProxy::GetViewRelevance(const FSceneView* View)
+FPrimitiveViewRelevance FPaperRenderSceneProxy::GetViewRelevance(const FSceneView* View) const
 {
 	const FEngineShowFlags& EngineShowFlags = View->Family->EngineShowFlags;
 
@@ -598,7 +576,7 @@ FPrimitiveViewRelevance FPaperRenderSceneProxy::GetViewRelevance(const FSceneVie
 	Result.bDrawRelevance = IsShown(View) && EngineShowFlags.Paper2DSprites;
 	Result.bRenderCustomDepth = ShouldRenderCustomDepth();
 	Result.bRenderInMainPass = ShouldRenderInMainPass();
-
+	Result.bUsesLightingChannels = GetLightingChannelMask() != GetDefaultLightingChannelMask();
 	Result.bShadowRelevance = IsShadowCast(View);
 
 	MaterialRelevance.SetPrimitiveViewRelevance(Result);

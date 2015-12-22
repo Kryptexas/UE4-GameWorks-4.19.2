@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DestructibleActor.cpp: ADestructibleActor methods.
@@ -46,7 +46,7 @@ void ADestructibleActor::PostLoad()
 	
 	if (DestructibleComponent)
 	{
-		DestructibleComponent->bCanEverAffectNavigation = bAffectNavigation;
+		DestructibleComponent->SetCanEverAffectNavigation(bAffectNavigation);
 	}
 }
 

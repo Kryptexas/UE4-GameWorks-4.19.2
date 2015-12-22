@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphPrivatePCH.h"
 #include "AnimGraphNode_Trail.h"
@@ -49,4 +49,9 @@ FText UAnimGraphNode_Trail::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return CachedNodeTitles[TitleType];
 }
 
+void UAnimGraphNode_Trail::PostLoad()
+{
+	Super::PostLoad();
+	Node.PostLoad();
+}
 #undef LOCTEXT_NAMESPACE

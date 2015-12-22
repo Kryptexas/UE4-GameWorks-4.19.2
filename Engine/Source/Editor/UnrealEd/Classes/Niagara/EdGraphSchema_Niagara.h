@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "EdGraph/EdGraphSchema.h"
@@ -26,11 +26,11 @@ struct UNREALED_API FNiagaraSchemaAction_NewNode : public FEdGraphSchemaAction
 		, NodeTemplate(NULL)
 	{}
 
-	// FEdGraphSchemaAction interface
+	//~ Begin FEdGraphSchemaAction Interface
 	virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode = true) override;
 	virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, TArray<UEdGraphPin*>& FromPins, const FVector2D Location, bool bSelectNewNode = true) override;
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
-	// End of FEdGraphSchemaAction interface
+	//~ End FEdGraphSchemaAction Interface
 
 	template <typename NodeType>
 	static NodeType* SpawnNodeFromTemplate(class UEdGraph* ParentGraph, NodeType* InTemplateNode, const FVector2D Location, bool bSelectNewNode = true)
@@ -57,7 +57,7 @@ class UEdGraphSchema_Niagara : public UEdGraphSchema
 	UPROPERTY()
 	FString PC_Curve;
 
-	// Begin EdGraphSchema interface
+	//~ Begin EdGraphSchema Interface
 	virtual void GetGraphContextActions(FGraphContextMenuBuilder& ContextMenuBuilder) const override;
 	virtual void GetContextMenuActions(const UEdGraph* CurrentGraph, const UEdGraphNode* InGraphNode, const UEdGraphPin* InGraphPin, class FMenuBuilder* MenuBuilder, bool bIsDebugging) const override;
 	virtual const FPinConnectionResponse CanCreateConnection(const UEdGraphPin* A, const UEdGraphPin* B) const override;
@@ -66,7 +66,7 @@ class UEdGraphSchema_Niagara : public UEdGraphSchema
 	virtual bool TryCreateConnection(UEdGraphPin* A, UEdGraphPin* B) const override;
 
 	virtual void BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin) override;
-	// End EdGraphSchema interface
+	//~ End EdGraphSchema Interface
 
 	UNREALED_API ENiagaraDataType GetPinType(UEdGraphPin* Pin)const;
 	UNREALED_API void GetPinDefaultValue(UEdGraphPin* Pin, float& OutDefault)const;
@@ -79,6 +79,7 @@ class UEdGraphSchema_Niagara : public UEdGraphSchema
 	static const FLinearColor NodeTitleColor_Constant;
 	static const FLinearColor NodeTitleColor_SystemConstant;
 	static const FLinearColor NodeTitleColor_FunctionCall;
+	static const FLinearColor NodeTitleColor_Event;
 
 private:
 	void GetBreakLinkToSubMenuActions(class FMenuBuilder& MenuBuilder, UEdGraphPin* InGraphPin);

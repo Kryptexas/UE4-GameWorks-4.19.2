@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Engine/SCS_Node.h"
@@ -57,7 +57,7 @@ UActorComponent* UInheritableComponentHandler::CreateOverridenComponentTemplate(
 	//       kill so we can identify that situation here (see UE-13987/UE-13990)
 	if (NewComponentTemplate->IsPendingKill())
 	{
-		NewComponentTemplate->ClearFlags(RF_PendingKill);
+		NewComponentTemplate->ClearPendingKill();
 		UEngine::FCopyPropertiesForUnrelatedObjectsParams CopyParams;
 		CopyParams.bDoDelta = false;
 		UEngine::CopyPropertiesForUnrelatedObjects(BestArchetype, NewComponentTemplate, CopyParams);
@@ -92,7 +92,7 @@ void UInheritableComponentHandler::UpdateOwnerClass(UBlueprintGeneratedClass* Ow
 		auto OldComponentTemplate = Record.ComponentTemplate;
 		if (OldComponentTemplate && (OwnerClass != OldComponentTemplate->GetOuter()))
 		{
-			Record.ComponentTemplate = DuplicateObject(OldComponentTemplate, OwnerClass, *OldComponentTemplate->GetName());
+			Record.ComponentTemplate = DuplicateObject(OldComponentTemplate, OwnerClass, OldComponentTemplate->GetFName());
 		}
 	}
 }
@@ -125,13 +125,13 @@ void UInheritableComponentHandler::ValidateTemplates()
 				}
 				else
 				{
-					UE_LOG(LogBlueprint, Log, TEXT("ValidateTemplates '%s': overriden template is unnecessary - component '%s' from '%s'"),
+					UE_LOG(LogBlueprint, Log, TEXT("ValidateTemplates '%s': overridden template is unnecessary - component '%s' from '%s'"),
 						*GetPathNameSafe(this), *VarName.ToString(), *GetPathNameSafe(ComponentKey.GetComponentOwner()));
 				}
 			}
 			else
 			{
-				UE_LOG(LogBlueprint, Warning, TEXT("ValidateTemplates '%s': overriden template is invalid - component '%s' from '%s'"),
+				UE_LOG(LogBlueprint, Warning, TEXT("ValidateTemplates '%s': overridden template is invalid - component '%s' from '%s'"),
 					*GetPathNameSafe(this), *VarName.ToString(), *GetPathNameSafe(ComponentKey.GetComponentOwner()));
 			}
 		}
@@ -347,11 +347,11 @@ const FComponentOverrideRecord* UInheritableComponentHandler::FindRecord(const F
 
 // FComponentOverrideRecord
 
-FComponentKey::FComponentKey(USCS_Node* SCSNode) : OwnerClass(nullptr)
+FComponentKey::FComponentKey(const USCS_Node* SCSNode) : OwnerClass(nullptr)
 {
 	if (SCSNode)
 	{
-		USimpleConstructionScript* ParentSCS = SCSNode->GetSCS();
+		const USimpleConstructionScript* ParentSCS = SCSNode->GetSCS();
 		OwnerClass      = ParentSCS ? Cast<UBlueprintGeneratedClass>(ParentSCS->GetOwnerClass()) : nullptr;
 		AssociatedGuid  = SCSNode->VariableGuid;
 		SCSVariableName = SCSNode->GetVariableName();

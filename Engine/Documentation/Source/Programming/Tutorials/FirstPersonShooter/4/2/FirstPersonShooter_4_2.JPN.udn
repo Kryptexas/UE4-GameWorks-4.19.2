@@ -1,0 +1,115 @@
+﻿INTSourceChangelist:2672915
+Availability:Docs
+Title:4.2 - Event Graph のセットアップ
+Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4
+Description:First Person Shooter キャラクターの Event Graph をセットアップする方法を学びます。
+SkillLevel:初心者向け
+Version:4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Programming/Tutorials/FirstPersonShooter/4/1)
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[セクション ホーム](Programming/Tutorials/FirstPersonShooter/4)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Programming/Tutorials/FirstPersonShooter/4/3)
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+このステップでは、アニメーションの Event Graph を編集して、アニメーションの遷移変数がゲーム実行中に適切に発行するようにします。
+
+## ステート変数を更新する
+
+1.	**[My Blueprint]** タブで、**[EventGraph]** を **ダブルクリック** して Event Graph を開きます。
+
+	![](OpenEventGraph.png)
+
+1.	グラフを **右クリック** して **コンテキスト メニュー** を表示します。
+
+1.	**コンテキスト メニュー** の検索欄に「Update」と入力して、**[Event Blueprint Update Animation]** をクリックしてノードを追加します。
+
+	[REGION:note]
+	**Event Blueprint Update Animation** ノードは、アニメーションが更新されるたびにステート変数を更新するため、ゲームステートと常に同期されます。  
+	![](EventBlueprintUpdateAnimationNode.png)
+	[/REGION]
+
+1.	グラフを **右クリック** して **コンテキスト メニュー** を表示します。
+
+1.	**コンテキスト メニュー** の検索欄に「Owner」と入力して、ノードを追加するために **[Try Get Pawn Owner]** を **クリック** します。
+
+	![](TryGetPawnOwnerBP_Node.png)
+
+1.	出力ピンを引き出して、**コンテキスト メニュー** から **[Cast to Character]** を選択します。
+
+	![](CastToCharacterContextMenu.png)
+
+1.	 **Event Blueprint Update Animation** の出力実行ピンを **Cast to Character** の入力実行ピンと接続します。
+
+	![](ConnectedCastToCharacterNode.png)
+
+1.	**As Character** の出力ピンを引き出して、**[Get Character Movement]** を選択します。
+
+	![](GetCharacterMovementNode.png)
+
+1.	**Character Movement** の出力ピンを引き出して、**[Get Movement Mode]** を選択します。
+
+	![](GetMovementMode.png)
+
+## キャラクターの移動をクエリする
+
+1. 	 **Movement Mode** の出力ピンを引き出して**[Equal (Enum)]** を選択します。
+
+	![](EqualEnumNode.png)
+
+## キャラクターが落下しているかを判定する
+
+1.	**Equal (Enum)** ノードのドロップダウンの値を **[Falling]** に設定します。
+
+	![](ConnectedIsFalling.png)
+
+1.	**[My Blueprint]** タブで **[IsFalling]** を **Alt キーを押しながらクリック** してグラフにドラッグして、**Set Is Falling** ノードを作成します。
+
+	![](IsFalling.png)
+
+1.	**Cast to Character** ノードのラベル付けされていない出力実行ピンを、 **Set Is Falling** ノードの入力実行ピンと接続します。そして **Equal (Enum)** の出力 Boolean データピンを **Set Is Falling** ノードの入力 Boolean データピンに接続します。
+
+	![](ConnectedIsFalling.png)
+
+## キャラクターが走っているかを判定する
+
+1.	**Cast To Character** ノードへ戻って、 **As Character** ピンを再び引き出します。今度は、 **Get Velocity** ノードを選択します。
+
+	![](GetVelocityNode.png)
+
+1.	キャラクターが静止状態でない場合、キャラクターのべロシティ ベクトルの長さは 0 より大きくなります。そのため、**Return Value** ベクター出力ピンを引き出して、**Vector Length** を選択して、そのノードをグラフへ追加します。
+
+	![](VectorLength.png)
+
+1.	**Return Value** float 出力ピンを引き出して、 **> (float)** ノードを選択します。
+
+	![](GreaterThan.png)
+
+1.	**[My Blueprint]** タブで**IsRunning**を **Alt キーを押しながらクリック** してグラフへドラッグして、**Set Is Running** ノードを作成します。
+
+	![](IsRunning.png)
+
+1.	**Set Is Falling** ノードの出力実行ピンを **Set Is Running** ノードの入力実行ピンと接続します。そして **> (float)** ノードの出力 Boolean ピンを、**Set Is Running** ノードの入力 Boolean ピンに接続します。
+
+	![](ConnectedIsRunning.png)
+
+1.	**Event Graph** は以下のようになります。
+
+	[REGION:lightbox]
+		[![](CompleteEventGraph.png)(w:750)](CompleteEventGraph.png)
+	[/REGION]
+	_ズームインするには画像をクリックします。_
+
+%Steps%

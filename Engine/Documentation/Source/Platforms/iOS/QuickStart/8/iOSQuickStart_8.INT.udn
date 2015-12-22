@@ -2,6 +2,8 @@ Title:8. Package Your Game
 Crumbs:%ROOT%, Platforms, Platforms/iOS, Platforms/iOS/QuickStart
 Description:Package your game and install it on your iOS device.
 Availability:Public
+Version: 4.9
+SkillLevel:Intermediate
 
 
 [VAR:Steps]
@@ -85,7 +87,7 @@ Availability:Public
 
 1. Launch the app that is installed on your device to test the game.
 
-	![](game_device.png)
+	![](game_device.png)(w:650)
 
 <!--
 [EXCERPT:windows]

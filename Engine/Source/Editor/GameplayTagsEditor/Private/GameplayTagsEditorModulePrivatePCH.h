@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayTagsEditorModule.h"
 
@@ -13,8 +13,6 @@
 #include "Core.h"
 #include "Engine.h"
 #include "BlueprintGraphDefinitions.h"
-#include "GameplayTagsEditorClasses.h"
-
 #include "GraphEditor.h"
 #include "SNodePanel.h"
 #include "SGraphNode.h"

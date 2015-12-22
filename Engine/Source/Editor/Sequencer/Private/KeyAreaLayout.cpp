@@ -1,3 +1,4 @@
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
 #include "KeyAreaLayout.h"
@@ -12,7 +13,7 @@ FKeyAreaLayoutElement FKeyAreaLayoutElement::FromGroup(const TSharedRef<FGrouped
 	return Tmp;
 }
 
-FKeyAreaLayoutElement FKeyAreaLayoutElement::FromKeyAreaNode(const TSharedRef<FSectionKeyAreaNode>& InKeyAreaNode, int32 SectionIndex, float InOffset)
+FKeyAreaLayoutElement FKeyAreaLayoutElement::FromKeyAreaNode(const TSharedRef<FSequencerSectionKeyAreaNode>& InKeyAreaNode, int32 SectionIndex, float InOffset)
 {
 	FKeyAreaLayoutElement Tmp;
 	Tmp.Type = Single;
@@ -56,7 +57,7 @@ FKeyAreaLayout::FKeyAreaLayout(FSequencerDisplayNode& InNode, int32 InSectionInd
 
 		if (Node.GetType() == ESequencerNode::KeyArea)
 		{
-			Elements.Add(FKeyAreaLayoutElement::FromKeyAreaNode(StaticCastSharedRef<FSectionKeyAreaNode>(Node.AsShared()), InSectionIndex, TotalHeight));
+			Elements.Add(FKeyAreaLayoutElement::FromKeyAreaNode(StaticCastSharedRef<FSequencerSectionKeyAreaNode>(Node.AsShared()), InSectionIndex, TotalHeight));
 		}
 		else if (!Node.IsExpanded())
 		{
@@ -71,7 +72,7 @@ FKeyAreaLayout::FKeyAreaLayout(FSequencerDisplayNode& InNode, int32 InSectionInd
 		FSequencerDisplayNode* LayoutNode = &InNode;
 		if (InNode.GetType() == ESequencerNode::Track)
 		{
-			TSharedPtr<FSequencerDisplayNode> KeyAreaNode = static_cast<FTrackNode&>(InNode).GetTopLevelKeyNode();
+			TSharedPtr<FSequencerDisplayNode> KeyAreaNode = static_cast<FSequencerTrackNode&>(InNode).GetTopLevelKeyNode();
 			if (KeyAreaNode.IsValid())
 			{
 				LayoutNode = KeyAreaNode.Get();

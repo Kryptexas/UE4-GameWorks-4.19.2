@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CrashDebugHelperPrivatePCH.h"
 #include "CrashDebugPDBCache.h"
@@ -121,8 +121,11 @@ void FPDBCache::InitializePDBCache()
 
 	for( const auto& Directory : PDBCacheEntryDirectories )
 	{
-		FPDBCacheEntryRef Entry = ReadPDBCacheEntry( Directory );
-		PDBCacheEntries.Add( Directory, Entry );
+		FPDBCacheEntryPtr Entry = ReadPDBCacheEntry( Directory );
+		if (Entry.IsValid())
+		{
+			PDBCacheEntries.Add( Directory, Entry.ToSharedRef() );
+		}
 	}
 
 	SortPDBCache();
@@ -194,7 +197,7 @@ FPDBCacheEntryRef FPDBCache::CreateAndAddPDBCacheEntry( const FString& OriginalL
 	const FString EntryDirectory = PDBCachePath / CleanedLabelName;
 	const FString EntryTimeStampFilename = EntryDirectory / PDBTimeStampFile;
 
-	const FString LocalDepotDir = DepotRoot / DepotName.Replace( ICrashDebugHelper::P4_DEPOT_PREFIX, TEXT( "" ) );
+	const FString LocalDepotDir = EscapePath( DepotRoot / DepotName );
 
 	UE_LOG( LogCrashDebugHelper, Warning, TEXT( "PDB Cache entry: %s is being copied from: %s, it will take some time" ), *CleanedLabelName, *OriginalLabelName );
 	for( const auto& Filename : FilesToBeCached )
@@ -279,7 +282,7 @@ FPDBCacheEntryRef FPDBCache::CreateAndAddPDBCacheEntryMixed( const FString& Prod
 	return NewCacheEntry;
 }
 
-FPDBCacheEntryRef FPDBCache::ReadPDBCacheEntry( const FString& Directory )
+FPDBCacheEntryPtr FPDBCache::ReadPDBCacheEntry( const FString& Directory )
 {
 	const FString EntryDirectory = PDBCachePath / Directory;
 	const FString EntryTimeStampFilenameNoMeta = EntryDirectory / PDBTimeStampFileNoMeta;
@@ -325,10 +328,10 @@ FPDBCacheEntryRef FPDBCache::ReadPDBCacheEntry( const FString& Directory )
 	else
 	{
 		// Something wrong.
-		checkf( 0, TEXT( "Invalid symbol cache entry: %s" ), *EntryDirectory );
+		ensureMsgf( 0, TEXT( "Invalid symbol cache entry: %s" ), *EntryDirectory );
 	}
 
-	return NewEntry.ToSharedRef();
+	return NewEntry;
 }
 
 void FPDBCache::TouchPDBCacheEntry( const FString& Directory )

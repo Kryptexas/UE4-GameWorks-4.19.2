@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once 
 
 #if WITH_RECAST
@@ -405,7 +405,7 @@ public:
 
 	FBox GrowBoundingBox(const FBox& BBox, bool bIncludeAgentHeight) const;
 	
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && ENABLE_VISUAL_LOG
 	virtual void ExportNavigationData(const FString& FileName) const override;
 	virtual void GrabDebugSnapshot(struct FVisualLogEntry* Snapshot, const FBox& BoundingBox, const struct FLogCategoryBase& Category, ELogVerbosity::Type Verbosity) const override;
 #endif
@@ -447,7 +447,7 @@ public:
 
 public:
 	/** Removes all tiles at specified grid location */
-	TArray<uint32> RemoveTileLayers(const int32 TileX, const int32 TileY);
+	TArray<uint32> RemoveTileLayers(const int32 TileX, const int32 TileY, TMap<int32, dtPolyRef>* OldLayerTileIdMap = nullptr);
 
 	void RemoveTiles(const TArray<FIntPoint>& Tiles);
 	void ReAddTiles(const TArray<FIntPoint>& Tiles);

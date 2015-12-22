@@ -1,7 +1,13 @@
-﻿Availability:NoPublish
-Title:Downloading Unreal Engine from GitHub
+﻿Availability:Public
+Title:Forking and Cloning Unreal from GitHub
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
-Description:Downloading the Unreal Engine source code from GitHub.
+Description:Forking and cloning the Unreal Engine source code from GitHub.
+Prereq: GettingStarted/DownloadingUnrealEngine
+Related: Programming/Development/BuildingUnrealEngine
+Version: 4.8
+SkillLevel: Advanced
+
+Forking and cloning our source code from GitHub is a great way to get started with Unreal.
 
 %Globals:osselect_linux%
 
@@ -16,23 +22,23 @@ Description:Downloading the Unreal Engine source code from GitHub.
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-	1.	**Install** [GitHub for Windows](https://windows.github.com/).
-	1.	**Fork** and **Clone** our [repository](https://github.com/EpicGames/UnrealEngine) (pictured below).
+	1.	Install [GitHub for Windows](https://windows.github.com/).
+	1.	**Fork** and **Clone** our [repository](https://github.com/EpicGames/UnrealEngine).
 		![](UnrealRepo.png)
 		[REGION:tip]
 		*	Refer to GitHub's [Forking Projects Guide](https://guides.github.com/activities/forking/) to learn how to fork and clone our repository.
 		*	To use Git from the command line, refer to GitHub's articles on [Setting-up Git](https://help.github.com/articles/set-up-git/) and [Forking a Repository](https://help.github.com/articles/fork-a-repo/).
 		[/REGION]
-	1.	If you already haven't done so, **install** Visual Studio 2013. Although MFC libraries are included in Visual Studio's default installation settings, make sure that MFC libraries are included for ATL support.
+	1.	If you already haven't done so, install Visual Studio 2013. Although MFC libraries are included in Visual Studio's default installation settings, make sure that MFC libraries are included for ATL support.
 		[REGION:note]
 		Developers build UE4 with all desktop editions of Visual Studio, including Microsoft's free version ([Visual Studio Community 2013](https://www.visualstudio.com/products/visual-studio-community-vs)).
 		[/REGION]
-	1.	**Open** your source folder in Explorer and **run Setup.bat**.
+	1.	Open your source folder in Explorer and run **Setup.bat**.
 		[REGION:note]
-		Our Setup batch file downloads binary content for the engine, installs prerequesites, and sets up Unreal file associations. Downloading engine binaries may take some time because they are currently take up three to four gigabytes of memory. Subsequent checkouts take less time to download.
+		Our Setup batch file downloads binary content for the engine, installs prerequesites, and sets up Unreal file associations. Downloading engine binaries may take some time because they currently take up three to four gigabytes of disk space. Subsequent checkouts generally take less time to download.
 		[/REGION]
 		[REGION:warning]
-		A warning from SmartScreen may appear in Windows 8. **Click "More Info"**, then **"Run Anyway"** to continue running our Setup batch file.
+		A warning from SmartScreen may appear in Windows 8. **Click 'More Info'**, then **click 'Run Anyway'** to continue running our Setup batch file.
 		[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -48,17 +54,18 @@ Description:Downloading the Unreal Engine source code from GitHub.
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-	1.	**Install** [GitHub for Mac](https://mac.github.com/).
-	1.	**Fork** and **Clone** our [repository](https://github.com/EpicGames/UnrealEngine) (pictured below).
+	1.	Install [GitHub for Mac](https://mac.github.com/).
+	1.	**Fork** and **Clone** our [repository](https://github.com/EpicGames/UnrealEngine).
 		![](UnrealRepo.png)
 		[REGION:tip]
 		*	Refer to GitHub's [Forking Projects Guide](https://guides.github.com/activities/forking/) to learn how to fork and clone our repository.
 		*	To use Git from the command line, refer to GitHub's articles on [Setting-up Git](https://help.github.com/articles/set-up-git/) and [Forking a Repository](https://help.github.com/articles/fork-a-repo/).
 		[/REGION]
-	1.	If you haven't already done so, **install** the latest version of [Xcode](https://itunes.apple.com/us/app/xcode/id497799835).
-	1.	**Open** your source folder in Finder and **run Setup.command**.
+	1.	If you haven't already done so, install the latest version of [Xcode](https://itunes.apple.com/us/app/xcode/id497799835).
+	1.	Open your source folder in Finder and run **Setup.command**.
 		[REGION:note]
-		**Close** the Terminal window after Setup.command downloads binary content for the engine, installs prequisites, and sets up Unreal file associations.
+		*	Our Setup command file downloads binary content for the engine, installs prerequesites, and sets up Unreal file associations. Downloading engine binaries may take some time because they currently take up three to four gigabytes of disk space. Subsequent checkouts generally take less time to download.  
+		*	Close the Terminal window after **Setup.command** downloads binary content for the engine, installs prequisites, and sets up Unreal file associations.
 		[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -74,18 +81,28 @@ Description:Downloading the Unreal Engine source code from GitHub.
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-	1.	**Set up** [Git](https://help.github.com/articles/set-up-git/).
-	1.	**Fork** and **Clone** our [repository](https://help.github.com/articles/fork-a-repo/) (pictured below).
+
+	[REGION:warning]
+	Our developers and support teams currently use the latest version of Ubuntu; as a result, we may not be able to provide support for other Linux distributions (including other versions of Ubuntu).
+	[/REGION]
+
+	1.	Set up [Git](https://help.github.com/articles/set-up-git/).
+	1.	**Fork** and **Clone** our [repository](https://help.github.com/articles/fork-a-repo/).
 		![](UnrealRepo.png)
-	1.	Inside the root folder, **run Setup.sh** from the terminal to **download** the engine's binary content (example pictured below).
+	1.	Inside the root folder, run **Setup.sh** from the terminal to download the engine's binary content.
 
 		![](RunSetupShellScript_Linux.png)
 
 		[REGION:note]
-		If you don't see a ** \*\*SUCCESS\*\* ** message after running this step, refer to the **BuildThirdParty.log** file for more information. BuildThirdParty.log is located in the `Engine/Build/BatchFiles/Linux` directory.
+		*	Our Setup shell script downloads binary content for the engine and installs prerequesites. Downloading engine binaries may take some time because they currently take up three to four gigabytes of disk space. Subsequent checkouts generally take less time to download.  
+		*	If you don't see a ** \*\*SUCCESS\*\* ** message after running this step, refer to the **'BuildThirdParty.log'** file for more information. **'BuildThirdParty.log'** is located in the `[UE4Root]/Engine/Build/BatchFiles/Linux` directory.
 		[/REGION]
 	[/PARAM]
 [/OBJECT]
+
+## Next Steps
+
+Now that you've downloaded and set-up Unreal Engine, you're ready to [build the engine from source](Programming/Development/BuildingUnrealEngine).
 
 <!--
 

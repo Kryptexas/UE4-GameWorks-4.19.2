@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*-----------------------------------------------------------------------------
 	Data structures only used for importing skeletal meshes and animations.
@@ -125,10 +125,12 @@ struct ExistingSkelMeshData
 	TIndirectArray<FStaticLODModel>			ExistingLODModels;
 	TArray<FSkeletalMeshLODInfo>			ExistingLODInfo;
 	TArray<FMultiSizeIndexContainerData>	ExistingIndexBufferData;
+	TArray<FMultiSizeIndexContainerData>	ExistingAdjacencyIndexBufferData;
 	FReferenceSkeleton						ExistingRefSkeleton;
 	TArray<FSkeletalMaterial>				ExistingMaterials;
 	TArray<UMorphTarget*>					ExistingMorphTargets;
 	TArray<UPhysicsAsset*>					ExistingPhysicsAssets;
+	UPhysicsAsset*							ExistingShadowPhysicsAsset;
 	USkeleton*								ExistingSkeleton;
 	TArray<FTransform>						ExistingRetargetBasePose;
 

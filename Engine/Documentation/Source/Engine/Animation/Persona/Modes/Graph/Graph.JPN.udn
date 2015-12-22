@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2220735
+﻿INTSourceChangelist:2666103
 Availability:Public
 Title:グラフ モード
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona, Engine/Animation/Persona/Modes
 Description:ペルソナ アニメーション エディタのGraph モードのユーザーガイド
+バージョン：4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -24,19 +25,19 @@ Description:ペルソナ アニメーション エディタのGraph モードの
 [/OBJECT]
 [/VAR]
 
-## 概要
+
 
 [REGION:fullwidth]
 ![](AnimationGraph.png)
 [/REGION]
 
-**ペルソナ** の **Graph モード** は、ロジックを指定し、アニメーションとアニメーションのステートを、**AnimGraph** および **EventGraph** 内で設定した変数や条件に基づき接続する場所です。このグラフで作業することは、**ブループリント** グラフでの作業と似ています。しかし、以下で説明するように、**アニメーション ブループリント** には、いくつかの重要な詳細があります。 
+**ペルソナ** の **Graph (グラフ)** モードは、ロジックを指定し、アニメーションとアニメーションのステートを、**AnimGraph** および **EventGraph** 内で設定した変数や条件に基づき接続する場所です。このグラフで作業することは、ブループリント グラフでの作業と似ています。しかし、以下で説明するように、アニメーション ブループリントには、いくつかの重要な詳細があります。 
 
 ##アニメーション ブループリントの概要
 
 [INCLUDE:Engine/Animation/AnimBlueprints#Intro]
 
-**アニメーション ブループリント** の作業に関する詳細は、[アニメーション ブループリント](Engine/Animation/AnimBlueprints) を参照してください。 
+アニメーション ブループリントの作業に関する詳細は、[アニメーション ブループリント](Engine/Animation/AnimBlueprints) を参照してください。 
 
 
 

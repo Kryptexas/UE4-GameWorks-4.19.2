@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,11 +7,7 @@
 #include "EngineDefines.h"
 #include "LightComponent.generated.h"
 
-/** 
- * A texture containing depth values of static objects that was computed during the lighting build.
- * Used by Stationary lights to shadow translucency.
- */
-class FStaticShadowDepthMap : public FTexture
+class FStaticShadowDepthMapData
 {
 public:
 	/** Transform from world space to the coordinate space that DepthSamples are stored in. */
@@ -22,11 +18,23 @@ public:
 	/** Shadowmap depth values */
 	TArray<FFloat16> DepthSamples;
 
-	FStaticShadowDepthMap() :
+	FStaticShadowDepthMapData() :
 		WorldToLight(FMatrix::Identity),
 		ShadowMapSizeX(0),
 		ShadowMapSizeY(0)
 	{}
+
+	friend FArchive& operator<<(FArchive& Ar, FStaticShadowDepthMapData& ShadowMap);
+};
+
+/** 
+ * A texture containing depth values of static objects that was computed during the lighting build.
+ * Used by Stationary lights to shadow translucency.
+ */
+class FStaticShadowDepthMap : public FTexture
+{
+public:
+	FStaticShadowDepthMapData Data;
 
 	virtual void InitRHI();
 
@@ -65,10 +73,6 @@ class ENGINE_API ULightComponent : public ULightComponentBase
 	/** Transient shadowmap channel used to preview the results of stationary light shadowmap packing. */
 	int32 PreviewShadowMapChannel;
 	
-	/** Radius of light source shape. Moved to point light */
-	UPROPERTY()
-	float SourceRadius_DEPRECATED;
-
 	/** Min roughness effective for this light. Used for softening specular highlights. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, AdvancedDisplay, meta=(UIMin = "0.08", UIMax = "1.0"))
 	float MinRoughness;
@@ -108,6 +112,13 @@ class ENGINE_API ULightComponent : public ULightComponentBase
 	uint32 bAffectDynamicIndirectLighting : 1;
 
 	/** 
+	 * Channels that this light should affect.  
+	 * These channels only apply to opaque materials, direct lighting, and dynamic lighting and shadowing.
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Light)
+	FLightingChannels LightingChannels;
+
+	/** 
 	 * The light function material to be applied to this light.
 	 * Note that only non-lightmapped lights (UseDirectLightMap=False) can have a light function. 
 	 */
@@ -141,7 +152,7 @@ class ENGINE_API ULightComponent : public ULightComponentBase
 	 * Brightness factor applied to the light when the light function is specified but disabled, for example in scene captures that use SceneCapView_LitNoShadows. 
 	 * This should be set to the average brightness of the light function material's emissive input, which should be between 0 and 1.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LightFunction)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LightFunction, meta=(UIMin = "0.0", UIMax = "1.0"))
 	float DisabledBrightness;
 
 	/** 
@@ -297,7 +308,7 @@ public:
 	/** Compute current light brightness based on whether there is a valid IES profile texture attached, and whether IES brightness is enabled */
 	float ComputeLightBrightness() const;
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
 #if WITH_EDITOR
@@ -307,7 +318,7 @@ public:
 #endif // WITH_EDITOR
 	virtual void BeginDestroy() override;
 	virtual bool IsReadyForFinishDestroy() override;
-	// End UObject interface.
+	//~ End UObject Interface.
 
 	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
 	 void ApplyComponentInstanceData(class FPrecomputedLightInstanceData* ComponentInstanceData);
@@ -328,12 +339,12 @@ public:
 	}
 
 protected:
-	// Begin UActorComponent Interface
+	//~ Begin UActorComponent Interface
 	virtual void OnRegister() override;
 	virtual void CreateRenderState_Concurrent() override;
 	virtual void SendRenderTransform_Concurrent() override;
 	virtual void DestroyRenderState_Concurrent() override;
-	// Begin UActorComponent Interface
+	//~ Begin UActorComponent Interface
 
 public:
 	virtual void InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) override;

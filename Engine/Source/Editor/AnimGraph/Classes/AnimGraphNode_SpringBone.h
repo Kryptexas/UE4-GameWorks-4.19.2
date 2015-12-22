@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "AnimGraphNode_SkeletalControlBase.h"
@@ -14,20 +14,21 @@ class UAnimGraphNode_SpringBone : public UAnimGraphNode_SkeletalControlBase
 	UPROPERTY(EditAnywhere, Category=Settings)
 	FAnimNode_SpringBone Node;
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 	virtual void PostLoad();
-	// End UObject interface
+	//~ End UObject Interface
 
 public:
-	// UEdGraphNode interface
+	//~ Begin UEdGraphNode Interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FText GetTooltipText() const override;
-	// End of UEdGraphNode interface
+	//~ End UEdGraphNode Interface
 
 protected:
-	// UAnimGraphNode_SkeletalControlBase interface
+	//~ Begin UAnimGraphNode_SkeletalControlBase Interface
 	virtual FText GetControllerDescription() const override;
-	// End of UAnimGraphNode_SkeletalControlBase interface
+	virtual const FAnimNode_SkeletalControlBase* GetNode() const override { return &Node; }
+	//~ End UAnimGraphNode_SkeletalControlBase Interface
 
 private:
 	/** Constructing FText strings can be costly, so we cache the node's title */

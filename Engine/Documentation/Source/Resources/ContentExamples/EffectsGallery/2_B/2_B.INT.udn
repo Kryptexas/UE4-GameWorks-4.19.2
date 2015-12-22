@@ -9,6 +9,25 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+Version: 4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Example](Resources/ContentExamples/EffectsGallery/2_A "%Resources/ContentExamples/EffectsGallery/2_A:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Effects Gallery Home](Resources/ContentExamples/EffectsGallery)
+	[/PARAM]
+	[PARAM:next]
+		[Next Example](Resources/ContentExamples/EffectsGallery/2_C "%Resources/ContentExamples/EffectsGallery/2_C:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -54,7 +73,7 @@ Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 [/REGION]
 
 
-A Global Vector Field is similar to the Local Vector Field in the previous example, but instead of being a module inside the emitter, this is an Actor that you can place in your level, positioning and editing it as desired. Just as with the Local Vector Field, GPU particles are only affected by the forces of the vector field when they are inside the field's volume. 
+A **Global Vector Field** is similar to the Local Vector Field in the previous example, but instead of being a module inside the emitter, this is an Actor that you can place in your level, positioning and editing it as desired. Just as with the Local Vector Field, GPU particles are only affected by the forces of the vector field when they are inside the field's volume. 
 
 To set it up, you simply have to place a Vector Field Volume in your level and add a Global Vector Field module to your emitter.  That is it!
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CrashDebugHelperPrivatePCH.h"
 #include "CrashDebugHelperWindows.h"
@@ -9,20 +9,6 @@
 
 #include "AllowWindowsPlatformTypes.h"
 #include <DbgHelp.h>
-
-FCrashDebugHelperWindows::FCrashDebugHelperWindows()
-{
-}
-
-FCrashDebugHelperWindows::~FCrashDebugHelperWindows()
-{
-}
-
-
-bool FCrashDebugHelperWindows::ParseCrashDump(const FString& InCrashDumpName, FCrashDebugInfo& OutCrashDebugInfo)
-{
-	return true;
-}
 
 bool FCrashDebugHelperWindows::CreateMinidumpDiagnosticReport( const FString& InCrashDumpFilename )
 {

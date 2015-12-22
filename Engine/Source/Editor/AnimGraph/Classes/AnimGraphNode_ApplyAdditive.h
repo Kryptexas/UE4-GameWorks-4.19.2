@@ -1,8 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "AnimGraphNode_Base.h"
-#include "Animation/AnimNode_ApplyAdditive.h"
+#include "AnimNodes/AnimNode_ApplyAdditive.h"
 #include "AnimGraphNode_ApplyAdditive.generated.h"
 
 UCLASS(MinimalAPI)
@@ -21,5 +21,6 @@ class UAnimGraphNode_ApplyAdditive : public UAnimGraphNode_Base
 
 	// UAnimGraphNode_Base interface
 	virtual FString GetNodeCategory() const override;
+	virtual void ValidateAnimNodeDuringCompilation(class USkeleton* ForSkeleton, class FCompilerResultsLog& MessageLog) override;
 	// End of UAnimGraphNode_Base interface
 };

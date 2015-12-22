@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "SDockTab.h"
@@ -68,8 +68,11 @@ FReply SDockTab::OnDragDetected( const FGeometry& MyGeometry, const FPointerEven
 	const FVector2D TabGrabOffsetFraction = FVector2D(
 		FMath::Clamp(TabGrabOffset.X / TabSize.X, 0.0f, 1.0f),
 		FMath::Clamp(TabGrabOffset.Y / TabSize.Y, 0.0f, 1.0f) );
-			
-	return ParentPtr.Pin()->StartDraggingTab( SharedThis(this), TabGrabOffsetFraction, MouseEvent );
+	
+	auto PinnedParent = ParentPtr.Pin();
+	return ensure(PinnedParent.IsValid())
+		? PinnedParent->StartDraggingTab(SharedThis(this), TabGrabOffsetFraction, MouseEvent)
+		: FReply::Unhandled();
 }
 
 FReply SDockTab::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
@@ -747,4 +750,9 @@ FVector2D SDockTab::GetAnimatedScale() const
 	static FVector2D FullyOpen = FVector2D::UnitVector;
 	static FVector2D FullyClosed = FVector2D(1.0f, 0.0f);
 	return FMath::Lerp(FullyClosed, FullyOpen, SpawnAnimCurve.GetLerp());
+}
+
+void SDockTab::UpdateActivationTime()
+{
+	LastActivationTime = FSlateApplication::Get().GetCurrentTime();
 }

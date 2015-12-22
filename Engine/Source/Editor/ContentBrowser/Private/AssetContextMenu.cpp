@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "ContentBrowserPCH.h"
 #include "AssetViewTypes.h"
@@ -423,13 +423,17 @@ void FAssetContextMenu::MakeAssetActionsSubMenu(FMenuBuilder& MenuBuilder)
 
 		if (bCanUsePropertyMatrix)
 		{
+			TAttribute<FText>::FGetter DynamicTooltipGetter;
+			DynamicTooltipGetter.BindSP(this, &FAssetContextMenu::GetExecutePropertyMatrixTooltip);
+			TAttribute<FText> DynamicTooltipAttribute = TAttribute<FText>::Create(DynamicTooltipGetter);
+
 			MenuBuilder.AddMenuEntry(
 				LOCTEXT("PropertyMatrix", "Bulk Edit via Property Matrix..."),
-				LOCTEXT("PropertyMatrixTooltip", "Opens the property matrix editor for the selected assets."),
+				DynamicTooltipAttribute,
 				FSlateIcon(),
 				FUIAction(
 				FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecutePropertyMatrix),
-				FCanExecuteAction::CreateSP(this, &FAssetContextMenu::CanExecuteProperties)
+				FCanExecuteAction::CreateSP(this, &FAssetContextMenu::CanExecutePropertyMatrix)
 				)
 				);
 		}
@@ -594,8 +598,8 @@ bool FAssetContextMenu::AddDocumentationMenuOptions(FMenuBuilder& MenuBuilder)
 							break;
 						case BPTYPE_MacroLibrary:
 							MenuBuilder.AddMenuEntry(
-								LOCTEXT("GoToDocsForInterfaceBlueprint", "View Documentation - Macro"),
-								LOCTEXT("GoToDocsForInterfaceBlueprint_ToolTip", "Click to open documentation on blueprint macros"),
+								LOCTEXT("GoToDocsForMacroLibrary", "View Documentation - Macro"),
+								LOCTEXT("GoToDocsForMacroLibrary_ToolTip", "Click to open documentation on blueprint macros"),
 								FSlateIcon(FEditorStyle::GetStyleSetName(), "HelpIcon.Hovered" ),
 								FUIAction( FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteGoToDocsForAsset, UBlueprint::StaticClass(), FString(TEXT("UBlueprint_Macro")) ) )
 								);
@@ -1001,7 +1005,10 @@ bool FAssetContextMenu::CanExecuteImportedAssetActions(const TArray<FString> Res
 void FAssetContextMenu::ExecuteReimport()
 {
 	// Reimport all selected assets
-	for (auto& SelectedAsset : SelectedAssets)
+	//Copy the array to prevent iteration assert if a reimport factory change the selection
+	TArray<FAssetData> CopyOfSelectedAssets = SelectedAssets;
+
+	for (auto& SelectedAsset : CopyOfSelectedAssets)
 	{
 		const auto Asset = SelectedAsset.GetAsset();
 		if (Asset)
@@ -1085,9 +1092,30 @@ void FAssetContextMenu::ExecuteFindInExplorer()
 		{
 			FAssetData AssetData(Asset);
 
+			const FString PackageName = AssetData.PackageName.ToString();
+
+			static const TCHAR* ScriptString = TEXT("/Script/");
+			if (PackageName.StartsWith(ScriptString))
+			{
+				// Handle C++ classes specially, as FPackageName::LongPackageNameToFilename won't return the correct path in this case
+				const FString ModuleName = PackageName.RightChop(FCString::Strlen(ScriptString));
+				FString ModulePath;
+				if (FSourceCodeNavigation::FindModulePath(ModuleName, ModulePath))
+				{
+					const FString* RelativePath = AssetData.TagsAndValues.Find("ModuleRelativePath");
+					if (RelativePath)
+					{
+						const FString FullFilePath = FPaths::ConvertRelativePathToFull(ModulePath / (*RelativePath));
+						FPlatformProcess::ExploreFolder(*FullFilePath);
+					}
+				}
+
+				return;
+			}
+
 			const bool bIsWorldAsset = (AssetData.AssetClass == UWorld::StaticClass()->GetFName());
 			const FString Extension = bIsWorldAsset ? FPackageName::GetMapPackageExtension() : FPackageName::GetAssetPackageExtension();
-			const FString FilePath = FPackageName::LongPackageNameToFilename(AssetData.PackageName.ToString(), Extension);
+			const FString FilePath = FPackageName::LongPackageNameToFilename(PackageName, Extension);
 			const FString FullFilePath = FPaths::ConvertRelativePathToFull(FilePath);
 			FPlatformProcess::ExploreFolder(*FullFilePath);
 		}
@@ -1103,7 +1131,7 @@ void FAssetContextMenu::ExecuteCreateBlueprintUsing()
 	}
 }
 
-void FAssetContextMenu::GetSelectedAssets(TArray<UObject*>& Assets, bool SkipRedirectors)
+void FAssetContextMenu::GetSelectedAssets(TArray<UObject*>& Assets, bool SkipRedirectors) const
 {
 	for (int32 AssetIdx = 0; AssetIdx < SelectedAssets.Num(); ++AssetIdx)
 	{
@@ -1819,9 +1847,46 @@ bool FAssetContextMenu::CanExecuteProperties() const
 	return bAtLeastOneNonRedirectorSelected;
 }
 
+bool FAssetContextMenu::CanExecutePropertyMatrix(FText& OutErrorMessage) const
+{
+	bool bResult = bAtLeastOneNonRedirectorSelected;
+	if (bAtLeastOneNonRedirectorSelected)
+	{
+		TArray<UObject*> ObjectsForPropertiesMenu;
+		const bool SkipRedirectors = true;
+		GetSelectedAssets(ObjectsForPropertiesMenu, SkipRedirectors);
+
+		// Ensure all Blueprints are valid.
+		for (UObject* Object : ObjectsForPropertiesMenu)
+		{
+			if (UBlueprint* BlueprintObj = Cast<UBlueprint>(Object))
+			{
+				if (BlueprintObj->GeneratedClass == nullptr)
+				{
+					OutErrorMessage = LOCTEXT("InvalidBlueprint", "A selected Blueprint is invalid.");
+					bResult = false;
+					break;
+				}
+			}
+		}
+	}
+	return bResult;
+}
+
 bool FAssetContextMenu::CanExecutePropertyMatrix() const
 {
-	return bAtLeastOneNonRedirectorSelected;
+	FText ErrorMessageDummy;
+	return CanExecutePropertyMatrix(ErrorMessageDummy);
+}
+
+FText FAssetContextMenu::GetExecutePropertyMatrixTooltip() const
+{
+	FText ResultTooltip;
+	if (CanExecutePropertyMatrix(ResultTooltip))
+	{
+		ResultTooltip = LOCTEXT("PropertyMatrixTooltip", "Opens the property matrix editor for the selected assets.");
+	}
+	return ResultTooltip;
 }
 
 bool FAssetContextMenu::CanExecuteDuplicate() const
@@ -2017,14 +2082,7 @@ bool FAssetContextMenu::CanExecuteDiffSelected() const
 		FAssetData const& FirstSelection = SelectedAssets[0];
 		FAssetData const& SecondSelection = SelectedAssets[1];
 
-		if (FirstSelection.AssetClass != SecondSelection.AssetClass)
-		{
-			bCanDiffSelected = false;
-		}
-		else 
-		{
-			bCanDiffSelected = (FirstSelection.AssetClass == UBlueprint::StaticClass()->GetFName());
-		}
+		bCanDiffSelected = FirstSelection.AssetClass == SecondSelection.AssetClass;
 	}
 
 	return bCanDiffSelected;

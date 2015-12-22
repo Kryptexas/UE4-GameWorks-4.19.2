@@ -1,11 +1,14 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "AutomationEditorPromotionCommon.h"
 #include "AssetRegistryModule.h"
+#include "LevelEditor.h"
 #include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "EditorPromotionTestCommon"
+
+DEFINE_LOG_CATEGORY_STATIC(LogEditorPromotionTests, Log, All);
 
 /**
 * Finds a visible widget by type.     SLOW!!!!!
@@ -162,6 +165,26 @@ void FEditorPromotionTestUtilities::SendCommandToCurrentEditor(const FInputChord
 }
 
 /**
+* Gets an object property value by name
+*
+* @param TargetObject - The object to modify
+* @param InVariableName - The name of the property
+*/
+FString FEditorPromotionTestUtilities::GetPropertyByName(UObject* TargetObject, const FString& InVariableName)
+{
+	UProperty* FoundProperty = FindField<UProperty>(TargetObject->GetClass(), *InVariableName);
+	if (FoundProperty)
+	{
+		FString ValueString;
+		const uint8* PropertyAddr = FoundProperty->ContainerPtrToValuePtr<uint8>(TargetObject);
+		FoundProperty->ExportTextItem(ValueString, PropertyAddr, NULL, NULL, PPF_None);
+		return ValueString;
+	}
+	return TEXT("");
+}
+
+
+/**
 * Sets an object property value by name
 *
 * @param TargetObject - The object to modify
@@ -180,6 +203,75 @@ void FEditorPromotionTestUtilities::SetPropertyByName(UObject* TargetObject, con
 		FoundProperty->ImportText(*NewValueString, FoundProperty->ContainerPtrToValuePtr<uint8>(TargetObject), 0, TargetObject);
 		FPropertyChangedEvent PropertyChangedEvent(FoundProperty, EPropertyChangeType::ValueSet);
 		TargetObject->PostEditChangeProperty(PropertyChangedEvent);
+	}
+}
+
+/**
+* Starts a PIE session
+*/
+void FEditorPromotionTestUtilities::StartPIE(bool bSimulateInEditor)
+{
+	FLevelEditorModule& LevelEditorModule = FModuleManager::Get().GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+	TSharedPtr<class ILevelViewport> ActiveLevelViewport = LevelEditorModule.GetFirstActiveViewport();
+
+	GUnrealEd->RequestPlaySession(false, ActiveLevelViewport, bSimulateInEditor, NULL, NULL, -1, false);
+}
+
+/**
+* Ends a PIE session
+*/
+void FEditorPromotionTestUtilities::EndPIE()
+{
+	GUnrealEd->RequestEndPlayMap();
+}
+
+/**
+* Takes an automation screenshot
+*
+* @param ScreenshotName - The sub name to use for the screenshot
+*/
+void FEditorPromotionTestUtilities::TakeScreenshot(const FString& ScreenshotName, bool bUseTopWindow)
+{
+	//Update the screenshot name, then take a screenshot.
+	if (FAutomationTestFramework::GetInstance().IsScreenshotAllowed())
+	{
+		TSharedPtr<SWindow> Window;
+
+		if (bUseTopWindow)
+		{
+			Window = FSlateApplication::Get().GetActiveTopLevelWindow();
+		}
+		else
+		{
+			//Find the main editor window
+			TArray<TSharedRef<SWindow> > AllWindows;
+			FSlateApplication::Get().GetAllVisibleWindowsOrdered(AllWindows);
+			if (AllWindows.Num() == 0)
+			{
+				UE_LOG(LogEditorPromotionTests, Error, TEXT("ERROR: Could not find the main editor window."));
+				return;
+			}
+
+			Window = AllWindows[0];
+		}
+
+		if (Window.IsValid())
+		{
+			FString ScreenshotFileName;
+			const FString TestName = FString::Printf(TEXT("EditorBuildPromotion/%s"), *ScreenshotName);
+			AutomationCommon::GetScreenshotPath(TestName, ScreenshotFileName, false);
+
+			TSharedRef<SWidget> WindowRef = Window.ToSharedRef();
+
+			TArray<FColor> OutImageData;
+			FIntVector OutImageSize;
+			FSlateApplication::Get().TakeScreenshot(WindowRef, OutImageData, OutImageSize);
+			FAutomationTestFramework::GetInstance().OnScreenshotCaptured().ExecuteIfBound(OutImageSize.X, OutImageSize.Y, OutImageData, ScreenshotFileName);
+		}
+		else
+		{
+			UE_LOG(LogEditorPromotionTests, Error, TEXT("Failed to find editor window for screenshot (%s)"), *ScreenshotName);
+		}
 	}
 }
 

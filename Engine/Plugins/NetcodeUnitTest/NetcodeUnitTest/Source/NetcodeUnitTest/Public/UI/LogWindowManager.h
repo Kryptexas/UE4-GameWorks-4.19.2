@@ -1,9 +1,9 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 /**
- * @todo JohnB: Slate log windows
+ * @todo #JohnBFeatureUI: Slate log windows
  *
  * What is needed:
  *	- Ability to enter console commands into log window (what context should they execute in? game client, exploit, server?)
@@ -137,8 +137,11 @@ protected:
 	int									LogWidth;
 	int									LogHeight;
 
+
+#if TARGET_UE4_CL >= CL_DEPRECATEDEL
 	/** Handles to registered OnWindowClosed delegates for particular windows */
 	TMap<SLogWindow*, FDelegateHandle> OnWindowClosedDelegateHandles;
+#endif
 };
 
 

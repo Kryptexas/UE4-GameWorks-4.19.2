@@ -46,12 +46,12 @@ Engine\Binaries\Mac\UE4Editor.app\Contents\MacOS\NotForLicensees\*-XMPP*.*
 Engine\Binaries\Mac\*-MessagingDebugger.*
 Engine\Binaries\Win64\*-DDCUtils*.*
 Engine\Binaries\Win64\*-MessagingDebugger.*
-Engine\Binaries\Win64\*-OnlineSubsystemMcp*.*
 Engine\Binaries\Win64\*-SimplygonMeshReduction*.*
 Engine\Binaries\Win64\*-TextureXboxOneFormat.*
 Engine\Binaries\Win64\*-TextureFormatATITC.*
 Shadow\Binaries\Win64\*ShadowLoadingScreen.*
 Engine\Binaries\Win64\UnrealRemoteAgent.*
+Engine\Binaries\Win64\NotForLicensees\*-OnlineSubsystemMcp*.*
 Engine\Binaries\Win64\NotForLicensees\*-XMPP*.*
 Engine\Binaries\DotNET\AutomationScripts\NoRedist\FotniteGame.Automation.*
 Engine\Build\Android\Java\libs\vrlib.jar
@@ -89,3 +89,7 @@ Engine\Binaries\Linux\*-DesktopTargetPlatform*.*
 Engine\Source\Runtime\ProceduralMeshComponent
 Engine\Binaries\Win64\*-GameSubCatalog.*
 Engine\Binaries\Mac\UE4Editor.app\Contents\MacOS\UE4Editor-GameSubCatalog.dylib
+Ocean\Binaries\Win64\*-LootTables*
+Ocean\Binaries\Win32\*-LootTables*
+Ocean\Binaries\Mac\Ocean.app\Contents\MacOS\*-LootTables.dylib
+Engine\Intermediate\Build\Win64\UE4Editor\Inc\SimplygonUtilities\*

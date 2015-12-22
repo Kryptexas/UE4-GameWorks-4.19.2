@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "GeometryCacheMeshData.h"
@@ -11,14 +11,14 @@ class GEOMETRYCACHE_API UGeometryCacheTrack_TransformAnimation : public UGeometr
 {
 	GENERATED_UCLASS_BODY()
 		
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	virtual void Serialize(FArchive& Ar) override;
-	// End UObject interface.
+	//~ End UObject Interface.
 	
-	// Begin UGeometryCacheTrack interface.
+	//~ Begin UGeometryCacheTrack Interface.
 	virtual const bool UpdateMeshData(const float Time, const bool bLooping, int32& InOutMeshSampleIndex, FGeometryCacheMeshData*& OutMeshData) override;
-	// End UGeometryCacheTrack interface.
+	//~ End UGeometryCacheTrack Interface.
 
 	/**
 	* Sets/updates the MeshData for this track

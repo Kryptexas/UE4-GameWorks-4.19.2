@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 LandscapeRender.cpp: New terrain rendering
@@ -447,6 +447,7 @@ UMaterialInstanceConstant* GSelectionColorMaterial = nullptr;
 UMaterialInstanceConstant* GSelectionRegionMaterial = nullptr;
 UMaterialInstanceConstant* GMaskRegionMaterial = nullptr;
 UTexture2D* GLandscapeBlackTexture = nullptr;
+UMaterial* GLandscapeLayerUsageMaterial = nullptr;
 
 // Game thread update
 void FLandscapeEditToolRenderData::Update(UMaterialInterface* InToolMaterial)
@@ -652,6 +653,18 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 	SharedBuffersKey = (SubsectionSizeQuads & 0xffff) | ((NumSubsections & 0xf) << 16) | (FeatureLevel <= ERHIFeatureLevel::ES3_1 ? 0 : 1 << 20) | (XYOffsetmapTexture == nullptr ? 0 : 1 << 31);
 
 	bSupportsHeightfieldRepresentation = true;
+
+#if WITH_EDITOR
+	for (auto& Allocation : InComponent->WeightmapLayerAllocations)
+	{
+		if (ensure(Allocation.LayerInfo) && Allocation.LayerInfo != ALandscapeProxy::VisibilityLayer)
+		{
+			// Use black for hole layer
+			LayerColors.Add(Allocation.LayerInfo->LayerUsageDebugColor);
+			LayerNames.Add(Allocation.LayerInfo->LayerName);
+		}
+	}
+#endif
 }
 
 void FLandscapeComponentSceneProxy::CreateRenderThreadResources()
@@ -744,6 +757,10 @@ void FLandscapeComponentSceneProxy::CreateRenderThreadResources()
 		FLandscapeBatchElementParams* BatchElementParams = &GrassBatchParams;
 		BatchElementParams->LocalToWorldNoScalingPtr = &LocalToWorldNoScaling;
 		BatchElement->UserData = BatchElementParams;
+		if (NeedsUniformBufferUpdate())
+		{
+			UpdateUniformBuffer();
+		}
 		BatchElement->PrimitiveUniformBufferResource = &GetUniformBuffer();
 		BatchElementParams->LandscapeUniformShaderParametersResource = &LandscapeUniformShaderParameters;
 		BatchElementParams->SceneProxy = this;
@@ -793,7 +810,7 @@ bool FLandscapeComponentSceneProxy::CanBeOccluded() const
 	return !MaterialRelevance.bDisableDepthTest;
 }
 
-FPrimitiveViewRelevance FLandscapeComponentSceneProxy::GetViewRelevance(const FSceneView* View)
+FPrimitiveViewRelevance FLandscapeComponentSceneProxy::GetViewRelevance(const FSceneView* View) const
 {
 	FPrimitiveViewRelevance Result;
 	Result.bDrawRelevance = IsShown(View) && View->Family->EngineShowFlags.Landscape;
@@ -935,25 +952,12 @@ void FLandscapeComponentSceneProxy::GetLightRelevance(const FLightSceneProxy* Li
 
 FLightInteraction FLandscapeComponentSceneProxy::FLandscapeLCI::GetInteraction(const class FLightSceneProxy* LightSceneProxy) const
 {
-	// Check if the light has static lighting or shadowing.
-	if (LightSceneProxy->HasStaticShadowing())
+	// ask base class
+	ELightInteractionType LightInteraction = GetStaticInteraction(LightSceneProxy, IrrelevantLights);
+	
+	if(LightInteraction != LIT_MAX)
 	{
-		const FGuid LightGuid = LightSceneProxy->GetLightGuid();
-
-		if (LightMap && LightMap->ContainsLight(LightGuid))
-		{
-			return FLightInteraction::LightMap();
-		}
-
-		if (ShadowMap && ShadowMap->ContainsLight(LightGuid))
-		{
-			return FLightInteraction::ShadowMap2D();
-		}
-
-		if (IrrelevantLights.Contains(LightGuid))
-		{
-			return FLightInteraction::Irrelevant();
-		}
+		return FLightInteraction(LightInteraction);
 	}
 
 	// Use dynamic lighting if the light doesn't have static lighting.
@@ -1084,6 +1088,7 @@ void FLandscapeComponentSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInter
 	MeshBatch.CastShadow = true;
 	MeshBatch.Type = bCurrentRequiresAdjacencyInformation ? PT_12_ControlPointPatchList : PT_TriangleList;
 	MeshBatch.DepthPriorityGroup = SDPG_World;
+	MeshBatch.LODIndex = 0;
 
 	for (int32 LOD = FirstLOD; LOD <= LastLOD; LOD++)
 	{
@@ -1230,12 +1235,17 @@ uint64 FLandscapeComponentSceneProxy::GetStaticBatchElementVisibility(const clas
 
 float FLandscapeComponentSceneProxy::CalcDesiredLOD(const class FSceneView& View, const FVector2D& CameraLocalPos, int32 SubX, int32 SubY) const
 {
+	int32 OverrideLOD = GetCVarForceLOD();
 #if WITH_EDITOR
 	if (View.Family->LandscapeLODOverride >= 0)
 	{
-		return FMath::Clamp<int32>(View.Family->LandscapeLODOverride, FirstLOD, LastLOD);
+		OverrideLOD = View.Family->LandscapeLODOverride;
 	}
 #endif
+	if (OverrideLOD >= 0)
+	{
+		return FMath::Clamp<int32>(OverrideLOD, FirstLOD, LastLOD);
+	}
 
 	// FLandscapeComponentSceneProxy::NumSubsections, SubsectionSizeQuads, MaxLOD, LODFalloff and LODDistance are the same for all components and so are safe to use in the neighbour LOD calculations
 	// HeightmapTexture, LODBias, ForcedLOD are component-specific with neighbor lookup
@@ -1478,6 +1488,22 @@ void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FS
 
 					Collector.AddMesh(ViewIndex, MeshTools);
 
+					NumPasses++;
+					NumTriangles += MeshTools.GetNumPrimitives();
+					NumDrawCalls += MeshTools.Elements.Num();
+				}
+				break;
+
+			case ELandscapeViewMode::LayerUsage:
+				if (EditToolRenderData && GLandscapeLayerUsageMaterial)
+				{	
+					float Rotation = ((SectionBase.X / ComponentSizeQuads) ^ (SectionBase.Y / ComponentSizeQuads)) & 1 ? 0 : 2.f * PI;
+					auto LayerUsageMaterialInstance = new FLandscapeLayerUsageRenderProxy(GLandscapeLayerUsageMaterial->GetRenderProxy(false), ComponentSizeVerts, LayerColors, Rotation);
+					MeshTools.MaterialRenderProxy = LayerUsageMaterialInstance;
+					Collector.RegisterOneFrameMaterialProxy(LayerUsageMaterialInstance);
+					MeshTools.bCanApplyViewModeOverrides = true;
+					MeshTools.bUseWireframeSelectionColoring = IsSelected();
+					Collector.AddMesh(ViewIndex, MeshTools);
 					NumPasses++;
 					NumTriangles += MeshTools.GetNumPrimitives();
 					NumDrawCalls += MeshTools.Elements.Num();
@@ -2631,6 +2657,15 @@ void FLandscapeComponentSceneProxy::GetHeightfieldRepresentation(UTexture2D*& Ou
 	OutDescription.NumSubsections = NumSubsections;
 
 	OutDescription.SubsectionScaleAndBias = FVector4(SubsectionSizeQuads, SubsectionSizeQuads, HeightmapSubsectionOffsetU, HeightmapSubsectionOffsetV);
+}
+
+void FLandscapeComponentSceneProxy::GetLCIs(FLCIArray& LCIs)
+{
+	FLightCacheInterface* LCI = ComponentLightInfo.Get();
+	if (LCI)
+	{
+		LCIs.Push(LCI);
+	}
 }
 
 //

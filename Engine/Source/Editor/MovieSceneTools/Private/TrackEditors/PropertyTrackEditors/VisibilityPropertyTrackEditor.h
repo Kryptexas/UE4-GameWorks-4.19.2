@@ -1,8 +1,9 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "MovieSceneVisibilityTrack.h"
+#include "MovieSceneVisibilitySection.h"
 
 
 /**
@@ -10,14 +11,14 @@
  * to use a UMovieSceneVisibilityTrack through metadata.
  */
 class FVisibilityPropertyTrackEditor
-	: public FPropertyTrackEditor<UMovieSceneVisibilityTrack, bool>
+	: public FPropertyTrackEditor<UMovieSceneVisibilityTrack, UMovieSceneVisibilitySection, bool>
 {
 public:
 
 	/** Constructor. */
 	FVisibilityPropertyTrackEditor( TSharedRef<ISequencer> InSequencer)
 		// Don't supply any property type names to watch since the FBoolPropertyTrackEditor is already watching for bool property changes.
-		: FPropertyTrackEditor<UMovieSceneVisibilityTrack, bool>( InSequencer )
+		: FPropertyTrackEditor<UMovieSceneVisibilityTrack, UMovieSceneVisibilitySection, bool>( InSequencer, NAME_BoolProperty )
 	{ }
 
 	/**
@@ -28,15 +29,10 @@ public:
 	 */
 	static TSharedRef<ISequencerTrackEditor> CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer );
 
-public:
-
-	// ISequencerTrackEditor interface
-
-	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track ) override;
-
 protected:
 
 	// FPropertyTrackEditor interface
-
-	virtual bool TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, bool& OutKey ) override;
+	virtual TSharedRef<FPropertySection> MakePropertySectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track ) override;
+	virtual void GenerateKeysFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, TArray<bool>& NewGeneratedKeys, TArray<bool>& DefaultGeneratedKeys ) override;
+	virtual bool ForCustomizedUseOnly() { return true; }
 };

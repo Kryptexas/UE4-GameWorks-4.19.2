@@ -1,8 +1,10 @@
 Availability:Public
-Title: Actors & Geometry
+Title: Actors and Geometry
 Crumbs:%ROOT%, Engine
 Description:A definition of Actors and how they are used in level design, including placement and manipulation techniques.
 Navigation:topic
+parent:Engine/Editor
+order:5
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]

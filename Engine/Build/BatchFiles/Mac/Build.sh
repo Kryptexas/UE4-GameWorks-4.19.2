@@ -38,6 +38,10 @@ case $ACTION in
 		        Platform="IOS"
 				AdditionalFlags+=" -deploy -nocreatestub "
 			;; 
+			"appletvos")
+		        Platform="TVOS"
+				AdditionalFlags+=" -deploy -nocreatestub "
+			;; 
   			"iphonesimulator")
 		        	Platform="IOS"
 		         	AdditionalFlags+=" -deploy -simulator -nocreatestub"
@@ -57,8 +61,8 @@ case $ACTION in
 		BuildTasks=$(defaults read com.apple.dt.Xcode IDEBuildOperationMaxNumberOfConcurrentCompileTasks)
 		export NumUBTBuildTasks=$BuildTasks
 
-		echo Running command : Engine/Binaries/DotNET/UnrealBuildTool.exe $1 $Platform $3 $AdditionalFlags "$4" 
-		mono Engine/Binaries/DotNET/UnrealBuildTool.exe $1 $Platform $3 $AdditionalFlags "$4"
+		echo Running command : Engine/Binaries/DotNET/UnrealBuildTool.exe $1 $Platform $3 $AdditionalFlags "${@:4}"
+		mono Engine/Binaries/DotNET/UnrealBuildTool.exe $1 $Platform $3 $AdditionalFlags "${@:4}"
 		;;
 	"clean")
 		echo "Cleaning $2 $3 $4..."
@@ -87,8 +91,8 @@ case $ACTION in
 			;;
 		
 		esac
-		echo Running command: mono Engine/Binaries/DotNET/UnrealBuildTool.exe $2 $Platform $4 $AdditionalFlags "$5"
-		mono Engine/Binaries/DotNET/UnrealBuildTool.exe $2 $Platform $4 $AdditionalFlags "$5"
+		echo Running command: mono Engine/Binaries/DotNET/UnrealBuildTool.exe $2 $Platform $4 $AdditionalFlags "${@:5}"
+		mono Engine/Binaries/DotNET/UnrealBuildTool.exe $2 $Platform $4 $AdditionalFlags "${@:5}"
 		;;
 esac
 

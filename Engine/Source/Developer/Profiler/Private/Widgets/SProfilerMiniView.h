@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -344,7 +344,6 @@ protected:
 
 	/** Recently added thread times, not processed yet. */
 	TArray<FFrameThreadTimes> RecentlyAddedFrames;
-	TLockFreePointerList<FFrameThreadTimes> RecentlyAddedFramesLockFree;
 
 	/** Maximum total mini-view frame time seen so far. */
 	float MaxFrameTime;

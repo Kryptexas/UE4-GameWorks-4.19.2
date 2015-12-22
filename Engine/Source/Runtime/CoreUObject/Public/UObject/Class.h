@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Class.h: UClass definition.
@@ -15,6 +15,7 @@
 -----------------------------------------------------------------------------*/
 
 COREUOBJECT_API DECLARE_LOG_CATEGORY_EXTERN(LogClass, Log, All);
+COREUOBJECT_API DECLARE_LOG_CATEGORY_EXTERN(LogScriptSerialization, Log, All);
 
 struct FPropertyTag;
 
@@ -43,7 +44,7 @@ struct FRepRecord
 //
 class COREUOBJECT_API UField : public UObject
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UField,UObject,CLASS_Abstract,CoreUObject,CASTCLASS_UField)
+	DECLARE_CASTED_CLASS_INTRINSIC(UField, UObject, CLASS_Abstract, TEXT("/Script/CoreUObject"), CASTCLASS_UField)
 
 	// Variables.
 	UField*			Next;
@@ -236,7 +237,7 @@ class COREUOBJECT_API UField : public UObject
  */
 class COREUOBJECT_API UStruct : public UField
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UStruct,UField,0,CoreUObject,CASTCLASS_UStruct)
+	DECLARE_CASTED_CLASS_INTRINSIC(UStruct, UField, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UStruct)
 
 	// Variables.
 protected:
@@ -421,6 +422,11 @@ public:
 	/** Try and find string metadata with the given key. If not found on this class, work up hierarchy looking for it. */
 	bool GetStringMetaDataHierarchical(const FName& Key, FString* OutValue = nullptr) const;
 #endif
+
+#if HACK_HEADER_GENERATOR
+	// Required by UHT makefiles for internal data serialization.
+	friend struct FStructArchiveProxy;
+#endif // HACK_HEADER_GENERATOR
 };
 
 enum EStructFlags
@@ -987,7 +993,7 @@ public:
 	#define IMPLEMENT_STRUCT(BaseName) \
 		static UScriptStruct::TAutoCppStructOps<F##BaseName> BaseName##_Ops(TEXT(#BaseName)); 
 
-	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR(UScriptStruct,UStruct,0,CoreUObject,CASTCLASS_UScriptStruct,COREUOBJECT_API)
+	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR(UScriptStruct, UStruct, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UScriptStruct, COREUOBJECT_API)
 
 	COREUOBJECT_API UScriptStruct( EStaticConstructor, int32 InSize, EObjectFlags InFlags );
 	COREUOBJECT_API explicit UScriptStruct(const FObjectInitializer& ObjectInitializer, UScriptStruct* InSuperStruct, ICppStructOps* InCppStructOps = NULL, EStructFlags InStructFlags = STRUCT_NoFlags, SIZE_T ExplicitSize = 0, SIZE_T ExplicitAlignment = 0);
@@ -999,6 +1005,9 @@ public:
 
 #if HACK_HEADER_GENERATOR
 	int32 StructMacroDeclaredLineNumber;
+
+	// Required by UHT makefiles for internal data serialization.
+	friend struct FScriptStructArchiveProxy;
 #endif
 
 private:
@@ -1075,6 +1084,31 @@ public:
 		}
 	}
 
+	/** Returns true if this struct has a native serialize function */
+	bool UseNativeSerialization() const
+	{
+		if ((StructFlags&STRUCT_SerializeNative) != 0)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	/** Returns true if this struct should be binary serialized for the given archive */
+	COREUOBJECT_API bool UseBinarySerialization(const FArchive& Ar) const;
+
+	/** 
+	 * Serializes a specific instance of a struct 
+	 *
+	 * @param	Ar			Archive we are serializing to/from
+	 * @param	Value		Pointer to memory of struct
+	 * @param	Defaults	Default value for this struct, pass nullptr to not use defaults 
+	 */
+	COREUOBJECT_API void SerializeItem(FArchive& Ar, void* Value, void const* Defaults);
+
 	/**
 	 * Compare two script structs
 	 *
@@ -1122,10 +1156,12 @@ protected:
 		{
 			SampleStructMemory = (uint8*)FMemory::Malloc(ScriptStruct->GetStructureSize());
 			ScriptStruct.Get()->InitializeStruct(SampleStructMemory);
+			OwnsMemory = true;
 		}
 	}
 
 public:
+
 	FStructOnScope(const UStruct* InScriptStruct)
 		: ScriptStruct(InScriptStruct)
 		, SampleStructMemory(NULL)
@@ -1133,16 +1169,39 @@ public:
 		Initialize();
 	}
 
-	virtual uint8* GetStructMemory() { return SampleStructMemory; }
+	FStructOnScope(const UStruct* InScriptStruct, uint8* InData)
+		: ScriptStruct(InScriptStruct)
+		, SampleStructMemory(InData)
+		, OwnsMemory(false)
+	{ }
 
-	virtual const uint8* GetStructMemory() const { return SampleStructMemory; }
+	virtual uint8* GetStructMemory()
+	{
+		return SampleStructMemory;
+	}
 
-	virtual const UStruct* GetStruct() const { return ScriptStruct.Get(); }
+	virtual const uint8* GetStructMemory() const
+	{
+		return SampleStructMemory;
+	}
 
-	virtual bool IsValid() const { return ScriptStruct.IsValid() && SampleStructMemory; }
+	virtual const UStruct* GetStruct() const
+	{
+		return ScriptStruct.Get();
+	}
+
+	virtual bool IsValid() const
+	{
+		return ScriptStruct.IsValid() && SampleStructMemory;
+	}
 
 	virtual void Destroy()
 	{
+		if (!OwnsMemory)
+		{
+			return;
+		}
+
 		if (ScriptStruct.IsValid() && SampleStructMemory)
 		{
 			ScriptStruct.Get()->DestroyStruct(SampleStructMemory);
@@ -1161,9 +1220,22 @@ public:
 		Destroy();
 	}
 
+	/** Re-initializes the scope with a specified UStruct */
+	void Initialize(TWeakObjectPtr<const UStruct> InScriptStruct)
+	{
+		ScriptStruct = InScriptStruct;
+		Initialize();
+	}
+
 private:
+
 	FStructOnScope(const FStructOnScope&);
 	FStructOnScope& operator=(const FStructOnScope&);
+
+private:
+
+	/** Whether the struct memory is owned by this instance. */
+	bool OwnsMemory;
 };
 
 /*-----------------------------------------------------------------------------
@@ -1175,7 +1247,7 @@ private:
 //
 class COREUOBJECT_API UFunction : public UStruct
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UFunction, UStruct, 0, CoreUObject, CASTCLASS_UFunction)
+	DECLARE_CASTED_CLASS_INTRINSIC(UFunction, UStruct, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UFunction)
 	DECLARE_WITHIN(UClass)
 public:
 	// Persistent variables.
@@ -1291,7 +1363,9 @@ public:
 	FORCEINLINE static uint64 GetDefaultIgnoredSignatureCompatibilityFlags()
 	{
 		//@TODO: UCREMOVAL: CPF_ConstParm added as a hack to get blueprints compiling with a const DamageType parameter.
-		const uint64 IgnoreFlags = CPF_PersistentInstance | CPF_ExportObject | CPF_InstancedReference | CPF_ContainsInstancedReference | CPF_ComputedFlags | CPF_ConstParm | CPF_HasGetValueTypeHash | CPF_UObjectWrapper;
+		const uint64 IgnoreFlags = CPF_PersistentInstance | CPF_ExportObject | CPF_InstancedReference 
+			| CPF_ContainsInstancedReference | CPF_ComputedFlags | CPF_ConstParm | CPF_HasGetValueTypeHash | CPF_UObjectWrapper
+			| CPF_NativeAccessSpecifiers;
 		return IgnoreFlags;
 	}
 
@@ -1321,7 +1395,7 @@ public:
 
 class COREUOBJECT_API UDelegateFunction : public UFunction
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UDelegateFunction, UFunction, 0, CoreUObject, CASTCLASS_UDelegateFunction)
+	DECLARE_CASTED_CLASS_INTRINSIC(UDelegateFunction, UFunction, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UDelegateFunction)
 	DECLARE_WITHIN(UObject)
 public:
 	explicit UDelegateFunction(const FObjectInitializer& ObjectInitializer, UFunction* InSuperFunction, uint32 InFunctionFlags = 0, uint16 InRepOffset = 0, SIZE_T ParamsSize = 0);
@@ -1337,7 +1411,7 @@ public:
 //
 class COREUOBJECT_API UEnum : public UField
 {
-	DECLARE_CASTED_CLASS_INTRINSIC_WITH_API(UEnum,UField,0,CoreUObject,CASTCLASS_UEnum,NO_API)
+	DECLARE_CASTED_CLASS_INTRINSIC_WITH_API(UEnum, UField, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UEnum, NO_API)
 
 public:
 	enum class ECppForm
@@ -1644,7 +1718,7 @@ public:
 	FORCEINLINE static FString GetValueAsString( const TCHAR* EnumPath, const T EnumValue )
 	{
 		// For the C++ enum.
-		static_assert(IS_ENUM(T), "Should only call this with enum types");
+		static_assert(TIsEnum<T>::Value, "Should only call this with enum types");
 		return GetValueAsString_Internal(EnumPath, (int32)EnumValue);
 	}
 
@@ -1670,7 +1744,7 @@ public:
 	FORCEINLINE static FText GetDisplayValueAsText( const TCHAR* EnumPath, const T EnumValue )
 	{
 		// For the C++ enum.
-		static_assert(IS_ENUM(T), "Should only call this with enum types");
+		static_assert(TIsEnum<T>::Value, "Should only call this with enum types");
 		return GetDisplayValueAsText_Internal(EnumPath, (int32)EnumValue);
 	}
 
@@ -1815,7 +1889,7 @@ class COREUOBJECT_API UClass : public UStruct
 	, private FFastIndexingClassTreeRegistrar
 #endif
 {
-	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR(UClass,UStruct,0,CoreUObject,CASTCLASS_UClass,NO_API)
+	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR(UClass, UStruct, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UClass, NO_API)
 	DECLARE_WITHIN(UPackage)
 
 public:
@@ -1829,6 +1903,7 @@ public:
 	typedef UObject*	(*ClassVTableHelperCtorCallerType)	(FVTableHelper& Helper);
 #endif // WITH_HOT_RELOAD_CTORS
 	typedef void		(*ClassAddReferencedObjectsType)	(UObject*, class FReferenceCollector&);
+	typedef UClass* (*StaticClassFunctionType)();
 
 	ClassConstructorType ClassConstructor;
 #if WITH_HOT_RELOAD_CTORS
@@ -1904,8 +1979,14 @@ public:
 	UObject* ClassDefaultObject;
 
 private:
-	/** Map of all functions by name contained in this state */
+	/** Map of all functions by name contained in this class */
 	TMap<FName, UFunction*> FuncMap;
+
+	/** A cache of all functions by name that exist in a parent context */
+	mutable TMap<FName, UFunction*> ParentFuncMap;
+
+	/** A cache of all functions by name that exist in an interface context */
+	mutable TMap<FName, UFunction*> InterfaceFuncMap;
 
 public:
 	/**
@@ -1998,16 +2079,38 @@ public:
 	 **/
 	void AddNativeFunction(const ANSICHAR* InName, Native InPointer);
 
+	/**
+	 * Add a native function to the internal native function table, but with a unicode name. Used when generating code from blueprints, 
+	 * which can have unicode identifiers for functions and properties.
+	 * @param	InName							name of the function
+	 * @param	InPointer						pointer to the function
+	 **/
+	void AddNativeFunction(const WIDECHAR* InName, Native InPointer);
+
 	// Add a function to the function map
 	void AddFunctionToFunctionMap(UFunction* NewFunction)
 	{
 		FuncMap.Add(NewFunction->GetFName(), NewFunction);
 	}
 
+	// This is used by the code generator, which instantiates UFunctions with a name that is later overridden. Overridden names
+	// are needed to support generated versions of blueprint classes, properties of which do not have the same naming 
+	// restrictions as native C++ properties.
+	void AddFunctionToFunctionMapWithOverriddenName(UFunction* NewFunction, FName OverriddenName)
+	{
+		FuncMap.Add(OverriddenName, NewFunction);
+	}
+
 	// Remove a function from the function map
 	void RemoveFunctionFromFunctionMap(UFunction* Function)
 	{
 		FuncMap.Remove(Function->GetFName());
+	}
+
+	void ClearFunctionMapsCaches()
+	{
+		ParentFuncMap.Empty();
+		InterfaceFuncMap.Empty();
 	}
 
 	UFunction* FindFunctionByName(FName InName, EIncludeSuperFlag::Type IncludeSuper = EIncludeSuperFlag::IncludeSuper) const;
@@ -2312,6 +2415,10 @@ public:
 	virtual void GetRequiredPreloadDependencies(TArray<UObject*>& DependenciesOut) {}
 
 	virtual UObject* GetArchetypeForCDO() const;
+
+	/** Returns true if this class implements script instrumentation. */
+	virtual bool HasInstrumentation() const { return false; }
+
 private:
 	#if UCLASS_FAST_ISA_IMPL & 2
 		// For UObjectBaseUtility
@@ -2346,6 +2453,54 @@ protected:
 	 * @return		the CDO for this class
 	 **/
 	virtual UObject* CreateDefaultObject();
+
+#if HACK_HEADER_GENERATOR
+	// Required by UHT makefiles for internal data serialization.
+	friend struct FClassArchiveProxy;
+#endif // HACK_HEADER_GENERATOR
+};
+
+/**
+* Dynamic class (can be constructed after initial startup)
+*/
+class COREUOBJECT_API UDynamicClass : public UClass
+{
+	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR(UDynamicClass, UClass, 0, TEXT("/Script/CoreUObject"), CASTCLASS_None, NO_API)
+	DECLARE_WITHIN(UPackage)
+
+public:
+
+	UDynamicClass(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	explicit UDynamicClass(const FObjectInitializer& ObjectInitializer, UClass* InSuperClass);
+	UDynamicClass(EStaticConstructor, FName InName, uint32 InSize, uint32 InClassFlags, EClassCastFlags InClassCastFlags,
+		const TCHAR* InClassConfigName, EObjectFlags InFlags, ClassConstructorType InClassConstructor,
+#if WITH_HOT_RELOAD_CTORS
+		ClassVTableHelperCtorCallerType InClassVTableHelperCtorCaller,
+#endif // WITH_HOT_RELOAD_CTORS
+		ClassAddReferencedObjectsType InClassAddReferencedObjects);
+
+	// UObject interface.
+	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+
+	// UClass interface
+	virtual void PurgeClass(bool bRecompilingOnLoad) override;
+
+	/** Misc objects owned by the class. */
+	TArray<UObject*> MiscConvertedSubobjects;
+
+	/** Additional converted fields, that are used by the class. */
+	TArray<UField*> ReferencedConvertedFields;
+
+	/** Outer assets used by the class */
+	TArray<UObject*> UsedAssets;
+
+	// Specialized sub-object containers
+	TArray<UObject*> DynamicBindingObjects;
+	TArray<UObject*> ComponentTemplates;
+	TArray<UObject*> Timelines;
+
+	// IAnimClassInterface (UAnimClassData) or null
+	UObject* AnimClassImplementation;
 };
 
 /**
@@ -2357,16 +2512,19 @@ void InternalConstructor( const FObjectInitializer& X )
 	T::__DefaultConstructor(X);
 }
 
-#if WITH_HOT_RELOAD_CTORS
+
 /**
  * Helper template to call the vtable ctor caller for a class
  */
 template<class T>
 UObject* InternalVTableHelperCtorCaller(FVTableHelper& Helper)
 {
+#if WITH_HOT_RELOAD_CTORS
 	return T::__VTableCtorCaller(Helper);
-}
+#else
+	return nullptr;
 #endif // WITH_HOT_RELOAD_CTORS
+}
 
 COREUOBJECT_API void InitializePrivateStaticClass(
 	class UClass* TClass_Super_StaticClass,
@@ -2382,77 +2540,33 @@ COREUOBJECT_API void InitializePrivateStaticClass(
  * @param PackageName name of the package this class will be inside
  * @param Name of the class
  * @param ReturnClass reference to pointer to result. This must be PrivateStaticClass.
+ * @param RegisterNativeFunc Native function registration function pointer.
+ * @param InSize Size of the class
+ * @param InClassFlags Class flags
+ * @param InClassCastFlags Class cast flags
+ * @param InConfigName Class config name
+ * @param InClassConstructor Class constructor function pointer
+ * @param InClassVTableHelperCtorCaller Class constructor function for vtable pointer
+ * @param InClassAddReferencedObjects Class AddReferencedObjects function pointer
+ * @param InSuperClassFn Super class function pointer
+ * @param WithinClass Within class
+ * @param bIsDynamic true if the class can be constructed dynamically at runtime
  */
-template<class TClass>
-void GetPrivateStaticClassBody( const TCHAR* PackageName, const TCHAR* Name, UClass*& ReturnClass, void (*RegisterNativeFunc)() )
-{ 
-#if WITH_HOT_RELOAD
-	if (GIsHotReload)
-	{
-		UPackage* Package = FindPackage(NULL, PackageName);
-		if (!Package)
-		{
-			UE_LOG(LogClass, Log, TEXT("Could not find existing package %s for HotReload."),PackageName);
-			return;
-		}
-		ReturnClass = FindObject<UClass>((UObject *)Package, Name);
-		if (ReturnClass)
-		{
-			if (ReturnClass->HotReloadPrivateStaticClass(
-				sizeof(TClass),
-				TClass::StaticClassFlags,
-				TClass::StaticClassCastFlags(),
-				TClass::StaticConfigName(),
-				(UClass::ClassConstructorType)InternalConstructor<TClass>,
-#if WITH_HOT_RELOAD_CTORS
-				(UClass::ClassVTableHelperCtorCallerType)InternalVTableHelperCtorCaller<TClass>,
-#endif // WITH_HOT_RELOAD_CTORS
-				&TClass::AddReferencedObjects,
-				TClass::Super::StaticClass(),
-				TClass::WithinClass::StaticClass()
-				))
-			{
-				// Register the class's native functions.
-				RegisterNativeFunc();
-			}
-			return;
-		}
-		else
-		{
-			UE_LOG(LogClass, Log, TEXT("Could not find existing class %s in package %s for HotReload, assuming new class"),Name,PackageName);
-		}
-	}
-#endif
-
-	ReturnClass = ::new (GUObjectAllocator.AllocateUObject(sizeof(UClass),ALIGNOF(UClass),true)) 
-		UClass
-		(
-		EC_StaticConstructor,
-		Name,
-		sizeof(TClass),
-		TClass::StaticClassFlags,
-		TClass::StaticClassCastFlags(),
-		TClass::StaticConfigName(),
-		EObjectFlags(RF_Public | RF_Standalone | RF_Transient | RF_Native | RF_RootSet),
-		(UClass::ClassConstructorType)InternalConstructor<TClass>,
-#if WITH_HOT_RELOAD_CTORS
-		(UClass::ClassVTableHelperCtorCallerType)InternalVTableHelperCtorCaller<TClass>,
-#endif // WITH_HOT_RELOAD_CTORS
-		&TClass::AddReferencedObjects
-		);
-	check(ReturnClass);
-	InitializePrivateStaticClass(
-		TClass::Super::StaticClass(),
-		ReturnClass,
-		TClass::WithinClass::StaticClass(),
-		PackageName,
-		Name
-		);
-
-	// Register the class's native functions.
-	RegisterNativeFunc();
-}
-
+COREUOBJECT_API void GetPrivateStaticClassBody(
+	const TCHAR* PackageName,
+	const TCHAR* Name,
+	UClass*& ReturnClass,
+	void(*RegisterNativeFunc)(),
+	uint32 InSize,
+	uint32 InClassFlags,
+	EClassCastFlags InClassCastFlags,
+	const TCHAR* InConfigName,
+	UClass::ClassConstructorType InClassConstructor,
+	UClass::ClassVTableHelperCtorCallerType InClassVTableHelperCtorCaller,
+	UClass::ClassAddReferencedObjectsType InClassAddReferencedObjects,
+	UClass::StaticClassFunctionType InSuperClassFn,
+	UClass::StaticClassFunctionType InWithinClassFn,
+	bool bIsDynamic = false);
 
 /*-----------------------------------------------------------------------------
 	FObjectInstancingGraph.
@@ -2703,7 +2817,7 @@ T* ConstructObject(UClass* Class, UObject* Outer, FName Name, EObjectFlags SetFl
 {
 	checkf(Class, TEXT("ConstructObject called with a NULL class object"));
 	checkSlow(Class->IsChildOf(T::StaticClass()));
-	return (T*)StaticConstructObject_Internal(Class, Outer, Name, SetFlags, Template, bCopyTransientsFromClassDefaults, InstanceGraph);
+	return (T*)StaticConstructObject_Internal(Class, Outer, Name, SetFlags, EInternalObjectFlags::None, Template, bCopyTransientsFromClassDefaults, InstanceGraph);
 }
 
 /**
@@ -2784,6 +2898,11 @@ template<> struct TBaseStructure<FVector2D>
 };
 
 template<> struct TBaseStructure<FRandomStream>
+{
+	COREUOBJECT_API static UScriptStruct* Get();
+};
+
+template<> struct TBaseStructure<FGuid>
 {
 	COREUOBJECT_API static UScriptStruct* Get();
 };

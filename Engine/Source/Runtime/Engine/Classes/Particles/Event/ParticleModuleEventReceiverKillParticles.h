@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -15,9 +15,9 @@ class UParticleModuleEventReceiverKillParticles : public UParticleModuleEventRec
 	uint32 bStopSpawning:1;
 
 
-	// Begin UParticleModuleEventBase Interface
+	//~ Begin UParticleModuleEventBase Interface
 	virtual bool ProcessParticleEvent(FParticleEmitterInstance* Owner, FParticleEventData& InEvent, float DeltaTime) override;
-	// End UParticleModuleEventBase Interface
+	//~ End UParticleModuleEventBase Interface
 };
 
 

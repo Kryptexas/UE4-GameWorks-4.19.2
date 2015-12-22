@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -174,6 +174,9 @@ namespace ELauncherProfileValidationErrors
 
 		/** Generating http chunk install data requires valid install directorys and release name */
 		GeneratingHttpChunkDataRequiresValidDirectoryAndName,
+
+		/** Shipping doesn't support commandline options can't use cook on the fly */
+		ShippingDoesntSupportCommandlineOptionsCantUseCookOnTheFly,
 	};
 }
 
@@ -220,6 +223,20 @@ public:
 	 * @return Cook mode.
 	 */
 	virtual ELauncherProfileCookModes::Type GetCookMode() const = 0;
+
+	/**
+	* Loads the simple profile from the specified file.
+	*
+	* @return true if the profile was loaded, false otherwise.
+	*/
+	virtual bool Load(const FJsonObject& Object) = 0;
+
+	/**
+	* Saves the simple profile to the specified file.
+	*
+	* @return true if the profile was saved, false otherwise.
+	*/
+	virtual void Save(TJsonWriter<>& Writer) = 0;
 
 	/**
 	 * Updates the device name.
@@ -315,6 +332,20 @@ public:
 	virtual FGuid GetId( ) const = 0;
 
 	/**
+	* Gets the file name for serialization.
+	*
+	* @return The file name.
+	*/
+	virtual FString GetFileName( ) const = 0;
+
+	/**
+	* Gets the full file path for serialization.
+	*
+	* @return The file path.
+	*/
+	virtual FString GetFilePath() const = 0;
+
+	/**
 	 * Gets the human readable name of the profile.
 	 *
 	 * @return The profile name.
@@ -369,12 +400,22 @@ public:
 	virtual bool IsValidForLaunch( ) = 0;
 
 	/**
+	* Loads the profile from a JSON file
+	*/
+	virtual bool Load(const FJsonObject& Object) = 0;
+
+	/**
 	 * Serializes the profile from or into the specified archive.
 	 *
 	 * @param Archive The archive to serialize from or into.
 	 * @return true if the profile was serialized, false otherwise.
 	 */
 	virtual bool Serialize( FArchive& Archive ) = 0;
+
+	/**
+	 * Saves the profile into a JSON file
+	 */
+	virtual void Save(TJsonWriter<>& Writer) = 0;
 
 	/** Sets all profile settings to their defaults. */
 	virtual void SetDefaults( ) = 0;
@@ -392,6 +433,12 @@ public:
 	 * @param NewDescription The new description of the profile.
 	 */
 	virtual void SetDescription(const FString& NewDescription) = 0;
+
+	/**
+	* Changes the save location to an internal project path.
+	*	
+	*/
+	virtual void SetNotForLicensees() = 0;
 
 	/**
 	 * Returns the cook delegate which can be used to query if the cook is finished.
@@ -505,7 +552,13 @@ public:
 	 * @return The device group, or NULL if none was configured.
 	 * @see SetDeployedDeviceGroup
 	 */
-	virtual ILauncherDeviceGroupPtr GetDeployedDeviceGroup( ) const = 0;
+	virtual ILauncherDeviceGroupPtr GetDeployedDeviceGroup( ) = 0;
+
+	/**
+	* Gets the default platforms to deploy if no specific devices were selected.
+	*	
+	*/
+	virtual const FName GetDefaultDeployPlatform() const = 0;
 
 	/**
 	 * Gets the deployment mode.
@@ -752,6 +805,15 @@ public:
 	 * @see ClearCookedPlatforms, GetCookedPlatforms, RemoveCookedPlatform
 	 */
 	virtual void AddCookedPlatform( const FString& PlatformName ) = 0;
+
+	/**
+	* Adds a platform to deploy (only used if a specific device is not specified).
+	* Will deploy to the default device of the given platform, or the first device if none are
+	* marked as 'default'.
+	*
+	* @param PlatformName The name of the platform to add.		
+	*/
+	virtual void SetDefaultDeployPlatform(const FName PlatformName) = 0;
 
 	/**
 	 * Removes all cooked cultures.

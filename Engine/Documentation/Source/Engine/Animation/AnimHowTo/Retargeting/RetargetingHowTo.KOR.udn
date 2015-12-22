@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2661624
 Availability: Public
 Title:리타게팅된 애니메이션 사용하기
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
@@ -7,6 +7,8 @@ Related: Engine\Animation\AnimationRetargeting
 Related: Engine\Animation\RetargetingDifferentSkeletons
 Related: Engine\Animation\Skeleton
 Related: Engine\Animation\Overview
+version: 4.9
+skilllevel: Intermediate
 
 **애니메이션 리타게팅** 은 기존의 애니메이션을 다수의 캐릭터에 사용할 수 있도록 용도를 변경하는 프로세스로, 캐릭터 사이에 애니메이션 애셋을 공유하여 완전히 새로 만들 필요가 없어집니다.
 

@@ -1,9 +1,11 @@
-﻿NTSourceChangelist:2590930
+﻿INTSourceChangelist:2735872
 Availability:Public
-Title:アクタ＆ジオメトリ
+Title:アクタとジオメトリ
 Crumbs:%ROOT%, Engine
-Description:アクタの配置と操作テクニックを含む、レベルデザインにおけるアクタとアクタの使用方法の定義
+Description:アクタの定義および配置と操作テクニックを含む、レベル デザインにおけるアクタの使用方法
 Navigation:topic
+parent:Engine/Editor
+order:5
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]
@@ -11,10 +13,10 @@ Navigation:topic
 		LevelDesign_Beginner
 	[/PARAMLITERAL]
 	[PARAM:previous]
-		[Next Topic](Engine/UI/LevelEditor/Viewports/Basics "%Engine/UI/LevelEditor/Viewports/Basics:title%")
+		[次のトピック](Engine/UI/LevelEditor/Viewports/Basics "%Engine/UI/LevelEditor/Viewports/Basics:title%")
 	[/PARAM]
 	[PARAM:next]
-		[Next Topic](Engine/Actors/Placement "%Engine/Actors/Placement:title%")
+		[次のトピック](Engine/Actors/Placement "%Engine/Actors/Placement:title%")
 	[/PARAM]
 	[PARAM:home]
 		[](Tracks/LevelDesign/Beginner)
@@ -26,7 +28,7 @@ Navigation:topic
 		Programming_Beginner
 	[/PARAMLITERAL]
 	[PARAM:previous]
-		[Previous Topic](Engine/UI/LevelEditor "%Engine/UI/LevelEditor:title%")
+		[前のトピック](Engine/UI/LevelEditor "%Engine/UI/LevelEditor:title%")
 	[/PARAM]
 	[PARAM:home]
 		[](Tracks/Programming/Beginner)
@@ -79,15 +81,15 @@ Navigation:topic
 ![](actorBanner.png)
 [/REGION]
 
-<!-- 最も基本的なレベルでは、[**アクタ**](Gameplay/UnrealTerminology) はレベルに配置可能、または [スポーン/インスタンス化](Gameplay/HowTo/SpawnAndDestroyActors) できるゲームプレイ オブジェクトです。アンリアル エンジン 4 は、非常に一般的に使用されるケースを自動的に処理します。例えば、**コンテンツ ブラウザ** からスタティックメッシュをレベルにドラッグすると、**スタティックメッシュ アクタ** が得られます。
+<!-- 最も基本的なレベルでは、[**アクタ**](Gameplay/UnrealTerminology) はレベルに配置可能、または [スポーン/インスタンス化](Gameplay/HowTo/SpawnAndDestroyActors) できるゲームプレイ オブジェクトです。アンリアル エンジン 4 は、非常に一般的に使用されるケースを自動的に処理します。例えば、**コンテンツ ブラウザ** からスタティックメッシュをレベルにドラッグすると、**Static Mesh アクタ** が得られます。
 -->
 
 [INCLUDE:Shared/Glossary/A#glossary_actor]
 
-ライト、スタティックメッシュ、パーティクルシステム エミッタ アクタやその他、どのアクタのタイプをレベルで使用しても、シーンにおける作成方法および操作方法に関する基礎が少々必要になります。
+Light、Static Mesh、Particle System Emitter アクタやその他、どのアクタのタイプをレベルで使用しても、作成方法とシーンでの操作方法に関する基礎が少々必要になります。
 
-このプロセスには、アクタの配置、アクタの選択、アクタの位置決め、そしてアクタの修正など必要不可欠な作業がいくつかあります。つまり、 
-レベルを作成するには、アクタをマップへ配置および移動して環境を構築します。 
+このプロセスには、アクタの配置、選択、位置決め、修正など必要不可欠な作業がいくつかあります。つまり、 
+レベルを作成するには、アクタをマップへ配置および移動して背景を作成します。 
 そして適切な外観や動きになるようにアクタのプロパティを修正します。
 
 ## アクタの作業

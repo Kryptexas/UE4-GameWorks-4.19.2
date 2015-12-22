@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemComponent.h"
@@ -192,4 +192,18 @@ void FActiveGameplayCueContainer::PredictiveAdd(const FGameplayTag& Tag, FPredic
 {
 	Owner->UpdateTagMap(Tag, 1);	
 	PredictionKey.NewRejectOrCaughtUpDelegate(FPredictionKeyEvent::CreateUObject(Owner, &UAbilitySystemComponent::RemoveOneTagCount_NoReturn, Tag));
+}
+
+bool FActiveGameplayCueContainer::HasCue(const FGameplayTag& Tag) const
+{
+	for (int32 idx=0; idx < GameplayCues.Num(); ++idx)
+	{
+		const FActiveGameplayCue& Cue = GameplayCues[idx];
+		if (Cue.GameplayCueTag == Tag)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }

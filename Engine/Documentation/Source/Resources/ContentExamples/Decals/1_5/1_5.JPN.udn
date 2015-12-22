@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2714394
 Availability:Public
 Title:1.5 - デカールのオフ設定
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Decals
-Description:デカールの事例概要、例 1.5：デカールのオフ設定
+Description:デカールのサンプル レベルの概要、1.5：デカールのオフ設定
 Related: Engine/Actors/DecalActor
 Related: Engine/Rendering/Materials/PhysicallyBased
 Related: Engine/Rendering/Materials
@@ -11,6 +11,25 @@ Related: Engine/Rendering/Materials/ExpressionReference
 Related: Engine/Rendering/Materials/MaterialInputs
 Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
+Version:4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/Decals/1_4 "%Resources/ContentExamples/Decals/1_4:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[デカールのホーム](Resources/ContentExamples/Decals)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/Decals/1_6 "%Resources/ContentExamples/Decals/1_6:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -55,14 +74,14 @@ Related: Engine/Rendering/Materials/MaterialInstances
 
 ![%Resources/ContentExamples/Decals/1_1:title%](Resources\ContentExamples\Decals\Decals_5.png)
 
-## 概要
 
 
-[Rendering] カテゴリにある **[Receive Decals]** プロパティから、特定のスタティックメッシュ上でデカールをオフにすることができます。このプロパティを表示するには、カテゴリの拡張矢印をクリックする必要があります。
+
+このサンプルでは、**[Rendering (レンダリング)]** カテゴリにある **[Receives Decals (デカールを受け取る)]** プロパティから、特定のメッシュ上でデカールをオフにする方法を示します。このプロパティを表示するには、カテゴリの拡張矢印をクリックする必要があります。
 
 ![](ReceivesDecals.png)
 
-[Buffer Visualization]（バッファ表示） の配下にある **[Decal Mask]** のビューモードでデカールを受け取らないメッシュを表示させることができます。
+**[Buffer Visualization (バッファ表示)]** の下にある **[Decal Mask (デカール マスク)]** のビューモードでデカールを受け取らないメッシュを表示させることができます。
 
 ![](DecalMaskViewMode.png)
 

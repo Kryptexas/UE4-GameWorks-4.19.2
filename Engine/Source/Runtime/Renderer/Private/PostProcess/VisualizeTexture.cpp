@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VisualizeTexture.cpp: Post processing visualize texture.
@@ -347,7 +347,7 @@ void FVisualizeTexture::GenerateContent(FRHICommandListImmediate& RHICmdList, co
 
 	FPooledRenderTargetDesc OutputDesc(FPooledRenderTargetDesc::Create2DDesc(Size, PF_B8G8R8A8, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource, false));
 	
-	GRenderTargetPool.FindFreeElement(OutputDesc, VisualizeTextureContent, TEXT("VisualizeTexture"));
+	GRenderTargetPool.FindFreeElement(RHICmdList, OutputDesc, VisualizeTextureContent, TEXT("VisualizeTexture"));
 
 	if(!VisualizeTextureContent)
 	{
@@ -356,7 +356,7 @@ void FVisualizeTexture::GenerateContent(FRHICommandListImmediate& RHICmdList, co
 
 	const FSceneRenderTargetItem& DestRenderTarget = VisualizeTextureContent->GetRenderTargetItem();
 
-	SetRenderTarget(RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
+	SetRenderTarget(RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef(), true);
 	RHICmdList.Clear(true, FLinearColor(1, 1, 0, 1), false, 0.0f, false, 0, FIntRect());
 	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
@@ -414,8 +414,10 @@ void FVisualizeTexture::GenerateContent(FRHICommandListImmediate& RHICmdList, co
 
 	FVisualizeTextureData VisualizeTextureData(RenderTargetItem, Desc);
 
-	bool bDepthTexture = (Desc.TargetableFlags & TexCreate_DepthStencilTargetable) != 0;
-	
+	// distinguish between standard depth and shadow depth to produce more reasonable default value mapping in the pixel shader.
+	const bool bDepthTexture = (Desc.TargetableFlags & TexCreate_DepthStencilTargetable) != 0;
+	const bool bShadowDepth = (Desc.Format == PF_ShadowDepth);
+
 	VisualizeTextureData.RGBMul = RGBMul;
 	VisualizeTextureData.SingleChannelMul = SingleChannelMul;
 	VisualizeTextureData.SingleChannel = SingleChannel;
@@ -423,7 +425,7 @@ void FVisualizeTexture::GenerateContent(FRHICommandListImmediate& RHICmdList, co
 	VisualizeTextureData.Tex00 = Tex00;
 	VisualizeTextureData.Tex11 = Tex11;
 	VisualizeTextureData.bSaturateInsteadOfFrac = (Flags & 1) != 0;
-	VisualizeTextureData.InputValueMapping = bDepthTexture ? 1 : 0;
+	VisualizeTextureData.InputValueMapping = bShadowDepth ? 2 : (bDepthTexture ? 1 : 0);
 	VisualizeTextureData.ArrayIndex = ArrayIndex;
 	VisualizeTextureData.CustomMip = CustomMip;
 	VisualizeTextureData.StencilSRV = StencilSRV;
@@ -513,7 +515,7 @@ void FVisualizeTexture::PresentContent(FRHICommandListImmediate& RHICmdList, con
 	FPooledRenderTargetDesc Desc = VisualizeTextureDesc;
 
 	auto& RenderTarget = View.Family->RenderTarget->GetRenderTargetTexture();
-	SetRenderTarget(RHICmdList, RenderTarget, FTextureRHIRef());
+	SetRenderTarget(RHICmdList, RenderTarget, FTextureRHIRef(), true);
 	RHICmdList.SetViewport(0, 0, 0.0f, RenderTarget->GetSizeX(), RenderTarget->GetSizeY(), 1.0f);
 
 	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
@@ -641,6 +643,18 @@ void FVisualizeTexture::PresentContent(FRHICommandListImmediate& RHICmdList, con
 	{
 		Canvas.DrawShadowedString( X, Y += YStep, TEXT("Blinking Red: <0"), GetStatsFont(), FLinearColor(1,0,0));
 		Canvas.DrawShadowedString( X, Y += YStep, TEXT("Blinking Blue: NAN or Inf"), GetStatsFont(), FLinearColor(0,0,1));
+
+		// add explicit legend for SceneDepth and ShadowDepth as the display coloring is an artificial choice. 
+		const bool bDepthTexture = (Desc.TargetableFlags & TexCreate_DepthStencilTargetable) != 0;
+		const bool bShadowDepth = (Desc.Format == PF_ShadowDepth);
+		if (bShadowDepth)
+		{
+			Canvas.DrawShadowedString(X, Y += YStep, TEXT("Color Key: Linear with white near and teal distant"), GetStatsFont(), FLinearColor(54.f / 255.f, 117.f / 255.f, 136.f / 255.f));
+		} 
+		else if (bDepthTexture)  
+		{
+			Canvas.DrawShadowedString(X, Y += YStep, TEXT("Color Key: Nonlinear with white distant"), GetStatsFont(), FLinearColor(0.5, 0, 0));
+		}
 	}
 
 	Canvas.Flush_RenderThread(RHICmdList);
@@ -771,21 +785,31 @@ void FVisualizeTexture::DebugLog(bool bExtended)
 				// sort by index
 				Element.SortIndex = i;
 				
+				FString InfoString = Desc.GenerateInfoString();
 				if(SortOrder == -1)
 				{
+					// constant works well with the average name length
+					const uint32 TotelSpacerSize = 36;
+					uint32 SpaceCount = FMath::Max<int32>(0, TotelSpacerSize - InfoString.Len());
+
+					for(uint32 Space = 0; Space < SpaceCount; ++Space)
+					{
+						InfoString.AppendChar((TCHAR)' ');
+					}
+
 					// sort by index
-					Element.Line = FString::Printf(TEXT("%s %s %d KB%s"), *Desc.GenerateInfoString(), Desc.DebugName, SizeInKB, *UnusedStr);
+					Element.Line = FString::Printf(TEXT("%s %s %d KB%s"), *InfoString, Desc.DebugName, SizeInKB, *UnusedStr);
 				}
 				else if(SortOrder == 0)
 				{
 					// sort by name
-					Element.Line = FString::Printf(TEXT("%s %s %d KB%s"), Desc.DebugName, *Desc.GenerateInfoString(), SizeInKB, *UnusedStr);
+					Element.Line = FString::Printf(TEXT("%s %s %d KB%s"), Desc.DebugName, *InfoString, SizeInKB, *UnusedStr);
 					Element.SortIndex = 0;
 				}
 				else if(SortOrder == 1)
 				{
 					// sort by size (large ones first)
-					Element.Line = FString::Printf(TEXT("%d KB %s %s%s"), SizeInKB, *Desc.GenerateInfoString(), Desc.DebugName, *UnusedStr);
+					Element.Line = FString::Printf(TEXT("%d KB %s %s%s"), SizeInKB, *InfoString, Desc.DebugName, *UnusedStr);
 					Element.SortIndex = -(int32)SizeInKB;
 				}
 				else
@@ -870,31 +894,64 @@ void FVisualizeTexture::DebugLog(bool bExtended)
 		}
 
 		Entries.Sort();
-				
+
+		// that number works well with the name length we have
+		const uint32 ColumnCount = 5;
+		const uint32 SpaceBetweenColumns = 1;
+		uint32 ColumnHeight = FMath::DivideAndRoundUp((uint32)Entries.Num(), ColumnCount);
+
+		// width of the column in characters, init with 0
+		uint32 ColumnWidths[ColumnCount] = {};
+
+		for(int32 Index = 0; Index < Entries.Num(); ++Index)
+		{
+			uint32 Column = Index / ColumnHeight;
+			
+			const FString& Entry = *Entries[Index];
+
+			ColumnWidths[Column] = FMath::Max(ColumnWidths[Column], (uint32)Entry.Len());
+		}
+		
 		// print them sorted, if possible multiple in a line
 		{
 			FString Line;
-			FString Separator = " ,    ";
 
-			for(int32 Index=0; Index < Entries.Num(); Index++ )
+			for(int32 OutputIndex = 0; OutputIndex < Entries.Num(); ++OutputIndex)
 			{
-				const FString& Entry = *Entries[Index];
+				// 0..ColumnCount-1
+				uint32 Column = OutputIndex % ColumnCount;
+				int32 Row = OutputIndex / ColumnCount;
 
-				if(Line.Len() + 2 + Entry.Len() > 80)
+				uint32 Index = Row + Column * ColumnHeight;
+
+				bool bLineEnd = true;
+
+				if(Index < (uint32)Entries.Num())
 				{
+					bLineEnd = (Column + 1 == ColumnCount);
+
+					// for human readability we order them to be per column
+					const FString& Entry = *Entries[Index];
+
+					Line += Entry;
+
+					int32 SpaceCount = ColumnWidths[Column] + SpaceBetweenColumns - Entry.Len();
+
+					// otehrwise a fomer pass was producing bad data
+					check(SpaceCount >= 0);
+
+					for(int32 Space = 0; Space < SpaceCount; ++Space)
+					{
+						Line.AppendChar((TCHAR)' ');
+					}
+				}
+
+				if(bLineEnd)
+				{
+					Line = Line.TrimTrailing();
 					UE_LOG(LogConsoleResponse, Log, TEXT("   %s"), *Line);
 					Line.Empty();
 				}
-
-				Line += Entry;
-				Line += Separator;
-			}
-
-			if(!Line.IsEmpty())
-			{	
-				// remove separator in the end
-				Line = Line.Left(Line.Len() - Separator.Len());
-				UE_LOG(LogConsoleResponse, Log, TEXT("   %s"), *Line);
 			}
 		}
 	}

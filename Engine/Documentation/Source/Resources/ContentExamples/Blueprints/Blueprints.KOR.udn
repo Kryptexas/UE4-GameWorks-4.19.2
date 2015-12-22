@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2626084
 Availability: Public
 Title:블루프린트 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -50,7 +50,7 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 [TOC(start:2 end:2)]
 
 
-## 개요
+
 
 **콘텐츠 예제** 프로젝트 안에는 **블루프린트** 시스템의 강력함과 유연성에 대한 데모가 되는 **Blueprint** 맵이 여러가지 있습니다. 플레이어 콘트롤을 정의하든, 헬쓰/픽업 시스템을 구현하든, 아니면 그냥 플레이어가 다가가면 열리는 문을 만들든, 이 맵에서 선보이고 있는 예제를 통해 추구하고자 하는 바를 어떻게 하면 이룰 수 있을지에 대한 개념을 잡을 수 있을 것입니다.
 

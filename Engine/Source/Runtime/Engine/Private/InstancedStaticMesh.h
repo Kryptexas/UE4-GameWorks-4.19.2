@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	InstancedStaticMesh.h: Instanced static mesh header
@@ -114,21 +114,20 @@ public:
 		return NumInstances;
 	}
 
-	const void* GetRawData() const
+	FORCEINLINE const void* GetRawData() const
 	{
 		return InstanceData->GetDataPointer();
 	}
 
-	const FInstanceStream* GetData() const
+	FORCEINLINE  void GetInstanceTransform(int32 InstanceIndex, FMatrix& Transform) const
 	{
-		return InstanceData->GetData();
+		return InstanceData->GetInstanceTransform(InstanceIndex, Transform);
 	}
 
-	const FInstanceStream* GetInstance(int32 InstanceIndex) const
+	FORCEINLINE  void GetInstanceShaderValues(int32 InstanceIndex, FVector4 InstanceTransform[3], FVector4& InstanceLightmapAndShadowMapUVBias, FVector4& InstanceOrigin) const
 	{
-		return InstanceData->GetInstanceWriteAddress(InstanceIndex);
+		return InstanceData->GetInstanceShaderValues(InstanceIndex, InstanceTransform, InstanceLightmapAndShadowMapUVBias, InstanceOrigin);
 	}
-
 
 	// FRenderResource interface.
 	virtual void InitRHI() override;
@@ -203,8 +202,6 @@ public:
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		OutEnvironment.SetDefine(TEXT("USE_INSTANCING"),TEXT("1"));
-		const bool bInstanced = RHISupportsInstancing(Platform);
-		OutEnvironment.SetDefine(TEXT("USE_INSTANCING_EMULATED"), bInstanced ? TEXT("0") : TEXT("1"));
 		OutEnvironment.SetDefine(TEXT("USE_DITHERED_LOD_TRANSITION_FOR_INSTANCED"), ALLOW_DITHERED_LOD_FOR_INSTANCED_STATIC_MESHES ? TEXT("1") : TEXT("0"));
 		FLocalVertexFactory::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 	}
@@ -252,7 +249,32 @@ private:
 };
 
 
+struct FEmulatedInstancedStaticMeshVertexFactory : public FInstancedStaticMeshVertexFactory
+{
+	DECLARE_VERTEX_FACTORY_TYPE(FEmulatedInstancedStaticMeshVertexFactory);
+public:
+	/**
+	 * Should we cache the material's shadertype on this platform with this vertex factory? 
+	 */
+	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
+	{
+		// ES2 HTML5 does not support hardware instancing at all
+		// Android may not support on old devices
+		return	(Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_ANDROID)
+				&& (Material->IsUsedWithInstancedStaticMeshes() || Material->IsSpecialEngineMaterial())
+				&& FLocalVertexFactory::ShouldCache(Platform, Material, ShaderType);
+	}
 
+	/**
+	 * Modify compile environment to enable instancing
+	 * @param OutEnvironment - shader compile environment to modify
+	 */
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FInstancedStaticMeshVertexFactory::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		OutEnvironment.SetDefine(TEXT("USE_INSTANCING_EMULATED"), TEXT("1"));
+	}
+};
 
 class FInstancedStaticMeshVertexFactoryShaderParameters : public FLocalVertexFactoryShaderParameters
 {
@@ -415,7 +437,7 @@ public:
 		// Initialize the static mesh's vertex factory.
 		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 			CallInitStaticMeshVertexFactory,
-			TArray<FInstancedStaticMeshVertexFactory>*,VertexFactories,&VertexFactories,
+			TIndirectArray<FInstancedStaticMeshVertexFactory>*,VertexFactories,&VertexFactories,
 			FInstancedStaticMeshRenderData*,InstancedRenderData,this,
 			UStaticMesh*,Parent,Component->StaticMesh,
 		{
@@ -455,7 +477,7 @@ public:
 	}
 
 	static void InitStaticMeshVertexFactories(
-		TArray<FInstancedStaticMeshVertexFactory>* VertexFactories,
+		TIndirectArray<FInstancedStaticMeshVertexFactory>* VertexFactories,
 		FInstancedStaticMeshRenderData* InstancedRenderData,
 		UStaticMesh* Parent);
 
@@ -466,7 +488,7 @@ public:
 	TSharedPtr<FPerInstanceRenderData, ESPMode::ThreadSafe> PerInstanceRenderData;
 
 	/** Vertex factory */
-	TArray<FInstancedStaticMeshVertexFactory> VertexFactories;
+	TIndirectArray<FInstancedStaticMeshVertexFactory> VertexFactories;
 
 	/** LOD render data from the static mesh. */
 	TIndirectArray<FStaticMeshLODResources>& LODModels;
@@ -481,11 +503,22 @@ private:
 
 	void InitVertexFactories()
 	{
+		const bool bEmulatedInstancing = !GRHISupportsInstancing;
+		
 		// Allocate the vertex factories for each LOD
 		for( int32 LODIndex=0;LODIndex<LODModels.Num();LODIndex++ )
 		{
-			FInstancedStaticMeshVertexFactory* VertexFactory = new(VertexFactories)FInstancedStaticMeshVertexFactory;
-			VertexFactory->SetFeatureLevel(FeatureLevel);
+			FInstancedStaticMeshVertexFactory* VertexFactoryPtr;
+			if (bEmulatedInstancing)
+			{
+				VertexFactoryPtr = new FEmulatedInstancedStaticMeshVertexFactory();
+			}
+			else
+			{
+				VertexFactoryPtr = new FInstancedStaticMeshVertexFactory();
+			}
+			VertexFactoryPtr->SetFeatureLevel(FeatureLevel);
+			VertexFactories.Add(VertexFactoryPtr);
 		}
 	}
 
@@ -528,7 +561,7 @@ public:
 
 	// FPrimitiveSceneProxy interface.
 	
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
 	{
 		FPrimitiveViewRelevance Result;
 		if(View->Family->EngineShowFlags.InstancedStaticMeshes)
@@ -553,10 +586,10 @@ public:
 	virtual bool GetShadowMeshElement(int32 LODIndex, int32 BatchIndex, uint8 InDepthPriorityGroup, FMeshBatch& OutMeshBatch, bool bDitheredLODTransition) const override;
 
 	/** Sets up a FMeshBatch for a specific LOD and element. */
-	virtual bool GetMeshElement(int32 LODIndex, int32 BatchIndex, int32 ElementIndex, uint8 InDepthPriorityGroup, const bool bUseSelectedMaterial, const bool bUseHoveredMaterial, FMeshBatch& OutMeshBatch) const override;
+	virtual bool GetMeshElement(int32 LODIndex, int32 BatchIndex, int32 ElementIndex, uint8 InDepthPriorityGroup, bool bUseSelectedMaterial, bool bUseHoveredMaterial, bool bAllowPreCulledIndices, FMeshBatch& OutMeshBatch) const override;
 
 	/** Sets up a wireframe FMeshBatch for a specific LOD. */
-	virtual bool GetWireframeMeshElement(int32 LODIndex, int32 BatchIndex, const FMaterialRenderProxy* WireframeRenderProxy, uint8 InDepthPriorityGroup, FMeshBatch& OutMeshBatch) const override;
+	virtual bool GetWireframeMeshElement(int32 LODIndex, int32 BatchIndex, const FMaterialRenderProxy* WireframeRenderProxy, uint8 InDepthPriorityGroup, bool bAllowPreCulledIndices, FMeshBatch& OutMeshBatch) const override;
 
 	virtual void GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane, TArray<FMatrix>& ObjectLocalToWorldTransforms) const override;
 
@@ -633,7 +666,7 @@ private:
 			}
 		}
 
-		const bool bInstanced = RHISupportsInstancing(GetFeatureLevelShaderPlatform(InstancedRenderData.FeatureLevel));
+		const bool bInstanced = GRHISupportsInstancing;
 
 		// Copy the parameters for LOD - all instances
 		UserData_AllInstances.MeshRenderData = InComponent->StaticMesh->RenderData;

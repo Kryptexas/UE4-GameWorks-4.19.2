@@ -1,9 +1,33 @@
-﻿INTSourceChangelist:2568567
+﻿INTSourceChangelist:2720029
 Availability: Public
 Title:1.5 - 피직스 컨스트레인트
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Physics
 Description:Physics 예제 레벨에 대한 개요로, 예제 1.5: PhysicsContraints 입니다.
+Related: Engine/Physics/PhysicsBodies
+Related: Engine/Physics/PhAT/HowTo
+Related: Engine/Physics/Constraints/ConstraintsReference
+Related: Engine/Physics/Constraints/ConstraintsUserGuide
+Related: Engine/Physics/Collision
+Related: Engine/Physics/PhysicalMaterials/Reference
+Version: 4.9
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 예제](Resources/ContentExamples/Physics/1_4 "%Resources/ContentExamples/Physics/1_4:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[피직스 홈](Resources/ContentExamples/Physics)
+	[/PARAM]
+	[PARAM:next]
+		[다음 예제](Resources/ContentExamples/Physics/1_6 "%Resources/ContentExamples/Physics/1_6:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -51,7 +75,10 @@ Description:Physics 예제 레벨에 대한 개요로, 예제 1.5: PhysicsContra
 [/REGION]
 
 
-[INCLUDE:Engine/Physics\Constraints\ConstraintsUserGuide#PhysXConstraints_001]
+**피직스 컨스트레인트** 는 기본적으로 조인트의 한 유형입니다. 두 개의 (하나는 물리 시뮬레이션이 적용된다 가정) 액터를 연결시켜 주며, 일정한 제한이나 힘을 가할 수도 있습니다. 언리얼 엔진 4 에는 
+매우 유연한 데이터 주도형 컨스트레인트 시스템이 있어, 디자이너가 옵션을 조금 바꿔주는 것으로 다양한 유형의 조인트를 만들 수 있습니다. 엔진에 기본 조인트 유형이 몇 가지 
+준비되어 있으나 (볼 앤 소켓, 힌지, 프리즈매틱), 세팅만 조금씩 다를 뿐입니다. 어느 조인트 유형이든 실험해 보면서 자유롭게 자신만의 설정을 만들어 볼 수 
+있습니다.
 
 콘텐츠 예제에서는 왼쪽에서 오른쪽 순으로 작동합니다:
 

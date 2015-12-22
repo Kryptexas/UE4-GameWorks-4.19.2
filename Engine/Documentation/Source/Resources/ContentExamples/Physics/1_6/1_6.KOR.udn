@@ -1,15 +1,33 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2720060
 Availability: Public
 Title:1.6 - 각형 모터
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Physics
 Description:Physics 예제 레벨에 대한 개요로, 예제 1.6: Angular Motors 입니다.
 Related: Engine/Physics/PhysicsBodies
-Related: Engine/Physics/PhAT/UserGuide
+Related: Engine/Physics/PhAT/HowTo
 Related: Engine/Physics/Constraints/ConstraintsReference
 Related: Engine/Physics/Constraints/ConstraintsUserGuide
 Related: Engine/Physics/Collision
-Related: Engine/Physics/PhysicalMaterials/PhysMatReference
+Related: Engine/Physics/PhysicalMaterials/Reference
+Version: 4.9
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 예제](Resources/ContentExamples/Physics/1_5 "%Resources/ContentExamples/Physics/1_5:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[피직스 홈](Resources/ContentExamples/Physics)
+	[/PARAM]
+	[PARAM:next]
+		[다음 예제](Resources/ContentExamples/Physics/1_7 "%Resources/ContentExamples/Physics/1_7:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -55,7 +73,7 @@ Related: Engine/Physics/PhysicalMaterials/PhysMatReference
 [/REGION]
 
 
-각형 모터(angular motor) 컨스트레인트는 본질적으로 스핀인데, 디테일은 스핀을 **어떻게** 하느냐에 달려 있습니다. **Driven by Velocity** (속도로 구동되는) 각형 모터는 본질적으로 항력을 "스핀"에 적용하는 반면, **Driven by Position** (위치로 구동되는) 것은 스프링의 크기와 그 스프링에 적용된 완충력(dampening)에 따라 각을 구하려는 시도를 합니다.
+각형 모터(angular motor) 피직스 컨스트레인트는 본질적으로 스핀인데, 디테일은 스핀을 **어떻게** 하느냐에 달려 있습니다. **Driven by Velocity** (속도로 구동되는) 각형 모터는 본질적으로 항력을 "스핀"에 적용하는 반면, **Driven by Position** (위치로 구동되는) 것은 스프링의 크기와 그 스프링에 적용된 완충력(dampening)에 따라 각을 구하려는 시도를 합니다.
 
 <div align="center">
 ![](physics_1_6_002.png)(h:300) ![](physics_1_6_003.png)(h:300)

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SourceControlPrivatePCH.h"
 #include "DefaultSourceControlProvider.h"
@@ -45,7 +45,7 @@ ECommandResult::Type FDefaultSourceControlProvider::GetState( const TArray<FStri
 	return ECommandResult::Failed;
 }
 
-TArray<FSourceControlStateRef> FDefaultSourceControlProvider::GetCachedStateByPredicate(const TFunctionRef<bool(const FSourceControlStateRef&)>& Predicate) const
+TArray<FSourceControlStateRef> FDefaultSourceControlProvider::GetCachedStateByPredicate(TFunctionRef<bool(const FSourceControlStateRef&)> Predicate) const
 {
 	return TArray<FSourceControlStateRef>();
 }

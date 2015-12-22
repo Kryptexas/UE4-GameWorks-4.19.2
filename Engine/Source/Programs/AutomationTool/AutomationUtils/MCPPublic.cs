@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,6 +14,7 @@ using UnrealBuildTool;
 namespace EpicGames.MCP.Automation
 {
 	using EpicGames.MCP.Config;
+	using System.Threading.Tasks;
 
     /// <summary>
     /// Utility class to provide commit/rollback functionality via an RAII-like functionality.
@@ -67,11 +68,16 @@ namespace EpicGames.MCP.Automation
     public enum MCPPlatform
     {
         /// <summary>
-        /// MCP doesn't care about Win32 vs. Win64
+		/// MCP uses Windows for Win64
         /// </summary>
         Windows,
 
         /// <summary>
+		/// 32 bit Windows
+		/// </summary>
+		Win32,
+
+		/// <summary>
         /// Mac platform.
         /// </summary>
         Mac,
@@ -162,13 +168,13 @@ namespace EpicGames.MCP.Automation
             }
         }
 
-		/// <summary>
+        /// <summary>
 		/// If set, this allows us to over-ride the automatically constructed ManifestFilename
 		/// </summary>
-		private readonly string _ManifestFilename;
+		protected string _ManifestFilename;
 
         /// <summary>
-        /// Determine the platform name (Win32/64 becomes Windows, Mac is Mac, the rest we don't currently understand)
+		/// Determine the platform name
         /// </summary>
         static public MCPPlatform ToMCPPlatform(UnrealTargetPlatform TargetPlatform)
         {
@@ -177,9 +183,13 @@ namespace EpicGames.MCP.Automation
                 throw new AutomationException("Platform {0} is not properly supported by the MCP backend yet", TargetPlatform);
             }
 
-			if (TargetPlatform == UnrealTargetPlatform.Win64 || TargetPlatform == UnrealTargetPlatform.Win32)
+			if (TargetPlatform == UnrealTargetPlatform.Win64)
 			{
 				return MCPPlatform.Windows;
+			}
+			else if (TargetPlatform == UnrealTargetPlatform.Win32)
+			{
+				return MCPPlatform.Win32;
 			}
 			else if (TargetPlatform == UnrealTargetPlatform.Mac)
 			{
@@ -189,11 +199,11 @@ namespace EpicGames.MCP.Automation
 			return MCPPlatform.Linux;
         }
         /// <summary>
-        /// Determine the platform name (Win32/64 becomes Windows, Mac is Mac, the rest we don't currently understand)
+		/// Determine the platform name
         /// </summary>
         static public UnrealTargetPlatform FromMCPPlatform(MCPPlatform TargetPlatform)
         {
-            if (TargetPlatform != MCPPlatform.Windows && TargetPlatform != MCPPlatform.Mac && TargetPlatform != MCPPlatform.Linux)
+			if (TargetPlatform != MCPPlatform.Windows && TargetPlatform != MCPPlatform.Win32 && TargetPlatform != MCPPlatform.Mac && TargetPlatform != MCPPlatform.Linux)
             {
                 throw new AutomationException("Platform {0} is not properly supported by the MCP backend yet", TargetPlatform);
             }
@@ -201,6 +211,10 @@ namespace EpicGames.MCP.Automation
 			if (TargetPlatform == MCPPlatform.Windows)
 			{
 				return UnrealTargetPlatform.Win64;
+			}
+			else if (TargetPlatform == MCPPlatform.Win32)
+			{
+				return UnrealTargetPlatform.Win32;
 			}
 			else if (TargetPlatform == MCPPlatform.Mac)
 			{
@@ -216,7 +230,7 @@ namespace EpicGames.MCP.Automation
         static public string GetBuildRootPath()
         {
             return CommandUtils.P4Enabled && CommandUtils.AllowSubmit
-                ? CommandUtils.RootSharedTempStorageDirectory()
+                ? CommandUtils.RootBuildStorageDirectory()
                 : CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "LocalBuilds");
         }
 
@@ -281,6 +295,19 @@ namespace EpicGames.MCP.Automation
 			StagingDir = CommandUtils.CombinePaths(BuildRootPath, stagingDirRelativePath, BuildVersion, stagingDirSuffix);
 			CloudDirRelativePath = CommandUtils.CombinePaths(stagingDirRelativePath, "CloudDir");
 			CloudDir = CommandUtils.CombinePaths(BuildRootPath, CloudDirRelativePath);
+		}
+
+		/// <summary>
+		/// Constructor which supports being able to just simply call BuildPatchToolBase.Get().Execute
+		/// </summary>
+		public BuildPatchToolStagingInfo(BuildCommand InOwnerCommand, string InAppName, int InAppID, string InBuildVersion, MCPPlatform InPlatform, string InCloudDir)
+		{
+			OwnerCommand = InOwnerCommand;
+			AppName = InAppName;
+			AppID = InAppID;
+			BuildVersion = InBuildVersion;
+			Platform = InPlatform;
+			CloudDir = InCloudDir;
 		}
     }
 
@@ -354,7 +381,7 @@ namespace EpicGames.MCP.Automation
             /// </summary>
             public ChunkType AppChunkType;
             /// <summary>
-            /// Matches the corresponding BuildPatchTool command line argument.
+            /// Used as part of manifest filename and build version strings.
             /// </summary>
             public MCPPlatform Platform;
             /// <summary>
@@ -399,10 +426,6 @@ namespace EpicGames.MCP.Automation
 			/// Corresponds to the -preview parameter
 			/// </summary>
 			public bool bPreviewCompactify;
-			/// <summary>
-			/// Corresponds to the -nopatchdelete parameter
-			/// </summary>
-			public bool bNoPatchDeleteCompactify;
 			/// <summary>
 			/// The full list of manifest files in the compactify directory that we wish to keep; all others will be deleted.
 			/// </summary>
@@ -673,15 +696,45 @@ namespace EpicGames.MCP.Automation
 	public abstract class CloudStorageBase
 	{
 		private static readonly object LockObj = new object();
-		private static CloudStorageBase Handler = null;
+		private static Dictionary<string, CloudStorageBase> Handlers = new Dictionary<string, CloudStorageBase>();
+		private const string DEFAULT_INSTANCE_NAME = "DefaultInstance";
 
+		/// <summary>
+		/// Gets the default instance of CloudStorageBase
+		/// </summary>
+		/// <returns>A default instance of CloudStorageBase. The first time each instance is returned, it will require initialization with its Init() method.</returns>
 		public static CloudStorageBase Get()
 		{
-			if (Handler == null)
+			return GetByNameImpl(DEFAULT_INSTANCE_NAME); // Identifier for the default cloud storage
+		}
+
+		/// <summary>
+		/// Gets an instance of CloudStorageBase.
+		/// Multiple calls with the same instance name will return the same object.
+		/// </summary>
+		/// <param name="InstanceName">The name of the object to return</param>
+		/// <returns>An instance of CloudStorageBase. The first time each instance is returned, it will require initialization with its Init() method.</returns>
+		public static CloudStorageBase GetByName(string InstanceName)
+		{
+			if (InstanceName == DEFAULT_INSTANCE_NAME)
+			{
+				CommandUtils.LogWarning("CloudStorageBase.GetByName called with {0}. This will return the same instance as Get().", DEFAULT_INSTANCE_NAME);
+			}
+			return GetByNameImpl(InstanceName);
+		}
+
+		private  static CloudStorageBase GetByNameImpl(string InstanceName)
+		{
+			CloudStorageBase Result = null;
+			if (!Handlers.TryGetValue(InstanceName, out Result))
 			{
 				lock (LockObj)
 				{
-					if (Handler == null)
+					if (Handlers.ContainsKey(InstanceName))
+					{
+						Result = Handlers[InstanceName];
+					}
+					else
 					{
 						Assembly[] LoadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
 						foreach (var Dll in LoadedAssemblies)
@@ -691,19 +744,20 @@ namespace EpicGames.MCP.Automation
 							{
 								if (PotentialConfigType != typeof(CloudStorageBase) && typeof(CloudStorageBase).IsAssignableFrom(PotentialConfigType))
 								{
-									Handler = Activator.CreateInstance(PotentialConfigType) as CloudStorageBase;
+									Result = Activator.CreateInstance(PotentialConfigType) as CloudStorageBase;
+									Handlers.Add(InstanceName, Result);
 									break;
 								}
 							}
 						}
 					}
 				}
-				if (Handler == null)
+				if (Result == null)
 				{
-					throw new AutomationException("Attempt to use CloudStorageBase.Get() and it doesn't appear that there are any modules that implement this class.");
+					throw new AutomationException("Could not find any modules which provide an implementation of CloudStorageBase.");
 				}
 			}
-			return Handler;
+			return Result;
 		}
 
 		/// <summary>
@@ -717,8 +771,9 @@ namespace EpicGames.MCP.Automation
 		/// </summary>
 		/// <param name="Container">The name of the folder or container from which contains the file being checked.</param>
 		/// <param name="Identifier">The identifier or filename of the file to check.</param>
+        /// <param name="bQuiet">If set to true, all log output for the operation is supressed.</param>
 		/// <returns>True if the file exists in cloud storage, false otherwise.</returns>
-		abstract public bool FileExists(string Container, string Identifier);
+		abstract public bool FileExists(string Container, string Identifier, bool bQuiet = false);
 
 		/// <summary>
 		/// Retrieves a file from the cloud storage provider
@@ -730,34 +785,58 @@ namespace EpicGames.MCP.Automation
 		abstract public byte[] GetFile(string Container, string Identifier, out string ContentType);
 
 		/// <summary>
-		/// Posts a file to the cloud storage provider
-		/// NOTE: the method returns void, rather than bSuccess as you might imagine, because of an apparent bug in VS2013 debugger, where an AccessViolationExeption is
-		/// thrown when stepping in to an overridden method, with a return value, and at least one out parameter, when optimizations are enabled.
+		/// Posts a file to the cloud storage provider.
 		/// </summary>
 		/// <param name="Container">The name of the folder or container in which to store the file.</param>
 		/// <param name="Identifier">The identifier or filename of the file to write.</param>
 		/// <param name="Contents">A byte array containing the data to write.</param>
-		/// <param name="ObjectURL">An OUTPUT parameter which will be set to the URL of the uploaded file on success.</param>
-		/// <param name="bSuccess">An OUTPUT parameter which will be set to true if the write succeeds, false otherwise.</param>
 		/// <param name="ContentType">The MIME type of the file being uploaded.</param>
 		/// <param name="bOverwrite">If true, will overwrite an existing file.  If false, will throw an exception if the file exists.</param>
 		/// <param name="bMakePublic">Specified whether the file should be made public readable.</param>
-		abstract public void PostFile(string Container, string Identifier, byte[] Contents, out string ObjectURL, out bool bSuccess, string ContentType = null, bool bOverwrite = true, bool bMakePublic = false);
+        /// <param name="bQuiet">If set to true, all log output for the operation is supressed.</param>
+		public PostFileResult PostFile(string Container, string Identifier, byte[] Contents, string ContentType = null, bool bOverwrite = true, bool bMakePublic = false, bool bQuiet = false)
+		{
+			return PostFileAsync(Container, Identifier, Contents, ContentType, bOverwrite, bMakePublic, bQuiet).Result;
+		}
+
+		/// <summary>
+		/// Posts a file to the cloud storage provider asynchronously.
+		/// </summary>
+		/// <param name="Container">The name of the folder or container in which to store the file.</param>
+		/// <param name="Identifier">The identifier or filename of the file to write.</param>
+		/// <param name="Contents">A byte array containing the data to write.</param>
+		/// <param name="ContentType">The MIME type of the file being uploaded.</param>
+		/// <param name="bOverwrite">If true, will overwrite an existing file.  If false, will throw an exception if the file exists.</param>
+		/// <param name="bMakePublic">Specified whether the file should be made public readable.</param>
+        /// <param name="bQuiet">If set to true, all log output for the operation is supressed.</param>
+		abstract public Task<PostFileResult> PostFileAsync(string Container, string Identifier, byte[] Contents, string ContentType = null, bool bOverwrite = true, bool bMakePublic = false, bool bQuiet = false);
 
 		/// <summary>
 		/// Posts a file to the cloud storage provider.
-		/// NOTE: the method returns void, rather than bSuccess as you might imagine, because of an apparent bug in VS2013 debugger, where an AccessViolationExeption is
-		/// thrown when stepping in to an overridden method, with a return value, and at least one out parameter, when optimizations are enabled.
 		/// </summary>
 		/// <param name="Container">The name of the folder or container in which to store the file.</param>
 		/// <param name="Identifier">The identifier or filename of the file to write.</param>
 		/// <param name="SourceFilePath">The full path of the file to upload.</param>
-		/// <param name="ObjectURL">An OUTPUT parameter which will be set to the URL of the uploaded file on success.</param>
-		/// <param name="bSuccess">An OUTPUT parameter which will be set to true if the write succeeds, false otherwise.</param>
 		/// <param name="ContentType">The MIME type of the file being uploaded.</param>
 		/// <param name="bOverwrite">If true, will overwrite an existing file.  If false, will throw an exception if the file exists.</param>
 		/// <param name="bMakePublic">Specified whether the file should be made public readable.</param>
-		abstract public void PostFile(string Container, string Identifier, string SourceFilePath, out string ObjectURL, out bool bSuccess, string ContentType = null, bool bOverwrite = true, bool bMakePublic = false);
+        /// <param name="bQuiet">If set to true, all log output for the operation is supressed.</param>
+		public PostFileResult PostFile(string Container, string Identifier, string SourceFilePath, string ContentType = null, bool bOverwrite = true, bool bMakePublic = false, bool bQuiet = false)
+		{
+			return PostFileAsync(Container, Identifier, SourceFilePath, ContentType, bOverwrite, bMakePublic, bQuiet).Result;
+		}
+
+		/// <summary>
+		/// Posts a file to the cloud storage provider asynchronously.
+		/// </summary>
+		/// <param name="Container">The name of the folder or container in which to store the file.</param>
+		/// <param name="Identifier">The identifier or filename of the file to write.</param>
+		/// <param name="SourceFilePath">The full path of the file to upload.</param>
+		/// <param name="ContentType">The MIME type of the file being uploaded.</param>
+		/// <param name="bOverwrite">If true, will overwrite an existing file.  If false, will throw an exception if the file exists.</param>
+		/// <param name="bMakePublic">Specified whether the file should be made public readable.</param>
+        /// <param name="bQuiet">If set to true, all log output for the operation is supressed.</param>
+		abstract public Task<PostFileResult> PostFileAsync(string Container, string Identifier, string SourceFilePath, string ContentType = null, bool bOverwrite = true, bool bMakePublic = false, bool bQuiet = false);
 
 		/// <summary>
 		/// Deletes a file from cloud storage
@@ -780,7 +859,7 @@ namespace EpicGames.MCP.Automation
 		/// <param name="Prefix">A string with which the identifier or filename should start. Typically used to specify a relative directory within the container to list all of its files recursively. Specify null to return all files.</param>
 		/// <param name="Recursive">Indicates whether the list of files returned should traverse subdirectories</param>
 		/// <returns>An array of paths to the files in the specified location and matching the prefix constraint.</returns>
-		abstract public string[] ListFiles(string Container, string Prefix = null, bool bRecursive = true);
+		abstract public string[] ListFiles(string Container, string Prefix = null, bool bRecursive = true, bool bQuiet = false);
 
 		/// <summary>
 		/// Sets one or more items of metadata on an object in cloud storage
@@ -827,6 +906,19 @@ namespace EpicGames.MCP.Automation
 		/// <param name="stagingInfo">Staging info representing the build to check.</param>
 		/// <returns>True if the manifest exists in cloud storage, false otherwise.</returns>
 		abstract public bool IsManifestOnCloudStorage(string Container, BuildPatchToolStagingInfo StagingInfo);
+
+		public class PostFileResult
+		{
+			/// <summary>
+			/// Set to the URL of the uploaded file on success
+			/// </summary>
+			public string ObjectURL { get; set; }
+
+			/// <summary>
+			/// Set to true if the write succeeds, false otherwise.
+			/// </summary>
+			public bool bSuccess { get; set; }
+		}
 	}
 }
 
@@ -907,13 +999,13 @@ namespace EpicGames.MCP.Config
 
         public void SpewValues()
         {
-            CommandUtils.Log("Name : {0}", Name);
-            CommandUtils.Log("AccountBaseUrl : {0}", AccountBaseUrl);
-            CommandUtils.Log("FortniteBaseUrl : {0}", FortniteBaseUrl);
-            CommandUtils.Log("LauncherBaseUrl : {0}", LauncherBaseUrl);
-			CommandUtils.Log("BuildInfoV2BaseUrl : {0}", BuildInfoV2BaseUrl);
-			CommandUtils.Log("LauncherV2BaseUrl : {0}", LauncherV2BaseUrl);
-            CommandUtils.Log("ClientId : {0}", ClientId);
+            CommandUtils.LogVerbose("Name : {0}", Name);
+            CommandUtils.LogVerbose("AccountBaseUrl : {0}", AccountBaseUrl);
+            CommandUtils.LogVerbose("FortniteBaseUrl : {0}", FortniteBaseUrl);
+            CommandUtils.LogVerbose("LauncherBaseUrl : {0}", LauncherBaseUrl);
+			CommandUtils.LogVerbose("BuildInfoV2BaseUrl : {0}", BuildInfoV2BaseUrl);
+			CommandUtils.LogVerbose("LauncherV2BaseUrl : {0}", LauncherV2BaseUrl);
+            CommandUtils.LogVerbose("ClientId : {0}", ClientId);
             // we don't really want this in logs CommandUtils.Log("ClientSecret : {0}", ClientSecret);
         }
     }

@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2346406
+﻿INTSourceChangelist:2714548
 Availability:Public
 Title:2.5 - 他のパーティクルから射出されるリボン形状のトレイル （軌跡）
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
-Description:エフェクト ギャラリーの事例概要
+Description:エフェクト ギャラリーのサンプル レベルの概要
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/Ribbon
 Related: Engine/Rendering/ParticleSystems/Overview
 Related: Engine/Rendering/ParticleSystems/Reference
@@ -10,6 +10,25 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+Version:4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/EffectsGallery/2_D "%Resources/ContentExamples/EffectsGallery/2_D:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[エフェクト ギャラリー ホーム](Resources/ContentExamples/EffectsGallery)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/EffectsGallery/2_F "%Resources/ContentExamples/EffectsGallery/2_F:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -54,10 +73,10 @@ Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 ![](image066.png)
 [/REGION]
 
-Ribbon TypeData モジュールは、プロジェクタイル (射出) ベースのさまざまな効果に非常に便利なトレイルの作成を有効にします。トレイルを機能させるには、最低 2 つのパーティクル エミッタが必要です。
+**Ribbon TypeData** モジュールでは、プロジェクタイル (射出) ベースのさまざまなエフェクトに非常に便利なトレイルを作成できます。トレイルを機能させるには、通常、最低 2 つのパーティクル エミッタが必要です。
 
-* ソースとなるパーティクルを放射するパーティクル エミッタ (このエミッタからリボンがスポーンされます) 。ここで留意すべきは GPU パーティクルは使用できないことです。
-* ソースとして使用するエミッタを定義する、Ribbon TypeData モジュールとSource モジュール ( _Trail_ グループに設置されています) が設定されたパーティクルエミッタ。
+* ソースとなるパーティクルを放射するパーティクル エミッタ (このエミッタからリボンがスポーンされます) 。GPU パーティクルは使用できないことに注意してください。
+* Ribbon TypeData モジュールおよびソースとして使用するエミッタを定義する Source モジュール ( **Trail** グループにあります) を持つパーティクル エミッタ。
 
 
 ![](image068.png)

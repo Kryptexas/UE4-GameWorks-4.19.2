@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #include "GameplayDebuggerPrivate.h"
 #include "Net/UnrealNetwork.h"
 #include "DebugRenderSceneProxy.h"
@@ -21,6 +21,7 @@
 #include "Engine/Channel.h"
 #include "Animation/AnimMontage.h"
 #include "GameplayAbilitiesModule.h"
+#include "Perception/AIPerceptionComponent.h"
 
 #if WITH_EDITOR
 #include "Editor/EditorEngine.h"
@@ -28,8 +29,6 @@
 #endif // WITH_EDITOR
 
 #include "GameplayDebuggingComponent.h"
-
-DEFINE_LOG_CATEGORY(LogGDT);
 
 //----------------------------------------------------------------------//
 // Composite Scene proxy
@@ -82,7 +81,7 @@ public:
 		}
 	}
 
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
 	{
 		FPrimitiveViewRelevance Result;
 		for (int32 Index = 0; Index < ChildProxies.Num(); ++Index)
@@ -167,9 +166,10 @@ UGameplayDebuggingComponent::UGameplayDebuggingComponent(const FObjectInitialize
 void UGameplayDebuggingComponent::Activate(bool bReset)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		Super::Activate(bReset);
-		SetComponentTickEnabled(true);
-		SetIsReplicated(true);
+	Super::Activate(bReset);
+	SetComponentTickEnabled(true);
+	SetIsReplicated(true);
+	ActivationCounter++;
 #else
 	Super::Activate(bReset);
 #endif
@@ -178,12 +178,19 @@ void UGameplayDebuggingComponent::Activate(bool bReset)
 void UGameplayDebuggingComponent::Deactivate()
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		Super::Deactivate();
-		SetComponentTickEnabled(false);
-		SetIsReplicated(false);
+	Super::Deactivate();
+	SetComponentTickEnabled(false);
+	SetIsReplicated(false);
 #else
 	Super::Deactivate();
 #endif
+}
+
+void UGameplayDebuggingComponent::OnRep_ActivationCounter()
+{
+	// make sure that tick function is running, can't select actor to debug without it
+	// if first activation (UActorComponent) comes before tick function is registered, state will be overridden by bStartWithTickEnabled (false)
+	SetComponentTickEnabled(true);
 }
 
 void UGameplayDebuggingComponent::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
@@ -196,6 +203,7 @@ void UGameplayDebuggingComponent::GetLifetimeReplicatedProps( TArray< FLifetimeP
 	DOREPLIFETIME(UGameplayDebuggingComponent, PawnName);
 	DOREPLIFETIME(UGameplayDebuggingComponent, DebugIcon);
 	DOREPLIFETIME(UGameplayDebuggingComponent, PawnClass);
+	DOREPLIFETIME(UGameplayDebuggingComponent, ActivationCounter);
 
 	DOREPLIFETIME(UGameplayDebuggingComponent, bIsUsingCharacter);
 	DOREPLIFETIME(UGameplayDebuggingComponent, MovementBaseInfo);
@@ -228,6 +236,13 @@ void UGameplayDebuggingComponent::GetLifetimeReplicatedProps( TArray< FLifetimeP
 	DOREPLIFETIME(UGameplayDebuggingComponent, EQSRepData);
 
 	DOREPLIFETIME(UGameplayDebuggingComponent, SensingComponentLocation);
+
+	DOREPLIFETIME(UGameplayDebuggingComponent, PerceptionLegend)
+	DOREPLIFETIME(UGameplayDebuggingComponent, DistanceFromPlayer);
+	DOREPLIFETIME(UGameplayDebuggingComponent, DistanceFromSensor);
+	DOREPLIFETIME(UGameplayDebuggingComponent, SensingComponentLocation);
+	DOREPLIFETIME(UGameplayDebuggingComponent, PerceptionShapeElements);
+
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
@@ -394,6 +409,7 @@ void UGameplayDebuggingComponent::CollectDataToReplicate(bool bCollectExtendedDa
 			}
 		}
 #endif // WITH_EQS
+		CollectPerceptionData();
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
@@ -516,7 +532,7 @@ void UGameplayDebuggingComponent::CollectBasicPathData(APawn* MyPawn)
 
 void UGameplayDebuggingComponent::CollectBasicBehaviorData(APawn* MyPawn)
 {
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && ENABLE_VISUAL_LOG
 	AAIController* MyAIController = Cast<AAIController>(MyPawn->GetController());
 	UBehaviorTreeComponent* BTC = MyAIController ? Cast<UBehaviorTreeComponent>(MyAIController->BrainComponent) : nullptr;
 	bIsUsingBehaviorTree = (BTC != nullptr);
@@ -590,30 +606,30 @@ void UGameplayDebuggingComponent::CollectBehaviorTreeData()
 		BrainComponentName = MyController->BrainComponent != NULL ? MyController->BrainComponent->GetName() : TEXT("");
 		BrainComponentString = MyController->BrainComponent != NULL ? MyController->BrainComponent->GetDebugInfoString() : TEXT("");
 
-			BlackboardString = MyController->BrainComponent->GetBlackboardComponent() ? MyController->BrainComponent->GetBlackboardComponent()->GetDebugInfoString(EBlackboardDescription::KeyWithValue) : TEXT("");
+		BlackboardString = MyController->BrainComponent->GetBlackboardComponent() ? MyController->BrainComponent->GetBlackboardComponent()->GetDebugInfoString(EBlackboardDescription::KeyWithValue) : TEXT("");
 
-			if (World && World->GetNetMode() != NM_Standalone)
-			{
-				TArray<uint8> UncompressedBuffer;
-				FMemoryWriter ArWriter(UncompressedBuffer);
+		if (World && World->GetNetMode() != NM_Standalone)
+		{
+			TArray<uint8> UncompressedBuffer;
+			FMemoryWriter ArWriter(UncompressedBuffer);
 
-				ArWriter << BlackboardString;
+			ArWriter << BlackboardString;
 
-				const int32 HeaderSize = sizeof(int32);
-				BlackboardRepData.Init(0, HeaderSize + FMath::TruncToInt(1.1f * UncompressedBuffer.Num()));
+			const int32 HeaderSize = sizeof(int32);
+			BlackboardRepData.Init(0, HeaderSize + FMath::TruncToInt(1.1f * UncompressedBuffer.Num()));
 
-				const int32 UncompressedSize = UncompressedBuffer.Num();
-				int32 CompressedSize = BlackboardRepData.Num() - HeaderSize;
-				uint8* DestBuffer = BlackboardRepData.GetData();
-				FMemory::Memcpy(DestBuffer, &UncompressedSize, HeaderSize);
-				DestBuffer += HeaderSize;
+			const int32 UncompressedSize = UncompressedBuffer.Num();
+			int32 CompressedSize = BlackboardRepData.Num() - HeaderSize;
+			uint8* DestBuffer = BlackboardRepData.GetData();
+			FMemory::Memcpy(DestBuffer, &UncompressedSize, HeaderSize);
+			DestBuffer += HeaderSize;
 
-				FCompression::CompressMemory((ECompressionFlags)(COMPRESS_ZLIB | COMPRESS_BiasMemory),
-					(void*)DestBuffer, CompressedSize, (void*)UncompressedBuffer.GetData(), UncompressedSize);
+			FCompression::CompressMemory((ECompressionFlags)(COMPRESS_ZLIB | COMPRESS_BiasMemory),
+				(void*)DestBuffer, CompressedSize, (void*)UncompressedBuffer.GetData(), UncompressedSize);
 
-				BlackboardRepData.SetNum(CompressedSize + HeaderSize, false);
-			}
+			BlackboardRepData.SetNum(CompressedSize + HeaderSize, false);
 		}
+	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 void UGameplayDebuggingComponent::OnRep_UpdateBlackboard()
@@ -641,7 +657,7 @@ void UGameplayDebuggingComponent::OnRep_UpdateBlackboard()
 
 void UGameplayDebuggingComponent::CollectPathData()
 {
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && ENABLE_VISUAL_LOG
 	APawn* MyPawn = Cast<APawn>(GetSelectedActor());
 
 	bool bRefreshRendering = false;
@@ -1155,10 +1171,8 @@ void UGameplayDebuggingComponent::ServerCollectNavmeshData_Implementation(FVecto
 	{
 		const int32 NeiX = TargetTileX + DeltaX[i];
 		const int32 NeiY = TargetTileY + DeltaY[i];
-		if (FMath::Abs(NeiX - TileX) > 1 || FMath::Abs(NeiY - TileY) > 1)
-		{
-			NavData->GetNavMeshTilesAt(NeiX, NeiY, Indices);
-		}
+
+		NavData->GetNavMeshTilesAt(NeiX, NeiY, Indices);
 	}
 
 	const FNavDataConfig& NavConfig = NavData->GetConfig();
@@ -1241,7 +1255,7 @@ void UGameplayDebuggingComponent::ServerCollectNavmeshData_Implementation(FVecto
 	NavmeshRepData.SetNum(CompressedSize + HeaderSize, false);
 
 	const double Timer3 = FPlatformTime::Seconds();
-	UE_LOG(LogGDT, Log, TEXT("Preparing navmesh data: %.1fkB took %.3fms (collect: %.3fms + compress %d%%: %.3fms)"),
+	UE_LOG(LogGameplayDebugger, Log, TEXT("Preparing navmesh data: %.1fkB took %.3fms (collect: %.3fms + compress %d%%: %.3fms)"),
 		NavmeshRepData.Num() / 1024.0f, 1000.0f * (Timer3 - Timer1),
 		1000.0f * (Timer2 - Timer1),
 		FMath::TruncToInt(100.0f * NavmeshRepData.Num() / UncompressedBuffer.Num()), 1000.0f * (Timer3 - Timer2));
@@ -1386,10 +1400,11 @@ public:
 		DrawAlpha = 90;
 		ViewFlagName = InViewFlagName;
 		ViewFlagIndex = uint32(FEngineShowFlags::FindIndexByName(*ViewFlagName));
+		bWantsSelectionOutline = false;
 	}
 
 
-	FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
+	FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
 	{
 		FPrimitiveViewRelevance Result;
 		Result.bDrawRelevance = View->Family->EngineShowFlags.GetSingleFlag(ViewFlagIndex);// IsShown(View);
@@ -1554,4 +1569,52 @@ void UGameplayDebuggingComponent::DestroyRenderState_Concurrent()
 #endif
 
 	Super::DestroyRenderState_Concurrent();
+}
+
+void UGameplayDebuggingComponent::CollectPerceptionData()
+{
+#if USE_EQS_DEBUGGER
+	if (!ShouldReplicateData(EAIDebugDrawDataView::Perception))
+	{
+		return;
+	}
+
+	APawn* MyPawn = Cast<APawn>(GetSelectedActor());
+	if (MyPawn)
+	{
+		AAIController* BTAI = Cast<AAIController>(MyPawn->GetController());
+		if (BTAI)
+		{
+			const UAIPerceptionComponent* PerceptionComponent = BTAI->GetAIPerceptionComponent();
+			if (PerceptionComponent == nullptr)
+			{
+				PerceptionComponent = MyPawn->FindComponentByClass<UAIPerceptionComponent>();
+			}
+			if (PerceptionComponent)
+			{
+				TArray<FString> PerceptionTexts;
+				PerceptionShapeElements.Reset();
+				PerceptionComponent->GrabGameplayDebuggerData(PerceptionTexts, PerceptionShapeElements);
+
+				DistanceFromPlayer = DistanceFromSensor = -1;
+
+				AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(GetOwner());
+				UGameplayDebuggingControllerComponent* GDC = Replicator ? Replicator->FindComponentByClass<UGameplayDebuggingControllerComponent>() : nullptr;
+				APlayerController* MyPC = GDC && GDC->GetDebugCameraController().IsValid() ? GDC->GetDebugCameraController().Get() : Replicator->GetLocalPlayerOwner();
+
+				if (MyPC && MyPC->GetPawn())
+				{
+					DistanceFromPlayer = (MyPawn->GetActorLocation() - MyPC->GetPawn()->GetActorLocation()).Size();
+					DistanceFromSensor = SensingComponentLocation != FVector::ZeroVector ? (SensingComponentLocation - MyPC->GetPawn()->GetActorLocation()).Size() : -1;
+				}
+			}
+
+			UAIPerceptionSystem* PerceptionSys = UAIPerceptionSystem::GetCurrent(MyPawn->GetWorld());
+			if (PerceptionSys)
+			{
+				PerceptionLegend = PerceptionSys->GetPerceptionDebugLegend();
+			}
+		}
+	}
+#endif
 }

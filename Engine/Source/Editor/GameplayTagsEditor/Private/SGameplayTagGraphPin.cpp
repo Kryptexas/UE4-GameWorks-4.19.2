@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayTagsEditorModulePrivatePCH.h"
 #include "SGameplayTagGraphPin.h"
@@ -89,20 +89,12 @@ TSharedRef<SWidget> SGameplayTagGraphPin::GetListContent()
 		.AutoHeight()
 		.MaxHeight( 400 )
 		[
-			SNew(SScaleBox)
-			.HAlign(EHorizontalAlignment::HAlign_Left)
-			.VAlign(EVerticalAlignment::VAlign_Top)
-			.StretchDirection(EStretchDirection::DownOnly)
-			.Stretch(EStretch::ScaleToFit)
-			.Content()
-			[
-				SNew( SGameplayTagWidget, EditableContainers )
-				.OnTagChanged( this, &SGameplayTagGraphPin::RefreshTagList )
-				.TagContainerName( TEXT("SGameplayTagGraphPin") )
-				.Visibility( this, &SGraphPin::GetDefaultValueVisibility )
-				.MultiSelect(false)
-				.Filter(FilterString)
-			]
+			SNew( SGameplayTagWidget, EditableContainers )
+			.OnTagChanged( this, &SGameplayTagGraphPin::RefreshTagList )
+			.TagContainerName( TEXT("SGameplayTagGraphPin") )
+			.Visibility( this, &SGraphPin::GetDefaultValueVisibility )
+			.MultiSelect(false)
+			.Filter(FilterString)
 		];
 }
 
@@ -149,18 +141,19 @@ void SGameplayTagGraphPin::RefreshTagList()
 	}
 
 	// Set Pin Data
-	FString TagString = TEXT("(");
+	FString TagString;
 	if (!TagName.IsEmpty())
 	{
+		TagString = TEXT("(");
 		TagString += TEXT("TagName=\"");
 		TagString += TagName;
 		TagString += TEXT("\"");
+		TagString += TEXT(")");
 	}
-	TagString += TEXT(")");
 	FString CurrentDefaultValue = GraphPinObj->GetDefaultAsString();
 	if (CurrentDefaultValue.IsEmpty())
 	{
-		CurrentDefaultValue = FString(TEXT("()"));
+		CurrentDefaultValue = FString(TEXT(""));
 	}
 	if (!CurrentDefaultValue.Equals(TagString))
 	{

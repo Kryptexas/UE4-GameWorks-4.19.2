@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 // This code is modified from that in the Mesa3D Graphics library available at
 // http://mesa3d.org/
@@ -2036,7 +2036,9 @@ ir_atomic::operator_string()
 		"atomic_or",
 		"atomic_xor",
 		"atomic_swap",
-		"atomic_cmp_swap"
+		"atomic_cmp_swap",
+		"atomic_load",
+		"atomic_store"
 	};
 	static_assert(Elements(str) == ir_atomic_count, "Mismatched atomic count");
 	return str[this->operation];

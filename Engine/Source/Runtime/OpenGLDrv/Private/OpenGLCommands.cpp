@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLCommands.cpp: OpenGL RHI commands implementation.
@@ -262,17 +262,6 @@ static FORCEINLINE GLint ModifyFilterByMips(GLint Filter, bool bHasMips)
 
 	return Filter;
 }
-
-void FOpenGLDynamicRHI::RHIGpuTimeBegin(uint32 Hash, bool bCompute)
-{
-	return;
-}
-
-void FOpenGLDynamicRHI::RHIGpuTimeEnd(uint32 Hash, bool bCompute)
-{
-	return;
-}
-
 
 // Vertex state.
 void FOpenGLDynamicRHI::RHISetStreamSource(uint32 StreamIndex,FVertexBufferRHIParamRef VertexBufferRHI,uint32 Stride,uint32 Offset)
@@ -556,22 +545,27 @@ void FOpenGLDynamicRHI::CachedSetupTextureStage(FOpenGLContextState& ContextStat
 	// which should be preferred.
 	if(Target != GL_NONE && Target != GL_TEXTURE_BUFFER && !FOpenGL::SupportsTextureView())
 	{
-		const bool bSameLimitMip = bSameTarget && bSameResource && TextureState.LimitMip == LimitMip;
-		const bool bSameNumMips = bSameTarget && bSameResource && TextureState.NumMips == NumMips;
+		TPair<GLenum, GLenum>* MipLimits = TextureMipLimits.Find(Resource);
+		
+		GLint BaseMip = LimitMip == -1 ? 0 : LimitMip;
+		GLint MaxMip = LimitMip == -1 ? NumMips - 1 : LimitMip;
+		
+		const bool bSameLimitMip = MipLimits && MipLimits->Key == BaseMip;
+		const bool bSameNumMips = MipLimits && MipLimits->Value == MaxMip;
 		
 		if(FOpenGL::SupportsTextureBaseLevel() && !bSameLimitMip)
 		{
-			GLint BaseMip = LimitMip == -1 ? 0 : LimitMip;
 			FOpenGL::TexParameter(Target, GL_TEXTURE_BASE_LEVEL, BaseMip);
 		}
 		TextureState.LimitMip = LimitMip;
 		
 		if(FOpenGL::SupportsTextureMaxLevel() && !bSameNumMips)
 		{
-			GLint MaxMip = LimitMip == -1 ? NumMips - 1 : LimitMip;
 			FOpenGL::TexParameter(Target, GL_TEXTURE_MAX_LEVEL, MaxMip);
 		}
 		TextureState.NumMips = NumMips;
+		
+		TextureMipLimits.Add(Resource, TPairInitializer<GLenum, GLenum>(BaseMip, MaxMip));
 	}
 	else
 	{
@@ -697,14 +691,6 @@ void FOpenGLDynamicRHI::SetupTexturesForDraw( FOpenGLContextState& ContextState,
 			// which should be preferred.
 			if(!FOpenGL::SupportsTextureView())
 			{
-				{
-					FTextureStage& CurrentTextureStage = ContextState.Textures[TextureStageIndex];
-					const bool bSameTarget = (TextureStage.Target == CurrentTextureStage.Target);
-					const bool bSameResource = (TextureStage.Resource == CurrentTextureStage.Resource);
-					const bool bSameLimitMip = bSameTarget && bSameResource && CurrentTextureStage.LimitMip == TextureStage.LimitMip;
-					const bool bSameNumMips = bSameTarget && bSameResource && CurrentTextureStage.NumMips == TextureStage.NumMips;
-				}
-				
 				// When trying to limit the mip available for sampling (as part of texture SRV)
 				// ensure that the texture is bound to only one sampler, or that all samplers
 				// share the same restriction.
@@ -2460,15 +2446,18 @@ void FOpenGLDynamicRHI::SetResourcesFromTables(const ShaderType* RESTRICT Shader
 		DirtyBits ^= LowestBitMask;
 
 		FOpenGLUniformBuffer* Buffer = (FOpenGLUniformBuffer*)PendingState.BoundUniformBuffers[ShaderType::StaticFrequency][BufferIndex].GetReference();
-		check(Buffer);
-		check(BufferIndex < SRT->ResourceTableLayoutHashes.Num());
-		check(Buffer->GetLayout().GetHash() == SRT->ResourceTableLayoutHashes[BufferIndex]);
-		Buffer->CacheResources(ResourceTableFrameCounter);
+		if(Buffer || !FShaderCache::IsPredrawCall())
+		{
+			check(Buffer);
+			check(BufferIndex < SRT->ResourceTableLayoutHashes.Num());
+			check(Buffer->GetLayout().GetHash() == SRT->ResourceTableLayoutHashes[BufferIndex]);
+			Buffer->CacheResources(ResourceTableFrameCounter);
 
-		// todo: could make this two pass: gather then set
-		NumSetCalls += SetShaderResourcesFromBuffer<FOpenGLTextureBase,(EShaderFrequency)ShaderType::StaticFrequency>(this,Buffer,SRT->TextureMap.GetData(),BufferIndex);
-		NumSetCalls += SetShaderResourcesFromBuffer<FOpenGLShaderResourceView,(EShaderFrequency)ShaderType::StaticFrequency>(this,Buffer,SRT->ShaderResourceViewMap.GetData(),BufferIndex);
-		SetShaderResourcesFromBuffer<FOpenGLSamplerState,(EShaderFrequency)ShaderType::StaticFrequency>(this,Buffer,SRT->SamplerMap.GetData(),BufferIndex);
+			// todo: could make this two pass: gather then set
+			NumSetCalls += SetShaderResourcesFromBuffer<FOpenGLTextureBase,(EShaderFrequency)ShaderType::StaticFrequency>(this,Buffer,SRT->TextureMap.GetData(),BufferIndex);
+			NumSetCalls += SetShaderResourcesFromBuffer<FOpenGLShaderResourceView,(EShaderFrequency)ShaderType::StaticFrequency>(this,Buffer,SRT->ShaderResourceViewMap.GetData(),BufferIndex);
+			SetShaderResourcesFromBuffer<FOpenGLSamplerState,(EShaderFrequency)ShaderType::StaticFrequency>(this,Buffer,SRT->SamplerMap.GetData(),BufferIndex);
+		}
 	}
 	PendingState.DirtyUniformBuffers[ShaderType::StaticFrequency] = 0;
 	//SetTextureInTableCalls += NumSetCalls;
@@ -2749,6 +2738,30 @@ void FOpenGLDynamicRHI::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuf
 #if DEBUG_GL_SHADERS
 	VerifyProgramPipeline();
 #endif
+	
+	// @todo Workaround for radr://15076670 "Incorrect gl_VertexID in GLSL for glDrawElementsInstanced without vertex streams on Nvidia” Alternative fix that avoids exposing the messy details to the Renderer, keeping it here in the RHI.
+	// This workaround has performance and correctness implications - it is only needed on Mac + OpenGL + Nvidia and will
+	// break AMD drivers entirely as it is technically an abuse of the OpenGL specification. Consequently it is deliberately
+	// compiled out for other platforms. Apple have closed the bug claiming the NV behaviour is permitted by the GL spec.
+#if PLATFORM_MAC
+	bool bAttributeLessDraw = (PendingState.BoundShaderState->VertexShader->Bindings.InOutMask == 0 && ContextState.ElementArrayBufferBound && IsRHIDeviceNVIDIA());
+	if(bAttributeLessDraw)
+	{
+		CachedBindArrayBuffer(ContextState, IndexBuffer->Resource);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 1, IndexType, false, 0, INDEX_TO_VOID(StartIndex));
+		ContextState.VertexAttrs[0].Pointer = INDEX_TO_VOID(StartIndex);
+		ContextState.VertexAttrs[0].Stride = 0;
+		ContextState.VertexAttrs[0].Buffer = IndexBuffer->Resource;
+		ContextState.VertexAttrs[0].Size = 1;
+		ContextState.VertexAttrs[0].Divisor = 0;
+		ContextState.VertexAttrs[0].Type = IndexType;
+		ContextState.VertexAttrs[0].StreamOffset = 0;
+		ContextState.VertexAttrs[0].StreamIndex = 0;
+		ContextState.VertexAttrs[0].bNormalized = false;
+		ContextState.VertexAttrs[0].bEnabled = true;
+	}
+#endif
 
 	GPUProfilingData.RegisterGPUWork(NumPrimitives * NumInstances, NumElements * NumInstances);
 	if (NumInstances > 1)
@@ -2774,6 +2787,16 @@ void FOpenGLDynamicRHI::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuf
 		}
 		REPORT_GL_DRAW_RANGE_ELEMENTS_EVENT_FOR_FRAME_DUMP(DrawMode, MinIndex, MinIndex + NumVertices, NumElements, IndexType, (void *)StartIndex);
 	}
+	
+	// @todo Workaround for radr://15076670 "Incorrect gl_VertexID in GLSL for glDrawElementsInstanced without vertex streams on Nvidia”
+#if PLATFORM_MAC
+	if(bAttributeLessDraw)
+	{
+		glDisableVertexAttribArray(0);
+		ContextState.VertexAttrs[0].bEnabled = false;
+		ContextState.VertexStreams[0].VertexBuffer = nullptr;
+	}
+#endif
 
 	FShaderCache::LogDraw(IndexBuffer->GetStride());
 }
@@ -3397,24 +3420,6 @@ void FOpenGLDynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const 
 		// Change it back
 		RHISetScissorRect(bPrevScissorEnabled,PrevScissor.Min.X, PrevScissor.Min.Y, PrevScissor.Max.X, PrevScissor.Max.Y);
 	}
-}
-
-// Functions to yield and regain rendering control from OpenGL
-
-void FOpenGLDynamicRHI::RHISuspendRendering()
-{
-	// Not supported
-}
-
-void FOpenGLDynamicRHI::RHIResumeRendering()
-{
-	// Not supported
-}
-
-bool FOpenGLDynamicRHI::RHIIsRenderingSuspended()
-{
-	// Not supported
-	return false;
 }
 
 // Blocks the CPU until the GPU catches up and goes idle.

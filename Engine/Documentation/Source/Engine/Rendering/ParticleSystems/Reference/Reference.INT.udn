@@ -2,7 +2,7 @@ Availability: Public
 Title:Particle System Reference
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
 Description:Complete reference for Particle System type data and modules.
-
+Version: 4.9
 
 
 
@@ -29,7 +29,7 @@ Reference material over the base classes that make up particle systems, such as 
 
 ## TypeData Modules
 
-The default type of an emitter when added to a ParticleSystem is that of a sprite emitter. It is also possible to create other types of emitters though the use of TypeData modules. These modules provide specific functionality for emitting other types of particles, such as beams, meshes, and ribbons.
+The default type of an emitter when added to a ParticleSystem is that of a sprite emitter. It is also possible to create other types of emitters through the use of TypeData modules. These modules provide specific functionality for emitting other types of particles, such as beams, meshes, and ribbons.
 
 [EXCERPT:Types]
 [OBJECT:IconSection]

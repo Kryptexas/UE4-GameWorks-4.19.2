@@ -1,8 +1,11 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "AIPerceptionTypes.h"
+#if !UE_BUILD_SHIPPING
+#	include "Debug/GameplayDebuggerBaseObject.h"
+#endif
 #include "AISenseConfig.generated.h"
 
 class UAISenseImplementation;
@@ -37,6 +40,6 @@ public:
 	//----------------------------------------------------------------------//
 	// DEBUG	
 	//----------------------------------------------------------------------//
-	virtual void DrawDebugInfo(UCanvas& Canvas, UAIPerceptionComponent& PerceptionComponent) const;
+	virtual void GetDebugData(TArray<FString>& OnScreenStrings, TArray<FGameplayDebuggerShapeElement>& DebugShapes, const UAIPerceptionComponent& PerceptionComponent) const {}
 #endif // !UE_BUILD_SHIPPING
 };

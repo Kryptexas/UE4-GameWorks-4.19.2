@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Scalability.h"
@@ -55,7 +55,7 @@ class UNREALED_API UEditorSettings : public UObject
 	/** @return true if the scalability benchmark is valid */
 	bool IsScalabilityBenchmarkValid() const;
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
-	// End UObject Interface
+	//~ End UObject Interface
 };

@@ -1,6 +1,12 @@
+INTSourceChangelist:2033300
 Availability:Docs
-Title:编写供新类型使用的自定义导入器
-Crumbs: %ROOT%, Engine, Engine/UI, Editor/Programming
+Title:自定义导入器技术指南
+Crumbs: %ROOT%, Engine, Engine/UI, Programming
+Description:为程序员撰写特殊组件类型导入工具的指南。
+
+[REGION:todo]
+	本页面的内容从虚幻引擎3的文档检查并转化而来，有些信息可能已经过期。
+[/REGION]
 
 [TOC(start:2)]
 
@@ -10,7 +16,7 @@ Crumbs: %ROOT%, Engine, Engine/UI, Editor/Programming
 
 在编辑器中使用 UFactory 创建新资源，最常见的是以外部文件为基础。
 
-UFactory 的同类型类是 UExporter，可以使用它导出资源进行复制操作，也可以将资源导出到文件中。请参阅[编写自定义导出器](Engine/UI/Programming/Assets/CustomExporters)了解有关如何编写导出器的信息。
+UFactory 的同类型类是 UExporter，可以使用它导出资源进行复制操作，也可以将资源导出到文件中。请参阅[编写自定义导出器] 了解有关如何编写导出器的信息。
 
 
 

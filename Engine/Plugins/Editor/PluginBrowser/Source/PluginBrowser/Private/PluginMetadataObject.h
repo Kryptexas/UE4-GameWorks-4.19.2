@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -55,6 +55,10 @@ public:
 	/** Documentation URL string. */
 	UPROPERTY(EditAnywhere, Category = "Details")
 	FString DocsURL;
+
+	/** Marketplace URL string. */
+	UPROPERTY(EditAnywhere, Category = "Details")
+	FString MarketplaceURL;
 
 	/** Support URL/email for this plugin. Email addresses must be prefixed with 'mailto:' */
 	UPROPERTY(EditAnywhere, Category = "Details")

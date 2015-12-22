@@ -722,7 +722,7 @@ endif()
 add_subdirectory(opensubdiv)
 
 if (NOT ANDROID AND NOT IOS) # XXXdyu
-   ##MM add_subdirectory(regression)
+    add_subdirectory(regression)
 endif()
 
 if (NOT NO_EXAMPLES)

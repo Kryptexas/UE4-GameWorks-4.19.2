@@ -1,13 +1,16 @@
-﻿INTSourceChangelist:2446184
-Availability:Public
+﻿INTSourceChangelist:2688189
 Availability:Public
 Title:イベントディスパッチャー
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:Blueprint クラスが Level ブループリントへステートについてレポートする機能
 related:Engine/Blueprints/UserGuide/BlueprintCommsUsage
-related:Engine/Blueprints/UserGuide/BlueprintCommsUsage/BPComHowTo
 related:Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces
 related:Engine/Blueprints/UserGuide/BlueprintComms
+version:4.9
+<!--related:Engine/Blueprints/UserGuide/BlueprintCommsUsage/BPComHowTo
+Commented out due to page not being published publicly-->
+
+
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -49,8 +52,8 @@ related:Engine/Blueprints/UserGuide/BlueprintComms
 
 
 [EXCERPT:Intro]
-1 つ以上のイベントを **イベントディスパッチャー** へ結合しておくと、結合されたそれらのイベントはイベントディスパッチャーが呼びされた時に一度に発行されます。これらのイベントは、Blueprint クラス内で結合することができます。
-ただし、イベントディスパッチャーにより Level ブループリント内でもイベントの発行が可能になります。
+1 つ以上のイベントを **イベントディスパッチャー** へ結合すると、イベントディスパッチャーの呼び出し時に、結合されたこれらのイベントを一度に発行することができます。これらのイベントは、Blueprint クラス内で結合することができます。
+ただし、イベント ディスパッチャーにより Level ブループリント内でもイベントの発行が可能になります。
 [/EXCERPT:Intro]
 
 [TOC(start:2 end:3)]
@@ -58,7 +61,7 @@ related:Engine/Blueprints/UserGuide/BlueprintComms
 
 ##イベントディスパッチャーの作成
 
-イベントディスパッチャーは、ブループリント エディタの [](Engine/Blueprints/Editor/UIComponents/MyBlueprint) タブで作成されます。 
+イベントディスパッチャーは、ブループリント エディタの [My Blueprint](Engine/Blueprints/Editor/UIComponents/MyBlueprint) タブで作成されます。 
 
 新規にイベントディスパッチャーを作成する方法:
 
@@ -70,21 +73,21 @@ related:Engine/Blueprints/UserGuide/BlueprintComms
 
 ###設定プロパティ
 
-**[My Blueprint]** タブのイベントディスパッチャーを選択すると、 **[詳細]** タブでプロパティの編集が可能になります。ご自分のイベントディスパッチャー用のツールチップとカテゴリ設定、および入力の追加ができます。
+**[My Blueprint]** タブのイベントディスパッチャーを選択すると、 **[Details (詳細)]** タブでプロパティの編集が可能になります。自分のイベントディスパッチャーにツールチップとカテゴリの設定、および入力を追加することができます。
 
 イベントディスパッチャーに入力を追加すると、イベントディスパッチャーに結合している各イベントに変数を送ることができるようになります。そして、データフローが Blueprint クラス内だけでなく、
- Blueprint クラスと Level ブループリント間でも可能になります。
+Blueprint クラスと Level ブループリント間でも可能になります。
 
-イベントディスパッチャーに入力を追加するプロセスは、関数、カスタムイベント、マクロに入出力を追加するワークフローと似ています。別のイベントに同じ入力を使用したい場合、 **[～からシグネチャをコピー]** ドロップダウンを使ってイベントを表示できます。
+イベントディスパッチャーに入力を追加するプロセスは、関数、カスタムイベント、マクロに入出力を追加するワークフローと似ています。別のイベントに同じ入力を使用したい場合、 **[Copy Signature from (からシグネチャをコピー)]** ドロップダウンを使ってイベントを表示できます。
 自分で入力をイベントディスパッチャーへ追加するには、以下の手順に従います。
 
-1. **[詳細]** ペインの **[入力値]** セクションの **[新規]** ボタンをクリックします。
+1. **[Details]** ペインの **[Inputs]** セクションの **[New]** ボタンをクリックします。
 
 	[REGION:raw]
 	![](new_input_Dispatcher.png)
 	[/REGION]
 
-1. 新規入力に名前をつけて、ドロップダウンメニューを使用してタイプを設定します。この例では、 **MyStringParam** という名前の _String_ 入力パラメータがあります。 
+1. 新規入力に名前をつけて、ドロップダウン メニューでタイプを設定します。この例では、**MyStringParam** という名前の String 入力パラメータがあります。 
 
 	[REGION:raw]
 	![](named_new_Dispatcher.png)
@@ -96,21 +99,21 @@ related:Engine/Blueprints/UserGuide/BlueprintComms
 	![](expanded_input_Dispatcher.png)
 	[/REGION]
 
-	ノード端にあるパラメータのピンの位置を変更したい場合、拡大された **[詳細]** ペイン入力で上下の矢印キーを使用します。 
+	ノード端にあるパラメータのピンの位置を変更したい場合、拡大された **[Details]** ペイン入力で上下の矢印キーを使用します。 
 
 
 
 ##イベントディスパッチャーの使用
 
-イベントディスパッチャーを作成したら、リンクしているイベントノード、バインドノード、アンバインドノードを追加します。イベント ディスパッチャー グラフを開くために **[マイブループリント]** タブのイベント ディスパッチャー入力を **ダブルクリック** することができますが、 
-グラフはロックされているので、イベントディスパッチャーを直接修正することはできません。結合、解除、割り当てメソッドで、イベント ディスパッチャーをイベントリストへ追加できるようになり、 
-呼び出しメソッドでイベントリストに格納されたすべてのイベントをアクティベートします。 
+イベントディスパッチャーを作成したら、イベントノード、バインドノード、アンバインドノードを追加してそれに接続することができます。イベントディスパッチャー グラフを開くために **[My Blueprint]** タブのイベントディスパッチャー入力を **ダブルクリック** することができますが、 
+グラフはロックされているので、イベントディスパッチャーを直接修正することはできません。結合、解除、割り当てメソッドで、イベントディスパッチャーをイベントリストへ追加できるようになり、 
+call メソッドでイベントリストに格納されたすべてのイベントをアクティベートします。 
 
 以下は、 Blueprint クラスへも Level ブループリントへも追加することができるノードです。Event ノードを除いて、各ノードには **Target** 入力ピンがあります。
 
 * Blueprint クラスでは、このピンは自動的に **Self** へ設定されます。つまり、イベントリストはクラスに対して変更され、クラスのインスタンスもすべて変更されることになります。
 * Level ブループリントでは、このピンはレベルのクラスのインスタンスへの参照に接続されていなければなりません。つまり、イベントリストはクラスの特定のインスタンスに対してのみ変更されます。 
-_Actor_ references が必要な場合には、 [Level ブループリント ドキュメント](Engine/Blueprints/UserGuide/Types/LevelBlueprint#アクタを参照する) に作成方法が説明されています。 
+_Actor_ リファレンスが必要な場合には、[Level ブループリント](Engine/Blueprints/UserGuide/Types/LevelBlueprint#アクタを参照する) に作成方法が説明されています。 
 
 
 [OBJECT:IconSection]
@@ -146,6 +149,11 @@ _Actor_ references が必要な場合には、 [Level ブループリント ド�
 		[INCLUDE:Engine/Blueprints/UserGuide/EventDispatcher/CreatingEvents#Intro]
 	[/PARAM]
 [/OBJECT]
+
+
+
+
+
 
 
 

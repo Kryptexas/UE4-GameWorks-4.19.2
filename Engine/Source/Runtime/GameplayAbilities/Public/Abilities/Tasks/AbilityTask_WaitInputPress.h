@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "AbilityTask.h"
 #include "Abilities/GameplayAbilityTypes.h"
@@ -11,8 +11,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FInputPressDelegate, float, TimeWait
  *	Waits until the input is pressed from activating an ability. This should be true immediately upon starting the ability, since the key was pressed to activate it.
  *	We expect server to execute this task in parallel and keep its own time. We do not keep track of 
  */
-UCLASS(MinimalAPI)
-class UAbilityTask_WaitInputPress : public UAbilityTask
+UCLASS()
+class GAMEPLAYABILITIES_API UAbilityTask_WaitInputPress : public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
 

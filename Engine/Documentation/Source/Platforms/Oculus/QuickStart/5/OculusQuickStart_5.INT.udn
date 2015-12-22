@@ -2,7 +2,10 @@ Title:5. Test out VR Content
 Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
 Description:Load and play content designed for the Oculus Rift using Unreal Engine 4.
 Availability:Public
+Version: 4.9
+SkillLevel: Intermediate
 
+In this section we will cover how you can test to see if your DK2 is working inside Unreal Engine 4.
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -22,30 +25,37 @@ Availability:Public
 
 %Steps%
 
-1. If you have not already, download the [](Resources\ContentExamples) project.
+1. If you have not already, download the [](Resources\ContentExamples) project from the Unreal Engine Launcher.
+
 1. Open the **Content Examples** project.
 	
 	![](CE_Start.png)(w:500)
+
 1. Click on **File > Open Level**.
-1. Select `VR.umap`, then click **Open**.
+
+1. Select the **VR.umap**, then click **Open**.
 
 	![](VRmap.png)
+
 1. Click on the arrow next to **Play** in the **Level Editor Toolbar** to open the **Play In Editor** options.
 
 	![](PlayDropdown.png)
-1. Select **Standalone Game** to launch the game. **Standalone Game** is the only **Play In Editor** game testing mode that is compatible with the Oculus.
+
+1. Select the **VR Preview** option and then put the HMD on.
 
 	![](StandAloneGame.png)
 
 	[REGION:tip]
-	Once you have selected **Standalone Game** for a project, it will remain in that mode until you pick a different one. This means you can just click on the **Play** icon to resume testing.
+	You can use the **Standalone Game** option but if you do make sure to press **Alt+Enter** to enter VR mode. If you do not do this you will not see anything when you put the HMD on.
 	[/REGION]
 
-1. Press **Alt+Enter** to enter VR mode. This will send your game's display to the Oculus, as well as change the view on the screen to stereo view.
+1. With the HMD on you should now something similar to the image below being displayed in the HMD.
 
 	![](VRMode.png)(w:800)
-1. At this point, you can put on the Oculus and move around the level. To end gameplay:
-	* Press **~** and type `quit` in the console, or 
+
+1. To end game play you can do either of the following two options.
+
+	* Press **~** and type **Quit** in the console
 	* Press **Shift+F1** to reclaim your mouse cursor and close the window.
 
 

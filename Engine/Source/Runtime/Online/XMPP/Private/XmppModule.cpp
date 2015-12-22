@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "XmppPrivatePCH.h"
 #include "XmppTests.h"
@@ -16,7 +16,7 @@ IMPLEMENT_MODULE(FXmppModule, XMPP);
 FXmppModule* FXmppModule::Singleton = NULL;
 
 void FXmppModule::StartupModule()
-{	
+{
 	Singleton = this;
 
 	bEnabled = true;
@@ -51,14 +51,20 @@ bool FXmppModule::HandleXmppCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	FXmppServer XmppServer;
 	XmppServer.bUseSSL = true;
-	XmppServer.ClientResource = TEXT("ue_xmpp_test");	
+	XmppServer.AppId = TEXT("ue_xmpp_test");
 
 	//@todo sz1 - for debug only
-	FString ConfigOverride = TEXT("gamedev");
-	if (!FParse::Value(FCommandLine::Get(), TEXT("BACKEND="), ConfigOverride))
+	FString ConfigOverride;
+	FParse::Value(FCommandLine::Get(), TEXT("EPICAPP="), ConfigOverride);
+	if (ConfigOverride.IsEmpty())
+	{
+		FParse::Value(FCommandLine::Get(), TEXT("EPICENV="), ConfigOverride);
+	}
+	if (ConfigOverride.IsEmpty())
 	{
 		FParse::Value(FCommandLine::Get(), TEXT("MCPCONFIG="), ConfigOverride);
 	}
+
 	XmppServer.ServerAddr = TEXT("127.0.0.1");
 	XmppServer.Domain = TEXT("localhost.net");
 	XmppServer.ServerPort = 5222;
@@ -85,7 +91,7 @@ bool FXmppModule::HandleXmppCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		else
 		{
 			TSharedPtr<IXmppConnection> Connection = GetConnection(UserName);
-			if (Connection.IsValid() && 
+			if (Connection.IsValid() &&
 				Connection->GetLoginStatus() == EXmppLoginStatus::LoggedIn)
 			{
 				UE_LOG(LogXmpp, Warning, TEXT("Already logged in as <%s>"), *UserName);
@@ -368,7 +374,7 @@ bool FXmppModule::HandleXmppCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 			FString IsPrivate = FParse::Token(Cmd, false);		// whether to make room private
 			FString Password = FParse::Token(Cmd, false);		// room secret, if private
 
-			if (UserName.IsEmpty() || RoomId.IsEmpty()  || (IsPrivate == TEXT("1") && Password.IsEmpty()))
+			if (UserName.IsEmpty() || RoomId.IsEmpty() || (IsPrivate == TEXT("1") && Password.IsEmpty()))
 			{
 				UE_LOG(LogXmpp, Warning, TEXT("Usage: XMPP Muc Config <username> <room> <subject> <private 1/0> <password>"));
 			}
@@ -596,35 +602,35 @@ bool FXmppModule::HandleXmppCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		const FString NAME_Verbose(TEXT("Verbose"));
 		const FString NAME_VeryVerbose(TEXT("VeryVerbose"));
 
-		if(Verbosity == NAME_NoLogging)
+		if (Verbosity == NAME_NoLogging)
 		{
 			UE_SET_LOG_VERBOSITY(LogXmpp, NoLogging);
 		}
-		else if(Verbosity == NAME_Fatal)
+		else if (Verbosity == NAME_Fatal)
 		{
 			UE_SET_LOG_VERBOSITY(LogXmpp, Fatal);
 		}
-		else if(Verbosity == NAME_Error)
+		else if (Verbosity == NAME_Error)
 		{
 			UE_SET_LOG_VERBOSITY(LogXmpp, Error);
 		}
-		else if(Verbosity == NAME_Warning)
+		else if (Verbosity == NAME_Warning)
 		{
 			UE_SET_LOG_VERBOSITY(LogXmpp, Warning);
 		}
-		else if(Verbosity == NAME_Display)
+		else if (Verbosity == NAME_Display)
 		{
 			UE_SET_LOG_VERBOSITY(LogXmpp, Display);
 		}
-		else if(Verbosity == NAME_Log)
+		else if (Verbosity == NAME_Log)
 		{
 			UE_SET_LOG_VERBOSITY(LogXmpp, Log);
 		}
-		else if(Verbosity ==NAME_Verbose )
+		else if (Verbosity == NAME_Verbose)
 		{
 			UE_SET_LOG_VERBOSITY(LogXmpp, Verbose);
 		}
-		else if(Verbosity == NAME_VeryVerbose)
+		else if (Verbosity == NAME_VeryVerbose)
 		{
 			UE_SET_LOG_VERBOSITY(LogXmpp, VeryVerbose);
 		}
@@ -668,7 +674,7 @@ TSharedRef<IXmppConnection> FXmppModule::CreateConnection(const FString& UserId)
 		return Connection.ToSharedRef();
 	}
 	else
-	{	
+	{
 #if WITH_XMPP_JINGLE
 		if (bEnabled)
 		{
@@ -732,5 +738,5 @@ void FXmppModule::RemoveConnection(const TSharedRef<IXmppConnection>& Connection
 
 void FXmppModule::CleanupConnection(const TSharedRef<class IXmppConnection>& Connection)
 {
-	
+
 }

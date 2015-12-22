@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TimerManager.h: Global gameplay timer facility
@@ -67,6 +67,9 @@ struct FTimerUnifiedDelegate
 		FuncDelegate.Unbind();
 		FuncDynDelegate.Unbind();
 	}
+
+	/** Utility to output info about delegate as a string. */
+	FString ToString() const;
 };
 
 enum class ETimerStatus : uint8
@@ -356,6 +359,9 @@ public:
 	 * @return A handle to the found timer - !IsValid() if no such timer was found.
 	 */
 	FTimerHandle K2_FindDynamicTimerHandle(FTimerDynamicDelegate InDynamicDelegate) const;
+
+	/** Debug command to output info on all timers curently set to the log. */
+	void ListTimers() const;
 
 private:
 	void InternalSetTimer( FTimerHandle& InOutHandle, FTimerUnifiedDelegate const& InDelegate, float InRate, bool InbLoop, float InFirstDelay );

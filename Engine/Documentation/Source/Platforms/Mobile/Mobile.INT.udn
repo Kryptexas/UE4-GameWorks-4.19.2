@@ -4,6 +4,7 @@ Crumbs:%ROOT%, Platforms
 Description:Information for developers creating mobile games.
 Platform:Mobile
 Navigation:platform
+version: 4.9
 
 [REGION:banner]
 ![](mobile_banner.png)

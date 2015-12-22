@@ -3,6 +3,7 @@ Title: Post Process Effects
 Crumbs: %ROOT%, Engine
 Description:Effects applied to the whole rendered scene prior to being rendered.
 Navigation:topic
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -74,7 +75,7 @@ The properties found in the PostProcessVolume are explained below:
 
 ### Post Process Settings
 
-The post process settings are all of the properties of the various post process effects that can be controlled or overridden. These properties are declared in the `UScene` class. The **PostProcessVolume** contains a `FPostProcessSettings` struct as its `Settings` property that contains all of these properties and allows them to be overridden by the volume.
+The post process settings are all of the properties of the various post process effects that can be controlled or overridden. These properties are declared in the `UScene` class. The **PostProcessVolume** contains an `FPostProcessSettings` struct as its `Settings` property that contains all of these properties and allows them to be overridden by the volume.
 
 For descriptions of each of the available settings, see the page for the corresponding effect below.
 

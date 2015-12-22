@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	FBuildPatchDownloader.h: Declares the BuildPatchChunkDownloader
@@ -94,8 +94,23 @@ private:
 
 private:
 
+	// Config count allowed for retries
+	const int32 MaxRetryCount;
+
+	// Config array for retry times
+	const TArray<float> RetryDelayTimes;
+
+	// Config array for health percentages
+	const TArray<float> HealthPercentages;
+
+	// Config for disconnected delay
+	const float DisconnectedDelay;
+
 	// The directory to save data to
 	const FString SaveDirectory;
+
+	// The base url for downloads
+	const FString CloudDirectory;
 
 	// The Manifest that is being installed
 	const FBuildPatchAppManifestRef InstallManifest;
@@ -112,11 +127,20 @@ private:
 	// A flag marking whether the thread is idle waiting for jobs
 	bool bIsIdle;
 
+	// A flag marking whether the thread is failing all current requests
+	bool bIsDisconnected;
+
 	// A flag that says whether more chunks could still be queued
 	bool bWaitingForJobs;
 
-	// A critical section to protect the flags
+	// The current overall download success rate
+	double ChunkSuccessRate;
+
+	// A critical section to protect the flags and rate
 	FCriticalSection FlagsLock;
+
+	// The time in cycles since we received data
+	volatile int64 CyclesAtLastData;
 
 	// Store a record of each download we made for info
 	TArray< FBuildPatchDownloadRecord > DownloadRecords;
@@ -152,11 +176,12 @@ public:
 
 	/**
 	 * Constructor
-	 * @param	InSaveDirectory		The chunk save to directory
-	 * @param	InInstallManifest	The manifest being installed so we can pull info from it
-	 * @param	InBuildProgress		Pointer to the progress tracker, for setting progress and getting pause state
+	 * @param	SaveDirectory		The chunk save to directory
+	 * @param	CloudDirectory		The base path or url for the downloads
+	 * @param	InstallManifest		The manifest being installed so we can pull info from it
+	 * @param	BuildProgress		Pointer to the progress tracker, for setting progress and getting pause state
 	 */
-	FBuildPatchDownloader( const FString& InSaveDirectory, const FBuildPatchAppManifestRef& InInstallManifest, FBuildPatchProgress* InBuildProgress );
+	FBuildPatchDownloader(const FString& SaveDirectory, const FString& CloudDirectory, const FBuildPatchAppManifestRef& InstallManifest, FBuildPatchProgress* BuildProgress);
 
 	/**
 	 * Default Destructor, deletes allocated Thread
@@ -179,6 +204,12 @@ public:
 	 * @return	true if the thread completed
 	 */
 	bool IsIdle();
+
+	/**
+	 * Get whether the thread is currently failing all downloads
+	 * @return	true if the thread is not getting success responses
+	 */
+	bool IsDisconnected();
 
 	/**
 	 * Gets the array of download recordings. Should not be polled, only call when the thread has finished to gather data
@@ -235,12 +266,37 @@ public:
 	int32 GetByteDownloadCountReset();
 
 	/**
+	 * @return The currently reported download health
+	 */
+	EBuildPatchDownloadHealth GetDownloadHealth();
+
+	/**
 	 * Add some bytes to the download counter
 	 * @param	NumBytes The number of bytes to add
 	 */
 	void IncrementByteDownloadCount( const int32& NumBytes );
 
 private:
+
+	/**
+	 * @return	The desired number of retries per request, from config or default
+	 */
+	int32 LoadRetryCount() const;
+
+	/**
+	 * @return	The desired retry times, from config or default
+	 */
+	TArray<float> LoadRetryTimes() const;
+
+	/**
+	 * @return	The amount of time with no data received to consider a disconnected state
+	 */
+	float LoadDisconnectDelay() const;
+
+	/**
+	 * @return	The percentages used to determine the health status
+	 */
+	TArray<float> LoadHealthPercentages() const;
 
 	/**
 	 * Sets the bIsRunning flag
@@ -259,6 +315,18 @@ private:
 	 * @param bIdle	Whether the thread is waiting for jobs
 	 */
 	void SetIdle( bool bIdle );
+
+	/**
+	 * Sets the bIsDisconnected flag
+	 * @param bIsDisconnected	Whether the thread is stalling on all requests
+	 */
+	void SetIsDisconnected(bool bIsDisconnected);
+
+	/**
+	 * Sets the current request success rate
+	 * @param SuccessRate	The rate of success from 0.0f to 1.0f
+	 */
+	void SetSuccessRate(double SuccessRate);
 
 	/**
 	 * Gets whether the thread still has work to do
@@ -306,17 +374,25 @@ private:
 	 */
 	bool GetNextDownload( FGuid& Guid );
 
+	/**
+	 * Get the required retry delay for a chunk retry.
+	 * @param RetryCount	The retry number
+	 * @return	The required retry delay in seconds
+	 */
+	float GetRetryDelay(int32 RetryCount);
+
 	/* Here we have static access for the singleton
 	*****************************************************************************/
 public:
 
 	/**
 	 * Creates the singleton downloader system. Takes the arguments required for construction.
-	 * @param	InSaveDirectory		The chunk save to directory
-	 * @param	InInstallManifest	The manifest being installed so we can pull info from it
-	 * @param	InBuildProgress		Pointer to the progress tracker, for setting progress and getting pause state
+	 * @param	SaveDirectory		The chunk save to directory
+	 * @param	CloudDirectory		The base path or url for the downloads
+	 * @param	InstallManifest		The manifest being installed so we can pull info from it
+	 * @param	BuildProgress		Pointer to the progress tracker, for setting progress and getting pause state
 	 */
-	static void Create( const FString& InSaveDirectory, const FBuildPatchAppManifestRef& InInstallManifest, FBuildPatchProgress* InBuildProgress );
+	static void Create(const FString& SaveDirectory, const FString& CloudDirectory, const FBuildPatchAppManifestRef& InstallManifest, FBuildPatchProgress* BuildProgress);
 
 	/**
 	 * Get the singleton class object. Must only be called between Create and Shutdown calls otherwise the code will assert.

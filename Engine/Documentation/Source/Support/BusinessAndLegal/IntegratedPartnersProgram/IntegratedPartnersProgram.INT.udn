@@ -2,8 +2,11 @@ Availability:Licensee
 Title: Integrated Partners Program
 Crumbs:%ROOT%, Support/BusinessAndLegal
 Description:Program for companies that have integrated products into Unreal Engine 4. Includes a list of all current program members.
+Version: 4.9
 
+[Region:raw]
 ![Integrated Partners Program](IPP.png)
+[/Region]
 
 Epic Games has established the Integrated Partners Program (IPP) for the purposes of having a formal business relationship with selected companies making cross-platform technologies which integrate with, and are complementary to, Unreal Engine 4 (UE4). Under the IPP program, Epic provides continuous UE4 source code access and full technical support to IPP members. Companies who join the IPP agree to provide a high level of technical support for UE4 licensees through Epic's established support channels, keep their implementations up-to-date with the latest UE4 versions, and work with Epic on potential promotional and co-marketing efforts. The IPP program will make it easier for Unreal Engine 4 licensees to incorporate 3rd party middleware solutions from IPP vendors into their games.
 

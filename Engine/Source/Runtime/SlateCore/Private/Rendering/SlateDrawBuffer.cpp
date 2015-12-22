@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateCorePrivatePCH.h"
 
@@ -19,7 +19,7 @@ FSlateWindowElementList& FSlateDrawBuffer::AddWindowElementList(TSharedRef<SWind
 			WindowElementLists.Add(WindowElements);
 			WindowElementListsPool.RemoveAtSwap(WindowIndex);
 
-			WindowElements->Reset();
+			WindowElements->ResetBuffers();
 
 			return *WindowElements;
 		}
@@ -56,7 +56,10 @@ void FSlateDrawBuffer::ClearBuffer()
 	// Move all the window elements back into the pool.
 	for ( TSharedPtr<FSlateWindowElementList> ExistingList : WindowElementLists )
 	{
-		WindowElementListsPool.Add(ExistingList);
+		if( ExistingList->GetWindow().IsValid() )
+		{
+			WindowElementListsPool.Add(ExistingList);
+		}
 	}
 
 	WindowElementLists.Reset();

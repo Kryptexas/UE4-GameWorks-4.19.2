@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Sound/SoundNode.h"
@@ -27,7 +27,7 @@ private:
 	};
 
 public:
-	// Begin USoundNode interface.
+	//~ Begin USoundNode Interface.
 	virtual void ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) override;
 	virtual int32 GetMaxChildNodes( void ) const override 
 	{ 
@@ -47,7 +47,7 @@ public:
 	virtual FText GetInputPinName(int32 PinIndex) const override;
 	virtual FText GetTitle() const override;
 #endif //WITH_EDITOR
-	// End USoundNode interface.
+	//~ End USoundNode Interface.
 };
 
 

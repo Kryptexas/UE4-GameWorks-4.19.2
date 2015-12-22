@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "SDPIScaler.h"
@@ -6,6 +6,8 @@
 SDPIScaler::SDPIScaler()
 : ChildSlot()
 {
+	bCanTick = false;
+	bCanSupportFocus = false;
 }
 
 void SDPIScaler::Construct( const FArguments& InArgs )

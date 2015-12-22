@@ -91,7 +91,7 @@ Description:Using Blueprints to supplement or replace C++ functionality.
     [/PARAM]
     [PARAM:content]
 		**Countdown.h**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -132,7 +132,7 @@ Description:Using Blueprints to supplement or replace C++ functionality.
 
 
 		**Countdown.cpp**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_VTE.h"
 			#include "Countdown.h"

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
  	IOSAudioDevice.cpp: Unreal IOSAudio audio interface object.
@@ -34,27 +34,17 @@ IMPLEMENT_MODULE(FIOSAudioDeviceModule, IOSAudio);
 void FIOSAudioDevice::ResumeContext()
 {
 	int32& SuspendCounter = GetSuspendCounter();
-    if (SuspendCounter > 0)
-    {
-        FPlatformAtomics::InterlockedDecrement(&SuspendCounter);
+	FPlatformAtomics::InterlockedDecrement(&SuspendCounter);
 
-        AUGraphStart(AudioUnitGraph);
-        AudioOutputUnitStart(OutputUnit);
-        UE_LOG(LogIOSAudio, Display, TEXT("Resuming Audio"));
-    }
+    AUGraphStart(AudioUnitGraph);
 }
 
 void FIOSAudioDevice::SuspendContext()
 {
 	int32& SuspendCounter = GetSuspendCounter();
-    if (SuspendCounter == 0)
-    {
-        FPlatformAtomics::InterlockedIncrement(&SuspendCounter);
+	FPlatformAtomics::InterlockedIncrement(&SuspendCounter);
 
-        AudioOutputUnitStop(OutputUnit);
-        AUGraphStop(AudioUnitGraph);
-        UE_LOG(LogIOSAudio, Display, TEXT("Suspending Audio"));
-    }
+    AUGraphStop(AudioUnitGraph);
 }
 
 int32& FIOSAudioDevice::GetSuspendCounter()
@@ -207,7 +197,7 @@ bool FIOSAudioDevice::InitializeHardware()
 
 	// Initialize and start the audio unit graph
 	Status = AUGraphInitialize(AudioUnitGraph);
-	if (Status == noErr && GetSuspendCounter() == 0)
+	if (Status == noErr)
 	{
 		Status = AUGraphStart(AudioUnitGraph);
 	}

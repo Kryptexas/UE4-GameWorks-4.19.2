@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraEditorPrivatePCH.h"
 #include "NiagaraEffect.h"
@@ -78,24 +78,21 @@ void FNiagaraEffectEditor::InitNiagaraEffectEditor(const EToolkitMode::Type Mode
 {
 	Effect = InEffect;
 	check(Effect != NULL);
-	EffectInstance = new FNiagaraEffectInstance(InEffect);
+	EffectInstance = MakeShareable(new FNiagaraEffectInstance(InEffect));
 
 	const float InTime = -0.02f;
 	const float OutTime = 3.2f;
 
 	if (!Sequencer.IsValid())
 	{
-		MovieScene = NewObject<UMovieScene>(InEffect, FName("Niagara Effect MovieScene"), RF_RootSet);
+		MovieScene = NewObject<UMovieScene>(InEffect, FName("Niagara Effect MovieScene"));
+		MovieScene->AddToRoot();
 		auto NewAnimation = NewObject<UNiagaraSequence>(MovieScene);
-		MovieScene->StartTime = InTime;
-		MovieScene->InTime = InTime;
-		MovieScene->OutTime = OutTime;
-		MovieScene->EndTime = OutTime;
+		MovieScene->SetPlaybackRange(InTime, OutTime);
 		NewAnimation->MovieScene = MovieScene;
 
 		FSequencerViewParams ViewParams(TEXT("NiagaraSequencerSettings"));
 		{
-			ViewParams.InitalViewRange = TRange<float>(InTime, OutTime);
 			ViewParams.InitialScrubPosition = 0;
 		}
 
@@ -113,13 +110,10 @@ void FNiagaraEffectEditor::InitNiagaraEffectEditor(const EToolkitMode::Type Mode
 
 		for (TSharedPtr<FNiagaraSimulation> Emitter : EffectInstance->GetEmitters())
 		{
-			UEmitterMovieSceneTrack *Track = Cast<UEmitterMovieSceneTrack> (MovieScene->AddMasterTrack(UEmitterMovieSceneTrack::StaticClass()) );
-			 Track->SetEmitter(Emitter);
+			UEmitterMovieSceneTrack *Track = MovieScene->AddMasterTrack<UEmitterMovieSceneTrack>();
+			Track->SetEmitter(Emitter);
 		}
 	}
-
-
-
 
 	TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_Niagara_Effect_Layout_v7")
 		->AddArea
@@ -190,21 +184,22 @@ FLinearColor FNiagaraEffectEditor::GetWorldCentricTabColorScale() const
 	return FLinearColor(0.0f, 0.0f, 0.2f, 0.5f);
 }
 
+void FNiagaraEffectEditor::NotifyPreChange(UProperty* PropertyAboutToChanged)
+{
+	Viewport->GetPreviewComponent()->UnregisterComponent();
+}
+
 void FNiagaraEffectEditor::NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged)
 {
-	//Rebuild the effect after every edit.
-// 	if (EffectInstance)
-// 	{
-// 		EffectInstance->Init();
-// 	}
+	Viewport->GetPreviewComponent()->RegisterComponent();
 }
 
 /** Create new tab for the supplied graph - don't call this directly, call SExplorer->FindTabForGraph.*/
 TSharedRef<SNiagaraEffectEditorWidget> FNiagaraEffectEditor::CreateEditorWidget(UNiagaraEffect* InEffect)
 {
 	check(InEffect != NULL);
-	EffectInstance = new FNiagaraEffectInstance(InEffect);
-
+	EffectInstance = MakeShareable(new FNiagaraEffectInstance(InEffect));
+	
 	if (!EditorCommands.IsValid())
 	{
 		EditorCommands = MakeShareable(new FUICommandList);
@@ -234,7 +229,7 @@ TSharedRef<SNiagaraEffectEditorWidget> FNiagaraEffectEditor::CreateEditorWidget(
 		
 		
 	// Make the effect editor widget
-	return SNew(SNiagaraEffectEditorWidget).EffectObj(InEffect).EffectInstance(EffectInstance).EffectEditor(this);
+	return SNew(SNiagaraEffectEditorWidget).EffectObj(InEffect).EffectInstance(EffectInstance.Get()).EffectObj(Effect).EffectEditor(this);
 }
 
 
@@ -284,7 +279,7 @@ TSharedRef<SDockTab> FNiagaraEffectEditor::SpawnTab_EmitterList(const FSpawnTabA
 	TSharedRef<SDockTab> SpawnedTab =
 		SNew(SDockTab)
 		[
-			SAssignNew(EmitterEditorWidget, SNiagaraEffectEditorWidget).EffectInstance(EffectInstance).EffectEditor(this)
+			SAssignNew(EmitterEditorWidget, SNiagaraEffectEditorWidget).EffectInstance(EffectInstance.Get()).EffectEditor(this).EffectObj(Effect)
 		];
 
 
@@ -298,7 +293,7 @@ TSharedRef<SDockTab> FNiagaraEffectEditor::SpawnTab_DevEmitterList(const FSpawnT
 	TSharedRef<SDockTab> SpawnedTab =
 		SNew(SDockTab)
 		[
-			SAssignNew(DevEmitterEditorWidget, SNiagaraEffectEditorWidget).EffectInstance(EffectInstance).EffectEditor(this).bForDev(true)
+			SAssignNew(DevEmitterEditorWidget, SNiagaraEffectEditorWidget).EffectInstance(EffectInstance.Get()).EffectEditor(this).EffectObj(Effect).bForDev(true)
 		];
 
 
@@ -416,7 +411,7 @@ FReply FNiagaraEffectEditor::OnDuplicateEmitterClicked(TSharedPtr<FNiagaraSimula
 
 	if (UNiagaraEmitterProperties* ToDupe = Emitter->GetProperties().Get())
 	{
-		UNiagaraEmitterProperties *Props = CastChecked<UNiagaraEmitterProperties>(StaticDuplicateObject(ToDupe,Effect,NULL));
+		UNiagaraEmitterProperties *Props = CastChecked<UNiagaraEmitterProperties>(StaticDuplicateObject(ToDupe,Effect));
 		Effect->AddEmitterProperties(Props);
 		TSharedPtr<FNiagaraSimulation> NewEmitter = EffectInstance->AddEmitter(Props);
 		Effect->CreateEffectRendererProps(NewEmitter);

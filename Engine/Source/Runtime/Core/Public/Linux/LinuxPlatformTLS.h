@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 /*=============================================================================================
@@ -26,40 +26,62 @@ struct CORE_API FLinuxTLS : public FGenericPlatformTLS
 		// note: cannot use pthread_self() without updating the rest of API to opaque (or at least 64-bit) thread handles
 #if defined(_GNU_SOURCE)
 
-    #if IS_MONOLITHIC
-        // syscall() is relatively heavy and shows up in the profiler, given that IsInGameThread() is used quite often. Cache thread id in TLS.
-        static __thread uint32 ThreadIdTLS = 0;
-        if (ThreadIdTLS == 0)
-        {
-    #else
-        uint32 ThreadIdTLS;
-        {
-    #endif // IS_MONOLITHIC
-            pid_t ThreadId = static_cast<pid_t>(syscall(SYS_gettid));
-            static_assert(sizeof(pid_t) <= sizeof(uint32), "pid_t is larger than uint32, reconsider implementation of GetCurrentThreadId()");
-            ThreadIdTLS = static_cast<uint32>(ThreadId);
-            checkf(ThreadIdTLS != 0, TEXT("ThreadId is 0 - reconsider implementation of GetCurrentThreadId() (syscall changed?)"));
-        }
-        return ThreadIdTLS;
+	#if IS_MONOLITHIC
+		// syscall() is relatively heavy and shows up in the profiler, given that IsInGameThread() is used quite often. Cache thread id in TLS.
+		static __thread uint32 ThreadIdTLS = 0;
+		if (ThreadIdTLS == 0)
+		{
+	#else
+		uint32 ThreadIdTLS;
+		{
+	#endif // IS_MONOLITHIC
+			pid_t ThreadId = static_cast<pid_t>(syscall(SYS_gettid));
+			static_assert(sizeof(pid_t) <= sizeof(uint32), "pid_t is larger than uint32, reconsider implementation of GetCurrentThreadId()");
+			ThreadIdTLS = static_cast<uint32>(ThreadId);
+			checkf(ThreadIdTLS != 0, TEXT("ThreadId is 0 - reconsider implementation of GetCurrentThreadId() (syscall changed?)"));
+		}
+		return ThreadIdTLS;
 
 #else
-        // better than nothing...
-        static_assert(sizeof(uint32) == sizeof(pthread_t), "pthread_t cannot be converted to uint32 one to one - different number of bits. Review FLinuxTLS::GetCurrentThreadId() implementation.");
-        return static_cast< uint32 >(pthread_self());
+		// better than nothing...
+		static_assert(sizeof(uint32) == sizeof(pthread_t), "pthread_t cannot be converted to uint32 one to one - different number of bits. Review FLinuxTLS::GetCurrentThreadId() implementation.");
+		return static_cast< uint32 >(pthread_self());
 #endif
 	}
 
 	/**
 	 * Allocates a thread local store slot
 	 */
-	static FORCEINLINE uint32 AllocTlsSlot(void)
+	static uint32 AllocTlsSlot(void)
 	{
 		// allocate a per-thread mem slot
 		pthread_key_t Key = 0;
-		if (pthread_key_create(&Key, NULL) != 0)
+		if (pthread_key_create(&Key, nullptr) != 0)
 		{
-			Key = 0xFFFFFFFF;  // matches the Windows TlsAlloc() retval //@todo android: should probably check for this below, or assert out instead
+			return static_cast<uint32>(INDEX_NONE); // matches the Windows TlsAlloc() retval.
 		}
+
+		// pthreads can return an arbitrary key, yet we reserve INDEX_NONE as an invalid one. Handle this very unlikely case
+		// by allocating another one first (so we get another value) and releasing existing key.
+		if (static_cast<uint32>(Key) == static_cast<uint32>(INDEX_NONE))
+		{
+			pthread_key_t NewKey = 0;
+			int SecondKeyAllocResult = pthread_key_create(&NewKey, nullptr);
+			// discard the previous one
+			pthread_key_delete((pthread_key_t)Key);
+
+			if (SecondKeyAllocResult != 0)
+			{
+				// could not alloc the second key, treat this as an error
+				return static_cast<uint32>(INDEX_NONE); // matches the Windows TlsAlloc() retval.
+			}
+
+			// check that we indeed got something different
+			checkf(NewKey != static_cast<uint32>(INDEX_NONE), TEXT("Could not allocate a usable TLS slot id."));
+
+			Key = NewKey;
+		}
+
 		return Key;
 	}
 

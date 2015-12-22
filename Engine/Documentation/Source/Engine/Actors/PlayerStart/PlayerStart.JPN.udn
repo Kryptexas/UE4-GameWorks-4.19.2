@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2612791
+﻿INTSourceChangelist:2651255
 Availability:Public
 Title:Player Start
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:Player Start 使用のガイド
+バージョン：4.9
 
 ![](Player_Start_Actor.png)
 
@@ -11,7 +12,7 @@ Description:Player Start 使用のガイド
 
 ## Player Start アクタを配置する
 
-Player Start アクタは、[Mode (モード)] パネルの [Basic (基本)] カテゴリにあります。Player Start アクタをワールドに配置するには、**[Mode]** パネルからゲームワールドにドラッグするだけです。
+Player Start アクタは、**[Mode (モード)]** パネルの **[Basic (基本)]** カテゴリにあります。ワールドにこのアクタを配置するには、 **[Modes (モード)]** パネルからゲーム ワールドにドラッグします。
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -21,7 +22,7 @@ Player Start アクタは、[Mode (モード)] パネルの [Basic (基本)] カ
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-DeMIl0BgRtw
+fXX07XG5qW8
 [/PARAMLITERAL]
 [/OBJECT]
 
@@ -39,11 +40,11 @@ Player Start の使用は非常に単純ですが、開発中に役立ついく�
 
  **Player Start なし:** Player Start をワールドに追加せずにゲームをプレイしようとすると、プレイヤーはワールドの 0,0,0 から開始します。従って、必ずワールドに Player Start を配置するようにします。
 
- **Player From Here を右クリック:** Player Start からではなく任意の場所からプレイしたい場合もあることでしょう。これは、エディタ ビューポートで **右クリック** して利用可能な **Play From Here** オプションを選択し、**右クリック** して行います。 
+ ** Play From Here (ここからプレイ):** Player Start からではなく任意の場所からプレイしたい場合もあることでしょう。これを行うには、エディタ ビューポートで **右クリック** して **[Play From Here]** オプションを選択します。 
 
 ![](Right_Click_Play.png)
 
-** Bad Size:** Player Start が、コントローラのアイコンから Bad Size というアイコンに変わる場合があります。その場合、Player Start をワールド内で移動し、シーン内にあるものと交差しないようにします。
+** Bad Size:** Player Start が、コントローラのアイコンから "BADsize" というアイコンに変わる場合があります。その場合、シーン内にあるものと交差しないようになるまで、Player Start をワールド内で移動します。
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]

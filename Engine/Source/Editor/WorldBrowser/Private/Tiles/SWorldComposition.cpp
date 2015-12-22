@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #include "WorldBrowserPrivatePCH.h"
 #include "SNodePanel.h"
 #include "GraphEditor.h"
@@ -456,7 +456,7 @@ public:
 							{
 								const FVector2D AnchorNodeOldPos = NodeBeingDragged->GetPosition();
 								const FVector2D DeltaPos = AnchorNodeNewPos - AnchorNodeOldPos;
-								if (DeltaPos.Size() > KINDA_SMALL_NUMBER)
+								if (DeltaPos.SizeSquared() > FMath::Square(KINDA_SMALL_NUMBER))
 								{
 									MoveSelectedNodes(NodeBeingDragged, AnchorNodeNewPos);
 								}

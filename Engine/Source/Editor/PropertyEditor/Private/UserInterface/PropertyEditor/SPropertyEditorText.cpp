@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyEditorPrivatePCH.h"
 #include "SPropertyEditorText.h"
@@ -18,6 +18,8 @@ void SPropertyEditorText::Construct( const FArguments& InArgs, const TSharedRef<
 	TSharedPtr<SHorizontalBox> HorizontalBox;
 
 	bIsFNameProperty = Property->IsA<UNameProperty>();
+
+	bool bIsPassword = Property->GetBoolMetaData("PasswordField");
 
 	bIsMultiLine = Property->GetBoolMetaData("MultiLine");
 	if(bIsMultiLine)
@@ -39,6 +41,7 @@ void SPropertyEditorText::Construct( const FArguments& InArgs, const TSharedRef<
 				.IsReadOnly(this, &SPropertyEditorText::IsReadOnly)
 				.AutoWrapText(true)
 				.ModiferKeyForNewLine(EModifierKey::Shift)
+				.IsPassword( bIsPassword )
 			]
 		];
 
@@ -61,7 +64,7 @@ void SPropertyEditorText::Construct( const FArguments& InArgs, const TSharedRef<
 				.OnTextChanged( this, &SPropertyEditorText::OnSingleLineTextChanged )
 				.SelectAllTextOnCommit( true )
 				.IsReadOnly(this, &SPropertyEditorText::IsReadOnly)
-			
+				.IsPassword( bIsPassword )
 			]
 		];
 
@@ -182,3 +185,5 @@ bool SPropertyEditorText::IsReadOnly() const
 {
 	return !CanEdit();
 }
+
+#undef LOCTEXT_NAMESPACE

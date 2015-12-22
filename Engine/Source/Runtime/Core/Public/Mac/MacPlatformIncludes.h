@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*================================================================================
 	MacPlatformIncludes.h: Includes the platform specific headers for Mac
@@ -25,7 +25,6 @@
 #include "Mac/MacPlatformSplash.h"
 #include "Apple/ApplePlatformFile.h"
 #include "Mac/MacPlatformSurvey.h"
-#include "Mac/MacPlatformHttp.h"
 
 typedef FGenericPlatformRHIFramePacer FPlatformRHIFramePacer;
 

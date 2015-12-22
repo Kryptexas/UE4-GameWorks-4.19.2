@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*================================================================================
 	LinuxPlatformIncludes.h: Includes the platform specific headers for Linux
@@ -25,7 +25,6 @@
 #include "Linux/LinuxPlatformSplash.h"
 #include "Linux/LinuxPlatformFile.h"
 #include "Linux/LinuxPlatformSurvey.h"
-#include "Linux/LinuxPlatformHttp.h"
 
 typedef FGenericPlatformRHIFramePacer FPlatformRHIFramePacer;
 

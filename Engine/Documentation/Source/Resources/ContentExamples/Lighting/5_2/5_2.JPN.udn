@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2618678
+﻿INTSourceChangelist:2716791
 Availability:Public
 Title:5.2 - Lightsource Radius
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
-Description:ライティングのサンプル レベル、5.2：Lightsource Radius (反射への影響)
+Description:ライティングのサンプル レベルの概要、サンプル 5.2：Lightsource Radius (反射への影響)
 Related:Engine/Rendering/LightingAndShadows/Basics
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Point
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Spot
@@ -12,6 +12,25 @@ Related:Engine/Rendering/LightingAndShadows/Lightmass
 Related:Engine/Rendering/LightingAndShadows/Shadows
 Related:Engine/Rendering/LightingAndShadows/IndirectLightingCache
 Related:Engine/Rendering/LightingAndShadows/LightMobility
+Version:4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/Lighting/5_1 "%Resources/ContentExamples/Lighting/5_1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[ライティングのホーム](Resources/ContentExamples/Lighting)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/Lighting/5_3 "%Resources/ContentExamples/Lighting/5_3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:TopicCompact]
@@ -38,7 +57,7 @@ Related:Engine/Rendering/LightingAndShadows/LightMobility
 ![%Resources\ContentExamples\Lighting\5_2:title%](Resources\ContentExamples\Lighting\Lighting_5_2.png)
 [/REGION]
 
-この例は非静的 (固定または可動) ライト上に及ぼす **Source Radius** の影響を示します。特にスペキュラ反射に与える影響を紹介します。Source Radius は光源のサイズをシミュレートするため、ライトの反射が相互関係を示すために大きさを変更することは理にかなっています。
+このサンプルは、非静的な (Stationary (固定) または Movable (可動)) ライト上に及ぼす **Source Radius** の影響、特にスペキュラ反射に与える影響が示されています。Source Radius は光源のサイズをシミュレートするため、ライトの反射が相互関係を示すために大きさを変更することは理にかなっています。
 
 
 

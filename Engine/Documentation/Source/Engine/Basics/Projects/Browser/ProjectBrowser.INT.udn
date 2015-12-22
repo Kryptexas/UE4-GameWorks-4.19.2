@@ -5,6 +5,8 @@ Description:Illustrates using the Project Browser to create new projects, open e
 Related: GettingStarted
 Related: GettingStarted/HowTo
 Related: Engine/Content/Packs
+Version: 4.9
+SkillLevel:Beginner
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -29,16 +31,16 @@ When you first run Unreal Editor, the **Project Browser** will appear.
 
 ![](ProjectBrowserBoth.png)(w:800)
 
-The **Project Browser** provides a jumping off point from which you can create projects, open your existing projects, or open sample content like sample games and Showcases.
+The Project Browser provides a jumping off point from which you can create projects, open your existing projects, or open sample content like sample games and Showcases.
 
 
 [REGION:tip]
-To bypass the **Project Browser** and instantly open the editor for a specific game, you can pass the name of the game as a command line argument to the executable. 
+To bypass the Project Browser and instantly open the editor for a specific game, you can pass the name of the game as a command line argument to the executable. 
 [/REGION]
 
 ## Opening Projects
 
-The first tab in the **Project Browser** is the **Projects** tab. 
+The first tab in the Project Browser is the **Projects** tab. 
 
 ![](OpenProject_single.png)(w:800)
 
@@ -58,18 +60,18 @@ You can also click on the **Browse...** button to navigate your computer and sel
 In the **Projects** tab, you can check the **Always load last project on startup** checkbox to automatically open your most recent project and skip the **Project Browser**. To change
 this setting in-editor: 
 1. Open the [Editor Preferences](Engine/UI/EditorSettings) window.
-1. Navigate to **General > Loading & Saving**.
+1. Navigate to **General** > **Loading & Saving**.
 1. Under the **Startup** heading, toggle **Load the Most Recently Loaded Project at Startup**.
 [/REGION]
 
-This tab also opens when you select **File > Open Project** from within Unreal Editor.
+This tab also opens when you select **File** > **Open Project** from within Unreal Editor.
 
 ![](open_project_menu.png)
 
 ## Creating New Projects
 
 [EXCERPT:creatingprojects]
-The second tab in the **Project Browser** is the **New Project** tab. 
+The second tab in the Project Browser is the **New Project** tab. 
 
 ![](NewProject_FPSExample.png)(w:800)
 
@@ -90,7 +92,7 @@ _Blueprints Only_ projects can be extended with C++ code, it is simple to add Bl
 
 **To create a new project:**
 1. Select a template from the list.
-1. Select whether or not to copy starter content into your project.
+1. Select whether or not to copy Starter Content into your project.
 1. Enter a name for your project.
 1. Click **Create**.
 
@@ -100,7 +102,7 @@ To save your project outside of the default save location, you can click on the 
 
  Your new project will open in the editor if it is based on the Blank template or a Blueprints template, and in Visual Studio or XCode if it is based on a C++ template.
 
-This tab also opens when you select **File > New Project** from within Unreal Editor.
+This tab also opens when you select **File** > **New Project** from within Unreal Editor.
 
 ![](newprojectmenu.png)
 

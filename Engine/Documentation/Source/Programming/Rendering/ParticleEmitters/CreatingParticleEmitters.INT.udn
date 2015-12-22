@@ -24,7 +24,7 @@ The `ParticleEmitterInstance` struct contains the following public variables:
 | Variable | Overview |
 | -------- | -------- |
 | `StaticType` | This is the type identifier of the emitter instance. It is used to identify the emitter as well as provide safe casting functionality. |
-| `SpriteTemplate` | Pointer to the `UParticleSpriteEmitter` template that the instance is based on. In the case of custom emitter types, any specific data required is usually stored in the `TypeDataModule` which will be detailed later in this document. |
+| `SpriteTemplate` | Pointer to the `UParticleEmitter` template that the instance is based on. In the case of custom emitter types, any specific data required is usually stored in the `TypeDataModule` which will be detailed later in this document. |
 | `Component` | Pointer to the `UParticleSystemComponent` that _owns_ the emitter instance. |
 | `CurrentLODLevelIndex` | The index of the currently set LOD level. |
 | `CurrentLODLevel` | Pointer to the `UParticleLODLevel` that is currently active. |
@@ -66,7 +66,7 @@ The ParticleEmitterInstance struct contains the following member functions which
 | -------- | -------- |
 | [REGION:wrap]`void SetKillOnDeactivate(bool bKill)`[/REGION] | Sets the `KillOnDeactivate` flag to the given value. |
 | [REGION:wrap]`void SetKillOnCompleted(bool bKill)`[/REGION] | Sets the `bKillOnCompleted` flag to the given value. |
-| [REGION:wrap]`void InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent, bool bClearResources = true)`[/REGION] | Initializes the parameters for the structure given the provided `ParticleEmitter` template and _parent_ `ParticleSystemComponent`. |
+| [REGION:wrap]`void InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent)`[/REGION] | Initializes the parameters for the structure given the provided `ParticleEmitter` template and parent `ParticleSystemComponent`. |
 | [REGION:wrap]`void Init()`[/REGION] | Called to Initialize the instance. |
 | [REGION:wrap]`void Resize(int32 NewMaxActiveParticles, bool bSetMaxActiveCount = true)`[/REGION] | Called to resize the particle data array to the given number of `MaxActiveParticles`. |
 | [REGION:wrap]`void Tick(float DeltaTime, bool bSuppressSpawning)`[/REGION] | Tick the instance with the given time slice. If `bSuppressSpawning` is `true`, do not spawn any new particles. |
@@ -188,7 +188,7 @@ The `FParticleSpinnerEmitterInstance` custom emitter instance structure is defin
 	   /** Constructor   */
 	   FParticleSpinnerEmitterInstance();
 
-	   virtual void InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent, bool bClearResources = true);
+	   virtual void InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent);
 	   virtual void Tick(float DeltaTime, bool bSuppressSpawning);
 	   virtual void UpdateBoundingBox(float DeltaTime);
 
@@ -246,10 +246,10 @@ The following member functions are implemented for our custom emitter instance:
 [/REGION]
 [/EXCERPT:InitParameters]
 [EXCERPT:InitParametersCode]
-	void FParticleSpinnerEmitterInstance::InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent, bool bClearResources)
+	void FParticleSpinnerEmitterInstance::InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent)
 	{
 	   // Call the super InitParameters.
-	   FParticleEmitterInstance::InitParameters(InTemplate, InComponent, bClearResources);
+	   FParticleEmitterInstance::InitParameters(InTemplate, InComponent);
 
 	   // Get the type data module
 	   UParticleLODLevel* LODLevel   = InTemplate->GetCurrentLODLevel(this);

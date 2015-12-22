@@ -1,11 +1,11 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "AutomationTest.h"
 #include "Internationalization/InternationalizationMetadata.h"
 
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FMetadataTest, "System.Core.Misc.Internationalization Metadata", EAutomationTestFlags::ATF_SmokeTest)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FMetadataTest, "System.Core.Misc.Internationalization Metadata", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::SmokeFilter)
 
 bool FMetadataTest::RunTest( const FString& Parameters )
 {

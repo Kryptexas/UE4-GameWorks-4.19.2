@@ -1,16 +1,18 @@
 Availability:Public
-Title: Material Editor - How To use a Subsurface Profile in your Materials 
+Title: Material Editor - Using a Subsurface Profile in your Materials 
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description: Setting up Materials to use Subsurface Profiles as they offer a better way to render skin and wax like surfaces.
 Related: Engine/Rendering/Materials/LightingModels/SubSurfaceProfile
 Related: Engine/Rendering/Materials/LightingModels/SubSurface
 Related: Resources/ContentExamples/MaterialNodes/1_13
 Related: Resources/ContentExamples/MaterialNodes/1_7
+Version: 4.9
+SkillLevel: Intermediate
 
 [TOC(start:2)]
 
 
-The ability to rendering realistic looking human skin is a must for any modern Video Game engine. To fulfill this need, Unreal Engine 4 (UE4) now offers a shading method specifically for skin or wax like surfaces called **Subsurface Profile**. 
+The ability to render realistic looking human skin is a must for any modern Video Game engine. To fulfill this need, Unreal Engine 4 (UE4) now offers a shading method specifically for skin or wax like surfaces called **Subsurface Profile**. 
 While the Subsurface Profile shading model has similar properties to the **Subsurface** shading model, its key difference is in how it renders. 
 SubsurfaceProfile uses a rendering approach that is based in Screen Space because this helps to better display the subtle subsurface effects seen in human skin where backscattering is a secondary effect only seen in few cases like ears for example.
 The following document will cover what a Subsurface Profile is and how you can use them in your work. 
@@ -23,11 +25,23 @@ Once created, make sure that you name the Material. For this example, the Materi
 When completed, your **Content Browser** should look like this. 
 	![](SSP_Create_New_Material.png)
 
-1. Next, open up the Material by **Double-Clicking** on it in the **Content Browser** with the **Right Mouse Button**.
+1. Next, open up the Material by **Double-Clicking** on it in the **Content Browser** with the **Left Mouse Button**.
+	[REGION:lightbox]
 	![](SSP_Open_New_Material.png)
+	[/REGION]
 
 1. Now with the Material open, we need to change the Materials **Shading Model** from **Default Lit** to **Subsurface Profile**. 
-	![](SSP_Enable_Subsurface_Profile.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	QxtmqE7B_w8
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1. At this time, you can assign a **Subsurface Profile** by inputting one into the **Subsurface Profile** section in the **Details** panel.
 	![](SSP_Apply_SSP.png)
@@ -48,7 +62,7 @@ Creating Subsurface Profiles is something that can be accomplished in the follow
 
 	![](SSP_Creating_Naming_SSP.png)
 
-## Creating a Material the uses a Subsurface Profile
+## Creating a Material that uses a Subsurface Profile
 
 Now that the Material and Subsurface Profile have been created, it is now time to fill them in with data. 
 In the following steps, we will be creating a Material and a Material Instance that can make use of a Subsurface Profile.
@@ -56,7 +70,10 @@ In the following steps, we will be creating a Material and a Material Instance t
 1. The first thing that we need to do is to make sure that our Subsurface Material that was created above is open. If you have the Material open, please go on to the next step. 
    If not, to open the Material, first find it in the **Content Browser** and then **Double-Click** on it with the **Left Mouse Button** to open it up.
    When completed, you should have something like this on your screen. 
-	![](SSP_Open_New_Material.png)
+	
+	[REGION:lightbox]
+	[![](SSP_Open_New_Material.png)](SSP_Open_New_Material.png)
+	[/REGION]
 
 1. With the Material open, it is time to place down some Material Expression nodes. For this tutorial, we are going to make use of the following nodes. 
 	* **Vector Parameter** x 1
@@ -79,21 +96,44 @@ To wire a node to the main Material node, use the **Left Mouse Button** to click
 With the **Left Mouse Button** still held down, drag to the **Right** and the connection wire will appear. Keep dragging to the **Right** with the  **Left Mouse Button** still held until you come to the input you want to use on the Main Material node. 
 Once your mouse is over the input you want to use, release the **Left Mouse Button** to connect. 
 
-	![](SSP_Wire_Material_Up.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	osuR7VXYBWc
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1. Now that everything is wired up, we can now add our Subsurface Profile to the Material. 
  To do this, first find the **Subsurface Profile** input in the **Material** section of the **Details** panel. 
  Then use the **Left Mouse Button** to click in the area that says **None**. 
  When you do, you will see the Subsurface Profile that was created in the previous steps, select this profile by clicking on it. 
 	
-	![](SSP_Set_Subsurface_Profile.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	YBRE4qwtfX0
+	[/PARAMLITERAL]
+	[/OBJECT]
 	[region:note]
 	If you do not provide a Subsurface profile, a default one will be used. The default one that is used is a close approximation to Caucasian skin. 
 	[/region]
 
 1. With the Subsurface Profile applied and the Material expression linked to the main Material node, it is now time to compile the shader and get ready to make a Material Instance out of this Material. 
    When completed with the Material, it should look something like this. 
-	![](SSP_Completed_Material.png)
+	
+	[REGION:lightbox]
+	[![](SSP_Completed_Material.png)](SSP_Completed_Material.png)
+	[/REGION]
 
 ## Using a Subsurface Profile in a Material Instance
 
@@ -106,11 +146,16 @@ When completed, your **Content Browser** should look something like this.
 
 1. Now that the Material Instance has been created, open it up by using the **Left Mouse Button** to **Double-Click** on it in the **Content Browser**. Once open, you should see something that looks like this. 
 
-	![](SSP_Material_Instance.png)
+	[REGION:lightbox]
+	[![](SSP_Material_Instance.png)](SSP_Material_Instance.png)
+	[/REGION]
 
 1. To change the Subsurface Profile in a Material Instance, first make sure that you enable the **Override Subsurface Profile** and then provide the Subsurface Profile that you want to use 
 	by using the **Left Mouse  Button** to click on the **Subsurface Profile** input. Once you click on the input you should see the Subsurface Profiles that are available to choose from. 
-	![](SSP_SSP_In_Material_Instance.png)
+	
+	[REGION:lightbox]
+	[![](SSP_SSP_In_Material_Instance.png)](SSP_SSP_In_Material_Instance.png)
+	[/REGION]
 
 	[region:note]
 	If you have already supplied a Subsurface Profile in the Master Material, then you do not need to override it in the Material Instance. This is only if you wish you use a different Subsurface Profile than what is already being used. 
@@ -122,7 +167,17 @@ When completed, your **Content Browser** should look something like this.
 1. Now that the Material Instance has been created, it is now time to test out our new Material. 
 	To do this, we first need to create a new blank level to work in by going to the main menu and under the **File** option select **New Level**. 
 	When prompted what type of level to select, select the **Empty Level**. 
-	![](Engine\Rendering\Materials\HowTo\Subsurface_Scattering\SSM_Create_New_Level.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	bRuKiOW0i-w
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1. With the new level created, we need to now add some lights so that we can test how our Subsurface Material will look. The first light that we are going to add is a **Point Light**. To add a Point Light to the scene, we first need to find the Point Light which is in the **Modes** menu under the **Lights** option. Once the Point Light is located, you can add one to the screen by first selecting it with the **Left Mouse Button**  and then with the **Left Mouse Button** still held down dragging the Point Light into the scene and releasing the **Left Mouse Button** to add it. Once added to the scene, select the light by clicking on it with the **Left Mouse Button**. Then enter the following values.
 	| Property Name| Value|
@@ -139,7 +194,9 @@ When completed, your **Content Browser** should look something like this.
 
 	When completed, you should have something that looks like the following.
 
-	![](Engine\Rendering\Materials\HowTo\Subsurface_Scattering\SSM_Light_Settings.png)
+	[REGION:lightbox]
+	[![](Engine\Rendering\Materials\HowTo\Subsurface_Scattering\SSM_Light_Settings.png)](Engine\Rendering\Materials\HowTo\Subsurface_Scattering\SSM_Light_Settings.png)
+	[/REGION]
 
 1. With all of the lights added, we can now add a Static Mesh to test with. For this example, we will be using the following mesh. 
 
@@ -158,7 +215,17 @@ When completed, your **Content Browser** should look something like this.
 1. Now that the Static Mesh has been placed in the level, we can now apply our Subsurface Material to it. 
 	To do this, first find the Subsurface Material in the **Content Browser**. 
 	Once the Material has been located, Drag it from the **Content Browser** on to the mesh to apply it. 
-	![](SSP_Apply_Material_Instance.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	XU50LZ1lxMA
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 ## Adjusting a Subsurface Profile
 
@@ -180,7 +247,17 @@ When completed, your **Content Browser** should look something like this.
 	You should avoid using a vivid color here if you want to get a more complex shading variation over area you see the scattering.
 
 1. Keep in mind that you can adjust the parameters of the Subsurface Profile  in real time as demonstrated below. 
-	![](SSP_Adjusting_SSP.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	u3gFHZiKxCY
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 ## Tips & Tricks
 Because of how Subsurface Profiles render, there are a few Tips & Tricks to getting the most out of using them. 
@@ -199,7 +276,7 @@ Combining a Material Instance with a Subsurface profile is a great way to get th
  control over your results for a number of reasons.
 
 * A Material Instance allows you to tweak values in real time which makes seeing your results much quicker. 
-* You can use the **Opacity** input  to dampen the Subsurface contribution to the surface. However it is recommended that you keep this value at 1 and adjust the parameters inside the the Subsurface Profile. Only adjust this value if you find that you can not get the results you are looking for when adjusting the Subsurface Profile.
+* You can use the **Opacity** input  to dampen the Subsurface contribution to the surface. However it is recommended that you keep this value at 1 and adjust the parameters inside the Subsurface Profile. Only adjust this value if you find that you cannot get the results you are looking for when adjusting the Subsurface Profile.
 * The **Value** slider of each color picker controls the influence of the Subsurface effect. The closer that this value is set toward white, the more prominent the effect will be. While the closer the value is set to black, the less visible the effect will be.
 
 

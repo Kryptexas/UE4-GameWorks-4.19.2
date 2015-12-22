@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneToolsPrivatePCH.h"
 #include "SFloatCurveKeyEditor.h"
@@ -10,6 +10,7 @@ void SFloatCurveKeyEditor::Construct(const FArguments& InArgs)
 	Sequencer = InArgs._Sequencer;
 	OwningSection = InArgs._OwningSection;
 	Curve = InArgs._Curve;
+	IntermediateValue = InArgs._IntermediateValue;
 	ChildSlot
 	[
 		SNew(SSpinBox<float>)
@@ -33,7 +34,7 @@ void SFloatCurveKeyEditor::OnBeginSliderMovement()
 {
 	GEditor->BeginTransaction(LOCTEXT("SetFloatKey", "Set Float Key Value"));
 	OwningSection->SetFlags(RF_Transactional);
-	OwningSection->Modify();
+	OwningSection->TryModify();
 }
 
 void SFloatCurveKeyEditor::OnEndSliderMovement(float Value)
@@ -46,41 +47,49 @@ void SFloatCurveKeyEditor::OnEndSliderMovement(float Value)
 
 float SFloatCurveKeyEditor::OnGetKeyValue() const
 {
+	if ( IntermediateValue.IsSet() && IntermediateValue.Get().IsSet() )
+	{
+		return IntermediateValue.Get().GetValue();
+	}
+
 	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
 	return Curve->Eval(CurrentTime);
 }
 
 void SFloatCurveKeyEditor::OnValueChanged(float Value)
 {
-	OwningSection->Modify();
-
-	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
-	FKeyHandle CurrentKeyHandle = Curve->FindKey(CurrentTime);
-	if (Curve->IsKeyHandleValid(CurrentKeyHandle))
+	if (OwningSection->TryModify())
 	{
-		Curve->SetKeyValue(CurrentKeyHandle, Value);
-	}
-	else
-	{
-		if (Curve->GetNumKeys() == 0)
+		float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+		FKeyHandle CurrentKeyHandle = Curve->FindKey(CurrentTime);
+		if (Curve->IsKeyHandleValid(CurrentKeyHandle))
 		{
-			Curve->SetDefaultValue(Value);
+			Curve->SetKeyValue(CurrentKeyHandle, Value);
 		}
 		else
 		{
-			Curve->AddKey(CurrentTime, Value, false, CurrentKeyHandle);
-		}
+			if (Curve->GetNumKeys() == 0)
+			{
+				Curve->SetDefaultValue(Value);
+			}
+			else
+			{
+				Curve->AddKey(CurrentTime, Value, false, CurrentKeyHandle);
 
-		if (OwningSection->GetStartTime() > CurrentTime)
-		{
-			OwningSection->SetStartTime(CurrentTime);
+				MovieSceneHelpers::SetKeyInterpolation(*Curve, CurrentKeyHandle, Sequencer->GetKeyInterpolation());
+			}
+
+			if (OwningSection->GetStartTime() > CurrentTime)
+			{
+				OwningSection->SetStartTime(CurrentTime);
+			}
+			if (OwningSection->GetEndTime() < CurrentTime)
+			{
+				OwningSection->SetEndTime(CurrentTime);
+			}
 		}
-		if (OwningSection->GetEndTime() < CurrentTime)
-		{
-			OwningSection->SetEndTime(CurrentTime);
-		}
+		Sequencer->UpdateRuntimeInstances();
 	}
-	Sequencer->UpdateRuntimeInstances();
 }
 
 void SFloatCurveKeyEditor::OnValueCommitted(float Value, ETextCommit::Type CommitInfo)

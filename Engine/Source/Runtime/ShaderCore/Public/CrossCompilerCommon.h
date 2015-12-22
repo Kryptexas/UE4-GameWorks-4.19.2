@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CrossCompilerCommon.h: Common functionality between compiler & runtime.
@@ -84,7 +84,7 @@ namespace CrossCompiler
 	{
 		TArray<TArray<FPackedArrayInfo>>	PackedUniformBuffers;
 		TArray<FPackedArrayInfo>			PackedGlobalArrays;
-		FShaderResourceTable				ShaderResourceTable;
+		FShaderCompilerResourceTable		ShaderResourceTable;
 
 		uint16	InOutMask;
 		uint8	NumSamplers;

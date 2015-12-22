@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RHIStaticStates.h: RHI static state template definition.
@@ -142,10 +142,10 @@ template<ESamplerFilter Filter=SF_Point,
 	ESamplerAddressMode AddressV=AM_Clamp,
 	ESamplerAddressMode AddressW=AM_Clamp, 
 	int32 MipBias = 0,
-	// Note: setting to a different value than GSystemSettings.MaxAnisotropy is only supported in D3D11
+	// Note: setting to a different value than GSystemSettings.MaxAnisotropy is only supported in D3D11 (is that still true?)
 	// A value of 0 will use GSystemSettings.MaxAnisotropy
-	int32 MaxAnisotropy=0,
-	uint32 BorderColor=0,
+	int32 MaxAnisotropy = 1,
+	uint32 BorderColor = 0,
 	/** Only supported in D3D11 */
 	ESamplerCompareFunction SamplerComparisonFunction=SCF_Never>
 class TStaticSamplerState : public TStaticStateRHI<TStaticSamplerState<Filter,AddressU,AddressV,AddressW,MipBias,MaxAnisotropy,BorderColor,SamplerComparisonFunction>,FSamplerStateRHIRef,FSamplerStateRHIParamRef>
@@ -168,7 +168,7 @@ template<ERasterizerFillMode FillMode=FM_Solid,ERasterizerCullMode CullMode=CM_N
 class TStaticRasterizerState : public TStaticStateRHI<TStaticRasterizerState<FillMode,CullMode,bEnableLineAA>,FRasterizerStateRHIRef,FRasterizerStateRHIParamRef>
 {
 public:
-	static FRasterizerStateRHIRef CreateRHI()
+	FORCEINLINE_DEBUGGABLE static FRasterizerStateRHIRef CreateRHI()
 	{
 		FRasterizerStateInitializerRHI Initializer = { FillMode, CullMode, 0, 0, bEnableMSAA, bEnableLineAA };
 		return RHICreateRasterizerState(Initializer);
@@ -177,7 +177,7 @@ public:
 
 /** Given a fill and cull mode, returns a static rasterizer state. */
 template<bool bEnableMSAA>
-FRasterizerStateRHIParamRef GetStaticRasterizerState(ERasterizerFillMode FillMode,ERasterizerCullMode CullMode)
+FORCEINLINE_DEBUGGABLE FRasterizerStateRHIParamRef GetStaticRasterizerState(ERasterizerFillMode FillMode,ERasterizerCullMode CullMode)
 {
 	switch(FillMode)
 	{

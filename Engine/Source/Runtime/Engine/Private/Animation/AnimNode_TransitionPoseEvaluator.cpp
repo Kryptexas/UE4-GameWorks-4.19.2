@@ -1,7 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Animation/AnimNode_TransitionPoseEvaluator.h"
+#include "Animation/AnimInstanceProxy.h"
 
 /////////////////////////////////////////////////////
 // FAnimNode_TransitionPoseEvaluator
@@ -16,6 +17,8 @@ FAnimNode_TransitionPoseEvaluator::FAnimNode_TransitionPoseEvaluator()
 
 void FAnimNode_TransitionPoseEvaluator::Initialize(const FAnimationInitializeContext& Context)
 {	
+	FAnimNode_Base::Initialize(Context);
+
 	if (EvaluatorMode == EEvaluatorMode::EM_Freeze)
 	{
 		// EM_Freeze must evaluate 1 frame to get the initial pose. This cached frame will not call update, only evaluate
@@ -30,8 +33,8 @@ void FAnimNode_TransitionPoseEvaluator::Initialize(const FAnimationInitializeCon
 
 void FAnimNode_TransitionPoseEvaluator::CacheBones(const FAnimationCacheBonesContext& Context) 
 {
-	CachedPose.SetBoneContainer(&Context.AnimInstance->RequiredBones);
-	CachedCurve.InitFrom(Context.AnimInstance);
+	CachedPose.SetBoneContainer(&Context.AnimInstanceProxy->GetRequiredBones());
+	CachedCurve.InitFrom(Context.AnimInstanceProxy->GetSkelMeshComponent()->GetCachedAnimCurveMappingNameUids());
 }
 
 void FAnimNode_TransitionPoseEvaluator::Update(const FAnimationUpdateContext& Context)
@@ -71,7 +74,7 @@ bool FAnimNode_TransitionPoseEvaluator::InputNodeNeedsEvaluate() const
 	return (EvaluatorMode == EEvaluatorMode::EM_Standard) || (CacheFramesRemaining > 0);
 }
 
-void FAnimNode_TransitionPoseEvaluator::CachePose(FPoseContext& PoseToCache)
+void FAnimNode_TransitionPoseEvaluator::CachePose(const FPoseContext& PoseToCache)
 {
 	CachedPose.CopyBonesFrom(PoseToCache.Pose);
 	CachedCurve.CopyFrom(PoseToCache.Curve);

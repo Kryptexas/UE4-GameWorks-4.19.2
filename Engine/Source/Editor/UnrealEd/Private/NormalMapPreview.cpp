@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	NormalMapPreview.h: Implementation for previewing normal maps.
@@ -27,7 +27,7 @@ public:
 	/** Should the shader be cached? Always. */
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return true;
+		return !IsConsolePlatform(Platform);
 	}
 
 	/** Default constructor. */

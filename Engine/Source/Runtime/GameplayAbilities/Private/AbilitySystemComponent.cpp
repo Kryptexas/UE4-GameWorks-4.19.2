@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemComponent.h"
@@ -29,6 +29,9 @@ UAbilitySystemComponent::UAbilitySystemComponent(const FObjectInitializer& Objec
 	bWantsInitializeComponent = true;
 
 	PrimaryComponentTick.bStartWithTickEnabled = true; // FIXME! Just temp until timer manager figured out
+	bAutoActivate = true;	// Forcing AutoActivate since above we manually force tick enabled.
+							// if we don't have this, UpdateShouldTick() fails to have any effect
+							// because we'll be receiving ticks but bIsActive starts as false
 
 	ActiveGameplayCues.Owner = this;
 
@@ -106,6 +109,20 @@ bool UAbilitySystemComponent::HasAttributeSetForAttribute(FGameplayAttribute Att
 	return (Attribute.IsValid() && (Attribute.IsSystemAttribute() || GetAttributeSubobject(Attribute.GetAttributeSetClass()) != nullptr));
 }
 
+void UAbilitySystemComponent::GetAllAttributes(OUT TArray<FGameplayAttribute>& Attributes)
+{
+	for (UAttributeSet* Set : SpawnedAttributes)
+	{
+		for ( TFieldIterator<UProperty> It(Set->GetClass()); It; ++It)
+		{
+			if (UFloatProperty* FloatProperty = Cast<UFloatProperty>(*It))
+			{
+				Attributes.Push( FGameplayAttribute(FloatProperty) );
+			}
+		}
+	}
+}
+
 void UAbilitySystemComponent::OnRegister()
 {
 	Super::OnRegister();
@@ -125,6 +142,13 @@ void UAbilitySystemComponent::OnRegister()
 
 	/** Allocate an AbilityActorInfo. Note: this goes through a global function and is a SharedPtr so projects can make their own AbilityActorInfo */
 	AbilityActorInfo = TSharedPtr<FGameplayAbilityActorInfo>(UAbilitySystemGlobals::Get().AllocAbilityActorInfo());
+}
+
+void UAbilitySystemComponent::OnUnregister()
+{
+	Super::OnUnregister();
+
+	DestroyActiveState();
 }
 
 // ---------------------------------------------------------
@@ -148,6 +172,11 @@ void UAbilitySystemComponent::SetNumericAttributeBase(const FGameplayAttribute &
 {
 	// Go through our active gameplay effects container so that aggregation/mods are handled properly.
 	ActiveGameplayEffects.SetAttributeBaseValue(Attribute, NewFloatValue);
+}
+
+float UAbilitySystemComponent::GetNumericAttributeBase(const FGameplayAttribute &Attribute)
+{
+	return ActiveGameplayEffects.GetAttributeBaseValue(Attribute);
 }
 
 void UAbilitySystemComponent::SetNumericAttribute_Internal(const FGameplayAttribute &Attribute, float NewFloatValue)
@@ -243,7 +272,7 @@ FGameplayEffectContextHandle UAbilitySystemComponent::GetEffectContext() const
 	return Context;
 }
 
-int32 UAbilitySystemComponent::GetGameplayEffectCount(TSubclassOf<UGameplayEffect> SourceGameplayEffect, UAbilitySystemComponent* OptionalInstigatorFilterComponent)
+int32 UAbilitySystemComponent::GetGameplayEffectCount(TSubclassOf<UGameplayEffect> SourceGameplayEffect, UAbilitySystemComponent* OptionalInstigatorFilterComponent, bool bEnforceOnGoingCheck)
 {
 	int32 Count = 0;
 
@@ -271,7 +300,7 @@ int32 UAbilitySystemComponent::GetGameplayEffectCount(TSubclassOf<UGameplayEffec
 			return bMatches;
 		});
 
-		Count = ActiveGameplayEffects.GetActiveEffectCount(Query);
+		Count = ActiveGameplayEffects.GetActiveEffectCount(Query, bEnforceOnGoingCheck);
 	}
 
 	return Count;
@@ -293,13 +322,13 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::BP_ApplyGameplayEffectToTar
 {
 	if (Target == nullptr)
 	{
-		ABILITY_LOG(Error, TEXT("UAbilitySystemComponent::BP_ApplyGameplayEffectToTarget called with null Target. Context: %s"), *Context.ToString());
+		ABILITY_LOG(Log, TEXT("UAbilitySystemComponent::BP_ApplyGameplayEffectToTarget called with null Target. %s. Context: %s"), *GetFullName(), *Context.ToString());
 		return FActiveGameplayEffectHandle();
 	}
 
 	if (GameplayEffectClass == nullptr)
 	{
-		ABILITY_LOG(Error, TEXT("UAbilitySystemComponent::BP_ApplyGameplayEffectToTarget called with null GameplayEffectClass. Context: %s"), *Context.ToString());
+		ABILITY_LOG(Error, TEXT("UAbilitySystemComponent::BP_ApplyGameplayEffectToTarget called with null GameplayEffectClass. %s. Context: %s"), *GetFullName(), *Context.ToString());
 		return FActiveGameplayEffectHandle();
 	}
 
@@ -381,9 +410,20 @@ FOnActiveGameplayEffectRemoved* UAbilitySystemComponent::OnGameplayEffectRemoved
 	return nullptr;
 }
 
-FOnActiveGameplayEffectRemoved& UAbilitySystemComponent::OnAnyGameplayEffectRemovedDelegate()
+FOnGivenActiveGameplayEffectRemoved& UAbilitySystemComponent::OnAnyGameplayEffectRemovedDelegate()
 {
 	return ActiveGameplayEffects.OnActiveGameplayEffectRemovedDelegate;
+}
+
+FOnActiveGameplayEffectStackChange* UAbilitySystemComponent::OnGameplayEffectStackChangeDelegate(FActiveGameplayEffectHandle Handle)
+{
+	FActiveGameplayEffect* ActiveEffect = ActiveGameplayEffects.GetActiveGameplayEffect(Handle);
+	if (ActiveEffect)
+	{
+		return &ActiveEffect->OnStackChangeDelegate;
+	}
+
+	return nullptr;
 }
 
 int32 UAbilitySystemComponent::GetNumActiveGameplayEffects() const
@@ -526,6 +566,11 @@ void UAbilitySystemComponent::UpdateTagMap(const FGameplayTagContainer& Containe
 	}
 }
 
+void UAbilitySystemComponent::ResetTagMap()
+{
+	GameplayTagCountContainer.Reset();
+}
+
 void UAbilitySystemComponent::NotifyTagMap_StackCountChange(const FGameplayTagContainer& Container)
 {
 	for (auto TagIt = Container.CreateConstIterator(); TagIt; ++TagIt)
@@ -596,7 +641,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 		return FActiveGameplayEffectHandle();
 	}
 
-	// Check AttributeSet requirements: do we have everything this GameplayEffectSpec expects?
+	// Check AttributeSet requirements: make sure all attributes are valid
 	// We may want to cache this off in some way to make the runtime check quicker.
 	// We also need to handle things in the execution list
 	for (const FGameplayModifierInfo& Mod : Spec.Def->Modifiers)
@@ -604,11 +649,6 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 		if (!Mod.Attribute.IsValid())
 		{
 			ABILITY_LOG(Warning, TEXT("%s has a null modifier attribute."), *Spec.Def->GetPathName());
-			return FActiveGameplayEffectHandle();
-		}
-
-		if (HasAttributeSetForAttribute(Mod.Attribute) == false)
-		{
 			return FActiveGameplayEffectHandle();
 		}
 	}
@@ -635,7 +675,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	
 
 	// Clients should treat predicted instant effects as if they have infinite duration. The effects will be cleaned up later.
-	bool bTreatAsInfiniteDuration = GetOwnerRole() != ROLE_Authority && PredictionKey.IsLocalClientKey() && Spec.GetDuration() == UGameplayEffect::INSTANT_APPLICATION;
+	bool bTreatAsInfiniteDuration = GetOwnerRole() != ROLE_Authority && PredictionKey.IsLocalClientKey() && Spec.Def->DurationPolicy == EGameplayEffectDurationType::Instant;
 
 	// Make sure we create our copy of the spec in the right place
 	FActiveGameplayEffectHandle	MyHandle;
@@ -645,9 +685,8 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 
 	FGameplayEffectSpec* OurCopyOfSpec = nullptr;
 	TSharedPtr<FGameplayEffectSpec> StackSpec;
-	float Duration = bTreatAsInfiniteDuration ? UGameplayEffect::INFINITE_DURATION : Spec.GetDuration();
 	{
-		if (Duration != UGameplayEffect::INSTANT_APPLICATION)
+		if (Spec.Def->DurationPolicy != EGameplayEffectDurationType::Instant || bTreatAsInfiniteDuration)
 		{
 			AppliedEffect = ActiveGameplayEffects.ApplyGameplayEffectSpec(Spec, PredictionKey);
 			if (!AppliedEffect)
@@ -716,7 +755,14 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	// Execute the GE at least once (if instant, this will execute once and be done. If persistent, it was added to ActiveGameplayEffects above)
 	
 	// Execute if this is an instant application effect
-	if (Duration == UGameplayEffect::INSTANT_APPLICATION)
+	if (bTreatAsInfiniteDuration)
+	{
+		// This is an instant application but we are treating it as an infinite duration for prediction. We should still predict the execute GameplayCUE.
+		// (in non predictive case, this will happen inside ::ExecuteGameplayEffect)
+
+		UAbilitySystemGlobals::Get().GetGameplayCueManager()->InvokeGameplayCueExecuted_FromSpec(this, *OurCopyOfSpec, PredictionKey);
+	}
+	else if (Spec.Def->DurationPolicy == EGameplayEffectDurationType::Instant)
 	{
 		if (OurCopyOfSpec->Def->OngoingTagRequirements.IsEmpty())
 		{
@@ -726,13 +772,6 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 		{
 			ABILITY_LOG(Warning, TEXT("%s is instant but has tag requirements. Tag requirements can only be used with gameplay effects that have a duration. This gameplay effect will be ignored."), *Spec.Def->GetPathName());
 		}
-	}
-	else if (bTreatAsInfiniteDuration)
-	{
-		// This is an instant application but we are treating it as an infinite duration for prediction. We should still predict the execute GameplayCUE.
-		// (in non predictive case, this will happen inside ::ExecuteGameplayEffect)
-
-		UAbilitySystemGlobals::Get().GetGameplayCueManager()->InvokeGameplayCueExecuted_FromSpec(this, *OurCopyOfSpec, PredictionKey);
 	}
 
 	if (Spec.GetPeriod() != UGameplayEffect::NO_PERIOD && Spec.TargetEffectSpecs.Num() > 0)
@@ -756,29 +795,6 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 		ActiveGameplayEffects.RemoveActiveEffects(ClearQuery, -1);
 	}
 	
-
-	// ------------------------------------------------------
-	//	Apply Granted Abilities
-	//	
-	//	Note: Doing this before apply TargetEffectSpecs, but we could just as easily apply after.
-	//	Hedging bet for now that we are more likely to want to have 'passive ability that reacts to linked GE'
-	//	over 'need ability to activate after linked GE is applied'.
-	//	
-	//	Note2: This is allowing instant GEs to permanently grant abilities. This could be disallowed if needed.
-	// ------------------------------------------------------
-	if (bIsNetAuthority)
-	{
-		for (FGameplayAbilitySpecDef& AbilitySpecDef : OurCopyOfSpec->GrantedAbilitySpecs)
-		{
-			// Only do this is we havent assigned the ability yet! This prevents cases where stacking GEs
-			// would regrant the ability every time the stack was applied
-			if (AbilitySpecDef.AssignedHandle.IsValid() == false)
-			{
-				GiveAbility( FGameplayAbilitySpec(AbilitySpecDef, MyHandle) );
-			}
-		}	
-	}
-
 	// ------------------------------------------------------
 	// Apply Linked effects
 	// todo: this is ignoring the returned handles, should we put them into a TArray and return all of the handles?
@@ -938,6 +954,18 @@ int32 UAbilitySystemComponent::GetCurrentStackCount(FGameplayAbilitySpecHandle H
 	return 0;
 }
 
+FString UAbilitySystemComponent::GetActiveGEDebugString(FActiveGameplayEffectHandle Handle) const
+{
+	FString Str;
+
+	if (const FActiveGameplayEffect* ActiveGE = ActiveGameplayEffects.GetActiveGameplayEffect(Handle))
+	{
+		Str = FString::Printf(TEXT("%s - (Level: %.2f. Stacks: %d)"), *ActiveGE->Spec.Def->GetName(), ActiveGE->Spec.GetLevel(), ActiveGE->Spec.StackCount);
+	}
+
+	return Str;
+}
+
 FActiveGameplayEffectHandle UAbilitySystemComponent::FindActiveGameplayEffectHandle(FGameplayAbilitySpecHandle Handle) const
 {
 	for (const FActiveGameplayEffect& ActiveGE : &ActiveGameplayEffects)
@@ -956,6 +984,12 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::FindActiveGameplayEffectHan
 void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpecForRPC &Spec, EGameplayCueEvent::Type EventType)
 {
 	AActor* ActorAvatar = AbilityActorInfo->AvatarActor.Get();
+	if (ActorAvatar == nullptr)
+	{
+		// No avatar actor to call this gameplaycue on.
+		return;
+	}
+
 	if (!Spec.Def)
 	{
 		ABILITY_LOG(Warning, TEXT("InvokeGameplayCueEvent Actor %s that has no gameplay effect!"), ActorAvatar ? *ActorAvatar->GetName() : TEXT("NULL"));
@@ -964,10 +998,7 @@ void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpecFo
 	
 	float ExecuteLevel = Spec.GetLevel();
 
-	FGameplayCueParameters CueParameters;
-	CueParameters.EffectContext = Spec.GetContext();
-	CueParameters.AggregatedSourceTags = Spec.AggregatedSourceTags;
-	CueParameters.AggregatedTargetTags = Spec.AggregatedTargetTags;
+	FGameplayCueParameters CueParameters(Spec);
 
 	for (FGameplayEffectCue CueInfo : Spec.Def->GameplayCues)
 	{
@@ -995,12 +1026,7 @@ void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpecFo
 
 void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType, FGameplayEffectContextHandle EffectContext)
 {
-	FGameplayCueParameters CueParameters;
-
-	if (EffectContext.IsValid())
-	{
-		CueParameters.EffectContext = EffectContext;
-	}
+	FGameplayCueParameters CueParameters(EffectContext);
 
 	CueParameters.NormalizedMagnitude = 1.f;
 	CueParameters.RawMagnitude = 0.f;
@@ -1011,9 +1037,11 @@ void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayTag Gameplay
 void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType, const FGameplayCueParameters& GameplayCueParameters)
 {
 	AActor* ActorAvatar = AbilityActorInfo->AvatarActor.Get();
-	AActor* ActorOwner = AbilityActorInfo->OwnerActor.Get();
-
-	UAbilitySystemGlobals::Get().GetGameplayCueManager()->HandleGameplayCues(ActorAvatar, GameplayCueTag, EventType, GameplayCueParameters);
+	
+	if (ActorAvatar != nullptr)
+	{
+		UAbilitySystemGlobals::Get().GetGameplayCueManager()->HandleGameplayCues(ActorAvatar, GameplayCueTag, EventType, GameplayCueParameters);
+	}
 }
 
 void UAbilitySystemComponent::ExecuteGameplayCue(const FGameplayTag GameplayCueTag, FGameplayEffectContextHandle EffectContext)
@@ -1067,7 +1095,7 @@ void UAbilitySystemComponent::RemoveGameplayCue(const FGameplayTag GameplayCueTa
 			// Call on server here, clients get it from repnotify
 			InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Removed);
 		}
-		// Don't need to multicast broadcast this, ACtiveGameplayCues replication handles it
+		// Don't need to multicast broadcast this, ActiveGameplayCues replication handles it
 	}
 	else if (ScopedPredictionKey.IsLocalClientKey())
 	{
@@ -1148,7 +1176,7 @@ TArray<float> UAbilitySystemComponent::GetActiveEffectsTimeRemaining(const FActi
 	return ActiveGameplayEffects.GetActiveEffectsTimeRemaining(Query);
 	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
-TArray<float> UAbilitySystemComponent::GetActiveEffectsTimeRemaining(const FGameplayEffectQuery Query) const
+TArray<float> UAbilitySystemComponent::GetActiveEffectsTimeRemaining(const FGameplayEffectQuery& Query) const
 {
 	return ActiveGameplayEffects.GetActiveEffectsTimeRemaining(Query);
 }
@@ -1160,7 +1188,7 @@ TArray<float> UAbilitySystemComponent::GetActiveEffectsDuration(const FActiveGam
 	return ActiveGameplayEffects.GetActiveEffectsDuration(Query);
 	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
-TArray<float> UAbilitySystemComponent::GetActiveEffectsDuration(const FGameplayEffectQuery Query) const
+TArray<float> UAbilitySystemComponent::GetActiveEffectsDuration(const FGameplayEffectQuery& Query) const
 {
 	return ActiveGameplayEffects.GetActiveEffectsDuration(Query);
 }
@@ -1172,9 +1200,14 @@ TArray<FActiveGameplayEffectHandle> UAbilitySystemComponent::GetActiveEffects(co
 	return ActiveGameplayEffects.GetActiveEffects(Query);
 	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
-TArray<FActiveGameplayEffectHandle> UAbilitySystemComponent::GetActiveEffects(const FGameplayEffectQuery Query) const
+TArray<FActiveGameplayEffectHandle> UAbilitySystemComponent::GetActiveEffects(const FGameplayEffectQuery& Query) const
 {
 	return ActiveGameplayEffects.GetActiveEffects(Query);
+}
+
+float UAbilitySystemComponent::GetActiveEffectsEndTime(const FGameplayEffectQuery& Query) const
+{
+	return ActiveGameplayEffects.GetActiveEffectsEndTime(Query);
 }
 
 void UAbilitySystemComponent::ModifyActiveEffectStartTime(FActiveGameplayEffectHandle Handle, float StartTimeDiff)
@@ -1183,6 +1216,30 @@ void UAbilitySystemComponent::ModifyActiveEffectStartTime(FActiveGameplayEffectH
 }
 
 void UAbilitySystemComponent::RemoveActiveEffectsWithTags(const FGameplayTagContainer Tags)
+{
+	if (IsOwnerActorAuthoritative())
+	{
+		RemoveActiveEffects(FGameplayEffectQuery::MakeQuery_MatchAnyEffectTags(Tags));
+	}
+}
+
+void UAbilitySystemComponent::RemoveActiveEffectsWithSourceTags(FGameplayTagContainer Tags)
+{
+	if (IsOwnerActorAuthoritative())
+	{
+		RemoveActiveEffects(FGameplayEffectQuery::MakeQuery_MatchAnySourceTags(Tags));
+	}
+}
+
+void UAbilitySystemComponent::RemoveActiveEffectsWithAppliedTags(FGameplayTagContainer Tags)
+{
+	if (IsOwnerActorAuthoritative())
+	{
+		RemoveActiveEffects(FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(Tags));
+	}
+}
+
+void UAbilitySystemComponent::RemoveActiveEffectsWithGrantedTags(const FGameplayTagContainer Tags)
 {
 	if (IsOwnerActorAuthoritative())
 	{
@@ -1200,7 +1257,7 @@ void UAbilitySystemComponent::RemoveActiveEffects(const FActiveGameplayEffectQue
 		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	}
 }
-void UAbilitySystemComponent::RemoveActiveEffects(const FGameplayEffectQuery Query, int32 StacksToRemove)
+void UAbilitySystemComponent::RemoveActiveEffects(const FGameplayEffectQuery& Query, int32 StacksToRemove)
 {
 	if (IsOwnerActorAuthoritative())
 	{
@@ -1251,7 +1308,7 @@ bool UAbilitySystemComponent::ReplicateSubobjects(class UActorChannel *Channel, 
 
 	for (UGameplayAbility* Ability : AllReplicatedInstancedAbilities)
 	{
-		if (Ability && !Ability->HasAnyFlags(RF_PendingKill))
+		if (Ability && !Ability->IsPendingKill())
 		{
 			WroteSomething |= Channel->ReplicateSubobject(Ability, *Bunch, *RepFlags);
 		}
@@ -1301,7 +1358,6 @@ bool UAbilitySystemComponent::HasAuthorityOrPredictionKey(const FGameplayAbility
 
 void UAbilitySystemComponent::PrintAllGameplayEffects() const
 {
-	ABILITY_LOG_SCOPE(TEXT("PrintAllGameplayEffects %s"), *GetName());
 	ABILITY_LOG(Log, TEXT("Owner: %s. Avatar: %s"), *GetOwner()->GetName(), *AbilityActorInfo->AvatarActor->GetName());
 	ActiveGameplayEffects.PrintAllGameplayEffects();
 }
@@ -1329,7 +1385,17 @@ void UAbilitySystemComponent::OnGameplayEffectAppliedToSelf(UAbilitySystemCompon
 	OnGameplayEffectAppliedDelegateToSelf.Broadcast(Source, SpecApplied, ActiveHandle);
 }
 
-TArray<TWeakObjectPtr<UGameplayTask> >&	UAbilitySystemComponent::GetAbilityActiveTasks(UGameplayAbility* Ability)
+void UAbilitySystemComponent::OnPeriodicGameplayEffectExecuteOnTarget(UAbilitySystemComponent* Target, const FGameplayEffectSpec& SpecExecuted, FActiveGameplayEffectHandle ActiveHandle)
+{
+	OnPeriodicGameplayEffectExecuteDelegateOnTarget.Broadcast(Target, SpecExecuted, ActiveHandle);
+}
+
+void UAbilitySystemComponent::OnPeriodicGameplayEffectExecuteOnSelf(UAbilitySystemComponent* Source, const FGameplayEffectSpec& SpecExecuted, FActiveGameplayEffectHandle ActiveHandle)
+{
+	OnPeriodicGameplayEffectExecuteDelegateOnSelf.Broadcast(Source, SpecExecuted, ActiveHandle);
+}
+
+TArray<UGameplayTask*>&	UAbilitySystemComponent::GetAbilityActiveTasks(UGameplayAbility* Ability)
 {
 	return Ability->ActiveTasks;
 }
@@ -1337,62 +1403,258 @@ TArray<TWeakObjectPtr<UGameplayTask> >&	UAbilitySystemComponent::GetAbilityActiv
 AActor* UAbilitySystemComponent::GetAvatarActor(const UGameplayTask* Task) const
 {
 	check(AbilityActorInfo.IsValid());
-	return AbilityActorInfo->OwnerActor.Get();
+	return AbilityActorInfo->AvatarActor.Get();
+}
+
+void UAbilitySystemComponent::DebugCyclicAggregatorBroadcasts(FAggregator* Aggregator)
+{
+	ActiveGameplayEffects.DebugCyclicAggregatorBroadcasts(Aggregator);
 }
 
 // ------------------------------------------------------------------------
 
-FString ASC_CleanupName(FString Str)
+bool UAbilitySystemComponent::ServerPrintDebug_Request_Validate()
+{
+	return true;
+}
+
+void UAbilitySystemComponent::ServerPrintDebug_Request_Implementation()
+{
+	FAbilitySystemComponentDebugInfo DebugInfo;
+	DebugInfo.bShowAbilities = true;
+	DebugInfo.bShowAttributes = true;
+	DebugInfo.bShowGameplayEffects = true;
+	DebugInfo.Accumulate = true;
+
+	Debug_Internal(DebugInfo);
+
+	ClientPrintDebug_Response(DebugInfo.Strings);
+}
+
+void UAbilitySystemComponent::ClientPrintDebug_Response_Implementation(const TArray<FString>& Strings)
+{
+	ABILITY_LOG(Warning, TEXT(" "));
+	ABILITY_LOG(Warning, TEXT("Server State: "));
+
+	for (FString Str : Strings)
+	{
+		ABILITY_LOG(Warning, TEXT("%s"), *Str);
+	}
+
+
+	// Now that we've heard back from server, append his strings and broadcast the delegate
+	UAbilitySystemGlobals::Get().AbilitySystemDebugStrings.Append(Strings);
+	UAbilitySystemGlobals::Get().OnClientServerDebugAvailable.Broadcast();
+	UAbilitySystemGlobals::Get().AbilitySystemDebugStrings.Reset(); // we are done with this now. Clear it to signal that this can be ran again
+}
+
+FString UAbilitySystemComponent::CleanupName(FString Str)
 {
 	Str.RemoveFromStart(TEXT("Default__"));
 	Str.RemoveFromEnd(TEXT("_c"));
 	return Str;
 }
 
+void UAbilitySystemComponent::AccumulateScreenPos(FAbilitySystemComponentDebugInfo& Info)
+{
+	const float ColumnWidth = Info.Canvas ? Info.Canvas->ClipX * 0.4f : 0.f;
+
+	float NewY = Info.YPos + Info.YL;
+	if (NewY > Info.MaxY)
+	{
+		// Need new column, reset Y to original height
+		NewY = Info.NewColumnYPadding;
+		Info.XPos += ColumnWidth;
+	}
+	Info.YPos = NewY;
+}
+
+void UAbilitySystemComponent::DebugLine(FAbilitySystemComponentDebugInfo& Info, FString Str, float XOffset, float YOffset)
+{
+	if (Info.Canvas)
+	{
+		Info.YL = Info.Canvas->DrawText(GEngine->GetTinyFont(), Str, Info.XPos + XOffset, Info.YPos );
+		AccumulateScreenPos(Info);
+	}
+
+	if (Info.bPrintToLog)
+	{
+		FString LogStr;
+		for (int32 i=0; i < (int32)XOffset; ++i)
+		{
+			LogStr += TEXT(" ");
+		}
+		LogStr += Str;
+		ABILITY_LOG(Warning, TEXT("%s"), *LogStr);
+	}
+
+	if (Info.Accumulate)
+	{
+		FString LogStr;
+		for (int32 i=0; i < (int32)XOffset; ++i)
+		{
+			LogStr += TEXT(" ");
+		}
+		LogStr += Str;
+		Info.Strings.Add(Str);
+	}
+}
+
 void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
+	FAbilitySystemComponentDebugInfo DebugInfo;
 
-	bool bShowAttributes = true;
-	bool bShowGameplayEffects = true;
-	bool bShowAbilities = true;
-
+	if (DebugDisplay.IsDisplayOn(FName(TEXT("Attributes"))))
+	{
+		DebugInfo.bShowAbilities = false;
+		DebugInfo.bShowAttributes = true;
+		DebugInfo.bShowGameplayEffects = false;
+	}
 	if (DebugDisplay.IsDisplayOn(FName(TEXT("Ability"))))
 	{
-		bShowAbilities = true;
-		bShowAttributes = false;
-		bShowGameplayEffects = false;
+		DebugInfo.bShowAbilities = true;
+		DebugInfo.bShowAttributes = false;
+		DebugInfo.bShowGameplayEffects = false;
+	}
+	else if (DebugDisplay.IsDisplayOn(FName(TEXT("GameplayEffects"))))
+	{
+		DebugInfo.bShowAbilities = false;
+		DebugInfo.bShowAttributes = false;
+		DebugInfo.bShowGameplayEffects = true;
+	}
+
+	DebugInfo.bPrintToLog = false;
+	DebugInfo.Canvas = Canvas;
+	DebugInfo.XPos = 0.f;
+	DebugInfo.YPos = YPos;
+	DebugInfo.OriginalX = 0.f;
+	DebugInfo.OriginalY = YPos;
+	DebugInfo.MaxY = Canvas->ClipY - 150.f; // Give some padding for any non-columnizing debug output following this output
+	DebugInfo.NewColumnYPadding = 30.f;
+
+	Debug_Internal(DebugInfo);
+
+	YPos = DebugInfo.YPos;
+	YL = DebugInfo.YL;
+}
+
+void UAbilitySystemComponent::PrintDebug()
+{
+	FAbilitySystemComponentDebugInfo DebugInfo;
+	DebugInfo.bShowAbilities = true;
+	DebugInfo.bShowAttributes = true;
+	DebugInfo.bShowGameplayEffects = true;
+	DebugInfo.bPrintToLog = true;
+	DebugInfo.Accumulate = true;
+	
+
+	Debug_Internal(DebugInfo);
+
+	// Store our local strings in the global debug array. Wait for server to respond with his.
+	if (UAbilitySystemGlobals::Get().AbilitySystemDebugStrings.Num() <= 0)
+	{
+		UAbilitySystemGlobals::Get().AbilitySystemDebugStrings = DebugInfo.Strings;
+	}
+	else
+	{
+		ABILITY_LOG(Warning, TEXT("UAbilitySystemComponent::PrintDebug called while AbilitySystemDebugStrings was not empty. Still waiting for server response from a previous call?"));
+		return;
+	}
+
+	if (IsOwnerActorAuthoritative() == false)
+	{
+		// See what the server thinks
+		ServerPrintDebug_Request();
+	}
+	else
+	{
+		UAbilitySystemGlobals::Get().OnClientServerDebugAvailable.Broadcast();
+		UAbilitySystemGlobals::Get().AbilitySystemDebugStrings.Reset();
+	}
+}
+
+void UAbilitySystemComponent::Debug_Internal(FAbilitySystemComponentDebugInfo& Info)
+{
+	// Draw title at top of screen (default HUD debug text starts at 50 ypos, we can position this on top)*
+	//   *until someone changes it unknowingly
+	{
+		FString DebugTitle("");
+		// Category
+		if (Info.bShowAbilities) DebugTitle += TEXT("ABILITIES ");
+		if (Info.bShowAttributes) DebugTitle += TEXT("ATTRIBUTES ");
+		if (Info.bShowGameplayEffects) DebugTitle += TEXT("GAMEPLAYEFFECTS ");
+		// Avatar info
+		if (AvatarActor)
+		{
+			DebugTitle += FString::Printf(TEXT("for avatar %s "), *AvatarActor->GetName());
+			if (AvatarActor->Role == ROLE_AutonomousProxy) DebugTitle += TEXT("(local player) ");
+			else if (AvatarActor->Role == ROLE_SimulatedProxy) DebugTitle += TEXT("(simulated) ");
+			else if (AvatarActor->Role == ROLE_Authority) DebugTitle += TEXT("(authority) ");
+		}
+		// Owner info
+		if (OwnerActor && OwnerActor != AvatarActor)
+		{
+			DebugTitle += FString::Printf(TEXT("for owner %s "), *OwnerActor->GetName());
+			if (OwnerActor->Role == ROLE_AutonomousProxy) DebugTitle += TEXT("(autonomous) ");
+			else if (OwnerActor->Role == ROLE_SimulatedProxy) DebugTitle += TEXT("(simulated) ");
+			else if (OwnerActor->Role == ROLE_Authority) DebugTitle += TEXT("(authority) ");
+		}
+
+		if (Info.Canvas)
+		{
+			Info.Canvas->SetDrawColor(FColor::White);
+			Info.Canvas->DrawText(GEngine->GetLargeFont(), DebugTitle, Info.XPos + 4.f, 10.f, 1.5f, 1.5f);
+		}
+		else
+		{
+			DebugLine(Info, DebugTitle, 0.f, 0.f);
+		}
 	}
 
 	FGameplayTagContainer OwnerTags;
 	GetOwnedGameplayTags(OwnerTags);
 
-	Canvas->SetDrawColor(FColor::White);
-	YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("Owned Tags: %s"), *OwnerTags.ToStringSimple()), 4.f, YPos);
-	YPos += YL;
+	if (Info.Canvas) Info.Canvas->SetDrawColor(FColor::White);
+
+	DebugLine(Info, FString::Printf(TEXT("Owned Tags: %s"), *OwnerTags.ToStringSimple()), 4.f, 0.f);
 
 	if (BlockedAbilityTags.GetExplicitGameplayTags().Num() > 0)
 	{
-		YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("BlockedAbilityTags: %s"), *BlockedAbilityTags.GetExplicitGameplayTags().ToStringSimple()), 4.f, YPos);
-		YPos += YL;
+		DebugLine(Info, FString::Printf(TEXT("BlockedAbilityTags: %s"), *BlockedAbilityTags.GetExplicitGameplayTags().ToStringSimple()), 4.f, 0.f);
+		
 	}
 
 	TSet<FGameplayAttribute> DrawAttributes;
 
-	const float MaxCharHeight = GEngine->GetTinyFont()->GetMaxCharHeight();
+	float MaxCharHeight = 10;
+	if (GetOwner()->GetNetMode() != NM_DedicatedServer)
+	{
+		MaxCharHeight = GEngine->GetTinyFont()->GetMaxCharHeight();
+	}
 
 	// -------------------------------------------------------------
 
-
-	if (bShowGameplayEffects || bShowAttributes)
+	if (Info.bShowAttributes)
 	{
 		// Draw the attribute aggregator map.
 		for (auto It = ActiveGameplayEffects.AttributeAggregatorMap.CreateConstIterator(); It; ++It)
 		{
 			FGameplayAttribute Attribute = It.Key();
 			const FAggregatorRef& AggregatorRef = It.Value();
-			if(AggregatorRef.Get())
+			if (AggregatorRef.Get())
 			{
 				FAggregator& Aggregator = *AggregatorRef.Get();
+
+				bool HasActiveMod = false;
+				for (int32 ModOpIdx = 0; ModOpIdx < ARRAY_COUNT(Aggregator.Mods); ++ModOpIdx)
+				{
+					if (Aggregator.Mods[ModOpIdx].Num() > 0)
+					{
+						HasActiveMod = true;
+					}
+				}
+				if (HasActiveMod == false)
+					continue;
 
 				float FinalValue = GetNumericAttribute(Attribute);
 				float BaseValue = Aggregator.GetBaseValue();
@@ -1403,9 +1665,10 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 					AttributeString += FString::Printf(TEXT(" (Base: %.2f)"), BaseValue);
 				}
 
-				Canvas->SetDrawColor(FColor::White);
-				YL = Canvas->DrawText(GEngine->GetTinyFont(), AttributeString, 4.f, YPos);
-				YPos += YL;
+				if (Info.Canvas) Info.Canvas->SetDrawColor(FColor::White);
+				
+
+				DebugLine(Info, AttributeString, 4.f, 0.f);
 
 				DrawAttributes.Add(Attribute);
 
@@ -1415,7 +1678,7 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 					{
 						FAggregatorEvaluateParameters EmptyParams;
 						bool IsActivelyModifyingAttribute = Mod.Qualifies(EmptyParams);
-						Canvas->SetDrawColor(IsActivelyModifyingAttribute ? FColor::Yellow : FColor(128, 128, 128));
+						if (Info.Canvas) Info.Canvas->SetDrawColor(IsActivelyModifyingAttribute ? FColor::Yellow : FColor(128, 128, 128));
 
 						FActiveGameplayEffect* ActiveGE = ActiveGameplayEffects.GetActiveGameplayEffect(Mod.ActiveHandle);
 						FString SrcName = ActiveGE ? ActiveGE->Spec.Def->GetName() : FString(TEXT(""));
@@ -1426,24 +1689,23 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 							if (Mod.TargetTagReqs) SrcName += FString::Printf(TEXT("TargetTags: [%s]"), *Mod.TargetTagReqs->ToString());
 						}
 
-						YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("   %s\t %.2f - %s"), *EGameplayModOpToString(ModOpIdx), Mod.EvaluatedMagnitude, *SrcName), 7.f, YPos);
-						YPos += YL;
-
+						DebugLine(Info, FString::Printf(TEXT("   %s\t %.2f - %s"), *EGameplayModOpToString(ModOpIdx), Mod.EvaluatedMagnitude, *SrcName), 7.f, 0.f);
+						Info.NewColumnYPadding = FMath::Max<float>(Info.NewColumnYPadding, Info.YPos + Info.YL);
 					}
 				}
-				YPos += MaxCharHeight;
+				AccumulateScreenPos(Info);
 			}
 		}
 	}
 
 	// -------------------------------------------------------------
 
-	if (bShowGameplayEffects)
+	if (Info.bShowGameplayEffects)
 	{
 		for (FActiveGameplayEffect& ActiveGE : &ActiveGameplayEffects)
 		{
-			
-			Canvas->SetDrawColor(FColor::White);
+
+			if (Info.Canvas) Info.Canvas->SetDrawColor(FColor::White);
 
 			FString DurationStr = TEXT("Infinite Duration ");
 			if (ActiveGE.GetDuration() > 0.f)
@@ -1458,7 +1720,7 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 			FString StackString;
 			if (ActiveGE.Spec.StackCount > 1)
 			{
-				
+
 				if (ActiveGE.Spec.Def->StackingType == EGameplayEffectStackingType::AggregateBySource)
 				{
 					StackString = FString::Printf(TEXT("(Stacks: %d. From: %s) "), ActiveGE.Spec.StackCount, *GetNameSafe(ActiveGE.Spec.GetContext().GetInstigatorAbilitySystemComponent()->AvatarActor));
@@ -1469,20 +1731,37 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 				}
 			}
 
-			Canvas->SetDrawColor(ActiveGE.bIsInhibited ? FColor(128, 128, 128): FColor::White );
+			FString LevelString;
+			if (ActiveGE.Spec.GetLevel() > 1.f)
+			{
+				LevelString = FString::Printf(TEXT("Level: %.2f"), ActiveGE.Spec.GetLevel());
+			}
 
-			YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("%s %s %s"), *ASC_CleanupName(GetNameSafe(ActiveGE.Spec.Def)), *DurationStr, *StackString ), 4.f, YPos);
-			YPos += YL;
+			FString PredictionString;
+			if (ActiveGE.PredictionKey.IsValidKey())
+			{
+				if (ActiveGE.PredictionKey.WasLocallyGenerated() )
+				{
+					PredictionString = FString::Printf(TEXT("(Predicted and Waiting)"));
+				}
+				else
+				{
+					PredictionString = FString::Printf(TEXT("(Predicted and Caught Up)"));
+				}
+			}
+
+			if (Info.Canvas) Info.Canvas->SetDrawColor(ActiveGE.bIsInhibited ? FColor(128, 128, 128) : FColor::White);
+
+			DebugLine(Info, FString::Printf(TEXT("%s %s %s %s %s"), *CleanupName(GetNameSafe(ActiveGE.Spec.Def)), *DurationStr, *StackString, *LevelString, *PredictionString), 4.f, 0.f);
 
 			FGameplayTagContainer GrantedTags;
 			ActiveGE.Spec.GetAllGrantedTags(GrantedTags);
 			if (GrantedTags.Num() > 0)
 			{
-				YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("Granted Tags: %s"), *GrantedTags.ToStringSimple() ), 7.f, YPos);
-				YPos += YL;
+				DebugLine(Info, FString::Printf(TEXT("Granted Tags: %s"), *GrantedTags.ToStringSimple()), 7.f, 0.f);
 			}
 
-			for (int32 ModIdx=0; ModIdx < ActiveGE.Spec.Modifiers.Num(); ++ModIdx)
+			for (int32 ModIdx = 0; ModIdx < ActiveGE.Spec.Modifiers.Num(); ++ModIdx)
 			{
 				const FModifierSpec& ModSpec = ActiveGE.Spec.Modifiers[ModIdx];
 				const FGameplayModifierInfo& ModInfo = ActiveGE.Spec.Def->Modifiers[ModIdx];
@@ -1498,47 +1777,48 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 
 				if (IsActivelyModifyingAttribute == false)
 				{
-					Canvas->SetDrawColor(FColor(128, 128, 128) );
+					if (Info.Canvas) Info.Canvas->SetDrawColor(FColor(128, 128, 128));
 				}
 
-				YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("Mod: %s. %s. %.2f"), *ModInfo.Attribute.GetName(), *EGameplayModOpToString(ModInfo.ModifierOp), ModSpec.GetEvaluatedMagnitude() ), 7.f, YPos);
-				YPos += YL;
+				DebugLine(Info, FString::Printf(TEXT("Mod: %s. %s. %.2f"), *ModInfo.Attribute.GetName(), *EGameplayModOpToString(ModInfo.ModifierOp), ModSpec.GetEvaluatedMagnitude()), 7.f, 0.f);
 
-				Canvas->SetDrawColor(ActiveGE.bIsInhibited ? FColor(128, 128, 128): FColor::White );
+				if (Info.Canvas) Info.Canvas->SetDrawColor(ActiveGE.bIsInhibited ? FColor(128, 128, 128) : FColor::White);
 			}
 
-			YPos += MaxCharHeight;
+			AccumulateScreenPos(Info);
 		}
 	}
 
 	// -------------------------------------------------------------
 
-	if (bShowAttributes)
+	if (Info.bShowAttributes)
 	{
-		Canvas->SetDrawColor(FColor::White);
+		if (Info.Canvas) Info.Canvas->SetDrawColor(FColor::White);
 		for (UAttributeSet* Set : SpawnedAttributes)
 		{
 			for (TFieldIterator<UProperty> It(Set->GetClass()); It; ++It)
 			{
 				FGameplayAttribute	Attribute(*It);
 
-				if(DrawAttributes.Contains(Attribute))
+				if (DrawAttributes.Contains(Attribute))
 					continue;
 
 				if (Attribute.IsValid())
 				{
 					float Value = GetNumericAttribute(Attribute);
-					YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("%s %.2f"), *Attribute.GetName(), Value ), 4.f, YPos);
-					YPos += YL;
+
+					DebugLine(Info, FString::Printf(TEXT("%s %.2f"), *Attribute.GetName(), Value), 4.f, 0.f);
 				}
 			}
 		}
-		YPos += MaxCharHeight;
+		AccumulateScreenPos(Info);
 	}
 
 	// -------------------------------------------------------------
 
-	if (bShowAbilities)
+	bool bShowAbilityTaskDebugMessages = true;
+
+	if (Info.bShowAbilities)
 	{
 		for (const FGameplayAbilitySpec& AbilitySpec : GetActivatableAbilities())
 		{
@@ -1570,43 +1850,79 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 
 			FString InputPressedStr = AbilitySpec.InputPressed ? TEXT("(InputPressed)") : TEXT("");
 
-			Canvas->SetDrawColor(AbilityTextColor);
-			YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("%s %s %s"), *ASC_CleanupName(GetNameSafe(AbilitySpec.Ability)), *StatusText, *InputPressedStr), 4.f, YPos);
-			YPos += YL;
-	
+			if (Info.Canvas) Info.Canvas->SetDrawColor(AbilityTextColor);
+
+			DebugLine(Info, FString::Printf(TEXT("%s %s %s"), *CleanupName(GetNameSafe(AbilitySpec.Ability)), *StatusText, *InputPressedStr), 4.f, 0.f);
+
 			if (AbilitySpec.IsActive())
 			{
 				TArray<UGameplayAbility*> Instances = AbilitySpec.GetAbilityInstances();
-				for (int32 InstanceIdx=0; InstanceIdx < Instances.Num(); ++InstanceIdx)
+				for (int32 InstanceIdx = 0; InstanceIdx < Instances.Num(); ++InstanceIdx)
 				{
 					UGameplayAbility* Instance = Instances[InstanceIdx];
 					if (!Instance)
 						continue;
 
-					Canvas->SetDrawColor(FColor::White);
-					for (auto TaskPtr : Instance->ActiveTasks)
+					if (Info.Canvas) Info.Canvas->SetDrawColor(FColor::White);
+					for (UGameplayTask* Task : Instance->ActiveTasks)
 					{
-						UGameplayTask* Task = TaskPtr.Get();
 						if (Task)
 						{
-							YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("%s"), *Task->GetDebugString()), 7.f, YPos);
-							YPos += YL;
+							DebugLine(Info, FString::Printf(TEXT("%s"), *Task->GetDebugString()), 7.f, 0.f);
+
+							if (bShowAbilityTaskDebugMessages)
+							{
+								for (FAbilityTaskDebugMessage& Msg : Instance->TaskDebugMessages)
+								{
+									if (Msg.FromTask == Task)
+									{
+										DebugLine(Info, FString::Printf(TEXT("%s"), *Msg.Message), 9.f, 0.f);
+									}
+								}
+							}
+						}
+					}
+
+					bool FirstTaskMsg=true;
+					int32 MsgCount = 0;
+					for (FAbilityTaskDebugMessage& Msg : Instance->TaskDebugMessages)
+					{
+						// Cap finished task msgs to 5 per ability unless dumping to log
+						if ( ++MsgCount > 5 || Info.bPrintToLog)
+						{
+							break;
+						}
+
+						if (Instance->ActiveTasks.Contains(Msg.FromTask) == false)
+						{
+							if (FirstTaskMsg)
+							{
+								DebugLine(Info, TEXT("[FinishedTasks]"), 7.f, 0.f);
+								FirstTaskMsg = false;
+							}
+
+							DebugLine(Info, FString::Printf(TEXT("%s"), *Msg.Message), 9.f, 0.f);
 						}
 					}
 
 					if (InstanceIdx < Instances.Num() - 2)
 					{
-						Canvas->SetDrawColor(FColor(128, 128, 128));
-						YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("--------")), 7.f, YPos);
-						YPos += YL;
+						if (Info.Canvas) Info.Canvas->SetDrawColor(FColor(128, 128, 128));
+						DebugLine(Info, FString::Printf(TEXT("--------")), 7.f, 0.f);
 					}
 				}
 			}
 		}
-		YPos += MaxCharHeight;
+		AccumulateScreenPos(Info);
 	}
 
-	YL = MaxCharHeight;
+	if (Info.XPos > Info.OriginalX)
+	{
+		// We flooded to new columns, returned YPos should be max Y (and some padding)
+		Info.YPos = Info.MaxY + MaxCharHeight*2.f;
+	}
+	Info.YL = MaxCharHeight;
 }
+
 
 #undef LOCTEXT_NAMESPACE

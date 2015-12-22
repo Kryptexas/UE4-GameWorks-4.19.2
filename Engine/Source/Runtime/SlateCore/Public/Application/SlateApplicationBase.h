@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -189,6 +189,8 @@ public:
 	 */
 	virtual TSharedPtr< SWidget > GetKeyboardFocusedWidget( ) const = 0;
 
+	virtual EUINavigation GetNavigationDirectionFromKey( const FKeyEvent& InKeyEvent ) const = 0;
+
 	/**
 	* Gets the Widget that currently captures the mouse.
 	*
@@ -202,7 +204,7 @@ public:
 
 protected:
 	/**
-	 * Implementation of GetMouseCaptor which can be overriden without warnings.
+	 * Implementation of GetMouseCaptor which can be overridden without warnings.
 	 * 
 	 * @return Widget with the mouse capture
 	 */
@@ -282,14 +284,6 @@ public:
 	virtual TSharedRef<SWidget> MakeImage( const TAttribute<const FSlateBrush*>& Image, const TAttribute<FSlateColor>& Color, const TAttribute<EVisibility>& Visibility ) const = 0;
 
 	/**
-	 * Creates a tool tip with the specified string.
-	 *
-	 * @param ToolTipString The string attribute to assign to the tool tip.
-	 * @return The tool tip.
-	 */
-	virtual TSharedRef<IToolTip> MakeToolTip( const TAttribute<FString>& ToolTipString ) = 0;
-
-	/**
 	 * Creates a tool tip with the specified text.
 	 *
 	 * @param ToolTipText The text attribute to assign to the tool tip.
@@ -353,6 +347,17 @@ public:
 	 */
 	virtual void SetAllUserFocus(const FWidgetPath& InFocusPath, const EFocusCause InCause) = 0;
 
+	/**
+	 * Gets a delegate that is invoked when a global invalidate of all widgets should occur
+	 */
+	DECLARE_EVENT(FSlateApplicationBase, FOnGlobalInvalidate);
+	FOnGlobalInvalidate& OnGlobalInvalidate()  { return OnGlobalInvalidateEvent; }
+
+	/**
+	 * Notifies all invalidation panels that they should invalidate their contents
+	 * Note: this is a very expensive call and should only be done in non-performance critical situations
+	 */
+	void InvalidateAllWidgets() const;
 private:
 	/**
 	 * Implementation for active timer registration. See SWidget::RegisterActiveTimer.
@@ -386,7 +391,7 @@ public:
 	 */
 	static FSlateApplicationBase& Get( )
 	{
-		check(IsThreadSafeForSlateRendering());
+		checkSlow(IsThreadSafeForSlateRendering());
 		return *CurrentBaseApplication;
 	}
 
@@ -472,6 +477,8 @@ public:
 	}
 
 protected:
+	/** multicast delegate to broadcast when a global invalidate is requested */
+	FOnGlobalInvalidate OnGlobalInvalidateEvent;
 
 	// Gets set when Slate goes to sleep and cleared when active.
 	bool bIsSlateAsleep;

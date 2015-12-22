@@ -5,6 +5,7 @@ Description:An overview of the Water Effects that exist as a part of the Particl
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Resources/ContentExamples/EffectsGallery/1_E
 Related: Engine/Rendering/ParticleSystems/Optimization
+Version: 4.9
 
 [REGION:fullwidth]
 ![](title_Water.png)
@@ -16,7 +17,7 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 
 The following Particle Systems are the water effects that were created for this example. You are encouraged to open these up in Cascade to see how each effect was assembled.
 
-For more information on Cascade and Particle Systems, please see [the Particle Systems documentation.](Engine/Rendering/ParticleSystems)
+For more information on Cascade and Particle Systems, please see the [Particle Systems](Engine/Rendering/ParticleSystems) documentation.
 
 ### Waterfall
 

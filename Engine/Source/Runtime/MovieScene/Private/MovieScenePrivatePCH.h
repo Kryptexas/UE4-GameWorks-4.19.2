@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #ifndef MOVIE_SCENE_CORE_PRIVATE
 #define MOVIE_SCENE_CORE_PRIVATE
@@ -14,5 +14,6 @@
 #include "MovieSceneSequenceInstance.h"
 #include "IMovieSceneTrackInstance.h"
 #include "MovieSceneSequence.h"
+#include "MovieSceneCommonHelpers.h"
 
 #endif

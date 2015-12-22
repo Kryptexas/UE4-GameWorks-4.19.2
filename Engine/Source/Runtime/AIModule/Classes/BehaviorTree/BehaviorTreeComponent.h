@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -190,6 +190,7 @@ public:
 
 	/** @return true if aux node is currently active */
 	bool IsAuxNodeActive(const UBTAuxiliaryNode* AuxNode) const;
+	bool IsAuxNodeActive(const UBTAuxiliaryNode* AuxNodeTemplate, int32 InstanceIdx) const;
 
 	/** @return status of speficied task */
 	EBTTaskStatus::Type GetTaskStatus(const UBTTaskNode* TaskNode) const;

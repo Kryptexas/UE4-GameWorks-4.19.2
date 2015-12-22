@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "AI/AISystemBase.h"
@@ -23,4 +23,10 @@ FStringClassReference UAISystemBase::GetAISystemClassName()
 void UAISystemBase::StartPlay()
 {
 
+}
+
+bool UAISystemBase::ShouldInstantiateInNetMode(ENetMode NetMode)
+{
+	UAISystemBase* AISystemDefaultObject = Cast<UAISystemBase>(StaticClass()->GetDefaultObject());
+	return AISystemDefaultObject && (AISystemDefaultObject->bInstantiateAISystemOnClient == true || NetMode != NM_Client);
 }

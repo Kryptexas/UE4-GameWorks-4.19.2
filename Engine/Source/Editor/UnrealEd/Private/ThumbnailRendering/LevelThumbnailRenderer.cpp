@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "EngineModule.h"
@@ -20,8 +20,7 @@ void ULevelThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 Wid
 
 		ViewFamily.EngineShowFlags.DisableAdvancedFeatures();
 		ViewFamily.EngineShowFlags.MotionBlur = 0;
-		ViewFamily.EngineShowFlags.Lighting = 1;
-		ViewFamily.EngineShowFlags.PostProcessing = 0;
+		ViewFamily.EngineShowFlags.SetPostProcessing(false);
 
 		GetView(Level, &ViewFamily, X, Y, Width, Height);
 

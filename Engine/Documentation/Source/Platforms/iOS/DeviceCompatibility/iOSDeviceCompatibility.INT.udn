@@ -2,6 +2,7 @@ Availability:Public
 Title:iOS Device Compatibility
 Crumbs:%ROOT%, Platforms, Platforms/iOS
 Description:Device compatibility for developing with iOS.
+Version: 4.9
 
 [VAR:Retina]
 ![](%ROOT%/icon_success_16x.png)
@@ -34,6 +35,8 @@ This table lists mobile phone devices:
 | **iPhone4S** | %Retina% Retina | %NonRetina% Non-Retina | %Unsupported% Unsupported | %Unsupported% Unsupported |
 | **iPhone5** | %Retina% Retina | %Retina% Retina |%NonRetina%  Non-Retina | %Unsupported% Unsupported |
 | **iPhone5S** | %Retina% Retina | %Retina% Retina | %Retina% Retina | %Retina% Retina |
+| **iPhone6** | %Retina% Retina | %Retina% Retina | %Retina% Retina | %Retina% Retina |
+| **iPhone6 Plus** | %Retina% Retina | %Retina% Retina | %Retina% Retina | %Retina% Retina |
 [/REGION]
 
 This table lists tablet devices:

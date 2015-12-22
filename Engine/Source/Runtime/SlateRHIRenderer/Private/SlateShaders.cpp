@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateRHIRendererPrivatePCH.h"
 
@@ -12,28 +12,29 @@ IMPLEMENT_SHADER_TYPE(, FSlateElementVS, TEXT("SlateVertexShader"),TEXT("Main"),
 IMPLEMENT_SHADER_TYPE(, FSlateDebugOverdrawPS, TEXT("SlateElementPixelShader"), TEXT("DebugOverdrawMain"), SF_Pixel );
 
 #define IMPLEMENT_SLATE_PIXELSHADER_TYPE(ShaderType, bDrawDisabledEffect, bUseTextureAlpha) \
-	typedef TSlateElementPS<ESlateShader::ShaderType,bDrawDisabledEffect,bUseTextureAlpha> TSlateElementPS##ShaderType##bDrawDisabledEffect##bUseTextureAlpha; \
-	IMPLEMENT_SHADER_TYPE(template<>,TSlateElementPS##ShaderType##bDrawDisabledEffect##bUseTextureAlpha,TEXT("SlateElementPixelShader"),TEXT("Main"),SF_Pixel);
+	typedef TSlateElementPS<ESlateShader::ShaderType,bDrawDisabledEffect,bUseTextureAlpha> TSlateElementPS##ShaderType##bDrawDisabledEffect##bUseTextureAlpha##A; \
+	IMPLEMENT_SHADER_TYPE(template<>,TSlateElementPS##ShaderType##bDrawDisabledEffect##bUseTextureAlpha##A,TEXT("SlateElementPixelShader"),TEXT("Main"),SF_Pixel);
 
 /**
- * All the different permutations of shaders used by slate. Uses #defines to avoid dynamic branches                 
- */
-IMPLEMENT_SLATE_PIXELSHADER_TYPE(Default,		false, true);
-IMPLEMENT_SLATE_PIXELSHADER_TYPE(Border,		false, true);
-IMPLEMENT_SLATE_PIXELSHADER_TYPE(Default,		true, true);
-IMPLEMENT_SLATE_PIXELSHADER_TYPE(Border,		true, true);
-IMPLEMENT_SLATE_PIXELSHADER_TYPE(Default,		false, false);
-IMPLEMENT_SLATE_PIXELSHADER_TYPE(Border,		false, false);
-IMPLEMENT_SLATE_PIXELSHADER_TYPE(Default,		true, false);
-IMPLEMENT_SLATE_PIXELSHADER_TYPE(Border,		true, false);
+* All the different permutations of shaders used by slate. Uses #defines to avoid dynamic branches
+*/
+IMPLEMENT_SLATE_PIXELSHADER_TYPE(Default, false, true);
+IMPLEMENT_SLATE_PIXELSHADER_TYPE(Border, false, true);
+IMPLEMENT_SLATE_PIXELSHADER_TYPE(Default, true, true);
+IMPLEMENT_SLATE_PIXELSHADER_TYPE(Border, true, true);
+IMPLEMENT_SLATE_PIXELSHADER_TYPE(Default, false, false);
+IMPLEMENT_SLATE_PIXELSHADER_TYPE(Border, false, false);
+IMPLEMENT_SLATE_PIXELSHADER_TYPE(Default, true, false);
+IMPLEMENT_SLATE_PIXELSHADER_TYPE(Border, true, false);
 
-IMPLEMENT_SLATE_PIXELSHADER_TYPE(Font,			false, true);
-IMPLEMENT_SLATE_PIXELSHADER_TYPE(LineSegment,	false, true);
-IMPLEMENT_SLATE_PIXELSHADER_TYPE(Font,			true, true);
-IMPLEMENT_SLATE_PIXELSHADER_TYPE(LineSegment,	true, true);
+IMPLEMENT_SLATE_PIXELSHADER_TYPE(Font, false, true);
+IMPLEMENT_SLATE_PIXELSHADER_TYPE(LineSegment, false, true);
+IMPLEMENT_SLATE_PIXELSHADER_TYPE(Font, true, true);
+IMPLEMENT_SLATE_PIXELSHADER_TYPE(LineSegment, true, true);
 
 /** The Slate vertex declaration. */
 TGlobalResource<FSlateVertexDeclaration> GSlateVertexDeclaration;
+TGlobalResource<FSlateInstancedVertexDeclaration> GSlateInstancedVertexDeclaration;
 
 
 /************************************************************************/
@@ -56,6 +57,25 @@ void FSlateVertexDeclaration::InitRHI()
 void FSlateVertexDeclaration::ReleaseRHI()
 {
 	VertexDeclarationRHI.SafeRelease();
+}
+
+
+/************************************************************************/
+/* FSlateInstancedVertexDeclaration                                     */
+/************************************************************************/
+void FSlateInstancedVertexDeclaration::InitRHI()
+{
+	FVertexDeclarationElementList Elements;
+	uint32 Stride = sizeof(FSlateVertex);
+	Elements.Add(FVertexElement(0, STRUCT_OFFSET(FSlateVertex, TexCoords), VET_Float4, 0, Stride));
+	Elements.Add(FVertexElement(0, STRUCT_OFFSET(FSlateVertex, MaterialTexCoords), VET_Float2, 1, Stride));
+	Elements.Add(FVertexElement(0, STRUCT_OFFSET(FSlateVertex, Position), VET_Float2, 2, Stride));
+	Elements.Add(FVertexElement(0, STRUCT_OFFSET(FSlateVertex, ClipRect) + STRUCT_OFFSET(FSlateRotatedClipRectType, TopLeft), VET_Float2, 3, Stride));
+	Elements.Add(FVertexElement(0, STRUCT_OFFSET(FSlateVertex, ClipRect) + STRUCT_OFFSET(FSlateRotatedClipRectType, ExtentX), VET_Float4, 4, Stride));
+	Elements.Add(FVertexElement(0, STRUCT_OFFSET(FSlateVertex, Color), VET_Color, 5, Stride));
+	Elements.Add(FVertexElement(1, 0, VET_Float4, 6, sizeof(FVector4), true));
+	
+	VertexDeclarationRHI = RHICreateVertexDeclaration(Elements);
 }
 
 void FSlateElementPS::ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)

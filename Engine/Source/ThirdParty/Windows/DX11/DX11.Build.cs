@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 using UnrealBuildTool;
 
 public class DX11 : ModuleRules
@@ -19,15 +19,6 @@ public class DX11 : ModuleRules
 		else if (Target.Platform == UnrealTargetPlatform.Win32)
 		{
 			PublicLibraryPaths.Add(DirectXSDKDir + "/Lib/x86");
-		}
-
-		// If we're targeting Windows XP, then always delay-load D3D11 as it won't exist on that architecture
-		if (WindowsPlatform.IsWindowsXPSupported())
-		{
-			PublicDelayLoadDLLs.AddRange( new string[] {
-				"d3d11.dll", 
-				"dxgi.dll" 
-			} );
 		}
 
 		PublicAdditionalLibraries.AddRange(

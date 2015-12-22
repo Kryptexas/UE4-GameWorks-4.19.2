@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2555570
+﻿INTSourceChangelist:2621690
 Availability:Public
 Title:1.タイマーを使用したアクタの作成
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/VariablesTimersEvents
 Description:一定速度でコードを実行するタイマーを開始/停止する
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -11,25 +12,25 @@ Description:一定速度でコードを実行するタイマーを開始/停止�
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[プログラミングチュートリアルのホームページ](Programming\Tutorials\)
+		[](Programming\Tutorials\VariablesTimersEvents)
 	[/PARAM]
 	[PARAM:next]
-		[次の手順](Programming\Tutorials\VariablesTimersEvents\2 "%Programming\Tutorials\VariablesTimersEvents\2:title%")
+		[Next Step](Programming\Tutorials\VariablesTimersEvents\2 "%Programming\Tutorials\VariablesTimersEvents\2:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-[REGION:tip] **アンリアルエンジン 4** 初心者の人は、最初に [%Programming\QuickStart:title% tutorial](Programming\QuickStart) をお読みください。このチュートリアルは、 プロジェクトの作成とプロジェクトにC++コードを追加できる方を想定しています。[/REGION]
+[REGION:tip] **アンリアルエンジン 4** 初心者の方は、最初に [%Programming\QuickStart:title% tutorial](Programming\QuickStart) をお読みください。このチュートリアルでは、プロジェクトの作成とプロジェクトに C++ コードを追加できることを前提にしています。[/REGION]
 
-1. まず「HowTo_VTE」という名前のスターターコンテンツを使用して、Basic Code（基本コード）プロジェクトを作成します。このチュートリアルでは「Countdown」と名前を付けます。
+1. まず「HowTo_VTE」という名前のスターターコンテンツを使用して、新規で Basic Code (基本コード) プロジェクトを作成し、 **Actor** クラスを追加します。このチュートリアルでは「Countdown」と名前を付けます。
 
 	[![](ChooseParentClass.png)](ChooseParentClass.png)
 
 	[![](NameYourActor.png)](NameYourActor.png)
 
-1. ゲームに表示するシンプルなカウントダウンタイマーの作成から始めます。「 `Countdown.h` 」ファイルのクラス定義の最後に以下の行を追加します：
+1. ゲームに表示するシンプルなカウントダウンタイマーの作成から始めます。「Countdown.h」で、クラス定義の最後に以下の行を追加します。
 
 		int32 CountdownTime;
 
@@ -37,7 +38,7 @@ Description:一定速度でコードを実行するタイマーを開始/停止�
 
 		void UpdateTimerDisplay();
 
-1. 「 `Countdown.cpp` 」ファイルに、レンダリング可能なテキスト **コンポーネント** を作成して、カウントダウン時間を3秒に初期化します。このタイプの **アクタ** には必要ないため **Ticking** はオフにします。 **ACountdown::ACountdown** は以下のような表示になります：
+1. `Countdown.cpp` に、レンダリング可能なテキスト **コンポーネント** を作成して、カウントダウン時間を 3 秒に初期化します。このタイプの **アクタ** には必要ないため、**Ticking** をオフにすることもできます。**ACountdown::ACountdown** は、以下のようになります。
 
 		PrimaryActorTick.bCanEverTick = false;
 
@@ -48,14 +49,14 @@ Description:一定速度でコードを実行するタイマーを開始/停止�
 
 		CountdownTime = 3;
 
-1. **ACountdown::UpdateTimerDisplay** は残り時間を示すテキスト、または時間切れの場合はゼロを表示しなくてはいけません。ゲームに **ACountdown** を初めてスポーンした時にこのコードを実行して、CountdownTime変数がゼロになるまで1秒に一回コードを実行します。
+1. **ACountdown::UpdateTimerDisplay** はテキスト表示を更新して、残り時間、または時間切れの場合はゼロを表示します。ゲームに **ACountdown** を初めてスポーンした時にこのコードを実行して、CountdownTime 変数がゼロになるまで 1 秒に一回コードを実行します。
 
 		void ACountdown::UpdateTimerDisplay()
 		{
 			CountdownText->SetText(FString::FromInt(FMath::Max(CountdownTime, 0)));
 		}
 
-1. 関数の実行に **Timer** を割り当てると、必ず **Timer Handle** が与えられます。カウントダウン終了時に **Timer** をシャットダウンするためにこのハンドルをしっかりと維持します。時間をカウントダウンする関数と、この関数をコントロールする **Timer Handle** を「 `Countdown.h` 」ファイルのクラス定義に追加しましょう。この作業を行うついでに、カウントダウンの終了時に何か特別なことを行う関数も追加しましょう。
+1. 関数の実行に **Timer** を割り当てると、必ず **Timer Handle** が与えられます。カウントダウン終了時に Timer をシャットダウンできるようにこのハンドルをしっかりと維持します。時間をカウントダウンする関数と、この関数をコントロールするために必要な Timer Handle を Countdown.h のクラス定義に追加しましょう。この作業を行うついでに、カウントダウン終了時に何か特別なことを行う関数も追加しましょう。
 
 		void AdvanceTimer();
 
@@ -63,7 +64,7 @@ Description:一定速度でコードを実行するタイマーを開始/停止�
 
 		FTimerHandle CountdownTimerHandle;
 
-	「 `Countdown.cpp` 」ファイルに **ACountdown::AdvanceTimer** と **ACountdown::CountdownHasFinished** のボディを記述することもできます：
+	`Countdown.cpp` ファイルに **ACountdown::AdvanceTimer** と **ACountdown::CountdownHasFinished** のボディを記述することもできます：
 
 		void ACountdown::AdvanceTimer()
 		{
@@ -71,7 +72,7 @@ Description:一定速度でコードを実行するタイマーを開始/停止�
 			UpdateTimerDisplay();
 			if (CountdownTime < 1)
 			{
-				//We're done counting down, so stop running the timer.（カウントダウン終了。タイマーを終了します）
+				//カウントダウン終了。タイマーを終了します。
 				GetWorldTimerManager().ClearTimer(CountdownTimerHandle);
 				CountdownHasFinished();
 			}
@@ -79,18 +80,18 @@ Description:一定速度でコードを実行するタイマーを開始/停止�
 
 		void ACountdown::CountdownHasFinished()
 		{
-			//Change to a special readout（特別な読み出しに変更）
+			//特別な読み出しに変更
 			CountdownText->SetText(TEXT("GO!"));
 		}
 
-1. 新しく更新した関数にコールを追加して、 **ACountdown::BeginPlay** のテキスト表示を初期化します。そして1秒に一回カウントダウンと更新を行うタイマーを設定します：
+1. 新しく更新した関数の呼び出しを追加して、 **ACountdown::BeginPlay** のテキスト表示を初期化します。そして 1 秒に一回カウントダウンを進め、更新を行うタイマーを設定します。
 
 		UpdateTimerDisplay();
 		GetWorldTimerManager().SetTimer(CountdownTimerHandle, this, &ACountdown::AdvanceTimer, 1.0f, true);
 
-	[REGION:note]**アンリアルエディタ** の変数に設定する値は **BeginPlay** の前ではなくコンストラクタの後に割り当てられるため、表示は **ACountdown::ACountdown** ではなく **ACountdown::BeginPlay** で更新します。後にエディタへCountdownTime を公開する時にこれらの値を尊重します。[/REGION]
+	[REGION:note]**アンリアル エディタ** の変数に設定する値は **BeginPlay** の前ではなくコンストラクタの後に割り当てられるため、表示は **ACountdown::ACountdown** ではなく **ACountdown::BeginPlay** で更新します。後でエディタへ CountdownTime を公開する時にこれらの値を尊重します。[/REGION]
 
-1. **アンリアルエディタ** へ移動して **Compile（コンパイル）** を押して、これまでの作業進捗を確認しましょう。
+1. **アンリアルエディタ** へ移動して **Compile (コンパイル)** を押して、これまでの作業進捗を確認しましょう。
 
 	[![](CompileFromEditor.png)](CompileFromEditor.png)
 
@@ -100,12 +101,12 @@ Description:一定速度でコードを実行するタイマーを開始/停止�
 
 	[![](LevelEditorText.png)](LevelEditorText.png)
 
-	[REGION:note]カウントダウンテキストは **ACountdown::ACountdown** ではなく **ACountdown::BeginPlay** で設定するため、デフォルトの "Text" は **レベルエディタ** に表示されます。[/REGION]
-	**Play（再生）** を押すと、予定通りカウントダウンが始まって、 "3"、 "2"、 "1"、 最後に "GO!" となります。
+	[REGION:note]カウントダウン テキストは **ACountdown::ACountdown** ではなく **ACountdown::BeginPlay** で設定するため、デフォルトの "Text" は **レベルエディタ** に表示されます。[/REGION]
+	**Play (再生)** を押すと、予定通りカウントダウンが始まって、 "3"、 "2"、 "1"、 最後に "GO!" となります。
 
 ----
 
-この時点で、タイマーを使用するシンプルなクラスを既に作成済みです。プログラミングをしないユーザーは、カウントダウン時間を設定したり、カウントダウン終了時にビヘイビアを変更するともっと活用できます。次にこれらの機能をエディタに公開します。
+この時点で、タイマーを使用するシンプルなクラスを作成済みです。プログラミングをしないユーザーは、カウントダウン時間を設定したり、カウントダウン終了時のビヘイビアを変更するとさらに活用できます。次にこれらの機能をエディタに公開します。
 
 [OBJECT:Section]
     [PARAMLITERAL:id]
@@ -116,7 +117,7 @@ Description:一定速度でコードを実行するタイマーを開始/停止�
     [/PARAM]
     [PARAM:content]
 		**Countdown.h**
-			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -129,16 +130,16 @@ Description:一定速度でコードを実行するタイマーを開始/停止�
 				GENERATED_BODY()
 	public:
 
-				// Sets default values for this actor's properties（このアクタのプロパティのデフォルト値を設定）
+				// このアクタのプロパティのデフォルト値を設定します。
 				ACountdown();
 
-				// Called when the game starts or when spawned（ゲーム開始またはスポーン時に呼ばれます）
+				// ゲーム開始またはスポーン時に呼び出されます。
 				virtual void BeginPlay() override;
-	// Called every frame（フレームごとに呼ばれます）
+	// フレームごとに呼び出されます。
 
 				virtual void Tick( float DeltaSeconds ) override;
 
-				//How long, in seconds, the countdown will run（カウントダウンを実行する時間（秒））
+				// カウントダウンの実行時間 (秒)
 				int32 CountdownTime;
 
 				UTextRenderComponent* CountdownText;
@@ -154,15 +155,15 @@ Description:一定速度でコードを実行するタイマーを開始/停止�
 
 
 		**Countdown.cpp**
-			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_VTE.h"
 			#include "Countdown.h"
 
-			// Sets default values（デフォルト値を設定）
+			// デフォルト値を設定
 			ACountdown::ACountdown()
 			{
- 				// Set this actor to call Tick() every frame.You can turn this off to improve performance if you don't need it.（このポーンがフレームごとにTick()を呼び出すように設定。必要なければパフォーマンスを向上させるためにオフにします）
+ 				// フレーム毎に Tick() を呼び出すようにこのアクタを設定必要がなければパフォーマンスを向上させるためにオフにすることができます。
 				PrimaryActorTick.bCanEverTick = false;
 	CountdownText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("CountdownNumber"));
 
@@ -173,7 +174,7 @@ Description:一定速度でコードを実行するタイマーを開始/停止�
 				CountdownTime = 3;
 			}
 
-			// Called when the game starts or when spawned（ゲーム開始またはスポーン時に呼ばれます）
+			// ゲーム開始またはスポーン時に呼び出されます。
 			void ACountdown::BeginPlay()
 			{
 				Super::BeginPlay();
@@ -182,7 +183,7 @@ Description:一定速度でコードを実行するタイマーを開始/停止�
 				GetWorldTimerManager().SetTimer(CountdownTimerHandle, this, &ACountdown::AdvanceTimer, 1.0f, true);
 			}
 
-			// Called every frame（フレームごとに呼ばれます）
+			// フレームごとに呼び出されます。
 			void ACountdown::Tick( float DeltaTime )
 			{
 				Super::Tick( DeltaTime );
@@ -200,16 +201,16 @@ Description:一定速度でコードを実行するタイマーを開始/停止�
 				UpdateTimerDisplay();
 				if (CountdownTime < 1)
 				{
-					//We're done counting down, so stop running the timer.（カウントダウン終了。タイマーを終了します）
+					//カウントダウンを終了したのでタイマーの実行を停止します。
 					GetWorldTimerManager().ClearTimer(CountdownTimerHandle);
-					//Perform any special actions we want to do when the timer ends.（タイマー終了時に特別なアクションを実行）
+					//タイマー終了時に任意の特別なアクションを実行。
 					CountdownHasFinished();
 				}
 			}
 
 			void ACountdown::CountdownHasFinished()
 			{
-				//Change to a special readout（特別な読み出しに変更）
+				//特別な読み出しに変更
 				CountdownText->SetText(TEXT("GO!"));
 			}
 

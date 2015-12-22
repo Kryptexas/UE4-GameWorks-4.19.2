@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Commandlets/Commandlet.h"
@@ -10,8 +10,8 @@ class USmokeTestCommandlet : public UCommandlet
 	GENERATED_UCLASS_BODY()
 
 
-	// Begin UCommandlet Interface
+	//~ Begin UCommandlet Interface
 	virtual int32 Main(const FString& Params) override;
-	// End UCommandlet Interface
+	//~ End UCommandlet Interface
 };
 

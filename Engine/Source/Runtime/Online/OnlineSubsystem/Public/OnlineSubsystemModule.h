@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -46,8 +46,14 @@ private:
 	 * @param SubsystemName parsed out value or default subsystem name
 	 * @param InstanceName parsed out value or default instance name
 	 *
+	 * @return Properly formatted key name for accessing the online subsystem in the TMap
 	 */
-	void ParseOnlineSubsystemName(const FName& FullName, FName& SubsystemName, FName& InstanceName) const;
+	FName ParseOnlineSubsystemName(const FName& FullName, FName& SubsystemName, FName& InstanceName) const;
+
+	/**
+	 * Attempt to load the default subsystem specified in the configuration file
+	 */
+	void LoadDefaultSubsystem();
 
 	/**
 	 *	Shuts down all registered online subsystem platforms and unloads their modules
@@ -108,6 +114,15 @@ public:
 	 * @param FactoryName - name of subsystem as referenced by consumers
 	 */
 	virtual void UnregisterPlatformService(const FName FactoryName);
+
+	/**
+	 * Shutdown the current default subsystem (may be the fallback) and attempt to reload the one 
+	 * specified in the configuration file
+	 *
+	 * **NOTE** This is intended for editor use only, attempting to use this at the wrong time can result
+	 * in unexpected crashes/behavior
+	 */
+	void ReloadDefaultSubsystem();
 
 
 	// IModuleInterface

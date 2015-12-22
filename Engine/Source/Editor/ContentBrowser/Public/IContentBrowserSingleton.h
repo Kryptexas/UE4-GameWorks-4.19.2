@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -134,6 +134,13 @@ struct FAssetPickerConfig
 	/** Indicates that we would like to build the filter UI with the Asset Picker */
 	bool bAddFilterUI;
 
+	/** If true, show path in column view */
+	bool bShowPathInColumnView; 
+	/** If true, show class in column view */
+	bool bShowTypeInColumnView;
+	/** If true, sort by path in column view. Only works if initial view type is Column */
+	bool bSortByPathInColumnView;
+
 	/** Override the default filter context menu layout */
 	EAssetTypeCategories::Type DefaultFilterMenuExpansion;
 
@@ -153,6 +160,9 @@ struct FAssetPickerConfig
 		, bCanShowDevelopersFolder(false)
 		, bPreloadAssetsForContextMenu(true)
 		, bAddFilterUI(false)
+		, bShowPathInColumnView(false)
+		, bShowTypeInColumnView(true)
+		, bSortByPathInColumnView(false)
 		, DefaultFilterMenuExpansion(EAssetTypeCategories::Basic)
 	{}
 };
@@ -352,8 +362,8 @@ public:
 	virtual void CreateNewAsset(const FString& DefaultAssetName, const FString& PackagePath, UClass* AssetClass, UFactory* Factory) = 0;
 
 	/** Selects the supplied assets in all content browsers. If bAllowLockedBrowsers is true, even locked browsers may handle the sync. Only set to true if the sync doesn't seem external to the content browser. */
-	virtual void SyncBrowserToAssets(const TArray<class FAssetData>& AssetDataList, bool bAllowLockedBrowsers = false) = 0;
-	virtual void SyncBrowserToAssets(const TArray<UObject*>& AssetList, bool bAllowLockedBrowsers = false) = 0;
+	virtual void SyncBrowserToAssets(const TArray<class FAssetData>& AssetDataList, bool bAllowLockedBrowsers = false, bool bFocusContentBrowser = true) = 0;
+	virtual void SyncBrowserToAssets(const TArray<UObject*>& AssetList, bool bAllowLockedBrowsers = false, bool bFocusContentBrowser = true) = 0;
 
 	/** Generates a list of assets that are selected in the primary content browser */
 	virtual void GetSelectedAssets(TArray<FAssetData>& SelectedAssets) = 0;

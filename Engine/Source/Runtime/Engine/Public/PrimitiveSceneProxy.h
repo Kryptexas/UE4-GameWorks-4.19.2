@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PrimitiveSceneProxy.h: Primitive scene proxy definition.
@@ -104,14 +104,6 @@ public:
 	{}
 };
 
-namespace EDrawDynamicFlags
-{
-	enum Type
-	{
-		ForceLowestLOD = 0x1
-	};
-}
-
 /**
  * Encapsulates the data which is mirrored to render a UPrimitiveComponent parallel to the game thread.
  * This is intended to be subclassed to support different primitive types.  
@@ -173,6 +165,12 @@ public:
 	 */
 	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) {}
 
+	/** Gathers a description of the mesh elements to be rendered for the given LOD index, without consideration for views. */
+	virtual void GetMeshDescription(int32 LODIndex, TArray<FMeshBatch>& OutMeshElements) const {}
+
+	/** Gathers shadow shapes from this proxy. */
+	virtual void GetShadowShapes(TArray<FCapsuleShape>& CapsuleShapes) const {}
+
 	/** 
 	 * Gathers the primitive's dynamic mesh elements.  This will only be called if GetViewRelevance declares dynamic relevance.
 	 * This is called from the rendering thread for each set of views that might be rendered.  
@@ -211,7 +209,7 @@ public:
 	 * @param View - The view to determine relevance for.
 	 * @return The relevance of the primitive's elements to the view.
 	 */
-	ENGINE_API virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View);
+	ENGINE_API virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const;
 
 	/** Callback from the renderer to gather simple lights that this proxy wants renderered. */
 	virtual void GatherSimpleLights(const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const {}
@@ -378,8 +376,15 @@ public:
 	inline bool IsParentSelected() const { return bParentSelected; }
 	inline bool IsIndividuallySelected() const { return bIndividuallySelected; }
 	inline bool IsSelected() const { return IsParentSelected() || IsIndividuallySelected(); }
+	inline bool WantsSelectionOutline() const { return bWantsSelectionOutline; }
 	inline bool ShouldRenderCustomDepth() const { return bRenderCustomDepth; }
 	inline uint8 GetCustomDepthStencilValue() const { return CustomDepthStencilValue; }
+	inline uint8 GetLightingChannelMask() const { return LightingChannelMask; }
+	inline uint8 GetLightingChannelStencilValue() const 
+	{ 
+		// Flip the default channel bit so that the default value is 0, to align with the default stencil clear value and GBlackTexture value
+		return (LightingChannelMask & 0x6) | (~LightingChannelMask & 0x1); 
+	}
 	inline bool ShouldRenderInMainPass() const { return bRenderInMainPass; }
 	inline bool IsCollisionEnabled() const { return bCollisionEnabled; }
 	inline bool IsHovered() const { return bHovered; }
@@ -394,6 +399,8 @@ public:
 	inline float GetLpvBiasMultiplier() const { return LpvBiasMultiplier; }
 	inline EIndirectLightingCacheQuality GetIndirectLightingCacheQuality() const { return IndirectLightingCacheQuality; }
 	inline bool CastsVolumetricTranslucentShadow() const { return bCastVolumetricTranslucentShadow; }
+	inline bool CastsCapsuleDirectShadow() const { return bCastCapsuleDirectShadow; }
+	inline bool CastsCapsuleIndirectShadow() const { return bCastCapsuleIndirectShadow; }
 	inline bool CastsHiddenShadow() const { return bCastHiddenShadow; }
 	inline bool CastsShadowAsTwoSided() const { return bCastShadowAsTwoSided; }
 	inline bool CastsSelfShadowOnly() const { return bSelfShadowOnly; }
@@ -402,10 +409,14 @@ public:
 	inline bool CastsFarShadow() const { return bCastFarShadow; }
 	inline bool LightAsIfStatic() const { return bLightAsIfStatic; }
 	inline bool LightAttachmentsAsGroup() const { return bLightAttachmentsAsGroup; }
+	inline bool UseSingleSampleShadowFromStationaryLights() const { return bSingleSampleShadowFromStationaryLights; }
 	inline bool StaticElementsAlwaysUseProxyPrimitiveUniformBuffer() const { return bStaticElementsAlwaysUseProxyPrimitiveUniformBuffer; }
 	inline bool ShouldUseAsOccluder() const { return bUseAsOccluder; }
 	inline bool AllowApproximateOcclusion() const { return bAllowApproximateOcclusion; }
-	inline const TUniformBuffer<FPrimitiveUniformShaderParameters>& GetUniformBuffer() const { return UniformBuffer; }
+	inline const TUniformBuffer<FPrimitiveUniformShaderParameters>& GetUniformBuffer() const 
+	{
+		return UniformBuffer; 
+	}
 	inline bool HasPerInstanceHitProxies () const { return bHasPerInstanceHitProxies; }
 	inline bool UseEditorCompositing(const FSceneView* View) const { return GIsEditor && bUseEditorCompositing && !View->bIsGameView; }
 	inline const FVector& GetActorPosition() const { return ActorPosition; }
@@ -494,6 +505,16 @@ public:
 	 * Updates the primitive proxy's uniform buffer.
 	 */
 	ENGINE_API void UpdateUniformBuffer();
+	/**
+	 * Updates the primitive proxy's uniform buffer.
+	 */
+	ENGINE_API bool NeedsUniformBufferUpdate() const;
+
+	/**
+	 * Get the list of LCIs. Used to set the precomputed lighting uniform buffers, which can only be created by the RENDERER_API.
+	 */
+	typedef TArray<class FLightCacheInterface*, TInlineAllocator<8> > FLCIArray;
+	ENGINE_API virtual void GetLCIs(FLCIArray& LCIs) {}
 
 protected:
 
@@ -588,6 +609,12 @@ protected:
 	 */
 	uint32 bCastVolumetricTranslucentShadow : 1;
 
+	/** Whether the primitive should use capsules for direct shadowing, if present.  Forces inset shadows. */
+	uint32 bCastCapsuleDirectShadow : 1;
+
+	/** Whether the primitive should use capsules for indirect shadowing. */
+	uint32 bCastCapsuleIndirectShadow : 1;
+
 	/** True if the primitive casts shadows even when hidden. */
 	uint32 bCastHiddenShadow : 1;
 
@@ -623,6 +650,13 @@ protected:
 	uint32 bLightAttachmentsAsGroup : 1;
 
 	/** 
+	 * Whether the whole component should be shadowed as one from stationary lights, which makes shadow receiving much cheaper.
+	 * When enabled shadowing data comes from the volume lighting samples precomputed by Lightmass, which are very sparse.
+	 * This is currently only used on stationary directional lights.  
+	 */
+	uint32 bSingleSampleShadowFromStationaryLights : 1;
+
+	/** 
 	 * Whether this proxy always uses UniformBuffer and no other uniform buffers.  
 	 * When true, a fast path for updating can be used that does not update static draw lists.
 	 */
@@ -642,6 +676,9 @@ protected:
 
 	/** Whether this primitive requires notification when its level is added to the world and made visible for the first time. */
 	uint32 bNeedsLevelAddedToWorldNotification : 1;
+
+	/** true by default, if set to false will make given proxy never drawn with selection outline */
+	uint32 bWantsSelectionOutline : 1;
 
 private:
 
@@ -665,6 +702,8 @@ private:
 
 	/** Optionally write this stencil value during the CustomDepth pass */
 	uint8 CustomDepthStencilValue;
+
+	uint8 LightingChannelMask;
 
 protected:
 	/** The bias applied to LPV injection */

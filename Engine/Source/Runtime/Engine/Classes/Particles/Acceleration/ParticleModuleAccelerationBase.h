@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -17,8 +17,8 @@ class UParticleModuleAccelerationBase : public UParticleModule
 	uint32 bAlwaysInWorldSpace:1;
 
 
-	// Begin UParticleModule Interface
+	//~ Begin UParticleModule Interface
 	virtual void SetToSensibleDefaults(UParticleEmitter* Owner) override;
-	// End UParticleModule Interface
+	//~ End UParticleModule Interface
 };
 

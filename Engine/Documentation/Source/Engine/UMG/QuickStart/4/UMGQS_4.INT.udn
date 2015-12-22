@@ -2,6 +2,7 @@ Availability: Public
 Title:4. Scripting the Main Menu
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
 Description:In this step we will script the functionality for our Main Menu and load into game. 
+version: 4.9
 
 
 [VAR:Steps]
@@ -50,7 +51,11 @@ Time to get our hands dirty and script the functionality of our Main Menu. At th
 
 1.	Hold **Ctrl** and drag in the **MainMenu** and **OptionsMenu** variables. 
 
-1.	Drag off **MainMenu** and **Set Visibility** (set to **Hidden**) then **Set Visibility** off **OptionsMenu** to **Visible**.  
+1.	Drag off **MainMenu** and add a **Set Visibility** node. Set **In Visibility** to Hidden.
+
+1.  Drag off and add a **Set Visibility** node. Set **Invisibility** to Visible
+
+1.  Attach target to the **OptionsMenu** variable.
 
 	![](OptionsButton.png)(w:820)
 
@@ -90,7 +95,7 @@ Time to get our hands dirty and script the functionality of our Main Menu. At th
 
 1.	Open the **First Person Character** Blueprint inside the **Content/FirstPersonBP/Blueprints** folder. 
 
-1.	Following the **Event Begin Play** script, add a **Get Player Controller** then **Set Input Mode Game Only** node. 
+1.	Following the **Event Begin Play** script, add a **Get Player Controller** then add a **Set Input Mode Game Only** node. 
 
 	![](PlayerCharacterBlueprint.png)(w:820)
 
@@ -100,15 +105,25 @@ Time to get our hands dirty and script the functionality of our Main Menu. At th
 
 	![](WorldSettings.png)
 
-1.	Under _Game Mode_, set the **GameMode Override** to **FirstPersonGameMode** and change the **Default Pawn Class** to **Character**. 
+1.	Under **Game Mode**, set the **GameMode Override** to **FirstPersonGameMode** and change the **Default Pawn Class** to **Character**. 
 
 	![](Overrides.png)
 
 	Here we are assigning a Game Mode for this Map and changing the player's character to use the Engine Default Character inside of the playable **FirstPersonCharacter** Blueprint as we do not want the player to be able to run around and shoot behind the Main Menu. 
 
-1.	Click the **Play** Button from the Main Toolbar to play in the editor. 
+1.	Click the **Play** Button from the Main Toolbar to play in the editor. To test the resolution options, select **New Editor Window** from the **Play-in-Editor** dropdown menu.
 
-	[![](MenuImage.png)(w:720)](ExampleMainMenu.mp4)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	mEVUvk32CRI
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 	_Click the image above to play the video._
 

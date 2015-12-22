@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateViewerApp.h"
 #include "RequiredProgramMainCPPInclude.h"
@@ -20,10 +20,16 @@ namespace WorkspaceMenu
 }
 
 
-void RunSlateViewer( const TCHAR* CommandLine )
+int RunSlateViewer( const TCHAR* CommandLine )
 {
 	// start up the main loop
 	GEngineLoop.PreInit(CommandLine);
+
+	// Make sure all UObject classes are registered and default properties have been initialized
+	ProcessNewlyLoadedUObjects();
+	
+	// Tell the module manager is may now process newly-loaded UObjects when new C++ modules are loaded
+	FModuleManager::Get().StartProcessingNewlyLoadedObjects();
 
 	// crank up a normal Slate application using the platform's standalone renderer
 	FSlateApplication::InitializeAsStandaloneApplication(GetStandardStandaloneRenderer());
@@ -74,8 +80,10 @@ void RunSlateViewer( const TCHAR* CommandLine )
 		FSlateApplication::Get().Tick();		
 		FPlatformProcess::Sleep(0);
 	}
-
+	FModuleManager::Get().UnloadModulesAtShutdown();
 	FSlateApplication::Shutdown();
+
+	return 0;
 }
 
 namespace

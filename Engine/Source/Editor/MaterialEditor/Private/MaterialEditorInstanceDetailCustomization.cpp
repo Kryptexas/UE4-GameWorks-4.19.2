@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MaterialEditorModule.h"
 #include "Materials/MaterialExpressionParameter.h"
@@ -440,7 +440,7 @@ void FMaterialInstanceParameterDetails::ResetToDefault(TSharedRef<IPropertyHandl
 
 EVisibility FMaterialInstanceParameterDetails::ShouldShowMaterialRefractionSettings() const
 {
-	return (MaterialEditorInstance->SourceInstance->GetMaterial()->bUsesDistortion) ? EVisibility::Visible : EVisibility::Collapsed;
+	return (MaterialEditorInstance->SourceInstance->GetMaterial()->bUsesDistortion && IsTranslucentBlendMode(MaterialEditorInstance->SourceInstance->GetBlendMode())) ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 EVisibility FMaterialInstanceParameterDetails::ShouldShowSubsurfaceProfile() const

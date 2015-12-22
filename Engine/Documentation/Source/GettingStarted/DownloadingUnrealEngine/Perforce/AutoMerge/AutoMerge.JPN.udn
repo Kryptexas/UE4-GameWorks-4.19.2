@@ -1,12 +1,13 @@
-﻿INTSourceChangelist:2612430
+﻿INTSourceChangelist:2716482
 Availability:Licensee
 Title:Perforce の自動マージツール
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine, GettingStarted/DownloadingUnrealEngine/Perforce
 Description:Perforce を使用したインテグレーション実施の作業を自動化するスクリプト
+version:4.9
 
 [TOC(start:2)]
 
-Perforce AutoMerge スクリプトの存在理由は、P4 インテグレーションの実施において厄介かつエラーを招きやすい手順 (つまりマージ) を自動化することにあります。[Perforce 統合に関する FAQ](GettingStarted/DownloadingUnrealEngine/Perforce/Integration) ページで説明したマージに関するいくつかのベストプラクティスを取り入れているため、Unreal Engine Perforce データベースのマージに推奨される手法です。
+Perforce Auto-Merge スクリプトの存在理由は、P4 インテグレーションの実施において厄介かつエラーを招きやすい手順 (つまりマージ) を自動化することにあります。[Perforce 統合に関する FAQ](GettingStarted/DownloadingUnrealEngine/Perforce/Integration) ページで説明したマージに関するいくつかのベストプラクティスを取り入れているため、Unreal Engine Perforce データベースのマージに推奨される手法です。
 
 
 
@@ -19,8 +20,8 @@ Perforce AutoMerge スクリプトの存在理由は、P4 インテグレーシ�
 ![P4AutoMergeCustomToolMenu.jpg](P4AutoMergeCustomToolMenu.jpg)
 
 
-* 任意のブランチに対して、 _Safe Merge_ または _NULL Merge_ を選択できます (以下に記述)。 
-* 任意のブランチを選択できる _General_ (汎用) ツールがあります (ポップアップ ダイアログ付き)。 
+* 任意のブランチに対して、**Safe Merge** または **NULL Merge** を選択できます (以下に記述)。 
+* 任意のブランチを選択できる General (汎用) ツールがあります (ポップアップ ダイアログ付き)。 
 * 4V または P4Win のカスタムツールエディタで使用しているフォーマットに一致させて独自のカスタムブランチを追加することができます。
 
 
@@ -45,14 +46,14 @@ Perforce AutoMerge スクリプトの存在理由は、P4 インテグレーシ�
 
 ###Safe マージ
 
- _Safe Merge_ ツールはチェンジリストをマージして、 _auto-safe_ 解決を実行します。あるブランチ、または別のブランチで変更されたファイルのどちらかを解決し、両方は解決しません。このタイプの解決法は確実に成功します。このプロセスが終了すると、必要なチェックイン情報が挿入された新しいチェンジリストが完成します。解決するファイル (マージを実行する必要があるファイル) が残っている場合、チェックインの前に手作業で処理する必要があります。
+Safe Merge ツールはチェンジリストをマージして、auto-safe 解決を実行します。あるブランチ、または別のブランチで変更されたファイルのどちらかを解決し、両方は解決しません。このタイプの解決法は確実に成功します。このプロセスが終了すると、必要なチェックイン情報が挿入された新しいチェンジリストが完成します。解決するファイル (マージを実行する必要があるファイル) が残っている場合、チェックインの前に手作業で処理する必要があります。
 
 手動解決の手順については、 [Perforce 統合に関する FAQ](GettingStarted/DownloadingUnrealEngine/Perforce/Integration#Resolve) ページを参照してください。
 
 
 ### NULL マージ
 
-_NULL Merge_ ツールはチェンジリストをマージし、「Accept yours (双方の違いを承認) 」型の解決を実行します。つまり、ファイルは反映されるだけで、変更されません。これは、変更リストを反映対象として検討するが、双方の変更を組み込まないという決定を明確に示すものです。
+NULL Merge ツールはチェンジリストをマージし、Accept yours (双方の違いを承認) 型の解決を実行します。つまり、ファイルは反映されるだけで、変更されません。これは、変更リストを反映対象として検討するが、双方の変更を組み込まないという決定を明確に示すものです。
 
 NULL merge に関する詳細は、[Perforce 統合に関する FAQ](GettingStarted/DownloadingUnrealEngine/Perforce/Integration#NullMerge) ページを参照してください。
 
@@ -80,17 +81,17 @@ NULL merge に関する詳細は、[Perforce 統合に関する FAQ](GettingStar
 ## インストール
 
 
-### Python のインストール
+###Python のインストール
 
 このスクリプトは P4Python API を使用する Python のスクリプトなので、先にそれをインストールする必要があります。
 
 * Python の場合:
     * [ActiveState ActivePython](http://www.activestate.com/activepython/) の配布が推奨されています。
-    * スクリプトは現在 Python のバージョン **2.5.2** でテスト中です。
+    * スクリプトは現在 Python のバージョン 2.5.2 でテスト中です。
 * P4Python の場合:
     * 最新の P4Python は、 Perforce ウェブサイトの [関連するソフトウェア](http://www.perforce.com/perforce/loadsupp.html) ページからダウンロードできます。 
     * Perforceウェブサイトから [API ドキュメント](http://www.perforce.com/perforce/doc.current/manuals/p4script/p4script.pdf) もダウンロードできます。
-    * スクリプトは現在 P4Python のバージョン **2008.2** でテスト中です。
+    * スクリプトは現在 P4Python のバージョン 2008.2 でテスト中です。
 
 
 
@@ -99,11 +100,11 @@ NULL merge に関する詳細は、[Perforce 統合に関する FAQ](GettingStar
 Python および P4Python をインストールしたら、以下を実行します。
 
 * [](P4AutoMerge.py.txt) python スクリプトをダウンロードして、Python パス上に配置します。
-* P4V の _Tools_ メニューで、 _[Manage custom tools...]_ (カスタムツールを管理) を選択します。
-* _[New|Tool...]_ を選択します (ツールをグループ化するためにオプションでフォルダを作成できます)。
+* P4V の **Tools** メニューで、**[Manage custom tools.. (カスタムツールを管理)]** を選択します。
+* **[New (新規)] > [Tool... (ツール)]** を選択します (ツールをグループ化するためにオプションでフォルダを作成できます)。
 * 以下の画像のようなオプションを設定します。
     * 画像に示される文字列をユーザーのブランチ名に置き換えます。
-    * P4V のカスタムツールで利用可能なオプションの詳細をご覧になるには、 _[select...]_ ボタンをクリックしてください。 
+    * P4V のカスタムツールで利用可能なオプションの詳細をご覧になるには、**[select...]** ボタンをクリックしてください。 
 
 
 ![P4AutoMergeSetup.jpg](P4AutoMergeSetup.jpg)
@@ -131,9 +132,9 @@ Python および P4Python をインストールしたら、以下を実行しま
 
 
     
-    使用方法： P4AutoMerge.py [options]
+    使用方法：P4AutoMerge.py [options]
     
-            説明： ブランチのチェンジリストの自動マージをサポートするスクリプト。
+            説明：ブランチのチェンジリストの自動マージをサポートするスクリプト。
     
     オプション：
       --version             プログラムのバージョン番号を表示して終了

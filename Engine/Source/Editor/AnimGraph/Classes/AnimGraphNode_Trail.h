@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "AnimGraphNode_SkeletalControlBase.h"
@@ -15,6 +15,10 @@ class UAnimGraphNode_Trail : public UAnimGraphNode_SkeletalControlBase
 		FAnimNode_Trail Node;
 
 public:
+	// UObject interface
+	virtual void PostLoad() override;
+	// End of UObject interface
+
 	// UEdGraphNode interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 //	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const override;
@@ -24,6 +28,7 @@ public:
 protected:
 	// UAnimGraphNode_SkeletalControlBase interface
 	virtual FText GetControllerDescription() const override;
+	virtual const FAnimNode_SkeletalControlBase* GetNode() const override { return &Node; }
 	// End of UAnimGraphNode_SkeletalControlBase interface
 
 private:

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.Collections.Generic;
@@ -51,7 +51,7 @@ public class TestPALTarget : TargetRules
 		//UEBuildConfiguration.bBuildWithEditorOnlyData = false;
 
 		// Compile out references from Core to the rest of the engine
-		UEBuildConfiguration.bCompileAgainstEngine = false;	// compiling without engine is broken (overriden functions do not override base class)
+		UEBuildConfiguration.bCompileAgainstEngine = false;	// compiling without engine is broken (overridden functions do not override base class)
 		UEBuildConfiguration.bCompileAgainstCoreUObject = false;
 
 		// Make a console application under Windows, so entry point is main() everywhere

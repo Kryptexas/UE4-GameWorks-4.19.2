@@ -3,6 +3,7 @@ Title:Types of Lights
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:The types of lights available in Unreal Engine 4.
 DescriptionLong:The types of lights available in Unreal Engine 4: Point, Spot, Directional, and Sky.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

@@ -1,51 +1,111 @@
-Availability:Public
-Title:资源库
+INTSourceChangelist: 2033300
+Availability: Public
+Title:示例与教学
 Crumbs:%ROOT%
+Description:连接到一些有用的示例场景, 游戏示例, 以及教学.
 Navigation:topic
-Description:
+
+[VAR:Params]
+[PARAM:image]
+	![%Resources:title%](Resources/resource_depot_topic.png)
+[/PARAM]
+[PARAM:icon]
+	![](%ROOT%/tutorial_icon.png)(convert:false)
+[/PARAM]
+[PARAM:title]
+	%Resources:title%
+[/PARAM]
+[PARAM:description]
+	%Resources:description%
+[/PARAM]
+[PARAM:path]
+	[RELATIVE:Resources]
+[/PARAM]
+[/VAR]
 
 [VAR:Topic]
 [OBJECT:Topic]
-	[PARAM:image]
-		![%Resources:title%](Resources/resource_depot_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/download_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources]
-	[/PARAM]
+%params%
 [/OBJECT]
 [/VAR]
 
-[REGION:header_img]
-![depot.jpg](depot.jpg)
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:Role]
+[OBJECT:Role]
+%params%
+[PARAMLITERAL:id]
+resources
+[/PARAMLITERAL]
+[/OBJECT]
+[/VAR]
+
+为了帮助你快速了解使用UE4以及使用方法，并可以用它来创造内容。我们已经准备了一些内容提供给你下载，试玩以及分析。
+
+[REGION:topics third]
+%Videos:topic%
+%Resources/Templates:topic%
+[OBJECT:Topic]
+[PARAM:image]
+	![](ue_resource_topic.png)
+[/PARAM]
+[PARAMLITERAL:title]
+	Presentations, Books, and Guides
+[/PARAMLITERAL]
+[PARAMLITERAL:description]
+	Here is where Epic shares a sampling of our research and best practices in game development.
+[/PARAMLITERAL]
+[PARAMLITERAL:path]
+	https://www.unrealengine.com/resources
+[/PARAMLITERAL]
+[/OBJECT]
 [/REGION]
 
-资源库包含了到各种指南、示例代码、下载文件及其他各种信息的链接。
+## 学习资源工程
+
+[PUBLISH:Licensee]
+所有的学习资源工程都对所有授权客户开放，它们都可以从Perforce上下载，它们可以在**UE4\Samples** 文件夹下找到。
+[/PUBLISH:Licensee]
+
+[PUBLISH:Rocket]
 
 
-[REGION:feature_list]
-    [REGION:feature_horiz]
-        [REGION:feature_img]
-        [![downloads.jpg](downloads.jpg)](Resources/Downloads)
-		[/REGION]
-		[REGION:feature_content_horiz]
-			[REGION:feature_title]
-				[下载](Resources/Downloads)
-			[/REGION]
-			[REGION:feature_content]
-				可以和虚幻引擎3及UDK协同使用的各种可下载资源集合。FBX角色示例 - 商标 - 源码示例。
-			[/REGION]
-		[/REGION]
-    [/REGION]
+学习资源工程都可以通过Epic Games Launcher的学习板块下找到。
+
+[/PUBLISH:Rocket]
+
+[REGION:topics third]
+%Resources/Showcases:topic%
+%Resources/Concepts:topic%
+%Resources/SampleGames:topic%
+
 [/REGION]
-[REGION:clear]  
+<!--
+[PUBLISH:Licensee]
+[REGION:features fourth]
+[OBJECT:Role]
+	[PARAM:icon]
+		![%Resources/Downloads:title%](%ROOT%/download_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/Downloads:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/Downloads]
+	[/PARAM]
+[/OBJECT]
+[/REGION]
+[/PUBLISH:Licensee]
+-->
+
+## 社区示范文档
+
+[REGION:topics third]
+%Resources/Community/SciFiBunk_MaterialInstancing:topic%
+
 [/REGION]
 

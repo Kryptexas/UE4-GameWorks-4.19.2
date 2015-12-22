@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "NiagaraNodeGetAttr.generated.h"
@@ -14,14 +14,14 @@ public:
 	UPROPERTY()
 	FName	AttrName;
 
-	// Begin EdGraphNode interface
+	//~ Begin EdGraphNode Interface
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FLinearColor GetNodeTitleColor() const override;
-	// End EdGraphNode interface
+	//~ End EdGraphNode Interface
 
-	// Begin UNiagaraNode interface
+	//~ Begin UNiagaraNode Interface
 	UNREALED_API virtual void Compile(class INiagaraCompiler* Compiler, TArray<FNiagaraNodeResult>& Output) override;
-	// End UNiagaraNode interface
+	//~ End UNiagaraNode Interface
 };
 

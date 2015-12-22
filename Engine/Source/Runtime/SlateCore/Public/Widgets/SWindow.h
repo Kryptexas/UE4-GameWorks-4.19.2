@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -79,7 +79,8 @@ class SLATECORE_API SWindow
 public:
 
 	SLATE_BEGIN_ARGS( SWindow )
-		: _Style( &FCoreStyle::Get().GetWidgetStyle<FWindowStyle>("Window") )
+		: _Type( EWindowType::Normal )
+		, _Style( &FCoreStyle::Get().GetWidgetStyle<FWindowStyle>("Window") )
 		, _Title()
 		, _bDragAnywhere( false )
 		, _AutoCenter( EAutoCenter::PreferredWorkArea )
@@ -101,6 +102,9 @@ public:
 		, _LayoutBorder(FMargin(5, 5, 5, 5))
 		, _UserResizeBorder(FMargin(5, 5, 5, 5))
 	{ }
+
+		/** Type of this window */
+		SLATE_ARGUMENT( EWindowType, Type )
 
 		/** Style used to draw this window */
 		SLATE_STYLE_ARGUMENT( FWindowStyle, Style )
@@ -220,6 +224,16 @@ public:
 	 *
 	 * @return The size of the window necessary to accommodate the given content */
 	static FVector2D ComputeWindowSizeForContent( FVector2D ContentSize );
+
+	/**
+	 * Grabs the window type
+	 *
+	 * @return The window's type
+	 */
+	EWindowType GetType() const
+	{
+		return Type;
+	}
 
 	/**
 	 * Grabs the current window title
@@ -752,6 +766,9 @@ protected:
 
 protected:
 
+	/** Type of the window */
+	EWindowType Type;
+
 	/** Title of the window, displayed in the title bar as well as potentially in the task bar (Windows platform) */
 	TAttribute<FText> Title;
 
@@ -776,9 +793,6 @@ protected:
 	/** True if this is a pop up window */
 	bool bIsPopupWindow : 1;
 
-	/** True if this is a tool tip window */
-	bool bIsToolTipWindow : 1;
-
 	/** True if this is a topmost window */
 	bool bIsTopmostWindow : 1;
 
@@ -786,9 +800,6 @@ protected:
 		and we'd like to avoid costly GPU buffer resizes when that happens.  Enabling this may incur memory overhead or
 		other platform-specific side effects */
 	bool bSizeWillChangeOften : 1;
-
-	/** Whether this window is used to draw content next to the cursor; usually for drag and drop purposes. */
-	bool bIsCursorDecoratorWindow : 1;
 
 	/** true if this window is maximized when its created */
 	bool bInitiallyMaximized : 1;

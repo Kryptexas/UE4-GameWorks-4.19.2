@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Vehicle.cpp: AWheeledVehicle implementation
@@ -23,7 +23,7 @@ AWheeledVehicle::AWheeledVehicle(const FObjectInitializer& ObjectInitializer)
 	Mesh->BodyInstance.bUseCCD = true;
 	Mesh->bBlendPhysics = true;
 	Mesh->bGenerateOverlapEvents = true;
-	Mesh->bCanEverAffectNavigation = false;
+	Mesh->SetCanEverAffectNavigation(false);
 	RootComponent = Mesh;
 
 	VehicleMovement = CreateDefaultSubobject<UWheeledVehicleMovementComponent, UWheeledVehicleMovementComponent4W>(VehicleMovementComponentName);

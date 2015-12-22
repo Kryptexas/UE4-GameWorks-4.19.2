@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -35,7 +35,7 @@ protected:
 	void OnTypeChanged();
 	void InitCachedTypes();
 
-	EEnvQueryParam::Type ParamType;
+	EAIParamType ParamType;
 	mutable uint8 CachedBool : 1;
 	mutable float CachedFloat;
 	mutable int32 CachedInt;

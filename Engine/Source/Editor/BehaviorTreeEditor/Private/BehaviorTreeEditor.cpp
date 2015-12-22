@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "BehaviorTreeEditorPrivatePCH.h"
 #include "GraphEditorActions.h"
@@ -26,6 +26,7 @@
 #include "BehaviorTreeEditorUtils.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardData.h"
+#include "BehaviorTreeGraphNode_SubtreeTask.h"
 #include "DetailCustomizations/BlackboardDataDetails.h"
 #include "SBehaviorTreeBlackboardView.h"
 #include "SBehaviorTreeBlackboardEditor.h"

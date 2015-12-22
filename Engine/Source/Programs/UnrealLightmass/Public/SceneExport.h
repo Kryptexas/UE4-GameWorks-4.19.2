@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -36,6 +36,16 @@ public:
 	 * With photon mapping, bounces after the second are nearly free.
 	 */
 	int32 NumIndirectLightingBounces;
+
+	/** 
+	 * Whether to use Embree for ray tracing or not.
+	 */
+	bool bUseEmbree;
+
+	/** 
+	 * Whether to check for Embree coherency.
+	 */
+	bool bVerifyEmbree;
 
 	/** 
 	 * Smoothness factor to apply to indirect lighting.  This is useful in some lighting conditions when Lightmass cannot resolve accurate indirect lighting.
@@ -680,11 +690,6 @@ struct FDebugLightingInputData
 	/** Size of the texture mapping that was selected to debug */
 	int32 MappingSizeX;
 	int32 MappingSizeY;
-	/** Position in the lightmap atlas of the texel to debug */
-	int32 LightmapX;
-	int32 LightmapY;
-	/** Color in the lightmap atlas before the sample was selected */
-	FColor OriginalColor;
 	/** Position of the camera */
 	FVector4 CameraPosition;
 	/** VisibilityId of a component from the currently selected actor or BSP surface. */
@@ -740,6 +745,7 @@ struct FSceneFileHeader
 
 	int32		NumImportanceVolumes;
 	int32		NumCharacterIndirectDetailVolumes;
+	int32		NumPortals;
 	int32		NumDirectionalLights;
 	int32		NumPointLights;
 	int32		NumSpotLights;
@@ -1014,7 +1020,8 @@ struct FSplineMeshParams
 struct FStaticMeshStaticLightingMeshData
 {
 	/** The LOD this mesh represents. */
-	int32 EncodedLODIndex;
+	uint32 EncodedLODIndices;
+	uint32 EncodedHLODRange;
 	FMatrix LocalToWorld;
 	/** true if the primitive has a transform which reverses the winding of its triangles. */
 	bool bReverseWinding;

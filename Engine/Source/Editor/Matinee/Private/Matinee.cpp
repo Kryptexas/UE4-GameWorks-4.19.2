@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MatineeModule.h"
 
@@ -21,7 +21,8 @@
 #include "DistCurveEditorModule.h"
 #include "IDistCurveEditor.h"
 
-#include "MatineeClasses.h"
+#include "Classes/MatineeOptions.h"
+#include "Classes/MatineeTransBuffer.h"
 
 #include "CameraController.h"
 #include "MatineeConstants.h"
@@ -50,7 +51,9 @@
 #include "Camera/CameraActor.h"
 #include "Camera/CameraAnim.h"
 
+#include "MovieSceneCaptureDialogModule.h"
 #include "MovieSceneCaptureModule.h"
+
 #include "LevelCapture.h"
 
 DEFINE_LOG_CATEGORY(LogSlateMatinee);
@@ -448,6 +451,7 @@ void FMatinee::InitMatinee(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	RecordPitchSmoothingSamples = 5;
 	RecordCameraMovementScheme = MatineeConstants::ECameraScheme::CAMERA_SCHEME_FREE_CAM;
 	RecordingStateStartTime = 0;
+	bUpdatingCameraGuard = false;
 
 	FMatineeCommands::Register();
 	BindCommands();
@@ -947,7 +951,7 @@ void FMatinee::InitMatinee(const EToolkitMode::Type Mode, const TSharedPtr< clas
 			}
 
 			// Turn on 'show camera frustums' flag
-			LevelVC->EngineShowFlags.CameraFrustums = 1;
+			LevelVC->EngineShowFlags.SetCameraFrustums(true);
 		}
 	}
 
@@ -2064,7 +2068,7 @@ void FMatinee::OnClose()
 			}
 
 			// Turn off 'show camera frustums' flag.
-			LevelVC->EngineShowFlags.CameraFrustums = 0;
+			LevelVC->EngineShowFlags.SetCameraFrustums(false);
 		}
 	}
 
@@ -2971,19 +2975,15 @@ bool FMatinee::IsCameraAnim() const
 void FMatinee::OnMenuCreateMovie()
 {
 	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
-	IMovieSceneCaptureModule& MovieSceneCaptureModule = IMovieSceneCaptureModule::Get();
 
 	// Create a new movie scene capture object for a generic level capture
 	ULevelCapture* MovieSceneCapture = NewObject<ULevelCapture>(GetTransientPackage(), ULevelCapture::StaticClass(), NAME_None, RF_Transient);
 	MovieSceneCapture->LoadConfig();
 
-	FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
-	if (Mode && Mode->InterpEd)
-	{
-		MovieSceneCapture->Level = Mode->InterpEd->GetMatineeActor()->GetOutermost()->GetName();
-	}
+	// Ensure that this matinee is up and running before we start capturing
+	MovieSceneCapture->SetPrerequisiteActor(MatineeActor);
 
-	MovieSceneCaptureModule.OpenCaptureSettings(LevelEditorModule.GetLevelEditorTabManager().ToSharedRef(), MovieSceneCapture);
+	IMovieSceneCaptureDialogModule::Get().OpenDialog(LevelEditorModule.GetLevelEditorTabManager().ToSharedRef(), MovieSceneCapture);
 }
 
 #undef LOCTEXT_NAMESPACE

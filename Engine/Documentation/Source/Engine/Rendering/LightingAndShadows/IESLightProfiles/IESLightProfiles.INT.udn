@@ -2,6 +2,7 @@ Availability:Public
 Title: IES Light Profiles
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:Using IES Light Profiles in Unreal Engine 4.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -110,12 +111,16 @@ _The IES Profile for a Lithonia TPG_1000S_PG21_M_
 1. You can adjust the brightness of the profile by using the **IES Brightness Scale** slider.
 1. You can also tweak the "texture" that is created by **double-clicking** on it in the **Content Browser** to bring up the **Texture Properties**. 
 
+[Region:note]
+While IES Profiles can be used with lights with their mobility set to Static they cannot be directly assigned unless the mobility is Stationary or Movable. Using the IES Profile with pre-computed Static lighting can sometimes produce artifacts from the mask. It is recommeneded to only use these with Stationary and Movable lighting for the best results.
+[/Region]
+
 ## Spotlights
 
 IES Light profiles basically turn point lights into spotlights (visually speaking) and using an IES profile on a spot light will operate the same way as on a point light except the spotlight cones will mask the IES profile effect. However, since the projection area of a spot light is an 179 degree arc at its maximum, you lose any IES data past that point.
 
 [REGION:lightbox]
-[![](IES_SpotVsPoint_02.png)(h:220)](IES_SpotVsPoint_02.png) [![](IES_SpotVsPoint_01.png)(h:220)](IES_SpotVsPoint_01.png)
+[![](IES_SpotVsPoint_02.png)(h:270)](IES_SpotVsPoint_02.png) [![](IES_SpotVsPoint_01.png)(h:270)](IES_SpotVsPoint_01.png)
 [/REGION]
 
 _In these images, the light on the left is a spot light and the light on the right is a point light, notice the lack of lighting above the spot light. The spot light's cone clips the IES Light Profile effect as seen in the image on the right._

@@ -1,8 +1,9 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "GameFramework/DefaultPhysicsVolume.h"
 #include "PhysicsEngine/PhysicsSettings.h"
+#include "Components/BrushComponent.h"
 
 ADefaultPhysicsVolume::ADefaultPhysicsVolume(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -16,4 +17,8 @@ ADefaultPhysicsVolume::ADefaultPhysicsVolume(const FObjectInitializer& ObjectIni
 	// update default values when world is restarted
 	TerminalVelocity = UPhysicsSettings::Get()->DefaultTerminalVelocity;
 	FluidFriction = UPhysicsSettings::Get()->DefaultFluidFriction;
+
+	// DefaultPhysicsVolumes are spawned only as a fallback object when determining the current physics volume.
+	// They are not intended to actually have any collision response, as they don't have actual collision geometry.
+	GetBrushComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }

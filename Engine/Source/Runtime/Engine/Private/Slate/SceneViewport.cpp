@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EnginePrivate.h"
@@ -372,7 +372,7 @@ FReply FSceneViewport::OnMouseButtonDown( const FGeometry& InGeometry, const FPo
 			ApplyModifierKeys( KeysState );
 		}
 
-		const bool bAnyMenusVisible = FSlateApplication::Get().AnyMenusVisible();
+		const bool bAnyMenuWasVisible = FSlateApplication::Get().AnyMenusVisible();
 
 		// Process the mouse event
 		if (!ViewportClient->InputKey(this, InMouseEvent.GetUserIndex(), InMouseEvent.GetEffectingButton(), IE_Pressed))
@@ -381,7 +381,7 @@ FReply FSceneViewport::OnMouseButtonDown( const FGeometry& InGeometry, const FPo
 		}
 
 		// a new menu was opened if there was previously not a menu visible but now there is
-		const bool bNewMenuWasOpened = !bAnyMenusVisible && FSlateApplication::Get().AnyMenusVisible();
+		const bool bNewMenuWasOpened = !bAnyMenuWasVisible && FSlateApplication::Get().AnyMenusVisible();
 
 		if (!ViewportClient->IgnoreInput() &&
 			!bNewMenuWasOpened && // We should not focus the viewport if a menu was opened as it would close the menu
@@ -395,12 +395,12 @@ FReply FSceneViewport::OnMouseButtonDown( const FGeometry& InGeometry, const FPo
 			CurrentReplyState.SetUserFocus(ViewportWidgetRef, EFocusCause::SetDirectly, true);
 			
 			UWorld* World = ViewportClient->GetWorld();
-			if (World && World->IsGameWorld() && World->GetFirstPlayerController())
+			if (World && World->IsGameWorld() && World->GetGameInstance() && World->GetGameInstance()->GetFirstLocalPlayerController())
 			{
 				CurrentReplyState.CaptureMouse(ViewportWidgetRef);
 				CurrentReplyState.LockMouseToWidget(ViewportWidgetRef);
 
-				bool bShouldShowMouseCursor = World->GetFirstPlayerController()->ShouldShowMouseCursor();
+				bool bShouldShowMouseCursor = World->GetGameInstance()->GetFirstLocalPlayerController()->ShouldShowMouseCursor();
 				if (ViewportClient->HideCursorDuringCapture() && bShouldShowMouseCursor)
 				{
 					bCursorHiddenDueToCapture = true;
@@ -525,6 +525,13 @@ FReply FSceneViewport::OnMouseMove( const FGeometry& InGeometry, const FPointerE
 
 			MouseDelta.Y -= CursorDelta.Y;
 			++NumMouseSamplesY;
+		}
+
+		if ( bCursorHiddenDueToCapture )
+		{
+			// If hidden during capture, don't actually move the cursor
+			FVector2D RevertedCursorPos( MousePosBeforeHiddenDueToCapture.X, MousePosBeforeHiddenDueToCapture.Y );
+			FSlateApplication::Get().SetCursorPos(RevertedCursorPos);
 		}
 	}
 
@@ -697,7 +704,7 @@ FReply FSceneViewport::OnMotionDetected( const FGeometry& MyGeometry, const FMot
 	return CurrentReplyState;
 }
 
-TOptional<EPopupMethod> FSceneViewport::OnQueryPopupMethod() const
+FPopupMethodReply FSceneViewport::OnQueryPopupMethod() const
 {
 	if (ViewportClient != nullptr)
 	{
@@ -705,7 +712,7 @@ TOptional<EPopupMethod> FSceneViewport::OnQueryPopupMethod() const
 	}
 	else
 	{
-		return TOptional<EPopupMethod>();
+		return FPopupMethodReply::Unhandled();
 	}
 }
 
@@ -825,9 +832,9 @@ FReply FSceneViewport::OnFocusReceived(const FFocusEvent& InFocusEvent)
 			if (IsForegroundWindow())
 			{
 				bool bIsCursorForcedVisible = false;
-				if (ViewportClient->GetWorld() && ViewportClient->GetWorld()->GetFirstPlayerController())
+				if (ViewportClient->GetWorld() && ViewportClient->GetWorld()->GetGameInstance() && ViewportClient->GetWorld()->GetGameInstance()->GetFirstLocalPlayerController())
 				{
-					bIsCursorForcedVisible = ViewportClient->GetWorld()->GetFirstPlayerController()->GetMouseCursor() != EMouseCursor::None;
+					bIsCursorForcedVisible = ViewportClient->GetWorld()->GetGameInstance()->GetFirstLocalPlayerController()->GetMouseCursor() != EMouseCursor::None;
 				}
 
 				const bool bPlayInEditorCapture = !bIsPlayInEditorViewport || InFocusEvent.GetCause() != EFocusCause::SetDirectly || bPlayInEditorGetsMouseControl;
@@ -848,6 +855,14 @@ FReply FSceneViewport::OnFocusReceived(const FFocusEvent& InFocusEvent)
 			}
 		}
 	}
+
+	// Update key state mappings so that the the viewport modifier states are valid upon focus.
+	KeyStateMap.Add( EKeys::LeftAlt, FSlateApplication::Get().GetModifierKeys().IsLeftAltDown() );
+	KeyStateMap.Add( EKeys::RightAlt, FSlateApplication::Get().GetModifierKeys().IsRightAltDown() );
+	KeyStateMap.Add( EKeys::LeftControl, FSlateApplication::Get().GetModifierKeys().IsLeftControlDown());
+	KeyStateMap.Add( EKeys::RightControl, FSlateApplication::Get().GetModifierKeys().IsRightControlDown());
+	KeyStateMap.Add( EKeys::LeftShift, FSlateApplication::Get().GetModifierKeys().IsLeftShiftDown());
+	KeyStateMap.Add( EKeys::RightShift, FSlateApplication::Get().GetModifierKeys().IsRightShiftDown());
 
 	return CurrentReplyState;
 }
@@ -1249,7 +1264,8 @@ void FSceneViewport::BeginRenderFrame(FRHICommandListImmediate& RHICmdList)
 	check( IsInRenderingThread() );
 	if (bUseSeparateRenderTarget)
 	{		
-		SetRenderTarget(RHICmdList,  RenderTargetTextureRenderThreadRHI,  FTexture2DRHIRef() );
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, RenderTargetTextureRenderThreadRHI);
+		SetRenderTarget(RHICmdList,  RenderTargetTextureRenderThreadRHI,  FTexture2DRHIRef(), true);
 	}
 	else if( IsValidRef( ViewportRHI ) ) 
 	{
@@ -1259,7 +1275,7 @@ void FSceneViewport::BeginRenderFrame(FRHICommandListImmediate& RHICmdList)
 		if (GRHIRequiresEarlyBackBufferRenderTarget)
 		{
 			// unused set render targets are bad on Metal
-			SetRenderTarget(RHICmdList, RenderTargetTextureRenderThreadRHI, FTexture2DRHIRef());
+			SetRenderTarget(RHICmdList, RenderTargetTextureRenderThreadRHI, FTexture2DRHIRef(), true);
 		}
 	}
 }

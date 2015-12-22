@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintEditorSettings.h"
@@ -26,6 +26,7 @@ UBlueprintEditorSettings::UBlueprintEditorSettings(const FObjectInitializer& Obj
 	// Compiler Settings
 	, SaveOnCompile(SoC_Never)
 	, bJumpToNodeErrors(false)
+	, bAllowExplicitImpureNodeDisabling(false)
 	// Developer Settings
 	, bShowActionMenuItemSignatures(false)
 	// Perf Settings

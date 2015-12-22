@@ -38,7 +38,7 @@ class FPostProcessLpvIndirectPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FPostProcessLpvIndirectPS, Global);
 
 	//@todo-rco: Remove this when reenabling for OpenGL
-	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsOpenGLPlatform(Platform); }
+	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsOpenGLPlatform(Platform) && !IsMetalPlatform(Platform); }
 
 	/** Default constructor. */
 	FPostProcessLpvIndirectPS() {}

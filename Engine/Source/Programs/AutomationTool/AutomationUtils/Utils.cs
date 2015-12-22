@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Reflection;
 using UnrealBuildTool;
 using System.Text.RegularExpressions;
+using Tools.DotNETCommon;
 
 namespace AutomationTool
 {
@@ -34,21 +35,22 @@ namespace AutomationTool
 			}
 			if (!bQuiet)
 			{
-				Log.WriteLine(TraceEventType.Verbose, "GetEnvironmentVariable {0}={1}", VarName, Value);
+				Log.TraceLog("GetEnvironmentVariable {0}={1}", VarName, Value);
 			}
 			return Value;
 		}
 
 		/// <summary>
 		/// Creates a directory.
+		/// @todo: this function should not exchange exception context for error codes that can be ignored.
 		/// </summary>
 		/// <param name="Path">Directory name.</param>
 		/// <returns>True if the directory was created, false otherwise.</returns>
 		public static bool SafeCreateDirectory(string Path, bool bQuiet = false)
 		{
 			if( !bQuiet)
-			{ 
-				Log.WriteLine(TraceEventType.Verbose, "SafeCreateDirectory {0}", Path);
+			{
+				Log.TraceLog("SafeCreateDirectory {0}", Path);
 			}
 
 			bool Result = true;
@@ -76,7 +78,7 @@ namespace AutomationTool
 		{
 			if (!bQuiet)
 			{
-				Log.WriteLine(TraceEventType.Verbose, "SafeDeleteFile {0}", Path);
+				Log.TraceLog("SafeDeleteFile {0}", Path);
 			}
 			int MaxAttempts = bQuiet ? 1 : 10;
 			int Attempts = 0;
@@ -108,7 +110,7 @@ namespace AutomationTool
 				}
 				if (Result == false && Attempts + 1 < MaxAttempts)
 				{
-					System.Threading.Thread.Sleep(1000);
+					Thread.Sleep(1000);
 				}
 			} while (Result == false && ++Attempts < MaxAttempts);
 
@@ -116,12 +118,12 @@ namespace AutomationTool
 			{
 				if (bQuiet)
 				{
-					Log.WriteLine(TraceEventType.Verbose, "Failed to delete file {0} in {1} attempts.", Path, MaxAttempts);
+					Log.TraceLog("Failed to delete file {0} in {1} attempts.", Path, MaxAttempts);
 				}
 				else
 				{
-					Log.WriteLine(TraceEventType.Warning, "Failed to delete file {0} in {1} attempts.", Path, MaxAttempts);
-					Log.WriteLine(TraceEventType.Warning, LogUtils.FormatException(LastException));
+					Log.TraceWarning("Failed to delete file {0} in {1} attempts.", Path, MaxAttempts);
+					Log.TraceWarning(LogUtils.FormatException(LastException));
 				}
 			}
 
@@ -137,7 +139,7 @@ namespace AutomationTool
 		{
 			if (!bQuiet)
 			{
-				Log.WriteLine(TraceEventType.Verbose, "RecursivelyDeleteDirectory {0}", Path);
+				Log.TraceLog("RecursivelyDeleteDirectory {0}", Path);
 			}
 			// Delete all files. This will also delete read-only files.
 			var FilesInDirectory = Directory.EnumerateFiles(Path);
@@ -173,7 +175,7 @@ namespace AutomationTool
 		{
 			if (!bQuiet)
 			{
-				Log.WriteLine(TraceEventType.Verbose, "SafeDeleteEmptyDirectory {0}", Path);
+				Log.TraceLog("SafeDeleteEmptyDirectory {0}", Path);
 			}
 			const int MaxAttempts = 10;
 			int Attempts = 0;
@@ -202,8 +204,8 @@ namespace AutomationTool
 
 			if (Result == false && LastException != null)
 			{
-				Log.WriteLine(TraceEventType.Warning, "Failed to delete directory {0} in {1} attempts.", Path, MaxAttempts);
-				Log.WriteLine(TraceEventType.Warning, LogUtils.FormatException(LastException));
+				Log.TraceWarning("Failed to delete directory {0} in {1} attempts.", Path, MaxAttempts);
+				Log.TraceWarning(LogUtils.FormatException(LastException));
 			}
 
 			return Result;
@@ -218,7 +220,7 @@ namespace AutomationTool
 		{
 			if (!bQuiet)
 			{
-				Log.WriteLine(TraceEventType.Verbose, "SafeDeleteDirectory {0}", Path);
+				Log.TraceLog("SafeDeleteDirectory {0}", Path);
 			}
 			if (Directory.Exists(Path))
 			{
@@ -239,8 +241,8 @@ namespace AutomationTool
 		public static bool SafeRenameFile(string OldName, string NewName, bool bQuiet = false)
 		{
 			if( !bQuiet )
-			{ 
-				Log.WriteLine(TraceEventType.Verbose, "SafeRenameFile {0} {1}", OldName, NewName);
+			{
+				Log.TraceLog("SafeRenameFile {0} {1}", OldName, NewName);
 			}
 			const int MaxAttempts = 10;
 			int Attempts = 0;
@@ -265,8 +267,8 @@ namespace AutomationTool
 				{
 					if (File.Exists(OldName) == true || File.Exists(NewName) == false)
 					{
-						Log.WriteLine(TraceEventType.Warning, "Failed to rename {0} to {1}", OldName, NewName);
-						Log.WriteLine(TraceEventType.Warning, LogUtils.FormatException(Ex));
+						Log.TraceWarning("Failed to rename {0} to {1}", OldName, NewName);
+						Log.TraceWarning(LogUtils.FormatException(Ex));
 						Result = false;
 					}
 				}
@@ -330,7 +332,7 @@ namespace AutomationTool
 		{
 			if (!bQuiet)
 			{
-				Log.WriteLine(TraceEventType.Verbose, "SafeCopyFile {0} {1}", SourceName, TargetName);
+				Log.TraceLog("SafeCopyFile {0} {1}", SourceName, TargetName);
 			}
 			const int MaxAttempts = 10;
 			int Attempts = 0;
@@ -360,21 +362,21 @@ namespace AutomationTool
 						FileInfo TargetInfo = new FileInfo(TargetName);
 						if (!bSkipSizeCheck && SourceInfo.Length != TargetInfo.Length)
 						{
-							Log.WriteLine(TraceEventType.Warning, "Size mismatch {0} = {1} to {2} = {3}", SourceName, SourceInfo.Length, TargetName, TargetInfo.Length);
+							Log.TraceWarning("Size mismatch {0} = {1} to {2} = {3}", SourceName, SourceInfo.Length, TargetName, TargetInfo.Length);
 							Retry = true;
 						}
 						// Timestamps should be no more than 2 seconds out - assuming this as exFAT filesystems store timestamps at 2 second intervals:
 						// http://ntfs.com/exfat-time-stamp.htm
 						if (!((SourceInfo.LastWriteTimeUtc - TargetInfo.LastWriteTimeUtc).TotalSeconds < 2 && (SourceInfo.LastWriteTimeUtc - TargetInfo.LastWriteTimeUtc).TotalSeconds > -2))
 						{
-							Log.WriteLine(TraceEventType.Warning, "Date mismatch {0} = {1} to {2} = {3}", SourceName, SourceInfo.LastWriteTimeUtc, TargetName, TargetInfo.LastWriteTimeUtc);
+							Log.TraceWarning("Date mismatch {0} = {1} to {2} = {3}", SourceName, SourceInfo.LastWriteTimeUtc, TargetName, TargetInfo.LastWriteTimeUtc);
 							Retry = true;
 						}
 					}
 				}
 				catch (Exception Ex)
 				{
-					Log.WriteLine(System.Diagnostics.TraceEventType.Warning, "SafeCopyFile Exception was {0}", LogUtils.FormatException(Ex));
+					Log.TraceWarning("SafeCopyFile Exception was {0}", LogUtils.FormatException(Ex));
 					Retry = true;
 				}
 
@@ -382,7 +384,7 @@ namespace AutomationTool
 				{
 					if (Attempts + 1 < MaxAttempts)
 					{
-						Log.WriteLine(TraceEventType.Warning, "Failed to copy {0} to {1}, deleting, waiting 10s and retrying.", SourceName, TargetName);
+						Log.TraceWarning("Failed to copy {0} to {1}, deleting, waiting 10s and retrying.", SourceName, TargetName);
 						if (File.Exists(TargetName))
 						{
 							SafeDeleteFile(TargetName);
@@ -391,7 +393,7 @@ namespace AutomationTool
 					}
 					else
 					{
-						Log.WriteLine(TraceEventType.Warning, "Failed to copy {0} to {1}", SourceName, TargetName);
+						Log.TraceWarning("Failed to copy {0} to {1}", SourceName, TargetName);
 					}
 					Result = false;
 				}
@@ -409,7 +411,7 @@ namespace AutomationTool
 		/// <returns>An array containing all lines read from the file or null if the file could not be read.</returns>
 		public static string[] SafeReadAllLines(string Filename)
 		{
-			Log.WriteLine(TraceEventType.Verbose, "SafeReadAllLines {0}", Filename);
+			Log.TraceLog("SafeReadAllLines {0}", Filename);
 			string[] Result = null;
 			try
 			{
@@ -417,8 +419,8 @@ namespace AutomationTool
 			}
 			catch (Exception Ex)
 			{
-				Log.WriteLine(TraceEventType.Warning, "Failed to load {0}", Filename);
-				Log.WriteLine(TraceEventType.Warning, LogUtils.FormatException(Ex));
+				Log.TraceWarning("Failed to load {0}", Filename);
+				Log.TraceWarning(LogUtils.FormatException(Ex));
 			}
 			return Result;
 		}
@@ -430,7 +432,7 @@ namespace AutomationTool
 		/// <returns>String containing all text read from the file or null if the file could not be read.</returns>
 		public static string SafeReadAllText(string Filename)
 		{
-			Log.WriteLine(TraceEventType.Verbose, "SafeReadAllLines {0}", Filename);
+			Log.TraceLog("SafeReadAllLines {0}", Filename);
 			string Result = null;
 			try
 			{
@@ -438,8 +440,8 @@ namespace AutomationTool
 			}
 			catch (Exception Ex)
 			{
-				Log.WriteLine(TraceEventType.Warning, "Failed to load {0}", Filename);
-				Log.WriteLine(TraceEventType.Warning, LogUtils.FormatException(Ex));
+				Log.TraceWarning("Failed to load {0}", Filename);
+				Log.TraceWarning(LogUtils.FormatException(Ex));
 			}
 			return Result;
 		}
@@ -455,7 +457,7 @@ namespace AutomationTool
 		{
 			if (!bQuiet)
 			{
-				Log.WriteLine(TraceEventType.Verbose, "FindFiles {0} {1} {2}", Path, SearchPattern, Recursive);
+				Log.TraceLog("FindFiles {0} {1} {2}", Path, SearchPattern, Recursive);
 			}
 
 			// On Linux, filter out symlinks since we (usually) create them to fix mispelled case-sensitive filenames in content, and if they aren't filtered, 
@@ -463,7 +465,7 @@ namespace AutomationTool
 			// Windows needs the symlinks though because that's how deduplication works on Windows server, 
 			// see https://answers.unrealengine.com/questions/212888/automated-buildjenkins-failing-due-to-symlink-chec.html
 			// FIXME: ZFS, JFS and other fs that can be case-insensitive on Linux should use the faster path as well.
-			if (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Linux)
+			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Linux)
 			{
 				return Directory.GetFiles(Path, SearchPattern, Recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
 			}
@@ -477,7 +479,7 @@ namespace AutomationTool
 					{
 						if (!bQuiet)
 						{
-							Log.WriteLine(TraceEventType.Warning, "Ignoring symlink {0}", File.FullName);
+							Log.TraceWarning("Ignoring symlink {0}", File.FullName);
 						}
 						continue;
 					}
@@ -500,7 +502,7 @@ namespace AutomationTool
 		{
 			if (!bQuiet)
 			{
-				Log.WriteLine(TraceEventType.Verbose, "FindDirectories {0} {1} {2}", Path, SearchPattern, Recursive);
+				Log.TraceLog("FindDirectories {0} {1} {2}", Path, SearchPattern, Recursive);
 			}
 			return Directory.GetDirectories(Path, SearchPattern, Recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
 		}
@@ -516,7 +518,7 @@ namespace AutomationTool
 		{
 			if (!bQuiet)
 			{
-				Log.WriteLine(TraceEventType.Verbose, "SafeFindFiles {0} {1} {2}", Path, SearchPattern, Recursive);
+				Log.TraceLog("SafeFindFiles {0} {1} {2}", Path, SearchPattern, Recursive);
 			}
 			string[] Files = null;
 			try
@@ -525,8 +527,8 @@ namespace AutomationTool
 			}
 			catch (Exception Ex)
 			{
-				Log.WriteLine(TraceEventType.Warning, "Unable to Find Files in {0}", Path);
-				Log.WriteLine(TraceEventType.Warning, LogUtils.FormatException(Ex));
+				Log.TraceWarning("Unable to Find Files in {0}", Path);
+				Log.TraceWarning(LogUtils.FormatException(Ex));
 			}
 			return Files;
 		}
@@ -542,7 +544,7 @@ namespace AutomationTool
 		{
 			if (!bQuiet)
 			{
-				Log.WriteLine(TraceEventType.Verbose, "SafeFindDirectories {0} {1} {2}", Path, SearchPattern, Recursive);
+				Log.TraceLog("SafeFindDirectories {0} {1} {2}", Path, SearchPattern, Recursive);
 			}
 			string[] Directories = null;
 			try
@@ -551,8 +553,8 @@ namespace AutomationTool
 			}
 			catch (Exception Ex)
 			{
-				Log.WriteLine(TraceEventType.Warning, "Unable to Find Directories in {0}", Path);
-				Log.WriteLine(TraceEventType.Warning, LogUtils.FormatException(Ex));
+				Log.TraceWarning("Unable to Find Directories in {0}", Path);
+				Log.TraceWarning(LogUtils.FormatException(Ex));
 			}
 			return Directories;
 		}
@@ -571,13 +573,13 @@ namespace AutomationTool
 				Result = File.Exists(Path);
 				if (!bQuiet)
 				{
-					Log.WriteLine(TraceEventType.Verbose, "SafeFileExists {0}={1}", Path, Result);
+					Log.TraceLog("SafeFileExists {0}={1}", Path, Result);
 				}
 			}
 			catch (Exception Ex)
 			{
-				Log.WriteLine(TraceEventType.Warning, "Unable to check if file {0} exists.", Path);
-				Log.WriteLine(TraceEventType.Warning, LogUtils.FormatException(Ex));
+				Log.TraceWarning("Unable to check if file {0} exists.", Path);
+				Log.TraceWarning(LogUtils.FormatException(Ex));
 			}
 			return Result;
 		}
@@ -597,13 +599,13 @@ namespace AutomationTool
 				Result = Directory.Exists(Path);
 				if (!bQuiet)
 				{
-					Log.WriteLine(TraceEventType.Verbose, "SafeDirectoryExists {0}={1}", Path, Result);
+					Log.TraceLog("SafeDirectoryExists {0}={1}", Path, Result);
 				}
 			}
 			catch (Exception Ex)
 			{
-				Log.WriteLine(TraceEventType.Warning, "Unable to check if directory {0} exists.", Path);
-				Log.WriteLine(TraceEventType.Warning, LogUtils.FormatException(Ex));
+				Log.TraceWarning("Unable to check if directory {0} exists.", Path);
+				Log.TraceWarning(LogUtils.FormatException(Ex));
 			}
 			return Result;
 		}
@@ -616,7 +618,7 @@ namespace AutomationTool
 		/// <returns>True if the operation was successful, false otherwise.</returns>
 		public static bool SafeWriteAllLines(string Path, string[] Text)
 		{
-			Log.WriteLine(TraceEventType.Verbose, "SafeWriteAllLines {0}", Path);
+			Log.TraceLog("SafeWriteAllLines {0}", Path);
 			bool Result = false;
 			try
 			{
@@ -625,8 +627,8 @@ namespace AutomationTool
 			}
 			catch (Exception Ex)
 			{
-				Log.WriteLine(TraceEventType.Warning, "Unable to write text to {0}", Path);
-				Log.WriteLine(TraceEventType.Warning, LogUtils.FormatException(Ex));
+				Log.TraceWarning("Unable to write text to {0}", Path);
+				Log.TraceWarning(LogUtils.FormatException(Ex));
 			}
 			return Result;
 		}
@@ -639,7 +641,7 @@ namespace AutomationTool
 		/// <returns>True if the operation was successful, false otherwise.</returns>
 		public static bool SafeWriteAllText(string Path, string Text)
 		{
-			Log.WriteLine(TraceEventType.Verbose, "SafeWriteAllText {0}", Path);
+			Log.TraceLog("SafeWriteAllText {0}", Path);
 			bool Result = false;
 			try
 			{
@@ -648,8 +650,8 @@ namespace AutomationTool
 			}
 			catch (Exception Ex)
 			{
-				Log.WriteLine(TraceEventType.Warning, "Unable to write text to {0}", Path);
-				Log.WriteLine(TraceEventType.Warning, LogUtils.FormatException(Ex));
+				Log.TraceWarning("Unable to write text to {0}", Path);
+				Log.TraceWarning(LogUtils.FormatException(Ex));
 			}
 			return Result;
 		}
@@ -662,7 +664,7 @@ namespace AutomationTool
 		/// <returns>True if the operation was successful, false otherwise.</returns>
 		public static bool SafeWriteAllBytes(string Path, byte[] Bytes)
 		{
-			Log.WriteLine(TraceEventType.Verbose, "SafeWriteAllBytes {0}", Path);
+			Log.TraceLog("SafeWriteAllBytes {0}", Path);
 			bool Result = false;
 			try
 			{
@@ -671,8 +673,8 @@ namespace AutomationTool
 			}
 			catch (Exception Ex)
 			{
-				Log.WriteLine(TraceEventType.Warning, "Unable to write text to {0}", Path);
-				Log.WriteLine(TraceEventType.Warning, LogUtils.FormatException(Ex));
+				Log.TraceWarning("Unable to write text to {0}", Path);
+				Log.TraceWarning(LogUtils.FormatException(Ex));
 			}
 			return Result;
 		}
@@ -682,65 +684,142 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Main"></param>
 		/// <param name="Param"></param>
-		public static void RunSingleInstance(System.Action<object> Main, object Param)
+		public static ExitCode RunSingleInstance(Func<object, ExitCode> Main, object Param)
 		{
 			if (Environment.GetEnvironmentVariable("uebp_UATMutexNoWait") == "1")
 			{
-				Main(Param);
-                return;
+				return Main(Param);
 			}
 			var bCreatedMutex = false;
-			var LocationHash = InternalUtils.ExecutingAssemblyLocation.GetHashCode();
-			var MutexName = "Global/" + Path.GetFileNameWithoutExtension(ExecutingAssemblyLocation) + "_" + LocationHash.ToString() + "_Mutex";
+            var EntryAssemblyLocation = Assembly.GetEntryAssembly().GetOriginalLocation();
+			var LocationHash = EntryAssemblyLocation.GetHashCode();
+            var MutexName = "Global/" + Path.GetFileNameWithoutExtension(EntryAssemblyLocation) + "_" + LocationHash.ToString() + "_Mutex";
 			using (Mutex SingleInstanceMutex = new Mutex(true, MutexName, out bCreatedMutex))
 			{
 				if (!bCreatedMutex)
 				{
-                    throw new AutomationException("Another instance of {0} is already running.", ExecutingAssemblyLocation);
-				}
-				else
-				{
-					Log.WriteLine(TraceEventType.Verbose, "No other instance of {0} is running.", ExecutingAssemblyLocation);
+                    throw new AutomationException("A conflicting instance of AutomationTool is already running. Curent location: {0}. A process manager may be used to determine the conflicting process and what tool may have launched it", EntryAssemblyLocation);
 				}
 
-				Main(Param);
+				ExitCode Result = Main(Param);
 
 				SingleInstanceMutex.ReleaseMutex();
+
+				return Result;
 			}
 		}
 
-		/// <summary>
-		/// Path to the executable which runs this code.
-		/// </summary>
-		public static string ExecutingAssemblyDirectory
-		{
-			get
-			{
-				return CommandUtils.CombinePaths(Path.GetDirectoryName(ExecutingAssemblyLocation));
-			}
-		}
+	    public static void Robust_CopyFile(string InputFileName, string OutputFileName)
+	    {
+	        if (OutputFileName.StartsWith("/Volumes/"))
+	        {
+	            int Retry = 0;
+	            int NumRetries = 60;
+	            bool bCopied = false;
+	            while (!bCopied && Retry < NumRetries)
+	            {
+	                if (Retry > 0)
+	                {
+                        //@todo: These retries should be reported so we can track how often they are occurring.
+                        CommandUtils.Log("*** Mac temp storage retry {0}", OutputFileName);
+	                    System.Threading.Thread.Sleep(1000);
+	                }
+	                bCopied = CommandUtils.CopyFile_NoExceptions(InputFileName, OutputFileName, true);
+	                Retry++;
+	            }
+	        }
+	        else
+	        {
+	            CommandUtils.CopyFile(InputFileName, OutputFileName);
+	        }
+	    }
 
-		/// <summary>
-		/// Filename of the executable which runs this code.
-		/// </summary>
-		public static string ExecutingAssemblyLocation
-		{
-			get
-			{
-				return CommandUtils.CombinePaths(new Uri(System.Reflection.Assembly.GetEntryAssembly().CodeBase).LocalPath);
-			}
-		}
+	    public static void Robust_FileExists(string Filename, string Message)
+	    {
+	        Robust_FileExists(false, Filename, Message);
+	    }
 
-		/// <summary>
-		/// Version info of the executable which runs this code.
-		/// </summary>
-		public static FileVersionInfo ExecutableVersion
-		{
-			get
-			{
-				return FileVersionInfo.GetVersionInfo(ExecutingAssemblyLocation);
-			}
-		}
+	    public static void Robust_FileExists(bool bQuiet, string Filename, string Message)
+	    {
+	        if (!CommandUtils.FileExists_NoExceptions(bQuiet, Filename))
+	        {
+	            bool bFound = false;
+	            // mac is terrible on shares, this isn't a solution, but a stop gap
+	            if (Filename.StartsWith("/Volumes/"))
+	            {
+	                int Retry = 0;
+	                while (!bFound && Retry < 60)
+	                {
+                        //@todo: These retries should be reported so we can track how often they are occurring.
+                        CommandUtils.Log("*** Mac temp storage retry {0}", Filename);
+	                    System.Threading.Thread.Sleep(10000);
+	                    bFound = CommandUtils.FileExists_NoExceptions(bQuiet, Filename);
+	                    Retry++;
+	                }
+	            }
+	            if (!bFound)
+	            {
+	                throw new AutomationException(Message, Filename);
+	            }
+	        }
+	    }
+
+	    public static bool Robust_DirectoryExists_NoExceptions(string Directoryname, string Message)
+	    {
+	        bool bFound = false;
+	        if (!CommandUtils.DirectoryExists_NoExceptions(Directoryname))
+	        {				
+	            // mac is terrible on shares, this isn't a solution, but a stop gap
+	            if (Directoryname.StartsWith("/Volumes/"))
+	            {
+	                int Retry = 0;
+	                while (!bFound && Retry < 60)
+	                {
+                        //@todo: These retries should be reported so we can track how often they are occurring.
+                        CommandUtils.Log("*** Mac temp storage retry {0}", Directoryname);
+	                    System.Threading.Thread.Sleep(10000);
+	                    bFound = CommandUtils.DirectoryExists_NoExceptions(Directoryname);
+	                    Retry++;
+	                }
+	            }				
+	        }
+	        else
+	        {
+	            bFound = true;
+	        }
+	        return bFound;
+	    }
+
+	    public static bool Robust_DirectoryExistsAndIsWritable_NoExceptions(string Directoryname)
+	    {
+	        bool bFound = false;
+	        if (!CommandUtils.DirectoryExistsAndIsWritable_NoExceptions(Directoryname))
+	        {
+	            // mac is terrible on shares, this isn't a solution, but a stop gap
+	            if (Directoryname.StartsWith("/Volumes/"))
+	            {
+	                int Retry = 0;
+	                int NumRetries = 60;
+	                if(!Directoryname.Contains("UE4"))
+	                {
+	                    NumRetries = 2;
+	                }
+	                while (!bFound && Retry < NumRetries)
+	                {
+                        //@todo: These retries should be reported so we can track how often they are occurring.
+                        CommandUtils.Log("*** Mac temp storage retry {0}", Directoryname);
+	                    System.Threading.Thread.Sleep(1000);
+	                    bFound = CommandUtils.DirectoryExistsAndIsWritable_NoExceptions(Directoryname);
+	                    Retry++;
+	                }
+	            }
+	        }
+	        else
+	        {
+	            bFound = true;
+	        }
+	        return bFound;
+	    }
 	}
 
 	#endregion
@@ -806,7 +885,7 @@ namespace AutomationTool
             {
                 throw new AutomationException("Failed to find MAJOR, MINOR, and PATCH fields from version file {0}", Filename);
             }
-            CommandUtils.Log("Read {0}.{1}.{2} from {3}", foundElements["MAJOR"], foundElements["MINOR"], foundElements["PATCH"], Filename);
+			CommandUtils.Log("Read {0}.{1}.{2} from {3}", foundElements["MAJOR"], foundElements["MINOR"], foundElements["PATCH"], Filename);
             return new Version(foundElements["MAJOR"], foundElements["MINOR"], foundElements["PATCH"]);
         }
 
@@ -888,7 +967,7 @@ namespace AutomationTool
         {
             try
             {
-				if (bAllowNoVersion && versionString.StartsWith("++depot"))
+				if (bAllowNoVersion && versionString.StartsWith("++"))
 				{
 					// This form of version is used when a product has no major.minor.patch version
 					// E.g. ++depot+UE4-ProdName-CL-12345678
@@ -916,31 +995,6 @@ namespace AutomationTool
             {
                 throw new AutomationException(ex, "Failed to parse {0} as an FEngineVersion compatible string", versionString);
             }
-        }
-
-        public static DateTime BuildTime()
-        {
-            string VerFile = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Build", "build.properties");
-
-            var VerLines = CommandUtils.ReadAllText(VerFile);
-
-            var SearchFor = "TimestampForBVT=";
-
-            int Index = VerLines.IndexOf(SearchFor);
-
-            if (Index < 0)
-            {
-                throw new AutomationException("Could not find {0} in {1} for file {2}", SearchFor, VerLines, VerFile);
-            }
-            Index = Index + SearchFor.Length;
-
-
-            var Parts = VerLines.Substring(Index).Split('.', '_', '-', '\n', '\r', '\t');
-
-            DateTime Result = new DateTime(int.Parse(Parts[0]), int.Parse(Parts[1]), int.Parse(Parts[2]), int.Parse(Parts[3]), int.Parse(Parts[4]), int.Parse(Parts[5]));
-
-            CommandUtils.Log("Current Build Time is {0}", Result);
-            return Result;
         }
     }
 

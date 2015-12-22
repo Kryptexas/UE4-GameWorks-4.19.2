@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -38,6 +38,7 @@ struct FPersonaTabs
 	static const FName SkeletonSlotNamesID;
 	static const FName SkeletonSlotGroupNamesID;
 	static const FName CurveNameManagerID;
+	static const FName BlendProfileManagerID;
 
 	// Blueprint Document
 

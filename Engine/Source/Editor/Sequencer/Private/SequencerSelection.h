@@ -1,11 +1,11 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SelectedKey.h"
 
 class UMovieSceneSection;
 class FSequencerDisplayNode;
+
 
 /**
  * Manages the selection of keys, sections, and outliner nodes for the sequencer.
@@ -13,6 +13,7 @@ class FSequencerDisplayNode;
 class FSequencerSelection
 {
 public:
+
 	DECLARE_MULTICAST_DELEGATE(FOnSelectionChanged)
 
 	/** Options for the current active selection. */
@@ -24,10 +25,11 @@ public:
 	};
 
 public:
+
 	FSequencerSelection();
 
 	/** Gets a set of the selected keys. */
-	const TSet<FSelectedKey>& GetSelectedKeys() const;
+	const TSet<FSequencerSelectedKey>& GetSelectedKeys() const;
 
 	/** Gets a set of the selected sections */
 	const TSet<TWeakObjectPtr<UMovieSceneSection>>& GetSelectedSections() const;
@@ -42,7 +44,7 @@ public:
 	EActiveSelection GetActiveSelection() const;
 
 	/** Adds a key to the selection */
-	void AddToSelection(FSelectedKey Key);
+	void AddToSelection(FSequencerSelectedKey Key);
 
 	/** Adds a section to the selection */
 	void AddToSelection(UMovieSceneSection* Section);
@@ -51,7 +53,7 @@ public:
 	void AddToSelection(TSharedRef<FSequencerDisplayNode> OutlinerNode);
 
 	/** Removes a key from the selection */
-	void RemoveFromSelection(FSelectedKey Key);
+	void RemoveFromSelection(FSequencerSelectedKey Key);
 
 	/** Removes a section from the selection */
 	void RemoveFromSelection(UMovieSceneSection* Section);
@@ -60,7 +62,7 @@ public:
 	void RemoveFromSelection(TSharedRef<FSequencerDisplayNode> OutlinerNode);
 
 	/** Returns whether or not the key is selected. */
-	bool IsSelected(FSelectedKey Key) const;
+	bool IsSelected(FSequencerSelectedKey Key) const;
 
 	/** Returns whether or not the section is selected. */
 	bool IsSelected(UMovieSceneSection* Section) const;
@@ -94,7 +96,8 @@ public:
 	void ResumeBroadcast() { bSuspendBroadcast = false; }
 	
 private:
-	TSet<FSelectedKey> SelectedKeys;
+
+	TSet<FSequencerSelectedKey> SelectedKeys;
 	TSet<TWeakObjectPtr<UMovieSceneSection>> SelectedSections;
 	TSet<TSharedRef<FSequencerDisplayNode>> SelectedOutlinerNodes;
 

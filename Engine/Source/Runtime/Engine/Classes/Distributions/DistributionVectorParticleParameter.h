@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -11,8 +11,8 @@ class UDistributionVectorParticleParameter : public UDistributionVectorParameter
 	GENERATED_UCLASS_BODY()
 
 
-	// Begin UDistributionVectorParameterBase Interface
+	//~ Begin UDistributionVectorParameterBase Interface
 	virtual bool GetParamValue(UObject* Data, FName ParamName, FVector& OutVector) const override;
-	// End UDistributionVectorParameterBase Interface
+	//~ End UDistributionVectorParameterBase Interface
 };
 

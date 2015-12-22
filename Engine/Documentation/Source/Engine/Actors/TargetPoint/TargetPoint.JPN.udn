@@ -1,14 +1,15 @@
-﻿INTSourceChangelist:2612797
+﻿INTSourceChangelist:2651909
 Availability:Public
 Title:Target Point アクタ
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:Target アクタの作成と使用に関するガイド
 Related:Gameplay/HowTo/SpawnAndDestroyActors/Blueprints
+バージョン：4.9
 
 ![](Target_Point_Actors.png)
 
-## 概要
-ゲームのワールドを作成する場合、プレイヤーがインタラクションするワールドのアイテムを配置し、スポーンする機能が必要になる場合があります。**Target Point** アクタはまさにこれを行います。アイテムをスポーンできる汎用ポイントを提供します。3D Max や Maya などの他の 3D アプリケーションを使い慣れている場合、Target Point アクタはこうしたプログラムのダミー アクタに非常に似ています。 
+
+ゲームのワールドを作成する場合、プレイヤーが相互作用するワールドのアイテムを配置し、スポーンする機能が必要になる場合があります。**Target Point アクタ** はまさにこれを行います。アイテムをスポーンできる汎用ポイントを提供します。3Ds Max や Maya などの他の 3D アプリケーションを使い慣れている場合、Target Point アクタはこうしたプログラムのダミー アクタに非常に似ています。 
 
 ## Target Point アクタを配置する
 Target Point アクタは、**[Mode (モード)]** パネルの **[All Classes (すべてのクラス)]** カテゴリにあります。Target Point アクタをワールドに追加するには、**[Mode]** パネルから選択して、ワールドにドラッグします。 
@@ -21,12 +22,13 @@ Target Point アクタは、**[Mode (モード)]** パネルの **[All Classes (
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-6M5rxn1pWV8
+OZdHf9DwLp0
 [/PARAMLITERAL]
 [/OBJECT]
 
+
 ## Target Point を使用する
-Target Point アクタを使用すると、アンリアル エンジン 4.0 内であらゆるタイプのことができます。以下は Target Point アクタを使用可能なものの一部です。
+Target Point アクタを使用すると、アンリアル エンジン 4.0 内であらゆるタイプのことができます。以下は Target Point アクタを使用できるものの一部です。
 
 * シネマティック シーケンス中のカメラの Look-at ターゲット
 * AI エージェントのパス ポイント
@@ -40,7 +42,7 @@ Target Point アクタを使用すると、アンリアル エンジン 4.0 内�
 
 ![](Target_Point_As_Spawn.png)
 
-ブループリントで Target ポイントノードを使用する方法の詳細例については、[ブループリントでアクタをスポーン/破壊する方法](Gameplay/HowTo/SpawnAndDestroyActors/Blueprints) のチュートリアルをご覧ください。
+ブループリント内で Target ポイントノードを使用する方法の詳細例については、[ブループリントでアクタをスポーン/破壊する方法](Gameplay/HowTo/SpawnAndDestroyActors/Blueprints) のチュートリアルをご覧ください。
 
 
 

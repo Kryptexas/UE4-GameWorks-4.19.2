@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "GraphEditorCommon.h"
 #include "SCommentBubble.h"
@@ -309,11 +309,7 @@ void SCommentBubble::UpdateBubble()
 
 FVector2D SCommentBubble::GetOffset() const
 {
-	if( GraphNode->bCommentBubbleVisible || OpacityValue > 0.f )
-	{
-		return FVector2D( 0.f, -GetDesiredSize().Y );
-	}
-	return FVector2D::ZeroVector;
+	return FVector2D( 0.f, -GetDesiredSize().Y );
 }
 
 float SCommentBubble::GetArrowCenterOffset() const
@@ -373,7 +369,7 @@ FSlateColor SCommentBubble::GetBubbleColor() const
 {
 	FLinearColor ReturnColor = ColorAndOpacity.Get().GetSpecifiedColor();
 
-	if(!GraphNode->bIsNodeEnabled)
+	if(!GraphNode->IsNodeEnabled())
 	{
 		ReturnColor.A *= 0.6f;
 	}

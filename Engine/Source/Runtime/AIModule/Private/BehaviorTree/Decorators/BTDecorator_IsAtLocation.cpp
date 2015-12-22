@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Decorators/BTDecorator_IsAtLocation.h"
@@ -36,7 +36,7 @@ bool UBTDecorator_IsAtLocation::CalculateRawConditionValue(UBehaviorTreeComponen
 			AActor* TargetActor = Cast<AActor>(KeyValue);
 			if (TargetActor)
 			{
-				bHasReached = PathFollowingComponent->HasReached(*TargetActor, AcceptableRadius, false, bUseNavAgentGoalLocation);
+				bHasReached = PathFollowingComponent->HasReached(*TargetActor, AcceptableRadius, /*bExactSpot=*/false, bUseNavAgentGoalLocation);
 			}
 		}
 		else if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Vector::StaticClass())

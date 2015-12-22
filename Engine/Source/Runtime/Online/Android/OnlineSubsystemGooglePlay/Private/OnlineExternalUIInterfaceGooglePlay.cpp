@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemGooglePlayPrivatePCH.h"
 #include "AndroidRuntimeSettings.h"
@@ -73,7 +73,12 @@ bool FOnlineExternalUIGooglePlay::ShowLeaderboardUI(const FString& LeaderboardNa
 	return false;
 }
 
-bool FOnlineExternalUIGooglePlay::ShowWebURL(const FString& WebURL) 
+bool FOnlineExternalUIGooglePlay::ShowWebURL(const FString& Url, const FShowWebUrlParams& ShowParams, const FOnShowWebUrlClosedDelegate& Delegate)
+{
+	return false;
+}
+
+bool FOnlineExternalUIGooglePlay::CloseWebURL()
 {
 	return false;
 }

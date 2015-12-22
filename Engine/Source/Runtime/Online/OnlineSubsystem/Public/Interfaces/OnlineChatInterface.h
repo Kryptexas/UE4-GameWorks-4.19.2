@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "OnlineDelegateMacros.h"
@@ -18,7 +18,7 @@ public:
 	virtual ~FChatRoomInfo() {}
 
 	virtual const FChatRoomId& GetRoomId() const = 0;
-	virtual const TSharedRef<FUniqueNetId>& GetOwnerId() const = 0;
+	virtual const TSharedRef<const FUniqueNetId>& GetOwnerId() const = 0;
 	virtual const FString& GetSubject() const = 0;
 	virtual bool IsPrivate() const = 0;
 	virtual bool IsJoined() const = 0;
@@ -59,7 +59,7 @@ class FChatRoomMember
 public:
 	virtual ~FChatRoomMember() {}
 
-	virtual const TSharedRef<FUniqueNetId>& GetUserId() const = 0;
+	virtual const TSharedRef<const FUniqueNetId>& GetUserId() const = 0;
 	virtual const FString& GetNickname() const = 0;
 };
 
@@ -71,7 +71,7 @@ class FChatMessage
 public:
 	virtual ~FChatMessage() {}
 
-	virtual const TSharedRef<FUniqueNetId>& GetUserId() const = 0;
+	virtual const TSharedRef<const FUniqueNetId>& GetUserId() const = 0;
 	virtual const FString& GetNickname() const = 0;
 	virtual const FString& GetBody() const = 0;
 	virtual const FDateTime& GetTimestamp() const = 0;

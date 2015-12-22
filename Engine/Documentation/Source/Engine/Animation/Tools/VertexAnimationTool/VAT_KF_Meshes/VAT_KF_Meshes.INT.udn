@@ -2,11 +2,11 @@ Availability:Public
 Title:Vertex Animation Tool - Key Framed Meshes
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description: User guide for the 3Ds Max Vertex Animation tool set.
-Version: 4.8
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
-## Overview
+
 You can also use the Vertex Animation tool with meshes that do not make use of the Animation Timeline in 3Ds Max. 
 Generally speaking mesh animations that use this method have been exported frame by frame from another 3D package like  Maya or Blender.
 In this section we will go over how to use this method as well as any differences in setup that you need to be aware of.
@@ -31,14 +31,34 @@ Position the Teapot copy so that the orange bounding box of the Melt modifier do
 Once the Teapot copy is in position release the mouse and the shift key and the Clone Options will be displayed. 
 Make sure the **Object** is set to **Copy** and then set the **Number of Copies** to **Four** and press the **Ok** button to create the copies.
 
-	![](VAT_KFM_Teapot_Copy.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	H9vBL17HuWU
+	[/PARAMLITERAL]
+	[/OBJECT]
 
-1. Then select the 2nd Teapot mesh and set the **Melt Amount** in the Melt modifier to 25. 
-Then select the next Teapot in line and set the **Melt Amount** of the Melt modifier to 50 and the next one to 75, and finally set the last Teapot **Melt Amount** to 100.
+1. Then select the 2nd Teapot mesh and set the **Melt Amount** in the Melt modifier to **25**. 
+Then select the next Teapot in line and set the **Melt Amount** of the Melt modifier to **50** and the next one to **75**, and finally set the last Teapot **Melt Amount** to **100**.
 
-	![](VAT_KFM_Teapot_Melt_Amount.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	Ltbpe9C8ENw
+	[/PARAMLITERAL]
+	[/OBJECT]
 
-1. With all the Teapots now having some type of deformation on them, select all the Teapots and then with the mouse Right-Click  in the 3Ds Max viewport and select **Convert To:** > **Convert to Editable Poly**.
+1. With all the Teapots now having some type of deformation on them, select all the Teapots and then with the mouse **Right-Click** in the 3Ds Max viewport and select **Convert To:** > **Convert to Editable Poly**.
 
 	[region:note]
 	You have to convert any mesh that you want to use with this tool to Editable Poly. The tool **WILL NOT** work with any other mesh type.
@@ -48,7 +68,17 @@ Then select the next Teapot in line and set the **Melt Amount** of the Melt modi
 Once the meshes are in the center of the world, deselect the Teapot meshes and then select them in the order that the animation is supposed to play. 
 For this example we want to select Teapot001 first  then select Teapot002 and so on till all five are selected.
 
-	![](VAT_KFM_Teapot_Export_Setup.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	sE8RBIVCBgA
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 	[region:note]
 	The Sequence Painter Tool requires that you select the meshes in the order that they should be played in the animation. Failing to do this will result in the animation that gets played in UE4 not syncing up to the bone driven animation that it is supposed to replace.
@@ -79,39 +109,68 @@ Once the Teapot mesh has been exported from 3Ds Max, it is now time for the Teap
 	
 		![](VAT_SM_Import_Options.png)
 
-1. After the Teapot mesh has been imported, open the mesh up by Double - Clicking on it with the Left Mouse button in Content Browser. 
+1. After the Teapot mesh has been imported, open the mesh up by **Double-Clicking** on it with the **Left Mouse button** in Content Browser. 
 Once the mesh has been opened enable the **Use Full Precision UVs** option and set the **Distance Field Resolution Scale** to **0.0** then press the **Apply Changes** button.
 
 	![](VAT_KFM_UE4_Setup.png)
 
-1. With the Teapot mesh now set up correctly, create a new Material in the Content Browser and name it **MAT_Sequance_Painter** and then open up the Material. 
+1. With the Teapot mesh now set up correctly, create a new **Material** in the Content Browser and name it **MAT_Sequance_Painter** and then open up the Material. 
 
 	![](VAT_KFM_Create_Material.png)
 
-1. Once the Material is opened up, add Two Constant Parameter nodes to the Material Graph by holding down the one key on the Keyboard and Left - Clicking with the mouse in the Material Graph to place the Constant Parameter nodes.
+1. Once the Material is opened up, add two **Constant Parameter** nodes to the Material Graph by holding down the **1** key on the keyboard and **Left-Clicking** with the mouse in the Material Graph to place the Constant Parameter nodes.
 Set the value of one of the Constant Parameter node and plug that into the **Base Color** input on the Main Material Node. Then set the value of the other Constant Parameter node to 5.
 
 	![](VAT_KFM_Set_Values.png)
 
-1. Next use the mouse and Right - Click in the Material Graph to expose the search menu and then search for **MS_SequencePainter_SequenceFlipbook** Material Function using MS as the search term.
+1. Next use the mouse and **Right-Click** in the Material Graph to expose the search menu and then search for **MS_SequencePainter_SequenceFlipbook** Material Function using MS as the search term.
 When you find the MS_SequencePainter_SequenceFlipbook Material Function, click on it with the Left Mouse button to add it to the Material Graph.
 
-	![](VAT_KFM_Adding_MF_Flipbook.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	juDHJS0K7b4
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1. With the correct Material Function now in place, connect the output of the **MS_SequencePainter_SequenceFlipbook**,  into the World Position Offset input on the Main Material node and then connect the remaining Scalar parameter to the **Number Of Frames** input on the MS_SequencePainter_SequenceFlipbook Material Function node.
 
-	![](VAT_KFM_Linking_Up_MF.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	5VGa5sdRvfk
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1. Now that everything has been hooked up press the **Apply** button to compile the Material and then press the **Save** button. 
 After that is completed you can then close down the Material Graph Editor.
 
 	![](VAT_Compile_Save.png)
 
-1. With the Material created, compiled, and saved drag the Teapot mesh from the Content Browser into the level and then drag the Material that was just created for it from the Content Browser on to the mesh that was placed in the level. 
+1. With the Material created, compiled, and saved drag the Teapot mesh from the Content Browser into the level and then drag the **Material** that was just created for it from the Content Browser on to the mesh that was placed in the level. 
 Once this has been completed you will now see the mesh "playing" the animation.
 
-	![](VAT_KFM_Final_Effect.gif)(convert:false)
-
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	TcyZIZp-0u8
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "ModuleManager.h"
@@ -20,7 +20,21 @@ struct EBuildModuleType
 		Max
 	};
 
-
+	friend FArchive& operator<<(FArchive& Ar, EBuildModuleType::Type& Type)
+	{
+		if (Ar.IsLoading())
+		{
+			uint8 Value;
+			Ar << Value;
+			Type = (EBuildModuleType::Type)Value;
+		}
+		else if (Ar.IsSaving())
+		{
+			uint8 Value = (uint8)Type;
+			Ar << Value;
+		}
+		return Ar;
+	}
 	/**
 	* Converts a string literal into EModuleType::Type value
 	*

@@ -2,6 +2,7 @@ Availability: Public
 Title:Example Game Projects
 Crumbs:%ROOT%, Resources
 Description:Full sample games demonstrating the implementation of various genres.
+Version: 4.9
 
 
 [VAR:Topic]
@@ -52,6 +53,7 @@ We intend users to analyze and pick apart these examples taking the parts that a
 [/Excerpt:SampleGames]
 
 [REGION:topics third]
+%Resources/SampleGames/PlatformerGame:TopicCompact%
 %Resources/SampleGames/ShooterGame:TopicCompact%
 %Resources/SampleGames/StrategyGame:TopicCompact%
 %Resources/SampleGames/CardGame:TopicCompact%

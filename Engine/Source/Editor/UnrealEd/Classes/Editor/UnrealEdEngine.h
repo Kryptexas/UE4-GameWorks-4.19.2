@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "UniquePtr.h"
@@ -168,18 +168,18 @@ public:
 	/** Manages currently active visualizer and routes interactions to it */
 	FComponentVisualizerManager	ComponentVisManager;
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	~UUnrealEdEngine();
 	virtual void FinishDestroy() override;
 	virtual void Serialize( FArchive& Ar ) override;
-	// End UObject interface.
+	//~ End UObject Interface.
 
-	// Begin FNotify interface.
+	//~ Begin FNotify Interface.
 	virtual void NotifyPreChange( UProperty* PropertyAboutToChange ) override;
 	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged ) override;
-	// End FNotify interface.
+	//~ End FNotify Interface.
 
-	// Begin UEditorEngine Interface
+	//~ Begin UEditorEngine Interface
 	virtual void SelectActor(AActor* Actor, bool InSelected, bool bNotify, bool bSelectEvenIfHidden = false, bool bForceRefresh = false) override;
 	virtual bool CanSelectActor(AActor* Actor, bool InSelected, bool bSelectEvenIfHidden=false, bool bWarnIfLevelLocked=false) const override;
 	virtual void SelectGroup(AGroupActor* InGroupActor, bool bForceSelection=false, bool bInSelected=true, bool bNotify=true) override;
@@ -203,18 +203,18 @@ public:
 	virtual void CloseEditor() override;
 	virtual void OnOpenMatinee() override;
 	virtual bool IsAutosaving() const override;
-	// End UEditorEngine Interface 
+	//~ End UEditorEngine Interface 
 	
-	// Begin FExec Interface
+	//~ Begin FExec Interface
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog ) override;
-	// End FExec Interface
+	//~ End FExec Interface
 
 
-	// Begin UEngine Interface.
+	//~ Begin UEngine Interface.
 	virtual void Init(IEngineLoop* InEngineLoop) override;
 	virtual void PreExit() override;
 	virtual void Tick(float DeltaSeconds, bool bIdleMode) override;
-	// End UEngine Interface.
+	//~ End UEngine Interface.
 
 	/** Builds a list of sprite categories for use in menus */
 	static void MakeSortedSpriteInfo(TArray<struct FSpriteCategoryInfo>& OutSortedSpriteInfo);
@@ -684,6 +684,11 @@ public:
 	 * @param InViewport			The viewport where actor visibility should apply.  Pass NULL for all editor viewports.
 	 */
 	void UpdateVolumeActorVisibility( UClass* InVolumeActorClass = NULL , FLevelEditorViewportClient* InViewport = NULL);
+
+	/**
+	 * Identify any brushes whose sense is inverted and repair them
+	 */
+	void FixAnyInvertedBrushes(UWorld* World);
 
 	/**
 	 * Get the index of the provided sprite category

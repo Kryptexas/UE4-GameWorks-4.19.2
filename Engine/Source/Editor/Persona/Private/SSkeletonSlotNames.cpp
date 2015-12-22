@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PersonaPrivatePCH.h"
@@ -14,7 +14,7 @@
 #include "STextEntryPopup.h"
 #include "Animation/AnimBlueprint.h"
 #include "AnimGraphNode_Slot.h"
-#include "Animation/AnimNode_Slot.h"
+#include "AnimNodes/AnimNode_Slot.h"
 #include "BlueprintEditorUtils.h"
 #include "SSlotNameReferenceWindow.h"
 #include "IMainFrameModule.h"

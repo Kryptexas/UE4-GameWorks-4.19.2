@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "NiagaraNodeOutputUpdate.generated.h"
@@ -10,12 +10,12 @@ class UDEPRECATED_NiagaraNodeOutputUpdate : public UNiagaraNode
 
 public:
 
-	// Begin EdGraphNode interface
+	//~ Begin EdGraphNode Interface
 	virtual void AllocateDefaultPins() override;
 	virtual bool CanUserDeleteNode() const override { return false; }
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FLinearColor GetNodeTitleColor() const override;
-	// End EdGraphNode interface
+	//~ End EdGraphNode Interface
 
 	void Compile(class INiagaraCompiler* Compiler, TArray<FNiagaraNodeResult>& Outputs)override;
 };

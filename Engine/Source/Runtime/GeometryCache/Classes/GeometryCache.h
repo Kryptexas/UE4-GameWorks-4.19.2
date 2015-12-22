@@ -1,9 +1,11 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
+#include "Core.h"
+#include "CoreUObject.h"
+#include "RenderCore.h"
+
 #include "Interfaces/Interface_AssetUserData.h"
-
 #include "GeometryCacheTrack.h"
-
 #include "GeometryCache.generated.h"
 
 /**
@@ -20,7 +22,7 @@ public:
 	*/
 	UGeometryCache(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostInitProperties() override;
 	virtual FString GetDesc() override;
@@ -33,7 +35,7 @@ public:
 	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 #endif // WITH_EDITOR
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	// End UObject interface.
+	//~ End UObject Interface.
 
 	/**
 	* AddTrack
@@ -64,6 +66,6 @@ private:
 	uint32 NumVertexAnimationTracks;
 	uint32 NumTransformAnimationTracks;
 
-	/** A fence which is used to keep track of the rendering thread releasing the static mesh resources. */
+	/** A fence which is used to keep track of the rendering thread releasing the geometry cache resources. */
 	FRenderCommandFence ReleaseResourcesFence;
 };

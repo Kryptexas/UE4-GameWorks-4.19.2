@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "TimerManager.h"
@@ -129,7 +129,7 @@ protected:
 };
 
 
-//=============================================================================
+//~=============================================================================
 /**
  * PlayerControllers are used by human players to control Pawns.
  *
@@ -245,6 +245,9 @@ class ENGINE_API APlayerController : public AController
 
 	/** Is this player currently in cinematic mode?  Prevents rotation/movement/firing/etc */
 	uint32 bCinematicMode:1;
+	
+	/** When cinematic mode is true, signifies that this controller's pawn should be hidden */
+	uint32 bHidePawnInCinematicMode:1;
 
 	/** Whether this controller is using streaming volumes.  **/
 	uint32 bIsUsingStreamingVolumes:1;
@@ -690,7 +693,7 @@ public:
 	 * @param MsgLifeTime - Optional length of time to display 0 = default time
 	 */
 	UFUNCTION(Reliable, Client)
-	void ClientMessage(const FString& S, FName Type = NAME_None, float MsgLifeTime = 0);
+	void ClientMessage(const FString& S, FName Type = NAME_None, float MsgLifeTime = 0.f);
 
 	/** Play the indicated CameraAnim on this camera.
 	 * @param AnimToPlay - Camera animation to play
@@ -704,7 +707,7 @@ public:
 	 * @param CustomPlaySpace - Matrix used when Space = CAPS_UserDefined
 	 */
 	UFUNCTION(unreliable, client, BlueprintCallable, Category = "Game|Feedback")
-	void ClientPlayCameraAnim(class UCameraAnim* AnimToPlay, float Scale=0, float Rate=0, float BlendInTime=0, float BlendOutTime=0, bool bLoop=false, bool bRandomStartTime=false, ECameraAnimPlaySpace::Type Space=ECameraAnimPlaySpace::CameraLocal, FRotator CustomPlaySpace=FRotator::ZeroRotator);
+	void ClientPlayCameraAnim(class UCameraAnim* AnimToPlay, float Scale=1.f, float Rate=1.f, float BlendInTime=0.f, float BlendOutTime=0.f, bool bLoop=false, bool bRandomStartTime=false, ECameraAnimPlaySpace::Type Space=ECameraAnimPlaySpace::CameraLocal, FRotator CustomPlaySpace=FRotator::ZeroRotator);
 
 	/** 
 	 * Play Camera Shake 
@@ -714,7 +717,7 @@ public:
 	 * @param UserPlaySpaceRot - Matrix used when PlaySpace = CAPS_UserDefined
 	 */
 	UFUNCTION(unreliable, client, BlueprintCallable, Category="Game|Feedback")
-	void ClientPlayCameraShake(TSubclassOf<class UCameraShake> Shake, float Scale = 0, ECameraAnimPlaySpace::Type PlaySpace = ECameraAnimPlaySpace::CameraLocal, FRotator UserPlaySpaceRot = FRotator::ZeroRotator);
+	void ClientPlayCameraShake(TSubclassOf<class UCameraShake> Shake, float Scale = 1.f, ECameraAnimPlaySpace::Type PlaySpace = ECameraAnimPlaySpace::CameraLocal, FRotator UserPlaySpaceRot = FRotator::ZeroRotator);
 
 	/**
 	 * Play sound client-side (so only the client will hear it)
@@ -1232,11 +1235,11 @@ public:
 	 */
 	virtual FString ConsoleCommand(const FString& Command, bool bWriteToLog = true);
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void PostLoad() override;
-	// End of UObject Interface
+	//~ End UObject Interface
 
-	// Begin AActor Interface
+	//~ Begin AActor Interface
 	virtual void GetActorEyesViewPoint(FVector& Location, FRotator& Rotation) const override;
 	virtual void CalcCamera(float DeltaTime, struct FMinimalViewInfo& OutResult) override;
 	virtual void TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction) override;
@@ -1249,19 +1252,21 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void Destroyed() override;
 	virtual void OnActorChannelOpen(class FInBunch& InBunch, class UNetConnection* Connection) override;
+	virtual bool UseShortConnectTimeout() const override;
 	virtual void OnSerializeNewActor(class FOutBunch& OutBunch) override;
 	virtual void OnNetCleanup(class UNetConnection* Connection) override;
 	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, AActor* Viewer, AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth) override;
 	virtual const AActor* GetNetOwner() const override;
 	virtual class UPlayer* GetNetOwningPlayer() override;
 	virtual class UNetConnection* GetNetConnection() const override;
+	virtual bool DestroyNetworkActorHandled() override;
 	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
 	virtual void PostInitializeComponents() override;
 	virtual void EnableInput(class APlayerController* PlayerController) override;
 	virtual void DisableInput(class APlayerController* PlayerController) override;
-	// End AActor interface
+	//~ End AActor Interface
 
-	// Begin AController interface
+	//~ Begin AController Interface
 	virtual void GameHasEnded(class AActor* EndGameFocus = NULL, bool bIsWinner = false) override;
 	virtual bool IsLocalPlayerController() const override;
 	virtual bool IsLocalController() const override;
@@ -1273,7 +1278,7 @@ public:
 	virtual void EndInactiveState() override;
 	virtual void FailedToSpawnPawn() override;
 	virtual void SetPawn(APawn* InPawn) override;
-	// End AController interface
+	//~ End AController Interface
 
 	/** called on the server when the client sends a message indicating it was unable to initialize an Actor channel,
 	 * most commonly because the desired Actor's archetype couldn't be serialized

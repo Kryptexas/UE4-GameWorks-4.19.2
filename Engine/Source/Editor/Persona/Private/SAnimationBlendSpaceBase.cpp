@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PersonaPrivatePCH.h"
@@ -1282,7 +1282,7 @@ ECheckBoxState SBlendSpaceEditorBase::IsPreviewOn() const
 
 	if (Component != NULL && Component->IsPreviewOn())
 	{
-		if (Component->PreviewInstance->CurrentAsset == BlendSpace)
+		if (Component->PreviewInstance->GetCurrentAsset() == BlendSpace)
 		{
 			return ECheckBoxState::Checked;
 		}
@@ -1323,7 +1323,7 @@ void SBlendSpaceEditorBase::UpdatePreviewParameter() const
 
 	if (Component != nullptr && Component->IsPreviewOn())
 	{
-		if (Component->PreviewInstance->CurrentAsset == BlendSpace)
+		if (Component->PreviewInstance->GetCurrentAsset() == BlendSpace)
 		{
 			FVector BlendInput = BlendSpaceWidget->LastValidMouseEditorPoint;
 			Component->PreviewInstance->SetBlendSpaceInput(BlendInput);

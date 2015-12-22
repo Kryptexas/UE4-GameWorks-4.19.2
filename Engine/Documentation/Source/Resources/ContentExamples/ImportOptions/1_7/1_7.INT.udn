@@ -11,7 +11,24 @@ Related: Engine/Content/FBX
 Related: Engine/Content/FBX/MorphTargets
 Related: Shared/Editor/FbxErrors
 Related: Engine/Content/FBX/Materials
+Version: 4.9
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Example](Resources/ContentExamples/ImportOptions/1_6 "%Resources/ContentExamples/ImportOptions/1_6:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Import Options Home](Resources/ContentExamples/ImportOptions)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -52,9 +69,20 @@ Related: Engine/Content/FBX/Materials
 [/OBJECT]
 [/VAR]
 
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Cube](CE_1_7_001.png)(h:500)
+	[/PARAM]
+	[PARAM:after]
+	![Sphere](CE_1_7_002.png)(h:500)
+	[/PARAM]
+[/OBJECT]
+
+<!---
 [REGION:lightbox]
 [![](CE_1_7_001.png)(h:330)](CE_1_7_001.png) [![](CE_1_7_002.png)(h:330)](CE_1_7_002.png)
 [/REGION]
+--->
 
 [INCLUDE:Engine/Content\FBX\MorphTargets#FBX_morph]
 

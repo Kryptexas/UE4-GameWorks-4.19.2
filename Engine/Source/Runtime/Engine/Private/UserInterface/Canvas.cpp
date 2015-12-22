@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Canvas.cpp: Unreal canvas rendering.
@@ -654,9 +654,9 @@ void FCanvas::Flush_RenderThread(FRHICommandListImmediate& RHICmdList, bool bFor
 	const FTexture2DRHIRef& RenderTargetTexture = RenderTarget->GetRenderTargetTexture();
 
 	check(IsValidRef(RenderTargetTexture));
-
+	
 	// Set the RHI render target.
-	::SetRenderTarget(RHICmdList, RenderTargetTexture, FTextureRHIRef());
+	::SetRenderTarget(RHICmdList, RenderTargetTexture, FTexture2DRHIRef());
 	// disable depth test & writes
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
@@ -760,7 +760,7 @@ void FCanvas::Flush_GameThread(bool bForce)
 		SCOPED_DRAW_EVENT(RHICmdList, CanvasFlush);
 
 		// Set the RHI render target.
-		::SetRenderTarget(RHICmdList, Parameters.CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
+		::SetRenderTarget(RHICmdList, Parameters.CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef(), true);
 		// disable depth test & writes
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
@@ -897,7 +897,7 @@ void FCanvas::Clear(const FLinearColor& LinearColor)
 		SCOPED_DRAW_EVENT(RHICmdList, CanvasClear);
 		if( CanvasRenderTarget )
 		{
-			::SetRenderTarget(RHICmdList, CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
+			::SetRenderTarget(RHICmdList, CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef(), true);
 			RHICmdList.SetViewport(0, 0, 0.0f, CanvasRenderTarget->GetSizeXY().X, CanvasRenderTarget->GetSizeXY().Y, 1.0f);
 		}
 		RHICmdList.Clear(true, ClearColor, false, 0.0f, false, 0, FIntRect());
@@ -1281,7 +1281,7 @@ void UCanvas::UpdateSafeZoneData()
 		CachedDisplayHeight = UnsafeSizeY;
 
 		SafeZonePadX = (CachedDisplayWidth - (CachedDisplayWidth * SafeRegionPercentage.X))/2.f;
-		SafeZonePadY = CachedDisplayHeight - (CachedDisplayHeight * SafeRegionPercentage.Y)/2.f;
+		SafeZonePadY = (CachedDisplayHeight - (CachedDisplayHeight * SafeRegionPercentage.Y))/2.f;
 	}
 	else if(FSlateApplication::IsInitialized())
 	{
@@ -2007,3 +2007,30 @@ FVector2D UCanvas::K2_TextSize(UFont* RenderFont, const FString& RenderText, FVe
 	return FVector2D::ZeroVector;
 }
 
+void FDisplayDebugManager::DrawString(const FString& InDebugString, const float& OptionalXOffset)
+{
+	if (Canvas)
+	{
+		DebugTextItem.Text = FText::FromString(InDebugString);
+		Canvas->DrawItem(DebugTextItem, FVector2D(CurrentPos.X + OptionalXOffset, CurrentPos.Y));
+
+		NextColumXPos = FMath::Max(NextColumXPos, CurrentPos.X + OptionalXOffset + DebugTextItem.DrawnSize.X);
+		MaxCharHeight = FMath::Max(MaxCharHeight, DebugTextItem.DrawnSize.Y);
+
+		CurrentPos.Y += GetYStep();
+		AddColumnIfNeeded();
+	}
+}
+
+void FDisplayDebugManager::AddColumnIfNeeded()
+{
+	if (Canvas)
+	{
+		const float YStep = GetYStep();
+		if ((CurrentPos.Y + YStep) > Canvas->SizeY)
+		{
+			CurrentPos.Y = InitialPos.Y;
+			CurrentPos.X = NextColumXPos + YStep * 2.f;
+		}
+	}
+}

@@ -1,19 +1,33 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "ByteKeyArea.h"
+
+
 /**
-* An implementation of byte property sections
-*/
-class FBytePropertySection : public FPropertySection
+ * An implementation of byte property sections
+ */
+class FBytePropertySection
+	: public FPropertySection
 {
 public:
-	FBytePropertySection( UMovieSceneSection& InSectionObject, FName InSectionName, UEnum* InEnum )
-		: FPropertySection( InSectionObject, InSectionName )
-		, Enum( InEnum ) {}
 
-	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override;
+	FBytePropertySection(UMovieSceneSection& InSectionObject, const FText& InSectionName, UEnum* InEnum)
+		: FPropertySection(InSectionObject, InSectionName)
+		, Enum( InEnum )
+	{ }
+
+public:
+
+	// FPropertySection interface
+
+	virtual void GenerateSectionLayout(class ISectionLayoutBuilder& LayoutBuilder) const override;
+	virtual void SetIntermediateValue(FPropertyChangedParams PropertyChangedParams) override;
+	virtual void ClearIntermediateValue() override;
 
 private:
+
+	mutable TSharedPtr<FByteKeyArea> KeyArea;
 	UEnum* Enum;
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessMaterial.cpp: Post processing Material implementation.
@@ -126,6 +126,30 @@ FRCPassPostProcessMaterial::FRCPassPostProcessMaterial(UMaterialInterface* InMat
 		MaterialInterface = UMaterial::GetDefaultMaterial(MD_PostProcess);
 	}
 }
+		
+/** The filter vertex declaration resource type. */
+class FPostProcessMaterialVertexDeclaration : public FRenderResource
+{
+public:
+	FVertexDeclarationRHIRef VertexDeclarationRHI;
+	
+	/** Destructor. */
+	virtual ~FPostProcessMaterialVertexDeclaration() {}
+	
+	virtual void InitRHI()
+	{
+		FVertexDeclarationElementList Elements;
+		uint32 Stride = sizeof(FFilterVertex);
+		Elements.Add(FVertexElement(0,STRUCT_OFFSET(FFilterVertex,Position),VET_Float4,0,Stride));
+		VertexDeclarationRHI = RHICreateVertexDeclaration(Elements);
+	}
+	
+	virtual void ReleaseRHI()
+	{
+		VertexDeclarationRHI.SafeRelease();
+	}
+};
+TGlobalResource<FPostProcessMaterialVertexDeclaration> GPostProcessMaterialVertexDeclaration;
 
 void FRCPassPostProcessMaterial::Process(FRenderingCompositePassContext& Context)
 {
@@ -137,7 +161,9 @@ void FRCPassPostProcessMaterial::Process(FRenderingCompositePassContext& Context
 	
 	check(Material);
 
-	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessMaterial, TEXT("PostProcessMaterial Material=%s"), *Material->GetFriendlyName());
+	const FSceneView& View = Context.View;
+
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessMaterial, TEXT("PostProcessMaterial %dx%d Material=%s"), View.ViewRect.Width(), View.ViewRect.Height(), *Material->GetFriendlyName());
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
@@ -147,7 +173,6 @@ void FRCPassPostProcessMaterial::Process(FRenderingCompositePassContext& Context
 		return;
 	}
 
-	const FSceneView& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 
 	// hacky cast
@@ -175,14 +200,11 @@ void FRCPassPostProcessMaterial::Process(FRenderingCompositePassContext& Context
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	float ScaleX = 1.0f / InputDesc->Extent.X;
-	float ScaleY = 1.0f / InputDesc->Extent.Y;
-
 	const FMaterialShaderMap* MaterialShaderMap = Material->GetRenderingThreadShaderMap();
 	FPostProcessMaterialPS* PixelShader = MaterialShaderMap->GetShader<FPostProcessMaterialPS>();
 	FPostProcessMaterialVS* VertexShader = MaterialShaderMap->GetShader<FPostProcessMaterialVS>();
 
-	Context.RHICmdList.SetLocalBoundShaderState(Context.RHICmdList.BuildLocalBoundShaderState(GetVertexDeclarationFVector4(), VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), PixelShader->GetPixelShader(), FGeometryShaderRHIRef()));
+	Context.RHICmdList.SetLocalBoundShaderState(Context.RHICmdList.BuildLocalBoundShaderState(GPostProcessMaterialVertexDeclaration.VertexDeclarationRHI, VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), PixelShader->GetPixelShader(), FGeometryShaderRHIRef()));
 
 	VertexShader->SetParameters(Context.RHICmdList, Context);
 	PixelShader->SetParameters(Context.RHICmdList, Context, MaterialInterface->GetRenderProxy(false));
@@ -204,7 +226,7 @@ void FRCPassPostProcessMaterial::Process(FRenderingCompositePassContext& Context
 
 	if(Material->NeedsGBuffer())
 	{
-		FSceneRenderTargets::Get(Context.RHICmdList).AdjustGBufferRefCount(-1);
+		FSceneRenderTargets::Get(Context.RHICmdList).AdjustGBufferRefCount(Context.RHICmdList,-1);
 	}
 }
 
@@ -217,6 +239,7 @@ FPooledRenderTargetDesc FRCPassPostProcessMaterial::ComputeOutputDesc(EPassOutpu
 		Ret.Format = OutputFormat;
 	}
 	Ret.Reset();
+	Ret.AutoWritable = false;
 	Ret.DebugName = TEXT("PostProcessMaterial");
 
 	return Ret;

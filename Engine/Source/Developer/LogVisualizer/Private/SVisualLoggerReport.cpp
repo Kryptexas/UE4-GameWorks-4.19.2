@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "LogVisualizer.h"
 #include "Debug/ReporterGraph.h"
@@ -9,7 +9,6 @@
 #include "Editor/UnrealEd/Public/EditorReimportHandler.h"
 #include "Editor/UnrealEd/Public/TexAlignTools.h"
 #include "Editor/UnrealEd/Public/TickableEditorObject.h"
-#include "UnrealEdClasses.h"
 #include "Editor/UnrealEd/Public/Editor.h"
 #include "Editor/UnrealEd/Public/EditorViewportClient.h"
 #include "VisualLoggerTypes.h"

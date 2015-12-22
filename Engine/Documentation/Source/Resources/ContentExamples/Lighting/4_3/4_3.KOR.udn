@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2653227
 Availability: Public
 Title:4.3 - 간접광
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
@@ -13,6 +13,22 @@ Related: Engine/Rendering/LightingAndShadows/Shadows
 Related: Engine/Rendering/LightingAndShadows/IndirectLightingCache
 Related: Engine/Rendering/LightingAndShadows/LightMobility
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 예제](Resources/ContentExamples/Lighting/4_2 "%Resources/ContentExamples/Lighting/4_2:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[라이팅 홈](Resources/ContentExamples/Lighting)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:TopicCompact]

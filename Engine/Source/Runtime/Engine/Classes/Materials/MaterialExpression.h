@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -175,7 +175,7 @@ class ENGINE_API UMaterialExpression : public UObject
 	UPROPERTY()
 	TArray<FExpressionOutput> Outputs;
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
@@ -187,7 +187,7 @@ class ENGINE_API UMaterialExpression : public UObject
 
 	virtual bool Modify( bool bAlwaysMarkDirty=true ) override;
 	virtual void Serialize( FArchive& Ar ) override;
-	// End UObject interface.
+	//~ End UObject Interface.
 
 	/**
 	 * Create the new shader code chunk needed for the Abs expression

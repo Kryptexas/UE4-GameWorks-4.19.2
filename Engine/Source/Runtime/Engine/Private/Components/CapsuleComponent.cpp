@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EnginePrivate.h"
@@ -55,7 +55,7 @@ FPrimitiveSceneProxy* UCapsuleComponent::CreateSceneProxy()
 			}
 		}
 
-		virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
+		virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
 		{
 			const bool bVisible = !bDrawOnlyIfSelected || IsSelected();
 			FPrimitiveViewRelevance Result;
@@ -109,8 +109,17 @@ void UCapsuleComponent::Serialize(FArchive& Ar)
 			CapsuleHeight_DEPRECATED = 0.0f;
 		}
 	}
+}
 
-	CapsuleHalfHeight = FMath::Max3(0.f, CapsuleHalfHeight, CapsuleRadius);
+void UCapsuleComponent::PostLoad()
+{
+	Super::PostLoad();
+
+	// Ensure this value is clamped only in the case where we're not re-running construction scripts.
+	if(!GIsReconstructingBlueprintInstances)
+	{
+		CapsuleHalfHeight = FMath::Max3(0.f, CapsuleHalfHeight, CapsuleRadius);
+	}
 }
 
 #if WITH_EDITOR
@@ -137,15 +146,15 @@ void UCapsuleComponent::SetCapsuleSize(float NewRadius, float NewHalfHeight, boo
 {
 	CapsuleHalfHeight = FMath::Max3(0.f, NewHalfHeight, NewRadius);
 	CapsuleRadius = FMath::Max(0.f, NewRadius);
+	UpdateBodySetup();
 	MarkRenderStateDirty();
 
 	// do this if already created
 	// otherwise, it hasn't been really created yet
 	if (bPhysicsStateCreated)
 	{
-		DestroyPhysicsState();
-		UpdateBodySetup();
-		CreatePhysicsState();
+		// Update physics engine collision shapes
+		BodyInstance.UpdateBodyScale(ComponentToWorld.GetScale3D(), true);
 
 		if ( bUpdateOverlaps && IsCollisionEnabled() && GetOwner() )
 		{
@@ -161,6 +170,7 @@ void UCapsuleComponent::UpdateBodySetup()
 		ShapeBodySetup = NewObject<UBodySetup>(this);
 		ShapeBodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
 		ShapeBodySetup->AggGeom.SphylElems.Add(FKSphylElem());
+		ShapeBodySetup->bNeverNeedsCookedCollisionData = true;
 	}
 
 	check(ShapeBodySetup->AggGeom.SphylElems.Num() == 1);

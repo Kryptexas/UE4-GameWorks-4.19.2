@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "OnlineBeacon.h"
@@ -26,17 +26,17 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconHost : public AOnlineBeacon
 	UPROPERTY(Config)
 	int32 ListenPort;
 
-	// Begin AActor Interface
+	//~ Begin AActor Interface
 	virtual void OnNetCleanup(UNetConnection* Connection) override;
-	// End AActor Interface
+	//~ End AActor Interface
 
-	// Begin OnlineBeacon Interface
+	//~ Begin OnlineBeacon Interface
 	virtual void HandleNetworkFailure(UWorld* World, UNetDriver* NetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString) override;
-	// End OnlineBeacon Interface
+	//~ End OnlineBeacon Interface
 
-	// Begin FNetworkNotify Interface
+	//~ Begin FNetworkNotify Interface
 	virtual void NotifyControlMessage(UNetConnection* Connection, uint8 MessageType, FInBunch& Bunch) override;
-	// End FNetworkNotify Interface
+	//~ End FNetworkNotify Interface
 
 	/**
 	 * Initialize the host beacon on a specified port

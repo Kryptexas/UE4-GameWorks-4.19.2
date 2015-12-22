@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -29,7 +29,7 @@ public:
 	virtual ~IPropertyHandle(){}
 
 	/**
-	 * @return Whether or not the handle is valid
+	 * @return Whether or not the handle points to a valid property node. This can be true but GetProperty may still return null
 	 */
 	virtual bool IsValidHandle() const = 0;
 	
@@ -169,6 +169,13 @@ public:
 	 * @param InOnPropertyValueChanged	The delegate to call
 	 */
 	virtual void SetOnPropertyValueChanged( const FSimpleDelegate& InOnPropertyValueChanged ) = 0;
+	
+	/**
+	 * Sets a delegate to call when the value of the property of a child is changed
+	 * 
+	 * @param InOnChildPropertyValueChanged	The delegate to call
+	 */
+	virtual void SetOnChildPropertyValueChanged( const FSimpleDelegate& InOnChildPropertyValueChanged ) = 0;
 
 	/**
 	 * Gets the typed value of a property.  
@@ -269,10 +276,11 @@ public:
 	 * Gets a child handle of this handle.  Useful for accessing properties in structs.  
 	 * Array elements cannot be accessed in this way  
 	 *
-	 * @param The name of the child
+	 * @param ChildName The name of the child
+	 * @param bRecurse	Whether or not to recurse into children of children and so on. If false will only search all immediate children
 	 * @return The property handle for the child if it exists
 	 */
-	virtual TSharedPtr<IPropertyHandle> GetChildHandle( FName ChildName ) const = 0;
+	virtual TSharedPtr<IPropertyHandle> GetChildHandle( FName ChildName, bool bRecurse = true ) const = 0;
 
 	/**
 	 * Gets a child handle of this handle.  Useful for accessing properties in structs.  
@@ -377,7 +385,7 @@ public:
 
 	 * @return the value widget for this property
 	 */
-	virtual TSharedRef<SWidget> CreatePropertyValueWidget() const = 0;
+	virtual TSharedRef<SWidget> CreatePropertyValueWidget( bool bDisplayDefaultPropertyButtons = true ) const = 0;
 
 	/**
 	 * Adds a restriction to the possible values for this property.

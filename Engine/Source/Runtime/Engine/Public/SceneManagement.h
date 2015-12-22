@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneManagement.h: Scene manager definitions.
@@ -17,6 +17,7 @@
 #include "BatchedElements.h"
 #include "MeshBatch.h"
 #include "RendererInterface.h"
+#include "SceneUtils.h"
 
 // Forward declarations.
 class FLightSceneInfo;
@@ -141,9 +142,9 @@ public:
 	/**
 	 * Allows MIDs being created and released during view rendering without the overhead of creating and releasing objects
 	 * As MID are not allowed to be parent of MID this gets fixed up by parenting it to the next Material or MIC
-	 * @param ParentMaterial can be Material, MIC or MID, must not be 0
+	 * @param InSource can be Material, MIC or MID, must not be 0
 	 */
-	virtual UMaterialInstanceDynamic* GetReusableMID(class UMaterialInterface* ParentMaterial) = 0;
+	virtual UMaterialInstanceDynamic* GetReusableMID(class UMaterialInterface* InSource) = 0;
 	/** Returns the temporal LOD struct from the viewstate */
 	virtual FTemporalLODState& GetTemporalLODState() = 0;
 	virtual const FTemporalLODState& GetTemporalLODState() const = 0;
@@ -155,6 +156,12 @@ public:
 	 * returns a unique key for the view state, non-zero
 	 */
 	virtual uint32 GetViewKey() const = 0;
+	//
+	virtual uint32 GetCurrentTemporalAASampleIndex() const = 0;
+	/** 
+	 * returns the occlusion frame counter 
+	 */
+	virtual uint32 GetOcclusionFrameCounter() const = 0;
 protected:
 	// Don't allow direct deletion of the view state, Destroy should be called instead.
 	virtual ~FSceneViewStateInterface() {}
@@ -176,7 +183,9 @@ enum ELightInteractionType
 	LIT_CachedIrrelevant,
 	LIT_CachedLightMap,
 	LIT_Dynamic,
-	LIT_CachedSignedDistanceFieldShadowMap2D
+	LIT_CachedSignedDistanceFieldShadowMap2D,
+
+	LIT_MAX
 };
 
 /**
@@ -195,17 +204,14 @@ public:
 	// Accessors.
 	ELightInteractionType GetType() const { return Type; }
 
-private:
-
 	/**
 	 * Minimal initialization constructor.
 	 */
-	FLightInteraction(
-		ELightInteractionType InType
-		):
-		Type(InType)
+	FLightInteraction(ELightInteractionType InType)
+		: Type(InType)
 	{}
 
+private:
 	ELightInteractionType Type;
 };
 
@@ -224,6 +230,9 @@ static const int32 NUM_LQ_LIGHTMAP_COEF = 2;
 
 /** The index at which simple coefficients are stored in any array containing all NUM_STORED_LIGHTMAP_COEF coefficients. */ 
 static const int32 LQ_LIGHTMAP_COEF_INDEX = 2;
+
+/** The maximum value between NUM_LQ_LIGHTMAP_COEF and NUM_HQ_LIGHTMAP_COEF. */ 
+static const int32 MAX_NUM_LIGHTMAP_COEF = 2;
 
 /** Compile out low quality lightmaps to save memory */
 // @todo-mobile: Need to fix this!
@@ -510,16 +519,106 @@ private:
 	EShadowMapInteractionType Type;
 };
 
+class FLightMap;
+class FShadowMap;
+
 /**
  * An interface to cached lighting for a specific mesh.
  */
 class FLightCacheInterface
 {
 public:
+	FLightCacheInterface(const FLightMap* InLightMap, const FShadowMap* InShadowMap)
+		: LightMap(InLightMap)
+		, ShadowMap(InShadowMap)
+	{
+	}
+
+	// @param LightSceneProxy must not be 0
 	virtual FLightInteraction GetInteraction(const class FLightSceneProxy* LightSceneProxy) const = 0;
-	virtual FLightMapInteraction GetLightMapInteraction(ERHIFeatureLevel::Type InFeatureLevel) const = 0;
-	virtual FShadowMapInteraction GetShadowMapInteraction() const { return FShadowMapInteraction::None(); }
+
+	// helper function to implement GetInteraction(), call after checking for this: if(LightSceneProxy->HasStaticShadowing())
+	// @param LightSceneProxy same as in GetInteraction(), must not be 0
+	ENGINE_API ELightInteractionType GetStaticInteraction(const FLightSceneProxy* LightSceneProxy, const TArray<FGuid>& IrrelevantLights) const;
+	
+	// @param InLightMap may be 0
+	void SetLightMap(const FLightMap* InLightMap)
+	{
+		LightMap = InLightMap;
+	}
+
+	// @return may be 0
+	const FLightMap* GetLightMap() const
+	{
+		return LightMap;
+	}
+
+	// @param InShadowMap may be 0
+	void SetShadowMap(const FShadowMap* InShadowMap)
+	{
+		ShadowMap = InShadowMap;
+	}
+
+	// @return may be 0
+	const FShadowMap* GetShadowMap() const
+	{
+		return ShadowMap;
+	}
+
+	// WARNING : This can be called with buffers valid for a single frame only, don't cache anywhere. See FPrimitiveSceneInfo::UpdatePrecomputedLightingBuffer()
+	void SetPrecomputedLightingBuffer(FUniformBufferRHIParamRef InPrecomputedLightingUniformBuffer)
+	{
+		PrecomputedLightingUniformBuffer = InPrecomputedLightingUniformBuffer;
+	}
+
+	FUniformBufferRHIParamRef GetPrecomputedLightingBuffer() const
+	{
+		return PrecomputedLightingUniformBuffer;
+	}
+
+	ENGINE_API FLightMapInteraction GetLightMapInteraction(ERHIFeatureLevel::Type InFeatureLevel) const;
+
+	ENGINE_API FShadowMapInteraction GetShadowMapInteraction() const;
+
+private:
+	// The light-map used by the element. may be 0
+	const FLightMap* LightMap;
+
+	// The shadowmap used by the element, may be 0
+	const FShadowMap* ShadowMap;
+
+	/** The uniform buffer holding mapping the lightmap policy resources. */
+	FUniformBufferRHIRef PrecomputedLightingUniformBuffer;
 };
+
+
+template<typename TPendingTextureType>
+class FAsyncEncode : public IQueuedWork
+{
+private:
+	TPendingTextureType* PendingTexture;
+	FThreadSafeCounter& Counter;
+public:
+
+	FAsyncEncode(TPendingTextureType* InPendingTexture, FThreadSafeCounter& InCounter) : PendingTexture(nullptr), Counter(InCounter)
+	{
+		PendingTexture = InPendingTexture;
+	}
+
+	void Abandon()
+	{
+		PendingTexture->StartEncoding();
+		Counter.Decrement();
+	}
+
+	void DoThreadedWork()
+	{
+		PendingTexture->StartEncoding();
+		Counter.Decrement();
+	}
+};
+
+
 
 // Information about a single shadow cascade.
 class FShadowCascadeSettings
@@ -624,7 +723,7 @@ public:
 inline bool DoesPlatformSupportDistanceFieldShadowing(EShaderPlatform Platform)
 {
 	// Hasn't been tested elsewhere yet
-	return Platform == SP_PCD3D_SM5 || Platform == SP_PS4 || Platform == SP_XBOXONE;
+	return Platform == SP_PCD3D_SM5 || Platform == SP_PS4 || Platform == SP_METAL_SM5 || Platform == SP_XBOXONE;
 }
 
 /** Represents a USkyLightComponent to the rendering thread. */
@@ -828,6 +927,7 @@ public:
 	inline bool UseRayTracedDistanceFieldShadows() const { return bUseRayTracedDistanceFieldShadows; }
 	inline float GetRayStartOffsetDepthScale() const { return RayStartOffsetDepthScale; }
 	inline uint8 GetLightType() const { return LightType; }
+	inline uint8 GetLightingChannelMask() const { return LightingChannelMask; }
 	inline FName GetComponentName() const { return ComponentName; }
 	inline FName GetLevelName() const { return LevelName; }
 	FORCEINLINE TStatId GetStatId() const 
@@ -954,6 +1054,8 @@ protected:
 	/** The light type (ELightComponentType) */
 	const uint8 LightType;
 
+	uint8 LightingChannelMask;
+
 	/** The name of the light component. */
 	FName ComponentName;
 
@@ -995,16 +1097,16 @@ public:
 
 	/**
 	 * Updates the decal proxy's cached transform.
-	 * @param InComponentToWorld - The new component-to-world transform.
+	 * @param InComponentToWorldIncludingDecalSize - The new component-to-world transform including the DecalSize
 	 */
-	void SetTransform(const FTransform& InComponentToWorld);
+	void SetTransformIncludingDecalSize(const FTransform& InComponentToWorldIncludingDecalSize);
 
 	/** Pointer back to the game thread decal component. */
 	const UDecalComponent* Component;
 
 	UMaterialInterface* DecalMaterial;
 
-	/** Used to compute the projection matrix on the render thread side  */
+	/** Used to compute the projection matrix on the render thread side, includes the DecalSize  */
 	FTransform ComponentTrans;
 
 	/** 
@@ -1230,8 +1332,7 @@ public:
 	virtual void SetHitProxy(HHitProxy* HitProxy) = 0;
 	virtual void DrawMesh(
 		const FMeshBatch& Mesh,
-		float ScreenSize,
-		bool bShadowOnly = false
+		float ScreenSize
 		) = 0;
 };
 
@@ -1401,6 +1502,11 @@ public:
 	FORCEINLINE bool ShouldUseTasks() const
 	{
 		return bUseAsyncTasks;
+	}
+
+	FORCEINLINE void AddTask(TFunction<void()>&& Task)
+	{
+		ParallelTasks.Add(new (FMemStack::Get()) TFunction<void()>(MoveTemp(Task)));
 	}
 
 	FORCEINLINE void AddTask(const TFunction<void()>& Task)
@@ -2017,22 +2123,21 @@ extern ENGINE_API EVertexColorViewMode::Type GVertexColorViewMode;
  */
 extern ENGINE_API bool IsRichView(const FSceneViewFamily& ViewFamily);
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if WANTS_DRAW_MESH_EVENTS
 	/**
 	 * true if we debug material names with SCOPED_DRAW_EVENT.
 	 * Toggle with "ShowMaterialDrawEvents" console command.
 	 */
 	extern ENGINE_API bool GShowMaterialDrawEvents;
-	extern ENGINE_API void EmitMeshDrawEvents_Inner(FRHICommandList& RHICmdList, const class FPrimitiveSceneProxy* PrimitiveSceneProxy, const struct FMeshBatch& Mesh);
+	extern ENGINE_API void BeginMeshDrawEvent_Inner(FRHICommandList& RHICmdList, const class FPrimitiveSceneProxy* PrimitiveSceneProxy, const struct FMeshBatch& Mesh, struct TDrawEvent<FRHICommandList>& DrawEvent);
 #endif
 
-/** Emits draw events for a given FMeshBatch and the PrimitiveSceneProxy corresponding to that mesh element. */
-FORCEINLINE void EmitMeshDrawEvents(FRHICommandList& RHICmdList, const class FPrimitiveSceneProxy* PrimitiveSceneProxy, const struct FMeshBatch& Mesh)
+FORCEINLINE void BeginMeshDrawEvent(FRHICommandList& RHICmdList, const class FPrimitiveSceneProxy* PrimitiveSceneProxy, const struct FMeshBatch& Mesh, struct TDrawEvent<FRHICommandList>& DrawEvent)
 {
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if ( GShowMaterialDrawEvents )
+#if WANTS_DRAW_MESH_EVENTS
+	if (GShowMaterialDrawEvents)
 	{
-		EmitMeshDrawEvents_Inner(RHICmdList, PrimitiveSceneProxy, Mesh);
+		BeginMeshDrawEvent_Inner(RHICmdList, PrimitiveSceneProxy, Mesh, DrawEvent);
 	}
 #endif
 }

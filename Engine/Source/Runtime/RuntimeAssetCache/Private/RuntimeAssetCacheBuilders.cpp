@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "RuntimeAssetCachePrivatePCH.h"
 #include "RuntimeAssetCacheBuilders.h"
@@ -40,11 +40,21 @@ void URuntimeAssetCacheBuilder_ObjectBase::GetFromCacheAsync(const FOnAssetCache
 {
 	OnAssetCacheComplete = OnComplete;
 	GetFromCacheAsyncCompleteDelegate.BindDynamic(this, &URuntimeAssetCacheBuilder_ObjectBase::GetFromCacheAsyncComplete);
-	GetRuntimeAssetCache().GetAsynchronous(this, GetFromCacheAsyncCompleteDelegate);
+	CacheHandle = GetRuntimeAssetCache().GetAsynchronous(this, GetFromCacheAsyncCompleteDelegate);
 }
 
 void URuntimeAssetCacheBuilder_ObjectBase::GetFromCacheAsyncComplete(int32 Handle, FVoidPtrParam DataPtr)
 {
+	if (Handle != CacheHandle)
+	{
+		// This can sometimes happen when the world changes and everything couldn't cancel correctly. Just ignore any callbacks that don't match handles.
+		if (DataPtr.Data != nullptr)
+		{
+			FMemory::Free(DataPtr.Data);
+		}
+		return;
+	}
+
 	if (DataPtr.Data != nullptr)
 	{
 		// Success! Finished loading or saving data from cache
@@ -67,19 +77,18 @@ void URuntimeAssetCacheBuilder_ObjectBase::GetFromCacheAsyncComplete(int32 Handl
 		// On save the buffer gets created in Build()
 		// On load the buffer gets created in FRuntimeAssetCacheBackend::GetCachedData()
 		FMemory::Free(DataPtr.Data);
+		CacheHandle = 0;
 
 		// Success!
 		OnAssetCacheComplete.ExecuteIfBound(this, true);
-		CacheHandle = 0;
 	}
 	else
 	{
 		// Data not on disk. Kick off the creation process.
 		// Once complete, call GetFromCacheAsync() again and it will loop back to this function, but should succeed.
-		// But, prevent recursion the second time by checking if the CacheHandle is already set.
-		if (CacheHandle == 0)
+		if (!bProcessedCacheMiss)
 		{
-			CacheHandle = Handle;
+			bProcessedCacheMiss = true;
 			OnAssetCacheMiss();
 		}
 		else

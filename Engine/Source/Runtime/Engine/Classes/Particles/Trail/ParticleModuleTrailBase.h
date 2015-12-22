@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /**
  *	ParticleModuleTrailBase
@@ -16,13 +16,13 @@ class UParticleModuleTrailBase : public UParticleModule
 	GENERATED_UCLASS_BODY()
 
 
-	// Begin UParticleModule Interface
+	//~ Begin UParticleModule Interface
 	virtual EModuleType	GetModuleType() const override {	return EPMT_Trail;	}
 	virtual bool CanTickInAnyThread() override
 	{
 		return false;
 	}
-	// End UParticleModule Interface
+	//~ End UParticleModule Interface
 };
 
 

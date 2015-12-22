@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "RuntimeAssetCachePrivatePCH.h"
 #include "RuntimeAssetCacheAsyncWorker.h"
@@ -76,7 +76,7 @@ void FRuntimeAssetCacheAsyncWorker::DoWork()
 	/* Entry found. */
 	if (Metadata
 		/* But was saved with older builder version. */
-		&& Metadata->GetCachedAssetVersion() < CacheBuilder->GetAssetVersion())
+		&& CacheBuilder->CachedAssetVersionIsUpToDate(Metadata->GetCachedAssetVersion()))
 	{
 		/* Pretend entry wasn't found, so it gets rebuilt. */
 		FRuntimeAssetCacheBucketScopeLock Guard(*CurrentBucket);

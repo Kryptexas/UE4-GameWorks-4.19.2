@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2595379
+﻿INTSourceChangelist:2677620
 Availability: Public
-Title: UE4 에서 SVN 소스 콘트롤 사용하기
+Title: SVN 소스 콘트롤 사용법
 Crumbs: %ROOT%, Engine, Engine\Basics\SourceControl
 Description: 팀 내 다른 사람들과의 애셋 공유를 위한 SVN 구성 방법입니다.
 Related: Engine/UI/SourceControl
@@ -8,11 +8,10 @@ Related: Engine/Content/Browser
 Related: Engine/Basics/Redirectors
 Related: Engine/UI/ProjectSettings
 Related: Programming/Basics/ConfigurationFiles
-
+version: 4.9
 
 [TOC(start:2)]
 
-## 개요
 언리얼 엔진 4 에는 Subversion, 줄여서 SVN 이라는 버전 콘트롤 소프트웨어를 사용하여 프로젝트 작업을 함께 할 수 있도록 해 주는 통합 방식이 내장되어 있습니다.
 버전 콘트롤을 통해 팀원끼리 애셋과 코드를 공유할 수 있을 뿐만 아니라, 백업과 변경내역도 제공되어 어떤 파일이든 문제가 생긴 경우 
 예전 버전으로 되돌릴 수 있습니다.

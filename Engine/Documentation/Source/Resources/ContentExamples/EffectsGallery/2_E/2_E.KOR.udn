@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346406
+﻿INTSourceChangelist:2653104
 Availability: Public
 Title:2.5 - 다른 파티클에서의 리본 트레일 스트리밍
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
@@ -10,6 +10,24 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 예제](Resources/ContentExamples/EffectsGallery/2_D "%Resources/ContentExamples/EffectsGallery/2_D:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[이펙트 갤러리 홈](Resources/ContentExamples/EffectsGallery)
+	[/PARAM]
+	[PARAM:next]
+		[다음 예제](Resources/ContentExamples/EffectsGallery/2_F "%Resources/ContentExamples/EffectsGallery/2_F:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]

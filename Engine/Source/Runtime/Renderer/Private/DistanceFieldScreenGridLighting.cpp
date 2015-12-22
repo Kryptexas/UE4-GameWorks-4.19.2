@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DistanceFieldScreenGridLighting.cpp
@@ -172,18 +172,37 @@ public:
 
 		FAOScreenGridResources* ScreenGridResources = View.ViewState->AOScreenGridResources;
 
-		ScreenGridConeVisibility.SetBuffer(RHICmdList, ShaderRHI, ScreenGridResources->ScreenGridConeVisibility);
+		int32 NumOutUAVs = 0;
+		FUnorderedAccessViewRHIParamRef OutUAVs[2];
+		OutUAVs[NumOutUAVs++] = ScreenGridResources->ScreenGridConeVisibility.UAV;
+		if (bSupportIrradiance)
+		{
+			OutUAVs[NumOutUAVs++] = ScreenGridResources->ConeDepthVisibilityFunction.UAV;			
+		}
+		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, NumOutUAVs);
 
+		ScreenGridConeVisibility.SetBuffer(RHICmdList, ShaderRHI, ScreenGridResources->ScreenGridConeVisibility);
 		if (bSupportIrradiance)
 		{
 			ConeDepthVisibilityFunction.SetBuffer(RHICmdList, ShaderRHI, ScreenGridResources->ConeDepthVisibilityFunction);
 		}
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList)
+	void UnsetParameters(FRHICommandList& RHICmdList, const FViewInfo& View)
 	{
 		ScreenGridConeVisibility.UnsetUAV(RHICmdList, GetComputeShader());
 		ConeDepthVisibilityFunction.UnsetUAV(RHICmdList, GetComputeShader());
+
+		FAOScreenGridResources* ScreenGridResources = View.ViewState->AOScreenGridResources;
+
+		int32 NumOutUAVs = 0;
+		FUnorderedAccessViewRHIParamRef OutUAVs[2];
+		OutUAVs[NumOutUAVs++] = ScreenGridResources->ScreenGridConeVisibility.UAV;
+		if (bSupportIrradiance)
+		{
+			OutUAVs[NumOutUAVs++] = ScreenGridResources->ConeDepthVisibilityFunction.UAV;
+		}
+		RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, NumOutUAVs);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -329,12 +348,16 @@ public:
 
 		FAOScreenGridResources* ScreenGridResources = View.ViewState->AOScreenGridResources;
 
+		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, ScreenGridResources->ScreenGridConeVisibility.UAV);
 		ScreenGridConeVisibility.SetBuffer(RHICmdList, ShaderRHI, ScreenGridResources->ScreenGridConeVisibility);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList)
+	void UnsetParameters(FRHICommandList& RHICmdList, const FViewInfo& View)
 	{
 		ScreenGridConeVisibility.UnsetUAV(RHICmdList, GetComputeShader());
+
+		FAOScreenGridResources* ScreenGridResources = View.ViewState->AOScreenGridResources;
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, ScreenGridResources->ScreenGridConeVisibility.UAV);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -449,14 +472,16 @@ public:
 
 		FAOScreenGridResources* ScreenGridResources = View.ViewState->AOScreenGridResources;
 
+		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, DownsampledBentNormal.UAV);
 		DistanceFieldBentNormal.SetTexture(RHICmdList, ShaderRHI, DownsampledBentNormal.ShaderResourceTexture, DownsampledBentNormal.UAV);
 
 		SetSRVParameter(RHICmdList, ShaderRHI, ScreenGridConeVisibility, ScreenGridResources->ScreenGridConeVisibility.SRV);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList)
+	void UnsetParameters(FRHICommandList& RHICmdList, FSceneRenderTargetItem& DownsampledBentNormal)
 	{
 		DistanceFieldBentNormal.UnsetUAV(RHICmdList, GetComputeShader());
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, DownsampledBentNormal.UAV);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -625,7 +650,7 @@ IMPLEMENT_AWARE_UPSAMPLE_PS_TYPE(false, true);
 IMPLEMENT_AWARE_UPSAMPLE_PS_TYPE(false, false);
 
 void PostProcessBentNormalAOScreenGrid(
-	FRHICommandList& RHICmdList, 
+	FRHICommandListImmediate& RHICmdList, 
 	const FDistanceFieldAOParameters& Parameters, 
 	const FViewInfo& View, 
 	IPooledRenderTarget* VelocityTexture,
@@ -640,11 +665,11 @@ void PostProcessBentNormalAOScreenGrid(
 
 	TRefCountPtr<IPooledRenderTarget> DistanceFieldAOBentNormal;
 	TRefCountPtr<IPooledRenderTarget> DistanceFieldIrradiance;
-	AllocateOrReuseAORenderTarget(DistanceFieldAOBentNormal, TEXT("DistanceFieldBentNormalAO"), true);
+	AllocateOrReuseAORenderTarget(RHICmdList, DistanceFieldAOBentNormal, TEXT("DistanceFieldBentNormalAO"), true);
 
 	if (bUseDistanceFieldGI)
 	{
-		AllocateOrReuseAORenderTarget(DistanceFieldIrradiance, TEXT("DistanceFieldIrradiance"), false);
+		AllocateOrReuseAORenderTarget(RHICmdList, DistanceFieldIrradiance, TEXT("DistanceFieldIrradiance"), false);
 	}
 
 	{
@@ -781,7 +806,7 @@ void FDeferredShadingSceneRenderer::RenderDistanceFieldAOScreenGrid(
 				RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 				ComputeShader->SetParameters(RHICmdList, View, TileListGroupSize, DistanceFieldNormal->GetRenderTargetItem(), Parameters, View.GlobalDistanceFieldInfo);
 				DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
-				ComputeShader->UnsetParameters(RHICmdList);
+				ComputeShader->UnsetParameters(RHICmdList, View);
 			}
 			else
 			{
@@ -790,7 +815,7 @@ void FDeferredShadingSceneRenderer::RenderDistanceFieldAOScreenGrid(
 				RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 				ComputeShader->SetParameters(RHICmdList, View, TileListGroupSize, DistanceFieldNormal->GetRenderTargetItem(), Parameters, View.GlobalDistanceFieldInfo);
 				DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
-				ComputeShader->UnsetParameters(RHICmdList);
+				ComputeShader->UnsetParameters(RHICmdList, View);
 			}
 		}
 		else
@@ -802,7 +827,7 @@ void FDeferredShadingSceneRenderer::RenderDistanceFieldAOScreenGrid(
 				RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 				ComputeShader->SetParameters(RHICmdList, View, TileListGroupSize, DistanceFieldNormal->GetRenderTargetItem(), Parameters, View.GlobalDistanceFieldInfo);
 				DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
-				ComputeShader->UnsetParameters(RHICmdList);
+				ComputeShader->UnsetParameters(RHICmdList, View);
 			}
 			else
 			{
@@ -811,7 +836,7 @@ void FDeferredShadingSceneRenderer::RenderDistanceFieldAOScreenGrid(
 				RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 				ComputeShader->SetParameters(RHICmdList, View, TileListGroupSize, DistanceFieldNormal->GetRenderTargetItem(), Parameters, View.GlobalDistanceFieldInfo);
 				DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
-				ComputeShader->UnsetParameters(RHICmdList);
+				ComputeShader->UnsetParameters(RHICmdList, View);
 			}
 		}
 	}
@@ -832,7 +857,7 @@ void FDeferredShadingSceneRenderer::RenderDistanceFieldAOScreenGrid(
 			RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 			ComputeShader->SetParameters(RHICmdList, View, TileListGroupSize, DistanceFieldNormal->GetRenderTargetItem(), Parameters, View.GlobalDistanceFieldInfo);
 			DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
-			ComputeShader->UnsetParameters(RHICmdList);
+			ComputeShader->UnsetParameters(RHICmdList, View);
 		}
 		else
 		{
@@ -841,7 +866,7 @@ void FDeferredShadingSceneRenderer::RenderDistanceFieldAOScreenGrid(
 			RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 			ComputeShader->SetParameters(RHICmdList, View, TileListGroupSize, DistanceFieldNormal->GetRenderTargetItem(), Parameters, View.GlobalDistanceFieldInfo);
 			DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
-			ComputeShader->UnsetParameters(RHICmdList);
+			ComputeShader->UnsetParameters(RHICmdList, View);
 		}
 	}
 
@@ -851,7 +876,7 @@ void FDeferredShadingSceneRenderer::RenderDistanceFieldAOScreenGrid(
 	{
 		{
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(ConeTraceBufferSize, PF_FloatRGBA, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
-			GRenderTargetPool.FindFreeElement(Desc, DownsampledIrradiance, TEXT("DownsampledIrradiance"));
+			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, DownsampledIrradiance, TEXT("DownsampledIrradiance"));
 		}
 
 		extern void ComputeIrradianceForScreenGrid(
@@ -873,7 +898,7 @@ void FDeferredShadingSceneRenderer::RenderDistanceFieldAOScreenGrid(
 
 	{
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(ConeTraceBufferSize, PF_FloatRGBA, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
-		GRenderTargetPool.FindFreeElement(Desc, DownsampledBentNormal, TEXT("DownsampledBentNormal"));
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, DownsampledBentNormal, TEXT("DownsampledBentNormal"));
 	}
 
 	{
@@ -886,7 +911,7 @@ void FDeferredShadingSceneRenderer::RenderDistanceFieldAOScreenGrid(
 		RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 		ComputeShader->SetParameters(RHICmdList, View, DistanceFieldNormal->GetRenderTargetItem(), DownsampledBentNormal->GetRenderTargetItem());
 		DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
-		ComputeShader->UnsetParameters(RHICmdList);
+		ComputeShader->UnsetParameters(RHICmdList, DownsampledBentNormal->GetRenderTargetItem());
 	}
 
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, DownsampledBentNormal);

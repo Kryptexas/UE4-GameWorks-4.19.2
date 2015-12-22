@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,7 +7,7 @@ class SAssetTreeItem : public SCompoundWidget
 {
 public:
 	DECLARE_DELEGATE_ThreeParams( FOnNameChanged, const TSharedPtr<FTreeItem>& /*TreeItem*/, const FString& /*OldPath*/, const FVector2D& /*MessageLocation*/);
-	DECLARE_DELEGATE_RetVal_ThreeParams( bool, FOnVerifyNameChanged, const FText& /*InName*/, FText& /*OutErrorMessage*/, const FString& /*FolderPath*/);
+	DECLARE_DELEGATE_RetVal_ThreeParams( bool, FOnVerifyNameChanged, const FString& /*InName*/, FText& /*OutErrorMessage*/, const FString& /*FolderPath*/);
 	DECLARE_DELEGATE_TwoParams( FOnAssetsDragDropped, const TArray<FAssetData>& /*AssetList*/, const TSharedPtr<FTreeItem>& /*TreeItem*/);
 	DECLARE_DELEGATE_TwoParams( FOnPathsDragDropped, const TArray<FString>& /*PathNames*/, const TSharedPtr<FTreeItem>& /*TreeItem*/);
 	DECLARE_DELEGATE_TwoParams( FOnFilesDragDropped, const TArray<FString>& /*FileNames*/, const TSharedPtr<FTreeItem>& /*TreeItem*/);

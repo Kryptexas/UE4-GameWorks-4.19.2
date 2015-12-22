@@ -1,46 +1,134 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealFrontendPrivatePCH.h"
 #include "StatsConvertCommand.h"
 
+/** Helper class used to extract stats data into CSV file. */
+class FCSVStatsProfiler : public FStatsReadFile
+{
+	friend struct FStatsReader<FCSVStatsProfiler>;
+	typedef FStatsReadFile Super;
 
-void FStatsConvertCommand::WriteString( FArchive& Writer, const ANSICHAR* Format, ... )
+protected:
+
+	/** Initialization constructor. */
+	FCSVStatsProfiler( const TCHAR* InFilename )
+		: FStatsReadFile( InFilename, false )
+		, CSVWriter( nullptr )
+	{
+		// Keep only the last frame.
+		SetHistoryFrames( 1 );
+	}
+
+	/** Called every each frame has been read from the file. */
+	virtual void ReadStatsFrame( const TArray<FStatMessage>& CondensedMessages, const int64 Frame ) override;
+
+	/** Writes a formatted string to the CSV file. */
+	void WriteString( const ANSICHAR* Format, ... );
+public:
+
+	/** Sets a writer used to serialize the data for the CSV file. */
+	void Initialize( FArchive* InCSVWriter, const TArray<FString>& StatArrayString )
+	{
+		CSVWriter = InCSVWriter;
+
+		// Find the raw names for faster compare.
+		for (const FString& It : StatArrayString)
+		{
+			// Check for the short name.
+			const FStatMessage* LongNamePtr = State.ShortNameToLongName.Find( *It );
+			if (LongNamePtr != nullptr)
+			{
+				StatRawNames.Add( LongNamePtr->NameAndInfo.GetRawName() );
+				StatShortNames.Add( LongNamePtr->NameAndInfo.GetShortName() );
+			}
+		}
+
+		// Output the csv header.
+		WriteString( "Frame,Name,Value\r\n" );
+	}
+
+protected:
+	FArchive* CSVWriter;
+	/** Stats' raw names for fast comparison. */
+	TArray<FName> StatRawNames;
+
+	/** Stats' short names for writing into the CSV file. */
+	TArray<FName> StatShortNames;
+};
+
+void FCSVStatsProfiler::ReadStatsFrame( const TArray<FStatMessage>& CondensedMessages, const int64 Frame )
+{
+	// get the thread stats
+	TArray<FStatMessage> Stats;
+	State.GetInclusiveAggregateStackStats( CondensedMessages, Stats );
+
+	// The tick rate for different platforms will be different. We cannot use the Windows tick rate accurately here. We will pull it from the stats,
+	// but until we encounter one our best bet is to leave values as full ticks that can be analysed by hand.
+	double MillisecondsPerCycle = 1.0f;
+
+	for (int32 Index = 0; Index < Stats.Num(); ++Index)
+	{
+		const FStatMessage& StatMessage = Stats[Index];
+		//UE_LOG(LogTemp, Display, TEXT("Stat: %s"), *Meta.NameAndInfo.GetShortName().ToString());
+
+		if (StatMessage.NameAndInfo.GetRawName() == FStatConstants::RAW_SecondsPerCycle)
+		{
+			// SecondsPerCycle may vary over time, so we update it here
+			MillisecondsPerCycle = StatMessage.GetValue_double() * 1000.0f;
+		}
+
+		for (int32 Jndex = 0; Jndex < StatRawNames.Num(); ++Jndex)
+		{
+			const FName StatRawName = StatMessage.NameAndInfo.GetRawName();
+			if (StatRawName == StatRawNames[Jndex])
+			{
+				double StatValue = 0.0f;
+				if (StatMessage.NameAndInfo.GetFlag( EStatMetaFlags::IsPackedCCAndDuration ))
+				{
+					StatValue = MillisecondsPerCycle * FromPackedCallCountDuration_Duration( StatMessage.GetValue_int64() );
+				}
+				else if (StatMessage.NameAndInfo.GetFlag( EStatMetaFlags::IsCycle ))
+				{
+					StatValue = MillisecondsPerCycle * StatMessage.GetValue_int64();
+				}
+				else
+				{
+					StatValue = StatMessage.GetValue_int64();
+				}
+
+				// write out to the csv file
+				WriteString( "%d,%S,%f\r\n", Frame, *StatShortNames[Jndex].ToString(), StatValue );
+			}
+		}
+	}
+}
+
+void FCSVStatsProfiler::WriteString( const ANSICHAR* Format, ... )
 {
 	ANSICHAR Array[1024];
 	va_list ArgPtr;
-	va_start(ArgPtr,Format);
-	// Build the string
-	int32 Result = FCStringAnsi::GetVarArgs(Array,ARRAY_COUNT(Array),ARRAY_COUNT(Array)-1,Format,ArgPtr);
-	// Now write that to the file
-	Writer.Serialize((void*)Array,Result);
+	va_start( ArgPtr, Format );
+	// Build the string.
+	int32 Result = FCStringAnsi::GetVarArgs( Array, ARRAY_COUNT( Array ), ARRAY_COUNT( Array ) - 1, Format, ArgPtr );
+	// Now write that to the file.
+	CSVWriter->Serialize( (void*)Array, Result );
 }
-
 
 void FStatsConvertCommand::InternalRun()
 {
-#if	STATS
-	// get the target file
+	// Get the target file.
 	FString TargetFile;
 	FParse::Value(FCommandLine::Get(), TEXT("-INFILE="), TargetFile);
+
 	FString OutFile;
 	FParse::Value(FCommandLine::Get(), TEXT("-OUTFILE="), OutFile);
+
+	// Stat list can contains only stat's FName.
 	FString StatListString;
 	FParse::Value(FCommandLine::Get(), TEXT("-STATLIST="), StatListString);
 
-	// get the list of stats
-	TArray<FString> StatArrayString;
-	if (StatListString.ParseIntoArray(StatArrayString, TEXT("+"), true) == 0)
-	{
-		StatArrayString.Add(TEXT("STAT_FrameTime"));
-	}
-
-	// convert to FNames for faster compare
-	for( const FString& It : StatArrayString )
-	{
-		StatList.Add(*It);
-	}
-
-	// open a csv file for write
+	// Open a CSV file for write.
 	TAutoPtr<FArchive> FileWriter( IFileManager::Get().CreateFileWriter( *OutFile ) );
 	if (!FileWriter)
 	{
@@ -48,192 +136,25 @@ void FStatsConvertCommand::InternalRun()
 		return;
 	}
 
-	// @TODO yrx 2014-03-24 move to function
-	// attempt to read the data and convert to csv
-	const int64 Size = IFileManager::Get().FileSize( *TargetFile );
-	if( Size < 4 )
+	TAutoPtr<FCSVStatsProfiler> Instance( FStatsReader<FCSVStatsProfiler>::Create( *TargetFile ) );
+	if (Instance)
 	{
-		UE_LOG( LogStats, Error, TEXT( "Could not open input file: %s" ), *TargetFile );
-		return;
-	}
+		TArray<FName> StatList;
 
-	TAutoPtr<FArchive> FileReader( IFileManager::Get().CreateFileReader( *TargetFile ) );
-	if( !FileReader )
-	{
-		UE_LOG( LogStats, Error, TEXT( "Could not open input file: %s" ), *TargetFile );
-		return;
-	}
-
-	if( !Stream.ReadHeader( *FileReader ) )
-	{
-		UE_LOG( LogStats, Error, TEXT( "Could not open input file, bad magic: %s" ), *TargetFile );
-		return;
-	}
-
-	// This is not supported yet.
-	if (Stream.Header.bRawStatsFile)
-	{
-		UE_LOG( LogStats, Error, TEXT( "Could not open input file, not supported type (raw): %s" ), *TargetFile );
-		return;
-	}
-
-	const bool bIsFinalized = Stream.Header.IsFinalized();
-	if( bIsFinalized )
-	{
-		// Read metadata.
-		TArray<FStatMessage> MetadataMessages;
-		Stream.ReadFNamesAndMetadataMessages( *FileReader, MetadataMessages );
-		ThreadState.ProcessMetaDataOnly( MetadataMessages );
-
-		// Read frames offsets.
-		Stream.ReadFramesOffsets( *FileReader );
-		FileReader->Seek( Stream.FramesInfo[0].FrameFileOffset );
-	}
-
-	if( Stream.Header.HasCompressedData() )
-	{
-		UE_CLOG( !bIsFinalized, LogStats, Fatal, TEXT( "Compressed stats file has to be finalized" ) );
-	}
-
-	ReadAndConvertStatMessages( *FileReader, *FileWriter );
-
-#endif // STATS
-}
-
-
-void FStatsConvertCommand::ReadAndConvertStatMessages( FArchive& Reader, FArchive& Writer )
-{
-	// output the csv header
-	WriteString( Writer, "Frame,Name,Value\r\n" );
-
-	uint64 ReadMessages = 0;
-	TArray<FStatMessage> Messages;
-
-	// Buffer used to store the compressed and decompressed data.
-	TArray<uint8> SrcData;
-	TArray<uint8> DestData;
-
-	const bool bHasCompressedData = Stream.Header.HasCompressedData();
-	const bool bIsFinalized = Stream.Header.IsFinalized();
-	float DataLoadingProgress = 0.0f;
-
-	if( bHasCompressedData )
-	{
-		while( Reader.Tell() < Reader.TotalSize() )
+		// Get the list of stats.
+		TArray<FString> StatArrayString;
+		if (StatListString.ParseIntoArray( StatArrayString, TEXT( "+" ), true ) == 0)
 		{
-			// Read the compressed data.
-			FCompressedStatsData UncompressedData( SrcData, DestData );
-			Reader << UncompressedData;
-			if( UncompressedData.HasReachedEndOfCompressedData() )
-			{
-				return;
-			}
-
-			FMemoryReader MemoryReader( DestData, true );
-
-			while( MemoryReader.Tell() < MemoryReader.TotalSize() )
-			{
-				// read the message
-				FStatMessage Message( Stream.ReadMessage( MemoryReader, bIsFinalized ) );
-				ReadMessages++;
-				if( ReadMessages % 32768 == 0 )
-				{
-					UE_LOG( LogStats, Log, TEXT( "StatsConvertCommand progress: %.1f%%" ), DataLoadingProgress );
-				}
-
-				if( Message.NameAndInfo.GetShortName() != TEXT( "Unknown FName" ) )
-				{
-					if( Message.NameAndInfo.GetField<EStatOperation>() == EStatOperation::AdvanceFrameEventGameThread && ReadMessages > 2 )
-					{
-						new (Messages) FStatMessage( Message );
-						ThreadState.AddMessages( Messages );
-						Messages.Reset();
-
-						CollectAndWriteStatsValues( Writer );
-						DataLoadingProgress = (double)Reader.Tell() / (double)Reader.TotalSize() * 100.0f;
-					}
-
-					new (Messages) FStatMessage( Message );
-				}
-				else
-				{
-					break;
-				}
-			}
+			StatArrayString.Add( TEXT( "STAT_FrameTime" ) );
 		}
-	}
-	else
-	{
-		while( Reader.Tell() < Reader.TotalSize() )
+
+		Instance->Initialize( FileWriter, StatArrayString );
+		Instance->ReadAndProcessAsynchronously();
+
+		while (Instance->IsBusy())
 		{
-			// read the message
-			FStatMessage Message( Stream.ReadMessage( Reader, bIsFinalized ) );
-			ReadMessages++;
-			if( ReadMessages % 32768 == 0 )
-			{
-				UE_LOG( LogStats, Log, TEXT( "StatsConvertCommand progress: %.1f%%" ), DataLoadingProgress );
-			}
-
-			if( Message.NameAndInfo.GetShortName() != TEXT( "Unknown FName" ) )
-			{
-				if( Message.NameAndInfo.GetField<EStatOperation>() == EStatOperation::SpecialMessageMarker )
-				{
-					// Simply break the loop.
-					// The profiler supports more advanced handling of this message.
-					return;
-				}
-				else if( Message.NameAndInfo.GetField<EStatOperation>() == EStatOperation::AdvanceFrameEventGameThread && ReadMessages > 2 )
-				{
-					new (Messages) FStatMessage( Message );
-					ThreadState.AddMessages( Messages );
-					Messages.Reset();
-
-					CollectAndWriteStatsValues( Writer );
-					DataLoadingProgress = (double)Reader.Tell() / (double)Reader.TotalSize() * 100.0f;
-				}
-
-				new (Messages) FStatMessage( Message );
-			}
-			else
-			{
-				break;
-			}
-		}
-	}
-}
-
-
-void FStatsConvertCommand::CollectAndWriteStatsValues( FArchive& Writer )
-{
-	// get the thread stats
-	TArray<FStatMessage> Stats;
-	ThreadState.GetInclusiveAggregateStackStats(ThreadState.CurrentGameFrame, Stats);
-	for (int32 Index = 0; Index < Stats.Num(); ++Index)
-	{
-		FStatMessage const& Meta = Stats[Index];
-		//UE_LOG(LogTemp, Display, TEXT("Stat: %s"), *Meta.NameAndInfo.GetShortName().ToString());
-
-		for (int32 Jndex = 0; Jndex < StatList.Num(); ++Jndex)
-		{
-			if (Meta.NameAndInfo.GetShortName() == StatList[Jndex])
-			{
-				double StatValue = 0.0f;
-				if (Meta.NameAndInfo.GetFlag(EStatMetaFlags::IsPackedCCAndDuration))
-				{
-					StatValue = FPlatformTime::ToMilliseconds( FromPackedCallCountDuration_Duration(Meta.GetValue_int64()) );
-				}
-				else if (Meta.NameAndInfo.GetFlag(EStatMetaFlags::IsCycle))
-				{
-					StatValue = FPlatformTime::ToMilliseconds( Meta.GetValue_int64() );
-				}
-				else
-				{
-					StatValue = Meta.GetValue_int64();
-				}
-
-				// write out to the csv file
-				WriteString( Writer, "%d,%S,%f\r\n", ThreadState.CurrentGameFrame, *StatList[Jndex].ToString(), StatValue );
-			}
+			FPlatformProcess::Sleep( 2.0f );
+			UE_LOG( LogStats, Log, TEXT( "FStatsConvertCommand: Stage: %s / %3i%%" ), *Instance->GetProcessingStageAsString(), Instance->GetStageProgress() );
 		}
 	}
 }

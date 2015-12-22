@@ -7,6 +7,8 @@ Related: Engine/Rendering/Materials/MaterialInputs
 Related: Engine/Rendering/Materials/Editor
 Related: Engine/Rendering/Materials/IntroductionToMaterials
 Related: Engine/Rendering/Materials/MaterialProperties
+Version: 4.9
+SkillLevel: Beginner
 
 [TOC(start:2 end:3)]
 
@@ -28,7 +30,7 @@ This will then update the Material to include the changes you were just previewi
 ## How to Preview your Materials
 
 You can preview your Materials a number of different ways inside of UE4, but the easiest way to preview your Materials is via the Material editor **Viewport** window. 
-The **Viewport*** window has a number of different options that make previewing your material very easy and straight forward. 
+The Viewport window has a number of different options that make previewing your material very easy and straight forward. 
 The image below shows a breakdown of the window and what its various options do.
 
 ![](Previewing_Applying_Viewport_Breakdown.png)
@@ -40,7 +42,7 @@ The image below shows a breakdown of the window and what its various options do.
 |3 | Sphere Preview Mesh   | This will change your preview mesh into a sphere mesh which is the default preview mesh. |
 |4 | Plane Preview Mesh    | This will change your preview mesh into a plane mesh. |
 |5 | Cube Preview Mesh     | This will change your preview mesh into a cube mesh. |
-|6 | Teapot Preview Mesh   | This will change your preview mesh into whatever mesh you currently have selected inside the **Content Browser**. |
+|6 | Teapot Preview Mesh   | This will change your preview mesh into whatever mesh you currently have selected inside the Content Browser. |
 |7 | Grid Icon		       | This will turn on or off the preview grid. |
 |8 | Watch Icon			   | This will enable real time rendering of the material allowing you to see how this material would work during a running game. |
 
@@ -48,7 +50,7 @@ The image below shows a breakdown of the window and what its various options do.
 While inside of the Material Editor, if you use your mouse cursor to hover over the icons, you will get a little description about what each of the properties does if you forget. 
 [/region]
 
-While you are creating your materials in the Material Editor, the **Viewport** window will update with your changes in real time if you have real time enabled (Real time is enabled by default). 
+While you are creating your materials in the Material Editor, the Viewport window will update with your changes in real time if you have real time enabled (Real time is enabled by default). 
 To see the changes happen, all you have to do is adjust any parameter that is currently hooked up to any of the Main Material Nodes like in the following example.
 
 [OBJECT:EmbeddedVideo]

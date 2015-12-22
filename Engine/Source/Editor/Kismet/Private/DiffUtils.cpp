@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintEditorPrivatePCH.h"
 
@@ -31,16 +31,28 @@ static FPropertySoftPathSet GetPropertyNameSet(const UObject* ForObj)
 FResolvedProperty FPropertySoftPath::Resolve(const UObject* Object) const
 {
 	// dig into the object, finding nested objects, etc:
+	const void* CurrentBlock = Object;
+	const UStruct* NextClass = Object->GetClass();
+	const void* NextBlock = CurrentBlock;
 	const UProperty* Property = nullptr;
+
 	for( int32 i = 0; i < PropertyChain.Num(); ++i )
 	{
-		const UProperty* NextProperty = ::Resolve(Object->GetClass(), PropertyChain[i]);
+		CurrentBlock = NextBlock;
+		const UProperty* NextProperty = ::Resolve(NextClass, PropertyChain[i]);
 		if( NextProperty )
 		{
 			Property = NextProperty;
 			if (const UObjectProperty* ObjectProperty = Cast<UObjectProperty>(Property))
 			{
-				Object = ObjectProperty->GetObjectPropertyValue(Property->ContainerPtrToValuePtr<UObject*>(Object));
+				const UObject* NextObject = ObjectProperty->GetObjectPropertyValue(Property->ContainerPtrToValuePtr<UObject*>(CurrentBlock));
+				NextBlock = NextObject;
+				NextClass = NextObject ? NextObject->GetClass() : nullptr;
+			}
+			else if (const UStructProperty* StructProperty = Cast<UStructProperty>(Property))
+			{
+				NextBlock = StructProperty->ContainerPtrToValuePtr<void>(CurrentBlock);
+				NextClass = StructProperty->Struct;
 			}
 			else
 			{
@@ -53,7 +65,7 @@ FResolvedProperty FPropertySoftPath::Resolve(const UObject* Object) const
 		}
 	}
 
-	return FResolvedProperty(Object, Property);
+	return FResolvedProperty(CurrentBlock, Property);
 }
 
 FPropertyPath FPropertySoftPath::ResolvePath(const UObject* Object) const
@@ -504,10 +516,10 @@ FText DiffViewUtils::PropertyDiffMessage(FSingleObjectDiffEntry Difference, FTex
 	switch (Difference.DiffType)
 	{
 	case EPropertyDiffType::PropertyAddedToA:
-		Message = FText::Format(NSLOCTEXT("DiffViewUtils", "PropertyValueChange", "{0} removed from {1}"), FText::FromString(PropertyName), ObjectName);
+		Message = FText::Format(NSLOCTEXT("DiffViewUtils", "PropertyValueChange_Removed", "{0} removed from {1}"), FText::FromString(PropertyName), ObjectName);
 		break;
 	case EPropertyDiffType::PropertyAddedToB:
-		Message = FText::Format(NSLOCTEXT("DiffViewUtils", "PropertyValueChange", "{0} added to {1}"), FText::FromString(PropertyName), ObjectName);
+		Message = FText::Format(NSLOCTEXT("DiffViewUtils", "PropertyValueChange_Added", "{0} added to {1}"), FText::FromString(PropertyName), ObjectName);
 		break;
 	case EPropertyDiffType::PropertyValueChanged:
 		Message = FText::Format(NSLOCTEXT("DiffViewUtils", "PropertyValueChange", "{0} changed value in {1}"), FText::FromString(PropertyName), ObjectName);
@@ -526,13 +538,13 @@ FText DiffViewUtils::SCSDiffMessage(const FSCSDiffEntry& Difference, FText Objec
 		Text = FText::Format(NSLOCTEXT("DiffViewUtils", "NodeAdded", "Added Node {0} to {1}"), NodeName, ObjectName);
 		break;
 	case ETreeDiffType::NODE_REMOVED:
-		Text = FText::Format(NSLOCTEXT("DiffViewUtils", "NodeAdded", "Removed Node {0} from {1}"), NodeName, ObjectName);
+		Text = FText::Format(NSLOCTEXT("DiffViewUtils", "NodeRemoved", "Removed Node {0} from {1}"), NodeName, ObjectName);
 		break;
 	case ETreeDiffType::NODE_PROPERTY_CHANGED:
-		Text = FText::Format(NSLOCTEXT("DiffViewUtils", "NodeAdded", "{0} on {1}"), DiffViewUtils::PropertyDiffMessage(Difference.PropertyDiff, NodeName), ObjectName);
+		Text = FText::Format(NSLOCTEXT("DiffViewUtils", "NodeChanged", "{0} on {1}"), DiffViewUtils::PropertyDiffMessage(Difference.PropertyDiff, NodeName), ObjectName);
 		break;
 	case ETreeDiffType::NODE_MOVED:
-		Text = FText::Format(NSLOCTEXT("DiffViewUtils", "NodeAdded", "Moved Node {0} in {1}"), NodeName, ObjectName);
+		Text = FText::Format(NSLOCTEXT("DiffViewUtils", "NodeMoved", "Moved Node {0} in {1}"), NodeName, ObjectName);
 		break;
 	}
 	return Text;

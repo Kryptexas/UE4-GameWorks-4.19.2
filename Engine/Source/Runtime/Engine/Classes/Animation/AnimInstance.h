@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,6 +8,8 @@
 #include "AnimStateMachineTypes.h"
 #include "BonePose.h"
 #include "Animation/AnimTypes.h"
+#include "Animation/AnimNotifyQueue.h"
+#include "Animation/AnimClassInterface.h"
 #include "AnimInstance.generated.h"
 
 struct FAnimMontageInstance;
@@ -23,6 +25,8 @@ class UWorld;
 struct FTransform;
 class FDebugDisplayInfo;
 struct FAnimNode_AssetPlayerBase;
+struct FAnimNode_Base;
+struct FAnimInstanceProxy;
 
 DECLARE_DELEGATE_OneParam(FOnMontageStarted, UAnimMontage*)
 DECLARE_DELEGATE_TwoParams(FOnMontageEnded, UAnimMontage*, bool /*bInterrupted*/)
@@ -265,11 +269,19 @@ struct FNativeTransitionBinding
 	/** Delegate to use when checking transition */
 	FCanTakeTransition NativeTransitionDelegate;
 
-	FNativeTransitionBinding(const FName& InMachineName, const FName& InPreviousStateName, const FName& InNextStateName, const FCanTakeTransition& InNativeTransitionDelegate)
+#if WITH_EDITORONLY_DATA
+	/** Name of this transition rule */
+	FName TransitionName;
+#endif
+
+	FNativeTransitionBinding(const FName& InMachineName, const FName& InPreviousStateName, const FName& InNextStateName, const FCanTakeTransition& InNativeTransitionDelegate, const FName& InTransitionName = NAME_None)
 		: MachineName(InMachineName)
 		, PreviousStateName(InPreviousStateName)
 		, NextStateName(InNextStateName)
 		, NativeTransitionDelegate(InNativeTransitionDelegate)
+#if WITH_EDITORONLY_DATA
+		, TransitionName(InTransitionName)
+#endif
 	{
 	}
 };
@@ -286,10 +298,18 @@ struct FNativeStateBinding
 	/** Delegate to use when checking transition */
 	FOnGraphStateChanged NativeStateDelegate;
 
-	FNativeStateBinding(const FName& InMachineName, const FName& InStateName, const FOnGraphStateChanged& InNativeStateDelegate)
+#if WITH_EDITORONLY_DATA
+	/** Name of this binding */
+	FName BindingName;
+#endif
+
+	FNativeStateBinding(const FName& InMachineName, const FName& InStateName, const FOnGraphStateChanged& InNativeStateDelegate, const FName& InBindingName = NAME_None)
 		: MachineName(InMachineName)
 		, StateName(InStateName)
 		, NativeStateDelegate(InNativeStateDelegate)
+#if WITH_EDITORONLY_DATA
+		, BindingName(InBindingName)
+#endif
 	{
 	}
 };
@@ -311,7 +331,14 @@ struct FMontageActiveSlotTracker
 
 struct FMontageEvaluationState
 {
-	FMontageEvaluationState(UAnimMontage* InMontage, float InWeight, float InPosition) : Montage(InMontage), MontageWeight(InWeight), MontagePosition(InPosition) {}
+	FMontageEvaluationState(UAnimMontage* InMontage, float InWeight, float InDesiredWeight, float InPosition, bool bInIsPlaying, bool bInIsActive) 
+		: Montage(InMontage)
+		, MontageWeight(InWeight)
+		, DesiredWeight(InDesiredWeight)
+		, MontagePosition(InPosition)
+		, bIsPlaying(bInIsPlaying)
+		, bIsActive(bInIsActive)
+	{}
 
 	// The montage to evaluate
 	UAnimMontage* Montage;
@@ -319,14 +346,87 @@ struct FMontageEvaluationState
 	// The weight to use for this montage
 	float MontageWeight;
 
+	// The desired weight of this montage
+	float DesiredWeight;
+
 	// The position to evaluate this montage at
 	float MontagePosition;
+
+	// Whether this montage is playing
+	bool bIsPlaying;
+
+	// Whether this montage is valid and not stopped
+	bool bIsActive;
+};
+
+struct FGraphTraversalCounter
+{
+private:
+	int16 InternalCounter;
+
+public:
+	FGraphTraversalCounter()
+		: InternalCounter(INDEX_NONE)
+	{}
+
+	int16 Get() const
+	{
+		return InternalCounter;
+	}
+
+	void Increment()
+	{
+		InternalCounter++;
+
+		// Avoid wrapping over back to INDEX_NONE, as this means 'never been traversed'
+		if (InternalCounter == INDEX_NONE)
+		{
+			InternalCounter++;
+		}
+	}
+
+	void Reset()
+	{
+		InternalCounter = INDEX_NONE;
+	}
+
+	void SynchronizeWith(const FGraphTraversalCounter& InMasterCounter)
+	{
+		InternalCounter = InMasterCounter.Get();
+	}
+
+	bool IsSynchronizedWith(const FGraphTraversalCounter& InMasterCounter) const
+	{
+		return ((InternalCounter != INDEX_NONE) && (InternalCounter == InMasterCounter.Get()));
+	}
+
+	bool WasSynchronizedInTheLastFrame(const FGraphTraversalCounter& InMasterCounter) const
+	{
+		// Test if we're currently in sync with our master counter
+		if (IsSynchronizedWith(InMasterCounter))
+		{
+			return true;
+		}
+
+		// If not, test if the Master Counter is a frame ahead of us
+		FGraphTraversalCounter TestCounter(*this);
+		TestCounter.Increment();
+
+		return TestCounter.IsSynchronizedWith(InMasterCounter);
+	}
 };
 
 UCLASS(transient, Blueprintable, hideCategories=AnimInstance, BlueprintType)
 class ENGINE_API UAnimInstance : public UObject
 {
 	GENERATED_UCLASS_BODY()
+
+	typedef FAnimInstanceProxy ProxyType;
+
+	// Disable compiler-generated deprecation warnings by implementing our own destructor
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	~UAnimInstance() {}
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 	/** DeltaTime **/
 	UPROPERTY()
@@ -337,48 +437,89 @@ class ENGINE_API UAnimInstance : public UObject
 	USkeleton* CurrentSkeleton;
 
 	// The list of animation assets which are going to be evaluated this frame and need to be ticked (ungrouped)
-	UPROPERTY(transient)
-	TArray<FAnimTickRecord> UngroupedActivePlayers;
+	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads")
+	TArray<FAnimTickRecord> UngroupedActivePlayerArrays[2];
 
 	// The set of tick groups for this anim instance
-	UPROPERTY(transient)
-	TArray<FAnimGroupInstance> SyncGroups;
+	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads")
+	TArray<FAnimGroupInstance> SyncGroupArrays[2];
 
 	/** Array indicating active vertex anims (by reference) generated by anim instance. */
-	UPROPERTY(transient)
+	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads")
 	TArray<struct FActiveVertexAnim> VertexAnims;
 
 	// Sets where this blueprint pulls Root Motion from
 	UPROPERTY(Category = RootMotion, EditDefaultsOnly)
 	TEnumAsByte<ERootMotionMode::Type> RootMotionMode;
 
+	// Allows this anim instance to update its native update, blend tree, montages and asset players on
+	// a worker thread. this requires certain conditions to be met:
+	// - All access of variables in the blend tree should be a direct access of a member variable
+	// - No BlueprintUpdateAnimation event should be used (i.e. the event graph should be empty). Only native update is permitted.
+	UPROPERTY(Category = Optimization, EditDefaultsOnly)
+	bool bRunUpdatesInWorkerThreads;
+
+	/** 
+	 * Whether we can use parallel updates for our animations.
+	 * Conditions affecting this include:
+	 * - Use of BlueprintUpdateAnimation
+	 * - Use of non 'fast-path' EvaluateGraphExposedInputs in the node graph
+	 */
+	UPROPERTY()
+	bool bCanUseParallelUpdateAnimation;
+
+	/** Flag to check back on the game thread that indicates we need to run PostUpdateAnimation() in the post-eval call */
+	bool bNeedsUpdate;
+
 public:
 
 	// @todo document
-	void MakeSequenceTickRecord(FAnimTickRecord& TickRecord, UAnimSequenceBase* Sequence, bool bLooping, float PlayRate, float FinalBlendWeight, float& CurrentTime) const;
-	void MakeBlendSpaceTickRecord(FAnimTickRecord& TickRecord, UBlendSpaceBase* BlendSpace, const FVector& BlendInput, TArray<FBlendSampleData>& BlendSampleDataCache, FBlendFilter& BlendFilter, bool bLooping, float PlayRate, float FinalBlendWeight, float& CurrentTime) const;
+	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
+	void MakeSequenceTickRecord(FAnimTickRecord& TickRecord, UAnimSequenceBase* Sequence, bool bLooping, float PlayRate, float FinalBlendWeight, float& CurrentTime, FMarkerTickRecord& MarkerTickRecord) const;
+	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
+	void MakeBlendSpaceTickRecord(FAnimTickRecord& TickRecord, UBlendSpaceBase* BlendSpace, const FVector& BlendInput, TArray<FBlendSampleData>& BlendSampleDataCache, FBlendFilter& BlendFilter, bool bLooping, float PlayRate, float FinalBlendWeight, float& CurrentTime, FMarkerTickRecord& MarkerTickRecord) const;
+	void MakeMontageTickRecord(FAnimTickRecord& TickRecord, class UAnimMontage* Montage, float CurrentPosition, float PreviousPosition, float MoveDelta, float Weight, TArray<FPassedMarker>& MarkersPassedThisTick, FMarkerTickRecord& MarkerTickRecord);
 
-	void SequenceAdvanceImmediate(UAnimSequenceBase* Sequence, bool bLooping, float PlayRate, float DeltaSeconds, /*inout*/ float& CurrentTime);
+	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
+	void SequenceAdvanceImmediate(UAnimSequenceBase* Sequence, bool bLooping, float PlayRate, float DeltaSeconds, /*inout*/ float& CurrentTime, FMarkerTickRecord& MarkerTickRecord);
 
 	// @todo document
-	void BlendSpaceAdvanceImmediate(UBlendSpaceBase* BlendSpace, const FVector& BlendInput, TArray<FBlendSampleData> & BlendSampleDataCache, FBlendFilter & BlendFilter, bool bLooping, float PlayRate, float DeltaSeconds, /*inout*/ float& CurrentTime);
+	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
+	void BlendSpaceAdvanceImmediate(UBlendSpaceBase* BlendSpace, const FVector& BlendInput, TArray<FBlendSampleData> & BlendSampleDataCache, FBlendFilter & BlendFilter, bool bLooping, float PlayRate, float DeltaSeconds, /*inout*/ float& CurrentTime, FMarkerTickRecord& MarkerTickRecord);
 
 	// Creates an uninitialized tick record in the list for the correct group or the ungrouped array.  If the group is valid, OutSyncGroupPtr will point to the group.
+	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
 	FAnimTickRecord& CreateUninitializedTickRecord(int32 GroupIndex, FAnimGroupInstance*& OutSyncGroupPtr);
 
-	// slotnode interfaces
-	void GetSlotWeight(FName const & SlotNodeName, float& out_SlotNodeWeight, float& out_SourceWeight) const;
-	void SlotEvaluatePose(FName SlotNodeName, const FCompactPose& SourcePose, const FBlendedCurve& SourceCurve, FCompactPose& BlendedPose, FBlendedCurve& BlendedCurve, float SlotNodeWeight);
+	/**
+	 * Get Slot Node Weight : this returns new Slot Node Weight, Source Weight, Original TotalNodeWeight
+	 *							this 3 values can't be derived from each other
+	 *
+	 * @param SlotNodeName : the name of the slot node you're querying
+	 * @param out_SlotNodeWeight : The node weight for this slot node in the range of [0, 1]
+	 * @param out_SourceWeight : The Source weight for this node. 
+	 * @param out_TotalNodeWeight : Total weight of this node
+	 */
+	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
+	void GetSlotWeight(FName const& SlotNodeName, float& out_SlotNodeWeight, float& out_SourceWeight, float& out_TotalNodeWeight) const;
+
+	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
+	void SlotEvaluatePose(FName SlotNodeName, const FCompactPose& SourcePose, const FBlendedCurve& SourceCurve, float InSourceWeight, FCompactPose& BlendedPose, FBlendedCurve& BlendedCurve, float InBlendWeight, float InTotalNodeWeight);
 
 	// slot node run-time functions
+	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
 	void ReinitializeSlotNodes();
+	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
 	void RegisterSlotNodeWithAnimInstance(FName SlotNodeName);
+	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
 	void UpdateSlotNodeWeight(FName SlotNodeName, float Weight);
 	// if it doesn't tick, it will keep old weight, so we'll have to clear it in the beginning of tick
+	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
 	void ClearSlotNodeWeights();
 	bool IsSlotNodeRelevantForNotifies(FName SlotNodeName) const;
 
 	// Allow slot nodes to store off their root motion weight during ticking
+	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
 	void UpdateSlotRootMotionWeight(FName SlotNodeName, float Weight);
 	// Get the root motion weight for the montage slot
 	float GetSlotRootMotionWeight(FName SlotNodeName) const;
@@ -392,6 +533,13 @@ public:
 
 	// Are we being evaluated on a worker thread
 	bool IsRunningParallelEvaluation() const;
+
+	// Can does this anim instance need an update (parallel or not)?
+	bool NeedsUpdate() const;
+
+private:
+	// Does this anim instance need immediate update (rather than parallel)?
+	bool NeedsImmediateUpdate(float DeltaSeconds) const;
 
 public:
 	/** Returns the owning actor of this AnimInstance */
@@ -418,9 +566,6 @@ public:
 
 	bool CanTransitionSignature() const;
 	
-	UFUNCTION()
-	void AnimNotify_Sound(UAnimNotify* Notify);
-
 	/*********************************************************************************************
 	* SlotAnimation
 	********************************************************************************************* */
@@ -542,13 +687,16 @@ public:
 	/** Get next sectionID for given section ID */
 	int32 Montage_GetNextSectionID(UAnimMontage const * const Montage, int32 const & CurrentSectionID) const;
 
+	/** Returns true if any montage is playing currently. Doesn't mean it's active though, it could be blending out. */
+	bool IsAnyMontagePlaying() const;
+
 	/** Get a current Active Montage in this AnimInstance. 
 		Note that there might be multiple Active at the same time. This will only return the first active one it finds. **/
 	UAnimMontage * GetCurrentActiveMontage();
 
 	/** Get Currently active montage instance.
 		Note that there might be multiple Active at the same time. This will only return the first active one it finds. **/
-	FAnimMontageInstance * GetActiveMontageInstance();
+	FAnimMontageInstance * GetActiveMontageInstance() const;
 
 	/** Get Active FAnimMontageInstance for given Montage asset. Will return NULL if Montage is not currently Active. */
 	FAnimMontageInstance * GetActiveInstanceForMontage(UAnimMontage const & Montage) const;
@@ -559,9 +707,10 @@ public:
 	TArray<struct FAnimMontageInstance*> MontageInstances;
 
 	// Cached data for montage evaluation, save us having to access MontageInstances from slot nodes as that isn't thread safe
+	DEPRECATED(4.11, "Please use FAnimInstanceProxy::GetMontageEvaluationData()")
 	TArray<FMontageEvaluationState> MontageEvaluationData;
 
-	void OnMontageInstanceStopped(FAnimMontageInstance & StoppedMontageInstance);
+	virtual void OnMontageInstanceStopped(FAnimMontageInstance & StoppedMontageInstance);
 
 protected:
 	/** Map between Active Montages and their FAnimMontageInstance */
@@ -571,7 +720,7 @@ protected:
 	void StopAllMontages(float BlendOut);
 
 	/** Stop all active montages belonging to 'InGroupName' */
-	void StopAllMontagesByGroupName(FName InGroupName, float BlendOutTime);
+	void StopAllMontagesByGroupName(FName InGroupName, const FAlphaBlend& BlendOut);
 
 	/** Update weight of montages  **/
 	virtual void Montage_UpdateWeight(float DeltaSeconds);
@@ -690,18 +839,56 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Asset Player", meta = (BlueprintInternalUseOnly = "true", AnimGetter = "true", GetterContext = "Transition"))
 	float GetRelevantAnimTimeFraction(int32 MachineIndex, int32 StateIndex);
 
+	/** Gets an unchecked (can return nullptr) node given an index into the node property array */
+	DEPRECATED(4.11, "Please use FAnimInstanceProxy::GetNodeFromIndexUntyped")
+	FAnimNode_Base* GetNodeFromIndexUntyped(int32 NodeIdx, UScriptStruct* RequiredStructType);
+
+	/** Gets a checked node given an index into the node property array */
+	DEPRECATED(4.11, "Please use FAnimInstanceProxy::GetCheckedNodeFromIndexUntyped")
+	FAnimNode_Base* GetCheckedNodeFromIndexUntyped(int32 NodeIdx, UScriptStruct* RequiredStructType);
+
+	/** Gets a checked node given an index into the node property array */
+	template<class NodeType>
+	DEPRECATED(4.11, "Please use FAnimInstanceProxy::GetCheckedNodeFromIndex")
+	NodeType* GetCheckedNodeFromIndex(int32 NodeIdx)
+	{
+		return (NodeType*)GetCheckedNodeFromIndexUntyped(NodeIdx, NodeType::StaticStruct());
+	}
+
+	/** Gets an unchecked (can return nullptr) node given an index into the node property array */
+	template<class NodeType>
+	DEPRECATED(4.11, "Please use FAnimInstanceProxy::GetNodeFromIndex")
+	NodeType* GetNodeFromIndex(int32 NodeIdx)
+	{
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
+		return (NodeType*)GetNodeFromIndexUntyped(NodeIdx, NodeType::StaticStruct());
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	}
+
+	/** Gets the runtime instance of the specified state machine by Name */
+	FAnimNode_StateMachine* GetStateMachineInstanceFromName(FName MachineName);
+
+	/** Get the machine description for the specified instance. Does not rely on PRIVATE_MachineDescription being initialized */
+	const FBakedAnimationStateMachine* GetMachineDescription(IAnimClassInterface* AnimBlueprintClass, FAnimNode_StateMachine* MachineInstance);
+
+	/** Returns the baked sync group index from the compile step */
+	int32 GetSyncGroupIndexFromName(FName SyncGroupName) const;
 protected:
+
+	/** Gets the index of the state machine matching MachineName */
+	int32 GetStateMachineIndex(FName MachineName);
 
 	/** Gets the runtime instance of the specified state machine */
 	FAnimNode_StateMachine* GetStateMachineInstance(int32 MachineIndex);
 
-	/** Gets a checked node given an index into the node property array */
-	template<class NodeType>
-	NodeType* GetCheckedNodeFromIndex(int32 NodeIdx);
+	/** 
+	 * Get the index of the specified instance asset player. Useful to pass to GetInstanceAssetPlayerLength (etc.).
+	 * Passing NAME_None to InstanceName will return the first (assumed only) player instance index found.
+	 */
+	int32 GetInstanceAssetPlayerIndex(FName MachineName, FName StateName, FName InstanceName = NAME_None);
 
-	/** Gets an unchecked (can return nullptr) node given an index into the node property array */
-	template<class NodeType>
-	NodeType* GetNodeFromIndex(int32 NodeIdx);
+	/** Gets the runtime instance desc of the state machine specified by name */
+	const FBakedAnimationStateMachine* GetStateMachineInstanceDesc(FName MachineName);
 
 	/** Gets the most relevant asset player in a specified state */
 	FAnimNode_AssetPlayerBase* GetRelevantAssetPlayerFromState(int32 MachineIndex, int32 StateIndex);
@@ -774,46 +961,84 @@ public:
 	void UnlockAIResources(bool bUnlockMovement, bool UnlockAILogic);
 	//--- AI communication end ---//
 
+	UFUNCTION(BlueprintCallable, Category = "SyncGroup")
+	bool GetTimeToClosestMarker(FName SyncGroup, FName MarkerName, float& OutMarkerTime) const;
+
+	UFUNCTION(BlueprintCallable, Category = "SyncGroup")
+	bool HasMarkerBeenHitThisFrame(FName SyncGroup, FName MarkerName) const;
+
+	UFUNCTION(BlueprintCallable, Category = "SyncGroup")
+	bool IsSyncGroupBetweenMarkers(FName InSyncGroupName, FName PreviousMarker, FName NextMarker, bool bRespectMarkerOrder = true) const;
+
+	UFUNCTION(BlueprintCallable, Category = "SyncGroup")
+	FMarkerSyncAnimPosition GetSyncGroupPosition(FName InSyncGroupName) const;
+
 public:
 	// Root node of animation graph
+	DEPRECATED(4.11, "RootNode access has been moved to FAnimInstanceProxy")
 	struct FAnimNode_Base* RootNode;
 
 public:
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
+	virtual void BeginDestroy() override;
+	virtual void PostInitProperties() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	// End UObject Interface
+	//~ End UObject Interface
 
-	// Updates the montage data used for evaluation based on the current playing montages
-	void UpdateMontageEvaluationData();
+	virtual void OnUROSkipTickAnimation() {}
+	virtual void OnUROPreInterpolation() {}
 
 	// Animation phase trigger
 	// start with initialize
-	// update happens in every tick
+	// update happens in every tick. Can happen in parallel with others if conditions are right.
 	// evaluate happens when condition is met - i.e. depending on your skeletalmeshcomponent update flag
 	// post eval happens after evaluation is done
 	// uninitialize happens when owner is unregistered
 	void InitializeAnimation();
-	void UpdateAnimation(float DeltaSeconds);
+	void UpdateAnimation(float DeltaSeconds, bool bNeedsValidRootMotion);
+
+	/** Run update animation work on a worker thread */
+	void ParallelUpdateAnimation();
+
+	/** Called after updates are completed, dispatches notifies etc. */
+	void PostUpdateAnimation();
+
+	DEPRECATED(4.11, "This function should no longer be used. Use ParallelEvaluateAnimation")
 	void EvaluateAnimation(struct FPoseContext& Output);
+
+	/** Check whether evaluation can be performed on the supplied skeletal mesh. Can be called from worker threads. */
+	bool ParallelCanEvaluate(const USkeletalMesh* InSkeletalMesh) const;
+
+	/** Perform evaluation. Can be called from worker threads. */
+	void ParallelEvaluateAnimation(bool bForceRefPose, const USkeletalMesh* InSkeletalMesh, TArray<FTransform>& OutLocalAtoms, TArray<FActiveVertexAnim>& OutVertexAnims, FBlendedCurve& OutCurve);
+
 	void PostEvaluateAnimation();
 	void UninitializeAnimation();
 
 	// the below functions are the native overrides for each phase
 	// Native initialization override point
 	virtual void NativeInitializeAnimation();
-	// Native update override point
+	// Native update override point. It is usually a good idea to simply gather data in this step and 
+	// for the bulk of the work to be done in NativeUpdateAnimation.
 	virtual void NativeUpdateAnimation(float DeltaSeconds);
+	// Native update override point. Can be called from a worker thread. This is a good place to do any
+	// heavy lifting (as opposed to NativeUpdateAnimation_GameThread()).
+	// This function should not be used. Worker thread updates should be performed in the FAnimInstanceProxy attached to this instance.
+	virtual void NativeUpdateAnimation_WorkerThread(float DeltaSeconds);
 	// Native evaluate override point.
 	// @return true if this function is implemented, false otherwise.
 	// Note: the node graph will not be evaluated if this function returns true
+	DEPRECATED(4.11, "Please use FAnimInstanceProxy::Evaluate")
 	virtual bool NativeEvaluateAnimation(FPoseContext& Output);
 	// Native Post Evaluate override point
 	virtual void NativePostEvaluateAnimation();
+	// Native Uninitialize override point
+	virtual void NativeUninitializeAnimation();
 
 	// Sets up a native transition delegate between states with PrevStateName and NextStateName, in the state machine with name MachineName.
 	// Note that a transition already has to exist for this to succeed
-	void AddNativeTransitionBinding(const FName& MachineName, const FName& PrevStateName, const FName& NextStateName, const FCanTakeTransition& NativeTransitionDelegate);
+	void AddNativeTransitionBinding(const FName& MachineName, const FName& PrevStateName, const FName& NextStateName, const FCanTakeTransition& NativeTransitionDelegate, const FName& TransitionName = NAME_None);
 
 	// Check for whether a native rule is bound to the specified transition
 	bool HasNativeTransitionBinding(const FName& MachineName, const FName& PrevStateName, const FName& NextStateName, FName& OutBindingName);
@@ -834,11 +1059,19 @@ public:
 	void DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
 public:
 
+	/** Access the required bones array */
+	FBoneContainer& GetRequiredBones();	
+
 	/** Temporary array of bone indices required this frame. Should be subset of Skeleton and Mesh's RequiredBones */
+	DEPRECATED(4.11, "This cannot be accessed directly, use UnimInstance::GetRequiredBones")
 	FBoneContainer RequiredBones;
 
 	/** Animation Notifies that has been triggered in the latest tick **/
+	DEPRECATED(4.11, "Use UAnimInstance::NotifyQueue")
 	TArray<const struct FAnimNotifyEvent *> AnimNotifies;
+
+	/** Animation Notifies that has been triggered in the latest tick **/
+	FAnimNotifyQueue NotifyQueue;
 
 	/** Currently Active AnimNotifyState, stored as a copy of the event as we need to
 		call NotifyEnd on the event after a deletion in the editor. After this the event
@@ -846,19 +1079,39 @@ public:
 	UPROPERTY(transient)
 	TArray<FAnimNotifyEvent> ActiveAnimNotifyState;
 
+protected:
+	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
+	int32 GetSyncGroupReadIndex() const;
+	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
+	int32 GetSyncGroupWriteIndex() const;
+	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
+	void TickSyncGroupWriteIndex();
+
 private:
 	/** Curve Values that are added to trigger in event**/
 	TMap<FName, float>	EventCurves;
 	/** Material parameters that we had been changing and now need to clear */
 	TArray<FName> MaterialParamatersToClear;
 
+	//This frames marker sync data
+	FMarkerTickContext MarkerTickContext;
+
 public: 
 	/** Update all internal curves from Blended Curve */
 	void UpdateCurves(const FBlendedCurve& InCurves);
 
+	/** Check whether we have active morph target curves */
+	bool HasMorphTargetCurves() const;
+
+	/** Access active morph target curves */
+	TMap<FName, float>& GetMorphTargetCurves();
+
 	/** Morph Target Curves that will be used for SkeletalMeshComponent **/
+	DEPRECATED(4.11, "This cannot be accessed directly, use UAnimInstance::GetMorphTargetCurves")
 	TMap<FName, float>	MorphTargetCurves;
+
 	/** Material Curves that will be used for SkeletalMeshComponent **/
+	DEPRECATED(4.11, "This cannot be accessed directly, use FAnimInstanceProxy::GetMaterialParameterCurves")
 	TMap<FName, float>	MaterialParameterCurves;
 
 #if WITH_EDITORONLY_DATA
@@ -870,22 +1123,19 @@ public:
 #endif
 
 public:
-	int16 GetSlotNodeInitializationCounter() const { return SlotNodeInitializationCounter; }
-	int16 GetGraphTraversalCounter() const { return GraphTraversalCounter; }
-
-	/** Increment traversal counter every time the graph is about to be traversed, to ensure every node is only touched once. */
-	void IncrementGraphTraversalCounter();
+	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads")
+	FGraphTraversalCounter InitializationCounter;
+	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads")
+	FGraphTraversalCounter CachedBonesCounter;
+	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads")
+	FGraphTraversalCounter UpdateCounter;
+	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads")
+	FGraphTraversalCounter EvaluationCounter;
+	FGraphTraversalCounter DebugDataCounter;
+	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads")
+	FGraphTraversalCounter SlotNodeInitializationCounter;
 
 private:
-	/** Counter so we register Slot nodes just once per Initialization pass 
-	 * State can trigger initialization later, and we don't want to register these nodes multiple times. */
-	UPROPERTY(Transient)
-	int16 SlotNodeInitializationCounter;
-
-	/** Counter incremented every time the graph is about to be traversed, to ensure every node is only touched once. */
-	UPROPERTY(Transient)
-	int16 GraphTraversalCounter;
-
 	TMap<FName, FMontageActiveSlotTracker> SlotWeightTracker;
 
 public:
@@ -896,7 +1146,7 @@ public:
 	void RecalcRequiredBones();
 
 	/** When RequiredBones mapping has changed, AnimNodes need to update their bones caches. */
-	UPROPERTY(Transient)
+	DEPRECATED(4.11, "This cannot be accessed directly, use FAnimInstanceProxy::bBoneCachesInvalidated")
 	bool bBoneCachesInvalidated;
 
 	// @todo document
@@ -905,15 +1155,19 @@ public:
 	virtual UWorld* GetWorld() const override;
 
 	/** Add anim notifier **/
+	DEPRECATED(4.11, "Please use NotifyQueue.AddAnimNotifies")
 	void AddAnimNotifies(const TArray<const FAnimNotifyEvent*>& NewNotifies, const float InstanceWeight);
 
 	/** Should the notifies current filtering mode stop it from triggering */
+	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
 	bool PassesFiltering(const FAnimNotifyEvent* Notify) const;
 
 	/** Work out whether this notify should be triggered based on its chance of triggering value */
+	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
 	bool PassesChanceOfTriggering(const FAnimNotifyEvent* Event) const;
 
 	/** Queues an Anim Notify from the shared list on our generated class */
+	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
 	void AddAnimNotifyFromGeneratedClass(int32 NotifyIndex);
 
 	/** Trigger AnimNotifies **/
@@ -922,6 +1176,12 @@ public:
 
 	/** Add curve float data using a curve Uid, the name of the curve will be resolved from the skeleton **/
 	void AddCurveValue(const USkeleton::AnimCurveUID Uid, float Value, int32 CurveTypeFlags);
+
+	/** Pass-thru function to proxy - only call on the game thread */
+	void UpdateMorphTargetCurves(const TMap<FName, float>& InMorphTargetCurves);
+
+	/** Pass-thru function to proxy - only call on the game thread */
+	void UpdateComponentsMaterialParameters(UPrimitiveComponent* Component);
 
 protected:
 	/** 
@@ -943,25 +1203,115 @@ public:
 	/** Get current accumulated root motion, removing it from the AnimInstance in the process */
 	FRootMotionMovementParams ConsumeExtractedRootMotion(float Alpha);
 
+	/** Wrapper around UpdateActiveVertexAnims that can use vertex anims internal to the proxy */
+	TArray<FActiveVertexAnim> UpdateActiveVertexAnims(const USkeletalMesh* SkeletalMesh);
 private:
 	/** Active Root Motion Montage Instance, if any. */
 	struct FAnimMontageInstance * RootMotionMontageInstance;
-
-	// Root motion extracted from animation since the last time ConsumeExtractedRootMotion was called
-	FRootMotionMovementParams ExtractedRootMotion;
-
-	// Native bindings
 private:
-	/** Bind any native delegates that we have set up */
-	void BindNativeDelegates();
+	// update montage
+	void UpdateMontage(float DeltaSeconds);
 
-	/** Native transition rules */
-	TArray<FNativeTransitionBinding> NativeTransitionBindings;
+protected:
+	/** Update all animation node */
+	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
+	virtual void UpdateAnimationNode(float DeltaSeconds);
 
-	/** Native state entry bindings */
-	TArray<FNativeStateBinding> NativeStateEntryBindings;
+	// Updates the montage data used for evaluation based on the current playing montages
+	void UpdateMontageEvaluationData();
 
-	/** Native state exit bindings */
-	TArray<FNativeStateBinding> NativeStateExitBindings;
+	/** Called to setup for updates */
+	void PreUpdateAnimation(float DeltaSeconds);
+
+	/** Actually does the update work, can be called from a worker thread  */
+	void UpdateAnimationInternal_Concurrent(float DeltaSeconds, FAnimInstanceProxy& Proxy);
+
+	/** Override point for derived classes to create their own proxy objects (allows custom allocation) */
+	virtual FAnimInstanceProxy* CreateAnimInstanceProxy();
+
+	/** Override point for derived classes to destroy their own proxy objects (allows custom allocation) */
+	virtual void DestroyAnimInstanceProxy(FAnimInstanceProxy* InProxy);
+
+	/** Access the proxy but block if a task is currently in progress as it wouldn't be safe to access it */
+	template <typename T /*= FAnimInstanceProxy*/>	// @TODO: Cant default parameters to this function on Xbox One until we move off the VS2012 compiler
+	FORCEINLINE T& GetProxyOnGameThread()
+	{
+		check(IsInGameThread());
+		if(GetOuter() && GetOuter()->IsA<USkeletalMeshComponent>())
+		{
+			bool bBlockOnTask = true;
+			bool bPerformPostAnimEvaluation = true;
+			GetSkelMeshComponent()->HandleExistingParallelEvaluationTask(bBlockOnTask, bPerformPostAnimEvaluation);
+		}
+		if(AnimInstanceProxy == nullptr)
+		{
+			AnimInstanceProxy = CreateAnimInstanceProxy();
+		}
+		return *static_cast<T*>(AnimInstanceProxy);
+	}
+
+	/** Access the proxy but block if a task is currently in progress as it wouldn't be safe to access it */
+	template <typename T/* = FAnimInstanceProxy*/>	// @TODO: Cant default parameters to this function on Xbox One until we move off the VS2012 compiler
+	FORCEINLINE const T& GetProxyOnGameThread() const
+	{
+		check(IsInGameThread());
+		if(GetOuter() && GetOuter()->IsA<USkeletalMeshComponent>())
+		{
+			bool bBlockOnTask = true;
+			bool bPerformPostAnimEvaluation = true;
+			GetSkelMeshComponent()->HandleExistingParallelEvaluationTask(bBlockOnTask, bPerformPostAnimEvaluation);
+		}
+		if(AnimInstanceProxy == nullptr)
+		{
+			AnimInstanceProxy = const_cast<UAnimInstance*>(this)->CreateAnimInstanceProxy();
+		}
+		return *static_cast<const T*>(AnimInstanceProxy);
+	}
+
+	/** Access the proxy but block if a task is currently in progress (and we are on the game thread) as it wouldn't be safe to access it */
+	template <typename T/* = FAnimInstanceProxy*/>	// @TODO: Cant default parameters to this function on Xbox One until we move off the VS2012 compiler
+	FORCEINLINE T& GetProxyOnAnyThread()
+	{
+		if(GetOuter() && GetOuter()->IsA<USkeletalMeshComponent>())
+		{
+			if(IsInGameThread())
+			{
+				bool bBlockOnTask = true;
+				bool bPerformPostAnimEvaluation = true;
+				GetSkelMeshComponent()->HandleExistingParallelEvaluationTask(bBlockOnTask, bPerformPostAnimEvaluation);
+			}
+		}
+		if(AnimInstanceProxy == nullptr)
+		{
+			AnimInstanceProxy = CreateAnimInstanceProxy();
+		}
+		return *static_cast<T*>(AnimInstanceProxy);
+	}
+
+	/** Access the proxy but block if a task is currently in progress (and we are on the game thread) as it wouldn't be safe to access it */
+	template <typename T/* = FAnimInstanceProxy*/>	// @TODO: Cant default parameters to this function on Xbox One until we move off the VS2012 compiler
+	FORCEINLINE const T& GetProxyOnAnyThread() const
+	{
+		if(GetOuter() && GetOuter()->IsA<USkeletalMeshComponent>())
+		{
+			if(IsInGameThread())
+			{
+				bool bBlockOnTask = true;
+				bool bPerformPostAnimEvaluation = true;
+				GetSkelMeshComponent()->HandleExistingParallelEvaluationTask(bBlockOnTask, bPerformPostAnimEvaluation);
+			}
+		}
+		if(AnimInstanceProxy == nullptr)
+		{
+			AnimInstanceProxy = const_cast<UAnimInstance*>(this)->CreateAnimInstanceProxy();
+		}
+		return *static_cast<const T*>(AnimInstanceProxy);
+	}
+
+	// TODO: Remove after deprecation (4.11)
+	friend struct FAnimationBaseContext;
+	
+protected:
+	/** Proxy object, nothing should access this from an externally-callable API as it is used as a scratch area on worker threads */
+	mutable FAnimInstanceProxy* AnimInstanceProxy;
 };
-

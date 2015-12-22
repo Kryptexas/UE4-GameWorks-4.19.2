@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
 #include "PropertyHelper.h"
@@ -123,6 +123,14 @@ FString UMulticastDelegateProperty::GetCPPType( FString* ExtendedTypeText/*=NULL
 #endif
 
 	FString UnmangledFunctionName = SignatureFunction->GetName().LeftChop( FString( HEADER_GENERATED_DELEGATE_SIGNATURE_SUFFIX ).Len() );
+	const UClass* OwnerClass = SignatureFunction->GetOwnerClass();
+	if ((0 != (CPPExportFlags & EPropertyExportCPPFlags::CPPF_BlueprintCppBackend)) && OwnerClass && !OwnerClass->HasAnyClassFlags(CLASS_Native))
+	{
+		// the name must be unique
+		const FString OwnerName = UnicodeToCPPIdentifier(OwnerClass->GetName(), false, TEXT(""));
+		const FString NewUnmangledFunctionName = FString::Printf(TEXT("%s__%s"), *UnmangledFunctionName, *OwnerName);
+		UnmangledFunctionName = NewUnmangledFunctionName;
+	}
 	if (0 != (CPPExportFlags & EPropertyExportCPPFlags::CPPF_CustomTypeName))
 	{
 		UnmangledFunctionName += TEXT("__MulticastDelegate");
@@ -133,6 +141,12 @@ FString UMulticastDelegateProperty::GetCPPType( FString* ExtendedTypeText/*=NULL
 
 void UMulticastDelegateProperty::ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const
 {
+	if (0 != (PortFlags & PPF_ExportCpp))
+	{
+		ValueStr += TEXT("{}");
+		return;
+	}
+
 	const FMulticastScriptDelegate* MulticastDelegate = (const FMulticastScriptDelegate*)( PropertyValue );
 	check( MulticastDelegate != NULL );
 

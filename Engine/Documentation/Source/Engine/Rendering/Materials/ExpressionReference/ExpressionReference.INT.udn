@@ -2,6 +2,7 @@ Availability: Public
 title:Material Expression Reference
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:Reference for all material expressions available for use in the Material Editor for creating complex node-based shader networks.
+Version: 4.9
 
 [REGION:banner]
 ![Materials Compendium](compendium.png)
@@ -9,13 +10,12 @@ Description:Reference for all material expressions available for use in the Mate
 
 [TOC (start:2 end:3)]
 
-## Overview
 
 This page is a reference for all material expression nodes available in the Material Editor. Material Expressions are the building blocks used to create fully functional materials in Unreal Engine 4. Each material expression is a self-contained black box that either outputs a set of one or more specific values or performs a single operation on one or more inputs and then outputs the results of that operation.
 
 ## Parameters
 
-Certain material expressions are parameters, meaning their values can be modified (dynamically during runtime in some cases) in a MaterialInstance of the base material containing the parameter. These expressions should be given unique names, via the **Parameter Name** property, to be used when identifying the specific parameter in the MaterialInstance. If two parameters of the same type have the same name in the same material, they will be assumed to be the same parameter. Changing the value of the parameter in the MaterialInstance would change the value of both the parameter expressions in the material. A default value for the parameter will also be set in the base material. This will be the value of the parameter in the MaterialInstance unless it is overridden and modified there.
+Certain material expressions are parameters, meaning their values can be modified (dynamically during runtime in some cases) in a Material Instance of the base material containing the parameter. These expressions should be given unique names, via the **Parameter Name** property, to be used when identifying the specific parameter in the Material Instance. If two parameters of the same type have the same name in the same material, they will be assumed to be the same parameter. Changing the value of the parameter in the Material Instance would change the value of both the parameter expressions in the material. A default value for the parameter will also be set in the base material. This will be the value of the parameter in the Material Instance unless it is overridden and modified there.
 
 ## Material Expressions
 
@@ -24,9 +24,9 @@ Certain material expressions are parameters, meaning their values can be modifie
 
 1. **Description** - All materials expressions have a common **Desc** property. Text entered in this property will be displayed in the Material Editor just above the expression in the workspace. It can be used for any purpose, but usually serves as a good way to leave short notes about the purpose or function of the expression.
 1. **Title bar** - Displays the name and/or pertinent information about properties of the material expression.
-1. **Outputs** - Links that output the results of the material expression operation.
-1. **Preview** - Displays a preview of the value(s) that are output by the material expression. Updates automatically when realtime update is enabled. Can be manually updated using the Spacebar.
 1. **Inputs** - Links that take in the value(s) to be used by the material expression.
+1. **Preview** - Displays a preview of the value(s) that are output by the material expression. Updates automatically when realtime update is enabled. Can be manually updated using the Spacebar.
+1. **Outputs** - Links that output the results of the material expression operation.
 
 
 ### Expression Types

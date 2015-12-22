@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AutomationTestSettings.h: Declares the UAutomationTestSettings class.
@@ -208,23 +208,6 @@ struct FBuildPromotionOpenAssetSettings
 };
 
 /**
-* Holds settings for the blueprint stage of the build promotion test
-*/
-USTRUCT()
-struct FBuildPromotionBlueprintSettings
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** The starting mesh for the blueprint **/
-	UPROPERTY(EditAnywhere, Category = Automation, meta = (FilePathFilter = "uasset"))
-	FFilePath FirstMeshPath;
-
-	/** The mesh to set on the blueprint after the delay **/
-	UPROPERTY(EditAnywhere, Category = Automation, meta = (FilePathFilter = "uasset"))
-	FFilePath SecondMeshPath;
-};
-
-/**
 * Holds settings for the new project stage of the build promotion test
 */
 USTRUCT()
@@ -278,6 +261,28 @@ struct FParticleEditorPromotionSettings
 };
 
 /**
+* Holds settings for the blueprint editor build promotion tests
+*/
+USTRUCT()
+struct FBlueprintEditorPromotionSettings
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** The starting mesh for the blueprint **/
+	UPROPERTY(EditAnywhere, Category = Automation, meta = (FilePathFilter = "uasset"))
+	FFilePath FirstMeshPath;
+
+	/** The mesh to set on the blueprint after the delay **/
+	UPROPERTY(EditAnywhere, Category = Automation, meta = (FilePathFilter = "uasset"))
+		FFilePath SecondMeshPath;
+
+	/** Default particle asset to use for tests*/
+	UPROPERTY(EditAnywhere, Category = Automation, meta = (FilePathFilter = "uasset"))
+	FFilePath DefaultParticleAsset;
+};
+
+
+/**
 * Holds settings for the editor build promotion test
 */
 USTRUCT()
@@ -296,10 +301,6 @@ struct FBuildPromotionTestSettings
 	/** Open assets settings **/
 	UPROPERTY(EditAnywhere, Category = Automation)
 	FBuildPromotionOpenAssetSettings	OpenAssets;
-
-	/** Blueprint settings **/
-	UPROPERTY(EditAnywhere, Category = Automation)
-	FBuildPromotionBlueprintSettings	BlueprintSettings;
 
 	/** New project settings **/
 	UPROPERTY(EditAnywhere, Category = Automation)
@@ -383,6 +384,12 @@ public:
 	*/
 	UPROPERTY(EditAnywhere, config, Category = Automation)
 	FParticleEditorPromotionSettings ParticleEditorPromotionTest;
+
+	/**
+	* Blueprint editor promotion test settings
+	*/
+	UPROPERTY(EditAnywhere, config, Category = Automation)
+	FBlueprintEditorPromotionSettings BlueprintEditorPromotionTest;
 
 	/**
 	* Modules to load that have engine tests

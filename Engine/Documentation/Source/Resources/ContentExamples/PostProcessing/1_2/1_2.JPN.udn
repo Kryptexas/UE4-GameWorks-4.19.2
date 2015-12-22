@@ -1,12 +1,30 @@
-﻿INTSourceChangelist:2350233
+﻿INTSourceChangelist:2721817
 Availability:Public
 Title:1.2 - フィルム
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/PostProcessing
-Description:ポストプロセスの事例概要、例 1.2：フィルム
+Description:ポストプロセスのサンプル レベルの概要、サンプル 1.2：フィルム
 Related:Engine/Rendering/Overview
 Related:Engine/Rendering/PostProcessEffects
 Related:Engine/Rendering/PostProcessEffects/PostProcessMaterials
+Version:4.9
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/PostProcessing/1_1 "%Resources/ContentExamples/PostProcessing/1_1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[ポストプロセスのホーム](Resources/ContentExamples/PostProcessing)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/PostProcessing/1_3 "%Resources/ContentExamples/PostProcessing/1_3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -52,5 +70,5 @@ Related:Engine/Rendering/PostProcessEffects/PostProcessMaterials
 [![](1_2_01.png)(w:302)](1_2_01.png) [![](1_2_02.png)(w:302)](1_2_02.png) [![](1_2_03.png)(w:302)](1_2_03.png)
 [/REGION:lightbox]
 
-フィルムのカテゴリには、シーンの色を調整するための様々なプロパティがあります。シャドウの着色、色混合チャンネル、サチュレーション、コントラスト、黒つぶれ、白飛び、ダイナミックレンジが含まれます。
+**Film (フィルム)** カテゴリには、シーンの色を調整するための様々なプロパティがあります。シャドウの着色、色混合チャンネル、サチュレーション、コントラスト、黒つぶれ、白飛び、ダイナミックレンジが含まれます。
 

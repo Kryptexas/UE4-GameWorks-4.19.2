@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnMaterial.cpp: Shader implementation.
@@ -123,14 +123,7 @@ int32 FMaterialResource::CompilePropertyAndSetMaterialProperty(EMaterialProperty
 
 void FMaterialResource::GatherCustomOutputExpressions(TArray<UMaterialExpressionCustomOutput*>& OutCustomOutputs) const
 {
-	for (UMaterialExpression* Expression : Material->Expressions)
-	{
-		UMaterialExpressionCustomOutput* CustomOutput = Cast<UMaterialExpressionCustomOutput>(Expression);
-		if (CustomOutput)
-		{
-			OutCustomOutputs.Add(CustomOutput);
-		}
-	}
+	Material->GetAllCustomOutputExpressions(OutCustomOutputs);
 }
 
 void FMaterialResource::GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const
@@ -354,7 +347,7 @@ void UMaterialInterface::InitDefaultMaterials()
 				GDefaultMaterials[Domain] = FindObject<UMaterial>(NULL,GDefaultMaterialNames[Domain]);
 				if (GDefaultMaterials[Domain] == NULL)
 				{
-					GDefaultMaterials[Domain] = LoadObject<UMaterial>(NULL,GDefaultMaterialNames[Domain],NULL,LOAD_None,NULL);
+					GDefaultMaterials[Domain] = LoadObject<UMaterial>(NULL, GDefaultMaterialNames[Domain], NULL, LOAD_DisableDependencyPreloading, NULL);
 					checkf(GDefaultMaterials[Domain] != NULL, TEXT("Cannot load default material '%s'"), GDefaultMaterialNames[Domain]);
 				}
 				GDefaultMaterials[Domain]->AddToRoot();
@@ -1191,37 +1184,58 @@ void UMaterialInterface::OverrideBlendableSettings(class FSceneView& View, float
 
 	FFinalPostProcessSettings& Dest = View.FinalPostProcessSettings;
 
-	const UMaterial* Material = GetMaterial();
+	const UMaterial* Base = GetMaterial();
 
 	//	should we use UMaterial::GetDefaultMaterial(Domain) instead of skipping the material
 
-	if(!Material || Material->MaterialDomain != MD_PostProcess || !View.State)
+	if(!Base || Base->MaterialDomain != MD_PostProcess || !View.State)
 	{
 		return;
 	}
 
 	FBlendableEntry* Iterator = 0;
 
-	FPostProcessMaterialNode* PostProcessMaterialNode = IteratePostProcessMaterialNodes(Dest, Material, Iterator);
+	FPostProcessMaterialNode* DestNode = IteratePostProcessMaterialNodes(Dest, Base, Iterator);
 
-	if(PostProcessMaterialNode)
+	// is this the first one of this material?
+	if(!DestNode)
 	{
-		// no blend needed
-		return;
-	}
-	else
-	{
-		UMaterialInstanceDynamic* MID = View.State->GetReusableMID((UMaterialInterface*)this);
+		UMaterialInstanceDynamic* InitialMID = View.State->GetReusableMID((UMaterialInterface*)this);
 
-		if(MID)
+		if(InitialMID)
 		{
-			MID->K2_CopyMaterialInstanceParameters((UMaterialInterface*)this);
+			// If the initial node is faded in partly we add the base material (it's assumed to be the neutral state, see docs)
+			// and then blend in the material instance (it it's the base there is no need for that)
+			const UMaterialInterface* SourceData = (Weight < 1.0f) ? Base : this;
 
-			FPostProcessMaterialNode NewNode(MID, Material->BlendableLocation, Material->BlendablePriority);
+			InitialMID->CopyScalarAndVectorParameters(*SourceData, View.FeatureLevel);
 
-			// a material already exists, blend with existing ones
-			Dest.BlendableManager.PushBlendableData(Weight, NewNode);
+			FPostProcessMaterialNode InitialNode(InitialMID, Base->BlendableLocation, Base->BlendablePriority);
+
+			// no blending needed on this one
+			FPostProcessMaterialNode* InitialDestNode = Dest.BlendableManager.PushBlendableData(1.0f, InitialNode);
+
+			if(Weight < 1.0f && this != Base)
+			{
+				// We are not done, we still need to fade with SrcMID
+				DestNode = InitialDestNode;
+			}
 		}
+	}
+
+	if(DestNode)
+	{
+		// we apply this material on top of an existing one
+		UMaterialInstanceDynamic* DestMID = DestNode->GetMID();
+		check(DestMID);
+
+		UMaterialInstance* SrcMID = (UMaterialInstance*)this;
+		check(SrcMID);
+
+		// Here we could check for Weight=1.0 and use copy instead of interpolate but that case quite likely not intended anyway.
+
+		// a material already exists, blend (Scalar and Vector parameters) with existing ones
+		DestMID->K2_InterpolateMaterialInstanceParams(DestMID, SrcMID, Weight);
 	}
 }
 
@@ -2573,7 +2587,14 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 	{
 		FString PropertyName = InProperty->GetName();
 
-		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, OpacityMaskClipValue))
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, PhysMaterial))
+		{
+			return MaterialDomain == MD_Surface;
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, OpacityMaskClipValue) ||
+			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, DitherOpacityMask)
+			)
 		{
 			return BlendMode == BLEND_Masked;
 		}
@@ -2606,7 +2627,9 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bFullyRough) ||
 			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, TwoSided) ||
 			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bUseLightmapDirectionality) ||
-			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, D3D11TessellationMode))
+			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, D3D11TessellationMode) ||
+			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bUseHQForwardReflections)
+			)
 		{
 			return MaterialDomain == MD_Surface;
 		}
@@ -2703,15 +2726,11 @@ void UMaterial::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEve
 	// check for distortion in material 
 	{
 		bUsesDistortion = false;
-		// can only have distortion with translucent blend modes
-		if(IsTranslucentBlendMode((EBlendMode)BlendMode))
-		{
-			// check for a distortion value
-			if(Refraction.Expression
+		// check for a distortion value
+		if (Refraction.Expression
 			|| (Refraction.UseConstant && FMath::Abs(Refraction.Constant) >= KINDA_SMALL_NUMBER))
-			{
-				bUsesDistortion = true;
-			}
+		{
+			bUsesDistortion = true;
 		}
 	}
 
@@ -3194,6 +3213,11 @@ void UMaterial::AddReferencedObjects(UObject* InThis, FReferenceCollector& Colle
 	Super::AddReferencedObjects(This, Collector);
 }
 
+bool UMaterial::CanBeClusterRoot() const 
+{
+	return true;
+}
+
 #if WITH_EDITOR
 void UMaterial::CancelOutstandingCompilation()
 {
@@ -3207,14 +3231,14 @@ void UMaterial::CancelOutstandingCompilation()
 }
 #endif
 
-void UMaterial::UpdateMaterialShaders(TArray<FShaderType*>& ShaderTypesToFlush, TArray<const FVertexFactoryType*>& VFTypesToFlush, EShaderPlatform ShaderPlatform)
+void UMaterial::UpdateMaterialShaders(TArray<FShaderType*>& ShaderTypesToFlush, TArray<const FShaderPipelineType*>& ShaderPipelineTypesToFlush, TArray<const FVertexFactoryType*>& VFTypesToFlush, EShaderPlatform ShaderPlatform)
 {
 	// Create a material update context so we can safely update materials.
 	{
 		FMaterialUpdateContext UpdateContext(FMaterialUpdateContext::EOptions::Default, ShaderPlatform);
 
 		// Go through all material shader maps and flush the appropriate shaders
-		FMaterialShaderMap::FlushShaderTypes(ShaderTypesToFlush, VFTypesToFlush);
+		FMaterialShaderMap::FlushShaderTypes(ShaderTypesToFlush, ShaderPipelineTypesToFlush, VFTypesToFlush);
 
 		// There should be no references to the given material shader types at this point
 		// If there still are shaders of the given types, they may be reused when we call CacheResourceShaders instead of compiling new shaders
@@ -3483,8 +3507,8 @@ FExpressionInput* UMaterial::GetExpressionInputForProperty(EMaterialProperty InP
 		case MP_WorldDisplacement:		return &WorldDisplacement;
 		case MP_TessellationMultiplier:	return &TessellationMultiplier;
 		case MP_SubsurfaceColor:		return &SubsurfaceColor;
-		case MP_ClearCoat:				return &ClearCoat;
-		case MP_ClearCoatRoughness:		return &ClearCoatRoughness;
+		case MP_CustomData0:			return &ClearCoat;
+		case MP_CustomData1:			return &ClearCoatRoughness;
 		case MP_AmbientOcclusion:		return &AmbientOcclusion;
 		case MP_Refraction:				return &Refraction;
 		case MP_MaterialAttributes:		return &MaterialAttributes;
@@ -3499,6 +3523,17 @@ FExpressionInput* UMaterial::GetExpressionInputForProperty(EMaterialProperty InP
 	return nullptr;
 }
 
+void UMaterial::GetAllCustomOutputExpressions(TArray<class UMaterialExpressionCustomOutput*>& OutCustomOutputs) const
+{
+	for (UMaterialExpression* Expression : Expressions)
+	{
+		UMaterialExpressionCustomOutput* CustomOutput = Cast<UMaterialExpressionCustomOutput>(Expression);
+		if (CustomOutput)
+		{
+			OutCustomOutputs.Add(CustomOutput);
+		}
+	}
+}
 
 bool UMaterial::GetAllReferencedExpressions(TArray<UMaterialExpression*>& OutExpressions, class FStaticParameterSet* InStaticParameterSet)
 {
@@ -3515,6 +3550,14 @@ bool UMaterial::GetAllReferencedExpressions(TArray<UMaterialExpression*>& OutExp
 				OutExpressions.AddUnique(MPRefdExpressions[AddIdx]);
 			}
 		}
+	}
+
+	TArray<class UMaterialExpressionCustomOutput*> CustomOutputExpressions;
+	GetAllCustomOutputExpressions(CustomOutputExpressions);
+	for (UMaterialExpressionCustomOutput* Expression : CustomOutputExpressions)
+	{
+		TArray<FExpressionInput*> ProcessedInputs;
+		RecursiveGetExpressionChain(Expression, ProcessedInputs, OutExpressions, InStaticParameterSet);
 	}
 
 	return true;
@@ -3779,8 +3822,8 @@ int32 UMaterial::CompilePropertyEx( FMaterialCompiler* Compiler, EMaterialProper
 		case MP_Specular:				return Specular.CompileWithDefault(Compiler, Property);
 		case MP_Roughness:				return Roughness.CompileWithDefault(Compiler, Property);
 		case MP_TessellationMultiplier:	return TessellationMultiplier.CompileWithDefault(Compiler, Property);
-		case MP_ClearCoat:				return ClearCoat.CompileWithDefault(Compiler, Property);
-		case MP_ClearCoatRoughness:		return ClearCoatRoughness.CompileWithDefault(Compiler, Property);
+		case MP_CustomData0:			return ClearCoat.CompileWithDefault(Compiler, Property);
+		case MP_CustomData1:			return ClearCoatRoughness.CompileWithDefault(Compiler, Property);
 		case MP_AmbientOcclusion:		return AmbientOcclusion.CompileWithDefault(Compiler, Property);
 		case MP_Refraction:				return Refraction.CompileWithDefault(Compiler, Property);
 		case MP_EmissiveColor:			return EmissiveColor.CompileWithDefault(Compiler, Property);
@@ -3906,8 +3949,9 @@ EMaterialShadingModel UMaterial::GetShadingModel(bool bIsInGameThread) const
 	switch (MaterialDomain)
 	{
 		case MD_Surface:
-		case MD_DeferredDecal:
 			return ShadingModel;
+		case MD_DeferredDecal:
+			return MSM_DefaultLit;
 
 		// Post process and light function materials must be rendered with the unlit model.
 		case MD_PostProcess:
@@ -4045,9 +4089,21 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty) const
 	else if ( MaterialDomain == MD_UI )
 	{
 		return InProperty == MP_EmissiveColor
+			|| ( InProperty == MP_WorldPositionOffset )
 			|| ( InProperty == MP_OpacityMask && BlendMode == BLEND_Masked ) 
-			|| ( InProperty == MP_Opacity && IsTranslucentBlendMode((EBlendMode)BlendMode) && BlendMode != BLEND_Modulate );
+			|| ( InProperty == MP_Opacity && IsTranslucentBlendMode((EBlendMode)BlendMode) && BlendMode != BLEND_Modulate )
+			|| ( InProperty >= MP_CustomizedUVs0 && InProperty <= MP_CustomizedUVs7);
+		{
+			return true;
+		}
 	}
+
+	const bool bIsTranslucentBlendMode = IsTranslucentBlendMode((EBlendMode)BlendMode);
+	const bool bIsNonDirectionalTranslucencyLightingMode = TranslucencyLightingMode == TLM_VolumetricNonDirectional || TranslucencyLightingMode == TLM_VolumetricPerVertexNonDirectional;
+	const bool bIsVolumetricTranslucencyLightingMode = TranslucencyLightingMode == TLM_VolumetricNonDirectional 
+		|| TranslucencyLightingMode == TLM_VolumetricDirectional 
+		|| TranslucencyLightingMode == TLM_VolumetricPerVertexNonDirectional 
+		|| TranslucencyLightingMode == TLM_VolumetricPerVertexDirectional;
 
 	bool Active = true;
 
@@ -4058,10 +4114,10 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty) const
 		Active = false;
 		break;
 	case MP_Refraction:
-		Active = IsTranslucentBlendMode((EBlendMode)BlendMode) && BlendMode != BLEND_Modulate;
+		Active =bIsTranslucentBlendMode && BlendMode != BLEND_Modulate;
 		break;
 	case MP_Opacity:
-		Active = IsTranslucentBlendMode((EBlendMode)BlendMode) && BlendMode != BLEND_Modulate;
+		Active = bIsTranslucentBlendMode && BlendMode != BLEND_Modulate;
 		if (IsSubsurfaceShadingModel(ShadingModel))
 		{
 			Active = true;
@@ -4071,24 +4127,28 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty) const
 		Active = BlendMode == BLEND_Masked;
 		break;
 	case MP_BaseColor:
-	case MP_Specular:
-	case MP_Roughness:
 	case MP_AmbientOcclusion:
 		Active = ShadingModel != MSM_Unlit;
 		break;
+	case MP_Specular:
+	case MP_Roughness:
+		Active = ShadingModel != MSM_Unlit && (!bIsTranslucentBlendMode || !bIsVolumetricTranslucencyLightingMode);
+		break;
 	case MP_Metallic:
 		// Subsurface models store opacity in place of Metallic in the GBuffer
-		Active = ShadingModel != MSM_Unlit;
+		Active = ShadingModel != MSM_Unlit && (!bIsTranslucentBlendMode || !bIsVolumetricTranslucencyLightingMode);
 		break;
 	case MP_Normal:
-		Active = ShadingModel != MSM_Unlit || Refraction.IsConnected();
+		Active = (ShadingModel != (MSM_Unlit && (!bIsTranslucentBlendMode || !bIsNonDirectionalTranslucencyLightingMode))) || Refraction.IsConnected();
 		break;
 	case MP_SubsurfaceColor:
-		Active = ShadingModel == MSM_Subsurface || ShadingModel == MSM_PreintegratedSkin || ShadingModel == MSM_TwoSidedFoliage;
+		Active = ShadingModel == MSM_Subsurface || ShadingModel == MSM_PreintegratedSkin || ShadingModel == MSM_TwoSidedFoliage || ShadingModel == MSM_Cloth;
 		break;
-	case MP_ClearCoat:
-	case MP_ClearCoatRoughness:
-		Active = ShadingModel == MSM_ClearCoat;
+	case MP_CustomData0:
+		Active = ShadingModel == MSM_ClearCoat || ShadingModel == MSM_Hair || ShadingModel == MSM_Cloth || ShadingModel == MSM_Eye;
+		break;
+	case MP_CustomData1:
+		Active = ShadingModel == MSM_ClearCoat || ShadingModel == MSM_Eye;
 		break;
 	case MP_TessellationMultiplier:
 	case MP_WorldDisplacement:
@@ -4102,7 +4162,7 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty) const
 		Active = true;
 		break;
 	case MP_PixelDepthOffset:
-		Active = !IsTranslucentBlendMode((EBlendMode)BlendMode);
+		Active = !bIsTranslucentBlendMode;
 		break;
 	case MP_MaterialAttributes:
 	default:

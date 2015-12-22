@@ -2,12 +2,13 @@ Availability: Public
 title:Procedurals
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Procedurally generated textures and operations, such as the creation of normal maps from existing height maps.
+Version: 4.9
 
 [TOC (start:2 end:3)]
 
 
 
-The Procedural functions provide a quick way to make simple procedurally generated textures and masks. This saves memory over having to use imported textures.
+The **Procedural** functions provide a quick way to make simple procedurally generated textures and masks. This saves memory over having to use imported textures.
 
 ## Procedural Functions
 
@@ -15,7 +16,7 @@ The following is a list of all the functions underneath the Procedurals category
 
 ### GeneratedBand
 
-The GeneratedBand function generates a horizontal or vertical band from the default TextureCoordinates.
+The **GeneratedBand** function generates a horizontal or vertical band from the default TextureCoordinates.
 
 | Item | Description |
 | -------- | -------- |
@@ -32,7 +33,7 @@ The GeneratedBand function generates a horizontal or vertical band from the defa
 
 ### GeneratedOffsetBands
 
-Like the GeneratedBand function, GeneratedOffsetBands creates procedurally generated bands of texture across the UV space. However, this function can produce multiple bands instead of just one.
+Like the GeneratedBand function, **GeneratedOffsetBands** creates procedurally generated bands of texture across the UV space. However, this function can produce multiple bands instead of just one.
 
 | Item | Description |
 | -------- | -------- |
@@ -69,7 +70,7 @@ This function serves as a quick way to make a normal map out of an existing blac
 
 ### NormalFromHeightmapChaos
 
-The NormalFromHeightMapChaos function takes a heightmap and pans it in 4 directions, then blends the result back together to make a chaotically animated normal map.
+The **NormalFromHeightMapChaos** function takes a heightmap and pans it in 4 directions, then blends the result back together to make a chaotically animated normal map.
 
 [REGION:warning]
 	This function is considered expensive and should be used with care.
@@ -93,12 +94,12 @@ The NormalFromHeightMapChaos function takes a heightmap and pans it in 4 directi
 
 1. **Double-click** on the NormalFromHeightmapChaos function node to open it in a new Material Editor.
 
-2. Locate the Texture Object (T2d) expression node. It should currently have the default (green slime) texture inside it.
+2. Locate the **Texture Object** (T2d) expression node. It should currently have the default (green slime) texture inside it.
 
-3. Create a FunctionInput expression node and connect it to the *Texture (T2d)* inputs on the 3 *Motion_4WayChaos* function nodes.
+3. Create a **FunctionInput** expression node and connect it to the *Texture (T2d)* inputs on the 3 *Motion_4WayChaos* function nodes.
 
-4. In the properties for the new FunctionInput expression, set the *Input Type* property to *FunctionInput_Texture2D*.
+4. In the properties for the new FunctionInput expression, set the **Input Type** property to *FunctionInput_Texture2D*.
 
-5. Set the *Input Name* property to "Heightmap In" to label the input.
+5. Set the **Input Name** property to "Heightmap In" to label the input.
 
 6. Connect the original *Texture Object (T2d)* expression node into the *Preview* input of the new FunctionInput expression node.

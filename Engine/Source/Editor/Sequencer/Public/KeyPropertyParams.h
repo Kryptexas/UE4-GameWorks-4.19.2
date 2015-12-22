@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -45,7 +45,7 @@ struct SEQUENCER_API FKeyPropertyParams
 	FKeyPropertyParams();
 
 	/**
-	* Creates new key property parameters.
+	* Creates new key property parameters for a manually triggered property change.
 	* @param InObjectsToKey an array of the objects who's property will be keyed.
 	* @param InPropertyPath an array of UProperty objects which represents a path of properties to get from
 	*        the root object to the property to be keyed.
@@ -53,7 +53,7 @@ struct SEQUENCER_API FKeyPropertyParams
 	FKeyPropertyParams(TArray<UObject*> InObjectsToKey, TArray<UProperty*> InPropertyPath);
 
 	/**
-	* Creates new key property parameters.
+	* Creates new key property parameters from an actual property change notification with a property handle.
 	* @param InObjectsToKey an array of the objects who's property will be keyed.
 	* @param InPropertyHandle a handle to the property to be keyed.
 	*/
@@ -78,14 +78,30 @@ public:
 	 * Gets the value of the property that changed.
 	 */
 	template<typename ValueType>
-	ValueType* GetPropertyValue() const
+	ValueType GetPropertyValue() const
 	{
 		void* CurrentObject = ObjectsThatChanged[0];
+		void* PropertyValue = nullptr;
 		for (int32 i = 0; i < PropertyPath.Num(); i++)
 		{
 			CurrentObject = PropertyPath[i]->ContainerPtrToValuePtr<ValueType>(CurrentObject, 0);
 		}
-		return (ValueType*)CurrentObject;
+
+		// Bool property values are stored in a bit field so using a straight cast of the pointer to get their value does not
+		// work.  Instead use the actual property to get the correct value.
+		const UBoolProperty* BoolProperty = Cast<const UBoolProperty>( PropertyPath.Last() );
+		bool BoolPropertyValue;
+		if ( BoolProperty )
+		{
+			BoolPropertyValue = BoolProperty->GetPropertyValue(CurrentObject);
+			PropertyValue =  &BoolPropertyValue;
+		}
+		else
+		{
+			PropertyValue = CurrentObject;
+		}
+
+		return *((ValueType*)PropertyValue);
 	}
 
 	/** Gets the property path as a period seperated string of property names. */

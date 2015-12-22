@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLShaders.cpp: OpenGL shader RHI implementation.
@@ -448,14 +448,19 @@ static void BindShaderLocations(GLenum TypeEnum, GLuint Resource, uint16 InOutMa
  * @returns the compiled shader upon success.
  */
 template <typename ShaderType>
-ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
+ShaderType* CompileOpenGLShader(const TArray<uint8>& InShaderCode)
 {
 	SCOPE_CYCLE_COUNTER(STAT_OpenGLShaderCompileTime);
 	VERIFY_GL_SCOPE();
 
+	FShaderCodeReader ShaderCode(InShaderCode);
+
 	ShaderType* Shader = nullptr;
 	const GLenum TypeEnum = ShaderType::TypeEnum;
-	FMemoryReader Ar(Code, true);
+	FMemoryReader Ar(InShaderCode, true);
+
+	Ar.SetLimitSize(ShaderCode.GetActualShaderCodeSize());
+
 	FOpenGLCodeHeader Header = { 0 };
 
 	Ar << Header;
@@ -482,7 +487,7 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 
 	// The code as given to us.
 	FAnsiCharArray GlslCodeOriginal;
-	AppendCString(GlslCodeOriginal, (ANSICHAR*)Code.GetData() + CodeOffset);
+	AppendCString(GlslCodeOriginal, (ANSICHAR*)InShaderCode.GetData() + CodeOffset);
 	uint32 GlslCodeOriginalCRC = FCrc::MemCrc_DEPRECATED(GlslCodeOriginal.GetData(), GlslCodeOriginal.Num());
 
 	// The amended code we actually compile.
@@ -563,6 +568,13 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 			{
 				AppendCString(GlslCode, "#define INTERFACE_LOCATION(Pos) \n");
 				AppendCString(GlslCode, "#define INTERFACE_BLOCK(Pos, Interp, Modifiers, Semantic, PreType, PostType) Modifiers Semantic { Interp PreType PostType; }\n");
+			}
+			
+			if(Header.ShaderName.IsEmpty() == false)
+			{
+				AppendCString(GlslCode, "// ");
+				AppendCString(GlslCode, TCHAR_TO_ANSI(Header.ShaderName.GetCharArray().GetData()));
+				AppendCString(GlslCode, "\n");
 			}
 		}
 
@@ -720,7 +732,7 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 			glGetShaderiv(Resource, GL_COMPILE_STATUS, &CompileStatus);
 		}
 #endif
-#if PLATFORM_HTML5
+#if PLATFORM_HTML5 && !UE_BUILD_SHIPPING
 		glGetShaderiv(Resource, GL_COMPILE_STATUS, &CompileStatus);
 		if (CompileStatus == GL_FALSE)
 		{
@@ -2092,9 +2104,6 @@ FBoundShaderStateRHIRef FOpenGLDynamicRHI::RHICreateBoundShaderState(
 	}
 	else
 	{
-		check(VertexDeclarationRHI);
-		
-		FOpenGLVertexDeclaration* VertexDeclaration = ResourceCast(VertexDeclarationRHI);
 		FOpenGLVertexShader* VertexShader = ResourceCast(VertexShaderRHI);
 		FOpenGLPixelShader* PixelShader = ResourceCast(PixelShaderRHI);
 		FOpenGLHullShader* HullShader = ResourceCast(HullShaderRHI);
@@ -2260,19 +2269,29 @@ FBoundShaderStateRHIRef FOpenGLDynamicRHI::RHICreateBoundShaderState(
 			}
 		}
 
-		FOpenGLBoundShaderState* BoundShaderState = new FOpenGLBoundShaderState(
-			LinkedProgram,
-			VertexDeclarationRHI,
-			VertexShaderRHI,
-			PixelShaderRHI,
-			GeometryShaderRHI,
-			HullShaderRHI,
-			DomainShaderRHI
-			);
+		if(FShaderCache::IsPrebindCall() && !VertexDeclarationRHI)
+		{
+			return nullptr;
+		}
+		else
+		{
+			check(VertexDeclarationRHI);
+			
+			FOpenGLVertexDeclaration* VertexDeclaration = ResourceCast(VertexDeclarationRHI);
+			FOpenGLBoundShaderState* BoundShaderState = new FOpenGLBoundShaderState(
+				LinkedProgram,
+				VertexDeclarationRHI,
+				VertexShaderRHI,
+				PixelShaderRHI,
+				GeometryShaderRHI,
+				HullShaderRHI,
+				DomainShaderRHI
+				);
 
-		FShaderCache::LogBoundShaderState(FOpenGL::GetShaderPlatform(), VertexDeclarationRHI, VertexShaderRHI, PixelShaderRHI, HullShaderRHI, DomainShaderRHI, GeometryShaderRHI, BoundShaderState);
+			FShaderCache::LogBoundShaderState(FOpenGL::GetShaderPlatform(), VertexDeclarationRHI, VertexShaderRHI, PixelShaderRHI, HullShaderRHI, DomainShaderRHI, GeometryShaderRHI, BoundShaderState);
 
-		return BoundShaderState;
+			return BoundShaderState;
+		}
 	}
 }
 

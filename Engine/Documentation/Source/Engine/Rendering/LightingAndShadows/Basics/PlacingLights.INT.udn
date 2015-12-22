@@ -2,6 +2,8 @@ Availability: Public
 Title:Lighting Basics
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:The basics of placing lights into levels and setting them up.
+SkillLevel: Beginner
+Version: 4.9
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]

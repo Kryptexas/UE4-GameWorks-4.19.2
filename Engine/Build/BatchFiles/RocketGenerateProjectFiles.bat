@@ -3,7 +3,7 @@
 echo Setting up Rocket project files...
 
 rem ## Rocket Visual Studio project setup script
-rem ## Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+rem ## Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 rem ## This script is expecting to exist in the Engine/Build/BatchFiles directory.  It will not work correctly
 rem ## if you copy it to a different location and run it.
@@ -40,7 +40,7 @@ goto Error_NoVisualStudioEnvironment
 :ReadyToCompile
 rem ## Run UnrealBuildTool to generate Visual Studio solution and project files
 rem ## NOTE: We also pass along any arguments to the GenerateProjectFiles.bat here
-..\Binaries\DotNET\UnrealBuildTool.exe -ProjectFiles -rocket %*
+..\Binaries\DotNET\UnrealBuildTool.exe -ProjectFiles %*
 if not %ERRORLEVEL% == 0 goto Error_ProjectGenerationFailed
 
 rem ## Success!

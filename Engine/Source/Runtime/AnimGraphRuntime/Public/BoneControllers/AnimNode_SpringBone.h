@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -72,6 +72,9 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_SpringBone : public FAnimNode_SkeletalCont
 	/** Internal use - Current timestep */
 	float FixedTimeStep;
 
+	/** Internal use - Current time dilation */
+	float TimeDilation;
+
 	/** Did we have a non-zero ControlStrength last frame. */
 	bool bHadValidStrength;
 
@@ -87,8 +90,10 @@ public:
 	// FAnimNode_Base interface
 	virtual void Initialize(const FAnimationInitializeContext& Context) override;
 	virtual void CacheBones(const FAnimationCacheBonesContext& Context) override;
-	virtual void Update(const FAnimationUpdateContext& Context) override;
+	virtual void UpdateInternal(const FAnimationUpdateContext& Context) override;
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
+	virtual bool HasPreUpdate() const override { return true; }
+	virtual void PreUpdate(const UAnimInstance* InAnimInstance) override;
 	// End of FAnimNode_Base interface
 
 	// FAnimNode_SkeletalControlBase interface

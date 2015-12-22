@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 
@@ -57,6 +57,7 @@ namespace CrowdDebugDrawing
 	const FColor CollisionRange(192, 0, 128);
 	const FColor CollisionSeg0(192, 0, 128);
 	const FColor CollisionSeg1(96, 0, 64);
+	const FColor CollisionSegIgnored(128, 128, 128);
 	const FColor Path(255, 255, 255);
 	const FColor PathSpecial(255, 192, 203);
 	const FColor PathOpt(0, 128, 0);
@@ -100,9 +101,6 @@ void FCrowdAvoidanceSamplingPattern::AddSampleWithMirror(float AngleInDegrees, f
 	AddSample(-AngleInDegrees, NormalizedRadius);
 }
 
-//----------------------------------------------------------------------//
-// UCrowdManager
-//----------------------------------------------------------------------//
 UCrowdManager::UCrowdManager(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	MyNavData = NULL;
@@ -191,27 +189,6 @@ void UCrowdManager::BeginDestroy()
 	Super::BeginDestroy();
 }
 
-void UCrowdManager::PostInitProperties()
-{
-	Super::PostInitProperties();
-
-	UWorld* World = GetWorld();
-
-	if (World)
-	{
-		// if there were pawns hand-placed on the map we need to register them here
-		// since CrowdManager wasn't around when they tried to register themselves
-		for (TObjectIterator<UCrowdFollowingComponent> It; It; ++It)
-		{
-			const AActor* Owner = It->GetOwner();
-			if (Owner && Owner->GetWorld() == World)
-			{
-				It->RegisterWithCrowdManager(*this);
-			}
-		}
-	}
-}
-
 void UCrowdManager::Tick(float DeltaTime)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_Crowd_Tick);
@@ -254,6 +231,7 @@ void UCrowdManager::Tick(float DeltaTime)
 			{
 				SCOPE_CYCLE_COUNTER(STAT_AI_Crowd_StepNextPointTime);
 				DetourCrowd->updateStepNextMovePoint(DeltaTime, DetourAgentDebug);
+				PostMovePointUpdate();
 			}
 			{
 				SCOPE_CYCLE_COUNTER(STAT_AI_Crowd_StepSteeringTime);
@@ -403,7 +381,7 @@ void UCrowdManager::OnAgentFinishedCustomLink(const ICrowdAgentInterface* Agent)
 #endif
 }
 
-bool UCrowdManager::SetAgentMoveTarget(const UCrowdFollowingComponent* AgentComponent, const FVector& MoveTarget, TSharedPtr<const FNavigationQueryFilter> Filter) const
+bool UCrowdManager::SetAgentMoveTarget(const UCrowdFollowingComponent* AgentComponent, const FVector& MoveTarget, FSharedConstNavQueryFilter Filter) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_Crowd_AgentUpdateTime);
 
@@ -449,7 +427,8 @@ bool UCrowdManager::SetAgentMoveDirection(const UCrowdFollowingComponent* AgentC
 	return bSuccess;
 }
 
-bool UCrowdManager::SetAgentMovePath(const UCrowdFollowingComponent* AgentComponent, const FNavMeshPath* Path, int32 PathSectionStart, int32 PathSectionEnd) const
+bool UCrowdManager::SetAgentMovePath(const UCrowdFollowingComponent* AgentComponent, const FNavMeshPath* Path,
+	int32 PathSectionStart, int32 PathSectionEnd, const FVector& PathSectionEndLocation) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_Crowd_AgentUpdateTime);
 
@@ -463,7 +442,7 @@ bool UCrowdManager::SetAgentMovePath(const UCrowdFollowingComponent* AgentCompon
 		Path && (Path->GetPathPoints().Num() > 1) &&
 		Path->PathCorridor.IsValidIndex(PathSectionStart) && Path->PathCorridor.IsValidIndex(PathSectionEnd))
 	{
-		FVector TargetPos = Path->GetPathPoints().Last().Location;
+		FVector TargetPos = PathSectionEndLocation;
 		if (PathSectionEnd < (Path->PathCorridor.Num() - 1))
 		{
 			RecastNavData->GetPolyCenter(Path->PathCorridor[PathSectionEnd], TargetPos);
@@ -480,7 +459,7 @@ bool UCrowdManager::SetAgentMovePath(const UCrowdFollowingComponent* AgentCompon
 		DetourCrowd->updateAgentFilter(AgentData->AgentIndex, DetourFilter);
 		DetourCrowd->updateAgentState(AgentData->AgentIndex, false);
 
-		const FVector RcTargetPos = Unreal2RecastPoint(TargetPos);		
+		const FVector RcTargetPos = Unreal2RecastPoint(TargetPos);
 		bSuccess = DetourCrowd->requestMoveTarget(AgentData->AgentIndex, PathRefs.Last(), &RcTargetPos.X);
 		if (bSuccess)
 		{
@@ -905,6 +884,9 @@ void UCrowdManager::CreateCrowdManager()
 
 		UpdateAvoidanceConfig();
 
+		AgentFlags.Reset();
+		AgentFlags.AddZeroed(MaxAgents);
+
 		for (auto It = ActiveAgents.CreateIterator(); It; ++It)
 		{
 			AddAgent(It.Key(), It.Value());
@@ -946,7 +928,11 @@ void UCrowdManager::DrawDebugCollisionSegments(const dtCrowdAgent* CrowdAgent) c
 	for (int32 Idx = 0; Idx < CrowdAgent->boundary.getSegmentCount(); Idx++)
 	{
 		const float* s = CrowdAgent->boundary.getSegment(Idx);
-		FColor Color = (dtTriArea2D(CrowdAgent->npos, s, s + 3) < 0.0f) ? CrowdDebugDrawing::CollisionSeg1 : CrowdDebugDrawing::CollisionSeg0;
+		const int32 SegFlags = CrowdAgent->boundary.getSegmentFlags(Idx);
+		const FColor Color = (SegFlags & DT_CROWD_BOUNDARY_IGNORE) ? CrowdDebugDrawing::CollisionSegIgnored :
+			(dtTriArea2D(CrowdAgent->npos, s, s + 3) < 0.0f) ? CrowdDebugDrawing::CollisionSeg1 :
+			CrowdDebugDrawing::CollisionSeg0;
+
 		FVector Pt0 = Recast2UnrealPoint(s);
 		FVector Pt1 = Recast2UnrealPoint(s + 3);
 
@@ -1162,7 +1148,7 @@ void UCrowdManager::DebugTick() const
 					{
 						FVector P1 = Recast2UnrealPoint(&CrowdAgent->cornerVerts[Idx * 3]);
 						UE_VLOG_SEGMENT(LogOwner, LogCrowdFollowing, Log, P0 + CrowdDebugDrawing::Offset, P1 + CrowdDebugDrawing::Offset, CrowdDebugDrawing::Corner, TEXT(""));
-						UE_VLOG_BOX(LogOwner, LogCrowdFollowing, Log, FBox::BuildAABB(P1 + CrowdDebugDrawing::Offset, FVector(2, 2, 2)), CrowdDebugDrawing::Corner, TEXT(""));
+						UE_VLOG_BOX(LogOwner, LogCrowdFollowing, Log, FBox::BuildAABB(P1 + CrowdDebugDrawing::Offset, FVector(2, 2, 2)), CrowdDebugDrawing::Corner, TEXT("%d"), CrowdAgent->cornerFlags[Idx]);
 						P0 = P1;
 					}
 				}
@@ -1201,11 +1187,15 @@ void UCrowdManager::DebugTick() const
 				for (int32 Idx = 0; Idx < CrowdAgent->boundary.getSegmentCount(); Idx++)
 				{
 					const float* s = CrowdAgent->boundary.getSegment(Idx);
-					FColor Color = (dtTriArea2D(CrowdAgent->npos, s, s + 3) < 0.0f) ? CrowdDebugDrawing::CollisionSeg1 : CrowdDebugDrawing::CollisionSeg0;
+					const int32 SegFlags = CrowdAgent->boundary.getSegmentFlags(Idx);
+					const FColor Color = (SegFlags & DT_CROWD_BOUNDARY_IGNORE) ? CrowdDebugDrawing::CollisionSegIgnored :
+						(dtTriArea2D(CrowdAgent->npos, s, s + 3) < 0.0f) ? CrowdDebugDrawing::CollisionSeg1 :
+						CrowdDebugDrawing::CollisionSeg0;
+
 					FVector Pt0 = Recast2UnrealPoint(s);
 					FVector Pt1 = Recast2UnrealPoint(s + 3);
 
-					UE_VLOG_SEGMENT(LogOwner, LogCrowdFollowing, Log, Pt0 + CrowdDebugDrawing::Offset, Pt1 + CrowdDebugDrawing::Offset, Color, TEXT(""));
+					UE_VLOG_SEGMENT_THICK(LogOwner, LogCrowdFollowing, Log, Pt0 + CrowdDebugDrawing::Offset, Pt1 + CrowdDebugDrawing::Offset, Color, 3.0f, TEXT(""));
 				}
 			}
 		}
@@ -1224,12 +1214,6 @@ void UCrowdManager::UpdateNavData()
 		UNavigationSystem* NavSys = Cast<UNavigationSystem>(GetOuter());
 		if (NavSys)
 		{
-			if (OnNavInitHandle.IsValid())
-			{
-				NavSys->OnNavigationInitDone.Remove(OnNavInitHandle);
-				OnNavInitHandle.Reset();
-			}
-
 			for (int32 Idx = 0; Idx < NavSys->NavDataSet.Num(); Idx++)
 			{
 				ARecastNavMesh* RecastNavData = Cast<ARecastNavMesh>(NavSys->NavDataSet[Idx]);
@@ -1241,13 +1225,6 @@ void UCrowdManager::UpdateNavData()
 
 					break;
 				}
-			}
-
-			if (MyNavData == nullptr)
-			{
-				// this means we're still missing navigation data, we'll need to ask NavigationSystem to
-				// ping us when there are some
-				OnNavInitHandle = NavSys->OnNavigationInitDone.AddUObject(this, &UCrowdManager::UpdateNavData);
 			}
 		}
 	}
@@ -1293,6 +1270,58 @@ void UCrowdManager::UpdateAvoidanceConfig()
 void UCrowdManager::PostProximityUpdate()
 {
 	// empty in base class
+}
+
+void UCrowdManager::PostMovePointUpdate()
+{
+#if WITH_RECAST
+	const uint8 UpdateDestinationFlag = 1;
+
+	// special case when following last segment of full path to actor: replace end point with actor's location
+	for (auto It : ActiveAgents)
+	{
+		UCrowdFollowingComponent* PathComp = Cast<UCrowdFollowingComponent>(It.Key);
+		const FCrowdAgentData& AgentData = It.Value;
+		FVector UpdatedGoalPos;
+
+		const bool bShouldUpdateGoalPos = PathComp ? PathComp->UpdateCachedGoal(UpdatedGoalPos) : false;
+		if (bShouldUpdateGoalPos && AgentFlags.IsValidIndex(AgentData.AgentIndex))
+		{
+			const dtCrowdAgent* Agent = DetourCrowd->getAgent(AgentData.AgentIndex);
+			dtCrowdAgent* MutableAgent = (dtCrowdAgent*)Agent;
+			const FVector RcTargetPos = Unreal2RecastPoint(UpdatedGoalPos);
+		
+			dtVcopy(MutableAgent->targetPos, &RcTargetPos.X);
+			AgentFlags[AgentData.AgentIndex] |= UpdateDestinationFlag;
+		}
+	}
+
+	dtCrowdAgent** ActiveDetourAgents = DetourCrowd->getActiveAgents();
+	for (int32 Idx = 0; Idx < DetourCrowd->getNumActiveAgents(); Idx++)
+	{
+		dtCrowdAgent* Agent = ActiveDetourAgents[Idx];
+		if (Agent->state == DT_CROWDAGENT_STATE_WALKING &&
+			Agent->ncorners == 1 && Agent->corridor.getPathCount() < 5 &&
+			(Agent->cornerFlags[0] & DT_STRAIGHTPATH_OFFMESH_CONNECTION) == 0)
+		{
+			const int32 AgentIndex = DetourCrowd->getAgentIndex(Agent);
+
+			if (AgentFlags.IsValidIndex(AgentIndex) && (AgentFlags[AgentIndex] & UpdateDestinationFlag) != 0)
+			{
+				dtVcopy(Agent->cornerVerts, Agent->targetPos);
+			}
+		}
+	}
+
+	for (auto It : ActiveAgents)
+	{
+		const FCrowdAgentData& AgentData = It.Value;
+		if (AgentFlags.IsValidIndex(AgentData.AgentIndex))
+		{
+			AgentFlags[AgentData.AgentIndex] &= ~UpdateDestinationFlag;
+		}
+	}
+#endif
 }
 
 UWorld* UCrowdManager::GetWorld() const

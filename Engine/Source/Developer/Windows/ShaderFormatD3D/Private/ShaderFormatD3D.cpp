@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "ShaderFormatD3D.h"
 #include "Core.h"
@@ -16,10 +16,10 @@ class FShaderFormatD3D : public IShaderFormat
 	enum
 	{
 		/** Version for shader format, this becomes part of the DDC key. */
-		UE_SHADER_PCD3D_SM5_VER = 3,
-		UE_SHADER_PCD3D_SM4_VER = 3,
-		UE_SHADER_PCD3D_ES2_VER = 3,
-		UE_SHADER_PCD3D_ES3_1_VER = 2,
+		UE_SHADER_PCD3D_SM5_VER = 5,
+		UE_SHADER_PCD3D_SM4_VER = 5,
+		UE_SHADER_PCD3D_ES2_VER = 5,
+		UE_SHADER_PCD3D_ES3_1_VER = 5,
 	};
 
 	void CheckFormat(FName Format) const

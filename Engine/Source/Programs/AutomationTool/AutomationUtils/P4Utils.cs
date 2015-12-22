@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -73,6 +73,7 @@ namespace AutomationTool
 		public string RootPath;
 		public string Host;
 		public string Owner;
+		public string Stream;
 		public DateTime Access;
         public P4LineEnd LineEnd;
         public P4ClientOption Options;
@@ -85,10 +86,11 @@ namespace AutomationTool
 				&& RootPath == Other.RootPath 
 				&& Host == Other.Host 
 				&& Owner == Other.Owner 
+				&& Stream == Other.Stream
 				&& LineEnd == Other.LineEnd 
 				&& Options == Other.Options 
 				&& SubmitOptions == Other.SubmitOptions
-				&& Enumerable.SequenceEqual(View, Other.View);
+				&& (!String.IsNullOrEmpty(Stream) || Enumerable.SequenceEqual(View, Other.View));
 		}
 
 		public override string ToString()
@@ -668,7 +670,7 @@ namespace AutomationTool
 
 			if (String.IsNullOrEmpty(LogPath))
 			{
-				CommandUtils.Log(TraceEventType.Error, "P4Utils.SetupP4() must be called before issuing Peforce commands");
+				CommandUtils.LogError("P4Utils.SetupP4() must be called before issuing Peforce commands");
 				return false;
 			}
 
@@ -744,7 +746,7 @@ namespace AutomationTool
             }
             if (Result == "")
             {
-                CommandUtils.Log(TraceEventType.Warning, "Could not find email for P4 user {0}", User);
+				CommandUtils.LogWarning("Could not find email for P4 user {0}", User);
             }
             UserToEmailCache.Add(User, Result);
             return Result;
@@ -881,8 +883,8 @@ namespace AutomationTool
             }
 			catch (Exception Ex)
             {
-                CommandUtils.Log(System.Diagnostics.TraceEventType.Warning, "Unable to get P4 changes with {0}", CommandLine);
-                CommandUtils.Log(System.Diagnostics.TraceEventType.Warning, " Exception was {0}", LogUtils.FormatException(Ex));
+				CommandUtils.LogWarning("Unable to get P4 changes with {0}", CommandLine);
+				CommandUtils.LogWarning(" Exception was {0}", LogUtils.FormatException(Ex));
                 return false;
             }
             ChangeRecords.Sort((A, B) => ChangeRecord.Compare(A, B));
@@ -919,6 +921,33 @@ namespace AutomationTool
                 return (A.CL < B.CL) ? -1 : (A.CL > B.CL) ? 1 : 0;
             }
         }
+
+		/// <summary>
+		/// Wraps P4 describe
+		/// </summary>
+		/// <param name="Changelist">Changelist numbers to query full descriptions for</param>
+		/// <param name="DescribeRecord">Describe record for the given changelist.</param>
+		/// <param name="AllowSpew"></param>
+		/// <returns>True if everything went okay</returns>
+        public bool DescribeChangelist(int Changelist, out DescribeRecord DescribeRecord, bool AllowSpew = true)
+        {
+			List<DescribeRecord> DescribeRecords;
+			if(!DescribeChangelists(new List<int>{ Changelist }, out DescribeRecords, AllowSpew))
+			{
+				DescribeRecord = null;
+				return false;
+			}
+			else if(DescribeRecords.Count != 1)
+			{
+				DescribeRecord = null;
+				return false;
+			}
+			else 
+			{
+				DescribeRecord = DescribeRecords[0];
+				return true;
+			}
+		}
 
 		/// <summary>
 		/// Wraps P4 describe
@@ -1012,44 +1041,31 @@ namespace AutomationTool
 						for( ; LineIndex < Lines.Length; ++LineIndex )
 						{
 							Line = Lines[ LineIndex ];
-
-							if( String.IsNullOrEmpty( Line ) )
+							if(Line.Length > 0)
 							{
-								// Summaries end with a blank line (no tabs)
-								break;
+								// Stop once we reach a line that doesn't begin with a tab. It's possible (through changelist descriptions that contain embedded newlines, like \r\r\n on Windows) to get 
+								// empty lines that don't begin with a tab as we expect.
+								if(Line[0] != '\t')
+								{
+									break;
+								}
+
+								// Remove the tab
+								var SummaryLine = Line.Substring( 1 );
+
+								// Add a CR if we already had some summary text
+								if( !String.IsNullOrEmpty( DescribeRecord.Summary ) )
+								{
+									DescribeRecord.Summary += "\n";
+								}
+
+								// Append the summary line!
+								DescribeRecord.Summary += SummaryLine;
 							}
-
-							// Summary lines are supposed to begin with a single tab character (even empty lines)
-							if( Line[0] != '\t' )
-							{
-								throw new AutomationException("Was expecting every line of the P4 changes summary to start with a tab character");
-							}
-
-							// Remove the tab
-							var SummaryLine = Line.Substring( 1 );
-
-							// Add a CR if we already had some summary text
-							if( !String.IsNullOrEmpty( DescribeRecord.Summary ) )
-							{
-								DescribeRecord.Summary += "\n";
-							}
-
-							// Append the summary line!
-							DescribeRecord.Summary += SummaryLine;
 						}
 
-
-						++LineIndex;
-						if( LineIndex >= Lines.Length )
-						{
-							throw new AutomationException("Was expecting 'Affected files' to appear after the summary output from P4, but there were no more lines to read");
-						}
-
-						// If the summary ends with an empty newline, it doesn't seem to be prefixed with a tab
-						while (LineIndex < Lines.Length && Lines[LineIndex].Length == 0)
-						{
-							LineIndex++;
-						}
+						// Remove any trailing newlines from the end of the summary
+						DescribeRecord.Summary = DescribeRecord.Summary.TrimEnd('\n');
 
 						Line = Lines[ LineIndex ];
 
@@ -1273,10 +1289,10 @@ namespace AutomationTool
 		/// Invokes revert command.
 		/// </summary>
 		/// <param name="CommandLine">Commandline for the command.</param>
-		public void Revert(string CommandLine)
+		public void Revert(string CommandLine, bool AllowSpew = true)
 		{
 			CheckP4Enabled();
-			LogP4("revert " + CommandLine);
+			LogP4("revert " + CommandLine, AllowSpew: AllowSpew);
 		}
 
 		/// <summary>
@@ -1343,7 +1359,7 @@ namespace AutomationTool
                 bool isClPending = false;
                 if (ChangeFiles(CL, out isClPending, false).Count == 0)
                 {
-                    CommandUtils.Log(TraceEventType.Information, "No edits left to commit after brutal submit resolve. Assuming another build committed same changes already and exiting as success.");
+					CommandUtils.Log("No edits left to commit after brutal submit resolve. Assuming another build committed same changes already and exiting as success.");
                     DeleteChange(CL);
                     // No changes to submit, no need to retry.
                     return;
@@ -1355,7 +1371,7 @@ namespace AutomationTool
 					{
 						throw new P4Exception("Change {0} failed to submit.\n{1}", CL, CmdOutput);
 					}
-					CommandUtils.Log(TraceEventType.Information, "**** P4 Returned\n{0}\n*******", CmdOutput);
+					CommandUtils.Log("**** P4 Returned\n{0}\n*******", CmdOutput);
 
 					LastCmdOutput = CmdOutput;
 					bool DidSomething = false;
@@ -1418,7 +1434,7 @@ namespace AutomationTool
                                 {
                                     continue;
                                 }
-								CommandUtils.Log(TraceEventType.Information, "Brutal 'resolve' on {0} to force submit.\n", File);
+								CommandUtils.Log("Brutal 'resolve' on {0} to force submit.\n", File);
 								Revert(CL, "-k " + CommandUtils.MakePathSafeToUseWithCommandLine(File));  // revert the file without overwriting the local one
 								Sync("-f -k " + CommandUtils.MakePathSafeToUseWithCommandLine(File + "#head"), false); // sync the file without overwriting local one
 								ReconcileNoDeletes(CL, CommandUtils.MakePathSafeToUseWithCommandLine(File));  // re-check out, if it changed, or add
@@ -1429,7 +1445,7 @@ namespace AutomationTool
                     }
 					if (!DidSomething)
 					{
-						CommandUtils.Log(TraceEventType.Information, "Change {0} failed to submit for reasons we do not recognize.\n{1}\nWaiting and retrying.", CL, CmdOutput);
+						CommandUtils.Log("Change {0} failed to submit for reasons we do not recognize.\n{1}\nWaiting and retrying.", CL, CmdOutput);
 					}
 					System.Threading.Thread.Sleep(30000);
 				}
@@ -1461,7 +1477,7 @@ namespace AutomationTool
 							}
 						}
 
-						CommandUtils.Log(TraceEventType.Information, "Submitted CL {0} which became CL {1}\n", CL, SubmittedCL);
+						CommandUtils.Log("Submitted CL {0} which became CL {1}\n", CL, SubmittedCL);
 					}
 
 					if (SubmittedCL < CL)
@@ -1475,9 +1491,9 @@ namespace AutomationTool
 			}
 			if (RevertIfFail)
 			{
-				CommandUtils.Log(TraceEventType.Error, "Submit CL {0} failed, reverting files\n", CL);
+				CommandUtils.LogError("Submit CL {0} failed, reverting files\n", CL);
 				RevertAll(CL);
-				CommandUtils.Log(TraceEventType.Error, "Submit CL {0} failed, reverting files\n", CL);
+				CommandUtils.LogError("Submit CL {0} failed, reverting files\n", CL);
 			}
 			throw new P4Exception("Change {0} failed to submit after 48 retries??.\n{1}", CL, LastCmdOutput);
 		}
@@ -1498,7 +1514,7 @@ namespace AutomationTool
 			int CL = 0;
 			if(AllowSpew)
 			{
-				CommandUtils.Log(TraceEventType.Information, "Creating Change\n {0}\n", ChangeSpec);
+				CommandUtils.Log("Creating Change\n {0}\n", ChangeSpec);
 			}
 			if (LogP4Output(out CmdOutput, "change -i", Input: ChangeSpec, AllowSpew: AllowSpew))
 			{
@@ -1517,7 +1533,7 @@ namespace AutomationTool
 			}
 			else if(AllowSpew)
 			{
-				CommandUtils.Log(TraceEventType.Information, "Returned CL {0}\n", CL);
+				CommandUtils.Log("Returned CL {0}\n", CL);
 			}
 			return CL;
 		}
@@ -1648,7 +1664,7 @@ namespace AutomationTool
 				int EndOffset = CmdOutput.LastIndexOf(EndStr);
 				if (Offset == 0 && Offset < EndOffset)
 				{
-					CommandUtils.Log(TraceEventType.Information, "Change {0} does not exist", CL);
+					CommandUtils.Log("Change {0} does not exist", CL);
 					return false;
 				}
 
@@ -1657,16 +1673,16 @@ namespace AutomationTool
 
 				if (StatusOffset < 1)
 				{
-					CommandUtils.Log(TraceEventType.Error, "Change {0} could not be parsed\n{1}", CL, CmdOutput);
+					CommandUtils.LogError("Change {0} could not be parsed\n{1}", CL, CmdOutput);
 					return false;
 				}
 
 				string Status = CmdOutput.Substring(StatusOffset + StatusStr.Length).TrimStart().Split('\n')[0].TrimEnd();
-				CommandUtils.Log(TraceEventType.Information, "Change {0} exists ({1})", CL, Status);
+				CommandUtils.Log("Change {0} exists ({1})", CL, Status);
 				Pending = (Status == "pending");
 				return true;
 			}
-			CommandUtils.Log(TraceEventType.Error, "Change exists failed {0} no output?", CL, CmdOutput);
+			CommandUtils.LogError("Change exists failed {0} no output?", CL, CmdOutput);
 			return false;
 		}
 
@@ -1754,7 +1770,7 @@ namespace AutomationTool
 			string Output;
 			if (!LogP4Output(out Output, CommandLine, null, AllowSpew))
 			{
-				CommandUtils.Log(TraceEventType.Information, "Couldn't delete label '{0}'.  It may not have existed in the first place.", LabelName);
+				CommandUtils.Log("Couldn't delete label '{0}'.  It may not have existed in the first place.", LabelName);
 			}
 		}
 
@@ -1786,7 +1802,7 @@ namespace AutomationTool
 			LabelSpec += "View: \n";
 			LabelSpec += " " + View;
 
-			CommandUtils.Log(TraceEventType.Information, "Creating Label\n {0}\n", LabelSpec);
+			CommandUtils.Log("Creating Label\n {0}\n", LabelSpec);
 			LogP4("label -i", Input: LabelSpec);
 		}
 
@@ -2037,8 +2053,8 @@ namespace AutomationTool
         {
             CheckP4Enabled();
 			var Label = Env.LabelPrefix + BuildNamePrefix + "-CL-" + Env.ChangelistString;
-			CommandUtils.Log("Label prefix {0}", BuildNamePrefix);
-			CommandUtils.Log("Full Label name {0}", Label); 
+			CommandUtils.LogLog("Label prefix {0}", BuildNamePrefix);
+			CommandUtils.LogLog("Full Label name {0}", Label); 
             return Label;
         }
 
@@ -2060,13 +2076,13 @@ namespace AutomationTool
 			}
 
 			{
-				CommandUtils.Log("Making downstream label");
+				CommandUtils.LogLog("Making downstream label");
                 var Label = FullLabelName(Env, BuildNamePrefix);
 
-				CommandUtils.Log("Deleting old label {0} (if any)...", Label);
+				CommandUtils.LogLog("Deleting old label {0} (if any)...", Label);
                 DeleteLabel(Label, false);
 
-				CommandUtils.Log("Creating new label...");
+				CommandUtils.LogLog("Creating new label...");
 				CreateLabel(
 					Name: Label,
 					Description: "BVT Time " + CommandUtils.CmdEnv.TimestampAsString + "  CL " + Env.ChangelistString,
@@ -2075,12 +2091,12 @@ namespace AutomationTool
 					);
 				if (Files == null)
 				{
-					CommandUtils.Log("Adding all files to new label {0}...", Label);
+					CommandUtils.LogLog("Adding all files to new label {0}...", Label);
 					LabelSync(Label, false);
 				}
 				else
 				{
-					CommandUtils.Log("Adding build products to new label {0}...", Label);
+					CommandUtils.LogLog("Adding build products to new label {0}...", Label);
 					foreach (string LabelFile in Files)
 					{
 						LabelSync(Label, false, LabelFile);
@@ -2107,13 +2123,13 @@ namespace AutomationTool
             }
 
             {
-				CommandUtils.Log("Making downstream label");
+				CommandUtils.LogLog("Making downstream label");
                 var Label = FullLabelName(Env, BuildNamePrefix);
 
-				CommandUtils.Log("Deleting old label {0} (if any)...", Label);
+				CommandUtils.LogLog("Deleting old label {0} (if any)...", Label);
                 DeleteLabel(Label, false);
 
-				CommandUtils.Log("Creating new label...");
+				CommandUtils.LogLog("Creating new label...");
                 CreateLabel(
                     Name: Label,
 					Description: "BVT Time " + CommandUtils.CmdEnv.TimestampAsString + "  CL " + Env.ChangelistString,
@@ -2300,7 +2316,7 @@ namespace AutomationTool
 		/// <param name="Attributes">Attributes to set.</param>
 		public void ChangeFileType(string Filename, P4FileAttributes Attributes, string Changelist = null)
 		{
-			CommandUtils.Log("ChangeFileType({0}, {1}, {2})", Filename, Attributes, String.IsNullOrEmpty(Changelist) ? "null" : Changelist);
+			CommandUtils.LogLog("ChangeFileType({0}, {1}, {2})", Filename, Attributes, String.IsNullOrEmpty(Changelist) ? "null" : Changelist);
 
 			var Stat = FStat(Filename);
 			if (String.IsNullOrEmpty(Changelist))
@@ -2380,7 +2396,7 @@ namespace AutomationTool
 			CheckP4Enabled();
 			if(!Quiet)
 			{
-				CommandUtils.Log("Checking if client {0} exists", ClientName);
+				CommandUtils.LogLog("Checking if client {0} exists", ClientName);
 			}
 
             var P4Result = P4(String.Format("-c {0} where //...", ClientName), AllowSpew: false, WithClient: false);
@@ -2398,7 +2414,7 @@ namespace AutomationTool
 
 			if(!Quiet)
 			{
-				CommandUtils.Log("Getting info for client {0}", ClientName);
+				CommandUtils.LogLog("Getting info for client {0}", ClientName);
 			}
 			if (!DoesClientExist(ClientName, Quiet))
 			{
@@ -2439,6 +2455,7 @@ namespace AutomationTool
 					Info.RootPath = CommandUtils.ConvertSeparators(PathSeparator.Default, Info.RootPath);
 				}
 				Tags.TryGetValue("Owner", out Info.Owner);
+				Tags.TryGetValue("Stream", out Info.Stream);
 				string AccessTime;
 				Tags.TryGetValue("Access", out AccessTime);
 				if (!String.IsNullOrEmpty(AccessTime))
@@ -2576,12 +2593,19 @@ namespace AutomationTool
             SpecInput += "Options: " + ClientSpec.Options.ToString().ToLowerInvariant().Replace(",", "") + Environment.NewLine;
             SpecInput += "SubmitOptions: " + ClientSpec.SubmitOptions.ToString().ToLowerInvariant().Replace(",", "") + Environment.NewLine;
             SpecInput += "LineEnd: " + ClientSpec.LineEnd.ToString().ToLowerInvariant() + Environment.NewLine;
-            SpecInput += "View:" + Environment.NewLine;
-            foreach (var Mapping in ClientSpec.View)
-            {
-                SpecInput += "\t" + Mapping.Key + " //" + ClientSpec.Name + Mapping.Value + Environment.NewLine;
-            }
-			if(AllowSpew) CommandUtils.Log(SpecInput);
+			if(ClientSpec.Stream != null)
+			{
+				SpecInput += "Stream: " + ClientSpec.Stream + Environment.NewLine;
+			}
+			else
+			{
+				SpecInput += "View:" + Environment.NewLine;
+				foreach (var Mapping in ClientSpec.View)
+				{
+					SpecInput += "\t" + Mapping.Key + " //" + ClientSpec.Name + Mapping.Value + Environment.NewLine;
+				}
+			}
+			if (AllowSpew) CommandUtils.LogLog(SpecInput);
             LogP4("client -i", SpecInput, AllowSpew: AllowSpew, WithClient: false);
             return ClientSpec;
         }
@@ -2630,6 +2654,86 @@ namespace AutomationTool
 				throw new AutomationException("p4 print {0} failed", DepotPath);
 			}
 			return Output;
+		}
+
+		/// <summary>
+		/// Gets the contents of a particular file in the depot and writes it to a local file without syncing it
+		/// </summary>
+		/// <param name="DepotPath">Depot path to the file (with revision/range if necessary)</param>
+		/// <param name="OutputFileName">Output file to write to</param>
+		public void PrintToFile(string DepotPath, string FileName, bool AllowSpew = true)
+		{
+			string Output;
+			if(!P4Output(out Output, "print -q -o \"" + FileName + "\" " + DepotPath, AllowSpew: AllowSpew, WithClient: false))
+			{
+				throw new AutomationException("p4 print {0} failed", DepotPath);
+			}
+			if(!Output.Trim().Contains("\n") && Output.Contains("no such file(s)"))
+			{
+				throw new AutomationException("p4 print {0} failed", DepotPath);
+			}
+		}
+
+		/// <summary>
+		/// Runs the 'interchanges' command on a stream, to determine a list of changelists that have not been integrated to its parent (or vice-versa, if bReverse is set).
+		/// </summary>
+		/// <param name="StreamName">The name of the stream, eg. //UE4/Dev-Animation</param>
+		/// <param name="bReverse">If true, returns changes that have not been merged from the parent stream into this one.</param>
+		/// <returns>List of changelist numbers that are pending integration</returns>
+		public List<int> StreamInterchanges(string StreamName, bool bReverse)
+		{
+			string Output;
+			if(!P4Output(out Output, String.Format("interchanges {0}-S {1}", bReverse? "-r " : "", StreamName), Input:null, AllowSpew:false))
+			{
+				throw new AutomationException("Couldn't get unintegrated stream changes from {0}", StreamName);
+			}
+
+			List<int> Changelists = new List<int>();
+			if(!Output.StartsWith("All revision(s) already integrated"))
+			{
+				foreach(string Line in Output.Split('\n'))
+				{
+					string[] Tokens = Line.Split(new char[]{ ' ' }, StringSplitOptions.RemoveEmptyEntries);
+					if(Tokens.Length > 0)
+					{
+						int Changelist;
+						if(Tokens[0] != "Change" || !int.TryParse(Tokens[1], out Changelist))
+						{
+							throw new AutomationException("Unexpected output from p4 interchanges: {0}", Line);
+						}
+						Changelists.Add(Changelist);
+					}
+				}
+			}
+			return Changelists;
+		}
+
+		/// <summary>
+		/// For a given file (and revision, potentially), returns where it was integrated from. Useful in conjunction with files in a P4DescribeRecord, with action = "integrate".
+		/// </summary>
+		/// <param name="DepotPath">The file to check. May have a revision specifier at the end (eg. //depot/UE4/foo.cpp#2) </param>
+		/// <returns>The file that it was integrated from, without a revision specifier</returns>
+		public string GetIntegrationSource(string DepotPath)
+		{
+			string Output;
+			if(P4Output(out Output, "filelog -m 1 \"" + DepotPath + "\"", Input:null, AllowSpew:false))
+			{
+				foreach(string Line in Output.Split('\n').Select(x => x.Trim()))
+				{
+					const string MergePrefix = "... ... merge from ";
+					if(Line.StartsWith(MergePrefix))
+					{
+						return Line.Substring(MergePrefix.Length, Line.LastIndexOf('#') - MergePrefix.Length);
+					}
+
+					const string CopyPrefix = "... ... copy from ";
+					if(Line.StartsWith(CopyPrefix))
+					{
+						return Line.Substring(CopyPrefix.Length, Line.LastIndexOf('#') - CopyPrefix.Length);
+					}
+				}
+			}
+			throw new AutomationException("Failed to get integration source for {0}", DepotPath);
 		}
 
 		#region Utilities

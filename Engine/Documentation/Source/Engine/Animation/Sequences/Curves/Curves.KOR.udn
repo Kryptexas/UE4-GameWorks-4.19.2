@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2593646
+﻿INTSourceChangelist:2629577
 Availability:Public
 Title:애니메이션 커브
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Sequences
@@ -19,7 +19,17 @@ FBX 를 통해 UE4 에 모프 타겟 애니메이션을 임포트할 때, 해당
 
 캐릭터가 해머를 들고 앞으로 돌진하는 간단한 애니메이션으로 시작해 보겠습니다. 그 후 단순한 머티리얼 커브 셋업을 하여, 이 동작 와중에 얼굴을 심하게 붉히도록 해 보겠습니다. 우선 애니메이션을 살펴봅시다:
 
-![](Engine/Animation/RootMotion\HammerSlam.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+TKAcNubFOH8
+[/PARAMLITERAL]
+[/OBJECT]
 
 콘텐츠 브라우저에서 애니메이션 시퀀스를 더블클릭하면 페르소나에서 열어볼 수 있습니다.
 
@@ -30,7 +40,7 @@ FBX 를 통해 UE4 에 모프 타겟 애니메이션을 임포트할 때, 해당
 캐릭터의 머리에 _Blush_ 라는 이름의 파라미터가 있는 간단한 머티리얼이 있습니다. 머티리얼 그래프는 이렇습니다:
 
 [REGION:fullwidth]
-![](BlushMaterial.png)
+![](BlushMaterial.jpg)
 [/REGION]
 
 [REGION:note]

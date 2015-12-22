@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -117,7 +117,7 @@ private:
 	struct FCollisionResponseContainer ResponseToChannels;
 
 	/** Custom Channels for Responses */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = Custom)
 	TArray<FResponseChannel> ResponseArray;
 
 	friend struct FBodyInstance;
@@ -175,6 +175,9 @@ private:
 	/** Custom Channels for Responses*/
 	UPROPERTY(EditAnywhere, Category = Custom)
 	struct FCollisionResponse CollisionResponses;
+
+	/** Extra mask for filtering. Look at declaration for logic */
+	FMaskFilter MaskFilter;
 
 public:
 
@@ -440,7 +443,7 @@ public:
 	 *	@param InRBScene
 	 *  @param PhysicsSerializer
 	 */
-	static void InitStaticBodies(TArray<FBodyInstance*>& Bodies, TArray<FTransform>& Transforms, class UBodySetup* BodySetup, class UPrimitiveComponent* PrimitiveComp, class FPhysScene* InRBScene, class UPhysicsSerializer* PhysicsSerializer);
+	static void InitStaticBodies(const TArray<FBodyInstance*>& Bodies, const TArray<FTransform>& Transforms, class UBodySetup* BodySetup, class UPrimitiveComponent* PrimitiveComp, class FPhysScene* InRBScene, class UPhysicsSerializer* PhysicsSerializer);
 
 	/** Obtains the appropriate PhysX scene lock for READING and executes the passed in lambda. */
 	void ExecuteOnPhysicsReadOnly(TFunctionRef<void()> Func) const;
@@ -611,10 +614,11 @@ public:
 
 	/**
 	 * Update Body Scale
-	 * @param inScale3D - new Scale3D. If that's different from previous Scale3D, it will update Body scale
+	 * @param	InScale3D		New Scale3D. If that's different from previous Scale3D, it will update Body scale.
+	 * @param	bForceUpdate	Will refresh shape dimensions from BodySetup, even if scale has not changed.
 	 * @return true if succeed
 	 */
-	bool UpdateBodyScale(const FVector& InScale3D);
+	bool UpdateBodyScale(const FVector& InScale3D, bool bForceUpdate = false);
 
 	/** Dynamically update the vertices of per-poly collision for this body. */
 	void UpdateTriMeshVertices(const TArray<FVector> & NewPositions);
@@ -803,6 +807,12 @@ public:
 	 * @param InCollisionProfileName : New Profile Name
 	 */
 	void SetCollisionProfileName(FName InCollisionProfileName);
+
+	/** Updates the mask filter. */
+	void SetMaskFilter(FMaskFilter InMaskFilter);
+
+	/** Return the ignore mask filter. */
+	FORCEINLINE FMaskFilter GetMaskFilter() const { return MaskFilter; }
 
 	/** Get the current collision profile assigned to this body */
 	FORCEINLINE_DEBUGGABLE FName GetCollisionProfileName() const { return CollisionProfileName; }

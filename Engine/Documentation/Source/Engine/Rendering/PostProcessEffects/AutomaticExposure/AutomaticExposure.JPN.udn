@@ -5,7 +5,7 @@ Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
 Description:輝度の変更から視覚の順応をシミュレートするためにシーンの露出を自動的に調整する処理
 
 [EXCERPT:EyeAdaptation_Desc]
-**自動露出** 、または視覚の順応は、明るい環境から暗い環境へそして逆もまた同様に、人間の視覚が体験する効果を再現するためにシーンの露出を自動的に調整します。
+**自動露光** 、または視覚の順応は、明るい環境から暗い環境へそして逆もまた同様に、人間の視覚が体験する効果を再現するためにシーンの露出を自動的に調整します。
 [/EXCERPT:EyeAdaptation_Desc]
 
 [REGION:fullwidth]

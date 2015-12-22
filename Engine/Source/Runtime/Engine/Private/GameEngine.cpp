@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GameEngine.cpp: Unreal game engine.
@@ -40,6 +40,10 @@
 #include "GameFramework/GameMode.h"
 #include "GameDelegates.h"
 #include "Engine/CoreSettings.h"
+
+#if WITH_EDITOR
+#include "Editor/UnrealEd/Public/Animation/AnimationRecorder.h"
+#endif
 
 ENGINE_API bool GDisallowNetworkTravel = false;
 
@@ -152,7 +156,6 @@ void UGameEngine::CreateGameViewport( UGameViewportClient* GameViewportClient )
 
 	SceneViewport = MakeShareable( new FSceneViewport( GameViewportClient, GameViewportWidgetRef ) );
 	GameViewportClient->Viewport = SceneViewport.Get();
-
 	//GameViewportClient->CreateHighresScreenshotCaptureRegionWidget(); //  Disabled until mouse based input system can be made to work correctly.
 
 	// The viewport widget needs an interface so it knows what should render
@@ -200,14 +203,21 @@ void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& Resol
 	FParse::Value(FCommandLine::Get(), TEXT("ResX="), ResolutionX);
 	FParse::Value(FCommandLine::Get(), TEXT("ResY="), ResolutionY);
 
-	if (!IsRunningDedicatedServer() && ((ResolutionX <= 0) || (ResolutionY <= 0)))
-	{
-	// consume available desktop area
-	FDisplayMetrics DisplayMetrics;
-		FDisplayMetrics::GetDisplayMetrics( DisplayMetrics );
+		// consume available desktop area
+		FDisplayMetrics DisplayMetrics;
+	FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
 		
-		ResolutionX = DisplayMetrics.PrimaryDisplayWidth;
-		ResolutionY = DisplayMetrics.PrimaryDisplayHeight;
+	int32 DesktopResolutionX = DisplayMetrics.PrimaryDisplayWidth;
+	int32 DesktopResolutionY = DisplayMetrics.PrimaryDisplayHeight;
+
+	// Optionally force the resolution by passing -ForceRes
+	const bool bForceRes = FParse::Param(FCommandLine::Get(), TEXT("ForceRes"));
+
+	//Dont allow a resolution bigger then the desktop found a convenient one
+	if (!bForceRes && !IsRunningDedicatedServer() && ((ResolutionX <= 0 || ResolutionX >= DesktopResolutionX) || (ResolutionY <= 0 || ResolutionY >= DesktopResolutionY)))
+	{
+		ResolutionX = DesktopResolutionX;
+		ResolutionY = DesktopResolutionY;
 
 		// If we're in windowed mode, attempt to choose a suitable starting resolution that is smaller than the desktop, with a matching aspect ratio
 		if (WindowMode == EWindowMode::Windowed)
@@ -240,10 +250,6 @@ void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& Resol
 	// Check the platform to see if we should override the user settings.
 	if (FPlatformProperties::HasFixedResolution())
 	{
-		// Always use the device's actual resolution that has been setup earlier
-		FDisplayMetrics DisplayMetrics;
-		FDisplayMetrics::GetDisplayMetrics( DisplayMetrics );
-
 		// We need to pass the resolution back out to GameUserSettings, or it will just override it again
 		ResolutionX = DisplayMetrics.PrimaryDisplayWorkAreaRect.Right - DisplayMetrics.PrimaryDisplayWorkAreaRect.Left;
 		ResolutionY = DisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom - DisplayMetrics.PrimaryDisplayWorkAreaRect.Top;
@@ -262,6 +268,7 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 	int32 ResX = GSystemResolution.ResX;
 	int32 ResY = GSystemResolution.ResY;
 	EWindowMode::Type WindowMode = GSystemResolution.WindowMode;
+
 	ConditionallyOverrideSettings(ResX, ResY, WindowMode);
 
 	// If the current settings have been overridden, apply them back into the system
@@ -278,13 +285,15 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 	const FText PlatformBits = FText::FromString( TEXT( "32" ) );
 #endif	//PLATFORM_64BITS
 
+	// Note: If these parameters are updated or renamed, please update the tooltip on the ProjectDisplayedTitle property
 	FFormatNamedArguments Args;
 	Args.Add( TEXT("GameName"), FText::FromString( FApp::GetGameName() ) );
 	Args.Add( TEXT("PlatformArchitecture"), PlatformBits );
 	Args.Add( TEXT("RHIName"), FText::FromName( LegacyShaderPlatformToShaderFormat( GMaxRHIShaderPlatform ) ) );
 
-	const FText AppName = FText::Format( NSLOCTEXT("UnrealEd", "GameWindowTitle", "{GameName} ({PlatformArchitecture}-bit, {RHIName})"), Args );
+	const FText DefaultWindowTitle = NSLOCTEXT("UnrealEd", "GameWindowTitle", "{GameName} ({PlatformArchitecture}-bit, {RHIName})");
 	const FText WindowTitleOverride = GetDefault<UGeneralProjectSettings>()->ProjectDisplayedTitle;
+	const FText WindowTitle = FText::Format(WindowTitleOverride.IsEmpty() ? DefaultWindowTitle : WindowTitleOverride, Args);
 
 	// Allow optional winX/winY parameters to set initial window position
 	EAutoCenter::Type AutoCenterType = EAutoCenter::PrimaryWorkArea;
@@ -297,7 +306,7 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 
 	TSharedRef<SWindow> Window = SNew(SWindow)
 	.ClientSize(FVector2D( ResX, ResY ))
-	.Title(WindowTitleOverride.IsEmpty() ? AppName : WindowTitleOverride)
+	.Title(WindowTitle)
 	.AutoCenter(AutoCenterType)
 	.ScreenPosition(FVector2D(WinX, WinY))
 	.FocusWhenFirstShown(true)
@@ -343,12 +352,6 @@ void UGameEngine::SwitchGameWindowToUseGameViewport()
 		GameViewportWindowPtr->SlatePrepass();
 		
 		SceneViewport->ResizeFrame((uint32)GSystemResolution.ResX, (uint32)GSystemResolution.ResY, GSystemResolution.WindowMode, 0, 0);
-
-		IMovieSceneCaptureInterface* MovieSceneCaptureImpl = StartupMovieCaptureHandle.IsValid() ? IMovieSceneCaptureModule::Get().RetrieveMovieSceneInterface(StartupMovieCaptureHandle) : nullptr;
-		if (MovieSceneCaptureImpl)
-		{
-			MovieSceneCaptureImpl->Initialize(SceneViewport.Get());
-		}
 
 		// Move the registration of the game viewport to that messages are correctly received.
 		if (!FPlatformProperties::SupportsWindowedMode())
@@ -425,6 +428,7 @@ UEngine::UEngine(const FObjectInitializer& ObjectInitializer)
 	EndStreamingPauseDelegate = NULL;
 
 	bCanBlueprintsTickByDefault = true;
+	bOptimizeAnimBlueprintMemberVariableAccess = true;
 
 	bUseFixedFrameRate = false;
 	FixedFrameRate = 30.f;
@@ -444,9 +448,6 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 		GNetworkProfiler.EnableTracking(true);
 	}
 #endif
-
-	// Load all of the engine modules that we need at startup that are not editor-related
-	UGameEngine::LoadRuntimeEngineStartupModules();
 
 	// Load and apply user game settings
 	GetGameUserSettings()->LoadSettings();
@@ -473,7 +474,6 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 		if (MovieSceneCaptureImpl)
 		{
 			StartupMovieCaptureHandle = MovieSceneCaptureImpl->GetHandle();
-			GameInstance->InitialMapOverride = MovieSceneCaptureImpl->GetPackageName();
 		}
 	}
 #endif
@@ -518,7 +518,6 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 
 	GameInstance->StartGameInstance();
 
-
 	UE_LOG(LogInit, Display, TEXT("Game Engine Initialized.") );
 
 	// for IsInitialized()
@@ -554,7 +553,10 @@ void UGameEngine::PreExit()
 				ActorIt->RouteEndPlay(EEndPlayReason::Quit);
 			}
 
+			if (World->GetGameInstance() != nullptr)
+			{
 			World->GetGameInstance()->Shutdown();
+			}
 
 			World->FlushLevelStreaming(EFlushLevelStreamingType::Visibility);
 			World->CleanupWorld();
@@ -573,20 +575,41 @@ void UGameEngine::FinishDestroy()
 	Super::FinishDestroy();
 }
 
-
-void UGameEngine::LoadRuntimeEngineStartupModules()
+bool UGameEngine::NetworkRemapPath(UWorld* InWorld, FString& Str, bool bReading /*= true*/)
 {
-	// NOTE: These modules will be loaded when the game starts up, and also when the editor starts up.
-
-	// We only want live streaming support if we're actually in a game
-	if( !IsRunningDedicatedServer() && !IsRunningCommandlet() )
+	// If the game has created multiple worlds, some of them may have prefixed package names,
+	// so we need to remap the world package and streaming levels for replay playback to work correctly.
+	FWorldContext& Context = GetWorldContextFromWorldChecked(InWorld);
+	if (Context.PIEInstance == INDEX_NONE || !bReading)
 	{
-		FModuleManager::Get().LoadModule( TEXT("GameLiveStreaming") );
+		return false;
 	}
 
-	// ... load other required engine runtime modules here (but NOT editor modules) ...
-}
+	// If the prefixed path matches the world package name or the name of a streaming level,
+	// return the prefixed name.
+	const FString PrefixedName = UWorld::ConvertToPIEPackageName(Str, Context.PIEInstance);
+	const FString WorldPackageName = InWorld->GetOutermost()->GetName();
+	if (WorldPackageName == PrefixedName)
+	{
+		Str = PrefixedName;
+		return true;
+	}
 
+	for( ULevelStreaming* StreamingLevel : InWorld->StreamingLevels)
+	{
+		if (StreamingLevel != nullptr)
+		{
+			const FString StreamingLevelName = StreamingLevel->GetWorldAsset().GetLongPackageName();
+			if (StreamingLevelName == PrefixedName)
+	{
+				Str = PrefixedName;
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
 
 /*-----------------------------------------------------------------------------
 	Command line executor.
@@ -680,6 +703,25 @@ bool UGameEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		return HandleApplyUserSettingsCommand( Cmd, Ar );
 	}
 #endif // !UE_BUILD_SHIPPING
+#if WITH_EDITOR
+	else if( FParse::Command(&Cmd,TEXT("STARTMOVIECAPTURE")) && GIsEditor )
+	{
+		IMovieSceneCaptureInterface* CaptureInterface = IMovieSceneCaptureModule::Get().GetFirstActiveMovieSceneCapture();
+		if (CaptureInterface)
+		{
+			CaptureInterface->StartCapturing();
+			return true;
+		}
+		else if (SceneViewport.IsValid())
+		{
+			if (IMovieSceneCaptureModule::Get().CreateMovieSceneCapture(SceneViewport))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+#endif
 	else if( InWorld && InWorld->Exec( InWorld, Cmd, Ar ) )
 	{
 		return true;
@@ -816,6 +858,7 @@ float UGameEngine::GetMaxTickRate(float DeltaTime, bool bAllowFrameRateSmoothing
 	return MaxTickRate;
 }
 
+
 void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 {
 	SCOPE_CYCLE_COUNTER(STAT_GameEngineTick);
@@ -888,6 +931,8 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// Begin ticking worlds
 	// -----------------------------------------------------
 
+	bool bIsAnyNonPreviewWorldUnpaused = false;
+
 	FName OriginalGWorldContext = NAME_None;
 	for (int32 i=0; i < WorldList.Num(); ++i)
 	{
@@ -951,38 +996,8 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 
 			Context.World()->bTriggerPostLoadMap = true;
 		}
-
-		// Tick the viewports.
-	if ( GameViewport != NULL && !bIdleMode )
-	{
-		SCOPE_CYCLE_COUNTER(STAT_GameViewportTick);
-		GameViewport->Tick(DeltaSeconds);
-	}
 	
 		UpdateTransitionType(Context.World());
-	
-		// fixme: this will only happen once due to the static bool, but still need to figure out how to handle this for multiple worlds
-	if (FPlatformProperties::SupportsWindowedMode())
-	{
-		// Hide the splashscreen and show the game window
-		static bool bFirstTime = true;
-		if ( bFirstTime )
-		{
-			bFirstTime = false;
-			FPlatformSplash::Hide();
-			if ( GameViewportWindow.IsValid() )
-			{
-				GameViewportWindow.Pin()->ShowWindow();
-				FSlateApplication::Get().RegisterGameViewport( GameViewportWidget.ToSharedRef() );
-			}
-		}
-	}
-
-	if (!bIdleMode && !IsRunningDedicatedServer() && !IsRunningCommandlet())
-	{
-		// Render everything.
-		RedrawViewports();
-	}
 
 		// Block on async loading if requested.
 		if (Context.World()->bRequestedBlockOnAsyncLoading)
@@ -998,39 +1013,17 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			Context.World()->UpdateLevelStreaming();
 		}
 
-		// Update Audio. This needs to occur after rendering as the rendering code updates the listener position.
-		if (FAudioDevice* AudioDevice = Context.World()->GetAudioDevice())
-		{
-			AudioDevice->Update(!Context.World()->IsPaused());
-		}
-
-	if( GIsClient )
-	{
-			// IStreamingManager is updated outside of a world context. For now, assuming it needs to tick here, before possibly calling PostLoadMap. 
-			// Will need to take another look when trying to support multiple worlds.
-
-		// Update resource streaming after viewports have had a chance to update view information. Normal update.
-			{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_UGameEngine_Tick_IStreamingManager);
-		IStreamingManager::Get().Tick( DeltaSeconds );
-	}
-
-			if ( Context.World()->bTriggerPostLoadMap )
-			{
-				Context.World()->bTriggerPostLoadMap = false;
-
-				// Turns off the loading movie (if it was turned on by LoadMap) and other post-load cleanup.
-				QUICK_SCOPE_CYCLE_COUNTER(STAT_UGameEngine_Tick_IStreamingManager);
-				PostLoadMap();
-			}
-		}
-
 		UNCLOCK_CYCLES(LocalTickCycles);
 		TickCycles=LocalTickCycles;
 
 		// See whether any map changes are pending and we requested them to be committed.
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_UGameEngine_Tick_ConditionalCommitMapChange);
 		ConditionalCommitMapChange(Context);
+
+		if (Context.WorldType != EWorldType::Preview && !Context.World()->IsPaused())
+		{
+			bIsAnyNonPreviewWorldUnpaused = true;
+		}
 	}
 
 	// ----------------------------
@@ -1042,6 +1035,49 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_UGameEngine_Tick_GetWorldContextFromHandleChecked);
 		GWorld = GetWorldContextFromHandleChecked(OriginalGWorldContext).World();
+	}
+
+	// Tick the viewport
+		if ( GameViewport != NULL && !bIdleMode )
+		{
+			SCOPE_CYCLE_COUNTER(STAT_GameViewportTick);
+			GameViewport->Tick(DeltaSeconds);
+		}
+
+		if (FPlatformProperties::SupportsWindowedMode())
+		{
+			// Hide the splashscreen and show the game window
+			static bool bFirstTime = true;
+			if ( bFirstTime )
+			{
+				bFirstTime = false;
+				FPlatformSplash::Hide();
+				if ( GameViewportWindow.IsValid() )
+				{
+					GameViewportWindow.Pin()->ShowWindow();
+					FSlateApplication::Get().RegisterGameViewport( GameViewportWidget.ToSharedRef() );
+				}
+			}
+		}
+
+		if (!bIdleMode && !IsRunningDedicatedServer() && !IsRunningCommandlet())
+		{
+			// Render everything.
+			RedrawViewports();
+		}
+
+		if( GIsClient )
+		{
+			// Update resource streaming after viewports have had a chance to update view information. Normal update.
+				QUICK_SCOPE_CYCLE_COUNTER(STAT_UGameEngine_Tick_IStreamingManager);
+				IStreamingManager::Get().Tick( DeltaSeconds );
+			}
+
+	// Update Audio. This needs to occur after rendering as the rendering code updates the listener position.
+	FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
+	if (AudioDeviceManager)
+			{
+		AudioDeviceManager->UpdateActiveAudioDevices(bIsAnyNonPreviewWorldUnpaused);
 	}
 
 	// rendering thread commands
@@ -1060,6 +1096,14 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			GetRendererModule().TickRenderTargetPool();
 		});
 	}
+
+#if WITH_EDITOR
+	// tick animation recorder. available only in editor builds
+	if (!IsRunningDedicatedServer() && !IsRunningCommandlet())
+	{
+		FAnimationRecorderManager::Get().Tick(DeltaSeconds);
+	}
+#endif
 }
 
 

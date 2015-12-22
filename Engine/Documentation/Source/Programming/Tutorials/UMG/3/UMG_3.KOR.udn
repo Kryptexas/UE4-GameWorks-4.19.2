@@ -88,7 +88,7 @@ version:4.9
     [/PARAM]
     [PARAM:content]
 		**HowTo_UMG.Build.cs**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			using UnrealBuildTool;
 
@@ -116,7 +116,7 @@ version:4.9
 			}
 
 		**HowTo_UMGGameMode.h**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -151,7 +151,7 @@ version:4.9
 			};
 
 		**HowTo_UMGGameMode.cpp**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_UMG.h"
 			#include "HowTo_UMGGameMode.h"

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneBoolSection.h"
@@ -6,6 +6,7 @@
 
 UMovieSceneBoolSection::UMovieSceneBoolSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
+	, DefaultValue(false)
 {
 	SetIsInfinite(true);
 }
@@ -13,7 +14,7 @@ UMovieSceneBoolSection::UMovieSceneBoolSection( const FObjectInitializer& Object
 
 bool UMovieSceneBoolSection::Eval( float Position ) const
 {
-	return !!BoolCurve.Evaluate(Position);
+	return !!BoolCurve.Evaluate(Position, DefaultValue ? 1 : 0);
 }
 
 
@@ -49,27 +50,30 @@ void UMovieSceneBoolSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 }
 
 
-void UMovieSceneBoolSection::AddKey( float Time, bool Value, FKeyParams KeyParams )
+void UMovieSceneBoolSection::AddKey( float Time, const bool& Value, EMovieSceneKeyInterpolation KeyInterpolation )
 {
-	Modify();
-
-	if (BoolCurve.GetNumKeys() == 0 && !KeyParams.bAddKeyEvenIfUnchanged)
-	{
-		BoolCurve.SetDefaultValue(Value ? 1 : 0);
-	}
-	else
+	if (TryModify())
 	{
 		BoolCurve.UpdateOrAddKey(Time, Value ? 1 : 0);
 	}
 }
 
 
-bool UMovieSceneBoolSection::NewKeyIsNewData(float Time, bool Value, FKeyParams KeyParams) const
+void UMovieSceneBoolSection::SetDefault( const bool& Value )
 {
-	if ( BoolCurve.GetNumKeys() == 0 || (KeyParams.bAutoKeying && Eval(Time) != Value) )
+	if (TryModify())
 	{
-		return true;
+		BoolCurve.SetDefaultValue(Value ? 1 : 0);
 	}
+}
 
-	return false;
+
+bool UMovieSceneBoolSection::NewKeyIsNewData( float Time, const bool& Value ) const
+{
+	return Eval(Time) != Value;
+}
+
+bool UMovieSceneBoolSection::HasKeys( const bool& Value ) const
+{
+	return BoolCurve.GetNumKeys() != 0;
 }

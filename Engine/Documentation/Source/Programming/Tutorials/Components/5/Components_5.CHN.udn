@@ -49,7 +49,7 @@ Description:Testing our code by playing in the editor.
     [/PARAM]
     [PARAM:content]
 		**CollidingPawn.h**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -86,7 +86,7 @@ Description:Testing our code by playing in the editor.
 			};
 
 		**CollidingPawn.cpp**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_Components.h"
 			#include "CollidingPawn.h"
@@ -209,7 +209,7 @@ Description:Testing our code by playing in the editor.
 			}
 
 		**CollidingPawnMovementComponent.h**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -229,7 +229,7 @@ Description:Testing our code by playing in the editor.
 			};
 
 		**CollidingPawnMovementComponent.cpp**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_Components.h"
 			#include "CollidingPawnMovementComponent.h"

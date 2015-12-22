@@ -4,4 +4,4 @@ Description:
 Availability:Public
 Version: 4.9
 
-The UnrealHeaderTool code generator will not produce a execFoo thunk for this function; it is up to the user to provide one.
+The **UnrealHeaderTool** code generator will not produce a execFoo thunk for this function; it is up to the user to provide one.

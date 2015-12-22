@@ -2,6 +2,7 @@ Availability:Public
 Title: Editing State Machines
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/StateMachines
 Description:Guide to editing animation State Machines.
+version: 4.9
 
 
 [TOC(start:2)]

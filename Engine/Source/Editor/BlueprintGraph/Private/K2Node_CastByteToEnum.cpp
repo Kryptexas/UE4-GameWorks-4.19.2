@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintGraphPrivatePCH.h"
@@ -62,7 +62,7 @@ FText UK2Node_CastByteToEnum::GetCompactNodeTitle() const
 
 FName UK2Node_CastByteToEnum::GetFunctionName() const
 {
-	const FName FunctionName = GET_FUNCTION_NAME_CHECKED(UKismetNodeHelperLibrary, GetValidIndex);
+	const FName FunctionName = GET_FUNCTION_NAME_CHECKED(UKismetNodeHelperLibrary, GetValidValue);
 	return FunctionName;
 }
 
@@ -90,7 +90,7 @@ void UK2Node_CastByteToEnum::ExpandNode(class FKismetCompilerContext& CompilerCo
 
 		// FUNCTION INPUT BYTE PIN
 		UEdGraphPin* OrgInputPin = FindPinChecked(ByteInputPinName);
-		UEdGraphPin* FunctionIndexPin = CallValidation->FindPinChecked(TEXT("EnumeratorIndex"));
+		UEdGraphPin* FunctionIndexPin = CallValidation->FindPinChecked(TEXT("EnumeratorValue"));
 		check(EGPD_Input == FunctionIndexPin->Direction && Schema->PC_Byte == FunctionIndexPin->PinType.PinCategory);
 		CompilerContext.MovePinLinksToIntermediate(*OrgInputPin, *FunctionIndexPin);
 

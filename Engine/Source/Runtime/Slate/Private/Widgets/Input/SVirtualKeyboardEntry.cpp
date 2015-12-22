@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "SVirtualKeyboardEntry.h"
@@ -47,7 +47,7 @@ void SVirtualKeyboardEntry::SetText(const TAttribute< FText >& InNewText)
 	bNeedsUpdate = true;
 }
 
-void SVirtualKeyboardEntry::SetTextFromVirtualKeyboard( const FText& InNewText )
+void SVirtualKeyboardEntry::SetTextFromVirtualKeyboard(const FText& InNewText, ESetTextType SetTextType, ETextCommit::Type CommitType)
 {
 	// Only set the text if the text attribute doesn't have a getter binding (otherwise it would be blown away).
 	// If it is bound, we'll assume that OnTextChanged will handle the update.
@@ -74,7 +74,7 @@ void SVirtualKeyboardEntry::RestoreOriginalText()
 {
 	if( HasTextChangedFromOriginal() )
 	{
-		SetTextFromVirtualKeyboard(OriginalText);
+		SetTextFromVirtualKeyboard(OriginalText, ESetTextType::Commited, ETextCommit::OnUserMovedFocus);
 	}
 }
 

@@ -2,6 +2,7 @@ Availability:Public
 Title:View Modes
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
 Description:Explanations for the available View Modes within the viewports.
+Version: 4.9
 
 
 [VAR:Topic]
@@ -52,7 +53,6 @@ Description:Explanations for the available View Modes within the viewports.
 
 [TOC(start:2 end:2)]
 
-## Overview
 
 
 [EXCERPT:Intro]
@@ -135,16 +135,7 @@ Light Complexity shows the number of non-static lights affecting your geometry. 
 |**Number of Lights Affecting Surface**|**0**|**1**|**2**|**3**|**4**|**5+**|
 
 
-This color scheme is defined in BaseEngine.ini (or YourGameEngine.ini) and can be edited by searching the following lines.
-
-[REGION:code]
-+LightComplexityColors=(R=0,G=0,B=0,A=1)  
-+LightComplexityColors=(R=0,G=255,B=0,A=1)  
-+LightComplexityColors=(R=63,G=191,B=0,A=1)  
-+LightComplexityColors=(R=127,G=127,B=0,A=1)  
-+LightComplexityColors=(R=191,G=63,B=0,A=1)  
-+LightComplexityColors=(R=255,G=0,B=0,A=1)
-[/REGION]
+This color scheme is defined in the shader code.
 
 ## Shader Complexity
 
@@ -219,7 +210,35 @@ Skeletal Meshes will appear in light brown and are not considered in this calcul
 
 **Reflections** view mode overrides all materials with a flat normal and a roughness of 0, which is a mirror. This is useful for diagnosing the detail of reflections and allowing you to place more Reflection Capture Actors in areas where you need more detail.
 
+## LOD Coloration
 
+[REGION:fullwidth]
+![](ViewMode_LODColoration.png)
+[/REGION]
+
+* Console command: `viewmode LODColoration`
+
+**LOD Coloration** view mode displays the current LOD index of a primitive. This is useful for diagnosing any LOD issues or to see at which distance your LODs are switching. 
+
+|LOD Primitive Coloration|||||||||
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+|**Color**|![](LODColoration_0.png)|![](LODColoration_1.png)|![](LODColoration_2.png)|![](LODColoration_3.png)|![](LODColoration_4.png)|![](LODColoration_5.png)|![](LODColoration_6.png)|![](LODColoration_7.png)|
+|**LOD Primitive Color**|**0**|**1**|**2**|**3**|**4**|**5**|**6**|**7**|
+
+[REGION:code]
++LODColorationColors=(R=1.0,G=1.0,B=1.0,A=1.0)     
++LODColorationColors=(R=1.0,G=0.0,B=0.0,A=1.0)     
++LODColorationColors=(R=0.0,G=1.0,B=0.0,A=1.0)     
++LODColorationColors=(R=0.0,G=0.0,B=1.0,A=1.0)     
++LODColorationColors=(R=1.0,G=1.0,B=0.0,A=1.0)     
++LODColorationColors=(R=1.0,G=0.0,B=1.0,A=1.0)     
++LODColorationColors=(R=0.0,G=1.0,B=1.0,A=1.0)     
++LODColorationColors=(R=0.5,G=0.0,B=0.5,A=1.0)     
+[/REGION]
+
+[Region: note]
+By default the engine uses only four LODs, but this can be extended in the source code. 
+[/Region]
 
 ## Buffer Visualization
 
@@ -306,11 +325,14 @@ The **Shading Model** mode shows value of the Shading Model property for each Ma
 
 ### Material AO
 
-[REGION:imagetable]
-|![](Buffer_MaterialAO_1.png)(w:%WireSize%)|![](Buffer_MaterialAO_2.png)(w:%WireSize%)|
-|---|---|
-|Scene in Lit Mode (Game View On) |Scene in Buffer Material AO Mode (Game View On)|
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Scene in Lit Mode (Game View On)](Buffer_MaterialAO_1.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![Scene in Buffer Material AO Mode (Game View On)](Buffer_MaterialAO_2.png)(w:500)
+	[/PARAM]
+[/OBJECT]
 
 * View Mode Hotkey: **None (Menu only by default)**
 
@@ -332,11 +354,14 @@ Note: Materials should generally have Metallic values of 0 or 1, not in between.
 
 ### Opacity
 
-[REGION:imagetable]
-|![](Buffer_Opacity_1.png)(w:%WireSize%)|![](Buffer_Opacity_2.png)(w:%WireSize%)|
-|---|---|
-|Scene in Lit Mode (Game View On) |Scene in Buffer Material AO Mode (Game View On)|
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Scene in Lit Mode](Buffer_Opacity_1.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![Scene in Buffer Material Opacity Mode (Game View On)](Buffer_Opacity_2.png)(w:500)
+	[/PARAM]
+[/OBJECT]
 
 * View Mode Hotkey: **None (Menu only by default)**
 

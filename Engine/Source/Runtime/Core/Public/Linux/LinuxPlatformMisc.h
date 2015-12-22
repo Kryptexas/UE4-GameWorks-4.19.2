@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 /*=============================================================================================
@@ -25,6 +25,9 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 	static class GenericApplication* CreateApplication();
 	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);
 	static void SetEnvironmentVar(const TCHAR* VariableName, const TCHAR* Value);
+	static TArray<uint8> GetMacAddress();
+	static bool IsRunningOnBattery();
+
 #if !UE_BUILD_SHIPPING
 	static bool IsDebuggerPresent();
 	FORCEINLINE static void DebugBreak()
@@ -67,6 +70,7 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 	static void LowLevelOutputDebugString(const TCHAR *Message);
 	static bool ControlScreensaver(EScreenSaverAction Action);
 
+	static const TCHAR* GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error);
 	static void ClipboardCopy(const TCHAR* Str);
 	static void ClipboardPaste(class FString& Dest);
 
@@ -108,6 +112,7 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 	static void LoadPreInitModules();
 	static void LoadStartupModules();
 	static FString GetOperatingSystemId();
+	static bool GetDiskTotalAndFreeSpace(const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes);
 
 	/**
 	 * Determines the shader format for the platform

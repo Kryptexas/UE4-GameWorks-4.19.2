@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 
@@ -237,7 +237,8 @@ void UWidget::SetVisibility(ESlateVisibility InVisibility)
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
 	if (SafeWidget.IsValid())
 	{
-		return SafeWidget->SetVisibility(UWidget::ConvertSerializedVisibilityToRuntime(InVisibility));
+		EVisibility SlateVisibility = UWidget::ConvertSerializedVisibilityToRuntime(InVisibility);
+		return SafeWidget->SetVisibility(SlateVisibility);
 	}
 }
 
@@ -600,8 +601,18 @@ void UWidget::SetDesignerFlags(EWidgetDesignFlags::Type NewFlags)
 	DesignerFlags = ( EWidgetDesignFlags::Type )( DesignerFlags | NewFlags );
 }
 
+void UWidget::SetDisplayLabel(const FString& InDisplayLabel)
+{
+	DisplayLabel = InDisplayLabel;
+}
+
 bool UWidget::IsGeneratedName() const
 {
+	if (!DisplayLabel.IsEmpty())
+	{
+		return false;
+	}
+
 	FString Name = GetName();
 
 	if (Name == GetClass()->GetName() || Name.StartsWith(GetClass()->GetName() + TEXT("_")))
@@ -649,7 +660,15 @@ FText UWidget::GetLabelText() const
 
 FText UWidget::GetDisplayNameBase() const
 {
-	return IsGeneratedName() ? GetClass()->GetDisplayNameText() : FText::FromString(GetName());
+	const bool bHasDisplayLabel = !DisplayLabel.IsEmpty();
+	if (IsGeneratedName())
+	{
+		return GetClass()->GetDisplayNameText();
+	}
+	else
+	{
+		return FText::FromString(bHasDisplayLabel ? DisplayLabel : GetName());
+	}
 }
 
 const FText UWidget::GetPaletteCategory()
@@ -748,6 +767,10 @@ void UWidget::SynchronizeProperties()
 	// in the case where it's a user widget.  We always want to prefer the SObjectWidget so that bindings to 
 	// visibility and enabled status are not stomping values setup in the root widget in the User Widget.
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if ( !SafeWidget.IsValid() )
+	{
+		return;
+	}
 
 #if WITH_EDITOR
 	// Always use an enabled and visible state in the designer.
@@ -756,7 +779,7 @@ void UWidget::SynchronizeProperties()
 		SafeWidget->SetEnabled(true);
 		SafeWidget->SetVisibility(BIND_UOBJECT_ATTRIBUTE(EVisibility, GetVisibilityInDesigner));
 	}
-	else
+	else 
 #endif
 	{
 		if ( bOverride_Cursor /*|| CursorDelegate.IsBound()*/ )
@@ -798,7 +821,13 @@ void UWidget::SynchronizeProperties()
 #if WITH_EDITORONLY_DATA
 	// In editor builds we add metadata to the widget so that once hit with the widget reflector it can report
 	// where it comes from, what blueprint, what the name of the widget was...etc.
-	SafeWidget->AddMetadata<FReflectionMetaData>(MakeShareable(new FReflectionMetaData(GetFName(), GetClass(), WidgetGeneratedBy)));
+	SafeWidget->AddMetadata<FReflectionMetaData>(MakeShareable(new FReflectionMetaData(GetFName(), GetClass(), WidgetGeneratedBy.Get())));
+#else
+
+#if !UE_BUILD_SHIPPING
+	SafeWidget->AddMetadata<FReflectionMetaData>(MakeShareable(new FReflectionMetaData(GetFName(), GetClass(), WidgetGeneratedByClass.Get())));
+#endif
+
 #endif
 }
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2615854
+﻿INTSourceChangelist:2653187
 Availability: Public
 Title:2 - 메시 패스
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/LevelDesign
@@ -8,6 +8,23 @@ Related: Engine/Rendering/Materials
 Related:Engine/UI/LevelEditor
 Related: Engine/UI/LevelEditor/Modes
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 예제](Resources/ContentExamples/LevelDesign/1 "%Resources/ContentExamples/LevelDesign/1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[레벨 디자인 홈](Resources/ContentExamples/LevelDesign)
+	[/PARAM]
+	[PARAM:next]
+		[다음 예제](Resources/ContentExamples/LevelDesign/3 "%Resources/ContentExamples/LevelDesign/3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]

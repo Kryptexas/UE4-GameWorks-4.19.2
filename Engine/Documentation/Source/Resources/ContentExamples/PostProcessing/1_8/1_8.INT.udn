@@ -6,6 +6,25 @@ Related: Engine/Rendering/LightingAndShadows/AmbientOcclusion
 Related: Engine/Rendering/Overview
 Related: Engine/Rendering/PostProcessEffects
 Related: Engine/Rendering/PostProcessEffects/PostProcessMaterials
+Version: 4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Example](Resources/ContentExamples/PostProcessing/1_7 "%Resources/ContentExamples/PostProcessing/1_7:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Post Processing Home](Resources/ContentExamples/PostProcessing)
+	[/PARAM]
+	[PARAM:next]
+		[Next Example](Resources/ContentExamples/PostProcessing/1_9 "%Resources/ContentExamples/PostProcessing/1_9:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]

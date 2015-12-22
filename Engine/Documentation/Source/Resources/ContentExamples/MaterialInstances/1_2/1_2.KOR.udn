@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2618806
+﻿INTSourceChangelist:2653283
 Availability: Public
 Title:1.2 - 머티리얼 인스턴스
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
@@ -11,7 +11,23 @@ Related: Engine/Rendering/Materials/MaterialInputs
 Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Actors/DecalActor
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 예제](Resources/ContentExamples/MaterialInstances/1_1 "%Resources/ContentExamples/MaterialInstances/1_1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[콘텐츠 예제 홈](Resources/ContentExamples)
+	[/PARAM]
+	[PARAM:next]
+		[다음 예제](Resources/ContentExamples/MaterialInstances/1_3 "%Resources/ContentExamples/MaterialInstances/1_3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]

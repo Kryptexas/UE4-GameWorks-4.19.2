@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,7 +7,7 @@
 #include "UnitTest.generated.h"
 
 
-// @todo JohnB: For bugtracking/changelist info, consider adding auto-launching of P4/TTP/Browser-JIRA links,
+// @todo #JohnBFeature: For bugtracking/changelist info, consider adding auto-launching of P4/TTP/Browser-JIRA links,
 //				upon double-clicking these entries in the status windows
 
 
@@ -173,7 +173,7 @@ protected:
 	bool bFirstTimeStats;
 
 
-	// @todo JohnB: Merge the two below variables
+	// @todo #JohnBRefactor: Merge the two below variables
 	/** Whether or not the unit test has completed */
 	bool bCompleted;
 
@@ -307,8 +307,10 @@ protected:
 	virtual void ResetTimeout(FString ResetReason, bool bResetConnTimeout=false, uint32 MinDuration=0)
 	{
 		uint32 CurrentTimeout = FMath::Max(MinDuration, UnitTestTimeout);
+		double NewTimeoutExpire = FPlatformTime::Seconds() + (double)CurrentTimeout;
 
-		TimeoutExpire = FPlatformTime::Seconds() + (double)CurrentTimeout;
+		// Don't reset to a shorter timeout, than is already in place
+		TimeoutExpire = FMath::Max(NewTimeoutExpire, TimeoutExpire);
 
 		LastTimeoutReset = FPlatformTime::Seconds();
 		LastTimeoutResetEvent = ResetReason;
@@ -343,22 +345,50 @@ public:
 
 	/**
 	 * For implementation in subclasses, for helping to track local log entries related to this unit test.
-	 * This covers logs from within the unit test, and (for TCClientUnitTest) from processing net packets related to this unit test.
+	 * This covers logs from within the unit test, and (for UClientUnitTest) from processing net packets related to this unit test.
 	 *
 	 * NOTE: The parameters are the same as the unprocessed log 'serialize' parameters, to convert to a string, use:
 	 * FOutputDevice::FormatLogLine(Verbosity, Category, Data, GPrintLogTimes)
 	 *
 	 * NOTE: Verbosity ELogVerbosity::SetColor is a special category, whose log messages can be ignored.
 	 *
-	 * @param LogType	The type of local log message this is
+	 * @param InLogType	The type of local log message this is
 	 * @param Data		The base log message being written
 	 * @param Verbosity	The warning/filter level for the log message
 	 * @param Category	The log message category (LogNet, LogNetTraffic etc.)
 	 */
-	virtual void NotifyLocalLog(ELogType LogType, const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category);
+	virtual void NotifyLocalLog(ELogType InLogType, const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category);
+
+
+	/**
+	 * Notifies that there was a request to enable/disable developer mode
+	 *
+	 * @param bInDeveloperMode	Whether or not developer mode is being enabled/disabled
+	 */
+	void NotifyDeveloperModeRequest(bool bInDeveloperMode);
+
+	/**
+	 * Notifies that there was a request to execute a console command for the unit test, which can occur in a specific context,
+	 * e.g. for a unit test server, for a local minimal-client (within the unit test), or for a separate unit test client process
+	 *
+	 * @param CommandContext	The context (local/server/client?) for the console command
+	 * @param Command			The command to be executed
+	 * @return					Whether or not the command was handled
+	 */
+	virtual bool NotifyConsoleCommandRequest(FString CommandContext, FString Command);
+
+	/**
+	 * Outputs the list of console command contexts, that this unit test supports (which can include custom contexts in subclasses)
+	 *
+	 * @param OutList				Outputs the list of supported console command contexts
+	 * @param OutDefaultContext		Outputs the context which should be auto-selected/defaulted-to
+	 */
+	virtual void GetCommandContextList(TArray<TSharedPtr<FString>>& OutList, FString& OutDefaultContext);
 
 
 	virtual void PostUnitTick(float DeltaTime) override;
+
+	virtual bool IsTickable() const override;
 
 	virtual void TickIsComplete(float DeltaTime) override;
 

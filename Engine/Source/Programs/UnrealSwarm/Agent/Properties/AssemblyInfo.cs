@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 using System.Reflection;
@@ -17,4 +17,4 @@ using System.Reflection;
 //      Build Number
 //      Revision
 //
-[assembly: AssemblyVersion( "1.7.2892.0" )]
+[assembly: AssemblyVersion( "1.7.2893.0" )]

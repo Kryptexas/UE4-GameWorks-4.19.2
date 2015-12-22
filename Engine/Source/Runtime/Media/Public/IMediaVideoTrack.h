@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -46,18 +46,23 @@ public:
 
 #if WITH_ENGINE
 	/**
-	* Binds the given TextureResource to the track.  The MediaPlayer/Track implementation can use this to bypass the normal CPU copy deferred sinks
-	* and directly update the resource with the GPU if desired.
-	*
-	* @see RemoveBoundTexture
-	*/
-	virtual void AddBoundTexture(class FRHITexture* BoundResource) { };
+	 * Bind the given texture resource to the track.
+	 *
+	 * Use this method to bypass the slower CPU-copied deferred media sinks on
+	 * media streams and directly update the resource with the GPU if desired.
+	 *
+	 * @param Texture The texture to bind.
+	 * @see UnbindTexture
+	 */
+	virtual void BindTexture(class FRHITexture* Texture) = 0;
 
 	/**
-	* Removes the given texture from the track binding.  Texture will no longer be updated via BoundTexture path.
-	* @see AddBoundTexture
-	*/
-	virtual void RemoveBoundTexture(class FRHITexture* BoundResource) { };
+	 * Unbind the given texture resource from the track.
+	 *
+	 * @param Texture The texture to unbind.
+	 * @see BindTexture
+	 */
+	virtual void UnbindTexture(class FRHITexture* Texture) = 0;
 #endif
 
 public:

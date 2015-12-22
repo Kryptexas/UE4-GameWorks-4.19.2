@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 /**
@@ -27,12 +27,12 @@ class UGeomModifier_Lathe : public UGeomModifier_Edit
 	TEnumAsByte<EAxis::Type> Axis;
 
 
-	// Begin UGeomModifier Interface
+	//~ Begin UGeomModifier Interface
 	virtual bool Supports() override;
 	virtual void Initialize() override;
 protected:
 	virtual bool OnApply() override;
-	// End UGeomModifier Interface
+	//~ End UGeomModifier Interface
 private:
 	void Apply( int32 InTotalSegments, int32 InSegments, EAxis::Type InAxis );
 };

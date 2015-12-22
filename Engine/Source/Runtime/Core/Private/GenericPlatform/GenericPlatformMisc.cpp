@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "MallocAnsi.h"
@@ -10,7 +10,7 @@
 #include "SecureHash.h"
 #include "ExceptionHandling.h"
 #include "Containers/Map.h"
-#include "GenericPlatformContext.h"
+#include "GenericPlatformCrashContext.h"
 
 #include "UProjectInfo.h"
 
@@ -147,6 +147,15 @@ namespace EBuildTargets
 	}
 }
 
+FString FSHA256Signature::ToString() const
+{
+	FString LocalHashStr;
+	for (int Idx = 0; Idx < 32; Idx++)
+	{
+		LocalHashStr += FString::Printf(TEXT("%02x"), Signature[Idx]);
+	}
+	return LocalHashStr;
+}
 
 /* FGenericPlatformMisc interface
  *****************************************************************************/
@@ -704,6 +713,27 @@ const TCHAR* FGenericPlatformMisc::GameDir()
 	return *GameDir;
 }
 
+FString FGenericPlatformMisc::CloudDir()
+{
+	return FPaths::GameSavedDir() + TEXT("Cloud/");
+}
+
+const TCHAR* FGenericPlatformMisc::GamePersistentDownloadDir()
+{
+	static FString GamePersistentDownloadDir = TEXT("");
+
+	if (GamePersistentDownloadDir.Len() == 0)
+	{
+		FString BaseGameDir = GameDir();
+
+		if (BaseGameDir.Len() > 0)
+		{
+			GamePersistentDownloadDir = BaseGameDir / TEXT("PersistentDownloadDir");
+		}
+	}
+	return *GamePersistentDownloadDir;
+}
+
 uint32 FGenericPlatformMisc::GetStandardPrintableKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings, bool bMapUppercaseKeys, bool bMapLowercaseKeys)
 {
 	uint32 NumMappings = 0;
@@ -860,6 +890,13 @@ TArray<uint8> FGenericPlatformMisc::GetSystemFontBytes()
 const TCHAR* FGenericPlatformMisc::GetDefaultPathSeparator()
 {
 	return TEXT( "/" );
+}
+
+bool FGenericPlatformMisc::GetSHA256Signature(const void* Data, uint32 ByteSize, FSHA256Signature& OutSignature)
+{
+	checkf(false, TEXT("No SHA256 Platform implementation"));
+	FMemory::Memzero(OutSignature.Signature);
+	return false;
 }
 
 FString FGenericPlatformMisc::GetDefaultLocale()

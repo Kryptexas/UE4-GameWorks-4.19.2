@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2515926
+﻿INTSourceChangelist:2652825
 Availability: Public
 Title:1.4 - 컨스트럭션 스크립트
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
@@ -12,7 +12,23 @@ Related: Engine/Animation/AnimBlueprints/EventGraph
 Related: Engine/Blueprints/UserGuide/UserConstructionScript
 Related: Gameplay/HowTo/SetUpInput/Blueprints
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 예제](Resources/ContentExamples/Blueprints/1_3 "%Resources/ContentExamples/Blueprints/1_3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[블루프린트 콘텐츠 예제 홈](Resources/ContentExamples/Blueprints)
+	[/PARAM]
+	[PARAM:next]
+		[다음 예제](Resources/ContentExamples/Blueprints/1_5 "%Resources/ContentExamples/Blueprints/1_5:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -35,7 +51,7 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 ![](ConstructionScript_BP.png)
 [/REGION]
 
-## 개요
+
 
 매우 간단한 이번 블루프린트 셋업에서는, 컨스트럭션 스크립트의 속성을 살펴봅니다. 컨스트럭션 스크립트는 블루프린트 오브젝트의 생성과 동시에, 그리고 오브젝트가 어떠한 방식으로든 업데이트될 때마다 실행되도록 디자인된 것입니다. 즉 블루프린트 오브젝트가 이동, 회전, 스케일 조절되거나, 그 프로퍼티가 조정될 때마다 컨스트럭션 스크립트가 재발동된다는 뜻입니다. 게임플레이에 앞서 계산할 필요가 있는 블루프린트 액터 요소에 유용한 것입니다.
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "PakFilePrivatePCH.h"
 #include "IPlatformFilePak.h"
@@ -652,6 +652,7 @@ bool FPakPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine)
 	bSigned = true;
 #endif
 	
+	bool bMountPaks = true;
 	TArray<FString> PaksToLoad;
 #if !UE_BUILD_SHIPPING
 	// Optionally get a list of pak filenames to load, only these paks will be mounted
@@ -660,47 +661,55 @@ bool FPakPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine)
 	{
 		CmdLinePaksToLoad.ParseIntoArray(PaksToLoad, TEXT("+"), true);
 	}
+
+	//if we are using a fileserver, then dont' mount paks automatically.  We only want to read files from the server.
+	FString FileHostIP;
+	const bool bCookOnTheFly = FParse::Value(FCommandLine::Get(), TEXT("filehostip"), FileHostIP);
+	bMountPaks = !bCookOnTheFly;
 #endif
 
-	// Find and mount pak files from the specified directories.
-	TArray<FString> PakFolders;
-	GetPakFolders(CmdLine, PakFolders);
-	TArray<FString> FoundPakFiles;
-	FindAllPakFiles(LowerLevel, PakFolders, FoundPakFiles);
-	// Sort in descending order.
-	FoundPakFiles.Sort(TGreater<FString>());
-	// Mount all found pak files
-	for (int32 PakFileIndex = 0; PakFileIndex < FoundPakFiles.Num(); PakFileIndex++)
-	{
-		const FString& PakFilename = FoundPakFiles[PakFileIndex];
-		bool bLoadPak = true;
-		if (PaksToLoad.Num() && !PaksToLoad.Contains(FPaths::GetBaseFilename(PakFilename)))
+	if (bMountPaks)
+	{	
+		// Find and mount pak files from the specified directories.
+		TArray<FString> PakFolders;
+		GetPakFolders(CmdLine, PakFolders);
+		TArray<FString> FoundPakFiles;
+		FindAllPakFiles(LowerLevel, PakFolders, FoundPakFiles);
+		// Sort in descending order.
+		FoundPakFiles.Sort(TGreater<FString>());
+		// Mount all found pak files
+		for (int32 PakFileIndex = 0; PakFileIndex < FoundPakFiles.Num(); PakFileIndex++)
 		{
-			bLoadPak = false;
-		}
-		if (bLoadPak)
-		{
-			// hardcode default load ordering of game main pak -> game content -> engine content -> saved dir
-			// would be better to make this config but not even the config system is initialized here so we can't do that
-			uint32 PakOrder = 0;
-			if (PakFilename.StartsWith(FString::Printf(TEXT("%sPaks/%s-"), *FPaths::GameContentDir(), FApp::GetGameName())))
+			const FString& PakFilename = FoundPakFiles[PakFileIndex];
+			bool bLoadPak = true;
+			if (PaksToLoad.Num() && !PaksToLoad.Contains(FPaths::GetBaseFilename(PakFilename)))
 			{
-				PakOrder = 4;
+				bLoadPak = false;
 			}
-			else if (PakFilename.StartsWith(FPaths::GameContentDir()))
+			if (bLoadPak)
 			{
-				PakOrder = 3;
-			}
-			else if (PakFilename.StartsWith(FPaths::EngineContentDir()))
-			{
-				PakOrder = 2;
-			}
-			else if (PakFilename.StartsWith(FPaths::GameSavedDir()))
-			{
-				PakOrder = 1;
-			}
+				// hardcode default load ordering of game main pak -> game content -> engine content -> saved dir
+				// would be better to make this config but not even the config system is initialized here so we can't do that
+				uint32 PakOrder = 0;
+				if (PakFilename.StartsWith(FString::Printf(TEXT("%sPaks/%s-"), *FPaths::GameContentDir(), FApp::GetGameName())))
+				{
+					PakOrder = 4;
+				}
+				else if (PakFilename.StartsWith(FPaths::GameContentDir()))
+				{
+					PakOrder = 3;
+				}
+				else if (PakFilename.StartsWith(FPaths::EngineContentDir()))
+				{
+					PakOrder = 2;
+				}
+				else if (PakFilename.StartsWith(FPaths::GameSavedDir()))
+				{
+					PakOrder = 1;
+				}
 
-			Mount(*PakFilename, PakOrder);
+				Mount(*PakFilename, PakOrder);
+			}
 		}
 	}
 

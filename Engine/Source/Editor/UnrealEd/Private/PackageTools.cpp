@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "UnrealEd.h"
@@ -41,7 +41,7 @@ namespace PackageTools
 		GetObjectsWithOuter(PackageBeingUnloaded, ObjectsInPackage);
 		for ( UObject* Object : ObjectsInPackage )
 		{
-			if ( !Object->HasAnyFlags(RF_Unreachable) )
+			if ( !Object->IsUnreachable() )
 			{
 				if ( ObjectsThatHadFlagsCleared.Find(Object) )
 				{

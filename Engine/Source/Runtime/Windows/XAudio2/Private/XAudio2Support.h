@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	XAudio2Support.h: XAudio2 specific structures.
@@ -365,7 +365,7 @@ public:
 	/**
 	 * Calculates the volume for each channel
 	 */
-	void GetChannelVolumes( float ChannelVolumes[CHANNELOUT_COUNT], float AttenuatedVolume );
+	void GetChannelVolumes(float ChannelVolumes[CHANNEL_MATRIX_COUNT], float AttenuatedVolume);
 
 	/**
 	 * Returns a string describing the source
@@ -380,12 +380,12 @@ public:
 	/** 
 	 * Maps a sound with a given number of channels to to expected speakers
 	 */
-	void RouteDryToSpeakers( float ChannelVolumes[CHANNELOUT_COUNT] );
+	void RouteDryToSpeakers(float ChannelVolumes[CHANNEL_MATRIX_COUNT]);
 
 	/** 
 	 * Maps the sound to the relevant reverb effect
 	 */
-	void RouteToReverb( float ChannelVolumes[CHANNELOUT_COUNT] );
+	void RouteToReverb(float ChannelVolumes[CHANNEL_MATRIX_COUNT]);
 
 	/** 
 	 * Maps the sound to the relevant radio effect.
@@ -393,7 +393,7 @@ public:
 	 * @param	ChannelVolumes	The volumes associated to each channel. 
 	 *							Note: Not all channels are mapped directly to a speaker.
 	 */
-	void RouteToRadio( float ChannelVolumes[CHANNELOUT_COUNT] );
+	void RouteToRadio(float ChannelVolumes[CHANNEL_MATRIX_COUNT]);
 
 protected:
 
@@ -408,7 +408,7 @@ protected:
 	bool ReadMorePCMData(const int32 BufferIndex, EDataReadMode DataReadMode);
 
 	/** Returns if the source is using the default 3d spatialization. */
-	bool IsUsingDefaultSpatializer();
+	bool IsUsingHrtfSpatializer();
 
 	/** Returns Whether or not to create this source with the 3d spatialization effect. */
 	bool CreateWithSpatializationEffect();
@@ -424,22 +424,27 @@ protected:
 	int32 GetDestinationVoiceIndexForEffect( SourceDestinations Effect );
 
 	/**
+	* Converts a vector orientation from UE4 coordinates to XAudio2 coordinates
+	*/
+	inline FVector ConvertToXAudio2Orientation(const FVector& InputVector);
+
+	/**
 	* Calculates the channel volumes for various input channel configurations.
 	*/
-	void GetMonoChannelVolumes(float ChannelVolumes[CHANNELOUT_COUNT], float AttenuatedVolume);
-	void GetStereoChannelVolumes(float ChannelVolumes[CHANNELOUT_COUNT], float AttenuatedVolume);
-	void GetQuadChannelVolumes(float ChannelVolumes[CHANNELOUT_COUNT], float AttenuatedVolume);
-	void GetHexChannelVolumes(float ChannelVolumes[CHANNELOUT_COUNT], float AttenuatedVolume);
+	void GetMonoChannelVolumes(float ChannelVolumes[CHANNEL_MATRIX_COUNT], float AttenuatedVolume);
+	void GetStereoChannelVolumes(float ChannelVolumes[CHANNEL_MATRIX_COUNT], float AttenuatedVolume);
+	void GetQuadChannelVolumes(float ChannelVolumes[CHANNEL_MATRIX_COUNT], float AttenuatedVolume);
+	void GetHexChannelVolumes(float ChannelVolumes[CHANNEL_MATRIX_COUNT], float AttenuatedVolume);
 
 	/**
 	* Routes channel sends for various input channel configurations.
 	*/
-	void RouteMonoToDry(float ChannelVolumes[CHANNELOUT_COUNT]);
-	void RouteStereoToDry(float ChannelVolumes[CHANNELOUT_COUNT]);
-	void RouteQuadToDry(float ChannelVolumes[CHANNELOUT_COUNT]);
-	void RouteHexToDry(float ChannelVolumes[CHANNELOUT_COUNT]);
-	void RouteMonoToReverb(float ChannelVolumes[CHANNELOUT_COUNT]);
-	void RouteStereoToReverb(float ChannelVolumes[CHANNELOUT_COUNT]);
+	void RouteMonoToDry(float ChannelVolumes[CHANNEL_MATRIX_COUNT]);
+	void RouteStereoToDry(float ChannelVolumes[CHANNEL_MATRIX_COUNT]);
+	void RouteQuadToDry(float ChannelVolumes[CHANNEL_MATRIX_COUNT]);
+	void RouteHexToDry(float ChannelVolumes[CHANNEL_MATRIX_COUNT]);
+	void RouteMonoToReverb(float ChannelVolumes[CHANNEL_MATRIX_COUNT]);
+	void RouteStereoToReverb(float ChannelVolumes[CHANNEL_MATRIX_COUNT]);
 
 	/** Owning classes */
 	FXAudio2Device*				AudioDevice;
@@ -470,8 +475,8 @@ protected:
 	uint32						bResourcesNeedFreeing:1;
 	/** Index of this sound source in the audio device sound source array. */
 	uint32						VoiceId;
-	/** Whether or not this sound is spatializing using default spatialization algorithm. */
-	bool						bUsingDefaultSpatialization;
+	/** Whether or not this sound is spatializing using an HRTF spatialization algorithm. */
+	bool						bUsingHRTFSpatialization;
 
 	friend class FXAudio2Device;
 	friend class FXAudio2SoundSourceCallback;
@@ -573,6 +578,9 @@ struct FXAudioDeviceProperties
 #if XAUDIO_SUPPORTS_DEVICE_DETAILS
 	static XAUDIO2_DEVICE_DETAILS		DeviceDetails;
 #endif	//XAUDIO_SUPPORTS_DEVICE_DETAILS
+
+	// For calculating speaker maps for 3d audio
+	FSpatializationHelper				SpatializationHelper;
 
 	/** Source callback to handle looping sound callbacks */
 	FXAudio2SoundSourceCallback	SourceCallback;

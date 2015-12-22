@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "AI/Navigation/NavAreas/NavArea.h"
@@ -11,20 +11,6 @@ UNavArea::UNavArea(const FObjectInitializer& ObjectInitializer) : Super(ObjectIn
 	SupportedAgentsBits = 0xffffffff;
 	// NOTE! AreaFlags == 0 means UNWALKABLE!
 	AreaFlags = 1;  
-}
-
-void UNavArea::PostInitProperties()
-{
-	Super::PostInitProperties();
-	
-	if (HasAnyFlags(RF_ClassDefaultObject)
-#if WITH_HOT_RELOAD
-		&& !GIsHotReload
-#endif // WITH_HOT_RELOAD
-		)
-	{
-		UNavigationSystem::RequestAreaRegistering(GetClass());
-	}
 }
 
 void UNavArea::FinishDestroy()
@@ -44,6 +30,15 @@ void UNavArea::FinishDestroy()
 void UNavArea::PostLoad()
 {
 	Super::PostLoad();
+
+	if (HasAnyFlags(RF_ClassDefaultObject)
+#if WITH_HOT_RELOAD
+		&& !GIsHotReload
+#endif // WITH_HOT_RELOAD
+		)
+	{
+		UNavigationSystem::RequestAreaRegistering(GetClass());
+	}
 
 	if (!SupportedAgents.IsInitialized())
 	{

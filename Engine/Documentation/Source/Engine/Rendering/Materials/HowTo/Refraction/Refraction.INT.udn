@@ -5,6 +5,8 @@ Description:A How To Guide for using Refraction in your Materials.
 Related: Resources/ContentExamples/MaterialNodes/1_14
 Related: Resources/ContentExamples/MaterialProperties/1_11
 Related: Engine/Rendering/Materials/MaterialInputs
+Version: 4.9
+SkillLevel: Intermediate
 
 
 [TOC(start:2 end:3)]
@@ -17,8 +19,8 @@ Inside Unreal Engine 4, you can simulate this lighting phenomena in your Materia
 
 ## Refraction
 
-Refraction is the term used to describe the change in direction of a light wave due to a change in its transmission medium. 
-In other words, when light comes in contact with certain surfaces, like water or glass, the light will get slightly bent because those surfaces effect the speed at which light travels through them.
+**Refraction** is the term used to describe the change in direction of a light wave due to a change in its transmission medium. 
+In other words, when light comes in contact with certain surfaces, like water or glass, the light will get slightly bent because those surfaces affect the speed at which light travels through them.
 The best example of Refraction can be seen by placing part of a pencil in water.
 The part of the pencil that is placed in the water will appear bent  where the pencil and water meet due to Refraction.
 Here is a very simple example showing how Refraction works.
@@ -32,17 +34,17 @@ This is happening because the speed at which light travels changes as it hits th
 
 ## Index of Refraction or IOR
 
-Index of Refraction or IOR is an optical measurement that can be used to tell you exactly how much light will be bent when light propagates from one medium to another. 
+**Index of Refraction** or IOR is an optical measurement that can be used to tell you exactly how much light will be bent when light propagates from one medium to another. 
 Since this lighting phenomenon can be measured, we can use these measurements inside UE4 to affect how the Refraction will look giving a better sense of realism to our 3D world. 
 Here are some IOR values for objects that you might interact with every day. 
 
 |Material | IOR Value|
 |---|---|
-| Air   | 1.00|
-| Water   | 1.33|
-| Ice   | 1.31|
-| Glass   | 1.52|
-| Diamond   | 2.42|
+| **Air**   | 1.00|
+| **Water**   | 1.33|
+| **Ice**   | 1.31|
+| **Glass**   | 1.52|
+| **Diamond**   | 2.42|
 
 
 ## Using Refraction in Materials
@@ -57,9 +59,9 @@ This tutorial was written assuming that you included the Starter Content with yo
 
 	![](R_Create_Refraction_Material.png)
 
-1. Open up the Material created above by using the **Left Mouse Button** and **Double-Clicking** on the Material in the **Content Browser**. Once opened, change the **Blend Mode** from **Opaque** to **Translucent** and change the **Translucency Lighting Model** from **TLM Volumetric Non Directional** to **TLM_Surface**. When completed, your Material **Details** panel should look like this.
+1. Open up the Material created above by using the **Left Mouse Button** and **Double-Clicking** on the Material in the **Content Browser**. Once opened, change the **Blend Mode** from **Opaque** to **Translucent** and change the **Lighting Model** from **Volumetric Non Directional** to **Surface Translucency Volume**. When completed, your Material **Details** panel should look like this.
 
-	![](R_Details_Setup.png)
+	![](DetailsPanel.jpg)
 
 1. Now that the Material has the correct properties, we can now start adding the required Material Expression nodes. For this Material, we are going to need the following type and amount of Material Expression nodes.
 	
@@ -94,7 +96,7 @@ This tutorial was written assuming that you included the Starter Content with yo
 	If you cannot find the Cube, Cone, or Sphere, this could mean that you did not include the Starter Content with your project. If you did not include the Starter Content, you can either create a new project, this time make sure to include the Starter Content, or you can [Migrate](Engine/Content/Browser/UserGuide/Migrate) the Starter Content from another project into this one.
 	[/region]
 
-1. Now that there are some testing shapes, apply the Refraction Material Instance to the shapes by first selecting the Material Instance with the **Left Mouse Button** in the **Content Browser** and then dragging the Material Instance over the shape. Release the **Left Mouse Button** when you are over the shape you want to apply the Material Instance to.  When completed, you should have something that looks like this in your level.
+1. Now that there are some testing shapes, apply the Refraction Material Instance to the shapes by first selecting the Material Instance with the **Left Mouse Button** in the **Content Browser** and then dragging the Material Instance over a shape and releasing the **Left Mouse Button**.  When completed, you should have something that looks like this in your level.
 
 	![](R_Applied_Material.png)
 
@@ -163,7 +165,7 @@ Modifying the Material created above in the following manner will allow it to wo
 
 ### Refraction and Movement
 
-If you add a Panner Material Expression node to the Material Graph and plug it into the UV's of the Normal map texture, you will get some very interesting results. 
+If you add a **Panner Material Expression** node to the Material Graph and plug it into the UV's of the Normal map texture, you will get some very interesting results. 
 While this method might be useful for a glass window, it would be very useful for Visual Effects such as heat haze or distortion from a huge explosion. 
 
 ![](R_Panning_Normal_Map.png)
@@ -182,7 +184,7 @@ While this method might be useful for a glass window, it would be very useful fo
 
 ### Refraction Depth Bias
 
-Refraction depth bias is a way to prevent closer objects from rendering into the distorted surface at acute viewing angles.
+**Refraction depth bias** is a way to prevent closer objects from rendering into the distorted surface at acute viewing angles.
 However this can increases the disconnect between the surface and where the refraction starts.
 You can adjust the **Refraction Depth Bias** in the following two places inside UE4. 
 

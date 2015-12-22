@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -23,7 +23,18 @@ public partial class Project : CommandUtils
 		{
 			DeployContextList.AddRange(CreateDeploymentContext(Params, true, false));
 		}
-		if (DeployContextList.Count > 0 && !Params.SkipStage)
+
+		// before we package up the build, allow a symbol upload (this isn't actually tied to packaging, 
+		// but logically it's a package-time thing)
+		foreach (var SC in DeployContextList)
+		{
+			if (Params.UploadSymbols)
+			{
+				SC.StageTargetPlatform.UploadSymbols(Params, SC);
+			}
+		}
+
+		if (DeployContextList.Count > 0 && (!Params.SkipStage || Params.Package))
 		{
 			Log("********** PACKAGE COMMAND STARTED **********");
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "TargetDeviceServicesPrivatePCH.h"
 
@@ -75,7 +75,7 @@ void FTargetDeviceProxyManager::GetProxies(FName TargetPlatformName, bool Includ
 	{
 		const TSharedPtr<FTargetDeviceProxy>& Proxy = It.Value();
 
-		if ((IncludeUnshared || Proxy->IsShared()) || (Proxy->GetHostUser() == FPlatformProcess::UserName(true)))
+		if ((IncludeUnshared || Proxy->IsShared()) || (Proxy->GetHostUser() == FPlatformProcess::UserName(false)))
 		{
 			if (TargetPlatformName == NAME_None || Proxy->HasTargetPlatform(TargetPlatformName))
 			{
@@ -108,7 +108,7 @@ void FTargetDeviceProxyManager::SendPing()
 {
 	if (MessageEndpoint.IsValid())
 	{
-		MessageEndpoint->Publish(new FTargetDeviceServicePing(FPlatformProcess::UserName(true)), EMessageScope::Network);
+		MessageEndpoint->Publish(new FTargetDeviceServicePing(FPlatformProcess::UserName(false)), EMessageScope::Network);
 	}
 }
 

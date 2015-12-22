@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -36,22 +36,23 @@ public:
 	/** Cached copy of the instance data when the ChildActor is destroyed to be available when needed */
 	mutable FChildActorComponentInstanceData* CachedInstanceData;
 
-	// Begin Object interface.
+	//~ Begin Object Interface.
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostEditUndo() override;
 #endif
-	// End Object interface.
+	virtual void BeginDestroy() override;
+	//~ End Object Interface.
 
-	// Begin ActorComponent interface.
+	//~ Begin ActorComponent Interface.
 	virtual void OnComponentCreated() override;
 	virtual void OnComponentDestroyed() override;
 	virtual void OnRegister() override;
 	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
-	// End ActorComponent interface.
+	//~ End ActorComponent Interface.
 
 	/** Apply the component instance data to the child actor component */
-	void ApplyComponentInstanceData(class FChildActorComponentInstanceData* ComponentInstanceData);
+	void ApplyComponentInstanceData(class FChildActorComponentInstanceData* ComponentInstanceData, const ECacheApplyPhase CacheApplyPhase);
 
 	/** Create the child actor */
 	ENGINE_API void CreateChildActor();

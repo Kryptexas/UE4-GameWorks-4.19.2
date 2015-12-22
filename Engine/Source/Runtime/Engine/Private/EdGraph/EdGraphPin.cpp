@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "EdGraph/EdGraph.h"
@@ -81,11 +81,12 @@ namespace GraphPinHelpers
 {
 	void EnableAllConnectedNodes(UEdGraphNode* InNode)
 	{
-		if(InNode && !InNode->bIsNodeEnabled)
+		// Only enable when it has not been explicitly user-disabled
+		if(InNode && InNode->EnabledState == ENodeEnabledState::Disabled && !InNode->bUserSetEnabledState)
 		{
 			// Enable the node and clear the comment
 			InNode->Modify();
-			InNode->bIsNodeEnabled = true;
+			InNode->EnableNode();
 			InNode->NodeComment.Empty();
 
 			// Go through all pin connections and enable the nodes. Enabled nodes will prevent further iteration
@@ -299,6 +300,39 @@ const FString UEdGraphPin::GetLinkInfoString( const FString& InFunctionName, con
 #else
 	return FString();
 #endif
+}
+
+void UEdGraphPin::PostLoad()
+{
+	Super::PostLoad();
+
+	static FName GameplayTagName = TEXT("GameplayTag");
+	static FName GameplayTagContainerName = TEXT("GameplayTagContainer");
+	static FName GameplayTagsPathName = TEXT("/Script/GameplayTags");
+
+	if (PinType.PinSubCategoryObject.IsValid())
+	{
+		UObject* PinSubCategoryObject = PinType.PinSubCategoryObject.Get();
+		if (PinSubCategoryObject->GetOuter()->GetFName() == GameplayTagsPathName)
+		{
+			if (PinSubCategoryObject->GetFName() == GameplayTagName)
+			{
+				// Pins of type FGameplayTag were storing "()" for empty arrays and then importing that into ArrayProperty and expecting an empty array.
+				// That it was working was a bug and has been fixed, so let's fixup pins. A pin that wants an array size of 1 will always fill the parenthesis
+				// so there is no worry about breaking those cases.
+				if (DefaultValue == TEXT("()"))
+				{
+					DefaultValue.Empty();
+				}
+			}
+			else if (PinSubCategoryObject->GetFName() == GameplayTagContainerName)
+			{
+				// Pins of type FGameplayTagContainer were storing "GameplayTags=()" for empty arrays, which equates to having a single item, default generated as detailed above for FGameplayTag.
+				// The solution is to replace occurances with an empty string, due to the item being a struct, we can't just empty the value and must replace only the section we need.
+				DefaultValue.ReplaceInline(TEXT("GameplayTags=()"), TEXT("GameplayTags="));
+			}
+		}
+	}
 }
 
 FString FGraphDisplayInfo::GetNotesAsString() const

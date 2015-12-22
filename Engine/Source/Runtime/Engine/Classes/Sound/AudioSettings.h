@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -40,6 +40,10 @@ class ENGINE_API UAudioSettings : public UDeveloperSettings
 	/** The SoundClass assigned to newly created sounds */
 	UPROPERTY(config, EditAnywhere, Category="Audio", meta=(AllowedClasses="SoundClass", DisplayName="Default Sound Class"))
 	FStringAssetReference DefaultSoundClassName;
+
+	/** The SoundConcurrency assigned to newly created sounds */
+	UPROPERTY(config, EditAnywhere, Category = "Audio", meta = (AllowedClasses = "SoundConcurrency", DisplayName = "Default Sound Concurrency"))
+	FStringAssetReference DefaultSoundConcurrencyName;
 
 	/** The SoundMix to use as base when no other system has specified a Base SoundMix */
 	UPROPERTY(config, EditAnywhere, Category="Audio", meta=(AllowedClasses="SoundMix"))

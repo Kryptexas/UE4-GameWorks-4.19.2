@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightFunctionCommon.usf: Utility functions for light functions.
@@ -12,7 +12,7 @@ float4x4 LightFunctionWorldToLight;
  * Calculates the light function color with the given light vector. 
  * LightVector is the vector from the light to the position being shaded, in the light's coordinate space.
  */
-float3 GetLightFunctionColor(float3 LightVector, float3 WorldPosition)
+float3 GetLightFunctionColor(float3 LightVector, float3 AbsoluteWorldPosition)
 {
 	// Swizzle so that LightVector.xy are perpendicular to the light direction and LightVector.z is distance along the light direction
 	LightVector.xyz = LightVector.zyx;
@@ -45,11 +45,14 @@ float3 GetLightFunctionColor(float3 LightVector, float3 WorldPosition)
 	MaterialParameters.CameraVector = LightVector.xyz;
 	MaterialParameters.ReflectionVector = LightVector.xyz;
 	MaterialParameters.LightVector = LightVector.xyz;
-	MaterialParameters.WorldPosition = WorldPosition;
+	MaterialParameters.AbsoluteWorldPosition = AbsoluteWorldPosition;
+
+	FPixelMaterialInputs PixelMaterialInputs;
+	CalcPixelMaterialInputs(MaterialParameters, PixelMaterialInputs);
 
 #if COMPUTESHADER
 	return GetMaterialEmissiveForCS(MaterialParameters);
 #else
-	return GetMaterialEmissive(MaterialParameters);
+	return GetMaterialEmissive(PixelMaterialInputs);
 #endif
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -149,6 +149,24 @@ public:
 	 * @param TimeoutResetLogs		The static array containing logs indicating resetting of unit-test/connection timeout is required
 	 */
 	virtual void InitializeClientProgressLogs(TArray<FString>& TimeoutResetLogs)
+	{
+	}
+
+
+	/**
+	 * Returns child process names, that indicate progress blockers in starting up (e.g. shader compiler)
+	 * All child processes, including server/client child processes (and their children) are checked.
+	 *
+	 * @param OutBlockingProcesses	Outputs process names, for processes which indicate a blocking task, which is blocking progression
+	 */
+	void GetProgressBlockingProcesses(const TArray<FString>*& OutBlockingProcesses);
+
+	/**
+	 * Called when initializing the static arrays, containing the progress blocking processes
+	 *
+	 * @param BlockingProcesses		The static array containing processes indicating a blocking task
+	 */
+	virtual void InitializeProgressBlockingProcesses(TArray<FString>& BlockingProcesses)
 	{
 	}
 

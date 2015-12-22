@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "ComponentVisualizersPrivatePCH.h"
 #include "SplineMeshComponentVisualizer.h"
@@ -108,7 +108,7 @@ bool FSplineMeshComponentVisualizer::VisProxyHandleClick(FLevelEditorViewportCli
 		const USplineMeshComponent* SplineMeshComp = CastChecked<const USplineMeshComponent>(VisProxy->Component.Get());
 
 		SplineMeshCompPropName = GetComponentPropertyName(SplineMeshComp);
-		if (SplineMeshCompPropName != NAME_None)
+		if (SplineMeshCompPropName.IsValid())
 		{
 			SplineMeshOwningActor = SplineMeshComp->GetOwner();
 
@@ -358,7 +358,7 @@ bool FSplineMeshComponentVisualizer::HandleInputKey(FEditorViewportClient* Viewp
 void FSplineMeshComponentVisualizer::EndEditing()
 {
 	SplineMeshOwningActor = NULL;
-	SplineMeshCompPropName = NAME_None;
+	SplineMeshCompPropName.Clear();
 	SelectedKey = INDEX_NONE;
 	SelectedTangentHandle = INDEX_NONE;
 	SelectedTangentHandleType = ESelectedTangentHandle::None;

@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2346406
+﻿INTSourceChangelist:2714556
 Availability:Public
 Title:2.7 - CPU パーティクルから動的ライトの放出
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
-Description:エフェクト ギャラリーの事例概要
+Description:エフェクト ギャラリーのサンプル レベルの概要
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Overview
 Related: Engine/Rendering/ParticleSystems/Reference
@@ -10,6 +10,25 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+Version:4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/EffectsGallery/2_F "%Resources/ContentExamples/EffectsGallery/2_F:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[エフェクト ギャラリー ホーム](Resources/ContentExamples/EffectsGallery)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/EffectsGallery/2_H "%Resources/ContentExamples/EffectsGallery/2_H:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -54,11 +73,11 @@ Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 ![](image074.png)
 [/REGION]
 
-アンリアル エンジンの極めて有益なパーティクル機能の 1 つに CPU パーティクルからライトを放出させる能力があります。エミッタに Light モジュールを追加することにより、エミッタから放出されるパーティクルは動的ライトをスポーンすることもできます。モジュールのプロパティを使用してライトの明度や半径などを制御できます。
+アンリアル エンジンの非常に便利なパーティクル機能の 1 つとして CPU パーティクルからライトを放出させるというものがあります。エミッタに **Light** モジュールを追加することで、エミッタから放出されるパーティクルは動的ライトをスポーンすることもできます。モジュールのプロパティを使用してライトの明度や半径などを制御できます。
 
 ![](image076.png)
 
 [REGION:warning]
-独自のライトを作成するパーティクルの割合を制御することはできますが (つまりたった 50％ のパーティクルで実際にライトを作成することができます) 、この効果は急速にコストが高くなります。もっと少ないパーティクルをスポーンし、その際に Light モジュールを使用する別 (複写) のエミッタを設定することは珍しくありません。 
+独自のライトを作成するパーティクルの割合を制御できますが (例えば、わずか 50 ％ のパーティクルで実際にライトを作成可能) 、このエフェクトは急速に負荷が高くなります。別 (複製) のエミッタを用意し、はるかに少ないパーティクルをスポーンし、そのエミッタで Light モジュールを使用することは一般的です。 
 [/REGION]
 

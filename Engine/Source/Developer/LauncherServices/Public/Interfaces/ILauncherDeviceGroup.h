@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -75,6 +75,12 @@ public:
 	 * @param DeviceID The identifier of the device to remove.
 	 */
 	virtual void RemoveDevice(const FString& DeviceID) = 0;
+
+	/**
+	* Removes all devices from the group.
+	*	
+	*/
+	virtual void RemoveAllDevices() = 0;
 
 	/**
 	 * Sets the name of the device group.

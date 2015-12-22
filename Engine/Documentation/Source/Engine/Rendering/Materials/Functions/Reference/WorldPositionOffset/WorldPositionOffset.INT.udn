@@ -2,6 +2,7 @@ Availability: Public
 title:WorldPositionOffset
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Functions for handling vertex manipulation using world position offset.
+Version: 4.9
 
 [TOC (start:2 end:3)]
 
@@ -15,21 +16,21 @@ The following is a list of all the functions underneath the WorldPositionOffset 
 
 ### SimpleGrassWind
 
-This function applies a basic wind operator to foliage, giving the ability to specify a weight map and wind strength. This is a non-directional wind that just gives a very general movement to foliage. This should be the last WPO node you add.
+The **SimpleGrassWind** function applies a basic wind operator to foliage, giving the ability to specify a weight map and wind strength. This is a non-directional wind that just gives a very general movement to foliage. This should be the last WPO node you add.
 
 | Item | Description |
 | -------- | -------- |
 |[REGION:tablesection]Inputs[/REGION] ||
 | **WindIntensity (Scalar)** | Controls how much the wind affects the mesh.|
 | **WindWeight (Scalar)** | This is a grayscale map that controls how much the mesh's vertices will respond to the wind.|
+| **WindSpeed (Scalar)** | This controls the speed of the wind. |
 | **AdditionalWPO (Vector3)** | Takes in any additional world position offset networks or functions. |
-
 
 ![SimpleGrassWind](SimpleGrassWind.png)
 
 ### SplineThicken
 
-The SplineThicken function serves as a way to make very thin polygons look thicker at render time. This is perfect for cables, hair, grass, and other such objects. 
+The **SplineThicken** function serves as a way to make very thin polygons look thicker at render time. This is perfect for cables, hair, grass, and other such objects. 
 
 [REGION:note]
 	Objects using this function should be extremely thin and should be imported with "Remove Degenerate Triangles" disabled. 
@@ -39,29 +40,44 @@ The SplineThicken function serves as a way to make very thin polygons look thick
 | -------- | -------- |
 |[REGION:tablesection]Inputs[/REGION] ||
 | **WidthBase (Scalar)** | This sets the width of a single polygon object at its base. |
-| **WorldPosition (Vector3)** | World Position takes in any existing world position offset functions and adds this function to them.|
 | **WidthTip (Scalar)** | Sets the width of a polygon object at its tip.|
-| **TexCoord (Vector2)** | Add a texture coordinate to use in the expansion of the spline. This defaults to texture coordinate 0.|
+| **WorldPosition (Vector3)** | World Position takes in any existing world position offset functions and adds this function to them.|
+| **UVs for Projection (Vector2)** | This is the texture coordinate to use in the expansion of the spline. |
+| **UVs for Thickness (Vector2)** | This is the texture coordinate to use for the Thickness mapper if projecting from U, it will the Y component of the specified UV index for the thickness blending. |
+| **UVs for texturing (Vector2)** | This is the UV channel for texturing. This must be the same UV channel you want to have the 3D-parallax correction. |
 | **Expand U or V UV Channel (StaticBool)** | Sets whether to expand the mesh in U or V. Defaults to *true*, which is U.|
+| **DriveNormalZ (Boolean)** | This will use DeriveNormalZ to make a perfectly round normal map. |
+| **AngleCorrectedNormal (Boolean)** | Uses DerivedNormalZ to make perfectly round normal map. Requires a center tesselation vertex otherwise the vale of Z will be 0 for the entire face, causing harsh lighting. |
+| **AdditionalNormal (Vector3)** | This will add a texture normal to the normalmap transform. |
+| **FlattenPixelNormal (Boolean)** |  |
+| **UVs For NormalShading (Vector2)** |  |
 |[REGION:tablesection]Outputs[/REGION] ||
-| **WorldPositionOffset** | This is the output that you can add to other world position offset calculations.|
 | **Normal** | The outgoing normal of the adjusted geometry.|
+| **WorldPositionOffset** | This is the output that you can add to other world position offset calculations.|
+| **UVs with Parallax** |  |
 
+
+![](SplineThicken.png)
 
 ### CameraOffset
 
-The CameraOffset function is great to assist with depth sorting, as it allows you to move an object in camera space, either toward or away from the camera. 
+The **CameraOffset** function is great to assist with depth sorting, as it allows you to move an object in camera space, either toward or away from the camera. 
 
 | Item | Description |
 | -------- | -------- |
 |[REGION:tablesection]Inputs[/REGION] ||
 | **OffsetAmount (Scalar)** | Enter a negative or positive number to offset your model in the direction of the camera. Note that positive values will bring the model closer to the camera and cause rendering errors if the mesh greatly exceeds the models bounding box. |
-| **ObjectCenter (Vector3)** | Enter the model's center point to be used in the creation the offset vector. Default Value = Object World Position.|
+| **Clampe Padding (Scalar)** | The amount of padding to prevent the clamped version of the offset value from clipping into the camera.  |
+| **WorldPosition (Vector3)** | Enter the model's vertex world position. The Default Value = World Position. |
+|[REGION:tablesection]Outputs[/REGION] ||
+| **Clamped Camera Offset** | The Camera offset is clamped to avoid early camera intersections. Adjust the padding to change the amount of space reserved to avoid camera intersection. |
+| **Camera Offset** | Either add this value to other World Position offset code or enter it directly into the world position offset master material to offset your mesh. |
 
+![](CameraOffset.png)
 
 ### ObjectPivotPoint
 
-The ObjectPivotPoint function returns the object's pivot point in world space. This is not compatible with the pixel shader.
+The **ObjectPivotPoint** function returns the object's pivot point in world space. This is not compatible with the pixel shader.
 
 | Item | Description |
 | -------- | -------- |
@@ -73,7 +89,7 @@ The ObjectPivotPoint function returns the object's pivot point in world space. T
 
 ### ObjectScale
 
-The ObjectScale function returns the object's XYZ scale together and seperately. This is not compatible with the pixel shader.
+The **ObjectScale** function returns the object's XYZ scale together and seperately. This is not compatible with the pixel shader.
 
 | Item | Description |
 | -------- | -------- |
@@ -88,7 +104,7 @@ The ObjectScale function returns the object's XYZ scale together and seperately.
 
 ### PivotAxis
 
-The PivotAxis function creates a common pivot location on arbitrary axes. This is helpful for creating flag motion. Instead of using a single pivot point near the top of the flag, use a shared Z point and unique X and Y location data to create a more realistic connection along the object's width.
+The **PivotAxis** function creates a common pivot location on arbitrary axes. This is helpful for creating flag motion. Instead of using a single pivot point near the top of the flag, use a shared Z point and unique X and Y location data to create a more realistic connection along the object's width.
 
 [REGION:note]
 This shader node only supports uniform scaling. Also, the rotate about axis axis and the pivot axis/pos should not coincide.
@@ -97,14 +113,14 @@ This shader node only supports uniform scaling. Also, the rotate about axis axis
 | Item | Description |
 | -------- | -------- |
 |[REGION:tablesection]Inputs[/REGION] ||
-| **Pivot Axis/Pos (Vector3)** | Enter a number to use as your both your local axis line axis and position. If you would like to lock off your model, enter on its local z axis near its pivot enter (0,0,1). If you would like to lock of the top of the model, enter your model's height in as (0,0,model height).|
+| **Pivot Axis/Pos (Vector3)** | Enter a number to use as both your local axis line axis and position. If you would like to lock off your model, enter on its local z axis near its pivot enter (0,0,1). If you would like to lock of the top of the model, enter your model's height in as (0,0,model height).|
 |[REGION:tablesection]Outputs[/REGION] ||
 | **Pivot** | This can be used as the pivot point in the rotate about axis node.|
 
 
 ### RotateAboutWorldAxis_cheap
 
-This function cheaply rotates objects around world axes. Input the angle you would like to use and attach the output to world position offset.
+The **RotateAboutWorldAxis_cheap** function cheaply rotates objects around world axes. Input the angle you would like to use and attach the output to world position offset.
 
 | Item | Description |
 | -------- | -------- |
@@ -122,7 +138,7 @@ This function cheaply rotates objects around world axes. Input the angle you wou
 
 ### StaticMeshMorphTargets
 
-The StaticMeshMorphTargets function unpacks morph target data that was added into a via 3ds Max's Morph Packer MAXScript.
+The **StaticMeshMorphTargets** function unpacks morph target data that was added into a via 3ds Max's Morph Packer MAXScript.
 
 | Item | Description |
 | -------- | -------- |
@@ -135,7 +151,7 @@ The StaticMeshMorphTargets function unpacks morph target data that was added int
 
 ### Wind
 
-The Wind function provides separate outputs for wind strength, speed multiplied by time and a normalized wind vector.
+The **Wind** function provides separate outputs for wind strength, speed multiplied by time and a normalized wind vector.
 
 | Item | Description |
 | -------- | -------- |

@@ -1,13 +1,9 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "NetcodeUnitTestPCH.h"
 
 #include "Net/UnitTestNetConnection.h"
 #include "Net/UnitTestPackageMap.h"
-
-
-// @todo JohnB: Should probably add a CL-define which wraps this code, since not all codebases will expose PackageMapClient?
-//				(probably better to just error, and force a code change for that, in that codebase - otherwise not all unit tests work)
 
 
 /**
@@ -20,24 +16,24 @@ UUnitTestPackageMap::UUnitTestPackageMap(const FObjectInitializer& ObjectInitial
 {
 }
 
-bool UUnitTestPackageMap::SerializeObject(FArchive& Ar, UClass* Class, UObject*& Obj, FNetworkGUID* OutNetGUID/*=NULL */)
+bool UUnitTestPackageMap::SerializeObject(FArchive& Ar, UClass* InClass, UObject*& Obj, FNetworkGUID* OutNetGUID/*=NULL */)
 {
 	bool bReturnVal = false;
 
-	bReturnVal = Super::SerializeObject(Ar, Class, Obj, OutNetGUID);
+	bReturnVal = Super::SerializeObject(Ar, InClass, Obj, OutNetGUID);
 
 	if (bWithinSerializeNewActor)
 	{
 		// This indicates that SerializeObject has failed to find an existing instance when trying to serialize an actor,
 		// so it will be spawned clientside later on (after the archetype is serialized) instead.
 		// These spawns count as undesired clientside code execution, so filter them through NotifyAllowNetActor.
-		if (Class == AActor::StaticClass() && Obj == NULL)
+		if (InClass == AActor::StaticClass() && Obj == NULL)
 		{
 			bPendingArchetypeSpawn = true;
 		}
 		// This indicates that a new actor archetype has just been serialized (which may or may not be during actor channel init);
 		// this is the first place we know the type of a replicated actor (in an actor channel or otherwise), but BEFORE it is spawned
-		else if ((GIsInitializingActorChan || bPendingArchetypeSpawn) && Class == UObject::StaticClass() && Obj != NULL)
+		else if ((GIsInitializingActorChan || bPendingArchetypeSpawn) && InClass == UObject::StaticClass() && Obj != NULL)
 		{
 			UUnitTestNetConnection* UnitConn = Cast<UUnitTestNetConnection>(GActiveReceiveUnitConnection);
 			bool bAllowActor = false;

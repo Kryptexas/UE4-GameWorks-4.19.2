@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "NiagaraPrivate.h"
@@ -40,13 +40,14 @@ void UNiagaraEffect::CreateEffectRendererProps(TSharedPtr<FNiagaraSimulation> Si
 	{
 		Sim->GetProperties()->RendererProperties = nullptr;
 	}
+	Sim->GetEffectRenderer()->SetRendererProperties(Sim->GetProperties()->RendererProperties);
 }
 
-void UNiagaraEffect::Serialize(FArchive& Ar)
+void UNiagaraEffect::PostLoad()
 {
-	Super::Serialize(Ar);
+	Super::PostLoad();
 
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_NIAGARA_DATA_OBJECT_DEV_UI_FIX)
+	if (GetLinkerUE4Version() < VER_UE4_NIAGARA_DATA_OBJECT_DEV_UI_FIX)
 	{
 		int32 NumEmitters = EmitterPropsSerialized_DEPRECATED.Num();
 		for (int32 i = 0; i < NumEmitters; ++i)
@@ -62,7 +63,7 @@ void UNiagaraEffect::Serialize(FArchive& Ar)
 
 TSharedPtr<FNiagaraSimulation> FNiagaraEffectInstance::AddEmitter(UNiagaraEmitterProperties *Properties)
 {
-	FNiagaraSimulation *SimPtr = new FNiagaraSimulation(Properties, Effect);
+	FNiagaraSimulation *SimPtr = new FNiagaraSimulation(Properties, this);
 	TSharedPtr<FNiagaraSimulation> Sim = MakeShareable(SimPtr);
 	Sim->SetRenderModuleType(Properties->RenderModuleType, Component->GetWorld()->FeatureLevel);
 	Emitters.Add(Sim);
@@ -86,6 +87,11 @@ void FNiagaraEffectInstance::Tick(float DeltaSeconds)
 	// pass the constants down to the emitter
 	// TODO: should probably just pass a pointer to the table
 	EffectBounds.Init();
+
+	for (TPair<FNiagaraDataSetID, FNiagaraDataSet>& EventSetPair : ExternalEvents)
+	{
+		EventSetPair.Value.Tick();
+	}
 
 	for (TSharedPtr<FNiagaraSimulation>&it : Emitters)
 	{
@@ -118,12 +124,18 @@ void FNiagaraEffectInstance::Tick(float DeltaSeconds)
 			}
 		}
 
+		//TODO - Handle constants better. Like waaaay better.
+		it->GetConstants().Merge(it->GetProperties()->SpawnScriptProps.ExternalConstants);
+		it->GetConstants().Merge(it->GetProperties()->UpdateScriptProps.ExternalConstants);
+		it->GetConstants().Merge(Constants);
+
+		it->PreTick();
+	}
+
+	for (TSharedPtr<FNiagaraSimulation>&it : Emitters)
+	{
 		if (it->GetTickState() != NTS_Dead && it->GetTickState() != NTS_Suspended)
 		{
-			//TODO - Handle constants better. Like waaaay better.
-			it->SetConstants(Constants);
-			it->GetConstants().Merge(it->GetProperties()->SpawnScriptProps.ExternalConstants);
-			it->GetConstants().Merge(it->GetProperties()->UpdateScriptProps.ExternalConstants);
 			it->Tick(DeltaSeconds);
 		}
 
@@ -131,6 +143,19 @@ void FNiagaraEffectInstance::Tick(float DeltaSeconds)
 	}
 
 	Age += DeltaSeconds;
+}
+
+FNiagaraSimulation* FNiagaraEffectInstance::GetEmitter(FString Name)
+{
+	for (TSharedPtr<FNiagaraSimulation> Sim : Emitters)
+	{
+		UNiagaraEmitterProperties* Props = Sim->GetProperties().Get();
+		if (Props && Props->EmitterName == Name)
+		{
+			return Sim.Get();//We really need to sort out the ownership of objects in naigara. Am I free to pass a raw ptr here?
+		}
+	}
+	return NULL;
 }
 
 void FNiagaraEffectInstance::RenderModuleupdate()
@@ -142,14 +167,62 @@ void FNiagaraEffectInstance::RenderModuleupdate()
 	}
 }
 
-
 void FNiagaraEffectInstance::InitEmitters(UNiagaraEffect *InAsset)
 {
 	check(InAsset);
 	for (int i = 0; i < InAsset->GetNumEmitters(); i++)
 	{
 		UNiagaraEmitterProperties *Props = InAsset->GetEmitterProperties(i);
-		FNiagaraSimulation *Sim = new FNiagaraSimulation(Props, InAsset);
+		Props->Init();//Init these to be sure any cached data from the scripts is up to date.
+
+		FNiagaraSimulation *Sim = new FNiagaraSimulation(Props, this);
 		Emitters.Add(MakeShareable(Sim));
 	}
+
+	for (TSharedPtr<FNiagaraSimulation> Emitter : Emitters)
+	{
+		Emitter->PostInit();
+	}
+}
+
+void FNiagaraEffectInstance::ReInitEmitters()
+{
+	for (TSharedPtr<FNiagaraSimulation> Emitter : Emitters)
+	{
+		UNiagaraEmitterProperties* Props = Emitter->GetProperties().Get();
+		check(Props);
+		Props->Init();//Init these to be sure any cached data from the scripts is up to date.
+		Emitter->Init();
+	}
+
+	for (TSharedPtr<FNiagaraSimulation> Emitter : Emitters)
+	{
+		Emitter->PostInit();
+	}
+}
+
+FNiagaraDataSet* FNiagaraEffectInstance::GetDataSet(FNiagaraDataSetID SetID, FName EmitterName)
+{
+	if (EmitterName == NAME_None)
+	{
+		if (FNiagaraDataSet* ExternalSet = ExternalEvents.Find(SetID))
+		{
+			return ExternalSet;
+		}
+	}
+	for (TSharedPtr<FNiagaraSimulation> Emitter : Emitters)
+	{
+		check(Emitter.IsValid());
+		if (Emitter->IsEnabled())
+		{
+			UNiagaraEmitterProperties* PinnedProps = Emitter->GetProperties().Get();
+			check(PinnedProps);
+			if (*PinnedProps->EmitterName == EmitterName)
+			{
+				return Emitter->GetDataSet(SetID);
+			}
+		}
+	}
+
+	return NULL;
 }

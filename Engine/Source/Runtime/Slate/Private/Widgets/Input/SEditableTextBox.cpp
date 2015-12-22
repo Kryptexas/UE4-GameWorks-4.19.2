@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 
@@ -51,12 +51,14 @@ void SEditableTextBox::Construct( const FArguments& InArgs )
 					.SelectAllTextWhenFocused( InArgs._SelectAllTextWhenFocused )
 					.RevertTextOnEscape( InArgs._RevertTextOnEscape )
 					.ClearKeyboardFocusOnCommit( InArgs._ClearKeyboardFocusOnCommit )
+					.AllowContextMenu( InArgs._AllowContextMenu )
 					.OnContextMenuOpening( InArgs._OnContextMenuOpening )
 					.OnTextChanged( InArgs._OnTextChanged )
 					.OnTextCommitted( InArgs._OnTextCommitted )
 					.MinDesiredWidth( InArgs._MinDesiredWidth )
 					.SelectAllTextOnCommit( InArgs._SelectAllTextOnCommit )
 					.OnKeyDownHandler( InArgs._OnKeyDownHandler )
+					.VirtualKeyboardType( InArgs._VirtualKeyboardType )
 				]
 			]
 		]
@@ -304,4 +306,9 @@ void SEditableTextBox::SetClearKeyboardFocusOnCommit(const TAttribute<bool>& InC
 void SEditableTextBox::SetSelectAllTextOnCommit(const TAttribute<bool>& InSelectAllTextOnCommit)
 {
 	EditableText->SetSelectAllTextOnCommit(InSelectAllTextOnCommit);
+}
+
+void SEditableTextBox::SetAllowContextMenu(TAttribute<bool> InAllowContextMenu)
+{
+	EditableText->SetAllowContextMenu(InAllowContextMenu);
 }

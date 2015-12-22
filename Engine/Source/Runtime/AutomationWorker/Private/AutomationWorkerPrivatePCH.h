@@ -1,6 +1,10 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "Core.h"
+
+DECLARE_LOG_CATEGORY_EXTERN(LogAutomationAnalytics, Log, All);
 
 #include "AutomationWorker.h"
 
@@ -22,3 +26,4 @@
  *****************************************************************************/
 
 #include "AutomationWorkerModule.h"
+#include "AutomationAnalytics.h"

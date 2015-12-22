@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -116,7 +116,7 @@ namespace AutomationTool
 		/// <returns>Changelist number as a string.</returns>
 		private static string DetectCurrentCL(P4Connection Connection, string ClientRootPath)
 		{
-			CommandUtils.Log("uebp_CL not set, detecting 'have' CL...");
+			CommandUtils.LogVerbose("uebp_CL not set, detecting 'have' CL...");
 
 			// Retrieve the current changelist 
 			var P4Result = Connection.P4("changes -m 1 " + CommandUtils.CombinePaths(PathSeparator.Depot, ClientRootPath, "/...#have"), AllowSpew: false);
@@ -140,6 +140,13 @@ namespace AutomationTool
 		/// <param name="ClientRootPath">Client root</param>
 		private static void DetectRootPaths(P4Connection Connection, string LocalRootPath, P4ClientInfo ThisClient, out string BuildRootPath, out string ClientRootPath)
 		{
+			if(!String.IsNullOrEmpty(ThisClient.Stream))
+			{
+				BuildRootPath = ThisClient.Stream;
+				ClientRootPath = String.Format("//{0}", ThisClient.Name);
+			}
+			else
+			{
 			// Figure out the build root
 			string KnownFilePathFromRoot = CommandEnvironment.KnownFileRelativeToRoot;
 			string KnownLocalPath = CommandUtils.MakePathSafeToUseWithCommandLine(CommandUtils.CombinePaths(PathSeparator.Slash, LocalRootPath, KnownFilePathFromRoot));
@@ -158,7 +165,7 @@ namespace AutomationTool
 			BuildRootPath = KnownFileDepotMapping.Substring(0, EndIdx - 1);
 
 			// Get the client root
-			if (LocalRootPath.StartsWith(CommandUtils.CombinePaths(PathSeparator.Slash, ThisClient.RootPath, "/"), StringComparison.InvariantCultureIgnoreCase) || LocalRootPath == ThisClient.RootPath)
+				if (LocalRootPath.StartsWith(CommandUtils.CombinePaths(PathSeparator.Slash, ThisClient.RootPath, "/"), StringComparison.InvariantCultureIgnoreCase) || LocalRootPath == CommandUtils.CombinePaths(PathSeparator.Slash, ThisClient.RootPath))
 			{
 				ClientRootPath = CommandUtils.CombinePaths(PathSeparator.Depot, String.Format("//{0}/", ThisClient.Name), LocalRootPath.Substring(ThisClient.RootPath.Length));
 			}
@@ -166,6 +173,7 @@ namespace AutomationTool
 			{
 				throw new AutomationException("LocalRootPath ({0}) does not start with the client root path ({1})", LocalRootPath, ThisClient.RootPath);
 			}
+		}
 		}
 
 		/// <summary>
@@ -177,7 +185,7 @@ namespace AutomationTool
 		/// <returns>Client to use.</returns>
 		private static P4ClientInfo DetectClient(P4Connection Connection, string UserName, string HostName, string UATLocation)
 		{
-			CommandUtils.Log("uebp_CLIENT not set, detecting current client...");
+			CommandUtils.LogVerbose("uebp_CLIENT not set, detecting current client...");
 
 			var MatchingClients = new List<P4ClientInfo>();
 			P4ClientInfo[] P4Clients = Connection.GetClientsForUser(UserName, UATLocation);

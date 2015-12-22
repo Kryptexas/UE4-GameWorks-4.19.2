@@ -1,16 +1,17 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "PropertyTrackEditor.h"
 #include "MovieSceneMarginTrack.h"
+#include "MovieSceneMarginSection.h"
 
 
 class UMovieSceneTrack;
 
 
 class FMarginTrackEditor
-	: public FPropertyTrackEditor<UMovieSceneMarginTrack, FMarginKey>
+	: public FPropertyTrackEditor<UMovieSceneMarginTrack, UMovieSceneMarginSection, FMarginKey>
 {
 public:
 
@@ -20,7 +21,7 @@ public:
 	 * @param InSequencer The sequencer instance to be used by this tool
 	 */
 	FMarginTrackEditor( TSharedRef<ISequencer> InSequencer )
-		: FPropertyTrackEditor<UMovieSceneMarginTrack, FMarginKey>( InSequencer, "Margin" )
+		: FPropertyTrackEditor<UMovieSceneMarginTrack, UMovieSceneMarginSection, FMarginKey>( InSequencer, "Margin" )
 	{ }
 
 	/** Virtual destructor. */
@@ -33,14 +34,17 @@ public:
 	 */
 	static TSharedRef<ISequencerTrackEditor> CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer );
 
-public:
-
-	// ISequencerTrackEditor interface
-
-	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track ) override;
-
 protected:
 
-	/** FPropertyTrackEditor Interface */
-	virtual bool TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, FMarginKey& OutKey ) override;
+	// FPropertyTrackEditor Interface
+
+	virtual TSharedRef<FPropertySection> MakePropertySectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track ) override;
+	virtual void GenerateKeysFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, TArray<FMarginKey>& NewGeneratedKeys, TArray<FMarginKey>& DefaultGeneratedKeys) override;
+
+private:
+
+	static FName LeftName;
+	static FName TopName;
+	static FName RightName;
+	static FName BottomName;
 };

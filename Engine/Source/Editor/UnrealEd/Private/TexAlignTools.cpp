@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TexAlignTools.cpp: Tools for aligning textures on surfaces
@@ -454,11 +454,14 @@ void FTexAlignTools::Init()
 {
 	// Create the list of aligners.
 	Aligners.Empty();
-	Aligners.Add(NewObject<UTexAlignerDefault>(GetTransientPackage(), NAME_None, RF_Public | RF_RootSet | RF_Standalone));
-	Aligners.Add(NewObject<UTexAlignerPlanar>(GetTransientPackage(), NAME_None, RF_Public | RF_RootSet | RF_Standalone));
-	Aligners.Add(NewObject<UTexAlignerBox>(GetTransientPackage(), NAME_None, RF_Public | RF_RootSet | RF_Standalone));
-	Aligners.Add(NewObject<UTexAlignerFit>(GetTransientPackage(), NAME_None, RF_Public | RF_RootSet | RF_Standalone));
-	
+	Aligners.Add(NewObject<UTexAlignerDefault>(GetTransientPackage(), NAME_None, RF_Public | RF_Standalone));
+	Aligners.Add(NewObject<UTexAlignerPlanar>(GetTransientPackage(), NAME_None, RF_Public | RF_Standalone));
+	Aligners.Add(NewObject<UTexAlignerBox>(GetTransientPackage(), NAME_None, RF_Public | RF_Standalone));
+	Aligners.Add(NewObject<UTexAlignerFit>(GetTransientPackage(), NAME_None, RF_Public | RF_Standalone));
+	for (UObject* Aligner : Aligners)
+	{
+		Aligner->AddToRoot();
+	}
 	FEditorDelegates::FitTextureToSurface.AddRaw(this, &FTexAlignTools::OnEditorFitTextureToSurface);
 }
 

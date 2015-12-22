@@ -1,8 +1,9 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "PrivatePCH.h"
-#include "RequiredProgramMainCPPInclude.h"
+
 #include "TestDirectoryWatcher.h"
+#include "RequiredProgramMainCPPInclude.h"
 
 DEFINE_LOG_CATEGORY(LogTestPAL);
 
@@ -243,8 +244,22 @@ int32 SysInfoTest(const TCHAR* CommandLine)
 	bool bIsRunningOnBattery = FPlatformMisc::IsRunningOnBattery();
 	UE_LOG(LogTestPAL, Display, TEXT("  FPlatformMisc::IsRunningOnBattery() = %s"), bIsRunningOnBattery ? TEXT("true") : TEXT("false"));
 
+	GenericApplication * PlatformApplication = FPlatformMisc::CreateApplication();
+	checkf(PlatformApplication, TEXT("Could not create platform application!"));
+	bool bIsMouseAttached = PlatformApplication->IsMouseAttached();
+	UE_LOG(LogTestPAL, Display, TEXT("  FPlatformMisc::IsMouseAttached() = %s"), bIsMouseAttached ? TEXT("true") : TEXT("false"));
+
 	FString OSInstanceGuid = FPlatformMisc::GetOperatingSystemId();
-	UE_LOG(LogTestPAL, Display, TEXT("  FPlatformMisc::GetOperatingSystemId() = %s"), *OSInstanceGuid);
+	UE_LOG(LogTestPAL, Display, TEXT("  FPlatformMisc::GetOperatingSystemId() = '%s'"), *OSInstanceGuid);
+
+	FString MacAddress = FPlatformMisc::GetMacAddressString();
+	UE_LOG(LogTestPAL, Display, TEXT("  FPlatformMisc::GetMacAddress() = '%s'"), *MacAddress);
+
+	FString UserDir = FPlatformProcess::UserDir();
+	UE_LOG(LogTestPAL, Display, TEXT("  FPlatformMisc::UserDir() = '%s'"), *UserDir);
+
+	FString ApplicationSettingsDir = FPlatformProcess::ApplicationSettingsDir();
+	UE_LOG(LogTestPAL, Display, TEXT("  FPlatformMisc::ApplicationSettingsDir() = '%s'"), *ApplicationSettingsDir);
 
 	FPlatformMemory::DumpStats(*GLog);
 
@@ -295,6 +310,28 @@ int32 CrashTest(const TCHAR* CommandLine)
 }
 
 /**
+ * String Precision test
+ */
+int32 StringPrecisionTest(const TCHAR* CommandLine)
+{
+	FPlatformMisc::SetCrashHandler(NULL);
+	FPlatformMisc::SetGracefulTerminationHandler();
+
+	GEngineLoop.PreInit(CommandLine);
+	UE_LOG(LogTestPAL, Display, TEXT("Running string precision test."));
+
+	const FString TestString(TEXT("TestString"));
+	int32 Indent = 15;
+	UE_LOG(LogTestPAL, Display, TEXT("%*s"), Indent, *TestString);
+	UE_LOG(LogTestPAL, Display, TEXT("Begining of the line %*s"), Indent, *TestString);
+	UE_LOG(LogTestPAL, Display, TEXT("%*s end of the line"), Indent, *TestString);
+
+	FEngineLoop::AppPreExit();
+	FEngineLoop::AppExit();
+	return 0;
+}
+
+/**
  * Selects and runs one of test cases.
  *
  * @param ArgC Number of commandline arguments.
@@ -337,6 +374,10 @@ int32 MultiplexedMain(int32 ArgC, char* ArgV[])
 		{
 			return CrashTest(*TestPAL::CommandLine);
 		}
+		else if (!FCStringAnsi::Strcmp(ArgV[IdxArg], ARG_STRINGPRECISION_TEST))
+		{
+			return StringPrecisionTest(*TestPAL::CommandLine);
+		}
 	}
 
 	FPlatformMisc::SetCrashHandler(NULL);
@@ -354,6 +395,7 @@ int32 MultiplexedMain(int32 ArgC, char* ArgV[])
 	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test per-thread singletons"), ANSI_TO_TCHAR( ARG_THREAD_SINGLETON_TEST ));
 	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test (some) system information"), ANSI_TO_TCHAR( ARG_SYSINFO_TEST ))
 	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test crash handling (pass '-logfatal' for testing Fatal logs)"), ANSI_TO_TCHAR( ARG_CRASH_TEST ))
+	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test passing %%*s in a format string"), ANSI_TO_TCHAR( ARG_STRINGPRECISION_TEST ))
 	UE_LOG(LogTestPAL, Warning, TEXT(""));
 	UE_LOG(LogTestPAL, Warning, TEXT("Pass one of those to run an appropriate test."));
 

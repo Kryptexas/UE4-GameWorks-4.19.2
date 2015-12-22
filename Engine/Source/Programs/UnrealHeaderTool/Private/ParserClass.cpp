@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealHeaderTool.h"
 #include "ParserClass.h"
@@ -85,4 +85,42 @@ void FClass::GetShowCategories(TArray<FString>& OutShowCategories) const
 		const FString& ShowCategories = GetMetaData(NAME_ShowCategories);
 		ShowCategories.ParseIntoArray(OutShowCategories, TEXT(" "), true);
 	}
+}
+
+bool FClass::IsDynamic(const UField* Field)
+{
+	static const FName NAME_ReplaceConverted(TEXT("ReplaceConverted"));
+	return Field->HasMetaData(NAME_ReplaceConverted);
+}
+
+bool FClass::IsOwnedByDynamicType(const UField* Field)
+{
+	for (const UField* OuterField = Cast<const UField>(Field->GetOuter()); OuterField; OuterField = Cast<const UField>(OuterField->GetOuter()))
+	{
+		if (IsDynamic(OuterField))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+FString FClass::GetTypePackageName(const UField* Field)
+{
+	static const FName NAME_ReplaceConverted(TEXT("ReplaceConverted"));
+	FString PackageName = Field->GetMetaData(NAME_ReplaceConverted);
+	if (PackageName.Len())
+	{
+		int32 ObjectDotIndex = INDEX_NONE;
+		// Strip the object name
+		if (PackageName.FindChar(TEXT('.'), ObjectDotIndex))
+		{
+			PackageName = PackageName.Mid(0, ObjectDotIndex);
+		}
+	}
+	else
+	{
+		PackageName = Field->GetOutermost()->GetName();
+	}
+	return PackageName;
 }

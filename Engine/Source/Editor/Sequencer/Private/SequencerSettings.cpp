@@ -1,17 +1,17 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
 
 USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
 {
-	bAutoKeyEnabled = false;
+	AutoKeyMode = EAutoKeyMode::KeyNone;
 	bKeyAllEnabled = false;
 	bKeyInterpPropertiesOnly = false;
-	KeyInterpolation = MSKI_Auto;
+	KeyInterpolation = EMovieSceneKeyInterpolation::Auto;
+	SpawnPosition = SSP_Origin;
 	bShowFrameNumbers = true;
 	bShowRangeSlider = false;
-	bLockInOutToStartEndRange = false;
 	bIsSnapEnabled = true;
 	TimeSnapInterval = .05f;
 	bSnapKeyTimesToInterval = true;
@@ -23,21 +23,25 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	CurveValueSnapInterval = 10.0f;
 	bSnapCurveValueToInterval = true;
 	bDetailsViewVisible = false;
+	bLabelBrowserVisible = false;
 	bAutoScrollEnabled = false;
 	bShowCurveEditor = false;
 	bShowCurveEditorCurveToolTips = true;
+	bLooping = false;
+	bKeepCursorInPlayRange = true;
+	bKeepPlayRangeInSectionBounds = true;
 }
 
-bool USequencerSettings::GetAutoKeyEnabled() const
+EAutoKeyMode USequencerSettings::GetAutoKeyMode() const
 {
-	return bAutoKeyEnabled;
+	return AutoKeyMode;
 }
 
-void USequencerSettings::SetAutoKeyEnabled(bool InbAutoKeyEnabled)
+void USequencerSettings::SetAutoKeyMode(EAutoKeyMode InAutoKeyMode)
 {
-	if ( bAutoKeyEnabled != InbAutoKeyEnabled )
+	if ( AutoKeyMode != InAutoKeyMode )
 	{
-		bAutoKeyEnabled = InbAutoKeyEnabled;
+		AutoKeyMode = InAutoKeyMode;
 		SaveConfig();
 	}
 }
@@ -84,6 +88,20 @@ void USequencerSettings::SetKeyInterpolation(EMovieSceneKeyInterpolation InKeyIn
 	}
 }
 
+ESequencerSpawnPosition USequencerSettings::GetSpawnPosition() const
+{
+	return SpawnPosition;
+}
+
+void USequencerSettings::SetSpawnPosition(ESequencerSpawnPosition InSpawnPosition)
+{
+	if ( SpawnPosition != InSpawnPosition)
+	{
+		SpawnPosition = InSpawnPosition;
+		SaveConfig();
+	}
+}
+
 bool USequencerSettings::GetShowFrameNumbers() const
 {
 	return bShowFrameNumbers;
@@ -108,20 +126,6 @@ void USequencerSettings::SetShowRangeSlider(bool InbShowRangeSlider)
 	if ( bShowRangeSlider != InbShowRangeSlider )
 	{
 		bShowRangeSlider = InbShowRangeSlider;
-		SaveConfig();
-	}
-}
-
-bool USequencerSettings::GetLockInOutToStartEndRange() const
-{
-	return bLockInOutToStartEndRange;
-}
-
-void USequencerSettings::SetLockInOutToStartEndRange(bool InbLockInOutToStartEndRange)
-{
-	if ( bLockInOutToStartEndRange != InbLockInOutToStartEndRange )
-	{
-		bLockInOutToStartEndRange = InbLockInOutToStartEndRange;
 		SaveConfig();
 	}
 }
@@ -271,11 +275,25 @@ bool USequencerSettings::GetDetailsViewVisible() const
 	return bDetailsViewVisible;
 }
 
-void USequencerSettings::SetDetailsViewVisible(bool InbDetailsViewVisible )
+void USequencerSettings::SetDetailsViewVisible(bool Visible)
 {
-	if (bDetailsViewVisible != InbDetailsViewVisible)
+	if (bDetailsViewVisible != Visible)
 	{
-		bDetailsViewVisible = InbDetailsViewVisible;
+		bDetailsViewVisible = Visible;
+		SaveConfig();
+	}
+}
+
+bool USequencerSettings::GetLabelBrowserVisible() const
+{
+	return bLabelBrowserVisible;
+}
+
+void USequencerSettings::SetLabelBrowserVisible(bool Visible)
+{
+	if (bLabelBrowserVisible != Visible)
+	{
+		bLabelBrowserVisible = Visible;
 		SaveConfig();
 	}
 }
@@ -306,6 +324,48 @@ void USequencerSettings::SetShowCurveEditor(bool InbShowCurveEditor)
 	{
 		bShowCurveEditor = InbShowCurveEditor;
 		OnShowCurveEditorChanged.Broadcast();
+		SaveConfig();
+	}
+}
+
+bool USequencerSettings::IsLooping() const
+{
+	return bLooping;
+}
+
+void USequencerSettings::SetLooping(bool bInLooping)
+{
+	if (bLooping != bInLooping)
+	{
+		bLooping = bInLooping;
+		SaveConfig();
+	}
+}
+
+bool USequencerSettings::ShouldKeepCursorInPlayRange() const
+{
+	return bKeepCursorInPlayRange;
+}
+
+void USequencerSettings::SetKeepCursorInPlayRange(bool bInKeepCursorInPlayRange)
+{
+	if (bKeepCursorInPlayRange != bInKeepCursorInPlayRange)
+	{
+		bKeepCursorInPlayRange = bInKeepCursorInPlayRange;
+		SaveConfig();
+	}
+}
+
+bool USequencerSettings::ShouldKeepPlayRangeInSectionBounds() const
+{
+	return bKeepPlayRangeInSectionBounds;
+}
+
+void USequencerSettings::SetKeepPlayRangeInSectionBounds(bool bInKeepPlayRangeInSectionBounds)
+{
+	if (bKeepPlayRangeInSectionBounds != bInKeepPlayRangeInSectionBounds)
+	{
+		bKeepPlayRangeInSectionBounds = bInKeepPlayRangeInSectionBounds;
 		SaveConfig();
 	}
 }
@@ -343,5 +403,5 @@ ULevelEditorSequencerSettings::ULevelEditorSequencerSettings( const FObjectIniti
 	bKeyInterpPropertiesOnly = true;
 	TimeSnapInterval = 0.033334f;
 	bShowRangeSlider = true;
-	bLockInOutToStartEndRange = true;
+	bKeepPlayRangeInSectionBounds = false;
 }

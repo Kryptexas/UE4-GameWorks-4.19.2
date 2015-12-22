@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "EdGraph/EdGraph.h"
@@ -96,6 +96,32 @@ void UEdGraph::PostInitProperties()
 	}
 }
 
+void UEdGraph::Serialize( FArchive& Ar )
+{
+	Super::Serialize(Ar);
+	// Keep track of RF_Public
+	if( Ar.IsTransacting() )
+	{
+		bool bIsPublic = HasAnyFlags(RF_Public);
+		if( Ar.IsLoading() )
+		{
+			Ar << bIsPublic;
+			if (bIsPublic)
+			{
+				SetFlags( RF_Public );
+			}
+			else
+			{
+				ClearFlags( RF_Public );
+			}
+		}
+		else if( Ar.IsSaving() )
+		{
+			Ar << bIsPublic;
+		}
+	}
+}
+
 void UEdGraph::PostLoad()
 {
 	Super::PostLoad();
@@ -106,7 +132,9 @@ void UEdGraph::PostLoad()
 		if (Nodes[i] == nullptr)
 		{
 			Nodes.RemoveAt(i);
-			UE_LOG(LogBlueprint, Warning, TEXT("Found NULL Node in EdGraph Nodes array. A node type may have been deleted without creating an ActiveClassRedictor to K2Node_DeadClass."));
+			UE_LOG(LogBlueprint, Display, 
+				TEXT("Missing node found in the EdGraph. We've fixed up the issue, but couldn't determine the cause. If you are able to figure out the cause, please notify the engine team; otherwise consider resaving the asset: '%s'"),
+				*GetOutermost()->GetName());
 		}
 	}
 }
@@ -131,7 +159,7 @@ void UEdGraph::RemoveOnGraphChangedHandler( FDelegateHandle Handle )
 	OnGraphChanged.Remove( Handle );
 }
 
-UEdGraphNode* UEdGraph::CreateNode( TSubclassOf<UEdGraphNode> NewNodeClass, bool bSelectNewNode/* = true*/ )
+UEdGraphNode* UEdGraph::CreateNode( TSubclassOf<UEdGraphNode> NewNodeClass, bool bFromUI, bool bSelectNewNode )
 {
 	UEdGraphNode* NewNode = NewObject<UEdGraphNode>(this, NewNodeClass, NAME_None, RF_Transactional);
 
@@ -140,7 +168,7 @@ UEdGraphNode* UEdGraph::CreateNode( TSubclassOf<UEdGraphNode> NewNodeClass, bool
 		NewNode->SetFlags(RF_Transient);
 	}
 
-	AddNode(NewNode, false, bSelectNewNode );
+	AddNode(NewNode, bFromUI, bSelectNewNode );
 	return NewNode;
 }
 
@@ -213,8 +241,28 @@ void UEdGraph::MoveNodesToAnotherGraph(UEdGraph* DestinationGraph, bool bIsLoadi
 		{
 #if WITH_EDITOR
 			// During compilation, do not move ghost nodes, they are not used during compilation.
-			if (bInIsCompiling && !Node->bIsNodeEnabled)
+			if (bInIsCompiling && !Node->IsNodeEnabled())
 			{
+				// Pass existing connections through non-enabled nodes
+				for (auto Pin : Node->Pins)
+				{
+					if (Pin->Direction == EGPD_Input && Pin->LinkedTo.Num() > 0)
+					{
+						UEdGraphPin* PassThroughPin = Node->GetPassThroughPin(Pin);
+						if (PassThroughPin != nullptr && PassThroughPin->LinkedTo.Num() > 0)
+						{
+							for (auto OutputPin : Pin->LinkedTo)
+							{
+								for (auto InputPin : PassThroughPin->LinkedTo)
+								{
+									InputPin->LinkedTo.Add(OutputPin);
+									OutputPin->LinkedTo.Add(InputPin);
+								}
+							}
+						}
+					}
+				}
+
 				// Break all node links, if any exist, do not move the node
 				Node->BreakAllNodeLinks();
 				continue;
@@ -257,14 +305,17 @@ FVector2D UEdGraph::GetGoodPlaceForNewNode()
 	if(Nodes.Num() > 0)
 	{
 		UEdGraphNode* Node = Nodes[0];
-		BottomLeft = FVector2D(Node->NodePosX, Node->NodePosY);
-		for(int32 i=1; i<Nodes.Num(); i++)
+		if (Node)
 		{
-			Node = Nodes[i];
-			if ( Node )
+			BottomLeft = FVector2D(Node->NodePosX, Node->NodePosY);
+			for (int32 i = 1; i < Nodes.Num(); i++)
 			{
-				BottomLeft.X = FMath::Min<float>(BottomLeft.X, Node->NodePosX);
-				BottomLeft.Y = FMath::Max<float>(BottomLeft.Y, Node->NodePosY);
+				Node = Nodes[i];
+				if (Node)
+				{
+					BottomLeft.X = FMath::Min<float>(BottomLeft.X, Node->NodePosX);
+					BottomLeft.Y = FMath::Max<float>(BottomLeft.Y, Node->NodePosY);
+				}
 			}
 		}
 	}

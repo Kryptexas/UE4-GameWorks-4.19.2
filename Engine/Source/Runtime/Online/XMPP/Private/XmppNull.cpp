@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "XmppPrivatePCH.h"
 #include "XmppNull.h"
@@ -19,7 +19,7 @@ public:
 	virtual void Login(const FString& UserId, const FString& Auth) override
 	{
 		UserJid.Id = UserId;
-		OnLoginComplete().Broadcast(UserJid, false, TEXT("not implemented"));
+		OnLoginComplete().Broadcast(UserJid, false, TEXT("not implemented"));	
 	}
 	virtual void Logout() override
 	{

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2653552
 Availability: Public
 Title:1.6 - 독립 반투명
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
@@ -15,6 +15,23 @@ Related: Engine/Rendering/Materials/MaterialInstances
 Related: Engine/Actors/DecalActor
 Related: Engine/Rendering/Materials/MaterialProperties
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 예제](Resources/ContentExamples/MaterialProperties/1_5 "%Resources/ContentExamples/MaterialProperties/1_5:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[콘텐츠 예제 홈](Resources/ContentExamples)
+	[/PARAM]
+	[PARAM:next]
+		[다음 예제](Resources/ContentExamples/MaterialProperties/1_7 "%Resources/ContentExamples/MaterialProperties/1_7:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]

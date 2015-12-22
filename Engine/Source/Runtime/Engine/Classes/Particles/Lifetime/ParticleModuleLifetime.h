@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -30,10 +30,10 @@ class UParticleModuleLifetime : public UParticleModuleLifetimeBase
 	virtual void SetToSensibleDefaults(UParticleEmitter* Owner) override;
 	//End UParticleModule Interface
 
-	// Begin UParticleModuleLifetimeBase Interface
+	//~ Begin UParticleModuleLifetimeBase Interface
 	virtual float GetMaxLifetime() override;
 	virtual float GetLifetimeValue(FParticleEmitterInstance* Owner, float InTime, UObject* Data = NULL) override;
-	// End UParticleModuleLifetimeBase Interface
+	//~ End UParticleModuleLifetimeBase Interface
 
 	/**
 	 *	Extended version of spawn, allows for using a random stream for distribution value retrieval

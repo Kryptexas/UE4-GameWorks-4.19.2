@@ -1,9 +1,13 @@
-﻿using System;
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml;
+using AutomationTool;
 using UnrealBuildTool;
 
 namespace AutomationTool
@@ -26,7 +30,7 @@ namespace AutomationTool
 			}
 			else
 			{
-				CommandUtils.ERunOptions Opts = CommandUtils.ERunOptions.Default;
+				CommandUtils.ERunOptions Opts = CommandUtils.ERunOptions.Default | CommandUtils.ERunOptions.SpewIsVerbose;
 				if (bQuiet)
 				{
 					Opts = (Opts & ~CommandUtils.ERunOptions.AllowSpew) | CommandUtils.ERunOptions.NoLoggingOfRunCommand;
@@ -35,11 +39,108 @@ namespace AutomationTool
 			}
 		}
 
-		static void WriteECPerl(List<string> Args)
+		enum JobStepExclusiveMode
 		{
-			Args.Add("$batch->submit();");
+			None,
+			Call,
+		}
+
+		enum JobStepReleaseMode
+		{
+			Keep,
+			Release,
+		}
+
+		[DebuggerDisplay("{Name}")]
+		class JobStep
+		{
+			public string ParentPath;
+			public string Name;
+			public string SubProcedure;
+			public bool Parallel;
+			public string PreCondition;
+			public string RunCondition;
+			public JobStepExclusiveMode Exclusive;
+			public string ResourceName;
+			public Dictionary<string, string> ActualParameters = new Dictionary<string, string>();
+			public JobStepReleaseMode ReleaseMode;
+
+			public JobStep(string InParentPath, string InName, string InSubProcedure, bool InParallel, string InPreCondition, string InRunCondition, JobStepReleaseMode InReleaseMode)
+			{
+				ParentPath = InParentPath;
+				Name = InName;
+				SubProcedure = InSubProcedure;
+				Parallel = InParallel;
+				PreCondition = InPreCondition;
+				RunCondition = InRunCondition;
+				ReleaseMode = InReleaseMode;
+			}
+
+			public string GetCreationStatement()
+			{
+				StringBuilder Args = new StringBuilder();
+				Args.Append("$batch->createJobStep({");
+				Args.AppendFormat("parentPath => '{0}'", ParentPath);
+				if (!String.IsNullOrEmpty(Name))
+				{
+					Args.AppendFormat(", jobStepName => '{0}'", Name);
+				}
+				if(!String.IsNullOrEmpty(SubProcedure))
+				{
+					Args.AppendFormat(", subprocedure => '{0}'", SubProcedure);
+				}
+				Args.AppendFormat(", parallel => '{0}'", Parallel ? 1 : 0);
+				if (Exclusive != JobStepExclusiveMode.None)
+				{
+					Args.AppendFormat(", exclusiveMode => '{0}'", Exclusive.ToString().ToLower());
+				}
+				if (!String.IsNullOrEmpty(ResourceName))
+				{
+					Args.AppendFormat(", resourceName => '{0}'", ResourceName);
+				}
+				if (ActualParameters.Count > 0)
+				{
+					Args.AppendFormat(", actualParameter => [{0}]", String.Join(", ", ActualParameters.Select(x => String.Format("{{actualParameterName => '{0}', value => '{1}'}}", x.Key, x.Value))));
+				}
+				if (!String.IsNullOrEmpty(PreCondition))
+				{
+					Args.AppendFormat(", precondition => {0}", PreCondition);
+				}
+				if (!String.IsNullOrEmpty(RunCondition))
+				{
+					Args.AppendFormat(", condition => {0}", RunCondition);
+				}
+				if (ReleaseMode == JobStepReleaseMode.Release)
+				{
+					Args.Append(", releaseMode => 'release'");
+				}
+				Args.Append("});");
+				return Args.ToString();
+			}
+
+			public string GetCompletedCondition()
+			{
+				return String.Format("\"\\$\" . \"[/javascript if(getProperty('{0}/jobSteps[{1}]/status') == 'completed') true;]\"", ParentPath, Name);
+			}
+		}
+
+		static void WriteECPerl(List<JobStep> Steps)
+		{
+			List<string> Lines = new List<string>();
+			Lines.Add("use strict;");
+			Lines.Add("use diagnostics;");
+			Lines.Add("use ElectricCommander();");
+			Lines.Add("my $ec = new ElectricCommander;");
+			Lines.Add("$ec->setTimeout(600);");
+			Lines.Add("my $batch = $ec->newBatch(\"serial\");");
+			foreach (JobStep Step in Steps)
+			{
+				Lines.Add(Step.GetCreationStatement());
+			}
+			Lines.Add("$batch->submit();");
+
 			string ECPerlFile = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LogFolder, "jobsteps.pl");
-			CommandUtils.WriteAllLines_NoExceptions(ECPerlFile, Args.ToArray());
+			CommandUtils.WriteAllLines_NoExceptions(ECPerlFile, Lines.ToArray());
 		}
 
 		string GetPropertyFromStep(string PropertyPath)
@@ -93,8 +194,8 @@ namespace AutomationTool
 			}
 			catch (Exception Ex)
 			{
-				CommandUtils.Log(System.Diagnostics.TraceEventType.Warning, "Failed to UpdateECProps.");
-				CommandUtils.Log(System.Diagnostics.TraceEventType.Warning, LogUtils.FormatException(Ex));
+				CommandUtils.LogWarning("Failed to UpdateECProps.");
+				CommandUtils.LogWarning(LogUtils.FormatException(Ex));
 			}
 		}
 		public void UpdateECBuildTime(BuildNode NodeToDo, double BuildDuration)
@@ -107,14 +208,14 @@ namespace AutomationTool
 			}
 			catch (Exception Ex)
 			{
-				CommandUtils.Log(System.Diagnostics.TraceEventType.Warning, "Failed to UpdateECBuildTime.");
-				CommandUtils.Log(System.Diagnostics.TraceEventType.Warning, LogUtils.FormatException(Ex));
+				CommandUtils.LogWarning("Failed to UpdateECBuildTime.");
+				CommandUtils.LogWarning(LogUtils.FormatException(Ex));
 			}
 		}
 
-		public void SaveStatus(BuildNode NodeToDo, string Suffix, string NodeStoreName, bool bSaveSharedTempStorage, string GameNameIfAny, string JobStepIDForFailure = null)
+        public void SaveStatus(TempStorageNodeInfo TempStorageNodeInfo, bool bSaveSharedTempStorage, string JobStepIDForFailure = null)
 		{
-			string Contents = "Just a status record: " + Suffix;
+			string Contents = "Just a status record: " + TempStorageNodeInfo.NodeStorageName;
 			if (!String.IsNullOrEmpty(JobStepIDForFailure) && CommandUtils.IsBuildMachine)
 			{
 				try
@@ -123,14 +224,14 @@ namespace AutomationTool
 				}
 				catch (Exception Ex)
 				{
-					CommandUtils.Log(System.Diagnostics.TraceEventType.Warning, "Failed to get properties for jobstep to save them.");
-					CommandUtils.Log(System.Diagnostics.TraceEventType.Warning, LogUtils.FormatException(Ex));
+					CommandUtils.LogWarning("Failed to get properties for jobstep to save them.");
+					CommandUtils.LogWarning(LogUtils.FormatException(Ex));
 				}
 			}
-			string RecordOfSuccess = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Saved", "Logs", NodeToDo.Name + Suffix +".log");
+			string RecordOfSuccess = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Saved", "Logs", TempStorageNodeInfo.NodeStorageName +".log");
 			CommandUtils.CreateDirectory(Path.GetDirectoryName(RecordOfSuccess));
-			CommandUtils.WriteAllText(RecordOfSuccess, Contents);		
-			TempStorage.StoreToTempStorage(CommandUtils.CmdEnv, NodeStoreName + Suffix, new List<string> { RecordOfSuccess }, !bSaveSharedTempStorage, GameNameIfAny);		
+			CommandUtils.WriteAllText(RecordOfSuccess, Contents);
+            TempStorage.StoreToTempStorage(TempStorageNodeInfo, new List<string> { RecordOfSuccess }, !bSaveSharedTempStorage, CommandUtils.CmdEnv.LocalRoot);		
 		}
 
 		public void UpdateEmailProperties(BuildNode NodeToDo, int LastSucceededCL, string FailedString, string FailCauserEMails, string EMailNote, bool SendSuccessForGreenAfterRed)
@@ -157,49 +258,18 @@ namespace AutomationTool
 			}
 		}
 
-		public void DoCommanderSetup(IEnumerable<BuildNode> AllNodes, IEnumerable<AggregateNode> AllAggregates, List<BuildNode> OrdereredToDo, List<BuildNode> SortedNodes, int TimeIndex, int TimeQuantum, bool bSkipTriggers, bool bFake, bool bFakeEC, string CLString, TriggerNode ExplicitTrigger, List<TriggerNode> UnfinishedTriggers, string FakeFail)
+        public void DoCommanderSetup(IEnumerable<BuildNode> AllNodes, IEnumerable<AggregateNode> AllAggregates, List<BuildNode> OrderedToDo, List<BuildNode> SortedNodes, int TimeIndex, int TimeQuantum, bool bSkipTriggers, bool bFake, bool bFakeEC, TriggerNode ExplicitTrigger, List<TriggerNode> UnfinishedTriggers)
 		{
-			List<AggregateNode> SeparatePromotables = FindPromotables(AllAggregates);
-			Dictionary<BuildNode, List<AggregateNode>> DependentPromotions = FindDependentPromotables(AllNodes, SeparatePromotables);
-
-			Dictionary<BuildNode, int> FullNodeListSortKey = GetDisplayOrder(SortedNodes);
-
-			if (OrdereredToDo.Count == 0)
+			// Check there's some nodes in the graph
+			if (OrderedToDo.Count == 0)
 			{
 				throw new AutomationException("No nodes to do!");
 			}
-			List<string> ECProps = new List<string>();
-			ECProps.Add(String.Format("TimeIndex={0}", TimeIndex));
-			foreach (BuildNode Node in SortedNodes.Where(x => x.FrequencyShift != BuildNode.ExplicitFrequencyShift))
-			{
-				ECProps.Add(string.Format("AllNodes/{0}={1}", Node.Name, GetNodeForAllNodesProperty(Node, TimeQuantum)));
-			}
-			foreach (KeyValuePair<BuildNode, int> NodePair in FullNodeListSortKey.Where(x => x.Key.FrequencyShift != BuildNode.ExplicitFrequencyShift))
-			{
-				ECProps.Add(string.Format("SortKey/{0}={1}", NodePair.Key.Name, NodePair.Value));
-			}
-			foreach (KeyValuePair<BuildNode, List<AggregateNode>> NodePair in DependentPromotions)
-			{
-				ECProps.Add(string.Format("DependentPromotions/{0}={1}", NodePair.Key.Name, String.Join(" ", NodePair.Value.Select(x => x.Name))));
-			}
-			foreach (AggregateNode Node in SeparatePromotables)
-			{
-				ECProps.Add(string.Format("PossiblePromotables/{0}={1}", Node.Name, ""));
-			}
-			List<string> ECJobProps = new List<string>();
-			if (ExplicitTrigger != null)
-			{
-				ECJobProps.Add("IsRoot=0");
-			}
-			else
-			{
-				ECJobProps.Add("IsRoot=1");
-			}
 
-			// here we are just making sure everything before the explicit trigger is completed.
+			// Make sure everything before the explicit trigger is completed.
 			if (ExplicitTrigger != null)
 			{
-				foreach (BuildNode NodeToDo in OrdereredToDo)
+				foreach (BuildNode NodeToDo in OrderedToDo)
 				{
 					if (!NodeToDo.IsComplete && NodeToDo != ExplicitTrigger && !NodeToDo.DependsOn(ExplicitTrigger)) // if something is already finished, we don't put it into EC
 					{
@@ -208,18 +278,176 @@ namespace AutomationTool
 				}
 			}
 
+			// Update all the EC properties, and the branch definition files
+			WriteProperties(AllNodes, AllAggregates, OrderedToDo, SortedNodes, TimeIndex, TimeQuantum);
+
+			// Write all the job setup
+			WriteJobSteps(OrderedToDo, bSkipTriggers);
+
+			// Export it as JSON too
+			WriteJson(OrderedToDo, bSkipTriggers);
+		}
+
+		private void WriteProperties(IEnumerable<BuildNode> AllNodes, IEnumerable<AggregateNode> AllAggregates, List<BuildNode> OrderedToDo, List<BuildNode> SortedNodes, int TimeIndex, int TimeQuantum)
+		{
+			Dictionary<BuildNode, int> FullNodeListSortKey = GetDisplayOrder(SortedNodes);
+
+			List<string> ECProps = new List<string>();
+			ECProps.Add(String.Format("TimeIndex={0}", TimeIndex));
+			foreach (BuildNode Node in SortedNodes.Where(x => x.FrequencyShift != BuildNode.ExplicitFrequencyShift))
+			{
+				ECProps.Add(string.Format("AllNodes/{0}={1}", Node.Name, GetNodeForAllNodesProperty(Node, TimeQuantum)));
+			}
+			foreach (KeyValuePair<BuildNode, int> NodePair in FullNodeListSortKey.Where(x => x.Key.ControllingTriggers.Length == 0 && x.Key.FrequencyShift != BuildNode.ExplicitFrequencyShift))
+			{
+				ECProps.Add(string.Format("SortKey/{0}={1}", NodePair.Key.Name, NodePair.Value));
+			}
+
+			foreach (BuildNode NodeToDo in OrderedToDo)
+			{
+				if (!NodeToDo.IsComplete) // if something is already finished, we don't put it into EC  
+				{
+					List<string> NodeProps = GetECPropsForNode(NodeToDo);
+					ECProps.AddRange(NodeProps);
+				}
+			}
+
+			ECProps.Add("GUBP_LoadedProps=1");
+			string BranchDefFile = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LogFolder, "BranchDef.properties");
+			CommandUtils.WriteAllLines(BranchDefFile, ECProps.ToArray());
+			RunECTool(String.Format("setProperty \"/myWorkflow/BranchDefFile\" \"{0}\"", BranchDefFile.Replace("\\", "\\\\")));
+
+			ECProps.Add("GUBP_LoadedJobProps=1");
+			string BranchJobDefFile = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LogFolder, "BranchJobDef.properties");
+			CommandUtils.WriteAllLines(BranchJobDefFile, ECProps.ToArray());
+			RunECTool(String.Format("setProperty \"/myJob/BranchJobDefFile\" \"{0}\"", BranchJobDefFile.Replace("\\", "\\\\")));
+
+			bool bHasTests = OrderedToDo.Any(x => x.IsTest);
+			RunECTool(String.Format("setProperty \"/myWorkflow/HasTests\" \"{0}\"", bHasTests));
+		}
+
+		private static string GetAgentGroupOrSticky(BuildNode NodeToDo)
+		{
+			string AgentGroup = NodeToDo.AgentSharingGroup;
+			if (NodeToDo.IsSticky)
+			{
+				if (NodeToDo.AgentSharingGroup != "")
+				{
+					throw new AutomationException("Node {0} is both agent sharing and sitcky.", NodeToDo.Name);
+				}
+				if (NodeToDo.AgentPlatform != UnrealTargetPlatform.Win64)
+				{
+					throw new AutomationException("Node {0} is sticky, but {1} hosted. Sticky nodes must be PC hosted.", NodeToDo.Name, NodeToDo.AgentPlatform);
+				}
+				if (NodeToDo.AgentRequirements != "")
+				{
+					throw new AutomationException("Node {0} is sticky but has agent requirements.", NodeToDo.Name);
+				}
+				AgentGroup = "Sticky";
+			}
+			return AgentGroup;
+		}
+
+		private void WriteJson(List<BuildNode> OrderedToDo, bool bSkipTriggers)
+		{
+			using(JsonWriter JsonWriter = new JsonWriter(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LogFolder, "JobSteps.json")))
+			{
+				JsonWriter.WriteObjectStart();
+				JsonWriter.WriteArrayStart("JobSteps");
+
+				string CurrentAgentGroup = "";
+				foreach (BuildNode NodeToDo in OrderedToDo)
+				{
+					if (!NodeToDo.IsComplete) // if something is already finished, we don't put it into EC  
+					{
+						// Write the agent group object
+						string AgentGroup = GetAgentGroupOrSticky(NodeToDo);
+						if(AgentGroup != CurrentAgentGroup)
+						{
+							if(CurrentAgentGroup != "")
+							{
+								JsonWriter.WriteArrayEnd();
+								JsonWriter.WriteObjectEnd();
+							}
+							CurrentAgentGroup = AgentGroup;
+							if(CurrentAgentGroup != "")
+							{
+								JsonWriter.WriteObjectStart();
+								JsonWriter.WriteValue("Group", AgentGroup);
+								JsonWriter.WriteValue("AgentPlatform", NodeToDo.AgentPlatform.ToString());
+								JsonWriter.WriteArrayStart("JobSteps");
+							}
+						}
+
+						// Add this node
+						JsonWriter.WriteObjectStart();
+						JsonWriter.WriteValue("Node", NodeToDo.Name);
+						if(CurrentAgentGroup == "")
+						{
+							JsonWriter.WriteValue("AgentPlatform", NodeToDo.AgentPlatform.ToString());
+						}
+						if(!String.IsNullOrEmpty(NodeToDo.AgentRequirements))
+						{
+							JsonWriter.WriteValue("AgentRequirements", NodeToDo.AgentRequirements);
+						}
+
+						// Write all the dependencies
+						StringBuilder DependsOnList = new StringBuilder();
+						foreach (BuildNode Dep in FindDirectOrderDependencies(NodeToDo))
+						{
+							if (!Dep.IsComplete && OrderedToDo.Contains(Dep)) // if something is already finished, we don't put it into EC
+							{
+								if (OrderedToDo.IndexOf(Dep) > OrderedToDo.IndexOf(NodeToDo))
+								{
+									throw new AutomationException("Topological sort error, node {0} has a dependency of {1} which sorted after it.", NodeToDo.Name, Dep.Name);
+								}
+								if(DependsOnList.Length > 0)
+								{
+									DependsOnList.Append(";");
+								}
+								string DepAgentGroup = GetAgentGroupOrSticky(Dep);
+								if(DepAgentGroup != "")
+								{
+									DependsOnList.AppendFormat("{0}/", DepAgentGroup);
+								}
+								DependsOnList.Append(Dep.Name);
+							}
+						}
+						JsonWriter.WriteValue("DependsOn", DependsOnList.ToString());
+
+						// Add any trigger-specific settings
+						TriggerNode TriggerNodeToDo = NodeToDo as TriggerNode;
+						if (TriggerNodeToDo != null && !TriggerNodeToDo.IsTriggered)
+						{
+							JsonWriter.WriteValue("TriggerState", TriggerNodeToDo.StateName);
+							JsonWriter.WriteValue("TriggerActionText", TriggerNodeToDo.ActionText);
+							JsonWriter.WriteValue("TriggerDescriptionText", TriggerNodeToDo.DescriptionText);
+							if (NodeToDo.RecipientsForFailureEmails.Length > 0)
+							{
+								JsonWriter.WriteValue("TriggerEmailRecipients", String.Join(" ", NodeToDo.RecipientsForFailureEmails));
+							}
+						}
+
+						JsonWriter.WriteObjectEnd();
+					}
+				}
+				if(CurrentAgentGroup != "")
+				{
+					JsonWriter.WriteArrayEnd();
+					JsonWriter.WriteObjectEnd();
+				}
+				JsonWriter.WriteArrayEnd();
+				JsonWriter.WriteObjectEnd();
+			}
+		}
+
+		private void WriteJobSteps(List<BuildNode> OrderedToDo, bool bSkipTriggers)
+		{
 			BuildNode LastSticky = null;
 			bool HitNonSticky = false;
 			bool bHaveECNodes = false;
-			List<string> StepList = new List<string>();
-			StepList.Add("use strict;");
-			StepList.Add("use diagnostics;");
-			StepList.Add("use ElectricCommander();");
-			StepList.Add("my $ec = new ElectricCommander;");
-			StepList.Add("$ec->setTimeout(600);");
-			StepList.Add("my $batch = $ec->newBatch(\"serial\");");
 			// sticky nodes are ones that we run on the main agent. We run then first and they must not be intermixed with parallel jobs
-			foreach (BuildNode NodeToDo in OrdereredToDo)
+			foreach (BuildNode NodeToDo in OrderedToDo)
 			{
 				if (!NodeToDo.IsComplete) // if something is already finished, we don't put it into EC
 				{
@@ -239,23 +467,26 @@ namespace AutomationTool
 				}
 			}
 
-			using(CommandUtils.TelemetryStopwatch PerlOutputStopwatch = new CommandUtils.TelemetryStopwatch("PerlOutput"))
+			List<JobStep> Steps = new List<JobStep>();
+			using (TelemetryStopwatch PerlOutputStopwatch = new TelemetryStopwatch("PerlOutput"))
 			{
 				string ParentPath = Command.ParseParamValue("ParentPath");
-				string BaseArgs = String.Format("$batch->createJobStep({{parentPath => '{0}'", ParentPath);
 
 				bool bHasNoop = false;
 				if (LastSticky == null && bHaveECNodes)
 				{
 					// if we don't have any sticky nodes and we have other nodes, we run a fake noop just to release the resource 
-					string Args = String.Format("{0}, subprocedure => 'GUBP_UAT_Node', parallel => '0', jobStepName => 'Noop', actualParameter => [{{actualParameterName => 'NodeName', value => 'Noop'}}, {{actualParameterName => 'Sticky', value =>'1' }}], releaseMode => 'release'}});", BaseArgs);
-					StepList.Add(Args);
+					JobStep NoopStep = new JobStep(ParentPath, "Noop", "GUBP_UAT_Node", false, null, null, JobStepReleaseMode.Release);
+					NoopStep.ActualParameters.Add("NodeName", "Noop");
+					NoopStep.ActualParameters.Add("Sticky", "1");
+					Steps.Add(NoopStep);
+
 					bHasNoop = true;
 				}
 
 				Dictionary<string, List<BuildNode>> AgentGroupChains = new Dictionary<string, List<BuildNode>>();
 				List<BuildNode> StickyChain = new List<BuildNode>();
-				foreach (BuildNode NodeToDo in OrdereredToDo)
+				foreach (BuildNode NodeToDo in OrderedToDo)
 				{
 					if (!NodeToDo.IsComplete) // if something is already finished, we don't put it into EC  
 					{
@@ -280,241 +511,170 @@ namespace AutomationTool
 						}
 					}
 				}
-				foreach (BuildNode NodeToDo in OrdereredToDo)
+				foreach (BuildNode NodeToDo in OrderedToDo)
 				{
 					if (!NodeToDo.IsComplete) // if something is already finished, we don't put it into EC  
 					{
-						List<string> NodeProps = GetECPropsForNode(NodeToDo);
-						ECProps.AddRange(NodeProps);
-
 						bool Sticky = NodeToDo.IsSticky;
-						if(NodeToDo.IsSticky)
+						if (NodeToDo.IsSticky)
 						{
-							if(NodeToDo.AgentSharingGroup != "")
+							if (NodeToDo.AgentSharingGroup != "")
 							{
 								throw new AutomationException("Node {0} is both agent sharing and sitcky.", NodeToDo.Name);
 							}
-							if(NodeToDo.AgentPlatform != UnrealTargetPlatform.Win64)
+							if (NodeToDo.AgentPlatform != UnrealTargetPlatform.Win64)
 							{
 								throw new AutomationException("Node {0} is sticky, but {1} hosted. Sticky nodes must be PC hosted.", NodeToDo.Name, NodeToDo.AgentPlatform);
 							}
-							if(NodeToDo.AgentRequirements != "")
+							if (NodeToDo.AgentRequirements != "")
 							{
 								throw new AutomationException("Node {0} is sticky but has agent requirements.", NodeToDo.Name);
 							}
 						}
 
 						string ProcedureInfix = "";
-						if(NodeToDo.AgentPlatform != UnrealTargetPlatform.Unknown && NodeToDo.AgentPlatform != UnrealTargetPlatform.Win64)
+						if (NodeToDo.AgentPlatform != UnrealTargetPlatform.Unknown && NodeToDo.AgentPlatform != UnrealTargetPlatform.Win64)
 						{
 							ProcedureInfix = "_" + NodeToDo.AgentPlatform.ToString();
 						}
 
 						bool DoParallel = !Sticky || NodeToDo.IsParallelAgentShareEditor;
-						
-						TriggerNode TriggerNodeToDo = NodeToDo as TriggerNode;
 
-						List<Tuple<string, string>> Parameters = new List<Tuple<string,string>>();
-
-						Parameters.Add(new Tuple<string, string>("NodeName", NodeToDo.Name));
-						Parameters.Add(new Tuple<string, string>("Sticky", NodeToDo.IsSticky ? "1" : "0"));
-
-						if (NodeToDo.AgentSharingGroup != "")
+						List<BuildNode> UncompletedEcDeps = new List<BuildNode>();
+						foreach (BuildNode Dep in FindDirectOrderDependencies(NodeToDo))
 						{
-							Parameters.Add(new Tuple<string, string>("AgentSharingGroup", NodeToDo.AgentSharingGroup));
+							if (!Dep.IsComplete && OrderedToDo.Contains(Dep)) // if something is already finished, we don't put it into EC
+							{
+								if (OrderedToDo.IndexOf(Dep) > OrderedToDo.IndexOf(NodeToDo))
+								{
+									throw new AutomationException("Topological sort error, node {0} has a dependency of {1} which sorted after it.", NodeToDo.Name, Dep.Name);
+								}
+								UncompletedEcDeps.Add(Dep);
+							}
 						}
 
-						string Procedure;
-						if(TriggerNodeToDo == null || TriggerNodeToDo.IsTriggered)
+						string PreCondition = GetPreConditionForNode(OrderedToDo, ParentPath, bHasNoop, AgentGroupChains, StickyChain, NodeToDo, UncompletedEcDeps);
+						string RunCondition = GetRunConditionForNode(UncompletedEcDeps, ParentPath);
+
+						// Create the job steps for this node
+						TriggerNode TriggerNodeToDo = NodeToDo as TriggerNode;
+						if (TriggerNodeToDo == null)
 						{
+							// Create the jobs to setup the agent sharing group if necessary
+							string NodeParentPath = ParentPath;
+							if (NodeToDo.AgentSharingGroup != "")
+							{
+								NodeParentPath = String.Format("{0}/jobSteps[{1}]", NodeParentPath, NodeToDo.AgentSharingGroup);
+
+								List<BuildNode> MyChain = AgentGroupChains[NodeToDo.AgentSharingGroup];
+								if (MyChain.IndexOf(NodeToDo) <= 0)
+								{
+									// Create the parent job step for this group
+									JobStep ParentStep = new JobStep(ParentPath, NodeToDo.AgentSharingGroup, null, true, PreCondition, null, JobStepReleaseMode.Keep);
+									Steps.Add(ParentStep);
+
+									// Get the resource pool
+									JobStep GetPoolStep = new JobStep(NodeParentPath, String.Format("{0}_GetPool", NodeToDo.AgentSharingGroup), String.Format("GUBP{0}_AgentShare_GetPool", ProcedureInfix), true, PreCondition, null, JobStepReleaseMode.Keep);
+									GetPoolStep.ActualParameters.Add("AgentSharingGroup", NodeToDo.AgentSharingGroup);
+									GetPoolStep.ActualParameters.Add("NodeName", NodeToDo.Name);
+									Steps.Add(GetPoolStep);
+
+									// Get the agent for this sharing group
+									JobStep GetAgentStep = new JobStep(NodeParentPath, String.Format("{0}_GetAgent", NodeToDo.AgentSharingGroup), String.Format("GUBP{0}_AgentShare_GetAgent", ProcedureInfix), true, GetPoolStep.GetCompletedCondition(), null, JobStepReleaseMode.Keep);
+									GetAgentStep.Exclusive = JobStepExclusiveMode.Call;
+									GetAgentStep.ResourceName = String.Format("$[/myJob/jobSteps[{0}]/ResourcePool]", NodeToDo.AgentSharingGroup);
+									GetAgentStep.ActualParameters.Add("AgentSharingGroup", NodeToDo.AgentSharingGroup);
+									GetAgentStep.ActualParameters.Add("NodeName", NodeToDo.Name);
+									Steps.Add(GetAgentStep);
+
+									// Set the precondition from this point onwards to be whether the group was set up, since it can't succeed unless the original precondition succeeded
+									PreCondition = GetAgentStep.GetCompletedCondition();
+								}
+							}
+
+							// Get the procedure name
+							string Procedure;
 							if (NodeToDo.IsParallelAgentShareEditor)
 							{
-								Procedure = "GUBP_UAT_Node_Parallel_AgentShare_Editor";
+								if (NodeToDo.AgentSharingGroup == "")
+								{
+									Procedure = "GUBP_UAT_Node_Parallel_AgentShare_Editor";
+								}
+								else
+								{
+									Procedure = "GUBP_UAT_Node_Parallel_AgentShare3_Editor";
+								}
 							}
 							else
 							{
-								Procedure = "GUBP" + ProcedureInfix + "_UAT_Node";
-								if (!NodeToDo.IsSticky)
+								if (NodeToDo.IsSticky)
 								{
-									Procedure += "_Parallel";
+									Procedure = "GUBP" + ProcedureInfix + "_UAT_Node";
 								}
-								if (NodeToDo.AgentSharingGroup != "")
+								else if (NodeToDo.AgentSharingGroup == "")
 								{
-									Procedure += "_AgentShare";
+									Procedure = String.Format("GUBP{0}_UAT_Node_Parallel", ProcedureInfix);
+								}
+								else
+								{
+									Procedure = String.Format("GUBP{0}_UAT_Node_Parallel_AgentShare3", ProcedureInfix);
 								}
 							}
 							if (NodeToDo.IsSticky && NodeToDo == LastSticky)
 							{
 								Procedure += "_Release";
 							}
+
+							// Build the job step for this node
+							JobStep MainStep = new JobStep(NodeParentPath, NodeToDo.Name, Procedure, DoParallel, PreCondition, RunCondition, (NodeToDo.IsSticky && NodeToDo == LastSticky) ? JobStepReleaseMode.Release : JobStepReleaseMode.Keep);
+							MainStep.ActualParameters.Add("NodeName", NodeToDo.Name);
+							MainStep.ActualParameters.Add("Sticky", NodeToDo.IsSticky ? "1" : "0");
+							if (NodeToDo.AgentSharingGroup != "")
+							{
+								MainStep.ActualParameters.Add("AgentSharingGroup", NodeToDo.AgentSharingGroup);
+							}
+							Steps.Add(MainStep);
 						}
 						else
 						{
-							if(TriggerNodeToDo.RequiresRecursiveWorkflow)
+							// Get the procedure name
+							string Procedure;
+							if (TriggerNodeToDo.IsTriggered)
 							{
-				                Procedure = "GUBP_UAT_Trigger"; //here we run a recursive workflow to wait for the trigger
+								Procedure = String.Format("GUBP{0}_UAT_Node{1}", ProcedureInfix, (NodeToDo == LastSticky) ? "_Release" : "");
+							}
+							else if (TriggerNodeToDo.RequiresRecursiveWorkflow)
+							{
+								Procedure = "GUBP_UAT_Trigger"; //here we run a recursive workflow to wait for the trigger
 							}
 							else
 							{
 								Procedure = "GUBP_Hardcoded_Trigger"; //here we advance the state in the hardcoded workflow so folks can approve
 							}
 
-							Parameters.Add(new Tuple<string, string>("TriggerState", TriggerNodeToDo.StateName));
-							Parameters.Add(new Tuple<string, string>("ActionText", TriggerNodeToDo.ActionText));
-							Parameters.Add(new Tuple<string, string>("DescText", TriggerNodeToDo.DescriptionText));
-
-							if (NodeToDo.RecipientsForFailureEmails.Length > 0)
+							// Create the job step
+							JobStep TriggerStep = new JobStep(ParentPath, NodeToDo.Name, Procedure, DoParallel, PreCondition, RunCondition, (NodeToDo.IsSticky && NodeToDo == LastSticky) ? JobStepReleaseMode.Release : JobStepReleaseMode.Keep);
+							TriggerStep.ActualParameters.Add("NodeName", NodeToDo.Name);
+							TriggerStep.ActualParameters.Add("Sticky", NodeToDo.IsSticky ? "1" : "0");
+							if (!TriggerNodeToDo.IsTriggered)
 							{
-								Parameters.Add(new Tuple<string, string>("EmailsForTrigger", String.Join(" ", NodeToDo.RecipientsForFailureEmails)));
-							}
-						}
-
-						string ActualParameterArgs = String.Join(", ", Parameters.Select(x => String.Format("{{actualParameterName => '{0}', value => '{1}'}}", x.Item1, x.Item2)));
-						string Args = String.Format("{0}, subprocedure => '{1}', parallel => '{2}', jobStepName => '{3}', actualParameter => [{4}]", BaseArgs, Procedure, DoParallel? 1 : 0, NodeToDo.Name, ActualParameterArgs);
-						
-						List<BuildNode> UncompletedEcDeps = new List<BuildNode>();
-						{
-							foreach (BuildNode Dep in NodeToDo.AllDirectDependencies)
-							{
-								if (!Dep.IsComplete && OrdereredToDo.Contains(Dep)) // if something is already finished, we don't put it into EC
+								TriggerStep.ActualParameters.Add("TriggerState", TriggerNodeToDo.StateName);
+								TriggerStep.ActualParameters.Add("ActionText", TriggerNodeToDo.ActionText);
+								TriggerStep.ActualParameters.Add("DescText", TriggerNodeToDo.DescriptionText);
+								if (NodeToDo.RecipientsForFailureEmails.Length > 0)
 								{
-									if (OrdereredToDo.IndexOf(Dep) > OrdereredToDo.IndexOf(NodeToDo))
-									{
-										throw new AutomationException("Topological sort error, node {0} has a dependency of {1} which sorted after it.", NodeToDo.Name, Dep.Name);
-									}
-									UncompletedEcDeps.Add(Dep);
+									TriggerStep.ActualParameters.Add("EmailsForTrigger", String.Join(" ", NodeToDo.RecipientsForFailureEmails));
 								}
 							}
-						}
-
-						string PreCondition = GetPreConditionForNode(OrdereredToDo, ParentPath, bHasNoop, AgentGroupChains, StickyChain, NodeToDo, UncompletedEcDeps);
-						string RunCondition = GetRunConditionForNode(UncompletedEcDeps, ParentPath);
-
-						string MyAgentGroup = NodeToDo.AgentSharingGroup;
-						bool bDoNestedJobstep = false;
-						bool bDoFirstNestedJobstep = false;
-
-						string NodeParentPath = ParentPath;
-						if (MyAgentGroup != "")
-						{
-							bDoNestedJobstep = true;
-							NodeParentPath = ParentPath + "/jobSteps[" + MyAgentGroup + "]";
-
-							List<BuildNode> MyChain = AgentGroupChains[MyAgentGroup];
-							int MyIndex = MyChain.IndexOf(NodeToDo);
-							if (MyIndex <= 0)
-							{
-								bDoFirstNestedJobstep = bDoNestedJobstep;
-							}
-						}
-
-						if (bDoNestedJobstep)
-						{
-							if (bDoFirstNestedJobstep)
-							{
-								{
-									string NestArgs = String.Format("$batch->createJobStep({{parentPath => '{0}', jobStepName => '{1}', parallel => '1'",
-										ParentPath, MyAgentGroup);
-									if (!String.IsNullOrEmpty(PreCondition))
-									{
-										NestArgs = NestArgs + ", precondition => " + PreCondition;
-									}
-									NestArgs = NestArgs + "});";
-									StepList.Add(NestArgs);
-								}
-								{
-									string NestArgs = String.Format("$batch->createJobStep({{parentPath => '{0}/jobSteps[{1}]', jobStepName => '{2}_GetPool', subprocedure => 'GUBP{3}_AgentShare_GetPool', parallel => '1', actualParameter => [{{actualParameterName => 'AgentSharingGroup', value => '{4}'}}, {{actualParameterName => 'NodeName', value => '{5}'}}]",
-										ParentPath, MyAgentGroup, MyAgentGroup, ProcedureInfix, MyAgentGroup, NodeToDo.Name);
-									if (!String.IsNullOrEmpty(PreCondition))
-									{
-										NestArgs = NestArgs + ", precondition => " + PreCondition;
-									}
-									NestArgs = NestArgs + "});";
-									StepList.Add(NestArgs);
-								}
-								{
-									string NestArgs = String.Format("$batch->createJobStep({{parentPath => '{0}/jobSteps[{1}]', jobStepName => '{2}_GetAgent', subprocedure => 'GUBP{3}_AgentShare_GetAgent', parallel => '1', exclusiveMode => 'call', resourceName => '{4}', actualParameter => [{{actualParameterName => 'AgentSharingGroup', value => '{5}'}}, {{actualParameterName => 'NodeName', value=> '{6}'}}]",
-										ParentPath, MyAgentGroup, MyAgentGroup, ProcedureInfix,
-										String.Format("$[/myJob/jobSteps[{0}]/ResourcePool]", MyAgentGroup),
-										MyAgentGroup, NodeToDo.Name);
-									{
-										NestArgs = NestArgs + ", precondition  => ";
-										NestArgs = NestArgs + "\"\\$\" . \"[/javascript if(";
-										NestArgs = NestArgs + "getProperty('" + ParentPath + "/jobSteps[" + MyAgentGroup + "]/jobSteps[" + MyAgentGroup + "_GetPool]/status') == 'completed'";
-										NestArgs = NestArgs + ") true;]\"";
-									}
-									NestArgs = NestArgs + "});";
-									StepList.Add(NestArgs);
-								}
-								{
-									PreCondition = "\"\\$\" . \"[/javascript if(";
-									PreCondition = PreCondition + "getProperty('" + ParentPath + "/jobSteps[" + MyAgentGroup + "]/jobSteps[" + MyAgentGroup + "_GetAgent]/status') == 'completed'";
-									PreCondition = PreCondition + ") true;]\"";
-								}
-							}
-							Args = Args.Replace(String.Format("parentPath => '{0}'", ParentPath), String.Format("parentPath => '{0}'", NodeParentPath));
-							Args = Args.Replace("UAT_Node_Parallel_AgentShare", "UAT_Node_Parallel_AgentShare3");
-						}
-
-						if (!String.IsNullOrEmpty(PreCondition))
-						{
-							Args = Args + ", precondition => " + PreCondition;
-						}
-						if (!String.IsNullOrEmpty(RunCondition))
-						{
-							Args = Args + ", condition => " + RunCondition;
-						}
-		#if false
-							// this doesn't work because it includes precondition time
-							if (GUBPNodes[NodeToDo].TimeoutInMinutes() > 0)
-							{
-								Args = Args + String.Format(" --timeLimitUnits minutes --timeLimit {0}", GUBPNodes[NodeToDo].TimeoutInMinutes());
-							}
-		#endif
-						if (Sticky && NodeToDo == LastSticky)
-						{
-							Args = Args + ", releaseMode => 'release'";
-						}
-						Args = Args + "});";
-						StepList.Add(Args);
-
-						if (MyAgentGroup != "" && !bDoNestedJobstep)
-						{
-							List<BuildNode> MyChain = AgentGroupChains[MyAgentGroup];
-							int MyIndex = MyChain.IndexOf(NodeToDo);
-							if (MyIndex == MyChain.Count - 1)
-							{
-								string RelPreCondition = "\"\\$\" . \"[/javascript if(";
-								// this runs "parallel", but we a precondition to serialize it
-								RelPreCondition = RelPreCondition + "getProperty('" + ParentPath + "/jobSteps[" + NodeToDo.Name + "]/status') == 'completed'";
-								RelPreCondition = RelPreCondition + ") true;]\"";
-								// we need to release the resource
-								string RelArgs = String.Format("{0}, subprocedure => 'GUBP_Release_AgentShare', parallel => '1', jobStepName => 'Release_{1}', actualParameter => [{{actualParameterName => 'AgentSharingGroup', valued => '{2}'}}], releaseMode => 'release', precondition => '{3}'",
-									BaseArgs, MyAgentGroup, MyAgentGroup, RelPreCondition);
-								StepList.Add(RelArgs);
-							}
+							Steps.Add(TriggerStep);
 						}
 					}
 				}
-				WriteECPerl(StepList);
-			}
-			bool bHasTests = OrdereredToDo.Any(x => x.Node.IsTest());
-			RunECTool(String.Format("setProperty \"/myWorkflow/HasTests\" \"{0}\"", bHasTests));
-			{
-				ECProps.Add("GUBP_LoadedProps=1");
-				string BranchDefFile = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LogFolder, "BranchDef.properties");
-				CommandUtils.WriteAllLines(BranchDefFile, ECProps.ToArray());
-				RunECTool(String.Format("setProperty \"/myWorkflow/BranchDefFile\" \"{0}\"", BranchDefFile.Replace("\\", "\\\\")));
-			}
-			{
-				ECProps.Add("GUBP_LoadedJobProps=1");
-				string BranchJobDefFile = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LogFolder, "BranchJobDef.properties");
-				CommandUtils.WriteAllLines(BranchJobDefFile, ECProps.ToArray());
-				RunECTool(String.Format("setProperty \"/myJob/BranchJobDefFile\" \"{0}\"", BranchJobDefFile.Replace("\\", "\\\\")));
+				WriteECPerl(Steps);
 			}
 		}
 
-		private string GetPreConditionForNode(List<BuildNode> OrdereredToDo, string PreconditionParentPath, bool bHasNoop, Dictionary<string, List<BuildNode>> AgentGroupChains, List<BuildNode> StickyChain, BuildNode NodeToDo, List<BuildNode> UncompletedEcDeps)
+		private string GetPreConditionForNode(List<BuildNode> OrderedToDo, string PreconditionParentPath, bool bHasNoop, Dictionary<string, List<BuildNode>> AgentGroupChains, List<BuildNode> StickyChain, BuildNode NodeToDo, List<BuildNode> UncompletedEcDeps)
 		{
 			List<BuildNode> PreConditionUncompletedEcDeps = new List<BuildNode>();
 			if(NodeToDo.AgentSharingGroup == "")
@@ -534,11 +694,11 @@ namespace AutomationTool
 					// to avoid idle agents (and also EC doesn't actually reserve our agent!), we promote all dependencies to the first one
 					foreach (BuildNode Chain in MyChain)
 					{
-						foreach (BuildNode Dep in Chain.AllDirectDependencies)
+						foreach (BuildNode Dep in FindDirectOrderDependencies(Chain))
 						{
-							if (!Dep.IsComplete && OrdereredToDo.Contains(Dep)) // if something is already finished, we don't put it into EC
+							if (!Dep.IsComplete && OrderedToDo.Contains(Dep)) // if something is already finished, we don't put it into EC
 							{
-								if (OrdereredToDo.IndexOf(Dep) > OrdereredToDo.IndexOf(Chain))
+								if (OrderedToDo.IndexOf(Dep) > OrderedToDo.IndexOf(Chain))
 								{
 									throw new AutomationException("Topological sort error, node {0} has a dependency of {1} which sorted after it.", Chain.Name, Dep.Name);
 								}
@@ -564,11 +724,11 @@ namespace AutomationTool
 				}
 				else
 				{
-					foreach (BuildNode Dep in NodeToDo.AllDirectDependencies)
+					foreach (BuildNode Dep in FindDirectOrderDependencies(NodeToDo))
 					{
-						if (!Dep.IsComplete && OrdereredToDo.Contains(Dep)) // if something is already finished, we don't put it into EC
+						if (!Dep.IsComplete && OrderedToDo.Contains(Dep)) // if something is already finished, we don't put it into EC
 						{
-							if (OrdereredToDo.IndexOf(Dep) > OrdereredToDo.IndexOf(NodeToDo))
+							if (OrderedToDo.IndexOf(Dep) > OrderedToDo.IndexOf(NodeToDo))
 							{
 								throw new AutomationException("Topological sort error, node {0} has a dependency of {1} which sorted after it.", NodeToDo.Name, Dep.Name);
 							}
@@ -597,6 +757,16 @@ namespace AutomationTool
 				PreCondition = String.Format("\"\\$\" . \"[/javascript if({0}) true;]\"", String.Join(" && ", JobStepNames.Select(x => String.Format("getProperty('{0}/status') == 'completed'", x))));
 			}
 			return PreCondition;
+		}
+
+		private static HashSet<BuildNode> FindDirectOrderDependencies(BuildNode Node)
+		{
+			HashSet<BuildNode> DirectDependencies = new HashSet<BuildNode>(Node.OrderDependencies);
+			foreach(BuildNode OrderDependency in Node.OrderDependencies)
+			{
+				DirectDependencies.ExceptWith(OrderDependency.OrderDependencies);
+			}
+			return DirectDependencies;
 		}
 
 		private static string GetNodeForAllNodesProperty(BuildNode Node, int TimeQuantum)
@@ -644,33 +814,6 @@ namespace AutomationTool
 			return RunCondition;
 		}
 
-		private static List<AggregateNode> FindPromotables(IEnumerable<AggregateNode> NodesToDo)
-		{
-			List<AggregateNode> SeparatePromotables = new List<AggregateNode>();
-			foreach (AggregateNode NodeToDo in NodesToDo)
-			{
-				if (NodeToDo.Node.IsSeparatePromotable())
-				{
-					SeparatePromotables.Add(NodeToDo);
-				}
-			}
-			return SeparatePromotables;
-		}
-
-		private static Dictionary<BuildNode, List<AggregateNode>> FindDependentPromotables(IEnumerable<BuildNode> NodesToDo, IEnumerable<AggregateNode> SeparatePromotions)
-		{
-			Dictionary<BuildNode, List<AggregateNode>> DependentPromotions = NodesToDo.ToDictionary(x => x, x => new List<AggregateNode>());
-			foreach (AggregateNode SeparatePromotion in SeparatePromotions)
-			{
-				BuildNode[] Dependencies = SeparatePromotion.Dependencies.SelectMany(x => x.AllIndirectDependencies).Distinct().ToArray();
-				foreach (BuildNode Dependency in Dependencies)
-				{
-					DependentPromotions[Dependency].Add(SeparatePromotion);
-				}
-			}
-			return DependentPromotions;
-		}
-
 		/// <summary>
 		/// Sorts a list of nodes to display in EC. The default order is based on execution order and agent groups, whereas this function arranges nodes by
 		/// frequency then execution order, while trying to group nodes on parallel paths (eg. Mac/Windows editor nodes) together.
@@ -699,7 +842,7 @@ namespace AutomationTool
 				Dictionary<string, List<BuildNode>> DisplayGroups = new Dictionary<string,List<BuildNode>>();
 				foreach(BuildNode Node in NodesByThisFrequency)
 				{
-					string GroupName = Node.Node.GetDisplayGroupName();
+					string GroupName = Node.DisplayGroupName;
 					if(!DisplayGroups.ContainsKey(GroupName))
 					{
 						DisplayGroups.Add(GroupName, new List<BuildNode>{ Node });
@@ -715,7 +858,7 @@ namespace AutomationTool
 				}
 
 				// Build a list of ordering dependencies, putting all Mac nodes after Windows nodes with the same names.
-				Dictionary<BuildNode, List<BuildNode>> NodeDependencies = new Dictionary<BuildNode,List<BuildNode>>(Nodes.ToDictionary(x => x, x => x.AllDirectDependencies.ToList()));
+				Dictionary<BuildNode, List<BuildNode>> NodeDependencies = new Dictionary<BuildNode,List<BuildNode>>(Nodes.ToDictionary(x => x, x => x.OrderDependencies.ToList()));
 				foreach(KeyValuePair<string, List<BuildNode>> DisplayGroup in DisplayGroups)
 				{
 					List<BuildNode> GroupNodes = DisplayGroup.Value;
@@ -728,7 +871,7 @@ namespace AutomationTool
 				// Add nodes for each frequency into the master list, trying to match up different groups along the way
 				foreach(BuildNode FirstNode in NodesByThisFrequency)
 				{
-					List<BuildNode> GroupNodes = DisplayGroups[FirstNode.Node.GetDisplayGroupName()];
+					List<BuildNode> GroupNodes = DisplayGroups[FirstNode.DisplayGroupName];
 					foreach(BuildNode GroupNode in GroupNodes)
 					{
 						AddNodeAndDependencies(GroupNode, NodeDependencies, VisitedNodes, SortedNodes);
@@ -832,13 +975,13 @@ public class TestECJobErrorParse : BuildCommand
 {
     public override void ExecuteBuild()
     {
-        Log("*********************** TestECJobErrorParse");
+		Log("*********************** TestECJobErrorParse");
 
         string Filename = CombinePaths(@"P:\Builds\UE4\GUBP\++depot+UE4-2104401-RootEditor_Failed\Engine\Saved\Logs", "RootEditor_Failed.log");
         var Errors = ECJobPropsUtils.ErrorsFromProps(Filename);
         foreach (var ThisError in Errors)
         {
-            Log("Error: {0}", ThisError);
+            LogError(" {0}", ThisError);
         }
     }
 }

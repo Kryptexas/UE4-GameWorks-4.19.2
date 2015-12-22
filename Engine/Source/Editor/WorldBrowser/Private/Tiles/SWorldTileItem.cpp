@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #include "WorldBrowserPrivatePCH.h"
 
 #include "EdGraphUtilities.h"
@@ -244,7 +244,7 @@ FSlateRect SWorldTileItem::GetItemRect() const
 TSharedPtr<IToolTip> SWorldTileItem::GetToolTip()
 {
 	// Hide tooltip in case item is being dragged now
-	if (TileModel->GetLevelTranslationDelta().Size() > KINDA_SMALL_NUMBER)
+	if (TileModel->GetLevelTranslationDelta().SizeSquared() > FMath::Square(KINDA_SMALL_NUMBER))
 	{
 		return NULL;
 	}

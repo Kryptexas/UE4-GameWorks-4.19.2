@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+
+using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Collections.Generic;
@@ -164,6 +166,11 @@ namespace HTML5LaunchHelper
 			else if (File.Exists(Root + Context.Request.Url.LocalPath))
 			{
 				string RequestedFile = Root + Context.Request.Url.LocalPath;
+				string RequestedFileCompressed = Root + Context.Request.Url.LocalPath + "gz";
+				if (File.Exists(RequestedFileCompressed)) 
+				{
+					RequestedFile = RequestedFileCompressed;
+				}
 				System.Console.WriteLine("Serving " + RequestedFile);
 				using (Stream source = File.OpenRead(RequestedFile))
 				{
@@ -175,7 +182,7 @@ namespace HTML5LaunchHelper
 						MimeType = MimeTypeMapping[Extention];
 					}
 					// This is the crux of serving pre-compressed files. 
-					if (Extention == ".gz")
+					if (Extention.EndsWith("gz"))
 					{
 						Context.Response.AddHeader("Content-Encoding", "gzip");
 					}

@@ -2,6 +2,7 @@ Availability:Public
 Title:Persona Anim Asset Details
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
 Description:User guide for the Anim Asset Details in the Persona animation editor.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

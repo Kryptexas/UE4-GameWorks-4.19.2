@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "GraphEditorCommon.h"
@@ -29,26 +29,26 @@ struct FFixedZoomLevelsContainer : public FZoomLevelsContainer
 		if (ZoomLevels.Num() == 0)
 		{
 			ZoomLevels.Reserve(20);
-			ZoomLevels.Add(FZoomLevelEntry(0.100f, NSLOCTEXT("GraphEditor", "ZoomLevel", "-12"), EGraphRenderingLOD::LowestDetail));
-			ZoomLevels.Add(FZoomLevelEntry(0.125f, NSLOCTEXT("GraphEditor", "ZoomLevel", "-11"), EGraphRenderingLOD::LowestDetail));
-			ZoomLevels.Add(FZoomLevelEntry(0.150f, NSLOCTEXT("GraphEditor", "ZoomLevel", "-10"), EGraphRenderingLOD::LowestDetail));
-			ZoomLevels.Add(FZoomLevelEntry(0.175f, NSLOCTEXT("GraphEditor", "ZoomLevel", "-9"), EGraphRenderingLOD::LowestDetail));
-			ZoomLevels.Add(FZoomLevelEntry(0.200f, NSLOCTEXT("GraphEditor", "ZoomLevel", "-8"), EGraphRenderingLOD::LowestDetail));
-			ZoomLevels.Add(FZoomLevelEntry(0.225f, NSLOCTEXT("GraphEditor", "ZoomLevel", "-7"), EGraphRenderingLOD::LowDetail));
-			ZoomLevels.Add(FZoomLevelEntry(0.250f, NSLOCTEXT("GraphEditor", "ZoomLevel", "-6"), EGraphRenderingLOD::LowDetail));
-			ZoomLevels.Add(FZoomLevelEntry(0.375f, NSLOCTEXT("GraphEditor", "ZoomLevel", "-5"), EGraphRenderingLOD::MediumDetail));
-			ZoomLevels.Add(FZoomLevelEntry(0.500f, NSLOCTEXT("GraphEditor", "ZoomLevel", "-4"), EGraphRenderingLOD::MediumDetail));
-			ZoomLevels.Add(FZoomLevelEntry(0.675f, NSLOCTEXT("GraphEditor", "ZoomLevel", "-3"), EGraphRenderingLOD::MediumDetail));
-			ZoomLevels.Add(FZoomLevelEntry(0.750f, NSLOCTEXT("GraphEditor", "ZoomLevel", "-2"), EGraphRenderingLOD::DefaultDetail));
-			ZoomLevels.Add(FZoomLevelEntry(0.875f, NSLOCTEXT("GraphEditor", "ZoomLevel", "-1"), EGraphRenderingLOD::DefaultDetail));
-			ZoomLevels.Add(FZoomLevelEntry(1.000f, NSLOCTEXT("GraphEditor", "ZoomLevel", "1:1"), EGraphRenderingLOD::DefaultDetail));
-			ZoomLevels.Add(FZoomLevelEntry(1.250f, NSLOCTEXT("GraphEditor", "ZoomLevel", "+1"), EGraphRenderingLOD::DefaultDetail));
-			ZoomLevels.Add(FZoomLevelEntry(1.375f, NSLOCTEXT("GraphEditor", "ZoomLevel", "+2"), EGraphRenderingLOD::DefaultDetail));
-			ZoomLevels.Add(FZoomLevelEntry(1.500f, NSLOCTEXT("GraphEditor", "ZoomLevel", "+3"), EGraphRenderingLOD::FullyZoomedIn));
-			ZoomLevels.Add(FZoomLevelEntry(1.675f, NSLOCTEXT("GraphEditor", "ZoomLevel", "+4"), EGraphRenderingLOD::FullyZoomedIn));
-			ZoomLevels.Add(FZoomLevelEntry(1.750f, NSLOCTEXT("GraphEditor", "ZoomLevel", "+5"), EGraphRenderingLOD::FullyZoomedIn));
-			ZoomLevels.Add(FZoomLevelEntry(1.875f, NSLOCTEXT("GraphEditor", "ZoomLevel", "+6"), EGraphRenderingLOD::FullyZoomedIn));
-			ZoomLevels.Add(FZoomLevelEntry(2.000f, NSLOCTEXT("GraphEditor", "ZoomLevel", "+7"), EGraphRenderingLOD::FullyZoomedIn));
+			ZoomLevels.Add(FZoomLevelEntry(0.100f, FText::FromString(TEXT("-12")), EGraphRenderingLOD::LowestDetail));
+			ZoomLevels.Add(FZoomLevelEntry(0.125f, FText::FromString(TEXT("-11")), EGraphRenderingLOD::LowestDetail));
+			ZoomLevels.Add(FZoomLevelEntry(0.150f, FText::FromString(TEXT("-10")), EGraphRenderingLOD::LowestDetail));
+			ZoomLevels.Add(FZoomLevelEntry(0.175f, FText::FromString(TEXT("-9")), EGraphRenderingLOD::LowestDetail));
+			ZoomLevels.Add(FZoomLevelEntry(0.200f, FText::FromString(TEXT("-8")), EGraphRenderingLOD::LowestDetail));
+			ZoomLevels.Add(FZoomLevelEntry(0.225f, FText::FromString(TEXT("-7")), EGraphRenderingLOD::LowDetail));
+			ZoomLevels.Add(FZoomLevelEntry(0.250f, FText::FromString(TEXT("-6")), EGraphRenderingLOD::LowDetail));
+			ZoomLevels.Add(FZoomLevelEntry(0.375f, FText::FromString(TEXT("-5")), EGraphRenderingLOD::MediumDetail));
+			ZoomLevels.Add(FZoomLevelEntry(0.500f, FText::FromString(TEXT("-4")), EGraphRenderingLOD::MediumDetail));
+			ZoomLevels.Add(FZoomLevelEntry(0.675f, FText::FromString(TEXT("-3")), EGraphRenderingLOD::MediumDetail));
+			ZoomLevels.Add(FZoomLevelEntry(0.750f, FText::FromString(TEXT("-2")), EGraphRenderingLOD::DefaultDetail));
+			ZoomLevels.Add(FZoomLevelEntry(0.875f, FText::FromString(TEXT("-1")), EGraphRenderingLOD::DefaultDetail));
+			ZoomLevels.Add(FZoomLevelEntry(1.000f, FText::FromString(TEXT("1:1")), EGraphRenderingLOD::DefaultDetail));
+			ZoomLevels.Add(FZoomLevelEntry(1.250f, FText::FromString(TEXT("+1")), EGraphRenderingLOD::DefaultDetail));
+			ZoomLevels.Add(FZoomLevelEntry(1.375f, FText::FromString(TEXT("+2")), EGraphRenderingLOD::DefaultDetail));
+			ZoomLevels.Add(FZoomLevelEntry(1.500f, FText::FromString(TEXT("+3")), EGraphRenderingLOD::FullyZoomedIn));
+			ZoomLevels.Add(FZoomLevelEntry(1.675f, FText::FromString(TEXT("+4")), EGraphRenderingLOD::FullyZoomedIn));
+			ZoomLevels.Add(FZoomLevelEntry(1.750f, FText::FromString(TEXT("+5")), EGraphRenderingLOD::FullyZoomedIn));
+			ZoomLevels.Add(FZoomLevelEntry(1.875f, FText::FromString(TEXT("+6")), EGraphRenderingLOD::FullyZoomedIn));
+			ZoomLevels.Add(FZoomLevelEntry(2.000f, FText::FromString(TEXT("+7")), EGraphRenderingLOD::FullyZoomedIn));
 		}
 	}
 
@@ -1474,7 +1474,7 @@ bool SNodePanel::ScrollToLocation(const FGeometry& MyGeometry, FVector2D Desired
 	ViewOffset = NewPosition - HalfOFScreenInGraphSpace;
 
 	// If within 1 pixel of target, stop interpolating
-	return ((NewPosition - DesiredCenterPosition).Size() < 1.f);
+	return ((NewPosition - DesiredCenterPosition).SizeSquared() < 1.f);
 }
 
 bool SNodePanel::ZoomToLocation(const FVector2D& CurrentSizeWithoutZoom, const FVector2D& DesiredSize, bool bDoneScrolling)

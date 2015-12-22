@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -130,7 +130,7 @@ private:
 	/** Builds the toolbar widget for the material editor */
 	void ExtendToolbar();
 
-	// IMaterialEditor interface
+	//~ Begin IMaterialEditor Interface
 	virtual bool ApproveSetPreviewAsset(UObject* InAsset) override;
 
 	/**	Spawns the preview tab */
@@ -148,7 +148,7 @@ private:
 	/**	Refresh the viewport and property window */
 	void Refresh();
 
-	// Begin FEditorUndoClient Interface
+	//~ Begin FEditorUndoClient Interface
 	virtual void PostUndo( bool bSuccess ) override;
 	virtual void PostRedo( bool bSuccess ) override;
 	// End of FEditorUndoClient

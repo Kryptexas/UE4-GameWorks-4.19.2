@@ -5,6 +5,25 @@ Description:An overview of the Post Processing example level, example 1.16: Blen
 Related: Engine/Rendering/Overview
 Related: Engine/Rendering/PostProcessEffects
 Related: Engine/Rendering/PostProcessEffects/PostProcessMaterials
+Version: 4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Example](Resources/ContentExamples/PostProcessing/1_15 "%Resources/ContentExamples/PostProcessing/1_15:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Post Processing Home](Resources/ContentExamples/PostProcessing)
+	[/PARAM]
+	[PARAM:next]
+		[Next Example](Resources/ContentExamples/PostProcessing/1_17 "%Resources/ContentExamples/PostProcessing/1_17:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayTagsEditorModulePrivatePCH.h"
 #include "GameplayTagContainerCustomization.h"
@@ -28,20 +28,20 @@ void FGameplayTagContainerCustomization::CustomizeHeader(TSharedRef<class IPrope
 		.MaxDesiredWidth(512)
 		[
 			SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot()
-		.AutoWidth()
-		.VAlign(VAlign_Center)
-		[
-			SNew(SVerticalBox)
-			+ SVerticalBox::Slot()
-			.AutoHeight()
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
 			[
-				SNew(SButton)
-				.IsEnabled(!StructPropertyHandle->GetProperty()->HasAnyPropertyFlags(CPF_EditConst))
-				.Text(LOCTEXT("GameplayTagContainerCustomization_Edit", "Edit..."))
-				.OnClicked(this, &FGameplayTagContainerCustomization::OnEditButtonClicked)
-			]
-			+ SVerticalBox::Slot()
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SNew(SButton)
+					.IsEnabled(!StructPropertyHandle->GetProperty()->HasAnyPropertyFlags(CPF_EditConst))
+					.Text(LOCTEXT("GameplayTagContainerCustomization_Edit", "Edit..."))
+					.OnClicked(this, &FGameplayTagContainerCustomization::OnEditButtonClicked)
+				]
+				+ SVerticalBox::Slot()
 				.AutoHeight()
 				[
 					SNew(SButton)
@@ -50,16 +50,16 @@ void FGameplayTagContainerCustomization::CustomizeHeader(TSharedRef<class IPrope
 					.OnClicked(this, &FGameplayTagContainerCustomization::OnClearAllButtonClicked)
 					.Visibility(this, &FGameplayTagContainerCustomization::GetClearAllVisibility)
 				]
-		]
-	+ SHorizontalBox::Slot()
-		.AutoWidth()
-		[
-			SNew(SBorder)
-			.Padding(4.0f)
-			.Visibility(this, &FGameplayTagContainerCustomization::GetTagsListVisibility)
-			[
-				ActiveTags()
 			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(SBorder)
+				.Padding(4.0f)
+				.Visibility(this, &FGameplayTagContainerCustomization::GetTagsListVisibility)
+				[
+					ActiveTags()
+				]
 			]
 		];
 
@@ -116,6 +116,11 @@ TSharedRef<ITableRow> FGameplayTagContainerCustomization::MakeListViewWidget(TSh
 
 FReply FGameplayTagContainerCustomization::OnEditButtonClicked()
 {
+	if (!StructPropertyHandle.IsValid() || StructPropertyHandle->GetProperty() == nullptr)
+	{
+		return FReply::Handled();
+	}
+
 	TArray<UObject*> OuterObjects;
 	StructPropertyHandle->GetOuterObjects(OuterObjects);
 
@@ -146,7 +151,7 @@ FReply FGameplayTagContainerCustomization::OnEditButtonClicked()
 	.Title(Title)
 	.ClientSize(FVector2D(600, 400))
 	[
-		SNew(SGameplayTagWidget, EditableContainers)
+		SAssignNew(GameplayTagWidget, SGameplayTagWidget, EditableContainers)
 		.Filter( Categories )
 		.OnTagChanged(this, &FGameplayTagContainerCustomization::RefreshTagList)
 		.ReadOnly(bReadOnly)
@@ -248,7 +253,10 @@ void FGameplayTagContainerCustomization::OnGameplayTagWidgetWindowDeactivate()
 {
 	if( GameplayTagWidgetWindow.IsValid() )
 	{
-		GameplayTagWidgetWindow->RequestDestroyWindow();
+		if (GameplayTagWidget.IsValid() && GameplayTagWidget->IsAddingNewTag() == false)
+		{
+			GameplayTagWidgetWindow->RequestDestroyWindow();
+		}
 	}
 }
 

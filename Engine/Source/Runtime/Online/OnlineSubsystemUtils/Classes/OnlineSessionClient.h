@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Everything a local player will use to manage online sessions.
@@ -178,6 +178,14 @@ public:
 	virtual void StartOnlineSession(FName SessionName) override;
 	virtual void EndOnlineSession(FName SessionName) override;
 	// UOnlineSession interface end
+
+	/** 
+	 * Update the session settings on the client 
+	 *
+	 * @param World reference to the current world
+	 * @param Settings settings to apply to the session
+	 */
+	virtual void SetInviteFlags(UWorld* World, const FJoinabilitySettings& Settings);
 };
 
 

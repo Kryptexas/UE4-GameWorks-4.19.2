@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "SlateBrushCustomization.h"
@@ -778,9 +778,13 @@ private:
 		if( CachedDrawAsType != ESlateBrushDrawType::Box && CachedDrawAsType != ESlateBrushDrawType::Border )
 		{
 			TArray<void*> RawData;
-			MarginProperty->AccessRawData( RawData );
-			check( RawData[ 0 ] != NULL );
-			*static_cast<FMargin*>(RawData[ 0 ]) = FMargin();
+
+			if ( MarginProperty.IsValid() && MarginProperty->GetProperty() )
+			{
+				MarginProperty->AccessRawData( RawData );
+				check( RawData[ 0 ] != NULL );
+				*static_cast<FMargin*>(RawData[ 0 ]) = FMargin();
+			}
 		}
 		else
 		{
@@ -991,11 +995,15 @@ class SSlateBrushStaticPreview : public SCompoundWidget
 	void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 	{
 		TArray<void*> RawData;
-			ResourceObjectProperty->AccessRawData(RawData);
 
-			check(RawData[0] != NULL);
+		if (ResourceObjectProperty.IsValid() && ResourceObjectProperty->GetProperty())
+		{
+		ResourceObjectProperty->AccessRawData(RawData);
+
+		check(RawData[0] != NULL);
 			TemporaryBrush = *static_cast<FSlateBrush*>(RawData[0]);
 		}
+	}
 
 private:
 

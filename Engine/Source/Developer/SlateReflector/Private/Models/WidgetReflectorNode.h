@@ -1,85 +1,118 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "WidgetReflectorNode.generated.h"
+/**
+ * Enum used as crude RTTI for the widget reflector node types
+ */
+enum class EWidgetReflectorNodeType : uint8
+{
+	Live,
+	Snapshot,
+};
+
+/**
+ * Cached information about whether a widget can be hit-tested
+ */
+struct FWidgetHitTestInfo
+{
+	bool IsHitTestVisible;
+	bool AreChildrenHitTestVisible;
+};
 
 /** 
  * A widget reflector node that contains the interface and basic data required by both live and snapshot nodes 
  */
-UCLASS()
-class UWidgetReflectorNodeBase : public UObject
+class FWidgetReflectorNodeBase
 {
-	GENERATED_BODY()
-
 public:
 	/**
-	 * Initialize this node from the given widget geometry, caching out any data that may be required for future visualization in the widget reflector
+	 * Destructor
 	 */
-	virtual void Initialize(const FArrangedWidget& InWidgetGeometry);
+	virtual ~FWidgetReflectorNodeBase() {}
+
+	/**
+	 * @return Get the enum entry corresponding to this type of widget reflector node (used as crude RTTI)
+	 */
+	virtual EWidgetReflectorNodeType GetNodeType() const = 0;
 
 	/**
 	 * @note This function only works for ULiveWidgetReflectorNode instances
 	 * @return The live widget that this node is referencing
 	 */
-	virtual TSharedPtr<SWidget> GetLiveWidget() const;
+	virtual TSharedPtr<SWidget> GetLiveWidget() const = 0;
 
 	/**
 	 * @return The type string for the widget we were initialized from
 	 */
-	virtual FText GetWidgetType() const;
+	virtual FText GetWidgetType() const = 0;
 	
 	/**
 	 * @return The visibility string for the widget we were initialized from
 	 */
-	virtual FText GetWidgetVisibilityText() const;
+	virtual FText GetWidgetVisibilityText() const = 0;
 
 	/**
 	 * The human readable location for widgets that are defined in C++ is the file and line number
 	 * The human readable location for widgets that are defined in UMG is the asset name
 	 * @return The fully human readable location for the widget we were initialized from
 	 */
-	virtual FText GetWidgetReadableLocation() const;
+	virtual FText GetWidgetReadableLocation() const = 0;
 
 	/**
 	 * @return The name of the file that the widget we were initialized from was created from (for C++ widgets)
 	 */
-	virtual FString GetWidgetFile() const;
+	virtual FString GetWidgetFile() const = 0;
 
 	/**
 	 * @return The line number of the file that the widget we were initialized from was created from (for C++ widgets)
 	 */
-	virtual int32 GetWidgetLineNumber() const;
+	virtual int32 GetWidgetLineNumber() const = 0;
 
 	/**
 	 * @return The name of the asset that the widget we were initialized from was created from (for UMG widgets)
 	 */
-	virtual FName GetWidgetAssetName() const;
+	virtual FName GetWidgetAssetName() const = 0;
 
 	/**
 	 * @return The desired size of the widget we were initialized from
 	 */
-	virtual FVector2D GetWidgetDesiredSize() const;
+	virtual FVector2D GetWidgetDesiredSize() const = 0;
 
 	/**
 	 * @return The foreground color of the widget we were initialized from
 	 */
-	virtual FSlateColor GetWidgetForegroundColor() const;
+	virtual FSlateColor GetWidgetForegroundColor() const = 0;
 
 	/**
 	 * @return The in-memory address of the widget we were initialized from
 	 */
-	virtual FString GetWidgetAddress() const;
+	virtual FString GetWidgetAddress() const = 0;
 
 	/**
 	 * @return True if the the widget we were initialized from is enabled, false otherwise
 	 */
-	virtual bool GetWidgetEnabled() const;
+	virtual bool GetWidgetEnabled() const = 0;
 
 	/**
-	 * @return The geometry of the widget we were initialized from
+	 * @return The accumulated layout transform of the widget we were initialized from
 	 */
-	const FGeometry& GetGeometry() const;
+	const FSlateLayoutTransform& GetAccumulatedLayoutTransform() const;
+
+	/**
+	 * @return The accumulated render transform of the widget we were initialized from
+	 */
+	const FSlateRenderTransform& GetAccumulatedRenderTransform() const;
+
+	/**
+	 * @return The local size of the widget we were initialized from
+	 */
+	const FVector2D& GetLocalSize() const;
+
+	/**
+	 * @return The basic hit-test of the widget we were initialized from
+	 */
+	const FWidgetHitTestInfo& GetHitTestInfo() const;
 
 	/**
 	 * @return The tint that is applied to text in order to provide visual hints
@@ -92,40 +125,64 @@ public:
 	void SetTint(const FLinearColor& InTint);
 
 	/**
-	 * Add the given node to our list of children for this widget
+	 * Add the given node to our list of children for this widget (this node will keep a strong reference to the instance)
 	 */
-	void AddChildNode(UWidgetReflectorNodeBase* InChildNode);
+	void AddChildNode(TSharedRef<FWidgetReflectorNodeBase> InChildNode);
 
 	/**
 	 * @return The node entries for the widget's children
 	 */
-	const TArray<UWidgetReflectorNodeBase*>& GetChildNodes() const;
+	const TArray<TSharedRef<FWidgetReflectorNodeBase>>& GetChildNodes() const;
 
 protected:
-	/** The geometry of the widget */
-	UPROPERTY()
-	FGeometry Geometry;
+	/**
+	 * Default constructor
+	 */
+	FWidgetReflectorNodeBase();
+
+	/**
+	 * Construct this node from the given widget geometry, caching out any data that may be required for future visualization in the widget reflector
+	 */
+	explicit FWidgetReflectorNodeBase(const FArrangedWidget& InWidgetGeometry);
+
+protected:
+	/** The accumulated layout transform of the widget */
+	FSlateLayoutTransform AccumulatedLayoutTransform;
+
+	/** The accumulated render transform of the widget */
+	FSlateRenderTransform AccumulatedRenderTransform;
+
+	/** The local size of the widget */
+	FVector2D LocalSize;
+
+	/** The hit-test information for the widget */
+	FWidgetHitTestInfo HitTestInfo;
 
 	/** Node entries for the widget's children */
-	UPROPERTY()
-	TArray<UWidgetReflectorNodeBase*> ChildNodes;
+	TArray<TSharedRef<FWidgetReflectorNodeBase>> ChildNodes;
 
-	/** A tint that is applied to text in order to provide visual hints */
-	UPROPERTY()
+	/** A tint that is applied to text in order to provide visual hints (Transient) */
 	FLinearColor Tint;
 };
 
 /** 
  * A widget reflector node that holds on to the widget it references so that certain properties can be updated live 
  */
-UCLASS()
-class ULiveWidgetReflectorNode : public UWidgetReflectorNodeBase
+class FLiveWidgetReflectorNode : public FWidgetReflectorNodeBase
 {
-	GENERATED_BODY()
-
 public:
-	// UWidgetReflectorNodeBase interface
-	virtual void Initialize(const FArrangedWidget& InWidgetGeometry) override;
+	/**
+	 * Destructor
+	 */
+	virtual ~FLiveWidgetReflectorNode() {}
+
+	/**
+	 * Create a live node instance from the given widget geometry, caching out any data that may be required for future visualization in the widget reflector
+	 */
+	static TSharedRef<FLiveWidgetReflectorNode> Create(const FArrangedWidget& InWidgetGeometry);
+
+	// FWidgetReflectorNodeBase interface
+	virtual EWidgetReflectorNodeType GetNodeType() const override;
 	virtual TSharedPtr<SWidget> GetLiveWidget() const override;
 	virtual FText GetWidgetType() const override;
 	virtual FText GetWidgetVisibilityText() const override;
@@ -139,6 +196,12 @@ public:
 	virtual bool GetWidgetEnabled() const override;
 
 private:
+	/**
+	 * Construct this node from the given widget geometry, caching out any data that may be required for future visualization in the widget reflector
+	 */
+	explicit FLiveWidgetReflectorNode(const FArrangedWidget& InWidgetGeometry);
+
+private:
 	/** The widget this node is watching */
 	TWeakPtr<SWidget> Widget;
 };
@@ -146,14 +209,27 @@ private:
 /** 
  * A widget reflector node that holds the widget information from a snapshot at a given point in time 
  */
-UCLASS()
-class USnapshotWidgetReflectorNode : public UWidgetReflectorNodeBase
+class FSnapshotWidgetReflectorNode : public FWidgetReflectorNodeBase
 {
-	GENERATED_BODY()
-
 public:
-	// UWidgetReflectorNodeBase interface
-	virtual void Initialize(const FArrangedWidget& InWidgetGeometry) override;
+	/**
+	 * Destructor
+	 */
+	virtual ~FSnapshotWidgetReflectorNode() {}
+
+	/**
+	 * Create a default snapshot node instance
+	 */
+	static TSharedRef<FSnapshotWidgetReflectorNode> Create();
+
+	/**
+	 * Create a snapshot node instance node from the given widget geometry, caching out any data that may be required for future visualization in the widget reflector
+	 */
+	static TSharedRef<FSnapshotWidgetReflectorNode> Create(const FArrangedWidget& InWidgetGeometry);
+
+	// FWidgetReflectorNodeBase interface
+	virtual EWidgetReflectorNodeType GetNodeType() const override;
+	virtual TSharedPtr<SWidget> GetLiveWidget() const override;
 	virtual FText GetWidgetType() const override;
 	virtual FText GetWidgetVisibilityText() const override;
 	virtual FText GetWidgetReadableLocation() const override;
@@ -165,45 +241,52 @@ public:
 	virtual FString GetWidgetAddress() const override;
 	virtual bool GetWidgetEnabled() const override;
 
+	/** Save this node data as a JSON object */
+	static TSharedRef<FJsonValue> ToJson(const TSharedRef<FSnapshotWidgetReflectorNode>& RootSnapshotNode);
+
+	/** Populate this node data from a JSON object */
+	static TSharedRef<FSnapshotWidgetReflectorNode> FromJson(const TSharedRef<FJsonValue>& RootJsonValue);
+
+private:
+	/**
+	 * Default constructor
+	 */
+	FSnapshotWidgetReflectorNode();
+
+	/**
+	 * Construct this node from the given widget geometry, caching out any data that may be required for future visualization in the widget reflector
+	 */
+	explicit FSnapshotWidgetReflectorNode(const FArrangedWidget& InWidgetGeometry);
+
 private:
 	/** The type string of the widget at the point it was passed to Initialize */
-	UPROPERTY()
 	FText CachedWidgetType;
 
 	/** The visibility string of the widget at the point it was passed to Initialize */
-	UPROPERTY()
 	FText CachedWidgetVisibilityText;
 
 	/** The human readable location (source file for C++ widgets, asset name for UMG widgets) of the widget at the point it was passed to Initialize */
-	UPROPERTY()
 	FText CachedWidgetReadableLocation;
 
 	/** The name of the file that the widget was created from at the point it was passed to Initialize (for C++ widgets) */
-	UPROPERTY()
 	FString CachedWidgetFile;
 
 	/** The line number of the file that the widget was created from at the point it was passed to Initialize (for C++ widgets) */
-	UPROPERTY()
 	int32 CachedWidgetLineNumber;
 
 	/** The name of the asset that the widget was created from at the point it was passed to Initialize (for UMG widgets) */
-	UPROPERTY()
 	FName CachedWidgetAssetName;
 
 	/** The desired size of the widget at the point it was passed to Initialize */
-	UPROPERTY()
 	FVector2D CachedWidgetDesiredSize;
 
 	/** The foreground color of the widget at the point it was passed to Initialize */
-	UPROPERTY()
 	FSlateColor CachedWidgetForegroundColor;
 
 	/** The in-memory address of the widget at the point it was passed to Initialize */
-	UPROPERTY()
 	FString CachedWidgetAddress;
 
 	/** The enabled state of the widget at the point it was passed to Initialize */
-	UPROPERTY()
 	bool CachedWidgetEnabled;
 };
 
@@ -217,7 +300,7 @@ public:
 	 * @param InNodeClass The type of widget reflector node to create
 	 * @param InWidgetGeometry Optional widget and associated geometry which this node should represent
 	 */
-	static ULiveWidgetReflectorNode* NewLiveNode(const FArrangedWidget& InWidgetGeometry = FArrangedWidget(SNullWidget::NullWidget, FGeometry()));
+	static TSharedRef<FLiveWidgetReflectorNode> NewLiveNode(const FArrangedWidget& InWidgetGeometry = FArrangedWidget(SNullWidget::NullWidget, FGeometry()));
 
 	/**
 	 * Create nodes for the supplied widget and all their children such that they reference a live widget
@@ -226,7 +309,7 @@ public:
 	 * @param InNodeClass The type of widget reflector node to create
 	 * @param InWidgetGeometry Widget and geometry whose children to capture in the snapshot.
 	 */
-	static ULiveWidgetReflectorNode* NewLiveNodeTreeFrom(const FArrangedWidget& InWidgetGeometry);
+	static TSharedRef<FLiveWidgetReflectorNode> NewLiveNodeTreeFrom(const FArrangedWidget& InWidgetGeometry);
 
 	/**
 	 * Create a single node referencing a snapshot of its current state.
@@ -234,7 +317,7 @@ public:
 	 * @param InNodeClass The type of widget reflector node to create
 	 * @param InWidgetGeometry Optional widget and associated geometry which this node should represent
 	 */
-	static USnapshotWidgetReflectorNode* NewSnapshotNode(const FArrangedWidget& InWidgetGeometry = FArrangedWidget(SNullWidget::NullWidget, FGeometry()));
+	static TSharedRef<FSnapshotWidgetReflectorNode> NewSnapshotNode(const FArrangedWidget& InWidgetGeometry = FArrangedWidget(SNullWidget::NullWidget, FGeometry()));
 
 	/**
 	 * Create nodes for the supplied widget and all their children such that they reference a snapshot of their current state
@@ -243,7 +326,7 @@ public:
 	 * @param InNodeClass The type of widget reflector node to create
 	 * @param InWidgetGeometry Widget and geometry whose children to capture in the snapshot.
 	 */
-	static USnapshotWidgetReflectorNode* NewSnapshotNodeTreeFrom(const FArrangedWidget& InWidgetGeometry);
+	static TSharedRef<FSnapshotWidgetReflectorNode> NewSnapshotNodeTreeFrom(const FArrangedWidget& InWidgetGeometry);
 
 private:
 	/**
@@ -252,7 +335,7 @@ private:
 	 * @param InNodeClass The type of widget reflector node to create
 	 * @param InWidgetGeometry Optional widget and associated geometry which this node should represent
 	 */
-	static UWidgetReflectorNodeBase* NewNode(const TSubclassOf<UWidgetReflectorNodeBase>& InNodeClass, const FArrangedWidget& InWidgetGeometry = FArrangedWidget(SNullWidget::NullWidget, FGeometry()));
+	static TSharedRef<FWidgetReflectorNodeBase> NewNode(const EWidgetReflectorNodeType InNodeType, const FArrangedWidget& InWidgetGeometry = FArrangedWidget(SNullWidget::NullWidget, FGeometry()));
 
 	/**
 	 * Create nodes for the supplied widget and all their children
@@ -261,7 +344,7 @@ private:
 	 * @param InNodeClass The type of widget reflector node to create
 	 * @param InWidgetGeometry Widget and geometry whose children to capture in the snapshot.
 	 */
-	static UWidgetReflectorNodeBase* NewNodeTreeFrom(const TSubclassOf<UWidgetReflectorNodeBase>& InNodeClass, const FArrangedWidget& InWidgetGeometry);
+	static TSharedRef<FWidgetReflectorNodeBase> NewNodeTreeFrom(const EWidgetReflectorNodeType InNodeType, const FArrangedWidget& InWidgetGeometry);
 
 public:
 	/**
@@ -273,7 +356,7 @@ public:
 	 * @param SearchResult An array that gets results put in it
 	 * @param NodeIndexToFind Index of the widget in the path that we are currently looking for; we are done when we've found all of them
 	 */
-	static void FindLiveWidgetPath(const TArray<UWidgetReflectorNodeBase*>& CandidateNodes, const FWidgetPath& WidgetPathToFind, TArray<UWidgetReflectorNodeBase*>& SearchResult, int32 NodeIndexToFind = 0);
+	static void FindLiveWidgetPath(const TArray<TSharedRef<FWidgetReflectorNodeBase>>& CandidateNodes, const FWidgetPath& WidgetPathToFind, TArray<TSharedRef<FWidgetReflectorNodeBase>>& SearchResult, int32 NodeIndexToFind = 0);
 
 public:
 	/**

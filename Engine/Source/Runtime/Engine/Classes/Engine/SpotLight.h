@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -34,18 +34,18 @@ public:
 	//void SetLightShaftConeAngle(float NewLightShaftConeAngle);
 
 #if WITH_EDITOR
-	// Begin AActor Interface.
+	//~ Begin AActor Interface.
 	virtual void EditorApplyScale(const FVector& DeltaScale, const FVector* PivotLocation, bool bAltDown, bool bShiftDown, bool bCtrlDown) override;
-	// End AActor Interface.
+	//~ End AActor Interface.
 #endif
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void PostLoad() override;
 #if WITH_EDITOR
 	virtual void LoadedFromAnotherClass(const FName& OldClassName) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
-	// End UObject Interface
+	//~ End UObject Interface
 
 
 public:

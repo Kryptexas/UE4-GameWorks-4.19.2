@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemIOSPrivatePCH.h"
 
@@ -228,4 +228,9 @@ FPlatformUserId FOnlineIdentityIOS::GetPlatformUserIdFromUniqueNetId(const FUniq
 	}
 
 	return PLATFORMUSERID_NONE;
+}
+
+FString FOnlineIdentityIOS::GetAuthType() const
+{
+	return TEXT("");
 }

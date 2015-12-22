@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "ProfilerPrivatePCH.h"
 #define LOCTEXT_NAMESPACE "ProfilerDataSource"
@@ -399,7 +399,8 @@ FEventGraphData::FEventGraphData( const FProfilerSessionRef& InProfilerSession, 
 	Description = FString::Printf( TEXT("%s: %i"), *InProfilerSession->GetShortName(), InFrameIndex );
 
 	// @TODO: Duplicate is not needed, remove it later.
-	const IDataProviderRef DataProvider = InProfilerSession->GetDataProvider()->Duplicate<FArrayDataProvider>( FrameStartIndex );
+	const IDataProviderRef& SessionDataProvider = InProfilerSession->GetDataProvider(); 
+	const IDataProviderRef DataProvider = SessionDataProvider->Duplicate<FArrayDataProvider>( FrameStartIndex );
 
 	const double FrameDurationMS = DataProvider->GetFrameTimeMS( 0 ); 
 	const FProfilerSample& RootProfilerSample = DataProvider->GetCollection()[0];
@@ -459,7 +460,7 @@ FEventGraphData::FEventGraphData( const FEventGraphData& Source )
 	RootEvent = Source.GetRoot()->DuplicateWithHierarchyPtr();
 	RootEvent->SetRootAndThreadForAllChildren();
 	Advance( Source.FrameStartIndex, Source.FrameEndIndex );
-	}
+}
 
 FEventGraphDataRef FEventGraphData::DuplicateAsRef()
 {

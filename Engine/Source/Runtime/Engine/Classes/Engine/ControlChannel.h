@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -58,11 +58,14 @@ class ENGINE_API UControlChannel
 
 	virtual void Init( UNetConnection* InConnection, int32 InChIndex, bool InOpenedLocally ) override;
 
-	// Begin UChannel interface.
+	//~ Begin UChannel Interface.
 	virtual FPacketIdRange SendBunch(FOutBunch* Bunch, bool Merge) override;
 
 	virtual void Tick() override;
-	// End UChannel interface.
+
+	/** Always tick the control channel for now. */
+	virtual bool CanStopTicking() const override { return false; }
+	//~ End UChannel Interface.
 
 
 	/** Handle an incoming bunch. */

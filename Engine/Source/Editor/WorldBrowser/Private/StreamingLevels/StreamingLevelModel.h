@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "EditorUndoClient.h"
 #include "Layers/Layer.h"
@@ -33,7 +33,6 @@ public:
 	virtual FName GetAssetName() const override;
 	virtual FName GetLongPackageName() const override;
 	virtual void UpdateAsset(const FAssetData& AssetData) override;
-	virtual bool SupportsLevelColor() const override;
 	virtual FLinearColor GetLevelColor() const override;
 	virtual void SetLevelColor(FLinearColor InColor) override;
 	virtual void Update() override;

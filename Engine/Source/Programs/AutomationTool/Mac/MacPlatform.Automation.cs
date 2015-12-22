@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -41,99 +41,68 @@ public class MacPlatform : Platform
 
 	private void StageAppBundle(DeploymentContext SC, StagedFileType InStageFileType, string InPath, string NewName)
 	{
-		SC.StageFiles(InStageFileType, InPath, "*", true, null, NewName, false, true, null);
+		if (InStageFileType != StagedFileType.DebugNonUFS)
+		{
+			// Files with DebugFileExtensions should always be DebugNonUFS
+			List<string> DebugExtentionWildCards = new List<string>();
+			foreach(string DebugExtention in GetDebugFileExtentions())
+			{
+				string ExtensionWildcard = "*" + DebugExtention;
+				DebugExtentionWildCards.Add(ExtensionWildcard);
+				SC.StageFiles(StagedFileType.DebugNonUFS, InPath, ExtensionWildcard, true, null, NewName, true, true, null);
+			}
+
+			// Also stage the non-debug files, excluding the debug ones staged above
+			SC.StageFiles(InStageFileType, InPath, "*", true, DebugExtentionWildCards.ToArray(), NewName, false, true, null);
+		}
+		else
+		{
+			// We are already DebugNonUFS, no need to do any special-casing
+			SC.StageFiles(InStageFileType, InPath, "*", true, null, NewName, false, true, null);
+		}
 	}
 
 	public override void GetFilesToDeployOrStage(ProjectParams Params, DeploymentContext SC)
 	{
-	
-		if (Params.StageNonMonolithic)
+		// the first app is the "main" one, the rest are marked as debug files for exclusion from chunking/distribution
+		StagedFileType WorkingFileType = StagedFileType.NonUFS;
+
+		List<string> Exes = GetExecutableNames(SC);
+		foreach (var Exe in Exes)
 		{
-			if (SC.DedicatedServer)
+			string AppBundlePath = "";
+			if (Exe.StartsWith(CombinePaths(SC.RuntimeProjectRootDir, "Binaries", SC.PlatformDir)))
 			{
-				if (SC.StageTargetConfigurations.Contains(UnrealTargetConfiguration.Development))
+				AppBundlePath = CombinePaths(SC.ShortProjectName, "Binaries", SC.PlatformDir, Path.GetFileNameWithoutExtension(Exe) + ".app");
+				StageAppBundle(SC, WorkingFileType, CombinePaths(SC.ProjectRoot, "Binaries", SC.PlatformDir, Path.GetFileNameWithoutExtension(Exe) + ".app"), AppBundlePath);
+			}
+			else if (Exe.StartsWith(CombinePaths(SC.RuntimeRootDir, "Engine/Binaries", SC.PlatformDir)))
+			{
+				AppBundlePath = CombinePaths("Engine/Binaries", SC.PlatformDir, Path.GetFileNameWithoutExtension(Exe) + ".app");
+
+				string AbsoluteBundlePath = CombinePaths (SC.LocalRoot, AppBundlePath);
+				// ensure the ue4game binary exists, if applicable
+				if (!SC.IsCodeBasedProject && !Directory.Exists(AbsoluteBundlePath) && !SC.bIsCombiningMultiplePlatforms)
 				{
-					SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir, "UE4Server.app"));
-					SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Binaries", SC.PlatformDir), "UE4Server-" + SC.ShortProjectName + ".dylib");
-				}
-				if (SC.StageTargetConfigurations.Contains(UnrealTargetConfiguration.Test))
-				{
-					SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir, "UE4Server-Mac-Test.app"));
-					SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Binaries", SC.PlatformDir), "UE4Server-" + SC.ShortProjectName + "-Mac-Test.dylib");
-				}
-				if (SC.StageTargetConfigurations.Contains(UnrealTargetConfiguration.Shipping))
-				{
-					SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir, "UE4Server-Mac-Shipping.app"));
-					SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Binaries", SC.PlatformDir), "UE4Server-" + SC.ShortProjectName + "-Mac-Shipping.dylib");
+					LogError("Failed to find app bundle " + AbsoluteBundlePath);
+					throw new AutomationException(ExitCode.Error_MissingExecutable, "Could not find app bundle {0}. You may need to build the UE4 project with your target configuration and platform.", AbsoluteBundlePath);
 				}
 
-				SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Plugins"), "UE4Server-*.dylib", true);
-				SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Plugins"), "UE4Server-*.dylib", true);
+				StageAppBundle(SC, WorkingFileType, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir, Path.GetFileNameWithoutExtension(Exe) + ".app"), AppBundlePath);
 			}
-			else
-			{
-				if (SC.StageTargetConfigurations.Contains(UnrealTargetConfiguration.Development))
-				{
-					SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir, "UE4.app"));
-					SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Binaries", SC.PlatformDir), "UE4-" + SC.ShortProjectName + ".dylib");
-				}
-				if (SC.StageTargetConfigurations.Contains(UnrealTargetConfiguration.Test))
-				{
-					SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir, "UE4-Mac-Test.app"));
-					SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Binaries", SC.PlatformDir), "UE4-" + SC.ShortProjectName + "-Mac-Test.dylib");
-				}
-				if (SC.StageTargetConfigurations.Contains(UnrealTargetConfiguration.Shipping))
-				{
-					SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir, "UE4-Mac-Shipping.app"));
-					SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Binaries", SC.PlatformDir), "UE4-" + SC.ShortProjectName + "-Mac-Shipping.dylib");
-				}
 
-				SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Plugins"), "UE4-*.dylib", true);
-				SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Plugins"), "UE4-*.dylib", true, null, null, true);
+			if (!string.IsNullOrEmpty(AppBundlePath))
+			{
+				SC.StageFiles(WorkingFileType, CombinePaths(SC.ProjectRoot, "Build/Mac"), "Application.icns", false, null, CombinePaths(AppBundlePath, "Contents/Resources"), true);
+
+				if (Params.bUsesSteam)
+				{
+					SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Source/ThirdParty/Steamworks/Steamv132/sdk/redistributable_bin/osx32"), "libsteam_api.dylib", false, null, CombinePaths(AppBundlePath, "Contents/MacOS"), true);
+				}
 			}
-		}
-		else
-		{
+
 			// the first app is the "main" one, the rest are marked as debug files for exclusion from chunking/distribution
-			StagedFileType WorkingFileType = StagedFileType.NonUFS;
-
-			List<string> Exes = GetExecutableNames(SC);
-			foreach (var Exe in Exes)
-			{
-				string AppBundlePath = "";
-				if (Exe.StartsWith(CombinePaths(SC.RuntimeProjectRootDir, "Binaries", SC.PlatformDir)))
-				{
-					AppBundlePath = CombinePaths(SC.ShortProjectName, "Binaries", SC.PlatformDir, Path.GetFileNameWithoutExtension(Exe) + ".app");
-					StageAppBundle(SC, WorkingFileType, CombinePaths(SC.ProjectRoot, "Binaries", SC.PlatformDir, Path.GetFileNameWithoutExtension(Exe) + ".app"), AppBundlePath);
-				}
-				else if (Exe.StartsWith(CombinePaths(SC.RuntimeRootDir, "Engine/Binaries", SC.PlatformDir)))
-				{
-					AppBundlePath = CombinePaths("Engine/Binaries", SC.PlatformDir, Path.GetFileNameWithoutExtension(Exe) + ".app");
-
-					string AbsoluteBundlePath = CombinePaths (SC.LocalRoot, AppBundlePath);
-					// ensure the ue4game binary exists, if applicable
-					if (!SC.IsCodeBasedProject && !Directory.Exists(AbsoluteBundlePath) && !SC.bIsCombiningMultiplePlatforms)
-					{
-						LogError("Failed to find app bundle " + AbsoluteBundlePath);
-						throw new AutomationException(ErrorCodes.Error_MissingExecutable, "Could not find app bundle {0}. You may need to build the UE4 project with your target configuration and platform.", AbsoluteBundlePath);
-					}
-
-					StageAppBundle(SC, WorkingFileType, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir, Path.GetFileNameWithoutExtension(Exe) + ".app"), AppBundlePath);
-				}
-
-				if (!string.IsNullOrEmpty(AppBundlePath))
-				{
-					SC.StageFiles(WorkingFileType, CombinePaths(SC.ProjectRoot, "Build/Mac"), "Application.icns", false, null, CombinePaths(AppBundlePath, "Contents/Resources"), true);
-
-					if (Params.bUsesSteam)
-					{
-						SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Source/ThirdParty/Steamworks/Steamv132/sdk/redistributable_bin/osx32"), "libsteam_api.dylib", false, null, CombinePaths(AppBundlePath, "Contents/MacOS"), true);
-					}
-				}
-
-				// the first app is the "main" one, the rest are marked as debug files for exclusion from chunking/distribution
-				WorkingFileType = StagedFileType.DebugNonUFS;
-			}
+			WorkingFileType = StagedFileType.DebugNonUFS;
 		}
 
 		if (SC.bStageCrashReporter)
@@ -156,9 +125,9 @@ public class MacPlatform : Platform
 		// Stage the bootstrap executable
 		if(!Params.NoBootstrapExe)
 		{
-			foreach(BuildReceipt Receipt in SC.StageTargetReceipts)
+			foreach(StageTarget Target in SC.StageTargets)
 			{
-				BuildProduct Executable = Receipt.BuildProducts.FirstOrDefault(x => x.Type == BuildProductType.Executable);
+				BuildProduct Executable = Target.Receipt.BuildProducts.FirstOrDefault(x => x.Type == BuildProductType.Executable);
 				if(Executable != null)
 				{
 					// only create bootstraps for executables
@@ -177,7 +146,7 @@ public class MacPlatform : Platform
 						}
 						else if(Params.IsCodeBasedProject)
 						{
-							BootstrapExeName = Receipt.GetProperty("TargetName", SC.ShortProjectName) + ".app";
+							BootstrapExeName = Target.Receipt.TargetName + ".app";
 						}
 						else
 						{
@@ -185,12 +154,20 @@ public class MacPlatform : Platform
 						}
 
 						string AppPath = Executable.Path.Substring(0, Executable.Path.LastIndexOf(".app/") + 4);
-						string AppRelativePath = SC.NonUFSStagingFiles[Executable.Path].Substring(0, SC.NonUFSStagingFiles[Executable.Path].LastIndexOf(".app/") + 4);
-						StageBootstrapExecutable(SC, BootstrapExeName, AppPath, AppRelativePath, BootstrapArguments);
+						object Dest = SC.NonUFSStagingFiles[Executable.Path];
+						foreach (var DestPath in SC.NonUFSStagingFiles[Executable.Path])
+						{
+							string AppRelativePath = DestPath.Substring(0, DestPath.LastIndexOf(".app/") + 4);
+							StageBootstrapExecutable(SC, BootstrapExeName, AppPath, AppRelativePath, BootstrapArguments);
+						}
 					}
 				}
 			}
 		}
+
+		// Copy the ShaderCache files, if they exist
+		SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Content"), "ShaderCache.ushadercache", false, null, null, true);
+		SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Content"), "ShaderCodeCache.ushadercode", false, null, null, true);
 	}
 
 	string GetValueFromInfoPlist(string InfoPlist, string Key, string DefaultValue = "")
@@ -345,7 +322,7 @@ public class MacPlatform : Platform
 				File.Delete(GameExePath);
 				File.Move(UE4GamePath, GameExePath);
 
-				string DefaultIconPath = CombinePaths(BundlePath, "Contents", "Resources", "UE4.icns");
+				string DefaultIconPath = CombinePaths(BundlePath, "Contents", "Resources", "UE4Game.icns");
 				string CustomIconSrcPath = CombinePaths(BundlePath, "Contents", "Resources", "Application.icns");
 				string CustomIconDestPath = CombinePaths(BundlePath, "Contents", "Resources", SC.ShortProjectName + ".icns");
 				if (File.Exists(CustomIconSrcPath))
@@ -353,7 +330,7 @@ public class MacPlatform : Platform
 					File.Delete(DefaultIconPath);
 					File.Move(CustomIconSrcPath, CustomIconDestPath);
 				}
-				else
+				else if (File.Exists(DefaultIconPath))
 				{
 					File.Move(DefaultIconPath, CustomIconDestPath);
 				}
@@ -411,11 +388,11 @@ public class MacPlatform : Platform
 	}
 	public override List<string> GetDebugFileExtentions()
 	{
-		return new List<string> { ".dsym" };
+		return new List<string> { ".dSYM" };
 	}
 	public override bool CanHostPlatform(UnrealTargetPlatform Platform)
 	{
-		if (Platform == UnrealTargetPlatform.IOS || Platform == UnrealTargetPlatform.Mac)
+		if (Platform == UnrealTargetPlatform.IOS || Platform == UnrealTargetPlatform.Mac || Platform == UnrealTargetPlatform.TVOS)
 		{
 			return true;
 		}

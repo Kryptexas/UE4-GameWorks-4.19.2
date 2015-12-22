@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2611556
+﻿INTSourceChangelist:2680777
 Availability: Public
 Title:매크로 만들기
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -6,6 +6,8 @@ Description:플레이어의 에너지가 점프하기에 충분한지 검사하�
 Related: Engine/Blueprints/UserGuide/Macros
 Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
 Related: Engine/Blueprints
+version:4.9
+skilllevel:Advanced
 
 **Macro** 매크로는 본질적으로 노드들이 접힌 그래프와 같습니다. 터널 노드로 지정된 입구와 출구가 있습니다. 각 터널은 실행 또는 데이터 핀을 몇 개든 가질 수 있으며, 이는 다른 블루프린트와 그래프에서 사용되는 매크로 노드에서 확인할 수 있습니다.
 
@@ -14,7 +16,7 @@ Related: Engine/Blueprints
 이 예제에서는 플레이어가 점프하기에 충분한 에너지를 가졌는지 아닌지 검사하는 데 사용되는 **매크로** 를 만들어 보겠습니다. 점프하기에 충분한 에너지가 있으면, 플레이어의 에너지를 조금 감소시킨 다음 현재 값을 화면에 출력시키고 점프를 허용합니다. 에너지가 충분치 않으면 에너지가 없다고 화면에 출력한 다음, 점프를 허용하지 않습니다.
 
 [REGION:note]
-_이 예제에서는 **시작용 콘텐츠 포함** 된 **블루프린트 삼인칭 프로젝트** 를 사용합니다._
+이 예제에서는 **시작용 콘텐츠 포함** 된 **블루프린트 삼인칭 프로젝트** 를 사용합니다.
 [/REGION]
 
 1.  **Content/ThirdPersonBP/Blueprints** 폴더에서 **ThirdPersonCharacter** 블루프린트를 엽니다.

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "Menu.h"
@@ -74,21 +74,33 @@ namespace
 		SLATE_BEGIN_ARGS(SMenuContentWrapper) 
 				: _MenuContent()
 				, _OnKeyDown()
+				, _OptionalMinMenuWidth()
+				, _OptionalMinMenuHeight()
 			{}
 
 			SLATE_DEFAULT_SLOT(FArguments, MenuContent)
 			SLATE_EVENT(FOnKeyDown, OnKeyDown)
 			SLATE_EVENT(FOnMenuLostFocus, OnMenuLostFocus)
+			SLATE_ARGUMENT(FOptionalSize, OptionalMinMenuWidth)
+			SLATE_ARGUMENT(FOptionalSize, OptionalMinMenuHeight)
 		SLATE_END_ARGS()
 
 		/** Construct this widget */
 		void Construct(const FArguments& InArgs)
 		{
+			// The visibility of the content wrapper should match that of the provided content
+			Visibility = AccessWidgetVisibilityAttribute(InArgs._MenuContent.Widget);
+
 			OnKeyDownDelegate = InArgs._OnKeyDown;
 			OnMenuLostFocus = InArgs._OnMenuLostFocus;
 			ChildSlot
 			[
+				SNew(SBox)
+				.MinDesiredWidth(InArgs._OptionalMinMenuWidth)
+				.MaxDesiredHeight(InArgs._OptionalMinMenuHeight)
+				[
 				InArgs._MenuContent.Widget
+				]
 			];
 		}
 
@@ -154,6 +166,7 @@ TSharedRef<SWindow> FMenuStack::PushMenu( const TSharedRef<SWindow>& ParentWindo
 
 	TSharedRef<SWindow> NewMenuWindow =
 		SNew(SWindow)
+		.Type(EWindowType::Menu)
 		.IsPopupWindow(true)
 		.SizingRule(bShouldAutoSize ? ESizingRule::Autosized : ESizingRule::UserSized)
 		.ScreenPosition(AdjustedSummonLocation)
@@ -177,7 +190,7 @@ TSharedRef<SWindow> FMenuStack::PushMenu( const TSharedRef<SWindow>& ParentWindo
 	return NewMenuWindow;
 }
 
-TSharedRef<IMenu> FMenuStack::Push(const FWidgetPath& InOwnerPath, const TSharedRef<SWidget>& InContent, const FVector2D& SummonLocation, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately, const FVector2D& SummonLocationSize, TOptional<EPopupMethod> InMethod, const bool bIsCollapsedByParent)
+TSharedRef<IMenu> FMenuStack::Push(const FWidgetPath& InOwnerPath, const TSharedRef<SWidget>& InContent, const FVector2D& SummonLocation, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately, const FVector2D& SummonLocationSize, TOptional<EPopupMethod> InMethod, const bool bIsCollapsedByParent, const bool bEnablePerPixelTransparency)
 {
 	FSlateRect Anchor(SummonLocation, SummonLocation + SummonLocationSize);
 	TSharedPtr<IMenu> ParentMenu;
@@ -194,26 +207,26 @@ TSharedRef<IMenu> FMenuStack::Push(const FWidgetPath& InOwnerPath, const TShared
 		// pushing a new root menu (leave ParentMenu invalid)
 
 		// The active method is determined when a new root menu is pushed
-		ActiveMethod = InMethod.IsSet() ? InMethod : QueryPopupMethod(InOwnerPath);
+		ActiveMethod = InMethod.IsSet() ? FPopupMethodReply::UseMethod(InMethod.GetValue()) : QueryPopupMethod(InOwnerPath);
 
 		// The host window is determined when a new root menu is pushed
 		SetHostWindow(InOwnerPath.GetWindow());
 	}
 
-	return PushInternal(ParentMenu, InContent, Anchor, TransitionEffect, bFocusImmediately, bIsCollapsedByParent);
+	return PushInternal(ParentMenu, InContent, Anchor, TransitionEffect, bFocusImmediately, ActiveMethod.GetShouldThrottle(), bIsCollapsedByParent, bEnablePerPixelTransparency);
 }
 
-TSharedRef<IMenu> FMenuStack::Push(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<SWidget>& InContent, const FVector2D& SummonLocation, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately, const FVector2D& SummonLocationSize, const bool bIsCollapsedByParent)
+TSharedRef<IMenu> FMenuStack::Push(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<SWidget>& InContent, const FVector2D& SummonLocation, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately, const FVector2D& SummonLocationSize, const bool bIsCollapsedByParent, const bool bEnablePerPixelTransparency)
 {
 	check(Stack.Contains(InParentMenu));
 	check(HostWindow.IsValid());
 
 	FSlateRect Anchor(SummonLocation, SummonLocation + SummonLocationSize);
 
-	return PushInternal(InParentMenu, InContent, Anchor, TransitionEffect, bFocusImmediately, bIsCollapsedByParent);
+	return PushInternal(InParentMenu, InContent, Anchor, TransitionEffect, bFocusImmediately, EShouldThrottle::Yes, bIsCollapsedByParent, bEnablePerPixelTransparency);
 }
 
-TSharedRef<IMenu> FMenuStack::PushHosted(const FWidgetPath& InOwnerPath, const TSharedRef<IMenuHost>& InMenuHost, const TSharedRef<SWidget>& InContent, TSharedPtr<SWidget>& OutWrappedContent, const FPopupTransitionEffect& TransitionEffect, const bool bIsCollapsedByParent)
+TSharedRef<IMenu> FMenuStack::PushHosted(const FWidgetPath& InOwnerPath, const TSharedRef<IMenuHost>& InMenuHost, const TSharedRef<SWidget>& InContent, TSharedPtr<SWidget>& OutWrappedContent, const FPopupTransitionEffect& TransitionEffect, EShouldThrottle ShouldThrottle, const bool bIsCollapsedByParent)
 {
 	TSharedPtr<IMenu> ParentMenu;
 
@@ -229,16 +242,16 @@ TSharedRef<IMenu> FMenuStack::PushHosted(const FWidgetPath& InOwnerPath, const T
 		// pushing a new root menu (leave ParentMenu invalid)
 
 		// The active method is determined when a new root menu is pushed and hosted menus are always UseCurrentWindow
-		ActiveMethod = EPopupMethod::UseCurrentWindow;
+		ActiveMethod = FPopupMethodReply::UseMethod(EPopupMethod::UseCurrentWindow);
 
 		// The host window is determined when a new root menu is pushed
 		SetHostWindow(InOwnerPath.GetWindow());
 	}
 
-	return PushHosted(ParentMenu, InMenuHost, InContent, OutWrappedContent, TransitionEffect);
+	return PushHosted(ParentMenu, InMenuHost, InContent, OutWrappedContent, TransitionEffect, ShouldThrottle);
 }
 
-TSharedRef<IMenu> FMenuStack::PushHosted(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<IMenuHost>& InMenuHost, const TSharedRef<SWidget>& InContent, TSharedPtr<SWidget>& OutWrappedContent, const FPopupTransitionEffect& TransitionEffect, const bool bIsCollapsedByParent)
+TSharedRef<IMenu> FMenuStack::PushHosted(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<IMenuHost>& InMenuHost, const TSharedRef<SWidget>& InContent, TSharedPtr<SWidget>& OutWrappedContent, const FPopupTransitionEffect& TransitionEffect, EShouldThrottle ShouldThrottle, const bool bIsCollapsedByParent)
 {
 	check(HostWindow.IsValid());
 
@@ -253,14 +266,14 @@ TSharedRef<IMenu> FMenuStack::PushHosted(const TSharedPtr<IMenu>& InParentMenu, 
 	// Register to get a callback when it's dismissed - to fixup stack
 	OutMenu->GetOnMenuDismissed().AddRaw(this, &FMenuStack::OnMenuDestroyed);
 
-	PostPush(InParentMenu, OutMenu);
+	PostPush(InParentMenu, OutMenu, ShouldThrottle);
 
 	PendingNewMenu.Reset();
 
 	return OutMenu;
 }
 
-TSharedRef<IMenu> FMenuStack::PushInternal(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<SWidget>& InContent, FSlateRect Anchor, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately, const bool bIsCollapsedByParent)
+TSharedRef<IMenu> FMenuStack::PushInternal(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<SWidget>& InContent, FSlateRect Anchor, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately, EShouldThrottle ShouldThrottle, const bool bIsCollapsedByParent, const bool bEnablePerPixelTransparency)
 {
 	FPrePushArgs PrePushArgs;
 	PrePushArgs.Content = InContent;
@@ -276,13 +289,13 @@ TSharedRef<IMenu> FMenuStack::PushInternal(const TSharedPtr<IMenu>& InParentMenu
 	const FPrePushResults PrePushResults = PrePush(PrePushArgs);
 
 	// Menu object creation stage
-	TSharedRef<FMenuBase> OutMenu = ActiveMethod.Get(EPopupMethod::CreateNewWindow) == EPopupMethod::CreateNewWindow
-		? PushNewWindow(InParentMenu, PrePushResults)
+	TSharedRef<FMenuBase> OutMenu = ActiveMethod.GetPopupMethod() == EPopupMethod::CreateNewWindow
+		? PushNewWindow(InParentMenu, PrePushResults, bEnablePerPixelTransparency)
 		: PushPopup(InParentMenu, PrePushResults);
 
 	// Post-push stage
 	//   Updates the stack and content map member variables
-	PostPush(InParentMenu, OutMenu);
+	PostPush(InParentMenu, OutMenu, ShouldThrottle);
 
 	PendingNewMenu.Reset();
 
@@ -304,7 +317,7 @@ FMenuStack::FPrePushResults FMenuStack::PrePush(const FPrePushArgs& InArgs)
 
 	// Calc the max height available on screen for the menu
 	float MaxHeight;
-	if (ActiveMethod.Get(EPopupMethod::CreateNewWindow) == EPopupMethod::CreateNewWindow)
+	if (ActiveMethod.GetPopupMethod() == EPopupMethod::CreateNewWindow)
 	{
 		FSlateRect WorkArea = FSlateApplication::Get().GetWorkArea(InArgs.Anchor);
 		MaxHeight = FMenuStackDefs::MaxMenuScreenHeightFraction * WorkArea.GetSize().Y;
@@ -333,7 +346,7 @@ FMenuStack::FPrePushResults FMenuStack::PrePush(const FPrePushArgs& InArgs)
 	EOrientation Orientation = (InArgs.TransitionEffect.SlideDirection == FPopupTransitionEffect::SubMenu) ? Orient_Horizontal : Orient_Vertical;
 
 	// Calculate the correct position for the menu based on the popup method
-	if (ActiveMethod.Get(EPopupMethod::CreateNewWindow) == EPopupMethod::CreateNewWindow)
+	if (ActiveMethod.GetPopupMethod() == EPopupMethod::CreateNewWindow)
 	{
 		// Places the menu's window in the work area
 		OutResults.AnimStartLocation = OutResults.AnimFinalLocation = FSlateApplication::Get().CalculatePopupWindowPosition(InArgs.Anchor, OutResults.ExpectedSize, Orientation);
@@ -396,17 +409,23 @@ FMenuStack::FPrePushResults FMenuStack::PrePush(const FPrePushArgs& InArgs)
 	return OutResults;
 }
 
-TSharedRef<FMenuBase> FMenuStack::PushNewWindow(TSharedPtr<IMenu> InParentMenu, const FPrePushResults& InPrePushResults)
+TSharedRef<FMenuBase> FMenuStack::PushNewWindow(TSharedPtr<IMenu> InParentMenu, const FPrePushResults& InPrePushResults, const bool bEnablePerPixelTransparency)
 {
-	check(ActiveMethod.GetValue() == EPopupMethod::CreateNewWindow);
+	check(ActiveMethod.GetPopupMethod() == EPopupMethod::CreateNewWindow);
 
 	// Start pop-up windows out transparent, then fade them in over time
+#if ALPHA_BLENDED_WINDOWS
+	const EWindowTransparency Transparency(bEnablePerPixelTransparency ? EWindowTransparency::PerPixel : InPrePushResults.bAllowAnimations ? EWindowTransparency::PerWindow : EWindowTransparency::None);
+#else
 	const EWindowTransparency Transparency(InPrePushResults.bAllowAnimations ? EWindowTransparency::PerWindow : EWindowTransparency::None);
+#endif
+
 	const float InitialWindowOpacity = InPrePushResults.bAllowAnimations ? 0.0f : 1.0f;
 	const float TargetWindowOpacity = 1.0f;
 
 	// Create a new window for the menu
 	TSharedRef<SWindow> NewMenuWindow = SNew(SWindow)
+		.Type(EWindowType::Menu)
 		.IsPopupWindow(true)
 		.SizingRule(ESizingRule::Autosized)
 		.ScreenPosition(InPrePushResults.AnimStartLocation)
@@ -459,7 +478,7 @@ TSharedRef<FMenuBase> FMenuStack::PushNewWindow(TSharedPtr<IMenu> InParentMenu, 
 
 TSharedRef<FMenuBase> FMenuStack::PushPopup(TSharedPtr<IMenu> InParentMenu, const FPrePushResults& InPrePushResults)
 {
-	check(ActiveMethod.GetValue() == EPopupMethod::UseCurrentWindow);
+	check(ActiveMethod.GetPopupMethod() == EPopupMethod::UseCurrentWindow);
 
 	// Create a FMenuInPopup
 	check(InPrePushResults.WrappedContent.IsValid());
@@ -480,7 +499,7 @@ TSharedRef<FMenuBase> FMenuStack::PushPopup(TSharedPtr<IMenu> InParentMenu, cons
 	return Menu;
 }
 
-void FMenuStack::PostPush(TSharedPtr<IMenu> InParentMenu, TSharedRef<FMenuBase> InMenu)
+void FMenuStack::PostPush(TSharedPtr<IMenu> InParentMenu, TSharedRef<FMenuBase> InMenu, EShouldThrottle ShouldThrottle )
 {
 	// Determine at which index we insert this new menu in the stack
 	int32 InsertIndex = 0;
@@ -511,24 +530,24 @@ void FMenuStack::PostPush(TSharedPtr<IMenu> InParentMenu, TSharedRef<FMenuBase> 
 
 	// When a new menu is pushed, if we are not already in responsive mode for Slate UI, enter it now
 	// to ensure the menu is responsive in low FPS situations
-	if (!ThrottleHandle.IsValid())
+	if (!ThrottleHandle.IsValid() && ShouldThrottle == EShouldThrottle::Yes)
 	{
 		ThrottleHandle = FSlateThrottleManager::Get().EnterResponsiveMode();
 	}
 }
 
-EPopupMethod FMenuStack::QueryPopupMethod(const FWidgetPath& PathToQuery)
+FPopupMethodReply FMenuStack::QueryPopupMethod(const FWidgetPath& PathToQuery)
 {
 	for (int32 WidgetIndex = PathToQuery.Widgets.Num() - 1; WidgetIndex >= 0; --WidgetIndex)
 	{
-		TOptional<EPopupMethod> PopupMethod = PathToQuery.Widgets[WidgetIndex].Widget->OnQueryPopupMethod();
-		if (PopupMethod.IsSet())
+		FPopupMethodReply PopupMethod = PathToQuery.Widgets[WidgetIndex].Widget->OnQueryPopupMethod();
+		if (PopupMethod.IsEventHandled())
 		{
-			return PopupMethod.GetValue();
+			return PopupMethod;
 		}
 	}
 
-	return EPopupMethod::CreateNewWindow;
+	return FPopupMethodReply::UseMethod(EPopupMethod::CreateNewWindow);
 }
 
 void FMenuStack::Dismiss(int32 FirstStackIndexToRemove)
@@ -658,14 +677,11 @@ TSharedRef<SWidget> FMenuStack::WrapContent(TSharedRef<SWidget> InContent, FOpti
 	return SNew(SMenuContentWrapper)
 		.OnKeyDown_Static(&OnMenuKeyDown)
 		.OnMenuLostFocus_Raw(this, &FMenuStack::OnMenuContentLostFocus)
+		.OptionalMinMenuWidth(OptionalMinWidth)
+		.OptionalMinMenuHeight(OptionalMinHeight)
 		.MenuContent()
 		[
-			SNew(SBox)
-			.MinDesiredWidth(OptionalMinWidth)
-			.MaxDesiredHeight(OptionalMinHeight)
-			[
 				InContent
-			]
 		];
 }
 

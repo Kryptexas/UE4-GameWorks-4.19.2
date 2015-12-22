@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "ConfigEditorPropertyDetails.h"
@@ -32,7 +32,7 @@ void FConfigPropertyHelperDetails::CustomizeDetails(IDetailLayoutBuilder& Detail
 	ConfigEditorPropertyViewClass = NewObject<UClass>(GetTransientPackage(), TEXT("TempConfigEditorUClass"), RF_Public|RF_Standalone);
 
 	// Keep a record of the UProperty we are looking to update
-	ConfigEditorCopyOfEditProperty = DuplicateObject<UProperty>(OriginalProperty, ConfigEditorPropertyViewClass, *(PropValue->GetName()));
+	ConfigEditorCopyOfEditProperty = DuplicateObject<UProperty>(OriginalProperty, ConfigEditorPropertyViewClass, PropValue->GetFName());
 	ConfigEditorPropertyViewClass->ClassConfigName = OriginalProperty->GetOwnerClass()->ClassConfigName;
 	ConfigEditorPropertyViewClass->SetSuperStruct(UObject::StaticClass());
 	ConfigEditorPropertyViewClass->ClassFlags |= (CLASS_DefaultConfig | CLASS_Config);

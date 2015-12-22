@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AppFrameworkPrivatePCH.h"
 #include "SColorThemes.h"
@@ -746,25 +746,21 @@ FText SColorThemeBar::GetThemeName() const
 
 FReply SColorThemeBar::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
+	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
 		OnCurrentThemeChanged.ExecuteIfBound(ColorTheme.Pin());
 
 		return FReply::Handled();
 	}
-	else
-	{
-		return FReply::Unhandled();
-	}
+
+	return FReply::Unhandled();
 }
-
-
-
 
 
 TArray< TSharedPtr<FColorTheme> > SColorThemesViewer::ColorThemes;
 TWeakPtr<FColorTheme> SColorThemesViewer::CurrentlySelectedThemePtr;
 bool SColorThemesViewer::bSRGBEnabled = false;
+
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SColorThemesViewer::Construct(const FArguments& InArgs)

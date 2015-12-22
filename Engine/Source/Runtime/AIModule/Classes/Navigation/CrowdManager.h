@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Tickable.h"
@@ -157,7 +157,6 @@ class AIMODULE_API UCrowdManager : public UObject
 
 	virtual void Tick(float DeltaTime);
 	virtual void BeginDestroy() override;
-	virtual void PostInitProperties() override;
 
 	/** adds new agent to crowd */
 	void RegisterAgent(ICrowdAgentInterface* Agent);
@@ -175,13 +174,13 @@ class AIMODULE_API UCrowdManager : public UObject
 	void OnAgentFinishedCustomLink(const ICrowdAgentInterface* Agent) const;
 
 	/** sets move target for crowd agent (only for fully simulated) */
-	bool SetAgentMoveTarget(const UCrowdFollowingComponent* AgentComponent, const FVector& MoveTarget, TSharedPtr<const FNavigationQueryFilter> Filter) const;
+	bool SetAgentMoveTarget(const UCrowdFollowingComponent* AgentComponent, const FVector& MoveTarget, FSharedConstNavQueryFilter Filter) const;
 
 	/** sets move direction for crowd agent (only for fully simulated) */
 	bool SetAgentMoveDirection(const UCrowdFollowingComponent* AgentComponent, const FVector& MoveDirection) const;
 
 	/** sets move target using path (only for fully simulated) */
-	bool SetAgentMovePath(const UCrowdFollowingComponent* AgentComponent, const FNavMeshPath* Path, int32 PathSectionStart, int32 PathSectionEnd) const;
+	bool SetAgentMovePath(const UCrowdFollowingComponent* AgentComponent, const FNavMeshPath* Path, int32 PathSectionStart, int32 PathSectionEnd, const FVector& PathSectionEndLocation) const;
 
 	/** clears move target for crowd agent (only for fully simulated) */
 	void ClearAgentMoveTarget(const UCrowdFollowingComponent* AgentComponent) const;
@@ -279,8 +278,8 @@ protected:
 	/** agents registered in crowd manager */
 	TMap<ICrowdAgentInterface*, FCrowdAgentData> ActiveAgents;
 
-	/** stores handle to delegate navigation system will call when it has initized */
-	FDelegateHandle OnNavInitHandle;
+	/** temporary flags for crowd agents */
+	TArray<uint8> AgentFlags;
 
 #if WITH_RECAST
 	/** crowd manager */
@@ -303,6 +302,9 @@ protected:
 
 	/** called from tick, just after updating agents proximity data */
 	virtual void PostProximityUpdate();
+
+	/** called from tick, after move points were updated, before any steering/avoidance */
+	virtual void PostMovePointUpdate();
 
 #if WITH_RECAST
 	void AddAgent(const ICrowdAgentInterface* Agent, FCrowdAgentData& AgentData) const;

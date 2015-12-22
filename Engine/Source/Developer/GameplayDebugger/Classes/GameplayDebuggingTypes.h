@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -54,5 +54,3 @@ GAMEPLAYDEBUGGER_API
 FGameplayDebuggerSettings  GameplayDebuggerSettings(class AGameplayDebuggingReplicator* Replicator = NULL);
 
 DECLARE_MULTICAST_DELEGATE(FOnCycleDetailsView);
-
-DECLARE_LOG_CATEGORY_EXTERN(LogGameplayDebugger, Warning, All);

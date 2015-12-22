@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimSequence.cpp: Skeletal mesh animation functions.
@@ -16,8 +16,16 @@
 #include "Animation/Rig.h"
 #include "EditorFramework/AssetImportData.h"
 #include "Animation/AnimStats.h"
+#include "MessageLog.h"
 
 #define USE_SLERP 0
+#define LOCTEXT_NAMESPACE "AnimSequence"
+
+DECLARE_CYCLE_STAT(TEXT("AnimSeq GetBonePose"), STAT_AnimSeq_GetBonePose, STATGROUP_Anim);
+DECLARE_CYCLE_STAT(TEXT("BlendedCurve InitFrom"), STAT_BlendedCurve_InitFrom, STATGROUP_Anim);
+DECLARE_CYCLE_STAT(TEXT("Build Anim Track Pairs"), STAT_BuildAnimTrackPairs, STATGROUP_Anim);
+DECLARE_CYCLE_STAT(TEXT("Extract Pose From Anim Data"), STAT_ExtractPoseFromAnimData, STATGROUP_Anim);
+
 
 /////////////////////////////////////////////////////
 // FRawAnimSequenceTrackNativeDeprecated
@@ -112,6 +120,7 @@ UAnimSequence::UAnimSequence(const FObjectInitializer& ObjectInitializer)
 	, bEnableRootMotion(false)
 	, RootMotionRootLock(ERootMotionRootLock::RefPose)
 	, bRootMotionSettingsCopiedFromMontage(false)
+	, bCalcAdditiveDynamically(true)
 {
 	RateScale = 1.0;
 }
@@ -123,6 +132,7 @@ void UAnimSequence::PostInitProperties()
 	{
 		AssetImportData = NewObject<UAssetImportData>(this, TEXT("AssetImportData"));
 	}
+	MarkerDataUpdateCounter = 0;
 #endif
 	Super::PostInitProperties();
 }
@@ -230,8 +240,98 @@ static void LoadOldCompressedTrack(FArchive& Ar, FCompressedTrack& Dst, int32 By
 	Ar << Dst.Ranges[0] << Dst.Ranges[1] << Dst.Ranges[2];
 }
 
+struct FScopedAnimSequenceCompressedDataCache 
+{
+	UAnimSequence* SrcAnim;
+	TArray<FRawAnimSequenceTrack> RawAnimationData;
+	TArray<FName> AnimationTrackNames;
+	TArray<FTrackToSkeletonMap> TrackToSkeletonMapTable;
+	TArray<FTranslationTrack> TranslationData;
+	TArray<FRotationTrack>  RotationData;
+	TArray<FScaleTrack> ScaleData;
+	UAnimCompress* CompressionScheme;
+	AnimationCompressionFormat TranslationCompressionFormat;
+	AnimationCompressionFormat RotationCompressionFormat;
+	AnimationCompressionFormat ScaleCompressionFormat;
+	TArray<int32> CompressedTrackOffsets;
+	FCompressedOffsetData CompressedScaleOffsets;
+	TArray<uint8> CompressedByteStream;
+	AnimationKeyFormat KeyEncodingFormat;
+	bool bCalcAdditiveDynamically;
+	FRawCurveTracks RawCurveData;
+
+	FScopedAnimSequenceCompressedDataCache() : SrcAnim(nullptr) {}
+	~FScopedAnimSequenceCompressedDataCache()
+	{
+		if (SrcAnim)
+		{
+			RestoreTo(SrcAnim);
+		}
+	}
+
+	void InitFrom(UAnimSequence* Src)
+	{
+#if WITH_EDITORONLY_DATA
+		SrcAnim = Src;
+		RawAnimationData = Src->RawAnimationData;
+		AnimationTrackNames = Src->AnimationTrackNames;
+		TrackToSkeletonMapTable = Src->TrackToSkeletonMapTable;
+		CompressedTrackOffsets = MoveTemp(Src->CompressedTrackOffsets);
+		TranslationData = MoveTemp(Src->TranslationData);
+		RotationData = MoveTemp(Src->RotationData);
+		ScaleData = MoveTemp(Src->ScaleData);
+		CompressionScheme = Src->CompressionScheme;
+		TranslationCompressionFormat = Src->TranslationCompressionFormat;
+		RotationCompressionFormat = Src->RotationCompressionFormat;
+		ScaleCompressionFormat = Src->ScaleCompressionFormat;
+		CompressedTrackOffsets = MoveTemp(Src->CompressedTrackOffsets);
+		CompressedScaleOffsets = Src->CompressedScaleOffsets;
+		CompressedByteStream = MoveTemp(Src->CompressedByteStream);
+		KeyEncodingFormat = Src->KeyEncodingFormat;
+		bCalcAdditiveDynamically = Src->bCalcAdditiveDynamically;
+		RawCurveData = Src->RawCurveData;
+#endif
+	}																				  
+
+	void RestoreTo(UAnimSequence* Src)
+	{
+#if WITH_EDITORONLY_DATA
+		Src->RawAnimationData = MoveTemp(RawAnimationData);
+		Src->AnimationTrackNames = MoveTemp(AnimationTrackNames);
+		Src->TrackToSkeletonMapTable = MoveTemp(TrackToSkeletonMapTable);
+		Src->CompressedTrackOffsets = MoveTemp(CompressedTrackOffsets);
+		Src->TranslationData = MoveTemp(TranslationData);
+		Src->RotationData = MoveTemp(RotationData);
+		Src->ScaleData = MoveTemp(ScaleData);
+		Src->CompressionScheme = CompressionScheme;
+		Src->TranslationCompressionFormat = TranslationCompressionFormat;
+		Src->RotationCompressionFormat = RotationCompressionFormat;
+		Src->ScaleCompressionFormat = ScaleCompressionFormat;
+		Src->CompressedTrackOffsets = MoveTemp(CompressedTrackOffsets);
+		Src->CompressedScaleOffsets = CompressedScaleOffsets;
+		Src->CompressedByteStream = MoveTemp(CompressedByteStream);
+		Src->KeyEncodingFormat = KeyEncodingFormat;
+		Src->bCalcAdditiveDynamically = bCalcAdditiveDynamically;
+		Src->RawCurveData = RawCurveData;
+#endif
+	}
+
+};
+
 void UAnimSequence::Serialize(FArchive& Ar)
 {
+#if WITH_EDITORONLY_DATA
+	FScopedAnimSequenceCompressedDataCache CompressedDataCache;
+
+	if (Ar.IsCooking() && Ar.IsSaving() && CanBakeAdditive())
+	{
+		CompressedDataCache.InitFrom(this);
+
+		//Make copies of original compressed data
+		BakeOutAdditiveIntoRawData();
+	}
+#endif
+
 	Super::Serialize(Ar);
 
 	FStripDataFlags StripFlags( Ar );
@@ -331,6 +431,12 @@ bool UAnimSequence::IsValidToPlay() const
 }
 #endif
 
+void UAnimSequence::SortSyncMarkers()
+{
+	AuthoredSyncMarkers.Sort();
+	RefreshSyncMarkerDataFromAuthored();
+}
+
 void UAnimSequence::PreSave()
 {
 #if WITH_EDITOR
@@ -372,9 +478,16 @@ void UAnimSequence::PostLoad()
 	{
 		UE_LOG(LogAnimation, Warning, TEXT("No animation data exists for sequence %s (%s)"), *GetName(), (GetOuter() ? *GetOuter()->GetFullName() : *GetFullName()) );
 #if WITH_EDITOR
-		if( GIsEditor )
+		if (!IsRunningGame())
 		{
-			UE_LOG(LogAnimation, Warning, TEXT("Removing bad AnimSequence (%s) from %s."), *GetName(), (GetOuter() ? *GetOuter()->GetFullName() : *GetFullName()) );
+			static FName NAME_LoadErrors("LoadErrors");
+			FMessageLog LoadErrors(NAME_LoadErrors);
+
+			TSharedRef<FTokenizedMessage> Message = LoadErrors.Warning();
+			Message->AddToken(FTextToken::Create(LOCTEXT("EmptyAnimationData1", "The Animation ")));
+			Message->AddToken(FAssetNameToken::Create(GetPathName(), FText::FromString(GetName())));
+			Message->AddToken(FTextToken::Create(LOCTEXT("EmptyAnimationData2", " has no animation data. Recommend to remove.")));
+			LoadErrors.Notify();
 		}
 #endif
 	}
@@ -455,11 +568,6 @@ void UAnimSequence::PostLoad()
 	// setup the Codec interfaces
 	AnimationFormat_SetInterfaceLinks(*this);
 
-#if WITH_EDITOR
-	// save track data for the case
-	VerifyTrackMap();
-#endif
-
 	if( IsRunningGame() )
 	{
 		// this probably will not show newly created animations in PIE but will show them in the game once they have been saved off
@@ -502,7 +610,7 @@ void UAnimSequence::PostLoad()
 	if (USkeleton * CurrentSkeleton = GetSkeleton())
 	{
 		// Get the name mapping object for curves
-		FSmartNameMapping* NameMapping = CurrentSkeleton->SmartNames.GetContainer(USkeleton::AnimTrackCurveMappingName);
+		const FSmartNameMapping* NameMapping = CurrentSkeleton->GetSmartNameContainer(USkeleton::AnimTrackCurveMappingName);
 
 		TArray<FTransformCurve*> UnlinkedCurves;
 		for(FTransformCurve& Curve : RawCurveData.TransformCurves)
@@ -518,20 +626,37 @@ void UAnimSequence::PostLoad()
 
 		for(FTransformCurve* Curve : UnlinkedCurves)
 		{
-			NameMapping->AddOrFindName(Curve->LastObservedName, Curve->CurveUid);
+			CurrentSkeleton->AddSmartNameAndModify(USkeleton::AnimTrackCurveMappingName, Curve->LastObservedName, Curve->CurveUid);
 		}
 	}
 #endif // WITH_EDITOR
 }
 
 #if WITH_EDITOR
+void ShowResaveMessage(const UAnimSequence* Sequence)
+{
+	if (!IsRunningGame())
+	{
+		UE_LOG(LogAnimation, Warning, TEXT("RESAVE ANIMATION NEEDED(%s): Fixing track data."), *GetNameSafe(Sequence));
+
+		static FName NAME_LoadErrors("LoadErrors");
+		FMessageLog LoadErrors(NAME_LoadErrors);
+
+		TSharedRef<FTokenizedMessage> Message = LoadErrors.Warning();
+		Message->AddToken(FTextToken::Create(LOCTEXT("AnimationNeedsResave1", "The Animation ")));
+		Message->AddToken(FAssetNameToken::Create(Sequence->GetPathName(), FText::FromString(GetNameSafe(Sequence))));
+		Message->AddToken(FTextToken::Create(LOCTEXT("AnimationNeedsResave2", " needs resave.")));
+		LoadErrors.Notify();
+	}
+}
+
 void UAnimSequence::VerifyTrackMap(USkeleton* MySkeleton)
 {
 	USkeleton* UseSkeleton = (MySkeleton)? MySkeleton: GetSkeleton();
 
-	if(AnimationTrackNames.Num() != TrackToSkeletonMapTable.Num() && UseSkeleton!=NULL)
+	if( AnimationTrackNames.Num() != TrackToSkeletonMapTable.Num() && UseSkeleton!=NULL)
 	{
-		UE_LOG(LogAnimation, Warning, TEXT("RESAVE ANIMATION NEEDED(%s): Fixing track names."), *GetName());
+		ShowResaveMessage(this);
 
 		const TArray<FBoneNode>& BoneTree = UseSkeleton->GetBoneTree();
 		AnimationTrackNames.Empty();
@@ -544,42 +669,52 @@ void UAnimSequence::VerifyTrackMap(USkeleton* MySkeleton)
 	}
 	else if (UseSkeleton != NULL)
 	{
-		int32 NumTracks = AnimationTrackNames.Num();
-		int32 NumSkeletonBone = UseSkeleton->GetReferenceSkeleton().GetNum();
-
-		bool bNeedsFixing = false;
-		// verify all tracks are still valid
-		for(int32 TrackIndex=0; TrackIndex<NumTracks; TrackIndex++)
+		// first check if any of them needs to be removed
 		{
-			int32 SkeletonBoneIndex = TrackToSkeletonMapTable[TrackIndex].BoneTreeIndex;
-			// invalid index found
-			if (NumSkeletonBone <= SkeletonBoneIndex)
-			{
-				// if one is invalid, fix up for all.
-				// you don't know what index got messed up
-				bNeedsFixing = true;
-				break;
-			}
-		}
+			int32 NumTracks = AnimationTrackNames.Num();
+			int32 NumSkeletonBone = UseSkeleton->GetReferenceSkeleton().GetNum();
 
-		if(bNeedsFixing)
-		{
-			UE_LOG(LogAnimation, Warning, TEXT("RESAVE ANIMATION NEEDED(%s): Fixing track index."), *GetName());
-
-			const TArray<FBoneNode>& BoneTree = UseSkeleton->GetBoneTree();
-			for(int32 I=NumTracks-1; I>=0; --I)
+			// the first fix is to make sure 
+			bool bNeedsFixing = false;
+			// verify all tracks are still valid
+			for(int32 TrackIndex=0; TrackIndex<NumTracks; TrackIndex++)
 			{
-				int32 BoneTreeIndex = UseSkeleton->GetReferenceSkeleton().FindBoneIndex(AnimationTrackNames[I]);
-				if (BoneTreeIndex == INDEX_NONE)
+				int32 SkeletonBoneIndex = TrackToSkeletonMapTable[TrackIndex].BoneTreeIndex;
+				// invalid index found
+				if(NumSkeletonBone <= SkeletonBoneIndex)
 				{
-					RemoveTrack(I);
-				}
-				else
-				{
-					TrackToSkeletonMapTable[I].BoneTreeIndex = BoneTreeIndex;
+					// if one is invalid, fix up for all.
+					// you don't know what index got messed up
+					bNeedsFixing = true;
+					break;
 				}
 			}
+
+			if(bNeedsFixing)
+			{
+				ShowResaveMessage(this);
+
+				const TArray<FBoneNode>& BoneTree = UseSkeleton->GetBoneTree();
+				for(int32 I=NumTracks-1; I>=0; --I)
+				{
+					int32 BoneTreeIndex = UseSkeleton->GetReferenceSkeleton().FindBoneIndex(AnimationTrackNames[I]);
+					if(BoneTreeIndex == INDEX_NONE)
+					{
+						RemoveTrack(I);
+					}
+					else
+					{
+						TrackToSkeletonMapTable[I].BoneTreeIndex = BoneTreeIndex;
+					}
+				}
+			}
 		}
+		
+		for(int32 I=0; I<AnimationTrackNames.Num(); ++I)
+		{
+			FTrackToSkeletonMap& TrackMap = TrackToSkeletonMapTable[I];
+			TrackMap.BoneTreeIndex = UseSkeleton->GetReferenceSkeleton().FindBoneIndex(AnimationTrackNames[I]);
+		}		
 	}
 }
 
@@ -690,8 +825,11 @@ void UAnimSequence::ExtractBoneTransform(const TArray<struct FRawAnimSequenceTra
 		return;
 	}
 
-	const FRawAnimSequenceTrack& RawTrack = InRawAnimationData[TrackIndex];
+	ExtractBoneTransform(InRawAnimationData[TrackIndex], OutAtom, Time);
+}
 
+void UAnimSequence::ExtractBoneTransform(const struct FRawAnimSequenceTrack& RawTrack, FTransform& OutAtom, float Time) const
+{
 	// Bail out (with rather wacky data) if data is empty for some reason.
 	if(RawTrack.PosKeys.Num() == 0 || RawTrack.RotKeys.Num() == 0)
 	{
@@ -767,9 +905,9 @@ void UAnimSequence::ExtractBoneTransform(const TArray<struct FRawAnimSequenceTra
 	OutAtom.NormalizeRotation();
 }
 
-void UAnimSequence::OnAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, class UAnimInstance* InstanceOwner) const
+void UAnimSequence::HandleAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, struct FAnimNotifyQueue& NotifyQueue) const
 {
-	Super::OnAssetPlayerTickedInternal(Context, PreviousTime, MoveDelta, Instance, InstanceOwner);
+	Super::HandleAssetPlayerTickedInternal(Context, PreviousTime, MoveDelta, Instance, NotifyQueue);
 
 	if (bEnableRootMotion)
 	{
@@ -868,12 +1006,59 @@ FTransform UAnimSequence::ExtractRootMotionFromRange(float StartTrackPosition, f
 	return EndTransform.GetRelativeTransform(StartTransform);
 }
 
+#ifdef WITH_EDITOR
+TArray<const UAnimSequence*> CurrentBakingAnims;
+#endif
+
+#define DEBUG_POSE_OUTPUT 0
+
+#if DEBUG_POSE_OUTPUT
+void DebugPrintBone(const FCompactPose& OutPose, const FCompactPoseBoneIndex& BoneIndex, int32 OutIndent)
+{
+	for (int i = 0; i < OutIndent; ++i)
+	{
+		FPlatformMisc::LowLevelOutputDebugString(TEXT("  "));
+	}
+	const FBoneContainer& Cont = OutPose.GetBoneContainer();
+
+	FName BoneName = Cont.GetReferenceSkeleton().GetBoneName(Cont.MakeMeshPoseIndex(BoneIndex).GetInt());
+
+	FVector T = OutPose[BoneIndex].GetTranslation();
+
+	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%s - (%.2f, %.2f,%.2f)\n"), *BoneName.ToString(), T.X, T.Y, T.Z);
+}
+#endif
+
 void UAnimSequence::GetAnimationPose(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_GetAnimationPose);
 
+#if WITH_EDITOR
+	//Allow us to simulate baked additives in the editor
+	//Make sure parallel animation evaluation is SWITCHED OFF!
+	static bool bDoBake = false; 
+
+	FScopedAnimSequenceCompressedDataCache CompressedDataCache;
+
+	if (bDoBake && CanBakeAdditive() && !CurrentBakingAnims.Contains(this))
+	{
+		check(bCalcAdditiveDynamically); //We should always be dynamic additive at this point
+
+		check(IsInGameThread()); // Cannot do this on worker threads! 
+		
+		CurrentBakingAnims.Add(this);
+		UAnimSequence* Me = const_cast<UAnimSequence*>(this);
+
+		CompressedDataCache.InitFrom(Me);
+
+		//Make copies of original compressed data
+		Me->BakeOutAdditiveIntoRawData();
+		CurrentBakingAnims.Remove(this);
+	}
+#endif
+
 	// @todo anim: if compressed and baked in the future, we don't have to do this 
-	if (IsValidAdditive())
+	if (bCalcAdditiveDynamically && IsValidAdditive())
 	{
 		if (AdditiveAnimType == AAT_LocalSpaceBase)
 		{
@@ -893,6 +1078,37 @@ void UAnimSequence::GetAnimationPose(FCompactPose& OutPose, FBlendedCurve& OutCu
 #if DO_CHECK && WITH_EDITORONLY_DATA
 	check(OutPose.IsNormalized());
 #endif
+
+#if DEBUG_POSE_OUTPUT
+	TArray<TArray<int32>> ParentLevel;
+	ParentLevel.Reserve(64);
+	for (int32 i = 0; i < 64; ++i)
+	{
+		ParentLevel.Add(TArray<int32>());
+	}
+	ParentLevel[0].Add(0);
+
+	FPlatformMisc::LowLevelOutputDebugString(TEXT("\nGetAnimationPose\n"));
+	
+	DebugPrintBone(OutPose, FCompactPoseBoneIndex(0), 0);
+	for (FCompactPoseBoneIndex BoneIndex(1); BoneIndex < OutPose.GetNumBones(); ++BoneIndex)
+	{
+		FCompactPoseBoneIndex ParentIndex = OutPose.GetBoneContainer().GetParentBoneIndex(BoneIndex);
+		int32 Indent = 0;
+		for (; Indent < ParentLevel.Num(); ++Indent)
+		{
+			if (ParentLevel[Indent].Contains(ParentIndex.GetInt()))
+			{
+				break;
+			}
+		}
+		Indent += 1;
+		check(Indent < 64);
+		ParentLevel[Indent].Add(BoneIndex.GetInt());
+
+		DebugPrintBone(OutPose, BoneIndex, Indent);
+	}
+#endif
 }
 
 void UAnimSequence::ResetRootBoneForRootMotion(FTransform& BoneTransform, const FBoneContainer& RequiredBones, ERootMotionRootLock::Type InRootMotionRootLock) const
@@ -906,14 +1122,29 @@ void UAnimSequence::ResetRootBoneForRootMotion(FTransform& BoneTransform, const 
 	}
 }
 
+struct FGetBonePoseScratchArea : public TThreadSingleton<FGetBonePoseScratchArea>
+{
+	BoneTrackArray RotationScalePairs;
+	BoneTrackArray TranslationPairs;
+	BoneTrackArray AnimScaleRetargetingPairs;
+	BoneTrackArray AnimRelativeRetargetingPairs;
+};
+
 void UAnimSequence::GetBonePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const
 {
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_GETBONEPOSE);
+	SCOPE_CYCLE_COUNTER(STAT_AnimSeq_GetBonePose);
 
 	USkeleton* MySkeleton = GetSkeleton();
 	if (!MySkeleton)
 	{
-		OutPose.ResetToRefPose();
+		if (!bCalcAdditiveDynamically && IsValidAdditive())
+		{
+			OutPose.ResetToIdentity(); 
+		}
+		else
+		{
+			OutPose.ResetToRefPose();
+		}
 		return;
 	}
 
@@ -939,7 +1170,15 @@ void UAnimSequence::GetBonePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, 
 	else
 	{
 		// initialize with ref-pose
-		OutPose.ResetToRefPose();
+		if (!bCalcAdditiveDynamically && IsValidAdditive())
+		{
+			//When using baked additive ref pose is identity
+			OutPose.ResetToIdentity();
+		}
+		else
+		{
+			OutPose.ResetToRefPose();
+		}
 	}
 
 	// extract curve data . Even if no track, it can contain curve data
@@ -987,7 +1226,7 @@ void UAnimSequence::GetBonePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, 
 			}
 		}
 
-		if (ExtractionContext.bExtractRootMotion && bEnableRootMotion)
+		if ((ExtractionContext.bExtractRootMotion && bEnableRootMotion) || bForceRootLock)
 		{
 			ResetRootBoneForRootMotion(OutPose[FCompactPoseBoneIndex(0)], RequiredBones, RootMotionRootLock);
 		}
@@ -998,95 +1237,100 @@ void UAnimSequence::GetBonePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, 
 	TArray<FBoneNode> const& BoneTree = MySkeleton->GetBoneTree();
 	TArray<int32> const& SkeletonToPoseBoneIndexArray = RequiredBones.GetSkeletonToPoseBoneIndexArray();
 
-	//@TODO:@ANIMATION: These should be memstack allocated - very heavy
-	BoneTrackArray RotationScalePairs;
-	BoneTrackArray TranslationPairs;
-	BoneTrackArray AnimScaleRetargetingPairs;
-	BoneTrackArray AnimRelativeRetargetingPairs;
+	BoneTrackArray& RotationScalePairs = FGetBonePoseScratchArea::Get().RotationScalePairs;
+	BoneTrackArray& TranslationPairs = FGetBonePoseScratchArea::Get().TranslationPairs;
+	BoneTrackArray& AnimScaleRetargetingPairs = FGetBonePoseScratchArea::Get().AnimScaleRetargetingPairs;
+	BoneTrackArray& AnimRelativeRetargetingPairs = FGetBonePoseScratchArea::Get().AnimRelativeRetargetingPairs;
 
 	// build a list of desired bones
-	RotationScalePairs.Empty(NumTracks);
-	TranslationPairs.Empty(NumTracks);
-	AnimScaleRetargetingPairs.Empty(NumTracks);
-	AnimRelativeRetargetingPairs.Empty(NumTracks);
+	RotationScalePairs.Reset();
+	TranslationPairs.Reset();
+	AnimScaleRetargetingPairs.Reset();
+	AnimRelativeRetargetingPairs.Reset();
 
 	// Optimization: assuming first index is root bone. That should always be the case in Skeletons.
 	checkSlow((SkeletonToPoseBoneIndexArray[0] == 0));
 	// this is not guaranteed for AnimSequences though... If Root is not animated, Track will not exist.
 	const bool bFirstTrackIsRootBone = (GetSkeletonIndexFromTrackIndex(0) == 0);
 
-	// Handle root bone separately if it is track 0. so we start w/ Index 1.
-	for (int32 TrackIndex = (bFirstTrackIsRootBone ? 1 : 0); TrackIndex < NumTracks; TrackIndex++)
 	{
-		const int32 SkeletonBoneIndex = GetSkeletonIndexFromTrackIndex(TrackIndex);
-		// not sure it's safe to assume that SkeletonBoneIndex can never be INDEX_NONE
-		if (SkeletonBoneIndex != INDEX_NONE)
-		{
-			const FCompactPoseBoneIndex BoneIndex = RequiredBones.GetCompactPoseIndexFromSkeletonIndex(SkeletonBoneIndex);
-			//Nasty, we break our type safety, code in the lower levels should be adjusted for this
-			const int32 CompactPoseBoneIndex = BoneIndex.GetInt();
-			if (CompactPoseBoneIndex != INDEX_NONE)
-			{
-				RotationScalePairs.Add(BoneTrackPair(CompactPoseBoneIndex, TrackIndex));
+		SCOPE_CYCLE_COUNTER(STAT_BuildAnimTrackPairs);
 
-				// Skip extracting translation component for EBoneTranslationRetargetingMode::Skeleton.
-				switch (BoneTree[SkeletonBoneIndex].TranslationRetargetingMode)
+		// Handle root bone separately if it is track 0. so we start w/ Index 1.
+		for (int32 TrackIndex = (bFirstTrackIsRootBone ? 1 : 0); TrackIndex < NumTracks; TrackIndex++)
+		{
+			const int32 SkeletonBoneIndex = GetSkeletonIndexFromTrackIndex(TrackIndex);
+			// not sure it's safe to assume that SkeletonBoneIndex can never be INDEX_NONE
+			if (SkeletonBoneIndex != INDEX_NONE)
+			{
+				const FCompactPoseBoneIndex BoneIndex = RequiredBones.GetCompactPoseIndexFromSkeletonIndex(SkeletonBoneIndex);
+				//Nasty, we break our type safety, code in the lower levels should be adjusted for this
+				const int32 CompactPoseBoneIndex = BoneIndex.GetInt();
+				if (CompactPoseBoneIndex != INDEX_NONE)
 				{
-				case EBoneTranslationRetargetingMode::Animation:
-					TranslationPairs.Add(BoneTrackPair(CompactPoseBoneIndex, TrackIndex));
-					break;
-				case EBoneTranslationRetargetingMode::AnimationScaled:
-					TranslationPairs.Add(BoneTrackPair(CompactPoseBoneIndex, TrackIndex));
-					AnimScaleRetargetingPairs.Add(BoneTrackPair(CompactPoseBoneIndex, SkeletonBoneIndex));
-					break;
-				case EBoneTranslationRetargetingMode::AnimationRelative:
-					TranslationPairs.Add(BoneTrackPair(CompactPoseBoneIndex, TrackIndex));
-					AnimRelativeRetargetingPairs.Add(BoneTrackPair(CompactPoseBoneIndex, SkeletonBoneIndex));
-					break;
+					RotationScalePairs.Add(BoneTrackPair(CompactPoseBoneIndex, TrackIndex));
+
+					// Skip extracting translation component for EBoneTranslationRetargetingMode::Skeleton.
+					switch (BoneTree[SkeletonBoneIndex].TranslationRetargetingMode)
+					{
+					case EBoneTranslationRetargetingMode::Animation:
+						TranslationPairs.Add(BoneTrackPair(CompactPoseBoneIndex, TrackIndex));
+						break;
+					case EBoneTranslationRetargetingMode::AnimationScaled:
+						TranslationPairs.Add(BoneTrackPair(CompactPoseBoneIndex, TrackIndex));
+						AnimScaleRetargetingPairs.Add(BoneTrackPair(CompactPoseBoneIndex, SkeletonBoneIndex));
+						break;
+					case EBoneTranslationRetargetingMode::AnimationRelative:
+						TranslationPairs.Add(BoneTrackPair(CompactPoseBoneIndex, TrackIndex));
+						AnimRelativeRetargetingPairs.Add(BoneTrackPair(CompactPoseBoneIndex, SkeletonBoneIndex));
+						break;
+					}
 				}
 			}
 		}
 	}
 
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_GETBONEPOSE_FORREALZ);
-	// Handle Root Bone separately
-	if (bFirstTrackIsRootBone)
 	{
-		const int32 TrackIndex = 0;
-		FCompactPoseBoneIndex RootBone(0);
-		FTransform& RootAtom = OutPose[RootBone];
+		SCOPE_CYCLE_COUNTER(STAT_ExtractPoseFromAnimData);
+		// Handle Root Bone separately
+		if (bFirstTrackIsRootBone)
+		{
+			const int32 TrackIndex = 0;
+			FCompactPoseBoneIndex RootBone(0);
+			FTransform& RootAtom = OutPose[RootBone];
 
-		AnimationFormat_GetBoneAtom(
-			RootAtom,
-			*this,
-			TrackIndex,
-			ExtractionContext.CurrentTime);
+			AnimationFormat_GetBoneAtom(
+				RootAtom,
+				*this,
+				TrackIndex,
+				ExtractionContext.CurrentTime);
 
-		// @laurent - we should look into splitting rotation and translation tracks, so we don't have to process translation twice.
-		RetargetBoneTransform(RootAtom, 0, RootBone, RequiredBones);
-	}
+			// @laurent - we should look into splitting rotation and translation tracks, so we don't have to process translation twice.
+			RetargetBoneTransform(RootAtom, 0, RootBone, RequiredBones);
+		}
 
-	if (RotationScalePairs.Num() > 0)
-	{
-		// get the remaining bone atoms
-		OutPose.PopulateFromAnimation( //@TODO:@ANIMATION: Nasty hack, be good to not have this function on the pose
-			*this,
-			RotationScalePairs,
-			TranslationPairs,
-			RotationScalePairs,
-			ExtractionContext.CurrentTime);
+		if (RotationScalePairs.Num() > 0)
+		{
+			// get the remaining bone atoms
+			OutPose.PopulateFromAnimation( //@TODO:@ANIMATION: Nasty hack, be good to not have this function on the pose
+				*this,
+				RotationScalePairs,
+				TranslationPairs,
+				RotationScalePairs,
+				ExtractionContext.CurrentTime);
 
-		/*AnimationFormat_GetAnimationPose(
-			*((FTransformArray*)&OutAtoms), 
-			RotationScalePairs,
-			TranslationPairs,
-			RotationScalePairs,
-			*this,
-			ExtractionContext.CurrentTime);*/
+			/*AnimationFormat_GetAnimationPose(
+				*((FTransformArray*)&OutAtoms), 
+				RotationScalePairs,
+				TranslationPairs,
+				RotationScalePairs,
+				*this,
+				ExtractionContext.CurrentTime);*/
+		}
 	}
 
 	// Once pose has been extracted, snap root bone back to first frame if we are extracting root motion.
-	if (ExtractionContext.bExtractRootMotion && bEnableRootMotion)
+	if ((ExtractionContext.bExtractRootMotion && bEnableRootMotion) || bForceRootLock)
 	{
 		ResetRootBoneForRootMotion(OutPose[FCompactPoseBoneIndex(0)], RequiredBones, RootMotionRootLock);
 	}
@@ -1104,7 +1348,7 @@ void UAnimSequence::GetBonePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, 
 
 			// @todo - precache that in FBoneContainer when we have SkeletonIndex->TrackIndex mapping. So we can just apply scale right away.
 			float const SourceTranslationLength = AuthoredOnRefSkeleton[SkeletonBoneIndex].GetTranslation().Size();
-			if (FMath::Abs(SourceTranslationLength) > KINDA_SMALL_NUMBER)
+			if (SourceTranslationLength > KINDA_SMALL_NUMBER)
 			{
 				float const TargetTranslationLength = RequiredBones.GetRefPoseTransform(BoneIndex).GetTranslation().Size();
 				OutPose[BoneIndex].ScaleTranslation(TargetTranslationLength / SourceTranslationLength);
@@ -1161,6 +1405,8 @@ void UAnimSequence::GetBonePose_Additive(FCompactPose& OutPose, FBlendedCurve& O
 
 void UAnimSequence::GetAdditiveBasePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const
 {
+	check(RefPoseType == ABPT_RefPose || !RefPoseSeq->IsValidAdditive() || RefPoseSeq->bCalcAdditiveDynamically); //If this fails there is not enough information to get the base pose
+
 	switch (RefPoseType)
 	{
 		// use whole animation as a base pose. Need BasePoseSeq.
@@ -1224,35 +1470,53 @@ void UAnimSequence::GetBonePose_AdditiveMeshRotationOnly(FCompactPose& OutPose, 
 
 void UAnimSequence::RetargetBoneTransform(FTransform& BoneTransform, const int32& SkeletonBoneIndex, const FCompactPoseBoneIndex& BoneIndex, const FBoneContainer& RequiredBones) const
 {
+	const bool bBakedAdditive = !bCalcAdditiveDynamically && IsValidAdditive();
 	const USkeleton* MySkeleton = GetSkeleton();
 	const TArray<FBoneNode>& BoneTree = MySkeleton->GetBoneTree();
-	if (BoneTree[SkeletonBoneIndex].TranslationRetargetingMode == EBoneTranslationRetargetingMode::Skeleton)
-	{
-		BoneTransform.SetTranslation(RequiredBones.GetRefPoseTransform(BoneIndex).GetTranslation());
-	}
-	else if (BoneTree[SkeletonBoneIndex].TranslationRetargetingMode == EBoneTranslationRetargetingMode::AnimationScaled)
+
+	check(!bBakedAdditive || BoneTree[SkeletonBoneIndex].TranslationRetargetingMode == EBoneTranslationRetargetingMode::Skeleton || BoneTree[SkeletonBoneIndex].TranslationRetargetingMode == EBoneTranslationRetargetingMode::Animation);
+
+	if (BoneTree[SkeletonBoneIndex].TranslationRetargetingMode == EBoneTranslationRetargetingMode::AnimationScaled)
 	{
 		// @todo - precache that in FBoneContainer when we have SkeletonIndex->TrackIndex mapping. So we can just apply scale right away.
 		const TArray<FTransform>& SkeletonRefPoseArray = GetSkeleton()->GetRefLocalPoses(RetargetSource);
 		const float SourceTranslationLength = SkeletonRefPoseArray[SkeletonBoneIndex].GetTranslation().Size();
-		if (FMath::Abs(SourceTranslationLength) > KINDA_SMALL_NUMBER)
+		if (SourceTranslationLength > KINDA_SMALL_NUMBER)
 		{
 			const float TargetTranslationLength = RequiredBones.GetRefPoseTransform(BoneIndex).GetTranslation().Size();
 			BoneTransform.ScaleTranslation(TargetTranslationLength / SourceTranslationLength);
 		}
 	}
-	else if (BoneTree[SkeletonBoneIndex].TranslationRetargetingMode == EBoneTranslationRetargetingMode::AnimationRelative)
+	else
 	{
-		const TArray<FTransform>& AuthoredOnRefSkeleton = GetSkeleton()->GetRefLocalPoses(RetargetSource);
-		const TArray<FTransform>& PlayingOnRefSkeleton = RequiredBones.GetRefPoseArray();
+		if (bBakedAdditive)
+		{
+			if (BoneTree[SkeletonBoneIndex].TranslationRetargetingMode == EBoneTranslationRetargetingMode::Skeleton)
+			{
+				BoneTransform.SetTranslation(FVector::ZeroVector);
+			}
+		}
+		else
+		{
+			if (BoneTree[SkeletonBoneIndex].TranslationRetargetingMode == EBoneTranslationRetargetingMode::Skeleton)
+			{
+				BoneTransform.SetTranslation(RequiredBones.GetRefPoseTransform(BoneIndex).GetTranslation());
+			}
+			else if (BoneTree[SkeletonBoneIndex].TranslationRetargetingMode == EBoneTranslationRetargetingMode::AnimationRelative)
+			{
+				const TArray<FTransform>& AuthoredOnRefSkeleton = GetSkeleton()->GetRefLocalPoses(RetargetSource);
+				const TArray<FTransform>& PlayingOnRefSkeleton = RequiredBones.GetRefPoseArray();
 
-		const FTransform& RefPoseTransform = RequiredBones.GetRefPoseTransform(BoneIndex);
+				const FTransform& RefPoseTransform = RequiredBones.GetRefPoseTransform(BoneIndex);
 
-		// Apply the retargeting as if it were an additive difference between the current skeleton and the retarget skeleton. 
-		BoneTransform.SetRotation(BoneTransform.GetRotation() * AuthoredOnRefSkeleton[SkeletonBoneIndex].GetRotation().Inverse() * RefPoseTransform.GetRotation());
-		BoneTransform.SetTranslation(BoneTransform.GetTranslation() + (RefPoseTransform.GetTranslation() - AuthoredOnRefSkeleton[SkeletonBoneIndex].GetTranslation()));
-		BoneTransform.SetScale3D(BoneTransform.GetScale3D() * (RefPoseTransform.GetScale3D() * AuthoredOnRefSkeleton[SkeletonBoneIndex].GetSafeScaleReciprocal(AuthoredOnRefSkeleton[SkeletonBoneIndex].GetScale3D())));
-		BoneTransform.NormalizeRotation();
+				// Apply the retargeting as if it were an additive difference between the current skeleton and the retarget skeleton. 
+				BoneTransform.SetRotation(BoneTransform.GetRotation() * AuthoredOnRefSkeleton[SkeletonBoneIndex].GetRotation().Inverse() * RefPoseTransform.GetRotation());
+				BoneTransform.SetTranslation(BoneTransform.GetTranslation() + (RefPoseTransform.GetTranslation() - AuthoredOnRefSkeleton[SkeletonBoneIndex].GetTranslation()));
+				BoneTransform.SetScale3D(BoneTransform.GetScale3D() * (RefPoseTransform.GetScale3D() * AuthoredOnRefSkeleton[SkeletonBoneIndex].GetSafeScaleReciprocal(AuthoredOnRefSkeleton[SkeletonBoneIndex].GetScale3D())));
+				BoneTransform.NormalizeRotation();
+			}
+		}
+
 	}
 }
 
@@ -1388,6 +1652,31 @@ void UAnimSequence::ResizeSequence(float NewLength, int32 NewNumFrames, bool bIn
 		}
 	}
 
+	for (FAnimSyncMarker& Marker : AuthoredSyncMarkers)
+	{
+		float CurrentTime = Marker.Time;
+		if (bInsert)
+		{
+			// when insert, we only care about start time
+			// if it's later than start time
+			if (CurrentTime >= OldStartTime)
+			{
+				CurrentTime += Duration;
+			}
+		}
+		else
+		{
+			if (CurrentTime >= OldStartTime && CurrentTime <= OldEndTime)
+			{
+				CurrentTime = OldStartTime;
+			}
+			else if (CurrentTime > OldEndTime)
+			{
+				CurrentTime -= Duration;
+			}
+		}
+		Marker.Time = FMath::Clamp(CurrentTime, 0.f, SequenceLength);
+	}
 	// resize curves
 	RawCurveData.Resize(NewLength, bInsert, OldStartTime, OldEndTime);
 }
@@ -1557,7 +1846,7 @@ bool UAnimSequence::CompressRawAnimSequenceTrack(FRawAnimSequenceTrack& RawTrack
 		bool bFramesIdentical = true;
 		for(int32 j=1; j<RawTrack.PosKeys.Num() && bFramesIdentical; j++)
 		{
-			if( (FirstPos - RawTrack.PosKeys[j]).Size() > MaxPosDiff )
+			if( (FirstPos - RawTrack.PosKeys[j]).SizeSquared() > FMath::Square(MaxPosDiff) )
 			{
 				bFramesIdentical = false;
 			}
@@ -1605,7 +1894,7 @@ bool UAnimSequence::CompressRawAnimSequenceTrack(FRawAnimSequenceTrack& RawTrack
 		bool bFramesIdentical = true;
 		for(int32 j=1; j<RawTrack.ScaleKeys.Num() && bFramesIdentical; j++)
 		{
-			if( (FirstScale - RawTrack.ScaleKeys[j]).Size() > MaxScaleDiff )
+			if( (FirstScale - RawTrack.ScaleKeys[j]).SizeSquared() > FMath::Square(MaxScaleDiff) )
 			{
 				bFramesIdentical = false;
 			}
@@ -1629,47 +1918,56 @@ bool UAnimSequence::CompressRawAnimData(float MaxPosDiff, float MaxAngleDiff)
 	bool bRemovedKeys = false;
 #if WITH_EDITORONLY_DATA
 
-	// This removes trivial keys, and this has to happen before the removing tracks
-	for(int32 TrackIndex=0; TrackIndex<RawAnimationData.Num(); TrackIndex++)
+	if (AnimationTrackNames.Num() > 0 && ensureMsgf(RawAnimationData.Num() > 0, TEXT("%s is trying to compress while raw animation is missing"), *GetName()))
 	{
-		bRemovedKeys |= CompressRawAnimSequenceTrack(RawAnimationData[TrackIndex], MaxPosDiff, MaxAngleDiff);
-	}
-
-	const USkeleton* MySkeleton = GetSkeleton();
-
-	if (MySkeleton)
-	{
-		bool bCompressScaleKeys = false;
-		// go through remove keys if not needed
-		for ( int32 TrackIndex=0; TrackIndex<RawAnimationData.Num(); TrackIndex++ )
+		// This removes trivial keys, and this has to happen before the removing tracks
+		for(int32 TrackIndex=0; TrackIndex<RawAnimationData.Num(); TrackIndex++)
 		{
-			FRawAnimSequenceTrack const& RawData = RawAnimationData[TrackIndex];
-			if ( RawData.ScaleKeys.Num() > 0 )
+			bRemovedKeys |= CompressRawAnimSequenceTrack(RawAnimationData[TrackIndex], MaxPosDiff, MaxAngleDiff);
+		}
+
+		const USkeleton* MySkeleton = GetSkeleton();
+
+		if(MySkeleton)
+		{
+			bool bCompressScaleKeys = false;
+			// go through remove keys if not needed
+			for(int32 TrackIndex=0; TrackIndex<RawAnimationData.Num(); TrackIndex++)
 			{
-				// if scale key exists, see if we can just empty it
-				if((RawData.ScaleKeys.Num() > 1) || (RawData.ScaleKeys[0].Equals(FVector(1.f)) == false))
+				FRawAnimSequenceTrack const& RawData = RawAnimationData[TrackIndex];
+				if(RawData.ScaleKeys.Num() > 0)
 				{
-					bCompressScaleKeys = true;
-					break;
+					// if scale key exists, see if we can just empty it
+					if((RawData.ScaleKeys.Num() > 1) || (RawData.ScaleKeys[0].Equals(FVector(1.f)) == false))
+					{
+						bCompressScaleKeys = true;
+						break;
+					}
+				}
+			}
+
+			// if we don't have scale, we should delete all scale keys
+			// if you have one track that has scale, we still should support scale, so compress scale
+			if(!bCompressScaleKeys)
+			{
+				// then remove all scale keys
+				for(int32 TrackIndex=0; TrackIndex<RawAnimationData.Num(); TrackIndex++)
+				{
+					FRawAnimSequenceTrack& RawData = RawAnimationData[TrackIndex];
+					RawData.ScaleKeys.Empty();
 				}
 			}
 		}
 
-		// if we don't have scale, we should delete all scale keys
-		// if you have one track that has scale, we still should support scale, so compress scale
-		if (!bCompressScaleKeys)
-		{
-			// then remove all scale keys
-			for ( int32 TrackIndex=0; TrackIndex<RawAnimationData.Num(); TrackIndex++ )
-			{
-				FRawAnimSequenceTrack& RawData = RawAnimationData[TrackIndex];
-				RawData.ScaleKeys.Empty();
-			}
-		}
+		CompressedTrackOffsets.Empty();
+		CompressedScaleOffsets.Empty();
 	}
-
-	CompressedTrackOffsets.Empty();
-	CompressedScaleOffsets.Empty();
+	else
+	{
+		CompressedTrackOffsets.Empty();
+		CompressedScaleOffsets.Empty();
+	}
+	
 #endif
 	return bRemovedKeys;
 }
@@ -1720,6 +2018,196 @@ void UAnimSequence::FlipRotationWForNonRoot(USkeletalMesh * SkelMesh)
 }
 #endif 
 
+#if WITH_EDITOR
+
+bool UAnimSequence::CanBakeAdditive() const
+{
+	return	(NumFrames > 0) &&
+			IsValidAdditive() &&
+			GetSkeleton();
+}
+
+FFloatCurve* GetFloatCurve(FRawCurveTracks& RawCurveTracks, USkeleton::AnimCurveUID& CurveUID)
+{
+	return static_cast<FFloatCurve *>(RawCurveTracks.GetCurveData(CurveUID, FRawCurveTracks::FloatType));
+}
+
+bool IsNewKeyDifferent(const FRichCurveKey& LastKey, float NewValue)
+{
+	return LastKey.Value != NewValue;
+}
+
+bool IsIdentity(const FVector& Pos)
+{
+	return Pos == FVector::ZeroVector;
+}
+
+bool IsIdentity(const FQuat& Rot)
+{
+	return Rot == FQuat::Identity;
+}
+
+template<class KeyType>
+bool IsKeyArrayValidForRemoval(const TArray<KeyType>& Keys)
+{
+	return Keys.Num() == 0 || (Keys.Num() == 1 && IsIdentity(Keys[0]));
+}
+
+bool IsRawTrackValidForRemoval(const FRawAnimSequenceTrack& Track)
+{
+	return	IsKeyArrayValidForRemoval(Track.PosKeys) &&
+			IsKeyArrayValidForRemoval(Track.RotKeys);
+}
+
+
+void UAnimSequence::BakeOutAdditiveIntoRawData()
+{
+	if (!CanBakeAdditive())
+	{
+		return; // Nothing to do
+	}
+
+	// Length of one frame.
+	float const IntervalTime = SequenceLength / ((float)NumFrames - 1);
+
+	// Initialize RequiredBones for pose evaluation
+	FBoneContainer RequiredBones;
+	RequiredBones.SetUseRAWData(true);
+
+	TArray<FBoneIndexType> RequiredBoneIndexArray;
+	RequiredBoneIndexArray.AddUninitialized(GetSkeleton()->GetReferenceSkeleton().GetNum());
+	for (int32 BoneIndex = 0; BoneIndex < RequiredBoneIndexArray.Num(); ++BoneIndex)
+	{
+		RequiredBoneIndexArray[BoneIndex] = BoneIndex;
+	}
+
+	RequiredBones.InitializeTo(RequiredBoneIndexArray, *GetSkeleton());
+
+	//New raw data
+	FRawCurveTracks NewCurveTracks;
+
+	TArray<FRawAnimSequenceTrack> NewRawTracks;
+	NewRawTracks.SetNum(RequiredBoneIndexArray.Num());
+
+	for (FRawAnimSequenceTrack& RawTrack : NewRawTracks)
+	{
+		RawTrack.PosKeys.SetNumUninitialized(NumFrames);
+		RawTrack.RotKeys.SetNumUninitialized(NumFrames);
+		RawTrack.ScaleKeys.SetNumUninitialized(NumFrames);
+	}
+
+	TArray<FTrackToSkeletonMap> NewTrackToSkeletonMapTable;
+	NewTrackToSkeletonMapTable.SetNumUninitialized(RequiredBoneIndexArray.Num());
+
+	TArray<FName> NewAnimationTrackNames;
+	NewAnimationTrackNames.SetNumUninitialized(RequiredBoneIndexArray.Num());
+
+	for (int32 TrackIndex = 0; TrackIndex < RequiredBoneIndexArray.Num(); ++TrackIndex)
+	{
+		NewTrackToSkeletonMapTable[TrackIndex].BoneTreeIndex = TrackIndex; // Skeleton->GetReferenceSkeleton().FindBoneIndex(TrackName);
+		NewAnimationTrackNames[TrackIndex] = GetSkeleton()->GetReferenceSkeleton().GetBoneName(TrackIndex);
+	}
+
+	//Pose evaluation data
+	FCompactPose Pose;
+	Pose.SetBoneContainer(&RequiredBones);
+	FAnimExtractContext ExtractContext;
+
+	for (int Frame = 0; Frame < NumFrames; ++Frame)
+	{
+		// Initialise curve data from Skeleton
+		FBlendedCurve Curve;
+		Curve.InitFrom(&(GetSkeleton()->GetCachedAnimCurveMappingNameUids()));
+
+		//Grab pose for this frame
+		const float CurrentFrameTime = Frame * IntervalTime;
+		ExtractContext.CurrentTime = CurrentFrameTime;
+		GetAnimationPose(Pose, Curve, ExtractContext);
+
+		//Write out every track for this frame
+		for (FCompactPoseBoneIndex TrackIndex(0); TrackIndex < NewRawTracks.Num(); ++TrackIndex)
+		{
+			FTransform& BoneTransform = Pose[TrackIndex];
+
+			FRawAnimSequenceTrack& Track = NewRawTracks[TrackIndex.GetInt()];
+			Track.PosKeys[Frame] = BoneTransform.GetTranslation();
+			Track.RotKeys[Frame] = BoneTransform.GetRotation();
+			Track.RotKeys[Frame].Normalize();
+			Track.ScaleKeys[Frame] = BoneTransform.GetScale3D();
+		}
+
+		//Write out curve data for this frame
+		
+		const TArray<FSmartNameMapping::UID>& UIDList = *Curve.UIDList;
+		for (int32 CurveIndex = 0; CurveIndex < UIDList.Num(); ++CurveIndex)
+		{
+			FSmartNameMapping::UID CurveUID = UIDList[CurveIndex];
+			FCurveElement& CurveEL = Curve.Elements[CurveIndex];
+			FFloatCurve* RawCurve = GetFloatCurve(NewCurveTracks, CurveUID);
+			if (!RawCurve && CurveEL.Value > 0.f) //Only make a new curve if we are going to give it data
+			{
+				NewCurveTracks.AddCurveData(CurveUID, CurveEL.Flags, FRawCurveTracks::FloatType);
+				RawCurve = GetFloatCurve(NewCurveTracks, CurveUID);
+			}
+
+			if (RawCurve)
+			{
+				const bool bHasKeys = RawCurve->FloatCurve.GetNumKeys() > 0;
+				if (!bHasKeys)
+				{
+					//Add pre key of 0
+					if (Frame > 0)
+					{
+						const float PreKeyTime = (Frame - 1)*IntervalTime;
+						RawCurve->UpdateOrAddKey(0.f, PreKeyTime);
+					}
+
+				}
+
+				if (!bHasKeys || IsNewKeyDifferent(RawCurve->FloatCurve.GetLastKey(), CurveEL.Value))
+				{
+					RawCurve->UpdateOrAddKey(CurveEL.Value, CurrentFrameTime);
+				}
+			}
+		}
+	}
+
+	RawAnimationData = MoveTemp(NewRawTracks);
+	AnimationTrackNames = MoveTemp(NewAnimationTrackNames);
+	TrackToSkeletonMapTable = MoveTemp(NewTrackToSkeletonMapTable);
+	RawCurveData = NewCurveTracks;
+
+#if 0 //Validate baked data
+	for (FRawAnimSequenceTrack& RawTrack : RawAnimationData)
+	{
+		for (FQuat& Rot : RawTrack.RotKeys)
+		{
+			check(Rot.IsNormalized());
+		}
+	}
+#endif
+
+	CompressRawAnimData();
+
+	for (int32 TrackIndex = RawAnimationData.Num() - 1; TrackIndex >= 0; --TrackIndex)
+	{
+		const FRawAnimSequenceTrack& Track = RawAnimationData[TrackIndex];
+		if (IsRawTrackValidForRemoval(Track))
+		{
+			RawAnimationData.RemoveAtSwap(TrackIndex);
+			AnimationTrackNames.RemoveAtSwap(TrackIndex);
+			TrackToSkeletonMapTable.RemoveAtSwap(TrackIndex);
+		}
+	}
+
+	FAnimationUtils::CompressAnimSequence(this, false, false);
+
+	bCalcAdditiveDynamically = false;
+
+	MarkPackageDirty();
+}
+#endif
+
 void UAnimSequence::RecycleAnimSequence()
 {
 #if WITH_EDITORONLY_DATA
@@ -1739,7 +2227,7 @@ bool UAnimSequence::CopyAnimSequenceProperties(UAnimSequence* SourceAnimSeq, UAn
 	DestAnimSeq->bDoNotOverrideCompression	= SourceAnimSeq->bDoNotOverrideCompression;
 
 	// Copy Compression Settings
-	DestAnimSeq->CompressionScheme				= static_cast<UAnimCompress*>( StaticDuplicateObject( SourceAnimSeq->CompressionScheme, DestAnimSeq, TEXT("None"), ~RF_RootSet ) );
+	DestAnimSeq->CompressionScheme = static_cast<UAnimCompress*>(StaticDuplicateObject(SourceAnimSeq->CompressionScheme, DestAnimSeq, NAME_None, RF_AllFlags, nullptr, SDO_No_DuplicateForPie, ~EInternalObjectFlags::RootSet));
 	DestAnimSeq->TranslationCompressionFormat	= SourceAnimSeq->TranslationCompressionFormat;
 	DestAnimSeq->RotationCompressionFormat		= SourceAnimSeq->RotationCompressionFormat;
 	DestAnimSeq->AdditiveAnimType				= SourceAnimSeq->AdditiveAnimType;
@@ -1848,7 +2336,7 @@ bool UAnimSequence::CopyNotifies(UAnimSequence* SourceAnimSeq, UAnimSequence* De
 		// Copy the notify itself, and point the new one at it.
 		if( SrcNotifyEvent.Notify )
 		{
-			DestAnimSeq->Notifies[NewNotifyIndex].Notify = static_cast<UAnimNotify*>( StaticDuplicateObject(SrcNotifyEvent.Notify, DestAnimSeq, TEXT("None"), ~RF_RootSet ) );
+			DestAnimSeq->Notifies[NewNotifyIndex].Notify = static_cast<UAnimNotify*>(StaticDuplicateObject(SrcNotifyEvent.Notify, DestAnimSeq, NAME_None, RF_AllFlags, nullptr, SDO_No_DuplicateForPie, ~EInternalObjectFlags::RootSet));
 		}
 		else
 		{
@@ -1857,7 +2345,7 @@ bool UAnimSequence::CopyNotifies(UAnimSequence* SourceAnimSeq, UAnimSequence* De
 
 		if( SrcNotifyEvent.NotifyStateClass )
 		{
-			DestAnimSeq->Notifies[NewNotifyIndex].NotifyStateClass = static_cast<UAnimNotifyState*>( StaticDuplicateObject(SrcNotifyEvent.NotifyStateClass, DestAnimSeq, TEXT("None"), ~RF_RootSet ) );
+			DestAnimSeq->Notifies[NewNotifyIndex].NotifyStateClass = static_cast<UAnimNotifyState*>(StaticDuplicateObject(SrcNotifyEvent.NotifyStateClass, DestAnimSeq, NAME_None, RF_AllFlags, nullptr, SDO_No_DuplicateForPie, ~EInternalObjectFlags::RootSet));
 		}
 		else
 		{
@@ -3265,13 +3753,13 @@ void UAnimSequence::BakeTrackCurvesToRawAnimation()
 		USkeleton * CurSkeleton = GetSkeleton();
 		check(CurSkeleton);
 
-		FSmartNameMapping* NameMapping = CurSkeleton->SmartNames.GetContainer(USkeleton::AnimTrackCurveMappingName);
+		const FSmartNameMapping* NameMapping = CurSkeleton->GetSmartNameContainer(USkeleton::AnimTrackCurveMappingName);
 		// if no mapping, that means there is no transform curves
 		if(!NameMapping)
 		{
 			// if no name mapping is found but curve exists, we should verify curve namex
 			VerifyCurveNames(CurSkeleton, USkeleton::AnimTrackCurveMappingName, RawCurveData.TransformCurves);
-			NameMapping = CurSkeleton->SmartNames.GetContainer(USkeleton::AnimTrackCurveMappingName);
+			NameMapping = CurSkeleton->GetSmartNameContainer(USkeleton::AnimTrackCurveMappingName);
 		}
 		
 		// since now I'm about to modify Scale Keys. I should add all of them here at least one key. 
@@ -3400,17 +3888,10 @@ void UAnimSequence::AddKeyToSequence(float Time, const FName& BoneName, const FT
 	USkeleton * CurrentSkeleton = GetSkeleton();
 	check (CurrentSkeleton);
 
-	FSmartNameMapping* NameMapping = CurrentSkeleton->SmartNames.GetContainer(USkeleton::AnimTrackCurveMappingName);
-	if(NameMapping == NULL)
-	{
-		CurrentSkeleton->Modify(true);
-		CurrentSkeleton->SmartNames.AddContainer(USkeleton::AnimTrackCurveMappingName);
-		NameMapping = CurrentSkeleton->SmartNames.GetContainer(USkeleton::AnimTrackCurveMappingName);
-		check(NameMapping);
-	}
-
+	const FSmartNameMapping* NameMapping = CurrentSkeleton->GetOrAddSmartNameContainer(USkeleton::AnimTrackCurveMappingName);
+	
 	FSmartNameMapping::UID NewUID;
-	NameMapping->AddOrFindName(CurveName, NewUID);
+	CurrentSkeleton->AddSmartNameAndModify(USkeleton::AnimTrackCurveMappingName, CurveName, NewUID);
 
 	// add curve - this won't add duplicate curve
 	RawCurveData.AddCurveData(NewUID, ACF_DriveTrack | ACF_Editable, FRawCurveTracks::TransformType);
@@ -3438,6 +3919,8 @@ void UAnimSequence::ResetAnimation()
 	CompressedByteStream.Empty();
 
 	Notifies.Empty();
+	AuthoredSyncMarkers.Empty();
+	UniqueMarkerNames.Empty();
 	AnimNotifyTracks.Empty();
 	RawCurveData.Empty();
 	RateScale = 1.f;
@@ -3466,6 +3949,17 @@ void UAnimSequence::RefreshTrackMapFromAnimTrackNames()
 			TrackToSkeletonMapTable[I].BoneTreeIndex = BoneTreeIndex;
 		}
 	}
+}
+
+uint8* UAnimSequence::FindSyncMarkerPropertyData(int32 SyncMarkerIndex, UArrayProperty*& ArrayProperty)
+{
+	ArrayProperty = NULL;
+
+	if (AuthoredSyncMarkers.IsValidIndex(SyncMarkerIndex))
+	{
+		return FindArrayProperty(TEXT("AuthoredSyncMarkers"), ArrayProperty, SyncMarkerIndex);
+	}
+	return NULL;
 }
 
 bool UAnimSequence::CreateAnimation(USkeletalMesh * Mesh)
@@ -3584,6 +4078,624 @@ bool UAnimSequence::CreateAnimation(UAnimSequence * Sequence)
 }
 
 #endif
+
+void UAnimSequence::RefreshCacheData()
+{
+	SortSyncMarkers();
+#if WITH_EDITOR
+	for (int32 TrackIndex = 0; TrackIndex < AnimNotifyTracks.Num(); ++TrackIndex)
+	{
+		AnimNotifyTracks[TrackIndex].SyncMarkers.Empty();
+	}
+	for (FAnimSyncMarker& SyncMarker : AuthoredSyncMarkers)
+	{
+		const int32 TrackIndex = SyncMarker.TrackIndex;
+		if (AnimNotifyTracks.IsValidIndex(TrackIndex))
+		{
+			AnimNotifyTracks[TrackIndex].SyncMarkers.Add(&SyncMarker);
+		}
+		else
+		{
+			// This should not happen, but if it does we must find somewhere else to add it
+			ensureMsgf(0, TEXT("AnimNotifyTrack: Wrong indices found"));
+			AnimNotifyTracks[0].SyncMarkers.Add(&SyncMarker);
+			SyncMarker.TrackIndex = 0;
+		}
+	}
+#endif
+	Super::RefreshCacheData();
+}
+
+void UAnimSequence::RefreshSyncMarkerDataFromAuthored()
+{
+#if WITH_EDITOR
+	MarkerDataUpdateCounter++;
+#endif
+
+	if (AuthoredSyncMarkers.Num() > 0)
+	{
+		UniqueMarkerNames.Reset();
+		UniqueMarkerNames.Reserve(AuthoredSyncMarkers.Num());
+
+		const FAnimSyncMarker* PreviousMarker = nullptr;
+		for (const FAnimSyncMarker& Marker : AuthoredSyncMarkers)
+		{
+			UniqueMarkerNames.AddUnique(Marker.MarkerName);
+			PreviousMarker = &Marker;
+		}
+	}
+	else
+	{
+		UniqueMarkerNames.Empty();
+	}
+}
+
+bool IsMarkerValid(const FAnimSyncMarker* Marker, bool bLooping, const TArray<FName>& ValidMarkerNames)
+{
+	return (Marker == nullptr && !bLooping) || (Marker && ValidMarkerNames.Contains(Marker->MarkerName));
+}
+
+void UAnimSequence::AdvanceMarkerPhaseAsLeader(bool bLooping, float MoveDelta, const TArray<FName>& ValidMarkerNames, float& CurrentTime, FMarkerPair& PrevMarker, FMarkerPair& NextMarker, TArray<FPassedMarker>& MarkersPassed) const
+{
+	check(MoveDelta != 0.f);
+	const bool bPlayingForwards = MoveDelta > 0.f;
+	float CurrentMoveDelta = MoveDelta;
+
+	bool bOffsetInitialized = false;
+	float MarkerTimeOffset = 0.f;
+
+	check(CurrentTime >= 0.f && CurrentTime <= SequenceLength);
+
+	if (bPlayingForwards)
+	{
+		while (true)
+		{
+			if (NextMarker.MarkerIndex == -1)
+			{
+				float PrevCurrentTime = CurrentTime;
+				CurrentTime = FMath::Min(CurrentTime + CurrentMoveDelta, SequenceLength);
+				NextMarker.TimeToMarker = SequenceLength - CurrentTime;
+				PrevMarker.TimeToMarker -= CurrentTime - PrevCurrentTime; //Add how far we moved to distance from previous marker
+				break;
+			}
+			const FAnimSyncMarker& NextSyncMarker = AuthoredSyncMarkers[NextMarker.MarkerIndex];
+			checkSlow(ValidMarkerNames.Contains(NextSyncMarker.MarkerName));
+			if (!bOffsetInitialized)
+			{
+				bOffsetInitialized = true;
+				if (NextSyncMarker.Time < CurrentTime)
+				{
+					MarkerTimeOffset = SequenceLength;
+				}
+			}
+			const float NextMarkerTime = NextSyncMarker.Time + MarkerTimeOffset;
+			const float TimeToMarker = NextMarkerTime - CurrentTime;
+
+			if (CurrentMoveDelta > TimeToMarker)
+			{
+				CurrentTime = NextSyncMarker.Time;
+				CurrentMoveDelta -= TimeToMarker;
+
+				PrevMarker.MarkerIndex = NextMarker.MarkerIndex;
+				PrevMarker.TimeToMarker = -CurrentMoveDelta;
+
+				int32 PassedMarker = MarkersPassed.Add(FPassedMarker());
+				MarkersPassed[PassedMarker].PassedMarkerName = NextSyncMarker.MarkerName;
+				MarkersPassed[PassedMarker].DeltaTimeWhenPassed = CurrentMoveDelta;
+
+				do
+				{
+					++NextMarker.MarkerIndex;
+					if (NextMarker.MarkerIndex >= AuthoredSyncMarkers.Num())
+					{
+						if (!bLooping)
+						{
+							NextMarker.MarkerIndex = -1;
+							break;
+						}
+						NextMarker.MarkerIndex = 0;
+						MarkerTimeOffset += SequenceLength;
+					}
+				} while (!ValidMarkerNames.Contains(AuthoredSyncMarkers[NextMarker.MarkerIndex].MarkerName));
+			}
+			else
+			{
+				CurrentTime = FMath::Fmod(CurrentTime + CurrentMoveDelta, SequenceLength);
+				if (CurrentTime < 0.f)
+				{
+					CurrentTime += SequenceLength;
+				}
+				NextMarker.TimeToMarker = TimeToMarker - CurrentMoveDelta;
+				PrevMarker.TimeToMarker -= CurrentMoveDelta;
+				break;
+			}
+		}
+	}
+	else
+	{
+		while (true)
+		{
+			if (PrevMarker.MarkerIndex == -1)
+			{
+				float PrevCurrentTime = CurrentTime;
+				CurrentTime = FMath::Max(CurrentTime + CurrentMoveDelta, 0.f);
+				PrevMarker.TimeToMarker = CurrentTime;
+				NextMarker.TimeToMarker -= CurrentTime - PrevCurrentTime; //Add how far we moved to distance from previous marker
+				break;
+			}
+			const FAnimSyncMarker& PrevSyncMarker = AuthoredSyncMarkers[PrevMarker.MarkerIndex];
+			checkSlow(ValidMarkerNames.Contains(PrevSyncMarker.MarkerName));
+			if (!bOffsetInitialized)
+			{
+				bOffsetInitialized = true;
+				if (PrevSyncMarker.Time > CurrentTime)
+				{
+					MarkerTimeOffset = -SequenceLength;
+				}
+			}
+			const float PrevMarkerTime = PrevSyncMarker.Time + MarkerTimeOffset;
+			const float TimeToMarker = PrevMarkerTime - CurrentTime;
+
+			if (CurrentMoveDelta < TimeToMarker)
+			{
+				CurrentTime = PrevSyncMarker.Time;
+				CurrentMoveDelta -= TimeToMarker;
+
+				NextMarker.MarkerIndex = PrevMarker.MarkerIndex;
+				NextMarker.TimeToMarker = -CurrentMoveDelta;
+
+				int32 PassedMarker = MarkersPassed.Add(FPassedMarker());
+				MarkersPassed[PassedMarker].PassedMarkerName = PrevSyncMarker.MarkerName;
+				MarkersPassed[PassedMarker].DeltaTimeWhenPassed = CurrentMoveDelta;
+
+				do
+				{
+					--PrevMarker.MarkerIndex;
+					if (PrevMarker.MarkerIndex < 0)
+					{
+						if (!bLooping)
+						{
+							PrevMarker.MarkerIndex = -1;
+							break;
+						}
+						PrevMarker.MarkerIndex = AuthoredSyncMarkers.Num() - 1;
+						MarkerTimeOffset -= SequenceLength;
+					}
+				} while (!ValidMarkerNames.Contains(AuthoredSyncMarkers[PrevMarker.MarkerIndex].MarkerName));
+			}
+			else
+			{
+				CurrentTime = FMath::Fmod(CurrentTime + CurrentMoveDelta, SequenceLength);
+				if (CurrentTime < 0.f)
+				{
+					CurrentTime += SequenceLength;
+				}
+				PrevMarker.TimeToMarker = TimeToMarker - CurrentMoveDelta;
+				NextMarker.TimeToMarker -= CurrentMoveDelta;
+				break;
+			}
+		}
+	}
+
+	check(CurrentTime >= 0.f && CurrentTime <= SequenceLength);
+}
+
+void AdvanceMarkerForwards(int32& Marker, FName MarkerToFind, bool bLooping, const TArray<FAnimSyncMarker>& AuthoredSyncMarkers)
+{
+	int32 MaxIterations = AuthoredSyncMarkers.Num();
+	while ((AuthoredSyncMarkers[Marker].MarkerName != MarkerToFind) && (--MaxIterations >= 0))
+	{
+		++Marker;
+		if (Marker == AuthoredSyncMarkers.Num() && !bLooping)
+		{
+			break;
+		}
+		Marker %= AuthoredSyncMarkers.Num();
+	}
+
+	if (!AuthoredSyncMarkers.IsValidIndex(Marker) || (AuthoredSyncMarkers[Marker].MarkerName != MarkerToFind))
+	{
+		Marker = INDEX_NONE;
+	}
+}
+
+int32 MarkerCounterSpaceTransform(int32 MaxMarker, int32 Source)
+{
+	return MaxMarker - 1 - Source;
+}
+
+void AdvanceMarkerBackwards(int32& Marker, FName MarkerToFind, bool bLooping, const TArray<FAnimSyncMarker>& AuthoredSyncMarkers)
+{
+	int32 MaxIterations = AuthoredSyncMarkers.Num();
+	const int32 MarkerMax = AuthoredSyncMarkers.Num();
+	int32 Counter = MarkerCounterSpaceTransform(MarkerMax, Marker);
+	while ((AuthoredSyncMarkers[Marker].MarkerName != MarkerToFind) && (--MaxIterations >= 0))
+	{
+		if ((Marker == 0) && !bLooping)
+		{
+			break;
+		}
+		Counter = ++Counter % MarkerMax;
+		Marker = MarkerCounterSpaceTransform(MarkerMax, Counter);
+	}
+
+	if (!AuthoredSyncMarkers.IsValidIndex(Marker) || (AuthoredSyncMarkers[Marker].MarkerName != MarkerToFind))
+	{
+		Marker = INDEX_NONE;
+	}
+}
+
+bool MarkerMatchesPosition(const UAnimSequence* Sequence, int32 MarkerIndex, FName CorrectMarker)
+{
+	checkf(MarkerIndex != MarkerIndexSpecialValues::Unitialized, TEXT("Uninitialized marker supplied to MarkerMatchesPosition. Anim: %s Expecting marker %s (Added to help debug Jira OR-9675)"), *Sequence->GetName(), *CorrectMarker.ToString());
+	return MarkerIndex == MarkerIndexSpecialValues::AnimationBoundary || CorrectMarker == Sequence->AuthoredSyncMarkers[MarkerIndex].MarkerName;
+}
+
+void UAnimSequence::ValidateCurrentPosition(const FMarkerSyncAnimPosition& Position, bool bPlayingForwards, bool bLooping, float&CurrentTime, FMarkerPair& PreviousMarker, FMarkerPair& NextMarker) const
+{
+	if (bPlayingForwards)
+	{
+		if (!MarkerMatchesPosition(this, PreviousMarker.MarkerIndex, Position.PreviousMarkerName))
+		{
+			AdvanceMarkerForwards(PreviousMarker.MarkerIndex, Position.PreviousMarkerName, bLooping, AuthoredSyncMarkers);
+			NextMarker.MarkerIndex = (PreviousMarker.MarkerIndex + 1) % AuthoredSyncMarkers.Num();
+		}
+
+		if (!MarkerMatchesPosition(this, NextMarker.MarkerIndex, Position.NextMarkerName))
+		{
+			AdvanceMarkerForwards(NextMarker.MarkerIndex, Position.NextMarkerName, bLooping, AuthoredSyncMarkers);
+		}
+	}
+	else
+	{
+		const int32 MarkerRange = AuthoredSyncMarkers.Num();
+		if (!MarkerMatchesPosition(this, NextMarker.MarkerIndex, Position.NextMarkerName))
+		{
+			AdvanceMarkerBackwards(NextMarker.MarkerIndex, Position.NextMarkerName, bLooping, AuthoredSyncMarkers);
+			PreviousMarker.MarkerIndex = (NextMarker.MarkerIndex ? NextMarker.MarkerIndex : MarkerRange) - 1;
+		}
+		if (!MarkerMatchesPosition(this, PreviousMarker.MarkerIndex, Position.PreviousMarkerName))
+		{
+			AdvanceMarkerBackwards(PreviousMarker.MarkerIndex, Position.PreviousMarkerName, bLooping, AuthoredSyncMarkers);
+		}
+	}
+
+	checkSlow(MarkerMatchesPosition(this, PreviousMarker.MarkerIndex, Position.PreviousMarkerName));
+	checkSlow(MarkerMatchesPosition(this, NextMarker.MarkerIndex, Position.NextMarkerName));
+
+	CurrentTime = GetCurrentTimeFromMarkers(PreviousMarker, NextMarker, Position.PositionBetweenMarkers);
+}
+
+void UAnimSequence::AdvanceMarkerPhaseAsFollower(const FMarkerTickContext& Context, float DeltaRemaining, bool bLooping, float& CurrentTime, FMarkerPair& PreviousMarker, FMarkerPair& NextMarker) const
+{
+	const bool bPlayingForwards = DeltaRemaining > 0.f;
+
+	ValidateCurrentPosition(Context.GetMarkerSyncStartPosition(), bPlayingForwards, bLooping, CurrentTime, PreviousMarker, NextMarker);
+	if (bPlayingForwards)
+	{
+		int32 PassedMarkersIndex = 0;
+		do
+		{
+			if (NextMarker.MarkerIndex == -1)
+			{
+				check(!bLooping || Context.GetMarkerSyncEndPosition().NextMarkerName == NAME_None); // shouldnt have an end of anim marker if looping
+				CurrentTime = FMath::Min(CurrentTime + DeltaRemaining, SequenceLength);
+				break;
+			}
+			else if (PassedMarkersIndex < Context.MarkersPassedThisTick.Num())
+			{
+				PreviousMarker.MarkerIndex = NextMarker.MarkerIndex;
+				checkSlow(NextMarker.MarkerIndex != -1);
+				const FPassedMarker& PassedMarker = Context.MarkersPassedThisTick[PassedMarkersIndex];
+				AdvanceMarkerForwards(NextMarker.MarkerIndex, PassedMarker.PassedMarkerName, bLooping, AuthoredSyncMarkers);
+				if (NextMarker.MarkerIndex == -1)
+				{
+					DeltaRemaining = PassedMarker.DeltaTimeWhenPassed;
+				}
+				++PassedMarkersIndex;
+			}
+		} while (PassedMarkersIndex < Context.MarkersPassedThisTick.Num());
+
+		const FMarkerSyncAnimPosition& End = Context.GetMarkerSyncEndPosition();
+		
+		if (End.NextMarkerName == NAME_None)
+		{
+			NextMarker.MarkerIndex = -1;
+		}
+
+		if (NextMarker.MarkerIndex != -1 && Context.MarkersPassedThisTick.Num() > 0)
+		{
+			AdvanceMarkerForwards(NextMarker.MarkerIndex, End.NextMarkerName, bLooping, AuthoredSyncMarkers);
+		}
+
+		//Validation
+		if (NextMarker.MarkerIndex != -1)
+		{
+			check(AuthoredSyncMarkers[NextMarker.MarkerIndex].MarkerName == End.NextMarkerName);
+		}
+		//End Validation
+		CurrentTime = GetCurrentTimeFromMarkers(PreviousMarker, NextMarker, End.PositionBetweenMarkers);
+	}
+	else
+	{
+		int32 PassedMarkersIndex = 0;
+		do
+		{
+			if (PreviousMarker.MarkerIndex == -1)
+			{
+				check(!bLooping || Context.GetMarkerSyncEndPosition().PreviousMarkerName == NAME_None); // shouldnt have an end of anim marker if looping
+				CurrentTime = FMath::Max(CurrentTime + DeltaRemaining, 0.f);
+				break;
+			}
+			else if (PassedMarkersIndex < Context.MarkersPassedThisTick.Num())
+			{
+				NextMarker.MarkerIndex = PreviousMarker.MarkerIndex;
+				checkSlow(PreviousMarker.MarkerIndex != -1);
+				const FPassedMarker& PassedMarker = Context.MarkersPassedThisTick[PassedMarkersIndex];
+				AdvanceMarkerBackwards(PreviousMarker.MarkerIndex, PassedMarker.PassedMarkerName, bLooping, AuthoredSyncMarkers);
+				if (PreviousMarker.MarkerIndex == -1)
+				{
+					DeltaRemaining = PassedMarker.DeltaTimeWhenPassed;
+				}
+				++PassedMarkersIndex;
+			}
+		} while (PassedMarkersIndex < Context.MarkersPassedThisTick.Num());
+
+		const FMarkerSyncAnimPosition& End = Context.GetMarkerSyncEndPosition();
+
+		if (PreviousMarker.MarkerIndex != -1 && Context.MarkersPassedThisTick.Num() > 0)
+		{
+			AdvanceMarkerBackwards(PreviousMarker.MarkerIndex, End.PreviousMarkerName, bLooping, AuthoredSyncMarkers);
+		}
+
+		if (End.PreviousMarkerName == NAME_None)
+		{
+			PreviousMarker.MarkerIndex = -1;
+		}
+
+		//Validation
+		if (PreviousMarker.MarkerIndex != -1)
+		{
+			check(AuthoredSyncMarkers[PreviousMarker.MarkerIndex].MarkerName == End.PreviousMarkerName);
+		}
+		//End Validation
+		CurrentTime = GetCurrentTimeFromMarkers(PreviousMarker, NextMarker, End.PositionBetweenMarkers);
+	}
+}
+
+void UAnimSequence::GetMarkerIndicesForTime(float CurrentTime, bool bLooping, const TArray<FName>& ValidMarkerNames, FMarkerPair& OutPrevMarker, FMarkerPair& OutNextMarker) const
+{
+	const int LoopModStart = bLooping ? -1 : 0;
+	const int LoopModEnd = bLooping ? 2 : 1;
+
+	OutPrevMarker.MarkerIndex = -1;
+	OutPrevMarker.TimeToMarker = -CurrentTime;
+	OutNextMarker.MarkerIndex = -1;
+	OutNextMarker.TimeToMarker = SequenceLength - CurrentTime;
+
+	for (int32 LoopMod = LoopModStart; LoopMod < LoopModEnd; ++LoopMod)
+	{
+		const float LoopModTime = LoopMod * SequenceLength;
+		for (int Idx = 0; Idx < AuthoredSyncMarkers.Num(); ++Idx)
+		{
+			const FAnimSyncMarker& Marker = AuthoredSyncMarkers[Idx];
+			if (ValidMarkerNames.Contains(Marker.MarkerName))
+			{
+				const float MarkerTime = Marker.Time + LoopModTime;
+				if (MarkerTime < CurrentTime)
+				{
+					OutPrevMarker.MarkerIndex = Idx;
+					OutPrevMarker.TimeToMarker = MarkerTime - CurrentTime;
+				}
+				else if (MarkerTime >= CurrentTime)
+				{
+					OutNextMarker.MarkerIndex = Idx;
+					OutNextMarker.TimeToMarker = MarkerTime - CurrentTime;
+					break; // Done
+				}
+			}
+		}
+		if (OutNextMarker.MarkerIndex != -1)
+		{
+			break; // Done
+		}
+	}
+}
+
+FMarkerSyncAnimPosition UAnimSequence::GetMarkerSyncPositionfromMarkerIndicies(int32 PrevMarker, int32 NextMarker, float CurrentTime) const
+{
+	FMarkerSyncAnimPosition SyncPosition;
+	float PrevTime, NextTime;
+	
+	if (PrevMarker != -1)
+	{
+		PrevTime = AuthoredSyncMarkers[PrevMarker].Time;
+		SyncPosition.PreviousMarkerName = AuthoredSyncMarkers[PrevMarker].MarkerName;
+	}
+	else
+	{
+		PrevTime = 0.f;
+	}
+
+	if (NextMarker != -1)
+	{
+		NextTime = AuthoredSyncMarkers[NextMarker].Time;
+		SyncPosition.NextMarkerName = AuthoredSyncMarkers[NextMarker].MarkerName;
+	}
+	else
+	{
+		NextTime = SequenceLength;
+	}
+
+	// Account for looping
+	PrevTime = (PrevTime > CurrentTime) ? PrevTime - SequenceLength : PrevTime;
+	NextTime = (NextTime < CurrentTime) ? NextTime + SequenceLength : NextTime;
+
+	if (PrevTime == NextTime)
+	{
+		PrevTime -= SequenceLength;
+	}
+
+	check(NextTime > PrevTime);
+
+	SyncPosition.PositionBetweenMarkers = (CurrentTime - PrevTime) / (NextTime - PrevTime);
+	return SyncPosition;
+}
+
+float UAnimSequence::GetCurrentTimeFromMarkers(FMarkerPair& PrevMarker, FMarkerPair& NextMarker, float PositionBetweenMarkers) const
+{
+	float PrevTime = (PrevMarker.MarkerIndex != -1) ? AuthoredSyncMarkers[PrevMarker.MarkerIndex].Time : 0.f;
+	float NextTime = (NextMarker.MarkerIndex != -1) ? AuthoredSyncMarkers[NextMarker.MarkerIndex].Time : SequenceLength;
+
+	if (PrevTime >= NextTime)
+	{
+		PrevTime -= SequenceLength; //Account for looping
+	}
+	float CurrentTime = PrevTime + PositionBetweenMarkers * (NextTime - PrevTime);
+	if (CurrentTime < 0.f)
+	{
+		CurrentTime += SequenceLength;
+	}
+	PrevMarker.TimeToMarker = PrevTime - CurrentTime;
+	NextMarker.TimeToMarker = NextTime - CurrentTime;
+	return CurrentTime;
+}
+
+void UAnimSequence::GetMarkerIndicesForPosition(const FMarkerSyncAnimPosition& SyncPosition, bool bLooping, FMarkerPair& OutPrevMarker, FMarkerPair& OutNextMarker, float& OutCurrentTime) const
+{
+	if (SyncPosition.PreviousMarkerName == NAME_None)
+	{
+		OutPrevMarker.MarkerIndex = -1;
+		check(SyncPosition.NextMarkerName != NAME_None);
+
+		for (int32 Idx = 0; Idx < AuthoredSyncMarkers.Num(); ++Idx)
+		{
+			const FAnimSyncMarker& Marker = AuthoredSyncMarkers[Idx];
+			if (Marker.MarkerName == SyncPosition.NextMarkerName)
+			{
+				OutNextMarker.MarkerIndex = Idx;
+				OutCurrentTime = GetCurrentTimeFromMarkers(OutPrevMarker, OutNextMarker, SyncPosition.PositionBetweenMarkers);
+				return;
+			}
+		}
+		// Should have found a marker above!
+		checkf(false, TEXT("Next Marker not found in GetMarkerIndicesForPosition. Anim: %s Expecting marker %s (Added to help debug Jira OR-9675)"), *GetName(), *SyncPosition.NextMarkerName.ToString());
+	}
+
+	if (SyncPosition.NextMarkerName == NAME_None)
+	{
+		OutNextMarker.MarkerIndex = -1;
+		check(SyncPosition.PreviousMarkerName != NAME_None);
+
+		for (int32 Idx = AuthoredSyncMarkers.Num() - 1; Idx >= 0; --Idx)
+		{
+			const FAnimSyncMarker& Marker = AuthoredSyncMarkers[Idx];
+			if (Marker.MarkerName == SyncPosition.PreviousMarkerName)
+			{
+				OutPrevMarker.MarkerIndex = Idx;
+				OutCurrentTime = GetCurrentTimeFromMarkers(OutPrevMarker, OutNextMarker, SyncPosition.PositionBetweenMarkers);
+				return;
+			}
+		}
+		// Should have found a marker above!
+		checkf(false, TEXT("Previous Marker not found in GetMarkerIndicesForPosition. Anim: %s Expecting marker %s (Added to help debug Jira OR-9675)"), *GetName(), *SyncPosition.PreviousMarkerName.ToString());
+	}
+
+	float DiffToCurrentTime = FLT_MAX;
+	const float CurrentInputTime  = OutCurrentTime;
+
+	for (int32 PrevMarkerIdx = 0; PrevMarkerIdx < AuthoredSyncMarkers.Num(); ++PrevMarkerIdx)
+	{
+		const FAnimSyncMarker& PrevMarker = AuthoredSyncMarkers[PrevMarkerIdx];
+		if (PrevMarker.MarkerName == SyncPosition.PreviousMarkerName)
+		{
+			int32 EndCount = bLooping ? AuthoredSyncMarkers.Num() : (AuthoredSyncMarkers.Num() - (PrevMarkerIdx + 1));
+			for (int32 NextMarkerCount = 0; NextMarkerCount < EndCount; ++NextMarkerCount)
+			{
+				int32 NextMarkerIdx = (PrevMarkerIdx + 1 + NextMarkerCount) % AuthoredSyncMarkers.Num();
+				if (AuthoredSyncMarkers[NextMarkerIdx].MarkerName == SyncPosition.NextMarkerName)
+				{
+					float NextMarkerTime = AuthoredSyncMarkers[NextMarkerIdx].Time;
+					if (NextMarkerTime < PrevMarker.Time)
+					{
+						NextMarkerTime += SequenceLength;
+					}
+					float ThisCurrentTime = PrevMarker.Time + SyncPosition.PositionBetweenMarkers * (NextMarkerTime - PrevMarker.Time);
+					if (ThisCurrentTime > SequenceLength)
+					{
+						ThisCurrentTime -= SequenceLength;
+					}
+					float ThisDiff = FMath::Abs(ThisCurrentTime - CurrentInputTime);
+					if (ThisDiff < DiffToCurrentTime)
+					{
+						DiffToCurrentTime = ThisDiff;
+						OutPrevMarker.MarkerIndex = PrevMarkerIdx;
+						OutNextMarker.MarkerIndex = NextMarkerIdx;
+						OutCurrentTime = GetCurrentTimeFromMarkers(OutPrevMarker, OutNextMarker, SyncPosition.PositionBetweenMarkers);
+					}
+
+					// this marker test is done, move onto next one
+					break;
+				}
+			}
+		}
+	}
+	// Should have found a markers above!
+	checkf(OutPrevMarker.MarkerIndex != MarkerIndexSpecialValues::Unitialized, TEXT("Prev Marker not found in GetMarkerIndicesForPosition. Anim: %s Expecting marker %s (Added to help debug Jira OR-9675)"), *GetName(), *SyncPosition.PreviousMarkerName.ToString());
+	checkf(OutNextMarker.MarkerIndex != MarkerIndexSpecialValues::Unitialized, TEXT("Next Marker not found in GetMarkerIndicesForPosition. Anim: %s Expecting marker %s (Added to help debug Jira OR-9675)"), *GetName(), *SyncPosition.NextMarkerName.ToString());
+}
+
+float UAnimSequence::GetFirstMatchingPosFromMarkerSyncPos(const FMarkerSyncAnimPosition& InMarkerSyncGroupPosition) const
+{
+	if ((InMarkerSyncGroupPosition.PreviousMarkerName == NAME_None) || (InMarkerSyncGroupPosition.NextMarkerName == NAME_None))
+	{
+		return 0.f;
+	}
+
+	for (int32 PrevMarkerIdx = 0; PrevMarkerIdx < AuthoredSyncMarkers.Num()-1; PrevMarkerIdx++)
+	{
+		const FAnimSyncMarker& PrevMarker = AuthoredSyncMarkers[PrevMarkerIdx];
+		const FAnimSyncMarker& NextMarker = AuthoredSyncMarkers[PrevMarkerIdx+1];
+		if ((PrevMarker.MarkerName == InMarkerSyncGroupPosition.PreviousMarkerName) && (NextMarker.MarkerName == InMarkerSyncGroupPosition.NextMarkerName))
+		{
+			return FMath::Lerp(PrevMarker.Time, NextMarker.Time, InMarkerSyncGroupPosition.PositionBetweenMarkers);
+		}
+	}
+
+	return 0.f;
+}
+
+float UAnimSequence::GetNextMatchingPosFromMarkerSyncPos(const FMarkerSyncAnimPosition& InMarkerSyncGroupPosition, const float& StartingPosition) const
+{
+	if ((InMarkerSyncGroupPosition.PreviousMarkerName == NAME_None) || (InMarkerSyncGroupPosition.NextMarkerName == NAME_None))
+	{
+		return StartingPosition;
+	}
+
+	for (int32 PrevMarkerIdx = 0; PrevMarkerIdx < AuthoredSyncMarkers.Num() - 1; PrevMarkerIdx++)
+	{
+		const FAnimSyncMarker& PrevMarker = AuthoredSyncMarkers[PrevMarkerIdx];
+		const FAnimSyncMarker& NextMarker = AuthoredSyncMarkers[PrevMarkerIdx + 1];
+
+		if (NextMarker.Time < StartingPosition)
+		{
+			continue;
+		}
+
+		if ((PrevMarker.MarkerName == InMarkerSyncGroupPosition.PreviousMarkerName) && (NextMarker.MarkerName == InMarkerSyncGroupPosition.NextMarkerName))
+		{
+			const float FoundTime = FMath::Lerp(PrevMarker.Time, NextMarker.Time, InMarkerSyncGroupPosition.PositionBetweenMarkers);
+			if (FoundTime < StartingPosition)
+			{
+				continue;
+			}
+			return FoundTime;
+		}
+	}
+
+	return StartingPosition;
+}
+
 /*-----------------------------------------------------------------------------
 	AnimNotify& subclasses
 -----------------------------------------------------------------------------*/
@@ -3683,4 +4795,4 @@ void GatherAnimSequenceStats(FOutputDevice& Ar)
 	Ar.Logf( TEXT("Approx Key Data Memory: %i bytes"), GlobalApproxKeyDataSize);
 }
 #endif
-
+#undef LOCTEXT_NAMESPACE 

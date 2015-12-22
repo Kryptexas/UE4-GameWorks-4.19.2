@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ConvertToUniformMesh.usf
@@ -19,8 +19,10 @@ void ConvertToUniformMeshVS(
 	out FConvertToUniformMeshVSToGS Output
 	)
 {
+	ResolvedView = ResolveView();
+
 	FVertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
-	float3 WorldPosition = VertexFactoryGetWorldPosition(Input, VFIntermediates).xyz - View.PreViewTranslation.xyz;
+	float3 WorldPosition = VertexFactoryGetWorldPosition(Input, VFIntermediates).xyz - ResolvedView.PreViewTranslation.xyz;
 	float3x3 TangentToLocal = VertexFactoryGetTangentToLocal(Input, VFIntermediates);
 
 	FMaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, WorldPosition, TangentToLocal);
@@ -47,7 +49,9 @@ void ConvertToUniformMeshGS(triangle FConvertToUniformMeshVSToGS Inputs[3], inou
 	for (int i = 0; i < 3; i++)
 	{
 		FConvertToUniformMeshVSToGS Input = Inputs[i];
-		FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Input.FactoryInterpolants, float4(Input.PixelPosition, 1));
+
+		float4 DummySvPosition;
+		FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Input.FactoryInterpolants, DummySvPosition);
 
 		FConvertToUniformMeshVertex Vertex = (FConvertToUniformMeshVertex)0;
 		Vertex.Position = float4(Input.PixelPosition, 40);

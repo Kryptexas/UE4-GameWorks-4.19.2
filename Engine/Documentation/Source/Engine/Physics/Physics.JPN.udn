@@ -1,7 +1,11 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2735872
+Availability:Public
 Title:物理のシミュレーション
 Crumbs: %ROOT%, Engine
 Description:コリジョンを計算し、物理アクタをシミュレートするために使用するシステム
+Version:4.9
+parent:Engine
+order:6
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -56,14 +60,14 @@ Description:コリジョンを計算し、物理アクタをシミュレート�
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		必須情報
+		Essentials
 	[/PARAM]
 	[PARAM:links]
 		* [コリジョン反応](Engine/Physics/Collision "%Engine/Physics/Collision:description%")
 		* [コリジョン リファレンス](Engine/Physics/Collision/Reference "%Engine/Physics/Collision/Reference:description%")
 		* [物理オブジェクトのコンストレイント](Engine/Physics/Constraints/ConstraintsUserGuide "%Engine/Physics/Constraints/ConstraintsUserGuide:description%")
-		* [](Engine/Physics/Constraints/ConstraintsBlueprints "%Engine/Physics/Constraints/ConstraintsBlueprints:description%")
-		* [](Engine/Physics/Constraints/ConstraintsReference "%Engine/Physics/Constraints/ConstraintsReference:description%")
+		* [物理コンストレイント コンポーネントのユーザー ガイド](Engine/Physics/Constraints/ConstraintsBlueprints "%Engine/Physics/Constraints/ConstraintsBlueprints:description%")
+		* [物理コンストレイントのリファレンス](Engine/Physics/Constraints/ConstraintsReference "%Engine/Physics/Constraints/ConstraintsReference:description%")
 		* [物理減衰](Engine/Physics/Constraints/DampingAndFriction "%Engine/Physics/Constraints/DampingAndFriction:description%")
 	[/PARAM]
 [/OBJECT]
@@ -73,13 +77,13 @@ Description:コリジョンを計算し、物理アクタをシミュレート�
 		![](%ROOT%/vehicle_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		ビークル
+		Vehicles
 	[/PARAM]
 	[PARAM:links]
 		* [ビークル ユーザー ガイド](Engine/Physics/Vehicles/VehicleUserGuide "%Engine/Physics/Vehicles/VehicleUserGuide:description%")
 		* [ビークル コンテンツ作成ガイド](Engine/Physics/Vehicles/VehcileContentCreation "%Engine/Physics/Vehicles/VehcileContentCreation:description%")
 		* [高度なビークル テンプレート](Engine/Physics/Vehicles/DoubleWishboneVehicle "%Engine/Physics/Vehicles/DoubleWishboneVehicle:description%")
-		* [Vehicle API Reference](API:AWheeledVehicle)
+		* [ビークル API リファレンス](API:AWheeledVehicle)
 	[/PARAM]
 [/OBJECT]
 
@@ -93,7 +97,7 @@ Description:コリジョンを計算し、物理アクタをシミュレート�
 	[PARAM:links]
 		* [物理ボディ](Engine/Physics/PhysicsBodies "%Engine/Physics/PhysicsBodies:description%")
 		* [物理マテリアル](Engine/Physics/PhysicalMaterials "%Engine/Physics/PhysicalMaterials:description%")
-		* [PhAT ユーザーガイドとリファレンス](Engine/Physics/PhAT "%Engine/Physics/PhAT:description%")
+		* [PhAT ユーザーガイド/リファレンス](Engine/Physics/PhAT "%Engine/Physics/PhAT:description%")
 	[/PARAM]
 [/OBJECT]
 

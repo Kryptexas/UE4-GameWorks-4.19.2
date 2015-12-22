@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
 #include "SSequencerTrackArea.h"
@@ -9,7 +9,8 @@
 #include "SSequencerTreeView.h"
 #include "IKeyArea.h"
 #include "ISequencerSection.h"
-#include "SSection.h"
+#include "SSequencerSection.h"
+#include "ISequencerTrackEditor.h"
 
 FTrackAreaSlot::FTrackAreaSlot(const TSharedPtr<SSequencerTrackLane>& InSlotContent)
 {
@@ -20,9 +21,10 @@ FTrackAreaSlot::FTrackAreaSlot(const TSharedPtr<SSequencerTrackLane>& InSlotCont
 
 	this->AttachWidget(
 		SNew(SWeakWidget)
-		.PossiblyNullContent(InSlotContent)
-		);
+			.PossiblyNullContent(InSlotContent)
+	);
 }
+
 
 float FTrackAreaSlot::GetVerticalOffset() const
 {
@@ -30,18 +32,26 @@ float FTrackAreaSlot::GetVerticalOffset() const
 	return PinnedTrackLane.IsValid() ? PinnedTrackLane->GetPhysicalPosition() : 0.f;
 }
 
-void SSequencerTrackArea::Construct( const FArguments& InArgs, TSharedRef<FSequencerTimeSliderController> InTimeSliderController, TSharedRef<SSequencer> InSequencerWidget )
+
+void SSequencerTrackArea::Construct(const FArguments& InArgs, TSharedRef<FSequencerTimeSliderController> InTimeSliderController, TSharedRef<FSequencer> InSequencer)
 {
-	SequencerWidget = InSequencerWidget;
+	Sequencer = InSequencer;
 	TimeSliderController = InTimeSliderController;
 
-	bLockInOutToStartEndRange = InArgs._LockInOutToStartEndRange;
+	// Input stack in order or priority
+
+	// Space for the edit tool
+	InputStack.AddHandler(nullptr);
+	// The time slider controller
+	InputStack.AddHandler(TimeSliderController.Get());
 }
+
 
 void SSequencerTrackArea::SetTreeView(const TSharedPtr<SSequencerTreeView>& InTreeView)
 {
 	TreeView = InTreeView;
 }
+
 
 void SSequencerTrackArea::AddTrackSlot(const TSharedRef<FSequencerDisplayNode>& InNode, const TSharedPtr<SSequencerTrackLane>& InSlot)
 {
@@ -49,10 +59,12 @@ void SSequencerTrackArea::AddTrackSlot(const TSharedRef<FSequencerDisplayNode>& 
 	Children.Add(new FTrackAreaSlot(InSlot));
 }
 
+
 TSharedPtr<SSequencerTrackLane> SSequencerTrackArea::FindTrackSlot(const TSharedRef<FSequencerDisplayNode>& InNode)
 {
 	return TrackSlots.FindRef(InNode).Pin();
 }
+
 
 void SSequencerTrackArea::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
@@ -81,6 +93,7 @@ void SSequencerTrackArea::OnArrangeChildren( const FGeometry& AllottedGeometry, 
 	}
 }
 
+
 FVector2D SSequencerTrackArea::ComputeDesiredSize( float ) const
 {
 	FVector2D MaxSize(0,0);
@@ -100,135 +113,105 @@ FVector2D SSequencerTrackArea::ComputeDesiredSize( float ) const
 	return MaxSize;
 }
 
+
 FChildren* SSequencerTrackArea::GetChildren()
 {
 	return &Children;
 }
 
+
 int32 SSequencerTrackArea::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
+	// give track editors a chance to paint
+	auto TrackEditors = Sequencer->GetTrackEditors();
+
+	for (const auto& TrackEditor : TrackEditors)
+	{
+		LayerId = TrackEditor->PaintTrackArea(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId + 1, InWidgetStyle);
+	}
+
+	// paint the child widgets
 	FArrangedChildren ArrangedChildren(EVisibility::Visible);
 	ArrangeChildren(AllottedGeometry, ArrangedChildren);
+
+	const FPaintArgs NewArgs = Args.WithNewParent(this);
 
 	for (int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
 	{
 		FArrangedWidget& CurWidget = ArrangedChildren[ChildIndex];
 		FSlateRect ChildClipRect = MyClippingRect.IntersectionWith( CurWidget.Geometry.GetClippingRect() );
-		const int32 ThisWidgetLayerId = CurWidget.Widget->Paint( Args.WithNewParent(this), CurWidget.Geometry, ChildClipRect, OutDrawElements, LayerId + 1, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
+		const int32 ThisWidgetLayerId = CurWidget.Widget->Paint( NewArgs, CurWidget.Geometry, ChildClipRect, OutDrawElements, LayerId + 2, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
 
 		LayerId = FMath::Max(LayerId, ThisWidgetLayerId);
 	}
 
-	auto SequencerPin = SequencerWidget.Pin();
-	if (SequencerPin.IsValid())
-	{
-		return SequencerPin->GetEditTool().OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId + 1);
-	}
-
-	return LayerId;
+	return Sequencer->GetEditTool().OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId + 2);
 }
+
 
 FReply SSequencerTrackArea::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	auto SequencerPin = SequencerWidget.Pin();
-	if (SequencerPin.IsValid())
-	{
-		FReply Reply = SequencerPin->GetEditTool().OnMouseButtonDown(*this, MyGeometry, MouseEvent);
-		if (Reply.IsEventHandled())
-		{
-			return Reply;
-		}
-	}
-
-	return TimeSliderController->OnMouseButtonDown( SharedThis(this), MyGeometry, MouseEvent );
+	// Always ensure the edit tool is set up
+	InputStack.SetHandlerAt(0, &Sequencer->GetEditTool());
+	return InputStack.HandleMouseButtonDown(*this, MyGeometry, MouseEvent);
 }
+
 
 FReply SSequencerTrackArea::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	auto SequencerPin = SequencerWidget.Pin();
-	if (SequencerPin.IsValid())
-	{
-		FReply Reply = SequencerPin->GetEditTool().OnMouseButtonUp(*this, MyGeometry, MouseEvent);
-		if (Reply.IsEventHandled())
-		{
-			return Reply;
-		}
-	}
+	FContextMenuSuppressor SuppressContextMenus(TimeSliderController.ToSharedRef());
 
-	return TimeSliderController->OnMouseButtonUp( SharedThis(this), MyGeometry, MouseEvent );
+	// Always ensure the edit tool is set up
+	InputStack.SetHandlerAt(0, &Sequencer->GetEditTool());
+	return InputStack.HandleMouseButtonUp(*this, MyGeometry, MouseEvent);
 }
+
 
 FReply SSequencerTrackArea::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	auto SequencerPin = SequencerWidget.Pin();
-	if (SequencerPin.IsValid())
+	// Always ensure the edit tool is set up
+	InputStack.SetHandlerAt(0, &Sequencer->GetEditTool());
+
+	FReply Reply = InputStack.HandleMouseMove(*this, MyGeometry, MouseEvent);
+
+	// Handle right click scrolling on the track area, if the captured index is that of the time slider
+	if (Reply.IsEventHandled() && InputStack.GetCapturedIndex() == 1)
 	{
-		FReply Reply = SequencerPin->GetEditTool().OnMouseMove(*this, MyGeometry, MouseEvent);
-		if (Reply.IsEventHandled())
+		if (MouseEvent.IsMouseButtonDown(EKeys::RightMouseButton) && HasMouseCapture())
 		{
-			return Reply;
+			TreeView.Pin()->ScrollByDelta(-MouseEvent.GetCursorDelta().Y);
 		}
 	}
 
-	if (MouseEvent.IsMouseButtonDown(EKeys::RightMouseButton) && HasMouseCapture())
-	{
-		TreeView.Pin()->ScrollByDelta( -MouseEvent.GetCursorDelta().Y );
-	}
-
-	return TimeSliderController->OnMouseMove( SharedThis(this), MyGeometry, MouseEvent );
+	return Reply;
 }
+
 
 FReply SSequencerTrackArea::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	// First try the edit tool
-	auto SequencerPin = SequencerWidget.Pin();
-	if (SequencerPin.IsValid())
-	{
-		FReply Reply = SequencerPin->GetEditTool().OnMouseWheel(*this, MyGeometry, MouseEvent);
-		if (Reply.IsEventHandled())
-		{
-			return Reply;
-		}
-	}
-
-	// Then the time slider
-	FReply Reply = TimeSliderController->OnMouseWheel( SharedThis(this), MyGeometry, MouseEvent );
-	if (Reply.IsEventHandled())
-	{
-		return Reply;
-	}
-
-	// Failing that, we'll just scroll vertically
-	TreeView.Pin()->ScrollByDelta(WheelScrollAmount * -MouseEvent.GetWheelDelta());
-	return FReply::Handled();
+	// Always ensure the edit tool is set up
+	InputStack.SetHandlerAt(0, &Sequencer->GetEditTool());
+	return InputStack.HandleMouseWheel(*this, MyGeometry, MouseEvent);
 }
+
 
 void SSequencerTrackArea::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	auto SequencerPin = SequencerWidget.Pin();
-	if (SequencerPin.IsValid())
-	{
-		SequencerPin->GetEditTool().OnMouseEnter(*this, MyGeometry, MouseEvent);
-	}
+	Sequencer->GetEditTool().OnMouseEnter(*this, MyGeometry, MouseEvent);
 }
+
 
 void SSequencerTrackArea::OnMouseLeave(const FPointerEvent& MouseEvent)
 {
-	auto SequencerPin = SequencerWidget.Pin();
-	if (SequencerPin.IsValid())
-	{
-		SequencerPin->GetEditTool().OnMouseLeave(*this, MouseEvent);
-	}
+	Sequencer->GetEditTool().OnMouseLeave(*this, MouseEvent);
 }
+
 
 void SSequencerTrackArea::OnMouseCaptureLost()
 {
-	auto SequencerPin = SequencerWidget.Pin();
-	if (SequencerPin.IsValid())
-	{
-		SequencerPin->GetEditTool().OnMouseCaptureLost();
-	}
+	Sequencer->GetEditTool().OnMouseCaptureLost();
 }
+
 
 FCursorReply SSequencerTrackArea::OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const
 {
@@ -237,46 +220,34 @@ FCursorReply SSequencerTrackArea::OnCursorQuery( const FGeometry& MyGeometry, co
 		return FCursorReply::Cursor(EMouseCursor::GrabHandClosed);
 	}
 
-	auto SequencerPin = SequencerWidget.Pin();
-	if (SequencerPin.IsValid())
-	{
-		return SequencerPin->GetEditTool().OnCursorQuery(MyGeometry, CursorEvent);
-	}
-
-	return FCursorReply::Unhandled();
+	return Sequencer->GetEditTool().OnCursorQuery(MyGeometry, CursorEvent);
 }
+
 
 void SSequencerTrackArea::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	CachedGeometry = AllottedGeometry;
 
-	auto SequencerPin = SequencerWidget.Pin();
-	if (SequencerPin.IsValid())
-	{
-		SequencerPin->GetEditTool().Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-	}
+	Sequencer->GetEditTool().Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
 	FVector2D Size = AllottedGeometry.GetLocalSize();
 
-	if (!bLockInOutToStartEndRange.Get())
+	if (SizeLastFrame.IsSet() && Size.X != SizeLastFrame->X)
 	{
-		if (SizeLastFrame.IsSet() && Size.X != SizeLastFrame->X)
-		{
-			// Zoom by the difference in horizontal size
-			const float Difference = Size.X - SizeLastFrame->X;
-			TRange<float> OldRange = TimeSliderController->GetViewRange().GetAnimationTarget();
+		// Zoom by the difference in horizontal size
+		const float Difference = Size.X - SizeLastFrame->X;
+		TRange<float> OldRange = TimeSliderController->GetViewRange().GetAnimationTarget();
 
-			TimeSliderController->SetViewRange(
-				OldRange.GetLowerBoundValue(),
-				OldRange.GetUpperBoundValue() + (Difference * OldRange.Size<float>() / SizeLastFrame->X),
-				EViewRangeInterpolation::Immediate
-				);
-		}
+		TimeSliderController->SetViewRange(
+			OldRange.GetLowerBoundValue(),
+			OldRange.GetUpperBoundValue() + (Difference * OldRange.Size<float>() / SizeLastFrame->X),
+			EViewRangeInterpolation::Immediate
+		);
 	}
 
 	SizeLastFrame = Size;
 
-	for (int32 Index = 0; Index < Children.Num(); )
+	for (int32 Index = 0; Index < Children.Num();)
 	{
 		if (!StaticCastSharedRef<SWeakWidget>(Children[Index].GetWidget())->ChildWidgetIsValid())
 		{

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayTagBase.h"
@@ -15,9 +15,10 @@ UAbilityTask_WaitGameplayTag::UAbilityTask_WaitGameplayTag(const FObjectInitiali
 
 void UAbilityTask_WaitGameplayTag::Activate()
 {
-	if (AbilitySystemComponent.IsValid())
+	UAbilitySystemComponent* ASC = GetTargetASC();
+	if (ASC)
 	{
-		DelegateHandle = AbilitySystemComponent->RegisterGameplayTagEvent(Tag).AddUObject(this, &UAbilityTask_WaitGameplayTag::GameplayTagCallback);
+		DelegateHandle = ASC->RegisterGameplayTagEvent(Tag).AddUObject(this, &UAbilityTask_WaitGameplayTag::GameplayTagCallback);
 		RegisteredCallback = true;
 	}
 }
@@ -28,9 +29,10 @@ void UAbilityTask_WaitGameplayTag::GameplayTagCallback(const FGameplayTag InTag,
 
 void UAbilityTask_WaitGameplayTag::OnDestroy(bool AbilityIsEnding)
 {
-	if (RegisteredCallback && AbilitySystemComponent.IsValid())
+	UAbilitySystemComponent* ASC = GetTargetASC();
+	if (RegisteredCallback && ASC)
 	{
-		AbilitySystemComponent->RegisterGameplayTagEvent(Tag).Remove(DelegateHandle);
+		ASC->RegisterGameplayTagEvent(Tag).Remove(DelegateHandle);
 	}
 
 	Super::OnDestroy(AbilityIsEnding);
@@ -40,10 +42,10 @@ UAbilitySystemComponent* UAbilityTask_WaitGameplayTag::GetTargetASC()
 {
 	if (UseExternalTarget)
 	{
-		return OptionalExternalTarget.Get();
+		return OptionalExternalTarget;
 	}
 
-	return AbilitySystemComponent.Get();
+	return AbilitySystemComponent;
 }
 
 void UAbilityTask_WaitGameplayTag::SetExternalTarget(AActor* Actor)

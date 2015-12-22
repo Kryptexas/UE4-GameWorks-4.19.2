@@ -1,3 +1,5 @@
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+
 #include "D3D12RHIPrivate.h"
 #include "Windows.h"
 
@@ -246,7 +248,11 @@ void FD3D12CommandListManager::ExecuteCommandLists(TArray<FD3D12CommandListHandl
 	if (NeedsResourceBarriers)
 	{
 #if UE_BUILD_DEBUG	
-		if (!ResourceStateCS.TryLock())
+		if (ResourceStateCS.TryLock())
+		{
+			ResourceStateCS.Unlock();
+		}
+		else
 		{
 			FD3D12DynamicRHI::GetD3DRHI()->SubmissionLockStalls++;
 			// We don't think this will get hit but it's possible. If we do see this happen,

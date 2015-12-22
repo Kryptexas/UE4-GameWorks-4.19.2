@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	FilterPixelShader.usf: Filter pixel shader source.
@@ -57,7 +57,7 @@ int SampleCount;
 # if (ES2_PROFILE || ES3_1_PROFILE)
 
 void Main(
-	float2 InUV : TEXCOORD0,
+	noperspective float2 InUV : TEXCOORD0,
 	out half4 OutColor : SV_Target0
 	)
 {
@@ -93,7 +93,7 @@ void Main(
 # else //!(ES2_PROFILE || ES3_1_PROFILE)
 
 void Main(
-	float2 InUV : TEXCOORD0,
+	noperspective float2 InUV : TEXCOORD0,
 	out half4 OutColor : SV_Target0
 	)
 {
@@ -138,8 +138,8 @@ half4 SampleWeights[NUM_SAMPLES];
 # if (ES2_PROFILE || ES3_1_PROFILE)
 
 void Main(
-	float2 InUV : TEXCOORD0,
-	float2 InOffsetUVs[NUM_SAMPLES] : TEXCOORD1,
+	noperspective float2 InUV : TEXCOORD0,
+	noperspective float2 InOffsetUVs[NUM_SAMPLES] : TEXCOORD1,
 	out half4 OutColor : SV_Target0
 	)
 {
@@ -159,8 +159,8 @@ void Main(
 # else //!(ES2_PROFILE || ES3_1_PROFILE)
 
 void Main(
-	float2 InUV : TEXCOORD0,
-	float4 InOffsetUVs[(NUM_SAMPLES + 1) / 2] : TEXCOORD1,
+	noperspective float2 InUV : TEXCOORD0,
+	noperspective float4 InOffsetUVs[(NUM_SAMPLES + 1) / 2] : TEXCOORD1,
 	out float4 OutColor : SV_Target0
 	)
 {
@@ -199,7 +199,7 @@ void Main(
 // currently only used for downsampling, doesn't need to be masked as it doesn't read outside bounds
 // reads 4 samples
 void DownsampleScene(
-	float4 InOffsetUVs[2] : TEXCOORD0,
+	noperspective float4 InOffsetUVs[2] : TEXCOORD0,
 	out float4 OutColor : SV_Target0
 	)
 {

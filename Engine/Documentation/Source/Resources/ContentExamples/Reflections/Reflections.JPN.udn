@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2438606
+﻿INTSourceChangelist:2721906
 Availability:Public
 Title:反射のコンテンツ サンプル
 Crumbs: %ROOT%, Resources, Resources/ContentExamples
@@ -9,6 +9,7 @@ Related:Engine/Rendering/LightingAndShadows/LightTypes/SkyLight\
 Related:Engine/Rendering/Materials/PhysicallyBased
 Related:Resources/Showcases/RealisticRendering
 Related:Engine/Rendering/PostProcessEffects
+Version:4.9
 
 
 [REGION:banner]
@@ -46,33 +47,29 @@ Related:Engine/Rendering/PostProcessEffects
 [/OBJECT]
 [/VAR]
 
-[TOC(start:2 end:2)]
 
+**反射** コンテンツ サンプル マップでは、 **Reflection Capture** アクタを用いてレベル内で反射の見え方を調整する方法を示したサンプルが提供されています (アクタの エフェクト ボリュームあるいは半径内での反射の投影) 。 
+サンプルでは、マテリアル の Roughness 、Metallic、Specular の各プロパティを使って、様々な反射の投影方法も説明しています。 
 
-## 概要
-
-**反射** コンテンツ サンプル マップでは、 **Reflection Capture Actor** を用いてレベル内で反射の見え方を調整する方法を示したサンプルが提供されています (**アクタの** エフェクト ボリュームあるいは半径内での反射の投影) 。 
-サンプルでは、 **マテリアル** の** ラフネス（粗さ）** 、 **メタリック** 、 **スペキュラ** を使って反射を異なる結果にする方法も説明しています。 
-
-反射設定の微調整の他、 **Box Reflection Actor** および使用頻度が更に高い **Sphere Reflection Actor** の両方の使用方法が実現可能なサンプル エフェクトとして紹介されています。
-最後に、完全に動的なキューブマップのキャプチャあるいはフレームごとのシーン イメージのキャプチャに使用する **Scene Capture** メソッドが紹介されています。 
+反射設定の微調整の他、 **Box Reflection** アクタおよび使用頻度が更に高い Sphere Reflection アクタの両方の使用方法が実現可能なサンプル エフェクトとして紹介されています。
+最後に、完全に動的なキューブマップのキャプチャあるいはフレームごとのシーン イメージのキャプチャに使用する Scene Capture メソッドが紹介されています。 
 
 
 ## 反射マップ
 
 ![](Reflections_Map.png)(w:640)
 
-**反射** マップで提供されているサンプルは以下の通りです。
+反射マップで提供されているサンプルは以下の通りです。
 
-| 例 | 実演内容 |
+| サンプル | 実演内容 |
 | ------- | ------------ |
-| **[1.1 メタリック マテリアルの反射](Resources\ContentExamples\Reflections\1_1)** | **Metallic** と **Roughness** プロパティに合わせてオブジェクトを反射するメタリックな **マテリアル** です (**Metallic** プロパティを増加すると外見がクロムっぽくなります) 。|
-| **[1.2 ノンメタリック マテリアルの反射](Resources\ContentExamples\Reflections\1_2)** | **マテリアル** の **Roughness** および **Specular** 値に合わせてオブジェクトを反射させるノンメタリックな **マテリアル** です (**Metallic** プロパティは 0.0 ) 。 |
-| **[1.3 ボックス形状の反射キャプチャ アクタ](Resources\ContentExamples\Reflections\1_3)** | ボックス形状をしているインテリアと使用するのに便利な **Box Reflection Capture Actor** を使ったリフレクションを実演します。 |
-| **[1.4 球形状の反射キャプチャ アクタ](Resources\ContentExamples\Reflections\1_4)** | 環境を反射する、使用頻度の高い **Sphere Reflection Capture Actor** です。 **Box Reflection Capture** よりブレンドしやすく柔軟性があります。 |
-| **[1.5 スクリーン空間の反射](Resources\ContentExamples\Reflections\1_5)** | スクリーン上にあるものだけを反射する動的な **Post Process** エフェクトです。 |
+| **[1.1 メタリック マテリアルの反射](Resources\ContentExamples\Reflections\1_1)** | Metallic と Roughness プロパティに合わせてオブジェクトを反射するメタリックなマテリアルです (Metallic プロパティを増加するとクロムに近い外見になります) 。|
+| **[1.2 メタル以外のマテリアルの反射](Resources\ContentExamples\Reflections\1_2)** | マテリアル の Roughness 値および Specular 値に合わせてオブジェクトを反射させるメタル以外のマテリアルです (Metallic プロパティは 0.0 ) 。 |
+| **[1.3 Box Reflection Capture アクタ](Resources\ContentExamples\Reflections\1_3)** | ボックス形状をしているインテリアと使用するのに便利な Box Reflection Capture アクタを使った反射を実演します。 |
+| **[1.4 Sphere Reflection Capture アクタ](Resources\ContentExamples\Reflections\1_4)** | 環境を反射させるために一般的に使われる Sphere Reflection Capture アクタです。 Box Reflection Capture よりブレンドしやすく柔軟性があります。 |
+| **[1.5 Screenspace Reflection (スクリーン空間の反射)(動的)](Resources\ContentExamples\Reflections\1_5)** | スクリーン上にあるものだけを反射する動的なポストプロセス エフェクトです。 |
 | **[1.6 シーン キャプチャ キューブ](Resources\ContentExamples\Reflections\1_6)** | フレームごとにそれぞれの位置から完全に動的なキューブマップをキャプチャします (パフォーマンスに応じてコストがかかるので、特定にエフェクトをどうしても実現する必要のある場合のみ使うようにすべきです) 。 |
-| ** [1.7 シーンキャプチャ 2D](Resources\ContentExamples\Reflections\1_7)** | フレームごとのシーンのイメージをキャプチャし、 **マテリアル** 内にイメージを投影します (カメラからのイメージを受け取るテレビ画面のように機能し、セキュリティ カメラ エフェクトに使われる場合がほとんどです) 。 |
+| ** [1.7 シーンキャプチャ 2D](Resources\ContentExamples\Reflections\1_7)** | フレームごとのシーンのイメージをキャプチャし、マテリアル内にイメージを投影します (カメラからのイメージを受け取るテレビ画面のように機能し、セキュリティ カメラ エフェクトに使われる場合がほとんどです) 。 |
 
 
 

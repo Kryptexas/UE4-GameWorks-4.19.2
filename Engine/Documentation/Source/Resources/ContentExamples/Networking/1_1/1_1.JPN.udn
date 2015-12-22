@@ -1,14 +1,31 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2719837
 Availability:Public
 Title:1.1 - アクタのレプリケーション
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
-Description:Network Features のサンプル概要、例1.1: アクタのレプリケーション
+Description:ネットワーク機能のサンプル レベルの概要、サンプル 1.1: アクタのレプリケーション
 Related:Gameplay/Networking
 Related:Gameplay/Networking/Actors/Components
 Related:Gameplay/Networking/Actors
 Related:Gameplay/Networking/Actors/RPCs
 Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
+Version:4.9
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[ネットワークのホームページ](Resources/ContentExamples/Networking)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/Networking/1_2 "%Resources/ContentExamples/Networking/1_2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -33,16 +50,15 @@ Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 [/REGION]
 
 [REGION:tip]
-**サーバー** と **クライアント** の両側から見るために、 **[Play]** ダウンリストで、 **[Number of Clients (クライアント数)]** 欄を 2 に設定します。
+**サーバー** と **クライアント** の両側から見るために、**[Play]** ダウンリストで、 **[Number of Clients (クライアント数)]** フィールドを 2 に設定します。
 [/REGION]
 
 
 
-## 概要
 
-ここでは、アクタで **Replicates** boolean を使用する例を示しています。有効にすると、ネットワーキングの視点からサーバーでスポーンされたアクタをクライアントが認識することができます。 
+ここでは、アクタに **Replicates** boolean を使用する例を紹介します。有効にすると、ネットワーキングの視点からサーバーでスポーンされたアクタをクライアントが認識することができます。 
 
-以下のように、 **Replication** セクションの下にある **[Defaults]** タブで、アクタをレプリケートするか、しないかを設定できます。 
+以下のように、 **Replication** セクションの下にある **[Defaults (デフォルト)]** タブで、アクタをレプリケートするか、しないかを設定できます。 
 
 ![](1_1_Replicates.png)
 
@@ -55,7 +71,7 @@ Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 
 **Switch Has Authority** ノードを使用して、ネットワーク権限を持つマシン上 (ほとんどのユースケースでは、サーバー) または、リモート マシン (ほとんどのユースケースではクライアント) のいずれかでスクリプトが実行されているかをチェックします。 
 
-この例では、サーバーのみで実行されており、スポーンされた 2 つのアクタのうちの 1 つはレプリケートに設定されていて、もう 1 つはレプリケートに設定されていません。以下の画像のように、サーバー側では両方のアクターを見ることが可能であり、クライアント側ではレプリケートに設定されているアクタだけを見ることができます。 
+このサンプルでは、サーバーのみで実行されており、スポーンされた 2 つのアクタのうちの 1 つはレプリケートに設定されていて、もう 1 つはレプリケートに設定されていません。以下の画像のように、サーバー側では両方のアクターを見ることが可能であり、クライアント側ではレプリケートに設定されているアクタだけを見ることができます。 
 
 [REGION:fullwidth]
 ![](1_1_Play.png)

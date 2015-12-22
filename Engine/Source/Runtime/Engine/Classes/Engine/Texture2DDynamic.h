@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -27,12 +27,12 @@ class UTexture2DDynamic : public UTexture
 
 
 public:
-	// Begin UTexture Interface.
+	//~ Begin UTexture Interface.
 	ENGINE_API virtual FTextureResource* CreateResource() override;
 	virtual EMaterialValueType GetMaterialType() override { return MCT_Texture2D; }
 	ENGINE_API virtual float GetSurfaceWidth() const override;
 	ENGINE_API virtual float GetSurfaceHeight() const override;
-	// End UTexture Interface.
+	//~ End UTexture Interface.
 	
 	/**
 	 * Initializes the texture with 1 mip-level and creates the render resource.

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -37,7 +37,7 @@ namespace APIDocTool
 			}
 			else
 			{
-				//Debug.Assert((string)PinProperties["PinCategory"] == "exec");
+				Debug.Assert(((string)PinProperties["PinCategory"] == "exec") || ((string)PinProperties["PinCategory"] == "wildcard"));
 				
 				Name = ((string)PinProperties["Direction"] == "input" ? "In" : "Out");
 			}

@@ -2,20 +2,21 @@ Availability:Public
 Title:Global Asset Picker
 Crumbs:%ROOT%, Engine, Engine/UI
 Description:The Global Asset Picker allows you to quickly find assets from any folder in the Asset Tree.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Editor/GlobalAssetPicker:title%](Engine/Content/content_topic.png)
+		![%Engine/UI/GlobalAssetPicker:title%](Engine/Content/content_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/content_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Editor/GlobalAssetPicker:title%
+		%Engine/UI/GlobalAssetPicker:title%
 	[/PARAM]
 	[PARAM:description]
-		%Editor/GlobalAssetPicker:description%
+		%Engine/UI/GlobalAssetPicker:description%
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/UI/GlobalAssetPicker]
@@ -25,16 +26,16 @@ Description:The Global Asset Picker allows you to quickly find assets from any f
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Editor/GlobalAssetPicker:title%](Engine/Content/content_topic.png)
+		![%Engine/UI/GlobalAssetPicker:title%](Engine/Content/content_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/content_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Editor/GlobalAssetPicker:title%
+		%Engine/UI/GlobalAssetPicker:title%
 	[/PARAM]
 	[PARAM:description]
-		%Editor/GlobalAssetPicker:description%
+		%Engine/UI/GlobalAssetPicker:description%
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/UI/GlobalAssetPicker]

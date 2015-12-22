@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #ifndef __SkeletonTreeCommands_h_
 #define __SkeletonTreeCommands_h_
@@ -29,6 +29,9 @@ public:
 
 	/** Show only bones that are present in the current mesh */
 	TSharedPtr< FUICommandInfo > ShowMeshBones;
+
+	/** Show only bones that are present in the current LOD */
+	TSharedPtr< FUICommandInfo > ShowLODBones;
 
 	/** Show only bones that have weighted vertices */
 	TSharedPtr< FUICommandInfo > ShowWeightedBones;

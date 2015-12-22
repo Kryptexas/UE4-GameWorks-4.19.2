@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -52,7 +52,7 @@ class GitPullRequest : BuildCommand
 			return Path.GetFullPath(ExeName);
 		}
 
-		foreach (string BasePath in Environment.GetEnvironmentVariable("PATH").Split(';'))
+		foreach (string BasePath in Environment.GetEnvironmentVariable("PATH").Split(Path.PathSeparator))
 		{
 			var FullPath = Path.Combine(BasePath, ExeName);
 			if (ExpectedPathSubstring == null || FullPath.IndexOf(ExpectedPathSubstring, StringComparison.InvariantCultureIgnoreCase) != -1)
@@ -266,6 +266,7 @@ class GitPullRequest : BuildCommand
 		NewClient.Name = TestClient;
 		NewClient.View = new List<KeyValuePair<string, string>>();
 		NewClient.View.Add(new KeyValuePair<string, string>(Depot + "/...", "/..."));
+		NewClient.Stream = null;
 		if (!P4.DoesClientExist(TestClient))
 		{
 			P4.CreateClient(NewClient);
@@ -473,15 +474,6 @@ class TestMacZip : BuildCommand
 		{
 			throw new AutomationException("This probably only works on the mac.");
 		}
-	}
-}
-
-[Help("Reads the build time from build.properties")]
-class TestBuildTime : BuildCommand
-{
-	public override void ExecuteBuild()
-	{
-		FEngineVersionSupport.BuildTime();
 	}
 }
 
@@ -1170,7 +1162,7 @@ public class TestWatchdogTimer : BuildCommand
 		catch (Exception Ex)
 		{
 			Log("Triggered exception guarded by WatchdogTimer:");
-			Log(System.Diagnostics.TraceEventType.Information, Ex);
+			Log(Ex.Message);
 		}
 
 		Log("Starting 3rd timer (2s). This should crash after 2 seconds.");
@@ -1328,17 +1320,10 @@ public class ZeroEngineVersions : BuildCommand
 {
 	public override void ExecuteBuild()
 	{
-		string ObjectVersionFilename = CmdEnv.LocalRoot + @"/Engine/Source/Runtime/Core/Private/UObject/ObjectVersion.cpp";
 		string VersionFilename = CmdEnv.LocalRoot + @"/Engine/Source/Runtime/Launch/Resources/Version.h";
 		if (P4Env.Changelist > 0)
 		{
-			var Stat = P4.FStat(ObjectVersionFilename);
-			if (Stat.IsValid && Stat.Action != P4Action.None)
-			{
-				Log("Reverting {0}", ObjectVersionFilename);
-				P4.Revert(ObjectVersionFilename);
-			}
-			Stat = P4.FStat(VersionFilename);
+			var Stat = P4.FStat(VersionFilename);
 			if (Stat.IsValid && Stat.Action != P4Action.None)
 			{
 				Log("Reverting {0}", VersionFilename);
@@ -1346,29 +1331,16 @@ public class ZeroEngineVersions : BuildCommand
 			}
 
 			Log("Gettting engine version files @{0}", P4Env.Changelist);
-			P4.Sync(String.Format("-f {0}@{1}", ObjectVersionFilename, P4Env.Changelist));
 			P4.Sync(String.Format("-f {0}@{1}", VersionFilename, P4Env.Changelist));
 		}
 
 		Log("Checking if engine version files need to be reset...");
 		List<string> FilesToSubmit = new List<string>();
 		{
-			VersionFileUpdater ObjectVersionCpp = new VersionFileUpdater(ObjectVersionFilename);
-			if (ObjectVersionCpp.Contains("#define	ENGINE_VERSION	0") == false)
-			{
-				Log("Zeroing out engine versions in {0}", ObjectVersionFilename);
-				ObjectVersionCpp.ReplaceLine("#define	ENGINE_VERSION	", "0");
-				ObjectVersionCpp.Commit();
-				FilesToSubmit.Add(ObjectVersionFilename);
-			}
-		}
-		{
 			VersionFileUpdater VersionH = new VersionFileUpdater(VersionFilename);
 			if (VersionH.Contains("#define ENGINE_VERSION 0") == false)
 			{
 				Log("Zeroing out engine versions in {0}", VersionFilename);
-				VersionH.ReplaceLine("#define ENGINE_VERSION ", "0");
-				VersionH.ReplaceLine("#define BRANCH_NAME ", "\"" + P4Env.BranchName + "\"");
 				VersionH.ReplaceLine("#define BUILT_FROM_CHANGELIST ", "0");
 
 				VersionH.Commit();
@@ -1412,7 +1384,7 @@ public class SyncSource : BuildCommand
 		catch (Exception Ex)
 		{
 			LogError("Unable to sync {0}", SyncCmdLine);
-			Log(System.Diagnostics.TraceEventType.Error, Ex);
+			LogError(Ex.Message);
 		}
 	}
 

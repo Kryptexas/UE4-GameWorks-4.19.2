@@ -3,6 +3,7 @@ Title:Third Person
 Crumbs:%ROOT%
 Description:Links to various example scenes, sample games, and tutorials.
 Navigation:topic
+Version: 4.9
 
 
 [VAR:Params]
@@ -49,10 +50,10 @@ resources
 So you have started a new game using the **Third Person Template**? Awesome! If you are looking for guidance on how to do specific things or perhaps just looking at the blank canvas of endless possibilities, this doc contains ideas for things you can implement.
 
 * [Read up](Engine/Blueprints) and [watch some video](Videos) on the **Blueprints Visual Scripting** system. Sometimes it is not about what to do, but how you can do it, and knowing more about Blueprints will enable you to rapidly prototype ideas, even if you will ultimately be working in C++.
-* [Create a **HUD**](Engine/UMG/QuickStart) for your Third Person Game using [**Unreal Motion Graphics**](Engine/UMG).
+* [Create a HUD](Engine/UMG/QuickStart) for your Third Person Game using [Unreal Motion Graphics](Engine/UMG).
 * Why not add some Destructible Meshes to the environment? Check out the [Destructible Actor Documentation](Engine/Physics/Destructibles) and the [](Engine/Blueprints/HowTo) for methods on how to do this!
 * You can add **AI Characters** using [Behavior Trees](Gameplay/AI/BehaviorTreeQuickStart) to your game and have them chase, flee, help, or harm the player.
-	* **Bonus**: Implement [damage](Engine/Blueprints/UserGuide/Events#eventanydamage) on the **ThirdPersonCharacter** and your new **AI Character**, and make it so they can [**Destroy**](Engine/Blueprints/UserGuide/Events#eventendplay) each other. There is more information on how to do this in the [](Gameplay/HowTo/SpawnAndDestroyActors/Blueprints) guide.
+	* **Bonus**: Implement [damage](Engine/Blueprints/UserGuide/Events#eventanydamage) on the **ThirdPersonCharacter** and your new **AI Character**, and make it so they can [Destroy](Engine/Blueprints/UserGuide/Events#eventendplay) each other. There is more information on how to do this in the [](Gameplay/HowTo/SpawnAndDestroyActors/Blueprints) guide.
 	* **Double Bonus**: Following the [](Gameplay/HowTo/CharacterMovement/Blueprints) guide, give your AI and **ThirdPersonCharacter** more movement options!
 * If you end up killing your Player, maybe you will want to be able to respawn them? Check out this how to guide for [Respawning the Player](Gameplay/HowTo/RespawnPlayer/Blueprints).
 * The default character is kind of bland, [create your own](Engine/Content/FBX/SkeletalMeshes) or get a new one from the Marketplace located in the Epic Games Launcher.
@@ -62,7 +63,7 @@ So you have started a new game using the **Third Person Template**? Awesome! If 
 	* Toxic fumes! Make them expand or move around.
 	* Lava! Because LAVA! Ok, really because it is an effective area denial hazard.
 	* Slippery surfaces, like ice. You can modify the friction of a surface so the player will slide on them!
-* Alter your **ThridPersonCharacter**'s jump height, run speed, mass, or a number of other properties on its [**Character Movement Component**](Engine/Components/Movement) to create unique-feeling gameplay.
+* Alter your **ThridPersonCharacter**'s jump height, run speed, mass, or a number of other properties on its [Character Movement Component](Engine/Components/Movement) to create unique-feeling gameplay.
 * [Launch Pads](Engine/Blueprints/QuickStart) are common in a number of game types, including first person games.
 * Check out the Unreal [Engine Forums](https://forums.unrealengine.com/) for even more hints, tutorials, guides, and ideas!
 	* Inventory systems

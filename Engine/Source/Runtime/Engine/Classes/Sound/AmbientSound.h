@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "AmbientSound.generated.h"
@@ -18,13 +18,13 @@ public:
 	
 	FString GetInternalSoundCueName();
 
-	// Begin AActor interface.
+	//~ Begin AActor Interface.
 #if WITH_EDITOR
 	virtual void CheckForErrors() override;
 	virtual bool GetReferencedContentObjects( TArray<UObject*>& Objects ) const override;
 #endif
 	virtual void PostRegisterAllComponents() override;
-	// End AActor interface.
+	//~ End AActor Interface.
 
 	// BEGIN DEPRECATED (use component functions now in level script)
 	UFUNCTION(BlueprintCallable, Category="Audio", meta=(DeprecatedFunction))

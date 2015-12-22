@@ -1,10 +1,11 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "LevelSequencePCH.h"
 #include "LevelSequencePlayer.h"
 #include "MovieScene.h"
 #include "MovieSceneSequence.h"
 #include "MovieSceneSequenceInstance.h"
+#include "LevelSequenceSpawnRegister.h"
 
 
 struct FTickAnimationPlayers : public FTickableGameObject
@@ -64,19 +65,24 @@ struct FAutoDestroyAnimationTicker
 
 ULevelSequencePlayer::ULevelSequencePlayer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, LevelSequenceInstance(nullptr)
+	, LevelSequence(nullptr)
 	, bIsPlaying(false)
 	, TimeCursorPosition(0.0f)
+	, StartTime(0.f)
+	, EndTime(0.f)
 	, CurrentNumLoops(0)
-{ }
+	, bHasCleanedUpSequence(false)
+{
+	SpawnRegister = MakeShareable(new FLevelSequenceSpawnRegister);
+}
 
 
 /* ULevelSequencePlayer interface
  *****************************************************************************/
 
-ULevelSequencePlayer* ULevelSequencePlayer::CreateLevelSequencePlayer(UObject* WorldContextObject, ULevelSequence* LevelSequence, FLevelSequencePlaybackSettings Settings)
+ULevelSequencePlayer* ULevelSequencePlayer::CreateLevelSequencePlayer(UObject* WorldContextObject, ULevelSequence* InLevelSequence, FLevelSequencePlaybackSettings Settings)
 {
-	if (LevelSequence == nullptr)
+	if (InLevelSequence == nullptr)
 	{
 		return nullptr;
 	}
@@ -87,11 +93,7 @@ ULevelSequencePlayer* ULevelSequencePlayer::CreateLevelSequencePlayer(UObject* W
 	ULevelSequencePlayer* NewPlayer = NewObject<ULevelSequencePlayer>(GetTransientPackage(), NAME_None, RF_Transient);
 	check(NewPlayer != nullptr);
 
-	// Set up a new instance of the level sequence for the player
-	ULevelSequenceInstance* Instance = NewObject<ULevelSequenceInstance>(NewPlayer);
-	Instance->Initialize(LevelSequence, World, false);
-
-	NewPlayer->Initialize(Instance, World, Settings);
+	NewPlayer->Initialize(InLevelSequence, World, Settings);
 
 	// Automatically tick this player
 	GAnimationPlayerTicker.Add(NewPlayer);
@@ -122,24 +124,23 @@ void ULevelSequencePlayer::Stop()
 
 void ULevelSequencePlayer::Play()
 {
-	if ((LevelSequenceInstance == nullptr) || !World.IsValid())
+	if ((LevelSequence == nullptr) || !World.IsValid())
 	{
 		return;
 	}
 
 	// @todo Sequencer playback: Should we recreate the instance every time?
-	RootMovieSceneInstance = MakeShareable(new FMovieSceneSequenceInstance(*LevelSequenceInstance));
-
-	// @odo Sequencer Should we spawn actors here?
-	SpawnActorsForMovie(RootMovieSceneInstance.ToSharedRef());
-	RootMovieSceneInstance->RefreshInstance(*this);
+	// We must not recreate the instance since it holds stateful information (such as which objects it has spawned). Recreating the instance would break any 
+	if (!RootMovieSceneInstance.IsValid())
+	{
+		RootMovieSceneInstance = MakeShareable(new FMovieSceneSequenceInstance(*LevelSequence));
+		RootMovieSceneInstance->RefreshInstance(*this);
+	}
 
 	bIsPlaying = true;
+	bHasCleanedUpSequence = false;
 
-	if (RootMovieSceneInstance.IsValid())
-	{
-		RootMovieSceneInstance->Update(TimeCursorPosition, TimeCursorPosition, *this);
-	}
+	UpdateMovieSceneInstance(TimeCursorPosition, TimeCursorPosition);
 }
 
 void ULevelSequencePlayer::PlayLooping(int32 NumLoops)
@@ -160,21 +161,12 @@ void ULevelSequencePlayer::SetPlaybackPosition(float NewPlaybackPosition)
 	TimeCursorPosition = NewPlaybackPosition;
 	OnCursorPositionChanged();
 
-	if (RootMovieSceneInstance.IsValid())
-	{
-		RootMovieSceneInstance->Update(TimeCursorPosition, LastTimePosition, *this);
-	}
+	UpdateMovieSceneInstance(TimeCursorPosition, LastTimePosition);
 }
 
 float ULevelSequencePlayer::GetLength() const
 {
-	if (!LevelSequenceInstance)
-	{
-		return 0;
-	}
-
-	UMovieScene* MovieScene = LevelSequenceInstance->GetMovieScene();
-	return MovieScene ? MovieScene->GetTimeRange().Size<float>() : 0;
+	return EndTime - StartTime;
 }
 
 float ULevelSequencePlayer::GetPlayRate() const
@@ -187,19 +179,28 @@ void ULevelSequencePlayer::SetPlayRate(float PlayRate)
 	PlaybackSettings.PlayRate = PlayRate;
 }
 
+void ULevelSequencePlayer::SetPlaybackRange( const float NewStartTime, const float NewEndTime )
+{
+	StartTime = NewStartTime;
+	EndTime = FMath::Max(NewEndTime, StartTime);
+
+	TimeCursorPosition = FMath::Clamp(TimeCursorPosition, 0.f, GetLength());
+}
 
 void ULevelSequencePlayer::OnCursorPositionChanged()
 {
 	float Length = GetLength();
 
 	// Handle looping or stopping
-	if (TimeCursorPosition > Length || TimeCursorPosition < 0)
+	if (TimeCursorPosition >= Length || TimeCursorPosition < 0)
 	{
 		if (PlaybackSettings.LoopCount < 0 || CurrentNumLoops < PlaybackSettings.LoopCount)
 		{
 			++CurrentNumLoops;
 			const float Overplay = FMath::Fmod(TimeCursorPosition, Length);
 			TimeCursorPosition = Overplay < 0 ? Length + Overplay : Overplay;
+
+			SpawnRegister->ForgetExternallyOwnedSpawnedObjects(*this);
 		}
 		else
 		{
@@ -214,12 +215,18 @@ void ULevelSequencePlayer::OnCursorPositionChanged()
 /* ULevelSequencePlayer implementation
  *****************************************************************************/
 
-void ULevelSequencePlayer::Initialize(ULevelSequenceInstance* InLevelSequenceInstance, UWorld* InWorld, const FLevelSequencePlaybackSettings& Settings)
+void ULevelSequencePlayer::Initialize(ULevelSequence* InLevelSequence, UWorld* InWorld, const FLevelSequencePlaybackSettings& Settings)
 {
-	LevelSequenceInstance = InLevelSequenceInstance;
+	LevelSequence = InLevelSequence;
 
 	World = InWorld;
 	PlaybackSettings = Settings;
+
+	if (UMovieScene* MovieScene = LevelSequence->GetMovieScene())
+	{
+		TRange<float> PlaybackRange = MovieScene->GetPlaybackRange();
+		SetPlaybackRange(PlaybackRange.GetLowerBoundValue(), PlaybackRange.GetUpperBoundValue());
+	}
 
 	// Ensure everything is set up, ready for playback
 	Stop();
@@ -229,143 +236,53 @@ void ULevelSequencePlayer::Initialize(ULevelSequenceInstance* InLevelSequenceIns
 /* IMovieScenePlayer interface
  *****************************************************************************/
 
-void ULevelSequencePlayer::SpawnActorsForMovie(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance)
-{
-	UWorld* WorldPtr = World.Get();
-
-	if (WorldPtr == nullptr)
-	{
-		return;
-	}
-
-	UMovieScene* MovieScene = MovieSceneInstance->GetSequence()->GetMovieScene();
-
-	if (MovieScene == nullptr)
-	{
-		return;
-	}
-
-	TArray<FSpawnedActorInfo>* FoundSpawnedActors = InstanceToSpawnedActorMap.Find(MovieSceneInstance);
-
-	if (FoundSpawnedActors != nullptr)
-	{
-		// Remove existing spawned actors for this movie
-		DestroyActorsForMovie( MovieSceneInstance );
-	}
-
-	TArray<FSpawnedActorInfo>& SpawnedActorList = InstanceToSpawnedActorMap.Add(MovieSceneInstance, TArray<FSpawnedActorInfo>());
-
-	for (auto SpawnableIndex = 0; SpawnableIndex < MovieScene->GetSpawnableCount(); ++SpawnableIndex)
-	{
-		auto& Spawnable = MovieScene->GetSpawnable(SpawnableIndex);
-		UClass* GeneratedClass = Spawnable.GetClass();
-		
-		if ((GeneratedClass == nullptr) || !GeneratedClass->IsChildOf(AActor::StaticClass()))
-		{
-			continue;
-		}
-
-		AActor* ActorCDO = CastChecked<AActor>(GeneratedClass->ClassDefaultObject);
-		const FVector SpawnLocation = ActorCDO->GetRootComponent()->RelativeLocation;
-		const FRotator SpawnRotation = ActorCDO->GetRootComponent()->RelativeRotation;
-
-		FActorSpawnParameters SpawnInfo;
-		{
-			SpawnInfo.ObjectFlags = RF_NoFlags;
-		}
-
-		AActor* NewActor = WorldPtr->SpawnActor(GeneratedClass, &SpawnLocation, &SpawnRotation, SpawnInfo);
-
-		if (NewActor)
-		{	
-			// Actor was spawned OK!
-			FSpawnedActorInfo NewInfo;
-			{
-				NewInfo.RuntimeGuid = Spawnable.GetGuid();
-				NewInfo.SpawnedActor = NewActor;
-			}
-						
-			SpawnedActorList.Add(NewInfo);
-		}
-	}
-}
-
-
-void ULevelSequencePlayer::DestroyActorsForMovie(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance)
-{
-	UWorld* WorldPtr = World.Get();
-
-	if (WorldPtr == nullptr)
-	{
-		return;
-	}
-
-	TArray<FSpawnedActorInfo>* SpawnedActors = InstanceToSpawnedActorMap.Find(MovieSceneInstance);
-
-	if (SpawnedActors == nullptr)
-	{
-		return;
-	}
-
-	TArray<FSpawnedActorInfo>& SpawnedActorsRef = *SpawnedActors;
-
-	for(int32 ActorIndex = 0; ActorIndex < SpawnedActors->Num(); ++ActorIndex)
-	{
-		AActor* Actor = SpawnedActorsRef[ActorIndex].SpawnedActor.Get();
-		
-		if (Actor != nullptr)
-		{
-			// @todo Sequencer figure this out.  Defaults to false.
-			const bool bNetForce = false;
-
-			// At runtime, level modification is not needed
-			const bool bShouldModifyLevel = false;
-			Actor->GetWorld()->DestroyActor(Actor, bNetForce, bShouldModifyLevel);
-		}
-	}
-
-	InstanceToSpawnedActorMap.Remove(MovieSceneInstance);
-}
-
-
 void ULevelSequencePlayer::GetRuntimeObjects(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectId, TArray<UObject*>& OutObjects) const
 {
-	// @todo sequencer runtime: Add support for individually spawning actors on demand when first requested?
-	//    This may be important to reduce the up-front hitch when spawning actors for the entire movie, but
-	//    may introduce smaller hitches during playback.  Needs experimentation.
-
-	const TArray<FSpawnedActorInfo>* SpawnedActors = InstanceToSpawnedActorMap.Find(MovieSceneInstance);
-
-	if ((SpawnedActors != nullptr) && (SpawnedActors->Num() > 0))
+	UObject* FoundObject = MovieSceneInstance->FindObject(ObjectId, *this);
+	if (FoundObject)
 	{
-		// we have a spawned actor for this handle
-		const TArray<FSpawnedActorInfo>& SpawnedActorInfoRef = *SpawnedActors;
-
-		for (int32 SpawnedActorIndex = 0; SpawnedActorIndex < SpawnedActorInfoRef.Num(); ++SpawnedActorIndex)
-		{
-			const FSpawnedActorInfo ActorInfo = SpawnedActorInfoRef[SpawnedActorIndex];
-
-			if ((ActorInfo.RuntimeGuid == ObjectId) && ActorInfo.SpawnedActor.IsValid())
-			{
-				OutObjects.Add(ActorInfo.SpawnedActor.Get());
-			}
-		}
-	}
-	else
-	{
-		// otherwise, check whether we have one or more possessed actors that are mapped to this handle
-		UObject* FoundObject = LevelSequenceInstance->FindObject(ObjectId);
-
-		if (FoundObject != nullptr)
-		{
-			OutObjects.Add(FoundObject);
-		}
+		OutObjects.Add(FoundObject);
 	}
 }
 
 
-void ULevelSequencePlayer::UpdateCameraCut(UObject* ObjectToViewThrough, bool bNewCameraCut) const
+void ULevelSequencePlayer::UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject) const
 {
+	// skip missing player controller
+	APlayerController* PC = World->GetGameInstance()->GetFirstLocalPlayerController();
+
+	if (PC == nullptr)
+	{
+		return;
+	}
+
+	// skip same view target
+	AActor* ViewTarget = PC->GetViewTarget();
+
+	if (CameraObject == ViewTarget)
+	{
+		return;
+	}
+
+	// skip unlocking if the current view target differs
+	ACameraActor* UnlockIfCameraActor = Cast<ACameraActor>(UnlockIfCameraObject);
+
+	if ((CameraObject == nullptr) && (UnlockIfCameraActor != ViewTarget))
+	{
+		return;
+	}
+
+	// override the player controller's view target
+	ACameraActor* CameraActor = Cast<ACameraActor>(CameraObject);
+
+	FViewTargetTransitionParams TransitionParams;
+	PC->SetViewTarget(CameraActor, TransitionParams);
+
+	if (PC->PlayerCameraManager)
+	{
+		PC->PlayerCameraManager->bClientSimulatingViewTarget = (CameraActor != nullptr);
+		PC->PlayerCameraManager->bGameCameraCutThisFrame = true;
+	}
 }
 
 void ULevelSequencePlayer::SetViewportSettings(const TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap)
@@ -381,22 +298,22 @@ EMovieScenePlayerStatus::Type ULevelSequencePlayer::GetPlaybackStatus() const
 	return bIsPlaying ? EMovieScenePlayerStatus::Playing : EMovieScenePlayerStatus::Stopped;
 }
 
-
 void ULevelSequencePlayer::AddOrUpdateMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToAdd)
 {
-	SpawnActorsForMovie( InstanceToAdd );
 }
-
 
 void ULevelSequencePlayer::RemoveMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToRemove)
 {
-	const bool bDestroyAll = true;
-	DestroyActorsForMovie( InstanceToRemove );
 }
 
 TSharedRef<FMovieSceneSequenceInstance> ULevelSequencePlayer::GetRootMovieSceneSequenceInstance() const
 {
 	return RootMovieSceneInstance.ToSharedRef();
+}
+
+UObject* ULevelSequencePlayer::GetPlaybackContext() const
+{
+	return World.Get();
 }
 
 void ULevelSequencePlayer::Update(const float DeltaSeconds)
@@ -407,10 +324,29 @@ void ULevelSequencePlayer::Update(const float DeltaSeconds)
 	{
 		TimeCursorPosition += DeltaSeconds * PlaybackSettings.PlayRate;
 		OnCursorPositionChanged();
+		UpdateMovieSceneInstance(TimeCursorPosition, LastTimePosition);
 	}
+	else if (!bHasCleanedUpSequence && TimeCursorPosition >= GetLength())
+	{
+		UpdateMovieSceneInstance(TimeCursorPosition, LastTimePosition);
 
+		bHasCleanedUpSequence = true;
+		SpawnRegister->DestroyAllOwnedObjects(*this);
+	}
+}
+
+void ULevelSequencePlayer::UpdateMovieSceneInstance(float CurrentPosition, float PreviousPosition)
+{
 	if(RootMovieSceneInstance.IsValid())
 	{
-		RootMovieSceneInstance->Update(TimeCursorPosition, LastTimePosition, *this);
+		RootMovieSceneInstance->Update(CurrentPosition + StartTime, PreviousPosition + StartTime, *this);
+#if WITH_EDITOR
+		OnLevelSequencePlayerUpdate.Broadcast(*this, CurrentPosition, PreviousPosition);
+#endif
 	}
+}
+
+IMovieSceneSpawnRegister& ULevelSequencePlayer::GetSpawnRegister()
+{
+	return *SpawnRegister;
 }

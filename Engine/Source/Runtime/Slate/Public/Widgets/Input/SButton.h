@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -48,7 +48,7 @@ public:
 		SLATE_ATTRIBUTE( FMargin, ContentPadding )
 	
 		/** The text to display in this button, if no custom content is specified */
-		SLATE_TEXT_ATTRIBUTE( Text )
+		SLATE_ATTRIBUTE( FText, Text )
 	
 		/** Called when the button is clicked */
 		SLATE_EVENT( FOnClicked, OnClicked )
@@ -58,6 +58,10 @@ public:
 
 		/** Called when the button is released */
 		SLATE_EVENT( FSimpleDelegate, OnReleased )
+
+		SLATE_EVENT( FSimpleDelegate, OnHovered )
+
+		SLATE_EVENT( FSimpleDelegate, OnUnhovered )
 
 		/** Sets the rules to use for determining whether the button was clicked.  This is an advanced setting and generally should be left as the default. */
 		SLATE_ARGUMENT( EButtonClickMethod::Type, ClickMethod )
@@ -84,6 +88,12 @@ public:
 
 		/** The sound to play when the button is hovered */
 		SLATE_ARGUMENT( TOptional<FSlateSound>, HoveredSoundOverride )
+
+		/** Which text shaping method should we use? (unset to use the default returned by GetDefaultTextShapingMethod) */
+		SLATE_ARGUMENT( TOptional<ETextShapingMethod>, TextShapingMethod )
+		
+		/** Which text flow direction should we use? (unset to use the default returned by GetDefaultTextFlowDirection) */
+		SLATE_ARGUMENT( TOptional<ETextFlowDirection>, TextFlowDirection )
 
 	SLATE_END_ARGS()
 
@@ -126,6 +136,8 @@ public:
 public:
 
 	// SWidget overrides
+
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 
 	virtual bool SupportsKeyboardFocus() const override;
 
@@ -178,6 +190,10 @@ protected:
 	/** The delegate to execute when the button is released */
 	FSimpleDelegate OnReleased;
 
+	FSimpleDelegate OnHovered;
+
+	FSimpleDelegate OnUnhovered;
+
 	/** Style resource for the button */
 	const FButtonStyle* Style;
 
@@ -203,10 +219,10 @@ protected:
 	bool bIsFocusable;
 
 	/** Press the button */
-	void Press();
+	virtual void Press();
 
 	/** Release the button */
-	void Release();
+	virtual void Release();
 
 	/** Utility function to determine if the incoming mouse event is for a precise tap or click */
 	bool IsPreciseTapOrClick(const FPointerEvent& MouseEvent) const;

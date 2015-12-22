@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -31,14 +31,14 @@ public:
 	uint32 bIsPIEPlayerStart:1;
 
 
-	// Begin AActor Interface
+	//~ Begin AActor Interface
 	virtual void GetSimpleCollisionCylinder(float& CollisionRadius, float& CollisionHalfHeight) const override;
 
 #if	WITH_EDITOR
 	virtual void PostEditMove(bool bFinished) override;
 	virtual void PostEditUndo() override;
 #endif	// WITH_EDITOR
-	// End AActor Interface
+	//~ End AActor Interface
 
 	/** @todo document */
 	virtual bool ShouldBeBased();

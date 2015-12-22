@@ -1,5 +1,7 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
+
+#if !UE_BUILD_SHIPPING
 
 /**
  * Test slate style
@@ -27,3 +29,5 @@ private:
 	/** Singleton instances of this style. */
 	static TSharedPtr< class ISlateStyle > Instance;
 };
+
+#endif // #if !UE_BUILD_SHIPPING

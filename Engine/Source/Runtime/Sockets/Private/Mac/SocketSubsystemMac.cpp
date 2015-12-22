@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SocketsPrivatePCH.h"
 #include "SocketSubsystemMac.h"
@@ -69,5 +69,12 @@ bool FSocketSubsystemMac::HasNetworkDevice()
 class FSocketBSD* FSocketSubsystemMac::InternalBSDSocketFactory(SOCKET Socket, ESocketType SocketType, const FString& SocketDescription)
 {
 	// return a new socket object
-	return new FSocketMac(Socket, SocketType, SocketDescription, this);
+	FSocketMac* MacSock = new FSocketMac(Socket, SocketType, SocketDescription, this);
+	if (MacSock)
+	{
+		// disable the SIGPIPE exception
+		int bAllow = 1;
+		setsockopt(Socket, SOL_SOCKET, SO_NOSIGPIPE, &bAllow, sizeof(bAllow));
+	}
+	return MacSock;
 }

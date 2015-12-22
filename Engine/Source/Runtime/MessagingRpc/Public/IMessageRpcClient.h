@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -108,14 +108,14 @@ class IMessageRpcClient
 	public:
 
 		TCall(const FGuid& CallId, P... Params)
-			: Message(new typename RpcType::FRequest(Params...))
+			: MessageTemplate(new typename RpcType::FRequest(Params...))
 		{
-			Message->CallId = CallId;
+			MessageTemplate->CallId = CallId;
 		}
 
 		virtual ~TCall()
 		{
-			delete Message;
+			delete MessageTemplate;
 		}
 
 		virtual void Complete(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& ResponseContext) override
@@ -139,12 +139,17 @@ class IMessageRpcClient
 
 		virtual const FGuid& GetId() const override
 		{
-			return Message->CallId;
+			return MessageTemplate->CallId;
 		}
 
-		virtual void* GetMessage() const override
+		virtual void* GetMessageTemplate() const override
 		{
-			return Message;
+			return MessageTemplate;
+		}
+
+		virtual void* ConstructMessage() const override
+		{
+			return new typename RpcType::FRequest(*MessageTemplate);
 		}
 
 		virtual UScriptStruct* GetMessageType() const override
@@ -161,10 +166,15 @@ class IMessageRpcClient
 	private:
 
 		TPromise<typename RpcType::FResult> Promise;
-		typename RpcType::FRequest* Message;
+		typename RpcType::FRequest* MessageTemplate;
 	};
 
 public:
+
+	/**
+	 * @return Whether the MessageRpcClient is currently connected to an RPC server.
+	 */
+	virtual bool IsConnected() const = 0;
 
 	/**
 	 * Connect this client to an RPC server.

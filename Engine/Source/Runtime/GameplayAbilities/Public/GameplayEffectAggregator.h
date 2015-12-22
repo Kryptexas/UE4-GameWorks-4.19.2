@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -100,6 +100,7 @@ private:
 	int32	NumPredictiveMods;
 
 	friend struct FAggregator;
+	friend struct FActiveGameplayEffectsContainer;
 	friend struct FScopedAggregatorOnDirtyBatch;	// Only outside class that gets to call BroadcastOnDirty()
 	friend class UAbilitySystemComponent;	// Only needed for DisplayDebug()
 };

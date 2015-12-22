@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemFacebookPrivatePCH.h"
 #include "OnlineIdentityFacebook.h"
@@ -220,6 +220,26 @@ bool FOnlineFriendsFacebook::QueryRecentPlayers(const FUniqueNetId& UserId, cons
 }
 
 bool FOnlineFriendsFacebook::GetRecentPlayers(const FUniqueNetId& UserId, const FString& Namespace, TArray< TSharedRef<FOnlineRecentPlayer> >& OutRecentPlayers)
+{
+	return false;
+}
+
+bool FOnlineFriendsFacebook::BlockPlayer(int32 LocalUserNum, const FUniqueNetId& PlayerId)
+{
+	return false;
+}
+
+bool FOnlineFriendsFacebook::UnblockPlayer(int32 LocalUserNum, const FUniqueNetId& PlayerId)
+{
+	return false;
+}
+
+bool FOnlineFriendsFacebook::QueryBlockedPlayers(const FUniqueNetId& UserId)
+{
+	return false;
+}
+
+bool FOnlineFriendsFacebook::GetBlockedPlayers(const FUniqueNetId& UserId, TArray< TSharedRef<FOnlineBlockedPlayer> >& OutBlockedPlayers)
 {
 	return false;
 }

@@ -1,24 +1,24 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 UENUM()
-enum EMovieSceneKeyInterpolation
+enum class EMovieSceneKeyInterpolation
 {
 	/** Auto. */
-	MSKI_Auto UMETA(DisplayName="Auto"),
+	Auto UMETA(DisplayName="Auto"),
 
 	/** User. */
-	MSKI_User UMETA(DisplayName="User"),
+	User UMETA(DisplayName="User"),
 
 	/** Break. */
-	MSKI_Break UMETA(DisplayName="Break"),
+	Break UMETA(DisplayName="Break"),
 
 	/** Linear. */
-	MSKI_Linear UMETA(DisplayName="Linear"),
+	Linear UMETA(DisplayName="Linear"),
 
 	/** Constant. */
-	MSKI_Constant UMETA(DisplayName="Constant"),
+	Constant UMETA(DisplayName="Constant"),
 };
 
 /**
@@ -30,28 +30,28 @@ struct MOVIESCENE_API FKeyParams
 	{
 		bCreateHandleIfMissing = false;
 		bCreateTrackIfMissing = false;
-		bAddKeyEvenIfUnchanged = false;
-		bAutoKeying = false;
-		KeyInterpolation = MSKI_Auto;
+		bCreateKeyOnlyWhenAutoKeying = false;
+		bCreateKeyIfUnchanged = false;
+		bCreateKeyIfEmpty = false;
 	}
 
 	FKeyParams(const FKeyParams& InKeyParams)
 	{
 		bCreateHandleIfMissing = InKeyParams.bCreateHandleIfMissing;
 		bCreateTrackIfMissing = InKeyParams.bCreateTrackIfMissing;
-		bAddKeyEvenIfUnchanged = InKeyParams.bAddKeyEvenIfUnchanged;
-		bAutoKeying = InKeyParams.bAutoKeying;
-		KeyInterpolation = InKeyParams.KeyInterpolation;
+		bCreateKeyOnlyWhenAutoKeying = InKeyParams.bCreateKeyOnlyWhenAutoKeying;
+		bCreateKeyIfUnchanged = InKeyParams.bCreateKeyIfUnchanged;
+		bCreateKeyIfEmpty = InKeyParams.bCreateKeyIfEmpty;
 	}
 
 	/** Create handle if it doesn't exist. */
 	bool bCreateHandleIfMissing;
 	/** Create track if it doesn't exist. */
 	bool bCreateTrackIfMissing;
+	/** Create a new key only when currently autokeying.*/
+	bool bCreateKeyOnlyWhenAutoKeying;
 	/** Create a key even if it's unchanged. */
-	bool bAddKeyEvenIfUnchanged;
-	/** Auto keying on.*/
-	bool bAutoKeying;
-	/** Key interpolation. */
-	EMovieSceneKeyInterpolation KeyInterpolation;
+	bool bCreateKeyIfUnchanged;
+	/** Create a key even if the track is empty */
+	bool bCreateKeyIfEmpty;
 };

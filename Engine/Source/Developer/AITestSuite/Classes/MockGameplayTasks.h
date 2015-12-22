@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
 
@@ -25,6 +25,7 @@ class UMockTask_Log : public UGameplayTask
 
 protected:
 	FTestLogger<int32>* Logger;
+	bool bShoudEndAsPartOfActivation;
 
 public:
 	UMockTask_Log(const FObjectInitializer& ObjectInitializer);
@@ -42,6 +43,8 @@ public:
 
 	// testing only hack-functions
 	void EnableTick() { bTickingTask = true; }
+
+	void SetInstaEnd(bool bNewValue) { bShoudEndAsPartOfActivation = bNewValue; }
 };
 
 //

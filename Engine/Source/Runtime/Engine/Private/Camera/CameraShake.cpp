@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Camera/PlayerCameraManager.h"
@@ -282,9 +282,9 @@ void UCameraShake::UpdateAndApplyCameraShake(float DeltaTime, float Alpha, FMini
 
 bool UCameraShake::IsFinished() const
 {
-	return ((OscillatorTimeRemaining <= 0.f) &&						// oscillator is finished
-		((AnimInst == nullptr) || AnimInst->bFinished) &&		// anim is finished
-		ReceiveIsFinished()										// BP thinks it's finished
+	return (((OscillatorTimeRemaining <= 0.f) && (IsLooping() == false)) &&		// oscillator is finished
+		((AnimInst == nullptr) || AnimInst->bFinished) &&						// anim is finished
+		ReceiveIsFinished()														// BP thinks it's finished
 		);
 }
 
@@ -293,4 +293,8 @@ bool UCameraShake::ReceiveIsFinished_Implementation() const
 	return true;
 }
 
+bool UCameraShake::IsLooping() const
+{
+	return OscillationDuration < 0.0f;
+}
 

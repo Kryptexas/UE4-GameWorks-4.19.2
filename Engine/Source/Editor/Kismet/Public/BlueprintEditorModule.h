@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -45,6 +45,9 @@ public:
 
 	/** Invokes the search UI and sets the mode and search terms optionally */
 	virtual void SummonSearchUI(bool bSetFindWithinBlueprint, FString NewSearchTerms = FString(), bool bSelectFirstResult = false) = 0;
+
+	/** Invokes the Find and Replace UI */
+	virtual void SummonFindAndReplaceUI() = 0;
 
 	virtual void RefreshEditors(ERefreshBlueprintEditorReason::Type Reason = ERefreshBlueprintEditorReason::UnknownReason) = 0;
 
@@ -124,6 +127,10 @@ public:
 	/** Gets the extensibility managers for outside entities to extend blueprint editor's menus and toolbars */
 	virtual TSharedPtr<FExtensibilityManager> GetMenuExtensibilityManager() override { return MenuExtensibilityManager; }
 
+	/**  */
+	DECLARE_EVENT_TwoParams(FBlueprintEditorModule, FBlueprintMenuExtensionEvent, TSharedPtr<FExtender>, UBlueprint*);
+	FBlueprintMenuExtensionEvent& OnGatherBlueprintMenuExtensions() { return GatherBlueprintMenuExtensions; }
+
 	/** 
 	 * Register a customization for interacting with the SCS editor 
 	 * @param	InComponentName			The name of the component to customize behavior for
@@ -154,6 +161,9 @@ private:
 
 private:
 	TSharedPtr<FExtensibilityManager> MenuExtensibilityManager;
+
+	//
+	FBlueprintMenuExtensionEvent GatherBlueprintMenuExtensions;
 
 	// Event to be called when the blueprint editor is opened
 	FBlueprintEditorOpenedEvent BlueprintEditorOpened;

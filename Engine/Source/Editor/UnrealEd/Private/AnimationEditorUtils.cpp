@@ -1,13 +1,15 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "AnimationEditorUtils.h"
 #include "AssetToolsModule.h"
 #include "Animation/AnimComposite.h"
+#include "Animation/AnimCompress.h"
 #include "Animation/BlendSpace.h"
 #include "Animation/BlendSpace1D.h"
 #include "Animation/AimOffsetBlendSpace.h"
 #include "Animation/AimOffsetBlendSpace1D.h"
+#include "Animation/AnimCompress.h"
 
 #define LOCTEXT_NAMESPACE "AnimationEditorUtils"
 
@@ -412,6 +414,27 @@ namespace AnimationEditorUtils
 				);
 		}
 		MenuBuilder.EndSection();
+	}
+
+	bool ApplyCompressionAlgorithm(TArray<UAnimSequence*>& AnimSequencePtrs, class UAnimCompress* Algorithm)
+	{
+		if(Algorithm)
+		{
+			const bool bProceed = (AnimSequencePtrs.Num() > 1)? EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo,
+				FText::Format(NSLOCTEXT("UnrealEd", "AboutToCompressAnimations_F", "About to compress {0} animations.  Proceed?"), FText::AsNumber(AnimSequencePtrs.Num()))) : true;
+			if(bProceed)
+			{
+				GWarn->BeginSlowTask(LOCTEXT("AnimCompressing", "Compressing"), true);
+
+				Algorithm->Reduce(AnimSequencePtrs, true);
+
+				GWarn->EndSlowTask();
+
+				return true;
+			}
+		}
+
+		return false;
 	}
 }
 

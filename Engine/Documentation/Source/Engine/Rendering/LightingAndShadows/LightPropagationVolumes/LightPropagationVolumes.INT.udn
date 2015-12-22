@@ -2,6 +2,8 @@ Availability:Public
 Title:Light Propagation Volumes
 Crumbs:%ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:System for dynamically generating global illumination.
+Version: 4.9
+SkillLevel: Advanced
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -71,7 +73,7 @@ At the moment, this console variable cannot be changed at runtime.
 * Enable **Affect Dynamic Indirect Lighting** on the Directional Light.
 * Enabled Light Propagation Mode viewmode in the showflags to visualize the area that is covered by the Light Propagation Volume [(See below)](#viewingglobalillumination).
 * Add/Change a post process volume (should be unbound) to tweak the "Size" in the LightPropagationVolume settings to cover the area with the required detail and distance (Tradeoff).
-* Use the GlobalIllumination showflags to enable/disable GI.
+* Use the Global Illumination showflags to enable/disable GI.
                 
 
 ## Light Propagation Volume Settings
@@ -126,11 +128,14 @@ intensity of around 1.0.
 You can disable LPV in the show flags (note that this also disables baked global illumination which was computed 
 by Lightmass):
 
-[REGION:imagetable]
-| ![](LPV_show_flag.png)(w:460) | ![](LPV_show_flag_enabled.png)(w:460) |
-| --- | --- |
-| Global Illumination Disabled | Global Illumination Enabled |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Global Illumination Disabled](LPV_show_flag.png)(w:460)
+	[/PARAM]
+	[PARAM:after]
+	![Global Illumination Enabled](LPV_show_flag_enabled.png)(w:460)
+	[/PARAM]
+[/OBJECT]
 
 ## Visualizing Light Propagation Volumes
 

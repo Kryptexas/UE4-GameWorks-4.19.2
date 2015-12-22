@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Import data and options used when importing a static mesh from fbx
@@ -26,6 +26,10 @@ class UFbxStaticMeshImportData : public UFbxMeshImportData
 {
 	GENERATED_UCLASS_BODY()
 
+	/** If this option is true the staticmesh absolute transform will be apply to the staticmesh vertices. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = ImportSettings, meta = (ImportType = "StaticMesh"))
+	bool bTransformVertexToAbsolute;
+
 	/** For static meshes, enabling this option will combine all meshes in the FBX into a single monolithic mesh in Unreal */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=ImportSettings, meta=(ImportType="StaticMesh"))
 	FName StaticMeshLODGroup;
@@ -45,7 +49,10 @@ class UFbxStaticMeshImportData : public UFbxMeshImportData
 	/** Required for PNT tessellation but can be slow. Recommend disabling for larger meshes. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = ImportSettings, meta = (ImportType = "StaticMesh"))
 	uint32 bBuildAdjacencyBuffer:1;
-	
+
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = ImportSettings, meta = (ImportType = "StaticMesh"))
+	uint32 bBuildReversedIndexBuffer:1;
+
 	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category=ImportSettings, meta=(ImportType="StaticMesh"))
 	uint32 bGenerateLightmapUVs:1;
 

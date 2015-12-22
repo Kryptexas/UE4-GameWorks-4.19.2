@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "TreeMapModule.h"
 #include "TreeMapStyle.h"
@@ -25,6 +25,3 @@ public:
 
 
 IMPLEMENT_MODULE(FTreeMapModule, TreeMap);
-
-
-#undef LOCTEXT_NAMESPACE

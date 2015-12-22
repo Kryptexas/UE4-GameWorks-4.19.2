@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2033300
+﻿INTSourceChangelist:2678576
 Availability:Public
 Title:物理コンストレイント
 Crumbs: %ROOT%, Engine, Engine/Physics
-Description:物理オブジェクトをコンストレイント、ワールドに対してコンストレイントする方法
+Description:複数の物理オブジェクトに対して、およびワールドに対して制約（constraint）する方法
+バージョン：4.9
 
 [OBJECT:TopicList]
 	[PARAM:icon]
@@ -12,9 +13,9 @@ Description:物理オブジェクトをコンストレイント、ワールド�
 		コンストレイントに関するトピック
 	[/PARAM]
 	[PARAM:links]
-		* [Physics Constraints User Guide](Engine/Physics/Constraints/ConstraintsUserGuide) - ボーン間のジョイントをコンストレイントするためのガイド。
-		* [](Engine/Physics/Constraints/ConstraintsBlueprints) - ブループリントで物理コンストレイント コンポーネントの使用に関するユーザー ガイド。
+		* [物理コンストレイントのユーザー ガイド](Engine/Physics/Constraints/ConstraintsUserGuide) - ボーン間のジョイントにコンストレイントを適用するためのガイド。
+		* [](Engine/Physics/Constraints/ConstraintsBlueprints) - ブループリントでの物理コンストレイント コンポーネントの使用に関するユーザー ガイド。
 		* [](Engine/Physics/Constraints/ConstraintsReference) - アンリアル エディタの物理コンストレイントで利用可能なすべてのプロパティに関するリファレンス。
-		* [Damping and friction](Engine/Physics/Constraints/DampingAndFriction) - ダンピングと摩擦の特性についての解説。
+		* [ダンピングと摩擦](Engine/Physics/Constraints/DampingAndFriction) - ダンピングと摩擦の特性についての解説。
 	[/PARAM]
 [/OBJECT]

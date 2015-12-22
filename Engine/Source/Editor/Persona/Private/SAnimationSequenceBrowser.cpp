@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PersonaPrivatePCH.h"
@@ -340,9 +340,9 @@ void SAnimationSequenceBrowser::OnReimportAnimation(TArray<FAssetData> SelectedA
 	}
 }
 
-void SAnimationSequenceBrowser::RetargetAnimationHandler(USkeleton* OldSkeleton, USkeleton* NewSkeleton, bool bRemapReferencedAssets, bool bConvertSpaces, TArray<TWeakObjectPtr<UObject>> InAnimAssets)
+void SAnimationSequenceBrowser::RetargetAnimationHandler(USkeleton* OldSkeleton, USkeleton* NewSkeleton, bool bRemapReferencedAssets, bool bAllowRemapToExisting, bool bConvertSpaces, const EditorAnimUtils::FNameDuplicationRule* NameRule, TArray<TWeakObjectPtr<UObject>> InAnimAssets)
 {
-	UObject* AssetToOpen = EditorAnimUtils::RetargetAnimations(OldSkeleton, NewSkeleton, InAnimAssets, bRemapReferencedAssets, true, bConvertSpaces);
+	UObject* AssetToOpen = EditorAnimUtils::RetargetAnimations(OldSkeleton, NewSkeleton, InAnimAssets, bRemapReferencedAssets, NameRule, bConvertSpaces);
 
 	if(UAnimationAsset* AnimAsset = Cast<UAnimationAsset>(AssetToOpen))
 	{
@@ -379,7 +379,7 @@ void SAnimationSequenceBrowser::OnCreateCopy(TArray<FAssetData> Selected)
 		{
 			auto AnimAssetsToConvert = FObjectEditorUtils::GetTypedWeakObjectPtrs<UObject>(AnimAssets);
 			// ask user what they'd like to change to 
-			SAnimationRemapSkeleton::ShowWindow(OldSkeleton, Message, FOnRetargetAnimation::CreateSP(this, &SAnimationSequenceBrowser::RetargetAnimationHandler, AnimAssetsToConvert));
+			SAnimationRemapSkeleton::ShowWindow(OldSkeleton, Message, true, FOnRetargetAnimation::CreateSP(this, &SAnimationSequenceBrowser::RetargetAnimationHandler, AnimAssetsToConvert));
 		}
 	}
 }
@@ -422,6 +422,8 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs)
 	Config.Filter.ClassNames.Add(UVertexAnimation::StaticClass()->GetFName()); //@TODO: Is currently ignored due to the skeleton check
 	Config.InitialAssetViewType = EAssetViewType::Column;
 	Config.bAddFilterUI = true;
+	Config.bShowPathInColumnView = true;
+	Config.bSortByPathInColumnView = true;
 
 	TSharedPtr<FPersona> Persona = PersonaPtr.Pin();
 	if (Persona.IsValid())
@@ -756,16 +758,10 @@ TSharedRef<SToolTip> SAnimationSequenceBrowser::CreateCustomAssetToolTip(FAssetD
 
 	// Add asset registry tags to a text list; except skeleton as that is implied in Persona
 	TSharedRef<SVerticalBox> DescriptionBox = SNew(SVerticalBox);
-	bool bDescriptionCreated = false;
 	for(TPair<FName, FString> TagPair : AssetData.TagsAndValues)
 	{
 		if(TagsToShow.Contains(TagPair.Key))
 		{
-			if(!bDescriptionCreated)
-			{
-				bDescriptionCreated = true;
-			}
-
 			DescriptionBox->AddSlot()
 			.AutoHeight()
 			.Padding(0,0,5,0)
@@ -789,6 +785,29 @@ TSharedRef<SToolTip> SAnimationSequenceBrowser::CreateCustomAssetToolTip(FAssetD
 			];
 		}
 	}
+
+	DescriptionBox->AddSlot()
+		.AutoHeight()
+		.Padding(0,0,5,0)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("AssetBrowser_FolderPathLabel", "Folder :"))
+				.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+			]
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(STextBlock)
+				.Text(FText::FromName(AssetData.PackagePath))
+				.ColorAndOpacity(FSlateColor::UseForeground())
+				.WrapTextAt(300.f)
+			]
+		];
 
 	TSharedPtr<SHorizontalBox> ContentBox = nullptr;
 	TSharedRef<SToolTip> ToolTip = SNew(SToolTip)
@@ -849,20 +868,17 @@ TSharedRef<SToolTip> SAnimationSequenceBrowser::CreateCustomAssetToolTip(FAssetD
 		]
 	];
 
-	// If we have a description, add an extra section to the tooltip for it.
-	if(bDescriptionCreated)
-	{
-		ContentBox->AddSlot()
-		.Padding(4, 0, 0, 0)
+	// add an extra section to the tooltip for it.
+	ContentBox->AddSlot()
+	.Padding(4, 0, 0, 0)
+	[
+		SNew(SBorder)
+		.Padding(6)
+		.BorderImage(FEditorStyle::GetBrush("ContentBrowser.TileViewTooltip.ContentBorder"))
 		[
-			SNew(SBorder)
-			.Padding(6)
-			.BorderImage(FEditorStyle::GetBrush("ContentBrowser.TileViewTooltip.ContentBorder"))
-			[
-				DescriptionBox
-			]
-		];
-	}
+			DescriptionBox
+		]
+	];
 
 	return ToolTip;
 }
@@ -1029,7 +1045,7 @@ FAnimationAssetViewportClient::FAnimationAssetViewportClient(FPreviewScene& InPr
 	SetViewMode(VMI_Lit);
 
 	// Always composite editor objects after post processing in the editor
-	EngineShowFlags.CompositeEditorPrimitives = true;
+	EngineShowFlags.SetCompositeEditorPrimitives(true);
 	EngineShowFlags.DisableAdvancedFeatures();
 
 	// Setup defaults for the common draw helper.

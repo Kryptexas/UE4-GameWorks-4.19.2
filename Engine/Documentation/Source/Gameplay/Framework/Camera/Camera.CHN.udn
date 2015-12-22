@@ -1,68 +1,69 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2697163
 Availability:Public
-Title:Camera
+Title:摄像机
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
-Description:The Camera represents the player's point of view; how the player sees the world.
+Description:摄像机代表玩家的视角；玩家如何看世界。
+版本: 4.9
 
-The **Camera** represents the player's point of view; how the player sees the world. For this reason, 
-cameras only have relevance to human-controlled players. The **PlayerController** specifies a camera class 
-and instantiates a Camera Actor which is used to calculate the position and orientation the player views 
-the world from.
+**Camera**代表玩家的视角；玩家如何看世界。因此， 
+摄像机只和人控制的玩家有关。**PlayerController** 指定摄像机类， 
+并实例化 Camera Actor（用于计算玩家从哪个位置和方向 
+看世界）。
 
 [REGION:note]
-For basic examples of how to work with Cameras, refer to the [Using Cameras](Gameplay\HowTo\UsingCameras) documentation. You can also layer animations onto cameras using the [CameraAnim feature](Gameplay/Framework/Camera/Animations).
+有关如何使用摄像机的基本示例，请参见[使用摄像机](Gameplay\HowTo\UsingCameras)文档。你也可以用[CameraAnim功能](Gameplay/Framework/Camera/Animations)在摄像机上分层放置动画。
 [/REGION]
 
-## CameraComponent and CameraActor
+## CameraComponent 和 CameraActor
 
-All of the camera's properties and behavior are set up in the CameraComponent; the CameraActor class primarily acts as a wrapper for the CameraComponent, so that the camera can be placed directly in the
-level rather than within another class.  
+摄像机的所有属性和行为均在 CameraComponent 中创建；CameraActor 类主要用作 CameraComponent 的包装器，以使摄像机可以被直接放置在
+该等级内，而非另一个类中。  
 
-In the CameraComponent, it is possible to set whether the camera is in perspective mode or orthographic mode.  The vertical field of view (FOV) can be set for perspective mode, 
-and the width in world units can be set for orthographic mode.  For both modes, the aspect ratio can be designated and preset aspect ratios for common devices and display types are 
-provided.  [Post process effects](Engine/Rendering\PostProcessEffects) can be added to the camera, and it is also possible to scale the strength of the post process effects.
+在 CameraComponent 中可以设置摄像机为透视模式或正交模式。垂直视野(FOV)可被设置为透视模式， 
+而世界单位内的宽度可被设置为正交模式。在这两种模式下可以指定宽高比，并为常见设备预设宽高比和显示类型。 
+[后期处理效果](Engine/Rendering\PostProcessEffects)可被加至摄像机，并且也可以衡量后期处理效果的强度。
 
-Two components are added to the CameraComponent to aid in visual placement in the Editor, although they will not be visible during gameplay.  A FrustumComponent shows where the 
-camera field of view is. This does not show by default, but can be turned on by selecting **Show > Advanced > Camera Frustums** in the **Viewport**. A StaticMeshComponent represents the camera's placement 
- in the level. 
+两个组件被添加到 CameraComponent ，以辅助编辑器中的视觉位置，尽管它们在游戏期间将不可见。FrustumComponent 显示 
+摄像机的视场在哪里。默认不显示它，但可以通过在**Viewport**中选择**Show > Advanced > Camera Frustums**来开启它。StaticMeshComponent 代表摄像机 
+ 在该等级内的位置。 
 
 
 ## PlayerCameraManager
 
-The PlayerCameraManager class is a camera manager.  By default, its own built-in behavior is blending between pending view targets and debug cameras triggered by console commands. Otherwise, it queries the 
-ViewTarget for what to do for the camera's viewpoint, and all other camera settings.  Usually you will not need a PlayerCameraManager subclass - little modification to PlayerCameraManager is needed beyond 
-possibly adding rules for setting the ViewTarget if the automatic rules are insufficient.
+PlayerCameraManager 类是一个摄像机管理器。默认情况下，其自身内置行为与待查看目标和由控制台命令触发的调试摄像机混合。否则，它会查询 
+ViewTarget，以确定如何调整摄像机的视角，以及所有其它摄像机设置。通常不需要 PlayerCameraManager 子类——需要对 PlayerCameraManager 稍作修改， 
+如果自动规则不足，可能还要添加设置 ViewTarget 的规则。
 
-If it is necessary to subclass the PlayerCameraManager, and you are doing so with Blueprints instead of C++, the `BlueprintUpdateCamera` function exists to allow custom camera implementations.  When
-using this function, return _true_ to use the returned values, or return _false_ to ignore them.
+如果需要添加 PlayerCameraManager 子类，用蓝图添加，而不是用 C++，“BlueprintUpdateCamera”函数用于实现自定义摄像机。当
+使用该函数时，返回_true_来使用返回值，或返回_false_来忽略它们。
 
 ### ViewTarget
 
-The ViewTarget struct, defined in PlayerCameraManager, is responsible for providing the PlayerCameraManager with an ideal Point of View (POV).  ViewTarget contains information on the target Actor, the Controller
-of the target Actor (for non-locally controlled Pawns), and the PlayerState, which is used to follow the same player through Pawn transitions and other changes while spectating.  The camera information
-passed to PlayerCameraManager through the POV property is in the form of a `FMinimalViewInfo` struct.  This struct contains the basic camera information from a CameraComponent, including the location, rotation,
-projection mode (Perspective or Orthographic), FOV, orthographic width, aspect ratio, and post process effects.  Providing the PlayerCameraManager with access to these values allows the PlayerCameraManager to
-blend between two camera modes during its camera management. 
+ViewTarget 结构在 PlayerCameraManager 中定义，负责向 PlayerCameraManager 提供理想的视角(POV)。ViewTarget 包含有关 Actor 目标、Actor 目标的控制器
+（用于非本地控制的 Pawn），以及 PlayerState 的信息（用于在观看的同时跟随同一个玩家完成 Pawn 过渡和其它变更）。摄像机信息
+被通过视角属性以“FMinimalViewInfo”结构的形式传给 PlayerCameraManager。该结构包含来自 CameraComponent 的基本摄像机信息，包括位置、转动、
+放映模式（透视或正交）、视场、投影宽度、宽高比和后期处理效果。让 PlayerCameraManager 能访问这些值使 PlayerCameraManager 能在
+摄像机管理期间混合两种摄像机模式。 
 
 
-## Camera Responsibility Chain
+## 摄像机责任链
 
-Game-specific camera behavior can be provided at any point along the camera "responsibility chain", which flows from top to bottom through the following classes before passing to ALocalPlayer and ending with rendering, scene view, and other related systems:
+可以随时提供游戏特定的摄像机行为和摄像机“责任链”（从上到下通过以下类传递，然后转到 ALocalPlayer，并以渲染、场景视图，以及其它相关系统结束）：
 
 ### CameraComponent 
 
-A CameraComponent will provide information about the camera's properties if the ViewTarget is a CameraActor or an Actor that contains a CameraComponent and has `bFindCameraComponentWhenViewTarget`
-set to _true_. A related property that can be set for any Pawn is `bTakeCameraControlWhenPossessed`, where the Pawn will automatically become the ViewTarget upon possession by the PlayerController.
+如果 ViewTarget 是 CameraActor，或者是包含 CameraComponent 的 Actor 并且“bFindCameraComponentWhenViewTarget”设置为_true_，则 CameraComponent 将
+提供有关摄像机属性的信息。“bTakeCameraControlWhenPossessed”是可以为任何 Pawn设置的相关属性，被 PlayerController 占有时，Pawn 会自动成为 ViewTarget。
 
-### Actor or PlayerController
+### Actor 或 PlayerController
 
-Both PlayerControllers and Actors contain a CalcCamera function.  An Actor's CalcCamera function returns the camera view of the first CameraComponent in the Actor, if `bFindCameraComponentWhenViewTarget` is _true_ and a CameraComponent is present.  
-Otherwise, it gets the Actor's location and rotation.  In PlayerController, the CalcCamera function behaves similarly to this second case, returning the location of the possessed Pawn if it exists, and the 
-control rotation of the PlayerController.  
+PlayerController 和 Actor 都含有 CalcCamera 函数。如果“bFindCameraComponentWhenViewTarget”为_true_，而且 CameraComponent 存在，Actor 的 CalcCamera 函数返回 Actor 中的首个 CameraComponent 的摄像机视图。  
+否则，它获取 Actor 的位置和循环。在 PlayerController 中，CalcCamera 函数的行为方式与第二种情况类似，如果存在占有 Pawn，则返回其位置以及 
+PlayerController 的控制循环。  
 
 
 ### PlayerCameraManager
 
-The UpdateViewTarget function in PlayerCameraManager queries the ViewTarget and returns that ViewTarget's Point Of View.  This function is also what calls BlueprintUpdateCamera if you have 
-subclassed APlayerCameraManager and are not looking through a CameraComponent.
+PlayerCameraManager 中的 UpdateViewTarget 函数查询 ViewTarget，并返回该 ViewTarget 的视角。如果你有子类化的 APlayerCameraManager，  
+并且没在查看 CameraComponent，该函数也称为 BlueprintUpdateCamera。
 

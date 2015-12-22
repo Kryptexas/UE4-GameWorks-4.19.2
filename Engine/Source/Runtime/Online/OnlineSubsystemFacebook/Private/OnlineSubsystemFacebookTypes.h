@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -42,7 +42,7 @@ public:
 	{
 	}
 
-	// Begin FUniqueNetId interface
+	//~ Begin FUniqueNetId Interface
 	virtual const uint8* GetBytes() const override
 	{
 		return (uint8*)&UniqueNetId;
@@ -72,7 +72,7 @@ public:
 		return FString::Printf(TEXT("0%I64X"), UniqueNetId);
 	}
 
-	// End FUniqueNetId interface
+	//~ End FUniqueNetId Interface
 
 
 public:

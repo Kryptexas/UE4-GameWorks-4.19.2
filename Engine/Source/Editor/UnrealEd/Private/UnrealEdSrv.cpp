@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "UnrealEd.h"
@@ -50,6 +50,7 @@
 #include "Engine/StaticMeshActor.h"
 #include "EngineUtils.h"
 #include "LevelEditor.h"
+#include "AutoReimport/AssetSourceFilenameCache.h"
 #include "ComponentEditorUtils.h"
 
 
@@ -504,12 +505,12 @@ bool UUnrealEdEngine::HandleDumpSelectionCommand( const TCHAR* Str, FOutputDevic
 
 bool UUnrealEdEngine::HandleBuildLightingCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld )
 {
-	return FEditorBuildUtils::EditorBuild(InWorld, EBuildOptions::BuildLighting);	
+	return FEditorBuildUtils::EditorBuild(InWorld, FBuildOptions::BuildLighting);	
 }
 
 bool UUnrealEdEngine::HandleBuildPathsCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld )
 {
-	return FEditorBuildUtils::EditorBuild(InWorld, EBuildOptions::BuildAIPaths);
+	return FEditorBuildUtils::EditorBuild(InWorld, FBuildOptions::BuildAIPaths);
 }
 
 bool UUnrealEdEngine::HandleUpdateLandscapeEditorDataCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld )
@@ -856,6 +857,15 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 	{
 		return HandleDisasmScriptCommand( Str, Ar );
 	}
+#if WITH_EDITOR
+	else if (FParse::Command(&Str, TEXT("cook")))
+	{
+		if (CookServer)
+		{
+			return CookServer->Exec(InWorld, Str, Ar);
+		}
+	}
+#endif
 	else if ( FParse::Command(&Str, TEXT("GROUPS")) )
 	{
 		return Exec_Group( Str, Ar );
@@ -1101,102 +1111,101 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 	{
 		struct Local
 		{
-			static bool RemoveSourcePath( UAssetImportData* Data, const TArray<FString>& SearchTerms )
+			static bool RemoveSourcePath( const FAssetImportInfo& ImportInfo, const FAssetData& AssetData, const TArray<FString>* SearchTerms )
 			{
 				FAssetImportInfo AssetImportInfo;
 
 				bool bModified = false;
-				for (const auto& File : Data->SourceData.SourceFiles)
+				for (const auto& File : ImportInfo.SourceFiles)
 				{
-					if( !File.RelativeFilename.IsEmpty() && !SearchTerms.ContainsByPredicate([&](const FString& SearchTerm){ return File.RelativeFilename.Contains(SearchTerm); }) )
-					{
-						AssetImportInfo.Insert(File);
-					}
-					else
+					const bool bRemoveFile = File.RelativeFilename.IsEmpty() || !SearchTerms ||
+						SearchTerms->ContainsByPredicate([&](const FString& SearchTerm){ return File.RelativeFilename.Contains(SearchTerm); });
+
+					if( bRemoveFile )
 					{
 						UE_LOG(LogUnrealEdSrv, Log, TEXT("Removing Path: %s"), *File.RelativeFilename);
 						bModified = true;
+					}
+					else
+					{
+						AssetImportInfo.Insert(File);
 					}
 				}
 
 				if (bModified)
 				{
-					Data->Modify();
-					Data->SourceData = AssetImportInfo;
-					return true;
+					if (UObject* Asset = AssetData.GetAsset())
+					{
+						UAssetImportData* ImportData = nullptr;
+
+						// Root out the asset import data property
+						for (UObjectProperty* Property : TFieldRange<UObjectProperty>(Asset->GetClass()))
+						{
+							ImportData = Cast<UAssetImportData>(Property->GetObjectPropertyValue(Property->ContainerPtrToValuePtr<UObject*>(Asset)));
+							if (ImportData)
+							{
+								Asset->Modify();
+								ImportData->SourceData = AssetImportInfo;
+								return true;
+							}
+						}
+					}
 				}
 
 				return false;
 			}
+
+			static void RemoveSourcePaths( const TArray<FAssetData>& AllAssets, const TArray<FString>* SearchTerms )
+			{
+				FScopedSlowTask SlowTask(AllAssets.Num(), NSLOCTEXT("UnrealEd", "ClearingSourceFiles", "Clearing Source Files"));
+				SlowTask.MakeDialog(true);
+
+				for (const FAssetData& Asset : AllAssets)
+				{
+					SlowTask.EnterProgressFrame();
+
+					// Optimization - check the asset has import information before loading it
+					TOptional<FAssetImportInfo> ImportInfo = FAssetSourceFilenameCache::ExtractAssetImportInfo(Asset.TagsAndValues);
+					if (ImportInfo.IsSet() && ImportInfo->SourceFiles.Num())
+					{
+						RemoveSourcePath(ImportInfo.GetValue(), Asset, SearchTerms);
+					}
+				}
+			}
 		};
+
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+
+		FString Path;
+		FParse::Value(Str, TEXT("Path="), Path, false);
+
+		TArray<FAssetData> AllAssets;
+		if (!Path.IsEmpty())
+		{
+			AssetRegistryModule.Get().GetAssetsByPath(*Path, AllAssets, true);
+		}
+		else
+		{
+			AssetRegistryModule.Get().GetAllAssets(AllAssets);
+		}
 
 		FString SearchTermStr;
 		if (FParse::Value(Str, TEXT("Find="), SearchTermStr, false))
 		{
+			// Searching for particular paths to remove
 			TArray<FString> SearchTerms;
 			SearchTermStr.ParseIntoArray( SearchTerms, TEXT(","), true );
 
 			TArray<UObject*> ModifiedObjects;
 			if( SearchTerms.Num() )
 			{
-				FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-
-				TArray<FAssetData> StaticMeshes;
-				TArray<FAssetData> SkeletalMeshes;
-				TArray<FAssetData> AnimSequences;
-				TArray<FAssetData> DestructibleMeshes;
-
-				GWarn->BeginSlowTask(NSLOCTEXT("UnrealEd", "ClearingSourceFiles", "Clearing Source Files"), true, true);
-				AssetRegistryModule.Get().GetAssetsByClass(UStaticMesh::StaticClass()->GetFName(), StaticMeshes);
-
-				AssetRegistryModule.Get().GetAssetsByClass(USkeletalMesh::StaticClass()->GetFName(), SkeletalMeshes);
-
-				AssetRegistryModule.Get().GetAssetsByClass(UAnimSequence::StaticClass()->GetFName(), AnimSequences);
-
-				AssetRegistryModule.Get().GetAssetsByClass(UDestructibleMesh::StaticClass()->GetFName(), DestructibleMeshes);
-
-				for (const FAssetData& StaticMesh : StaticMeshes)
-				{
-					UStaticMesh* Mesh = Cast<UStaticMesh>(StaticMesh.GetAsset());
-
-					if (Mesh && Mesh->AssetImportData && Local::RemoveSourcePath( Mesh->AssetImportData, SearchTerms ) )
-					{
-						ModifiedObjects.Add( Mesh );
-					}
-				}
-
-				for (const FAssetData& SkelMesh : SkeletalMeshes)
-				{
-					USkeletalMesh* Mesh = Cast<USkeletalMesh>(SkelMesh.GetAsset());
-
-					if (Mesh && Mesh->AssetImportData && Local::RemoveSourcePath(Mesh->AssetImportData, SearchTerms))
-					{
-						ModifiedObjects.Add(Mesh);
-					}
-				}
-
-				for (const FAssetData& AnimSequence : AnimSequences)
-				{
-					UAnimSequence* Sequence = Cast<UAnimSequence>(AnimSequence.GetAsset());
-
-					if (Sequence && Sequence->AssetImportData && Local::RemoveSourcePath( Sequence->AssetImportData, SearchTerms ) )
-					{
-						ModifiedObjects.Add(Sequence);
-					}
-				}
-
-				for (const FAssetData& DestMesh : DestructibleMeshes)
-				{
-					UDestructibleMesh* Mesh = Cast<UDestructibleMesh>(DestMesh.GetAsset());
-
-					if (Mesh && Mesh->AssetImportData && Local::RemoveSourcePath(Mesh->AssetImportData, SearchTerms))
-					{
-						ModifiedObjects.Add(Mesh);
-					}
-				}
+				Local::RemoveSourcePaths(AllAssets, &SearchTerms);
 			}
-
-			GWarn->EndSlowTask();
+		}
+		else
+		{
+			// Remove every source path on any asset
+			Local::RemoveSourcePaths(AllAssets, nullptr);
 		}
 	}
 	else if (FParse::Command(&Str, TEXT("RenameAssets")))
@@ -1428,7 +1437,7 @@ bool UUnrealEdEngine::IsUserInteracting()
 
 void UUnrealEdEngine::AttemptModifiedPackageNotification()
 {
-	if( bNeedToPromptForCheckout )
+	if( bNeedToPromptForCheckout && !FApp::IsUnattended() )
 	{
 		// Defer prompting for checkout if we cant prompt because of the following:
 		// The user is interacting with something,

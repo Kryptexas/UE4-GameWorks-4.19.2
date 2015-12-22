@@ -2,15 +2,14 @@ Availability: Public
 Title: Distributions
 Crumbs: %ROOT%, Engine
 Description:Data types that provide flexibility by allowing for constant values, random values within a range, values interpolated along a curve, and values driven by parameters.
-
+version: 4.9
 
 [TOC (start:2 end:3)]
 
 
 
-## Overview
 
-Distributions are a group of data types that provide flexibility by allowing for constant values, random values within a range, values interpolated along a curve, and values driven by parameters. These are generally used in properties of Particle Systems and nodes within SoundCues.
+**Distributions** are a group of data types that provide flexibility by allowing for constant values, random values within a range, values interpolated along a curve, and values driven by parameters. These are generally used in properties of Particle Systems and nodes within SoundCues.
 
 [REGION:note]
 	Although regions are listed in alphabetical order within the editor, we will list them here in order of complexity. This is done simply to aid in understanding for those new to the concept.
@@ -18,7 +17,7 @@ Distributions are a group of data types that provide flexibility by allowing for
 
 ## Distribution Baking
 
-No matter which type of distribution you use, you will always see the option _Can be Baked_ just beneath it. This determines whether the numeric results of the distribution can be baked out into a lookup table. Baking values out to a lookup table is far more efficient than having to calculate random values or curve interpolations on the fly. For this reason, this option is on by default.
+No matter which type of distribution you use, you will always see the option **Can be Baked** just beneath it. This determines whether the numeric results of the distribution can be baked out into a lookup table. Baking values out to a lookup table is far more efficient than having to calculate random values or curve interpolations on the fly. For this reason, this option is on by default.
 
 Should you run into edge cases in which the lookup table results lose critical information, you may uncheck this option so that the system checks the actual value on each tick. Naturally, this is a bit less efficient, but in rare cases where you have a critical look to achieve and the lookup tables are failing, the option is worth considering.
 
@@ -26,7 +25,7 @@ Should you run into edge cases in which the lookup table results lose critical i
 
 ## Distribution Types
 
-Most particle properties utilize the DistributionFloat and DistributionVector types to allow for the maximum flexibility when creating particle systems. There are a variety of options available when using distribution types which will be detailed in the following sections.
+Most particle properties utilize the **DistributionFloat** and **DistributionVector** types to allow for the maximum flexibility when creating particle systems. There are a variety of options available when using distribution types which will be detailed in the following sections.
 
 Note that the actual usage of the value will vary, depending on the property that is using it. For example, the Initial Size of a particle is determined at the time that a particle spawns. If the distribution type is set to a constant curve for the property, then the emitter time at the spawning will be used to retrieve the desired value from the curve.
 
@@ -42,7 +41,7 @@ This type is used to supply a value for the property that is constant. Below is 
 
 ![FloatConstant_Graph.png](FloatConstant_Graph.png)
 
-**1.** Constant float value which will not change.
+1. Constant float value which will not change.
 
 
 
@@ -367,6 +366,15 @@ When selected as the type, the following dialog will be provided for editing the
 |EDVLF_XZ|The Z-axis is locked to the X-axis value.|
 |EDVLF_YZ|The Z-axis is locked to the Y-axis value.|
 |EDVLF_XYZ|The Y-and-Z-axes are locked to the X-axis value.  |
+
+The Mirror Flags allow for mirroring the Min/Max values for each component of the value. The following flags are supported for mirroring:
+
+
+|  **MirrorFlags**|**Description**|
+| --- | --- |
+|EDVMF_Same|Use the Max value for Min as well.|
+|EDVMF_Different|Use each value as set.|
+|EDVMF_Mirror|The Min value will be the inverse of the Max (Max * -1).  |
 
 
 As with other curve types, it is recommended that this distribution type be edited via the curve editor.

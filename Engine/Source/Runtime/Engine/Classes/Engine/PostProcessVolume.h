@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /**
  * PostProcessVolume:  a post process settings volume
@@ -46,7 +46,7 @@ class APostProcessVolume : public AVolume, public IInterface_PostProcessVolume
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PostProcessVolume)
 	uint32 bUnbound:1;
 
-	// Begin IInterface_PostProcessVolume Interface
+	//~ Begin IInterface_PostProcessVolume Interface
 	ENGINE_API virtual bool EncompassesPoint(FVector Point, float SphereRadius/*=0.f*/, float* OutDistanceToPoint) override;
 	ENGINE_API virtual FPostProcessVolumeProperties GetProperties() const override
 	{
@@ -59,24 +59,24 @@ class APostProcessVolume : public AVolume, public IInterface_PostProcessVolume
 		Ret.Settings = &Settings;
 		return Ret;
 	}
-	// End IInterface_PostProcessVolume Interface
+	//~ End IInterface_PostProcessVolume Interface
 
 
-	// Begin AActor Interface
+	//~ Begin AActor Interface
 	virtual void PostUnregisterAllComponents( void ) override;
 
 protected:
 	virtual void PostRegisterAllComponents() override;
-	// End AActor Interface
+	//~ End AActor Interface
 public:
 	
-	// Begin UObject interface
+	//~ Begin UObject Interface
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual bool CanEditChange(const UProperty* InProperty) const override;
 	virtual void Serialize(FArchive& Ar);
 #endif // WITH_EDITOR
-	// End UObject interface
+	//~ End UObject Interface
 
 	/** Adds an Blendable (implements IBlendableInterface) to the array of Blendables (if it doesn't exist) and update the weight */
 	UFUNCTION(BlueprintCallable, Category="Rendering")

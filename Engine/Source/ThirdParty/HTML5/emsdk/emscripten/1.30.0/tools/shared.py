@@ -1409,11 +1409,7 @@ class Building:
 
       response_fh = os.fdopen(response_fd, 'w')
       for arg in actual_files:
-        # we can't put things with spaces in the response file
-        if " " in arg:
-          link_cmd.append(arg)
-        else:
-          response_fh.write(arg + "\n")
+        response_fh.write("\""+ arg + "\"" + "\n")
       response_fh.close()
       link_cmd.append("-o")
       link_cmd.append(target)

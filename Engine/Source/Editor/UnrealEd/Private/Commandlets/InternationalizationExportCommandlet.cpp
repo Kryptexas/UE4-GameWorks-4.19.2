@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "Culture.h"
@@ -14,8 +14,126 @@ static const TCHAR* NewLineDelimiter = TEXT("\n");
 /**
 *	Helper Functions
 */
-FString ConditionArchiveStrForPo(const FString& InStr)
+bool operator==(const FPortableObjectEntryIdentity& LHS, const FPortableObjectEntryIdentity& RHS)
 {
+	return LHS.MsgCtxt == RHS.MsgCtxt && LHS.MsgId == RHS.MsgId && LHS.MsgIdPlural == RHS.MsgIdPlural;
+}
+
+uint32 GetTypeHash(const FPortableObjectEntryIdentity& ID)
+{
+	const uint32 HashA = HashCombine(GetTypeHash(ID.MsgCtxt), GetTypeHash(ID.MsgId));
+	const uint32 HashB = GetTypeHash(ID.MsgIdPlural);
+	return HashCombine(HashA, HashB);
+}
+
+namespace
+{
+	FString ConditionIdentityForPOMsgCtxt(const FString& Namespace, const FString& Key, const TSharedPtr<FLocMetadataObject>& KeyMetaData)
+	{
+		const auto& EscapeMsgCtxtParticle = [](const FString& InStr) -> FString
+		{
+			FString Result;
+			for (const TCHAR C : InStr)
+			{
+				switch (C)
+				{
+				case TEXT(','):		Result += TEXT("\\,");	break;
+				default:			Result += C;			break;
+				}
+			}
+			return Result;
+		};
+
+		FString EscapedNamespace = EscapeMsgCtxtParticle(Namespace);
+		FString EscapedKey = EscapeMsgCtxtParticle(Key);
+
+		return KeyMetaData.IsValid() ? FString::Printf(TEXT("%s,%s"), *EscapedNamespace, *EscapedKey) : EscapedNamespace;
+	}
+
+	void ParsePOMsgCtxtForIdentity(const FString& MsgCtxt, FString& OutNamespace, FString& OutKey)
+	{
+		static const int32 OutputBufferCount = 2;
+		FString* OutputBuffers[OutputBufferCount] = { &OutNamespace, &OutKey };
+		int32 OutputBufferIndex = 0;
+
+		FString EscapeSequenceBuffer;
+
+		auto HandleEscapeSequenceBuffer = [&]()
+		{
+			// Insert unescaped sequence if needed.
+			if (!EscapeSequenceBuffer.IsEmpty())
+			{
+				bool EscapeSequenceIdentified = true;
+
+				// Identify escape sequence
+				TCHAR UnescapedCharacter = 0;
+				if (EscapeSequenceBuffer == TEXT("\\,"))
+				{
+					UnescapedCharacter = ',';
+				}
+				else
+				{
+					EscapeSequenceIdentified = false;
+				}
+
+				// If identified, append the processed sequence as the unescaped character.
+				if (EscapeSequenceIdentified)
+				{
+					*OutputBuffers[OutputBufferIndex] += UnescapedCharacter;
+				}
+				// If it was not identified, preserve the escape sequence and append it.
+				else
+				{
+					*OutputBuffers[OutputBufferIndex] += EscapeSequenceBuffer;
+				}
+				// Either way, we've appended something based on the buffer and it should be reset.
+				EscapeSequenceBuffer.Empty();
+			}
+		};
+
+		for (const TCHAR C : MsgCtxt)
+		{
+			// If we're out of buffers, break out. The particle list is longer than expected.
+			if (OutputBufferIndex >= OutputBufferCount)
+			{
+				UE_LOG( LogInternationalizationExportCommandlet, Warning, TEXT("msgctxt found in PO has too many parts: %s"), *MsgCtxt );
+				break;
+			}
+
+			// Not in an escape sequence.
+			if (EscapeSequenceBuffer.IsEmpty())
+			{
+				// Comma marks the delimiter between namespace and key, if present.
+				if(C == TEXT(','))
+				{
+					++OutputBufferIndex;
+				}
+				// Regular character, just copy over.
+				else if (C != TEXT('\\'))
+				{
+					*OutputBuffers[OutputBufferIndex] += C;
+				}
+				// Start of an escape sequence, put in escape sequence buffer.
+				else
+				{
+					EscapeSequenceBuffer += C;
+				}
+			}
+			// If already in an escape sequence.
+			else
+			{
+				// Append to escape sequence buffer.
+				EscapeSequenceBuffer += C;
+
+				HandleEscapeSequenceBuffer();
+			}
+		}
+		// Catch any trailing backslashes.
+		HandleEscapeSequenceBuffer();
+	}
+
+	FString ConditionArchiveStrForPo(const FString& InStr)
+	{
 	FString Result;
 	for (const TCHAR C : InStr)
 	{
@@ -30,10 +148,10 @@ FString ConditionArchiveStrForPo(const FString& InStr)
 		}
 	}
 	return Result;
-}
+	}
 
-FString ConditionPoStringForArchive(const FString& InStr)
-{
+	FString ConditionPoStringForArchive(const FString& InStr)
+	{
 	FString Result;
 	FString EscapeSequenceBuffer;
 
@@ -114,26 +232,35 @@ FString ConditionPoStringForArchive(const FString& InStr)
 	// Catch any trailing backslashes.
 	HandleEscapeSequenceBuffer();
 	return Result;
-}
+	}
 
-
-FString ConvertSrcLocationToPORef(const FString& InSrcLocation)
-{
+	FString ConvertSrcLocationToPORef(const FString& InSrcLocation)
+	{
 	// Source location format: /Path1/Path2/file.cpp - line 123
 	// PO Reference format: /Path1/Path2/file.cpp:123
 	// @TODO: Note, we assume the source location format here but it could be arbitrary.
 	return InSrcLocation.Replace(TEXT(" - line "), TEXT(":"));
+	}
+
+	FString GetConditionedKeyForExtractedComment(const FString& Key)
+	{
+		return FString::Printf(TEXT("Key:\t%s"), *Key);
+	}
+
+	FString GetConditionedReferenceForExtractedComment(const FString& PORefString)
+	{
+		return FString::Printf(TEXT("SourceLocation:\t%s"), *PORefString);
+	}
+
+	FString GetConditionedInfoMetaDataForExtractedComment(const FString& KeyName, const FString& ValueString)
+	{
+		return FString::Printf(TEXT("InfoMetaData:\t\"%s\" : \"%s\""), *KeyName, *ValueString);
+	}
 }
 
 /**
- *	UInternationalizationExportCommandlet
- */
-UInternationalizationExportCommandlet::UInternationalizationExportCommandlet(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-{
-}
-
-
+*	UInternationalizationExportCommandlet
+*/
 bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath, const FString& DestinationPath, const FString& Filename )
 {
 	// Get native culture.
@@ -167,6 +294,8 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 		bUseCultureDirectory = true;
 	}
 
+	bool ShouldAddSourceLocationsAsComments = true;
+	GetBoolFromConfig(*SectionName, TEXT("ShouldAddSourceLocationsAsComments"), ShouldAddSourceLocationsAsComments, ConfigPath);
 
 	TSharedRef< FInternationalizationManifest > InternationalizationManifest = MakeShareable( new FInternationalizationManifest );
 	// Load the manifest info
@@ -228,17 +357,17 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 			ArchiveSerializer.DeserializeArchive( ArchiveJsonObject.ToSharedRef(), InternationalizationArchive );
 
 			{
-				FPortableObjectFormatDOM PortableObj;
+				FPortableObjectFormatDOM NewPortableObject;
 
 				FString LocLang;
-				if( !PortableObj.SetLanguage( CultureName ) )
+				if( !NewPortableObject.SetLanguage( CultureName ) )
 				{
 					UE_LOG( LogInternationalizationExportCommandlet, Error, TEXT("Skipping export of loc language %s because it is not recognized."), *LocLang );
 					continue;
 				}
 
-				PortableObj.SetProjectName( FPaths::GetBaseFilename( ManifestName ) );
-				PortableObj.CreateNewHeader();
+				NewPortableObject.SetProjectName( FPaths::GetBaseFilename( ManifestName ) );
+				NewPortableObject.CreateNewHeader();
 
 				{
 					for(TManifestEntryBySourceTextContainer::TConstIterator ManifestIter = InternationalizationManifest->GetEntriesBySourceTextIterator(); ManifestIter; ++ManifestIter)
@@ -248,36 +377,62 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 						const FString& Namespace = ManifestEntry->Namespace;
 						const FLocItem& Source = ManifestEntry->Source;
 
+						// For each context, we may need to create a different or even multiple PO entries.
 						for( auto ContextIter = ManifestEntry->Contexts.CreateConstIterator(); ContextIter; ++ContextIter )
 						{
-							{
-								const TSharedPtr<FArchiveEntry> ArchiveEntry = InternationalizationArchive->FindEntryBySource( Namespace, Source, ContextIter->KeyMetadataObj );
-							if( ArchiveEntry.IsValid() )
-							{
-								const FString ConditionedArchiveSource = ConditionArchiveStrForPo(ArchiveEntry->Source.Text);
-								const FString ConditionedArchiveTranslation = ConditionArchiveStrForPo(ArchiveEntry->Translation.Text);
+							const FContext& Context = *ContextIter;
 
-								TSharedRef<FPortableObjectEntry> PoEntry = MakeShareable( new FPortableObjectEntry );
-								//@TODO: We support additional metadata entries that can be translated.  How do those fit in the PO file format?  Ex: isMature
-								PoEntry->MsgId = ConditionedArchiveSource;
-								//@TODO: Take into account optional entries and entries that differ by keymetadata.  Ex. Each optional entry needs a unique msgCtxt
-								PoEntry->MsgCtxt = Namespace;
-								PoEntry->MsgStr.Add( ConditionedArchiveTranslation );
+							// Create the typical PO entry from the archive entry which matches the exact same namespace, source, and key metadata, if it exists.
+							{
+								const TSharedPtr<FArchiveEntry> ArchiveEntry = InternationalizationArchive->FindEntryBySource( Namespace, Source, Context.KeyMetadataObj );
+								if( ArchiveEntry.IsValid() )
+								{
+									const FString ConditionedArchiveSource = ConditionArchiveStrForPo(ArchiveEntry->Source.Text);
+									const FString ConditionedArchiveTranslation = ConditionArchiveStrForPo(ArchiveEntry->Translation.Text);
 
-								FString PORefString = ConvertSrcLocationToPORef( ContextIter->SourceLocation );
-								PoEntry->AddReference( PORefString ); // Source location.
-								PoEntry->AddExtractedComment( ContextIter->Key ); // "Notes from Programmer" in the form of the Key.
-								PoEntry->AddExtractedComment( PORefString ); // "Notes from Programmer" in the form of the Source Location, since this comes in handy too and OneSky doesn't properly show references, only comments.
-								PortableObj.AddEntry( PoEntry );
+									TSharedRef<FPortableObjectEntry> PoEntry = MakeShareable( new FPortableObjectEntry );
+									//@TODO: We support additional metadata entries that can be translated.  How do those fit in the PO file format?  Ex: isMature
+									PoEntry->MsgId = ConditionedArchiveSource;
+									PoEntry->MsgCtxt = ConditionIdentityForPOMsgCtxt(Namespace, Context.Key, Context.KeyMetadataObj);
+									PoEntry->MsgStr.Add( ConditionedArchiveTranslation );
+
+									const FString PORefString = ConvertSrcLocationToPORef( Context.SourceLocation );
+									PoEntry->AddReference(PORefString); // Source location.
+
+									PoEntry->AddExtractedComment( GetConditionedKeyForExtractedComment(Context.Key) ); // "Notes from Programmer" in the form of the Key.
+
+									if (ShouldAddSourceLocationsAsComments)
+									{
+										PoEntry->AddExtractedComment(GetConditionedReferenceForExtractedComment(PORefString)); // "Notes from Programmer" in the form of the Source Location, since this comes in handy too and OneSky doesn't properly show references, only comments.
+									}
+
+									TArray<FString> InfoMetaDataStrings;
+									if (Context.InfoMetadataObj.IsValid())
+									{
+										for (auto InfoMetaDataPair : Context.InfoMetadataObj->Values)
+										{
+											const FString KeyName = InfoMetaDataPair.Key;
+											const TSharedPtr<FLocMetadataValue> Value = InfoMetaDataPair.Value;
+											InfoMetaDataStrings.Add(GetConditionedInfoMetaDataForExtractedComment(KeyName, Value->AsString()));
+										}
+									}
+									if (InfoMetaDataStrings.Num())
+									{
+										PoEntry->AddExtractedComments(InfoMetaDataStrings);
+									}
+
+									NewPortableObject.AddEntry( PoEntry );
+								}
 							}
-						}
 
+							// If we're exporting for something other than the native culture, we'll need to create PO entries for archive entries based on the native archive's translation.
 							if (CultureName != NativeCultureName)
 							{
 								TSharedPtr<FArchiveEntry> NativeArchiveEntry;
+								// Find the native archive entry which matches the exact same namespace, source, and key metadata, if it exists.
 								for (const auto& NativeArchive : NativeArchives)
 								{
-									const TSharedPtr<FArchiveEntry> PotentialNativeArchiveEntry = NativeArchive->FindEntryBySource( Namespace, Source, ContextIter->KeyMetadataObj );
+									const TSharedPtr<FArchiveEntry> PotentialNativeArchiveEntry = NativeArchive->FindEntryBySource( Namespace, Source, Context.KeyMetadataObj );
 									if (PotentialNativeArchiveEntry.IsValid())
 									{
 										NativeArchiveEntry = PotentialNativeArchiveEntry;
@@ -287,37 +442,53 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 
 								if (NativeArchiveEntry.IsValid())
 								{
+									// Only need to create this PO entry if the native archive entry's translation differs from its source, in which case we need to find the our translation of the native translation.
 									if (!NativeArchiveEntry->Source.IsExactMatch(NativeArchiveEntry->Translation))
 									{
 										const TSharedPtr<FArchiveEntry> ArchiveEntry = InternationalizationArchive->FindEntryBySource( Namespace, NativeArchiveEntry->Translation, NativeArchiveEntry->KeyMetadataObj );
+										if (ArchiveEntry.IsValid())
+										{
+											const FString ConditionedArchiveSource = ConditionArchiveStrForPo(ArchiveEntry->Source.Text);
+											const FString ConditionedArchiveTranslation = ConditionArchiveStrForPo(ArchiveEntry->Translation.Text);
 
-										const FString ConditionedArchiveSource = ConditionArchiveStrForPo(ArchiveEntry->Source.Text);
-										const FString ConditionedArchiveTranslation = ConditionArchiveStrForPo(ArchiveEntry->Translation.Text);
+											TSharedRef<FPortableObjectEntry> PoEntry = MakeShareable( new FPortableObjectEntry );
+											//@TODO: We support additional metadata entries that can be translated.  How do those fit in the PO file format?  Ex: isMature
+											PoEntry->MsgId = ConditionedArchiveSource;
+											PoEntry->MsgCtxt = ConditionIdentityForPOMsgCtxt(Namespace, Context.Key, Context.KeyMetadataObj);
+											PoEntry->MsgStr.Add( ConditionedArchiveTranslation );
 
-										TSharedRef<FPortableObjectEntry> PoEntry = MakeShareable( new FPortableObjectEntry );
-										//@TODO: We support additional metadata entries that can be translated.  How do those fit in the PO file format?  Ex: isMature
-										PoEntry->MsgId = ConditionedArchiveSource;
-										//@TODO: Take into account optional entries and entries that differ by keymetadata.  Ex. Each optional entry needs a unique msgCtxt
-										PoEntry->MsgCtxt = Namespace;
-										PoEntry->MsgStr.Add( ConditionedArchiveTranslation );
+											const FString PORefString = ConvertSrcLocationToPORef( Context.SourceLocation );
+											PoEntry->AddReference( PORefString ); // Source location.
 
-										FString PORefString = ConvertSrcLocationToPORef( ContextIter->SourceLocation );
-										PoEntry->AddReference( PORefString ); // Source location.
-										PoEntry->AddExtractedComment( ContextIter->Key ); // "Notes from Programmer" in the form of the Key.
-										PoEntry->AddExtractedComment( PORefString ); // "Notes from Programmer" in the form of the Source Location, since this comes in handy too and OneSky doesn't properly show references, only comments.
-										PortableObj.AddEntry( PoEntry );
+											PoEntry->AddExtractedComment( FString::Printf(TEXT("Key:\t%s"), *Context.Key) ); // "Notes from Programmer" in the form of the Key.
+											PoEntry->AddExtractedComment( FString::Printf(TEXT("SourceLocation:\t%s"), *PORefString) ); // "Notes from Programmer" in the form of the Source Location, since this comes in handy too and OneSky doesn't properly show references, only comments.
+											TArray<FString> InfoMetaDataStrings;
+											if (Context.InfoMetadataObj.IsValid())
+											{
+												for (auto InfoMetaDataPair : Context.InfoMetadataObj->Values)
+												{
+													const FString KeyName = InfoMetaDataPair.Key;
+													const TSharedPtr<FLocMetadataValue> Value = InfoMetaDataPair.Value;
+													InfoMetaDataStrings.Add(FString::Printf(TEXT("InfoMetaData:\t\"%s\" : \"%s\""), *KeyName, *Value->AsString()));
+												}
+											}
+											if (InfoMetaDataStrings.Num())
+											{
+												PoEntry->AddExtractedComments(InfoMetaDataStrings);
+											}
+
+											NewPortableObject.AddEntry( PoEntry );
+										}
 									}
 								}
-					}
-				}
+							}
+						}
 					}
 				}
 
 				// Write out the Portable Object to .po file.
 				{
-					PortableObj.SortEntries();
-					FString OutputString = PortableObj.ToString();
-					FString OutputFileName = "";
+					FString OutputFileName;
 					if (bUseCultureDirectory)
 					{
 						OutputFileName = DestinationPath / CultureName / Filename;
@@ -326,6 +497,35 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 					{
 						OutputFileName = DestinationPath / Filename;
 					}
+
+					// Persist comments if requested.
+					if (ShouldPersistComments)
+					{
+						// Preserve comments from the specified file now, if they haven't already been.
+						if (!HasPreservedComments)
+						{
+							FPortableObjectFormatDOM ExistingPortableObject;
+							const bool HasLoadedPOFile = LoadPOFile(OutputFileName, ExistingPortableObject);
+							if (!HasLoadedPOFile)
+							{
+								return false;
+							}
+
+							PreserveExtractedCommentsForPersistence(ExistingPortableObject);
+						}
+
+						// Persist the comments into the new portable object we're going to be saving.
+						for (const auto& Pair : POEntryToCommentMap)
+						{
+							const TSharedPtr<FPortableObjectEntry> FoundEntry = NewPortableObject.FindEntry(Pair.Key.MsgId, Pair.Key.MsgIdPlural, Pair.Key.MsgCtxt);
+							if (FoundEntry.IsValid())
+							{
+								FoundEntry->AddExtractedComments(Pair.Value);
+							}
+						}
+					}
+
+					NewPortableObject.SortEntries();
 
 					if( SourceControlInfo.IsValid() )
 					{
@@ -338,7 +538,8 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 					}
 
 					//@TODO We force UTF8 at the moment but we want this to be based on the format found in the header info.
-					if( !FFileHelper::SaveStringToFile(OutputString, *OutputFileName, FFileHelper::EEncodingOptions::ForceUTF8) )
+					const FString OutputString = NewPortableObject.ToString();
+					if (!FFileHelper::SaveStringToFile(OutputString, *OutputFileName, FFileHelper::EEncodingOptions::ForceUTF8))
 					{
 						UE_LOG( LogInternationalizationExportCommandlet, Error, TEXT("Could not write file %s"), *OutputFileName );
 						return false;
@@ -390,35 +591,41 @@ bool UInternationalizationExportCommandlet::DoImport(const FString& SourcePath, 
 			POFilePath = SourcePath / Filename;
 		}
 
-		if( !FPaths::FileExists(POFilePath) )
-		{
-			UE_LOG( LogInternationalizationExportCommandlet, Warning, TEXT("Could not find file %s"), *POFilePath );
-			continue;
-		}
-
-		FString POFileContents;
-		if ( !FFileHelper::LoadFileToString( POFileContents, *POFilePath ) )
-		{
-			UE_LOG( LogInternationalizationExportCommandlet, Error, TEXT("Failed to load file %s."), *POFilePath);
-			continue;
-		}
-
 		FPortableObjectFormatDOM PortableObject;
-		if( !PortableObject.FromString( POFileContents ) )
+		const bool HasLoadedPOFile = LoadPOFile(POFilePath, PortableObject);
+		if (!HasLoadedPOFile)
 		{
-			UE_LOG( LogInternationalizationExportCommandlet, Error, TEXT("Failed to parse Portable Object file %s."), *POFilePath);
 			continue;
 		}
 
-		if( PortableObject.GetProjectName() != ManifestName.Replace(TEXT(".manifest"), TEXT("")) )
+		if (ShouldPersistComments)
 		{
-			UE_LOG( LogInternationalizationExportCommandlet, Warning, TEXT("The project name (%s) in the file (%s) did not match the target manifest project (%s)."), *POFilePath, *PortableObject.GetProjectName(), *ManifestName.Replace(TEXT(".manifest"), TEXT("")));
+			PreserveExtractedCommentsForPersistence(PortableObject);
 		}
 
+		if (PortableObject.GetProjectName() != ManifestName.Replace(TEXT(".manifest"), TEXT("")))
+		{
+			UE_LOG(LogInternationalizationExportCommandlet, Log, TEXT("The project name (%s) in the file (%s) did not match the target manifest project (%s)."), *POFilePath, *PortableObject.GetProjectName(), *ManifestName.Replace(TEXT(".manifest"), TEXT("")));
+		}
+
+		const FString ManifestFileName = DestinationPath / ManifestName;
+
+		TSharedPtr< FJsonObject > ManifestJsonObject = NULL;
+		ManifestJsonObject = ReadJSONTextFile( ManifestFileName );
+
+		FJsonInternationalizationManifestSerializer ManifestSerializer;
+		TSharedRef< FInternationalizationManifest > InternationalizationManifest = MakeShareable( new FInternationalizationManifest );
+		ManifestSerializer.DeserializeManifest( ManifestJsonObject.ToSharedRef(), InternationalizationManifest );
+
+		if( !FPaths::FileExists(ManifestFileName) )
+		{
+			UE_LOG( LogInternationalizationExportCommandlet, Error, TEXT("Failed to find manifest %s."), *ManifestFileName);
+			continue;
+		}
 
 		const FString DestinationCulturePath = DestinationPath / CultureName;
-		FString ArchiveFileName = DestinationCulturePath / ArchiveName;
-		
+		const FString ArchiveFileName = DestinationCulturePath / ArchiveName;
+
 		if( !FPaths::FileExists(ArchiveFileName) )
 		{
 			UE_LOG( LogInternationalizationExportCommandlet, Error, TEXT("Failed to find destination archive %s."), *ArchiveFileName);
@@ -448,19 +655,44 @@ bool UInternationalizationExportCommandlet::DoImport(const FString& SourcePath, 
 				{
 					UE_LOG( LogInternationalizationExportCommandlet, Error, TEXT("Portable Object entry has plural form we did not process.  File: %s  MsgCtxt: %s  MsgId: %s"), *POFilePath, *POEntry->MsgCtxt, *POEntry->MsgId );
 				}
-				
-				const FString& Namespace = POEntry->MsgCtxt;
+
+				FString Key;
+				FString Namespace;
+				ParsePOMsgCtxtForIdentity(POEntry->MsgCtxt, Namespace, Key);
 				const FString& SourceText = ConditionPoStringForArchive(POEntry->MsgId);
 				const FString& Translation = ConditionPoStringForArchive(POEntry->MsgStr[0]);
 
+				TSharedPtr<FLocMetadataObject> KeyMetaDataObject;
+				// Get key metadata from the manifest, using the namespace and key.
+				if (!Key.IsEmpty())
+				{
+					// Find manifest entry by namespace
+					for (auto ManifestEntryIterator = InternationalizationManifest->GetEntriesByContextIdIterator(); ManifestEntryIterator; ++ManifestEntryIterator)
+					{
+						const FString& ManifestEntryNamespace = ManifestEntryIterator->Key;
+						const TSharedRef<FManifestEntry>& ManifestEntry = ManifestEntryIterator->Value;
+						if (ManifestEntry->Namespace == Namespace)
+						{
+							FContext* const MatchingContext = ManifestEntry->Contexts.FindByPredicate([&](FContext& Context) -> bool
+								{
+									return Context.Key == Key;
+								});
+							if (MatchingContext)
+							{
+								KeyMetaDataObject = MatchingContext->KeyMetadataObj;
+							}
+						}
+					}
+				}
+
 				//@TODO: Take into account optional entries and entries that differ by keymetadata.  Ex. Each optional entry needs a unique msgCtxt
-				TSharedPtr< FArchiveEntry > FoundEntry = InternationalizationArchive->FindEntryBySource( Namespace, SourceText, NULL );
+				const TSharedPtr< FArchiveEntry > FoundEntry = InternationalizationArchive->FindEntryBySource( Namespace, SourceText, KeyMetaDataObject );
 				if( !FoundEntry.IsValid() )
 				{
 					UE_LOG(LogInternationalizationExportCommandlet, Warning, TEXT("Could not find corresponding archive entry for PO entry.  File: %s  MsgCtxt: %s  MsgId: %s"), *POFilePath, *POEntry->MsgCtxt, *POEntry->MsgId );
 					continue;
 				}
-				
+
 				if( FoundEntry->Translation != Translation )
 				{
 					FoundEntry->Translation = Translation;
@@ -493,7 +725,7 @@ int32 UInternationalizationExportCommandlet::Main( const FString& Params )
 
 
 	UCommandlet::ParseCommandLine(*Params, Tokens, Switches, ParamVals);
-	
+
 	const FString* ParamVal = ParamVals.Find(FString(TEXT("Config")));
 
 	if ( ParamVal )
@@ -508,7 +740,7 @@ int32 UInternationalizationExportCommandlet::Main( const FString& Params )
 
 	//Set config section
 	ParamVal = ParamVals.Find(FString(TEXT("Section")));
-	
+
 
 	if ( ParamVal )
 	{
@@ -552,10 +784,19 @@ int32 UInternationalizationExportCommandlet::Main( const FString& Params )
 
 	bool bDoExport = false;
 	bool bDoImport = false;
+	ShouldPersistComments = false;
 
 	GetBoolFromConfig( *SectionName, TEXT("bImportLoc"), bDoImport, ConfigPath );
 	GetBoolFromConfig( *SectionName, TEXT("bExportLoc"), bDoExport, ConfigPath );
-	
+	GetBoolFromConfig(*SectionName, TEXT("ShouldPersistComments"), ShouldPersistComments, ConfigPath);
+
+	// Reject the ShouldPersistComments flag and warn if not exporting - we're not writing to anything, so we can't persist.
+	if (ShouldPersistComments && !bDoExport)
+	{
+		UE_LOG(LogInternationalizationExportCommandlet, Warning, TEXT("ShouldPersistComments is true, but bExportLoc is false - can't persist comments if not writing PO files."));
+		ShouldPersistComments = false;
+	}
+
 	if( !bDoImport && !bDoExport )
 	{
 		UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Import/Export operation not detected.  Use bExportLoc or bImportLoc in config section."));
@@ -583,3 +824,47 @@ int32 UInternationalizationExportCommandlet::Main( const FString& Params )
 	return 0;
 }
 
+bool UInternationalizationExportCommandlet::LoadPOFile(const FString& POFilePath, FPortableObjectFormatDOM& OutPortableObject)
+{
+	if (!FPaths::FileExists(POFilePath))
+	{
+		UE_LOG(LogInternationalizationExportCommandlet, Warning, TEXT("Could not find file %s"), *POFilePath);
+		return false;
+	}
+
+	FString POFileContents;
+	if (!FFileHelper::LoadFileToString(POFileContents, *POFilePath))
+	{
+		UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Failed to load file %s."), *POFilePath);
+		return false;
+	}
+
+	if (!OutPortableObject.FromString(POFileContents))
+	{
+		UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Failed to parse Portable Object file %s."), *POFilePath);
+		return false;
+	}
+
+	return true;
+}
+
+void UInternationalizationExportCommandlet::PreserveExtractedCommentsForPersistence(FPortableObjectFormatDOM& PortableObject)
+{
+	// Preserve comments for later.
+	for (auto EntriesIterator = PortableObject.GetEntriesIterator(); EntriesIterator; ++EntriesIterator)
+	{
+		const TSharedPtr< FPortableObjectEntry >& Entry = *EntriesIterator;
+
+		// Preserve only non-procedurally generated extracted comments.
+		const TArray<FString> CommentsToPreserve = Entry->ExtractedComments.FilterByPredicate([=](const FString& ExtractedComment) -> bool
+		{
+			return !ExtractedComment.StartsWith("Key:") && !ExtractedComment.StartsWith("SourceLocation:") && !ExtractedComment.StartsWith("InfoMetaData:");
+		});
+
+		if (CommentsToPreserve.Num())
+		{
+			POEntryToCommentMap.Add(FPortableObjectEntryIdentity{ Entry->MsgCtxt, Entry->MsgId, Entry->MsgIdPlural }, CommentsToPreserve);
+		}
+	}
+	HasPreservedComments = true;
+}

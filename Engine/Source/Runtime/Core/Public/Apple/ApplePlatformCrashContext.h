@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================================
 	ApplePlatformCrashContext.h: Apple platform crash context declaration
@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "GenericPlatform/GenericPlatformContext.h"
+#include "GenericPlatform/GenericPlatformCrashContext.h"
 
 /**
  * Declaration for common crash context implementation for Apple platforms.

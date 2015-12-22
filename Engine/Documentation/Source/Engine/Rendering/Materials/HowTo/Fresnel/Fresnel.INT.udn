@@ -1,10 +1,12 @@
 Availability: Public
-Title:Material - How To Use Fresnel in your Materials
+Title:Material - Using Fresnel in your Materials
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:A How To Guide for using the Fresnel Material node. 
 Related: Engine/Rendering/Materials/Functions/Reference/VectorOps
 Related: Engine/Rendering/Materials/Editor/Interface
 Related: Engine/Rendering/Materials/ExpressionReference/Utility
+Version: 4.9
+SkillLevel: Advanced
 
 
 [TOC(start:2 end:3)]
@@ -15,13 +17,13 @@ Related: Engine/Rendering/Materials/ExpressionReference/Utility
 
 Often times when creating a film or cinematic, you need a way to better highlight the silhouette of a character. This lighting technique is often referred to as rim lighting, or edge lighting, and 
 involves adding additional lights to help better distinguish the Characters silhouette from the background. While this works quite nicely for film, adding additional lights to any 3D scene adds 
-extra complexity that can quickly become hard to manage. Unreal Engine 4 (UE4) offers a solution to this by allowing artist to simulate the same basic effect using the Material of the Character. 
+extra complexity that can quickly become difficult to manage. Unreal Engine 4 (UE4) offers a solution to this by allowing artist to simulate the same basic effect using the Material of the Character. 
 This way, the artist has more control over the look and feel of the effect and can even use it for things like adding lighting to an unlit object to save on performance. 
 
 
 ## Fresnel 
 
-Fresnel is the term used to describe how the light you see reflects at different intensities based off of the angle you are viewing it from. 
+**Fresnel** is the term used to describe how the light you see reflects at different intensities based off of the angle you are viewing it from. 
 For example, if you are standing over a pool looking straight down at the pool, you will not see a lot of reflections in the water. 
 As you start to move your head so that the water in the pool becomes more and more parallel to your eye level, you will begin to notice more and more reflections in the water. 
 
@@ -44,7 +46,7 @@ While these two Material Expressions have the same name and do the same thing, t
 
 ### Fresnel Utility
 
-The Fresnel that is found under **Utility** is the one that is used in this How - To and is the simplest one out of the two to setup and use. 
+The Fresnel that is found under **Utility** is the one that is used in this How-to and is the simplest one out of the two to setup and use. 
 It is **highly recommended** that you use this version to begin with and then move on to the other once you better understand how the node functions.
 
 ![](FN_Fresnel_Node.png)
@@ -53,7 +55,7 @@ It is **highly recommended** that you use this version to begin with and then mo
 |--------- | ---------- |
 | **ExponentIn** | This controls the fall off of the Fresnel Effect. |
 | **BaseReflectFrctionIn** | This specifies the fraction of specular reflection when the surface is viewed from straight on. Setting this to a value of 1 effectively disables Fresnel |
-| **Normal** | Here you can input a Normal to effect the way the Fresnel effect is rendered. This property cannot be set by supplying either a Normal map or a Vector 3 input.|
+| **Normal** | Here you can input a Normal to affect the way the Fresnel effect is rendered. This property cannot be set by supplying either a Normal map or a Vector 3 input.|
 
 You have two options for adjusting the values for the Fresnel Material Expression.
 * Select the Fresnel Material Expression in the Material Graph and then input values via the **Details** Panel.
@@ -77,7 +79,7 @@ This node should only be used if the Fresnel that is under **Utility** does not 
 | Property | Description|
 |--------- | ---------- |
 | **Normal Vector (V3)** |  Here you can input a Normal to effect the way the Fresnel effect is rendered. This property cannot be set by supplying either a Normal map or a Vector 3 input. |
-| **Camera Vector(V3)** |This allows you to effect the Camera that is used to determine the Dot Product between the Camera and the surface normal. |
+| **Camera Vector(V3)** |This allows you to affect the Camera that is used to determine the Dot Product between the Camera and the surface normal. |
 | **Invert Fresnel(B)** | This will allow you to invert the effect of the Fresnel. This is useful if you want the Fresnel to only be applied in the center or at the edges. |
 | **Power(S)** | This allows you to control the power of the Fresnel effect. Entering bigger numbers will tighten up the areas affected. Smaller numbers will allow more areas to be affected by the Fresnel.  |
 | **Use Cheap Contrast(B)** | This will allow the Fresnel to use a cheaper method for calculating contrast between lights and darks. |
@@ -114,7 +116,7 @@ Creating a Material that uses Fresnel can be accomplished in the following steps
 	When you search for the Fresnel Material Expression, you will find two different types that you can choose from. For this How - To, we will only be using the Fresnel that can be found under **Utility**.
 	[/region]
 
-1. Now that the required Material Expression nodes have been added to the Material Graph, it is now time to start connecting everything together and giving the parameters base values. 
+1. Now that the required Material Expression nodes have been added to the Material Graph, it is time to start connecting everything together and giving the parameters base values. 
 	For this example, we are going to be using the following Parameter names and default values. 
 	|Name | Value |
 	|-----| ------|
@@ -168,7 +170,7 @@ If it is perpendicular to the camera, then the Fresnel effect will take place. O
 However when a Normal map is introduced, we change the surface normal to no longer be smooth, allowing the Fresnel effect to take happen in places that it normally would not if the 
 surface Normal had been smooth. 
 
-For a visual example at what is going on, take a look at the following image showing the effect the surface normal has on the Fresnel. 
+For a visual example of what is going on, take a look at the following image showing the effect the surface normal has on the Fresnel. 
 On the left (image 1) is what the Fresnel node will output with a flat surface normal. Now take a look at the right hand side (image 2.)
 In this image, a Normal map was input which drastically changes the surface normal. 
 Because the surface normal is no longer flat everywhere, you get more of the Fresnel being displayed. 
@@ -181,7 +183,7 @@ In the image below, we can see how different Normal maps can affect the Fresnel 
 
 The Material that was used to create the images above was the same Material that was created before but with the following modifications made. 
 
-* The Materials **Blend Mode** was changed from **Default** to **Translucent**
+* The Materials **Blend Mode** was changed from **Opaque** to **Translucent**
 * The final output for the Fresnel that was plugged into the **Emissive Color** input was also plugged into the **Opacity** input.
 * A new 2D Texture Sampler was added and plugged into the **Normal** input. **Tech_Hex_Tile_N** from the Starter Content was used as the Normal texture.
 * A new Scalar Parameter was added that is multiplied by a **Texture Coordinates** expression to implement some basic uniform titling on the Normal map. 
@@ -193,7 +195,9 @@ The Fresnel Material Expression can also be supplied with a Normal map that can 
 This is particularly useful if you want to use the Fresnel to display something like an energy shield on a Material but still have that Material look normal when the shield is not active. 
 To achieve this using the Material above, the following things need to be done.
 
-1. First change the **Base Color** and **Roughness** to use the **T_Brick_Clay_New_D** texture from the Starter Content. 
+1. Start by Updating the **Translucency Lighting Mode** by changing it from **Volumetric Non Directional** to **Surface Translucency Volume**
+
+1. Change the **Base Color** and **Roughness** to use the **T_Brick_Clay_New_D** texture from the Starter Content. 
 
 1. Next change the Normal input so that it uses T_Brick_Clay_New_N, which can also be found in the Starter Content. 
 

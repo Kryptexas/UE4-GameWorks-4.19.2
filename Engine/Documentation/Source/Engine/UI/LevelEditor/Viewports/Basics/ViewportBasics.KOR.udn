@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2398741
+﻿INTSourceChangelist:2645242
 Availability:Public
 Title:뷰포트 기본
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
@@ -170,7 +170,7 @@ Description:언리얼 에디터의 뷰포트에 대한 기본 개념 및 기능�
 게임 뷰를 켜려면, 뷰포트에 포커스를 맞춘 상태로 (기본 키인) **G** 키를 누르거나, 
 [뷰포트 옵션 메뉴](Engine/UI/LevelEditor/Viewports/ViewportOptions) 에서 **게임 뷰** 옵션을 선택하면 됩니다:
 
-![](viewport_options_gameview.png)
+![](GamemodeViewport.png)
 
 ## 몰입 모드
 
@@ -181,7 +181,7 @@ Description:언리얼 에디터의 뷰포트에 대한 기본 개념 및 기능�
 몰입 모드를 켜려면, 뷰포트에 포커스를 맞춘 상태로 (기본 키인) **F11** 키를 누르거나, 
 [뷰포트 옵션 메뉴](Engine/UI/LevelEditor/Viewports/ViewportOptions) 에서 **몰입 모드** 옵션을 선택하면 됩니다:
 
-![](viewport_options_immersive.png)
+![](ImmersiveModeOptions.png)
 
 뷰포트를 원래대로 되돌리는 방법은, 위와 같은 방법을 사용하거나, 몰입 모드에 있을 때 뷰포트 우상단에 있는 
 ![Restore Viewport](button_restore.png) 버튼을 누르면 됩니다.

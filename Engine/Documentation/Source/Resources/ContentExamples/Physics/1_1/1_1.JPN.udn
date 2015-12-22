@@ -1,15 +1,32 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2720001
 Availability:Public
 Title:1.1 - 物理シミュレーション
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Physics
-Description: 物理事例レベルの概要 例 1.1:オブジェクトの物理シミュレーション
+Description: 物理のサンプル レベルの概要、サンプル 1.1:オブジェクトの物理シミュレーション
 Related:Engine/Physics/PhysicsBodies
-Related:Engine/Physics/PhAT/UserGuide
+Related:Engine/Physics/PhAT/HowTo
 Related:Engine/Physics/Constraints/ConstraintsReference
 Related:Engine/Physics/Constraints/ConstraintsUserGuide
 Related:Engine/Physics/Collision
-Related:Engine/Physics/PhysicalMaterials/PhysMatReference
+Related:Engine/Physics/PhysicalMaterials/Reference
+Version:4.9
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[物理のホーム](Resources/ContentExamples/Physics)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/Physics/1_2 "%Resources/ContentExamples/Physics/1_2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -56,7 +73,7 @@ Related:Engine/Physics/PhysicalMaterials/PhysMatReference
 [/REGION]
 
 
-オブジェクトの可動設定が **可動** で、オブジェクトにシンプルなコリジョンが含まれる場合、 **Physics Rollout** のチェックフラグ **Simulate Physics** をクリックすることができ、 **Simulate in Editor** あるいは **Play in Editor** がクリックされると、オブジェクトがシミュレーションされます。
+オブジェクトの可動設定が **[Movable (可動)]** で、オブジェクトにシンプルなコリジョンが含まれる場合、**Physics Rollout** のチェックフラグ **[Simulate Physics (物理をシミュレート)]** をクリックし、**[Simulate in Editor]** あるいは **[Play in Editor]** をクリックすると、オブジェクトがシミュレーションされます。
 
 ![](physics_1_1_002.png)(h:365) ![](physics_1_1_003.png)(h:365)
 

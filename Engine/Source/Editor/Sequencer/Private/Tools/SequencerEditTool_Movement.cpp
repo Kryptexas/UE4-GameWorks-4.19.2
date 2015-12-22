@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
 #include "SequencerEditTool_Movement.h"
@@ -7,27 +7,18 @@
 #include "SequencerHotspots.h"
 #include "EditToolDragOperations.h"
 
-FReply FSequencerEditTool_Default::OnMouseButtonUp(SWidget& OwnerWidget, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
-{
-	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
-	{
-		FSequencer& Sequencer = static_cast<FSequencer&>(GetSequencer());
-		Sequencer.GetSelection().EmptySelectedSections();
-		Sequencer.GetSelection().EmptySelectedKeys();
-	}
-	return FReply::Unhandled();
-}
 
 FSequencerEditTool_Movement::FSequencerEditTool_Movement(TSharedPtr<FSequencer> InSequencer, TSharedPtr<SSequencer> InSequencerWidget)
 	: Sequencer(InSequencer)
 	, SequencerWidget(InSequencerWidget)
-{
-}
+{ }
+
 
 ISequencer& FSequencerEditTool_Movement::GetSequencer() const
 {
 	return *Sequencer.Pin();
 }
+
 
 FReply FSequencerEditTool_Movement::OnMouseButtonDown(SWidget& OwnerWidget, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
@@ -39,13 +30,13 @@ FReply FSequencerEditTool_Movement::OnMouseButtonDown(SWidget& OwnerWidget, cons
 
 		DelayedDrag = FDelayedDrag_Hotspot(VirtualTrackArea.CachedTrackAreaGeometry().AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()), MouseEvent.GetEffectingButton(), Hotspot);
 
-		if (Sequencer.Pin()->GetSettings()->GetSnapPlayTimeToDraggedKey())
+ 		if (Sequencer.Pin()->GetSettings()->GetSnapPlayTimeToDraggedKey() || (MouseEvent.IsShiftDown() && MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton) )
 		{
 			if (DelayedDrag->Hotspot.IsValid())
 			{
 				if (DelayedDrag->Hotspot->GetType() == ESequencerHotspot::Key)
 				{
-					FSelectedKey& ThisKey = StaticCastSharedPtr<FKeyHotspot>(DelayedDrag->Hotspot)->Key;
+					FSequencerSelectedKey& ThisKey = StaticCastSharedPtr<FKeyHotspot>(DelayedDrag->Hotspot)->Key;
 					Sequencer.Pin()->SetGlobalTime(ThisKey.KeyArea->GetKeyTime(ThisKey.KeyHandle.GetValue()));
 				}
 			}
@@ -54,6 +45,7 @@ FReply FSequencerEditTool_Movement::OnMouseButtonDown(SWidget& OwnerWidget, cons
 	}
 	return FReply::Unhandled();
 }
+
 
 FReply FSequencerEditTool_Movement::OnMouseMove(SWidget& OwnerWidget, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
@@ -74,7 +66,7 @@ FReply FSequencerEditTool_Movement::OnMouseMove(SWidget& OwnerWidget, const FGeo
 		// Otherwise we can attempt a new drag
 		else if (DelayedDrag->AttemptDragStart(MouseEvent))
 		{
-			DragOperation = CreateDrag();
+			DragOperation = CreateDrag(MouseEvent);
 
 			if (DragOperation.IsValid())
 			{
@@ -90,7 +82,8 @@ FReply FSequencerEditTool_Movement::OnMouseMove(SWidget& OwnerWidget, const FGeo
 	return FReply::Unhandled();
 }
 
-TSharedPtr<IEditToolDragOperation> FSequencerEditTool_Movement::CreateDrag()
+
+TSharedPtr<ISequencerEditToolDragOperation> FSequencerEditTool_Movement::CreateDrag(const FPointerEvent& MouseEvent)
 {
 	auto PinnedSequencer = Sequencer.Pin();
 	FSequencerSelection& Selection = PinnedSequencer->GetSelection();
@@ -130,7 +123,7 @@ TSharedPtr<IEditToolDragOperation> FSequencerEditTool_Movement::CreateDrag()
 		// Moving key(s)?
 		else if (HotspotType == ESequencerHotspot::Key)
 		{
-			FSelectedKey& ThisKey = StaticCastSharedPtr<FKeyHotspot>(DelayedDrag->Hotspot)->Key;
+			FSequencerSelectedKey& ThisKey = StaticCastSharedPtr<FKeyHotspot>(DelayedDrag->Hotspot)->Key;
 
 			// If it's not selected, we'll treat this as a unique drag
 			if (!Selection.IsSelected(ThisKey))
@@ -140,7 +133,15 @@ TSharedPtr<IEditToolDragOperation> FSequencerEditTool_Movement::CreateDrag()
 				Selection.AddToSelection(ThisKey);
 			}
 
-			return MakeShareable( new FMoveKeys( *PinnedSequencer, Selection.GetSelectedKeys() ) );
+			// @todo sequencer: Make this a customizable UI command modifier?
+			if (MouseEvent.IsAltDown())
+			{
+				return MakeShareable( new FDuplicateKeys( *PinnedSequencer, Selection.GetSelectedKeys() ) );
+			}
+			else
+			{
+				return MakeShareable( new FMoveKeys( *PinnedSequencer, Selection.GetSelectedKeys() ) );
+			}
 		}
 	}
 	// If we're not dragging a hotspot, sections take precedence over keys
@@ -156,6 +157,7 @@ TSharedPtr<IEditToolDragOperation> FSequencerEditTool_Movement::CreateDrag()
 	return nullptr;
 }
 
+
 FReply FSequencerEditTool_Movement::OnMouseButtonUp(SWidget& OwnerWidget, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	DelayedDrag.Reset();
@@ -169,8 +171,41 @@ FReply FSequencerEditTool_Movement::OnMouseButtonUp(SWidget& OwnerWidget, const 
 		return FReply::Handled().ReleaseMouseCapture();
 	}
 
-	return FSequencerEditTool_Default::OnMouseButtonUp(OwnerWidget, MyGeometry, MouseEvent);
+	FReply Reply = FReply::Unhandled();
+
+	if (Hotspot.IsValid())
+	{
+		PerformHotspotSelection(MouseEvent);
+		Reply = FReply::Handled();
+	}
+
+	if (MouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
+	{
+		TSharedPtr<SWidget> MenuContent = OnSummonContextMenu( MyGeometry, MouseEvent );
+		if (MenuContent.IsValid())
+		{
+			FWidgetPath WidgetPath = MouseEvent.GetEventPath() != nullptr ? *MouseEvent.GetEventPath() : FWidgetPath();
+
+			FSlateApplication::Get().PushMenu(
+				OwnerWidget.AsShared(),
+				WidgetPath,
+				MenuContent.ToSharedRef(),
+				MouseEvent.GetScreenSpacePosition(),
+				FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )
+				);
+
+			return FReply::Handled().SetUserFocus(MenuContent.ToSharedRef(), EFocusCause::SetDirectly).ReleaseMouseCapture();
+		}
+	}
+
+	if (!Reply.IsEventHandled())
+	{
+		Reply = FSequencerEditTool_Default::OnMouseButtonUp(OwnerWidget, MyGeometry, MouseEvent);
+	}
+
+	return Reply;
 }
+
 
 void FSequencerEditTool_Movement::OnMouseCaptureLost()
 {
@@ -178,10 +213,25 @@ void FSequencerEditTool_Movement::OnMouseCaptureLost()
 	DragOperation = nullptr;
 }
 
+
 FCursorReply FSequencerEditTool_Movement::OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const
 {
-	return DragOperation.IsValid() ? FCursorReply::Cursor(EMouseCursor::CardinalCross) : FCursorReply::Cursor(EMouseCursor::Default);
+	if (DragOperation.IsValid())
+	{
+		return FCursorReply::Cursor(EMouseCursor::CardinalCross);
+	}
+
+	if (Hotspot.IsValid())
+	{
+		FCursorReply Reply = Hotspot->GetCursor();
+		if (Reply.IsEventHandled())
+		{
+			return Reply;
+		}
+	}
+	return FCursorReply::Cursor(EMouseCursor::Default);
 }
+
 
 FName FSequencerEditTool_Movement::GetIdentifier() const
 {

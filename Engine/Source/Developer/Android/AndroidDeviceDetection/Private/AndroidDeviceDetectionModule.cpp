@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AndroidDeviceDetectionModule.cpp: Implements the FAndroidDeviceDetectionModule class.
@@ -331,7 +331,6 @@ public:
 				delete FileReader;
 
 				AnsiContents[FileSize] = 0;
-				
 				TArray<FString> Lines;
 				FString(ANSI_TO_TCHAR(AnsiContents)).ParseIntoArrayLines(Lines);
 				FMemory::Free(AnsiContents);

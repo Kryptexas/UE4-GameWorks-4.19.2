@@ -1,7 +1,8 @@
 Availability:Public
-Title: Networking & Multiplayer
+Title: Networking and Multiplayer
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
 Description:Setting up networked games for multiplayer.
+version: 4.9
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]

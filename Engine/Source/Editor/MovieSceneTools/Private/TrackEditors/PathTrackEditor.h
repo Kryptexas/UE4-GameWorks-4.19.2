@@ -1,16 +1,17 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "MovieScene3DPathSection.h"
 #include "MovieScene3DPathTrack.h"
+#include "ActorPickerTrackEditor.h"
 
 
 /**
  * Tools for animating a transform with a path curve
  */
 class F3DPathTrackEditor
-	: public FMovieSceneTrackEditor
+	: public FActorPickerTrackEditor
 {
 public:
 
@@ -22,7 +23,7 @@ public:
 	F3DPathTrackEditor( TSharedRef<ISequencer> InSequencer );
 
 	/** Virtual destructor. */
-	virtual ~F3DPathTrackEditor();
+	virtual ~F3DPathTrackEditor() { }
 
 	/**
 	 * Creates an instance of this class.  Called by a sequencer 
@@ -34,28 +35,20 @@ public:
 
 public:
 
-	/** Add path */
-	void AddPath(FGuid ObjectGuid, UObject* AdditionalAsset);
-
-	/** Set path */
-	void SetPath(UMovieSceneSection* Section, AActor* ActorWithSplineComponent);
-
-public:
-
 	// ISequencerTrackEditor interface
 
-	virtual void AddKey( const FGuid& ObjectGuid, UObject* AdditionalAsset = NULL ) override;
 	virtual void BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass) override;
 	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track ) override;
 	virtual bool SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const override;
 
+	// FTrackEditorActorPicker
+	virtual bool IsActorPickable( const AActor* const ParentActor, FGuid ObjectBinding, UMovieSceneSection* InSection ) override;
+	virtual void ActorSocketPicked(const FName SocketName, AActor* ParentActor, FGuid ObjectBinding, UMovieSceneSection* Section) override;
+
 private:
 
-	/** Add path sub menu */
-	void AddPathSubMenu(FMenuBuilder& MenuBuilder, FGuid ObjectBinding);
-
 	/** Delegate for AnimatablePropertyChanged in AddKey */
-	void AddKeyInternal(float KeyTime, const TArray<UObject*> Objects, UObject* AdditionalAsset);
+	bool AddKeyInternal(float KeyTime, const TArray<UObject*> Objects, AActor* ParentActor);
 };
 
 

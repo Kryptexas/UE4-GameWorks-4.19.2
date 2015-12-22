@@ -1,31 +1,56 @@
-﻿INTSourceChangelist:2270955
+﻿INTSourceChangelist:2728286
 Availability:Public
-Title:Transition Rules （遷移ルール）
+Title:遷移ルール
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/StateMachines
 Description:ステートマシンの遷移を規定するルールのガイド
+version:4.9
+Related:Engine/Animation/StateMachines
+Related:Engine/Animation/AnimBlueprints
+Related:Engine/Blueprints/GettingStarted
 
 
-**遷移ルール** は **ステートマシン** 内のフローを制御する方法です。 
-**遷移ルール** は、**States** と **Conduits** を接続するワイヤーと共に自動的に作成されます。変数値に対していくつものチェックやテストを遷移ルールで実行可能であり、_True_ または _False_ の値を出力することを目的とします。 
-**Boolean** 出力は遷移を経たアニメーションの移動が可能か否か決定します。 
+[TOC(start:2 end:2)]
 
-視覚的には、**遷移ルール** は 以下のように **AnimationGraph** 内の小さな丸い方向を持ったアイコンで表示されます。 
+## 遷移ルールの作成
 
-![](TransitionRule.png)
+**遷移ルール** は、[ステート マシン](Engine/Animation/StateMachines) 内のフローを制御する方法であり、**ステート** と **コンジット** を接続するワイヤーと一緒に自動的に作成されます。変数値に対していくつものチェックやテストを遷移ルールで実行することができます。こうしたチェックやテストでは全て True または False を出力し、遷移中にアニメーションが動くことができるかどうかを決めます。
+
+ステートやコンジットを接続するには、**左クリック** して、あるステート (またはコンジット) から別のものにドラッグします。 
+
+![](ConnectStates.png)(w:540)
+
+接続できたら、遷移ルールは以下のように接続内で小さな丸い方向を持つアイコンで表示されます。
+
+![](TransitionRule.png)(w:540)
 
 アイコンにマウスをかざすと、ルールが視覚的に表示されます。 
 
-![](TransitionRuleMouseOver.png)
+![](TransitionRuleMouseOver.png)(w:540)
 
 _この例では、**JumpLoop** から **JumpEnd** に遷移するために、変数 **IsInAir?** が true であっては **なりません**。_ 
 
-ルールは遷移のフローを双方向で判断するように設定することもできます。 
+ルールは遷移のフローを双方向で決定するように設定することもできます。 
 
-![](RulesBothWays.png)
+![](RulesBothWays.png)(w:540)
 
 つまり、あるステートから出て、他のステートに移動するようにルールを設定可能であり、そのステートから戻る遷移になるようにルールを適用できます。 
 
-**遷移ルール** を **左クリック** すると、**[詳細]** パネルが更新され、追加のオプションが利用できるようになります。 
+
+## 遷移ルールの編集
+
+**Transition Rule (遷移ルール)** を **ダブルクリック** すると、ウィンドウが開きます。このウィンドウで、遷移が起こるために満たさなければならない変数を定義できます。 
+
+![](EditRule.png)(w:840)
+
+**ブループリント** と同様に、**My Blueprint** ウィンドウで変数を指定し、それをグラフにドラッグできます。変数を様々な条件に接続し、それらを **Result** ノードに接続することで、遷移が起こるために何が _true_ であるべきかを定義できます。 
+
+[REGION:note]
+ブループリントの使用を開始するための情報は、[ブループリント入門](Engine/Blueprints/GettingStarted) のドキュメントをご覧ください。 
+[/REGION]
+
+## 遷移ルールの詳細
+
+遷移ルールを **左クリック** すると、**[Details (詳細)]** パネルが更新され、追加のオプションが利用できるようになります。 
 
 ![](TransitionDetails.png)
 
@@ -33,29 +58,50 @@ _この例では、**JumpLoop** から **JumpEnd** に遷移するために、�
 | --- | --- |
 | **Transition Priority Order** | 遷移の優先順位。あるステートからの複数の遷移が同時に _true_ である場合、優先順位の高いものが優先されます。 |
 | **Bidirectional** | 遷移が双方向であるか否かを決定します。 |
-| **Blend Logic** | 使用する遷移ロジックを指定します。標準ブレンドまたはカスタム ブレンド。カスタムを選択すると、ブレンドグラフにカスタムのブレンド遷移を設定するように入力できます。 |
+| **Blend Logic** | 使用する遷移ロジックを指定します。標準ブレンドまたは [カスタム ブレンド](#カスタムブレンドノード)。カスタムを選択すると、ブレンドグラフにカスタムのブレンド遷移を設定するように入力できます。 |
 | **Transition Rule Sharing** | 他の遷移とルールを共有できるか否か、または他の遷移からのルールを使用するかを設定することができます。  |
-| **Transition Interrupt** | **Trigger Weight Threshold** を設定し、**Notify State Class** を指定します。  |
-| **Transition Crossfade Sharing** | 既存の **Transition Crossfade Blend** を使用する、または既存の **Transition Crossfade** を共有にプロモートします。  |
+| **Transition Interrupt** | Trigger Weight Threshold を設定し、Notify State Class を指定します。  |
+| **Transition Crossfade Sharing** | 既存の Transition Crossfade Blend を使用する、または既存の Transition Crossfade を共有に昇格します。  |
 | **Duration** | クロスフェードに適用する持続時間。 |
-| **Mode** | クロスフェードに適用するブレンドのタイプ。 |
-| **Start Transition Event / Custom Blueprint Event** | 遷移開始時に通知された **ブループリント** 内から **イベント** を呼び出し実行します。 |
-| **Blueprint Notify** | 遷移開始時に通知された **ブループリント** |
-| **End Transition Event / Custom Blueprint Event** | 遷移終了時に通知された **ブループリント** 内から **イベント** を呼び出し実行します。 |
-| **Blueprint Notify** | 遷移終了時に通知された **ブループリント** |
-| **Interrupt Transition Event / Custom Blueprint Event** | 遷移中断時に通知された **ブループリント** 内から **イベント** を呼び出し実行します。 |
-| **Blueprint Notify** | 遷移中断時に通知された **ブループリント** |
+| **Mode** | クロスフェードに適用するブレンドのタイプ。詳細は [](Engine\Animation\NonLinearBlends) を参照してください。 |
+| **Start Transition Event / Custom Blueprint Event** | 遷移開始時に通知されたブループリント内からイベントを呼び出し実行します。 |
+| **Blueprint Notify** | 遷移開始時に通知されたブループリント。 |
+| **End Transition Event / Custom Blueprint Event** | 遷移終了時に通知されたブループリント内からイベントを呼び出し実行します。 |
+| **Blueprint Notify** | 遷移終了時に通知されたブループリント。 |
+| **Interrupt Transition Event / Custom Blueprint Event** | 遷移中断時に、通知されたブループリント内からイベントを呼び出し実行します。 |
+| **Blueprint Notify** | 遷移中断時に通知されるブループリント。 |
 
-**Transition Rule** を **ダブルクリック** すると、ウィンドウが開きます。このウィンドウで、遷移が起こるために満たさなければならない変数を定義できます。 
 
-[REGION:lightbox]
-[![](EditRule.png)(w:480)](EditRule.png)
-[/REGION]
+## その他の検討事項
 
-_クリックしてフルサイズで表示_
+子 [Animation ブループリント](Engine/Animation/AnimBlueprints) で作業し、ステートマシンでアニメーションをオーバーライドする場合、遷移ルールによって参照されるアニメーションは、すべての子 Animation ブループリントで同じ長さである必要はなくなりました。**Time Remaining** ノードのようなノードを使用する場合 (アニメーションの残り時間を判断し、遷移ルールの一部として使用可能)、こうしたタイプのノードは、子 Animation ブループリントでアニメーションがオーバーライドされる場合にアニメーションの長さの変化に正しく対応します。 
 
-**ブループリント** と同様に、**My Blueprint** ウィンドウで変数を指定し、それをグラフにドラッグできます。変数を様々な条件に接続し、それらを **Result** ノードに接続することで、遷移が起こるために何が _true_ でなければならないかを定義できます。 
+変更されたり、オーバーライドされることがある遷移ルールの一部として特定のアニメーションを対象にするのではなく、ソース ステートから最も重み付けが高いアニメーションを常に選ぶ getter ノードに基づいたいくつかのクラスを使用することができます (以下の図)。
 
-**ブループリント** の使用を開始するための情報は、[ブループリント入門](Engine/Blueprints/GettingStarted) のドキュメントをご覧ください。 
+![](GetRelevantNodes.png)
+
+| **番号** | **ノード** |**説明**|
+| --- | --- | --- |
+| 1 | **Get Relevant Anim Length (Movement)**| ソース ステートで最も関連性のあるアニメーションの秒数を取得します。|
+| 2 | **Get Relevant Anim Time (Movement)**| ソース ステートで最も関連性のあるアニメーションの現在の累積時間の秒数を取得します。 |
+| 3 | **Get Relevant Anim Time Fraction (Movement)**| ソース ステートで最も関連性のあるアニメーションの長さの割合として現在の累積時間を取得します。 |
+| 4 | **Get Relevant Anim Time Remaining (Movement)**| ソース ステートで最も関連性のあるアニメーションの残り時間を秒単位で取得します。 |
+| 5 | **Get Relevant Anim Time Remaining Fraction (Movement)**| ソース ステートで最も関連性のあるアニメーションの残り時間を持続時間の割合として取得します。 |
+
+### カスタム ブレンド ノード
+
+上記のノード以外にも、一回限りのカスタム遷移アニメーションだけではなく、さらに使用できるようにカスタム ブレンド グラフに追加の情報がエクスポーズされました。 
+
+![](CustomBlendNodes.png)
+
+| **番号** | **ノード** |**説明**|
+| --- | --- | --- |
+| 1 | **State Weight**| 指定されたステートのブレンド ウェイトを取得します。 |
+| 2 | **Get Transition Time Elapsed**| 指定された遷移の秒単位の経過時間を取得します。 |
+| 3 | **Get Transition Time Elapsed (ratio)**| 指定された遷移のクロスフェードの持続時間の割合として経過時間を取得します。 |
+| 4 | **Get Transition Crossfade Duration**| 指定された遷移のクロスフェードの持続時間を取得します。 |
+
+遷移ルールのようにアセット プレイヤーを参照する getter メソッドを使用することもできます。 
+
 
 

@@ -23,17 +23,17 @@ Version: 4.9
 
 %Steps%
 
-1. In **Visual Studio**, we'll use the **Solution Explorer** pane to find our newly-created C++ files. In our example, they will be named `FloatingActor.cpp` and `FloatingActor.h` and will be inside the "QuickStart" project.
+1. In **Visual Studio**, we'll use the **Solution Explorer** pane to find our newly-created C++ files. In our example, they will be named FloatingActor.cpp and FloatingActor.h and will be inside the QuickStart project.
 
 	[![](SolutionExplorer_Files.png)](SolutionExplorer_Files.png)
 
 	[REGION:note]We're about to write code. All code used in this tutorial will be found at bottom of the page in its current state as of completing that page's instructions.[/REGION]
 
-1. In `FloatingActor.h`, we'll add the following code just before the closing brace and semicolon at the end of the file:
+1. In FloatingActor.h, we'll add the following code just before the closing brace and semicolon at the end of the file:
 
 		float RunningTime;
 
-1. Switching to `FloatingActor.cpp`, we'll add the following code just before the closing brace at the bottom of **AFloatingActor::Tick**:
+1. Switching to FloatingActor.cpp, we'll add the following code just before the closing brace at the bottom of **AFloatingActor::Tick**:
 
 		FVector NewLocation = GetActorLocation();
 		float DeltaHeight = (FMath::Sin(RunningTime + DeltaTime) - FMath::Sin(RunningTime));
@@ -41,7 +41,7 @@ Version: 4.9
 		RunningTime += DeltaTime;
 		SetActorLocation(NewLocation);
 
-	[REGION:tip] The code we've just written will cause **FloatingActors** to bob up and down smoothly, using the _RunningTime_ variable we created to keep track of our movement over time. [/REGION] 
+	[REGION:note] The code we've just written will cause **FloatingActors** to bob up and down smoothly, using the _RunningTime_ variable we created to keep track of our movement over time. [/REGION] 
 
 %Globals:OSSelect%
 
@@ -60,11 +60,11 @@ Version: 4.9
 
 			[![](CompileFromVS.png)](CompileFromVS.png)
 	
-			(compiling from **Visual Studio** pictured above)
+			_Compiling from **Visual Studio**._
 
 			[![](CompileFromEditor.png)](CompileFromEditor.png)
 
-			(compiling from the **Unreal Editor** pictured above)
+			_Compiling from the **Unreal Editor**._
 	[/PARAM]
 [/OBJECT]
 
@@ -87,25 +87,23 @@ Version: 4.9
 		
 			![](ProjectBuild_mac.png)
 			
-			(compiling using XCode's Debug Configuration pictured above)
+			_Compiling using XCode's Debug Configuration._
 
 		*	We can also compile using XCode's Development Configuration by clicking the **Product > Build For > Profiling** option.
 
 			![](ProjectBuildProfile_mac.png)
 
-			(compiling using XCode's Development Configuration pictured above)
+			_Compiling using XCode's Development Configuration._
 
 			[![](CompileFromEditor.png)](CompileFromEditor.png)
 
-			(compiling from the **Unreal Editor** pictured above)
+			_Compiling from the **Unreal Editor**._
 
 		[REGION:note]
 		When running the binary Editor, it is important to add the -game flag if you rebuilt your project in any **Uncooked** configuration, and the -debug flag if you rebuilt your project in any **Debug** configuration.
 		[/REGION]
 	[/PARAM]
 [/OBJECT]
-
-----
 
 We're now ready to create objects in **Unreal Editor** based on our code. For reference, all code used on this page is included below.
 
@@ -118,7 +116,7 @@ We're now ready to create objects in **Unreal Editor** based on our code. For re
     [/PARAM]
     [PARAM:content]
 		**FloatingActor.h**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -144,7 +142,7 @@ We're now ready to create objects in **Unreal Editor** based on our code. For re
 			};
 
 		**FloatingActor.cpp**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#include "QuickStart.h"
 			#include "FloatingActor.h"

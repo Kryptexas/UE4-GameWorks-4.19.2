@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -43,17 +43,17 @@ class UParticleModuleSubUVMovie : public UParticleModuleSubUV
 	virtual void PostInitProperties() override;
 	//End UObject Interface
 
-	// Begin UParticleModule Interface
+	//~ Begin UParticleModule Interface
 	virtual void Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) override;
-	virtual uint32 RequiredBytes(FParticleEmitterInstance* Owner = NULL) override;
+	virtual uint32 RequiredBytes(UParticleModuleTypeDataBase* TypeData) override;
 	virtual void SetToSensibleDefaults(UParticleEmitter* Owner) override;
 	virtual void GetCurveObjects(TArray<FParticleCurvePair>& OutCurves) override;
-	// End UParticleModule Interface
+	//~ End UParticleModule Interface
 	
-	// Begin UParticleModuleSubUV Interface
+	//~ Begin UParticleModuleSubUV Interface
 	virtual float DetermineImageIndex(FParticleEmitterInstance* Owner, int32 Offset, FBaseParticle* Particle, 
 		EParticleSubUVInterpMethod InterpMethod, FFullSubUVPayload& SubUVPayload, float DeltaTime) override;
-	// End UParticleModuleSubUV Interface
+	//~ End UParticleModuleSubUV Interface
 	
 };
 

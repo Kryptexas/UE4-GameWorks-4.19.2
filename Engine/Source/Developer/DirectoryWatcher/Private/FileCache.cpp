@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "DirectoryWatcherPrivatePCH.h"
 #include "FileCache.h"
@@ -722,7 +722,7 @@ TArray<FUpdateCacheTransaction> FFileCache::GetOutstandingChanges()
 	return PendingTransactions;
 }
 
-TArray<FUpdateCacheTransaction> FFileCache::FilterOutstandingChanges(const TFunctionRef<bool(const FUpdateCacheTransaction&, const FDateTime&)>& InPredicate)
+TArray<FUpdateCacheTransaction> FFileCache::FilterOutstandingChanges(TFunctionRef<bool(const FUpdateCacheTransaction&, const FDateTime&)> InPredicate)
 {
 	HarvestDirtyFileHashes();
 

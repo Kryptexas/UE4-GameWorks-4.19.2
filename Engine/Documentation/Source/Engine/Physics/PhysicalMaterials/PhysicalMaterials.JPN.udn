@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2678789
 Availability:Public
 Title:物理マテリアル
 Crumbs: %ROOT%, Engine, Engine/Physics
-Description:シミュレーションする物理プロパティの設定および制御に利用した、物理的なシミュレーションプリミティブに直接またはマテリアルを用いて適用したアセット
+Description:シミュレーションする物理プロパティの設定および制御に利用した、物理的なシミュレーション プリミティブに直接またはマテリアルを用いて適用したアセット
+バージョン：4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -54,7 +55,7 @@ Description:シミュレーションする物理プロパティの設定およ�
 	[/PARAM]
 	[PARAM:links]
 		* [](Engine/Physics/PhysicalMaterials/PhysMatUserGuide "%Engine/Physics/PhysicalMaterials/PhysMatUserGuide:description%")
-		* [](Engine/Physics/PhysicalMaterials/PhysMatReference "%Engine/Physics/PhysicalMaterials/PhysMatReference:description%")
+		* [](Engine/Physics/PhysicalMaterials/Reference "%Engine/Physics/PhysicalMaterials/Reference:description%")
 	[/PARAM]
 [/OBJECT]
 

@@ -9,10 +9,6 @@ Description:Programmer's guide to creating new types of render primitives.
 
 [TOC (start:2 end:3)]
 
-
-
-## Overview
-
 UPrimitiveComponents are Actor components that are rendered and collided against.  This page describes how to create a new UPrimitiveComponent type.
 
 

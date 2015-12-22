@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 #include "WidgetComponent.h"
@@ -12,144 +12,51 @@
 #include "WidgetLayoutLibrary.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "SGameLayerManager.h"
-
-extern SLATECORE_API int32 bFoldTick;
+#include "Slate/WidgetRenderer.h"
+#include "Slate/SWorldWidgetScreenLayer.h"
 
 DECLARE_CYCLE_STAT(TEXT("3DHitTesting"), STAT_Slate3DHitTesting, STATGROUP_Slate);
 
 static const FName SharedLayerName(TEXT("WidgetComponentScreenLayer"));
 
-class SWorldWidgetScreenLayer : public SCompoundWidget
-{
-	SLATE_BEGIN_ARGS(SWorldWidgetScreenLayer)
-	{
-		_Visibility = EVisibility::SelfHitTestInvisible;
-	}
-	SLATE_END_ARGS()
-
-public:
-	void Construct(const FArguments& InArgs, const TArray<TWeakObjectPtr<UWidgetComponent>>& InComponents)
-	{
-		Components = InComponents;
-
-		ChildSlot
-		[
-			SAssignNew(Canvas, SConstraintCanvas)
-		];
-	}
-
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override
-	{
-		TArray<UWidgetComponent*, TInlineAllocator<1>> DeadComponents;
-
-		for ( TWeakObjectPtr<UWidgetComponent> Component : Components )
-		{
-			if ( UWidgetComponent* WidgetComponent = Component.Get() )
-			{
-				if ( ULocalPlayer* LocalPlayer = WidgetComponent->GetOwnerPlayer() )
-				{
-					if ( APlayerController* PlayerController = LocalPlayer->PlayerController )
-					{
-						FVector WorldLocation = WidgetComponent->GetComponentLocation();
-
-						FVector ScreenPosition;
-						const bool bProjected = UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPositionWithDistance(PlayerController, WorldLocation, ScreenPosition);
-
-						if ( bProjected )
-						{
-							WidgetComponent->GetUserWidgetObject()->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
-
-							if ( SConstraintCanvas::FSlot* CanvasSlot = ComponentToSlot.FindRef(WidgetComponent) )
-							{
-								FVector2D DrawSize = WidgetComponent->GetDrawSize();
-								FVector2D Pivot = WidgetComponent->GetPivot();
-
-								CanvasSlot->AutoSize(DrawSize.IsZero());
-								CanvasSlot->Offset(FMargin(ScreenPosition.X, ScreenPosition.Y, DrawSize.X, DrawSize.Y));
-								CanvasSlot->Anchors(FAnchors(0, 0, 0, 0));
-								CanvasSlot->Alignment(Pivot);
-								CanvasSlot->ZOrder(-ScreenPosition.Z);
-							}
-						}
-						else
-						{
-							WidgetComponent->GetUserWidgetObject()->SetVisibility(ESlateVisibility::Hidden);
-						}
-					}
-				}
-			}
-			else
-			{
-				DeadComponents.Add(WidgetComponent);
-			}
-		}
-
-		// Normally components should be removed by someone calling remove component, but just in case it was 
-		// deleted in a way where they didn't happen, this is our backup solution to enure we remove stale widgets.
-		for ( int32 Index = 0; Index < DeadComponents.Num(); Index++ )
-		{
-			RemoveComponent(DeadComponents[Index]);
-		}
-	}
-
-	void AddComponent(UWidgetComponent* Component)
-	{
-		Components.AddUnique(Component);
-
-		SConstraintCanvas::FSlot* CanvasSlot;
-
-		Canvas->AddSlot()
-		.Expose(CanvasSlot)
-		[
-			Component->GetUserWidgetObject()->TakeWidget()
-		];
-
-		ComponentToSlot.Add(Component, CanvasSlot);
-	}
-
-	void RemoveComponent(UWidgetComponent* Component)
-	{
-		Components.RemoveSwap(Component);
-
-		TSharedPtr<SWidget> CachedWidget = Component->GetUserWidgetObject()->GetCachedWidget();
-		if ( CachedWidget.IsValid() )
-		{
-			Canvas->RemoveSlot(CachedWidget.ToSharedRef());
-		}
-
-		ComponentToSlot.Remove(Component);
-	}
-
-private:
-	TArray<TWeakObjectPtr<UWidgetComponent>> Components;
-	TMap<UWidgetComponent*, SConstraintCanvas::FSlot*> ComponentToSlot;
-	TSharedPtr<SConstraintCanvas> Canvas;
-};
-
 class FWorldWidgetScreenLayer : public IGameLayer
 {
 public:
+	FWorldWidgetScreenLayer(const FLocalPlayerContext& PlayerContext)
+	{
+		OwningPlayer = PlayerContext;
+	}
+
 	virtual ~FWorldWidgetScreenLayer()
 	{
 		// empty virtual destructor to help clang warning
 	}
-	
+
 	void AddComponent(UWidgetComponent* Component)
 	{
-		Components.AddUnique(Component);
-		if ( ScreenLayer.IsValid() )
+		if ( Component )
 		{
-			ScreenLayer.Pin()->AddComponent(Component);
+			Components.AddUnique(Component);
+			if ( ScreenLayer.IsValid() )
+			{
+				if ( UUserWidget* UserWidget = Component->GetUserWidgetObject() )
+				{
+					ScreenLayer.Pin()->AddComponent(Component, UserWidget->TakeWidget());
+				}
+			}
 		}
 	}
 
 	void RemoveComponent(UWidgetComponent* Component)
 	{
-		Components.RemoveSwap(Component);
-
-		if ( ScreenLayer.IsValid() )
+		if ( Component )
 		{
-			ScreenLayer.Pin()->RemoveComponent(Component);
+			Components.RemoveSwap(Component);
+
+			if ( ScreenLayer.IsValid() )
+			{
+				ScreenLayer.Pin()->RemoveComponent(Component);
+			}
 		}
 	}
 
@@ -160,35 +67,28 @@ public:
 			return ScreenLayer.Pin().ToSharedRef();
 		}
 
-		TSharedRef<SWorldWidgetScreenLayer> NewScreenLayer = SNew(SWorldWidgetScreenLayer, Components);
+		TSharedRef<SWorldWidgetScreenLayer> NewScreenLayer = SNew(SWorldWidgetScreenLayer, OwningPlayer);
 		ScreenLayer = NewScreenLayer;
+
+		// Add all the pending user widgets to the surface
+		for ( TWeakObjectPtr<UWidgetComponent>& WeakComponent : Components )
+		{
+			if ( UWidgetComponent* Component = WeakComponent.Get() )
+			{
+				if ( UUserWidget* UserWidget = Component->GetUserWidgetObject() )
+				{
+					NewScreenLayer->AddComponent(Component, UserWidget->TakeWidget());
+				}
+			}
+		}
 
 		return NewScreenLayer;
 	}
 
 private:
+	FLocalPlayerContext OwningPlayer;
 	TWeakPtr<SWorldWidgetScreenLayer> ScreenLayer;
 	TArray<TWeakObjectPtr<UWidgetComponent>> Components;
-};
-
-
-class SVirtualWindow : public SWindow
-{
-	SLATE_BEGIN_ARGS( SVirtualWindow )
-		: _Size( FVector2D(100,100) )
-	{}
-
-		SLATE_ARGUMENT( FVector2D, Size )
-	SLATE_END_ARGS()
-
-public:
-	void Construct( const FArguments& InArgs )
-	{
-		bIsPopupWindow = true;
-		SetCachedSize( InArgs._Size );
-		SetNativeWindow( MakeShareable( new FGenericWindow() ) );
-		SetContent( SNullWidget::NullWidget );
-	}
 };
 
 
@@ -281,11 +181,65 @@ public:
 		}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		RenderBounds(Collector.GetPDI(0), ViewFamily.EngineShowFlags, GetBounds(), IsSelected());
+		for ( int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++ )
+		{
+			if ( VisibilityMap & ( 1 << ViewIndex ) )
+			{
+				RenderCollision(BodySetup, Collector, ViewIndex, ViewFamily.EngineShowFlags, GetBounds(), IsSelected());
+				RenderBounds(Collector.GetPDI(ViewIndex), ViewFamily.EngineShowFlags, GetBounds(), IsSelected());
+			}
+		}
 #endif
 	}
 
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
+	void RenderCollision(UBodySetup* InBodySetup, FMeshElementCollector& Collector, int32 ViewIndex, const FEngineShowFlags& EngineShowFlags, const FBoxSphereBounds& Bounds, bool bRenderInEditor) const
+	{
+		if ( InBodySetup )
+		{
+			bool bDrawCollision = EngineShowFlags.Collision && IsCollisionEnabled();
+
+			if ( bDrawCollision && AllowDebugViewmodes() )
+			{
+				// Draw simple collision as wireframe if 'show collision', collision is enabled, and we are not using the complex as the simple
+				const bool bDrawSimpleWireframeCollision = InBodySetup->CollisionTraceFlag != ECollisionTraceFlag::CTF_UseComplexAsSimple;
+
+				if ( FMath::Abs(GetLocalToWorld().Determinant()) < SMALL_NUMBER )
+				{
+					// Catch this here or otherwise GeomTransform below will assert
+					// This spams so commented out
+					//UE_LOG(LogStaticMesh, Log, TEXT("Zero scaling not supported (%s)"), *StaticMesh->GetPathName());
+				}
+				else
+				{
+					const bool bDrawSolid = !bDrawSimpleWireframeCollision;
+					const bool bProxyIsSelected = IsSelected();
+
+					if ( bDrawSolid )
+					{
+						// Make a material for drawing solid collision stuff
+						auto SolidMaterialInstance = new FColoredMaterialRenderProxy(
+							GEngine->ShadedLevelColorationUnlitMaterial->GetRenderProxy(IsSelected(), IsHovered()),
+							WireframeColor
+							);
+
+						Collector.RegisterOneFrameMaterialProxy(SolidMaterialInstance);
+
+						FTransform GeomTransform(GetLocalToWorld());
+						InBodySetup->AggGeom.GetAggGeom(GeomTransform, WireframeColor.ToFColor(true), SolidMaterialInstance, false, true, UseEditorDepthTest(), ViewIndex, Collector);
+					}
+					// wireframe
+					else
+					{
+						FColor CollisionColor = FColor(157, 149, 223, 255);
+						FTransform GeomTransform(GetLocalToWorld());
+						InBodySetup->AggGeom.GetAggGeom(GeomTransform, GetSelectionColor(CollisionColor, bProxyIsSelected, IsHovered()).ToFColor(true), nullptr, false, false, UseEditorDepthTest(), ViewIndex, Collector);
+					}
+				}
+			}
+		}
+	}
+
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
 	{
 		bool bVisible = true;
 
@@ -528,13 +482,23 @@ UWidgetComponent::UWidgetComponent( const FObjectInitializer& PCIP )
 	Pivot = FVector2D(0.5, 0.5);
 
 	bAddedToScreen = false;
+
+	// We want this because we want EndPlay to be called!
+	bWantsBeginPlay = true;
 }
+
+void UWidgetComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	ReleaseResources();
+	Super::EndPlay(EndPlayReason);
+}
+
 
 FPrimitiveSceneProxy* UWidgetComponent::CreateSceneProxy()
 {
-	if ( Space != EWidgetSpace::Screen && Renderer.IsValid() )
+	if ( Space != EWidgetSpace::Screen && WidgetRenderer.IsValid() )
 	{
-		return new FWidget3DSceneProxy(this, *Renderer);
+		return new FWidget3DSceneProxy(this, *WidgetRenderer->GetSlateRenderer());
 	}
 	
 	return nullptr;
@@ -544,7 +508,6 @@ FBoxSphereBounds UWidgetComponent::CalcBounds(const FTransform & LocalToWorld) c
 {
 	if ( Space != EWidgetSpace::Screen )
 	{
-
 		if( bUseLegacyRotation )
 		{
 			const FVector Origin = FVector(
@@ -557,8 +520,8 @@ FBoxSphereBounds UWidgetComponent::CalcBounds(const FTransform & LocalToWorld) c
 		else
 		{
 			const FVector Origin = FVector(.5f,
-			( DrawSize.X * 0.5f ) - ( DrawSize.X * Pivot.X ),
-			( DrawSize.Y * 0.5f ) - ( DrawSize.Y * Pivot.Y ));
+			-( DrawSize.X * 0.5f ) + ( DrawSize.X * Pivot.X ),
+			-( DrawSize.Y * 0.5f ) + ( DrawSize.Y * Pivot.Y ));
 
 			const FVector BoxExtent = FVector(1.f, DrawSize.X / 2.0f, DrawSize.Y / 2.0f);
 
@@ -642,15 +605,17 @@ void UWidgetComponent::OnRegister()
 			}
 		}
 
-		InitWidget();
-
 		if ( Space != EWidgetSpace::Screen )
 		{
-			if ( !Renderer.IsValid() )
+			if ( !WidgetRenderer.IsValid() && !GUsingNullRHI )
 			{
-				Renderer = FModuleManager::Get().LoadModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer").CreateSlate3DRenderer();
+				WidgetRenderer = MakeShareable(new FWidgetRenderer());
 			}
 		}
+
+		BodySetup = nullptr;
+
+		InitWidget();
 	}
 #endif // !UE_SERVER
 }
@@ -677,7 +642,12 @@ void UWidgetComponent::OnUnregister()
 		}
 	}
 
-	ReleaseResources();
+#if WITH_EDITOR
+	if (!GetWorld()->IsGameWorld())
+	{
+		ReleaseResources();
+	}
+#endif
 
 	Super::OnUnregister();
 }
@@ -698,13 +668,15 @@ void UWidgetComponent::ReleaseResources()
 		Widget = nullptr;
 	}
 
-	Renderer.Reset();
+	WidgetRenderer.Reset();
 	SlateWidget.Reset();
 	HitTestGrid.Reset();
 }
 
 void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
 #if !UE_SERVER
 
 	static const int32 LayerZOrder = -100;
@@ -718,65 +690,13 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 
 	if ( Space != EWidgetSpace::Screen )
 	{
-		if ( !SlateWidget.IsValid() )
-		{
-			return;
-		}
-
-		if ( DrawSize.X == 0 || DrawSize.Y == 0 )
-		{
-			return;
-		}
-
 		const float RenderTimeThreshold = .5f;
 		if ( IsVisible() )
 		{
 			// If we don't tick when off-screen, don't bother ticking if it hasn't been rendered recently
 			if ( TickWhenOffscreen || GetWorld()->TimeSince(LastRenderTime) <= RenderTimeThreshold )
 			{
-				SlateWidget->SlatePrepass();
-
-				FGeometry WindowGeometry = FGeometry::MakeRoot(DrawSize, FSlateLayoutTransform());
-
-				if ( !bFoldTick )
-				{
-					SlateWidget->TickWidgetsRecursively(WindowGeometry, FApp::GetCurrentTime(), DeltaTime);
-				}
-
-				// Ticking can cause geometry changes.  Recompute
-				SlateWidget->SlatePrepass();
-
-				// Get the free buffer & add our virtual window
-				FSlateDrawBuffer& DrawBuffer = Renderer->GetDrawBuffer();
-				FSlateWindowElementList& WindowElementList = DrawBuffer.AddWindowElementList(SlateWidget.ToSharedRef());
-
-				int32 MaxLayerId = 0;
-				{
-					// Prepare the test grid 
-					HitTestGrid->ClearGridForNewFrame(WindowGeometry.GetClippingRect());
-
-					// Paint the window
-					MaxLayerId = SlateWidget->Paint(
-						FPaintArgs(SlateWidget.ToSharedRef(), *HitTestGrid, FVector2D::ZeroVector, FApp::GetCurrentTime(), DeltaTime),
-						WindowGeometry, WindowGeometry.GetClippingRect(),
-						WindowElementList,
-						0,
-						FWidgetStyle(),
-						SlateWidget->IsEnabled());
-				}
-
-				Renderer->DrawWindow_GameThread(DrawBuffer);
-
-				UpdateRenderTarget();
-
-				// Enqueue a command to unlock the draw buffer after all windows have been drawn
-				ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(UWidgetComponentRenderToTexture,
-					FSlateDrawBuffer&, InDrawBuffer, DrawBuffer,
-					UTextureRenderTarget2D*, InRenderTarget, RenderTarget,
-					ISlate3DRenderer*, InRenderer, Renderer.Get(),
-					{
-						InRenderer->DrawWindowToTarget_RenderThread(RHICmdList, InRenderTarget, InDrawBuffer);
-					});
+				DrawWidgetToRenderTarget(DeltaTime);
 			}
 		}
 	}
@@ -802,10 +722,12 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 							{
 								TSharedPtr<FWorldWidgetScreenLayer> ScreenLayer;
 
+								FLocalPlayerContext PlayerContext(TargetPlayer, GetWorld());
+
 								TSharedPtr<IGameLayer> Layer = LayerManager->FindLayerForPlayer(TargetPlayer, SharedLayerName);
 								if ( !Layer.IsValid() )
 								{
-									TSharedRef<FWorldWidgetScreenLayer> NewScreenLayer = MakeShareable(new FWorldWidgetScreenLayer());
+									TSharedRef<FWorldWidgetScreenLayer> NewScreenLayer = MakeShareable(new FWorldWidgetScreenLayer(PlayerContext));
 									LayerManager->AddLayerForPlayer(TargetPlayer, SharedLayerName, NewScreenLayer, LayerZOrder);
 									ScreenLayer = NewScreenLayer;
 								}
@@ -816,7 +738,7 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 								
 								bAddedToScreen = true;
 								
-								Widget->SetPlayerContext(TargetPlayer);
+								Widget->SetPlayerContext(PlayerContext);
 								ScreenLayer->AddComponent(this);
 							}
 						}
@@ -831,6 +753,36 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 	}
 
 #endif // !UE_SERVER
+}
+
+void UWidgetComponent::DrawWidgetToRenderTarget(float DeltaTime)
+{
+	if ( GUsingNullRHI )
+	{
+		return;
+	}
+
+	if ( !SlateWidget.IsValid() )
+	{
+		return;
+	}
+
+	if ( DrawSize.X == 0 || DrawSize.Y == 0 )
+	{
+		return;
+	}
+	
+	UpdateRenderTarget();
+
+	const float DrawScale = 1.0f;
+
+	WidgetRenderer->DrawWindow(
+		RenderTarget,
+		HitTestGrid.ToSharedRef(),
+		SlateWidget.ToSharedRef(),
+		DrawScale,
+		DrawSize,
+		DeltaTime);
 }
 
 void UWidgetComponent::RemoveWidgetFromScreen()
@@ -927,15 +879,14 @@ void UWidgetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCha
 
 		auto PropertyName = Property->GetFName();
 
-		if( PropertyName == DrawSizeName || PropertyName == WidgetClassName )
+		if( PropertyName == WidgetClassName )
 		{
 			UpdateWidget();
-
-			if ( PropertyName == DrawSizeName || PropertyName == PivotName )
-			{
-				UpdateBodySetup(true);
-			}
-
+			MarkRenderStateDirty();
+		}
+		else if ( PropertyName == DrawSizeName || PropertyName == PivotName )
+		{
+			UpdateBodySetup(true);
 			MarkRenderStateDirty();
 		}
 		else if ( PropertyName == IsOpaqueName || PropertyName == IsTwoSidedName )
@@ -962,11 +913,7 @@ void UWidgetComponent::InitWidget()
 		{
 			Widget = CreateWidget<UUserWidget>(GetWorld(), WidgetClass);
 		}
-		else if ( !WidgetClass && Widget )
-		{
-			Widget = nullptr;
-		}
-
+		
 #if WITH_EDITOR
 		if ( Widget && !GetWorld()->IsGameWorld() )
 		{
@@ -1073,6 +1020,7 @@ void UWidgetComponent::UpdateRenderTarget()
 			if ( RenderTarget->SizeX != DrawSize.X || RenderTarget->SizeY != DrawSize.Y )
 			{
 				RenderTarget->InitCustomFormat(DrawSize.X, DrawSize.Y, PF_B8G8R8A8, false);
+				RenderTarget->UpdateResourceImmediate(false);
 				bRenderStateDirty = true;
 			}
 
@@ -1081,6 +1029,11 @@ void UWidgetComponent::UpdateRenderTarget()
 			{
 				RenderTarget->ClearColor = ActualBackgroundColor;
 				bClearColorChanged = bRenderStateDirty = true;
+			}
+
+			if ( bRenderStateDirty )
+			{
+				RenderTarget->UpdateResource();
 			}
 		}
 	}
@@ -1116,7 +1069,7 @@ void UWidgetComponent::UpdateBodySetup( bool bDrawSizeChanged )
 		// We do not have a bodysetup in screen space
 		BodySetup = nullptr;
 	}
-	else if( !BodySetup || bDrawSizeChanged )
+	else if ( !BodySetup || bDrawSizeChanged )
 	{
 		BodySetup = NewObject<UBodySetup>(this);
 		BodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
@@ -1128,10 +1081,9 @@ void UWidgetComponent::UpdateBodySetup( bool bDrawSizeChanged )
 		if( bUseLegacyRotation )
 		{
 			Origin = FVector(
-				(DrawSize.X * 0.5f) - ( DrawSize.X * Pivot.X ),
-				(DrawSize.Y * 0.5f) - ( DrawSize.Y * Pivot.Y ), .5f);
+				( DrawSize.X * 0.5f ) - ( DrawSize.X * Pivot.X ),
+				( DrawSize.Y * 0.5f ) - ( DrawSize.Y * Pivot.Y ), .5f);
 
-					
 			BoxElem->X = DrawSize.X;
 			BoxElem->Y = DrawSize.Y;
 			BoxElem->Z = 1.0f;
@@ -1139,9 +1091,9 @@ void UWidgetComponent::UpdateBodySetup( bool bDrawSizeChanged )
 		else
 		{
 			Origin = FVector(.5f,
-				(DrawSize.X * 0.5f) - ( DrawSize.X * Pivot.X ),
-				(DrawSize.Y * 0.5f) - ( DrawSize.Y * Pivot.Y ) );
-					
+				-( DrawSize.X * 0.5f ) + ( DrawSize.X * Pivot.X ),
+				-( DrawSize.Y * 0.5f ) + ( DrawSize.Y * Pivot.Y ));
+			
 			BoxElem->X = 1.0f;
 			BoxElem->Y = DrawSize.X;
 			BoxElem->Z = DrawSize.Y;
@@ -1149,7 +1101,7 @@ void UWidgetComponent::UpdateBodySetup( bool bDrawSizeChanged )
 
 		BoxElem->SetTransform(FTransform::Identity);
 		BoxElem->Center = Origin;
-	}	
+	}
 }
 
 void UWidgetComponent::GetLocalHitLocation(FVector WorldHitLocation, FVector2D& OutLocalWidgetHitLocation) const

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TextureRenderTarget.cpp: UTextureRenderTarget implementation
@@ -157,7 +157,7 @@ void FDeferredUpdateResource::AddToDeferredUpdateList( bool OnlyUpdateOnce )
 	if( !bExists )
 	{
 		UpdateListLink = TLinkedList<FDeferredUpdateResource*>(this);
-		UpdateListLink.Link(UpdateList);
+		UpdateListLink.LinkHead(UpdateList);
 		bNeedsUpdate = true;
 	}
 	bOnlyUpdateOnce=OnlyUpdateOnce;

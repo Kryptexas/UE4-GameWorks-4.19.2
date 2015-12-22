@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
 #include "SequencerSnapField.h"
@@ -7,6 +7,8 @@
 #include "SSequencer.h"
 #include "MovieSceneSection.h"
 #include "SequencerEntityVisitor.h"
+#include "MovieSceneSequence.h"
+#include "MovieScene.h"
 
 struct FSnapGridVisitor : ISequencerEntityVisitor
 {
@@ -61,6 +63,11 @@ FSequencerSnapField::FSequencerSnapField(const ISequencer& InSequencer, ISequenc
 	// Traverse the visible space, collecting snapping times as we go
 	FSnapGridVisitor Visitor(Candidate, EntityMask);
 	Walker.Traverse(Visitor, VisibleNodes);
+
+	// Add the playback range start/end bounds as potential snap candidates
+	TRange<float> PlaybackRange = InSequencer.GetFocusedMovieSceneSequence()->GetMovieScene()->GetPlaybackRange();
+	Visitor.Snaps.Add(FSequencerSnapPoint{ FSequencerSnapPoint::PlaybackRange, PlaybackRange.GetLowerBoundValue() });
+	Visitor.Snaps.Add(FSequencerSnapPoint{ FSequencerSnapPoint::PlaybackRange, PlaybackRange.GetUpperBoundValue() });
 
 	// Sort
 	Visitor.Snaps.Sort([](const FSequencerSnapPoint& A, const FSequencerSnapPoint& B){

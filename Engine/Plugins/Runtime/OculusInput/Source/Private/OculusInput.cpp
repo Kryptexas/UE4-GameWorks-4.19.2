@@ -1,10 +1,10 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "OculusInput.h"
 #include "Features/IModularFeatures.h"
 #include "IOculusRiftPlugin.h"
 
-#if OCULUS_TOUCH_SUPPORTED_PLATFORMS
+#if USE_OVR_MOTION_SDK
 
 #define OVR_TESTING 0
 #define OVR_DEBUG_LOGGING 0
@@ -125,6 +125,7 @@ void FOculusInput::SendControllerEvents()
 	const float ButtonRepeatDelay = 0.1f;
 	const float AnalogButtonPressThreshold = TriggerThreshold;
 
+	check(IOculusRiftPlugin::IsAvailable());
 	IOculusRiftPlugin& OculusRiftPlugin = IOculusRiftPlugin::Get();
 	ovrSession OvrSession = OculusRiftPlugin.GetSession();
 	UE_CLOG(OVR_DEBUG_LOGGING, LogOcInput, Log, TEXT("SendControllerEvents: OvrSession = %p"), OvrSession);
@@ -138,7 +139,7 @@ void FOculusInput::SendControllerEvents()
 
 		UE_CLOG(OVR_DEBUG_LOGGING, LogOcInput, Log, TEXT("SendControllerEvents: ovr_GetInputState() ret = %d, GetCurrentTrackingState ret = %d"), int(OvrRes), int(bOvrGCTRes));
 
-		if (OvrRes == ovrSuccess && bOvrGCTRes)
+		if (OVR_SUCCESS(OvrRes) && bOvrGCTRes)
 		{
 			UE_CLOG(OVR_DEBUG_LOGGING, LogOcInput, Log, TEXT("SendControllerEvents: ConnectedControllerTypes 0x%X"), OvrInput.ConnectedControllerTypes);
 			UE_CLOG(OVR_DEBUG_LOGGING, LogOcInput, Log, TEXT("SendControllerEvents: ButtonState = 0x%X"), OvrInput.Buttons);
@@ -523,4 +524,4 @@ float FOculusInput::GetHapticAmplitudeScale() const
 }
 
 #undef LOCTEXT_NAMESPACE
-#endif	 // OCULUS_TOUCH_SUPPORTED_PLATFORMS
+#endif	 // USE_OVR_MOTION_SDK

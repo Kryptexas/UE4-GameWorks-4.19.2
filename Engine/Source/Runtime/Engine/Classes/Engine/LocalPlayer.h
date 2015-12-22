@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 //=============================================================================
 // LocalPlayer
@@ -13,12 +13,13 @@
 #define INVALID_CONTROLLERID 255
 
 class FUniqueNetId;
+class UWorld;
 
 /** A context object that binds to a LocalPlayer. Useful for UI or other things that need to pass around player references */
 struct ENGINE_API FLocalPlayerContext
 {
 	FLocalPlayerContext();
-	FLocalPlayerContext(const class ULocalPlayer* InLocalPlayer);
+	FLocalPlayerContext(const class ULocalPlayer* InLocalPlayer, UWorld* InWorld = nullptr);
 	FLocalPlayerContext(const class APlayerController* InPlayerController);
 	FLocalPlayerContext(const FLocalPlayerContext& InPlayerContext);
 
@@ -132,6 +133,8 @@ private:
 	void SetPlayerController( const class APlayerController* InPlayerController );
 
 	TWeakObjectPtr<class ULocalPlayer>		LocalPlayer;
+
+	TWeakObjectPtr<UWorld>					World;
 };
 
 /**

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HeightfieldLighting.usf
@@ -427,7 +427,7 @@ void LightHeightfieldsPS(
 	float3 DiffuseColor = GetGlobalDiffuseColor(Input.GlobalUV);
 	float3 Lighting = (Shadowing * GreyScaleLightFunction * saturate(dot(-LightDirection, WorldHeightfieldNormal))) * LightColor;
 	 
-	float3 SkylightDiffuse = GetSkySHDiffuse(WorldHeightfieldNormal) * View.SkyLightColor.rgb * SkyLightIndirectScale;
+	float3 SkylightDiffuse = GetSkySHDiffuse(WorldHeightfieldNormal) * Frame.SkyLightColor.rgb * SkyLightIndirectScale;
 	Lighting += SkylightDiffuse;
 
 	OutColor = float4(DiffuseColor * Lighting, 0);
@@ -988,6 +988,79 @@ void CalculateHeightfieldIrradianceScreenGridCS(
 		{
 			uint OutputIndex = OutputCoordinate.y * ScreenGridConeVisibilitySize.x + OutputCoordinate.x;
 			RWHeightfieldIrradiance[OutputIndex] = float4(Irradiance, 0);
+		}
+	}
+}
+
+// In float's, must match FConvertToUniformMeshVertex and ComputeUniformVertexStride()
+#define TRIANGLE_VERTEX_DATA_STRIDE 24
+
+uint StartIndex;
+uint NumTriangles;
+Buffer<float> TriangleVertexData;
+
+float LoadVertexAttribute(uint TriangleIndex, uint VertexIndex, uint AttributeIndex)
+{
+	return TriangleVertexData[(TriangleIndex * 3 + VertexIndex) * TRIANGLE_VERTEX_DATA_STRIDE + AttributeIndex];
+}
+
+RWBuffer<uint> RWTriangleVisibleMask;
+
+#ifndef PRECULL_TRIANGLES_TO_HEIGHTFIELDS_GROUP_SIZE
+#define PRECULL_TRIANGLES_TO_HEIGHTFIELDS_GROUP_SIZE 1
+#endif
+
+/**  */
+[numthreads(PRECULL_TRIANGLES_TO_HEIGHTFIELDS_GROUP_SIZE, 1, 1)]
+void PreCullTrianglesToHeightfieldsCS(
+	uint3 GroupId : SV_GroupID,
+	uint3 DispatchThreadId : SV_DispatchThreadID,
+    uint3 GroupThreadId : SV_GroupThreadID) 
+{
+	uint TriangleIndex = DispatchThreadId.x;
+
+	if (TriangleIndex < NumTriangles)
+	{
+		uint GlobalTriangleIndex = TriangleIndex + StartIndex / 3;
+		float3 Position0 = float3(LoadVertexAttribute(GlobalTriangleIndex, 0, 0), LoadVertexAttribute(GlobalTriangleIndex, 0, 1), LoadVertexAttribute(GlobalTriangleIndex, 0, 2));
+		float3 Position1 = float3(LoadVertexAttribute(GlobalTriangleIndex, 1, 0), LoadVertexAttribute(GlobalTriangleIndex, 1, 1), LoadVertexAttribute(GlobalTriangleIndex, 1, 2));
+		float3 Position2 = float3(LoadVertexAttribute(GlobalTriangleIndex, 2, 0), LoadVertexAttribute(GlobalTriangleIndex, 2, 1), LoadVertexAttribute(GlobalTriangleIndex, 2, 2));
+		/*
+		float3 TriangleNormal = cross(Position2 - Position0, Position1 - Position0);
+		float TriangleArea = .5f * length(TriangleNormal);
+		uint NumSamplesOneDim = 10;
+		float SampleArea = TriangleArea / (NumSamplesOneDim * NumSamplesOneDim);
+		float SampleRadius = .5f * sqrt(2 * SampleArea);
+		*/
+		float3 InterpolatedPosition = (Position0 + Position1 + Position2) / 3.0f;
+		float SampleRadius = length(InterpolatedPosition - Position0);
+
+		bool bTriangleIsVisible = true;
+
+		LOOP
+		for (uint HeightfieldIndex = 0; HeightfieldIndex < NumHeightfields; HeightfieldIndex++)
+		{
+			float3 LocalPosition = mul(float4(InterpolatedPosition, 1), GetWorldToLocal(HeightfieldIndex)).xyz;
+			float4 MinMaxHeightfieldUV;
+			float2 HeightfieldUV = GetHeightfieldUV(HeightfieldIndex, LocalPosition.xy, MinMaxHeightfieldUV);
+
+			BRANCH
+			if (all(HeightfieldUV > MinMaxHeightfieldUV.xy) 
+				&& all(HeightfieldUV < MinMaxHeightfieldUV.zw))
+			{
+				float3 WorldHeightfieldShadingPosition = GetHeightfieldWorldPosition(HeightfieldIndex, LocalPosition.xy, HeightfieldUV);
+
+				//@todo - multiple samples to reduce error
+				if (InterpolatedPosition.z + SampleRadius * 1.5f < WorldHeightfieldShadingPosition.z)
+				{
+					bTriangleIsVisible = false;
+				}
+			}
+		}
+		
+		if (!bTriangleIsVisible)
+		{
+			RWTriangleVisibleMask[GlobalTriangleIndex] = 0;
 		}
 	}
 }

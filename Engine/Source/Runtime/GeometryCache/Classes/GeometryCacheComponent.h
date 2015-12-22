@@ -1,8 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "GeometryCacheModulePrivatePCH.h"
+#include "GeometryCacheModulePublicPCH.h"
 #include "GeometryCache.h"
 #include "DynamicMeshBuilder.h"
 
@@ -19,20 +19,17 @@ struct FTrackRenderData
 
 	~FTrackRenderData()
 	{
-		MeshData = NULL;
+		MeshData = nullptr;
 	}
 	
-	/** Pointer to FGeometryCacheMeshData containing vertex-data, bounding box and batch-info*/
+	/** Pointer to FGeometryCacheMeshData containing vertex-data, bounding box, index buffer and batch-info*/
 	FGeometryCacheMeshData* MeshData;
 	/** World matrix used to render this specific track */
 	FMatrix WorldMatrix;
-	/** Index Buffer generated according to the vertex-data */
-	TArray<int32> IndexBuffer;
 
 	void Reset()
 	{
-		IndexBuffer.Empty();
-		MeshData = NULL;
+		MeshData = nullptr;
 	}
 };
 
@@ -45,34 +42,34 @@ class GEOMETRYCACHE_API UGeometryCacheComponent : public UMeshComponent
 	/** Required for access to (protected) TrackSections */
 	friend FGeometryCacheSceneProxy;
 		
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void BeginDestroy() override;
 #if WITH_EDITOR
 	virtual void PreEditUndo() override;
 	virtual void PostEditUndo() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	// End UObject Interface
+	//~ End UObject Interface
 
-	// Begin UActorComponent Interface.
+	//~ Begin UActorComponent Interface.
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
-	// End UActorComponent Interface.
+	//~ End UActorComponent Interface.
 
-	// Begin USceneComponent Interface.
+	//~ Begin USceneComponent Interface.
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	/** Update LocalBounds member from the local box of each section */
 	void UpdateLocalBounds();
-	// Begin USceneComponent Interface.	
+	//~ Begin USceneComponent Interface.	
 
-	// Begin UPrimitiveComponent Interface.
+	//~ Begin UPrimitiveComponent Interface.
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
-	// End UPrimitiveComponent Interface.
+	//~ End UPrimitiveComponent Interface.
 
-	// Begin UMeshComponent Interface.
+	//~ Begin UMeshComponent Interface.
 	virtual int32 GetNumMaterials() const override;
-	// End UMeshComponent Interface.
+	//~ End UMeshComponent Interface.
 
 	/**
 	* CreateTrackSection, Create/replace a track section.
@@ -112,14 +109,26 @@ class GEOMETRYCACHE_API UGeometryCacheComponent : public UMeshComponent
 	* @param SectionIndex - Index of the section we want to update
 	* @param Indices - Array with new indices
 	*/
-	void UpdateTrackSectionIndexbuffer(int32 SectionIndex, const TArray<int32>& Indices );
+	void UpdateTrackSectionIndexbuffer(int32 SectionIndex, const TArray<uint32>& Indices );
 
 	/**
-	* OnObjectReimported QQQ
+	* OnObjectReimported, Callback function to refresh section data and update scene proxy.
 	*
-	* @param ImportedGeometryCache - Callback function to refresh section data and update sceneproxy
+	* @param ImportedGeometryCache
 	*/
 	void OnObjectReimported(UGeometryCache* ImportedGeometryCache);
+
+	/**
+	* SetupTrackData
+	* Setup data required for playback of geometry cache tracks
+	*/
+	void SetupTrackData();
+	
+	/**
+	* ClearTrackData
+	* Clean up data that was required for playback of geometry cache tracks
+	*/
+	void ClearTrackData();
 
 	/** Start playback of GeometryCache */
 	UFUNCTION(BlueprintCallable, Category = "Components|GeometryCache")
@@ -168,11 +177,29 @@ class GEOMETRYCACHE_API UGeometryCacheComponent : public UMeshComponent
 	/** Get whether this GeometryCache is playing or not. */
 	UFUNCTION(BlueprintCallable, Category = "Components|GeometryCache")
 	void SetPlaybackSpeed(const float NewPlaybackSpeed);
-	
+
+	/** Change the Geometry Cache used by this instance. */
+	UFUNCTION(BlueprintCallable, Category = "Components|GeometryCache")
+	virtual bool SetGeometryCache( UGeometryCache* NewGeomCache );
+
+	/** Getter for Geometry cache instance referred by the component */
+	UGeometryCache* GetGeometryCache() const;
+
 	/** Geometry Cache instance referenced by the component */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = GeometryCache)
 	UGeometryCache* GeometryCache;
-	
+		
+protected:
+	/**
+	* Invalidate both the Matrix and Mesh sample indices
+	*/
+	void InvalidateTrackSampleIndices();
+
+	/**
+	* ReleaseResources, clears and removes data stored/copied from GeometryCache instance	
+	*/
+	void ReleaseResources();	
+
 	UPROPERTY(EditAnywhere, Category = GeometryCache)
 	bool bRunning;
 
@@ -190,17 +217,6 @@ class GEOMETRYCACHE_API UGeometryCacheComponent : public UMeshComponent
 
 	UPROPERTY(VisibleAnywhere, Category = GeometryCache)
 	float ElapsedTime;
-
-protected:
-	/**
-	* Invalidate both the Matrix and Mesh sample indices
-	*/
-	void InvalidateTrackSampleIndices();
-
-	/**
-	* ReleaseResources, clears and removes data stored/copied from GeometryCache instance	
-	*/
-	void ReleaseResources();	
 
 	/** Local space bounds of mesh */
 	FBoxSphereBounds LocalBounds;

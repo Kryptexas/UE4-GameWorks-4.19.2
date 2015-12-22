@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraEditorPrivatePCH.h"
 #include "NiagaraScript.h"
@@ -16,7 +16,8 @@
  
 #define LOCTEXT_NAMESPACE "NiagaraEditor"
 
-const FName FNiagaraEditor::NodeGraphTabId(TEXT("NiagaraEditor_NodeGraph"));
+const FName FNiagaraEditor::NodeGraphTabId(TEXT("NiagaraEditor_NodeGraph")); 
+const FName FNiagaraEditor::FlattenedNodeGraphTabId(TEXT("NiagaraEditor_FlattenedNodeGraph")); 
 const FName FNiagaraEditor::PropertiesTabId(TEXT("NiagaraEditor_MaterialProperties"));
 
 void FNiagaraEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
@@ -29,7 +30,11 @@ void FNiagaraEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& Ta
 
 	TabManager->RegisterTabSpawner( NodeGraphTabId, FOnSpawnTab::CreateSP(this, &FNiagaraEditor::SpawnTab_NodeGraph) )
 		.SetDisplayName( LOCTEXT("NodeGraph", "Node Graph") )
-		.SetGroup(WorkspaceMenuCategoryRef);
+		.SetGroup(WorkspaceMenuCategoryRef); 
+
+	TabManager->RegisterTabSpawner( FlattenedNodeGraphTabId, FOnSpawnTab::CreateSP(this, &FNiagaraEditor::SpawnTab_FlattenedNodeGraph))
+		.SetDisplayName(LOCTEXT("FlattenedNodeGraph", "Flattened Node Graph"))
+		.SetGroup(WorkspaceMenuCategoryRef); 
 
 	TabManager->RegisterTabSpawner(PropertiesTabId, FOnSpawnTab::CreateSP(this, &FNiagaraEditor::SpawnTab_NodeProperties))
 		.SetDisplayName(LOCTEXT("DetailsTab", "Details"))
@@ -133,7 +138,7 @@ FLinearColor FNiagaraEditor::GetWorldCentricTabColorScale() const
 
 
 /** Create new tab for the supplied graph - don't call this directly, call SExplorer->FindTabForGraph.*/
-TSharedRef<SGraphEditor> FNiagaraEditor::CreateGraphEditorWidget(UEdGraph* InGraph)
+TSharedRef<SGraphEditor> FNiagaraEditor::CreateGraphEditorWidget(UEdGraph* InGraph, bool bEditable)
 {
 	check(InGraph != NULL);
 	
@@ -203,7 +208,8 @@ TSharedRef<SGraphEditor> FNiagaraEditor::CreateGraphEditorWidget(UEdGraph* InGra
 		.Appearance(AppearanceInfo)
 		.TitleBar(TitleBarWidget)
 		.GraphToEdit(InGraph)
-		.GraphEvents(InEvents);
+		.GraphEvents(InEvents)
+		.IsEditable(bEditable);
 }
 
 
@@ -211,13 +217,29 @@ TSharedRef<SDockTab> FNiagaraEditor::SpawnTab_NodeGraph( const FSpawnTabArgs& Ar
 {
 	check( Args.GetTabId().TabType == NodeGraphTabId );
 
-	TSharedRef<SGraphEditor> NodeGraphEditor = CreateGraphEditorWidget(Source->NodeGraph);
+	TSharedRef<SGraphEditor> NodeGraphEditor = CreateGraphEditorWidget(Source->NodeGraph, true);
 
 	NodeGraphEditorPtr = NodeGraphEditor; // Keep pointer to editor
 
 	return SNew(SDockTab)
 		.Label( LOCTEXT("NodeGraph", "Node Graph") )
 		.TabColorScale( GetTabColorScale() )
+		[
+			NodeGraphEditor
+		];
+}
+
+TSharedRef<SDockTab> FNiagaraEditor::SpawnTab_FlattenedNodeGraph(const FSpawnTabArgs& Args)
+{
+	check(Args.GetTabId().TabType == FlattenedNodeGraphTabId);
+
+	TSharedRef<SGraphEditor> NodeGraphEditor = CreateGraphEditorWidget(Source->FlattenedNodeGraph, false);
+
+	FlattenedNodeGraphEditorPtr = NodeGraphEditor; // Keep pointer to editor
+
+	return SNew(SDockTab)
+		.Label(LOCTEXT("Flattened NodeGraph", "Flattened Node Graph"))
+		.TabColorScale(GetTabColorScale())
 		[
 			NodeGraphEditor
 		];
@@ -299,6 +321,15 @@ void FNiagaraEditor::ExtendToolbar()
 FReply FNiagaraEditor::OnCompileClicked()
 {
 	Script->Source->Compile();
+
+	TSharedPtr<SGraphEditor> CurrentGraphEditor = NodeGraphEditorPtr.Pin();
+	if (CurrentGraphEditor.IsValid())
+		CurrentGraphEditor->NotifyGraphChanged();
+
+	TSharedPtr<SGraphEditor> FlattenedGraphEditor = FlattenedNodeGraphEditorPtr.Pin();
+	if (FlattenedGraphEditor.IsValid())
+		FlattenedGraphEditor->NotifyGraphChanged();
+
 	return FReply::Handled();
 }
 
@@ -398,16 +429,18 @@ bool FNiagaraEditor::CanDeleteNodes() const
 {
 	// If any of the nodes can be deleted then we should allow deleting
 	TSharedPtr<SGraphEditor> CurrentGraphEditor = NodeGraphEditorPtr.Pin();
-	const FGraphPanelSelectionSet SelectedNodes = CurrentGraphEditor->GetSelectedNodes();
-	for (FGraphPanelSelectionSet::TConstIterator SelectedIter(SelectedNodes); SelectedIter; ++SelectedIter)
+	if (CurrentGraphEditor.IsValid())
 	{
-		UEdGraphNode* Node = Cast<UEdGraphNode>(*SelectedIter);
-		if (Node && Node->CanUserDeleteNode())
+		const FGraphPanelSelectionSet SelectedNodes = CurrentGraphEditor->GetSelectedNodes();
+		for (FGraphPanelSelectionSet::TConstIterator SelectedIter(SelectedNodes); SelectedIter; ++SelectedIter)
 		{
-			return true;
+			UEdGraphNode* Node = Cast<UEdGraphNode>(*SelectedIter);
+			if (Node && Node->CanUserDeleteNode())
+			{
+				return true;
+			}
 		}
 	}
-
 	return false;
 }
 

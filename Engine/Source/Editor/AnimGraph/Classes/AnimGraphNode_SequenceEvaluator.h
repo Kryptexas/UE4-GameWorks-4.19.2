@@ -1,9 +1,9 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "AnimGraphNode_Base.h"
 #include "AnimGraphNode_AssetPlayerBase.h"
-#include "Animation/AnimNode_SequenceEvaluator.h"
+#include "AnimNodes/AnimNode_SequenceEvaluator.h"
 #include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "AnimGraphNode_SequenceEvaluator.generated.h"
 
@@ -22,7 +22,8 @@ class UAnimGraphNode_SequenceEvaluator : public UAnimGraphNode_AssetPlayerBase
 
 	// UAnimGraphNode_Base interface
 	virtual void ValidateAnimNodeDuringCompilation(class USkeleton* ForSkeleton, class FCompilerResultsLog& MessageLog) override;
-	virtual void PreloadRequiredAssets() override;	
+	virtual void PreloadRequiredAssets() override;
+	virtual void BakeDataDuringCompilation(class FCompilerResultsLog& MessageLog) override;
 	// Interface to support transition getter
 	virtual bool DoesSupportTimeForTransitionGetter() const override;
 	virtual UAnimationAsset* GetAnimationAsset() const override;

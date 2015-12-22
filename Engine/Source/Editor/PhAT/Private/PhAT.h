@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -88,11 +88,11 @@ public:
 	/** Returns whether a PIE session is running. */
 	static bool IsPIERunning();
 
-	// FTickableEditorObject interface
+	//~ Begin FTickableEditorObject Interface
 	virtual void Tick(float DeltaTime) override;
 	virtual bool IsTickable() const override { return true; }
 	virtual TStatId GetStatId() const override;
-	// End of FTickableEditorObject interface
+	//~ End FTickableEditorObject Interface
 
 	void OnFocusSelection();
 
@@ -104,7 +104,7 @@ private:
 		PHFM_Bodies
 	};
 
-	// Begin FEditorUndoClient Interface
+	//~ Begin FEditorUndoClient Interface
 	virtual void PostUndo(bool bSuccess) override;
 	virtual void PostRedo(bool bSuccess) override;
 	// End of FEditorUndoClient

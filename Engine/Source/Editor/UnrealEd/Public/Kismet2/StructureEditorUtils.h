@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "ListenerManager.h"
@@ -87,6 +87,13 @@ public:
 		MD_Down,
 	};
 	static bool MoveVariable(UUserDefinedStruct* Struct, FGuid VarGuid, EMoveDirection MoveDirection);
+
+	//Multi-line text
+	static bool CanEnableMultiLineText(const UUserDefinedStruct* Struct, FGuid VarGuid);
+
+	static bool ChangeMultiLineTextEnabled(UUserDefinedStruct* Struct, FGuid VarGuid, bool bIsEnabled);
+
+	static bool IsMultiLineTextEnabled(const UUserDefinedStruct* Struct, FGuid VarGuid);
 
 	//3D Widget
 	static bool CanEnable3dWidget(const UUserDefinedStruct* Struct, FGuid VarGuid);

@@ -1,14 +1,33 @@
-﻿INTSourceChangelist:2346413
+﻿INTSourceChangelist:2721906
 Availability:Public
 Title:1.1 - メタリック マテリアルの反射
 Crumbs: %ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Reflections
-Description:反射の事例概要、例 1.1：メタリック マテリアルの反射
+Description:反射のサンプル レベルの概要、サンプル 1.1：メタリック マテリアルの反射
 Related:Engine/Rendering/LightingAndShadows/ReflectionEnvironment
 Related:Engine/Rendering/LightingAndShadows/Lightmass
 Related:Engine/Rendering/LightingAndShadows/LightTypes/SkyLight\
 Related:Engine/Rendering/Materials/PhysicallyBased
 Related:Resources/Showcases/RealisticRendering
 Related:Engine/Rendering/PostProcessEffects
+Version:4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[反射のホーム](Resources/ContentExamples/Reflections)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/Reflections/1_2 "%Resources/ContentExamples/Reflections/1_2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
@@ -52,9 +71,7 @@ Related:Engine/Rendering/PostProcessEffects
 
 ![](Reflections_1_1_Header.png)
 
-## 概要
-
-**Reflection Capture** アクタはボックスまたは球状で、エフェクト ボリュームもしくは半径内に反射を映します。メタリック マテリアルは、 **Metallic** プロパティ値が高ければ高いほどクロムのようなマテリアルになります。これらのマテリアルは **Base Color** で反射を色付けをし、反射プロパティから色の大部分を受け取ります。
+**Reflection Capture** アクタはボックスまたは球状で、エフェクト ボリュームもしくは半径内に反射を映します。メタリック マテリアルは、 Metallic プロパティ値が高いほどクロムのようなマテリアルになります。これらのマテリアルは 色の大部分を反射プロパティから取得しますが、反射の色付けは Base Color で行います。
 
 
 [/REGION]

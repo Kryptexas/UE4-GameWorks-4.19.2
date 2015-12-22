@@ -2,6 +2,8 @@ Availability:Public
 Title:3. Create Your Project
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:Start a template project
+Version:4.9
+Skilllevel:Intermediate
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -19,23 +21,29 @@ Description:Start a template project
 [/OBJECT]
 [/VAR]
 
-
+In the following section we will be creating a new project for use to test deployment to Android with.
+The project that we create will be a Blueprint based project that will use the Blueprint Third Person template.
 
 
 %Steps%
 
 
-1.	Create a new project. Here we are testing a Blueprint-based project. If you start with a C++ project and then compile it, the following steps will be the same.  
+1. From the **Unreal Projects Browser** create a new Blueprint based project with the following options. 
+* Use the Third Person Template
+* Set target hardware to Mobile / Tablet
+* Set the Graphics level to Scalable 3D or 2D
+* Do not include the Starter Content
+* Give the project a name of AndroidProject
 
 ![](new_android_project.png)
 
 
 [REGION:tip]
-Note that we are not including the starter content in this project.
+While we have selected a Blueprint based project for this example, any type of project, C++ or Blueprint, can be used to packaged and deployed to an Android device.
 [/REGION]
 
 
 
-
-
 %Steps%
+
+

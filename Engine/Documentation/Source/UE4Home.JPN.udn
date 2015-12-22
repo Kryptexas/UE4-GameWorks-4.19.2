@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2613760
+﻿INTSourceChangelist:2738359
 Availability:Public
-Title: アンリアル エンジン 4 のドキュメント
+Title:アンリアル エンジン 4 のドキュメント
 Crumbs:
-Description: UE4 トップレベル リンク ドキュメント
+Description:アンリアル エンジン 4 を使いこなすためのリソース完全版
 Navigation:home
+
 
 [PUBLISH:Rocket]
 ## 検索
@@ -64,10 +65,13 @@ Navigation:home
 
 [/PUBLISH:Rocket]
 
+[DIR(end:"1" output:"role" org:"hierarchy" parent:"%ROOT%")]
+
+<!--
 [REGION:frontpage]
 	[REGION:features third]
 	%GettingStarted:role%
-	%Engine/UI:role%
+	%Engine/Editor:role%
 	%Engine:role%
 	%Programming:topicrole%
 	%Engine/Blueprints:role%
@@ -77,3 +81,4 @@ Navigation:home
 	%Support/Builds:role%
 	[/REGION]
 [/REGION]
+-->

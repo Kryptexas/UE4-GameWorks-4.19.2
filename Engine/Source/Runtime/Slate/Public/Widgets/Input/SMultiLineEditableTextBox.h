@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -30,6 +30,7 @@ public:
 		, _ClearTextSelectionOnFocusLoss( true )
 		, _RevertTextOnEscape( false )
 		, _ClearKeyboardFocusOnCommit( true )
+		, _AllowContextMenu(true)
 		, _AlwaysShowScrollbars( false )
 		, _HScrollBar()
 		, _VScrollBar()
@@ -41,6 +42,8 @@ public:
 		, _Margin()
 		, _ErrorReporting()
 		, _ModiferKeyForNewLine(EModifierKey::None)
+		, _TextShapingMethod()
+		, _TextFlowDirection()
 		{}
 
 		/** The styling of the textbox */
@@ -93,6 +96,9 @@ public:
 
 		/** Whether to clear keyboard focus when pressing enter to commit changes */
 		SLATE_ATTRIBUTE( bool, ClearKeyboardFocusOnCommit )
+
+		/** Whether the context menu can be opened  */
+		SLATE_ATTRIBUTE(bool, AllowContextMenu)
 
 		/** Should we always show the scrollbars (only affects internally created scroll bars) */
 		SLATE_ARGUMENT(bool, AlwaysShowScrollbars)
@@ -160,6 +166,12 @@ public:
 		/** The optional modifier key necessary to create a newline when typing into the editor. */
 		SLATE_ARGUMENT( EModifierKey::Type, ModiferKeyForNewLine)
 
+		/** Which text shaping method should we use? (unset to use the default returned by GetDefaultTextShapingMethod) */
+		SLATE_ARGUMENT( TOptional<ETextShapingMethod>, TextShapingMethod )
+		
+		/** Which text flow direction should we use? (unset to use the default returned by GetDefaultTextFlowDirection) */
+		SLATE_ARGUMENT( TOptional<ETextFlowDirection>, TextFlowDirection )
+
 	SLATE_END_ARGS()
 	
 	/**
@@ -226,6 +238,30 @@ public:
 	 * @param  InReadOnlyForegroundColor 	The read-only text color and opacity
 	 */
 	void SetReadOnlyForegroundColor(const TAttribute<FSlateColor>& InReadOnlyForegroundColor);
+
+	/** See TextShapingMethod attribute */
+	void SetTextShapingMethod(const TOptional<ETextShapingMethod>& InTextShapingMethod);
+
+	/** See TextFlowDirection attribute */
+	void SetTextFlowDirection(const TOptional<ETextFlowDirection>& InTextFlowDirection);
+
+	/** See WrapTextAt attribute */
+	void SetWrapTextAt(const TAttribute<float>& InWrapTextAt);
+
+	/** See AutoWrapText attribute */
+	void SetAutoWrapText(const TAttribute<bool>& InAutoWrapText);
+
+	/** See LineHeightPercentage attribute */
+	void SetLineHeightPercentage(const TAttribute<float>& InLineHeightPercentage);
+
+	/** See Margin attribute */
+	void SetMargin(const TAttribute<FMargin>& InMargin);
+
+	/** See Justification attribute */
+	void SetJustification(const TAttribute<ETextJustify::Type>& InJustification);
+
+	/** See the AllowContextMenu attribute */
+	void SetAllowContextMenu(const TAttribute< bool >& InAllowContextMenu);
 
 	/**
 	 * If InError is a non-empty string the TextBox will the ErrorReporting provided during construction
@@ -315,8 +351,12 @@ protected:
 	/** Read-only foreground color */
 	TAttribute<FSlateColor> ReadOnlyForegroundColor;
 
+	/** Whether to disable the context menu */
+	TAttribute< bool > AllowContextMenu;
+
 	/** Allows for inserting additional widgets that extend the functionality of the text box */
 	TSharedPtr<SHorizontalBox> Box;
+
 
 	/** Whether we have an externally supplied horizontal scrollbar or one created internally */
 	bool bHasExternalHScrollBar;

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -23,6 +23,7 @@ public:
 	TSharedPtr<FUICommandInfo> View_ParticleEventCounts;
 	TSharedPtr<FUICommandInfo> View_ParticleTimes;
 	TSharedPtr<FUICommandInfo> View_ParticleMemory;
+	TSharedPtr<FUICommandInfo> View_SystemCompleted;
 	TSharedPtr<FUICommandInfo> ToggleGeometry;
 	TSharedPtr<FUICommandInfo> ToggleGeometry_Properties;
 	TSharedPtr<FUICommandInfo> ToggleLocalVectorFields;

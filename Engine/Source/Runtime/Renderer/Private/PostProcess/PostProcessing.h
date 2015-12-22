@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessing.h: The center for all post processing activities.
@@ -15,8 +15,9 @@ class FPostprocessContext
 {
 public:
 
-	FPostprocessContext(FRenderingCompositionGraph& InGraph, const FViewInfo& InView);
+	FPostprocessContext(FRHICommandListImmediate& InRHICmdList, FRenderingCompositionGraph& InGraph, const FViewInfo& InView);
 
+	FRHICommandListImmediate& RHICmdList;
 	FRenderingCompositionGraph& Graph;
 	const FViewInfo& View;
 

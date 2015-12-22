@@ -1,12 +1,30 @@
-﻿INTSourceChangelist:2350233
-Availability:Public
-Title:1.11 - DOF (Depth of field:被写界深度) 
+﻿Availability:Public
+Title:1.11 - DOF（Depth of field:被写界深度）
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/PostProcessing
-Description:ポストプロセスの事例概要、例 1.11：DOF  (Depth of field:被写界深度) 
+Description:ポストプロセスのサンプル レベルの概要、サンプル 1.11：DOF  (Depth of field:被写界深度) 
 Related:Engine/Rendering/PostProcessEffects/DepthOfField
 Related:Engine/Rendering/Overview
 Related:Engine/Rendering/PostProcessEffects
 Related:Engine/Rendering/PostProcessEffects/PostProcessMaterials
+Version:4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/PostProcessing/1_10 "%:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[ポストプロセスのホーム](Resources/ContentExamples/PostProcessing)
+	[/PARAM]
+	[PARAM:next]
+		[前のサンプル](Resources/ContentExamples/PostProcessing/1_12 "%Resources/ContentExamples/PostProcessing/1_12:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]

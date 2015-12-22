@@ -1,8 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "UnitTest.h"
+#include "ProcessUnitTest.h"
 
 #include "ClientUnitTest.generated.h"
 
@@ -133,143 +133,13 @@ inline FString GetUnitTestFlagName(EUnitTestFlags Flag)
 
 
 /**
- * Enum for different stages of error log parsing
- */
-enum class EErrorLogStage : uint8
-{
-	ELS_NoError,		// No error logs have been received/parsed yet
-	ELS_ErrorStart,		// The text indicating the start of an error log is being parsed
-	ELS_ErrorDesc,		// The text describing the error is being parsed
-	ELS_ErrorCallstack,	// The callstack for the error is being parsed
-	ELS_ErrorExit		// The post-error exit message is being parsed (error parsing is effectively complete)
-};
-
-/**
- * Enum for specifying the suspend state of a process (typically the server)
- */
-enum class ESuspendState : uint8
-{
-	Active,				// Process is currently active/not-suspended
-	Suspended,			// Process is currently suspended
-};
-
-
-// Delegate definitions
-
-/**
- * Delegate notifying that the server suspend state has changed
- *
- * @param NewSuspendState	The new server suspend state
- */
-DECLARE_DELEGATE_OneParam(FOnSuspendStateChange, ESuspendState /*NewSuspendState*/);
-
-
-// Struct definitions
-
-/**
- * Struct used for storing and classifying each log error line
- */
-struct FErrorLog
-{
-	/** The stage of this error log line */
-	EErrorLogStage Stage;
-
-	/** The error log line */
-	FString Line;
-
-
-	/**
-	 * Base constructor
-	 */
-	FErrorLog()
-		: Stage(EErrorLogStage::ELS_NoError)
-		, Line()
-	{
-	}
-
-	FErrorLog(EErrorLogStage InStage, const FString& InLine)
-		: Stage(InStage)
-		, Line(InLine)
-	{
-	}
-};
-
-/**
- * Struct used for handling a launched UE4 client/server process
- */
-struct FUnitTestProcess
-{
-	friend class UClientUnitTest;
-
-	/** Process handle for the launched process */
-	FProcHandle ProcessHandle;
-
-	/** The process ID */
-	uint32 ProcessID;
-
-	/** The suspend state of the process (implemented as a part of unit test code, does not relate to OS API) */
-	ESuspendState SuspendState;
-
-	/** Human-readable tag given to this process */
-	FString ProcessTag;
-
-
-	/** Handle to StdOut for the launched process */
-	void* ReadPipe;
-
-	/** Handle to StdIn for the launched process (unused) */
-	void* WritePipe;
-
-
-	/** The base log type for this process (client? server? process?) */
-	ELogType BaseLogType;
-
-	/** The prefix to use for StdOut log output */
-	FString LogPrefix;
-
-	/** The OutputDeviceColor string, to use for setting the log output color */
-	const TCHAR* MainLogColor;
-
-	/** The log output color to use in the slate log window */
-	FSlateColor SlateLogColor;
-
-
-	/** If this process is outputting an error log, this is the current stage of error parsing (or ELS_NoError if not parsing) */
-	EErrorLogStage ErrorLogStage;
-
-	/** Gathered error log text */
-	TArray<FErrorLog> ErrorText;
-
-
-	/**
-	 * Base constructor
-	 */
-	FUnitTestProcess()
-		: ProcessHandle()
-		, ProcessID(0)
-		, SuspendState(ESuspendState::Active)
-		, ProcessTag(TEXT(""))
-		, ReadPipe(NULL)
-		, WritePipe(NULL)
-		, BaseLogType(ELogType::None)
-		, LogPrefix(TEXT(""))
-		, MainLogColor(COLOR_NONE)
-		, SlateLogColor(FSlateColor::UseForeground())
-		, ErrorLogStage(EErrorLogStage::ELS_NoError)
-		, ErrorText()
-	{
-	}
-};
-
-
-/**
  * Base class for all unit tests depending upon a (fake/minimal) client connecting to a server.
  * Handles creation/cleanup of an entire new UWorld, UNetDriver and UNetConnection, for fast sequential unit testing.
  * 
  * In subclasses, implement the unit test within the ExecuteClientUnitTest function (remembering to call parent)
  */
 UCLASS()
-class NETCODEUNITTEST_API UClientUnitTest : public UUnitTest
+class NETCODEUNITTEST_API UClientUnitTest : public UProcessUnitTest
 {
 	GENERATED_UCLASS_BODY()
 
@@ -309,9 +179,6 @@ protected:
 
 	/** Runtime variables */
 protected:
-	/** Stores a reference to all running child processes tied to this unit test, for housekeeping */
-	TArray<TSharedPtr<FUnitTestProcess>> ActiveProcesses;
-
 	/** Reference to the created server process handling struct */
 	TWeakPtr<FUnitTestProcess> ServerHandle;
 
@@ -323,6 +190,18 @@ protected:
 
 	/** Reference to the created client process handling struct (if enabled) */
 	TWeakPtr<FUnitTestProcess> ClientHandle;
+
+	/** Whether or not there is a blocking event/process preventing setup of the server */
+	bool bBlockingServerDelay;
+
+	/** Whether or not there is a blocking event/process preventing setup of a client */
+	bool bBlockingClientDelay;
+
+	/** Whether or not there is a blocking event/process preventing the fake client from connecting */
+	bool bBlockingFakeClientDelay;
+
+	/** When a server is launched after a blocking event/process, this delays the launch of any clients, in case of more blockages */
+	double NextBlockingTimeout;
 
 
 	/** Stores a reference to the created fake world, for execution and later cleanup */
@@ -359,14 +238,11 @@ protected:
 	TArray<int32> PendingNetActorChans;
 
 
-public:
-	/** Delegate for notifying the UI, of a change in the server suspend state */
-	FOnSuspendStateChange OnServerSuspendState;
-
-
+#if TARGET_UE4_CL >= CL_DEPRECATEDEL
 private:
 	/** Handle to the registered InternalNotifyNetworkFailure delegate */
 	FDelegateHandle InternalNotifyNetworkFailureDelegateHandle;
+#endif
 
 
 	/**
@@ -495,55 +371,19 @@ public:
 	virtual bool NotifySendRPC(AActor* Actor, UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack,
 								UObject* SubObject);
 
-	/**
-	 * For implementation in subclasses, for helping to verify success/fail upon completion of unit tests
-	 * NOTE: Not called again once VerificationState is set
-	 * WARNING: Be careful when iterating InLogLines in multiple different for loops, if the sequence of detected logs is important
-	 *
-	 * @param InProcess		The process the log lines are from
-	 * @param InLogLines	The current log lines being received
-	 */
-	virtual void NotifyProcessLog(TWeakPtr<FUnitTestProcess> InProcess, const TArray<FString>& InLogLines);
 
-	/**
-	 * Notifies that there was a request to suspend/resume the unit test server
-	 */
-	void NotifySuspendRequest();
+	virtual void NotifyProcessLog(TWeakPtr<FUnitTestProcess> InProcess, const TArray<FString>& InLogLines) override;
 
-	/**
-	 * Notifies when the suspend state of a process changes
-	 *
-	 * @param InProcess			The process whose suspend state has changed
-	 * @param InSuspendState	The new suspend state of the process
-	 */
-	void NotifyProcessSuspendState(TWeakPtr<FUnitTestProcess> InProcess, ESuspendState InSuspendState);
+	virtual void NotifyProcessFinished(TWeakPtr<FUnitTestProcess> InProcess) override;
+
+	virtual void NotifyProcessSuspendState(TWeakPtr<FUnitTestProcess> InProcess, ESuspendState InSuspendState) override;
 
 
-	/**
-	 * Notifies that there was a request to enable/disable developer mode
-	 *
-	 * @param bInDeveloperMode	Whether or not developer mode is being enabled/disabled
-	 */
-	void NotifyDeveloperModeRequest(bool bInDeveloperMode);
+	virtual void NotifySuspendRequest() override;
 
-	/**
-	 * Notifies that there was a request to execute a console command for the unit test, which can occur in a specific context,
-	 * e.g. for the unit test server, for the local minimal-client (within the unit test), or for the separate unit test client process
-	 *
-	 * @param CommandContext	The context (local/server/client?) for the console command
-	 * @param Command			The command to be executed
-	 * @return					Whether or not the command was handled
-	 */
-	virtual bool NotifyConsoleCommandRequest(FString CommandContext, FString Command);
+	virtual bool NotifyConsoleCommandRequest(FString CommandContext, FString Command) override;
 
-
-	/**
-	 * Outputs the list of console command contexts, that this unit test supports (which can include custom contexts in subclasses)
-	 *
-	 * @param OutList				Outputs the list of supported console command contexts
-	 * @param OutDefaultContext		Outputs the context which should be auto-selected/defaulted-to
-	 */
-	virtual void GetCommandContextList(TArray<TSharedPtr<FString>>& OutList, FString& OutDefaultContext);
+	virtual void GetCommandContextList(TArray<TSharedPtr<FString>>& OutList, FString& OutDefaultContext) override;
 
 
 	/**
@@ -604,6 +444,13 @@ protected:
 	virtual bool ValidateUnitTestSettings(bool bCDOCheck=false) override;
 
 	virtual void ResetTimeout(FString ResetReason, bool bResetConnTimeout=false, uint32 MinDuration=0) override;
+
+	/**
+	 * Resets the net connection timeout
+	 *
+	 * @param Duration	The duration which the timeout reset should last
+	 */
+	void ResetConnTimeout(float Duration);
 
 
 	/**
@@ -691,41 +538,7 @@ protected:
 	virtual FString ConstructClientParameters(FString ConnectIP);
 
 
-	/**
-	 * Starts a child UE4 process, tied to the unit test, with the specified commandline
-	 *
-	 * @param InCommandline		The commandline that the child process should use
-	 * @param bMinimized		Starts the process with the window minimized
-	 * @return					Returns a pointer to the new processes handling struct
-	 */
-	virtual TWeakPtr<FUnitTestProcess> StartUnitTestProcess(FString InCommandline, bool bMinimized=true);
-
-	/**
-	 * Shuts-down/cleans-up a child process tied to the unit test
-	 *
-	 * @param InHandle	The handling struct for the process
-	 */
-	virtual void ShutdownUnitTestProcess(TSharedPtr<FUnitTestProcess> InHandle);
-
-	/**
-	 * Processes the standard output (i.e. log output) for processes
-	 */
-	void PollProcessOutput();
-
-	/**
-	 * Updates (and if necessary, saves) the memory stats for processes
-	 */
-	void UpdateProcessStats();
-
-
-	/**
-	 * Checks incoming process logs, for any indication of a UE4 crash/error
-	 *
-	 * @param InProcess		The process the log output originates from
-	 * @param InLines		The incoming log lines
-	 */
-	void CheckOutputForError(TSharedPtr<FUnitTestProcess> InProcess, const TArray<FString>& InLines);
-
+	virtual void PrintUnitTestProcessErrors(TSharedPtr<FUnitTestProcess> InHandle) override;
 
 	void InternalNotifyNetworkFailure(UWorld* InWorld, UNetDriver* InNetDriver, ENetworkFailure::Type FailureType,
 										const FString& ErrorString);
@@ -736,15 +549,7 @@ protected:
 #endif
 
 
-	// Tick standard output of the server, if the process is launched
 	virtual void UnitTick(float DeltaTime) override;
 
-	virtual void PostUnitTick(float DeltaTime) override;
-
 	virtual bool IsTickable() const override;
-
-
-	virtual void FinishDestroy() override;
-
-	virtual void ShutdownAfterError() override;
 };

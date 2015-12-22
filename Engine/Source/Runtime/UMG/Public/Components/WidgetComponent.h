@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -33,6 +33,9 @@ class UMG_API UWidgetComponent : public UPrimitiveComponent
 	GENERATED_UCLASS_BODY()
 
 public:
+	/** UActorComponent Interface */
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason);
+
 	/* UPrimitiveComponent Interface */
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
@@ -99,7 +102,10 @@ public:
 	/** @return The window containing the user widget content */
 	TSharedPtr<SWidget> GetSlateWidget() const;
 
-	/** Sets the widget to use directly. */
+	/**  
+	 *  Sets the widget to use directly. This function will keep track of the widget till the next time it's called
+	 *	with either a newer widget or a nullptr
+	 */ 
 	UFUNCTION(BlueprintCallable, Category=UserInterface)
 	void SetWidget(UUserWidget* Widget);
 
@@ -137,6 +143,8 @@ public:
 	/** @return The pivot point where the UI is rendered about the origin. */
 	FVector2D GetPivot() const { return Pivot; }
 
+	void SetPivot( const FVector2D& InPivot ) { Pivot = InPivot; }
+
 	/** Get the fake window we create for widgets displayed in the world. */
 	TSharedPtr< SWindow > GetVirtualWindow() const;
 	
@@ -149,8 +157,15 @@ public:
 	/** Sets the widget class used to generate the widget for this component */
 	void SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass);
 
+	EWidgetSpace GetWidgetSpace() const { return Space; }
+
+	void SetWidgetSpace( EWidgetSpace NewSpace ) { Space = NewSpace; }
+
 protected:
 	void RemoveWidgetFromScreen();
+
+	/** Draws the current widget to the render target if possible. */
+	void DrawWidgetToRenderTarget(float DeltaTime);
 
 protected:
 	/** The coordinate space in which to render the widget */
@@ -256,9 +271,6 @@ protected:
 
 	/** The grid used to find actual hit actual widgets once input has been translated to the components local space */
 	TSharedPtr<class FHittestGrid> HitTestGrid;
-
-	/** The slate 3D renderer used to render the user slate widget */
-	TSharedPtr<class ISlate3DRenderer> Renderer;
 	
 	/** The slate window that contains the user widget content */
 	TSharedPtr<class SVirtualWindow> SlateWidget;
@@ -268,4 +280,7 @@ protected:
 
 	/** The hit tester to use for this component */
 	static TSharedPtr<class FWidget3DHitTester> WidgetHitTester;
+
+	/** Helper class for drawing widgets to a render target. */
+	TSharedPtr<class FWidgetRenderer> WidgetRenderer;
 };

@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2735872
 Availability:Public
-Title: Unreal Editor Manual
+Title:アンリアル エディタのマニュアル
 Crumbs:%ROOT%, Engine
-Description:Guide to using and configuring the Unreal Editor toolset.
+Description:アンリアル エディタのツールセットを使用し設定するためのガイド
 Navigation:topic
+parent:%ROOT%
+order:2
 
 [VAR:Params]
 [PARAM:image]
@@ -59,6 +61,9 @@ Navigation:topic
 [/OBJECT]
 [/VAR]
 
+[DIR(end:"1" output:"topic" parent:"Engine/Editor")]
+
+<!--
 [REGION:topics third]
 %Engine/UI:topic%
 %GettingStarted/HowTo:topic%
@@ -69,3 +74,4 @@ Navigation:topic
 %Engine/Content:topic%
 %Engine/Basics/Projects:topic%
 [/REGION]
+-->

@@ -1,0 +1,54 @@
+Availability: Docs
+Title: 1.5 - Setting the Default Game Mode
+Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
+Description: Learn how to set the default game mode for your First Person Shooter project.
+SkillLevel: Beginner
+Version: 4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Programming/Tutorials/FirstPersonShooter/1/4)
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Section Home](Programming/Tutorials/FirstPersonShooter/1)
+	[/PARAM]
+	[PARAM:next]
+		[Next Section](Programming/Tutorials/FirstPersonShooter/2)
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+Now that you've successfully compiled your newly added Game Mode, you'll need to set **FPSProject** to use **FPSGameMode** as the default Game Mode in this step.
+
+1.	In the **Edit** menu, click on **Project Settings**.
+
+1.	Under the **Project** heading on the left side of the **Project Settings** tab, click on **Maps & Modes**.
+
+1.	Select **FPSGameMode** in the Default GameMode dropdown.
+
+	![](SettingFPSGameMode.png)
+
+1.	Close the **Project Settings** menu.
+
+1.	Click the **Play** button in the Level Editor Toolbar. "We are using FPSGameMode." should be displayed in the upper left corner of the viewport.
+
+	![](SectionResult.png)
+
+1.	Click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
+
+Congratulations! You've learned how to:
+
+&#x2713; Set up a New Project  
+&#x2713; Use the C++ Class Wizard  
+&#x2713; Add Log Messaging to your Project  
+&#x2713; Compile your First C++ Class  
+&#x2713; Set the Default Game Mode
+
+You're now ready to learn how to implement your character in the next section.
+
+%Steps%

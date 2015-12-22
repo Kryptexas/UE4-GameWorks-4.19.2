@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 
@@ -12,6 +12,7 @@ USpacer::USpacer(const FObjectInitializer& ObjectInitializer)
 	, Size(1.0f, 1.0f)
 {
 	bIsVariable = false;
+	Visibility = ESlateVisibility::SelfHitTestInvisible;
 }
 
 void USpacer::ReleaseSlateResources(bool bReleaseChildren)

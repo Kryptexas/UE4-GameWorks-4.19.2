@@ -2,6 +2,7 @@ Availability:Licensee
 Title: Shipping Checklist
 Crumbs:%ROOT%, Support/BusinessAndLegal
 Description:List of guidelines and items to address when shipping a game using Unreal Engine 4.
+Version: 4.9
 
 Once you have decided to use Unreal Engine 4 for your project, and your project is nearing completion, 
 there are some actions that must be taken and verified before the project ships. This document contains 

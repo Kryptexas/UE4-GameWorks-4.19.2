@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneCore.h: Core scene definitions.
@@ -140,22 +140,17 @@ public:
 	/** The index of the mesh in the scene's static meshes array. */
 	int32 Id;
 
-	/** If true this static mesh should only be rendered during shadow depth passes. */
-	bool bShadowOnly;
-
 	// Constructor/destructor.
 	FStaticMesh(
 		FPrimitiveSceneInfo* InPrimitiveSceneInfo,
 		const FMeshBatch& InMesh,
 		float InScreenSize,
-		bool bInShadowOnly,
 		FHitProxyId InHitProxyId
 		):
 		FMeshBatch(InMesh),
 		ScreenSize(InScreenSize),
 		PrimitiveSceneInfo(InPrimitiveSceneInfo),
-		Id(INDEX_NONE),
-		bShadowOnly(bInShadowOnly)
+		Id(INDEX_NONE)
 	{
 		BatchHitProxyId = InHitProxyId;
 	}

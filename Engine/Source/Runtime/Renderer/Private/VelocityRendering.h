@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VelocityRendering.h: Velocity rendering definitions.
@@ -36,7 +36,7 @@ public:
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
 		bool bBackFace,
-		float DitheredLODTransitionValue,
+		const FMeshDrawingRenderState& DrawRenderState,
 		const ElementDataType& ElementData, 
 		const ContextDataType PolicyContext
 		) const;
@@ -56,6 +56,7 @@ private:
 	class FVelocityPS* PixelShader;
 	class FVelocityHS* HullShader;
 	class FVelocityDS* DomainShader;
+	class FShaderPipeline* ShaderPipeline;
 };
 
 /**
@@ -89,4 +90,5 @@ struct FVelocityRendering
 	static FPooledRenderTargetDesc GetRenderTargetDesc();
 
 	static bool OutputsToGBuffer();
+	static bool OutputsOnlyToGBuffer(bool bSupportsStaticLighting);
 };

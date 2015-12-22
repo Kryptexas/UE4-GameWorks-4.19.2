@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,10 +11,10 @@ public:
 	void Construct(const FArguments& InArgs, UEdGraphPin* InPin);
 
 protected:
-	// Begin SGraphPin interface
+	//~ Begin SGraphPin Interface
 	virtual TSharedRef<SWidget>	GetDefaultValueWidget() override;
 	virtual const FSlateBrush* GetPinIcon() const override;
-	// End SGraphPin interface
+	//~ End SGraphPin Interface
 
 	void CachePinBrushes(bool bForceCache = false) const;
 

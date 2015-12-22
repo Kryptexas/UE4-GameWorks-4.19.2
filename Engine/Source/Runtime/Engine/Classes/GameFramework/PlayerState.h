@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "GameFramework/Info.h"
@@ -130,12 +130,12 @@ public:
 	UFUNCTION()
 	virtual void OnRep_UniqueId();
 
-	// Begin AActor Interface
+	//~ Begin AActor Interface
 	virtual void PostInitializeComponents() override; 
 	virtual void Destroyed() override;
 	virtual void Reset() override;
 	virtual FString GetHumanReadableName() const override;
-	// End AActor Interface
+	//~ End AActor Interface
 
 
 	/** Called by Controller when its PlayerState is initially replicated. */
@@ -181,6 +181,12 @@ public:
 
 	/** Copy properties which need to be saved in inactive PlayerState */
 	virtual void CopyProperties(class APlayerState* PlayerState);
+
+	/** Called on the server when the owning player has disconnected, by default this method destroys this player state */
+	virtual void OnDeactivated();
+
+	/** Called on the server when the owning player has reconnected and this player state is added to the active players array */
+	virtual void OnReactivated();
 
 	/** called by seamless travel when initializing a player on the other side - copy properties to the new PlayerState that should persist */
 	virtual void SeamlessTravelTo(class APlayerState* NewPlayerState);

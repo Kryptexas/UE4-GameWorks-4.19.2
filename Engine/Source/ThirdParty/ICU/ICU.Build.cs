@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 using UnrealBuildTool;
 using System;
 using System.IO;
@@ -158,7 +158,7 @@ public class ICU : ModuleRules
                     break;
             }
         }
-		else if (Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.IOS)
+		else if (Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.IOS || Target.Platform == UnrealTargetPlatform.TVOS)
 		{
             string StaticLibraryExtension = "a";
             string DynamicLibraryExtension = "dylib";
@@ -184,10 +184,7 @@ public class ICU : ModuleRules
                     {
                         string LibraryName = "libicu" + Stem + LibraryNamePostfix + "." + StaticLibraryExtension;
                         PublicAdditionalLibraries.Add(TargetSpecificPath + "lib/" + LibraryName);
-						if (Target.Platform == UnrealTargetPlatform.IOS)
-						{
-							PublicAdditionalShadowFiles.Add(TargetSpecificPath + "lib/" + LibraryName);
-						}
+						PublicAdditionalShadowFiles.Add(TargetSpecificPath + "lib/" + LibraryName);
                     }
                     break;
                 case EICULinkType.Dynamic:
@@ -290,6 +287,7 @@ public class ICU : ModuleRules
             (Target.Platform == UnrealTargetPlatform.Android) ||
             (Target.Platform == UnrealTargetPlatform.Mac) ||
 			(Target.Platform == UnrealTargetPlatform.IOS) ||
+			(Target.Platform == UnrealTargetPlatform.TVOS) ||
 			(Target.Platform == UnrealTargetPlatform.PS4) ||
             (Target.Platform == UnrealTargetPlatform.XboxOne) ||
             (Target.Platform == UnrealTargetPlatform.HTML5))

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Color.cpp: Unreal color implementation.
@@ -25,6 +25,11 @@ const FColor FColor::Blue(0,0,255);
 const FColor FColor::Yellow(255,255,0);
 const FColor FColor::Cyan(0,255,255);
 const FColor FColor::Magenta(255,0,255);
+const FColor FColor::Orange(243, 156, 18);
+const FColor FColor::Purple(169, 7, 228);
+const FColor FColor::Turquoise(26, 188, 156);
+const FColor FColor::Silver(189, 195, 199);
+const FColor FColor::Emerald(46, 204, 113);
 
 /**
 * Helper used by FColor -> FLinearColor conversion. We don't use a lookup table as unlike pow, multiplication is fast.

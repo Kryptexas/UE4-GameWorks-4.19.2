@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
 
@@ -9,7 +9,11 @@
 void UStrProperty::ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const
 {
 	FString& StringValue = *(FString*)PropertyValue;
-	if( !(PortFlags & PPF_Delimited) )
+	if (0 != (PortFlags & PPF_ExportCpp))
+	{
+		ValueStr += FString::Printf(TEXT("FString(TEXT(\"%s\"))"), *(StringValue.ReplaceCharWithEscapedChar()));
+	}
+	else if (!(PortFlags & PPF_Delimited))
 	{
 		ValueStr += StringValue;
 	}

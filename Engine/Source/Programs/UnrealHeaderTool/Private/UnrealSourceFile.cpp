@@ -1,10 +1,11 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealHeaderTool.h"
 #include "UnrealSourceFile.h"
 #include "ParserHelper.h"
 #include "HeaderParser.h"
 #include "GeneratedCodeVersion.h"
+#include "Scope.h"
 
 void FUnrealSourceFile::AddDefinedClass(UClass* Class, FSimplifiedParsingClassInfo ParsingInfo)
 {
@@ -119,6 +120,19 @@ void FUnrealSourceFile::MarkDependenciesResolved()
 bool FUnrealSourceFile::AreDependenciesResolved() const
 {
 	return bDependenciesResolved;
+}
+
+void FUnrealSourceFile::SetScope(FFileScope* InScope)
+{
+	if (&Scope.Get() != InScope)
+	{
+		Scope = TSharedRef<FFileScope>(InScope);
+	}
+}
+
+void FUnrealSourceFile::SetScope(TSharedRef<FFileScope> InScope)
+{
+	Scope = InScope;
 }
 
 void FUnrealSourceFile::MarkAsParsed()

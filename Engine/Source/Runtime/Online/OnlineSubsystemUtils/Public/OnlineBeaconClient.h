@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "TimerManager.h"
@@ -39,20 +39,22 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconClient : public AOnlineBeacon
 {
 	GENERATED_UCLASS_BODY()
 
-	// Begin AActor Interface
+	//~ Begin AActor Interface
+	virtual bool UseShortConnectTimeout() const override;
 	virtual void OnNetCleanup(UNetConnection* Connection) override;
 	virtual const AActor* GetNetOwner() const override;
 	virtual UNetConnection* GetNetConnection() const override;
-	// End AActor Interface
+	virtual bool DestroyNetworkActorHandled() override;
+	//~ End AActor Interface
 
-	// Begin FNetworkNotify Interface
+	//~ Begin FNetworkNotify Interface
 	virtual void NotifyControlMessage(UNetConnection* Connection, uint8 MessageType, FInBunch& Bunch) override;
-	// End FNetworkNotify Interface
+	//~ End FNetworkNotify Interface
 
-	// Begin OnlineBeacon Interface
+	//~ Begin OnlineBeacon Interface
 	virtual void OnFailure() override;
 	virtual void DestroyBeacon() override;
-	// End OnlineBeacon Interface
+	//~ End OnlineBeacon Interface
 
 	/**
 	 * Initialize the client beacon with connection endpoint
@@ -63,6 +65,13 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconClient : public AOnlineBeacon
 	 * @return true if connection is being attempted, false otherwise
 	 */
 	bool InitClient(FURL& URL);
+
+	/**
+	 * Each beacon must have a unique type identifier
+	 *
+	 * @return string representing the type of beacon 
+	 */
+	FString GetBeaconType() const;
 	
 	/**
 	 * A connection has been made and RPC/replication can begin
@@ -148,3 +157,27 @@ private:
 	friend class AOnlineBeaconHost;
 	friend class AOnlineBeaconHostObject;
 };
+
+inline const TCHAR* ToString(EBeaconConnectionState Value)
+{
+	switch (Value)
+	{
+	case EBeaconConnectionState::Invalid:
+	{
+		return TEXT("Invalid");
+	}
+	case EBeaconConnectionState::Closed:
+	{
+		return TEXT("Closed");
+	}
+	case EBeaconConnectionState::Pending:
+	{
+		return TEXT("Pending");
+	}
+	case EBeaconConnectionState::Open:
+	{
+		return TEXT("Open");
+	}
+	}
+	return TEXT("");
+}

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TranslucentRendering.h: Translucent rendering definitions.
@@ -41,7 +41,8 @@ public:
 		bool bBackFace,
 		bool bPreFog,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
-		FHitProxyId HitProxyId
+		FHitProxyId HitProxyId,
+		bool bSeparateTranslucencyEnabled = true
 		);
 
 	/**
@@ -56,7 +57,8 @@ public:
 		const uint64& BatchElementMask,
 		bool bPreFog,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
-		FHitProxyId HitProxyId
+		FHitProxyId HitProxyId,
+		bool bSeparateTranslucencyEnabled = true
 		);
 
 	/**
@@ -76,10 +78,11 @@ private:
 		const FMeshBatch& Mesh,
 		const uint64& BatchElementMask,
 		bool bBackFace,
-		float DitheredLODTransitionValue,
+		const FMeshDrawingRenderState& DrawRenderState,
 		bool bPreFog,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
-		FHitProxyId HitProxyId
+		FHitProxyId HitProxyId,
+		bool bSeparateTranslucencyEnabled = true
 		);
 
 };
@@ -170,8 +173,9 @@ public:
 
 	FWriteToSliceVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
 		FGlobalShader(Initializer)
-	{
-		UVScaleBias.Bind(Initializer.ParameterMap, TEXT("UVScaleBias"));
+    {
+        UVScaleBias.Bind(Initializer.ParameterMap, TEXT("UVScaleBias"));
+        MinZ.Bind(Initializer.ParameterMap, TEXT("MinZ"));
 	}
 
 	FWriteToSliceVS() {}
@@ -184,17 +188,20 @@ public:
 			(VolumeBounds.MaxY - VolumeBounds.MinY) * InvVolumeResolution,
 			VolumeBounds.MinX * InvVolumeResolution,
 			VolumeBounds.MinY * InvVolumeResolution));
+        SetShaderValue(RHICmdList, GetVertexShader(), MinZ, VolumeBounds.MinZ);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << UVScaleBias;
-		return bShaderHasOutdatedParameters;
+        Ar << MinZ;
+        return bShaderHasOutdatedParameters;
 	}
 
 private:
-	FShaderParameter UVScaleBias;
+    FShaderParameter UVScaleBias;
+    FShaderParameter MinZ;
 };
 
 /** Geometry shader used to write to a range of slices of a 3d volume texture. */

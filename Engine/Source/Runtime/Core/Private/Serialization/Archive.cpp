@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnArchive.cpp: Core archive classes.
@@ -63,7 +63,7 @@ void FArchive::Reset()
 	ArNetVer							= GEngineNegotiationVersion;
 	ArUE4Ver							= GPackageFileUE4Version;
 	ArLicenseeUE4Ver					= GPackageFileLicenseeUE4Version;
-	ArEngineVer = GEngineVersion;
+	ArEngineVer							= FEngineVersion::Current();
 	ArIsLoading							= false;
 	ArIsSaving							= false;
 	ArIsTransacting						= false;
@@ -93,7 +93,12 @@ void FArchive::Reset()
 	ArIsSaveGame						= false;
 	CookingTargetPlatform = nullptr;
 	SerializedProperty = nullptr;
-
+#if WITH_EDITORONLY_DATA
+	EditorOnlyPropertyStack = 0;
+#endif
+#if WITH_EDITOR
+	ArDebugSerializationFlags			= 0;
+#endif
 	// Reset all custom versions to the current registered versions.
 	ResetCustomVersions();
 }
@@ -131,6 +136,10 @@ void FArchive::CopyTrivialFArchiveStatusMembers(const FArchive& ArchiveToCopy)
 	ArIsFilterEditorOnly                 = ArchiveToCopy.ArIsFilterEditorOnly;
 	ArIsSaveGame                         = ArchiveToCopy.ArIsSaveGame;
 	CookingTargetPlatform                = ArchiveToCopy.CookingTargetPlatform;
+	SerializedProperty = ArchiveToCopy.SerializedProperty;
+#if WITH_EDITORONLY_DATA
+	EditorOnlyPropertyStack = ArchiveToCopy.EditorOnlyPropertyStack;
+#endif
 }
 
 /**
@@ -143,6 +152,17 @@ FString FArchive::GetArchiveName() const
 {
 	return TEXT("FArchive");
 }
+
+#if WITH_EDITOR
+FArchive::FScopeAddDebugData::FScopeAddDebugData(FArchive& InAr, const FName& DebugData) : Ar(InAr)
+{
+	Ar.PushDebugDataString(DebugData);
+}
+
+void FArchive::PushDebugDataString(const FName& DebugData)
+{
+}
+#endif
 
 FArchive& FArchive::operator<<( class FLazyObjectPtr& LazyObjectPtr )
 {

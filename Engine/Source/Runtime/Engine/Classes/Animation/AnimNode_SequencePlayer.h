@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Animation/AnimNodeBase.h"
@@ -25,19 +25,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings, meta=(PinHiddenByDefault))
 	mutable float PlayRate;
 
-	// The group index, assigned at compile time based on the editoronly GroupName (or INDEX_NONE if it is not part of any group)
-	UPROPERTY()
-	int32 GroupIndex;
-
-	// The role this player can assume within the group (ignored if GroupIndex is INDEX_NONE)
-	UPROPERTY()
-	TEnumAsByte<EAnimGroupRole::Type> GroupRole;
+	// The start up position, it only applies when reinitialized
+	// if you loop, it will still start from 0.f after finishing the round
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings, meta=(PinHiddenByDefault))
+	mutable float StartPosition;
 public:	
 	FAnimNode_SequencePlayer()
 		: Sequence(NULL)
 		, bLoopAnimation(true)
 		, PlayRate(1.0f)
-		, GroupIndex(INDEX_NONE)
+		, StartPosition(0.f)
 	{
 	}
 

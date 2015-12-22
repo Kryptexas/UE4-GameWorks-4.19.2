@@ -9,6 +9,25 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+Version: 4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Example](Resources/ContentExamples/EffectsGallery/2_F "%Resources/ContentExamples/EffectsGallery/2_F:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Effects Gallery Home](Resources/ContentExamples/EffectsGallery)
+	[/PARAM]
+	[PARAM:next]
+		[Next Example](Resources/ContentExamples/EffectsGallery/2_H "%Resources/ContentExamples/EffectsGallery/2_H:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -53,7 +72,7 @@ Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 ![](image074.png)
 [/REGION]
 
-Another fantastic and highly useful particle feature in the Unreal Engine is the ability for CPU particles to emit light! By adding a Light module to your Emitter, particles from the Emitter can also spawn a dynamic light. You can use the module's properties to control the intensity of the light, the radius, etc.
+Another fantastic and highly useful particle feature in the Unreal Engine is the ability for CPU particles to emit light. By adding a **Light** module to your Emitter, particles from the Emitter can also spawn a dynamic light. You can use the module's properties to control the intensity of the light, the radius, etc.
 
 ![](image076.png)
 

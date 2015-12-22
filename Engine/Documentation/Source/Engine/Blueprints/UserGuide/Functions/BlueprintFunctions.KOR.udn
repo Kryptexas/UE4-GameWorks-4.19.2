@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2615373
+﻿INTSourceChangelist:2690584
 Availability:Public
 Title:함수
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:다른 그래프에서 실행, 호출할 수 있는 노드 그래프입니다.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -84,7 +85,7 @@ Description:다른 그래프에서 실행, 호출할 수 있는 노드 그래프
 비순수 함수는 [EventGraph](Engine/Blueprints/UserGuide/EventGraph) 에서 실행 핀을 [Function Call 노드](Engine/Blueprints/UserGuide/Functions/FunctionCalls) 에 연결하여 명시적으로 실행해야 합니다.
 비순수 함수는 다음 방법 중 하나를 사용하도록 디자인되었습니다:
 
-* 코드에 정의된 함수들에 대한 함수 선언에서 `BlueprintCallable` 키워드를 지정합니다.
+* 코드에 정의된 UFUNCTION 에 대한 UFUNCTION 선언에서 `BlueprintCallable` 키워드를 지정합니다.
 * **블루프린트 에디터** 를 통해 추가된 함수의 경우 **Pure** 박스의 체크를 해제시켜 둡니다.
 
 

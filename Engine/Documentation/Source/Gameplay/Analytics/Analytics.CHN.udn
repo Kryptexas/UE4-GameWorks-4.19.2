@@ -1,24 +1,24 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2601374
 Availability:Public
-Title:In-Game Analytics
+Title:游戏内分析
 Crumbs: %ROOT%, Gameplay
-Description:Using in-game analytics to track player engagement and find balance issues.
+Description:使用游戏内分析跟踪玩家参与并查找平衡问题。
 
 
-In order to get data on how your game is performing, you must use an analytics provider to capture and process the data. For those without a homegrown solution, there are plenty of 
-options available, from free services to paid ones. Unreal Engine provides an abstract interface for communicating with one or more analytics providers. Your game uses the interface, 
-and analytics providers offer a backing implementation. In some cases, Epic has built the backing provider already. Before version 4.5, Epic provided an implementation to multicast analytics
-events, relaying them to multiple providers. For providers, there is support of providers that support [Swrve](http://www.swrve.com), a paid service. Unreal Engine 4.5 and later provides
-support for Apsalar and a file based system primarily used for debugging. Support for Flurry was also added recently in version 4.8.
+要获得有关游戏性能的数据，您必须使用分析服务商捕获和处理数据。对于没有自制解决方案的工作室来说，他们可从许多 
+免费服务和付费服务中选择。虚幻引擎提供简单的接口来供您与一个或多个分析服务商进行交流。您的游戏使用该接口， 
+而分析服务商对其实现提供支持。在某些情况下，Epic 已经构建了支持服务商。在版本 4.5 之前，Epic 提供了对多播分析事件的实现，
+并向多个服务商转播。此外，Epic 还向支持 [Swrve](http://www.swrve.com)（付费服务）的服务商提供支持。虚幻引擎 4.5 和更高版本提供
+对 Apsalar 的支持，并且提供基于文件的系统，主要用于调试。版本 4.8 最近还新增了对 Flurry 的支持。
 
-More provider plugins will become available over time, and it is also feasible to add your own provider if needed. 
+随着时间的推移，我们将会提供更多服务商插件，如果需要，您还可以添加自己的服务商。 
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/profile_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Implementing Game Analytics
+		实现游戏分析
 	[/PARAM]
 	[PARAM:links]
 		* [](Gameplay/Analytics/Instrumenting "%Gameplay/Analytics/Instrumenting:description%")
@@ -31,7 +31,7 @@ More provider plugins will become available over time, and it is also feasible t
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Providers
+		服务商
 	[/PARAM]
 	[PARAM:links]
 		* [](Gameplay/Analytics/Apsalar "%Gameplay/Analytics/Apsalar:description%")

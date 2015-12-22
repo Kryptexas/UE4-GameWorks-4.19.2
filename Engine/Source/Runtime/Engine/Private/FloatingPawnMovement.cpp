@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "GameFramework/FloatingPawnMovement.h"
@@ -53,7 +53,7 @@ void UFloatingPawnMovement::TickComponent(float DeltaTime, enum ELevelTick TickT
 		if (!Delta.IsNearlyZero(1e-6f))
 		{
 			const FVector OldLocation = UpdatedComponent->GetComponentLocation();
-			const FRotator Rotation = UpdatedComponent->GetComponentRotation();
+			const FQuat Rotation = UpdatedComponent->GetComponentQuat();
 
 			FHitResult Hit(1.f);
 			SafeMoveUpdatedComponent(Delta, Rotation, true, Hit);

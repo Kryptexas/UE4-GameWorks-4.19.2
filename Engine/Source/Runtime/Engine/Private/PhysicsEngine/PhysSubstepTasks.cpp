@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
@@ -44,7 +44,7 @@ void FPhysSubstepTask::RemoveBodyInstance_AssumesLocked(FBodyInstance* BodyInsta
 void FPhysSubstepTask::SetKinematicTarget_AssumesLocked(FBodyInstance* Body, const FTransform& TM)
 {
 #if WITH_PHYSX
-	TM.DiagnosticCheckNaN_All();
+	TM.DiagnosticCheck_IsValid();
 
 	//We only interpolate kinematic actors
 	if (!Body->IsNonKinematic())
@@ -345,8 +345,8 @@ void FPhysSubstepTask::StepSimulation(PhysXCompletionTask * Task)
 }
 #endif
 
-DEFINE_STAT(STAT_SubstepSimulationStart);
-DEFINE_STAT(STAT_SubstepSimulationEnd);
+DECLARE_CYCLE_STAT(TEXT("Phys SubstepStart"), STAT_SubstepSimulationStart, STATGROUP_Physics);
+DECLARE_CYCLE_STAT(TEXT("Phys SubstepEnd"), STAT_SubstepSimulationEnd, STATGROUP_Physics);
 
 void FPhysSubstepTask::SubstepSimulationStart()
 {
@@ -358,8 +358,10 @@ void FPhysSubstepTask::SubstepSimulationStart()
 	
 	check(!CompletionEvent.GetReference());	//should be done
 	CompletionEvent = FGraphEvent::CreateGraphEvent();
-	PhysXCompletionTask* SubstepTask = new PhysXCompletionTask(CompletionEvent, PAScene->getTaskManager());
-	ENamedThreads::Type NamedThread = PhysSingleThreadedMode() ? ENamedThreads::GameThread : ENamedThreads::AnyThread;
+	PhysXCompletionTask* SubstepTask = new PhysXCompletionTask(CompletionEvent,
+		 PST_MAX //we don't care about sub-step time. The full time is recorded by FullSimulationTask
+		,PAScene->getTaskManager());
+	ENamedThreads::Type NamedThread = PhysSingleThreadedMode() ? ENamedThreads::GameThread : ENamedThreads::HiPri(ENamedThreads::AnyThread);
 
 	DECLARE_CYCLE_STAT(TEXT("FDelegateGraphTask.ProcessPhysSubstepSimulation"),
 		STAT_FDelegateGraphTask_ProcessPhysSubstepSimulation,

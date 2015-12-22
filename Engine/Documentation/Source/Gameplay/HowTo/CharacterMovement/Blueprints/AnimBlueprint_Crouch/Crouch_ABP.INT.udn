@@ -2,6 +2,8 @@ Availability: Public
 Title:6. Animation Blueprint - Crouch States
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:Continuing on setting up the Animation Blueprint for our Character, in this section we set up the Crouch States. 
+Version: 4.9
+SkillLevel:Advanced
 
 [VAR:Steps]
 [OBJECT:Navigation]

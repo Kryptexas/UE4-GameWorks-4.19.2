@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "StatsViewerPrivatePCH.h"
 #include "SStatsViewer.h"
@@ -427,7 +427,7 @@ FReply SStatsViewer::OnExportClicked()
 	CSVFilename /= FString::Printf(
 		TEXT("%s-%i-%s.csv"),
 		FApp::GetGameName(),
-		GEngineVersion.GetChangelist(),
+		FEngineVersion::Current().GetChangelist(),
 		*FDateTime::Now().ToString() );
 
 	// Create the CSV (can't use ToNumber or FormatIntToHumanReadable as it'll break the CSV!)

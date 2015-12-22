@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Node which creates a texture parameter and outputs the texture object itself, instead of sampling the texture first.
@@ -15,7 +15,7 @@ class UMaterialExpressionTextureObjectParameter : public UMaterialExpressionText
 	GENERATED_UCLASS_BODY()
 
 
-	// Begin UMaterialExpression Interface
+	//~ Begin UMaterialExpression Interface
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
 	virtual const TArray<FExpressionInput*> GetInputs() override;
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
@@ -23,11 +23,11 @@ class UMaterialExpressionTextureObjectParameter : public UMaterialExpressionText
 #if WITH_EDITOR
 	virtual uint32 GetOutputType(int32 InputIndex) override {return MCT_Texture;}
 #endif
-	// End UMaterialExpression Interface
+	//~ End UMaterialExpression Interface
 
-	// Begin UMaterialExpressionTextureSampleParameter Interface
+	//~ Begin UMaterialExpressionTextureSampleParameter Interface
 	virtual const TCHAR* GetRequirements() override;
-	// End UMaterialExpressionTextureSampleParameter Interface
+	//~ End UMaterialExpressionTextureSampleParameter Interface
 
 };
 

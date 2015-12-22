@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /**
  * File to hold common package helper functions.
@@ -263,7 +263,7 @@ void DoActionToAllPackages( UCommandlet* Commandlet, const FString& Params )
 
 		if( ( (++GCIndex % 10) == 0 ) || ( bGCEveryPackage == true ) )
 		{
-			CollectGarbage(RF_Native);
+			CollectGarbage(RF_NoFlags);
 		}
 	}
 }

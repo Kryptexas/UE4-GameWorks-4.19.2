@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "ProfilerPrivatePCH.h"
 
@@ -464,7 +464,7 @@ void SProfilerThreadView::DrawText( const FString& Text, const FSlateFontInfo& F
 {
 	check( PaintState );
 
-	if( ShadowOffset.Size() > 0.0f )
+	if( ShadowOffset.SizeSquared() > 0.0f )
 	{
 		FSlateDrawElement::MakeText
 		(

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -12,6 +12,7 @@ public:
 		SLATE_ARGUMENT(ISequencer*, Sequencer)
 		SLATE_ARGUMENT(UMovieSceneSection*, OwningSection)
 		SLATE_ARGUMENT(FIntegralCurve*, Curve)
+		SLATE_ATTRIBUTE(TOptional<uint8>, IntermediateValue)
 	SLATE_END_ARGS();
 
 	void Construct(const FArguments& InArgs);
@@ -29,4 +30,5 @@ private:
 	ISequencer* Sequencer;
 	UMovieSceneSection* OwningSection;
 	FIntegralCurve* Curve;
+	TAttribute<TOptional<uint8>> IntermediateValue;
 };

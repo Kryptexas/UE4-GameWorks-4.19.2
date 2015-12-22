@@ -33,7 +33,7 @@ This Character will become our new AI Character. The reason we use a Character, 
 
 	![](meshComp.png)
 
-1. In the **Details** panel, find the **Mesh** category and assign the `HeroTPP` (or your own) **Skeletal Mesh**.
+1. In the **Details** panel, find the **Mesh** category and assign the `SK_Mannequin` (or your own) **Skeletal Mesh**.
 
 	![](assignSkelMesh.png)
 
@@ -41,7 +41,7 @@ This Character will become our new AI Character. The reason we use a Character, 
 
 1. Rotate the **Mesh** Component so it faces the direction the blue Arrow Component is pointing.
 
-1. In the **Details** panel, find the **Animation** category and assign the `HeroTPP_AnimBlueprint` to the **Animation Blueprint Generated Class** property.
+1. In the **Details** panel, find the **Animation** category and assign the `TopDown_AnimBP` to the **Animation Blueprint Generated Class** property.
 
 	![](assignAnimBP.png)
 
@@ -53,7 +53,7 @@ This Character will become our new AI Character. The reason we use a Character, 
 
 	![](charmve.png)
 
-1. In the **Details** panel, in the Movement Component category, adjust the Agent Radius and Agent Height values.
+1. In the **Details** panel, in the Movement Component category, adjust the _Agent Radius_ and _Agent Height_ values.
 
 	![](agentProps.png)
 

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2612600
+﻿INTSourceChangelist:2717659
 Availability:Licensee
 Title: VPN 接続の設定
 Crumbs:%ROOT%, Engine, Programming, Programming/Basics
 Description:Perforce サーバーにアクセスし、エンジンを入手するために Epic のVPN (バーチャルプライベートネットワーク) に接続するためのガイド
+version:4.9
 
 [TOC(start:2)]
 
@@ -66,7 +67,7 @@ Web 経由で VPN クライアントをインストールするには、Java も
 すでに開いている VPN のセッションがあれば、必ず、その接続をすべて切ってください。
 [/REGION]
 
-1. Cisco AnyConnect VPN Client のWeb インストールを開始するには、以下に進んでください。 **[https://vpn.epicgames.com](https://vpn.epicgames.com)**
+1. Cisco AnyConnect VPN Client の Web インストールを開始するには、以下に進んでください。 [https://vpn.epicgames.com](https://vpn.epicgames.com)
 
 	**各地域の VPN ミラーサイト**
 
@@ -81,7 +82,7 @@ Web 経由で VPN クライアントをインストールするには、Java も
 	古いホスト名を使用すると証明書について警告を受ける場合があります。これを避けるために、vpn.epicgames.com をご利用ください。
 	[/REGION]
 
-1. ウィンドウの最下部で Internet あるいは Internet zone と表示されている部分を **ダブルクリック** します。さらに、 [Trusted (信頼できる)] をクリックするとともに [Add (追加) ] をクリックし、このサイトを信頼できるゾーンに追加します。
+1. ウィンドウの最下部で Internet あるいは Internet zone と表示されている部分を **ダブルクリック** します。さらに、[Trusted (信頼できる)] をクリックするとともに [Add (追加)] をクリックし、このサイトを信頼できるゾーンに追加します。
 
 	![vpn_ie_trusted.jpg](vpn_ie_trusted.jpg)(w:423 h:541)
 
@@ -141,7 +142,7 @@ AnyConnect VPN クライアントは、Cisco のウェブサイトからダウ�
 
 [AnyConnect VPN Client Download](ftp://ftp.epicgames.com/anyconnect/anyconnect-win-3.0.4235.exe)
 
-ダウンロードが完了したらアプリケーションをインストールします。さらに、nyConnect を使って VPN に接続するための詳細について調べるには [AnyConnect 経由で VPN に接続する](#AnyConnect) に進みます。
+ダウンロードが完了したらアプリケーションをインストールします。さらに、AnyConnect を使って VPN に接続するための詳細について調べるには [AnyConnect 経由で VPN に接続する](#AnyConnect) に進みます。
 
 
 ### コンソールによる Linux インストール
@@ -173,7 +174,7 @@ AnyConnect を使用して VPN に接続するプロセスは、簡単です。
 
 	![username and password](usernamepassword.png)
 
-1. VPN に接続するには ![vpn_anyconnect_connect_button.jpg](vpn_anyconnect_connect_button.jpg) を押します。接続が行われると、タスクバーに ![vpn_anyconnect_connected.jpg](vpn_anyconnect_connected.jpg) のアイコンが表示されます。
+1. VPN に接続するには **[Connect (接続)]** を押します。接続が行われると、タスクバーに ![vpn_anyconnect_connected.jpg](vpn_anyconnect_connected.jpg) のアイコンが表示されます。
 [/EXCERPT:AnyConnect]
 
 VPN 接続の設定が完了すると、引き続き [Perforce の設定](GettingStarted/DownloadingUnrealEngine/Perforce/Setup) に進むことができます。

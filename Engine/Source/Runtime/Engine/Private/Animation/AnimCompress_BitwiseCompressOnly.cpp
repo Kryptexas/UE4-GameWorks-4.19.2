@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimCompress_BitwiseCompressionOnly.cpp: Bitwise animation compression only; performs no key reduction.
@@ -44,6 +44,6 @@ void UAnimCompress_BitwiseCompressOnly::DoReduction(UAnimSequence* AnimSeq, cons
 	// record the proper runtime decompressor to use
 	AnimSeq->KeyEncodingFormat = AKF_ConstantKeyLerp;
 	AnimationFormat_SetInterfaceLinks(*AnimSeq);
-	AnimSeq->CompressionScheme = static_cast<UAnimCompress*>( StaticDuplicateObject( this, AnimSeq, TEXT("None")) );
+	AnimSeq->CompressionScheme = static_cast<UAnimCompress*>( StaticDuplicateObject( this, AnimSeq ) );
 #endif // WITH_EDITORONLY_DATA
 }

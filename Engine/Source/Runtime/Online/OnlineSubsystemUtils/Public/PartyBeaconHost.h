@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Runtime/Online/OnlineSubsystemUtils/Public/OnlineBeaconHostObject.h"
@@ -46,12 +46,12 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHostObject
 {
 	GENERATED_UCLASS_BODY()
 
-	// Begin AActor Interface
+	//~ Begin AActor Interface
 	virtual void Tick(float DeltaTime) override;
-	// End AActor Interface
+	//~ End AActor Interface
 
-	// Begin AOnlineBeaconHostObject Interface 
-	// End AOnlineBeaconHost Interface 
+	//~ Begin AOnlineBeaconHostObject Interface 
+	//~ End AOnlineBeaconHost Interface 
 
 	/**
 	 * Initialize the party host beacon
@@ -99,10 +99,25 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHostObject
 
 	/**
 	 * Get the current reservation count inside the beacon
+	 * NOTE: This is *NOT* the same as the number of consumed reservations across all parties, just the total number of reservations!
 	 *
-	 * @return number of consumed reservations
+	 * @return number of reservations inside the beacon (*NOT* number of consumed reservations)
 	 */
 	virtual int32 GetReservationCount() const { return State->GetReservationCount(); }
+
+	/**
+	 * Get the number of reservations actually used/consumed across all parties inside the beacon
+	 * 
+	 * @return the number of actually used reservations across all parties inside the beacon
+	 */
+	virtual int32 GetNumConsumedReservations() const { return State->GetNumConsumedReservations(); }
+
+	/**
+	 * Get the maximum number of reservations allowed inside the beacon
+	 * 
+	 * @return The maximum number of reservations allowed inside the beacon
+	 */
+	virtual int32 GetMaxReservations() const { return State->GetMaxReservations(); }
 
 	/**
 	 * Get the number of players on a team across all existing reservations
@@ -185,13 +200,23 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHostObject
 	virtual bool GetPlayerValidation(const FUniqueNetId& PlayerId, FString& OutValidation) const;
 
 	/**
+	 * Get the party leader for a given unique id
+	 *
+	 * @param InPartyMemberId valid party member of some reservation looking for its leader
+	 * @param OutPartyLeaderId valid party leader id for the given party member if found, invalid if function returns false
+	 *
+	 * @return true if a party leader was found for a given user id, false otherwise
+	 */
+	bool GetPartyLeader(const FUniqueNetIdRepl& InPartyMemberId, FUniqueNetIdRepl& OutPartyLeaderId) const;
+
+	/**
 	 * Attempts to add a party reservation to the beacon
      *
      * @param ReservationRequest reservation attempt
      *
      * @return add attempt result
 	 */
-	EPartyReservationResult::Type AddPartyReservation(const FPartyReservation& ReservationRequest);
+	virtual EPartyReservationResult::Type AddPartyReservation(const FPartyReservation& ReservationRequest);
 
 	/**
 	 * Updates an existing party reservation on the beacon
@@ -201,7 +226,7 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHostObject
 	 *
 	 * @return update attempt result
 	 */
-	EPartyReservationResult::Type UpdatePartyReservation(const FPartyReservation& ReservationUpdateRequest);
+	virtual EPartyReservationResult::Type UpdatePartyReservation(const FPartyReservation& ReservationUpdateRequest);
 
 	/**
 	 * Attempts to remove a party reservation from the beacon
@@ -301,6 +326,9 @@ protected:
 	/** Delegate fired when asking the beacon owner if this reservation is legit */
 	FOnValidatePlayers ValidatePlayers;
 
+	/** Disable the timeouts below */
+	UPROPERTY(Config)
+	bool bNoTimeouts;
 	/** Seconds that can elapse before a reservation is removed due to player not being registered with the session */
 	UPROPERTY(Transient, Config)
 	float SessionTimeoutSecs;

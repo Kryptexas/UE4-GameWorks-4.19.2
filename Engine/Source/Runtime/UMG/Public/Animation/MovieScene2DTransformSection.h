@@ -1,26 +1,61 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "MovieSceneSection.h"
-
+#include "IKeyframeSection.h"
 #include "MovieScene2DTransformSection.generated.h"
 
-struct FWidgetTransform;
+
+enum class EKey2DTransformChannel
+{
+	Translation,
+	Rotation,
+	Scale,
+	Shear
+};
+
+
+enum class EKey2DTransformAxis
+{
+	X,
+	Y,
+	None
+};
+
+struct F2DTransformKey
+{
+	F2DTransformKey( EKey2DTransformChannel InChannel, EKey2DTransformAxis InAxis, float InValue )
+	{
+		Channel = InChannel;
+		Axis = InAxis;
+		Value = InValue;
+	}
+	EKey2DTransformChannel Channel;
+	EKey2DTransformAxis Axis;
+	float Value;
+};
+
 
 /**
  * A transform section
  */
 UCLASS(MinimalAPI)
-class UMovieScene2DTransformSection : public UMovieSceneSection
+class UMovieScene2DTransformSection
+	: public UMovieSceneSection
+	, public IKeyframeSection<F2DTransformKey>
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+
 public:
 
-	/** MovieSceneSection interface */
+	// UMovieSceneSection interface
+
 	virtual void MoveSection(float DeltaPosition, TSet<FKeyHandle>& KeyHandles) override;
 	virtual void DilateSection(float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles) override;
 	virtual void GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const override;
+
+public:
 
 	UMG_API FRichCurve& GetTranslationCurve( EAxis::Type Axis );
 
@@ -32,10 +67,14 @@ public:
 
 	FWidgetTransform Eval( float Position, const FWidgetTransform& DefaultValue ) const;
 
-	bool NewKeyIsNewData( float Time, const FWidgetTransform& Transform, FKeyParams KeyParams ) const;
+	// IKeyframeSection interface.
+	virtual bool NewKeyIsNewData( float Time, const struct F2DTransformKey& TransformKey ) const override;
+	virtual bool HasKeys( const struct F2DTransformKey& TransformKey ) const override;
+	virtual void AddKey( float Time, const struct F2DTransformKey& TransformKey, EMovieSceneKeyInterpolation KeyInterpolation ) override;
+	virtual void SetDefault( const struct F2DTransformKey& TransformKey ) override;
 
-	void AddKey( float Time, const struct F2DTransformKey& TransformKey, FKeyParams KeyParams );
 private:
+
 	/** Translation curves*/
 	UPROPERTY()
 	FRichCurve Translation[2];

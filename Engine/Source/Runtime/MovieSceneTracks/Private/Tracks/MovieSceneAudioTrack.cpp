@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneAudioSection.h"
@@ -20,12 +20,6 @@ UMovieSceneAudioTrack::UMovieSceneAudioTrack( const FObjectInitializer& ObjectIn
 { }
 
 
-FName UMovieSceneAudioTrack::GetTrackName() const
-{
-	return AudioTrackConstants::UniqueTrackName;
-}
-
-
 TSharedPtr<IMovieSceneTrackInstance> UMovieSceneAudioTrack::CreateInstance()
 {
 	return MakeShareable( new FMovieSceneAudioTrackInstance( *this ) ); 
@@ -44,21 +38,21 @@ void UMovieSceneAudioTrack::RemoveAllAnimationData()
 }
 
 
-bool UMovieSceneAudioTrack::HasSection( UMovieSceneSection* Section ) const
+bool UMovieSceneAudioTrack::HasSection(const UMovieSceneSection& Section) const
 {
-	return AudioSections.Find( Section ) != INDEX_NONE;
+	return AudioSections.Contains(&Section);
 }
 
 
-void UMovieSceneAudioTrack::AddSection( UMovieSceneSection* Section )
+void UMovieSceneAudioTrack::AddSection(UMovieSceneSection& Section)
 {
-	AudioSections.Add( Section );
+	AudioSections.Add(&Section);
 }
 
 
-void UMovieSceneAudioTrack::RemoveSection( UMovieSceneSection* Section )
+void UMovieSceneAudioTrack::RemoveSection(UMovieSceneSection& Section)
 {
-	AudioSections.Remove( Section );
+	AudioSections.Remove(&Section);
 }
 
 
@@ -135,6 +129,12 @@ void UMovieSceneAudioTrack::AddNewSound(USoundBase* Sound, float Time)
 bool UMovieSceneAudioTrack::IsAMasterTrack() const
 {
 	return Cast<UMovieScene>(GetOuter())->IsAMasterTrack(*this);
+}
+
+
+bool UMovieSceneAudioTrack::SupportsMultipleRows() const
+{
+	return true;
 }
 
 

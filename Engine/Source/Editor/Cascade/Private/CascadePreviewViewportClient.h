@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -49,7 +49,8 @@ public:
 		Bounds = 0x020,
 		WireSphere = 0x040,
 		OriginAxis = 0x080,
-		Orbit = 0x100
+		Orbit = 0x100,
+		ParticleSystemCompleted = 0x200
 	};
 
 	/** Accessors */

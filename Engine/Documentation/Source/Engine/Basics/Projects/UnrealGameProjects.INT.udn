@@ -2,6 +2,9 @@ Availability:Public
 Title:Unreal Game Projects
 Crumbs: %ROOT%, Engine
 Description:Overview of game projects and instructions for working with them.
+version: 4.9
+parent:Engine/Editor
+order:8
 
 [VAR:Topic]
 [OBJECT:Topic]

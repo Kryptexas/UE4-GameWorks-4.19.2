@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -19,13 +19,13 @@ class UBehaviorTreeGraphNode : public UAIGraphNode
 	UPROPERTY()
 	TArray<UBehaviorTreeGraphNode*> Services;
 
-	// Begin UEdGraphNode Interface
+	//~ Begin UEdGraphNode Interface
 	virtual class UBehaviorTreeGraph* GetBehaviorTreeGraph();
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetTooltipText() const override;
 	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const override;
 	virtual void FindDiffs(class UEdGraphNode* OtherNode, struct FDiffResults& Results) override;
-	// End UEdGraphNode Interface
+	//~ End UEdGraphNode Interface
 
 	virtual FText GetDescription() const override;
 	virtual bool HasErrors() const override;

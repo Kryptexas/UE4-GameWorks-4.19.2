@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 #include "MovieSceneMarginSection.h"
@@ -74,59 +74,48 @@ FMargin UMovieSceneMarginSection::Eval( float Position, const FMargin& DefaultVa
 					BottomCurve.Eval(Position, DefaultValue.Bottom));
 }
 
-void UMovieSceneMarginSection::AddKey( float Time, const FMarginKey& MarginKey, FKeyParams KeyParams )
+
+template<typename CurveType>
+CurveType* GetCurveForChannel( EKeyMarginChannel Channel, CurveType* LeftCurve, CurveType* TopCurve, CurveType* RightCurve, CurveType* BottomCurve )
 {
-	Modify();
-
-	static FName LeftName("Left");
-	static FName TopName("Top");
-	static FName RightName("Right");
-	static FName BottomName("Bottom");
-
-	FName CurveName = MarginKey.CurveName;
-
-	bool bTopKeyExists = TopCurve.IsKeyHandleValid(TopCurve.FindKey(Time));
-	bool bLeftKeyExists = LeftCurve.IsKeyHandleValid(LeftCurve.FindKey(Time));
-	bool bRightKeyExists = RightCurve.IsKeyHandleValid(RightCurve.FindKey(Time));
-	bool bBottomKeyExists = BottomCurve.IsKeyHandleValid(BottomCurve.FindKey(Time));
-
-	if ( (CurveName == NAME_None || CurveName == LeftName) &&
-			(KeyParams.bAddKeyEvenIfUnchanged || !(!bLeftKeyExists && !KeyParams.bAutoKeying && LeftCurve.GetNumKeys() > 0) ) )
+	switch ( Channel )
 	{
-		AddKeyToCurve(LeftCurve, Time, MarginKey.Value.Left, KeyParams);
+	case EKeyMarginChannel::Left:
+		return LeftCurve;
+	case EKeyMarginChannel::Top:
+		return TopCurve;
+	case EKeyMarginChannel::Right:
+		return RightCurve;
+	case EKeyMarginChannel::Bottom:
+		return BottomCurve;
 	}
-
-	if ( (CurveName == NAME_None || CurveName == TopName) &&
-			(KeyParams.bAddKeyEvenIfUnchanged || !(!bTopKeyExists && !KeyParams.bAutoKeying && TopCurve.GetNumKeys() > 0) ) )
-	{
-		AddKeyToCurve(TopCurve, Time, MarginKey.Value.Top, KeyParams);
-	}
-
-	if ( (CurveName == NAME_None || CurveName == RightName) &&
-			(KeyParams.bAddKeyEvenIfUnchanged || !(!bRightKeyExists && !KeyParams.bAutoKeying && RightCurve.GetNumKeys() > 0) ) )
-	{
-		AddKeyToCurve(RightCurve, Time, MarginKey.Value.Right, KeyParams);
-	}
-
-	if ( (CurveName == NAME_None || CurveName == BottomName) &&
-			(KeyParams.bAddKeyEvenIfUnchanged || !(!bBottomKeyExists && !KeyParams.bAutoKeying && BottomCurve.GetNumKeys() > 0) ) )
-	{
-		AddKeyToCurve(BottomCurve, Time, MarginKey.Value.Bottom, KeyParams);
-	}
+	checkf(false, TEXT("Invalid curve channel"));
+	return nullptr;
 }
 
-bool UMovieSceneMarginSection::NewKeyIsNewData(float Time, const FMargin& Value, FKeyParams KeyParams) const
-{
-	bool bHasEmptyKeys = TopCurve.GetNumKeys() == 0 ||
-		LeftCurve.GetNumKeys() == 0 ||
-		RightCurve.GetNumKeys() == 0 ||
-		BottomCurve.GetNumKeys() == 0 ||
-		(Eval(Time,Value) != Value);
 
-	if (bHasEmptyKeys || (KeyParams.bAutoKeying && Eval(Time, Value) != Value))
-	{
-		return true;
-	}
-	return false;
+void UMovieSceneMarginSection::AddKey( float Time, const FMarginKey& Key, EMovieSceneKeyInterpolation KeyInterpolation )
+{
+	FRichCurve* KeyCurve = GetCurveForChannel( Key.Channel, &LeftCurve, &TopCurve, &RightCurve, &BottomCurve );
+	AddKeyToCurve( *KeyCurve, Time, Key.Value, KeyInterpolation );
+}
+
+
+bool UMovieSceneMarginSection::NewKeyIsNewData( float Time, const FMarginKey& Key ) const
+{
+	const FRichCurve* KeyCurve = GetCurveForChannel( Key.Channel, &LeftCurve, &TopCurve, &RightCurve, &BottomCurve );
+	return FMath::IsNearlyEqual( KeyCurve->Eval( Time ), Key.Value ) == false;
+}
+
+bool UMovieSceneMarginSection::HasKeys( const FMarginKey& Key ) const
+{
+	const FRichCurve* KeyCurve = GetCurveForChannel( Key.Channel, &LeftCurve, &TopCurve, &RightCurve, &BottomCurve );
+	return KeyCurve->GetNumKeys() != 0;
+}
+
+void UMovieSceneMarginSection::SetDefault( const FMarginKey& Key )
+{
+	FRichCurve* KeyCurve = GetCurveForChannel( Key.Channel, &LeftCurve, &TopCurve, &RightCurve, &BottomCurve );
+	SetCurveDefault( *KeyCurve, Key.Value );
 }
 

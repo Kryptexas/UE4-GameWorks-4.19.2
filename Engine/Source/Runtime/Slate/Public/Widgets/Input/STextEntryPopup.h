@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
  
 #pragma once
 
@@ -14,7 +14,7 @@ public:
 		{}
 
 		/** Label, placed before text entry box */
-		SLATE_TEXT_ARGUMENT( Label )
+		SLATE_ARGUMENT( FText, Label )
 
 		/** Test to place into text entry box before anything is typed */
 		SLATE_ARGUMENT( FText, DefaultText )

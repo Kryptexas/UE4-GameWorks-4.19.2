@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -66,25 +66,30 @@ public:
 	 * @return true if a value was returned, false if the queue was empty.
 	 * @see Enqueue, IsEmpty, Peek
 	 */
-	bool Dequeue( ItemType& OutItem )
+	bool Dequeue(ItemType& OutItem)
 	{
 		TNode* Popped = Tail->NextNode;
 
-		if (Popped != nullptr)
+		if (Popped == nullptr)
 		{
-			OutItem = Popped->Item;
-
-			TNode* OldTail = Tail;
-
-			Tail = Popped;
-			Tail->Item = ItemType();
-
-			delete OldTail;
-
-			return true;
+			return false;
 		}
 
-		return false;
+		OutItem = Popped->Item;
+
+		TNode* OldTail = Tail;
+		Tail = Popped;
+		Tail->Item = ItemType();
+		delete OldTail;
+
+		return true;
+	}
+
+	/** Empty the queue, discarding all items. */
+	void Empty()
+	{
+		ItemType DummyItem;
+		while (Dequeue(DummyItem));
 	}
 
 	/**
@@ -94,30 +99,30 @@ public:
 	 * @return true if the item was added, false otherwise.
 	 * @see Dequeue, IsEmpty, Peek
 	 */
-	bool Enqueue( const ItemType& Item )
+	bool Enqueue(const ItemType& Item)
 	{
 		TNode* NewNode = new TNode(Item);
 
-		if (NewNode != nullptr)
+		if (NewNode == nullptr)
 		{
-			TNode* OldHead;
-
-			if (Mode == EQueueMode::Mpsc)
-			{
-				OldHead = (TNode*)FPlatformAtomics::InterlockedExchangePtr((void**)&Head, NewNode);
-			}
-			else
-			{
-				OldHead = Head;
-				Head = NewNode;
-			}		
-
-			OldHead->NextNode = NewNode;
-
-			return true;
+			return false;
 		}
 
-		return false;
+		TNode* OldHead;
+
+		if (Mode == EQueueMode::Mpsc)
+		{
+			OldHead = (TNode*)FPlatformAtomics::InterlockedExchangePtr((void**)&Head, NewNode);
+		}
+		else
+		{
+			OldHead = Head;
+			Head = NewNode;
+		}		
+
+		OldHead->NextNode = NewNode;
+
+		return true;
 	}
 
 	/**
@@ -140,14 +145,14 @@ public:
 	 */
 	bool Peek( ItemType& OutItem )
 	{
-		if (Tail->NextNode != nullptr)
+		if (Tail->NextNode == nullptr)
 		{
-			OutItem = Tail->NextNode->Item;
-
-			return true;
+			return false;
 		}
 
-		return false;
+		OutItem = Tail->NextNode->Item;
+
+		return true;
 	}
 
 private:
@@ -160,7 +165,6 @@ private:
 
 		/** Holds the node's item. */
 		ItemType Item;
-
 
 		/** Default constructor. */
 		TNode()

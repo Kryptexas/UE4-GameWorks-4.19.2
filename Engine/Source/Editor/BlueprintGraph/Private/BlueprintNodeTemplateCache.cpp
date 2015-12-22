@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintNodeTemplateCache.h"
@@ -114,7 +114,7 @@ static UEdGraph* BlueprintNodeTemplateCacheImpl::FindCompatibleGraph(UBlueprint*
 	UEdGraph* FoundGraph = nullptr;
 
 	TArray<UObject*> BlueprintChildObjs;
-	GetObjectsWithOuter(BlueprintOuter, BlueprintChildObjs, /*bIncludeNestedObjects =*/false, /*ExclusionFlags =*/RF_PendingKill);
+	GetObjectsWithOuter(BlueprintOuter, BlueprintChildObjs, /*bIncludeNestedObjects =*/false, /*ExclusionFlags =*/ RF_NoFlags, /** InternalExcludeFlags */ EInternalObjectFlags::PendingKill);
 
 	for (UObject* Child : BlueprintChildObjs)
 	{

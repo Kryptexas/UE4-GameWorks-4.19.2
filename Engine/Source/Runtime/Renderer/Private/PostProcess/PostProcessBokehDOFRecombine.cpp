@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessBokehDOFRecombine.cpp: Post processing lens blur implementation.
@@ -41,6 +41,7 @@ public:
 	FPostProcessPassParameters PostprocessParameter;
 	FDeferredPixelShaderParameters DeferredParameters;
 	FShaderParameter DepthOfFieldParams;
+	FShaderParameter SeparateTranslucencyResMultParam;
 
 	/** Initialization constructor. */
 	FPostProcessBokehDOFRecombinePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -49,23 +50,29 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 		DeferredParameters.Bind(Initializer.ParameterMap);
 		DepthOfFieldParams.Bind(Initializer.ParameterMap,TEXT("DepthOfFieldParams"));
+		SeparateTranslucencyResMultParam.Bind(Initializer.ParameterMap, TEXT("SeparateTranslucencyResMult"));
 	}
 
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << DepthOfFieldParams << DeferredParameters;
+		Ar << PostprocessParameter << DepthOfFieldParams << DeferredParameters << SeparateTranslucencyResMultParam;
 		return bShaderHasOutdatedParameters;
 	}
 
 	void SetParameters(const FRenderingCompositePassContext& Context)
 	{
+		static IConsoleVariable* STSP_CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.SeparateTranslucencyScreenPercentage"));
+
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
 		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
 		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+
+		float Scale = STSP_CVar->GetInt() / 100.0f;
+		SetShaderValue(Context.RHICmdList, ShaderRHI, SeparateTranslucencyResMultParam, FVector4(Scale, Scale, Scale, Scale));
 
 		{
 			FVector4 DepthOfFieldParamValues[2];
@@ -132,12 +139,13 @@ void FRCPassPostProcessBokehDOFRecombine::Process(FRenderingCompositePassContext
 		check(GetInput(ePId_Input2)->GetPass());
 	}
 
-	SCOPED_DRAW_EVENTF(Context.RHICmdList, BokehDOFRecombine, TEXT("BokehDOFRecombine#%d"), Method);
+	const FSceneView& View = Context.View;
+
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, BokehDOFRecombine, TEXT("BokehDOFRecombine#%d %dx%d"), Method, View.ViewRect.Width(), View.ViewRect.Height());
 
 	const FPooledRenderTargetDesc* InputDesc0 = GetInputDesc(ePId_Input0);
 	const FPooledRenderTargetDesc* InputDesc1 = GetInputDesc(ePId_Input1);
-	
-	const FSceneView& View = Context.View;
+
 
 	FIntPoint TexSize = InputDesc1 ? InputDesc1->Extent : InputDesc0->Extent;
 
@@ -162,7 +170,7 @@ void FRCPassPostProcessBokehDOFRecombine::Process(FRenderingCompositePassContext
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	switch(Method)
-		{
+	{
 		case 1: SetShader<1>(Context); break;
 		case 2: SetShader<2>(Context); break;
 		case 3: SetShader<3>(Context); break;
@@ -193,6 +201,7 @@ FPooledRenderTargetDesc FRCPassPostProcessBokehDOFRecombine::ComputeOutputDesc(E
 	FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 
 	Ret.Reset();
+	Ret.AutoWritable = false;
 	Ret.DebugName = TEXT("BokehDOFRecombine");
 
 	return Ret;

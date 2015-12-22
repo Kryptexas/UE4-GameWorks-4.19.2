@@ -6,7 +6,24 @@ Related: Engine/Actors/Brushes
 Related:Engine/UI/LevelEditor
 Related: Engine/UI/LevelEditor/Modes
 Related: Engine/Actors/Volumes
+Version: 4.9
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Level Design Home](Resources/ContentExamples/LevelDesign)
+	[/PARAM]
+	[PARAM:next]
+		[Next Example](Resources/ContentExamples/LevelDesign/2 "%Resources/ContentExamples/LevelDesign/2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]

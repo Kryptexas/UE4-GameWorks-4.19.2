@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "ParameterCollection.h"
@@ -364,9 +364,10 @@ void UMaterialParameterCollection::CreateBufferStruct()
 	new(Members) FUniformBufferStruct::FMember(TEXT("Vectors"),TEXT(""),NextMemberOffset,UBMT_FLOAT32,EShaderPrecisionModifier::Half,1,4,NumVectors,NULL);
 	const uint32 VectorArraySize = NumVectors * sizeof(FVector4);
 	NextMemberOffset += VectorArraySize;
-
+	static FName LayoutName(TEXT("MaterialCollection"));
 	const uint32 StructSize = Align(NextMemberOffset,UNIFORM_BUFFER_STRUCT_ALIGNMENT);
 	UniformBufferStruct = new FUniformBufferStruct(
+		LayoutName,
 		TEXT("MaterialCollection"),
 		TEXT("MaterialCollection"),
 		ConstructCollectionUniformBufferParameter,
@@ -570,6 +571,12 @@ void FMaterialParameterCollectionInstanceResource::GameThread_Destroy()
 	{
 		delete Resource;
 	});
+}
+
+static FName MaterialParameterCollectionInstanceResourceName(TEXT("MaterialParameterCollectionInstanceResource"));
+FMaterialParameterCollectionInstanceResource::FMaterialParameterCollectionInstanceResource() :
+	UniformBufferLayout(MaterialParameterCollectionInstanceResourceName)
+{
 }
 
 FMaterialParameterCollectionInstanceResource::~FMaterialParameterCollectionInstanceResource()

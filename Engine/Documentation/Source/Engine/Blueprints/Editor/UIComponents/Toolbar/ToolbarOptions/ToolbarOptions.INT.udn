@@ -1,9 +1,8 @@
-Availability:Public
+Availability:NoPublish
 Title: Toolbar Options
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/Modes, Engine/Blueprints/Editor/UIComponents/Toolbar
-Description:
-
-[TOC (start:2)]
+Description: A list of Toolbar buttons and their functions
+version: 4.9
 
 
 [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#Intro]
@@ -34,7 +33,6 @@ Description:
 | ![Eject Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_eject.png)							| [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/Toolbaroptions#eject]				|
 | ![Step Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_step.png)								| [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/Toolbaroptions#step]					|
 | ![Debug Dropdown](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_debug_dropdown.png)				| [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/Toolbaroptions#debugobject]			| 
-
 <!--
 [EXCERPT:CompileSuccessful]
 Compilation was successful. Clicking the button compiles the Blueprint being edited. Output from the compiling process is displayed in the Blueprint Log of the Message Log. This button will be inactive during debugging.

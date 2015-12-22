@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,7 +13,7 @@ public:
 	/**
 	 * Default constructor.
 	 */
-	FSteamEndpoint( ) { }
+	FSteamEndpoint() { }
 
 	/**
 	 * Creates and initializes a new Steam address with the specified components.
@@ -21,7 +21,7 @@ public:
 	 * @param InUniqueNetId - The unique network identifier.
 	 * @param InSteamChannel - The Steam channel number.
 	 */
-	FSteamEndpoint( uint64 InUniqueNetId, int32 InSteamChannel )
+	FSteamEndpoint(uint64 InUniqueNetId, int32 InSteamChannel)
 		: SteamChannel(InSteamChannel)
 		, UniqueNetId(InUniqueNetId)
 	{ }
@@ -36,7 +36,7 @@ public:
 	 *
 	 * @return true if the addresses are equal, false otherwise.
 	 */
-	bool operator==( const FSteamEndpoint& Other ) const
+	bool operator==(const FSteamEndpoint& Other) const
 	{
 		return ((SteamChannel == Other.SteamChannel) && (UniqueNetId == Other.UniqueNetId));
 	}
@@ -48,7 +48,7 @@ public:
 	 *
 	 * @return true if the addresses are not equal, false otherwise.
 	 */
-	bool operator!=( const FSteamEndpoint& Other ) const
+	bool operator!=(const FSteamEndpoint& Other) const
 	{
 		return ((SteamChannel != Other.SteamChannel) || (UniqueNetId != Other.UniqueNetId));
 	}
@@ -61,7 +61,7 @@ public:
 	 *
 	 * @return The archive.
 	 */
-	friend FArchive& operator<<( FArchive& Ar, FSteamEndpoint& SteamEndpoint )
+	friend FArchive& operator<<(FArchive& Ar, FSteamEndpoint& SteamEndpoint)
 	{
 		return Ar << SteamEndpoint.UniqueNetId << SteamEndpoint.SteamChannel;
 	}
@@ -76,7 +76,7 @@ public:
 	 *
 	 * @see GetUniqueNetId
 	 */
-	int32 GetSteamChannel( ) const
+	int32 GetSteamChannel() const
 	{
 		return SteamChannel;
 	}
@@ -88,7 +88,7 @@ public:
 	 *
 	 * @see GetSteamChannel
 	 */
-	uint64 GetUniqueNetId( ) const
+	uint64 GetUniqueNetId() const
 	{
 		return UniqueNetId;
 	}
@@ -99,7 +99,7 @@ public:
 	 *
 	 * @return String representation.
 	 */
-	NETWORKING_API FString ToString( ) const;
+	NETWORKING_API FString ToString() const;
 
 
 public:
@@ -111,7 +111,7 @@ public:
 	 *
 	 * @return Hash value.
 	 */
-	friend uint32 GetTypeHash( const FSteamEndpoint& Address )
+	friend uint32 GetTypeHash(const FSteamEndpoint& Address)
 	{
 		return GetTypeHash(Address.UniqueNetId) + GetTypeHash(Address.SteamChannel) * 23;
 	}

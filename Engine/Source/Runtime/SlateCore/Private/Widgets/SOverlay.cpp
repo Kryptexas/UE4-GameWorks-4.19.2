@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
  #include "SlateCorePrivatePCH.h"
 
@@ -7,13 +7,10 @@
 SOverlay::SOverlay()
 : Children()
 {
+	bCanTick = false;
+	bCanSupportFocus = false;
 }
 
-/**
- * Construct this widget
- *
- * @param	InArgs	The declaration data for this widget
- */
 void SOverlay::Construct( const SOverlay::FArguments& InArgs )
 {
 	const int32 NumSlots = InArgs.Slots.Num();
@@ -22,7 +19,6 @@ void SOverlay::Construct( const SOverlay::FArguments& InArgs )
 		Children.Add( InArgs.Slots[SlotIndex] );
 	}
 }
-
 
 void SOverlay::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
@@ -45,13 +41,6 @@ void SOverlay::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedCh
 	}
 }
 
-
-/**
- * A Panel's desired size in the space required to arrange of its children on the screen while respecting all of
- * the children's desired sizes and any layout-related options specified by the user. See StackPanel for an example.
- *
- * @return The desired size.
- */
 FVector2D SOverlay::ComputeDesiredSize( float ) const
 {
 	FVector2D MaxSize(0,0);
@@ -70,7 +59,6 @@ FVector2D SOverlay::ComputeDesiredSize( float ) const
 	return MaxSize;
 }
 
-/** @return  The children of a panel in a slot-agnostic way. */
 FChildren* SOverlay::GetChildren()
 {
 	return &Children;
@@ -88,13 +76,27 @@ int32 SOverlay::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 	// wants to an overlay for all of its contents.
 	int32 MaxLayerId = LayerId;
 
+	const FPaintArgs NewArgs = Args.WithNewParent(this);
+
 	for (int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
 	{
 		FArrangedWidget& CurWidget = ArrangedChildren[ChildIndex];
 		FSlateRect ChildClipRect = MyClippingRect.IntersectionWith( CurWidget.Geometry.GetClippingRect() );
-		const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint( Args.WithNewParent(this), CurWidget.Geometry, ChildClipRect, OutDrawElements, MaxLayerId + 1, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
 
-		MaxLayerId = FMath::Max( MaxLayerId, CurWidgetsMaxLayerId );
+		if ( !ChildClipRect.IsEmpty() )
+		{
+			const int32 CurWidgetsMaxLayerId = 
+				CurWidget.Widget->Paint(
+					NewArgs,
+					CurWidget.Geometry,
+					ChildClipRect,
+					OutDrawElements,
+					MaxLayerId + 1,
+					InWidgetStyle,
+					ShouldBeEnabled(bParentEnabled));
+
+			MaxLayerId = FMath::Max(MaxLayerId, CurWidgetsMaxLayerId);
+		}
 	}
 
 	return MaxLayerId;
@@ -167,12 +169,10 @@ void SOverlay::ClearChildren()
 	Children.Empty();
 }
 
-/** Returns the number of child widgets */
 int32 SOverlay::GetNumWidgets() const
 {
 	return Children.Num();
 }
-
 
 void SOverlay::RemoveSlot( TSharedRef< SWidget > Widget )
 {

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -12,6 +12,7 @@ class ULevel;
 class AActor;
 class AHierarchicalLODVolume;
 class UWorld;
+class ALODActor;
 
 /**
  *
@@ -38,6 +39,27 @@ struct UNREALED_API FHierarchicalLODBuilder
 	*/
 	void PreviewBuild();
 
+	/**
+	* Clear all the HLODs and the ALODActors that were created for them
+	*/
+	void ClearHLODs();
+
+	/**
+	* Clear only the ALODActorsPreview 
+	*/
+	void ClearPreviewBuild();
+
+	/** Builds the LOD meshes for all LODActors inside of the World's Levels */
+	void BuildMeshesForLODActors();
+
+	/**
+	* Build a single LOD Actor's mesh
+	*
+	* @param LODActor - LODActor to build mesh for
+	* @param LODLevel - LODLevel to build the mesh for
+	*/
+	void BuildMeshForLODActor(ALODActor* LODActor, const uint32 LODLevel);
+
 private:
 	/**
 	* Builds the clusters (HLODs) for InLevel, and will create the new/merged StaticMeshes if bCreateMeshes is true
@@ -54,7 +76,7 @@ private:
 	* @param LODIdx - LOD index we are building
 	* @param CullCost - Test variable for tweaking HighestCost
 	*/
-	void InitializeClusters(ULevel* InLevel, const int32 LODIdx, float CullCost);
+	void InitializeClusters(ULevel* InLevel, const int32 LODIdx, float CullCost, bool const bPreviewBuild);
 
 	/**
 	* Merges clusters and builds actors for resulting (valid) clusters
@@ -84,8 +106,17 @@ private:
 	* @param Actor - Actor to test
 	* @return bool
 	*/
-	bool ShouldGenerateCluster(AActor* Actor);
+	bool ShouldGenerateCluster(AActor* Actor, const bool bPreviewBuild);
 	
+	/**
+	* Deletes LOD actors from the world	
+	*
+	* @param InLevel - Level to delete the actors from
+	* @param bPreviewOnly - Only delete preview actors
+	* @return void
+	*/
+	void DeleteLODActors(ULevel* InLevel, const bool bPreviewOnly);
+
 	/** Array of LOD Clusters - this is only valid within scope since mem stack allocator */
 	TArray<FLODCluster, TMemStackAllocator<>> Clusters;
 
@@ -94,4 +125,13 @@ private:
 
 	/** Array of LOD clusters created for the HierachicalLODVolumes found within the level */
 	TMap<AHierarchicalLODVolume*, FLODCluster> HLODVolumeClusters;	
+
+	/** Cached array of LODLevel settings */
+	TArray<FHierarchicalSimplification> BuildLODLevelSettings;
+
+	/** LOD Actors per HLOD level */
+	TArray<TArray<ALODActor*>> LODLevelLODActors;
+
+	/** Valid Static Mesh actors in level (populated during initialize clusters) */
+	TArray<AActor*> ValidStaticMeshActorsInLevel;
 };

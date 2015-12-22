@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 
@@ -14,6 +14,7 @@ void SScaleBox::Construct( const SScaleBox::FArguments& InArgs )
 	Stretch = InArgs._Stretch;
 	StretchDirection = InArgs._StretchDirection;
 	UserSpecifiedScale = InArgs._UserSpecifiedScale;
+	IgnoreInheritedScale = InArgs._IgnoreInheritedScale;
 
 	ChildSlot
 	.HAlign(InArgs._HAlign)
@@ -78,6 +79,11 @@ void SScaleBox::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedC
 			}
 		}
 
+		if (IgnoreInheritedScale.Get(false) && AllottedGeometry.Scale != 0)
+		{
+			FinalScale /= AllottedGeometry.Scale;
+		}
+
 		FVector2D FinalOffset(0, 0);
 
 		// If we're just filling, there's no scale applied, we're just filling the area.
@@ -102,6 +108,13 @@ void SScaleBox::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedC
 			{
 				SlotWidgetDesiredSize.Y = AreaSize.Y / FinalScale;
 			}
+		}
+
+		if ( CurrentStretch != EStretch::UserSpecified )
+		{
+			// We need to run another pre-pass now that we know the final scale.
+			// This will allow things that don't scale linearly (such as text) to update their size and layout correctly.
+			ChildSlot.GetWidget()->SlatePrepass(AllottedGeometry.GetAccumulatedLayoutTransform().GetScale() * FinalScale);
 		}
 
 		ArrangedChildren.AddWidget(ChildVisibility, AllottedGeometry.MakeChild(
@@ -149,4 +162,25 @@ void SScaleBox::SetStretch(EStretch::Type InStretch)
 void SScaleBox::SetUserSpecifiedScale(float InUserSpecifiedScale)
 {
 	UserSpecifiedScale = InUserSpecifiedScale;
+}
+
+void SScaleBox::SetIgnoreInheritedScale(bool InIgnoreInheritedScale)
+{
+	IgnoreInheritedScale = InIgnoreInheritedScale;
+}
+
+float SScaleBox::GetRelativeLayoutScale(const FSlotBase& Child) const
+{
+	const EStretch::Type CurrentStretch = Stretch.Get();
+
+	switch ( CurrentStretch )
+	{
+	case EStretch::UserSpecified:
+		return UserSpecifiedScale.Get(1.0f);
+	default:
+		// Because our scale is determined by our size, we always report a scale of 1.0 here, 
+		// as reporting our actual scale can cause a feedback loop whereby the calculated size changes each frame.
+		// We workaround this by forcibly pre-passing our child content a second time once we know its final scale in OnArrangeChildren.
+		return 1.0f;
+	}
 }

@@ -112,7 +112,7 @@ Our programming work is done, and we can now place our custom **Pawn** in the wo
     [/PARAM]
     [PARAM:content]
 		**CollidingPawn.h**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -149,7 +149,7 @@ Our programming work is done, and we can now place our custom **Pawn** in the wo
 			};
 
 		**CollidingPawn.cpp**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_Components.h"
 			#include "CollidingPawn.h"
@@ -272,7 +272,7 @@ Our programming work is done, and we can now place our custom **Pawn** in the wo
 			}
 
 		**CollidingPawnMovementComponent.h**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -292,7 +292,7 @@ Our programming work is done, and we can now place our custom **Pawn** in the wo
 			};
 
 		**CollidingPawnMovementComponent.cpp**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_Components.h"
 			#include "CollidingPawnMovementComponent.h"

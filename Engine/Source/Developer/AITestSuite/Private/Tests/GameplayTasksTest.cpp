@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AITestSuitePrivatePCH.h"
 #include "GameplayTasksComponent.h"
@@ -467,6 +467,28 @@ struct FAITest_GameplayTask_ClaimedResources : public FAITest_GameplayTasksTest
 	}
 };
 IMPLEMENT_AI_INSTANT_TEST(FAITest_GameplayTask_ClaimedResources, "System.Engine.AI.Gameplay Tasks.Claimed resources")
+
+//----------------------------------------------------------------------//
+// 
+//----------------------------------------------------------------------//
+struct FAITest_GameplayTask_ClaimedResourcesAndInstantFinish : public FAITest_GameplayTasksTest
+{
+	static const int32 TasksCount = 4;
+	UMockTask_Log* Task;
+
+	void InstantTest()
+	{
+		UWorld& World = GetWorld();
+
+		Task = UMockTask_Log::CreateTask(*Component, Logger, MovementResourceSet);
+		Task->SetInstaEnd(true);
+		Task->ReadyForActivation();
+
+		Test(TEXT("No claimed resources should be left behind"), Component->GetCurrentlyUsedResources().IsEmpty() == true);
+		Test(TEXT("There should no active tasks when task auto-insta-ended"), Component->GetTaskPriorityQueueSize() == 0);
+	}
+};
+IMPLEMENT_AI_INSTANT_TEST(FAITest_GameplayTask_ClaimedResourcesAndInstantFinish, "System.Engine.AI.Gameplay Tasks.Claimed resources vs Insta-finish tasks")
 
 // add tests if component wants ticking at while aborting/reactivating tasks
 // add test for re-adding/re-activating a finished task

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "ProfilerPrivatePCH.h"
 #include "RenderingThread.h"
@@ -110,14 +110,12 @@ void FProfilerManager::PostConstructor()
 	ProfilerClient->OnProfilerClientDisconnected().AddSP(this, &FProfilerManager::ProfilerClient_OnClientDisconnected);
 	
 	ProfilerClient->OnLoadStarted().AddSP(this, &FProfilerManager::ProfilerClient_OnLoadStarted);
-	ProfilerClient->OnLoadedMetaData().AddSP(this, &FProfilerManager::ProfilerClient_OnLoadedMetaData);
 	ProfilerClient->OnLoadCompleted().AddSP(this, &FProfilerManager::ProfilerClient_OnLoadCompleted);
 
 	ProfilerClient->OnMetaDataUpdated().AddSP(this, &FProfilerManager::ProfilerClient_OnMetaDataUpdated);
 
 	ProfilerClient->OnProfilerFileTransfer().AddSP(this, &FProfilerManager::ProfilerClient_OnProfilerFileTransfer);
 
-	SessionManager->OnCanSelectSession().AddSP( this, &FProfilerManager::SessionManager_OnCanSelectSession );
 	SessionManager->OnSelectedSessionChanged().AddSP( this, &FProfilerManager::SessionManager_OnSelectedSessionChanged );
 	SessionManager->OnInstanceSelectionChanged().AddSP( this, &FProfilerManager::SessionManager_OnInstanceSelectionChanged );
 
@@ -144,6 +142,19 @@ FProfilerManager::~FProfilerManager()
 	// Unregister tick function.
 	FTicker::GetCoreTicker().RemoveTicker( OnTickHandle );
 
+	// Remove ourselves from the session manager.
+	if (SessionManager.IsValid())
+	{
+		// clear the selected session
+		ISessionInfoPtr Ptr;
+		Ptr.Reset();
+		SessionManager->SelectSession( Ptr );
+
+		SessionManager->OnCanSelectSession().RemoveAll( this );
+		SessionManager->OnSelectedSessionChanged().RemoveAll( this );
+		SessionManager->OnInstanceSelectionChanged().RemoveAll( this );
+	}
+
 	// Remove ourselves from the profiler client.
 	if( ProfilerClient.IsValid() )
 	{
@@ -153,66 +164,67 @@ FProfilerManager::~FProfilerManager()
 		ProfilerClient->OnProfilerClientConnected().RemoveAll(this);
 		ProfilerClient->OnProfilerClientDisconnected().RemoveAll(this);
 		ProfilerClient->OnMetaDataUpdated().RemoveAll(this);
-		ProfilerClient->OnLoadedMetaData().RemoveAll(this);
 		ProfilerClient->OnLoadCompleted().RemoveAll(this);
 		ProfilerClient->OnLoadStarted().RemoveAll(this);
 		ProfilerClient->OnProfilerFileTransfer().RemoveAll(this);
 	}
 
-	// Remove ourselves from the session manager.
-	if( SessionManager.IsValid() )
-	{
-		SessionManager->OnCanSelectSession().RemoveAll(this);
-		SessionManager->OnSelectedSessionChanged().RemoveAll(this);
-		SessionManager->OnInstanceSelectionChanged().RemoveAll(this);
-
-		// clear the selected session
-		ISessionInfoPtr Ptr;
-		Ptr.Reset();
-		SessionManager->SelectSession(Ptr);
-	}
-
 	ClearStatsAndInstances();
 }
 
-
-void FProfilerManager::LoadProfilerCapture( const FString& ProfilerCaptureFilepath, const bool bAdd /*= false*/ )
+class FStatsHeaderReader : public FStatsReadFile
 {
-	// deselect the active session
+	friend struct FStatsReader<FStatsHeaderReader>;
+	typedef FStatsReadFile Super;
+
+protected:
+
+	/** Initialization constructor. */
+	FStatsHeaderReader( const TCHAR* InFilename )
+		: FStatsReadFile( InFilename, false )
+	{}
+};
+
+static int32 GetNumFrameFromCaptureSlow( const FString& ProfilerCaptureFilepath )
+{
+	TAutoPtr<FStatsHeaderReader> Instance( FStatsReader<FStatsHeaderReader>::Create( *ProfilerCaptureFilepath ) );
+	return Instance->GetNumFrames();
+}
+
+void FProfilerManager::LoadProfilerCapture( const FString& ProfilerCaptureFilepath )
+{
+	// Deselect the active session.
 	if (ActiveSession.IsValid())
 	{
-		SessionManager->SelectSession(NULL);
+		SessionManager->SelectSession( nullptr );
 	}
 
-	if( bAdd == false )
-	{
-		ClearStatsAndInstances();
-	}
-
-	FProfilerSessionRef ProfilerSession = MakeShareable( new FProfilerSession( ProfilerCaptureFilepath ) );
-	auto Var = ProfilerSession->AsShared();
-	const FGuid ProfilerInstanceID = ProfilerSession->GetInstanceID();
+	ClearStatsAndInstances();
+	
+	ProfilerSession = MakeShareable( new FProfilerSession( ProfilerCaptureFilepath ) );
+	ActiveInstanceID = ProfilerSession->GetInstanceID();
 
 	ProfilerSession->
 		SetOnCaptureFileProcessed( FProfilerSession::FCaptureFileProcessedDelegate::CreateSP( this, &FProfilerManager::ProfilerSession_OnCaptureFileProcessed ) )
 		.SetOnAddThreadTime( FProfilerSession::FAddThreadTimeDelegate::CreateSP( this, &FProfilerManager::ProfilerSession_OnAddThreadTime ) );
 
-	ProfilerSessionInstances.Add( ProfilerInstanceID, ProfilerSession );
-	{
-		PROFILER_SCOPE_LOG_TIME( TEXT( "ProfilerClient->LoadCapture" ), nullptr );
-		ProfilerClient->LoadCapture( ProfilerCaptureFilepath, ProfilerInstanceID );
-	}
+	ProfilerClient->LoadCapture( ProfilerCaptureFilepath, ActiveInstanceID );
+
+	const int32 NumFrames = GetNumFrameFromCaptureSlow( ProfilerCaptureFilepath );
+	ProfilerSession->SetNumberOfFrames( NumFrames );
 
 	SessionInstancesUpdatedEvent.Broadcast();
 	ProfilerType = EProfilerSessionTypes::StatsFile;
 	
-	GetProfilerWindow()->ManageEventGraphTab( ProfilerInstanceID, true, ProfilerSession->GetName() );
+	GetProfilerWindow()->ManageEventGraphTab( ActiveInstanceID, true, ProfilerSession->GetName() );
 	SetViewMode( EProfilerViewMode::LineIndexBased );
 }
 
 void FProfilerManager::LoadRawStatsFile( const FString& RawStatsFileFileath )
 {
-	if( ActiveSession.IsValid() )
+	// #YRX_Rework 2015-11-30 
+#if	0
+	if (ActiveSession.IsValid())
 	{
 		SessionManager->SelectSession( NULL );
 	}
@@ -220,13 +232,13 @@ void FProfilerManager::LoadRawStatsFile( const FString& RawStatsFileFileath )
 
 	TSharedRef<FRawProfilerSession> ProfilerSession = MakeShareable( new FRawProfilerSession( RawStatsFileFileath ) );
 	const FGuid ProfilerInstanceID = ProfilerSession->GetInstanceID();
-	ProfilerSessionInstances.Add( ProfilerInstanceID, ProfilerSession );
+	//ProfilerSessionInstances.Add( ProfilerInstanceID, ProfilerSession );
 
 	ProfilerSession->
 		//SetOnCaptureFileProcessed( FProfilerSession::FCaptureFileProcessedDelegate::CreateSP( this, /&FProfilerManager::ProfilerSession_OnCaptureFileProcessed ) )
 		SetOnAddThreadTime( FProfilerSession::FAddThreadTimeDelegate::CreateSP( this, &FProfilerManager::ProfilerSession_OnAddThreadTime ) );
 
-	ProfilerSessionInstances.Add( ProfilerInstanceID, ProfilerSession );
+	//ProfilerSessionInstances.Add( ProfilerInstanceID, ProfilerSession );
 
 	ProfilerSession->PrepareLoading();
 	RequestFilterAndPresetsUpdateEvent.Broadcast();
@@ -236,11 +248,12 @@ void FProfilerManager::LoadRawStatsFile( const FString& RawStatsFileFileath )
 
 	SessionInstancesUpdatedEvent.Broadcast();
 	ProfilerType = EProfilerSessionTypes::StatsFileRaw;
-	
+
 	GetProfilerWindow()->ManageEventGraphTab( ProfilerInstanceID, true, ProfilerSession->GetName() );
 	SetViewMode( EProfilerViewMode::ThreadViewTimeBased );
 
 	GetProfilerWindow()->GraphPanel->ThreadView->AttachProfilerStream( ProfilerSession->GetStream() );
+#endif // 0
 }
 
 
@@ -261,26 +274,54 @@ bool FProfilerManager::Tick( float DeltaTime )
 	return true;
 }
 
+double LoadStartTime = 0.0;
+
 void FProfilerManager::ProfilerSession_OnCaptureFileProcessed( const FGuid ProfilerInstanceID )
 {
-	const FProfilerSessionRef* ProfilerSession = FindSessionInstance( ProfilerInstanceID );
-	if( ProfilerSession && ProfilerWindow.IsValid())
+	if (ProfilerSession.IsValid() && ProfilerWindow.IsValid())
 	{
 		TrackDefaultStats();
 
 		RequestFilterAndPresetsUpdateEvent.Broadcast();
 
-		GetProfilerWindow()->UpdateEventGraph( ProfilerInstanceID, (*ProfilerSession)->GetEventGraphDataAverage(), (*ProfilerSession)->GetEventGraphDataMaximum(), true );
+		GetProfilerWindow()->UpdateEventGraph( ProfilerInstanceID, ProfilerSession->GetEventGraphDataAverage(), ProfilerSession->GetEventGraphDataMaximum(), true );
 		bHasCaptureFileFullyProcessed = true;
+
+		const double TotalLoadTime = FPlatformTime::Seconds() - LoadStartTime;
+
+		const FString Description = ProfilerSession->GetName();
+		UE_LOG( LogStats, Warning, TEXT( "OnCaptureFileProcessed: %s" ), *Description );
+		UE_LOG( LogStats, Warning, TEXT( "TotalLoadTime: %.2f" ), TotalLoadTime );
+
+		// Update the notification that a file has been fully processed.
+		GetProfilerWindow()->ManageLoadingProgressNotificationState( Description, EProfilerNotificationTypes::LoadingOfflineCapture, ELoadingProgressStates::Loaded, 1.0f );
 	}
+}
+
+const bool FProfilerManager::IsDataPreviewing() const
+{
+	return IsConnected() && ProfilerSession.IsValid() && ProfilerSession->bDataPreviewing;
+}
+
+void FProfilerManager::SetDataPreview( const bool bRequestedDataPreviewState )
+{
+	ProfilerClient->SetPreviewState( bRequestedDataPreviewState );
+	if (ProfilerSession.IsValid())
+	{
+		ProfilerSession->bDataPreviewing = bRequestedDataPreviewState;
+	}
+}
+
+const bool FProfilerManager::IsDataCapturing() const
+{
+	return IsConnected() && ProfilerSession.IsValid() && ProfilerSession->bDataCapturing;
 }
 
 void FProfilerManager::SetDataCapture( const bool bRequestedDataCaptureState )
 {
 	ProfilerClient->SetCaptureState( bRequestedDataCaptureState );
-	for( auto It = GetProfilerInstancesIterator(); It; ++It )
+	if (ProfilerSession.IsValid())
 	{
-		FProfilerSessionRef ProfilerSession = It.Value();
 		ProfilerSession->bDataCapturing = bRequestedDataCaptureState;
 	}
 }
@@ -289,63 +330,55 @@ void FProfilerManager::SetDataCapture( const bool bRequestedDataCaptureState )
 	ProfilerClient
 -----------------------------------------------------------------------------*/
 
-void FProfilerManager::ProfilerClient_OnProfilerData( const FGuid& InstanceID, const FProfilerDataFrame& Content, const float DataLoadingProgress )
+void FProfilerManager::ProfilerClient_OnProfilerData( const FGuid& InstanceID, const FProfilerDataFrame& Content )
 {
 	SCOPE_CYCLE_COUNTER(STAT_PM_HandleProfilerData);
 
-	const FProfilerSessionRef* ProfilerSession = FindSessionInstance( InstanceID );
-	if( ProfilerSession && ProfilerWindow.IsValid())
+	if (ProfilerSession.IsValid())
 	{
-		(*ProfilerSession)->UpdateProfilerData( Content );
+		ProfilerSession->UpdateProfilerData( Content );
 		// Game thread should always be enabled.
 		TrackDefaultStats();
-
-		// Update the notification that a file is being loaded.
-		GetProfilerWindow()->ManageLoadingProgressNotificationState( (*ProfilerSession)->GetName(), EProfilerNotificationTypes::LoadingOfflineCapture, ELoadingProgressStates::InProgress, DataLoadingProgress );
 	}
 }
 
-void FProfilerManager::ProfilerClient_OnMetaDataUpdated( const FGuid& InstanceID )
+void FProfilerManager::ProfilerClient_OnMetaDataUpdated( const FGuid& InstanceID, const FStatMetaData& MetaData )
 {
-	const FProfilerSessionRef* ProfilerSession = FindSessionInstance( InstanceID );
-	if( ProfilerSession && ProfilerWindow.IsValid())
+	if (ProfilerSession.IsValid())
 	{
-		(*ProfilerSession)->UpdateMetadata( ProfilerClient->GetStatMetaData( InstanceID ) );
+		ProfilerSession->UpdateMetadata( MetaData );
 
-		if( (*ProfilerSession)->GetSessionType() == EProfilerSessionTypes::Live )
+		if (ProfilerSession->GetSessionType() == EProfilerSessionTypes::Live)
 		{
 			RequestFilterAndPresetsUpdateEvent.Broadcast();
 		}
 	}
 }
 
-void FProfilerManager::ProfilerClient_OnLoadedMetaData( const FGuid& InstanceID )
-{
-	//TrackDefaultStats();
-}
+
 
 void FProfilerManager::ProfilerClient_OnLoadStarted( const FGuid& InstanceID )
 {
-	const FProfilerSessionRef* ProfilerSession = FindSessionInstance( InstanceID );
-	if( ProfilerSession && GetProfilerWindow().IsValid())
+	if (ProfilerSession.IsValid() && GetProfilerWindow().IsValid())
 	{
-		const FString Description = (*ProfilerSession)->GetName();
+		const FString Description = ProfilerSession->GetName();
+		UE_LOG( LogStats, Warning, TEXT( "OnLoadStarted: %s" ), *Description );
+		LoadStartTime = FPlatformTime::Seconds();
 
 		// Display the notification that a file is being loaded.
-		GetProfilerWindow()->ManageLoadingProgressNotificationState( (*ProfilerSession)->GetName(), EProfilerNotificationTypes::LoadingOfflineCapture, ELoadingProgressStates::Started, 0.0f );
+		GetProfilerWindow()->ManageLoadingProgressNotificationState( Description, EProfilerNotificationTypes::LoadingOfflineCapture, ELoadingProgressStates::Started, 0.0f );
 	}
 }
 
 void FProfilerManager::ProfilerClient_OnLoadCompleted( const FGuid& InstanceID )
 {
 	// Inform that the file has been loaded and we can hide the notification.
-	const FProfilerSessionRef* ProfilerSession = FindSessionInstance( InstanceID );
-	if( ProfilerSession && GetProfilerWindow().IsValid())
+	if (ProfilerSession.IsValid())
 	{
-		(*ProfilerSession)->LoadComplete();
+		ProfilerSession->LoadComplete();
 
-		// Update the notification that a file has been loaded, to be precise it should be loaded on the next tick...
-		GetProfilerWindow()->ManageLoadingProgressNotificationState( (*ProfilerSession)->GetName(), EProfilerNotificationTypes::LoadingOfflineCapture, ELoadingProgressStates::Loaded, 1.0f );
+		const FString Description = ProfilerSession->GetName();
+		UE_LOG( LogStats, Warning, TEXT( "OnLoadCompleted: %s" ), *Description );
 	}
 }
 
@@ -392,27 +425,26 @@ void FProfilerManager::ProfilerClient_OnClientDisconnected( const FGuid& Session
 	SessionManager
 -----------------------------------------------------------------------------*/
 
-void FProfilerManager::SessionManager_OnCanSelectSession( const ISessionInfoPtr& SelectedSession, bool& CanSelect )
-{
-}
-
 void FProfilerManager::SessionManager_OnSelectedSessionChanged( const ISessionInfoPtr& InActiveSession )
 {
-	SessionManager_OnInstanceSelectionChanged();
+	//SessionManager_OnInstanceSelectionChanged(nullptr, false);
 }
 
-void FProfilerManager::SessionManager_OnInstanceSelectionChanged()
+void FProfilerManager::SessionManager_OnInstanceSelectionChanged(const TSharedPtr<ISessionInstanceInfo>& InInstance, bool Selected)
 {
 	const ISessionInfoPtr& SelectedSession = SessionManager->GetSelectedSession();
-	const bool SessionIsValid = SelectedSession.IsValid() && (SelectedSession->GetSessionOwner() == FPlatformProcess::UserName(true));
+	const bool SessionIsValid = SelectedSession.IsValid()
+		&& (SelectedSession->GetSessionOwner() == FPlatformProcess::UserName(false))
+		&& (SessionManager->GetSelectedInstances().Num() > 0);
 
-	if( ActiveSession != SelectedSession || FProfilerManager::GetSettings().bSingleInstanceMode )
+	if (InInstance->GetInstanceId() != ActiveInstanceID && SessionIsValid && InInstance.IsValid() && Selected)
 	{
 		ClearStatsAndInstances();
 
 		if (SessionIsValid)
 		{
 			ActiveSession = SelectedSession;
+			ActiveInstanceID = InInstance->GetInstanceId();
 			ProfilerClient->Subscribe( ActiveSession->GetSessionId() );
 			ProfilerType = EProfilerSessionTypes::Live;
 			SetViewMode( EProfilerViewMode::LineIndexBased );
@@ -420,36 +452,20 @@ void FProfilerManager::SessionManager_OnInstanceSelectionChanged()
 		else
 		{
 			ActiveSession = nullptr;
+			ProfilerClient->Unsubscribe();
 			ProfilerType = EProfilerSessionTypes::InvalidOrMax;
 		}
-	}
 
-	if( ActiveSession.IsValid() )
-	{
-		// Track all selected session instances.
-		SessionManager->GetSelectedInstances( SelectedSessionInstances );
-		const int32 NumSelectedInstances = SelectedSessionInstances.Num();
-		const int32 NumInstances = FMath::Min( NumSelectedInstances, FProfilerManager::GetSettings().bSingleInstanceMode ? 1 : NumSelectedInstances );
-
-		for( int32 Index = 0; Index < NumInstances; ++Index )
+		if (ActiveSession.IsValid())
 		{
-			const ISessionInstanceInfoPtr SessionInstanceInfo = SelectedSessionInstances[Index];
-			const FGuid ProfilerInstanceID = SessionInstanceInfo->GetInstanceId();
-			const bool bAlreadyAdded = ProfilerSessionInstances.Contains( ProfilerInstanceID );
-
-			if( !bAlreadyAdded )
+			ProfilerSession = MakeShareable( new FProfilerSession( InInstance ) );
+			ProfilerSession->SetOnAddThreadTime( FProfilerSession::FAddThreadTimeDelegate::CreateSP( this, &FProfilerManager::ProfilerSession_OnAddThreadTime ) );
+			ProfilerClient->Track( ActiveInstanceID );
+			TSharedPtr<SProfilerWindow> ProfilerWindowPtr = GetProfilerWindow();
+			if (ProfilerWindowPtr.IsValid())
 			{
-				FProfilerSessionRef ProfilerSession = MakeShareable( new FProfilerSession( SessionInstanceInfo ) );
-				ProfilerSession->SetOnAddThreadTime( FProfilerSession::FAddThreadTimeDelegate::CreateSP( this, &FProfilerManager::ProfilerSession_OnAddThreadTime ) );
-
-				ProfilerSessionInstances.Add( ProfilerSession->GetInstanceID(), ProfilerSession );
-				ProfilerClient->Track( ProfilerInstanceID );
-				TSharedPtr<SProfilerWindow> ProfilerWindowPtr = GetProfilerWindow();
-				if (ProfilerWindowPtr.IsValid())
-				{
-					ProfilerWindowPtr->ManageEventGraphTab(ProfilerInstanceID, true, ProfilerSession->GetName());
-				}
-			}
+				ProfilerWindowPtr->ManageEventGraphTab( ActiveInstanceID, true, ProfilerSession->GetName() );
+			}			
 		}
 	}
 
@@ -475,14 +491,7 @@ bool FProfilerManager::TrackStat( const uint32 StatID )
 	bool bAdded = false;
 
 	// Check if all profiler instances have this stat ready.
-	int32 NumReadyStats = 0;
-	for( auto It = GetProfilerInstancesIterator(); It; ++It )
-	{
-		const FProfilerSessionRef ProfilerSession = It.Value();
-		NumReadyStats += ProfilerSession->GetAggregatedStat(StatID) != nullptr ? 1 : 0;
-	}
-	const bool bStatIsReady = NumReadyStats == GetProfilerInstancesNum();
-
+	const bool bStatIsReady = ProfilerSession->GetAggregatedStat( StatID ) != nullptr;
 	if( StatID != 0 && bStatIsReady )
 	{
 		FTrackedStat* TrackedStat = TrackedStats.Find( StatID );
@@ -515,16 +524,13 @@ bool FProfilerManager::TrackStat( const uint32 StatID )
 			uint32 NumAddedInstances = 0;
 			bool bMetadataInitialized = false;
 
-			for( auto It = GetProfilerInstancesIterator(); It; ++It )
+			if (ProfilerSession.IsValid())
 			{
-				const FGuid& SessionInstanceID = It.Key();// ProfilerSessionInstanceID, ProfilerInstanceID, InstanceID
-				const FProfilerSessionRef ProfilerSession = It.Value();
-				const bool bInstanceAdded = TrackStatForSessionInstance( StatID, SessionInstanceID );
+
+				const bool bInstanceAdded = TrackStatForSessionInstance( StatID, ActiveInstanceID );
 				NumAddedInstances += bInstanceAdded ? 1 : 0;
 
 				// Initialize metadata for combine graph data source.
-				// TODO: This should be checked against the remaining elements to detect inconsistent data.
-				// The first instance should be the main.
 				if( !bMetadataInitialized )
 				{
 					const bool bIsStatReady = ProfilerSession->GetMetaData()->IsStatInitialized( StatID );
@@ -577,12 +583,9 @@ void FProfilerManager::ClearStatsAndInstances()
 		const FTrackedStat& TrackedStat = It.Value();
 		UntrackStat( TrackedStat.StatID );
 	}
-	for( auto It = GetProfilerInstancesIterator(); It; ++It )
-	{
-		const FGuid ProfilerInstanceID = It.Key();
-		ProfilerClient->Untrack( ProfilerInstanceID );
-	}
-	ProfilerSessionInstances.Empty();
+
+	ProfilerClient->Untrack( ActiveInstanceID );
+	ActiveInstanceID.Invalidate();
 }
 
 const bool FProfilerManager::IsStatTracked( const uint32 StatID ) const
@@ -594,18 +597,16 @@ bool FProfilerManager::TrackStatForSessionInstance( const uint32 StatID, const F
 {
 	bool bAdded = false;
 
-	const FProfilerSessionRef* ProfilerSessionPtr = FindSessionInstance( SessionInstanceID );
 	const FTrackedStat* TrackedStat = TrackedStats.Find( StatID );
-
-	if( ProfilerSessionPtr && TrackedStat )
+	if( ProfilerSession.IsValid() && TrackedStat )
 	{
-		const bool bIsStatReady = (*ProfilerSessionPtr)->GetMetaData()->IsStatInitialized( StatID );
+		const bool bIsStatReady = ProfilerSession->GetMetaData()->IsStatInitialized( StatID );
 		const bool bIsExist = TrackedStat->CombinedGraphDataSource->IsProfilerSessionRegistered( SessionInstanceID );
 
 		if( bIsStatReady && !bIsExist )
 		{
 			// Create graph data provider for tracked stat.
-			FGraphDataSourceRefConst	GraphDataSource = (*ProfilerSessionPtr)->CreateGraphDataSource( StatID );
+			FGraphDataSourceRefConst	GraphDataSource = ProfilerSession->CreateGraphDataSource( StatID );
 			TrackedStat->CombinedGraphDataSource->RegisterWithProfilerSession( SessionInstanceID, GraphDataSource );
 			bAdded = true;
 		}
@@ -618,7 +619,6 @@ bool FProfilerManager::UntrackStatForSessionInstance( const uint32 StatID, const
 {
 	bool bRemoved = false;
 
-	//FProfilerSessionRef* ProfilerSessionPtr = FindSessionInstance( SessionInstanceID );
 	const FTrackedStat* TrackedStat = TrackedStats.Find( StatID );
 
 	if( TrackedStat )
@@ -646,46 +646,6 @@ const bool FProfilerManager::IsStatTrackedForSessionInstance( const uint32 StatI
 	return bResult;
 }
 
-bool FProfilerManager::TrackSessionInstance( const FGuid& SessionInstanceID )
-{
-	for( auto It = TrackedStats.CreateConstIterator(); It; ++It )
-	{
-		const FTrackedStat& TrackedStat = It.Value();
-		TrackStatForSessionInstance( TrackedStat.StatID, SessionInstanceID );
-	}
-	return true;
-}
-
-bool FProfilerManager::UntrackSessionInstance( const FGuid& SessionInstanceID )
-{
-	for( auto It = TrackedStats.CreateConstIterator(); It; ++It )
-	{
-		const FTrackedStat& TrackedStat = It.Value();
-		UntrackStatForSessionInstance( TrackedStat.StatID, SessionInstanceID );
-	}
-	return true;
-}
-
-const bool FProfilerManager::IsSessionInstanceTracked( const FGuid& SessionInstanceID ) const
-{
-	const FProfilerSessionRef* ProfilerSessionPtr = FindSessionInstance( SessionInstanceID );
-	if( ProfilerSessionPtr )
-	{
-		for( auto It = TrackedStats.CreateConstIterator(); It; ++It )
-		{
-			const FTrackedStat& TrackedStat = It.Value();
-			const bool bIsSessionInstanceTracked = TrackedStat.CombinedGraphDataSource->IsProfilerSessionRegistered( SessionInstanceID );
-			if( bIsSessionInstanceTracked )
-			{
-				return true;
-			}
-		}
-	}
-
-	return false;
-}
-
-//-----------------------------------------------------------------------------
 
 // @TODO: Move to profiler settings
 const FLinearColor& FProfilerManager::GetColorForStatID( const uint32 StatID ) const
@@ -705,14 +665,12 @@ const FLinearColor& FProfilerManager::GetColorForStatID( const uint32 StatID ) c
 void FProfilerManager::TrackDefaultStats()
 {
 	// Find StatId for the game thread.
-	for( auto It = GetProfilerInstancesIterator(); It; ++It )
+	if (ProfilerSession.IsValid())
 	{
-		FProfilerSessionRef ProfilerSession = It.Value();
 		if( ProfilerSession->GetMetaData()->IsReady() )
 		{
 			TrackStat( ProfilerSession->GetMetaData()->GetGameThreadStatID() );
 		}
-		break;
 	}
 }
 
@@ -726,9 +684,8 @@ void FProfilerManager::CloseAllEventGraphTabs()
 	if( ProfilerWindowPtr.IsValid() )
 	{
 		// Iterate through all profiler sessions.
-		for( auto It = GetProfilerInstancesIterator(); It; ++It )
+		if (ProfilerSession.IsValid())
 		{
-			FProfilerSessionRef ProfilerSession = It.Value();
 			ProfilerWindowPtr->ManageEventGraphTab( ProfilerSession->GetInstanceID(), false, TEXT("") );
 		}
 
@@ -740,13 +697,10 @@ void FProfilerManager::DataGraph_OnSelectionChangedForIndex( uint32 FrameStartIn
 {
 	PROFILER_SCOPE_LOG_TIME( TEXT( "FProfilerManager::DataGraph_OnSelectionChangedForIndex" ), nullptr );
 
-	for( auto It = GetProfilerInstancesIterator(); It; ++It )
+	if (ProfilerSession.IsValid())
 	{
-		FProfilerSessionRef ProfilerSession = It.Value();
-	
 		FEventGraphDataRef EventGraphDataAverage = ProfilerSession->CreateEventGraphData( FrameStartIndex, FrameEndIndex, EEventGraphTypes::Average );
 		FEventGraphDataRef EventGraphDataMaximum = ProfilerSession->CreateEventGraphData( FrameStartIndex, FrameEndIndex, EEventGraphTypes::Maximum );
-
 		GetProfilerWindow()->UpdateEventGraph( ProfilerSession->GetInstanceID(), EventGraphDataAverage, EventGraphDataMaximum, false );
 	}
 }
@@ -757,6 +711,10 @@ void FProfilerManager::ProfilerSession_OnAddThreadTime( int32 FrameIndex, const 
 	if( ProfilerWindowPtr.IsValid() )
 	{
 		ProfilerWindowPtr->ProfilerMiniView->AddThreadTime( FrameIndex, ThreadMS, StatMetaData );
+		
+		// Update the notification that a file is being loaded.
+		const float DataLoadingProgress = ProfilerSession->GetProgress();
+		ProfilerWindowPtr->ManageLoadingProgressNotificationState( ProfilerSession->GetName(), EProfilerNotificationTypes::LoadingOfflineCapture, ELoadingProgressStates::InProgress, DataLoadingProgress );		
 	}
 }
 

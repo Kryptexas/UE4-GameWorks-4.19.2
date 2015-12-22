@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 
@@ -6,6 +6,7 @@
 void SExpanderArrow::Construct( const FArguments& InArgs, const TSharedPtr<class ITableRow>& TableRow  )
 {
 	OwnerRowPtr = TableRow;
+	StyleSet = InArgs._StyleSet;
 	IndentAmount = InArgs._IndentAmount;
 	BaseIndentLevel = InArgs._BaseIndentLevel;
 
@@ -94,6 +95,6 @@ const FSlateBrush* SExpanderArrow::GetExpanderImage() const
 		}
 	}
 
-	return FCoreStyle::Get().GetBrush( ResourceName );
+	return StyleSet->GetBrush(ResourceName);
 }
 

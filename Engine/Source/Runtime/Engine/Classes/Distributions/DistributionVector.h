@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -163,16 +163,16 @@ class ENGINE_API UDistributionVector : public UDistribution
 
 	virtual FVector	GetValue( float F = 0.f, UObject* Data = NULL, int32 LastExtreme = 0, struct FRandomStream* InRandomStream = NULL ) const;
 
-	// Begin FCurveEdInterface Interface
+	//~ Begin FCurveEdInterface Interface
 	virtual void GetInRange(float& MinIn, float& MaxIn) const override;
 	virtual void GetOutRange(float& MinOut, float& MaxOut) const override;
 	virtual	void GetRange(FVector& OutMin, FVector& OutMax) const;
-	// End FCurveEdInterface Interface
+	//~ End FCurveEdInterface Interface
 
 	/** @return true of this distribution can be baked into a FRawDistribution lookup table, otherwise false */
 	virtual bool CanBeBaked() const 
 	{
-		return true; 
+		return bCanBeBaked; 
 	}
 
 	/**

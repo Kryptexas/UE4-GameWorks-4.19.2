@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PropertyEditorPrivatePCH.h"
@@ -63,7 +63,7 @@ void FObjectPropertyNode::PurgeKilledObjects()
 	{
 		TWeakObjectPtr<UObject> Object = Objects[Index];
 
-		if ( !Object.IsValid() || Object->HasAnyFlags(RF_PendingKill) )
+		if ( !Object.IsValid() || Object->IsPendingKill() )
 		{
 			Objects.RemoveAt(Index, 1);
 		}

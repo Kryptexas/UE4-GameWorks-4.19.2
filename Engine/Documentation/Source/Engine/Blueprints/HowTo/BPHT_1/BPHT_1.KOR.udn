@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2615578
+﻿INTSourceChangelist:2684939
 Availability: Public
 Title:1. 필수 애셋 구성
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
 Description:이번에는 프로젝트에서 사용할 애셋을 구성하도록 하겠습니다.
+version: 4.9
 
 
 [VAR:Steps]
@@ -145,11 +146,11 @@ Description:이번에는 프로젝트에서 사용할 애셋을 구성하도록 
 
 	![](MovedWidget.png)
 
-1.	박스에 표시된 텍스트 중 가장 왼쪽 것을 클릭한 다음, **디테일** 패널에서 **Text** 아래 **Pulls:** 를 입력합니다.
+1.	박스에 표시된 텍스트 중 가장 왼쪽 것을 클릭한 다음, **디테일** 패널에서 **Text** 아래 "Pulls:" 를 입력합니다.
 
 	![](EnterText1.png)
 
-1.	다른 텍스트에는 **Text** 칸에 **10** 을 입력합니다.
+1.	다른 텍스트에는 **Text** 칸에 "10" 을 입력합니다.
 
 	![](EnterText2.png)
 
@@ -161,7 +162,7 @@ Description:이번에는 프로젝트에서 사용할 애셋을 구성하도록 
 
 	![](AddedBoxes.png)
 
-1.	나머지 텍스트 칸을 **Shots** (값은 **3**) 및 **Score** (값은 **0**) 으로 업데이트하고 **컴파일** 버튼을 클릭합니다.
+1.	나머지 텍스트 칸을 "Shots" (값은 "3") 및 "Score" (값은 "0") 으로 업데이트하고 **컴파일** 버튼을 클릭합니다.
 
 	![](UpdateText.png)
 
@@ -293,7 +294,7 @@ Description:이번에는 프로젝트에서 사용할 애셋을 구성하도록 
 
 	_This will represent the spawner location for our **BP_Rock** we want to spawn._
 
-1.	Repeat the previous step three more times adding **Target Points** where ever you wish inside the level. 
+1.	Repeat the 예전 단계 three more times adding **Target Points** where ever you wish inside the level. 
 
 	![](BPHT1_19.png)
 

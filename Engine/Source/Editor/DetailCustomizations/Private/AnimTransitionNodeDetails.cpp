@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 
@@ -14,6 +14,9 @@
 #include "STextEntryPopup.h"
 #include "SExpandableArea.h"
 #include "BlueprintEditorUtils.h"
+#include "SBlendProfilePicker.h"
+#include "Animation/BlendProfile.h"
+
 
 #define LOCTEXT_NAMESPACE "FAnimStateNodeDetails"
 
@@ -45,7 +48,7 @@ void FAnimTransitionNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 		bTransitionToConduit = (NextState != NULL) && (NextState->IsA<UAnimStateConduitNode>());
 	}
 
-	////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////
 
 	IDetailCategoryBuilder& TransitionCategory = DetailBuilder.EditCategory("Transition", LOCTEXT("TransitionCategoryTitle", "Transition") );
 
@@ -118,7 +121,7 @@ void FAnimTransitionNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 						FName FunctionName;
 						if(AnimInstance->HasNativeTransitionBinding(ParentGraph->GetFName(), FName(*PrevState->GetStateName()), FName(*NextState->GetStateName()), FunctionName))
 						{
-							TransitionCategory.AddCustomRow( LOCTEXT("NativeBindingPresent", "Transition has native binding") )
+							TransitionCategory.AddCustomRow( LOCTEXT("NativeBindingPresent_Filter", "Transition has native binding") )
 							[
 								SNew(STextBlock)
 								.Text(FText::Format(LOCTEXT("NativeBindingPresent", "Transition has native binding to {0}()"), FText::FromName(FunctionName)))
@@ -135,8 +138,7 @@ void FAnimTransitionNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 			];
 		}
 
-
-
+		//////////////////////////////////////////////////////////////////////////
 
 		IDetailCategoryBuilder& CrossfadeCategory = DetailBuilder.EditCategory("BlendSettings", LOCTEXT("BlendSettingsCategoryTitle", "BlendSettings") );
 		if (TransitionNode != NULL)
@@ -156,6 +158,30 @@ void FAnimTransitionNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 		CrossfadeCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, BlendMode)).DisplayName( LOCTEXT("ModeLabel", "Mode") );
 		CrossfadeCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, CustomBlendCurve)).DisplayName(LOCTEXT("CurveLabel", "Custom Blend Curve"));
 
+		USkeleton* TargetSkeleton = TransitionNode->GetAnimBlueprint()->TargetSkeleton;
+
+		if(TargetSkeleton)
+		{
+			TSharedPtr<IPropertyHandle> BlendProfileHandle = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, BlendProfile));
+			UObject* BlendProfilePropertyValue = nullptr;
+			BlendProfileHandle->GetValue(BlendProfilePropertyValue);
+			UBlendProfile* CurrentProfile = Cast<UBlendProfile>(BlendProfilePropertyValue);
+
+			CrossfadeCategory.AddProperty(BlendProfileHandle).CustomWidget(true)
+				.NameContent()
+				[
+					BlendProfileHandle->CreatePropertyNameWidget()
+				]
+				.ValueContent()
+				[
+					SNew(SBlendProfilePicker)
+					.TargetSkeleton(TargetSkeleton)
+					.AllowNew(false)
+					.OnBlendProfileSelected(this, &FAnimTransitionNodeDetails::OnBlendProfileChanged, BlendProfileHandle)
+					.InitialProfile(CurrentProfile)
+				];
+		}
+
 		// Add a button that is only visible when blend logic type is custom
 		CrossfadeCategory.AddCustomRow( LOCTEXT("EditBlendGraph", "Edit Blend Graph") )
 		[
@@ -173,9 +199,7 @@ void FAnimTransitionNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 			]
 		];
 
-
-
-
+		//////////////////////////////////////////////////////////////////////////
 
 		IDetailCategoryBuilder& NotificationCategory = DetailBuilder.EditCategory("Notifications", LOCTEXT("NotificationsCategoryTitle", "Notifications") );
 
@@ -446,6 +470,14 @@ TSharedRef<SWidget> FAnimTransitionNodeDetails::GetWidgetForInlineShareMenu(FStr
 				]
 			]
 		];
+}
+
+void FAnimTransitionNodeDetails::OnBlendProfileChanged(UBlendProfile* NewProfile, TSharedPtr<IPropertyHandle> ProfileProperty)
+{
+	if(ProfileProperty.IsValid())
+	{
+		ProfileProperty->SetValue((const UObject*&)NewProfile);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -12,6 +12,7 @@ public class MovieSceneTools : ModuleRules
                 "Editor/MovieSceneTools/Private/CurveKeyEditors",
                 "Editor/MovieSceneTools/Private/TrackEditors",
 				"Editor/MovieSceneTools/Private/TrackEditors/PropertyTrackEditors",
+                "Editor/MovieSceneTools/Private/TrackEditors/ShotTrackEditor",
 				"Editor/MovieSceneTools/Private/Sections"
             }
         );
@@ -29,6 +30,7 @@ public class MovieSceneTools : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
+                "ActorPickerMode",
 				"MovieScene",
 				"MovieSceneTracks",
 				"BlueprintGraph",
@@ -45,6 +47,7 @@ public class MovieSceneTools : ModuleRules
 			new string[] {
 				"AssetTools",
 				"Sequencer",
+				"SceneOutliner",
 				"PropertyEditor"
 			}
 		);
@@ -52,6 +55,7 @@ public class MovieSceneTools : ModuleRules
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
 				"AssetTools",
+				"SceneOutliner",
 				"PropertyEditor"
 			}
 		);

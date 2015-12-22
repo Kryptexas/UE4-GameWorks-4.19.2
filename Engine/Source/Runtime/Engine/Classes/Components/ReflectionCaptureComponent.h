@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "ReflectionCaptureComponent.generated.h"
@@ -109,13 +109,13 @@ class UReflectionCaptureComponent : public USceneComponent
 		return FullHDRDerivedData;
 	}
 
-	// Begin UActorComponent Interface
+	//~ Begin UActorComponent Interface
 	virtual void CreateRenderState_Concurrent() override;
 	virtual void DestroyRenderState_Concurrent() override;
 	virtual void SendRenderTransform_Concurrent() override;
-	// End UActorComponent Interface
+	//~ End UActorComponent Interface
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void PostInitProperties() override;	
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
@@ -129,7 +129,7 @@ class UReflectionCaptureComponent : public USceneComponent
 	virtual void BeginDestroy() override;
 	virtual bool IsReadyForFinishDestroy() override;
 	virtual void FinishDestroy() override;
-	// End UObject Interface
+	//~ End UObject Interface
 
 private:
 

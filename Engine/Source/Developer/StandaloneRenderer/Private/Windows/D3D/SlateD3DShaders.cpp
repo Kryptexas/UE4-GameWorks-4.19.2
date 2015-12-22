@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "StandaloneRendererPrivate.h"
@@ -276,13 +276,19 @@ FSlateDefaultPS::FSlateDefaultPS()
 {
 	Texture = &FSlateShaderParameterMap::Get().RegisterParameter<ID3D11ShaderResourceView>( "ElementTexture" );
 	TextureSampler = &FSlateShaderParameterMap::Get().RegisterParameter<ID3D11SamplerState>( "ElementTextureSampler" );
-	PerElementCBufferParam = &FSlateShaderParameterMap::Get().RegisterParameter<ID3D11Buffer>( "PerElementPSConstants" );
+	PerFrameCBufferParam = &FSlateShaderParameterMap::Get().RegisterParameter<ID3D11Buffer>("PerFramePSConstants");
+	PerElementCBufferParam = &FSlateShaderParameterMap::Get().RegisterParameter<ID3D11Buffer>("PerElementPSConstants");
 
+	PerFrameConstants.Create();
 	PerElementConstants.Create();
-	
+
+	PerFrameConstants.GetBufferData().GammaValues = FVector2D(1, 1 / 2.2f);
+
+	PerFrameCBufferParam->SetParameter(PerFrameConstants.GetResource());
+
 	// Set the constant parameter to use our constant buffer
 	// @todo: If we go back to multiple pixel shaders this likely has be called more frequently
-	PerElementCBufferParam->SetParameter( PerElementConstants.GetResource() );
+	PerElementCBufferParam->SetParameter(PerElementConstants.GetResource());
 
 	Create( FString::Printf( TEXT("%sShaders/StandaloneRenderer/D3D/SlateElementPixelShader.hlsl"), *FPaths::EngineDir() ), TEXT("Main"), TEXT("ps_4_0") );
 }
@@ -302,10 +308,15 @@ void FSlateDefaultPS::SetShaderParams( const FVector4& InShaderParams )
 	PerElementConstants.GetBufferData().ShaderParams = InShaderParams;
 }
 
+void FSlateDefaultPS::SetGammaValues(const FVector2D& InGammaValues)
+{
+	PerFrameConstants.GetBufferData().GammaValues = InGammaValues;
+}
+
 void FSlateDefaultPS::UpdateParameters()
 {
+	PerFrameConstants.UpdateBuffer();
 	PerElementConstants.UpdateBuffer();
 
 	TextureSampler->SetParameter( SamplerState );
-
 }

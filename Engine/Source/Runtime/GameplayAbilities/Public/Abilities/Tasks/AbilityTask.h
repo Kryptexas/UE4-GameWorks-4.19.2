@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "GameplayTask.h"
 #include "GameplayAbility.h"
@@ -59,6 +59,20 @@
  *	
  */
 
+/**
+ *	Latent tasks are waiting on something. This is to differeniate waiting on the user to do something vs waiting on the game to do something.
+ *	Tasks start WaitingOnGame, and are set to WaitingOnUser when appropriate (see WaitTargetData, WaitIiputPress, etc)
+ */
+UENUM()
+enum class EAbilityTaskWaitState : uint8
+{
+	/** Task is waiting for the game to do something */
+	WaitingOnGame,
+
+	/** Waiting for the user to do something */
+	WaitingOnUser,
+};
+
 UCLASS(Abstract)
 class GAMEPLAYABILITIES_API UAbilityTask : public UGameplayTask
 {
@@ -70,9 +84,11 @@ class GAMEPLAYABILITIES_API UAbilityTask : public UGameplayTask
 	void SetAbilitySystemComponent(UAbilitySystemComponent* InAbilitySystemComponent);
 
 	/** GameplayAbility that created us */
-	TWeakObjectPtr<UGameplayAbility> Ability;
+	UPROPERTY()
+	UGameplayAbility* Ability;
 
-	TWeakObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
+	UPROPERTY()
+	UAbilitySystemComponent* AbilitySystemComponent;
 
 	/** Returns true if the ability is a locally predicted ability running on a client. Usually this means we need to tell the server something. */
 	bool IsPredictingClient() const;
@@ -85,6 +101,8 @@ class GAMEPLAYABILITIES_API UAbilityTask : public UGameplayTask
 
 	/** Returns ActivationPredictionKey of owning ability */
 	FPredictionKey GetActivationPredictionKey() const;
+
+	virtual void InitSimulatedTask(UGameplayTasksComponent& InGameplayTasksComponent) override;
 
 	/** Helper function for instantiating and initializing a new task */
 	template <class T>
@@ -112,8 +130,54 @@ class GAMEPLAYABILITIES_API UAbilityTask : public UGameplayTask
 		static_assert(DelayedFalse<T>(), "UAbilityTask::NewTask should never be used. Use NewAbilityTask instead");
 	}
 
+	/** Called when the ability task is waiting on remote player data. IF the remote player ends the ability prematurely, and a task with this set is still running, the ability is killed. */
+	void SetWaitingOnRemotePlayerData();
+	void ClearWaitingOnRemotePlayerData();
+
+	virtual bool IsWaitingOnRemotePlayerdata() const override;
+
+	/** What we are waiting on */
+	EAbilityTaskWaitState WaitState;
+
 protected:
 	/** Helper method for registering client replicated callbacks */
 	bool CallOrAddReplicatedDelegate(EAbilityGenericReplicatedEvent::Type Event, FSimpleMulticastDelegate::FDelegate Delegate);
 };
 
+//For searching through lists of ability instances
+struct FAbilityInstanceNamePredicate
+{
+	FAbilityInstanceNamePredicate(FName DesiredInstanceName)
+	{
+		InstanceName = DesiredInstanceName;
+	}
+
+	bool operator()(const TWeakObjectPtr<UAbilityTask> A) const
+	{
+		return (A.IsValid() && !A.Get()->GetInstanceName().IsNone() && A.Get()->GetInstanceName().IsValid() && (A.Get()->GetInstanceName() == InstanceName));
+	}
+
+	FName InstanceName;
+};
+
+struct FAbilityInstanceClassPredicate
+{
+	FAbilityInstanceClassPredicate(TSubclassOf<UAbilityTask> Class)
+	{
+		TaskClass = Class;
+	}
+
+	bool operator()(const TWeakObjectPtr<UAbilityTask> A) const
+	{
+		return (A.IsValid() && (A.Get()->GetClass() == TaskClass));
+	}
+
+	TSubclassOf<UAbilityTask> TaskClass;
+};
+
+#define ABILITYTASK_MSG(Format, ...) \
+	if (ENABLE_ABILITYTASK_DEBUGMSG) \
+	{ \
+		if (Ability) \
+			Ability->AddAbilityTaskDebugMessage(this, FString::Printf(TEXT(Format), ##__VA_ARGS__)); \
+	} 

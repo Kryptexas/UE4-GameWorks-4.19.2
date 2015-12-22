@@ -1,18 +1,19 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2701259
 Availability: Public
-Title:Replicating Functions
+Title:复制函数
 Crumbs: %ROOT%, Gameplay
-Description:Guide for Replicating Functions in Multiplayer Games. 
+Description:在多人游戏中复制函数的指南。 
+版本: 4.9
 
-**Function Replication** (Remote Procedure Calls or RPCs for short) are functions that are called locally, but executed remotely on another machine (separate from the machine performing the call). RPC functions can be very useful and allow either the Client or the Server to send messages to each other over a network connection. Replicated function calls can be set to either **Reliable** or **Unreliable** where Reliable calls are guaranteed to occur, while Unreliable calls may be dropped during heavy network traffic. Most Replicated Functions that handle cosmetic visuals are unreliable to avoid saturating the network. 
+**Function Replication**（远程过程调用或 RPC）是在本地调用但在其他机器（不同于执行调用的机器）上远程执行的函数。RPC 函数非常有用，可允许客户端或服务器通过网络连接相互发送消息。复制函数调用可设置为 **Reliable** 或 **Unreliable**，其中 Reliable 调用必定会发生，而 Unreliable 调用可能会在网络繁忙时断开。大多数处理装饰视觉效果的复制函数设置为不可靠，以避免网络饱和。 
 
-There are 3 primary types of Replicated Functions: **Multicast**, **Run on Server**, and **Run on owning Client**. Multicast functions should be called on the Server, where they are executed, and then forwarded automatically to Clients. Server functions are called by a Client and then only executed on the Server. Client functions are called by the Server and then only execute on the owning Client.
+复制函数主要包括 3 种类型：**Multicast**、**Run on Server** 和 **Run on owning Client**。多播函数在服务器上调用和执行，然后自动转发给客户端。服务器函数由客户端调用，然后仅在服务器上执行。客户端函数由服务器调用，然后仅在自有客户端上执行。
 
-Server and Client Replicated Functions have some restrictions, for one they can only be used on Actors that have a **Net Owner**. Actors have Net Owners if they are a Player Controller or owned by a Player Controller. For example, a Pawn possessed by a Player Controller can have Server or Client Replicated Functions executed upon it. 
+服务器和客户端复制函数存在一些限制，其中一项是它们仅可在具有 **Net Owner** 的 Actor 上使用。如果 Actor 为玩家控制器或归玩家控制器所有，则其具有 Net Owner。例如，玩家控制器拥有的 Pawn 可在其上执行服务器或客户端复制函数。 
 
-## Setup
+## 设置
 
-To learn how to set up Replicated Functions using Blueprints, follow the link below:
+关于使用蓝图设置复制函数详细信息，请访问以下链接：
 
 [REGION:buttonlist]
 * [](Gameplay\HowTo\Networking\ReplicateFunction\Blueprints)

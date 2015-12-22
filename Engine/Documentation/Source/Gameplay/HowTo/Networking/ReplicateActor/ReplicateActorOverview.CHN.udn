@@ -1,17 +1,18 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2701192
 Availability: Public
-Title:How to Replicate Actors
+Title:如何复制 Actor
 Crumbs: %ROOT%, Gameplay
-Description:Guide for Replicating Actors in Multiplayer Games. 
+Description:在多人游戏中复制 Actor 的指南。 
+版本: 4.9
 
-The process of passing data or commands between Server and Clients is referred to as Replication, and Actor Replication is where the Server identifies and acknowledges if an Actor is set to use Replication or not. If the Actor is set to Replicate, the Server will tell the Client to create and maintain a Replicated copy of that Actor on the Client's machine. The Server always has the authoritative version of that Actor, while a Client (or multiple Clients) may have the approximate, replicated versions of that Actor. 
+在服务器和客户端之间传输数据或命令的过程称之为复制，Actor 复制即服务器识别并确认 Actor 是否设置为使用复制。如果 Actor 设置为复制，则服务器将指示客户端在客户端机器上创建和保留该 Actor 的复制副本。服务器始终拥有该 Actor 的权威版本，而一个客户端（或多个客户端）可能拥有近似该 Actor 的复制版本。 
 
-Options can be set to define how Replicated Actors behave on a Client, from whether or not to Replicate Movement (the location/rotation of the Actor) to setting its Network Relevancy (or when to send Replicated Data to the Client, as the Actor set to Replicate may or may not be relevant depending upon gameplay situations). 
+选项可设置为定义复制的 Actor 在客户端上的表现方式，从是否复制动作 (the location/rotation of the Actor) 到设置其网络相关性（或何时将复制的数据发送到客户端，因为设置为复制的 Actor 可能或可能不相关，具体取决于游戏情景）。 
 
 
-## Setup
+## 设置
 
-To learn more about Replicating Actors using Blueprints, follow the link below:
+关于使用蓝图复制 Actor 的详细信息，请访问以下链接：
 
 [REGION:buttonlist]
 * [](Gameplay\HowTo\Networking\ReplicateActor\Blueprints)

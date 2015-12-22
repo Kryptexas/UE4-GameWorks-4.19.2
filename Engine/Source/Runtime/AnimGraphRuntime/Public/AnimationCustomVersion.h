@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -16,6 +16,9 @@ struct ANIMGRAPHRUNTIME_API FAnimationCustomVersion
 
 		// Converted the range clamp into a remap function, rather than just clamping
 		BoneDrivenControllerRemapping = 2,
+
+		// Added ability to offset angular ranges for constraints
+		AnimDynamicsAddAngularOffsets = 3,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

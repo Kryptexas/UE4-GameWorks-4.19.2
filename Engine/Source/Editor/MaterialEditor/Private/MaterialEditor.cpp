@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MaterialEditorModule.h"
 
@@ -247,7 +247,7 @@ void FMaterialEditor::InitEditorForMaterial(UMaterial* InMaterial)
 	// Create a copy of the material for preview usage (duplicating to a different class than original!)
 	// Propagate all object flags except for RF_Standalone, otherwise the preview material won't GC once
 	// the material editor releases the reference.
-	Material = (UMaterial*)StaticDuplicateObject(OriginalMaterial, GetTransientPackage(), NULL, ~RF_Standalone, UPreviewMaterial::StaticClass()); 
+	Material = (UMaterial*)StaticDuplicateObject(OriginalMaterial, GetTransientPackage(), NAME_None, ~RF_Standalone, UPreviewMaterial::StaticClass()); 
 	
 	Material->CancelOutstandingCompilation();	//The material is compiled later on anyway so no need to do it in Duplication/PostLoad. 
 												//I'm hackily canceling the jobs here but we should really not add the jobs in the first place. <<--- TODO
@@ -286,7 +286,7 @@ void FMaterialEditor::InitEditorForMaterialFunction(UMaterialFunction* InMateria
 
 	// Propagate all object flags except for RF_Standalone, otherwise the preview material function won't GC once
 	// the material editor releases the reference.
-	MaterialFunction = (UMaterialFunction*)StaticDuplicateObject(InMaterialFunction, GetTransientPackage(), NULL, ~RF_Standalone, UMaterialFunction::StaticClass()); 
+	MaterialFunction = (UMaterialFunction*)StaticDuplicateObject(InMaterialFunction, GetTransientPackage(), NAME_None, ~RF_Standalone, UMaterialFunction::StaticClass()); 
 	MaterialFunction->ParentFunction = InMaterialFunction;
 
 	OriginalMaterial = Material;
@@ -470,8 +470,11 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 			// If this is an empty functions, create an output by default and start previewing it
 			if (GraphEditor.IsValid())
 			{
+				check(!bMaterialDirty);
 				UMaterialExpression* Expression = CreateNewMaterialExpression(UMaterialExpressionFunctionOutput::StaticClass(), FVector2D(200, 300), false, true);
 				SetPreviewExpression(Expression);
+				// This shouldn't count as having dirtied the material, so reset the flag
+				bMaterialDirty = false;
 			}
 		}
 		else
@@ -1375,7 +1378,7 @@ void FMaterialEditor::UpdateOriginalMaterial()
 		MaterialFunction->ParentFunction = (UMaterialFunction*)StaticDuplicateObject(
 			MaterialFunction, 
 			MaterialFunction->ParentFunction->GetOuter(), 
-			*MaterialFunction->ParentFunction->GetName(), 
+			MaterialFunction->ParentFunction->GetFName(), 
 			RF_AllFlags, 
 			MaterialFunction->ParentFunction->GetClass());
 
@@ -1492,7 +1495,7 @@ void FMaterialEditor::UpdateOriginalMaterial()
 			UMaterial::ForceNoCompilationInPostLoad(true);
 
 			// overwrite the original material in place by constructing a new one with the same name
-			OriginalMaterial = (UMaterial*)StaticDuplicateObject( Material, OriginalMaterial->GetOuter(), *OriginalMaterial->GetName(), 
+			OriginalMaterial = (UMaterial*)StaticDuplicateObject( Material, OriginalMaterial->GetOuter(), OriginalMaterial->GetFName(), 
 				RF_AllFlags, 
 				OriginalMaterial->GetClass());
 
@@ -3066,7 +3069,7 @@ UMaterialExpressionComment* FMaterialEditor::CreateNewMaterialExpressionComment(
 
 	if (NewComment)
 	{
-		Material->MaterialGraph->AddComment(NewComment);
+		Material->MaterialGraph->AddComment(NewComment, true);
 
 		// Select the new comment.
 		GraphEditor->ClearSelectionSet();
@@ -3544,7 +3547,8 @@ void FMaterialEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyCha
 				SetPreviewAsset(GUnrealEd->GetThumbnailManager()->EditorSphere);
 			}
 		}
-		else if ( NameOfPropertyThatChanged == GET_MEMBER_NAME_CHECKED(UMaterial, MaterialDomain) )
+		else if( NameOfPropertyThatChanged == GET_MEMBER_NAME_CHECKED(UMaterial, MaterialDomain) ||
+				 NameOfPropertyThatChanged == GET_MEMBER_NAME_CHECKED(UMaterial, ShadingModel) )
 		{
 			Material->MaterialGraph->RebuildGraph();
 			TArray<TWeakObjectPtr<UObject>> SelectedObjects = MaterialDetailsView->GetSelectedObjects();
@@ -3591,6 +3595,8 @@ void FMaterialEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyCha
 			RefreshExpressionPreviews();
 			RegenerateCodeView();
 		}
+
+		GetDefault<UMaterialGraphSchema>()->ForceVisualizationCacheClear();
 	}
 
 	delete ScopedTransaction;
@@ -3598,8 +3604,6 @@ void FMaterialEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyCha
 
 	Material->MarkPackageDirty();
 	SetMaterialDirty();
-
-	GetDefault<UMaterialGraphSchema>()->ForceVisualizationCacheClear();
 }
 
 void FMaterialEditor::ToggleCollapsed(UMaterialExpression* MaterialExpression)
@@ -4114,7 +4118,7 @@ void FMaterialEditor::OnNodeDoubleClicked(class UEdGraphNode* Node)
 			FColorPickerArgs PickerArgs;
 			PickerArgs.ParentWidget = GraphEditor;//AsShared();
 			PickerArgs.bUseAlpha = Constant4Expression != NULL || VectorExpression != NULL;
-			PickerArgs.bOnlyRefreshOnOk = true;
+			PickerArgs.bOnlyRefreshOnOk = false;
 			PickerArgs.bExpandAdvancedSection = true;
 			PickerArgs.DisplayGamma = TAttribute<float>::Create( TAttribute<float>::FGetter::CreateUObject(GEngine, &UEngine::GetDisplayGamma) );
 			PickerArgs.ColorChannelsArray = &Channels;

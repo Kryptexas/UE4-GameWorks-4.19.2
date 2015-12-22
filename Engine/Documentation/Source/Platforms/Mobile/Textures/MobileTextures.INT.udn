@@ -3,10 +3,10 @@ Title:Texture Guidelines for Mobile Platforms
 Crumbs:%ROOT%, Platforms, Platforms/Mobile
 Description:Texture creation and properties for mobile games.
 Platform:Mobile
+Version: 4.9
 
 [TOC(start:2)]
 
-## Overview
 
 Since mobile platforms use OpenGL ES2, there are restrictions imposed on textures. Some of the restrictions come into play 
 when creating textures:
@@ -53,7 +53,17 @@ To set the Texture LOD settings per-device you will need to do the following.
 
 1. To make a change just click on the property you want to adjust and then input what you want the setting to be.
 
-	![](T_Selecting_Editing_Profile.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	5FgGi68G8ZY
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 
 

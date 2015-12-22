@@ -1,9 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemIOSPrivatePCH.h"
 #include "OnlineStoreInterface.h"
-
-
+#include "OnlineSubsystemNames.h"
 
 ////////////////////////////////////////////////////////////////////
 /// FStoreKitHelper implementation
@@ -51,7 +50,7 @@
 
 	[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
 	{
-		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(FName(TEXT("IOS")));
+		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(IOS_SUBSYSTEM);
 		FOnlineStoreInterfaceIOS* StoreInterface = (FOnlineStoreInterfaceIOS*)OnlineSub->GetStoreInterface().Get();
 
 		if (StoreInterface->CachedPurchaseRestoreObject.IsValid())
@@ -86,7 +85,7 @@
 
 	[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
 	{
-		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(FName(TEXT("IOS")));
+		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(IOS_SUBSYSTEM);
 		FOnlineStoreInterfaceIOS* StoreInterface = (FOnlineStoreInterfaceIOS*)OnlineSub->GetStoreInterface().Get();
 		if (StoreInterface->CachedPurchaseRestoreObject.IsValid())
 		{
@@ -106,7 +105,7 @@
     
 	[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
 	{
-		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(FName(TEXT("IOS")));
+		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(IOS_SUBSYSTEM);
 		FOnlineStoreInterfaceIOS* StoreInterface = (FOnlineStoreInterfaceIOS*)OnlineSub->GetStoreInterface().Get();
 
 		if (StoreInterface->CachedPurchaseStateObject.IsValid())
@@ -153,7 +152,7 @@
 
 	[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
 	{
-		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(FName(TEXT("IOS")));
+		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(IOS_SUBSYSTEM);
 		FOnlineStoreInterfaceIOS* StoreInterface = (FOnlineStoreInterfaceIOS*)OnlineSub->GetStoreInterface().Get();
 
 		if (StoreInterface->CachedPurchaseRestoreObject.IsValid())
@@ -214,7 +213,7 @@
 	
     [FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
     {
-        IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(FName(TEXT("IOS")));
+        IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(IOS_SUBSYSTEM);
         FOnlineStoreInterfaceIOS* StoreInterface = (FOnlineStoreInterfaceIOS*)OnlineSub->GetStoreInterface().Get();
         if (StoreInterface->CachedPurchaseStateObject.IsValid())
         {
@@ -258,7 +257,7 @@
 	// Direct the response back to the store interface
 	[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
 	{
-		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(FName(TEXT("IOS")));
+		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(IOS_SUBSYSTEM);
 		FOnlineStoreInterfaceIOS* StoreInterface = (FOnlineStoreInterfaceIOS*)OnlineSub->GetStoreInterface().Get();
 		StoreInterface->ProcessProductsResponse(response);
 
@@ -286,7 +285,7 @@
 		Request = [[SKReceiptRefreshRequest alloc] init];
 		Request.delegate = self;
 		[Request start];
-	}
+    }
 	else
 #endif
 	{

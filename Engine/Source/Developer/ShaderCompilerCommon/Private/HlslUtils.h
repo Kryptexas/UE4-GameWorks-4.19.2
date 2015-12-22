@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HlslUtils.h - Utilities for Hlsl.
@@ -32,13 +32,13 @@ namespace CrossCompiler
 				delete[] Begin;
 			}
 
-			static FPage* AllocatePage();
+			static FPage* AllocatePage(SIZE_T PageSize);
 			static void FreePage(FPage* Page);
 		};
 
 		enum
 		{
-			PageSize = 64 * 1024
+			MinPageSize = 64 * 1024
 		};
 	}
 
@@ -46,7 +46,7 @@ namespace CrossCompiler
 	{
 		FLinearAllocator()
 		{
-			auto* Initial = Memory::FPage::AllocatePage();
+			auto* Initial = Memory::FPage::AllocatePage(Memory::MinPageSize);
 			Pages.Add(Initial);
 		}
 
@@ -60,11 +60,11 @@ namespace CrossCompiler
 
 		inline void* Alloc(SIZE_T NumBytes)
 		{
-			check(NumBytes <= Memory::PageSize);
 			auto* Page = Pages.Last();
 			if (Page->Current + NumBytes > Page->End)
 			{
-				Page = Memory::FPage::AllocatePage();
+				SIZE_T PageSize = FMath::Max<SIZE_T>(Memory::MinPageSize, NumBytes);
+				Page = Memory::FPage::AllocatePage(PageSize);
 				Pages.Add(Page);
 			}
 
@@ -211,41 +211,59 @@ namespace CrossCompiler
 		FSourceInfo() : Filename(nullptr), Line(0), Column(0) {}
 	};
 
-	inline void SourceError(const FSourceInfo& SourceInfo, const TCHAR* String)
+	struct FCompilerMessages
 	{
-		//@todo-rco: LOG
-		if (SourceInfo.Filename)
+		struct FMessage
 		{
-			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%s(%d): (%d) %s\n"), **SourceInfo.Filename, SourceInfo.Line, SourceInfo.Column, String);
-		}
-		else
-		{
-			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("<unknown>(%d): (%d) %s\n"), SourceInfo.Line, SourceInfo.Column, String);
-		}
-	}
+			//FSourceInfo SourceInfo;
+			bool bIsError;
+			FString Message;
 
-	inline void SourceError(const TCHAR* String)
-	{
-		//@todo-rco: LOG
-		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%s\n"), String);
-	}
+			FMessage(bool bInIsError, const FString& InMessage) :
+				bIsError(bInIsError),
+				Message(InMessage)
+			{
+			}
+		};
+		TArray<FMessage> MessageList;
 
-	inline void SourceWarning(const FSourceInfo& SourceInfo, const TCHAR* String)
-	{
-		//@todo-rco: LOG
-		if (SourceInfo.Filename)
+		inline void AddMessage(bool bIsError, const FString& Message)
 		{
-			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%s(%d): (%d) %s\n"), **SourceInfo.Filename, SourceInfo.Line, SourceInfo.Column, String);
+			auto* NewMessage = new(MessageList) FMessage(bIsError, Message);
 		}
-		else
-		{
-			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("<unknown>(%d): (%d) %s\n"), SourceInfo.Line, SourceInfo.Column, String);
-		}
-	}
 
-	inline void SourceWarning(const TCHAR* String)
-	{
-		//@todo-rco: LOG
-		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%s\n"), String);
-	}
+		inline void SourceError(const FSourceInfo& SourceInfo, const TCHAR* String)
+		{
+			if (SourceInfo.Filename)
+			{
+				AddMessage(true, FString::Printf(TEXT("%s(%d): (%d) %s\n"), **SourceInfo.Filename, SourceInfo.Line, SourceInfo.Column, String));
+			}
+			else
+			{
+				AddMessage(true, FString::Printf(TEXT("<unknown>(%d): (%d) %s\n"), SourceInfo.Line, SourceInfo.Column, String));
+			}
+		}
+
+		inline void SourceError(const TCHAR* String)
+		{
+			AddMessage(true, FString::Printf(TEXT("%s\n"), String));
+		}
+
+		inline void SourceWarning(const FSourceInfo& SourceInfo, const TCHAR* String)
+		{
+			if (SourceInfo.Filename)
+			{
+				AddMessage(false, FString::Printf(TEXT("%s(%d): (%d) %s\n"), **SourceInfo.Filename, SourceInfo.Line, SourceInfo.Column, String));
+			}
+			else
+			{
+				AddMessage(false, FString::Printf(TEXT("<unknown>(%d): (%d) %s\n"), SourceInfo.Line, SourceInfo.Column, String));
+			}
+		}
+
+		inline void SourceWarning(const TCHAR* String)
+		{
+			AddMessage(false, FString::Printf(TEXT("%s\n"), String));
+		}
+	};
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,7 +6,7 @@
 #include "LevelSequence.h"
 #include "LevelSequencePlayer.generated.h"
 
-
+class FLevelSequenceSpawnRegister;
 class FMovieSceneSequenceInstance;
 class ULevel;
 class UMovieSceneBindings;
@@ -34,7 +34,6 @@ struct FLevelSequencePlaybackSettings
 	float PlayRate;
 };
 
-
 /**
  * ULevelSequencePlayer is used to actually "play" an level sequence asset at runtime.
  *
@@ -54,11 +53,11 @@ public:
 	/**
 	 * Initialize the player.
 	 *
-	 * @param InLevelSequenceInstance The level sequence instance to play.
+	 * @param InLevelSequence The level sequence to play.
 	 * @param InWorld The world that the animation is played in.
 	 * @param Settings The desired playback settings
 	 */
-	void Initialize(ULevelSequenceInstance* InLevelSequenceInstance, UWorld* InWorld, const FLevelSequencePlaybackSettings& Settings);
+	void Initialize(ULevelSequence* InLevelSequence, UWorld* InWorld, const FLevelSequencePlaybackSettings& Settings);
 
 public:
 
@@ -107,7 +106,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
 	bool IsPlaying() const;
 
-	/** Get the length of the sequence */
+	/** Get the playback length of the sequence */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
 	float GetLength() const;
 
@@ -122,20 +121,28 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
 	void SetPlayRate(float PlayRate);
 
+	/**
+	 * Sets the range in time to be played back by this player, overriding the default range stored in the asset
+	 *
+	 * @param	NewStartTime	The new starting time for playback
+	 * @param	NewEndTime		The new ending time for playback.  Must be larger than the start time.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
+	void SetPlaybackRange( const float NewStartTime, const float NewEndTime );
+
 protected:
 
 	// IMovieScenePlayer interface
-
-	virtual void SpawnActorsForMovie(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance);
-	virtual void DestroyActorsForMovie(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance);
 	virtual void GetRuntimeObjects(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray<UObject*>& OutObjects) const override;
-	virtual void UpdateCameraCut(UObject* ObjectToViewThrough, bool bNewCameraCut) const override;
+	virtual void UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject) const override;
 	virtual void SetViewportSettings(const TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) override;
 	virtual void GetViewportSettings(TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) const override;
 	virtual EMovieScenePlayerStatus::Type GetPlaybackStatus() const override;
 	virtual void AddOrUpdateMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToAdd) override;
 	virtual void RemoveMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToRemove) override;
 	virtual TSharedRef<FMovieSceneSequenceInstance> GetRootMovieSceneSequenceInstance() const override;
+	virtual IMovieSceneSpawnRegister& GetSpawnRegister() override;
+	virtual UObject* GetPlaybackContext() const override;
 
 public:
 
@@ -143,14 +150,17 @@ public:
 
 private:
 
+	/** Update the movie scene instance from the specified previous position, to the specified time position */
+	void UpdateMovieSceneInstance(float CurrentPosition, float PreviousPosition);
+
 	/** Called when the cursor position has changed to implement looping */
 	void OnCursorPositionChanged();
 
 private:
 
 	/** The level sequence to play. */
-	UPROPERTY()
-	ULevelSequenceInstance* LevelSequenceInstance;
+	UPROPERTY(transient)
+	ULevelSequence* LevelSequence;
 
 	/** Whether we're currently playing. If false, then sequence playback is paused or was never started. */
 	UPROPERTY()
@@ -160,6 +170,12 @@ private:
 	UPROPERTY()
 	float TimeCursorPosition;
 
+	/** Time time at which to start playing the sequence (defaults to the lower bound of the sequence's play range) */
+	float StartTime;
+
+	/** Time time at which to end playing the sequence (defaults to the upper bound of the sequence's play range) */
+	float EndTime;
+
 	/** Specific playback settings for the animation. */
 	UPROPERTY()
 	FLevelSequencePlaybackSettings PlaybackSettings;
@@ -167,23 +183,31 @@ private:
 	/** The number of times we have looped in the current playback */
 	int32 CurrentNumLoops;
 
+	/** Whether this player has cleaned up the level sequence after it has stopped playing or not */
+	bool bHasCleanedUpSequence;
+
 private:
-
-	struct FSpawnedActorInfo
-	{
-		/** Identifier that maps this actor to a movie scene spawnable */
-		FGuid RuntimeGuid;
-
-		/** The spawned actor */
-		TWeakObjectPtr<AActor> SpawnedActor;
-	};
-
-	/** Maps spawnable GUIDs to their spawned actor in the world */
-	TMap<TWeakPtr<FMovieSceneSequenceInstance>, TArray<FSpawnedActorInfo>> InstanceToSpawnedActorMap;
 
 	/** The root movie scene instance to update when playing. */
 	TSharedPtr<FMovieSceneSequenceInstance> RootMovieSceneInstance;
 
 	/** The world this player will spawn actors in, if needed */
 	TWeakObjectPtr<UWorld> World;
+
+	/** Register responsible for managing spawned objects */
+	TSharedPtr<FLevelSequenceSpawnRegister> SpawnRegister;
+
+#if WITH_EDITOR
+public:
+
+	/** An event that is broadcast each time this level sequence player is updated */
+	DECLARE_EVENT_ThreeParams( ULevelSequencePlayer, FOnLevelSequencePlayerUpdated, const ULevelSequencePlayer&, float /*current time*/, float /*previous time*/ );
+	FOnLevelSequencePlayerUpdated& OnSequenceUpdated() const { return OnLevelSequencePlayerUpdate; }
+
+private:
+
+	/** The event that will be broadcast every time the sequence is updated */
+	mutable FOnLevelSequencePlayerUpdated OnLevelSequencePlayerUpdate;
+
+#endif
 };

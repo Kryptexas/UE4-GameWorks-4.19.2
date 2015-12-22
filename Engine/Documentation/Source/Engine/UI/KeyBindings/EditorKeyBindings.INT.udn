@@ -2,20 +2,21 @@ Availability:Public
 Title:Keybindings Editor
 Crumbs:%ROOT%, Engine, Engine/UI
 Description:Configurable controls for common commands in Unreal Editor.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Editor/KeyBindings:title%](Engine/UI/KeyBinding_topic.png)
+		![%Engine/UI/KeyBindings:title%](Engine/UI/KeyBinding_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/editor_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Editor/KeyBindings:title%
+		%Engine/UI/KeyBindings:title%
 	[/PARAM]
 	[PARAM:description]
-		%Editor/KeyBindings:description%
+		%Engine/UI/KeyBindings:description%
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/UI/KeyBindings]
@@ -25,16 +26,16 @@ Description:Configurable controls for common commands in Unreal Editor.
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Editor/KeyBindings:title%](Engine/UI/KeyBinding_topic.png)
+		![%Engine/UI/KeyBindings:title%](Engine/UI/KeyBinding_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/editor_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Editor/KeyBindings:title%
+		%Engine/UI/KeyBindings:title%
 	[/PARAM]
 	[PARAM:description]
-		%Editor/KeyBindings:description%
+		%Engine/UI/KeyBindings:description%
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/UI/KeyBindings]
@@ -43,7 +44,7 @@ Description:Configurable controls for common commands in Unreal Editor.
 [/VAR]
 
 [EXCERPT:Intro]
-*Keyboard shortcuts* are combinations of key presses on your keyboard that execute specific commands or actions. Common commands, as well as those specific to the mainframe or other tools in Unreal Editor 4, are configurable. You can customize keyboard shortcuts in the Unreal Editor to suit your workflow and personal preferences by binding specific keys or key combinations to specific commands. 
+**Keyboard shortcuts** are combinations of key presses on your keyboard that execute specific commands or actions. Common commands, as well as those specific to the mainframe or other tools in Unreal Editor 4, are configurable. You can customize keyboard shortcuts in the Unreal Editor to suit your workflow and personal preferences by binding specific keys or key combinations to specific commands. 
 
 You can set up your own set of custom keyboard shortcuts in the **Editor Preferences** window.  To modify the keyboard shortcuts, click **Editor Preferences** on the **Edit** menu, and then click **Keyboard Shortcuts**.
 [/EXCERPT:Intro]
@@ -58,7 +59,7 @@ You can use the **Search** field to filter the list of displayed commands by typ
 
 ## Creating a New Keyboard Shortcut
 
-1. Click in the text field for the command you want to bind to a keyboard shortcut.
+1. Click in the **text field** for the command you want to bind to a keyboard shortcut.
 
 1. Press the combination of keys you want to use to execute the command.
 

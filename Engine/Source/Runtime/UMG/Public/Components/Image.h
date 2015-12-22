@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,7 +9,7 @@ class USlateBrushAsset;
 /**
  * The image widget allows you to display a Slate Brush, or texture or material in the UI.
  *
- * ● No Children
+ * * No Children
  */
 UCLASS()
 class UMG_API UImage : public UWidget
@@ -73,29 +73,29 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	UMaterialInstanceDynamic* GetDynamicMaterial();
 
-	// UWidget interface
+	//~ Begin UWidget Interface
 	virtual void SynchronizeProperties() override;
-	// End of UWidget interface
+	//~ End UWidget Interface
 
-	// UVisual interface
+	//~ Begin UVisual Interface
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
-	// End of UVisual interface
+	//~ End UVisual Interface
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 	virtual void PostLoad() override;
-	// End of UObject interface
+	//~ End UObject Interface
 
 #if WITH_EDITOR
-	// UWidget interface
+	//~ Begin UWidget Interface
 	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual const FText GetPaletteCategory() override;
-	// End UWidget interface
+	//~ End UWidget Interface
 #endif
 
 protected:
-	// UWidget interface
+	//~ Begin UWidget Interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
-	// End of UWidget interface
+	//~ End UWidget Interface
 
 	/** Translates the bound brush data and assigns it to the cached brush used by this widget. */
 	const FSlateBrush* ConvertImage(TAttribute<FSlateBrush> InImageAsset) const;

@@ -8,6 +8,25 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+Version: 4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Example](Resources/ContentExamples/EffectsGallery/1_E "%Resources/ContentExamples/EffectsGallery/1_E:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Effects Gallery Home](Resources/ContentExamples/EffectsGallery)
+	[/PARAM]
+	[PARAM:next]
+		[Next Example](Resources/ContentExamples/EffectsGallery/1_G "%Resources/ContentExamples/EffectsGallery/1_G:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -57,9 +76,9 @@ Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 
 Rarely do particles alone handle the job of a special effect. In most cases, you will need to combine particles, lights, sounds, and other elements to achieve your goal. This example shows how a [Blueprint](Engine/Blueprints) can be created in order to combine a Particle System with a light and sound effect. The effect is a simple Blueprint Class deriving from Actor. It contains the following Components:
 
-* The _P_spark_burst_ Particle System.
-* A _Sound Component_ that plays the _sparks_ sound effect.
-* A _Light Component_ to supply a dynamic flash of light.
+* The P_spark_burst Particle System.
+* A Sound Component that plays the _sparks_ sound effect.
+* A Light Component to supply a dynamic flash of light.
 
 
 [REGION:fullwidth]

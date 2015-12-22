@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Movement component updates position of associated PrimitiveComponent during its tick.
@@ -139,11 +139,19 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MovementComponent)
 	uint32 bAutoUpdateTickRegistration:1;
 
+	/**
+	 * If true, after registration we will add a tick dependency to tick before our owner (if we can both tick).
+	 * This is important when our tick causes an update in the owner's position, so that when the owner ticks it uses the most recent position without lag.
+	 * Disabling this can improve performance if both objects tick but the order of ticks doesn't matter.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MovementComponent)
+	uint32 bTickBeforeOwner:1;
+
 	/** If true, registers the owner's Root component as the UpdatedComponent if there is not one currently assigned. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MovementComponent)
 	uint32 bAutoRegisterUpdatedComponent:1;
 
-	// Begin ActorComponent interface 
+	//~ Begin ActorComponent Interface 
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	virtual void RegisterComponentTickFunctions(bool bRegister) override;
 	virtual void PostLoad() override;
@@ -160,7 +168,7 @@ public:
 	static void PhysicsLockedAxisSettingChanged();
 #endif // WITH_EDITOR
 
-	// End ActorComponent interface
+	//~ End ActorComponent Interface
 
 	/** @return gravity that affects this component */
 	UFUNCTION(BlueprintCallable, Category="Components|Movement")

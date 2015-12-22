@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2599206
+﻿INTSourceChangelist:2686672
 Availability:Public
 Title:블루프린트 직접 통신
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -6,6 +6,7 @@ Description:다른 블루프린트에서 한 블루프린트의 함수, 이벤�
 related:Engine/Blueprints/UserGuide/BlueprintCommsUsage
 related:Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces
 related:Engine/Blueprints/UserGuide/EventDispatcher
+version: 4.9
 
 
 [VAR:Topic]
@@ -58,7 +59,7 @@ related:Engine/Blueprints/UserGuide/EventDispatcher
 
 ### 타겟 블루프린트에 대한 오브젝트 변수 만들기
 
-블루프린트에서 작업중일 때, 타겟 블루프린트를 레퍼런싱하는 오브젝트 변수를 만들면 그 함수, 이벤트, 변수에 접근할 수 있습니다.
+타겟 블루프린트를 레퍼런싱하는 오브젝트 변수를 만들면 그 함수, 이벤트, 변수에 접근할 수 있습니다.
 
 **타겟 블루프린트를 레퍼런싱하는 오브젝트 변수를 만들려면**:
 
@@ -68,13 +69,13 @@ related:Engine/Blueprints/UserGuide/EventDispatcher
 
 1. 새 변수의 이름을 타겟 블루프린트에 연관시켜 "TargetBlueprint" 식으로 짓습니다.
 
-1. **디테일** 패널에서 **Variable Type** (변수 유형)옆의 드롭다운 박스를 클릭합니다. **Object Reference** (오브젝트 레퍼런스) 섹션을 펼칩니다.
+1. **디테일** 패널에서 **Variable Type** (변수 유형)옆의 드롭다운 박스를 클릭합니다. **Object Types** (오브젝트 유형) 섹션을 펼칩니다.
 
 	[REGION:raw]
 	![Variable Type](BP_VarType.png)
 	[/REGION]
 
-1. 리스트에서 레퍼런싱하고자 하는 블루프린트 이름을 선택합니다.
+1. 리스트에서 레퍼런싱하고자 하는 블루프린트 이름을 선택한 뒤 **레퍼런스** 옵션을 선택합니다.
 
 	![Blueprint Reference](BP_Blueprint2Ref.png)
 

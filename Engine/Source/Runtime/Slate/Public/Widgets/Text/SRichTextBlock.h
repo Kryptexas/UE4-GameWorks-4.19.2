@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #if WITH_FANCY_TEXT
@@ -21,6 +21,8 @@ public:
 		, _Margin( FMargin() )
 		, _LineHeightPercentage( 1.0f )
 		, _Justification( ETextJustify::Left )
+		, _TextShapingMethod()
+		, _TextFlowDirection()
 		, _Decorators()
 		, _Parser()
 	{}
@@ -52,6 +54,12 @@ public:
 
 		/** How the text should be aligned with the margin. */
 		SLATE_ATTRIBUTE( ETextJustify::Type, Justification )
+
+		/** Which text shaping method should we use? (unset to use the default returned by GetDefaultTextShapingMethod) */
+		SLATE_ARGUMENT( TOptional<ETextShapingMethod>, TextShapingMethod )
+		
+		/** Which text flow direction should we use? (unset to use the default returned by GetDefaultTextFlowDirection) */
+		SLATE_ARGUMENT( TOptional<ETextFlowDirection>, TextFlowDirection )
 
 		/** Any decorators that should be used while parsing the text. */
 		SLATE_ARGUMENT( TArray< TSharedRef< class ITextDecorator > >, Decorators )
@@ -101,13 +109,13 @@ public:
 		return FHyperlinkDecorator::Create( Id, FSlateHyperlinkRun::FOnClick::CreateSP( InUserObjectPtr, NavigateFunc ) );
 	}
 
-	// Begin SWidget Interface
+	//~ Begin SWidget Interface
 	void Construct( const FArguments& InArgs );
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 	virtual FVector2D ComputeDesiredSize(float) const override;
 	virtual FChildren* GetChildren() override;
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
-	// End SWidget Interface
+	//~ End SWidget Interface
 
 	/**
 	 * Gets the text assigned to this text block
@@ -122,12 +130,39 @@ public:
 	 */
 	void SetText( const TAttribute<FText>& InTextAttr );
 
+	/** See HighlightText attribute */
 	void SetHighlightText( const TAttribute<FText>& InHighlightText );
+
+	/** See TextShapingMethod attribute */
+	void SetTextShapingMethod(const TOptional<ETextShapingMethod>& InTextShapingMethod);
+
+	/** See TextFlowDirection attribute */
+	void SetTextFlowDirection(const TOptional<ETextFlowDirection>& InTextFlowDirection);
+
+	/** See WrapTextAt attribute */
+	void SetWrapTextAt(const TAttribute<float>& InWrapTextAt);
+
+	/** See AutoWrapText attribute */
+	void SetAutoWrapText(const TAttribute<bool>& InAutoWrapText);
+
+	/** See LineHeightPercentage attribute */
+	void SetLineHeightPercentage(const TAttribute<float>& InLineHeightPercentage);
+
+	/** See Margin attribute */
+	void SetMargin(const TAttribute<FMargin>& InMargin);
+
+	/** See Justification attribute */
+	void SetJustification(const TAttribute<ETextJustify::Type>& InJustification);
 
 	/**
 	 * Causes the text to reflow it's layout
 	 */
 	void Refresh();
+
+protected:
+	//~ SWidget interface
+	virtual bool ComputeVolatility() const override;
+	//~ End of SWidget interface
 
 private:
 

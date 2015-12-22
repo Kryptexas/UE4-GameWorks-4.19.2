@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2602131
+﻿INTSourceChangelist:2643533
 Availability: Public
 title:피벗 페인터
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
@@ -9,7 +9,17 @@ Description:Pivot Painter 카테고리 아래 있는 머티리얼 함수에 대�
 
 
 [REGION:header_img]
-[![splash_demo.jpg](Engine/Content/Tools/PivotPainter/splash_demo.jpg)](Engine/Content/Tools/PivotPainter/PivotPainterFoliageExamples.mp4)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+G3vUj7c5gUM
+[/PARAMLITERAL]
+[/OBJECT]
 [/REGION]
 
 Pivot Painter (피벗 페인터)는 메시의 버텍스 안에 로테이션 정보를 보관하는 [Pivot Painter MAXScript](Engine/Content/Tools/PivotPainter) 를 이용할 수 있는 머티리얼 함수입니다. 스태틱 메시의 동적인 모션을 처리하는 데 좋습니다.

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -53,20 +53,14 @@ enum ETickingGroup
 	/** Special tick group that ends physics simulation. */
 	TG_EndPhysics UMETA(Hidden, DisplayName="End Physics"),
 
-	/** Any item that needs physics to be complete before being executed. */
-	TG_PreCloth UMETA(Hidden, DisplayName="Pre Cloth"),
-
-	/** Any item that needs to be updated after rigid body simulation is done, but before cloth is simulation is done. */
-	TG_StartCloth UMETA(Hidden, DisplayName = "Start Cloth"),
-
 	/** Any item that needs rigid body and cloth simulation to be complete before being executed. */
 	TG_PostPhysics UMETA(DisplayName="Post Physics"),
 
 	/** Any item that needs the update work to be done before being ticked. */
 	TG_PostUpdateWork UMETA(DisplayName="Post Update Work"),
 
-	/** Special tick group that ends cloth simulation. */
-	TG_EndCloth UMETA(Hidden, DisplayName="End Cloth"),
+	/** Catchall for anything demoted to the end. */
+	TG_LastDemotable UMETA(Hidden, DisplayName = "Last Demotable"),
 
 	/** Special tick group that is not actually a tick group. After every tick group this is repeatedly re-run until there are no more newly spawned items to run. */
 	TG_NewlySpawned UMETA(Hidden, DisplayName="Newly Spawned"),
@@ -119,6 +113,15 @@ struct FTickPrerequisite
 		}
 		return nullptr;
 	}
+	
+	const struct FTickFunction* Get() const
+	{
+		if (PrerequisiteObject.IsValid(true))
+		{
+			return PrerequisiteTickFunction;
+		}
+		return nullptr;
+	}
 };
 
 /** 
@@ -142,9 +145,20 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category="Tick", AdvancedDisplay)
 	TEnumAsByte<enum ETickingGroup> TickGroup;
 
+	/**
+	 * Defines the tick group that this tick function must finish in. These groups determine the relative order of when objects tick during a frame update.
+	 *
+	 * @see ETickingGroup 
+	 */
+	UPROPERTY(EditDefaultsOnly, Category="Tick", AdvancedDisplay)
+	TEnumAsByte<enum ETickingGroup> EndTickGroup;
+
 protected:
-	/** Internal data that indicates the tick group we actually executed in (it may have been delayed due to prerequisites) **/
-	TEnumAsByte<enum ETickingGroup> ActualTickGroup;
+	/** Internal data that indicates the tick group we actually started in (it may have been delayed due to prerequisites) **/
+	TEnumAsByte<enum ETickingGroup> ActualStartTickGroup;
+
+	/** Internal data that indicates the tick group we actually started in (it may have been delayed due to prerequisites) **/
+	TEnumAsByte<enum ETickingGroup> ActualEndTickGroup;
 
 public:
 	/** Bool indicating that this function should execute even if the game is paused. Pause ticks are very limited in capabilities. **/
@@ -245,13 +259,23 @@ public:
 	FGraphEventRef GetCompletionHandle() const;
 
 	/** 
-	* Gets the action tick group that this function will execute in this frame.
+	* Gets the action tick group that this function will be elligible to start in.
 	* Only valid after TG_PreAsyncWork has started through the end of the frame.
 	**/
 	TEnumAsByte<enum ETickingGroup> GetActualTickGroup() const
 	{
-		return ActualTickGroup;
+		return ActualStartTickGroup;
 	}
+
+	/** 
+	* Gets the action tick group that this function will be required to end in.
+	* Only valid after TG_PreAsyncWork has started through the end of the frame.
+	**/
+	TEnumAsByte<enum ETickingGroup> GetActualEndTickGroup() const
+	{
+		return ActualEndTickGroup;
+	}
+
 
 	/** 
 	 * Adds a tick function to the list of prerequisites...in other words, adds the requirement that TargetTickFunction is called before this tick function is 
@@ -298,8 +322,9 @@ private:
 	 * Queues a tick function for execution from the game thread
 	 * @param TickContext - context to tick in
 	 * @param StackForCycleDetection - Stack For Cycle Detection
+	 * @param bWasInterval - true if this was an interval tick
 	 */
-	void QueueTickFunctionParallel(const struct FTickContext& TickContext, TArray<FTickFunction*, TInlineAllocator<4> >& StackForCycleDetection, struct FTickGroupCompletionItem* AllCompletionEvents, int32 Index, bool bWasInterval);
+	void QueueTickFunctionParallel(const struct FTickContext& TickContext, TArray<FTickFunction*, TInlineAllocator<8> >& StackForCycleDetection, bool bWasInterval);
 
 	/** 
 	 * Logs the prerequisites
@@ -392,6 +417,19 @@ struct FActorComponentTickFunction : public FTickFunction
 	ENGINE_API virtual void ExecuteTick(float DeltaTime, ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
 	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
 	ENGINE_API virtual FString DiagnosticMessage() override;
+
+
+	/**
+	 * Conditionally calls ExecuteTickFunc if bRegistered == true and a bunch of other criteria are met
+	 * @param DeltaTime - The time since the last tick.
+	 * @param TickType - Type of tick that we are running
+	 * @param ExecuteTickFunc - the lambda that ultimately calls tick on the actor component
+	 */
+
+	//NOTE: This already creates a UObject stat so don't double count in your own functions
+
+	template <typename ExecuteTickLambda>
+	static void ExecuteTickHelper(UActorComponent* Target, float DeltaTime, ELevelTick TickType, const ExecuteTickLambda& ExecuteTickFunc);	
 };
 
 
@@ -406,6 +444,8 @@ struct TStructOpsTypeTraits<FActorComponentTickFunction> : public TStructOpsType
 /** 
 * Tick function that calls UPrimitiveComponent::PostPhysicsTick
 **/
+
+//DEPRECATED: This struct has been deprecated. Please use your own tick functions if you need something other than the primary tick function
 USTRUCT()
 struct FPrimitiveComponentPostPhysicsTickFunction : public FTickFunction
 {
@@ -616,26 +656,33 @@ struct ENGINE_API FURL
 {
 	GENERATED_USTRUCT_BODY()
 
+	// Protocol, i.e. "unreal" or "http".
 	UPROPERTY()
-	FString Protocol;    // Protocol, i.e. "unreal" or "http".
+	FString Protocol;
 
+	// Optional hostname, i.e. "204.157.115.40" or "unreal.epicgames.com", blank if local.
 	UPROPERTY()
-	FString Host;    // Optional hostname, i.e. "204.157.115.40" or "unreal.epicgames.com", blank if local.
+	FString Host;
 
+	// Optional host port.
 	UPROPERTY()
-	int32 Port;    // Optional host port.
+	int32 Port;
 
+	// Map name, i.e. "SkyCity", default is "Entry".
 	UPROPERTY()
-	FString Map;    // Map name, i.e. "SkyCity", default is "Entry".
+	FString Map;
 
+	// Optional place to download Map if client does not possess it
 	UPROPERTY()
-	FString RedirectURL;    // Optional place to download Map if client does not possess it
+	FString RedirectURL;
 
+	// Options.
 	UPROPERTY()
-	TArray<FString> Op;    // Options.
+	TArray<FString> Op;
 
+	// Portal to enter through, default is "".
 	UPROPERTY()
-	FString Portal;    // Portal to enter through, default is "".
+	FString Portal;
 
 	UPROPERTY()
 	int32 Valid;
@@ -644,11 +691,21 @@ struct ENGINE_API FURL
 	static FUrlConfig UrlConfig;
 	static bool bDefaultsInitialized;
 
-	// Constructors.
-	/* FURL() prevent default from being generated */
+	/**
+	 * Prevent default from being generated.
+	 */
 	explicit FURL( ENoInit ) { }
+
+	/**
+	 * Construct a purely default, local URL from an optional filename.
+	 */
 	FURL( const TCHAR* Filename=nullptr );
+
+	/**
+	 * Construct a URL from text and an optional relative base.
+	 */
 	FURL( FURL* Base, const TCHAR* TextURL, ETravelType Type );
+
 	static void StaticInit();
 	static void StaticExit();
 
@@ -659,19 +716,68 @@ struct ENGINE_API FURL
 	 */
 	static void FilterURLString( FString& Str );
 
-	// Functions.
+	/**
+	 * Returns whether this URL corresponds to an internal object, i.e. an Unreal
+	 * level which this app can try to connect to locally or on the net. If this
+	 * is false, the URL refers to an object that a remote application like Internet
+	 * Explorer can execute.
+	 */
 	bool IsInternal() const;
+
+	/**
+	 * Returns whether this URL corresponds to an internal object on this local 
+	 * process. In this case, no Internet use is necessary.
+	 */
 	bool IsLocalInternal() const;
+
+	/**
+	 * Tests if the URL contains an option string.
+	 */
 	bool HasOption( const TCHAR* Test ) const;
+
+	/**
+	 * Returns the value associated with an option.
+	 *
+	 * @param Match The name of the option to get.
+	 * @param Default The value to return if the option wasn't found.
+	 *
+	 * @return The value of the named option, or Default if the option wasn't found.
+	 */
 	const TCHAR* GetOption( const TCHAR* Match, const TCHAR* Default ) const;
+
+	/**
+	 * Load URL from config.
+	 */
 	void LoadURLConfig( const TCHAR* Section, const FString& Filename=GGameIni );
+
+	/**
+	 * Save URL to config.
+	 */
 	void SaveURLConfig( const TCHAR* Section, const TCHAR* Item, const FString& Filename=GGameIni ) const;
+
+	/**
+	 * Add a unique option to the URL, replacing any existing one.
+	 */
 	void AddOption( const TCHAR* Str );
+
+	/**
+	 * Remove an option from the URL
+	 */
 	void RemoveOption( const TCHAR* Key, const TCHAR* Section = nullptr, const FString& Filename = GGameIni);
+
+	/**
+	 * Convert this URL to text.
+	 */
 	FString ToString( bool FullyQualified=0 ) const;
+
+	/**
+	 * Serializes a FURL to or from an archive.
+	 */
 	ENGINE_API friend FArchive& operator<<( FArchive& Ar, FURL& U );
 
-	// Operators.
+	/**
+	 * Compare two URLs to see if they refer to the same exact thing.
+	 */
 	bool operator==( const FURL& Other ) const;
 };
 
@@ -731,12 +837,15 @@ enum EViewModeIndex
 
 	/** Colored according to stationary light overlap. */
 	VMI_StationaryLightOverlap = 14,
-//	VMI_VertexDensity = 15,
 
 	VMI_CollisionPawn = 15, 
 	VMI_CollisionVisibility = 16, 
+	VMI_VertexDensities = 17,
 	/** Colored according to the current LOD index. */
 	VMI_LODColoration = 18,
+	/** Colored according to the quad coverage. */
+	VMI_QuadComplexity = 19,
+
 	VMI_Max UMETA(Hidden),
 
 	VMI_Unknown = 255 UMETA(Hidden),

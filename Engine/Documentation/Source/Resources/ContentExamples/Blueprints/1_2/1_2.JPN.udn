@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2712695
 Availability:Public
 Title:1.2 - コンポーネント
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
-Description:ブループリントの事例概要、例1.2：コンポーネント
+Description:ブループリントのサンプル レベルの概要、サンプル 1.2：コンポーネント
 Related:Engine/Blueprints/Overview 
 Related:Engine/Blueprints/UserGuide/Components
 Related:Engine/Blueprints/UserGuide/Variables
@@ -11,7 +11,25 @@ Related:Engine/Blueprints/UserGuide/Types/MacroLibrary
 Related:Engine/Animation/AnimBlueprints/EventGraph
 Related:Engine/Blueprints/UserGuide/UserConstructionScript
 Related:Gameplay/HowTo/SetUpInput/Blueprints
+Version:4.9
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/Blueprints/1_1 "%Resources/ContentExamples/Blueprints/1_1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[ブループリントのコンテンツ サンプル ホーム](Resources/ContentExamples/Blueprints)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/Blueprints/1_3 "%Resources/ContentExamples/Blueprints/1_3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -35,23 +53,23 @@ Related:Gameplay/HowTo/SetUpInput/Blueprints
 ![](ComponentsExample.png)
 [/REGION]
 
-## 概要
 
-コンポーネントはブループリント オブジェクトがその目的を実行するために必要なオブジェクトとして捉えることができます。多様な種類のコンポーネントをブループリントへ追加することができます。例えば、ブループリントの定義になにかしらの多角形メッシュが必要な場合、**スタティックメッシュコンポーネント** を追加します。ブループリントオブジェクトから光の放射が必要な場合、 **ポイントライトコンポーネント** または **スポットライトコンポーネント** を追加します。 
 
-これは一部の有効なコンポーネントを示した一連のブループリントアクタの例です。 
+**コンポーネント** は **Blueprint** オブジェクトがその目的を実行するために必要なオブジェクトとして捉えることができます。多様なコンポーネントをブループリントへ追加することができます。例えば、ブループリントの定義に何らかの多角形メッシュが必要な場合、**Static Mesh コンポーネント** を追加します。ブループリント オブジェクトから光の放射が必要な場合、 **Point Light コンポーネント** または **Spot Light コンポーネント** を追加します。 
+
+このサンプルには一部の利用可能なコンポーネントを示した一連のBlueprint アクタがあります。 
 
 ## コンポーネント
 
-左から右へブループリントアクタを説明します：
+左から右へ Blueprint アクタを説明します：
 
-* **BP_SpriteComponent** - Billboard コンポーネントのみを格納します。しばしブループリント配置の支援として用いられます。
-* **BP_StaticMeshComponent** - スタティックメッシュコンポーネントのみを格納するブループリントアクタです。ブループリントアクタの定義に多角形メッシュまたはモデルが必要な時に使用します。
-* **BP_PointLightComponent** - コンポーネント内にポイントライトコンポ―ネントのみが格納されています。ブループリントアクタに光を放射させる際に使用します。
-* **BP_SeveralComponents** - 上記のコンポーネント全てから1つのコンポーネントのみを格納します。コンポーネントには、Billboard コンポーネント、Static Mesh コンポーネント、Point Light コンポーネントも含まれます。
+* **BP_SpriteComponent** - Billboard コンポーネントのみを格納します。多くの場合、ブループリント配置の支援に用いられます。
+* **BP_StaticMeshComponent** - スタティックメッシュ コンポーネントのみを格納する Blueprint アクタです。Blueprint アクタの定義に多角形メッシュまたはモデルが必要な時に使用します。
+* **BP_PointLightComponent** - コンポーネント内に Point Light コンポーネントのみが格納されています。Blueprint アクタに光を放射させる際に使用します。
+* **BP_SeveralComponents** - 上記のコンポーネント全てから1つのコンポーネントを格納します。コンポーネントには、Billboard コンポーネント、Static Mesh コンポーネント、Point Light コンポーネントも含まれます。
 
 
-これらのブループリントアクタそれぞれに対し、 [Component] モードの間に、個別のコンポーネントがブループリントエディタ内に追加されます。 [Component] モードは、以下に示すようにブループリント エディタウィンドウの右上に位置するボタンで設定します。コンポーネントを追加、削除する様々な方法は、[ブループリント コンポーネントのドキュメント](Engine/Blueprints/UserGuide/Components) をご覧ください。
+これらの Blueprint アクタそれぞれに対し、ブループリントエディタ内の **[Component (コンポーネント)]** タブに各コンポーネントが追加されます。デフォルト設定でブループリント エディタ ウィンドウの左上部に **[Component]** タブが表示されます。コンポーネントを追加、削除する様々な方法は、[ブループリント コンポーネントのドキュメント](Engine/Blueprints/UserGuide/Components) をご覧ください。
 
 [REGION:fullwidth]
 ![](BPComponentMode.png)

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -86,7 +86,7 @@ DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FAITestCommand_TearDownTest, FAIT
 
 // @note that TestClass needs to derive from FAITestBase
 #define IMPLEMENT_AI_LATENT_TEST(TestClass, PrettyName) \
-	IMPLEMENT_SIMPLE_AUTOMATION_TEST(TestClass##_Runner, PrettyName, (EAutomationTestFlags::ATF_Game | EAutomationTestFlags::ATF_Editor)) \
+	IMPLEMENT_SIMPLE_AUTOMATION_TEST(TestClass##_Runner, PrettyName, (EAutomationTestFlags::ClientContext | EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)) \
 	bool TestClass##_Runner::RunTest(const FString& Parameters) \
 	{ \
 		/* spawn test instance. Setup should be done in test's constructor */ \
@@ -102,7 +102,7 @@ DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FAITestCommand_TearDownTest, FAIT
 	} 
 
 #define IMPLEMENT_AI_INSTANT_TEST(TestClass, PrettyName) \
-	IMPLEMENT_SIMPLE_AUTOMATION_TEST(TestClass##Runner, PrettyName, (EAutomationTestFlags::ATF_Game | EAutomationTestFlags::ATF_Editor)) \
+	IMPLEMENT_SIMPLE_AUTOMATION_TEST(TestClass##Runner, PrettyName, (EAutomationTestFlags::ClientContext | EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)) \
 	bool TestClass##Runner::RunTest(const FString& Parameters) \
 	{ \
 		/* spawn test instance. Setup should be done in test's constructor */ \

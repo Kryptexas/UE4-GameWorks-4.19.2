@@ -9,6 +9,24 @@ Related: Engine/Landscape/Materials
 Related: Engine/Landscape/Editing/Splines
 Related: Engine/Landscape/Editing/Gizmos
 Related: Engine/Landscape/Editing/Brushes
+Version: 4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Landscapes Home](Resources/ContentExamples/Landscapes)
+	[/PARAM]
+	[PARAM:next]
+		[Next Example](Resources/ContentExamples/Landscapes/1_2 "%Resources/ContentExamples/Landscapes/1_2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:TopicCompact]

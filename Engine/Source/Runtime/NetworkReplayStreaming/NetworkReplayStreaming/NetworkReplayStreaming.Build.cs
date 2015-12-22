@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 namespace UnrealBuildTool.Rules
 {
@@ -8,10 +8,13 @@ namespace UnrealBuildTool.Rules
 		{
 			PrivateIncludePaths.Add( "Runtime/NetworkReplayStreaming/NetworkReplayStreaming/Private" );
 
+            PublicIncludePathModuleNames.Add("OnlineSubsystem");
+
 			PublicDependencyModuleNames.AddRange(
 				new string[]
 				{
 					"Core",
+                    "Json",
                     // ... add other public dependencies that you statically link with here ...
 				}
 			);

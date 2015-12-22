@@ -10,6 +10,7 @@ Related: Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights
 Related: Engine/Rendering/LightingAndShadows/LightMobility/StaticLights
 Related: Engine/Rendering/LightingAndShadows/IESLightProfiles
 Related: Resources/ContentExamples/Lighting/4_2
+Version: 4.9
 
 [REGION:fullwidth]
 ![](RoomNight.png)
@@ -26,12 +27,15 @@ There are 3 types of lights in use in the night scene.
 
 The Night scene (_RoomNight.umap_) is similar to the Daylight scene. The Stationary Directional Light provides additional lighting, as if from a moon or street light. Here you can see the balcony both with and without this light:
 
-[REGION:imagetable]
-| Moon Light Result ||
-| --- | --- |
-|![](DirectionalLightMoon2.png)(w:455) | ![](DirectionalLightMoonOff2.png)(w:455) |
-| **Moon Directional Light On** | **Moon Directional Light Off** |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Moon Directional Light On](DirectionalLightMoon2.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Moon Directional Light Off](DirectionalLightMoonOff2.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+
 
 [INCLUDE:Resources/Showcases/RealisticRendering#IESProfiles]
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "ThumbnailHelpers.h"
@@ -1061,7 +1061,7 @@ UActorComponent* FClassActorThumbnailScene::CreateComponentInstanceFromTemplate(
 	EObjectFlags FlagMask = RF_AllFlags & ~RF_ArchetypeObject;
 	if ( GetTransientPackage()->IsA(ComponentTemplate->GetClass()->ClassWithin) )
 	{
-		NewComponent = Cast<UActorComponent>( StaticDuplicateObject(ComponentTemplate, GetTransientPackage(), TEXT(""), FlagMask ) );
+		NewComponent = Cast<UActorComponent>( StaticDuplicateObject(ComponentTemplate, GetTransientPackage(), NAME_None, FlagMask ) );
 
 		USceneComponent* NewSceneComp = Cast<USceneComponent>(NewComponent);
 		if ( NewSceneComp != NULL )
@@ -1198,9 +1198,8 @@ void FBlueprintThumbnailScene::InstanceComponents(USCS_Node* CurrentNode, UScene
 		USceneComponent* ParentSceneComponentOfChildren = (NewSceneComp != NULL) ? NewSceneComp : ParentComponent;
 
 		// If we made a component, go ahead and process our children
-		for (int32 NodeIdx = 0; NodeIdx < CurrentNode->ChildNodes.Num(); NodeIdx++)
+		for (USCS_Node* Node : CurrentNode->GetChildNodes())
 		{
-			USCS_Node* Node = CurrentNode->ChildNodes[NodeIdx];
 			check(Node != NULL);
 			InstanceComponents(Node, ParentSceneComponentOfChildren, NativeInstanceMap, OutComponents, ActualBPGC);
 		}

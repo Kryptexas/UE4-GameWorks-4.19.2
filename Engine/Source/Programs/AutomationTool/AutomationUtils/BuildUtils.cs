@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -107,7 +107,7 @@ namespace AutomationTool
 		public static void FixUnixFilePermissions(string Filename)
 		{
 			string Permissions = IsProbablyAMacOrIOSExe(Filename) ? "0755" : "0644";
-			var Result = CommandUtils.Run("sh", string.Format("-c 'chmod {0} \"{1}\"'", Permissions, Filename.Replace("'", "'\"'\"'")));
+			var Result = CommandUtils.Run("sh", string.Format("-c 'chmod {0} \"{1}\"'", Permissions, Filename.Replace("'", "'\"'\"'")), Options:ERunOptions.SpewIsVerbose);
 			if (Result.ExitCode != 0)
 			{
 				throw new AutomationException(String.Format("Failed to chmod \"{0}\"", Filename));

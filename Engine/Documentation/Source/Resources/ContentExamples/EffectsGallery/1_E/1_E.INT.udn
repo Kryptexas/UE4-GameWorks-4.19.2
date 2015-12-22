@@ -8,6 +8,25 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+Version: 4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Example](Resources/ContentExamples/EffectsGallery/1_D "%Resources/ContentExamples/EffectsGallery/1_D:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Effects Gallery Home](Resources/ContentExamples/EffectsGallery)
+	[/PARAM]
+	[PARAM:next]
+		[Next Example](Resources/ContentExamples/EffectsGallery/1_F "%Resources/ContentExamples/EffectsGallery/1_F:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -53,8 +72,8 @@ Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 [/REGION]
 
 
-Another advantage of the GPU sprites, besides being able to spawn large numbers of particles, is that it is possible for them to cheaply collide with the environment. This is handled by way of a _Collision (Scene Depth)_ module, which allows a GPU particle system to collide with geometry based on Z-Depth. 
+Another advantage of the GPU sprites, besides being able to spawn large numbers of particles, is that it is possible for them to cheaply collide with the environment. This is handled by way of a **Collision (Scene Depth)** module, which allows a GPU particle system to collide with geometry based on Z-Depth. 
 
-The nice thing about the module is that you do not have to worry about any collision surfaces for meshes in the scene. Since the module uses the Z-Depth buffer from the GPU, you automatically collide with any visible geometry. The _Collision (Scene Depth)_ module provides you control over resilience (bounciness) and friction.
+The nice thing about the module is that you do not have to worry about any collision surfaces for meshes in the scene. Since the module uses the Z-Depth buffer from the GPU, you automatically collide with any visible geometry. The Collision (Scene Depth) module provides you control over resilience (bounciness) and friction.
 
  ![](image024.png)

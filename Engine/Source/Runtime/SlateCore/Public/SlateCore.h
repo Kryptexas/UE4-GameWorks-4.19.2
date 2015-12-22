@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -80,7 +80,7 @@ enum class EActiveTimerReturnType : uint8;
 #include "SlateTextureData.h"
 #include "SlateUpdatableTexture.h"
 #include "TextureAtlas.h"
-#include "TextureManager.h"
+#include "ShaderResourceManager.h"
 
 // Fonts
 #include "SlateFontInfo.h"

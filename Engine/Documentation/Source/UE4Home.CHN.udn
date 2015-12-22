@@ -13,12 +13,12 @@ Navigation:home
 		[RELATIVE:Search]
 		[/PARAM]
 		[PARAMLITERAL:placeholder]
-		需要帮助吗？ 通过搜索文档来查找主题。
+		您需要帮助吗？ 请通过搜索文档来查找主题。
 		[/PARAMLITERAL]
 		[PARAM:message]
 		[/PARAM]
 		[PARAMLITERAL:label]
-			快速搜索主题：
+			快速搜索主题:
 		[/PARAMLITERAL]
 		[PARAMLITERAL:terms]
 			快速入门
@@ -27,13 +27,22 @@ Navigation:home
 			操作入门
 		[/PARAMLITERAL]
 		[PARAMLITERAL:terms]
+			C++
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			蓝图
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			iOS
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			安卓
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
 			Actor
 		[/PARAMLITERAL]
 		[PARAMLITERAL:terms]
 			组件
-		[/PARAMLITERAL]
-		[PARAMLITERAL:terms]
-			蓝图
 		[/PARAMLITERAL]
 		[PARAMLITERAL:terms]
 			材质
@@ -47,15 +56,6 @@ Navigation:home
 		[PARAMLITERAL:terms]
 			UMG用户界面
 		[/PARAMLITERAL]
-		[PARAMLITERAL:terms]
-			C++
-		[/PARAMLITERAL]
-		[PARAMLITERAL:terms]
-			iOS
-		[/PARAMLITERAL]
-		[PARAMLITERAL:terms]
-			Android
-		[/PARAMLITERAL]
 	[/OBJECT]
 [/REGION]
 
@@ -66,10 +66,13 @@ Navigation:home
 [REGION:frontpage]
 	[REGION:features third]
 	%GettingStarted:role%
+	%Engine/Editor:role%
 	%Engine:role%
 	%Programming:topicrole%
 	%Engine/Blueprints:role%
-	%Platforms:role%
+	%Gameplay:role%
 	%Resources:role%
+	%Platforms:role%
+	%Support/Builds:role%
 	[/REGION]
 [/REGION]

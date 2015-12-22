@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,8 +6,10 @@
  * Playable sound object for raw wave files
  */
 #include "BulkData.h"
+#include "Engine/EngineTypes.h"
 #include "Sound/SoundBase.h"
 #include "Sound/SoundGroups.h"
+
 #include "SoundWave.generated.h"
 
 struct FActiveSound;
@@ -267,7 +269,7 @@ public:
 	/** Codec used to compress/encode this audio data */
 	FName CompressionName;
 
-	// Begin UObject interface. 
+	//~ Begin UObject Interface. 
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void PostInitProperties() override;
 	virtual bool IsReadyForFinishDestroy() override;
@@ -281,14 +283,14 @@ public:
 	virtual FName GetExporterName() override;
 	virtual FString GetDesc() override;
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
-	// End UObject interface. 
+	//~ End UObject Interface. 
 
-	// Begin USoundBase interface.
+	//~ Begin USoundBase Interface.
 	virtual bool IsPlayable() const override;
 	virtual void Parse( class FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) override;
 	virtual float GetMaxAudibleDistance() override;
 	virtual float GetDuration() override;
-	// End USoundBase interface.
+	//~ End USoundBase Interface.
 
 	/**
 	 *	@param		Format		Format to check

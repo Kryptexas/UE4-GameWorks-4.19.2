@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleHelper.h: Particle helper definitions/ macros.
@@ -296,6 +296,8 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Cull Vector Fields"),STAT_GPUParticleVFCullTime,
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Misc1"),STAT_GPUParticleMisc1,STATGROUP_GPUParticles, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Misc2"),STAT_GPUParticleMisc2,STATGROUP_GPUParticles, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Misc3"),STAT_GPUParticleMisc3,STATGROUP_GPUParticles, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Single Iteration Emitters"), STAT_GPUSingleIterationEmitters, STATGROUP_GPUParticles, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Multi Iterations Emitters"), STAT_GPUMultiIterationsEmitters, STATGROUP_GPUParticles, );
 
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Mesh Particles"),STAT_MeshParticles,STATGROUP_Particles, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Mesh Render Time"),STAT_MeshRenderingTime,STATGROUP_Particles, );
@@ -524,10 +526,12 @@ struct FAttractorParticlePayload
 struct FLightParticlePayload
 {
 	FVector		ColorScale;
+	uint64		LightId;
 	float		RadiusScale;
 	float		LightExponent;
 	bool		bValid;
 	bool		bAffectsTranslucency;
+	bool		bHighQuality;
 };
 
 //
@@ -638,15 +642,16 @@ struct FBeamParticleModifierPayloadData
 	{
 		if (bModifyTangent == true)
 		{
-			FVector ModTangent = Tangent;
-
+			FVector ModTangent;
 			if (bAbsolute == false)
 			{
 				// Transform the modified tangent so it is relative to the real tangent
-				FQuat RotQuat = FQuat::FindBetween(FVector(1.0f, 0.0f, 0.0f), Value);
-				FMatrix RotMat = FQuatRotationTranslationMatrix(RotQuat, FVector::ZeroVector);
-
-				ModTangent = RotMat.TransformVector(Tangent);
+				const FQuat RotQuat = FQuat::FindBetweenNormals(FVector(1.0f, 0.0f, 0.0f), Value);
+				ModTangent = RotQuat.RotateVector(Tangent);
+			}
+			else
+			{
+				ModTangent = Tangent;
 			}
 
 			if (bScaleTangent == false)
@@ -824,6 +829,11 @@ public:
 	bool Contains( const ElementType& Item ) const
 	{
 		return ( Find(Item) != INDEX_NONE );
+	}
+
+	int32 Num() const
+	{
+		return ArrayMax;
 	}
 
 private:
@@ -1213,6 +1223,47 @@ enum EDynamicEmitterType
 	DET_Custom
 };
 
+struct FParticleDataContainer
+{
+	int32 MemBlockSize;
+	int32 ParticleDataNumBytes;
+	int32 ParticleIndicesNumShorts;
+	uint8* ParticleData; // this is also the memory block we allocated
+	uint16* ParticleIndices; // not allocated, this is at the end of the memory block
+
+	FParticleDataContainer()
+		: MemBlockSize(0)
+		, ParticleDataNumBytes(0)
+		, ParticleIndicesNumShorts(0)
+		, ParticleData(nullptr)
+		, ParticleIndices(nullptr)
+	{
+	}
+	~FParticleDataContainer()
+	{
+		Free();
+	}
+	void Alloc(int32 InParticleDataNumBytes, int32 InParticleIndicesNumShorts);
+	void Free();
+};
+
+struct FMacroUVOverride
+{
+	FMacroUVOverride() : bOverride(false), Radius(0.f), Position(0.f,0.f,0.f) {}
+
+	bool	bOverride;
+	float   Radius;
+	FVector Position;
+
+	friend FORCEINLINE FArchive& operator<<(FArchive& Ar, FMacroUVOverride& O)
+	{
+		Ar << O.bOverride;
+		Ar << O.Radius;
+		Ar << O.Position;
+		return Ar;
+	}
+};
+
 /** Source data base class for all emitter types */
 struct FDynamicEmitterReplayDataBase
 {
@@ -1223,8 +1274,7 @@ struct FDynamicEmitterReplayDataBase
 	int32 ActiveParticleCount;
 
 	int32 ParticleStride;
-	TArray<uint8> ParticleData;
-	TArray<uint16> ParticleIndices;
+	FParticleDataContainer DataContainer;
 
 	FVector Scale;
 
@@ -1232,10 +1282,7 @@ struct FDynamicEmitterReplayDataBase
 	int32 SortMode;
 
 	/** MacroUV (override) data **/
-	bool   bOverrideSystemMacroUV;
-	float   MacroUVRadius;
-	FVector MacroUVPosition;
-
+	FMacroUVOverride MacroUVOverride;
 
 	/** Constructor */
 	FDynamicEmitterReplayDataBase()
@@ -1243,10 +1290,7 @@ struct FDynamicEmitterReplayDataBase
 		  ActiveParticleCount( 0 ),
 		  ParticleStride( 0 ),
 		  Scale( FVector( 1.0f ) ),
-		  SortMode(0),	// Default to PSORTMODE_None
-		  bOverrideSystemMacroUV(0),
-		  MacroUVRadius(0.f),
-		  MacroUVPosition(0.f,0.f,0.f)
+		  SortMode(0)	// Default to PSORTMODE_None		  
 	{
 	}
 
@@ -1263,13 +1307,48 @@ struct FDynamicEmitterReplayDataBase
 
 		Ar << ActiveParticleCount;
 		Ar << ParticleStride;
+		
+		TArray<uint8> ParticleData;
+		TArray<uint16> ParticleIndices;
+
+		if (!Ar.IsLoading() && !Ar.IsObjectReferenceCollector())
+		{
+			if (DataContainer.ParticleDataNumBytes)
+			{
+				ParticleData.AddUninitialized(DataContainer.ParticleDataNumBytes);
+				FMemory::Memcpy(ParticleData.GetData(), DataContainer.ParticleData, DataContainer.ParticleDataNumBytes);
+			}
+			if (DataContainer.ParticleIndicesNumShorts)
+			{
+				ParticleIndices.AddUninitialized(DataContainer.ParticleIndicesNumShorts);
+				FMemory::Memcpy(ParticleIndices.GetData(), DataContainer.ParticleIndices, DataContainer.ParticleIndicesNumShorts * sizeof(uint16));
+			}
+		}
+
 		Ar << ParticleData;
 		Ar << ParticleIndices;
+
+		if (Ar.IsLoading())
+		{
+			DataContainer.Free();
+			if (ParticleData.Num())
+			{
+				DataContainer.Alloc(ParticleData.Num(), ParticleIndices.Num());
+				FMemory::Memcpy(DataContainer.ParticleData, ParticleData.GetData(), DataContainer.ParticleDataNumBytes);
+				if (DataContainer.ParticleIndicesNumShorts)
+				{
+					FMemory::Memcpy(DataContainer.ParticleIndices, ParticleIndices.GetData(), DataContainer.ParticleIndicesNumShorts * sizeof(uint16));
+				}
+			}
+			else
+			{
+				check(!ParticleIndices.Num());
+			}
+		}
+
 		Ar << Scale;
 		Ar << SortMode;
-		Ar << bOverrideSystemMacroUV;
-		Ar << MacroUVRadius;
-		Ar << MacroUVPosition;
+		Ar << MacroUVOverride;
 	}
 
 };
@@ -1283,6 +1362,13 @@ struct FDynamicEmitterDataBase
 	{
 		ReturnVertexFactory();
 	}
+
+	/** Custom new/delete with recycling */
+	void* operator new(size_t Size);
+	void operator delete(void *RawMemory, size_t Size);
+
+	virtual void CreateVertexFactory(const FSceneView *View)
+	{}
 
 	/**
 	 *	Create the render thread resources for this emitter data
@@ -1333,6 +1419,9 @@ struct FDynamicEmitterDataBase
 	/** Returns the source data for this particle system */
 	virtual const FDynamicEmitterReplayDataBase& GetSource() const = 0;
 
+	/** Returns the current macro uv override. Specialized by FGPUSpriteDynamicEmitterData  */
+	virtual const FMacroUVOverride& GetMacroUVOverride() const { return GetSource().MacroUVOverride; }
+
 	/** true if this emitter is currently selected */
 	uint32	bSelected:1;
 	/** true if this emitter has valid rendering data */
@@ -1358,11 +1447,13 @@ private:
 	 */
 	void ReturnVertexFactory()
 	{
+		/*
 		if (ParticleVertexFactory != NULL)
 		{
 			GParticleVertexFactoryPool.ReturnParticleVertexFactory(ParticleVertexFactory);
 			ParticleVertexFactory = NULL;
 		}
+		*/
 	}
 };
 
@@ -1371,6 +1462,7 @@ struct FDynamicSpriteEmitterReplayDataBase
 	: public FDynamicEmitterReplayDataBase
 {
 	UMaterialInterface*			MaterialInterface;
+	class USubUVAnimation*		SubUVAnimation;
 	FVector						NormalsSphereCenter;
 	FVector						NormalsCylinderDirection;
 	float						InvDeltaSeconds;
@@ -1389,30 +1481,9 @@ struct FDynamicSpriteEmitterReplayDataBase
 	uint8						EmitterRenderMode;
 	uint8						EmitterNormalsMode;
 	FVector2D					PivotOffset;
-
+	
 	/** Constructor */
-	FDynamicSpriteEmitterReplayDataBase()
-		: MaterialInterface(NULL)
-		, NormalsSphereCenter(FVector::ZeroVector)
-		, NormalsCylinderDirection(FVector::ZeroVector)
-		, InvDeltaSeconds(0.0f)
-		, MaxDrawCount(0)
-		, OrbitModuleOffset(0)
-		, DynamicParameterDataOffset(0)
-		, LightDataOffset(0)
-		, CameraPayloadOffset(0)
-		, SubUVDataOffset(0)
-		, SubImages_Horizontal(1)
-		, SubImages_Vertical(1)
-		, bUseLocalSpace(false)
-		, bLockAxis(false)
-		, ScreenAlignment(0)
-		, LockAxisFlag(0)
-		, EmitterRenderMode(0)
-		, EmitterNormalsMode(0)
-		, PivotOffset(-0.5f, -0.5f)
-	{
-	}
+	FDynamicSpriteEmitterReplayDataBase();
 
 	/** Serialization */
 	virtual void Serialize( FArchive& Ar );
@@ -1460,7 +1531,7 @@ struct FDynamicSpriteEmitterDataBase : public FDynamicEmitterDataBase
 	 *	@param	ParticleOrder		The array to fill in with ordered indices
 	 */
 	void SortSpriteParticles(int32 SortMode, bool bLocalSpace, 
-		int32 ParticleCount, const TArray<uint8>& ParticleData, int32 ParticleStride, const TArray<uint16>& ParticleIndices,
+		int32 ParticleCount, const uint8* ParticleData, int32 ParticleStride, const uint16* ParticleIndices,
 		const FSceneView* View, const FMatrix& LocalToWorld, FParticleOrder* ParticleOrder) const;
 
 	/**
@@ -1544,9 +1615,6 @@ struct FDynamicSpriteEmitterDataBase : public FDynamicEmitterDataBase
 struct FDynamicSpriteEmitterReplayData
 	: public FDynamicSpriteEmitterReplayDataBase
 {
-	// Nothing needed, yet
-
-
 	/** Constructor */
 	FDynamicSpriteEmitterReplayData()
 	{
@@ -1569,8 +1637,20 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 {
 	FDynamicSpriteEmitterData(const UParticleModuleRequired* RequiredModule) :
 		FDynamicSpriteEmitterDataBase(RequiredModule)
+		, VertexFactory(nullptr)
 	{
 	}
+
+	~FDynamicSpriteEmitterData()
+	{
+		if (VertexFactory != nullptr)
+		{
+			VertexFactory->ReleaseResource();
+			delete VertexFactory;
+		}
+	}
+
+	virtual void CreateVertexFactory(const FSceneView *View);
 
 	/** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
 	void Init( bool bInSelected );
@@ -1580,7 +1660,7 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 	 */
 	virtual int32 GetDynamicVertexStride(ERHIFeatureLevel::Type InFeatureLevel) const override
 	{
-		const bool bInstanced = InFeatureLevel >= ERHIFeatureLevel::SM4;
+		const bool bInstanced = GRHISupportsInstancing;
 		return bInstanced ? sizeof(FParticleSpriteVertex) : sizeof(FParticleSpriteVertexNonInstanced);
 	}
 
@@ -1627,7 +1707,7 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 	 *
 	 *	@return	bool			true if successful, false if failed
 	 */
-	bool GetVertexAndIndexDataNonInstanced(void* VertexData, void* DynamicParameterVertexData, void* FillIndexData, FParticleOrder* ParticleOrder, const FVector& InCameraPosition, const FMatrix& InLocalToWorld) const;
+	bool GetVertexAndIndexDataNonInstanced(void* VertexData, void* DynamicParameterVertexData, void* FillIndexData, FParticleOrder* ParticleOrder, const FVector& InCameraPosition, const FMatrix& InLocalToWorld, int32 NumVerticesPerParticle) const;
 
 	/** Gathers simple lights for this emitter. */
 	virtual void GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const override;
@@ -1658,6 +1738,8 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 
 	/** Uniform parameters. Most fields are filled in when updates are sent to the rendering thread, some are per-view! */
 	FParticleSpriteUniformParameters UniformParameters;
+
+	class FParticleSpriteVertexFactory *VertexFactory;
 };
 
 /** Source data for Mesh emitters */
@@ -1716,6 +1798,8 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	FDynamicMeshEmitterData(const UParticleModuleRequired* RequiredModule);
 
 	virtual ~FDynamicMeshEmitterData();
+
+	void CreateVertexFactory(const FSceneView *View);
 
 	/** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
 	void Init(bool bInSelected,const FParticleMeshEmitterInstance* InEmitterInstance,UStaticMesh* InStaticMesh);
@@ -1795,7 +1879,7 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	/**
 	 *	 Initialize this emitter's vertex factory with the vertex buffers from the mesh's rendering data.
 	 */
-	void SetupVertexFactory( FMeshParticleVertexFactory* VertexFactory, FStaticMeshLODResources& LODResources) const;
+	void SetupVertexFactory( FMeshParticleVertexFactory* InVertexFactory, FStaticMeshLODResources& LODResources) const;
 
 	/** Returns the source data for this particle system */
 	virtual const FDynamicEmitterReplayDataBase& GetSource() const override
@@ -1840,6 +1924,8 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	uint32 bFaceCameraDirectionRatherThanPosition:1;
 	/** The EMeshCameraFacingOption setting to use if bUseCameraFacing is true. */
 	uint8 CameraFacingOption;
+
+	FMeshParticleVertexFactory *VertexFactory;
 };
 
 /** Source data for Beam emitters */
@@ -1995,15 +2081,20 @@ struct FDynamicBeam2EmitterData : public FDynamicSpriteEmitterDataBase
 		: 
 		  FDynamicSpriteEmitterDataBase(RequiredModule)
 		, LastFramePreRendered(-1)
+		, VertexFactory(nullptr)
 	{
 	}
+
+	~FDynamicBeam2EmitterData();
+
+	void CreateVertexFactory(const FSceneView *View);
 
 	/** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
 	void Init( bool bInSelected );
 
 
 	virtual void GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector) const override;
-	
+
 	virtual FParticleVertexFactoryBase* BuildVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy) override;
 
 	// Debugging functions
@@ -2054,6 +2145,8 @@ struct FDynamicBeam2EmitterData : public FDynamicSpriteEmitterDataBase
 	FDynamicBeam2EmitterReplayData Source;
 
 	int32									LastFramePreRendered;
+
+	class FParticleBeamTrailVertexFactory *VertexFactory;
 };
 
 /** Source data for trail-type emitters */
@@ -2140,8 +2233,13 @@ struct FDynamicTrailsEmitterData : public FDynamicSpriteEmitterDataBase
 		, DistanceTessellationStepSize(12.5f)
 		, TangentTessellationScalar(25.0f)
 		, TextureTileDistance(0.0f)
+		, VertexFactory(nullptr)
 	{
 	}
+
+	~FDynamicTrailsEmitterData();
+
+	virtual void CreateVertexFactory(const FSceneView *View);
 
 	/** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
 	virtual void Init(bool bInSelected);
@@ -2215,6 +2313,8 @@ struct FDynamicTrailsEmitterData : public FDynamicSpriteEmitterDataBase
 	float DistanceTessellationStepSize;
 	float TangentTessellationScalar;
 	float TextureTileDistance;
+
+	class FParticleBeamTrailVertexFactory *VertexFactory;
 };
 
 /** Dynamic emitter data for Ribbon emitters */
@@ -2297,10 +2397,14 @@ public:
 	{
 	}
 
-	virtual ~FParticleDynamicData()
+	~FParticleDynamicData()
 	{
 		ClearEmitterDataArray();
 	}
+
+	/** Custom new/delete with recycling */
+	void* operator new(size_t Size);
+	void operator delete(void *RawMemory, size_t Size);
 
 	void ClearEmitterDataArray()
 	{
@@ -2308,18 +2412,17 @@ public:
 		{
 			FDynamicEmitterDataBase* Data =	DynamicEmitterDataArray[Index];
 			delete Data;
-			DynamicEmitterDataArray[Index] = NULL;
 		}
-		DynamicEmitterDataArray.Empty();
+		DynamicEmitterDataArray.Reset();
 	}
 
 	uint32 GetMemoryFootprint( void ) const { return( sizeof( *this ) + DynamicEmitterDataArray.GetAllocatedSize() ); }
 
-	// Variables
-	TArray<FDynamicEmitterDataBase*>	DynamicEmitterDataArray;
-
 	/** The Current Emmitter we are rendering **/
 	uint32 EmitterIndex;
+
+	// Variables
+	TArray<FDynamicEmitterDataBase*, TInlineAllocator<12> >	DynamicEmitterDataArray;
 
 	/** World space position that UVs generated with the ParticleMacroUV material node will be centered on. */
 	FVector SystemPositionForMacroUVs;
@@ -2345,7 +2448,7 @@ public:
 		return false;
 	}
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override;
 	virtual void OnActorPositionChanged() override;
 	virtual void OnTransformChanged() override;
 

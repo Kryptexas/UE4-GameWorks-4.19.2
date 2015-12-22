@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -23,12 +23,20 @@ namespace CCT
 		FString InputFile;
 		FString OutputFile;
 		EBackend BackEnd;
+		bool bValidate;
 		bool bRunCPP;
 		bool bUseNew;
 		bool bList;
 		bool bPreprocessOnly;
-		bool bForcePackedUBs;
-		bool bPackGlobalsIntoUB;
+		bool bPackIntoUBs;
+		bool bUseDX11Clip;
+		bool bFlattenUBs;
+		bool bFlattenUBStructs;
+		bool bGroupFlattenUBs;
+		bool bCSE;
+		bool bExpandExpressions;
+		bool bFixAtomics;
+		bool bSeparateShaders;
 
 		FRunInfo();
 		bool Setup(const FString& InOptions, const TArray<FString>& InSwitches);

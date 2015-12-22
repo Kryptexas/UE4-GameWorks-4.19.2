@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 // Module includes
@@ -41,6 +41,11 @@ FString FUserOnlineAccountFacebook::GetDisplayName() const
 }
 
 bool FUserOnlineAccountFacebook::GetUserAttribute(const FString& AttrName, FString& OutAttrValue) const
+{
+	return false;
+}
+
+bool FUserOnlineAccountFacebook::SetUserAttribute(const FString& AttrName, const FString& AttrValue)
 {
 	return false;
 }
@@ -237,4 +242,9 @@ FPlatformUserId FOnlineIdentityFacebook::GetPlatformUserIdFromUniqueNetId(const 
 	}
 
 	return PLATFORMUSERID_NONE;
+}
+
+FString FOnlineIdentityFacebook::GetAuthType() const
+{
+	return TEXT("");
 }

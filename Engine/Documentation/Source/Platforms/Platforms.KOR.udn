@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2629265
 Availability:Public
 Title:플랫폼 개발
 Crumbs:%ROOT%
@@ -90,8 +90,17 @@ platforms
 			* [](Platforms/Oculus/BestPractices "%Platforms/Oculus/BestPractices:description%")
 			* [](Platforms/Oculus/QuickStart "%Platforms/Oculus/QuickStart:description%")
 		* [](Platforms/GearVR "%Platforms/GearVR:Description%")
-			* [](Platforms/GearVR/QuickStart "%Platforms/GearVR:Description%")
-			* [](Platforms/GearVR/BestPractices "%Platforms/GearVR:Description%")
+			* [](Platforms/GearVR/Prerequisites "%Platforms/GearVR/Prerequisites:Description%")
+			* [](Platforms/GearVR/QuickStart "%Platforms/GearVR/QuickStart:Description%")
+			* [](Platforms/GearVR/BestPractices "%Platforms/GearVR/BestPractices:Description%")
+			* [](Platforms/GearVR/Debugging "%Platforms/GearVR/Debugging:Description%")
+
+<!--
+		* [](Platforms/SteamVR "%Platforms/SteamVR:Description%")
+			* [](Platforms/SteamVR/BestPractices "%Platforms/GearVR:Description%")
+			* [](Platforms/SteamVR/QuickStart "%Platforms/GearVR:Description%")
+			* [](Platforms/SteamVR/Tps&Tricks "%Platforms/SteamVR/Tps&Tricks:description%")
+-->
 	[/PARAM]
 [/OBJECT]
 

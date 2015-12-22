@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -17,8 +17,8 @@ namespace UnrealBuildTool
 		{
 		}
 
-		public UEBuildGame(TargetDescriptor InDesc, TargetRules InRulesObject, string InTargetCsFilename)
-			: base(InDesc, InRulesObject, "UE4", InTargetCsFilename)
+		public UEBuildGame(TargetDescriptor InDesc, TargetRules InRulesObject, RulesAssembly InRulesAssembly, FileReference InTargetCsFilename)
+			: base(InDesc, InRulesObject, InRulesAssembly, "UE4", InTargetCsFilename)
 		{
 			if (ShouldCompileMonolithic())
 			{
@@ -28,7 +28,7 @@ namespace UnrealBuildTool
 					// We want the output to go into the <GAME>\Binaries folder
 					if (!InRulesObject.bOutputToEngineBinaries)
 					{
-						OutputPaths = OutputPaths.Select(Path => Path.Replace("Engine\\Binaries", InDesc.TargetName + "\\Binaries")).ToList();
+						OutputPaths = OutputPaths.Select(Path => new FileReference(Path.FullName.Replace("Engine\\Binaries", InDesc.TargetName + "\\Binaries"))).ToList();
 					}
 				}
 			}
@@ -54,14 +54,14 @@ namespace UnrealBuildTool
 
 			{
 				// Make the game executable.
-				UEBuildBinaryConfiguration Config = new UEBuildBinaryConfiguration( InType: UEBuildBinaryType.Executable,
+				UEBuildBinaryConfiguration Config = new UEBuildBinaryConfiguration(InType: UEBuildBinaryType.Executable,
 																					InOutputFilePaths: OutputPaths,
 																					InIntermediateDirectory: EngineIntermediateDirectory,
 																					bInCreateImportLibrarySeparately: (ShouldCompileMonolithic() ? false : true),
-																					bInAllowExports:!ShouldCompileMonolithic(),
-																					InModuleNames: new List<string>() { "Launch" } );
+																					bInAllowExports: !ShouldCompileMonolithic(),
+																					InModuleNames: new List<string>() { "Launch" });
 
-				AppBinaries.Add( new UEBuildBinaryCPP( this, Config ) );
+				AppBinaries.Add(new UEBuildBinaryCPP(this, Config));
 			}
 
 			// Add the other modules that we want to compile along with the executable.  These aren't necessarily

@@ -1,6 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "Editor/Sequencer/Public/ISequencerInputHandler.h"
 
 class USequencerSettings;
 
@@ -14,8 +16,8 @@ enum class EViewRangeInterpolation
 };
 
 DECLARE_DELEGATE_TwoParams( FOnScrubPositionChanged, float, bool )
-DECLARE_DELEGATE_ThreeParams( FOnViewRangeChanged, TRange<float>, EViewRangeInterpolation, bool )
-DECLARE_DELEGATE_OneParam( FOnClampRangeChanged, TRange<float> )
+DECLARE_DELEGATE_TwoParams( FOnViewRangeChanged, TRange<float>, EViewRangeInterpolation )
+DECLARE_DELEGATE_OneParam( FOnRangeChanged, TRange<float> )
 
 /** Structure used to wrap up a range, and an optional animation target */
 struct FAnimatedRange : public TRange<float>
@@ -81,22 +83,27 @@ struct FTimeSliderArgs
 	/** Called when the view range changes */
 	FOnViewRangeChanged OnViewRangeChanged;
 	/** Called when the clamp range changes */
-	FOnClampRangeChanged OnClampRangeChanged;
+	FOnRangeChanged OnClampRangeChanged;
+	/** Attribute defining the playback range for this controller */
+	TAttribute<TRange<float>> PlaybackRange;
+	/** Delegate that is called when the playback range wants to change */
+	FOnRangeChanged OnPlaybackRangeChanged;
+	/** Called right before the playback range starts to be dragged */
+	FSimpleDelegate OnBeginPlaybackRangeDrag;
+	/** Called right after the playback range has finished being dragged */
+	FSimpleDelegate OnEndPlaybackRangeDrag;
 	/** If we are allowed to zoom */
 	bool AllowZoom;
 	/** User-supplied settings object */
 	USequencerSettings* Settings;
 };
 
-class ITimeSliderController
+class ITimeSliderController : public ISequencerInputHandler
 {
 public:
 	virtual ~ITimeSliderController(){}
 	virtual int32 OnPaintTimeSlider( bool bMirrorLabels, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const = 0;
-	virtual FReply OnMouseButtonDown( TSharedRef<SWidget> WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) = 0;
-	virtual FReply OnMouseButtonUp( TSharedRef<SWidget> WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) = 0;
-	virtual FReply OnMouseMove( TSharedRef<SWidget> WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) = 0;
-	virtual FReply OnMouseWheel( TSharedRef<SWidget> WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) = 0;
+	virtual FCursorReply OnCursorQuery( TSharedRef<const SWidget> WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const = 0;
 
 	/** Get the current view range for this controller */
 	virtual FAnimatedRange GetViewRange() const { return FAnimatedRange(); }

@@ -1,7 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "ISourceControlModule.h"
+#include "CrashReporterSettings.h"
 #include "Components/BillboardComponent.h"
 #include "AI/Navigation/NavigationSystem.h"
 #include "Components/ArrowComponent.h"
@@ -65,7 +66,8 @@ UEditorExperimentalSettings::UEditorExperimentalSettings( const FObjectInitializ
 	: Super(ObjectInitializer)
 	, bUnifiedBlueprintEditor(true)
 	, bBlueprintableComponents(true)
-
+	, bBlueprintPerformanceAnalysisTools(false)
+	, BlueprintProfilerAverageSampleCount(20)
 {
 }
 
@@ -198,7 +200,9 @@ void UEditorLoadingSavingSettings::CheckSourceControlCompatability()
 		Info.bFireAndForget = false;
 
 		Info.CheckBoxStateChanged = FOnCheckStateChanged::CreateLambda([](ECheckBoxState State){
-			GetMutableDefault<UEditorLoadingSavingSettings>()->bEnableSourceControlCompatabilityCheck = (State != ECheckBoxState::Checked);
+			auto* Settings = GetMutableDefault<UEditorLoadingSavingSettings>();
+			Settings->bEnableSourceControlCompatabilityCheck = (State != ECheckBoxState::Checked);
+			Settings->SaveConfig();
 		});
 		Info.CheckBoxText = LOCTEXT("AutoReimport_DontShowAgain", "Don't show again");
 
@@ -563,6 +567,13 @@ bool UProjectPackagingSettings::CanEditChange( const UProperty* InProperty ) con
 	}
 
 	return Super::CanEditChange(InProperty);
+}
+
+/* UCrashReporterSettings interface
+*****************************************************************************/
+UCrashReporterSettings::UCrashReporterSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Brush.cpp: Brush Actor implementation
@@ -31,7 +31,7 @@ ABrush::ABrush(const FObjectInitializer& ObjectInitializer)
 	BrushComponent = CreateDefaultSubobject<UBrushComponent>(TEXT("BrushComponent0"));
 	BrushComponent->Mobility = EComponentMobility::Static;
 	BrushComponent->bGenerateOverlapEvents = false;
-	BrushComponent->bCanEverAffectNavigation = false;
+	BrushComponent->SetCanEverAffectNavigation(false);
 
 	RootComponent = BrushComponent;
 	
@@ -74,12 +74,6 @@ void ABrush::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 		Brush->BuildBound();
 	}
 
-	if(!bSuppressBSPRegeneration && IsStaticBrush() && PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive && GUndo)
-	{
-		// BSP can only be rebuilt during a transaction
-		GEditor->RebuildAlteredBSP();
-	}
-
 	bool bIsBuilderBrush = FActorEditorUtils::IsABuilderBrush( this );
 	if (!bIsBuilderBrush && (BrushType == Brush_Default))
 	{
@@ -90,6 +84,12 @@ void ABrush::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 	{
 		// Don't allow the builder brush to be set to the anything other than the default brush type
 		BrushType = Brush_Default;
+	}
+
+	if (!bSuppressBSPRegeneration && IsStaticBrush() && PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive && GUndo)
+	{
+		// BSP can only be rebuilt during a transaction
+		GEditor->RebuildAlteredBSP();
 	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);

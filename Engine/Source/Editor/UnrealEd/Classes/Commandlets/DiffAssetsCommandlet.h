@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Commandlet to allow diff in P4V, and expose that functionality to the editor
@@ -12,12 +12,12 @@ UCLASS()
 class UDiffAssetsCommandlet : public UCommandlet
 {
     GENERATED_UCLASS_BODY()
-	// Begin UCommandlet Interface
+	//~ Begin UCommandlet Interface
 	virtual int32 Main(const FString& Params) override
 	{
 		return !ExportFilesToTextAndDiff(Params);
 	}
-	// End UCommandlet Interface
+	//~ End UCommandlet Interface
 	
 	/** 
 	 * The meat of the commandlet, this can be called from the editor

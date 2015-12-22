@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "TextBlockLayout.h"
@@ -11,18 +11,28 @@
 
 SLATE_DECLARE_CYCLE_COUNTER(GSlateTextBlockLayoutComputeDesiredSize, "FTextBlockLayout ComputeDesiredSize");
 
-TSharedRef<FTextBlockLayout> FTextBlockLayout::Create(FTextBlockStyle InDefaultTextStyle, TSharedRef<ITextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy)
+TSharedRef<FTextBlockLayout> FTextBlockLayout::Create(FTextBlockStyle InDefaultTextStyle, const TOptional<ETextShapingMethod> InTextShapingMethod, const TOptional<ETextFlowDirection> InTextFlowDirection, TSharedRef<ITextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy)
 {
-	return MakeShareable(new FTextBlockLayout(MoveTemp(InDefaultTextStyle), InMarshaller, InLineBreakPolicy));
+	return MakeShareable(new FTextBlockLayout(MoveTemp(InDefaultTextStyle), InTextShapingMethod, InTextFlowDirection, MoveTemp(InMarshaller), MoveTemp(InLineBreakPolicy)));
 }
 
-FTextBlockLayout::FTextBlockLayout(FTextBlockStyle InDefaultTextStyle, TSharedRef<ITextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy)
+FTextBlockLayout::FTextBlockLayout(FTextBlockStyle InDefaultTextStyle, const TOptional<ETextShapingMethod> InTextShapingMethod, const TOptional<ETextFlowDirection> InTextFlowDirection, TSharedRef<ITextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy)
 	: TextLayout(FSlateTextLayout::Create(MoveTemp(InDefaultTextStyle)))
-	, Marshaller(InMarshaller)
+	, Marshaller(MoveTemp(InMarshaller))
 	, TextHighlighter(FSlateTextHighlightRunRenderer::Create())
 	, CachedSize(ForceInitToZero)
 {
-	TextLayout->SetLineBreakIterator(InLineBreakPolicy);
+	if (InTextShapingMethod.IsSet())
+	{
+		TextLayout->SetTextShapingMethod(InTextShapingMethod.GetValue());
+	}
+
+	if (InTextFlowDirection.IsSet())
+	{
+		TextLayout->SetTextFlowDirection(InTextFlowDirection.GetValue());
+	}
+
+	TextLayout->SetLineBreakIterator(MoveTemp(InLineBreakPolicy));
 }
 
 FVector2D FTextBlockLayout::ComputeDesiredSize(const FWidgetArgs& InWidgetArgs, const float InScale, const FTextBlockStyle& InTextStyle)
@@ -79,7 +89,7 @@ FVector2D FTextBlockLayout::ComputeDesiredSize(const FWidgetArgs& InWidgetArgs, 
 	}
 
 	// We need to update our size if the text layout has become dirty
-		TextLayout->UpdateIfNeeded();
+	TextLayout->UpdateIfNeeded();
 
 	return TextLayout->GetSize();
 }
@@ -136,6 +146,16 @@ void FTextBlockLayout::OverrideTextStyle(const FTextBlockStyle& InTextStyle)
 		Marshaller->GetText(CurrentText, *TextLayout);
 		UpdateTextLayout(CurrentText);
 	}
+}
+
+void FTextBlockLayout::SetTextShapingMethod(const TOptional<ETextShapingMethod>& InTextShapingMethod)
+{
+	TextLayout->SetTextShapingMethod((InTextShapingMethod.IsSet()) ? InTextShapingMethod.GetValue() : GetDefaultTextShapingMethod());
+}
+
+void FTextBlockLayout::SetTextFlowDirection(const TOptional<ETextFlowDirection>& InTextFlowDirection)
+{
+	TextLayout->SetTextFlowDirection((InTextFlowDirection.IsSet()) ? InTextFlowDirection.GetValue() : GetDefaultTextFlowDirection());
 }
 
 FChildren* FTextBlockLayout::GetChildren()

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using Microsoft.VisualStudio;
@@ -603,12 +603,15 @@ namespace UnrealVS
 			if (Folder != CachedUProjectRootFolder)
 			{
 				Logging.WriteLine("GetUProjects: recaching uproject paths...");
+                DateTime Start = DateTime.Now;
 
 				CachedUProjectRootFolder = Folder;
 				CachedUProjectPaths = Directory.GetFiles(Folder, "*." + UProjectExtension, SearchOption.AllDirectories);
 				CachedUProjects = null;
 
-				Logging.WriteLine("    DONE");
+                TimeSpan TimeTaken = DateTime.Now - Start;
+                Logging.WriteLine(string.Format("Directory.GetFiles took {0} sec", TimeTaken.TotalSeconds));
+                Logging.WriteLine("    DONE");
 			}
 
 			if (CachedUProjects == null)

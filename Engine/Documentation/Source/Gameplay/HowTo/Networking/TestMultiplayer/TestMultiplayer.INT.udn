@@ -3,6 +3,10 @@ Title:Testing Multiplayer
 Crumbs: %ROOT%, Gameplay
 Description:Demonstrates how you can set up the Unreal Editor for testing multiplayer games. 
 Related: Resources/ContentExamples/Networking
+Version: 4.9
+Parent:Gameplay
+type:how-to
+order:18
 
 [TOC (start:2 end:2)]
 

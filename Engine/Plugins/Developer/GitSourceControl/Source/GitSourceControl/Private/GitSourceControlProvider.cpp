@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "GitSourceControlPrivatePCH.h"
 #include "GitSourceControlProvider.h"
@@ -129,7 +129,7 @@ ECommandResult::Type FGitSourceControlProvider::GetState( const TArray<FString>&
 	return ECommandResult::Succeeded;
 }
 
-TArray<FSourceControlStateRef> FGitSourceControlProvider::GetCachedStateByPredicate(const TFunctionRef<bool(const FSourceControlStateRef&)>& Predicate) const
+TArray<FSourceControlStateRef> FGitSourceControlProvider::GetCachedStateByPredicate(TFunctionRef<bool(const FSourceControlStateRef&)> Predicate) const
 {
 	TArray<FSourceControlStateRef> Result;
 	for(const auto& CacheItem : StateCache)
@@ -141,6 +141,11 @@ TArray<FSourceControlStateRef> FGitSourceControlProvider::GetCachedStateByPredic
 		}
 	}
 	return Result;
+}
+
+bool FGitSourceControlProvider::RemoveFileFromCache(const FString& Filename)
+{
+	return StateCache.Remove(Filename) > 0;
 }
 
 FDelegateHandle FGitSourceControlProvider::RegisterSourceControlStateChanged_Handle( const FSourceControlStateChanged::FDelegate& SourceControlStateChanged )

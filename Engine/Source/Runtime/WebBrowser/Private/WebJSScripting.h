@@ -1,3 +1,5 @@
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
 #include "CoreUObject.h"
 #include "WebJSFunction.h"
@@ -23,9 +25,12 @@ class FWebJSScripting
 	, public TSharedFromThis<FWebJSScripting>
 {
 public:
-	FWebJSScripting()
+	FWebJSScripting(CefRefPtr<CefBrowser> Browser)
 		: BaseGuid(FGuid::NewGuid())
+		, InternalCefBrowser(Browser)
 	{}
+
+	void UnbindCefBrowser();
 
 	void BindUObject(const FString& Name, UObject* Object, bool bIsPermanent = true);
 	void UnbindUObject(const FString& Name, UObject* Object = nullptr, bool bIsPermanent = true);
@@ -44,7 +49,7 @@ public:
 	 * Sends a message to the renderer process. 
 	 * See https://bitbucket.org/chromiumembedded/cef/wiki/GeneralUsage#markdown-header-inter-process-communication-ipc for more information.
 	 *
-	 * @paran Message the message to send to the renderer process
+	 * @param Message the message to send to the renderer process
 	 */
 	void SendProcessMessage(CefRefPtr<CefProcessMessage> Message);
 
@@ -85,20 +90,36 @@ public:
 			}
 			case FWebJSParam::PTYPE_STRUCT:
 			{
-				CefRefPtr<CefDictionaryValue> ConvertedStruct = ConvertStruct(Param.StructValue.TypeInfo, Param.StructValue.StructPtr);
+				CefRefPtr<CefDictionaryValue> ConvertedStruct = ConvertStruct(Param.StructValue->GetTypeInfo(), Param.StructValue->GetData());
 				return Container->SetDictionary(Key, ConvertedStruct);
+			}
+			case FWebJSParam::PTYPE_ARRAY:
+			{
+				CefRefPtr<CefListValue> ConvertedArray = CefListValue::Create();
+				for(int i=0; i < Param.ArrayValue->Num(); ++i)
+				{
+					SetConverted(ConvertedArray, i, (*Param.ArrayValue)[i]);
+				}
+				return Container->SetList(Key, ConvertedArray);
+			}
+			case FWebJSParam::PTYPE_MAP:
+			{
+				CefRefPtr<CefDictionaryValue> ConvertedMap = CefDictionaryValue::Create();
+				for(auto& Pair : *Param.MapValue)
+				{
+					SetConverted(ConvertedMap, *Pair.Key, Pair.Value);
+				}
+				return Container->SetDictionary(Key, ConvertedMap);
 			}
 			default:
 				return false;
 		}
 	}
 
-	FWebJSParam ConvertResult(UProperty* ResultProperty, uint8* Data);
-	void BindCefBrowser(CefRefPtr<CefBrowser> Browser);
-	void UnbindCefBrowser();
 	CefRefPtr<CefDictionaryValue> GetPermanentBindings();
 
 	void InvokeJSFunction(FGuid FunctionId, int32 ArgCount, FWebJSParam Arguments[], bool bIsError=false);
+	void InvokeJSFunction(FGuid FunctionId, const CefRefPtr<CefListValue>& FunctionArguments, bool bIsError=false);
 	void InvokeJSErrorResult(FGuid FunctionId, const FString& Error);
 
 public:

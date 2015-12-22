@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -14,6 +14,10 @@ class UNiagaraScriptSource : public UNiagaraScriptSourceBase
 	/** Graph for particle update expression */
 	UPROPERTY()
 	class UNiagaraGraph*	NodeGraph;
+
+	/** The same node graph from above but with all function calls merge into a single graph. */
+	UPROPERTY()
+	class UNiagaraGraph*	FlattenedNodeGraph;
 
 	// UObject interface.
 	virtual void PostLoad() override;

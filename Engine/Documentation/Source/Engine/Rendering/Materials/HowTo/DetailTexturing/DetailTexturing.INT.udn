@@ -7,6 +7,8 @@ Related: Engine/Rendering/Materials/CustomizedUVs
 Related: Engine/Rendering/Materials/Functions/Reference/Texturing
 Related: Platforms/Oculus
 Related: Engine/Rendering/Materials/ExpressionReference/Textures
+Version:4.9
+SkillLevel: Intermediate
 
 [TOC(start:2 end:3)]
 
@@ -18,7 +20,7 @@ To address this issue, you can use what is known as a Detail Texture to help hid
 
 ## Detail Texturing
 
-Detail texturing allows you to give the illusion of more detail in a Texture by bringing in a highly repeated Diffuse and Normal map combination which layers over the original Diffuse and Normal for an object. 
+**Detail Texturing** allows you to give the illusion of more detail in a Texture by bringing in a highly repeated Diffuse and Normal map combination which layers over the original Diffuse and Normal for an object. 
 This gives the illusion of greater detail at close range than normally would be possible. 
 Here is an example of Detail Texturing in action. 
 
@@ -26,12 +28,12 @@ Here is an example of Detail Texturing in action.
 
 On the Left Hand side, labeled with a number 1, you can see a Material that does make use of Detail Texturing. 
 On the Right Hand side, labeled with a number 2, you can see a Material that does not make use of Detail Texturing. 
-Notice how in the image on the left, 1, there looks to be more detail from the Normal map and that detail looks much sharper than the image on the left. 
+Notice how in the image on the left, 1, there looks to be more detail from the Normal map and that detail looks much sharper than the image on the right. 
 
 
 ## Detail Texturing Node Breakdown
 
-If you do a search in the **Palette** for **Detail Texturing**, you will find a Detail Texturing Material Function that you can use. 
+If you do a search in the **Palette** for "Detail Texturing", you will find a **DetailTexturing** Material Function that you can use. 
 While this is not the only way that you can apply Detail Textures to Materials, it is the quickest as all you have to do is just input Textures and settings you want to use. 
 
 ![](DT_Node_Break_Down.png)
@@ -40,10 +42,10 @@ While this is not the only way that you can apply Detail Textures to Materials, 
 |--------- | ---------- |
 | **Scale(S)** | This sets the scale of the detail Texture. Bigger numbers result in more titling smaller numbers results in less titling. |
 | **Diffuse(V3)** | This is the input for the Diffuse Texture. |
-| **DetailDiffuse(T2d)** | This is the input for the Diffuse Detail Texture. This input can only except a Texture Object. |
+| **DetailDiffuse(T2d)** | This is the input for the Diffuse Detail Texture. This input can only accept a Texture Object. |
 | **DiffuseIntensity(S)** | This controls the intensity of Detail Diffuse Texture. |
 | **Normal(V3)** | This is the input for the Normal Map Texture. |
-| **DetailNormal(T2D)** | This is the input for the Normal Map Detail Texture. This input can only except a Texture Object.|
+| **DetailNormal(T2D)** | This is the input for the Normal Map Detail Texture. This input can only accept a Texture Object.|
 | **NormalIntensity(S)** | This controls the intensity of the Detail Normal Map Texture.|
 
 ### Converting Texture Sample to Texture Objects
@@ -103,15 +105,15 @@ Once selected, a new **Material** will be created. Name the Material **Detail_Ma
 
 	![](DT_Adding_DT_MF.png)
 
-1. With the **Detail Texturing** Material Function now added, it is now time to start hooking the required inputs and outputs so the Material will work. For this example, we are going to be using the **T_Brick_Clay_Old** Textures as our base Textures and the **T_Ground_Gravel** as our Detail Textures. This means that the Diffuse and Normal maps for **T_Brick_Clay_Old** should go into the Diffuse and Normal inputs and the **T_Ground_Gravel** Diffuse and Normal maps should go into the Detail Diffuse and Normal inputs. When completed, your Material Graph should look like this.
+1. With the **Detail Texturing** Material Function now added, it is now time to start hooking the required inputs and outputs so the Material will work. For this example, we are going to be using the **T_Brick_Clay_Old** Textures as our base Textures and the **T_Ground_Gravel** as our Detail Textures. This means that the Diffuse and Normal maps for **T_Brick_Clay_Old** should go into the Diffuse and Normal inputs and the **T_Ground_Gravel** Diffuse and **T_Ground_Moss** Normal maps should go into the Detail Diffuse and Detail Normal inputs. When completed, your Material Graph should look like this.
 
 	![](DT_Hooked_Up_Textures.png)
 
 	[region:note]
-	Remember that the **T_Ground_Gravel** Diffuse and Normal maps Texture Samplers need to be converted into **Texture Objects** or the Material will not work. For more information on how to do this, please refer to the **Converting Texture Sample to Texture Objects** section above. 
+	Remember that the **T_Ground_Gravel** Diffuse and **T_Ground_Moss** Normal map Texture Samplers need to be converted into **Texture Objects** or the Material will not work. For more information on how to do this, please refer to the **Converting Texture Sample to Texture Objects** section above. 
 	[/region]
 
-1. Now that the Textures have been hooked up, it is time to add some Constant Material Expressions so that things like the scale and intensity of the Detail Textures can be tweaked. To find the Constant Material Expression, search for Constant in the Material Palette and then drag the Constant from the **Palette** to the Material Graph. Once you have added one Constant Material Expression, duplicate it by first selecting it and then press CTRL + W on the keyboard two times. In the end, you want to have three Constant Material Expressions. 
+1. Now that the Textures have been hooked up, it is time to add some Constant Material Expressions so that things like the scale and intensity of the Detail Textures can be tweaked. To find the Constant Material Expression, search for Constant in the Material Palette and then drag the Constant from the **Palette** to the Material Graph. Once you have added one Constant Material Expression, duplicate it by first selecting it and then press **CTRL + W** on the keyboard two times. In the end, you want to have three Constant Material Expressions. 
 
 	![](DT_Adding_Constant_Nodes.png)
 
@@ -141,25 +143,26 @@ If for whatever reason you cannot use the **Detail Texturing** Material Function
 
 1. Now that everything has been cleaned up and converted, we can start to lay down the required Material Expression nodes. For this part, we are going to need the following type and amount of nodes. You can find each of the following Material Expression nodes by searching for them in the **Palette**. 
 	* Texture Coordinate x 1
-	* Multiply x 2
+	* Clamp x 1
+	* Constant x 2
 	* Add x 2
-	* Constant  x 2
+	* Multiply x 3
 
 	When completed, the Material Graph should look like this. 
 
-	![](DT_Required_Nodes.png)
+	![](DT_RequiredNodes.jpg)
 
 1. Once all the required Material Expressions nodes have been added, it is now time to begin hooking everything up. The first section that is going to be hooked up is the Base Color portion. When completed, the Material Graph should look like this. 
 	
-	![](DT_Base_Color_Connections.png)
+	![](DT_BaseColor_Connections.jpg)
 
 1. Next the Normal Map needs to be hooked up in the same manner that the Base Color was set up. When completed, the Material Graph should look like this. 
 
-	![](DT_Normal_Map_Connections.png)
+	![](DT_NormalMap_Connections.jpg)
 
 1. With the Base Color and Normal map now all connected together, the Material is now ready to be compiled, saved, and used. 
 
-	![](DT_Completed_Material.png)
+	![](DT_Complete_Material.jpg)
 
 
 ## Detail Texturing Tip & Tricks
@@ -174,8 +177,8 @@ This is often referred to as Distance Based Texture Blending and can be set up f
 
 1. First make a copy of the Detail_Material_2 and name it Distance_Fade. Once named, open up the Material and search in the **Palette** for the following Material Expression nodes and add them to the Material Graph.
 
-	* Absolute World Position x 1
-	* Camera Position x 1
+	* World_Position x 1
+	* Camera_Position_WS x 1
 	* Distance x 1
 	* Divide  x 1
 	* Power x 1

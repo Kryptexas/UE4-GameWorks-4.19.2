@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessDOF.cpp: Post process Depth of Field implementation.
@@ -14,7 +14,9 @@
 
 
 /** Encapsulates the DOF setup pixel shader. */
-template <uint32 NearBlurEnable>
+// @param FarBlur 0:off, 1:on
+// @param NearBlur 0:off, 1:on, 2:on with Vignette
+template <uint32 FarBlur, uint32 NearBlur>
 class FPostProcessDOFSetupPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessDOFSetupPS, Global);
@@ -27,7 +29,9 @@ class FPostProcessDOFSetupPS : public FGlobalShader
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
-		OutEnvironment.SetDefine(TEXT("ENABLE_NEAR_BLUR"), NearBlurEnable);
+		OutEnvironment.SetDefine(TEXT("NEAR_BLUR"), (uint32)(NearBlur >= 1));
+		OutEnvironment.SetDefine(TEXT("DOF_VIGNETTE"), (uint32)(NearBlur == 2));
+		OutEnvironment.SetDefine(TEXT("MRT_COUNT"), FarBlur + (NearBlur > 0));
 	}
 
 	/** Default constructor. */
@@ -73,10 +77,45 @@ public:
 			SetShaderValueArray(Context.RHICmdList, ShaderRHI, DepthOfFieldParams, DepthOfFieldParamValues, 2);
 		}
 	}
+
+	static const TCHAR* GetSourceFilename()
+	{
+		return TEXT("PostProcessDOF");
+	}
+
+	static const TCHAR* GetFunctionName()
+	{
+		return TEXT("SetupPS");
+	}
 };
 
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessDOFSetupPS<0>,TEXT("PostProcessDOF"),TEXT("SetupPS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessDOFSetupPS<1>,TEXT("PostProcessDOF"),TEXT("SetupPS"),SF_Pixel);
+// #define avoids a lot of code duplication
+#define VARIATION1(A, B) typedef FPostProcessDOFSetupPS<A, B> FPostProcessDOFSetupPS##A##B; \
+	IMPLEMENT_SHADER_TYPE2(FPostProcessDOFSetupPS##A##B, SF_Pixel);
+
+	VARIATION1(0, 1) VARIATION1(0, 2)
+	VARIATION1(1, 0) VARIATION1(1, 1) VARIATION1(1, 2)
+	
+#undef VARIATION1
+
+// @param FarBlur 0:off, 1:on
+// @param NearBlur 0:off, 1:on, 2:on with Vignette
+template <uint32 FarBlur, uint32 NearBlur>
+static FShader* SetDOFShaderTempl(const FRenderingCompositePassContext& Context)
+{
+	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessDOFSetupPS<FarBlur, NearBlur> > PixelShader(Context.GetShaderMap());
+
+	static FGlobalBoundShaderState BoundShaderState;
+
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+
+	VertexShader->SetParameters(Context);
+	PixelShader->SetParameters(Context);
+
+	return *VertexShader;
+}
+
 
 void FRCPassPostProcessDOFSetup::Process(FRenderingCompositePassContext& Context)
 {
@@ -90,7 +129,7 @@ void FRCPassPostProcessDOFSetup::Process(FRenderingCompositePassContext& Context
 		return;
 	}
 
-	uint32 NumRenderTargets = bNearBlurEnabled ? 2 : 1;
+	uint32 NumRenderTargets = (bNearBlur && bFarBlur) ? 2 : 1;
 
 	const FSceneView& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
@@ -108,7 +147,7 @@ void FRCPassPostProcessDOFSetup::Process(FRenderingCompositePassContext& Context
 	FIntRect DestRect = SrcRect / 2;
 
 	const FSceneRenderTargetItem& DestRenderTarget0 = PassOutputs[0].RequestSurface(Context);
-	const FSceneRenderTargetItem& DestRenderTarget1 = bNearBlurEnabled ? PassOutputs[1].RequestSurface(Context) : FSceneRenderTargetItem();
+	const FSceneRenderTargetItem& DestRenderTarget1 = (NumRenderTargets == 2) ? PassOutputs[1].RequestSurface(Context) : FSceneRenderTargetItem();
 
 	// Set the view family's render target/viewport.
 	FTextureRHIParamRef RenderTargets[2] =
@@ -126,46 +165,59 @@ void FRCPassPostProcessDOFSetup::Process(FRenderingCompositePassContext& Context
 	// is optimized away if possible (RT size=view size, )
 	Context.RHICmdList.ClearMRT(true, NumRenderTargets, ClearColors, false, 1.0f, false, 0, DestRect);
 
-	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
+	Context.SetViewportAndCallRHI(DestRect.Min.X, DestRect.Min.Y, 0.0f, DestRect.Max.X + 1, DestRect.Max.Y + 1, 1.0f );
 
 	// set the state
 	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 	
-	TShaderMapRef<FPostProcessVS> VertexShader(ShaderMap);
+	const float DOFVignetteSize = FMath::Max(0.0f, View.FinalPostProcessSettings.DepthOfFieldVignetteSize);
 
-	if (bNearBlurEnabled)
+	// todo: test is conservative, with bad content we would waste a bit of performance
+	const bool bDOFVignette = bNearBlur && DOFVignetteSize < 200.0f;
+	
+	// 0:off, 1:on, 2:on with Vignette
+	uint32 NearBlur = 0;
 	{
-		static FGlobalBoundShaderState BoundShaderState;
-		
+		if(bNearBlur)
+		{
+			NearBlur = (DOFVignetteSize < 200.0f) ? 2 : 1;
+		}
+	}
+	
+	FShader* VertexShader = 0;
 
-		TShaderMapRef< FPostProcessDOFSetupPS<1> > PixelShader(ShaderMap);
-		SetGlobalBoundShaderState(Context.RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-		
-		PixelShader->SetParameters(Context);
+	if(bFarBlur)
+	{
+		switch(NearBlur)
+		{
+			case 0: VertexShader = SetDOFShaderTempl<1, 0>(Context);break;
+			case 1: VertexShader = SetDOFShaderTempl<1, 1>(Context);break;
+			case 2: VertexShader = SetDOFShaderTempl<1, 2>(Context);break;
+			default: check(!"Invalid NearBlur input");
+		}
 	}
 	else
 	{
-		static FGlobalBoundShaderState BoundShaderState;
-		
-		TShaderMapRef< FPostProcessDOFSetupPS<0> > PixelShader(ShaderMap);
-		SetGlobalBoundShaderState(Context.RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-
-		PixelShader->SetParameters(Context);
+		switch(NearBlur)
+		{
+			case 0: check(!"Internal error: In this case we should not run the pass");break;
+			case 1: VertexShader = SetDOFShaderTempl<0, 1>(Context);break;
+			case 2: VertexShader = SetDOFShaderTempl<0, 2>(Context);break;
+			default: check(!"Invalid NearBlur input");
+		}
 	}
-
-	VertexShader->SetParameters(Context);
 
 	DrawPostProcessPass(
 		Context.RHICmdList,
-		DestRect.Min.X, DestRect.Min.Y,
+		0, 0,
 		DestRect.Width() + 1, DestRect.Height() + 1,
 		SrcRect.Min.X, SrcRect.Min.Y,
 		SrcRect.Width() + 1, SrcRect.Height() + 1,
-		DestSize,
+		DestRect.Size() + FIntPoint(1, 1),
 		SrcSize,
-		*VertexShader,
+		VertexShader,
 		View.StereoPass,
 		Context.HasHmdMesh(),
 		EDRF_UseTriangleOptimization);
@@ -186,7 +238,7 @@ FPooledRenderTargetDesc FRCPassPostProcessDOFSetup::ComputeOutputDesc(EPassOutpu
 	Ret.Reset();
 	Ret.TargetableFlags &= ~(uint32)TexCreate_UAV;
 	Ret.TargetableFlags |= TexCreate_RenderTargetable;
-
+	Ret.AutoWritable = false;
 	Ret.DebugName = (InPassOutputId == ePId_Output0) ? TEXT("DOFSetup0") : TEXT("DOFSetup1");
 
 	// more precision for additive blending and we need the alpha channel
@@ -198,8 +250,10 @@ FPooledRenderTargetDesc FRCPassPostProcessDOFSetup::ComputeOutputDesc(EPassOutpu
 
 
 
-/** Encapsulates  the DOF recombine pixel shader. */
-template <uint32 NearBlurEnable>
+/** Encapsulates the DOF setup pixel shader. */
+// @param FarBlur 0:off, 1:on
+// @param NearBlur 0:off, 1:on
+template <uint32 FarBlur, uint32 NearBlur>
 class FPostProcessDOFRecombinePS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessDOFRecombinePS, Global);
@@ -212,7 +266,8 @@ class FPostProcessDOFRecombinePS : public FGlobalShader
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
-		OutEnvironment.SetDefine(TEXT("ENABLE_NEAR_BLUR"), NearBlurEnable);
+		OutEnvironment.SetDefine(TEXT("FAR_BLUR"), FarBlur);
+		OutEnvironment.SetDefine(TEXT("NEAR_BLUR"), NearBlur);
 	}
 
 	/** Default constructor. */
@@ -248,7 +303,7 @@ public:
 		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 
 		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), eFC_0001);
 		
 		// Compute out of bounds UVs in the source texture.
 		FVector4 Bounds;
@@ -259,22 +314,57 @@ public:
 
 		SetShaderValue(Context.RHICmdList, ShaderRHI, DepthOfFieldUVLimit, Bounds);
 	}
+	
+	static const TCHAR* GetSourceFilename()
+	{
+		return TEXT("PostProcessDOF");
+	}
+
+	static const TCHAR* GetFunctionName()
+	{
+		return TEXT("MainRecombinePS");
+	}
 };
 
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessDOFRecombinePS<0>,TEXT("PostProcessDOF"),TEXT("MainRecombinePS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessDOFRecombinePS<1>,TEXT("PostProcessDOF"),TEXT("MainRecombinePS"),SF_Pixel);
+// #define avoids a lot of code duplication
+#define VARIATION1(A, B) typedef FPostProcessDOFRecombinePS<A, B> FPostProcessDOFRecombinePS##A##B; \
+	IMPLEMENT_SHADER_TYPE2(FPostProcessDOFRecombinePS##A##B, SF_Pixel);
+
+	VARIATION1(0, 1) VARIATION1(1, 0) VARIATION1(1, 1)
+	
+#undef VARIATION1
+
+	// @param FarBlur 0:off, 1:on
+// @param NearBlur 0:off, 1:on, 2:on with Vignette
+template <uint32 FarBlur, uint32 NearBlur>
+static FShader* SetDOFRecombineShaderTempl(const FRenderingCompositePassContext& Context)
+{
+	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessDOFRecombinePS<FarBlur, NearBlur> > PixelShader(Context.GetShaderMap());
+
+	static FGlobalBoundShaderState BoundShaderState;
+
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+
+	VertexShader->SetParameters(Context);
+	PixelShader->SetParameters(Context);
+
+	return *VertexShader;
+}
 
 void FRCPassPostProcessDOFRecombine::Process(FRenderingCompositePassContext& Context)
 {
 	SCOPED_DRAW_EVENT(Context.RHICmdList, DOFRecombine);
 
+	// Get the Far or Near RTDesc
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input1);
-
+	
 	if(!InputDesc)
 	{
-		// input is not hooked up correctly
-		return;
+		InputDesc = GetInputDesc(ePId_Input2);
 	}
+
+	check(InputDesc);
 
 	const FSceneView& View = Context.View;
 
@@ -303,26 +393,26 @@ void FRCPassPostProcessDOFRecombine::Process(FRenderingCompositePassContext& Con
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	TShaderMapRef<FPostProcessVS> VertexShader(ShaderMap);
+	bool bFarBlur = GetInputDesc(ePId_Input1) != 0;
+	bool bNearBlur = GetInputDesc(ePId_Input2) != 0;
 
-	if (bNearBlurEnabled)
+	FShader* VertexShader = 0;
+
+	if(bFarBlur)
 	{
-		static FGlobalBoundShaderState BoundShaderState;
-		
-		TShaderMapRef< FPostProcessDOFRecombinePS<1> > PixelShader(ShaderMap);
-		SetGlobalBoundShaderState(Context.RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-		PixelShader->SetParameters(Context);
+		if(bNearBlur)
+		{
+			VertexShader = SetDOFRecombineShaderTempl<1, 1>(Context);
+		}
+		else
+		{
+			VertexShader = SetDOFRecombineShaderTempl<1, 0>(Context);
+		}
 	}
 	else
 	{
-		static FGlobalBoundShaderState BoundShaderState;
-		
-		TShaderMapRef< FPostProcessDOFRecombinePS<0> > PixelShader(ShaderMap);
-		SetGlobalBoundShaderState(Context.RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-		PixelShader->SetParameters(Context);
+		VertexShader = SetDOFRecombineShaderTempl<0, 1>(Context);
 	}
-
-	VertexShader->SetParameters(Context);
 
 	DrawPostProcessPass(
 		Context.RHICmdList,
@@ -332,10 +422,11 @@ void FRCPassPostProcessDOFRecombine::Process(FRenderingCompositePassContext& Con
 		HalfResViewRect.Width(), HalfResViewRect.Height(),
 		View.ViewRect.Size(),
 		TexSize,
-		*VertexShader,
+		VertexShader,
 		View.StereoPass,
 		Context.HasHmdMesh(),
 		EDRF_UseTriangleOptimization);
+
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }
@@ -345,6 +436,7 @@ FPooledRenderTargetDesc FRCPassPostProcessDOFRecombine::ComputeOutputDesc(EPassO
 	FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 
 	Ret.Reset();
+	Ret.AutoWritable = false;
 	Ret.DebugName = TEXT("DOFRecombine");
 
 	return Ret;

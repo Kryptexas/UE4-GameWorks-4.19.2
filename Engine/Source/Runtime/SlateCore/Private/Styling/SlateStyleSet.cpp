@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateCorePrivatePCH.h"
 
@@ -16,7 +16,10 @@ FSlateStyleSet::~FSlateStyleSet()
 	// Delete all allocated brush resources.
 	for ( TMap< FName, FSlateBrush* >::TIterator It(BrushResources); It; ++It )
 	{
-		delete It.Value();
+		if (!It.Value()->HasUObject())
+		{
+			delete It.Value();
+		}
 	}
 }
 

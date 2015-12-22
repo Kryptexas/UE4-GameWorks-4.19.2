@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "RenderUtils.h"
@@ -84,21 +84,21 @@ class UTextureRenderTarget2D : public UTextureRenderTarget
 	 */
 	ENGINE_API void UpdateResourceImmediate(bool bClearRenderTarget=true);
 
-	// Begin UTexture interface.
+	//~ Begin UTexture Interface.
 	virtual float GetSurfaceWidth() const override { return SizeX; }
 	virtual float GetSurfaceHeight() const override { return SizeY; }
 	ENGINE_API virtual FTextureResource* CreateResource() override;
 	ENGINE_API virtual EMaterialValueType GetMaterialType() override;
-	// End UTexture interface.
+	//~ End UTexture Interface.
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 #if WITH_EDITOR
 	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	ENGINE_API virtual void PostLoad() override;
 	ENGINE_API virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	ENGINE_API virtual FString GetDesc() override;
-	// End UObject interface
+	//~ End UObject Interface
 
 	FORCEINLINE int32 GetNumMips() const
 	{

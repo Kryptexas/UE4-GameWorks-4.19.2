@@ -2,6 +2,7 @@ Availability: Public
 Title:APEX
 Crumbs: %ROOT%, Engine, Engine/Physics
 Description:Creation and Import of Destructibles using the Nvidia APEX Toolset.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

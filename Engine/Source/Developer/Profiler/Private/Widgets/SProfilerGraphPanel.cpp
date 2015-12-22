@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "ProfilerPrivatePCH.h"
 
@@ -20,7 +20,6 @@ SProfilerGraphPanel::~SProfilerGraphPanel()
 	if( ProfilerManager.IsValid() )
 	{
 		ProfilerManager->OnTrackedStatChanged().RemoveAll( this );
-		ProfilerManager->OnSessionInstancesUpdated().RemoveAll( this );
 		ProfilerManager->OnViewModeChanged().RemoveAll( this );
 
 		DataGraph->OnSelectionChangedForIndex().RemoveAll( ProfilerManager.Get() );

@@ -2,6 +2,7 @@ Availability:Public
 Title:Vector Operation Expressions
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:Expressions that perform operations on vector input values.
+Version: 4.9
 
 [EXCERPT:TOC]
 [TOC(start:2)]
@@ -10,7 +11,7 @@ Description:Expressions that perform operations on vector input values.
 [EXCERPT:AppendVector]
 ## AppendVector
 
-The AppendVector expression allows you to combine channels together to create a vector with more channels than the original.  For example, you can take two individual [Constants](Engine/Rendering/Materials/ExpressionReference/Constant#Constant) values and append them to make a two-channel [Constant2Vector](Engine/Rendering/Materials/ExpressionReference/Constant#Constant2Vector) value. This can be useful for reordering the channels within a single texture or for combining multiple grayscale textures into one RGB color texture.
+The **AppendVector** expression allows you to combine channels together to create a vector with more channels than the original.  For example, you can take two individual [Constants](Engine/Rendering/Materials/ExpressionReference/Constant#Constant) values and append them to make a two-channel [Constant2Vector](Engine/Rendering/Materials/ExpressionReference/Constant#Constant2Vector) value. This can be useful for reordering the channels within a single texture or for combining multiple grayscale textures into one RGB color texture.
 
 | Item | Description |
 | -------- | ----------- |
@@ -29,7 +30,7 @@ The AppendVector expression allows you to combine channels together to create a 
 [EXCERPT:ComponentMask]
 ## ComponentMask
 
-The ComponentMask expression allows you to select a specific subset of channels (R, G, B, and/or A) from the input to pass through to the output. Attempting to pass a channel through that does not exist in the input will cause an error, unless the input is a single constant value. In that case, the single value is passed through to each channel. The current channels selected to be passed through are displayed in the title bar of the expression.
+The **ComponentMask** expression allows you to select a specific subset of channels (R, G, B, and/or A) from the input to pass through to the output. Attempting to pass a channel through that does not exist in the input will cause an error, unless the input is a single constant value. In that case, the single value is passed through to each channel. The current channels selected to be passed through are displayed in the title bar of the expression.
 
 | Item | Description |
 | -------- | ----------- |
@@ -54,7 +55,7 @@ The ComponentMask expression allows you to select a specific subset of channels 
 
 ## DeriveNormalZ
 
-The DeriveNormalZ expression derives the Z component of a tangent space normal given the X and Y components and outputs the resulting three-channel tangent space normal. Z is calculated as Z = sqrt(1 - (x * x + y * y));
+The **DeriveNormalZ** expression derives the Z component of a tangent space normal given the X and Y components and outputs the resulting three-channel tangent space normal. Z is calculated as Z = sqrt(1 - (x * x + y * y));
 
 | Item | Description |
 | -------- | ----------- |
@@ -73,7 +74,7 @@ The DeriveNormalZ expression derives the Z component of a tangent space normal g
 
 ## Transform
 
-The Transform expression converts a three-channel vector value from one reference coordinate system to another.
+The **Transform** expression converts a three-channel vector value from one reference coordinate system to another.
 
 By default, all shader calculations in a material are done in tangent space.  The vector constants, camera vector, light vector, etc are all transformed to tangent space before being used in a material. The Transform expression allows these vectors to be transformed from tangent space to world-space, local-space, or view-space coordinate systems. In addition, it allows world-space and local-space vectors to be transformed to any of the other reference coordinate systems.
 
@@ -122,5 +123,5 @@ Here is an example of this spheremap material applied to a blob-like rock mesh:
 This node is deprecated due to major precision problems when used to derive world pos away from the origin!  Use the WorldPosition node instead.
 [/REGION]
 
-The TransformPosition expression can transform any position from screen space to the destination space specified by the expression's TransformType variable.  Currently only transforming into world space is supported.  This expression can be used to get world space coordinates in the material.  To visualize world position, you can plug it straight into emissive:
+The **TransformPosition** expression can transform any position from screen space to the destination space specified by the expression's TransformType variable.  Currently only transforming into world space is supported.  This expression can be used to get world space coordinates in the material.  To visualize world position, you can plug it straight into emissive:
 

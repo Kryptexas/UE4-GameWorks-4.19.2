@@ -2,6 +2,8 @@ Availability: Public
 Title:4-Way Blend Materials
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor, Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor/MaterialSetup
 Description:Guide to setting up materials for 4-way (ARGB) texture blending.
+Version: 4.9
+SkillLevel: Intermediate
 
 
 

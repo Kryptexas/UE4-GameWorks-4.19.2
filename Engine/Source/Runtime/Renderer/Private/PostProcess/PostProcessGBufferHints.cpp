@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessGBufferHints.cpp: Post processing GBufferHints implementation.
@@ -78,10 +78,10 @@ public:
 IMPLEMENT_SHADER_TYPE(,FPostProcessGBufferHintsPS,TEXT("PostProcessGBufferHints"),TEXT("MainPS"),SF_Pixel);
 
 
-FRCPassPostProcessGBufferHints::FRCPassPostProcessGBufferHints()
+FRCPassPostProcessGBufferHints::FRCPassPostProcessGBufferHints(FRHICommandList& RHICmdList)
 {
 	// AdjustGBufferRefCount(-1) call is done when the pass gets executed
-	FSceneRenderTargets::Get_Todo_PassContext().AdjustGBufferRefCount(1);
+	FSceneRenderTargets::Get_Todo_PassContext().AdjustGBufferRefCount(RHICmdList, 1);
 }
 
 
@@ -183,7 +183,7 @@ void FRCPassPostProcessGBufferHints::Process(FRenderingCompositePassContext& Con
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 
 	// AdjustGBufferRefCount(1) call is done in constructor
-	FSceneRenderTargets::Get(Context.RHICmdList).AdjustGBufferRefCount(-1);
+	FSceneRenderTargets::Get(Context.RHICmdList).AdjustGBufferRefCount(Context.RHICmdList, -1);
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessGBufferHints::ComputeOutputDesc(EPassOutputId InPassOutputId) const

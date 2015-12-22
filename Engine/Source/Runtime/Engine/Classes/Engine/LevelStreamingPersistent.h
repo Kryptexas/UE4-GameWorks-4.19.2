@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /**
  * LevelStreamingPersistent
@@ -16,7 +16,7 @@ class ULevelStreamingPersistent : public ULevelStreaming
 	GENERATED_UCLASS_BODY()
 
 
-	// Begin ULevelStreaming Interface
+	//~ Begin ULevelStreaming Interface
 	virtual bool ShouldBeLoaded() const override
 	{
 		return true;
@@ -25,6 +25,6 @@ class ULevelStreamingPersistent : public ULevelStreaming
 	{
 		return true;
 	}
-	// End ULevelStreaming Interface
+	//~ End ULevelStreaming Interface
 };
 

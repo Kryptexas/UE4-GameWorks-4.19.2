@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "PerforceSourceControlPrivatePCH.h"
 #include "PerforceSourceControlProvider.h"
@@ -205,7 +205,12 @@ ECommandResult::Type FPerforceSourceControlProvider::GetState( const TArray<FStr
 	return ECommandResult::Succeeded;
 }
 
-TArray<FSourceControlStateRef> FPerforceSourceControlProvider::GetCachedStateByPredicate(const TFunctionRef<bool(const FSourceControlStateRef&)>& Predicate) const
+bool FPerforceSourceControlProvider::RemoveFileFromCache(const FString& Filename)
+{
+	return StateCache.Remove(Filename) > 0;
+}
+
+TArray<FSourceControlStateRef> FPerforceSourceControlProvider::GetCachedStateByPredicate(TFunctionRef<bool(const FSourceControlStateRef&)> Predicate) const
 {
 	TArray<FSourceControlStateRef> Result;
 	for (const auto& CacheItem : StateCache)

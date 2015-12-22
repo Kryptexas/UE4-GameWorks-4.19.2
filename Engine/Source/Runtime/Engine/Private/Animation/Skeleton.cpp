@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Skeleton.cpp: Skeleton features
@@ -10,6 +10,7 @@
 #include "AssetRegistryModule.h"
 #include "Animation/AnimSequence.h"
 #include "Animation/Rig.h"
+#include "Animation/BlendProfile.h"
 #include "MessageLog.h"
 
 #define LOCTEXT_NAMESPACE "Skeleton"
@@ -38,7 +39,7 @@ FArchive& operator<<(FArchive& Ar, FReferencePose & P)
 	Ar << P.ReferencePose;
 #if WITH_EDITORONLY_DATA
 	//TODO: we should use strip flags but we need to rev the serialization version
-	if (!Ar.IsCooking() && !Ar.IsFilterEditorOnly())
+	if (!Ar.IsCooking())
 	{
 		Ar << P.ReferenceMesh;
 	}
@@ -80,6 +81,9 @@ void USkeleton::PostLoad()
 
 	// catch any case if guid isn't valid
 	check(Guid.IsValid());
+
+	// Cache smart name uids for animation curve names
+	CacheAnimCurveMappingNameUids();
 }
 
 void USkeleton::PostDuplicate(bool bDuplicateForPIE)
@@ -262,13 +266,21 @@ bool USkeleton::IsCompatibleMesh(const USkeletalMesh* InSkelMesh) const
 	// first ensure the parent exists for each bone
 	for (int32 MeshBoneIndex=0; MeshBoneIndex<NumBones; MeshBoneIndex++)
 	{
+		FName MeshBoneName = MeshRefSkel.GetBoneName(MeshBoneIndex);
 		// See if Mesh bone exists in Skeleton.
-		int32 SkeletonBoneIndex = SkeletonRefSkel.FindBoneIndex( MeshRefSkel.GetBoneName(MeshBoneIndex) );
+		int32 SkeletonBoneIndex = SkeletonRefSkel.FindBoneIndex( MeshBoneName );
 
 		// if found, increase num of bone matches count
 		if( SkeletonBoneIndex != INDEX_NONE )
 		{
 			++NumOfBoneMatches;
+
+			// follow the parent chain to verify the chain is same
+			if(!DoesParentChainMatch(SkeletonBoneIndex, InSkelMesh))
+			{
+				UE_LOG(LogAnimation, Warning, TEXT("%s : Hierarchy does not match."), *MeshBoneName.ToString());
+				return false;
+			}
 		}
 		else
 		{
@@ -281,7 +293,8 @@ bool USkeleton::IsCompatibleMesh(const USkeletalMesh* InSkelMesh) const
 				if ( ParentMeshBoneIndex != INDEX_NONE )
 				{
 					// @TODO: make sure RefSkeleton's root ParentIndex < 0 if not, I'll need to fix this by checking TreeBoneIdx
-					SkeletonBoneIndex = SkeletonRefSkel.FindBoneIndex(MeshRefSkel.GetBoneName(ParentMeshBoneIndex));
+					FName ParentBoneName = MeshRefSkel.GetBoneName(ParentMeshBoneIndex);
+					SkeletonBoneIndex = SkeletonRefSkel.FindBoneIndex(ParentBoneName);
 				}
 
 				// root is reached
@@ -298,12 +311,14 @@ bool USkeleton::IsCompatibleMesh(const USkeletalMesh* InSkelMesh) const
 			// still no match, return false, no parent to look for
 			if( SkeletonBoneIndex == INDEX_NONE )
 			{
+				UE_LOG(LogAnimation, Warning, TEXT("%s : Missing joint on skeleton.  Make sure to assign to the skeleeton."), *MeshBoneName.ToString());
 				return false;
 			}
 
 			// second follow the parent chain to verify the chain is same
 			if( !DoesParentChainMatch(SkeletonBoneIndex, InSkelMesh) )
 			{
+				UE_LOG(LogAnimation, Warning, TEXT("%s : Hierarchy does not match."), *MeshBoneName.ToString());
 				return false;
 			}
 		}
@@ -384,12 +399,13 @@ int32 USkeleton::BuildLinkup(const USkeletalMesh* InSkelMesh)
 			static FName NAME_LoadErrors("LoadErrors");
 			FMessageLog LoadErrors(NAME_LoadErrors);
 
-			TSharedRef<FTokenizedMessage> Message = LoadErrors.Info();
+			TSharedRef<FTokenizedMessage> Message = LoadErrors.Error();
 			Message->AddToken(FTextToken::Create(LOCTEXT("SkeletonBuildLinkupMissingBones1", "The Skeleton ")));
 			Message->AddToken(FAssetNameToken::Create(GetPathName(), FText::FromString( GetNameSafe(this) ) ));
 			Message->AddToken(FTextToken::Create(LOCTEXT("SkeletonBuildLinkupMissingBones2", " is missing bones that SkeletalMesh ")));
 			Message->AddToken(FAssetNameToken::Create(InSkelMesh->GetPathName(), FText::FromString( GetNameSafe(InSkelMesh) )));
 			Message->AddToken(FTextToken::Create(LOCTEXT("SkeletonBuildLinkupMissingBones3", "  needs. They will be added now. Please save the Skeleton!")));
+			LoadErrors.Open();
 
 			// Re-add all SkelMesh bones to the Skeleton.
 			MergeAllBonesToBoneTree(InSkelMesh);
@@ -827,64 +843,6 @@ int32 USkeleton::ValidatePreviewAttachedObjects()
 	return NumBrokenAssets;
 }
 
-int32 USkeleton::RemoveBoneFromLOD(int32 LODIndex, int32 BoneIndex)
-{
-	// we don't remove from LOD 0
-	if (!LODIndex)
-	{
-		return 0;
-	}
-	
-	int32 NumOfLODSetting = BoneReductionSettingsForLODs.Num();
-	if (NumOfLODSetting < LODIndex)
-	{
-		BoneReductionSettingsForLODs.AddZeroed(LODIndex-NumOfLODSetting);
-	}
-
-	int32 TotalNumberAdded=0;
-	FName BoneName = ReferenceSkeleton.GetBoneName(BoneIndex);
-	if ( BoneReductionSettingsForLODs[LODIndex-1].Add(BoneName) )
-	{
-		++TotalNumberAdded;
-	}
-
-	// make sure to add all children
-	const int32 NumBones = ReferenceSkeleton.GetNum();
-	for(int32 ChildIndex=BoneIndex+1; ChildIndex<NumBones; ChildIndex++)
-	{
-		if( ReferenceSkeleton.BoneIsChildOf(ChildIndex, BoneIndex) )
-		{
-			BoneName = ReferenceSkeleton.GetBoneName(ChildIndex);
-			if ( BoneReductionSettingsForLODs[LODIndex-1].Add(BoneName) )
-			{
-				++TotalNumberAdded;
-			}
-		}
-	}
-
-	return TotalNumberAdded;
-}
-
-bool USkeleton::IsBoneIncludedInLOD(int32 LODIndex, int32 BoneIndex)
-{
-	if (LODIndex && BoneReductionSettingsForLODs.Num() >= LODIndex)
-	{
-		const FName BoneName = ReferenceSkeleton.GetBoneName(BoneIndex);
-		return BoneReductionSettingsForLODs[LODIndex-1].Contains(BoneName) == false;
-	}
-
-	return true;
-}
-
-void USkeleton::AddBoneToLOD(int32 LODIndex, int32 BoneIndex)
-{
-	if (LODIndex && BoneReductionSettingsForLODs.Num() >= LODIndex)
-	{
-		const FName BoneName = ReferenceSkeleton.GetBoneName(BoneIndex);
-		BoneReductionSettingsForLODs[LODIndex-1].Remove(BoneName);
-	}
-}
-
 #if WITH_EDITOR
 
 void USkeleton::RemoveBonesFromSkeleton( const TArray<FName>& BonesToRemove, bool bRemoveChildBones )
@@ -938,51 +896,6 @@ void USkeleton::UnregisterOnSkeletonHierarchyChanged(void* Unregister)
 }
 
 #endif
-
-bool USkeleton::AddSmartnameAndModify(FName ContainerName, FName NewName, FSmartNameMapping::UID& NewUid)
-{
-	bool Successful = false;
-	FSmartNameMapping* RequestedMapping = SmartNames.GetContainer(ContainerName);
-	if(RequestedMapping)
-	{
-		if(RequestedMapping->AddOrFindName(NewName, NewUid))
-		{
-			Modify(true);
-			Successful = true;
-		}
-	}
-	return Successful;
-}
-
-bool USkeleton::RenameSmartnameAndModify(FName ContainerName, FSmartNameMapping::UID Uid, FName NewName)
-{
-	bool Successful = false;
-	FSmartNameMapping* RequestedMapping = SmartNames.GetContainer(ContainerName);
-	if(RequestedMapping)
-	{
-		FName CurrentName;
-		RequestedMapping->GetName(Uid, CurrentName);
-		if(CurrentName != NewName)
-		{
-			Modify();
-			Successful = RequestedMapping->Rename(Uid, NewName);
-		}
-	}
-	return Successful;
-}
-
-void USkeleton::RemoveSmartnameAndModify(FName ContainerName, FSmartNameMapping::UID Uid)
-{
-	FSmartNameMapping* RequestedMapping = SmartNames.GetContainer(ContainerName);
-	if(RequestedMapping)
-	{
-		if(RequestedMapping->Exists(Uid))
-		{
-			Modify();
-			RequestedMapping->Remove(Uid);
-		}
-	}
-}
 
 #endif // WITH_EDITORONLY_DATA
 
@@ -1123,10 +1036,109 @@ void USkeleton::RenameSlotName(const FName& OldName, const FName& NewName)
 	SetSlotGroupName(NewName, GroupName);
 }
 
+
+bool USkeleton::AddSmartNameAndModify(FName ContainerName, FName NewName, FSmartNameMapping::UID& NewUid)
+{
+	bool Successful = false;
+	FSmartNameMapping* RequestedMapping = SmartNames.GetContainerInternal(ContainerName);
+	if (RequestedMapping)
+	{
+		if (RequestedMapping->AddOrFindName(NewName, NewUid))
+		{
+			Modify(true);
+			Successful = true;
+			CacheAnimCurveMappingNameUids();
+		}
+	}
+	return Successful;
+}
+
+bool USkeleton::RenameSmartnameAndModify(FName ContainerName, FSmartNameMapping::UID Uid, FName NewName)
+{
+	bool Successful = false;
+	FSmartNameMapping* RequestedMapping = SmartNames.GetContainerInternal(ContainerName);
+	if (RequestedMapping)
+	{
+		FName CurrentName;
+		RequestedMapping->GetName(Uid, CurrentName);
+		if (CurrentName != NewName)
+		{
+			Modify();
+			Successful = RequestedMapping->Rename(Uid, NewName);
+			CacheAnimCurveMappingNameUids();
+		}
+	}
+	return Successful;
+}
+
+void USkeleton::RemoveSmartnameAndModify(FName ContainerName, FSmartNameMapping::UID Uid)
+{
+	FSmartNameMapping* RequestedMapping = SmartNames.GetContainerInternal(ContainerName);
+	if (RequestedMapping)
+	{
+		
+	}
+}
+
+void USkeleton::RemoveSmartnamesAndModify(FName ContainerName, const TArray<FSmartNameMapping::UID>& Uids)
+{
+	FSmartNameMapping* RequestedMapping = SmartNames.GetContainerInternal(ContainerName);
+	if (RequestedMapping)
+	{
+		bool bModified = false;
+		for (const FSmartNameMapping::UID& UID : Uids)
+		{
+			if (RequestedMapping->Exists(UID))
+			{
+				RequestedMapping->Remove(UID);
+				bModified = true;
+			}
+		}
+
+		if (bModified)
+		{
+			Modify();
+			CacheAnimCurveMappingNameUids();
+		}		
+	}
+}
+
+const FSmartNameMapping* USkeleton::GetOrAddSmartNameContainer(FName ContainerName)
+{
+	const FSmartNameMapping* Mapping = SmartNames.GetContainerInternal(ContainerName);
+	if (Mapping == nullptr)
+	{
+		Modify();
+		SmartNames.AddContainer(ContainerName);
+		Mapping = SmartNames.GetContainer(ContainerName);		
+	}
+
+	return Mapping;
+}
+
+const FSmartNameMapping* USkeleton::GetSmartNameContainer(FName ContainerName) const
+{
+	return SmartNames.GetContainer(ContainerName);
+}
+
 void USkeleton::RegenerateGuid()
 {
 	Guid = FGuid::NewGuid();
 	check(Guid.IsValid());
+}
+
+void USkeleton::CacheAnimCurveMappingNameUids()
+{
+	const FSmartNameMapping* Mapping = GetSmartNameContainer(USkeleton::AnimCurveMappingName);
+	if (Mapping != nullptr)
+	{
+		Mapping->FillUidArray(CachedAnimCurveMappingNameUids);
+	}
+}
+
+const TArray<FSmartNameMapping::UID>& USkeleton::GetCachedAnimCurveMappingNameUids()
+{
+	return CachedAnimCurveMappingNameUids;
 }
 
 #if WITH_EDITOR
@@ -1288,6 +1300,29 @@ void USkeleton::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	FString RigFullName = (RigConfig.Rig)? RigConfig.Rig->GetFullName() : TEXT("");
 
 	OutTags.Add(FAssetRegistryTag(USkeleton::RigTag, RigFullName, FAssetRegistryTag::TT_Hidden));
+}
+
+UBlendProfile* USkeleton::CreateNewBlendProfile(const FName& InProfileName)
+{
+	Modify();
+	UBlendProfile* NewProfile = NewObject<UBlendProfile>(this, InProfileName, RF_Public);
+	BlendProfiles.Add(NewProfile);
+
+	return NewProfile;
+}
+
+UBlendProfile* USkeleton::GetBlendProfile(const FName& InProfileName)
+{
+	UBlendProfile** FoundProfile = BlendProfiles.FindByPredicate([InProfileName](const UBlendProfile* Profile)
+	{
+		return Profile->GetName() == InProfileName.ToString();
+	});
+
+	if(FoundProfile)
+	{
+		return *FoundProfile;
+	}
+	return nullptr;
 }
 
 #endif //WITH_EDITOR

@@ -2,6 +2,7 @@ Availability:Public
 Title:Persona Debug
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
 Description:User guide for the Asset Browser in the Persona animation editor.
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -23,4 +24,6 @@ Description:User guide for the Asset Browser in the Persona animation editor.
 [/OBJECT]
 [/VAR]
 
-[INCLUDE:Engine/Blueprints/UserGuide/Debugging#debugtab]
+The **Debug** panel shows information designated as important by the designer in the form of breakpoints and watch values as well as a trace stack of all nodes belonging to the Blueprint that have been executed. This window also shows controls for controlling execution of the game when using breakpoints.
+
+The Debug panel in persona is the same panel as found in the Blueprint Editor. To learn more about using this panel, see the [](Engine/Blueprints/UserGuide/Debugging) page.

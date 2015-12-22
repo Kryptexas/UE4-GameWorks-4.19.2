@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -11,8 +11,11 @@ namespace UnrealBuildTool
 {
 	public class CodeLiteProject : ProjectFile
 	{
-		public CodeLiteProject( string InitFilePath ) : base(InitFilePath)
+		FileReference OnlyGameProject;
+
+		public CodeLiteProject( FileReference InitFilePath, FileReference InOnlyGameProject ) : base(InitFilePath)
 		{
+			OnlyGameProject = InOnlyGameProject;
 		}
 		
 		// Check if the XElement is empty.
@@ -34,10 +37,9 @@ namespace UnrealBuildTool
 		{
 			bool bSuccess = false;
 
-			string ProjectPath = ProjectFilePath;
-			string ProjectExtension = Path.GetExtension (ProjectFilePath);
+			string ProjectPath = ProjectFilePath.FullName;
+			string ProjectExtension = ProjectFilePath.GetExtension();
 			string ProjectPlatformName = BuildHostPlatform.Current.Platform.ToString();
-			string ProjectRelativeFilePath = this.RelativeProjectFilePath;
 
 			// Get the output directory
 			string EngineRootDirectory = Path.GetFullPath(ProjectFileGenerator.EngineRelativePath);
@@ -47,9 +49,9 @@ namespace UnrealBuildTool
 			//
 
 			string GameWorkingDirectory = "";
-			if (UnrealBuildTool.HasUProjectFile ()) 
+			if (OnlyGameProject != null)
 			{
-				GameWorkingDirectory = Path.Combine (Path.GetDirectoryName (UnrealBuildTool.GetUProjectFile ()), "Binaries", ProjectPlatformName);
+				GameWorkingDirectory = Path.Combine (Path.GetDirectoryName (OnlyGameProject.FullName), "Binaries", ProjectPlatformName);
 			}
 			//
 			// Build the working directory of the UE4Editor executable.
@@ -59,13 +61,17 @@ namespace UnrealBuildTool
 			//
 			// Create the folder where the project files goes if it does not exist
 			//
-			String FilePath = Path.GetDirectoryName(ProjectFilePath);
+			String FilePath = Path.GetDirectoryName(ProjectFilePath.FullName);
 			if( (FilePath.Length > 0) && !Directory.Exists(FilePath))
 			{
 				Directory.CreateDirectory(FilePath);
 			}
 
-			string GameProjectFile = UnrealBuildTool.GetUProjectFile();
+			string GameProjectFile = "";
+			if (OnlyGameProject != null)
+			{
+				GameProjectFile = OnlyGameProject.FullName;
+			}
 
 			//
 			// Write all targets which will be separate projects.
@@ -73,7 +79,7 @@ namespace UnrealBuildTool
 			foreach (ProjectTarget target in ProjectTargets) 
 			{
 				string[] tmp = target.ToString ().Split ('.');
-				string ProjectTargetFileName = Path.GetDirectoryName (ProjectFilePath) + "/" + tmp [0] +  ProjectExtension;
+				string ProjectTargetFileName = Path.GetDirectoryName (ProjectFilePath.FullName) + "/" + tmp [0] +  ProjectExtension;
 				String ProjectName = tmp [0];
 				var ProjectTargetType = target.TargetRules.Type;
 
@@ -89,12 +95,12 @@ namespace UnrealBuildTool
 				// TODO Maybe skipping those files directly in the following foreach loop is faster?
 				//
 				List<SourceFile> FilterSourceFile = SourceFiles.FindAll(s => (	
-					Path.GetExtension(s.FilePath).Equals(".h") 
-					|| Path.GetExtension(s.FilePath).Equals(".cpp")
-					|| Path.GetExtension(s.FilePath).Equals(".cs")
-					|| Path.GetExtension(s.FilePath).Equals(".uproject")
-					|| Path.GetExtension(s.FilePath).Equals(".ini")
-					|| Path.GetExtension(s.FilePath).Equals(".usf")
+					s.Reference.HasExtension(".h") 
+					|| s.Reference.HasExtension(".cpp")
+					|| s.Reference.HasExtension(".cs")
+					|| s.Reference.HasExtension(".uproject")
+					|| s.Reference.HasExtension(".ini")
+					|| s.Reference.HasExtension(".usf")
 				));
 
 				//
@@ -114,7 +120,7 @@ namespace UnrealBuildTool
 						if(ProjectName.Contains("UE4"))
 						{
 							int Idx = Path.GetFullPath(ProjectFileGenerator.EngineRelativePath).Length;
-							CurrentFilePath = Path.GetDirectoryName(Path.GetFullPath(CurrentFile.FilePath)).Substring(Idx);
+							CurrentFilePath = Path.GetDirectoryName(Path.GetFullPath(CurrentFile.Reference.FullName)).Substring(Idx);
 						}
 						else
 						{
@@ -124,8 +130,8 @@ namespace UnrealBuildTool
 							{
 								ProjectNameRaw = ProjectName.Substring(0, IdxProjectName);
 							}
-							int Idx = Path.GetDirectoryName(Path.GetFullPath(CurrentFile.FilePath)).IndexOf(ProjectNameRaw) + ProjectNameRaw.Length;
-							CurrentFilePath = Path.GetDirectoryName(Path.GetFullPath(CurrentFile.FilePath)).Substring(Idx);
+							int Idx = Path.GetDirectoryName(CurrentFile.Reference.FullName).IndexOf(ProjectNameRaw) + ProjectNameRaw.Length;
+							CurrentFilePath = Path.GetDirectoryName(CurrentFile.Reference.FullName).Substring(Idx);
 						}
 					}
 					else if (ProjectTargetType == TargetRules.TargetType.Program)
@@ -133,16 +139,16 @@ namespace UnrealBuildTool
 						//
 						// We do not need all the editors subfolders to show the content. Find the correct programs subfolder.
 						//
-						int Idx = Path.GetDirectoryName(Path.GetFullPath(CurrentFile.FilePath)).IndexOf(ProjectName) + ProjectName.Length;
-						CurrentFilePath = Path.GetFullPath(Path.GetDirectoryName(CurrentFile.FilePath)).Substring(Idx);
+						int Idx = Path.GetDirectoryName(CurrentFile.Reference.FullName).IndexOf(ProjectName) + ProjectName.Length;
+						CurrentFilePath = Path.GetDirectoryName(CurrentFile.Reference.FullName).Substring(Idx);
 					}
 					else if (ProjectTargetType == TargetRules.TargetType.Game)
 					{
 //						int lengthOfProjectRootPath = Path.GetFullPath(ProjectFileGenerator.MasterProjectRelativePath).Length;
 //						CurrentFilePath = Path.GetDirectoryName(Path.GetFullPath(CurrentFile.FilePath)).Substring(lengthOfProjectRootPath);
 					//	int lengthOfProjectRootPath = EngineRootDirectory.Length;
-						int Idx = Path.GetDirectoryName(Path.GetFullPath(CurrentFile.FilePath)).IndexOf(ProjectName) + ProjectName.Length;
-						CurrentFilePath = Path.GetDirectoryName(Path.GetFullPath(CurrentFile.FilePath)).Substring(Idx);
+						int Idx = Path.GetDirectoryName(CurrentFile.Reference.FullName).IndexOf(ProjectName) + ProjectName.Length;
+						CurrentFilePath = Path.GetDirectoryName(CurrentFile.Reference.FullName).Substring(Idx);
 					}
 
 					string [] SplitFolders = CurrentFilePath.Split('/');
@@ -218,7 +224,7 @@ namespace UnrealBuildTool
 					// If we are at this point we found the correct XElement folder
 					//
 					XElement file = new XElement("File");
-					XAttribute fileAttribute = new XAttribute("Name",  Path.GetFullPath(CurrentFile.FilePath));
+					XAttribute fileAttribute = new XAttribute("Name",  CurrentFile.Reference.FullName);
 					file.Add(fileAttribute);
 					root.Add(file); 
 				}
@@ -228,7 +234,6 @@ namespace UnrealBuildTool
 
 				XElement CodeLiteGlobalSettings = new XElement("GlobalSettings");
 				CodeLiteSettings.Add(CodeLiteSettings);
-
 
 				foreach (var CurConf in InConfigurations)
 				{
@@ -345,7 +350,7 @@ namespace UnrealBuildTool
 						} 
 						else if (ProjectTargetType == TargetRules.TargetType.Editor) 
 						{
-							if (ProjectName != "UE4Editor")
+							if (ProjectName != "UE4Editor" && GameProjectFile != "")
 							{
 								string commandArguments = "\"" + GameProjectFile + "\"" + " -game";
 								XAttribute CommandArguments = new XAttribute("CommandArguments", commandArguments);
@@ -464,8 +469,11 @@ namespace UnrealBuildTool
 							string CookGameCommandLine = "mono AutomationTool.exe BuildCookRun ";
 
 							// Projects filename
-							CookGameCommandLine += "-project=\"" + UnrealBuildTool.GetUProjectFile () + "\" ";
-							
+							if (OnlyGameProject != null)
+							{
+								CookGameCommandLine += "-project=\"" + OnlyGameProject.FullName + "\" ";
+							}
+
 							// Disables Perforce functionality 
 							CookGameCommandLine += "-noP4 ";
 							

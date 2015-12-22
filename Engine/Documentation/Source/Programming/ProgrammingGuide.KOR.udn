@@ -1,8 +1,11 @@
-﻿INTSourceChangelist:2589216
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:프로그래밍 가이드
 Crumbs: %ROOT%
 Description:언리얼 엔진으로 개발하는 프로그래머를 위한 정보입니다.
+version: 4.9
+parent:%ROOT%
+order:4
 
 [VAR:Params]
 [PARAM:image]
@@ -52,7 +55,7 @@ Description:언리얼 엔진으로 개발하는 프로그래머를 위한 정보
 [/OBJECT]
 [/VAR]
 
-[VAR:Role]
+[VAR:TopicRole]
 [OBJECT:Role]
 %homeparams%
 [PARAMLITERAL:id]
@@ -61,7 +64,7 @@ programmer
 [/OBJECT]
 [/VAR]
 
-[VAR:TopicRole]
+[VAR:Role]
 [OBJECT:Role]
 %params%
 [PARAMLITERAL:id]
@@ -208,7 +211,7 @@ C++ 클래스는 Blueprint 클래스에 대한 베이스 클래스로 사용될 
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-		* [](Programming/Animation "%Programming/Animation:description%")
+		* [](Programming/Animation/AnimNodes "%Programming/Animation/AnimNodes:description%")
 		* [](Programming/Automation "%Programming/Automation:description%")
 		* [](Engine/Blueprints/TechnicalGuide "%Engine/Blueprints/TechnicalGuide:description%")
 		* [](Programming/Online "%Programming/Online:description%")

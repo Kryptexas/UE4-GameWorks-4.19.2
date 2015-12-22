@@ -368,7 +368,6 @@ public class IabHelper {
      */
     public void launchPurchaseFlow(Activity act, String sku, String itemType, int requestCode,
                         OnIabPurchaseFinishedListener listener, String extraData) {
-        flagEndAsync(); // ADDED
         checkNotDisposed();
         checkSetupDone("launchPurchaseFlow");
         flagStartAsync("launchPurchaseFlow");
@@ -619,9 +618,6 @@ public class IabHelper {
                 }
                 catch (IabException ex) {
                     result = ex.getResult();
-                }
-                catch (IllegalStateException ex) { // ADDED
-                    result = new IabResult(BILLING_RESPONSE_RESULT_ERROR, "Helper is not set up.");
                 }
 
                 flagEndAsync();

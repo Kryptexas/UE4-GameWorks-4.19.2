@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "CocoaWindow.h"
@@ -32,6 +32,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	if (NewSelf)
 	{
 		bZoomed = [super isZoomed];
+		bIsOnActiveSpace = [super isOnActiveSpace];
 		self.TargetWindowMode = EWindowMode::Windowed;
 		[super setAlphaValue:Opacity];
 		self.PreFullScreenRect = [super frame];

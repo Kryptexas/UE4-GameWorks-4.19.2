@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -62,11 +62,13 @@ struct CORE_API FWindowsPlatformProcess
 	/**
 	 * Process enumerator.
 	 */
-	class FProcEnumerator
+	class CORE_API FProcEnumerator
 	{
 	public:
 		// Constructor
 		FProcEnumerator();
+		FProcEnumerator(const FProcEnumerator&) = delete;
+		FProcEnumerator& operator=(const FProcEnumerator&) = delete;
 
 		// Destructor
 		~FProcEnumerator();
@@ -91,7 +93,7 @@ struct CORE_API FWindowsPlatformProcess
 	/**
 	 * Process enumeration info structure.
 	 */
-	struct FProcEnumInfo
+	struct CORE_API FProcEnumInfo
 	{
 		friend FProcEnumInfo FProcEnumerator::GetCurrent() const;
 	public:
@@ -144,7 +146,7 @@ public:
 	static const TCHAR* GetModuleExtension();
 	static const TCHAR* GetBinariesSubdirectory();
 	static void LaunchURL( const TCHAR* URL, const TCHAR* Parms, FString* Error );
-	static FProcHandle CreateProc( const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWrite );
+	static FProcHandle CreateProc( const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWriteChild, void * PipeReadChild = nullptr);
 	static bool IsProcRunning( FProcHandle & ProcessHandle );
 	static void WaitForProc( FProcHandle & ProcessHandle );
 	static void CloseProc( FProcHandle & ProcessHandle );
@@ -192,6 +194,11 @@ private:
 	 * this stack is used to reset the previous DllDirectory.
 	 */
 	static TArray<FString> DllDirectoryStack;
+
+	/**
+	 * All the DLL directories we want to load from. 
+	 */
+	static TArray<FString> DllDirectories;
 };
 
 

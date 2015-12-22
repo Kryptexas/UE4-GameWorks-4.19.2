@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "GenericPlatform/GenericPlatformFile.h"
@@ -105,6 +105,9 @@ public:
 	/** Deletes a directory. */
 	virtual bool DeleteDirectory( const TCHAR* Path, bool RequireExists=0, bool Tree=0 )=0;
 
+	/** Return the stat data for the given file or directory. Check the FFileStatData::bIsValid member before using the returned data */
+	virtual FFileStatData GetStatData(const TCHAR* FilenameOrDirectory) = 0;
+
 	/** Finds file or directories. */
 	virtual void FindFiles( TArray<FString>& FileNames, const TCHAR* Filename, bool Files, bool Directories)=0;
 
@@ -139,6 +142,22 @@ public:
 	**/
 	virtual bool IterateDirectoryRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) = 0;
 
+	/** 
+	 * Call the Visit function of the visitor once for each file or directory in a single directory. This function does not explore subdirectories.
+	 * @param Directory		The directory to iterate the contents of.
+	 * @param Visitor		Visitor to call for each element of the directory
+	 * @return				false if the directory did not exist or if the visitor returned false.
+	**/
+	virtual bool IterateDirectoryStat(const TCHAR* Directory, IPlatformFile::FDirectoryStatVisitor& Visitor) = 0;
+
+	/** 
+	 * Call the Visit function of the visitor once for each file or directory in a directory tree. This function explores subdirectories.
+	 * @param Directory		The directory to iterate the contents of, recursively.
+	 * @param Visitor		Visitor to call for each element of the directory and each element of all subdirectories.
+	 * @return				false if the directory did not exist or if the visitor returned false.
+	**/
+	virtual bool IterateDirectoryStatRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryStatVisitor& Visitor) = 0;
+
 	/** Gets the age of a file measured in seconds. */
 	virtual double GetFileAgeSeconds( const TCHAR* Filename )=0;
 
@@ -146,6 +165,11 @@ public:
 	 * @return the modification time of the given file (or FDateTime::MinValue() on failure)
 	 */
 	virtual FDateTime GetTimeStamp( const TCHAR* Path ) = 0;
+
+	/**
+	* @return the modification time of the given file (or FDateTime::MinValue() on failure)
+	*/
+	virtual void GetTimeStampPair(const TCHAR* PathA, const TCHAR* PathB, FDateTime& OutTimeStampA, FDateTime& OutTimeStampB) = 0;
 
 	/** 
 	 * Sets the modification time of the given file

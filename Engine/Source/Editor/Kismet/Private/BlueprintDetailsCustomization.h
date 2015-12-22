@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -190,6 +190,9 @@ private:
 
 	/** Returns TRUE if the Variable is in the current Blueprint */
 	bool IsVariableInBlueprint() const { return GetPropertyOwnerBlueprint() == GetBlueprintObj(); }
+
+	/** Returns TRUE if the Variable is inherited by the current Blueprint */
+	bool IsVariableInheritedByBlueprint() const { return GetBlueprintObj()->SkeletonGeneratedClass->IsChildOf(GetPropertyOwnerBlueprint()->SkeletonGeneratedClass); }
 private:
 	/** Pointer back to my parent tab */
 	TWeakPtr<SMyBlueprint> MyBlueprint;

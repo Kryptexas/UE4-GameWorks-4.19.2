@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemAmazonPCH.h"
 #include "OnlineIdentityAmazon.h"
@@ -21,6 +21,11 @@ FString FUserOnlineAccountAmazon::GetDisplayName() const
 }
 
 bool FUserOnlineAccountAmazon::GetUserAttribute(const FString& AttrName, FString& OutAttrValue) const
+{
+	return false;
+}
+
+bool FUserOnlineAccountAmazon::SetUserAttribute(const FString& AttrName, const FString& AttrValue)
 {
 	return false;
 }
@@ -353,4 +358,9 @@ FPlatformUserId FOnlineIdentityAmazon::GetPlatformUserIdFromUniqueNetId(const FU
 	}
 
 	return PLATFORMUSERID_NONE;
+}
+
+FString FOnlineIdentityAmazon::GetAuthType() const
+{
+	return TEXT("");
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemPrivatePCH.h"
 #include "OnlineSessionInterface.h"
@@ -10,6 +10,8 @@
 
 DEFINE_LOG_CATEGORY(LogOnline);
 DEFINE_LOG_CATEGORY(LogOnlineGame);
+DEFINE_LOG_CATEGORY(LogOnlineParty);
+DEFINE_LOG_CATEGORY(LogOnlineChat);
 
 #if STATS
 ONLINESUBSYSTEM_API DEFINE_STAT(STAT_Online_Async);

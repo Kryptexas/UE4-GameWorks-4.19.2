@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -405,6 +405,14 @@ public:
 	bool IsNearlyZero( float Tolerance=KINDA_SMALL_NUMBER ) const;
 
 	/**
+	 * Util to convert this vector into a unit direction vector and its original length.
+	 *
+	 * @param OutDir Reference passed in to store unit direction vector.
+	 * @param OutLength Reference passed in to store length of the vector.
+	 */
+	void ToDirectionAndLength(FVector2D &OutDir, float &OutLength) const;
+
+	/**
 	 * Checks whether all components of the vector are exactly zero.
 	 *
 	 * @return true if vector is exactly zero, otherwise false.
@@ -469,12 +477,16 @@ public:
 	}
 
 #if ENABLE_NAN_DIAGNOSTIC
-	FORCEINLINE void DiagnosticCheckNaN() const
+	FORCEINLINE void DiagnosticCheckNaN()
 	{
-		ensureMsgf(!ContainsNaN(), TEXT("FVector contains NaN: %s"), *ToString());
+		if (ContainsNaN())
+		{
+			logOrEnsureNanError(TEXT("FVector contains NaN: %s"), *ToString());
+			*this = FVector2D::ZeroVector;
+		}
 	}
 #else
-	FORCEINLINE void DiagnosticCheckNaN() const {}
+	FORCEINLINE void DiagnosticCheckNaN() {}
 #endif
 
 	/**
@@ -798,6 +810,21 @@ FORCEINLINE void FVector2D::Normalize(float Tolerance)
 	}
 	X = 0.0f;
 	Y = 0.0f;
+}
+
+
+FORCEINLINE void FVector2D::ToDirectionAndLength(FVector2D &OutDir, float &OutLength) const
+{
+	OutLength = Size();
+	if (OutLength > SMALL_NUMBER)
+	{
+		float OneOverLength = 1.0f / OutLength;
+		OutDir = FVector2D(X*OneOverLength, Y*OneOverLength);
+	}
+	else
+	{
+		OutDir = FVector2D::ZeroVector;
+	}
 }
 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticLighting.h: Static lighting definitions.
@@ -153,6 +153,10 @@ public:
 
 	/** Other FStaticLightingMesh's that should be considered the same mesh object (just different LOD), and should not shadow this LOD. */
 	TArray<TRefCountPtr<FStaticLightingMesh> > OtherMeshLODs;
+
+	uint32 HLODTreeIndex;
+	uint32 HLODChildStartIndex;
+	uint32 HLODChildEndIndex;
 
 	/** Initialization constructor. */
 	ENGINE_API FStaticLightingMesh(

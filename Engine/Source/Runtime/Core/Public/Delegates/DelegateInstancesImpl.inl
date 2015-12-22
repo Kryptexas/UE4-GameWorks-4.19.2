@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*================================================================================
 	DelegateInstancesImpl.inl: Inline implementation of delegate bindings.
@@ -105,26 +105,45 @@ public:
 
 	// IDelegateInstance interface
 
+#if USE_DELEGATE_TRYGETBOUNDFUNCTIONNAME
+
+	virtual FName TryGetBoundFunctionName() const override
+	{
+		return NAME_None;
+	}
+
+#endif
+
+	// Deprecated
 	virtual FName GetFunctionName( ) const override
 	{
 		return NAME_None;
 	}
 
+	// Deprecated
 	virtual const void* GetRawMethodPtr( ) const override
 	{
 		return GetRawMethodPtrInternal();
 	}
 
+	// Deprecated
 	virtual const void* GetRawUserObject( ) const override
 	{
 		return GetRawUserObjectInternal();
 	}
 
+	// Deprecated
 	virtual EDelegateInstanceType::Type GetType( ) const override
 	{
 		return SPMode == ESPMode::ThreadSafe ? EDelegateInstanceType::ThreadSafeSharedPointerMethod : EDelegateInstanceType::SharedPointerMethod;
 	}
 
+	virtual UObject* GetUObject( ) const override
+	{
+		return nullptr;
+	}
+
+	// Deprecated
 	virtual bool HasSameObject( const void* InUserObject ) const override
 	{
 		return UserObject.HasSameObject(InUserObject);
@@ -139,9 +158,9 @@ public:
 
 	// DELEGATE_INSTANCE_INTERFACE_CLASS interface
 
-	virtual DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* CreateCopy() override
+	virtual void CreateCopy(FDelegateBase& Base) override
 	{
-		return new SP_METHOD_DELEGATE_INSTANCE_CLASS(*this);
+		new (Base) SP_METHOD_DELEGATE_INSTANCE_CLASS(*this);
 	}
 
 	virtual RetValType Execute( FUNC_PARAM_LIST ) const override
@@ -184,6 +203,7 @@ public:
 	}
 #endif
 
+	// Deprecated
 	virtual bool IsSameFunction( const DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>& InOtherDelegate ) const override
 	{
 		// NOTE: Payload data is not currently considered when comparing delegate instances.
@@ -207,9 +227,9 @@ public:
 	 * @param InFunc Member function pointer to your class method.
 	 * @return The new delegate.
 	 */
-	FORCEINLINE static DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* Create( const TSharedPtr<UserClass, SPMode>& InUserObjectRef, FMethodPtr InFunc DELEGATE_COMMA_PAYLOAD_LIST )
+	FORCEINLINE static void Create( FDelegateBase& Base, const TSharedPtr<UserClass, SPMode>& InUserObjectRef, FMethodPtr InFunc DELEGATE_COMMA_PAYLOAD_LIST )
 	{
-		return new SP_METHOD_DELEGATE_INSTANCE_CLASS(InUserObjectRef, InFunc DELEGATE_COMMA_PAYLOAD_PASSTHRU);
+		new (Base) SP_METHOD_DELEGATE_INSTANCE_CLASS(InUserObjectRef, InFunc DELEGATE_COMMA_PAYLOAD_PASSTHRU);
 	}
 
 	/**
@@ -221,11 +241,11 @@ public:
 	 * @param InFunc  Member function pointer to your class method.
 	 * @return The new delegate.
 	 */
-	FORCEINLINE static DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* Create( UserClass* InUserObject, FMethodPtr InFunc DELEGATE_COMMA_PAYLOAD_LIST )
+	FORCEINLINE static void Create( FDelegateBase& Base, UserClass* InUserObject, FMethodPtr InFunc DELEGATE_COMMA_PAYLOAD_LIST )
 	{
 		// We expect the incoming InUserObject to derived from TSharedFromThis.
 		TSharedRef<UserClass> UserObjectRef(StaticCastSharedRef<UserClass>(InUserObject->AsShared()));
-		return Create(UserObjectRef, InFunc DELEGATE_COMMA_PAYLOAD_PASSTHRU);
+		Create(Base, UserObjectRef, InFunc DELEGATE_COMMA_PAYLOAD_PASSTHRU);
 	}
 
 protected:
@@ -247,13 +267,6 @@ protected:
 	}
 
 private:
-
-	// Declare ourselves as a friend so we can access other template permutations in IsSameFunction().
-	template<class UserClassNoShadow, FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW, ESPMode SPModeNoShadow> friend class SP_METHOD_DELEGATE_INSTANCE_CLASS;
-
-	// Declare other pointer-based delegates as a friend so IsSameFunction() can compare members.
-	template<class UserClassNoShadow, FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW> friend class UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS;
-	template<class UserClassNoShadow, FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW> friend class RAW_METHOD_DELEGATE_INSTANCE_CLASS;
 
 	// Weak reference to an instance of the user's class which contains a method we would like to call.
 	TWeakPtr<UserClass, SPMode> UserObject;
@@ -303,26 +316,45 @@ public:
 
 	// IDelegateInstance interface
 
+#if USE_DELEGATE_TRYGETBOUNDFUNCTIONNAME
+
+	virtual FName TryGetBoundFunctionName() const override
+	{
+		return NAME_None;
+	}
+
+#endif
+
+	// Deprecated
 	virtual FName GetFunctionName( ) const override
 	{
 		return NAME_None;
 	}
 
+	// Deprecated
 	virtual const void* GetRawMethodPtr( ) const override
 	{
 		return GetRawMethodPtrInternal();
 	}
 
+	// Deprecated
 	virtual const void* GetRawUserObject( ) const override
 	{
 		return GetRawUserObjectInternal();
 	}
 
+	// Deprecated
 	virtual EDelegateInstanceType::Type GetType( ) const override
 	{
 		return EDelegateInstanceType::RawMethod;
 	}
 
+	virtual UObject* GetUObject( ) const override
+	{
+		return nullptr;
+	}
+
+	// Deprecated
 	virtual bool HasSameObject( const void* InUserObject ) const override
 	{
 		return UserObject == InUserObject;
@@ -339,9 +371,9 @@ public:
 
 	// DELEGATE_INSTANCE_INTERFACE_CLASS interface
 
-	virtual DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* CreateCopy( ) override
+	virtual void CreateCopy(FDelegateBase& Base) override
 	{
-		return new RAW_METHOD_DELEGATE_INSTANCE_CLASS(*this);
+		new (Base) RAW_METHOD_DELEGATE_INSTANCE_CLASS(*this);
 	}
 
 	virtual RetValType Execute( FUNC_PARAM_LIST ) const override
@@ -375,6 +407,7 @@ public:
 	}
 #endif
 
+	// Deprecated
 	virtual bool IsSameFunction( const DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>& InOtherDelegate ) const override
 	{
 		// NOTE: Payload data is not currently considered when comparing delegate instances.
@@ -399,9 +432,9 @@ public:
 	 * @param InFunc Member function pointer to your class method.
 	 * @return The new delegate.
 	 */
-	FORCEINLINE static DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* Create( UserClass* InUserObject, FMethodPtr InFunc DELEGATE_COMMA_PAYLOAD_LIST )
+	FORCEINLINE static void Create( FDelegateBase& Base, UserClass* InUserObject, FMethodPtr InFunc DELEGATE_COMMA_PAYLOAD_LIST )
 	{
-		return new RAW_METHOD_DELEGATE_INSTANCE_CLASS(InUserObject, InFunc DELEGATE_COMMA_PAYLOAD_PASSTHRU);
+		new (Base) RAW_METHOD_DELEGATE_INSTANCE_CLASS(InUserObject, InFunc DELEGATE_COMMA_PAYLOAD_PASSTHRU);
 	}
 
 protected:
@@ -423,10 +456,6 @@ protected:
 	}
 
 private:
-
-	// Declare other pointer-based delegates as a friend so IsSameFunction() can compare members
-	template<class UserClassNoShadow, FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW, ESPMode SPModeNoShadow> friend class SP_METHOD_DELEGATE_INSTANCE_CLASS;
-	template<class UserClassNoShadow, FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW> friend class UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS;
 
 	// Pointer to the user's class which contains a method we would like to call.
 	UserClass* UserObject;
@@ -477,26 +506,45 @@ public:
 
 	// IDelegateInstance interface
 
+#if USE_DELEGATE_TRYGETBOUNDFUNCTIONNAME
+
+	virtual FName TryGetBoundFunctionName() const override
+	{
+		return NAME_None;
+	}
+
+#endif
+
+	// Deprecated
 	virtual FName GetFunctionName( ) const override
 	{
 		return NAME_None;
 	}
 
+	// Deprecated
 	virtual const void* GetRawMethodPtr( ) const override
 	{
 		return GetRawMethodPtrInternal();
 	}
 
+	// Deprecated
 	virtual const void* GetRawUserObject( ) const override
 	{
 		return GetRawUserObjectInternal();
 	}
 
+	// Deprecated
 	virtual EDelegateInstanceType::Type GetType( ) const override
 	{
 		return EDelegateInstanceType::UObjectMethod;
 	}
 
+	virtual UObject* GetUObject( ) const override
+	{
+		return (UObject*)UserObject.Get();
+	}
+
+	// Deprecated
 	virtual bool HasSameObject( const void* InUserObject ) const override
 	{
 		return (UserObject.Get() == InUserObject);
@@ -516,9 +564,9 @@ public:
 
 	// DELEGATE_INSTANCE_INTERFACE_CLASS interface
 
-	virtual DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* CreateCopy( ) override
+	virtual void CreateCopy(FDelegateBase& Base) override
 	{
-		return new UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS(*this);
+		new (Base) UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS(*this);
 	}
 
 	virtual RetValType Execute( FUNC_PARAM_LIST ) const override
@@ -559,6 +607,7 @@ public:
 	}
 #endif
 
+	// Deprecated
 	virtual bool IsSameFunction( const DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>& InOtherDelegate ) const override
 	{
 		// NOTE: Payload data is not currently considered when comparing delegate instances.
@@ -581,9 +630,9 @@ public:
 	 * @param InFunc Member function pointer to your class method.
 	 * @return The new delegate.
 	 */
-	FORCEINLINE static DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* Create( UserClass* InUserObject, FMethodPtr InFunc DELEGATE_COMMA_PAYLOAD_LIST )
+	FORCEINLINE static void Create( FDelegateBase& Base, UserClass* InUserObject, FMethodPtr InFunc DELEGATE_COMMA_PAYLOAD_LIST )
 	{
-		return new UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS(InUserObject, InFunc DELEGATE_COMMA_PAYLOAD_PASSTHRU);
+		new (Base) UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS(InUserObject, InFunc DELEGATE_COMMA_PAYLOAD_PASSTHRU);
 	}
 
 protected:
@@ -605,10 +654,6 @@ protected:
 	}
 
 private:
-
-	// Declare other pointer-based delegates as a friend so IsSameFunction() can compare members
-	template<class UserClassNoShadow, FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW,ESPMode SPModeNoShadow> friend class SP_METHOD_DELEGATE_INSTANCE_CLASS;
-	template<class UserClassNoShadow, FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW> friend class RAW_METHOD_DELEGATE_INSTANCE_CLASS;
 
 	// Pointer to the user's class which contains a method we would like to call.
 	TWeakObjectPtr<UserClass> UserObject;
@@ -659,26 +704,45 @@ public:
 
 	// IDelegateInstance interface
 
+#if USE_DELEGATE_TRYGETBOUNDFUNCTIONNAME
+
+	virtual FName TryGetBoundFunctionName() const override
+	{
+		return NAME_None;
+	}
+
+#endif
+
+	// Deprecated
 	virtual FName GetFunctionName( ) const override
 	{
 		return NAME_None;
 	}
 
+	// Deprecated
 	virtual const void* GetRawMethodPtr( ) const override
 	{
 		return *(const void**)&StaticFuncPtr;
 	}
 
+	// Deprecated
 	virtual const void* GetRawUserObject( ) const override
 	{
 		return nullptr;
 	}
 
+	// Deprecated
 	virtual EDelegateInstanceType::Type GetType( ) const override
 	{
 		return EDelegateInstanceType::Raw;
 	}
 
+	virtual UObject* GetUObject( ) const override
+	{
+		return nullptr;
+	}
+
+	// Deprecated
 	virtual bool HasSameObject( const void* UserObject ) const override
 	{
 		// Raw Delegates aren't bound to an object so they can never match
@@ -695,9 +759,9 @@ public:
 
 	// DELEGATE_INSTANCE_INTERFACE_CLASS interface
 
-	virtual DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* CreateCopy( ) override
+	virtual void CreateCopy(FDelegateBase& Base) override
 	{
-		return new STATIC_DELEGATE_INSTANCE_CLASS(*this);
+		new (Base) STATIC_DELEGATE_INSTANCE_CLASS(*this);
 	}
 
 	virtual RetValType Execute( FUNC_PARAM_LIST ) const override
@@ -722,6 +786,7 @@ public:
 	}
 #endif
 
+	// Deprecated
 	virtual bool IsSameFunction( const DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>& InOtherDelegate ) const override
 	{
 		// NOTE: Payload data is not currently considered when comparing delegate instances.
@@ -746,9 +811,9 @@ public:
 	 * @param InFunc Static function pointer.
 	 * @return The new delegate.
 	 */
-	FORCEINLINE static DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* Create( FFuncPtr InFunc DELEGATE_COMMA_PAYLOAD_LIST )
+	FORCEINLINE static void Create( FDelegateBase& Base, FFuncPtr InFunc DELEGATE_COMMA_PAYLOAD_LIST )
 	{
-		return new STATIC_DELEGATE_INSTANCE_CLASS(InFunc DELEGATE_COMMA_PAYLOAD_PASSTHRU);
+		new (Base) STATIC_DELEGATE_INSTANCE_CLASS(InFunc DELEGATE_COMMA_PAYLOAD_PASSTHRU);
 	}
 
 private:
@@ -796,11 +861,22 @@ public:
 public:
 	// IDelegateInstance interface
 
+#if USE_DELEGATE_TRYGETBOUNDFUNCTIONNAME
+
+	virtual FName TryGetBoundFunctionName() const override
+	{
+		return NAME_None;
+	}
+
+#endif
+
+	// Deprecated
 	virtual FName GetFunctionName() const override
 	{
 		return NAME_None;
 	}
 
+	// Deprecated
 	virtual const void* GetRawMethodPtr() const override
 	{
 		// casting operator() to void* is not legal C++ if it's a member function
@@ -809,6 +885,7 @@ public:
 		return nullptr;
 	}
 
+	// Deprecated
 	virtual const void* GetRawUserObject() const override
 	{
 		// returning &Functor wouldn't be particularly useful to the comparison code
@@ -817,11 +894,18 @@ public:
 		return nullptr;
 	}
 
+	// Deprecated
 	virtual EDelegateInstanceType::Type GetType() const override
 	{
 		return EDelegateInstanceType::Functor;
 	}
 
+	virtual UObject* GetUObject() const override
+	{
+		return nullptr;
+	}
+
+	// Deprecated
 	virtual bool HasSameObject(const void* UserObject) const override
 	{
 		// Functor Delegates aren't bound to a user object so they can never match
@@ -838,9 +922,9 @@ public:
 
 	// DELEGATE_INSTANCE_INTERFACE_CLASS interface
 
-	virtual DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* CreateCopy() override
+	virtual void CreateCopy(FDelegateBase& Base) override
 	{
-		return new FUNCTOR_DELEGATE_INSTANCE_CLASS(*this);
+		new (Base) FUNCTOR_DELEGATE_INSTANCE_CLASS(*this);
 	}
 
 	virtual RetValType Execute(FUNC_PARAM_LIST) const override
@@ -862,6 +946,7 @@ public:
 	}
 #endif
 
+	// Deprecated
 	virtual bool IsSameFunction(const DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>& InOtherDelegate) const override
 	{
 		// There's no nice way to implement this (we don't have the type info necessary to compare against OtherDelegate's Functor)
@@ -876,13 +961,13 @@ public:
 	* @param InFunctor C++ functor
 	* @return The new delegate.
 	*/
-	FORCEINLINE static DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* Create(const FunctorType& InFunctor DELEGATE_COMMA_PAYLOAD_LIST)
+	FORCEINLINE static void Create(FDelegateBase& Base, const FunctorType& InFunctor DELEGATE_COMMA_PAYLOAD_LIST)
 	{
-		return new FUNCTOR_DELEGATE_INSTANCE_CLASS<FunctorType, FUNC_PAYLOAD_TEMPLATE_ARGS>(InFunctor DELEGATE_COMMA_PAYLOAD_PASSTHRU);
+		new (Base) FUNCTOR_DELEGATE_INSTANCE_CLASS<FunctorType, FUNC_PAYLOAD_TEMPLATE_ARGS>(InFunctor DELEGATE_COMMA_PAYLOAD_PASSTHRU);
 	}
-	FORCEINLINE static DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* Create(FunctorType&& InFunctor DELEGATE_COMMA_PAYLOAD_LIST)
+	FORCEINLINE static void Create(FDelegateBase& Base, FunctorType&& InFunctor DELEGATE_COMMA_PAYLOAD_LIST)
 	{
-		return new FUNCTOR_DELEGATE_INSTANCE_CLASS<FunctorType, FUNC_PAYLOAD_TEMPLATE_ARGS>(MoveTemp(InFunctor) DELEGATE_COMMA_PAYLOAD_PASSTHRU);
+		new (Base) FUNCTOR_DELEGATE_INSTANCE_CLASS<FunctorType, FUNC_PAYLOAD_TEMPLATE_ARGS>(MoveTemp(InFunctor) DELEGATE_COMMA_PAYLOAD_PASSTHRU);
 	}
 
 private:
@@ -943,26 +1028,45 @@ public:
 
 	// IDelegateInstance interface
 
+#if USE_DELEGATE_TRYGETBOUNDFUNCTIONNAME
+
+	virtual FName TryGetBoundFunctionName() const override
+	{
+		return FunctionName;
+	}
+
+#endif
+
+	// Deprecated
 	virtual FName GetFunctionName( ) const override
 	{
 		return FunctionName;
 	}
 
+	// Deprecated
 	virtual const void* GetRawMethodPtr( ) const override
 	{
 		return nullptr;
 	}
 
+	// Deprecated
 	virtual const void* GetRawUserObject( ) const override
 	{
 		return UserObjectPtr.Get();
 	}
 
+	// Deprecated
 	virtual EDelegateInstanceType::Type GetType() const override
 	{
 		return EDelegateInstanceType::UFunction;
 	}
 
+	virtual UObject* GetUObject( ) const override
+	{
+		return (UObject*)UserObjectPtr.Get();
+	}
+
+	// Deprecated
 	virtual bool HasSameObject( const void* InUserObject ) const override
 	{
 		return (UserObjectPtr.Get() == InUserObject);
@@ -982,9 +1086,9 @@ public:
 
 	// DELEGATE_INSTANCE_INTERFACE_CLASS interface
 
-	virtual DELEGATE_INSTANCE_INTERFACE_CLASS* CreateCopy( ) override
+	virtual void CreateCopy(FDelegateBase& Base) override
 	{
-		return new UFUNCTION_DELEGATE_INSTANCE_CLASS(*this);
+		new (Base) UFUNCTION_DELEGATE_INSTANCE_CLASS(*this);
 	}
 
 	virtual RetValType Execute( FUNC_PARAM_LIST ) const override
@@ -1018,6 +1122,7 @@ public:
 	}
 #endif
 
+	// Deprecated
 	virtual bool IsSameFunction( const DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>& Other ) const override
 	{
 		// NOTE: Payload data is not currently considered when comparing delegate instances.
@@ -1038,9 +1143,9 @@ public:
 	 * @param InFunctionName The name of the function call.
 	 * @return The new delegate.
 	 */
-	FORCEINLINE static DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* Create( UserClass* InUserObject, const FName& InFunctionName DELEGATE_COMMA_PAYLOAD_LIST )
+	FORCEINLINE static void Create( FDelegateBase& Base, UserClass* InUserObject, const FName& InFunctionName DELEGATE_COMMA_PAYLOAD_LIST )
 	{
-		return new UFUNCTION_DELEGATE_INSTANCE_CLASS(InUserObject, InFunctionName DELEGATE_COMMA_PAYLOAD_PASSTHRU);
+		new (Base) UFUNCTION_DELEGATE_INSTANCE_CLASS(InUserObject, InFunctionName DELEGATE_COMMA_PAYLOAD_PASSTHRU);
 	}
 
 public:

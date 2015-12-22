@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 
@@ -174,6 +174,7 @@ void UK2Node_MatineeController::GetMenuActions(FBlueprintActionDatabaseRegistrar
 	{
 		UK2Node_MatineeController* MatineeNode = CastChecked<UK2Node_MatineeController>(NewNode);
 		MatineeNode->MatineeActor = CastChecked<AMatineeActor>(BindObject);
+		MatineeNode->MatineeActor->MatineeControllerName = MatineeNode->GetFName();
 		return true;
 	};
 

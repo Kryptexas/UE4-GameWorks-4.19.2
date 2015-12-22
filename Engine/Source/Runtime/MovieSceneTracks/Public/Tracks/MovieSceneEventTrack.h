@@ -1,8 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieSceneTrack.h"
+#include "MovieSceneNameableTrack.h"
 #include "MovieSceneEventTrack.generated.h"
 
 
@@ -11,7 +11,7 @@
  */
 UCLASS(MinimalAPI)
 class UMovieSceneEventTrack
-	: public UMovieSceneTrack
+	: public UMovieSceneNameableTrack
 {
 	GENERATED_BODY()
 
@@ -20,8 +20,7 @@ public:
 	/** Default constructor. */
 	UMovieSceneEventTrack()
 		: bFireEventsWhenForwards(true)
-		, bFireEventsWhenBackwards(false)
-		, TrackName("Events")
+		, bFireEventsWhenBackwards(true)
 	{ }
 
 public:
@@ -49,16 +48,15 @@ public:
 
 	// UMovieSceneTrack interface
 
-	virtual void AddSection(UMovieSceneSection* Section) override;
+	virtual void AddSection(UMovieSceneSection& Section) override;
 	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() override;
 	virtual UMovieSceneSection* CreateNewSection() override;
 	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override;
 	virtual TRange<float> GetSectionBoundaries() const override;
-	virtual FName GetTrackName() const override;
-	virtual bool HasSection(UMovieSceneSection* Section) const override;
+	virtual bool HasSection(const UMovieSceneSection& Section) const override;
 	virtual bool IsEmpty() const override;
 	virtual void RemoveAllAnimationData() override;
-	virtual void RemoveSection(UMovieSceneSection* Section) override;
+	virtual void RemoveSection(UMovieSceneSection& Section) override;
 
 private:
 
@@ -73,8 +71,4 @@ private:
 	/** The track's sections. */
 	UPROPERTY()
 	TArray<UMovieSceneSection*> Sections;
-
-	/** Name of this track. */
-	UPROPERTY()
-	FName TrackName;
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	EditorLevelUtils.cpp: Editor-specific level management routines
@@ -697,7 +697,7 @@ namespace EditorLevelUtils
 				StreamingLevel = FLevelUtils::FindStreamingLevel( Level );
 			}
 
-			//create a transaction so we can undo the visibilty toggle
+			// Create a transaction so we can undo the visibility toggle
 			const FScopedTransaction Transaction( LOCTEXT( "ToggleLevelVisibility", "Toggle Level Visibility" ) );		
 
 			// Handle the case of a streaming level

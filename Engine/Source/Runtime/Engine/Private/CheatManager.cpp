@@ -1,17 +1,21 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "UnrealNetwork.h"
 #include "SlateBasics.h"
-#include "ISlateReflectorModule.h"
 #include "NavDataGenerator.h"
 #include "OnlineSubsystemUtils.h"
 #include "VisualLogger/VisualLogger.h"
 #include "GameFramework/Character.h"
 
+#if !UE_BUILD_SHIPPING
+#include "ISlateReflectorModule.h"
+#endif // #if !UE_BUILD_SHIPPING
+
 #if WITH_EDITOR
 #include "UnrealEd.h"
 #endif
+
 #include "GameFramework/CheatManager.h"
 #include "Components/CapsuleComponent.h"
 #include "Engine/DebugCameraController.h"
@@ -24,6 +28,9 @@
 DEFINE_LOG_CATEGORY_STATIC(LogCheatManager, Log, All);
 
 #define LOCTEXT_NAMESPACE "CheatManager"	
+
+bool UCheatManager::bDebugCapsuleSweepPawn = false;
+
 
 UCheatManager::UCheatManager(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -922,20 +929,26 @@ void UCheatManager::TestCollisionDistance()
 
 void UCheatManager::WidgetReflector()
 {
+#if !UE_BUILD_SHIPPING
 	static const FName SlateReflectorModuleName("SlateReflector");
 	FModuleManager::LoadModuleChecked<ISlateReflectorModule>(SlateReflectorModuleName).DisplayWidgetReflector();
+#endif // #if !UE_BUILD_SHIPPING
 }
 
 void UCheatManager::TextureAtlasVisualizer()
 {
+#if !UE_BUILD_SHIPPING
 	static const FName SlateReflectorModuleName("SlateReflector");
 	FModuleManager::LoadModuleChecked<ISlateReflectorModule>(SlateReflectorModuleName).DisplayTextureAtlasVisualizer();
+#endif // #if !UE_BUILD_SHIPPING
 }
 
 void UCheatManager::FontAtlasVisualizer()
 {
+#if !UE_BUILD_SHIPPING
 	static const FName SlateReflectorModuleName("SlateReflector");
 	FModuleManager::LoadModuleChecked<ISlateReflectorModule>(SlateReflectorModuleName).DisplayFontAtlasVisualizer();
+#endif // #if !UE_BUILD_SHIPPING
 }
 
 void UCheatManager::RebuildNavigation()
@@ -1168,14 +1181,14 @@ void UCheatManager::LogOutBugItGoToLogFile( const FString& InScreenShotDesc, con
 	const FString DescPlusExtension = FString::Printf( TEXT("%s%i.txt"), *InScreenShotDesc, GScreenshotBitmapIndex );
 	const FString TxtFileName = CreateProfileFilename( DescPlusExtension, false );
 
-	//FString::Printf( TEXT("BugIt%s-%s%05i"), *GEngineVersion.ToString(), *InScreenShotDesc, GScreenshotBitmapIndex+1 ) + TEXT( ".txt" );
+	//FString::Printf( TEXT("BugIt%s-%s%05i"), *FEngineVersion::Current().ToString(), *InScreenShotDesc, GScreenshotBitmapIndex+1 ) + TEXT( ".txt" );
 	const FString FullFileName = OutputDir + TxtFileName;
 
 	FOutputDeviceFile OutputFile(*FullFileName);
 	//FArchive* OutputFile = IFileManager::Get().CreateDebugFileWriter( *(FullFileName), FILEWRITE_Append );
 
 
-	OutputFile.Logf( TEXT("Dumping BugIt data chart at %s using build %s built from changelist %i"), *FDateTime::Now().ToString(), *GEngineVersion.ToString(), GetChangeListNumberForPerfTesting() );
+	OutputFile.Logf( TEXT("Dumping BugIt data chart at %s using build %s built from changelist %i"), *FDateTime::Now().ToString(), *FEngineVersion::Current().ToString(), GetChangeListNumberForPerfTesting() );
 
 	const FString MapNameStr = GetWorld()->GetMapName();
 

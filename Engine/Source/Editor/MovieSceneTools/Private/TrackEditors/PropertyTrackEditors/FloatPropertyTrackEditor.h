@@ -1,14 +1,15 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "MovieSceneFloatTrack.h"
+#include "MovieSceneFloatSection.h"
 
 /**
  * A property track editor for floats.
  */
 class FFloatPropertyTrackEditor
-	: public FPropertyTrackEditor<UMovieSceneFloatTrack, float>
+	: public FPropertyTrackEditor<UMovieSceneFloatTrack, UMovieSceneFloatSection, float>
 {
 public:
 
@@ -29,15 +30,13 @@ public:
 	 */
 	static TSharedRef<ISequencerTrackEditor> CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer );
 
-public:
-
-	// ISequencerTrackEditor interface
-
-	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track ) override;
+	// FMovieSceneTrackEditor interface.
+	virtual void BuildTrackContextMenu( FMenuBuilder& MenuBuilder, UMovieSceneTrack* Track ) override;
 
 protected:
 
 	// FPropertyTrackEditor interface
 
-	virtual bool TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, float& OutKey ) override;
+	virtual TSharedRef<FPropertySection> MakePropertySectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track ) override;
+	virtual void GenerateKeysFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, TArray<float>& NewGeneratedKeys, TArray<float>& DefaultGeneratedKeys ) override;
 };

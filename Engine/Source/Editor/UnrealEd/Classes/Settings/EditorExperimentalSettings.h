@@ -1,8 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
-
-/*=============================================================================
-	EditorExperimentalSettings.h: Declares the UEditorExperimentalSettings class.
-=============================================================================*/
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -45,10 +41,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(ConfigRestartRequired=true))
 	bool bBlueprintableComponents;
 
-	/** The Messaging Debugger provides a visual utility for debugging the messaging system. */
-	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Messaging Debugger"))
-	bool bMessagingDebugger;
-
 	/** Allows to use actor merging utilities (Simplygon Proxy LOD, Grouping by Materials)*/
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Actor Merging"))
 	bool bActorMerging;
@@ -69,6 +61,26 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Blueprint Break on Exceptions"))
 	bool bBreakOnExceptions;
 
+	/** Enable experimental blueprint performance analysis tools. */
+	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Blueprint Performance Analysis Tools"))
+	bool bBlueprintPerformanceAnalysisTools;
+
+	/** The number of samples the blueprint profiler should use to average the current value. */
+	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Blueprint Profiler Sample Count"))
+	int32 BlueprintProfilerAverageSampleCount;
+
+	/** Enables the visual diff tool for widget blueprints. WARNING: changes to the widget hierarchy will not be detected */
+	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Use the Diff Tool for Widget Blueprints"))
+	bool bEnableWidgetVisualDiff;
+
+	/** Enables the visual diff tool for anim blueprints. WARNING: changes to the Target Skeleton and Groups will not be detected */
+	UPROPERTY(EditAnywhere, config, Category = Blueprints, meta = (DisplayName = "Use the Diff Tool for Animation Blueprints"))
+	bool bEnableAnimVisualDiff;
+
+	/** Enables "Find and Replace All" tool in the MyBlueprint window for variables */
+	UPROPERTY(EditAnywhere, config, Category = Blueprints, meta = (DisplayName = "Find and Replace All References Tool"))
+	bool bEnableFindAndReplaceReferences;
+
 	/** Should arrows indicating data/execution flow be drawn halfway along wires? */
 	UPROPERTY(/*EditAnywhere - deprecated (moved into UBlueprintEditorSettings), */config/*, Category=Blueprints, meta=(DisplayName="Draw midpoint arrows in Blueprints")*/)
 	bool bDrawMidpointArrowsInBlueprints;
@@ -85,17 +97,28 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = Cooking, meta = (DisplayName = "Disable Cook In The Editor feature (cooks from launch on will be run in a separate process if disabled)", ConfigRestartRequired=true))
 	bool bDisableCookInEditor;
 
-	/** Enable -iterate for launch on */
-	UPROPERTY(EditAnywhere, config, Category = Cooking, meta = (DisplayName = "Iterative cooking for builds launched form the editor (launch on)"))
-	bool bIterativeCookingForLaunchOn;
+	UPROPERTY(EditAnywhere, config, Category = Cooking, meta = (DisplayName = "Use multiple processes when cooking (only affects File -> Package)"))
+	int32 MultiProcessCooking;
 
 	/** Enables Environment Queries editor */
 	UPROPERTY(EditAnywhere, config, Category = AI, meta = (DisplayName = "Environment Querying System"))
 	bool bEQSEditor;
 
+	/** This feature allows you to broadcast to a live streaming service directly from the editor.  This requires you to have a live streaming plugin installed. */
+	UPROPERTY(EditAnywhere, config, Category=Tools)
+	bool bLiveStreamingFromEditor;
+
 	/** Enables Metal/High-end mobile rendering path previw on Desktop */
 	UPROPERTY(EditAnywhere, config, Category = Rendering, meta = (DisplayName = "Enable Metal/High-end mobile rendering preview"))
 	bool bFeatureLevelES31Preview;
+
+	/** Enable multithreaded lightmap encoding (decreases time taken to encode lightmaps) */
+	UPROPERTY(EditAnywhere, config, Category = LightingBuilds, meta = (DisplayName = "Enable Multithreaded lightmap encoding"))
+	bool bEnableMultithreadedLightmapEncoding;
+
+	/** Enable multithreaded shadow map encoding (decreases time taken to encode shadow maps) */
+	UPROPERTY(EditAnywhere, config, Category = LightingBuilds, meta = (DisplayName = "Enable Multithreaded shadowmap encoding"))
+	bool bEnableMultithreadedShadowmapEncoding;
 
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.
@@ -103,7 +126,10 @@ public:
 	 * @return The delegate.
 	 */
 	DECLARE_EVENT_OneParam(UEditorExperimentalSettings, FSettingChangedEvent, FName /*PropertyName*/);
-	FSettingChangedEvent& OnSettingChanged( ) { return SettingChangedEvent; }
+	FSettingChangedEvent& OnSettingChanged( )
+	{
+		return SettingChangedEvent;
+	}
 
 protected:
 

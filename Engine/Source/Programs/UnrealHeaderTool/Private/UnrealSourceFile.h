@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,7 +13,7 @@ class FClassMetaData;
 /**
  * Contains information about source file that defines various UHT aware types.
  */
-class FUnrealSourceFile
+class FUnrealSourceFile : public TSharedFromThis<FUnrealSourceFile>
 {
 public:
 	// Constructor.
@@ -281,8 +281,11 @@ public:
 	 * Checks if dependencies has been resolved.
 	 */
 	bool AreDependenciesResolved() const;
-
+	friend FArchive& operator<<(FArchive& Ar, FUnrealSourceFile& UHTMakefile);
+	void SetScope(FFileScope* Scope);
+	void SetScope(TSharedRef<FFileScope> Scope);
 private:
+
 	// File scope.
 	TSharedRef<FFileScope> Scope;
 

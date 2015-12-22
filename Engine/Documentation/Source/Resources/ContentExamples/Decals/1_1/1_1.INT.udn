@@ -10,7 +10,24 @@ Related: Engine/Rendering/Materials/ExpressionReference
 Related: Engine/Rendering/Materials/MaterialInputs
 Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
+Version: 4.9
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Decals Home](Resources/ContentExamples/Decals)
+	[/PARAM]
+	[PARAM:next]
+		[Next Example](Resources/ContentExamples/Decals/1_2 "%Resources/ContentExamples/Decals/1_2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -55,12 +72,12 @@ Related: Engine/Rendering/Materials/MaterialInstances
 
 ![%Resources/ContentExamples/Decals/1_1:title%](Resources\ContentExamples\Decals\Decals_1.png)
 
-## Overview
-
-Decals are Materials that are projected onto meshes in your level, including Static Meshes and Skeletal Meshes. These meshes can have a **Mobility** setting of Static or Movable and the Decal will still project on them. Many Decals can be rendered at once without a large performance decrease. Performance decreases with larger screen space size and higher shader instruction count.
 
 
-You can add the Decal Actor directly from the Classes Viewer. You then need to make a new Material and change its **Material Domain** property to _Deferred Decal_. You can then apply the Material to the Decal Actor.
+**Decals** are Materials that are projected onto meshes in your level, including Static Meshes and Skeletal Meshes. These meshes can have a Mobility setting of Static or Movable and the Decal will still project on them. Many Decals can be rendered at once without a large performance decrease. Performance decreases with larger screen space size and higher shader instruction count.
+
+
+You can add the Deferred Decal Actor directly from the **All Classes** tab of the **Modes** panel. You then need to make a new Material and change the **Material Domain** property to **Deferred Decal** in the Material's **Details** panel. You can then apply the Material to the Decal Actor.
 
 ![](DecalActorList.png)
 

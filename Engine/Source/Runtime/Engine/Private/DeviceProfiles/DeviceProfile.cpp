@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "DeviceProfiles/DeviceProfile.h"
@@ -108,7 +108,7 @@ void UDeviceProfile::PostEditChangeProperty( FPropertyChangedEvent& PropertyChan
 			{
 				UDeviceProfile* ParentProfile = *DeviceProfileIt;
 
-				if( !ParentProfile->HasAnyFlags(RF_PendingKill) )
+				if( !ParentProfile->IsPendingKill() )
 				{
 					int32 ProfileGeneration = 1;
 					while( ParentProfile != NULL )

@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2515048
+﻿INTSourceChangelist:2735872
 Availability:Public
-Title:ブループリント
+Title:ブループリント・ビジュアル・スクリプティング
 Crumbs: %ROOT%, Engine
 Description:ブループリントの使い方をみてきましょう。
-
+version:4.9
+parent:%ROOT%
+order:5
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -68,7 +70,6 @@ Description:ブループリントの使い方をみてきましょう。
 [/OBJECT]
 [/VAR]
 
-
 [REGION:banner]
 ![Blueprint](k2_banner.png)
 [/REGION]
@@ -79,7 +80,7 @@ Description:ブループリントの使い方をみてきましょう。
 柔軟性に優れた高性能システムです。
 [/EXCERPT:Intro]
 
-_ブループリント_ を使用すれば、デザイナーは以下のようなゲームプレイ要素を事実上プロトタイプあるいは修正できます。
+ブループリントを使用すれば、デザイナーは以下のようなゲームプレイ要素を事実上プロトタイプあるいは修正できます。
 
 * **Games** - ゲームの規則の設定、ゲームプレイ条件の微調整など行います。
 * **Players** - 異なるメッシュと _マテリアル_ またはキャラクターのカスタム化でバリアントを作成します。
@@ -88,179 +89,20 @@ _ブループリント_ を使用すれば、デザイナーは以下のよう�
 * **Items** - 武器、魔法、ピックアップ、トリガなどです。
 * **Environments** - ランダム化されたプロップや、プロシージャルに生成されるアイテムを作成します。
 
-[REGION:topics third]
-[EXCERPT:Topics]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/GettingStarted:title%](intro_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/GettingStarted:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/GettingStarted:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/GettingStarted]
-	[/PARAM]
-[/OBJECT]
-%Engine/Blueprints/Overview:topic%
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/UserGuide:title%](Engine\Blueprints\UserGuide\using_interface_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/UserGuide:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/UserGuide:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/Editor:title%](editor_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/Editor:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/Editor:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/Editor]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-		![Blueprint Node Reference](bp_api_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		ブループリント ノード リファレンス
-	[/PARAM]
-	[PARAM:description]
-		関数コール、イベント、その他のブループリント ノードを全部網羅して総括的なリファレンス
-	[/PARAM]
-	[PARAMLITERAL:path]
-		https://docs.unrealengine.com/latest/INT/BlueprintAPI/index.html
-	[/PARAMLITERAL]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/BP_HowTo:title%](BP_HowTo_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/BP_HowTo:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/BP_HowTo:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/BP_HowTo]
-	[/PARAM]
-[/OBJECT]
-[/EXCERPT:Topics]
+## 開始する
+
+[DIR(end:"1" output:"topic" type:"quickstart")]
+
+## リファレンス
+
+[DIR(end:"1" output:"topic" type:"reference")]
+
+## ガイド
+
+[DIR(end:"1" output:"topic" type:"howto")]
+
+## ビデオ チュートリアル
+
+[REGION:simplegallery]
+[VideoLink(videoid:"cRhWc2kAhqI" playlistid:"PLZlv_N0_O1gbYMYfhhdzfW1tUV4jU0YxH" width:"275")]
 [/REGION]
-
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		ガイド
-	[/PARAM]
-	[PARAM:description]
-	[REGION:topics third]
-	[OBJECT:TopicCompact]
-		[PARAM:image]
-		![](blueprintcheatsheet.png)
-		[/PARAM]
-		[PARAM:title]
-			ブループリント エディタ虎の巻
-		[/PARAM]
-		[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\CheatSheet]
-		[/PARAM]
-	[/OBJECT]
-	[OBJECT:TopicCompact]
-		[PARAM:image]
-		![](BestPractices_Topic.png)
-		[/PARAM]
-		[PARAM:title]
-			ブループリント ベスト プラクティス
-		[/PARAM]
-		[PARAM:path]
-		[RELATIVE:Engine\Blueprints\BestPractices]
-		[/PARAM]
-	[/OBJECT]
-	[OBJECT:TopicCompact]
-		[PARAM:image]
-			![](UsingBPComms_Topic.png)
-		[/PARAM]
-		[PARAM:title]
-			ブループリント通信を使用する
-		[/PARAM]
-		[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\BlueprintCommsUsage]
-		[/PARAM]
-	[/OBJECT]
-	[OBJECT:TopicCompact]
-		[PARAM:image]
-			![](BPCommTopic.png)
-		[/PARAM]
-		[PARAM:title]
-			%Engine\Blueprints\HowTo:title%
-		[/PARAM]
-		[PARAM:path]
-		[RELATIVE:Engine\Blueprints\HowTo]
-		[/PARAM]
-	[/OBJECT]
-	[/REGION]
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/cine_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		ビデオ チュートリアル
-	[/PARAM]
-	[PARAM:description]
-		[REGION:simplegallery]
-		[OBJECT:VideoLink]
-			[PARAMLITERAL:videoid]
-			cRhWc2kAhqI
-			[/PARAMLITERAL]
-			[PARAMLITERAL:playlistid]
-			PLZlv_N0_O1gbYMYfhhdzfW1tUV4jU0YxH
-			[/PARAMLITERAL]
-			[PARAMLITERAL:width]
-			275
-			[/PARAMLITERAL]
-			[PARAMLITERAL:image]
-			[/PARAMLITERAL]
-			[PARAMLITERAL:playerurl]
-				https://wiki.unrealengine.com/Videos/Player
-			[/PARAMLITERAL]
-		[/OBJECT]
-		[/REGION]
-	[/PARAM]
-[/OBJECT]

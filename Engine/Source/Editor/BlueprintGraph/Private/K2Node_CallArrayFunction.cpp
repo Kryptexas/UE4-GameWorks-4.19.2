@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "K2Node_CallArrayFunction.h"
@@ -49,6 +49,8 @@ void UK2Node_CallArrayFunction::PostReconstructNode()
 			PinConnectionListChanged(Pin);
 		}
 	}
+
+	Super::PostReconstructNode();
 }
 
 void UK2Node_CallArrayFunction::NotifyPinConnectionListChanged(UEdGraphPin* Pin)

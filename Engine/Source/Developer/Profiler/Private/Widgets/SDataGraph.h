@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -365,23 +365,6 @@ protected:
 	bool ViewMode_SetTimeBased_CanExecute() const;
 	/** Handles FIsActionChecked for DataGraph_ViewMode_SetTimeBased. */
 	bool ViewMode_SetTimeBased_IsChecked() const;
-
-
-	/** Handles FExecuteAction for DataGraph_MultiMode_SetCombined. */
-	void MultiMode_SetCombined_Execute();
-	/** Handles FCanExecuteAction for DataGraph_MultiMode_SetCombined. */
-	bool MultiMode_SetCombined_CanExecute() const;
-	/** Handles FIsActionChecked for DataGraph_MultiMode_SetCombined. */
-	bool MultiMode_SetCombined_IsChecked() const;
-
-	
-	/** Handles UI Action's delegates for DataGraph_MultiMode_SetOneLinePerDataSource. */
-	void MultiMode_SetOneLinePerDataSource_Execute();
-	/** Handles FCanExecuteAction for DataGraph_MultiMode_SetOneLinePerDataSource. */
-	bool MultiMode_SetOneLinePerDataSource_CanExecute() const;
-	/** Handles FIsActionChecked for DataGraph_MultiMode_SetOneLinePerDataSource. */
-	bool MultiMode_SetOneLinePerDataSource_IsChecked() const;
-
 
 	const FGraphDescription* GetFirstGraph() const
 	{

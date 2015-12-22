@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintEditorPrivatePCH.h"
 
@@ -103,7 +103,7 @@ void FKismetDragDropAction::HoverTargetChanged()
 	if (ActionWillShowExistingNode())
 	{
 		FSlateBrush const* ShowsExistingIcon = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.ShowNode"));
-		FText DragingText = FText::Format(LOCTEXT("ShowExistingNode", "Show '{0}'"), ActionNode->MenuDescription);
+		FText DragingText = FText::Format(LOCTEXT("ShowExistingNode", "Show '{0}'"), ActionNode->GetMenuDescription());
 		SetSimpleFeedbackMessage(ShowsExistingIcon, FLinearColor::White, DragingText);
 	}
 	// it should be obvious that we can't drop on anything but a graph, so no need to point that out

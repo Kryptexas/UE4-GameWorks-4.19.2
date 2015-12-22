@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "GameplayAbilityTargetActor.h"
@@ -23,7 +23,7 @@ UAbilityTask_SpawnActor* UAbilityTask_SpawnActor::SpawnActor(UObject* WorldConte
 
 bool UAbilityTask_SpawnActor::BeginSpawningActor(UObject* WorldContextObject, FGameplayAbilityTargetDataHandle TargetData, TSubclassOf<AActor> InClass, AActor*& SpawnedActor)
 {
-	if (Ability.IsValid() && Ability.Get()->GetCurrentActorInfo()->IsNetAuthority())
+	if (Ability && Ability->GetCurrentActorInfo()->IsNetAuthority())
 	{
 		UWorld* const World = GEngine->GetWorldFromContextObject(WorldContextObject);
 		if (World)
@@ -56,7 +56,7 @@ void UAbilityTask_SpawnActor::FinishSpawningActor(UObject* WorldContextObject, F
 			}
 			else if (LocationData->HasEndPoint())
 			{
-				SpawnTransform.SetLocation(LocationData->GetEndPoint());
+				SpawnTransform = LocationData->GetEndPointTransform();
 			}
 		}
 

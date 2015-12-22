@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2603006
+﻿INTSourceChangelist:2663119
 Availability: Public
 Title:리프트 구성하기
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
@@ -21,7 +21,7 @@ Description:A 지점에서 B 지점으로 자동 이동하는 두 가지 유형�
 
 1.  **콘텐츠 브라우저** 안에서 **Shapes** 폴더에 있는 **Shape_Cube** 를 레벨 내 **PlayerStart** 앞에 끌어 놓습니다. 
 
-	![](MHT2_DragInCube.png)(w:720)
+	![](MHT2_Drag_inCube.jpg)(w:720)
 
 1.  **Shape_Cube** 에 대한 **디테일** 패널에서 **트랜스폼** 아래 **스케일** 의 **X, Y, Z** 값을 **3.0, 3.0, 0.25** 로 설정합니다.
 
@@ -139,7 +139,17 @@ Description:A 지점에서 B 지점으로 자동 이동하는 두 가지 유형�
 
 1. 에디터에서 **플레이** 버튼을 클릭해 보면 리프트가 위에서 1 초 아래서 1 초 기다리면서 오르락 내리락 반복하는 것을 볼 수 있습니다.
 
-	![](MHT2_Lift1Gif.gif)(w:420 convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	_nPqdhXIoAw
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 
 [OBJECT:TopicList]
@@ -203,7 +213,7 @@ Description:A 지점에서 B 지점으로 자동 이동하는 두 가지 유형�
 
 1. 작은 하양 박스를 클릭한 다음 핸들 바 위젯을 아래쪽으로 끌어 원호를 만듭니다.
 
-	![](MHT2_CE_DragCurveDown1.png)(w:780)
+	![](MHT2_CEDragCurveDown1.jpg)(w:780)
 
 1. **레벨 뷰포트** 에서도 지난 단계에서 조절한 대로 **이동 경로** 가 굽은 것을 확인할 수 있을 것입니다.
 
@@ -211,7 +221,7 @@ Description:A 지점에서 B 지점으로 자동 이동하는 두 가지 유형�
 	
 1. **0.00** 마크의 **키프레임** 에 클릭한 다음 **툴바** 에서 **꺾임** 옵션을 클릭하고 (아래 2 참고), 작은 하양 박스를 (아래 1 참고) 아래쪽으로 이동시켜 아치를 만듭니다. 
 
-	![](MHT2_CE_AdjustFirstKey.png)(w:780)
+	![](MHT2_CEAdjustFirstKey.jpg)(w:780)
 
 	_주: 0.00 과 2.00 위치의 **키프레임** 을 전환하면 서 위젯을 만져 아치를 더욱 부드럽게 만들 수 있습니다._
 
@@ -245,7 +255,17 @@ Description:A 지점에서 B 지점으로 자동 이동하는 두 가지 유형�
 
 1. **메인 에디터** 의 **툴바** 에서 **플레이** 버튼을 클릭하면 두 개의 리프트가 각기 다르게 움직이며, 하나는 굽은 경로대로 움직이는 것을 확인할 수 있습니다.
 
-	![](MHT2_BothLiftsGif.gif)(w:420 convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	SrnTCME2RVU
+	[/PARAMLITERAL]
+	[/OBJECT]
 	
 
 ---

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateRHIRendererPrivatePCH.h"
 #include "SlateUTextureResource.h"
@@ -32,14 +32,9 @@ void FSlateUTextureResource::UpdateRenderResource(FTexture* InFTexture)
 		// if that's true we need to update the actual size recorded on the proxy as well, otherwise 
 		// the texture will continue to render using the wrong size.
 		Proxy->ActualSize = FIntPoint(InFTexture->GetSizeX(), InFTexture->GetSizeY());
-
-		ShaderResource = FTexture2DRHIRef(InFTexture->TextureRHI->GetTexture2D());
-	}
-	else
-	{
-		ShaderResource = FTexture2DRHIRef();
 	}
 }
+
 
 uint32 FSlateUTextureResource::GetWidth() const
 { 

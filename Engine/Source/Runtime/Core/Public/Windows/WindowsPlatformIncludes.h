@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -23,7 +23,6 @@
 #include "Windows/WindowsPlatformSplash.h"
 #include "Windows/WindowsPlatformFile.h"
 #include "Windows/WindowsPlatformSurvey.h"
-#include "Windows/WindowsPlatformHttp.h"
 
 
 typedef FGenericPlatformRHIFramePacer FPlatformRHIFramePacer;

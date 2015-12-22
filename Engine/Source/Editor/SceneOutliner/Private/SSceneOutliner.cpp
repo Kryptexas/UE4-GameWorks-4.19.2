@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "SceneOutlinerPrivatePCH.h"
@@ -1533,7 +1533,8 @@ namespace SceneOutliner
 		return	!SharedData->bOnlyShowFolders && 												// Don't show actors if we're only showing folders
 				Actor->IsEditable() &&															// Only show actors that are allowed to be selected and drawn in editor
 				Actor->IsListedInSceneOutliner() &&
-				(SharedData->bRepresentingPlayWorld || !Actor->HasAnyFlags(RF_Transient)) &&    // Don't show transient actors in non-play worlds
+				( (SharedData->bRepresentingPlayWorld || !Actor->HasAnyFlags(RF_Transient)) ||
+				  (SharedData->bShowTransient && Actor->HasAnyFlags(RF_Transient) ) ) &&		// Don't show transient actors in non-play worlds
 				!Actor->IsTemplate() &&															// Should never happen, but we never want CDOs displayed
 				!FActorEditorUtils::IsABuilderBrush(Actor) &&									// Don't show the builder brush
 				!Actor->IsA( AWorldSettings::StaticClass() ) &&									// Don't show the WorldSettings actor, even though it is technically editable

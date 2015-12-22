@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Reflection Environment - feature that provides HDR glossy reflections on any surfaces, leveraging precomputation to prefilter cubemaps of the scene
@@ -42,6 +42,7 @@ static TAutoConsoleVariable<int32> CVarReflectionEnvironment(
 	TEXT(" 1: on and blend with scene (default)")
 	TEXT(" 2: on and overwrite scene (only in non-shipping builds)"),
 	ECVF_RenderThreadSafe | ECVF_Scalability);
+
 
 static TAutoConsoleVariable<int32> CVarDoTiledReflections(
 	TEXT("r.DoTiledReflections"),
@@ -88,6 +89,7 @@ void FReflectionEnvironmentCubemapArray::InitDynamicRHI()
 {
 	if (GetFeatureLevel() >= ERHIFeatureLevel::SM5)
 	{
+
 		const int32 NumReflectionCaptureMips = FMath::CeilLogTwo(GReflectionCaptureSize) + 1;
 
 		ReleaseCubeArray();
@@ -103,9 +105,13 @@ void FReflectionEnvironmentCubemapArray::InitDynamicRHI()
 		// Cubemap array of 1 produces a regular cubemap, so guarantee it will be allocated as an array
 		FMath::Max<uint32>(MaxCubemaps, 2),
 		NumReflectionCaptureMips));
+
+		Desc.AutoWritable = false;
 	
+		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
+
 		// Allocate TextureCubeArray for the scene's reflection captures
-		GRenderTargetPool.FindFreeElement(Desc, ReflectionEnvs, TEXT("ReflectionEnvs"));
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, ReflectionEnvs, TEXT("ReflectionEnvs"));
 	}
 }
 
@@ -148,8 +154,8 @@ public:
 		MinSkySpecularOcclusion.Bind(ParameterMap, TEXT("MinSkySpecularOcclusion"));
 	}
 
-	template<typename ShaderRHIParamRef>
-	void SetParameters(FRHICommandList& RHICmdList, const ShaderRHIParamRef& ShaderRHI, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO, float SkySpecularOcclusionStrength, float MinOcclusionValue)
+	template<typename ShaderRHIParamRef, typename TRHICmdList>
+	void SetParameters(TRHICmdList& RHICmdList, const ShaderRHIParamRef& ShaderRHI, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO, float SkySpecularOcclusionStrength, float MinOcclusionValue)
 	{
 		FTextureRHIParamRef BentNormalAO = GWhiteTexture->TextureRHI;
 		bool bApplyBentNormalAO = false;
@@ -257,7 +263,7 @@ public:
 	{
 	}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, FTextureRHIParamRef SSRTexture, TArray<FReflectionCaptureSortData>& SortData, FUnorderedAccessViewRHIParamRef OutSceneColorUAV, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO)
+	void SetParameters(FRHIAsyncComputeCommandListImmediate& RHICmdList, const FSceneView& View, FTextureRHIParamRef SSRTexture, TArray<FReflectionCaptureSortData>& SortData, FUnorderedAccessViewRHIParamRef OutSceneColorUAV, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO)
 	{
 		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 
@@ -282,6 +288,8 @@ public:
 		SetTextureParameter(RHICmdList, ShaderRHI, ScreenSpaceReflections, SSRTexture );
 
 		SetTextureParameter(RHICmdList, ShaderRHI, InSceneColor, FSceneRenderTargets::Get(RHICmdList).GetSceneColor()->GetRenderTargetItem().ShaderResourceTexture );
+
+		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, OutSceneColorUAV);
 		OutSceneColor.SetTexture(RHICmdList, ShaderRHI, NULL, OutSceneColorUAV);
 
 		SetShaderValue(RHICmdList, ShaderRHI, ViewDimensionsParameter, View.ViewRect);
@@ -307,9 +315,9 @@ public:
 		SpecularOcclusionParameters.SetParameters(RHICmdList, ShaderRHI, DynamicBentNormalAO, CVarSkySpecularOcclusionStrength.GetValueOnRenderThread(), MinOcclusion);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList)
+	void UnsetParameters(FRHIAsyncComputeCommandListImmediate& RHICmdList, FUnorderedAccessViewRHIParamRef OutSceneColorUAV)
 	{
-		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
+		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();		
 		OutSceneColor.UnsetUAV(RHICmdList, ShaderRHI);
 	}
 
@@ -851,7 +859,7 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 		Desc.ClearValue = FClearValueBinding::None;
 
 		// we don't create a new name to make it easier to use "vis SceneColor" and get the last HDRSceneColor
-		GRenderTargetPool.FindFreeElement( Desc, NewSceneColor, TEXT("SceneColor") );
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, NewSceneColor, TEXT("SceneColor") );
 	}
 
 	// If we are in SM5, use the compute shader gather method
@@ -869,12 +877,10 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 
 		// ReflectionEnv is assumed to be on when going into this method
 		{
-			// Render the reflection environment with tiled deferred culling
-			SCOPED_DRAW_EVENT(RHICmdList, ReflectionEnvironmentGather);
-
 			SetRenderTarget(RHICmdList, NULL, NULL);
 
 			FReflectionEnvironmentTiledDeferredCS* ComputeShader = NULL;
+			// Render the reflection environment with tiled deferred culling
 			TArray<FReflectionCaptureSortData> SortData;
 			int32 NumBoxCaptures = 0;
 			int32 NumSphereCaptures = 0;
@@ -883,17 +889,52 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 			bool bHasBoxCaptures = (NumBoxCaptures > 0);
 			bool bHasSphereCaptures = (NumSphereCaptures > 0);
 			bool bNeedsClearCoat = (View.ShadingModelMaskInView & (1 << MSM_ClearCoat)) != 0;
+
+			static const FName TiledReflBeginComputeName(TEXT("ReflectionEnvBeginComputeFence"));
+			static const FName TiledReflEndComputeName(TEXT("ReflectionEnvEndComputeFence"));
+			FComputeFenceRHIRef ReflectionBeginFence = RHICmdList.CreateComputeFence(TiledReflBeginComputeName);
+			FComputeFenceRHIRef ReflectionEndFence = RHICmdList.CreateComputeFence(TiledReflEndComputeName);
+
+			//Grab the async compute commandlist.
+			FRHIAsyncComputeCommandListImmediate& RHICmdListComputeImmediate = FRHICommandListExecutor::GetImmediateAsyncComputeCommandList();
+			{
+			SCOPED_COMPUTE_EVENTF(RHICmdListComputeImmediate, ReflectionEnvironment, TEXT("ReflectionEnvironment ComputeShader %dx%d Tile:%dx%d Box:%d Sphere:%d ClearCoat:%d"),
+				View.ViewRect.Width(), View.ViewRect.Height(), GReflectionEnvironmentTileSizeX, GReflectionEnvironmentTileSizeY,
+				NumBoxCaptures, NumSphereCaptures, bNeedsClearCoat);
+
 			ComputeShader = SelectReflectionEnvironmentTiledDeferredCS(View.ShaderMap, bUseLightmaps, bNeedsClearCoat, bHasBoxCaptures, bHasSphereCaptures);
 
-			RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 
-			ComputeShader->SetParameters(RHICmdList, View, SSROutput->GetRenderTargetItem().ShaderResourceTexture, SortData, NewSceneColor->GetRenderTargetItem().UAV, DynamicBentNormalAO);
+			
+			//Really we should write this fence where we transition the final depedency for the reflections.  We may add an RHI command just for writing fences if this
+			//can't be done in the general case.  In the meantime, hack this command a bit to write the fence.
+			RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EGfxToCompute, nullptr, 0, ReflectionBeginFence);
+					
+			//we must wait on the fence written from the Gfx pipe to let us know all our dependencies are ready.
+			RHICmdListComputeImmediate.WaitComputeFence(ReflectionBeginFence);
 
+			//standard compute setup, but on the async commandlist.
+			RHICmdListComputeImmediate.SetComputeShader(ComputeShader->GetComputeShader());
+
+			FUnorderedAccessViewRHIParamRef OutUAV = NewSceneColor->GetRenderTargetItem().UAV;
+			ComputeShader->SetParameters(RHICmdListComputeImmediate, View, SSROutput->GetRenderTargetItem().ShaderResourceTexture, SortData, OutUAV, DynamicBentNormalAO);
+			
 			uint32 GroupSizeX = (View.ViewRect.Size().X + GReflectionEnvironmentTileSizeX - 1) / GReflectionEnvironmentTileSizeX;
 			uint32 GroupSizeY = (View.ViewRect.Size().Y + GReflectionEnvironmentTileSizeY - 1) / GReflectionEnvironmentTileSizeY;
-			DispatchComputeShader(RHICmdList, ComputeShader, GroupSizeX, GroupSizeY, 1);
+			DispatchComputeShader(RHICmdListComputeImmediate, ComputeShader, GroupSizeX, GroupSizeY, 1);
 
-			ComputeShader->UnsetParameters(RHICmdList);
+			ComputeShader->UnsetParameters(RHICmdListComputeImmediate, OutUAV);
+			
+			//transition the output to readable and write the fence to allow the Gfx pipe to carry on.
+			RHICmdListComputeImmediate.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, &OutUAV, 1, ReflectionEndFence);
+			}
+
+			//immediately dispatch our async compute commands to the RHI thread to be submitted to the GPU as soon as possible.
+			//dispatch after the scope so the drawevent pop is inside the dispatch
+			FRHIAsyncComputeCommandListImmediate::ImmediateDispatch(RHICmdListComputeImmediate);			
+			
+			//Gfx pipe must wait for the async compute reflection job to complete.
+			RHICmdList.WaitComputeFence(ReflectionEndFence);
 		}
 	}
 
@@ -1009,7 +1050,7 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 		{
 			bRequiresApply = true;
 
-			SCOPED_DRAW_EVENT(RHICmdList, StandardDeferredReflectionEnvironment);
+			SCOPED_DRAW_EVENTF(RHICmdList, ReflectionEnvironment, TEXT("ReflectionEnvironment PixelShader"));
 
 			{
 				// Clear to no reflection contribution, alpha of 1 indicates full background contribution
@@ -1046,7 +1087,7 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 
 						static FGlobalBoundShaderState BoundShaderState;
 						
-						SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+						SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GetVertexDeclarationFVector4(), *VertexShader, *PixelShader);
 
 						PixelShader->SetParameters(RHICmdList, View, ReflectionCapture);
 					}
@@ -1056,7 +1097,7 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 
 						static FGlobalBoundShaderState BoundShaderState;
 						
-						SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+						SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GetVertexDeclarationFVector4(), *VertexShader, *PixelShader);
 
 						PixelShader->SetParameters(RHICmdList, View, ReflectionCapture);
 					}
@@ -1076,7 +1117,7 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 			// Apply reflections to screen
 			SCOPED_DRAW_EVENT(RHICmdList, ReflectionApply);
 
-			SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
+			SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilWrite, true);
 
 			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());

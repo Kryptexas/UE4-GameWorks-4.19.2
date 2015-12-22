@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2346406
+﻿INTSourceChangelist:2714552
 Availability:Public
-Title:2.6 - ボリュメトリック パーティクル効果に使用する Lit （ライティング有り） の透過処理
+Title:2.6 - ボリュメトリック パーティクル エフェクトに使用する Lit （ライティング有り） の透過処理
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
 Description:エフェクト ギャラリーの事例概要
 Related: Engine/Rendering/LightingAndShadows/LitTranslucency
@@ -10,6 +10,26 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+Version:4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/EffectsGallery/2_E "%Resources/ContentExamples/EffectsGallery/2_E:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[エフェクト ギャラリー ホーム](Resources/ContentExamples/EffectsGallery)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/EffectsGallery/2_G "%Resources/ContentExamples/EffectsGallery/2_G:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
@@ -54,7 +74,7 @@ Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 [/REGION]
 
 
-lit (ライティング有り) マテリアルを使用しているパーティクルは、とても現実的な方法で全てのライトから影響を受けるようになりました。特に具体的な設定は必要ありませんが、要望通りの結果を得るために、Material プロパティの Translucency (透過) 設定を微調整します。 
+lit (ライティング有り) マテリアルを使用しているパーティクルは、非常にリアルな方法で全てのライトから影響を受けるようになりました。特に具体的な設定は必要ありませんが、必要な結果を得るために、マテリアルのプロパティの Translucency (透過) 設定を微調整します。 
 
 [REGION:warning]
 Lit パーティクルはより複雑なシェーダーを使用し、unlit パーティクルと比較してパフォーマンスにかなりの影響を及ぼす場合があるので慎重に使用してください！

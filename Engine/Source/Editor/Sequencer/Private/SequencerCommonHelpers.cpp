@@ -1,7 +1,9 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
 #include "SequencerCommonHelpers.h"
+#include "MovieSceneSection.h"
+#include "MovieSceneTrack.h"
 
 void SequencerHelpers::GetAllKeyAreas(TSharedPtr<FSequencerDisplayNode> DisplayNode, TSet<TSharedPtr<IKeyArea>>& KeyAreas)
 {
@@ -14,10 +16,10 @@ void SequencerHelpers::GetAllKeyAreas(TSharedPtr<FSequencerDisplayNode> DisplayN
 
 		if (NodeToCheck->GetType() == ESequencerNode::Track)
 		{
-			TSharedPtr<FTrackNode> TrackNode = StaticCastSharedPtr<FTrackNode>(NodeToCheck);
-			TArray<TSharedRef<FSectionKeyAreaNode>> KeyAreaNodes;
+			TSharedPtr<FSequencerTrackNode> TrackNode = StaticCastSharedPtr<FSequencerTrackNode>(NodeToCheck);
+			TArray<TSharedRef<FSequencerSectionKeyAreaNode>> KeyAreaNodes;
 			TrackNode->GetChildKeyAreaNodesRecursively(KeyAreaNodes);
-			for (TSharedRef<FSectionKeyAreaNode> KeyAreaNode : KeyAreaNodes)
+			for (TSharedRef<FSequencerSectionKeyAreaNode> KeyAreaNode : KeyAreaNodes)
 			{
 				for (TSharedPtr<IKeyArea> KeyArea : KeyAreaNode->GetAllKeyAreas())
 				{
@@ -29,7 +31,7 @@ void SequencerHelpers::GetAllKeyAreas(TSharedPtr<FSequencerDisplayNode> DisplayN
 		{
 			if (NodeToCheck->GetType() == ESequencerNode::KeyArea)
 			{
-				TSharedPtr<FSectionKeyAreaNode> KeyAreaNode = StaticCastSharedPtr<FSectionKeyAreaNode>(NodeToCheck);
+				TSharedPtr<FSequencerSectionKeyAreaNode> KeyAreaNode = StaticCastSharedPtr<FSequencerSectionKeyAreaNode>(NodeToCheck);
 				for (TSharedPtr<IKeyArea> KeyArea : KeyAreaNode->GetAllKeyAreas())
 				{
 					KeyAreas.Add(KeyArea);
@@ -51,6 +53,57 @@ void SequencerHelpers::GetDescendantNodes(TSharedRef<FSequencerDisplayNode> Disp
 
 		GetDescendantNodes(ChildNode, Nodes);
 	}
+}
+
+void SequencerHelpers::GetAllSections(TSharedRef<FSequencerDisplayNode> DisplayNode, TSet<TWeakObjectPtr<UMovieSceneSection>>& Sections)
+{
+	TSet<TSharedRef<FSequencerDisplayNode> > AllNodes;
+	AllNodes.Add(DisplayNode);
+	GetDescendantNodes(DisplayNode, AllNodes);
+
+	for (auto NodeToCheck : AllNodes)
+	{
+		TSet<TSharedPtr<IKeyArea> > KeyAreas;
+		GetAllKeyAreas(NodeToCheck, KeyAreas);
+		
+		for (auto KeyArea : KeyAreas)
+		{
+			UMovieSceneSection* OwningSection = KeyArea->GetOwningSection();
+			if (OwningSection != nullptr)
+			{
+				Sections.Add(OwningSection);	
+			}
+		}
+
+		if (NodeToCheck->GetType() == ESequencerNode::Track)
+		{
+			TSharedRef<const FSequencerTrackNode> TrackNode = StaticCastSharedRef<const FSequencerTrackNode>( NodeToCheck );
+			UMovieSceneTrack* Track = TrackNode->GetTrack();
+			if (Track != nullptr)
+			{
+				for (auto Section : Track->GetAllSections())
+				{
+					Sections.Add(Section);
+				}
+			}
+		}
+	}
+}
+
+bool SequencerHelpers::FindObjectBindingNode(TSharedRef<FSequencerDisplayNode> DisplayNode, TSharedRef<FSequencerDisplayNode>& ObjectBindingNode)
+{
+	if (DisplayNode->GetType() == ESequencerNode::Object)
+	{
+		ObjectBindingNode = DisplayNode;
+		return true;
+	}
+
+	if (DisplayNode->GetParent().IsValid())
+	{
+		return FindObjectBindingNode(DisplayNode->GetParent().ToSharedRef(), ObjectBindingNode);
+	}
+
+	return false;
 }
 
 int32 SequencerHelpers::TimeToFrame(float Time, float FrameRate)

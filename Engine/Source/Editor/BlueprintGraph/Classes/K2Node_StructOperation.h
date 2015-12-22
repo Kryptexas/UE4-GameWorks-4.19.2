@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -14,22 +14,23 @@ class UK2Node_StructOperation : public UK2Node_Variable
 	UPROPERTY()
 	UScriptStruct* StructType;
 
-	// Begin UEdGraphNode interface
+	//~ Begin UEdGraphNode Interface
 	virtual FString GetPinMetaData(FString InPinName, FName InKey) override;
-	// End UEdGraphNode interface
+	//~ End UEdGraphNode Interface
 
-	// UK2Node interface
+	//~ Begin UK2Node Interface
 	//virtual bool DrawNodeAsVariable() const override { return true; }
 	virtual bool ShouldShowNodeProperties() const override { return true; }
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override {}
 	virtual bool HasExternalDependencies(TArray<class UStruct*>* OptionalOutput = NULL) const override;
-	// End of UK2Node interface
+	virtual FString GetFindReferenceSearchString() const override;
+	//~ End UK2Node Interface
 
 protected:
 	// Updater for subclasses that allow hiding pins
 	struct FStructOperationOptionalPinManager : public FOptionalPinManager
 	{
-		// FOptionalPinsUpdater interface
+		//~ Begin FOptionalPinsUpdater Interface
 		virtual void GetRecordDefaults(UProperty* TestProperty, FOptionalPinFromProperty& Record) const override
 		{
 			Record.bCanToggleVisibility = true;

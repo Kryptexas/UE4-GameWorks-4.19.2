@@ -5,7 +5,25 @@ Description:An overview of the Post Processing example level, example 1.2: Film
 Related: Engine/Rendering/Overview
 Related: Engine/Rendering/PostProcessEffects
 Related: Engine/Rendering/PostProcessEffects/PostProcessMaterials
+Version: 4.9
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Example](Resources/ContentExamples/PostProcessing/1_1 "%Resources/ContentExamples/PostProcessing/1_1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Post Processing Home](Resources/ContentExamples/PostProcessing)
+	[/PARAM]
+	[PARAM:next]
+		[Next Example](Resources/ContentExamples/PostProcessing/1_3 "%Resources/ContentExamples/PostProcessing/1_3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -51,5 +69,5 @@ Related: Engine/Rendering/PostProcessEffects/PostProcessMaterials
 [![](1_2_01.png)(w:302)](1_2_01.png) [![](1_2_02.png)(w:302)](1_2_02.png) [![](1_2_03.png)(w:302)](1_2_03.png)
 [/REGION:lightbox]
 
-The Film category contains various properties for adjusting the color of your scenes. Includes tinting shadows, color mixing channels, saturation, contrast, crushing shadows, crushing highlights, and dynamic range.
+The **Film** category contains various properties for adjusting the color of your scenes. Includes tinting shadows, color mixing channels, saturation, contrast, crushing shadows, crushing highlights, and dynamic range.
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "EnvironmentQuery/EnvQueryTest.h"
@@ -14,6 +14,7 @@ namespace EEnvTestDistance
 		Distance3D,
 		Distance2D,
 		DistanceZ,
+		DistanceAbsoluteZ UMETA(DisplayName = "Distance Z (Absolute)")
 	};
 }
 

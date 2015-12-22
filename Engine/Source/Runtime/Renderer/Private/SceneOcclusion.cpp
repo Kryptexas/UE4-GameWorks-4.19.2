@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneRendering.cpp: Scene rendering.
@@ -84,7 +84,7 @@ FRenderQueryRHIRef FRenderQueryPool::AllocateQuery()
 	return Queries.Pop(/*bAllowShrinking=*/ false);
 }
 
-void FRenderQueryPool::ReleaseQuery(FRHICommandListImmediate& RHICmdList, FRenderQueryRHIRef &Query)
+void FRenderQueryPool::ReleaseQuery(FRenderQueryRHIRef &Query)
 {
 	if ( IsValidRef(Query) )
 	{
@@ -211,7 +211,7 @@ const uint8* FSceneViewState::GetPrecomputedVisibilityData(FViewInfo& View, cons
 	return PrecomputedVisibilityData;
 }
 
-void FSceneViewState::TrimOcclusionHistory(FRHICommandListImmediate& RHICmdList, float MinHistoryTime, float MinQueryTime, int32 FrameNumber)
+void FSceneViewState::TrimOcclusionHistory(FRHICommandListImmediate& RHICmdList, float CurrentTime, float MinHistoryTime, float MinQueryTime, int32 FrameNumber)
 {
 	// Only trim every few frames, since stale entries won't cause problems
 	if (FrameNumber % 6 == 0)
@@ -230,7 +230,7 @@ void FSceneViewState::TrimOcclusionHistory(FRHICommandListImmediate& RHICmdList,
 			}
 
 			// If the primitive hasn't been considered for visibility recently, remove its history from the set.
-			if(PrimitiveIt->LastConsideredTime < MinHistoryTime)
+			if (PrimitiveIt->LastConsideredTime < MinHistoryTime || PrimitiveIt->LastConsideredTime > CurrentTime)
 			{
 				PrimitiveIt.RemoveCurrent();
 			}
@@ -520,12 +520,9 @@ void FHZBOcclusionTester::InitDynamicRHI()
 {
 	if (GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
-#if PLATFORM_MAC // Workaround radr://16096028 Texture Readback via glReadPixels + PBOs stalls on Nvidia GPUs
-		FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( FIntPoint( SizeX, SizeY ), PF_R8G8B8A8, FClearValueBinding::None, TexCreate_CPUReadback | TexCreate_HideInVisualizeTexture, TexCreate_None, false ) );
-#else
+		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
 		FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( FIntPoint( SizeX, SizeY ), PF_B8G8R8A8, FClearValueBinding::None, TexCreate_CPUReadback | TexCreate_HideInVisualizeTexture, TexCreate_None, false ) );
-#endif
-		GRenderTargetPool.FindFreeElement( Desc, ResultsTextureCPU, TEXT("HZBResultsCPU") );
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, ResultsTextureCPU, TEXT("HZBResultsCPU") );
 	}
 }
 
@@ -722,18 +719,14 @@ void FHZBOcclusionTester::Submit(FRHICommandListImmediate& RHICmdList, const FVi
 		uint32 Flags = TexCreate_ShaderResource | TexCreate_Dynamic;
 		FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( FIntPoint( SizeX, SizeY ), PF_A32B32G32R32F, FClearValueBinding::None, Flags, TexCreate_None, false ) );
 
-		GRenderTargetPool.FindFreeElement( Desc, BoundsCenterTexture, TEXT("HZBBoundsCenter") );
-		GRenderTargetPool.FindFreeElement( Desc, BoundsExtentTexture, TEXT("HZBBoundsExtent") );
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, BoundsCenterTexture, TEXT("HZBBoundsCenter") );
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, BoundsExtentTexture, TEXT("HZBBoundsExtent") );
 	}
 
 	TRefCountPtr< IPooledRenderTarget >	ResultsTextureGPU;
 	{
-#if PLATFORM_MAC // Workaround radr://16096028 Texture Readback via glReadPixels + PBOs stalls on Nvidia GPUs
-		FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( FIntPoint( SizeX, SizeY ), PF_R8G8B8A8, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false ) );
-#else
 		FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( FIntPoint( SizeX, SizeY ), PF_B8G8R8A8, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false ) );
-#endif
-		GRenderTargetPool.FindFreeElement( Desc, ResultsTextureGPU, TEXT("HZBResultsGPU") );
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, ResultsTextureGPU, TEXT("HZBResultsGPU") );
 	}
 
 	{
@@ -983,7 +976,6 @@ IMPLEMENT_SHADER_TYPE(template<>,THZBBuildPS<1>,TEXT("HZBOcclusion"),TEXT("HZBBu
 void BuildHZB( FRHICommandListImmediate& RHICmdList, FViewInfo& View )
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_BuildHZB);
-	SCOPED_DRAW_EVENT(RHICmdList, BuildHZB);
 	
 	// View.ViewRect.{Width,Height}() are most likely to be < 2^24, so the float
 	// conversion won't loss any precision (assuming float have 23bits for mantissa)
@@ -997,17 +989,19 @@ void BuildHZB( FRHICommandListImmediate& RHICmdList, FViewInfo& View )
 
 	FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(HZBSize, PF_R16F, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource | TexCreate_NoFastClear, false, NumMips));
 	Desc.Flags |= TexCreate_FastVRAM;
-	GRenderTargetPool.FindFreeElement( Desc, View.HZB, TEXT("HZB") );
+	GRenderTargetPool.FindFreeElement(RHICmdList, Desc, View.HZB, TEXT("HZB") );
 	
 	FSceneRenderTargetItem& HZBRenderTarget = View.HZB->GetRenderTargetItem();
 	
-	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-	RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	RHICmdList.SetDepthStencilState(TStaticDepthStencilState< false, CF_Always >::GetRHI());
-	
+	FTextureRHIParamRef HZBRenderTargetRef = HZBRenderTarget.TargetableTexture.GetReference();
 	// Mip 0
 	{
+		SCOPED_DRAW_EVENTF(RHICmdList, BuildHZB, TEXT("HZB SetupMip 0 %dx%d"), HZBSize.X, HZBSize.Y);
+
 		SetRenderTarget(RHICmdList, HZBRenderTarget.TargetableTexture, 0, NULL);
+		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState< false, CF_Always >::GetRHI());
 
 		TShaderMapRef< FPostProcessVS >	VertexShader(View.ShaderMap);
 		TShaderMapRef< THZBBuildPS<0> >	PixelShader(View.ShaderMap);
@@ -1032,12 +1026,15 @@ void BuildHZB( FRHICommandListImmediate& RHICmdList, FViewInfo& View )
 			*VertexShader,
 			EDRF_UseTriangleOptimization);
 
-		RHICmdList.CopyToResolveTarget(HZBRenderTarget.TargetableTexture, HZBRenderTarget.ShaderResourceTexture, false, FResolveParams(FResolveRect(), CubeFace_PosX, 0));
+		//Use RWBarrier since we don't transition individual subresources.  Basically treat the whole texture as R/W as we walk down the mip chain.
+		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWSubResBarrier, &HZBRenderTargetRef, 1);
 	}
 
 	FIntPoint SrcSize = HZBSize;
 	FIntPoint DstSize = SrcSize / 2;
 	
+	SCOPED_DRAW_EVENTF(RHICmdList, BuildHZB, TEXT("HZB SetupMips 1..%d %dx%d Mips:%d"), NumMips - 1, DstSize.X, DstSize.Y);	
+
 	// Downsampling...
 	for( uint8 MipIndex = 1; MipIndex < NumMips; MipIndex++ )
 	{
@@ -1045,6 +1042,9 @@ void BuildHZB( FRHICommandListImmediate& RHICmdList, FViewInfo& View )
 		DstSize.Y = FMath::Max(DstSize.Y, 1);
 
 		SetRenderTarget(RHICmdList, HZBRenderTarget.TargetableTexture, MipIndex, NULL);
+		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState< false, CF_Always >::GetRHI());
 
 		TShaderMapRef< FPostProcessVS >	VertexShader(View.ShaderMap);
 		TShaderMapRef< THZBBuildPS<1> >	PixelShader(View.ShaderMap);
@@ -1068,10 +1068,11 @@ void BuildHZB( FRHICommandListImmediate& RHICmdList, FViewInfo& View )
 			*VertexShader,
 			EDRF_UseTriangleOptimization);
 
-		RHICmdList.CopyToResolveTarget(HZBRenderTarget.TargetableTexture, HZBRenderTarget.ShaderResourceTexture, false, FResolveParams(FResolveRect(), CubeFace_PosX, MipIndex));
-
 		SrcSize /= 2;
 		DstSize /= 2;
+
+		//Use ERWSubResBarrier since we don't transition individual subresources.  Basically treat the whole texture as R/W as we walk down the mip chain.
+		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWSubResBarrier, &HZBRenderTargetRef, 1);
 	}
 
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint( RHICmdList, View.HZB );
@@ -1139,14 +1140,14 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 				FSceneViewState::ShadowKeyOcclusionQueryMap& ShadowOcclusionQueryMap = ViewState->ShadowOcclusionQueryMaps[QueryIndex];
 
 				// Clear primitives which haven't been visible recently out of the occlusion history, and reset old pending occlusion queries.
-				ViewState->TrimOcclusionHistory(RHICmdList, ViewFamily.CurrentRealTime - GEngine->PrimitiveProbablyVisibleTime, ViewFamily.CurrentRealTime, ViewState->OcclusionFrameCounter);
+				ViewState->TrimOcclusionHistory(RHICmdList, ViewFamily.CurrentRealTime, ViewFamily.CurrentRealTime - GEngine->PrimitiveProbablyVisibleTime, ViewFamily.CurrentRealTime, ViewState->OcclusionFrameCounter);
 
 				// Give back all these occlusion queries to the pool.
 				for (TMap<FSceneViewState::FProjectedShadowKey, FRenderQueryRHIRef>::TIterator QueryIt(ShadowOcclusionQueryMap); QueryIt; ++QueryIt)
 				{
 					//FRenderQueryRHIParamRef Query = QueryIt.Value();
 					//check( Query.GetRefCount() == 1 );
-					ViewState->OcclusionQueryPool.ReleaseQuery(RHICmdList, QueryIt.Value());
+					ViewState->OcclusionQueryPool.ReleaseQuery(QueryIt.Value());
 				}
 				ShadowOcclusionQueryMap.Reset();
 
@@ -1186,7 +1187,7 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 
 									// Draw bounding sphere
 									VertexShader->SetParametersWithBoundingSphere(RHICmdList, View, LightBounds);
-									StencilingGeometry::DrawSphere(RHICmdList);
+									StencilingGeometry::DrawVectorSphere(RHICmdList);
 
 									RHICmdList.EndRenderQuery(ShadowOcclusionQuery);
 								}

@@ -7,6 +7,8 @@ Related: Engine/Rendering/Materials/MaterialInputs
 Related: Engine/Rendering/Materials/Editor
 Related: Engine/Rendering/Materials/IntroductionToMaterials
 Related: Engine/Rendering/Materials/MaterialProperties
+Version: 4.9
+SkillLevel: Beginner
 
 [TOC(start:2 end:3)]
 
@@ -14,11 +16,11 @@ Related: Engine/Rendering/Materials/MaterialProperties
 
 The Main Material node of the Material Graph is where all of the Material Expression nodes that are added to the Material Graph will end up being connected to. 
 The results of what is input into the Main Material node is what will be displayed when the Material is compiled and applied to objects in game. 
-In the following How - To, we will cover all you need to know about how to use the Main Material node.
+In the following How-to, we will cover all you need to know about how to use the Main Material node.
 
 ## The Main Material Node
 
-Materials are created using a specialized coding language called High Level Shading Language or HLSL.
+**Materials** are created using a specialized coding language called **High Level Shading Language** or HLSL.
 HLSL allows Materials to talk directly to the graphics hardware giving artist and coders better control over what is being displayed on screen.
 Inside Unreal Engine 4 (UE4) the Material Expression nodes that are used to create Materials contain small snippets of this HLSL code.
 To display the results of all these small snippets of HLSL code, the Main Material Node is used.
@@ -29,14 +31,14 @@ Whatever combination of Material Expression nodes is plugged into the inputs of 
 
 ![](Material_Main_Node.png)
 
-The Main Material node is responsible for displaying the results of the all the Material Expression nodes that are input into it the various inputs. 
+The Main Material node is responsible for displaying the results of all the Material Expression nodes that are input into it the various inputs. 
 Each input on the Main Material node has a unique effect on how the Material will look and perform. 
 A White colored input means that input will have an affect on the Material, while grayed out input will have no affect on the Material.
 By default, the Main Material node does have some of its inputs grayed out. 
-To enable inputs or disable inputs on the Main Material node ,the following properties have to be modified in the **Details** panel of the Material.
+To enable inputs or disable inputs on the Main Material node, the following properties have to be modified in the **Details** panel of the Material.
 
 [region:note]
-To access the **Details** panel you need make sure that you have the Main Material Node selected. To select the Main Material Node click on it with the **Left Mouse Button**.
+To access the **Details** panel you need to make sure that you have the Main Material Node selected. To select the Main Material Node click on it with the **Left Mouse Button**.
 [/region]
 
 * **Blend Mode**
@@ -67,30 +69,30 @@ like in the image below.
 ### Main Material Node Details Panel Properties
 
 The Main Material nodes **Details** panel is where you can adjust properties that relate to how this Material can be used. 
-From changing the Blend Mode that is used to adjusting the types of objects the Material can interact with, the Main Material Node **Details** panel can be thought of as the properties of the Material. 
-Here is a brief breakdown of what each section in the Main Material node **Details** panel does.
+From changing the Blend Mode that is used to adjusting the types of objects the Material can interact with, the Main Material Node Details panel can be thought of as the properties of the Material. 
+Here is a brief breakdown of what each section in the Main Material node Details panel does.
 
 ![](Material_MMN_Properties.png)
 
 
 |Section Name: | Description|
 |---|---|
-|Physical Material|This allows you to specify what type of Physical Material is used for this Material.|
-| Material|This is where you will spend most of your time when editing Materials. The Material section is where you can change the Material Domain, Blend Mode, and Shading Model along with many more options. |
-| Translucency|This is where you can adjust how Translucency in this Material will function. Please note that this is only editable if the Material Blend Mode is set to Translucent. |
-| Translucency Self Shadowing|This is where you can adjust how Translucent self shadowing looks and behaves. Please note that this is only editable if the Material Blend Mode is set to Translucent.|
-| Usage|This is where you set what type of objects this Material will work with. Usage flags are usually set automatically by the editor. However if you know that this Material is supposed to be used with a certain object type, make sure you enable it here to avoid any future mistakes|
-| Mobile|This is where you set how this Material should work when used on a mobile device like a smart phone.|
-| Tessellation|This is where you can enable the Material to make use of Hardware Tessellation.|
-| Post Process Material|This is where you define how this Material should work with Post Process and Tone Mapping. Please note that this is only editable if the Material Domain is set to Post Process.|
-| Lightmass|This is where you can adjust how this Material will interact with Lightmass.|
-| Material Interface|This is where you can define a Static Mesh to preview the Material with.|
-| Thumbnail|This controls how the Thumbnail that you see in the **Content Browser** is displayed.|
+| **Physical Material** |This allows you to specify what type of Physical Material is used for this Material.|
+| **Material**|This is where you will spend most of your time when editing Materials. The Material section is where you can change the Material Domain, Blend Mode, and Shading Model along with many more options. |
+| **Translucency**|This is where you can adjust how Translucency in this Material will function. Please note that this is only editable if the Material Blend Mode is set to Translucent. |
+| **Translucency Self Shadowing**|This is where you can adjust how Translucent self shadowing looks and behaves. Please note that this is only editable if the Material Blend Mode is set to Translucent.|
+| **Usage**|This is where you set what type of objects this Material will work with. Usage flags are usually set automatically by the editor. However if you know that this Material is supposed to be used with a certain object type, make sure you enable it here to avoid any future mistakes|
+| **Mobile**|This is where you set how this Material should work when used on a mobile device like a smart phone.|
+| **Tessellation**|This is where you can enable the Material to make use of Hardware Tessellation.|
+| **Post Process Material**|This is where you define how this Material should work with Post Process and Tone Mapping. Please note that this is only editable if the Material Domain is set to Post Process.|
+| **Lightmass**|This is where you can adjust how this Material will interact with Lightmass.|
+| **Material Interface**|This is where you can define a Static Mesh to preview the Material with.|
+| **Thumbnail**|This controls how the Thumbnail that you see in the **Content Browser** is displayed.|
 
 
 ## Using the Main Material Node
 
-Setting up a Material to use the Main Material Node is something can be accomplished in the following few steps.
+Setting up a Material to use the Main Material Node is something that can be accomplished in the following few steps.
 
 1. First use the mouse to **Right-Click** in the **Content Browser** and then from the **Create Basic Asset** section of the pop-up Menu, select **Material**. Once the Material has been created, name the Material **MainMaterialNode**.
 
@@ -110,15 +112,15 @@ Setting up a Material to use the Main Material Node is something can be accompli
 	 
 	 ![](Material_Open_Material_Editor.png)
 
-1. To use the Main Material Node, you first have to add Material Expression nodes to the Material Graph. Add a Constant3Vector Material Expression node the Material Graph by holding down the Number 3 Key on the keyboard and using the **Left Mouse Button** to click anywhere inside of the Material Graph to place the node.
+1. To use the Main Material Node, you first have to add Material Expression nodes to the Material Graph. Add a Constant3Vector Material Expression node to the Material Graph by holding down the Number 3 Key on the keyboard and using the **Left Mouse Button** to click anywhere inside of the Material Graph to place the node.
 
 	![](Material_Adding_Const3Vector_Node.png)
 
 	[region:tip]
-	There are multiple ways to add nodes to the Material Graph. You can drag and drop form the **Material Pallet**, you can also **Right-Click** in the **Material Graph** and then search for nodes via the Context menu. Finally, you can use Keyboard Shortcuts to also place nodes in the Material Graph. You can read more about this in the [Material Editor UI]( Engine/Rendering/Materials/Editor/Interface) page.
+	There are multiple ways to add nodes to the Material Graph. You can drag and drop form the **Material Pallete**, you can also **Right-Click** in the **Material Graph** and then search for nodes via the Context menu. Finally, you can use Keyboard Shortcuts to place nodes in the Material Graph. You can read more about this in the [Material Editor UI]( Engine/Rendering/Materials/Editor/Interface) page.
 	[/region]
 
-1. Next add a Constant Material Expression nodes to the Material Graph by first searching in the **Material Pallet** using the word Constant as a search term. When the Constant Material Expression is found select it by clicking on it with the **Left Mouse Button** and with the **Left Mouse Button** still held down, drag the Material Expression node into the Material Graph releasing the **Left Mouse Button** when your mouse is over the location in the Material Graph you want to place the Material Expression node. 
+1. Next add a Constant Material Expression node to the Material Graph by first searching in the **Material Pallete** using the word Constant as a search term. When the Constant Material Expression is found select it by clicking on it with the **Left Mouse Button** and with the **Left Mouse Button** still held down, drag the Material Expression node into the Material Graph and release the **Left Mouse Button** when your mouse is over the location in the Material Graph where you want to place the Material Expression node. 
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -150,7 +152,7 @@ Setting up a Material to use the Main Material Node is something can be accompli
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-1. Now connect the **Constant3Vector** to the **Base Color** input on the Main Material node. To do this, use the **Left Mouse Button** to click on the circle output that is on the right of theConstant3Vector. Then with the **Left Mouse Button** still held down, drag to the right until you see a line coming from the circle output. Connect this line to the Base Color input on the Main Material node.
+1. Now connect the **Constant3Vector** to the **Base Color** input on the Main Material node. To do this, use the **Left Mouse Button** to click on the circle output that is on the right of theConstant3Vector Material Expression node. Then with the **Left Mouse Button** still held down, drag to the right until you see a line coming from the circle output. Connect this line to the Base Color input on the Main Material node.
 	
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -195,7 +197,7 @@ Setting up a Material to use the Main Material Node is something can be accompli
 
 The Main Material node plays a huge role in how Materials will be displayed and what inputs that Material can use.
 No matter how many Material Expression nodes a Material uses the effects of those nodes will not be seen until they are input into the Main Material node.
-Also keep in mind that if the Material is not doing what you want it to do, make sure that you have the correct options set in the **Details** panel.
+Also keep in mind that if the Material is not doing what you want it to do, make sure that you have the correct options set in the Details panel.
 
 
 

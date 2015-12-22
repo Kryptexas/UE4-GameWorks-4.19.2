@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Components/PrimitiveComponent.h"
@@ -9,12 +9,12 @@ class UFuncTestRenderingComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
 
-	// Begin UPrimitiveComponent Interface
+	//~ Begin UPrimitiveComponent Interface
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual bool ShouldRecreateProxyOnUpdateTransform() const override { return true; }
-	// End UPrimitiveComponent Interface
+	//~ End UPrimitiveComponent Interface
 
-	// Begin USceneComponent Interface
+	//~ Begin USceneComponent Interface
 	virtual FBoxSphereBounds CalcBounds(const FTransform &LocalToWorld) const override;
-	// End USceneComponent Interface
+	//~ End USceneComponent Interface
 };

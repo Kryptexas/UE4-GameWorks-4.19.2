@@ -1,12 +1,16 @@
 Availability:Public
 Title: Blueprints Quick Start Guide
 Crumbs: %ROOT%, Engine, Engine/Blueprints
-Description: Creating Your First Blueprint
+version: 4.9
+Description: Get up and running by creating your first Blueprint
+parent:Engine/Blueprints
+order:1
+type:quickstart
 
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![](engine_qs_topic.jpg)
+		![%Engine/Blueprints/QuickStart:title%](Engine/Blueprints/QuickStart/engine_qs_topic.png)
 	[/PARAM]
 	[PARAM:title]
 		%Engine/Blueprints/QuickStart:title%
@@ -15,7 +19,7 @@ Description: Creating Your First Blueprint
 		[RELATIVE:Engine/Blueprints/QuickStart]
 	[/PARAM]
 	[PARAM:description]
-	%Engine/Blueprints/QuickStart:description%
+		%Engine/Blueprints/QuickStart:description%
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -23,7 +27,7 @@ Description: Creating Your First Blueprint
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![](engine_qs_topic.jpg)
+		![%Engine/Blueprints/QuickStart:title%](Engine/Blueprints/QuickStart/engine_qs_topic.png)
 	[/PARAM]
 	[PARAM:title]
 		%Engine/Blueprints/QuickStart:title%
@@ -32,7 +36,7 @@ Description: Creating Your First Blueprint
 		[RELATIVE:Engine/Blueprints/QuickStart]
 	[/PARAM]
 	[PARAM:description]
-	%Engine/Blueprints/QuickStart:description%
+		%Engine/Blueprints/QuickStart:description%
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -42,7 +46,7 @@ Description: Creating Your First Blueprint
 	640
 	[/PARAMLITERAL]
 	[PARAMLITERAL:height]
-	360
+	390
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
 	Ax4Xgu2Zb4g
@@ -52,25 +56,6 @@ Description: Creating Your First Blueprint
 This quick start guide will walk you through building an Actor in the level with different Components, then turning it into a Blueprint Class you can add launching behavior to so your Character will fly around the level!
 Making it into a Blueprint Class also means you can create as many launchpads in your world as you want, just by dragging into the level from the **Content Browser**.
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Steps
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine/Blueprints/QuickStart/1 "%Engine/Blueprints/QuickStart/1:description%")
-	* [](Engine/Blueprints/QuickStart/2 "%Engine/Blueprints/QuickStart/2:description%")
-	* [](Engine/Blueprints/QuickStart/3 "%Engine/Blueprints/QuickStart/3:description%")
-	* [](Engine/Blueprints/QuickStart/4 "%Engine/Blueprints/QuickStart/4:description%")
-	* [](Engine/Blueprints/QuickStart/5 "%Engine/Blueprints/QuickStart/5:description%")
-	* [](Engine/Blueprints/QuickStart/6 "%Engine/Blueprints/QuickStart/6:description%")
-	* [](Engine/Blueprints/QuickStart/7 "%Engine/Blueprints/QuickStart/7:description%")
-	[/PARAM]
-[/OBJECT]
+## Steps
 
-
-
+[DIR(end:"1" output:"listbutton" type:"multi-step" parent:"Engine/Blueprints/QuickStart" org:"hierarchy")]

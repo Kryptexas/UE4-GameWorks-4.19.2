@@ -1,0 +1,43 @@
+﻿INTSourceChangelist:2672558
+Availability: Docs
+Title: 1.2 - C++ 클래스 마법사 사용법
+Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
+Description: C++ 마법사를 사용하여 첫 C++ 클래스를 만드는 법을 배워봅니다.
+SkillLevel: Beginner
+Version: 4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 단계](Programming/Tutorials/FirstPersonShooter/1/1)
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[섹션 홈](Programming/Tutorials/FirstPersonShooter/1)
+	[/PARAM]
+	[PARAM:next]
+		[다음 단계](Programming/Tutorials/FirstPersonShooter/1/3)
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+이번 단계에서는 Game Mode (게임 모드)를 만들겠습니다. 게임 모드는 게임의 규칙과 승리 조건을 정의합니다. 게임 모드는 몇 가지 기본적인 게임플레이 프레임워크 유형에 사용되는 기본 클래스를 설정하기도 하는데, 거기에는 Pawn (폰), PlayerController (플레이어 콘트롤러), HUD 가 포함됩니다. 마지막으로, 게임 모드를 만들어 줘야 FPS Character 구성이 가능합니다.
+
+1.	파일 메뉴에서 **새 C++ 클래스...** 를 선택합니다.
+
+1.	**부모 클래스 선택** 메뉴가 열립니다. 스크롤을 내려 **Game Mode** 를 부모 클래스로 선택하고 **다음** 을 선택합니다.
+
+	![](AddGameModeParentClass.png)
+
+1.	새 클래스 이름을 "FPSGameMode" 라 한 다음 **생성** 을 클릭합니다.
+
+	![](CreateFPSGameMode.png)
+
+	[REGION:note]
+	첫 C++ 클래스를 생성했으니, 이제 **Visual Studio** 로 전환하여 새로 생성된 클래스에 코드를 추가할 수 있습니다. `FPSGameMode.h` 와 `FPSGameMode.cpp` 가 열리고, **언리얼 엔진** 이 새 클래스 코드를 자동으로 컴파일하여 다시 로드해 줍니다.
+	[/REGION]
+
+%Steps%

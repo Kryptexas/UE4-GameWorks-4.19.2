@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2620109
+﻿INTSourceChangelist:2637589
 Availability: Public
 Title:3. 입력에 반응하는 C++ 코드 작성
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerCamera
@@ -136,7 +136,6 @@ version:4.9
 		}
 	**GetActorForwardVector** 와 **GetActorRightVector** 를 사용하면 액터가 향하는 방향을 기준으로 이동하는 것이 가능합니다. 카메라가 액터와 같은 쪽을 향하고 있기 떄문에, 전방 키가 항상 플레이어가 바라보는 것을 기준으로 앞이 되도록 해 줍니다.
 
-
 1. 코딩 작업이 끝났습니다. 이제 코드를 컴파일한 다음 **콘텐츠 브라우저** 에서 새로 만든 클래스를 끌어 **언리얼 엔진** 에디터의 **레벨 에디터** 창에 놓는 것으로 새 인스턴스를 만들 수 있습니다.
 
 	[![](ClassInContentBrowser.png)](ClassInContentBrowser.png)
@@ -144,6 +143,10 @@ version:4.9
 	**스태틱 메시** 나 다른 비주얼 **컴포넌트** 를 추가하든, 아니면 없이든 자유롭게 플레이해 보세요. 카메라가 레벨을 따라다니면서 부드럽게 가속되고 감속되지만, 회전은 약간 빡빡하고 즉각적인 느낌이 들 것입니다. **SpringArmComponent** 의 프로퍼티 몇 가지, 이를테면 "Camera Rotation Lag" (카메라 회전 랙)을 추가하거나 "Camera Lag" (카메라 랙)을 높이고 낮춰서 조작감에 어떤 영향을 끼치는지 살펴보세요.
 
 	[![](SpringArmValues.png)](SpringArmValues.png)
+
+1. 원뿔 메시를 회전시킨 최종 제품 모습은 다음과 같습니다:
+
+	[![](FinalScreen.png)](FinalScreen.png)
 
 ----
 
@@ -156,7 +159,7 @@ version:4.9
     [/PARAM]
     [PARAM:content]
 		**PawnWithCamera.h**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -202,7 +205,7 @@ version:4.9
 			};
 
 		**PawnWithCamera.cpp**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_PlayerCamera.h"
 			#include "PawnWithCamera.h"

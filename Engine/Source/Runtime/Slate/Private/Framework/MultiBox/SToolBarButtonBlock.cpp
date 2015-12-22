@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "MultiBox.h"
@@ -138,6 +138,10 @@ void SToolBarButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, con
 	{
 		ActualLabel = ToolBarButtonBlock->GetAction()->GetLabel();
 	}
+
+	// Add this widget to the search list of the multibox
+	if (MultiBlock->GetSearchable())
+		OwnerMultiBoxWidget.Pin()->AddSearchElement(this->AsWidget(), ActualLabel.Get());
 
 	TAttribute<FText> ActualToolTip;
 	if (ToolBarButtonBlock->ToolTipOverride.IsSet())

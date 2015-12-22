@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -132,8 +132,11 @@ class UBodySetup : public UObject
 	/** Indicates whether this setup has any cooked collision data. */
 	bool bHasCookedCollisionData;
 
+	/** Indicates that we will never use convex or trimesh shapes. This is an optimization to skip checking for binary data. */
+	bool bNeverNeedsCookedCollisionData;
+
 public:
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void BeginDestroy() override;
 	virtual void FinishDestroy() override;
@@ -143,10 +146,10 @@ public:
 	virtual void PostEditUndo() override;
 #endif // WITH_EDITOR
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
-	// End UObject interface.
+	//~ End UObject Interface.
 
 	//
-	// UBodySetup interface.
+	//~ Begin UBodySetup Interface.
 	//
 	ENGINE_API void CopyBodyPropertiesFrom(const UBodySetup* FromSetup);
 

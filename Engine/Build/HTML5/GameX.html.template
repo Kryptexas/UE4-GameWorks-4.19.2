@@ -140,7 +140,12 @@ addLog( "Starting download " + urlName );
 return $.ajax({
 	url: urlName,
 	dataType: "text",
-	success: function(scriptText){
+	success: function(scriptText, dataType, xhrobject) {
+		var encoding = xhrobject.getResponseHeader('Content-Encoding');
+		var type = xhrobject.getResponseHeader('Content-Type');
+		if (encoding != 'gzip' && (type == 'application/x-javascript' || type == 'application/javascript')) {
+			addLog("downloaded uncompressed javascript, please host compressed javascript when in production");
+		}
 		// insert into dom - this bit is tricky, standard way makes asm.js complain about caching. 
 		// use a blob object. 
 		var scriptblob = new Blob([scriptText], { type: 'text/javascript' });
@@ -163,9 +168,6 @@ return $.ajax({
 
 				if (!this.totaladded) { 
 					totalDownloadSize += e.total; 
-					if ( e.total > 20*1024*1024){
-						addLog("possibly downloading uncompressed javascript, please host compressed javascript when in production");
-					}
 					this.totaladded = true; 
 				}
 				  
@@ -291,7 +293,7 @@ window.onerror  = function(msg, url, line, column, error) {
         addLog( " downloading symbols file ");
         // get non minified symbols and demangle the callstack. 
 		$.ajax({
-			  url : "%CONFIG%.js.symbols.gz",
+			  url : "%CONFIG%.js.symbols",
 			  dataType: "text",
 			  success : function (data) {	
                   addLog(" symbols file downloaded, demangling..");
@@ -378,7 +380,7 @@ var Module = {
 
 		// file location. 
 		locateFile : function (name){ 
-		      return name + ".gz";
+		      return name;
 		},
 
 
@@ -435,9 +437,9 @@ $(document).ready(function() {
     addLog( "Starting downloads" );
     // start downloads in parallel, print when done.  
     var promises = [
-			'Utility.js.gz',
-			'%GAME%.data.js.gz',
-			'%CONFIG%.js.gz'   
+			'Utility.js',
+			'%GAME%.data.js',
+			'%CONFIG%.js'   
 		].map(download); 
 
 	// add the data file promise. 

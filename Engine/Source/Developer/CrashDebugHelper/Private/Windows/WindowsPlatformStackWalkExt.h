@@ -1,9 +1,6 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#undef PLATFORM_SUPPORTS_STACK_SYMBOLS
-#define PLATFORM_SUPPORTS_STACK_SYMBOLS 1
 
 class FCrashInfo;
 class FCrashModuleInfo;

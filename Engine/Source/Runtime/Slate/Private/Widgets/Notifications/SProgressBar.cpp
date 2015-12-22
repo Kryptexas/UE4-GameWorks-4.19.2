@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 
@@ -243,7 +243,7 @@ int32 SProgressBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGe
 			CurrentMarqueeImage,
 			ForegroundClippingRect,
 			DrawEffects,
-			ColorAndOpacitySRGB
+			CurrentMarqueeImage->TintColor.GetSpecifiedColor() * ColorAndOpacitySRGB
 			);
 
 	}

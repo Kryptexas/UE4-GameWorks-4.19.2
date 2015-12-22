@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BuildPatchAnalytics.cpp: Implements static helper class for sending analytics
@@ -81,12 +81,14 @@ void FBuildPatchAnalytics::RecordConstructionError( const FString& Filename, con
 	}
 }
 
-void FBuildPatchAnalytics::RecordPrereqInstallnError( const FString& Filename, const FString& CommandLine, const int32 ErrorCode, const FString& ErrorString )
+void FBuildPatchAnalytics::RecordPrereqInstallationError(const FString& AppName, const FString& AppVersion, const FString& Filename, const FString& CommandLine, const int32 ErrorCode, const FString& ErrorString)
 {
 	TArray<FAnalyticsEventAttribute> Attributes;
+	Attributes.Add( FAnalyticsEventAttribute( TEXT( "AppName" ), AppName ) );
+	Attributes.Add( FAnalyticsEventAttribute( TEXT( "AppVersion" ), AppVersion ) );
 	Attributes.Add( FAnalyticsEventAttribute( TEXT( "Filename" ), Filename ) );
 	Attributes.Add( FAnalyticsEventAttribute( TEXT( "CommandLine" ), CommandLine ) );
-	Attributes.Add( FAnalyticsEventAttribute( TEXT( "ErrorCode" ), ErrorCode ) );
+	Attributes.Add( FAnalyticsEventAttribute( TEXT( "ReturnCode" ), ErrorCode ) );
 	Attributes.Add( FAnalyticsEventAttribute( TEXT( "ErrorString" ), ErrorString ) );
 	FBuildPatchHTTP::QueueAnalyticsEvent( TEXT( "Patcher.Error.Prerequisites" ), Attributes );
 

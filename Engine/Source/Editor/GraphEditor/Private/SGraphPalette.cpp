@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "GraphEditorCommon.h"
@@ -24,7 +24,7 @@ void SGraphPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetForActi
 	// Find icons
 	const FSlateBrush* IconBrush = FEditorStyle::GetBrush(TEXT("NoBrush"));
 	FSlateColor IconColor = FSlateColor::UseForeground();
-	FString ToolTip = GraphAction->TooltipDescription;
+	FString ToolTip = GraphAction->GetTooltipDescription();
 	FText IconToolTip = FText::FromString(ToolTip);
 	bool bIsReadOnly = false;
 
@@ -157,12 +157,12 @@ void SGraphPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommit::T
 
 FText SGraphPaletteItem::GetDisplayText() const
 {
-	return ActionPtr.Pin()->MenuDescription;
+	return ActionPtr.Pin()->GetMenuDescription();
 }
 
 FText SGraphPaletteItem::GetItemTooltip() const
 {
-	return ActionPtr.Pin()->MenuDescription;
+	return ActionPtr.Pin()->GetMenuDescription();
 }
 
 

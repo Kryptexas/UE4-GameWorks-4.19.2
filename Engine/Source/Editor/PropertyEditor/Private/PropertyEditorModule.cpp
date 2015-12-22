@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PropertyEditorPrivatePCH.h"
@@ -119,7 +119,7 @@ static bool ShouldShowProperty(const FPropertyAndParent& PropertyAndParent, bool
 	{
 		const UClass* PropertyOwnerClass = Cast<const UClass>(Property.GetOuter());
 		const bool bDisableEditOnTemplate = PropertyOwnerClass 
-			&& PropertyOwnerClass->HasAllFlags(RF_Native) 
+			&& PropertyOwnerClass->IsNative()
 			&& Property.HasAnyPropertyFlags(CPF_DisableEditOnTemplate);
 		if(bDisableEditOnTemplate)
 		{
@@ -241,6 +241,8 @@ TSharedRef<IDetailsView> FPropertyEditorModule::CreateDetailView( const FDetails
 		.DetailsViewArgs( DetailsViewArgs );
 
 	AllDetailViews.Add( DetailView );
+
+	PropertyEditorOpened.Broadcast();
 	return DetailView;
 }
 
@@ -690,11 +692,21 @@ TSharedRef<class IStructureDetailsView> FPropertyEditorModule::CreateStructureDe
 			const auto ObjectProperty = Cast<UObjectPropertyBase>(PropertyToTest);
 			if( ObjectProperty )
 			{
-				if( InStructureDetailsViewArgs.bShowAssets && ObjectProperty->PropertyClass )
+				if( InStructureDetailsViewArgs.bShowAssets )
 				{
-					// We can use the asset tools module to see whether this type has asset actions (which likely means it's an asset class type)
-					FAssetToolsModule& AssetToolsModule = FAssetToolsModule::GetModule();
-					return AssetToolsModule.Get().GetAssetTypeActionsForClass(ObjectProperty->PropertyClass).IsValid();
+					// Is this an "asset" property?
+					if( PropertyToTest->IsA<UAssetObjectProperty>())
+					{
+						return true;
+					}
+
+					// Not an "asset" property, but it may still be a property using an asset class type (such as a raw pointer)
+					if( ObjectProperty->PropertyClass )
+					{
+						// We can use the asset tools module to see whether this type has asset actions (which likely means it's an asset class type)
+						FAssetToolsModule& AssetToolsModule = FAssetToolsModule::GetModule();
+						return AssetToolsModule.Get().GetAssetTypeActionsForClass(ObjectProperty->PropertyClass).IsValid();
+					}
 				}
 
 				return InStructureDetailsViewArgs.bShowObjects;

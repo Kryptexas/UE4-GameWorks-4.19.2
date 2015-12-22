@@ -2,6 +2,8 @@ Availability: Public
 Title:2. Input and the Game Mode
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:In this step we will set up the input to control our character as well as set our default pawn which is the playable character.
+Version: 4.9
+SkillLevel:Advanced
 
 [VAR:Steps]
 [OBJECT:Navigation]

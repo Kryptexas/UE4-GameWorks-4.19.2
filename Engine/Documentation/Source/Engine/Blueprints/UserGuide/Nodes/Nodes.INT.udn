@@ -2,6 +2,7 @@ Availability:Public
 Title:Nodes
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:Node graph that uses events and function calls to perform actions in response to gameplay events associated with the Blueprint.
+version: 4.9
 
 
 **Nodes** are objects such as events, function calls, flow control operations, variables, etc. 
@@ -33,15 +34,15 @@ New nodes are added to a graph by selecting the type of node from the **Context 
 
 Nodes are selected by clicking on the node in the **Graph Editor** tab.
 
-![Blueprint Node Selected](k2_select_node.png)
+![](SelectNode.jpg)(w:820)
 
 A node can be added to, or removed from, the current selection by holding **Ctrl** and clicking on the node.
 
-![Blueprint Multiple Nodes Selected](k2_select_multiple.png)
+![](VarMessage.jpg)(w:820)
 
 Multiple nodes can be selected at once by clicking and dragging to create a marquee selection. Holding **Ctrl** + clicking and dragging creates a marquee selection that toggles selection. Holding **Shift** + clicking and dragging creates a marquee selection that adds to the current selection.
 
-![Blueprint Marquee Selection](k2_select_marquee.png)(w:820)
+![](DotBoxSpawnEmitter.jpg)(w:820)
 
 To deselect all nodes, simply click in an empty space of the **Graph Editor** tab.
 
@@ -69,7 +70,7 @@ There are two main types of pins: execution pins and data pins.
 
 #### Auto-Casting
 
-Connections can be made between certain pins of different data types by way of the auto-casting feature in _Blueprints_. Compatible types can be identified by the tooltip displayed when attempting to create a connection between two pins.
+Connections can be made between certain pins of different data types by way of the auto-casting feature in Blueprints. Compatible types can be identified by the tooltip displayed when attempting to create a connection between two pins.
 
 ![Blueprint - Compatible Types Message](k2_autocast_message.png)
 
@@ -81,23 +82,23 @@ Dragging a wire from a pin of one type to a pin of a different, but compatible, 
 
 #### Promote to Variable
 
-The value represented by a data pin can be converted to a variable within the _Blueprint_ using the **Promote to Variable** command. This command creates a new variable in the _Blueprint_ and wires it to the data pin being promoted. In the case of an output data pin, a Set node is used to set the value of the new variable. Essentially, this is just a shortcut to manually adding a new variable, adding it to the graph and wiring it to the data pin.
+The value represented by a data pin can be converted to a variable within the Blueprint using the **Promote to Variable** command. This command creates a new variable in the Blueprint and wires it to the data pin being promoted. In the case of an output data pin, a Set node is used to set the value of the new variable. Essentially, this is just a shortcut to manually adding a new variable, adding it to the graph and wiring it to the data pin.
 
 [INCLUDE:Engine/Blueprints\UserGuide\Variables#PromoteVariable]
 
 ### Wires
 
-Connections between pins are called **wires**. Wires can represent either the flow of execution or the flow of data.
+Connections between pins are called **Wires**. Wires can represent either the flow of execution or the flow of data.
 
 #### Execution Wires
 
 Wires between exec pins represent the flow of execution. Exec wires are displayed as white arrows spanning from an output exec pin to an input exec pin. The direction of the arrow indicates the flow of execution.
 
-![Blueprint Exec Wire](k2_select_node.png)
+![](SelectNode.jpg)(w:820)
 
 Exec wires produce a visual indicator when being executed. During play, as one node completes execution and the next is activated, the wire between their execution pins highlights the fact that execution is being transferred from one node to another.
 
-![Blueprint Exec Wire - Attack State](k2_flow_exec.png)
+![](k2_flow_exec.jpg)(w:820)
 
 The visual indicator for an exec wire fades away over time.
 
@@ -117,17 +118,17 @@ Wires are created in the **Graph Editor** tab using one of the methods below:
 
 * Click on one pin and drag and release on another pin of the same type to create a direct connection.
 
-	![Blueprint Wire Creation - Compatible Pin](k2_connection_direct.png)
+	![](HoverCheck.jpg)(w:820)
 
 	The connection can only be made between two compatible types of pins. If you drag a connection on to a pin that is not compatible, an error will be displayed informing you the connection cannot be made.
 
-	![Blueprint Wire Creation - Incompatible Pin](k2_connection_bad.png)
+	![](HoverCheckNo.jpg)(w:820)
 
 * Drag a connection from a pin and release in an empty space to summon a context-sensitive menu that lists all the nodes that are compatible with the type of pin the connection originated from. Selecting a node from this list creates a new instance of that node and makes a connection to a compatible pin on the new node.
 
 	![Blueprint Wire Creation - New Node](k2_connection_new.png)
 
-	![Blueprint Wire Creation - New Node Created](k2_connection_new2.png)
+	![](ConnectedNodes.jpg)(w:820)
 
 	A wire between two pins can be broken using one of the methods below:
 
@@ -135,7 +136,7 @@ Wires are created in the **Graph Editor** tab using one of the methods below:
 
 * **Right-click** on one of the connected pins and choose Break Link(s).
 
-	![Blueprint Break Wire](k2_connection_break.png)
+	![](BreakLinkNode.jpg)(w:820)
 
 
 ### Collapsed Graphs
@@ -148,7 +149,7 @@ Collections of nodes in the graph can be collapsed into sub-graphs for organizat
 [![](k2_collapsed_node.png)](k2_collapsed_node.png "Blueprint Collapse Node")
 [/REGION]
 
-Unlike [](Engine/Blueprints\UserGuide\Macros), a set of collapsed nodes is not shared, even within a single _Level Blueprint_ or _Blueprint Class_. If you copy the collapsed node, it duplicates the internal graph. This can be handy if you want to make several variants of the same approximate behavior, but it also means that any bug fixes would have to be applied to each copy. The feature is really more intended to 'tidy up' a graph, hiding complexity inside, rather than any sort of sharing or reuse.
+Unlike [](Engine/Blueprints\UserGuide\Macros), a set of collapsed nodes is not shared, even within a single Level Blueprint or Blueprint Class. If you copy the collapsed node, it duplicates the internal graph. This can be handy if you want to make several variants of the same approximate behavior, but it also means that any bug fixes would have to be applied to each copy. The feature is really more intended to 'tidy up' a graph, hiding complexity inside, rather than any sort of sharing or reuse.
 
 #### Tunnels
 
@@ -192,7 +193,7 @@ These pins are automatically generated when the nodes are collapsed. Any executi
 
 	![](collapsed_graph_myblueprint.png)
 
-1.	To edit the collapsed nodes, **double-click** the collapsed graph node or select the sub-graph in the **My Blueprint** tab.
+1.	To edit the collapsed nodes, **Double-click** the collapsed graph node or select the sub-graph in the **My Blueprint** tab.
 	
 	[REGION:lightbox fullwidth]
 	[![](k2_collapse_edit.png)](k2_collapse_edit.png "Blueprint Collapse Nodes - Resulting Graph")

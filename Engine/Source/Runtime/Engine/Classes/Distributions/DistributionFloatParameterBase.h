@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -35,9 +35,9 @@ class UDistributionFloatParameterBase : public UDistributionFloatConstant
 	TEnumAsByte<enum DistributionParamMode> ParamMode;
 
 
-	// Begin UDistributionFloat Interface
+	//~ Begin UDistributionFloat Interface
 	virtual float GetValue( float F = 0.f, UObject* Data = NULL, struct FRandomStream* InRandomStream = NULL ) const override;
-	// End UDistributionFloat Interface
+	//~ End UDistributionFloat Interface
 	
 	
 	/** todo document */

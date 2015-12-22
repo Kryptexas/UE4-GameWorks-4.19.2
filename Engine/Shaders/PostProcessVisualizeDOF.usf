@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessBokehDOF.usf: PostProcessing Lens Flares.
@@ -26,12 +26,12 @@ int2 CursorPos;
 float4 VisualizeColors[2];
 
 // render in fullres to visualize the half res DOF input from the setup pass
-void VisualizeDOFPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+void VisualizeDOFPS(in float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition : SV_POSITION, out float4 OutColor : SV_Target0)
 {
 	OutColor = 0;
 
 	float2 UV = UVAndScreenPos.xy; 
-	int2 PixelPos = (int2)(UVAndScreenPos.zw * ScreenPosToPixel.xy + ScreenPosToPixel.zw + 0.5f);
+	int2 PixelPos = (int2)SvPosition.xy;
 	float2 ViewLocalUV = float2(UVAndScreenPos.z * 0.5f + 0.5f, 0.5f - 0.5f * UVAndScreenPos.w);
 	
 	float SceneDepth = CalcSceneDepth(UV);
@@ -79,13 +79,13 @@ void VisualizeDOFPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : 
 
 		{
 			int2 LeftTop = PrintCursor - int2(11, 0);
-			PrintCharacter(PixelPos, OutColor.xyz, float3(1, 1, 1), LeftTop, 13);	// 'D' - 'A' + 10);
+			PrintCharacter(PixelPos, OutColor.xyz, float3(1, 1, 1), LeftTop, _D_);
 		}
-		PrintFloatNoFraction(PixelPos, OutColor.xyz, float3(1, 1, 1)*0.6, PrintCursor, SceneDepthAtCursor);
+		PrintFloatNoFraction(PixelPos, OutColor.xyz, float3(1, 1, 1) * 0.6f, PrintCursor, SceneDepthAtCursor);
 		PrintCursor.y += 16;
 		{
 			int2 LeftTop = PrintCursor - int2(11, 0);
-			PrintCharacter(PixelPos, OutColor.xyz, float3(1, 1, 1), LeftTop, 27);	// 'R' - 'A' + 10);
+			PrintCharacter(PixelPos, OutColor.xyz, float3(1, 1, 1), LeftTop, _R_);
 		}
 		PrintFloat(PixelPos, OutColor.xyz, float3(1, 1, 1)*0.6, PrintCursor, CoCInPixel);
 	}

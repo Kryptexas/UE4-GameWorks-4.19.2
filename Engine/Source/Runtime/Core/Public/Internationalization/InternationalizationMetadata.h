@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 DECLARE_LOG_CATEGORY_EXTERN(LogInternationalization, Log, All);
@@ -25,7 +25,9 @@ class CORE_API FLocMetadataValue
 public:
 	virtual ~FLocMetadataValue() = 0;
 
-	/** Returns this value as a number, throwing an error if this is not a Metadata String */
+	virtual FString ToString() const = 0;
+
+	/** Returns this value as a string, throwing an error if this is not a Metadata String */
 	virtual FString AsString() {ErrorMessage(TEXT("String")); return FString();}
 
 	/** Returns this value as a boolean, throwing an error if this is not an Metadata Bool */
@@ -152,6 +154,8 @@ public:
 
 	static bool IsMetadataExactMatch( const FLocMetadataObject* const MetadataA, const FLocMetadataObject* const MetadataB );
 
+	FString ToString() const;
+
 public:
 	/** Stores the name/value pairs for the metadata object */
 	TMap< FString, TSharedPtr<FLocMetadataValue> > Values;
@@ -174,6 +178,8 @@ public:
 
 	virtual TSharedRef<FLocMetadataValue> Clone() const override;
 	void SetString( const FString& InString ) { Value = InString; }
+
+	virtual FString ToString() const override {return Value;}
 
 protected:
 
@@ -198,6 +204,8 @@ public:
 
 	virtual TSharedRef<FLocMetadataValue> Clone() const override;
 	
+	virtual FString ToString() const override {return Value ? TEXT("true") : TEXT("false");}
+
 protected:
 	bool Value;
 
@@ -219,6 +227,8 @@ public:
 
 	virtual TSharedRef<FLocMetadataValue> Clone() const override;
 	
+	virtual FString ToString() const override;
+
 protected:
 	TArray< TSharedPtr<FLocMetadataValue> > Value;
 
@@ -240,6 +250,8 @@ public:
 
 	virtual TSharedRef<FLocMetadataValue> Clone() const override;
 	
+	virtual FString ToString() const override;
+
 protected:
 	TSharedPtr<FLocMetadataObject> Value;
 

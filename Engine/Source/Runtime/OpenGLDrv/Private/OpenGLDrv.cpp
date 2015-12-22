@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLDrv.cpp: Unreal OpenGL RHI library implementation.
@@ -53,6 +53,12 @@ void FOpenGLGPUProfiler::PopEvent()
 
 void FOpenGLGPUProfiler::BeginFrame(FOpenGLDynamicRHI* InRHI)
 {
+	if (NestedFrameCount++>0)
+	{
+		// guard against nested Begin/EndFrame calls.
+		return;
+	}
+
 	CurrentEventNode = NULL;
 	check(!bTrackingEvents);
 	check(!CurrentEventNodeFrame); // this should have already been cleaned up and the end of the previous frame
@@ -124,6 +130,12 @@ void FOpenGLGPUProfiler::BeginFrame(FOpenGLDynamicRHI* InRHI)
 
 void FOpenGLGPUProfiler::EndFrame()
 {
+	if (--NestedFrameCount != 0)
+	{
+		// ignore endframes calls from nested beginframe calls.
+		return;
+	}
+
 	if (GEmitDrawEvents)
 	{
 		PopEvent();
@@ -297,6 +309,7 @@ void FOpenGLGPUProfiler::Cleanup()
 	}
 
 	FrameTiming.ReleaseResource();
+	NestedFrameCount = 0;
 }
 
 /** Start this frame of per tracking */

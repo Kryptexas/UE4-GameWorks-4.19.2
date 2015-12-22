@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "PropertyEditorModule.h"
@@ -28,6 +28,12 @@ protected:
 
 	/** Delegate to handle filtering of asset pickers */
 	bool OnShouldFilterAnimAsset( const FAssetData& AssetData ) const;
+
+	/** Called when a blend profile is selected */
+	void OnBlendProfileChanged(UBlendProfile* NewProfile, TSharedPtr<IPropertyHandle> PropertyHandle);
+
+	/** The skeleton we're operating on */
+	USkeleton* TargetSkeleton;
 
 	/** Path to the current blueprints skeleton to allow us to filter asset pickers */
 	FString TargetSkeletonName;

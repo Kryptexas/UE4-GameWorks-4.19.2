@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObject.h"
 
@@ -133,6 +133,25 @@ extern "C" DLLEXPORT void RegisterSwarmAddTaskProc(SwarmAddTaskProc Proc) { Swar
 extern "C" DLLEXPORT void RegisterSwarmEndJobSpecificationProc(SwarmEndJobSpecificationProc Proc) { SwarmEndJobSpecification = Proc; }
 extern "C" DLLEXPORT void RegisterSwarmCloseJobProc(SwarmCloseJobProc Proc) { SwarmCloseJob = Proc; }
 extern "C" DLLEXPORT void RegisterSwarmLogProc(SwarmLogProc Proc) { SwarmLog = Proc; }
+
+DECLARE_LOG_CATEGORY_EXTERN(LogSwarmInterface, Verbose, All);
+DEFINE_LOG_CATEGORY(LogSwarmInterface)
+
+extern "C" DLLEXPORT void SwarmInterfaceLog(TVerbosityLevel Verbosity, const TCHAR* Message)
+{
+	switch (Verbosity)
+	{
+	case VERBOSITY_Critical:
+		UE_LOG(LogSwarmInterface, Error, TEXT("%s"), Message);
+		break;
+	case VERBOSITY_Complex:
+		UE_LOG(LogSwarmInterface, Warning, TEXT("%s"), Message);
+		break;
+	default:
+		UE_LOG(LogSwarmInterface, Log, TEXT("%s"), Message);
+		break;
+	}
+}
 
 FSwarmInterfaceImpl::FSwarmInterfaceImpl( void )
 {

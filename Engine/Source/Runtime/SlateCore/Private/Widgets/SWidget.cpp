@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateCorePrivatePCH.h"
 #include "Widgets/SWidget.h"
@@ -6,6 +6,7 @@
 #include "ActiveTimerHandle.h"
 #include "SlateStats.h"
 
+DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Total Widgets"), STAT_SlateTotalWidgets, STATGROUP_Slate);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Num Painted Widgets"), STAT_SlateNumPaintedWidgets, STATGROUP_Slate);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Num Ticked Widgets"), STAT_SlateNumTickedWidgets, STATGROUP_Slate);
 
@@ -17,6 +18,9 @@ SLATE_DECLARE_CYCLE_COUNTER(GSlateGetVisibility, "GetVisibility");
 
 TAutoConsoleVariable<int32> TickInvisibleWidgets(TEXT("Slate.TickInvisibleWidgets"), 0, TEXT("Controls whether invisible widgets are ticked."));
 
+SLATECORE_API int32 bFoldTick = 1;
+FAutoConsoleVariableRef FoldTick(TEXT("Slate.FoldTick"), bFoldTick, TEXT("When folding, call Tick as part of the paint pass instead of a separate tick pass."));
+
 SWidget::SWidget()
 	: Cursor( TOptional<EMouseCursor::Type>() )
 	, EnabledState( true )
@@ -25,13 +29,34 @@ SWidget::SWidget()
 	, RenderTransformPivot( FVector2D::ZeroVector )
 	, DesiredSize(FVector2D::ZeroVector)
 	, ToolTip()
+	, LayoutCache(nullptr)
 	, bIsHovered(false)
-	, bToolTipForceFieldEnabled( false )
+	, bCanTick(true)
+	, bCanSupportFocus(true)
+	, bCanHaveChildren(true)
+	, bToolTipForceFieldEnabled(false)
 	, bForceVolatile(false)
 	, bCachedVolatile(false)
 	, bInheritedVolatility(false)
 {
+	if (GIsRunning)
+	{
+		INC_DWORD_STAT(STAT_SlateTotalWidgets);
+	}
+}
 
+SWidget::~SWidget()
+{
+	// Unregister all ActiveTimers so they aren't left stranded in the Application's list.
+	if ( FSlateApplicationBase::IsInitialized() )
+	{
+		for ( const auto& ActiveTimerHandle : ActiveTimers )
+		{
+			FSlateApplicationBase::Get().UnRegisterActiveTimer(ActiveTimerHandle);
+		}
+	}
+
+	DEC_DWORD_STAT(STAT_SlateTotalWidgets);
 }
 
 void SWidget::Construct(
@@ -73,7 +98,6 @@ void SWidget::Construct(
 	MetaData = InMetaData;
 }
 
-
 FReply SWidget::OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent)
 {
 	return FReply::Unhandled();
@@ -92,36 +116,22 @@ FReply SWidget::OnKeyChar( const FGeometry& MyGeometry, const FCharacterEvent& I
 	return FReply::Unhandled();
 }
 
-
 FReply SWidget::OnPreviewKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	return FReply::Unhandled();
 }
 
-
 FReply SWidget::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	if (SupportsKeyboardFocus())
 	{
+		EUINavigation Direction = FSlateApplicationBase::Get().GetNavigationDirectionFromKey( InKeyEvent );
 		// It's the left stick return a navigation request of the correct direction
-		if (InKeyEvent.GetKey() == EKeys::Right || InKeyEvent.GetKey() == EKeys::Gamepad_DPad_Right || InKeyEvent.GetKey() == EKeys::Gamepad_LeftStick_Right)
+		if ( Direction != EUINavigation::Invalid )
 		{
-			return FReply::Handled().SetNavigation(EUINavigation::Right);
+			return FReply::Handled().SetNavigation( Direction );
 		}
-		else if (InKeyEvent.GetKey() == EKeys::Left || InKeyEvent.GetKey() == EKeys::Gamepad_DPad_Left || InKeyEvent.GetKey() == EKeys::Gamepad_LeftStick_Left)
-		{
-			return FReply::Handled().SetNavigation(EUINavigation::Left);
-		}
-		else if (InKeyEvent.GetKey() == EKeys::Up || InKeyEvent.GetKey() == EKeys::Gamepad_DPad_Up || InKeyEvent.GetKey() == EKeys::Gamepad_LeftStick_Up)
-		{
-			return FReply::Handled().SetNavigation(EUINavigation::Up);
-		}
-		else if (InKeyEvent.GetKey() == EKeys::Down || InKeyEvent.GetKey() == EKeys::Gamepad_DPad_Down || InKeyEvent.GetKey() == EKeys::Gamepad_LeftStick_Down)
-		{
-			return FReply::Handled().SetNavigation(EUINavigation::Down);
-		}
-		// If the key was Tab, interpret as an attempt to move focus.
-		else if (InKeyEvent.GetKey() == EKeys::Tab)
+		else if ( InKeyEvent.GetKey() == EKeys::Tab )
 		{
 			//@TODO: Really these uses of input should be at a lower priority, only occurring if nothing else handled them
 			// For now this code prevents consuming them when some modifiers are held down, allowing some limited binding
@@ -139,60 +149,50 @@ FReply SWidget::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEv
 	return FReply::Unhandled();
 }
 
-
 FReply SWidget::OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	return FReply::Unhandled();
 }
-
 
 FReply SWidget::OnAnalogValueChanged( const FGeometry& MyGeometry, const FAnalogInputEvent& InAnalogInputEvent )
 {
 	return FReply::Unhandled();
 }
 
-
 FReply SWidget::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	return FReply::Unhandled();
 }
-
 
 FReply SWidget::OnPreviewMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	return FReply::Unhandled();
 }
 
-
 FReply SWidget::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	return FReply::Unhandled();
 }
-
 
 FReply SWidget::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	return FReply::Unhandled();
 }
 
-
 void SWidget::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	bIsHovered = true;
 }
-
 
 void SWidget::OnMouseLeave( const FPointerEvent& MouseEvent )
 {
 	bIsHovered = false;
 }
 
-
 FReply SWidget::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	return FReply::Unhandled();
 }
-
 
 FCursorReply SWidget::OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const
 {
@@ -207,88 +207,73 @@ TOptional<TSharedRef<SWidget>> SWidget::OnMapCursor(const FCursorReply& CursorRe
 	return TOptional<TSharedRef<SWidget>>();
 }
 
-
 FReply SWidget::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
 {
 	return FReply::Unhandled();
 }
-
 
 bool SWidget::OnVisualizeTooltip( const TSharedPtr<SWidget>& TooltipContent )
 {
 	return false;
 }
 
-
 FReply SWidget::OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	return FReply::Unhandled();
 }
 
-
 void SWidget::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
 }
 
-
 void SWidget::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
 }
-
 
 FReply SWidget::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
 	return FReply::Unhandled();
 }
 
-
 FReply SWidget::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
 	return FReply::Unhandled();
 }
-
 
 FReply SWidget::OnControllerButtonPressed( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent )
 {
 	return FReply::Unhandled();
 }
 
-
 FReply SWidget::OnControllerButtonReleased( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent )
 {
 	return FReply::Unhandled();
 }
-
 
 FReply SWidget::OnControllerAnalogValueChanged( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent )
 {
 	return FReply::Unhandled();
 }
 
-
 FReply SWidget::OnTouchGesture( const FGeometry& MyGeometry, const FPointerEvent& GestureEvent )
 {
 	return FReply::Unhandled();
 }
-
 
 FReply SWidget::OnTouchStarted( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent )
 {
 	return FReply::Unhandled();
 }
 
-
 FReply SWidget::OnTouchMoved( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent )
 {
 	return FReply::Unhandled();
 }
 
-
 FReply SWidget::OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent )
 {
 	return FReply::Unhandled();
 }
-
 
 FReply SWidget::OnMotionDetected( const FGeometry& MyGeometry, const FMotionEvent& InMotionEvent )
 {
@@ -300,9 +285,9 @@ TOptional<bool> SWidget::OnQueryShowFocus(const EFocusCause InFocusCause) const
 	return TOptional<bool>();
 }
 
-TOptional<EPopupMethod> SWidget::OnQueryPopupMethod() const
+FPopupMethodReply SWidget::OnQueryPopupMethod() const
 {
-	return TOptional<EPopupMethod>();
+	return FPopupMethodReply::Unhandled();
 }
 
 TSharedPtr<struct FVirtualPointerPosition> SWidget::TranslateMouseCoordinateFor3DChild(const TSharedRef<SWidget>& ChildWidget, const FGeometry& MyGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate) const
@@ -310,18 +295,15 @@ TSharedPtr<struct FVirtualPointerPosition> SWidget::TranslateMouseCoordinateFor3
 	return nullptr;
 }
 
-
 void SWidget::OnFinishedPointerInput()
 {
 
 }
 
-
 void SWidget::OnFinishedKeyInput()
 {
 
 }
-
 
 FNavigationReply SWidget::OnNavigation(const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent)
 {
@@ -334,7 +316,6 @@ FNavigationReply SWidget::OnNavigation(const FGeometry& MyGeometry, const FNavig
 	}
 	return FNavigationReply::Escape();
 }
-
 
 EWindowZone::Type SWidget::GetWindowZoneOverride() const
 {
@@ -378,20 +359,31 @@ void SWidget::SlatePrepass()
 
 void SWidget::SlatePrepass(float LayoutScaleMultiplier)
 {
-	SLATE_CYCLE_COUNTER_SCOPE_CUSTOM_DETAILED(SLATE_STATS_DETAIL_LEVEL_MED, GSlatePrepass, GetType());
-	// Cache child desired sizes first. This widget's desired size is
-	// a function of its children's sizes.
-	FChildren* MyChildren = this->GetChildren();
-	int32 NumChildren = MyChildren->Num();
-	for ( int32 ChildIndex=0; ChildIndex < NumChildren; ++ChildIndex )
-	{
-		const TSharedRef<SWidget>& Child = MyChildren->GetChildAt(ChildIndex);
+	//SLATE_CYCLE_COUNTER_SCOPE_CUSTOM_DETAILED(SLATE_STATS_DETAIL_LEVEL_MED, GSlatePrepass, GetType());
 
-		if ( Child->Visibility.Get() != EVisibility::Collapsed )
+	// TODO Figure out a better way than to just reset the pointer.  This causes problems when we prepass
+	// volatile widgets, who still need to know about their invalidation panel incase they vanish themselves.
+
+	// Reset the layout cache object each pre-pass to ensure we never access a stale layout cache object 
+	// as this widget could have been moved in and out of a panel that was invalidated between frames.
+	//LayoutCache = nullptr;
+
+	if ( bCanHaveChildren )
+	{
+		// Cache child desired sizes first. This widget's desired size is
+		// a function of its children's sizes.
+		FChildren* MyChildren = this->GetChildren();
+		int32 NumChildren = MyChildren->Num();
+		for ( int32 ChildIndex=0; ChildIndex < NumChildren; ++ChildIndex )
 		{
-			const float ChildLayoutScaleMultiplier = GetRelativeLayoutScale(MyChildren->GetSlotAt(ChildIndex));
-			// Recur: Descend down the widget tree.
-			Child->SlatePrepass(LayoutScaleMultiplier*ChildLayoutScaleMultiplier);
+			const TSharedRef<SWidget>& Child = MyChildren->GetChildAt(ChildIndex);
+
+			if ( Child->Visibility.Get() != EVisibility::Collapsed )
+			{
+				const float ChildLayoutScaleMultiplier = GetRelativeLayoutScale(MyChildren->GetSlotAt(ChildIndex));
+				// Recur: Descend down the widget tree.
+				Child->SlatePrepass(LayoutScaleMultiplier*ChildLayoutScaleMultiplier);
+			}
 		}
 	}
 
@@ -405,25 +397,23 @@ void SWidget::CacheDesiredSize(float LayoutScaleMultiplier)
 	this->Advanced_SetDesiredSize(this->ComputeDesiredSize(LayoutScaleMultiplier));
 }
 
-const FVector2D& SWidget::GetDesiredSize() const
+void SWidget::CachePrepass(ILayoutCache* InLayoutCache)
 {
-	return DesiredSize;
-}
-
-void SWidget::CachePrepass(TWeakPtr<ILayoutCache> InLayoutCache)
-{
-	FChildren* MyChildren = this->GetChildren();
-	int32 NumChildren = MyChildren->Num();
-	for ( int32 ChildIndex=0; ChildIndex < NumChildren; ++ChildIndex )
+	if ( bCanHaveChildren )
 	{
-		const TSharedRef<SWidget>& Child = MyChildren->GetChildAt(ChildIndex);
-		if ( Child->GetVisibility().IsVisible() == false )
+		FChildren* MyChildren = this->GetChildren();
+		int32 NumChildren = MyChildren->Num();
+		for ( int32 ChildIndex=0; ChildIndex < NumChildren; ++ChildIndex )
 		{
-			Child->LayoutCache = InLayoutCache;
-		}
-		else
-		{
-			Child->CachePrepass(InLayoutCache);
+			const TSharedRef<SWidget>& Child = MyChildren->GetChildAt(ChildIndex);
+			if ( Child->GetVisibility().IsVisible() == false )
+			{
+				Child->LayoutCache = InLayoutCache;
+			}
+			else
+			{
+				Child->CachePrepass(InLayoutCache);
+			}
 		}
 	}
 }
@@ -467,7 +457,6 @@ bool SWidget::HasMouseCapture() const
 {
 	return FSlateApplicationBase::Get().HasMouseCapture(SharedThis(this));
 }
-
 
 void SWidget::OnMouseCaptureLost()
 {
@@ -513,7 +502,6 @@ void SWidget::FindChildGeometries_Helper( const FGeometry& MyGeometry, const TSe
 	}	
 }
 
-
 FGeometry SWidget::FindChildGeometry( const FGeometry& MyGeometry, TSharedRef<SWidget> WidgetToFind ) const
 {
 	// We just need to find the one WidgetToFind among our descendants.
@@ -528,13 +516,11 @@ FGeometry SWidget::FindChildGeometry( const FGeometry& MyGeometry, TSharedRef<SW
 	return Result.FindChecked( WidgetToFind ).Geometry;
 }
 
-
 int32 SWidget::FindChildUnderMouse( const FArrangedChildren& Children, const FPointerEvent& MouseEvent )
 {
 	const FVector2D& AbsoluteCursorLocation = MouseEvent.GetScreenSpacePosition();
 	return SWidget::FindChildUnderPosition( Children, AbsoluteCursorLocation );
 }
-
 
 int32 SWidget::FindChildUnderPosition( const FArrangedChildren& Children, const FVector2D& ArrangedSpacePosition )
 {
@@ -555,41 +541,35 @@ int32 SWidget::FindChildUnderPosition( const FArrangedChildren& Children, const 
 	return INDEX_NONE;
 }
 
-
 FString SWidget::ToString() const
 {
 	return FString::Printf(TEXT("%s [%s]"), *this->TypeOfWidget.ToString(), *this->GetReadableLocation() );
 }
-
 
 FString SWidget::GetTypeAsString() const
 {
 	return this->TypeOfWidget.ToString();
 }
 
-
 FName SWidget::GetType() const
 {
-	return this->TypeOfWidget;
+	return TypeOfWidget;
 }
-
 
 FString SWidget::GetReadableLocation() const
 {
 	return FString::Printf(TEXT("%s(%d)"), *FPaths::GetCleanFilename(this->CreatedInLocation.GetPlainNameString()), this->CreatedInLocation.GetNumber());
 }
 
-
 FName SWidget::GetCreatedInLocation() const
 {
-	return this->CreatedInLocation;
+	return CreatedInLocation;
 }
 
 FName SWidget::GetTag() const
 {
-	return this->Tag;
+	return Tag;
 }
-
 
 FSlateColor SWidget::GetForegroundColor() const
 {
@@ -597,30 +577,20 @@ FSlateColor SWidget::GetForegroundColor() const
 	return NoColor;
 }
 
-
-void SWidget::SetToolTipText( const TAttribute<FString>& ToolTipString )
-{
-	ToolTip = FSlateApplicationBase::Get().MakeToolTip(ToolTipString);
-}
-
-
 void SWidget::SetToolTipText(const TAttribute<FText>& ToolTipText)
 {
 	ToolTip = FSlateApplicationBase::Get().MakeToolTip(ToolTipText);
 }
-
 
 void SWidget::SetToolTipText( const FText& ToolTipText )
 {
 	ToolTip = FSlateApplicationBase::Get().MakeToolTip(ToolTipText);
 }
 
-
 void SWidget::SetToolTip( const TSharedPtr<IToolTip> & InToolTip )
 {
 	ToolTip = InToolTip;
 }
-
 
 TSharedPtr<IToolTip> SWidget::GetToolTip()
 {
@@ -646,17 +616,12 @@ void SWidget::SetCursor( const TAttribute< TOptional<EMouseCursor::Type> >& InCu
 	Cursor = InCursor;
 }
 
-
 void SWidget::SetDebugInfo( const ANSICHAR* InType, const ANSICHAR* InFile, int32 OnLine )
 {
-	this->TypeOfWidget = InType;
-	this->
-		CreatedInLocation = FName( InFile );
-	this->CreatedInLocation.SetNumber(OnLine);
+	TypeOfWidget = InType;
+	CreatedInLocation = FName( InFile );
+	CreatedInLocation.SetNumber(OnLine);
 }
-
-SLATECORE_API int32 bFoldTick = 1;
-FAutoConsoleVariableRef FoldTick(TEXT("Slate.FoldTick"), bFoldTick, TEXT("When folding, call Tick as part of the paint pass instead of a separate tick pass."));
 
 int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
@@ -675,18 +640,14 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 	// pass later when the layout cache draws.
 	if ( Args.IsCaching() && IsVolatile() )
 	{
-		// Volatile widgets don't have an associated layout cache.
-		LayoutCache.Reset();
-
+		const int32 VolatileLayerId = LayerId + 1;
 		OutDrawElements.QueueVolatilePainting(
-			FSlateWindowElementList::FVolatilePaint(SharedThis(this), Args, AllottedGeometry, MyClippingRect, LayerId, InWidgetStyle, bParentEnabled));
+			FSlateWindowElementList::FVolatilePaint(SharedThis(this), Args, AllottedGeometry, MyClippingRect, VolatileLayerId, InWidgetStyle, bParentEnabled));
 
-		// Add a layer padding so that cached elements drawn on top of this volatile widget have some airspace room and not be drawn on top
-		// of when the volatile element draws.
-		return LayerId + 1000;
+		return VolatileLayerId;
 	}
 
-	if ( bFoldTick )
+	if ( bFoldTick && bCanTick )
 	{
 		FGeometry TickGeometry = AllottedGeometry;
 		TickGeometry.AppendTransform( FSlateLayoutTransform(Args.GetWindowToDesktopTransform()) );
@@ -702,9 +663,8 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 	// Paint the geometry of this widget.
 	int32 NewLayerID = OnPaint(UpdatedArgs, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 
-	// HACK Doing this on every widget is expensive to call this virtual on everyone, do we really need this?
-	// it's not even all that useful on a shipped game you'd never use the built in keyboard focusing system.
-	if (SupportsKeyboardFocus())
+	// Check if we need to show the keyboard focus ring, this is only necessary if the widget could be focused.
+	if ( bCanSupportFocus && SupportsKeyboardFocus() )
 	{
 		bool bShowUserFocus = FSlateApplicationBase::Get().ShowUserFocus(SharedThis(this));
 		if (bShowUserFocus)
@@ -720,7 +680,7 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 					BrushResource,
 					MyClippingRect,
 					ESlateDrawEffect::None,
-					FColor(255, 255, 255, 128)
+					BrushResource->GetTint(InWidgetStyle)
 					);
 			}
 		}
@@ -732,18 +692,6 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 float SWidget::GetRelativeLayoutScale(const FSlotBase& Child) const
 {
 	return 1.0f;
-}
-
-void SWidget::ArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const
-{
-	SLATE_CYCLE_COUNTER_SCOPE_CUSTOM_DETAILED(SLATE_STATS_DETAIL_LEVEL_MED, GSlateArrangeChildren, GetType());
-	OnArrangeChildren(AllottedGeometry, ArrangedChildren);
-}
-
-EVisibility SWidget::GetVisibility() const
-{
-	SLATE_CYCLE_COUNTER_SCOPE_CUSTOM_DETAILED(SLATE_STATS_DETAIL_LEVEL_HI,GSlateGetVisibility, GetType());
-	return Visibility.Get();
 }
 
 TSharedRef<FActiveTimerHandle> SWidget::RegisterActiveTimer(float TickPeriod, FWidgetActiveTimerDelegate TickFunction)
@@ -781,18 +729,6 @@ void SWidget::ExecuteActiveTimers(double CurrentTime, float DeltaTime)
 			}
 			
 			ActiveTimers.RemoveAt(i);
-		}
-	}
-}
-
-SWidget::~SWidget()
-{
-	// Unregister all ActiveTimers so they aren't left stranded in the Application's list.
-	if (FSlateApplicationBase::IsInitialized())
-	{
-		for (const auto& ActiveTimerHandle : ActiveTimers)
-		{
-			FSlateApplicationBase::Get().UnRegisterActiveTimer(ActiveTimerHandle);
 		}
 	}
 }

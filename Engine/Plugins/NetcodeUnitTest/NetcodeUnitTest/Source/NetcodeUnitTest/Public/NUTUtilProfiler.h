@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -74,8 +74,11 @@ protected:
 	/** Whether or not profiling is active */
 	bool bActive;
 
+
+#if TARGET_UE4_CL >= CL_DEPRECATEDEL
 	/** Handle to the registered OnNewFrame delegate */
 	FDelegateHandle OnNewFrameDelegateHandle;
+#endif
 };
 #endif
 

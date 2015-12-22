@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLShaderResources.h: OpenGL shader resource RHI definitions.
@@ -209,7 +209,7 @@ struct FOpenGLCodeHeader
 	uint32 GlslMarker;
 	uint16 FrequencyMarker;
 	FOpenGLShaderBindings Bindings;
-	TArray<TCHAR> ShaderName;
+	FString ShaderName;
 	TArray<CrossCompiler::FUniformBufferCopyInfo> UniformBuffersCopyInfo;
 };
 
@@ -218,6 +218,7 @@ inline FArchive& operator<<(FArchive& Ar, FOpenGLCodeHeader& Header)
 	Ar << Header.GlslMarker;
 	Ar << Header.FrequencyMarker;
 	Ar << Header.Bindings;
+	Ar << Header.ShaderName;
 	int32 NumInfos = Header.UniformBuffersCopyInfo.Num();
 	Ar << NumInfos;
 	if (Ar.IsSaving())

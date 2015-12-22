@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemGooglePlayPrivatePCH.h"
 #include "OnlineAsyncTaskGooglePlayShowLoginUI.h"
@@ -6,7 +6,7 @@
 FOnlineAsyncTaskGooglePlayShowLoginUI::FOnlineAsyncTaskGooglePlayShowLoginUI(
 	FOnlineSubsystemGooglePlay* InSubsystem,
 	int InPlayerId,
-	const IOnlineExternalUI::FOnLoginUIClosedDelegate& InDelegate)
+	const FOnLoginUIClosedDelegate& InDelegate)
 	: FOnlineAsyncTaskGooglePlayAuthAction(InSubsystem)
 	, PlayerId(InPlayerId)
 	, Delegate(InDelegate)

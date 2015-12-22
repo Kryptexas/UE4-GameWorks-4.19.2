@@ -2,6 +2,7 @@ Availability: Public
 title:Math
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Preconfigured mathematical functions such as calculation of pi, addition of vector components, and others.
+Version: 4.9
 
 [TOC (start:2 end:3)]
 
@@ -13,7 +14,7 @@ The following is a list of all the functions found in the Math category.
 
 ### Add Components
 
-This function takes in a Vector2, a Vector3, or a Vector4, combines their components together and then outputs the result. You must use the appropriate output for the corresponding input. For example, if you input an image into *f3 (Vector3)*, then you must use the *f3* output.
+The **AddComponents** function takes in a Vector2, a Vector3, or a Vector4, combines their components together and then outputs the result. You must use the appropriate output for the corresponding input. For example, if you input an image into *f3 (Vector3)*, then you must use the *f3* output.
 
 | Item | Description |
 | -------- | -------- |
@@ -35,7 +36,7 @@ This function takes in a Vector2, a Vector3, or a Vector4, combines their compon
 
 ### Pi
 
-This function serves as a constant for Pi, as calculated to the 6th decimal place (3.141592). The node also comes with an input for a multiplier.
+The **Pi** function serves as a constant for Pi, as calculated to the 6th decimal place (3.141592). The node also comes with an input for a multiplier.
 
 | Item | Description |
 | -------- | -------- |
@@ -47,7 +48,7 @@ This function serves as a constant for Pi, as calculated to the 6th decimal plac
 
 ### LinearSine
 
-The LinearSine function takes in a scalar value and outputs the linear sine (or rounded linear sine) of that value, running between 0 and 1. If you connect a Time expression to the value input and use the Linear Sine, you can see animation in the output that coincides with a linear sine wave. 
+The **LinearSine** function takes in a scalar value and outputs the linear sine (or rounded linear sine) of that value, running between 0 and 1. If you connect a Time expression to the value input and use the Linear Sine, you can see animation in the output that coincides with a linear sine wave. 
 
 | Item | Description |
 | -------- | -------- |
@@ -65,7 +66,7 @@ The LinearSine function takes in a scalar value and outputs the linear sine (or 
 
 ### VectorToRadialValue
 
-This function transforms the vector of a Vector2 into an angle, or transforms UV coordinate data into radial coordinates. In the case of a vector, the angle will output in one channel and the length of the vector in the other.
+The **VectorToRadialValue** function transforms the vector of a Vector2 into an angle, or transforms UV coordinate data into radial coordinates. In the case of a vector, the angle will output in one channel and the length of the vector in the other.
 
 | Item | Description |
 | -------- | -------- |

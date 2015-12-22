@@ -1,8 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-//=============================================================================
+//~=============================================================================
 // ParticleSystemFactoryNew
-//=============================================================================
+//~=============================================================================
 
 #pragma once
 #include "ParticleSystemFactoryNew.generated.h"
@@ -13,9 +13,9 @@ class UParticleSystemFactoryNew : public UFactory
 	GENERATED_UCLASS_BODY()
 
 
-	// Begin UFactory Interface
+	//~ Begin UFactory Interface
 	UNREALED_API virtual UObject* FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn) override;
-	// Begin UFactory Interface	
+	//~ Begin UFactory Interface	
 };
 
 

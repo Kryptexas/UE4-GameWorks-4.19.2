@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /** 
  * InterpFilter_Classes: Filter class for filtering matinee groups.  
@@ -27,8 +27,8 @@ class UInterpFilter_Classes : public UInterpFilter
 
 #endif // WITH_EDITORONLY_DATA
 
-	// Begin UInterpFilter Interface
+	//~ Begin UInterpFilter Interface
 	virtual void FilterData(class AMatineeActor* InMatineeActor) override;
-	// End UInterpFilter Interface
+	//~ End UInterpFilter Interface
 };
 

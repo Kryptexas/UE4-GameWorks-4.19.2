@@ -1,9 +1,30 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "MovieSceneSection.h"
 #include "MovieSceneVectorSection.generated.h"
+
+
+enum class EKeyVectorChannel
+{
+	X,
+	Y,
+	Z,
+	W
+};
+
+
+struct MOVIESCENETRACKS_API FVectorKey
+{
+	FVectorKey( EKeyVectorChannel InChannel, float InValue )
+	{
+		Channel = InChannel;
+		Value = InValue;
+	}
+	EKeyVectorChannel Channel;
+	float Value;
+};
 
 
 /**
@@ -12,6 +33,7 @@
 UCLASS(MinimalAPI )
 class UMovieSceneVectorSection
 	: public UMovieSceneSection
+	, public IKeyframeSection<FVectorKey>
 {
 	GENERATED_UCLASS_BODY()
 
@@ -29,38 +51,29 @@ public:
 	virtual void DilateSection(float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles) override;
 	virtual void GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const override;
 
-	/** 
-	 * Adds a key to the section
-	 *
-	 * @param Time	The location in time where the key should be added
-	 * @param Value	The value of the key
-	 * @param KeyParams The keying parameters
-	 */
-	void AddKey( float Time, FName CurveName, const FVector4& Value, FKeyParams KeyParams );
-	
-	/** 
-	 * Determines if a new key would be new data, or just a duplicate of existing data
-	 *
-	 * @param Time	The location in time where the key would be added
-	 * @param Value	The value of the new key
-	 * @param KeyParams The keying parameters
-	 * @return True if the new key would be new data, false if duplicate
-	 */
-	bool NewKeyIsNewData(float Time, const FVector4& Value, FKeyParams KeyParams) const;
+
+	// IKeyframeSection interface.
+
+	virtual void AddKey( float Time, const FVectorKey& Key, EMovieSceneKeyInterpolation KeyInterpolation ) override;
+	virtual bool NewKeyIsNewData( float Time, const FVectorKey& Key ) const override;
+	virtual bool HasKeys( const FVectorKey& Key ) const override;
+	virtual void SetDefault( const FVectorKey& Key ) override;
 
 	/** Gets one of four curves in this section */
 	FRichCurve& GetCurve(const int32& Index) { return Curves[Index]; }
 
 	/** Sets how many channels are to be used */
-	void SetChannelsUsed(int32 InChannelsUsed) {ChannelsUsed = InChannelsUsed;}
+	void SetChannelsUsed(int32 InChannelsUsed) 
+	{
+		checkf(InChannelsUsed >= 2 && InChannelsUsed <= 4, TEXT("Only 2-4 channels are supported.") );
+		ChannelsUsed = InChannelsUsed;
+	}
 	
 	/** Gets the number of channels in use */
 	int32 GetChannelsUsed() const {return ChannelsUsed;}
 
 private:
-	void AddKeyToNamedCurve(float Time, FName CurveName, const FVector4& Value, FKeyParams KeyParams);
 
-private:
 	/** Vector t */
 	UPROPERTY()
 	FRichCurve Curves[4];

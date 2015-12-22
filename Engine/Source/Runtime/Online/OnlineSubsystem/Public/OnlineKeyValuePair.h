@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "OnlineSubsystemPackage.h"
@@ -11,8 +11,12 @@ namespace EOnlineKeyValuePairDataType
 		Empty,
 		/** 32 bit integer */
 		Int32,
+		/** 32 bit unsigned integer */
+		UInt32,
 		/** 64 bit integer */
 		Int64,
+		/** 64 bit unsigned integer */
+		UInt64,
 		/** Double (8 byte) */
 		Double,
 		/** Unicode string */
@@ -35,8 +39,12 @@ namespace EOnlineKeyValuePairDataType
 			return TEXT("Empty");
 		case Int32:
 			return TEXT("Int32");
+		case UInt32:
+			return TEXT("UInt32");
 		case Int64:
 			return TEXT("Int64");
+		case UInt64:
+			return TEXT("UInt64");
 		case Double:
 			return TEXT("Double");
 		case String:
@@ -86,8 +94,10 @@ private:
 	{
 		bool AsBool;
 		int32 AsInt;
+		uint32 AsUInt;
 		float AsFloat;
-		uint64 AsInt64;
+		int64 AsInt64;
+		uint64 AsUInt64;
 		double AsDouble;
 		TCHAR* AsTCHAR;
 		struct 
@@ -176,6 +186,13 @@ public:
 	 *
 	 * @param InData the new data to assign
 	 */
+	void SetValue(uint32 InData);
+
+	/**
+	 * Copies the data and sets the type
+	 *
+	 * @param InData the new data to assign
+	 */
 	void SetValue(bool InData);
 
 	/**
@@ -212,6 +229,13 @@ public:
 	 *
 	 * @param InData the new data to assign
 	 */
+	void SetValue(int64 InData);
+
+	/**
+	 * Copies the data and sets the type
+	 *
+	 * @param InData the new data to assign
+	 */
 	void SetValue(uint64 InData);
 
 	/**
@@ -233,7 +257,21 @@ public:
 	 *
 	 * @param OutData out value that receives the copied data
 	 */
+	void GetValue(uint32& OutData) const;
+
+	/**
+	 * Copies the data after verifying the type
+	 *
+	 * @param OutData out value that receives the copied data
+	 */
 	void GetValue(bool& OutData) const;
+
+	/**
+	  Copies the data after verifying the type
+	 *
+	 * @param OutData out value that receives the copied data
+	 */
+	void GetValue(int64& OutData) const;
 
 	/**
 	  Copies the data after verifying the type
@@ -281,7 +319,8 @@ public:
 	FORCEINLINE void Increment(TYPE IncBy)
 	{
 		checkSlow(Type == EOnlineKeyValuePairDataType::Int32 || Type == EOnlineKeyValuePairDataType::Int64 ||
-					Type == EOnlineKeyValuePairDataType::Float || Type == EOnlineKeyValuePairDataType::Double);
+                  Type == EOnlineKeyValuePairDataType::UInt32 || Type == EOnlineKeyValuePairDataType::UInt64 ||
+				  Type == EOnlineKeyValuePairDataType::Float || Type == EOnlineKeyValuePairDataType::Double);
 		if (Type == ENUM_TYPE)
 		{
 			*(TYPE*)&Value += IncBy;
@@ -297,7 +336,8 @@ public:
 	FORCEINLINE void Decrement(TYPE DecBy)
 	{
 		checkSlow(Type == EOnlineKeyValuePairDataType::Int32 || Type == EOnlineKeyValuePairDataType::Int64 ||
-					Type == EOnlineKeyValuePairDataType::Float || Type == EOnlineKeyValuePairDataType::Double);
+				  Type == EOnlineKeyValuePairDataType::UInt32 || Type == EOnlineKeyValuePairDataType::UInt64 ||
+				  Type == EOnlineKeyValuePairDataType::Float || Type == EOnlineKeyValuePairDataType::Double);
 		if (Type == ENUM_TYPE)
 		{
 			*(TYPE*)&Value -= DecBy;

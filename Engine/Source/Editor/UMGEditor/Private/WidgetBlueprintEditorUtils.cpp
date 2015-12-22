@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
 #include "Components/PanelSlot.h"
@@ -20,6 +20,8 @@
 #include "WidgetSlotPair.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "MovieScenePossessable.h"
+#include "MovieScene.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -83,10 +85,11 @@ bool FWidgetBlueprintEditorUtils::VerifyWidgetRename(TSharedRef<class FWidgetBlu
 		return false;
 	}
 
-	const FName NewFName(*NewNameString);
-	
+	// Slug the new name down to a valid object name
+	const FName NewNameSlug = MakeObjectNameFromDisplayLabel(NewNameString, Widget.GetTemplate()->GetFName());
+
 	UWidgetBlueprint* Blueprint = BlueprintEditor->GetWidgetBlueprintObj();
-	UWidget* ExistingTemplate = Blueprint->WidgetTree->FindWidget(NewFName);
+	UWidget* ExistingTemplate = Blueprint->WidgetTree->FindWidget(NewNameSlug);
 
 	bool bIsSameWidget = false;
 	if (ExistingTemplate != nullptr)
@@ -103,17 +106,12 @@ bool FWidgetBlueprintEditorUtils::VerifyWidgetRename(TSharedRef<class FWidgetBlu
 	}
 	else
 	{
-		if (!FName(*NewNameString).IsValidObjectName(OutErrorMessage))
-		{
-			return false;
-		}
-
 		// Not an existing widget in the tree BUT it still mustn't create a UObject name clash
 		UWidget* WidgetPreview = Widget.GetPreview();
 		if (WidgetPreview)
 		{
 			// Dummy rename with flag REN_Test returns if rename is possible
-			if (!WidgetPreview->Rename(*NewNameString, nullptr, REN_Test))
+			if (!WidgetPreview->Rename(*NewNameSlug.ToString(), nullptr, REN_Test))
 			{
 				OutErrorMessage = LOCTEXT("ExistingObjectName", "Existing Object Name");
 				return false;
@@ -123,7 +121,7 @@ bool FWidgetBlueprintEditorUtils::VerifyWidgetRename(TSharedRef<class FWidgetBlu
 		if (WidgetTemplate)
 		{
 			// Dummy rename with flag REN_Test returns if rename is possible
-			if (!WidgetTemplate->Rename(*NewNameString, nullptr, REN_Test))
+			if (!WidgetTemplate->Rename(*NewNameSlug.ToString(), nullptr, REN_Test))
 			{
 				OutErrorMessage = LOCTEXT("ExistingObjectName", "Existing Object Name");
 				return false;
@@ -133,7 +131,8 @@ bool FWidgetBlueprintEditorUtils::VerifyWidgetRename(TSharedRef<class FWidgetBlu
 
 	FKismetNameValidator Validator(Blueprint);
 
-	const bool bUniqueNameForVariable = (EValidatorResult::Ok == Validator.IsValid(NewFName));
+	// For variable comparison, use the slug
+	const bool bUniqueNameForVariable = ( EValidatorResult::Ok == Validator.IsValid(NewNameSlug) );
 
 	if (!bUniqueNameForVariable && !bIsSameWidget)
 	{
@@ -144,47 +143,50 @@ bool FWidgetBlueprintEditorUtils::VerifyWidgetRename(TSharedRef<class FWidgetBlu
 	return true;
 }
 
-bool FWidgetBlueprintEditorUtils::RenameWidget(TSharedRef<FWidgetBlueprintEditor> BlueprintEditor, const FName& OldName, const FName& NewName)
+bool FWidgetBlueprintEditorUtils::RenameWidget(TSharedRef<FWidgetBlueprintEditor> BlueprintEditor, const FName& OldObjectName, const FString& NewDisplayName)
 {
 	UWidgetBlueprint* Blueprint = BlueprintEditor->GetWidgetBlueprintObj();
 	check(Blueprint);
+
+	UWidget* Widget = Blueprint->WidgetTree->FindWidget(OldObjectName);
+	check(Widget);
 
 	bool bRenamed = false;
 
 	TSharedPtr<INameValidatorInterface> NameValidator = MakeShareable(new FKismetNameValidator(Blueprint));
 
+	// Get the new FName slug from the given display name
+	const FName NewFName = MakeObjectNameFromDisplayLabel(NewDisplayName, Widget->GetFName());
+
 	// NewName should be already validated. But one must make sure that NewTemplateName is also unique.
-	const bool bUniqueNameForTemplate = ( EValidatorResult::Ok == NameValidator->IsValid(NewName) );
-
-	const FString NewNameStr = NewName.ToString();
-	const FString OldNameStr = OldName.ToString();
-
-	UWidget* Widget = Blueprint->WidgetTree->FindWidget(OldName);
-	check(Widget);
-
-	if ( Widget )
+	const bool bUniqueNameForTemplate = ( EValidatorResult::Ok == NameValidator->IsValid(NewFName) );
+	if ( Widget && bUniqueNameForTemplate )
 	{
+		// Stringify the FNames
+		const FString NewNameStr = NewFName.ToString();
+		const FString OldNameStr = OldObjectName.ToString();
+
 		const FScopedTransaction Transaction(LOCTEXT("RenameWidget", "Rename Widget"));
 
 		// Rename Template
 		Blueprint->Modify();
 		Widget->Modify();
 
-
 		// Rename Preview before renaming the template widget so the preview widget can be found
 		UWidget* WidgetPreview = BlueprintEditor->GetReferenceFromTemplate(Widget).GetPreview();
 		if(WidgetPreview)
 		{
+			WidgetPreview->SetDisplayLabel(NewDisplayName);
 			WidgetPreview->Rename(*NewNameStr);
 		}
 
 		// Find and update all variable references in the graph
-
+		Widget->SetDisplayLabel(NewDisplayName);
 		Widget->Rename(*NewNameStr);
 
 		// Update Variable References and
 		// Update Event References to member variables
-		FBlueprintEditorUtils::ReplaceVariableReferences(Blueprint, OldName, NewName);
+		FBlueprintEditorUtils::ReplaceVariableReferences(Blueprint, OldObjectName, NewFName);
 		
 		// Find and update all binding references in the widget blueprint
 		for ( FDelegateEditorBinding& Binding : Blueprint->Bindings )
@@ -200,9 +202,19 @@ bool FWidgetBlueprintEditorUtils::RenameWidget(TSharedRef<FWidgetBlueprintEditor
 		{
 			for( FWidgetAnimationBinding& AnimBinding : WidgetAnimation->AnimationBindings )
 			{
-				if( AnimBinding.WidgetName == OldName )
+				if( AnimBinding.WidgetName == OldObjectName )
 				{
-					AnimBinding.WidgetName = NewName;
+					AnimBinding.WidgetName = NewFName;
+
+					WidgetAnimation->MovieScene->Modify();
+
+					FMovieScenePossessable* Possessable = WidgetAnimation->MovieScene->FindPossessable(AnimBinding.AnimationGuid);
+					if ( Possessable )
+					{
+						Possessable->SetName(NewFName.ToString());
+					}
+
+					break;
 				}
 			}
 		}
@@ -211,7 +223,7 @@ bool FWidgetBlueprintEditorUtils::RenameWidget(TSharedRef<FWidgetBlueprintEditor
 		// TODO...
 
 		// Validate child blueprints and adjust variable names to avoid a potential name collision
-		FBlueprintEditorUtils::ValidateBlueprintChildVariables(Blueprint, NewName);
+		FBlueprintEditorUtils::ValidateBlueprintChildVariables(Blueprint, NewFName);
 
 		// Refresh references and flush editors
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
@@ -350,60 +362,103 @@ void FWidgetBlueprintEditorUtils::DeleteWidgets(UWidgetBlueprint* BP, TSet<FWidg
 	}
 }
 
-bool FWidgetBlueprintEditorUtils::FindAndRemoveNamedSlotContent(UWidget* WidgetTemplate, UWidgetTree* WidgetTree)
+INamedSlotInterface* FWidgetBlueprintEditorUtils::FindNamedSlotHostForContent(UWidget* WidgetTemplate, UWidgetTree* WidgetTree)
 {
-	bool bSuccess = false;
+	return Cast<INamedSlotInterface>(FindNamedSlotHostWidgetForContent(WidgetTemplate, WidgetTree));
+}
 
-	WidgetTree->ForEachWidget([&] (UWidget* Widget) {
+UWidget* FWidgetBlueprintEditorUtils::FindNamedSlotHostWidgetForContent(UWidget* WidgetTemplate, UWidgetTree* WidgetTree)
+{
+	UWidget* HostWidget = nullptr;
 
-		if ( bSuccess )
+	WidgetTree->ForEachWidget([&](UWidget* Widget) {
+
+		if (HostWidget != nullptr)
 		{
 			return;
 		}
 
-		if ( INamedSlotInterface* NamedSlotHost = Cast<INamedSlotInterface>(Widget) )
+		if (INamedSlotInterface* NamedSlotHost = Cast<INamedSlotInterface>(Widget))
 		{
 			TArray<FName> SlotNames;
 			NamedSlotHost->GetSlotNames(SlotNames);
 
-			for ( FName SlotName : SlotNames )
+			for (FName SlotName : SlotNames)
 			{
-				if ( UWidget* SlotContent = NamedSlotHost->GetContentForSlot(SlotName) )
+				if (UWidget* SlotContent = NamedSlotHost->GetContentForSlot(SlotName))
 				{
-					if ( SlotContent == WidgetTemplate )
+					if (SlotContent == WidgetTemplate)
 					{
-						NamedSlotHost->SetContentForSlot(SlotName, nullptr);
-						bSuccess = true;
+						HostWidget = Widget;
 					}
 				}
 			}
 		}
 	});
 
-	return bSuccess;
+	return HostWidget;
+}
+
+bool FWidgetBlueprintEditorUtils::RemoveNamedSlotHostContent(UWidget* WidgetTemplate, INamedSlotInterface* NamedSlotHost)
+{
+	TArray<FName> SlotNames;
+	NamedSlotHost->GetSlotNames(SlotNames);
+
+	for (FName SlotName : SlotNames)
+	{
+		if (UWidget* SlotContent = NamedSlotHost->GetContentForSlot(SlotName))
+		{
+			if (SlotContent == WidgetTemplate)
+			{
+				NamedSlotHost->SetContentForSlot(SlotName, nullptr);
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+bool FWidgetBlueprintEditorUtils::FindAndRemoveNamedSlotContent(UWidget* WidgetTemplate, UWidgetTree* WidgetTree)
+{
+	INamedSlotInterface* NamedSlotHost = FindNamedSlotHostForContent(WidgetTemplate, WidgetTree);
+	if (NamedSlotHost != nullptr)
+	{
+		return RemoveNamedSlotHostContent(WidgetTemplate, NamedSlotHost);
+	}
+
+	return false;
 }
 
 void FWidgetBlueprintEditorUtils::BuildWrapWithMenu(FMenuBuilder& Menu, TSharedRef<FWidgetBlueprintEditor> BlueprintEditor, UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets)
 {
+	TArray<UClass*> WrapperClasses;
+	for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
+	{
+		UClass* WidgetClass = *ClassIt;
+		if ( FWidgetBlueprintEditorUtils::IsUsableWidgetClass(WidgetClass) )
+		{
+			if ( WidgetClass->IsChildOf(UPanelWidget::StaticClass()) )
+			{
+				WrapperClasses.Add(WidgetClass);
+			}
+		}
+	}
+
+	WrapperClasses.Sort([] (UClass& Lhs, UClass& Rhs) { return Lhs.GetDisplayNameText().CompareTo(Rhs.GetDisplayNameText()) < 0; });
+
 	Menu.BeginSection("WrapWith", LOCTEXT("WidgetTree_WrapWith", "Wrap With..."));
 	{
-		for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
+		for ( UClass* WrapperClass : WrapperClasses )
 		{
-			UClass* WidgetClass = *ClassIt;
-			if ( FWidgetBlueprintEditorUtils::IsUsableWidgetClass(WidgetClass) )
-			{
-				if ( WidgetClass->IsChildOf(UPanelWidget::StaticClass()) )
-				{
-					Menu.AddMenuEntry(
-						WidgetClass->GetDisplayNameText(),
-						FText::GetEmpty(),
-						FSlateIcon(),
-						FUIAction(
-						FExecuteAction::CreateStatic(&FWidgetBlueprintEditorUtils::WrapWidgets, BlueprintEditor, BP, Widgets, WidgetClass),
-							FCanExecuteAction()
-						));
-				}
-			}
+			Menu.AddMenuEntry(
+				WrapperClass->GetDisplayNameText(),
+				FText::GetEmpty(),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateStatic(&FWidgetBlueprintEditorUtils::WrapWidgets, BlueprintEditor, BP, Widgets, WrapperClass),
+					FCanExecuteAction()
+				));
 		}
 	}
 	Menu.EndSection();
@@ -463,6 +518,26 @@ void FWidgetBlueprintEditorUtils::BuildReplaceWithMenu(FMenuBuilder& Menu, UWidg
 {
 	Menu.BeginSection("ReplaceWith", LOCTEXT("WidgetTree_ReplaceWith", "Replace With..."));
 	{
+		if ( Widgets.Num() == 1 )
+		{
+			FWidgetReference Widget = *Widgets.CreateIterator();
+			UClass* WidgetClass = Widget.GetTemplate()->GetClass();
+			if ( WidgetClass->IsChildOf(UPanelWidget::StaticClass()) && Cast<UPanelWidget>(Widget.GetTemplate())->GetChildrenCount() == 1 )
+			{
+				Menu.AddMenuEntry(
+					LOCTEXT("ReplaceWithChild", "Replace With Child"),
+					LOCTEXT("ReplaceWithChildTooltip", "Remove this widget and insert the children of this widget into the parent."),
+					FSlateIcon(),
+					FUIAction(
+						FExecuteAction::CreateStatic(&FWidgetBlueprintEditorUtils::ReplaceWidgetWithChildren, BP, Widget),
+						FCanExecuteAction()
+					));
+
+				Menu.AddMenuSeparator();
+			}
+		}
+
+		TArray<UClass*> ReplacementClasses;
 		for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
 		{
 			UClass* WidgetClass = *ClassIt;
@@ -473,20 +548,65 @@ void FWidgetBlueprintEditorUtils::BuildReplaceWithMenu(FMenuBuilder& Menu, UWidg
 					// Only allow replacement with panels that accept multiple children
 					if ( WidgetClass->GetDefaultObject<UPanelWidget>()->CanHaveMultipleChildren() )
 					{
-						Menu.AddMenuEntry(
-							WidgetClass->GetDisplayNameText(),
-							FText::GetEmpty(),
-							FSlateIcon(),
-							FUIAction(
-								FExecuteAction::CreateStatic(&FWidgetBlueprintEditorUtils::ReplaceWidgets, BP, Widgets, WidgetClass),
-								FCanExecuteAction()
-							));
+						ReplacementClasses.Add(WidgetClass);
 					}
 				}
 			}
 		}
+
+		ReplacementClasses.Sort([] (UClass& Lhs, UClass& Rhs) { return Lhs.GetDisplayNameText().CompareTo(Rhs.GetDisplayNameText()) < 0; });
+
+		for ( UClass* ReplacementClass : ReplacementClasses )
+		{
+			Menu.AddMenuEntry(
+				ReplacementClass->GetDisplayNameText(),
+				FText::GetEmpty(),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateStatic(&FWidgetBlueprintEditorUtils::ReplaceWidgets, BP, Widgets, ReplacementClass),
+					FCanExecuteAction()
+				));
+		}
 	}
 	Menu.EndSection();
+}
+
+void FWidgetBlueprintEditorUtils::ReplaceWidgetWithChildren(UWidgetBlueprint* BP, FWidgetReference Widget)
+{
+	if ( UPanelWidget* ExistingPanelTemplate = Cast<UPanelWidget>(Widget.GetTemplate()) )
+	{
+		UWidget* FirstChildTemplate = ExistingPanelTemplate->GetChildAt(0);
+
+		FScopedTransaction Transaction(LOCTEXT("ReplaceWidgets", "Replace Widgets"));
+
+		ExistingPanelTemplate->Modify();
+		FirstChildTemplate->Modify();
+
+		if ( UPanelWidget* PanelParentTemplate = ExistingPanelTemplate->GetParent() )
+		{
+			PanelParentTemplate->Modify();
+
+			FirstChildTemplate->RemoveFromParent();
+			PanelParentTemplate->ReplaceChild(ExistingPanelTemplate, FirstChildTemplate);
+		}
+		else if ( ExistingPanelTemplate == BP->WidgetTree->RootWidget )
+		{
+			FirstChildTemplate->RemoveFromParent();
+
+			BP->WidgetTree->Modify();
+			BP->WidgetTree->RootWidget = FirstChildTemplate;
+		}
+		else
+		{
+			Transaction.Cancel();
+			return;
+		}
+
+		// Rename the removed widget to the transient package so that it doesn't conflict with future widgets sharing the same name.
+		ExistingPanelTemplate->Rename(nullptr, nullptr);
+
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
+	}
 }
 
 void FWidgetBlueprintEditorUtils::ReplaceWidgets(UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets, UClass* WidgetClass)
@@ -542,21 +662,21 @@ void FWidgetBlueprintEditorUtils::CutWidgets(UWidgetBlueprint* BP, TSet<FWidgetR
 
 void FWidgetBlueprintEditorUtils::CopyWidgets(UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets)
 {
-	TArray<UWidget*> CopyableWidets;
+	TArray<UWidget*> CopyableWidgets;
 	for ( const FWidgetReference& Widget : Widgets )
 	{
 		UWidget* ParentWidget = Widget.GetTemplate();
-		CopyableWidets.Add(ParentWidget);
+		CopyableWidgets.Add(ParentWidget);
 
 		// When copying a widget users expect all sub widgets to be copied as well, so we need to ensure that
 		// we gather all the child widgets and copy them as well.
-		UWidgetTree::GetChildWidgets(ParentWidget, CopyableWidets);
+		UWidgetTree::GetChildWidgets(ParentWidget, CopyableWidgets);
 	}
 
-	TSet<UWidget*> CopyableWidetsSet(CopyableWidets);
+	TSet<UWidget*> CopyableWidgetsSet(CopyableWidgets);
 
 	FString ExportedText;
-	FWidgetBlueprintEditorUtils::ExportWidgetsToText(CopyableWidetsSet, /*out*/ ExportedText);
+	FWidgetBlueprintEditorUtils::ExportWidgetsToText(CopyableWidgetsSet, /*out*/ ExportedText);
 	FPlatformMisc::ClipboardCopy(*ExportedText);
 }
 

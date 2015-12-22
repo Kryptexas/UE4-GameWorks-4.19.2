@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "JsonUtilitiesPrivatePCH.h"
 #include "JsonUtilities.h"
@@ -119,6 +119,12 @@ bool FJsonObjectConverter::UStructToJsonObject(const UStruct* StructDefinition, 
 
 bool FJsonObjectConverter::UStructToJsonAttributes(const UStruct* StructDefinition, const void* Struct, TMap< FString, TSharedPtr<FJsonValue> >& OutJsonAttributes, int64 CheckFlags, int64 SkipFlags, const CustomExportCallback* ExportCb)
 {
+	if (SkipFlags == 0)
+	{
+		// If we have no specified skip flags, skip deprecated by default when writing
+		SkipFlags |= CPF_Deprecated;
+	}
+
 	if (StructDefinition == FJsonObjectWrapper::StaticStruct())
 	{
 		// Just copy it into the object
@@ -185,6 +191,8 @@ bool FJsonObjectConverter::UStructToJsonObjectString(const UStruct* StructDefini
 
 	return false;
 }
+
+//template bool FJsonObjectConverter::UStructToFormattedJsonObjectString<TCHAR, TCondensedJsonPrintPolicy>(const UStruct* StructDefinition, const void* Struct, FString& OutJsonString, int64 CheckFlags, int64 SkipFlags, int32 Indent, const CustomExportCallback* ExportCb);
 
 namespace
 {
@@ -325,6 +333,8 @@ bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProper
 	else if (UStructProperty *StructProperty = Cast<UStructProperty>(Property))
 	{
 		static const FName NAME_DateTime(TEXT("DateTime"));
+		static const FName NAME_Color(TEXT("Color"));
+		static const FName NAME_LinearColor(TEXT("LinearColor"));
 		if (JsonValue->Type == EJson::Object)
 		{
 			TSharedPtr<FJsonObject> Obj = JsonValue->AsObject();
@@ -334,6 +344,23 @@ bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProper
 				UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - FJsonObjectConverter::JsonObjectToUStruct failed for property %s"), *Property->GetNameCPP());
 				return false;
 			}
+		}
+		else if (JsonValue->Type == EJson::String && StructProperty->Struct->GetFName() == NAME_LinearColor)
+		{
+			FLinearColor& ColorOut = *(FLinearColor*)OutValue;
+			FString ColorString = JsonValue->AsString();
+
+			FColor IntermediateColor;
+			IntermediateColor = FColor::FromHex(ColorString);
+
+			ColorOut = IntermediateColor;
+		}
+		else if (JsonValue->Type == EJson::String && StructProperty->Struct->GetFName() == NAME_Color)
+		{
+			FColor& ColorOut = *(FColor*)OutValue;
+			FString ColorString = JsonValue->AsString();
+
+			ColorOut = FColor::FromHex(ColorString);
 		}
 		else if (JsonValue->Type == EJson::String && StructProperty->Struct->GetFName() == NAME_DateTime)
 		{

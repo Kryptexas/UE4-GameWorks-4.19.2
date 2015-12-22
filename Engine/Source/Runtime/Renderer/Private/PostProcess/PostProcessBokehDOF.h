@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessBokehDOF.h: Post processing lens blur implementation.
@@ -68,7 +68,7 @@ public:
 
 private:
 
-	template <uint32 HighQuality, uint32 IndexStyle>
+	template <uint32 HighQuality>
 	void SetShaderTempl(const FRenderingCompositePassContext& Context, FIntPoint LeftTop, FIntPoint TileCount, uint32 TileSize, float PixelKernelSize);
 
 	// border between front and back layer as we don't use viewports (only possible with GS)

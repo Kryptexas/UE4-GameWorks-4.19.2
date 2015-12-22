@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -18,12 +18,33 @@ enum class EMapChangeType : uint8;
 
 
 /**
+ * Defines auto-key modes.
+ */
+UENUM()
+enum class EAutoKeyMode
+{
+	/** Key all properties that change. */
+	KeyAll,
+
+	/** Only key changed properties if they have exiting animations. */
+	KeyAnimated,
+
+	/** Don't auto-key */
+	KeyNone
+};
+
+
+/**
  * Interface for sequencers.
  */
 class ISequencer
 	: public IMovieScenePlayer
 	, public TSharedFromThis<ISequencer>
 {
+public:
+	
+	DECLARE_MULTICAST_DELEGATE(FOnGlobalTimeChanged);
+
 public:
 
 	/** Close the sequencer. */
@@ -49,30 +70,35 @@ public:
 	/**
 	 * Focuses a sub-movie scene (MovieScene within a MovieScene) in the sequencer.
 	 * 
-	 * @param SubMovieSceneInstance	Sub-MovieScene instance to focus.
+	 * @param SequenceInstance	Sub-sequence instance to focus.
 	 */
-	virtual void FocusSubMovieScene(TSharedRef<FMovieSceneSequenceInstance> SubMovieSceneInstance) = 0;
+	virtual void FocusSequenceInstance(TSharedRef<FMovieSceneSequenceInstance> SequenceInstance) = 0;
 	
+	/**
+	 * Create a new binding for the specified object
+	 */
+	virtual FGuid CreateBinding(UObject& InObject, const FString& InName) = 0;
+
 	/**
 	 * Given a sub-movie scene section, returns the instance of the movie scene for that section.
 	 *
-	 * @param SubMovieSceneSection	The sub-movie scene section containing a movie scene to get the instance for.
+	 * @param Section The sub-movie scene section containing the sequence instance to get.
 	 * @return The instance for the sub-movie scene
 	 */
-	virtual TSharedRef<FMovieSceneSequenceInstance> GetInstanceForSubMovieSceneSection(UMovieSceneSection& SubMovieSceneSection) const = 0;
+	virtual TSharedRef<FMovieSceneSequenceInstance> GetSequenceInstanceForSection(UMovieSceneSection& Section) const = 0;
 
 	/**
 	 * Adds a movie scene as a section inside the current movie scene
 	 * 
-	 * @param SubMovieScene The movie scene to add.
+	 * @param Sequence The sequence to add.
 	 */
-	virtual void AddSubMovieScene(UMovieSceneSequence* SubMovieScene) = 0;
+	virtual void AddSubSequence(UMovieSceneSequence* Sequence) = 0;
 
-	/** @return Returns whether auto-key is enabled in this sequencer */
-	virtual bool GetAutoKeyEnabled() const = 0;
+	/** @return Returns the current auto-key mode. */
+	virtual EAutoKeyMode GetAutoKeyMode() const = 0;
 
 	/** Sets whether autokey is enabled in this sequencer. */
-	virtual void SetAutoKeyEnabled(bool bAutoKeyEnabled) = 0;
+	virtual void SetAutoKeyMode(EAutoKeyMode AutoKeyMode) = 0;
 
 	/** @return Returns whether key all is enabled in this sequencer */
 	virtual bool GetKeyAllEnabled() const = 0;
@@ -131,6 +157,23 @@ public:
 	 */
 	virtual void SetPerspectiveViewportPossessionEnabled(bool bEnabled) = 0;
 
+	/*
+	 * Gets whether perspective viewport hijacking is enabled.
+	 */ 
+	virtual bool IsPerspectiveViewportPossessionEnabled() const { return true; }
+
+	/**
+	 * Sets whether perspective viewport camera cutting is enabled.
+	 *
+	 * @param bEnabled true if the viewport should be enabled, false if it should be disabled.
+	 */
+	virtual void SetPerspectiveViewportCameraCutEnabled(bool bEnabled) = 0;
+
+	/*
+	 * Gets whether perspective viewport hijacking is enabled.
+	 */ 
+	virtual bool IsPerspectiveViewportCameraCutEnabled() const { return true; }
+
 	/**
 	 * Gets a handle to runtime information about the object being manipulated by a movie scene
 	 * 
@@ -145,6 +188,11 @@ public:
 	 */
 	virtual class ISequencerObjectChangeListener& GetObjectChangeListener() = 0;
 
+	/**
+	 * Get a set of all properties currently keyed on the specified object
+	 */
+	virtual void GetAllKeyedProperties(UObject& Object, TSet<UProperty*>& OutProperties) = 0;
+
 	virtual bool CanKeyProperty(FCanKeyPropertyParams CanKeyPropertyParams) const = 0;
 
 	virtual void KeyProperty(FKeyPropertyParams KeyPropertyParams) = 0;
@@ -153,8 +201,13 @@ public:
 
 	virtual void UpdateRuntimeInstances() = 0;
 
+	virtual void UpdatePlaybackRange() = 0;
+
 	virtual FSequencerSelection& GetSelection() = 0;
 	virtual FSequencerSelectionPreview& GetSelectionPreview() = 0;
 
 	virtual void NotifyMapChanged(class UWorld* NewWorld, EMapChangeType MapChangeType) = 0;
+
+	/** Gets a multicast delegate which is executed whenever the global time changes. */
+	virtual FOnGlobalTimeChanged& OnGlobalTimeChanged() = 0;
 };

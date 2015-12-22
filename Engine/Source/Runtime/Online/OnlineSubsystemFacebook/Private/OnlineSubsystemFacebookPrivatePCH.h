@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,9 +13,6 @@
 
 #include "OnlineIdentityFacebook.h"
 #include "OnlineFriendsFacebook.h"
-
-/** FName declaration of Facebook subsystem */
-#define FACEBOOK_SUBSYSTEM FName(TEXT("Facebook"))
 
 /** pre-pended to all Facebook logging */
 #undef ONLINE_LOG_PREFIX

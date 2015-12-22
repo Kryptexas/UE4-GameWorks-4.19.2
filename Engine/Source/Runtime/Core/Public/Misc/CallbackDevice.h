@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -54,14 +54,11 @@ public:
 	// delegate type for prompting the pak system to mount a new pak
 	DECLARE_DELEGATE_RetVal_OneParam(bool, FOnUnmountPak, const FString&);
 
-	// Callback for PER_MODULE_BOILERPLATE macro's GSerialNumberBlocksForDebugVisualizers
-	DECLARE_DELEGATE_RetVal(int32***, FGetSerialNumberBlocksForDebugVisualizersDelegate);
-
 	/** delegate type for opening a modal message box ( Params: EAppMsgType::Type MessageType, const FText& Text, const FText& Title ) */
 	DECLARE_DELEGATE_RetVal_ThreeParams(EAppReturnType::Type, FOnModalMessageBox, EAppMsgType::Type, const FText&, const FText&);
 
 	// Callback for PER_MODULE_BOILERPLATE macro's GObjectArrayForDebugVisualizers
-	DECLARE_DELEGATE_RetVal(class UObjectBase***, FObjectArrayForDebugVisualizersDelegate);
+	DECLARE_DELEGATE_RetVal(class FFixedUObjectArray*, FObjectArrayForDebugVisualizersDelegate);
 
 	// Called in PER_MODULE_BOILERPLATE macro.
 	static FObjectArrayForDebugVisualizersDelegate& GetObjectArrayForDebugVisualizersDelegate();
@@ -131,9 +128,6 @@ public:
 
 	// Called when before the application is exiting.
 	static FSimpleMulticastDelegate OnPreExit;
-
-	// Called in PER_MODULE_BOILERPLATE macro.
-	static FGetSerialNumberBlocksForDebugVisualizersDelegate& GetSerialNumberBlocksForDebugVisualizersDelegate();
 
 	/** Color picker color has changed, please refresh as needed*/
 	static FSimpleMulticastDelegate ColorPickerChanged;
@@ -216,6 +210,9 @@ public:
 	/** Sent when the platform changed its laptop mode (for convertible laptops).*/
 	DECLARE_MULTICAST_DELEGATE_OneParam(FPlatformChangedLaptopMode, EConvertibleLaptopMode);
 	static FPlatformChangedLaptopMode PlatformChangedLaptopMode;
+
+	DECLARE_DELEGATE_RetVal_OneParam(bool, FLoadStringAssetReferenceInCook, FString&);
+	static FLoadStringAssetReferenceInCook LoadStringAssetReferenceInCook;
 
 private:
 

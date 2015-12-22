@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "DesktopPlatformPrivatePCH.h"
 #include "FeedbackContextMarkup.h"
@@ -527,13 +527,10 @@ bool FDesktopPlatformWindows::RunUnrealBuildTool(const FText& Description, const
 
 	// Pass through VS015 support
 	FString FinalArguments = Arguments;
-#if _MSC_VER >= 1900
-	FinalArguments.Append(TEXT(" -2015"));
-#elif _MSC_VER >= 1800
-	FinalArguments.Append(TEXT(" -2013"));
-#else
-	FinalArguments.Append(TEXT(" -2012"));
-#endif
+	if(_MSC_VER >= 1900)
+	{
+		FinalArguments.Append(TEXT(" -2015"));
+	}
 
 	// Write the output
 	Warn->Logf(TEXT("Running %s %s"), *UnrealBuildToolPath, *FinalArguments);

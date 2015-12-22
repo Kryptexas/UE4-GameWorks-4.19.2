@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "StandaloneRendererPrivate.h"
@@ -31,14 +31,11 @@ static D3D11_PRIMITIVE_TOPOLOGY GetD3D11PrimitiveType( ESlateDrawPrimitive::Type
 
 };
 
-FSlateD3D11RenderingPolicy::FSlateD3D11RenderingPolicy( TSharedPtr<FSlateFontCache> InFontCache, TSharedRef<FSlateD3DTextureManager> InTexureManager )
-	: FSlateRenderingPolicy( PixelCenterOffsetD3D11 ) 
-	, FontCache( InFontCache )
+FSlateD3D11RenderingPolicy::FSlateD3D11RenderingPolicy( TSharedRef<FSlateFontServices> InSlateFontServices, TSharedRef<FSlateD3DTextureManager> InTexureManager )
+	: FSlateRenderingPolicy( InSlateFontServices, PixelCenterOffsetD3D11 ) 
 	, TextureManager( InTexureManager )
 {
 	InitResources();
-
-
 }
 
 FSlateD3D11RenderingPolicy::~FSlateD3D11RenderingPolicy()
@@ -54,7 +51,7 @@ void FSlateD3D11RenderingPolicy::InitResources()
 	SamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
 	SamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
 	SamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-	SamplerDesc.MaxAnisotropy = 0;
+	SamplerDesc.MaxAnisotropy = 1;
 	SamplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
 	SamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 	SamplerDesc.MinLOD = 0;
@@ -321,7 +318,7 @@ void FSlateD3D11RenderingPolicy::DrawElements( const FMatrix& ViewProjectionMatr
 	}
 }
 
-TSharedRef<FSlateShaderResourceManager> FSlateD3D11RenderingPolicy::GetResourceManager()
+TSharedRef<FSlateShaderResourceManager> FSlateD3D11RenderingPolicy::GetResourceManager() const
 {
 	return TextureManager;
 }

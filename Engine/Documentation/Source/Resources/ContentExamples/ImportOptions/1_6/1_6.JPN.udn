@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2615681
+﻿INTSourceChangelist:2714669
 Availability:Public
-Title:1.6 - ドラッグ アンド ドロップ アニメーション
+Title:1.6 - ドラッグ ＆ ドロップ アニメーション
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/ImportOptions
-Description:ドラッグ アンド ドロップ アニメーション
+Description:ドラッグ ＆ ドロップ アニメーション
 Related: Engine/Content/FBX/ImportOptions
 Related: Engine/Content/FBX/BestPractices
 Related: Engine/Content/FBX/StaticMeshes
@@ -12,7 +12,25 @@ Related: Engine/Content/FBX
 Related: Engine/Content/FBX/MorphTargets
 Related: Shared/Editor/FbxErrors
 Related: Engine/Content/FBX/Materials
+Version:4.9
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/ImportOptions/1_5 "%Resources/ContentExamples/ImportOptions/1_5:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[インポート オプション ホーム](Resources/ContentExamples/ImportOptions)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/ImportOptions/1_7 "%Resources/ContentExamples/ImportOptions/1_7:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 
 [VAR:TopicCompact]
@@ -60,7 +78,7 @@ Related: Engine/Content/FBX/Materials
 
 <!-- This information isn't represented anywhere but in this document, it needs to be moved to the content pipeline docs -->
 
-ワールドの同位置にとどまる間アニメーションを単にループさせる **スケルタル メッシュ** は必要ですか？スケルタルメッシュをワールドへドラッグしてから、プレイしたいアニメーションをこのスケルタルメッシュ上へドラッグするだけでこれを実行できます。
+ワールドの同じ場所にとどまる間アニメーションをループさせる **スケルタル メッシュ** は必要ですか？これを行うには、スケルタルメッシュをワールドへドラッグしてから、再生したいアニメーションをこのスケルタルメッシュ上へドラッグするだけでできます。
 
 
 

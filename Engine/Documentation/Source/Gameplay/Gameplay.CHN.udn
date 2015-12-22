@@ -1,7 +1,6 @@
-﻿INTSourceChangelist:0
-Title: Gameplay Guide
+﻿Title: 游戏性指南
 Crumbs:%ROOT%
-Description:Overviews and examples of gameplay functionality for programmers and visual scripters.
+Description:供程序员和可视化脚本设计师使用的游戏功能概述和示例。
 Availability:Public
 
 [VAR:Params]
@@ -38,7 +37,7 @@ Availability:Public
 [OBJECT:Role]
 %params%
 [PARAMLITERAL:id]
-gameplay
+游戏性
 [/PARAMLITERAL]
 [/OBJECT]
 [/VAR]
@@ -48,12 +47,10 @@ gameplay
 		![](%ROOT%/gameplay_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Basic Gameplay Concepts
+		基础游戏性概念
 	[/PARAM]
 	[PARAM:description]
-		These pages will introduce you to key Unreal terms. To add new types of gameplay objects, you will generally create a new class. 
-		A class is a template, or collection of rules, for your new object, so that you can create as many copies as you need, each containing 
-		properties and behavior that you set in the template.
+		这些页面将会让您了解关键的虚幻引擎术语。 如需添加新类型的游戏对象，一般来说您需要创建一个新类。 一个类指的就是您的新对象的模板或规则集合，这样您就可以创建尽可能多的拷贝，每个都包含了您可以在模板中设置的属性和行为。
 	[/PARAM]
 	[PARAM:links]
 		* [](Gameplay/UnrealTerminology "%Gameplay/UnrealTerminology:description%")
@@ -66,16 +63,14 @@ gameplay
 		![](%ROOT%/gameplay_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Framework
+		框架
 	[/PARAM]
 	[PARAM:description]
-		In Unreal Engine 4, there are a number of classes that come with preset behavior to help you get started with your game. Read more 
-		about these building blocks and how they work together in the framework overview or quick reference, or jump straight to a particular 
-		class page for more information.
+		在虚幻引擎4中，伴随预制操作的有多个类，可以帮助您启动游戏。 您可以阅读更多关于这些编译块的内容，并了解其在框架概述或快速引用中是如何运行的，或直接跳转到特定的类页面以获得更多信息。
 	[/PARAM]
 	[PARAM:links]
-		* [Framework Overview](Gameplay/Framework "%Gameplay/Framework:description%")
-		* [Quick Reference](Gameplay/Framework/QuickReference "%Gameplay/Framework/QuickReference:description%")
+		* [框架概述](Gameplay/Framework "%Gameplay/Framework:description%")
+		* [快速引用](Gameplay/Framework/QuickReference "%Gameplay/Framework/QuickReference:description%")
 		* [](Gameplay/Framework/Pawn "%Gameplay/Framework/Pawn:description%")
 		* [](Gameplay/Framework/Controller "%Gameplay/Framework/Controller:description%")
 		* [](Gameplay/Framework/GameMode "%Gameplay/Framework/GameMode:description%")
@@ -88,11 +83,10 @@ gameplay
 		![](%ROOT%/gameplay_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Gameplay Elements
+		游戏性元素
 	[/PARAM]
 	[PARAM:description]
-		Although each game may have different characters, rules, and visual styles, there are some core elements that are more universal. 
-		From input to saving, find overviews of these topics and example setups in C++ and/or Blueprints here.
+		尽管每个游戏可能具有不同的字符、规则和视觉样式，但有一些核心元素是更为普遍的。 您可以搜寻从输入内容到保存内容的、位于此处的C++和/或蓝图的主题和示例设置的概述内容。
 	[/PARAM]
 	[PARAM:links]
 		* [](Gameplay/Input "%Gameplay/Input:description%")
@@ -110,7 +104,7 @@ gameplay
 		![](%ROOT%/profile_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Gameplay Tools
+		游戏性工具
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
@@ -126,32 +120,31 @@ gameplay
 		![](%ROOT%/gameplay_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Gameplay How To's
+		游戏性指南
 	[/PARAM]
 	[PARAM:description]
-		This section provides step-by-step instructions on how to generate some of the most common gameplay scenarios. 
-		Whether it is how to spawn enemies or pick-ups in your game, change camera angles, or set up player inputs; these pages provide example setups for you in both Blueprints and C++.
+		这个部分提供了如何生成一些最常见的游戏情节的按部就班的指南。 无论是需要了解如何生成敌人或在游戏中的可拾取物、变更相机角度或设置玩家输入；您都可以从这些页面中找到以蓝图和C++两者所编写的示例设置。
 	[/PARAM]
 	[PARAM:links]
-		* [Spawning/Destroying Actors](Gameplay\HowTo\SpawnAndDestroyActors)
-		* [Respawning (OnDestroyed)](Gameplay\HowTo\RespawnPlayer)
-		* [Possessing Pawns](Gameplay\HowTo\PossessPawns)
-		* [Using Raycasts (Tracing)](Gameplay\HowTo\UseRaycasts)
-		* [Referencing Actors](Gameplay\HowTo\ReferenceAssets)
-		* [Using Timers](Gameplay\HowTo\UseTimers)
-		* [Setting Up a Game Mode](Gameplay\HowTo\SettingUpAGameMode)
-		* [Setting Up Player Input](Gameplay\HowTo\SetUpInput)
-		* [Setting Up Input on an Actor](Gameplay\HowTo\ActorInput)
-		* [Setting Up Character Movement](Gameplay\HowTo\CharacterMovement)
-		* [Finding Actors in your Scene](Gameplay\HowTo\FindingActors)
-		* [Using Cameras](Gameplay\HowTo\UsingCameras)
-		* [Adding Components](Gameplay\HowTo\AddingComponents)
-		* [Using OnHit Events](Gameplay\HowTo\UseOnHit)
-			* **Networking**
-			* [Replicating Actors](Gameplay\HowTo\Networking\ReplicateActor)
-			* [Replicating Functions](Gameplay\HowTo\Networking\ReplicateFunction)
-			* [Replicating Variables](Gameplay\HowTo\Networking\ReplicateVariable)
-			* [Testing Multiplayer](Gameplay\HowTo\Networking\TestMultiplayer)
+		* [生成/销毁Actors](Gameplay\HowTo\SpawnAndDestroyActors)
+		* [重新生成 (已销毁对象)](Gameplay\HowTo\RespawnPlayer)
+		* [控制Pawns](Gameplay\HowTo\PossessPawns)
+		* [使用光线投射 (追溯)](Gameplay\HowTo\UseRaycasts)
+		* [引用Actors](Gameplay\HowTo\ReferenceAssets)
+		* [使用计时器](Gameplay\HowTo\UseTimers)
+		* [设置游戏模式](Gameplay\HowTo\SettingUpAGameMode)
+		* [设置玩家输入](Gameplay\HowTo\SetUpInput)
+		* [设置Actor上的输入](Gameplay\HowTo\ActorInput)
+		* [设置角色移动](Gameplay\HowTo\CharacterMovement)
+		* [在您的场景中搜寻Actors](Gameplay\HowTo\FindingActors)
+		* [使用相机](Gameplay\HowTo\UsingCameras)
+		* [添加组件](Gameplay\HowTo\AddingComponents)
+		* [使用OnHit事件](Gameplay\HowTo\UseOnHit)
+			* **网络**
+			* [复制Actors](Gameplay\HowTo\Networking\ReplicateActor)
+			* [复制函数](Gameplay\HowTo\Networking\ReplicateFunction)
+			* [复制变量](Gameplay\HowTo\Networking\ReplicateVariable)
+			* [测试多人玩家](Gameplay\HowTo\Networking\TestMultiplayer)
 	[/PARAM]
 [/OBJECT]
 

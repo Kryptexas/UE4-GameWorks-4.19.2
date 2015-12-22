@@ -1,16 +1,17 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "MovieScene3DAttachSection.h"
 #include "MovieScene3DAttachTrack.h"
+#include "ActorPickerTrackEditor.h"
 
 
 /**
  * Tools for attaching an object to another object
  */
 class F3DAttachTrackEditor
-	: public FMovieSceneTrackEditor
+	: public FActorPickerTrackEditor
 {
 public:
 
@@ -34,26 +35,18 @@ public:
 
 public:
 
-	/** Add attach */
-	void AddAttach(FGuid ObjectGuid, UObject* AdditionalAsset);
-
-	/** Set attach */
-	void SetAttach(UMovieSceneSection* Section, AActor* ActorWithSplineComponent);
-
-public:
-
 	// ISequencerTrackEditor interface
 
-	virtual void AddKey( const FGuid& ObjectGuid, UObject* AdditionalAsset = NULL ) override;
 	virtual void BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass) override;
 	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track ) override;
 	virtual bool SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const override;
 
+	// FTrackEditorActorPicker
+	virtual bool IsActorPickable( const AActor* const ParentActor, FGuid ObjectBinding, UMovieSceneSection* InSection ) override;
+	virtual void ActorSocketPicked(const FName SocketName, AActor* ParentActor, FGuid ObjectBinding, UMovieSceneSection* Section) override;
+
 private:
 
-	/** Add attach sub menu */
-	void AddAttachSubMenu(FMenuBuilder& MenuBuilder, FGuid ObjectBinding);
-
 	/** Delegate for AnimatablePropertyChanged in AddKey */
-	void AddKeyInternal(float KeyTime, const TArray<UObject*> Objects, UObject* AdditionalAsset);
+	bool AddKeyInternal(float KeyTime, const TArray<UObject*> Objects, const FName SocketName, AActor* ParentActor);
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GameMode.cpp: AGameMode c++ code.
@@ -21,8 +21,12 @@
 #include "GameFramework/GameMode.h"
 #include "Engine/ChildConnection.h"
 #include "Engine/GameInstance.h"
-#include "IMovieSceneCapture.h"
-#include "MovieSceneCaptureSettings.h"
+	
+#if WITH_EDITOR
+	#include "IMovieSceneCapture.h"
+	#include "MovieSceneCaptureModule.h"
+	#include "MovieSceneCaptureSettings.h"
+#endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameMode, Log, All);
 
@@ -304,9 +308,12 @@ bool AGameMode::ShouldStartInCinematicMode(APlayerController* Player, bool& OutH
 	{
 		return false;
 	}
-	else if(LocPlayer->ViewportClient && LocPlayer->ViewportClient->Viewport)
+
+#if WITH_EDITOR
+	// If we have an active movie scene capture, we can take the settings from that
+	if(LocPlayer->ViewportClient && LocPlayer->ViewportClient->Viewport)
 	{
-		if (auto* MovieSceneCapture = LocPlayer->ViewportClient->Viewport->GetMovieSceneCapture())
+		if(auto* MovieSceneCapture = IMovieSceneCaptureModule::Get().GetFirstActiveMovieSceneCapture())
 		{
 			const FMovieSceneCaptureSettings& Settings = MovieSceneCapture->GetSettings();
 			if (Settings.bCinematicMode)
@@ -319,6 +326,8 @@ bool AGameMode::ShouldStartInCinematicMode(APlayerController* Player, bool& OutH
 			}
 		}
 	}
+#endif
+
 	return false;
 }
 
@@ -1083,7 +1092,6 @@ APlayerController* AGameMode::Login(UPlayer* NewPlayer, ENetRole RemoteRole, con
 
 void AGameMode::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
-	Canvas->SetDrawColor(255,255,255);
 }
 
 
@@ -1559,7 +1567,7 @@ void AGameMode::AddInactivePlayer(APlayerState* PlayerState, APlayerController* 
 		}
 	}
 
-	PlayerState->Destroy();
+	PlayerState->OnDeactivated();
 }
 
 
@@ -1601,6 +1609,7 @@ bool AGameMode::FindInactivePlayer(APlayerController* PC)
 			// in UnregisterPlayerWithSession()
 			OldPlayerState->SetUniqueId(NULL);
 			OldPlayerState->Destroy();
+			PC->PlayerState->OnReactivated();
 			return true;
 		}
 	}
@@ -1687,6 +1696,12 @@ FString AGameMode::StaticGetFullGameClassName(FString const& Str)
 FString AGameMode::GetRedirectURL(const FString& MapName) const
 {
 	return FString();
+}
+void AGameMode::GameWelcomePlayer(UNetConnection* Connection, FString& RedirectURL)
+{
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	RedirectURL = GetRedirectURL(Connection->ClientWorldPackageName.ToString());
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 bool AGameMode::IsHandlingReplays()

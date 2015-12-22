@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "AITask.h"
@@ -41,6 +41,7 @@ protected:
 	UPROPERTY(BlueprintReadOnly, meta = (ExposeOnSpawn = true), Category = "AITask", AdvancedDisplay)
 	bool bShouldUsePathfinding;
 
+	FDelegateHandle PathFollowingDelegateHandle;
 	FAIRequestID MoveRequestID;
 
 	virtual void HandleMoveFinished(FAIRequestID RequestID, EPathFollowingResult::Type Result);
@@ -51,7 +52,7 @@ protected:
 	virtual void Resume() override;
 
 	virtual void PostInitProperties() override;
-
+	
 public:
 	UAITask_MoveTo(const FObjectInitializer& ObjectInitializer);
 
@@ -62,4 +63,6 @@ public:
 	static UAITask_MoveTo* AIMoveTo(AAIController* Controller, FVector GoalLocation, AActor* GoalActor = nullptr, float AcceptanceRadius = -1.f, EAIOptionFlag::Type StopOnOverlap = EAIOptionFlag::Default, EAIOptionFlag::Type AcceptPartialPath = EAIOptionFlag::Default, bool bUsePathfinding = true, bool bLockAILogic = true);
 
 	void SetUp(AAIController* Controller, FVector GoalLocation, AActor* GoalActor = nullptr, float AcceptanceRadius = -1.f, bool bUsePathfinding = true, EAIOptionFlag::Type StopOnOverlap = EAIOptionFlag::Default, EAIOptionFlag::Type AcceptPartialPath = EAIOptionFlag::Default);
+
+	void PerformMove();
 };

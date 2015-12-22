@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2573803
+﻿INTSourceChangelist:2620109
 Availability:Public
-Title:3.ワールドにCamera Directorを配置する
+Title:3.ワールドに Camera Director を配置する
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/AutoCamera
-Description:Camera Directorをワールドに配置してカメラを割り当てる
+Description:Camera Director をワールドに配置してカメラを割り当てる
+バージョン:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -12,7 +13,7 @@ Description:Camera Directorをワールドに配置してカメラを割り当�
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[プログラミングチュートリアルのホームページ](Programming\Tutorials\)
+		[ゲーム制御のカメラ](Programming\Tutorials\AutoCamera)
 	[/PARAM]
 	[PARAM:next]
 		[次の手順](Programming\Tutorials\AutoCamera\4 "%Programming\Tutorials\AutoCamera\4:title%")
@@ -26,15 +27,15 @@ Description:Camera Directorをワールドに配置してカメラを割り当�
 
 	[![](CameraDirectorInContentBrowser.png)](CameraDirectorInContentBrowser.png)
 
-1. 次に CameraOne と CameraTwo 変数を設定しなくてはいけません。**ワールドアウトライナー** で CameraDirector を検索して **詳細パネル** で編集します。
+1. 次に CameraOne と CameraTwo 変数を設定しなくてはいけません。**ワールドアウトライナー** で CameraDirector を検索して **[Details (詳細) パネル]** で編集します。
 
 	[![](CameraDirectorDetails.png)](CameraDirectorDetails.png)
 
-	ドロップダウンから「None（なし）」をクリックして、 **Cube** と既に作成した **CameraActor** に変数を設定します。
+	ドロップダウンから [None (なし)] をクリックして、**Cube** と既に作成した **CameraActor** に変数を設定します。
 
 	[![](CameraDirectorDetails2.png)](CameraDirectorDetails2.png)
 
-1. **Play（再生）** を押すと、カメラがこのビューにスナップします：
+1. **Play (再生)** を押すと、カメラがこのビューにスナップします：
 
 	[![](CameraOneView.png)](CameraOneView.png)
 
@@ -46,7 +47,7 @@ Description:Camera Directorをワールドに配置してカメラを割り当�
 
 ----
 
-ゲームロジックに完全に基づいてプレイヤーのカメラを動かせるシステムが出来ました。このコードは、プレイヤーがカメラを直接操作しないゲームやカメラビュー間のブレンディングが実用的なゲームなど、任意のゲームで使用するために変更可能です。
+ゲームロジックに完全に基づいてプレイヤーのカメラを動かせるシステムが出来ました。このコードは、プレイヤーがカメラを直接操作しないゲームやカメラビュー間のブレンディングが実用的なゲームなど、任意のゲームで使用できるように変更可能です。
 
 [OBJECT:Section]
     [PARAMLITERAL:id]
@@ -57,7 +58,7 @@ Description:Camera Directorをワールドに配置してカメラを割り当�
     [/PARAM]
     [PARAM:content]
 		**MyPawn.h**
-			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc.All Rights Reserved.
 
 			#pragma once
 
@@ -68,15 +69,15 @@ Description:Camera Directorをワールドに配置してカメラを割り当�
 			class HOWTO_AUTOCAMERA_API ACameraDirector : public AActor
 			{
 				GENERATED_BODY()
-	public:
 
-				// Sets default values for this actor's properties（このアクタのプロパティのデフォルト値を設定）
+			public:
+				// Sets default values for this actor's properties (このアクタのプロパティにデフォルト値を設定します)
 				ACameraDirector();
 
-				// Called when the game starts or when spawned（ゲームが開始またはスポーン時に呼ばれます）
+				// Called when the game starts or when spawned (ゲーム開始またはスポーン時に呼ばれます)
 				virtual void BeginPlay() override;
-	// Called every frame（フレームごとに呼ばれます）
 
+				// Called every frame (フレームごとに呼ばれます)
 				virtual void Tick( float DeltaSeconds ) override;
 
 				UPROPERTY(EditAnywhere)
@@ -88,29 +89,29 @@ Description:Camera Directorをワールドに配置してカメラを割り当�
 				float TimeToNextCameraChange;
 			};
 
-		**MyPawn.cpp**
-			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+		**MyPawn.h**
+			// Copyright 1998-2016 Epic Games, Inc.All Rights Reserved.
 
 			#include "HowTo_AutoCamera.h"
 			#include "CameraDirector.h"
 			#include "Kismet/GameplayStatics.h"
 
-			// Sets default values（デフォルト値を設定）
+			// Sets default values (デフォルト値を設定)
 			ACameraDirector::ACameraDirector()
 			{
- 				// Set this actor to call Tick() every frame.You can turn this off to improve performance if you don't need it.（このアクタがフレームごとにTick()を呼び出すように設定。必要なければパフォーマンスを向上させるためにオフにします）
+ 				// Set this actor to call Tick() every frame. (フレーム毎に Tick() を呼び出すためにこのアクタを設定します)必要なければパフォーマンスを向上させるためにオフにできます。
 				PrimaryActorTick.bCanEverTick = true;
 
 			}
 
-			// Called when the game starts or when spawned（ゲームが開始またはスポーン時に呼ばれます）
+			// Called when the game starts or when spawned (ゲーム開始またはスポーン時に呼ばれます)
 			void ACameraDirector::BeginPlay()
 			{
 				Super::BeginPlay();
-	}
 
+			}
 
-			// Called every frame（フレームごとに呼ばれます）
+			// Called every frame (フレームごとに呼ばれます)
 			void ACameraDirector::Tick( float DeltaTime )
 			{
 				Super::Tick( DeltaTime );
@@ -121,19 +122,19 @@ Description:Camera Directorをワールドに配置してカメラを割り当�
 				if (TimeToNextCameraChange <= 0.0f)
 				{
 					TimeToNextCameraChange += TimeBetweenCameraChanges;
-		//Find the actor that handles control for the local player.（ローカルプレイヤーをコントロールするアクタを検索）
 
+					//Find the actor that handles control for the local player.(ローカルプレイヤーをコントロールするアクタを検索)
 					APlayerController* OurPlayerController = UGameplayStatics::GetPlayerController(this, 0);
 					if (OurPlayerController)
 					{
 						if (CameraTwo && (OurPlayerController->GetViewTarget() == CameraOne))
 						{
-							//Blend smoothly to camera two（カメラ2へスムーズにブレンド）
+							//Blend smoothly to camera two (カメラ 2 へスムーズにブレンド)
 							OurPlayerController->SetViewTargetWithBlend(CameraTwo, SmoothBlendTime);
 						}
 						else if (CameraOne)
 						{
-							//Cut instantly to camera one.（カメラ1画面に瞬時に切り替え）
+							//Cut instantly to camera one.(カメラ 1 画面に瞬時に切り替え)
 							OurPlayerController->SetViewTarget(CameraOne);
 						}
 					}

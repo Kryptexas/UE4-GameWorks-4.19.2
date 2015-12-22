@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleModules_Camera.cpp: 
@@ -127,12 +127,7 @@ void UParticleModuleCameraOffset::Update(FParticleEmitterInstance* Owner, int32 
 	}
 }
 
-uint32 UParticleModuleCameraOffset::RequiredBytes(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleCameraOffset::RequiredBytes(UParticleModuleTypeDataBase* TypeData)
 {
-	if ((Owner == NULL) || (Owner->CameraPayloadOffset == 0))
-	{
-		return sizeof(FCameraOffsetParticlePayload);
-	}
-	// Only the first module needs to setup the payload
-	return 0;
+	return sizeof(FCameraOffsetParticlePayload);
 }

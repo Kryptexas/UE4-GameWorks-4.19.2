@@ -1,10 +1,11 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "OpenGLDrvPrivate.h"
 
 #include "MacOpenGLContext.h"
 #include "MacOpenGLQuery.h"
 
+#include "MacApplication.h"
 #include "MacWindow.h"
 #include "MacTextInputMethodSystem.h"
 #include "CocoaTextView.h"
@@ -17,13 +18,8 @@
  OpenGL static variables.
  ------------------------------------------------------------------------------*/
 
-// @todo: remove once Apple fixes radr://16754329 AMD Cards don't always perform FRAMEBUFFER_SRGB if the draw FBO has mixed sRGB & non-SRGB colour attachments
-static TAutoConsoleVariable<int32> CVarMacUseFrameBufferSRGB(
-	TEXT("r.Mac.UseFrameBufferSRGB"),
-	0,
-	TEXT("Flag to toggle use of GL_FRAMEBUFFER_SRGB for better color accuracy.\n"),
-	ECVF_RenderThreadSafe
-	);
+// As of 10.11.0 Apple fixed radr://16754329 AMD Cards don't always perform FRAMEBUFFER_SRGB if the draw FBO has mixed sRGB & non-SRGB colour attachments
+bool FMacOpenGL::bUseSRGBFramebuffer = false;
 
 // @todo: remove once Apple fixes radr://15553950, TTP# 315197
 static int32 GMacFlushTexStorage = true;
@@ -194,7 +190,14 @@ static void UnlockGLContext(NSOpenGLContext* Context)
 
 - (CALayer*)makeBackingLayer
 {
-	return [[FSlateOpenGLLayer alloc] initWithContext:self.Context->OpenGLContext andPixelFormat:self.Context->OpenGLPixelFormat];
+	if(FMacOpenGL::SupportsCoreAnimation())
+	{
+		return [[FSlateOpenGLLayer alloc] initWithContext:self.Context->OpenGLContext andPixelFormat:self.Context->OpenGLPixelFormat];
+	}
+	else
+	{
+		return nil;
+	}
 }
 
 - (id)initWithFrame:(NSRect)frameRect context:(FPlatformOpenGLContext*)context
@@ -222,7 +225,10 @@ static void UnlockGLContext(NSOpenGLContext* Context)
 
 - (void)drawRect:(NSRect)DirtyRect
 {
-	DrawOpenGLViewport(self.Context, self.frame.size.width, self.frame.size.height);
+	if(FMacOpenGL::SupportsCoreAnimation())
+	{
+		DrawOpenGLViewport(self.Context, self.frame.size.width, self.frame.size.height);
+	}
 }
 
 - (BOOL)isOpaque
@@ -367,21 +373,34 @@ FPlatformOpenGLContext* PlatformCreateOpenGLContext(FPlatformOpenGLDevice* Devic
 		{
 			NSView* SuperView = [[Context->WindowHandle contentView] superview];
 			[SuperView addSubview:Context->OpenGLView];
-			[SuperView setWantsLayer:YES];
+			if(FMacOpenGL::SupportsCoreAnimation())
+			{
+				[SuperView setWantsLayer:YES];
+			}
 			[SuperView addSubview:[Context->WindowHandle standardWindowButton:NSWindowCloseButton]];
 			[SuperView addSubview:[Context->WindowHandle standardWindowButton:NSWindowMiniaturizeButton]];
 			[SuperView addSubview:[Context->WindowHandle standardWindowButton:NSWindowZoomButton]];
 		}
 		else
 		{
-			[Context->OpenGLView setWantsLayer:YES];
+			if(FMacOpenGL::SupportsCoreAnimation())
+			{
+				[Context->OpenGLView setWantsLayer:YES];
+			}
 			[Context->WindowHandle setContentView:Context->OpenGLView];
 		}
 
 		[[Context->WindowHandle standardWindowButton:NSWindowCloseButton] setAction:@selector(performClose:)];
-
-		Context->OpenGLView.layer.magnificationFilter = kCAFilterNearest;
-		Context->OpenGLView.layer.minificationFilter = kCAFilterNearest;
+		
+		if(FMacOpenGL::SupportsCoreAnimation())
+		{
+			Context->OpenGLView.layer.magnificationFilter = kCAFilterNearest;
+			Context->OpenGLView.layer.minificationFilter = kCAFilterNearest;
+		}
+		else
+		{
+			[Context->OpenGLContext setView:Context->OpenGLView];
+		}
 	}, NSDefaultRunLoopMode, true);
 
 	return Context;
@@ -478,7 +497,14 @@ bool PlatformBlitToViewport(FPlatformOpenGLDevice* Device, const FOpenGLViewport
 			Context->ViewportSize[0] = BackbufferSizeX;
 			Context->ViewportSize[1] = BackbufferSizeY;
 
-			MainThreadCall(^{ [Context->OpenGLView setNeedsDisplay:YES]; }, NSDefaultRunLoopMode, false);
+			if(FMacOpenGL::SupportsCoreAnimation())
+			{
+				MainThreadCall(^{ [Context->OpenGLView setNeedsDisplay:YES]; }, NSDefaultRunLoopMode, false);
+			}
+			else
+			{
+				DrawOpenGLViewport(Context, BackbufferSizeX, BackbufferSizeY);
+			}
 
 			TArray<GLuint>& TexturesToDelete = GMacTexturesToDelete[(GFrameNumberRenderThread - (GMacTexturePoolNum - 1)) % GMacTexturePoolNum];
 			if(TexturesToDelete.Num() && TexturesToDelete.Num() > GMacMinTexturesToDeletePerFrame)
@@ -497,6 +523,16 @@ bool PlatformBlitToViewport(FPlatformOpenGLDevice* Device, const FOpenGLViewport
 void DrawOpenGLViewport(FPlatformOpenGLContext* const Context, uint32 Width, uint32 Height)
 {
 	FCocoaWindow* Window = (FCocoaWindow*)Context->WindowHandle;
+	
+	int32 CurrentDrawFramebuffer = 0;
+	
+	if(!FMacOpenGL::SupportsCoreAnimation())
+	{
+		glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &CurrentDrawFramebuffer);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glDrawBuffer(GL_BACK);
+	}
+	
 	if ([Window isRenderInitialized] && Context->ViewportSize[0] && Context->ViewportSize[1] && Context->ViewportFramebuffer && Context->ViewportRenderbuffer && ([Window styleMask] & (NSTexturedBackgroundWindowMask|NSFullSizeContentViewWindowMask) || !Window.inLiveResize))
 	{
 		int32 CurrentReadFramebuffer = 0;
@@ -513,8 +549,17 @@ void DrawOpenGLViewport(FPlatformOpenGLContext* const Context, uint32 Width, uin
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 	}
+	
 	[Context->OpenGLContext flushBuffer];
-	UnlockGLContext(Context->OpenGLContext);
+
+	if(FMacOpenGL::SupportsCoreAnimation())
+	{
+		UnlockGLContext(Context->OpenGLContext);
+	}
+	else
+	{
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, CurrentDrawFramebuffer);
+	}
 }
 
 void PlatformRenderingContextSetup(FPlatformOpenGLDevice* Device)
@@ -677,49 +722,27 @@ void PlatformGetSupportedResolution(uint32 &Width, uint32 &Height)
 
 bool PlatformGetAvailableResolutions(FScreenResolutionArray& Resolutions, bool bIgnoreRefreshRate)
 {
-	SCOPED_AUTORELEASE_POOL;
-
-	NSArray* AllScreens = [NSScreen screens];
-	NSScreen* PrimaryScreen = (NSScreen*)[AllScreens objectAtIndex: 0];
-
-	SIZE_T Scale = (SIZE_T)[PrimaryScreen backingScaleFactor];
-
-	int32 MinAllowableResolutionX = 0;
-	int32 MinAllowableResolutionY = 0;
-	int32 MaxAllowableResolutionX = 10480;
-	int32 MaxAllowableResolutionY = 10480;
-	int32 MinAllowableRefreshRate = 0;
-	int32 MaxAllowableRefreshRate = 10480;
-
-	if (MaxAllowableResolutionX == 0)
-	{
-		MaxAllowableResolutionX = 10480;
-	}
-	if (MaxAllowableResolutionY == 0)
-	{
-		MaxAllowableResolutionY = 10480;
-	}
-	if (MaxAllowableRefreshRate == 0)
-	{
-		MaxAllowableRefreshRate = 10480;
-	}
+	const int32 MinAllowableResolutionX = 0;
+	const int32 MinAllowableResolutionY = 0;
+	const int32 MaxAllowableResolutionX = 10480;
+	const int32 MaxAllowableResolutionY = 10480;
+	const int32 MinAllowableRefreshRate = 0;
+	const int32 MaxAllowableRefreshRate = 10480;
 
 	CFArrayRef AllModes = CGDisplayCopyAllDisplayModes(kCGDirectMainDisplay, NULL);
 	if (AllModes)
 	{
-		int32 NumModes = CFArrayGetCount(AllModes);
+		const int32 NumModes = CFArrayGetCount(AllModes);
+		const int32 Scale = FMacApplication::GetPrimaryScreenBackingScaleFactor();
+
 		for (int32 Index = 0; Index < NumModes; Index++)
 		{
-			CGDisplayModeRef Mode = (CGDisplayModeRef)CFArrayGetValueAtIndex(AllModes, Index);
-			SIZE_T Width = CGDisplayModeGetWidth(Mode) / Scale;
-			SIZE_T Height = CGDisplayModeGetHeight(Mode) / Scale;
-			int32 RefreshRate = (int32)CGDisplayModeGetRefreshRate(Mode);
+			const CGDisplayModeRef Mode = (const CGDisplayModeRef)CFArrayGetValueAtIndex(AllModes, Index);
+			const int32 Width = (int32)CGDisplayModeGetWidth(Mode) / Scale;
+			const int32 Height = (int32)CGDisplayModeGetHeight(Mode) / Scale;
+			const int32 RefreshRate = (int32)CGDisplayModeGetRefreshRate(Mode);
 
-			if (((int32)Width >= MinAllowableResolutionX) &&
-				((int32)Width <= MaxAllowableResolutionX) &&
-				((int32)Height >= MinAllowableResolutionY) &&
-				((int32)Height <= MaxAllowableResolutionY)
-				)
+			if (Width >= MinAllowableResolutionX && Width <= MaxAllowableResolutionX && Height >= MinAllowableResolutionY && Height <= MaxAllowableResolutionY)
 			{
 				bool bAddIt = true;
 				if (bIgnoreRefreshRate == false)
@@ -748,7 +771,7 @@ bool PlatformGetAvailableResolutions(FScreenResolutionArray& Resolutions, bool b
 				if (bAddIt)
 				{
 					// Add the mode to the list
-					int32 Temp2Index = Resolutions.AddZeroed();
+					const int32 Temp2Index = Resolutions.AddZeroed();
 					FScreenResolutionRHI& ScreenResolution = Resolutions[Temp2Index];
 
 					ScreenResolution.Width = Width;
@@ -1169,6 +1192,8 @@ void FMacOpenGL::ProcessExtensions(const FString& ExtensionsString)
 	
 	// SSOs require structs in geometry shaders - which only work in 10.10.0 and later
 	bSupportsSeparateShaderObjects &= (FMacPlatformMisc::MacOSXVersionCompare(10,10,0) >= 0);
+	
+	bUseSRGBFramebuffer = (!IsRHIDeviceAMD() || FMacPlatformMisc::MacOSXVersionCompare(10,11,0) >= 0);
 }
 
 void FMacOpenGL::MacQueryTimestampCounter(GLuint QueryID)
@@ -1290,20 +1315,6 @@ bool FMacOpenGL::MustFlushTexStorage(void)
 	// @todo Fixed in 10.10.1.
 	FPlatformOpenGLContext::VerifyCurrentContext();
 	return GMacFlushTexStorage || GMacMustFlushTexStorage;
-}
-
-/** Is the current renderer the Intel HD3000? */
-bool FMacOpenGL::IsIntelHD3000()
-{
-	// Get the current renderer ID
-	GLint RendererID = 0;
-	CGLContextObj Current = CGLGetCurrentContext();
-	if (Current)
-	{
-		CGLError Error = CGLGetParameter(Current, kCGLCPCurrentRendererID, &RendererID);
-		check(Error == kCGLNoError && RendererID != 0);
-	}
-	return (RendererID & kCGLRendererIDMatchingMask) == kCGLRendererIntelHDID;
 }
 
 void FMacOpenGL::DeleteTextures(GLsizei Number, const GLuint* Textures)

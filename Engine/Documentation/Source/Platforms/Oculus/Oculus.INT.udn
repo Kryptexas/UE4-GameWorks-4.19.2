@@ -4,10 +4,11 @@ Description:
 Availability:Public
 Navigation:platform
 Platform:Oculus
+Version: 4.9
 
 [EXCERPT:warning]
 [REGION:warning]
-Developing for Oculus on Mac currently requires Unreal Engine 4.3
+Developing for Oculus on Mac currently requires Unreal Engine 4.3 or higher
 [/REGION]
 [/EXCERPT:warning]
 

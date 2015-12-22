@@ -1,8 +1,9 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "AISenseConfig.h"
+#include "Perception/AISense_Team.h"
 #include "AISenseConfig_Team.generated.h"
 
 class UAISense_Team;

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 /*=============================================================================================
@@ -9,7 +9,7 @@
 #include "GenericPlatform/GenericPlatformStackWalk.h"
 
 /**
-* Android platform stack walking
+* HTML5 platform stack walking
 */
 struct CORE_API FHTML5PlatformStackWalk : public FGenericPlatformStackWalk
 {

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "Misc/App.h"
@@ -809,12 +809,9 @@ bool DoesConfigPropertyValueMatch( FConfigFile* InConfigFile, const FString& InS
 		if( Section )
 		{
 			// Start Array check, if the property is in an array, we need to iterate over all properties.
-			TArray< FString > MatchingProperties;
-			Section->MultiFind( InPropertyName, MatchingProperties );
-
-			for( int32 PropertyIndex = 0; PropertyIndex < MatchingProperties.Num() && !bFoundAMatch; PropertyIndex++ )
+			for (FConfigSection::TConstKeyIterator It(*Section, InPropertyName); It && !bFoundAMatch; ++It)
 			{
-				const FString& PropertyValue = MatchingProperties[ PropertyIndex ];
+				const FString& PropertyValue = It.Value();
 				bFoundAMatch = PropertyValue == InPropertyValue;
 
 				// if our properties don't match, run further checks
@@ -1740,6 +1737,18 @@ FConfigSection* FConfigCacheIni::GetSectionPrivate( const TCHAR* Section, bool F
 	if( Sec && (Force || !Const) )
 		File->Dirty = 1;
 	return Sec;
+}
+
+bool FConfigCacheIni::DoesSectionExist(const TCHAR* Section, const FString& Filename)
+{
+	bool bReturnVal = false;
+
+	FRemoteConfig::Get()->FinishRead(*Filename); // Ensure the remote file has been loaded and processed
+	FConfigFile* File = Find(Filename, false);
+
+	bReturnVal = File != NULL && File->Find(Section) != NULL;
+
+	return bReturnVal;
 }
 
 void FConfigCacheIni::SetString( const TCHAR* Section, const TCHAR* Key, const TCHAR* Value, const FString& Filename )
@@ -2740,7 +2749,13 @@ static void GetSourceIniHierarchyFilenames(const TCHAR* InBaseIniName, const TCH
 
 	// [[[[ ENGINE DEFAULTS ]]]]
 	// Engine/Config/Base.ini (included in every ini type, required)
-	OutHierarchy.Add(EConfigFileHierarchy::AbsoluteBase, FIniFilename(FString::Printf(TEXT("%sBase.ini"), EngineConfigDir), true));
+	// @todo: ChrisW - this is a temporary measure to allow standalone tools to work when engine config files are in a pak
+#if IS_PROGRAM
+	const bool BaseIniRequired = false;
+#else
+	const bool BaseIniRequired = true;
+#endif
+	OutHierarchy.Add(EConfigFileHierarchy::AbsoluteBase, FIniFilename(FString::Printf(TEXT("%sBase.ini"), EngineConfigDir), BaseIniRequired));
 	// Engine/Config/Base* ini
 	OutHierarchy.Add(EConfigFileHierarchy::EngineDirBase, FIniFilename(FString::Printf(TEXT("%sBase%s.ini"), EngineConfigDir, InBaseIniName), false));
 	// Engine/Config/NotForLicensees/Base* ini
@@ -3414,8 +3429,9 @@ void ApplyCVarSettingsFromIni(const TCHAR* InSectionName, const TCHAR* InIniFile
 			}
 			else
 			{
-				UE_LOG(LogConsoleResponse, Verbose, TEXT("Skipping Unknown console variable: '%s = %s'"), *CVarName, *CVarValue);
-				UE_LOG(LogConsoleResponse, Verbose, TEXT("  Found in ini file '%s', in section '[%s]'"), InIniFilename, InSectionName);
+				// Create a dummy that is used when someone registers the variable later on.
+				// this is important for variables created in external modules, such as the game module
+				IConsoleManager::Get().RegisterConsoleVariable(*CVarName, *CVarValue, TEXT("IAmNoRealVariable"), (uint32)ECVF_Unregistered | (uint32)ECVF_CreatedFromIni | SetBy);
 			}
 		}
 	}

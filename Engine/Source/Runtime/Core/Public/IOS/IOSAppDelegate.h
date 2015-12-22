@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -66,7 +66,7 @@ UITextFieldDelegate>
 
 @property (retain) NSTimer* timer;
 
-#if !UE_BUILD_SHIPPING
+#if !UE_BUILD_SHIPPING && !PLATFORM_TVOS
 	/** Properties for managing the console */
 	@property (nonatomic, retain) UIAlertView*		ConsoleAlert;
 #ifdef __IPHONE_8_0
@@ -94,7 +94,6 @@ UITextFieldDelegate>
  */
 + (IOSAppDelegate*)GetDelegate;
 
--(void)EnableIdleTimer:(bool)bEnable;
 
 -(void) ParseCommandLineOverrides;
 

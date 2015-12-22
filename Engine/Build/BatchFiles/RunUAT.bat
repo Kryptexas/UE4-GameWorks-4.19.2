@@ -4,7 +4,7 @@ setlocal
 echo Running AutomationTool...
 
 rem ## Unreal Engine 4 AutomationTool setup script
-rem ## Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+rem ## Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 rem ## This script is expecting to exist in the UE4/Engine/Build/BatchFiles directory.  It will not work correctly
 rem ## if you copy it to a different location and run it.
@@ -29,9 +29,8 @@ if not exist Source\Programs\AutomationToolLauncher\AutomationToolLauncher.cspro
 rem ## Check to see if we're already running under a Visual Studio environment shell
 if not "%INCLUDE%" == "" if not "%LIB%" == "" goto ReadyToCompile
 
-echo path="%path%"
-
 rem ## Check for Visual Studio 2015
+for %%P in (%*) do if "%%P" == "-2013" goto NoVisualStudio2015Environment
 
 pushd %~dp0
 call GetVSComnToolsPath 14
@@ -42,6 +41,7 @@ rem ## Check if the C++ toolchain is not installed
 if not exist "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" goto NoVisualStudio2015Environment
 call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
 goto ReadyToCompile
+
 
 rem ## Check for Visual Studio 2013
 :NoVisualStudio2015Environment
@@ -81,7 +81,7 @@ goto DoRunUAT
 :ReadyToCompile
 msbuild /nologo /verbosity:quiet Source\Programs\AutomationToolLauncher\AutomationToolLauncher.csproj /property:Configuration=Development /property:Platform=AnyCPU
 if not %ERRORLEVEL% == 0 goto Error_UATCompileFailed
-msbuild /nologo /verbosity:quiet Source\Programs\AutomationTool\AutomationTool.csproj /property:Configuration=Development /property:Platform=AnyCPU
+msbuild /nologo /verbosity:quiet Source\Programs\AutomationTool\AutomationTool.csproj /property:Configuration=Development /property:Platform=AnyCPU /property:AutomationToolProjectOnly=true
 if not %ERRORLEVEL% == 0 goto Error_UATCompileFailed
 
 
@@ -98,33 +98,37 @@ goto Exit
 
 :Error_BatchFileInWrongLocation
 echo RunUAT.bat ERROR: The batch file does not appear to be located in the /Engine/Build/BatchFiles directory.  This script must be run from within that directory.
+set RUNUAT_EXITCODE=1
 goto Exit_Failure
 
 :Error_NoVisualStudioEnvironment
 echo RunUAT.bat ERROR: A valid version of Visual Studio 2015 or Visual Studio 2013 or Visual Studio 2012 does not appear to be installed.
+set RUNUAT_EXITCODE=1
 goto Exit_Failure
 
 :Error_NoFallbackExecutable
 echo RunUAT.bat ERROR: Visual studio and/or AutomationTool.csproj was not found, nor was Engine\Binaries\DotNET\AutomationTool.exe. Can't run the automation tool.
+set RUNUAT_EXITCODE=1
 goto Exit_Failure
 
 :Error_UATCompileFailed
 echo RunUAT.bat ERROR: AutomationTool failed to compile.
+set RUNUAT_EXITCODE=1
 goto Exit_Failure
 
 
 :Error_UATFailed
+set RUNUAT_EXITCODE=%ERRORLEVEL%
 echo copying UAT log files...
 if not "%uebp_LogFolder%" == "" copy log*.txt %uebp_LogFolder%\UAT_*.*
 rem if "%uebp_LogFolder%" == "" copy log*.txt c:\LocalBuildLogs\UAT_*.*
 popd
-echo RunUAT.bat ERROR: AutomationTool was unable to run successfully.
 goto Exit_Failure
 
 :Exit_Failure
 echo BUILD FAILED
 popd
-exit /B %ERRORLEVEL%
+exit /B %RUNUAT_EXITCODE%
 
 :Exit
 rem ## Restore original CWD in case we change it

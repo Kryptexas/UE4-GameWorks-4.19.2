@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EncryptionHandlerComponent.h"
 #include "BlockEncryptionHandlerComponent.h"
@@ -140,12 +140,7 @@ void EncryptionHandlerComponent::Outgoing(FBitWriter& Packet)
 }
 
 //MODULE INTERFACE
-HandlerComponent* FEncryptionHandlerComponentModuleInterface::CreateComponentInstance()
+TSharedPtr<HandlerComponent> FEncryptionHandlerComponentModuleInterface::CreateComponentInstance(FString& Options)
 {
-	return new EncryptionHandlerComponent;
-}
-
-HandlerComponent* FEncryptionHandlerComponentModuleInterface::CreateComponentInstance(FString& Options)
-{
-	return new EncryptionHandlerComponent;
+	return MakeShareable(new EncryptionHandlerComponent);
 }

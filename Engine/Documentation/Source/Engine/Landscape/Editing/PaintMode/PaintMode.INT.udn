@@ -2,6 +2,7 @@ Availability: Public
 Title:Paint Mode
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
 Description:Guide to the Landscape tool's Paint mode.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topiccompact]
@@ -27,7 +28,7 @@ Description:Guide to the Landscape tool's Paint mode.
 
 The tools in **Paint** mode enable you to modify the appearance of your Landscape by selectively applying Material layers to parts of your Landscape.
 
-For more information about Landscape Materials, see [](Engine/Landscape\Materials).
+For more information about Landscape Materials, see [Landscape Materials](Engine/Landscape\Materials).
 
 
 ## Painting Tools
@@ -71,9 +72,14 @@ The Smooth tool smooths the layer weight. The strength determines the amount of 
 
 **Layer Smoothing**
 
-![Landscape_Smooth_Layer_Before.jpg](Landscape_Smooth_Layer_Before.jpg)(w:900 h:500)
-
-![Landscape_Smooth_Layer_After.jpg](Landscape_Smooth_Layer_After.jpg)(w:900 h:500)
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Landscape Smooth Layer Before](Landscape_Smooth_Layer_Before.jpg)(w:900 h:500)
+	[/PARAM]
+	[PARAM:after]
+	![Landscape Smooth Layer After](Landscape_Smooth_Layer_After.jpg)(w:900 h:500)
+	[/PARAM]
+[/OBJECT]
 
 | **Additional Option** | **Description** |
 | --- | --- |
@@ -108,7 +114,7 @@ The tool applies a noise filter to the layer weight. The strength determines the
 | --- | --- |
 | **Use Target Value** | If checked, blends the values of the noise being applied toward a target value. |
 | **Noise Mode** | Determines whether to apply all noise effects, only the noise effects that result in increasing the application of the layer, or only the noise effects that result in reducing the application of the layer. |
-| **Noise Scale** | The size of the perlin noise filter used. The noise filter is related to position and scale, which means if you do not change **Noise Scale**, the same filter is applied to the same position many times. |
+| **Noise Scale** | The size of the perlin noise filter used. The noise filter is related to position and scale, which means if you do not change Noise Scale, the same filter is applied to the same position many times. |
 
 
 ## Layers
@@ -129,7 +135,7 @@ Whichever layer is selected is the one you can apply to the Landscape with the P
 Many of the Painting Tools are similar to the Sculpting Tools, and you use them similarly, but to manipulate the application of layers instead of the heightmap.
 [/REGION]
 
-You create layers in the Material itself. For more information about layers and Landscape Materials, see [](Engine\Landscape\Materials).
+You create layers in the Material itself. For more information about layers and Landscape Materials, see [Landscape Materials](Engine\Landscape\Materials).
 
 
 ### Layer Info Objects
@@ -146,7 +152,7 @@ You can either create a layer info object from the layer itself, or reuse an exi
 
 **To create a layer info object:**
 
-1. Press the plus icon (![Create Layer Info](Engine/Landscape\Editing\icon_Landscape_CreateLayerInfo.png)) to the right of the Layer name.
+1. Press the plus icon to the right of the Layer name.
 1. Choose **Weight-Blended Layer (normal)** or **Non Weight-Blended Layer**.
 ![](WeightBlended_NonWeightBlended.png)
 1. Choose the location to save the layer info object.

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneToolsPrivatePCH.h"
 #include "EventTrackEditor.h"
@@ -29,17 +29,11 @@ FEventTrackEditor::FEventTrackEditor(TSharedRef<ISequencer> InSequencer)
 /* ISequencerTrackEditor interface
  *****************************************************************************/
 
-void FEventTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* AdditionalAsset)
-{
-	// todo gmp: Sequencer: implement event track section
-}
-
-
 void FEventTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
 {
 	UMovieSceneSequence* RootMovieSceneSequence = GetSequencer()->GetRootMovieSceneSequence();
 
-	if ((RootMovieSceneSequence == nullptr) || (RootMovieSceneSequence->GetClass()->GetName() != TEXT("LevelSequenceInstance")))
+	if ((RootMovieSceneSequence == nullptr) || (RootMovieSceneSequence->GetClass()->GetName() != TEXT("LevelSequence")))
 	{
 		return;
 	}
@@ -67,7 +61,7 @@ void FEventTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, c
 
 TSharedRef<ISequencerSection> FEventTrackEditor::MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack& Track)
 {
-	return MakeShareable(new FEventTrackSection(SectionObject/*, Track->GetTrackName()*/, GetSequencer()));
+	return MakeShareable(new FEventTrackSection(SectionObject, GetSequencer()));
 }
 
 
@@ -82,27 +76,24 @@ bool FEventTrackEditor::SupportsType(TSubclassOf<UMovieSceneTrack> Type) const
 
 void FEventTrackEditor::HandleAddEventTrackMenuEntryExecute()
 {
-	UMovieSceneSequence* FocusedSequence = GetSequencer()->GetFocusedMovieSceneSequence();
-	UMovieScene* MovieScene = FocusedSequence->GetMovieScene();
-	if (MovieScene == nullptr)
-	{
-		return;
-	}
+	UMovieScene* FocusedMovieScene = GetFocusedMovieScene();
 
-	UMovieSceneTrack* EventTrack = MovieScene->FindMasterTrack( UMovieSceneEventTrack::StaticClass() );
-	if (EventTrack != nullptr)
+	if (FocusedMovieScene == nullptr)
 	{
 		return;
 	}
 
 	const FScopedTransaction Transaction(NSLOCTEXT("Sequencer", "AddEventTrack_Transaction", "Add Event Track"));
+	FocusedMovieScene->Modify();
+	
+	auto NewTrack = FocusedMovieScene->AddMasterTrack<UMovieSceneEventTrack>();
+	ensure(NewTrack);
 
-	MovieScene->Modify();
+	UMovieSceneSection* NewSection = NewTrack->CreateNewSection();
+	ensure(NewSection);
 
-	EventTrack = GetMasterTrack( UMovieSceneEventTrack::StaticClass() );
-	ensure(EventTrack);
-
-	EventTrack->AddSection(EventTrack->CreateNewSection());
+	NewTrack->AddSection(*NewSection);
+	NewTrack->SetDisplayName(LOCTEXT("TrackName", "Events"));
 
 	GetSequencer()->NotifyMovieSceneDataChanged();
 }

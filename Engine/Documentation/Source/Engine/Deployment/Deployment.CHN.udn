@@ -1,11 +1,48 @@
-﻿INTSourceChangelist:2033300
-Availability:Public
+﻿Availability:Public
 Title:打包 & 烘焙 游戏
 Crumbs:%ROOT%, Engine
 Description: 为游戏中使用的资源生成针对特定平台的内容。
 
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Deployment:title%](Engine/Basics/Projects/Packaging/packaging_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Deployment:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Deployment:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Deployment]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Deployment:title%](Engine/Basics/Projects/Packaging/packaging_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Deployment:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Deployment:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Deployment]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
-[OBJECT:TopicList]
+[OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/deploy_icon.png)(convert:false)
 	[/PARAM]

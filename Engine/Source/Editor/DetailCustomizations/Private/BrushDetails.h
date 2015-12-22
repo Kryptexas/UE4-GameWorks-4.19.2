@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -18,8 +18,8 @@ private:
 	FReply OnCreateStaticMesh();
 
 private:
-	/** Holds a list of BSP brushes, used for converting to static meshes */
-	TArray< TWeakObjectPtr<ABrush> > SelectedBSPBrushes;
+	/** Holds a list of BSP brushes or volumes, used for converting to static meshes */
+	TArray< TWeakObjectPtr<ABrush> > SelectedBrushes;
 
 	/** Container widget for the geometry mode tools */
 	TSharedPtr< SHorizontalBox > GeometryToolsContainer;

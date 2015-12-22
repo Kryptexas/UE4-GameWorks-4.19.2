@@ -1,9 +1,10 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetToolsPrivatePCH.h"
 #include "PersonaModule.h"
 #include "EditorAnimUtils.h"
 #include "NotificationManager.h"
+#include "SBlueprintDiff.h"
 #include "SNotificationList.h"
 #include "SSkeletonWidget.h"
 #include "ClassIconFinder.h"
@@ -135,6 +136,51 @@ void FAssetTypeActions_AnimBlueprint::OpenAssetEditor( const TArray<UObject*>& I
 	}
 }
 
+void FAssetTypeActions_AnimBlueprint::PerformAssetDiff(UObject* Asset1, UObject* Asset2, const struct FRevisionInfo& OldRevision, const struct FRevisionInfo& NewRevision) const
+{
+	if (!GetDefault<UEditorExperimentalSettings>()->bEnableAnimVisualDiff)
+	{
+		return FAssetTypeActions_Base::PerformAssetDiff(Asset1, Asset2, OldRevision, NewRevision);
+	}
+
+	UBlueprint* OldBlueprint = CastChecked<UBlueprint>(Asset1);
+	UBlueprint* NewBlueprint = CastChecked<UBlueprint>(Asset2);
+
+	// sometimes we're comparing different revisions of one single asset (other 
+	// times we're comparing two completely separate assets altogether)
+	bool bIsSingleAsset = (NewBlueprint->GetName() == OldBlueprint->GetName());
+
+	FText WindowTitle = LOCTEXT("NamelessAnimationBlueprintDiff", "Animation Blueprint Diff");
+	// if we're diff'ing one asset against itself 
+	if (bIsSingleAsset)
+	{
+		// identify the assumed single asset in the window's title
+		WindowTitle = FText::Format(LOCTEXT("AnimationBlueprintDiff", "{0} - Animation Blueprint Diff"), FText::FromString(NewBlueprint->GetName()));
+	}
+
+	const TSharedPtr<SWindow> Window = SNew(SWindow)
+		.Title(WindowTitle)
+		.ClientSize(FVector2D(1000, 800));
+
+	Window->SetContent(SNew(SBlueprintDiff)
+		.BlueprintOld(OldBlueprint)
+		.BlueprintNew(NewBlueprint)
+		.OldRevision(OldRevision)
+		.NewRevision(NewRevision)
+		.ShowAssetNames(!bIsSingleAsset));
+
+	// Make this window a child of the modal window if we've been spawned while one is active.
+	TSharedPtr<SWindow> ActiveModal = FSlateApplication::Get().GetActiveModalWindow();
+	if (ActiveModal.IsValid())
+	{
+		FSlateApplication::Get().AddWindowAsNativeChild(Window.ToSharedRef(), ActiveModal.ToSharedRef());
+	}
+	else
+	{
+		FSlateApplication::Get().AddWindow(Window.ToSharedRef());
+	}
+}
+
 void FAssetTypeActions_AnimBlueprint::ExecuteFindSkeleton(TArray<TWeakObjectPtr<UAnimBlueprint>> Objects)
 {
 	TArray<UObject*> ObjectsToSync;
@@ -157,11 +203,18 @@ void FAssetTypeActions_AnimBlueprint::ExecuteFindSkeleton(TArray<TWeakObjectPtr<
 	}
 }
 
-void FAssetTypeActions_AnimBlueprint::RetargetAnimationHandler(USkeleton* OldSkeleton, USkeleton* NewSkeleton, bool bRemapReferencedAssets, bool bConvertSpaces, bool bDuplicateAssets, TArray<TWeakObjectPtr<UObject>> AnimBlueprints)
+void FAssetTypeActions_AnimBlueprint::RetargetAnimationHandler(USkeleton* OldSkeleton, USkeleton* NewSkeleton, bool bRemapReferencedAssets, bool bAllowRemapToExisting, bool bConvertSpaces, const EditorAnimUtils::FNameDuplicationRule* NameRule, TArray<TWeakObjectPtr<UObject>> AnimBlueprints)
 {
 	if(!OldSkeleton || OldSkeleton->GetPreviewMesh(true))
 	{
-		EditorAnimUtils::RetargetAnimations(OldSkeleton, NewSkeleton, AnimBlueprints, bRemapReferencedAssets, bDuplicateAssets, bConvertSpaces);
+		FAnimationRetargetContext RetargetContext(AnimBlueprints, bRemapReferencedAssets, bConvertSpaces);
+
+		if(bAllowRemapToExisting)
+		{
+			SAnimationRemapAssets::ShowWindow(RetargetContext, NewSkeleton);
+		}
+
+		EditorAnimUtils::RetargetAnimations(OldSkeleton, NewSkeleton, RetargetContext, bRemapReferencedAssets, NameRule);
 	}
 	else
 	{
@@ -193,7 +246,7 @@ void FAssetTypeActions_AnimBlueprint::RetargetAssets(TArray<UObject*> InAnimBlue
 	const FText Message = LOCTEXT("RemapSkeleton_Warning", "Select the skeleton to remap this asset to.");
 	auto AnimBlueprints = GetTypedWeakObjectPtrs<UObject>(InAnimBlueprints);
 
-	SAnimationRemapSkeleton::ShowWindow(OldSkeleton, Message, FOnRetargetAnimation::CreateSP(this, &FAssetTypeActions_AnimBlueprint::RetargetAnimationHandler, bDuplicateAssets, AnimBlueprints));
+	SAnimationRemapSkeleton::ShowWindow(OldSkeleton, Message, bDuplicateAssets, FOnRetargetAnimation::CreateSP(this, &FAssetTypeActions_AnimBlueprint::RetargetAnimationHandler, AnimBlueprints));
 }
 
 TSharedPtr<SWidget> FAssetTypeActions_AnimBlueprint::GetThumbnailOverlay(const FAssetData& AssetData) const

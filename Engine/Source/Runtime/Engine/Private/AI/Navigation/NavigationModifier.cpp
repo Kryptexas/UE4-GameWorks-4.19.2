@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "NavigationModifier.h"
@@ -655,7 +655,21 @@ void FCompositeNavModifier::CreateAreaModifiers(const UPrimitiveComponent* PrimC
 		Add(AreaMod);
 	}
 
-	// convex elements support?
+	for (int32 Idx = 0; Idx < BodySetup->AggGeom.ConvexElems.Num(); Idx++)
+	{
+		const FKConvexElem& ConvexElem = BodySetup->AggGeom.ConvexElems[Idx];
+		
+		FAreaNavModifier AreaMod(ConvexElem.VertexData, 0, ConvexElem.VertexData.Num(), ENavigationCoordSystem::Unreal, PrimComp->ComponentToWorld, AreaClass);
+		Add(AreaMod);
+	}
+	
+	for (int32 Idx = 0; Idx < BodySetup->AggGeom.SphereElems.Num(); Idx++)
+	{
+		const FKSphereElem& SphereElem = BodySetup->AggGeom.SphereElems[Idx];
+		
+		FAreaNavModifier AreaMod(SphereElem.Radius, SphereElem.Radius, PrimComp->ComponentToWorld, AreaClass);
+		Add(AreaMod);
+	}
 }
 
 uint32 FCompositeNavModifier::GetAllocatedSize() const

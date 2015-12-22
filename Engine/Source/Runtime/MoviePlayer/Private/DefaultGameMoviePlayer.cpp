@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MoviePlayer.h"
 
@@ -14,6 +14,51 @@
 #include "DefaultGameMoviePlayer.h"
 #include "MoviePlayerSettings.h"
 #include "ShaderCompiler.h"
+
+class SDefaultMovieBorder : public SBorder
+{
+public:
+
+	SLATE_BEGIN_ARGS(SDefaultMovieBorder)		
+		: _OnKeyDown()
+	{}
+
+		SLATE_EVENT(FPointerEventHandler, OnMouseButtonDown)
+		SLATE_EVENT(FOnKeyDown, OnKeyDown)
+		SLATE_DEFAULT_SLOT(FArguments, Content)
+
+	SLATE_END_ARGS()
+
+	/**
+	* Construct this widget
+	*
+	* @param	InArgs	The declaration data for this widget
+	*/
+	void Construct(const FArguments& InArgs)
+	{
+		OnKeyDown = InArgs._OnKeyDown;		
+
+		SBorder::Construct(SBorder::FArguments()			
+			.BorderImage(FCoreStyle::Get().GetBrush(TEXT("BlackBrush")))
+			.OnMouseButtonDown(InArgs._OnMouseButtonDown)
+			.Padding(0)[InArgs._Content.Widget]);
+		
+	}
+
+	/**
+	* Set the handler to be invoked when the user presses a key.
+	*
+	* @param InHandler   Method to execute when the user presses a key
+	*/
+	void SetOnOnKeyDown(const FOnKeyDown& InHandler)
+	{
+		OnKeyDown = InHandler;
+	}	
+
+protected:
+	
+	FOnKeyDown OnKeyDown;	
+};
 
 TSharedPtr<FDefaultGameMoviePlayer> FDefaultGameMoviePlayer::MoviePlayer;
 
@@ -83,10 +128,10 @@ void FDefaultGameMoviePlayer::Initialize()
 	TSharedRef<SWindow> GameWindow = UGameEngine::CreateGameWindow();
 
 	TSharedPtr<SViewport> MovieViewport;
-	LoadingScreenContents = SNew(SBorder)
-		.BorderImage( FCoreStyle::Get().GetBrush(TEXT("BlackBrush")) )
+
+	LoadingScreenContents = SNew(SDefaultMovieBorder)	
+		.OnKeyDown(this, &FDefaultGameMoviePlayer::OnLoadingScreenKeyDown)
 		.OnMouseButtonDown(this, &FDefaultGameMoviePlayer::OnLoadingScreenMouseButtonDown)
-		.Padding(0)
 		[
 			SNew(SOverlay)
 			+SOverlay::Slot()
@@ -333,10 +378,13 @@ void FDefaultGameMoviePlayer::Tick( float DeltaTime )
 		if (!IsLoadingFinished() && SyncMechanism)
 		{
 			if (SyncMechanism->IsSlateDrawPassEnqueued())
-			{				
+			{
+				GFrameNumberRenderThread++;
+				GRHICommandList.GetImmediateCommandList().BeginFrame();
 				TickStreamer(DeltaTime);
 				RendererPtr.Pin()->DrawWindows();
 				SyncMechanism->ResetSlateDrawPassEnqueued();
+				GRHICommandList.GetImmediateCommandList().EndFrame();
 				GRHICommandList.GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
 			}
 		}
@@ -452,6 +500,16 @@ EVisibility FDefaultGameMoviePlayer::GetViewportVisibility() const
 
 FReply FDefaultGameMoviePlayer::OnLoadingScreenMouseButtonDown(const FGeometry& Geometry, const FPointerEvent& PointerEvent)
 {
+	return OnAnyDown();
+}
+
+FReply FDefaultGameMoviePlayer::OnLoadingScreenKeyDown(const FGeometry& Geometry, const FKeyEvent& KeyEvent)
+{
+	return OnAnyDown();
+}
+
+FReply FDefaultGameMoviePlayer::OnAnyDown()
+{
 	if (IsLoadingFinished())
 	{
 		if (LoadingScreenAttributes.bMoviesAreSkippable)
@@ -471,7 +529,6 @@ FReply FDefaultGameMoviePlayer::OnLoadingScreenMouseButtonDown(const FGeometry& 
 
 	return FReply::Handled();
 }
-
 
 void FDefaultGameMoviePlayer::OnPreLoadMap()
 {

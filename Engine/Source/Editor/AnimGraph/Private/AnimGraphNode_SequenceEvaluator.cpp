@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphPrivatePCH.h"
 
@@ -21,6 +21,13 @@ void UAnimGraphNode_SequenceEvaluator::PreloadRequiredAssets()
 	PreloadObject(Node.Sequence);
 
 	Super::PreloadRequiredAssets();
+}
+
+void UAnimGraphNode_SequenceEvaluator::BakeDataDuringCompilation(class FCompilerResultsLog& MessageLog)
+{
+	UAnimBlueprint* AnimBlueprint = GetAnimBlueprint();
+	Node.GroupIndex = AnimBlueprint->FindOrAddGroup(SyncGroup.GroupName);
+	Node.GroupRole = SyncGroup.GroupRole;
 }
 
 void UAnimGraphNode_SequenceEvaluator::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& ComplexAnims, TArray<UAnimSequence*>& AnimationSequences) const

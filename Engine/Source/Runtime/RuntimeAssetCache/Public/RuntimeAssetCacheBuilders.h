@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -18,6 +18,7 @@ public:
 	{
 		Super::PostInitProperties();
 		CacheHandle = 0;
+		bProcessedCacheMiss = false;
 	}
 
 	virtual const TCHAR* GetBucketConfigName() const override
@@ -130,6 +131,13 @@ public:
 		// Texture = Cast<UTexture2D>(NewAsset);
 	}
 
+	virtual void Cleanup()
+	{
+		CacheHandle = 0;
+		bProcessedCacheMiss = false;
+		Asset = nullptr;
+	}
+
 public:
 	/** The asset version. Changing this will force a new version of the asset to get cached. */
 	UPROPERTY(BlueprintReadWrite, Category = RuntimeAssetCache, meta = (ExposeOnSpawn = "true"))
@@ -139,9 +147,11 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = RuntimeAssetCache, meta = (ExposeOnSpawn = "true"))
 	FString AssetName;
 
+	int32 CacheHandle;
+
 private:
 	UObject* Asset;
-	int32 CacheHandle;
+	int32 bProcessedCacheMiss : 1;
 	FOnRuntimeAssetCacheAsyncComplete GetFromCacheAsyncCompleteDelegate;
 	FOnAssetCacheComplete OnAssetCacheComplete;
 };

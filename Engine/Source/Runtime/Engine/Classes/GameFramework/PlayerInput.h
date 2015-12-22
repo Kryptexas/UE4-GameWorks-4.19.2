@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 //~=============================================================================
 // PlayerInput
@@ -115,7 +115,7 @@ struct FInputAxisConfigEntry
  *
  * @see https://docs.unrealengine.com/latest/INT/Gameplay/Input/index.html
  */
-USTRUCT()
+USTRUCT( BlueprintType )
 struct FInputActionKeyMapping
 {
 	GENERATED_USTRUCT_BODY()
@@ -125,23 +125,23 @@ struct FInputActionKeyMapping
 	FName ActionName;
 
 	/** Key to bind it to. */
-	UPROPERTY(EditAnywhere, Category="Input")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
 	FKey Key;
 
 	/** true if one of the Shift keys must be down when the KeyEvent is received to be acknowledged */
-	UPROPERTY(EditAnywhere, Category="Input")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
 	uint32 bShift:1;
 
 	/** true if one of the Ctrl keys must be down when the KeyEvent is received to be acknowledged */
-	UPROPERTY(EditAnywhere, Category="Input")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
 	uint32 bCtrl:1;
 
 	/** true if one of the Alt keys must be down when the KeyEvent is received to be acknowledged */
-	UPROPERTY(EditAnywhere, Category="Input")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
 	uint32 bAlt:1;
 
 	/** true if one of the Cmd keys must be down when the KeyEvent is received to be acknowledged */
-	UPROPERTY(EditAnywhere, Category="Input")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
 	uint32 bCmd:1;
 
 	bool operator==(const FInputActionKeyMapping& Other) const
@@ -183,7 +183,7 @@ struct FInputActionKeyMapping
  * 
  * @see https://docs.unrealengine.com/latest/INT/Gameplay/Input/index.html
 **/
-USTRUCT()
+USTRUCT( BlueprintType )
 struct FInputAxisKeyMapping
 {
 	GENERATED_USTRUCT_BODY()
@@ -400,6 +400,9 @@ public:
 	/** Flushes the current key state. */
 	void FlushPressedKeys();
 
+	/** Flushes the current key state of the keys associated with the action name passed in */
+	void FlushPressedActionBindingKeys(FName ActionName);
+
 	/** Handles a key input event.  Returns true if there is an action that handles the specified key. */
 	bool InputKey(FKey Key, enum EInputEvent Event, float AmountDepressed, bool bGamepad);
 
@@ -448,6 +451,9 @@ public:
 	 * @param YPos - Y position on Canvas. YPos += YL, gives position to draw text for next debug line.
 	 */
 	void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
+
+	/** @return key state of the InKey */
+	FKeyState* GetKeyState(FKey InKey) { return KeyStateMap.Find(InKey); }
 
 	/** @return true if InKey is currently held */
 	bool IsPressed( FKey InKey ) const;

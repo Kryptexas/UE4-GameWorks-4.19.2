@@ -1,7 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "BehaviorTreeEditorPrivatePCH.h"
 #include "BehaviorTree/Tasks/BTTask_RunBehavior.h"
+#include "BehaviorTreeGraphNode_SubtreeTask.h"
 
 UBehaviorTreeGraphNode_SubtreeTask::UBehaviorTreeGraphNode_SubtreeTask(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -71,7 +72,7 @@ bool UBehaviorTreeGraphNode_SubtreeTask::UpdateInjectedNodes()
 				{
 					SubNode->PrepareForCopying();
 
-					UBehaviorTreeGraphNode* InjectedNode = Cast<UBehaviorTreeGraphNode>(StaticDuplicateObject(SubNode, GetOuter(), TEXT("")));
+					UBehaviorTreeGraphNode* InjectedNode = Cast<UBehaviorTreeGraphNode>(StaticDuplicateObject(SubNode, GetOuter()));
 
 					SubNode->PostCopyNode();
 					InjectedNode->PostCopyNode();

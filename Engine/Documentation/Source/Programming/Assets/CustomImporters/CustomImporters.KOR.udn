@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2481343
+﻿INTSourceChangelist:2638771
 Availability:Docs
 Title:커스텀 임포터 테크니컬 가이드
 Crumbs: %ROOT%, Engine, Engine/UI, Programming
@@ -9,10 +9,6 @@ Description:프로그래머를 위한 커스텀 애셋 유형 임포터 작성 �
 [/REGION]
 
 [TOC(start:2)]
-
-
-
-## 개요
 
 UFactory 클래스는 주로 외부 파일을 기반으로 하여 에디터에서 새 애셋을 만드는 데 사용됩니다.
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "GeometryCacheModulePrivatePCH.h"
 #include "GeometryCacheSceneProxy.h"
@@ -15,7 +15,7 @@ FGeometryCacheSceneProxy::FGeometryCacheSceneProxy(UGeometryCacheComponent* Comp
 	{
 		FTrackRenderData& SrcSection = Component->TrackSections[SectionIdx];
 		
-		if (SrcSection.IndexBuffer.Num() > 0)
+		if (SrcSection.MeshData->Indices.Num() > 0)
 		{
 			FGeomCacheTrackProxy* NewSection = new FGeomCacheTrackProxy();
 
@@ -31,7 +31,7 @@ FGeometryCacheSceneProxy::FGeometryCacheSceneProxy(UGeometryCacheComponent* Comp
 			NewSection->VertexBuffer.Vertices.Append(MeshData->Vertices);
 
 			// Copy index buffer
-			NewSection->IndexBuffer.Indices = SrcSection.IndexBuffer;
+			NewSection->IndexBuffer.Indices = SrcSection.MeshData->Indices;
 
 			// Init vertex factory
 			NewSection->VertexFactory.Init(&NewSection->VertexBuffer);
@@ -45,7 +45,7 @@ FGeometryCacheSceneProxy::FGeometryCacheSceneProxy(UGeometryCacheComponent* Comp
 			for (FGeometryCacheMeshBatchInfo& BatchInfo : MeshData->BatchesInfo)
 			{
 				UMaterialInterface* Material = Component->GetMaterial(BatchInfo.MaterialIndex);
-				if (Material == NULL)
+				if (Material == nullptr)
 				{
 					Material = UMaterial::GetDefaultMaterial(MD_Surface);
 				}
@@ -81,11 +81,11 @@ void FGeometryCacheSceneProxy::GetDynamicMeshElements(const TArray<const FSceneV
 	// Set up wireframe material (if needed)
 	const bool bWireframe = AllowDebugViewmodes() && ViewFamily.EngineShowFlags.Wireframe;
 
-	FColoredMaterialRenderProxy* WireframeMaterialInstance = NULL;
+	FColoredMaterialRenderProxy* WireframeMaterialInstance = nullptr;
 	if (bWireframe)
 	{
 		WireframeMaterialInstance = new FColoredMaterialRenderProxy(
-			GEngine->WireframeMaterial ? GEngine->WireframeMaterial->GetRenderProxy(IsSelected()) : NULL,
+			GEngine->WireframeMaterial ? GEngine->WireframeMaterial->GetRenderProxy(IsSelected()) : nullptr,
 			FLinearColor(0, 0.5f, 1.f)
 			);
 
@@ -95,7 +95,7 @@ void FGeometryCacheSceneProxy::GetDynamicMeshElements(const TArray<const FSceneV
 	// Iterate over sections	
 	for (const FGeomCacheTrackProxy* TrackProxy : Sections )
 	{
-		// QQQ
+		// Render out stored TrackProxy's
 		if (TrackProxy != nullptr)
 		{
 			INC_DWORD_STAT_BY(STAT_GeometryCacheSceneProxy_MeshBatchCount, TrackProxy->MeshData->BatchesInfo.Num());
@@ -151,7 +151,7 @@ void FGeometryCacheSceneProxy::GetDynamicMeshElements(const TArray<const FSceneV
 #endif
 }
 
-FPrimitiveViewRelevance FGeometryCacheSceneProxy::GetViewRelevance(const FSceneView* View)
+FPrimitiveViewRelevance FGeometryCacheSceneProxy::GetViewRelevance(const FSceneView* View) const
 {
 	FPrimitiveViewRelevance Result;
 	Result.bDrawRelevance = IsShown(View);
@@ -204,7 +204,7 @@ void FGeometryCacheSceneProxy::UpdateSectionVertexBuffer(const int32 SectionInde
 	}
 }
 
-void FGeometryCacheSceneProxy::UpdateSectionIndexBuffer(const int32 SectionIndex, const TArray<int32>& Indices)
+void FGeometryCacheSceneProxy::UpdateSectionIndexBuffer(const int32 SectionIndex, const TArray<uint32>& Indices)
 {
 	check(SectionIndex < Sections.Num() && "Section Index out of range");
 	check(IsInRenderingThread());
@@ -271,18 +271,20 @@ void FGeomCacheIndexBuffer::InitRHI()
 {
 	FRHIResourceCreateInfo CreateInfo;
 	void* Buffer = nullptr;
-	IndexBufferRHI = RHICreateAndLockIndexBuffer(sizeof(int32), Indices.Num() * sizeof(int32), BUF_Static, CreateInfo, Buffer);
+	IndexBufferRHI = RHICreateAndLockIndexBuffer(sizeof(uint32), Indices.Num() * sizeof(uint32), BUF_Static, CreateInfo, Buffer);
 
 	// Write the indices to the index buffer.	
-	FMemory::Memcpy(Buffer, Indices.GetData(), Indices.Num() * sizeof(int32));
+
+	// Write the indices to the index buffer.
+	FMemory::Memcpy(Buffer, Indices.GetData(), Indices.Num() * sizeof(uint32));
 	RHIUnlockIndexBuffer(IndexBufferRHI);
 }
 
 void FGeomCacheIndexBuffer::UpdateRHI()
 {
 	// Copy the index data into the index buffer.
-	void* Buffer = RHILockIndexBuffer(IndexBufferRHI, 0, Indices.Num() * sizeof(int32), RLM_WriteOnly);
-	FMemory::Memcpy(Buffer, Indices.GetData(), Indices.Num() * sizeof(int32));
+	void* Buffer = RHILockIndexBuffer(IndexBufferRHI, 0, Indices.Num() * sizeof(uint32), RLM_WriteOnly);
+	FMemory::Memcpy(Buffer, Indices.GetData(), Indices.Num() * sizeof(uint32));
 	RHIUnlockIndexBuffer(IndexBufferRHI);
 }
 

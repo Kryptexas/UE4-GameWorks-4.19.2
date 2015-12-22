@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SubversionSourceControlPrivatePCH.h"
 #include "SubversionSourceControlProvider.h"
@@ -45,6 +45,11 @@ TSharedRef<FSubversionSourceControlState, ESPMode::ThreadSafe> FSubversionSource
 		StateCache.Add(Filename, NewState);
 		return NewState;
 	}
+}
+
+bool FSubversionSourceControlProvider::RemoveFileFromCache(const FString& Filename)
+{
+	return StateCache.Remove(Filename) > 0;
 }
 
 FText FSubversionSourceControlProvider::GetStatusText() const
@@ -107,7 +112,7 @@ ECommandResult::Type FSubversionSourceControlProvider::GetState( const TArray<FS
 	return ECommandResult::Succeeded;
 }
 
-TArray<FSourceControlStateRef> FSubversionSourceControlProvider::GetCachedStateByPredicate(const TFunctionRef<bool(const FSourceControlStateRef&)>& Predicate) const
+TArray<FSourceControlStateRef> FSubversionSourceControlProvider::GetCachedStateByPredicate(TFunctionRef<bool(const FSourceControlStateRef&)> Predicate) const
 {
 	TArray<FSourceControlStateRef> Result;
 	for (const auto& CacheItem : StateCache)

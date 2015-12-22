@@ -1,7 +1,9 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved. 
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved. 
 
 #include "ProceduralMeshComponentPluginPrivatePCH.h"
 #include "KismetProceduralMeshLibrary.h"
+
+DECLARE_CYCLE_STAT(TEXT("Update Collision"), STAT_ProcMesh_CalcTangents, STATGROUP_ProceduralMesh);
 
 
 UKismetProceduralMeshLibrary::UKismetProceduralMeshLibrary(const FObjectInitializer& ObjectInitializer)
@@ -158,6 +160,8 @@ void FindVertOverlaps(int32 TestVertIndex, const TArray<FVector>& Verts, TArray<
 
 void UKismetProceduralMeshLibrary::CalculateTangentsForMesh(const TArray<FVector>& Vertices, const TArray<int32>& Triangles, const TArray<FVector2D>& UVs, TArray<FVector>& Normals, TArray<FProcMeshTangent>& Tangents)
 {
+	SCOPE_CYCLE_COUNTER(STAT_ProcMesh_CalcTangents);
+
 	if (Vertices.Num() == 0)
 	{
 		return;

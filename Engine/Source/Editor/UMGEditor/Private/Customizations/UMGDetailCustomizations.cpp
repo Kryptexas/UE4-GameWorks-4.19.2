@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
 
@@ -42,7 +42,7 @@ public:
 			.TextStyle(FEditorStyle::Get(), "NormalText")
 			.HAlign(HAlign_Center)
 			.ForegroundColor(FSlateColor::UseForeground())
-			.ToolTipText(FText::FromString(Action->TooltipDescription))
+			.ToolTipText(FText::FromString(Action->GetTooltipDescription()))
 			.OnClicked(this, &SGraphSchemaActionButton::AddOrViewEventBinding)
 			[
 				InArgs._Content.Widget

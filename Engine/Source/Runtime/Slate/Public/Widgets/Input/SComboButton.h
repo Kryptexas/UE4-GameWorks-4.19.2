@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -80,6 +80,7 @@ protected:
 	 * Handle the button being clicked by summoning the ComboButton.
 	 */
 	virtual FReply OnButtonClicked();
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 
 protected:
 	/** Area where the button's content resides */

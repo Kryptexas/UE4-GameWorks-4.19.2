@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -10,11 +10,11 @@ class UActorFactoryProceduralFoliage : public UActorFactoryBoxVolume
 {
 	GENERATED_UCLASS_BODY()
 
-	// Begin UActorFactory Interface
+	//~ Begin UActorFactory Interface
 	virtual bool PreSpawnActor(UObject* Asset, FTransform& InOutLocation);
 	virtual bool CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg ) override;
 	virtual void PostSpawnActor( UObject* Asset, AActor* NewActor) override;
 	virtual void PostCreateBlueprint( UObject* Asset, AActor* CDO ) override;
 	virtual UObject* GetAssetFromActorInstance(AActor* ActorInstance) override;
-	// End UActorFactory Interface
+	//~ End UActorFactory Interface
 };

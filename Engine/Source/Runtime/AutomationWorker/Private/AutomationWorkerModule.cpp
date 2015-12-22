@@ -1,8 +1,10 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AutomationWorkerPrivatePCH.h"
-#include "AssetRegistryModule.h"
 
+#if WITH_EDITOR
+#include "AssetRegistryModule.h"
+#endif
 
 #define LOCTEXT_NAMESPACE "AutomationTest"
 
@@ -70,9 +72,6 @@ void FAutomationWorkerModule::Tick()
 	{
 		MessageEndpoint->ProcessInbox();
 	}
-
-	// Run any of the automation commands that was obtained during initialization.
-	//RunDeferredAutomationCommands();
 }
 
 
@@ -134,6 +133,7 @@ void FAutomationWorkerModule::Initialize()
 	}
 	ExecutionCount = INDEX_NONE;
 	bExecutingNetworkCommandResults = false;
+	bSendAnalytics = false;
 }
 
 void FAutomationWorkerModule::ReportNetworkCommandComplete()
@@ -213,8 +213,17 @@ void FAutomationWorkerModule::ReportTestComplete()
 			Message->Errors = ExecutionInfo.Errors;
 			Message->Warnings = ExecutionInfo.Warnings;
 			Message->Logs = ExecutionInfo.LogItems;
-
 			MessageEndpoint->Send(Message, TestRequesterAddress);
+
+			if (bSendAnalytics)
+			{
+				if (!FAutomationAnalytics::IsInitialized())
+				{
+					FAutomationAnalytics::Initialize();
+				}
+				FAutomationAnalytics::FireEvent_AutomationTestResults(Message, BeautifiedTestName);
+				SendAnalyticsEvents(ExecutionInfo.AnalyticsItems);
+			}
 		}
 
 
@@ -233,6 +242,7 @@ void FAutomationWorkerModule::SendTests( const FMessageAddress& ControllerAddres
 	{
 		MessageEndpoint->Send(new FAutomationWorkerRequestTestsReply(TestInfo[TestIndex].GetTestAsString(), TestInfo.Num()), ControllerAddress);
 	}
+	MessageEndpoint->Send(new FAutomationWorkerRequestTestsReplyComplete(), ControllerAddress);
 }
 
 
@@ -245,6 +255,8 @@ void FAutomationWorkerModule::HandleFindWorkersMessage(const FAutomationWorkerFi
 	if ((Message.SessionId == FApp::GetSessionId()) && (Message.Changelist == 10000))
 	{
 		TestRequesterAddress = Context->GetSender();
+
+#if WITH_EDITOR
 		//If the asset registry is loading assets then we'll wait for it to stop before running our automation tests.
 		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 		if (AssetRegistryModule.Get().IsLoadingAssets())
@@ -256,6 +268,7 @@ void FAutomationWorkerModule::HandleFindWorkersMessage(const FAutomationWorkerFi
 			}
 		}
 		else
+#endif
 		{
 			//If the registry is not loading then we'll just go ahead and run our tests.
 			SendWorkerFound();
@@ -320,7 +333,7 @@ void FAutomationWorkerModule::HandleRequestTestsMessage( const FAutomationWorker
 {
 	FAutomationTestFramework::GetInstance().LoadTestModules();
 	FAutomationTestFramework::GetInstance().SetDeveloperDirectoryIncluded(Message.DeveloperDirectoryIncluded);
-	FAutomationTestFramework::GetInstance().SetVisualCommandletFilter(Message.VisualCommandletFilterOn);
+	FAutomationTestFramework::GetInstance().SetRequestedTestFilter(Message.RequestedTestFlags);
 	FAutomationTestFramework::GetInstance().GetValidTestNames( TestInfo );
 
 	SendTests(Context->GetSender());
@@ -421,6 +434,8 @@ void FAutomationWorkerModule::HandleRunTestsMessage( const FAutomationWorkerRunT
 {
 	ExecutionCount = Message.ExecutionCount;
 	TestName = Message.TestName;
+	BeautifiedTestName = Message.BeautifiedTestName;
+	bSendAnalytics = Message.bSendAnalytics;
 	TestRequesterAddress = Context->GetSender();
 	FAutomationTestFramework::GetInstance().SetScreenshotOptions(Message.bScreenshotsEnabled, Message.bUseFullSizeScreenShots);
 
@@ -433,5 +448,34 @@ void FAutomationWorkerModule::HandleRunTestsMessage( const FAutomationWorkerRunT
 	FAutomationTestFramework::GetInstance().StartTestByName(Message.TestName, Message.RoleIndex);
 }
 
+
+//dispatches analytics events to the data collector
+void FAutomationWorkerModule::SendAnalyticsEvents(TArray<FString>& InAnalyticsItems)
+{
+	for (int32 i = 0; i < InAnalyticsItems.Num(); ++i)
+	{
+		FString EventString = InAnalyticsItems[i];
+		if( EventString.EndsWith( TEXT( ",PERF" ) ) )
+		{
+			// Chop the ",PERF" off the end
+			EventString = EventString.Left( EventString.Len() - 5 );
+
+			FAutomationPerformanceSnapshot PerfSnapshot;
+			PerfSnapshot.FromCommaDelimitedString( EventString );
+			
+			RecordPerformanceAnalytics( PerfSnapshot );
+		}
+	}
+}
+
+
+
+
+void FAutomationWorkerModule::RecordPerformanceAnalytics( const FAutomationPerformanceSnapshot& PerfSnapshot )
+{
+	// @todo: Pass in additional performance capture data from incoming FAutomationPerformanceSnapshot!
+
+	FAutomationAnalytics::FireEvent_FPSCapture(PerfSnapshot);
+}
 
 #undef LOCTEXT_NAMESPACE

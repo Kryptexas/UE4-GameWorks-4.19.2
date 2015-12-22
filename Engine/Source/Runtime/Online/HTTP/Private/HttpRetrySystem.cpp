@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "HttpPrivatePCH.h"
 
@@ -195,12 +195,21 @@ bool FHttpRetrySystem::FManager::Update(uint32* FileCount, uint32* FailingCount,
 					}
 				}
 
-                if ((RequestStatus == EHttpRequestStatus::Failed) || forceFail)
+				// Save these for failure case retry checks if we hit a completion state
+				bool bShouldRetry = false;
+				bool bCanRetry = false;
+				if (RequestStatus == EHttpRequestStatus::Failed || RequestStatus == EHttpRequestStatus::Succeeded)
+				{
+					bShouldRetry = ShouldRetry(HttpRetryRequestEntry);
+					bCanRetry = CanRetry(HttpRetryRequestEntry);
+				}
+
+				if (RequestStatus == EHttpRequestStatus::Failed || forceFail || (bShouldRetry && bCanRetry))
 				{
 					bIsGreen = false;
                     if(HttpRetryRequestEntry.bShouldCancel == false)
                     {
-                        if (forceFail || (ShouldRetry(HttpRetryRequestEntry) && CanRetry(HttpRetryRequestEntry)))
+                        if (forceFail || (bShouldRetry && bCanRetry))
 					    {
                             float lockoutPeriod = GetLockoutPeriodSeconds(HttpRetryRequestEntry);
 
@@ -267,7 +276,7 @@ bool FHttpRetrySystem::FManager::Update(uint32* FileCount, uint32* FailingCount,
         }
 		else
 		{
-			UE_LOG(LogHttp, Warning, TEXT("Timeout on %s"), HttpRetryRequestEntry.CurrentRetryCount + 1, *(HttpRetryRequest->GetURL()));
+			UE_LOG(LogHttp, Warning, TEXT("Timeout on retry %d: %s"), HttpRetryRequestEntry.CurrentRetryCount + 1, *(HttpRetryRequest->GetURL()));
 			bIsGreen = false;
             HttpRetryRequest->Status = FHttpRetrySystem::FRequest::EStatus::FailedTimeout;
 			if (FailedCount != nullptr)
@@ -317,7 +326,7 @@ bool FHttpRetrySystem::FManager::Update(uint32* FileCount, uint32* FailingCount,
 FHttpRetrySystem::FManager::FHttpRetryRequestEntry::FHttpRetryRequestEntry(TSharedRef<FHttpRetrySystem::FRequest>& InHttpRequest)
     : bShouldCancel(false)
     , CurrentRetryCount(0)
-    , RequestStartTimeAbsoluteSeconds(0.0)
+	, RequestStartTimeAbsoluteSeconds(FPlatformTime::Seconds())
     , HttpRequest(InHttpRequest)
 {}
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -87,8 +87,9 @@ public:
 	 * @param SummonLocationSize	An optional size around the summon location which describes an area in which the menu may not appear
 	 * @param InMethod				An optional popup method that will override the default method for the widgets in InOwnerPath
 	 * @param bIsCollapsedByParent	Is this menu collapsed when a parent menu receives focus/activation? If false, only focus/activation outside the entire stack will auto collapse it.
+	 * @param bEnablePerPixelTransparency Does the menu's content require per pixel transparency?
 	 */
-	TSharedRef<IMenu> Push(const FWidgetPath& InOwnerPath, const TSharedRef<SWidget>& InContent, const FVector2D& SummonLocation, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately = true, const FVector2D& SummonLocationSize = FVector2D::ZeroVector, TOptional<EPopupMethod> InMethod = TOptional<EPopupMethod>(), const bool bIsCollapsedByParent = true);
+	TSharedRef<IMenu> Push(const FWidgetPath& InOwnerPath, const TSharedRef<SWidget>& InContent, const FVector2D& SummonLocation, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately = true, const FVector2D& SummonLocationSize = FVector2D::ZeroVector, TOptional<EPopupMethod> InMethod = TOptional<EPopupMethod>(), const bool bIsCollapsedByParent = true, const bool bEnablePerPixelTransparency = true);
 	
 	/**
 	 * Pushes a new child menu onto the stack.
@@ -101,8 +102,9 @@ public:
 	 * @param bFocusImmediately		Should the popup steal focus when shown?
 	 * @param SummonLocationSize	An optional size around the summon location which describes an area in which the menu may not appear
 	 * @param bIsCollapsedByParent	Is this menu collapsed when a parent menu receives focus/activation? If false, only focus/activation outside the entire stack will auto collapse it.
+	 * @param bEnablePerPixelTransparency Does the menu's content require per pixel transparency?
 	 */
-	TSharedRef<IMenu> Push(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<SWidget>& InContent, const FVector2D& SummonLocation, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately = true, const FVector2D& SummonLocationSize = FVector2D::ZeroVector, const bool bIsCollapsedByParent = true);
+	TSharedRef<IMenu> Push(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<SWidget>& InContent, const FVector2D& SummonLocation, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately = true, const FVector2D& SummonLocationSize = FVector2D::ZeroVector, const bool bIsCollapsedByParent = true, const bool bEnablePerPixelTransparency = true);
 
 	/**
 	 * Pushes a new menu onto the stack that is drawn by an external host widget.
@@ -116,7 +118,7 @@ public:
 	 * @param TransitionEffect		Animation to use when the popup appears
 	 * @param bIsCollapsedByParent	Is this menu collapsed when a parent menu receives focus/activation? If false, only focus/activation outside the entire stack will auto collapse it.
 	 */
-	TSharedRef<IMenu> PushHosted(const FWidgetPath& InOwnerPath, const TSharedRef<IMenuHost>& InMenuHost, const TSharedRef<SWidget>& InContent, TSharedPtr<SWidget>& OutWrappedContent, const FPopupTransitionEffect& TransitionEffect, const bool bIsCollapsedByParent = true);
+	TSharedRef<IMenu> PushHosted(const FWidgetPath& InOwnerPath, const TSharedRef<IMenuHost>& InMenuHost, const TSharedRef<SWidget>& InContent, TSharedPtr<SWidget>& OutWrappedContent, const FPopupTransitionEffect& TransitionEffect, EShouldThrottle ShouldThrottle, const bool bIsCollapsedByParent = true);
 	
 	/**
 	 * Pushes a new child menu onto the stack that is drawn by an external host widget.
@@ -129,7 +131,7 @@ public:
 	 * @param TransitionEffect		Animation to use when the popup appears
 	 * @param bIsCollapsedByParent	Is this menu collapsed when a parent menu receives focus/activation? If false, only focus/activation outside the entire stack will auto collapse it.
 	 */
-	TSharedRef<IMenu> PushHosted(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<IMenuHost>& InMenuHost, const TSharedRef<SWidget>& InContent, TSharedPtr<SWidget>& OutWrappedContent, const FPopupTransitionEffect& TransitionEffect, const bool bIsCollapsedByParent = true);
+	TSharedRef<IMenu> PushHosted(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<IMenuHost>& InMenuHost, const TSharedRef<SWidget>& InContent, TSharedPtr<SWidget>& OutWrappedContent, const FPopupTransitionEffect& TransitionEffect, EShouldThrottle ShouldThrottle, const bool bIsCollapsedByParent = true);
 
 	/**
 	 * [Deprecated] Dismisses the menu stack up to a certain level (by default removes all levels in the stack)
@@ -260,7 +262,7 @@ private:
 	 *
 	 * @return	The popup method chosen by a widget in the path. Defaults to EPopupMethod::CreateNewWindow if no widgets in the path have a preference.
 	 */
-	EPopupMethod QueryPopupMethod(const FWidgetPath& PathToQuery);
+	FPopupMethodReply QueryPopupMethod(const FWidgetPath& PathToQuery);
 
 	/**
 	 * Called by public Dismiss methods. Dismisses all menus in the stack from FirstStackIndexToRemove and below.
@@ -348,7 +350,7 @@ private:
 	 *
 	 * @return			The newly created menu.
 	 */
-	TSharedRef<IMenu> PushInternal(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<SWidget>& InContent, FSlateRect Anchor, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately, const bool bIsCollapsedByParent);
+	TSharedRef<IMenu> PushInternal(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<SWidget>& InContent, FSlateRect Anchor, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately, EShouldThrottle ShouldThrottle, const bool bIsCollapsedByParent, const bool bEnablePerPixelTransparency);
 
 	/**
 	 * This is the actual menu object creation method for FMenuInWindow menus.
@@ -359,7 +361,7 @@ private:
 	 *
 	 * @return			The newly created FMenuInWindow menu.
 	 */
-	TSharedRef<FMenuBase> PushNewWindow(TSharedPtr<IMenu> InParentMenu, const FPrePushResults& InPrePushResults);
+	TSharedRef<FMenuBase> PushNewWindow(TSharedPtr<IMenu> InParentMenu, const FPrePushResults& InPrePushResults, const bool bEnablePerPixelTransparency);
 
 	/**
 	 * This is the actual menu object creation method for FMenuInPopup menus.
@@ -376,13 +378,14 @@ private:
 	 * This is the post-push stage of menu creation.
 	 * It is responsible for updating the stack with the new menu and removing any that it replaces.
 	 *
-	 * @param InParentMenu			The parent menu for this menu
-	 * @param InMenu				A newly created menu
+	 * @param InParentMenu         The parent menu for this menu
+	 * @param InMenu               A newly created menu
+	 * @param ShouldThrottle       Should pushing this menu enable throttling of the engine for a more responsive UI
 	 */
-	void PostPush(TSharedPtr<IMenu> InParentMenu, TSharedRef<FMenuBase> InMenu);
+	void PostPush(TSharedPtr<IMenu> InParentMenu, TSharedRef<FMenuBase> InMenu, EShouldThrottle ShouldThrottle);
 
 	/** The popup method currently used by the whole stack. It can only use one at a time */
-	TOptional<EPopupMethod> ActiveMethod;
+	FPopupMethodReply ActiveMethod;
 
 	/** The parent window of the root menu in the stack. NOT the actual menu window if it's a CreateNewWindow */
 	TSharedPtr<SWindow> HostWindow;

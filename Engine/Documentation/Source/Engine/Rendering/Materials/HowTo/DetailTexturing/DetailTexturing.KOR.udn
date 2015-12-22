@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2602607
+﻿INTSourceChangelist:2644786
 Availability: Public
 Title:머티리얼 에디터 - 디테일 텍스처 추가 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -142,25 +142,26 @@ Detail Texturing 의 실용 예는 이렇습니다.
 
 1. 모든 것의 정리와 변환이 끝났으니, 이제 필수 머티리얼 노드를 놓기 시작하면 됩니다. 여기서 필요한 노드 유형과 양은 다음과 같습니다. **팔레트** 에서 각 머티리얼 표현식 노드를 검색하여 찾을 수 있습니다.
 	* Texture Coordinate x 1
-	* Multiply x 2
+	* Clamp x 1
+	* Constant x 2
 	* Add x 2
-	* Constant  x 2
+	* Multiply x 3
 
 	완료된 머티리얼 그래프 모습은 다음과 같을 것입니다.
 
-	![](DT_Required_Nodes.png)
+	![](DT_RequiredNodes.jpg)
 
 1. 필수 머티리얼 표현식 노드가 전부 추가되었으니, 모든 것을 연결해 줄 차례입니다. 먼저 연결해 줄 부분은 베이스 컬러 부분입니다. 완료된 머티리얼 그래프는 다음과 같은 모습일 것입니다.
 	
-	![](DT_Base_Color_Connections.png)
+	![](DT_BaseColor_Connections.jpg)
 
 1. 다음 노멀 맵을 베이스 컬러와 같은 방식으로 연결해 줘야 합니다. 완료되면 머티리얼 그래프의 모습은 다음과 같을 것입니다.
 
-	![](DT_Normal_Map_Connections.png)
+	![](DT_NormalMap_Connections.jpg)
 
 1. 베이스 컬러와 노멀 맵이 전부 연결되었으니, 이제 머티리얼을 컴파일, 저장, 사용할 준비가 되었습니다.
 
-	![](DT_Completed_Material.png)
+	![](DT_Complete_Material.jpg)
 
 
 ## 디테일 텍스처링 팁 & 꼼수

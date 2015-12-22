@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -33,6 +33,10 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_CopyBone : public FAnimNode_SkeletalContro
 	/** If Scale should be copied */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Copy, meta=(PinShownByDefault))
 	bool bCopyScale;
+
+	/** Space to convert transforms into prior to copying components */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Copy)
+	TEnumAsByte<EBoneControlSpace> ControlSpace;
 
 	FAnimNode_CopyBone();
 

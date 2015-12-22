@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -331,7 +331,7 @@ private:
 							if ( IsConcreteTypeCompatibleWithReflectedType<T>(ReturnProperty) )
 							{
 								// Ensure that the element sizes are the same, prevents the user from doing something terribly wrong.
-								if ( ReturnProperty->ElementSize == sizeof(T) )
+								if ( ReturnProperty->ElementSize == sizeof(T) && !ContainerObject->IsUnreachable() )
 								{
 									ContainerObject->ProcessEvent(Function, &OutValue);
 									return true;

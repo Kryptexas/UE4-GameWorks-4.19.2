@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateRHIRendererPrivatePCH.h"
 #include "ElementBatcher.h"
@@ -11,8 +11,10 @@ DECLARE_CYCLE_STAT(TEXT("Map Staging Buffer"),STAT_MapStagingBuffer,STATGROUP_Cr
 DECLARE_CYCLE_STAT(TEXT("Generate Capture Buffer"),STAT_GenerateCaptureBuffer,STATGROUP_CrashTracker);
 DECLARE_CYCLE_STAT(TEXT("Unmap Staging Buffer"),STAT_UnmapStagingBuffer,STATGROUP_CrashTracker);
 
-DECLARE_CYCLE_STAT(TEXT("Slate Rendering RT Time"), STAT_SlateRenderingRTTime, STATGROUP_Slate);
-DECLARE_CYCLE_STAT(TEXT("Slate RT Present Time"), STAT_SlatePresentRTTime, STATGROUP_Slate);
+DECLARE_CYCLE_STAT(TEXT("Slate RT: Rendering"), STAT_SlateRenderingRTTime, STATGROUP_Slate);
+DECLARE_CYCLE_STAT(TEXT("Slate RT: Create Batches"), STAT_SlateRTCreateBatches, STATGROUP_Slate);
+DECLARE_CYCLE_STAT(TEXT("Slate RT: Fill Vertex & Index Buffers"), STAT_SlateRTFillVertexIndexBuffers, STATGROUP_Slate);
+DECLARE_CYCLE_STAT(TEXT("Slate RT: Draw Batches"), STAT_SlateRTDrawBatches, STATGROUP_Slate);
 
 // Defines the maximum size that a slate viewport will create
 #define MAX_VIEWPORT_SIZE 16384
@@ -20,10 +22,13 @@ DECLARE_CYCLE_STAT(TEXT("Slate RT Present Time"), STAT_SlatePresentRTTime, STATG
 
 void FSlateCrashReportResource::InitDynamicRHI()
 {
+	int32 Width = VirtualScreen.Width();
+	int32 Height = VirtualScreen.Height();
+
 	FRHIResourceCreateInfo CreateInfo;
 	CrashReportBuffer = RHICreateTexture2D(
-		VirtualScreen.Width(),
-		VirtualScreen.Height(),
+		Width,
+		Height,
 		PF_R8G8B8A8,
 		1,
 		1,
@@ -34,8 +39,8 @@ void FSlateCrashReportResource::InitDynamicRHI()
 	for (int32 i = 0; i < 2; ++i)
 	{
 		ReadbackBuffer[i] = RHICreateTexture2D(
-			VirtualScreen.Width(),
-			VirtualScreen.Height(),
+			Width,
+			Height,
 			PF_R8G8B8A8,
 			1,
 			1,
@@ -96,7 +101,7 @@ void FSlateRHIRenderer::FViewportInfo::RecreateDepthBuffer_RenderThread()
 	if (bRequiresStencilTest)
 	{		
 		FTexture2DRHIRef ShaderResourceUnused;
-		FRHIResourceCreateInfo CreateInfo;
+		FRHIResourceCreateInfo CreateInfo(FClearValueBinding::DepthZero);
 		RHICreateTargetableShaderResource2D( Width, Height, PF_DepthStencil, 1, TexCreate_None, TexCreate_DepthStencilTargetable, false, CreateInfo, DepthStencil, ShaderResourceUnused );
 		check( IsValidRef(DepthStencil) );
 	}
@@ -104,15 +109,14 @@ void FSlateRHIRenderer::FViewportInfo::RecreateDepthBuffer_RenderThread()
 
 
 
-FSlateRHIRenderer::FSlateRHIRenderer( TSharedPtr<FSlateRHIResourceManager> InResourceManager, TSharedPtr<FSlateFontCache> InFontCache, TSharedPtr<FSlateFontMeasure> InFontMeasure )
+FSlateRHIRenderer::FSlateRHIRenderer( TSharedRef<FSlateFontServices> InSlateFontServices, TSharedRef<FSlateRHIResourceManager> InResourceManager )
+	: FSlateRenderer(InSlateFontServices)
 #if USE_MAX_DRAWBUFFERS
-	: EnqueuedWindowDrawBuffer(NULL)
+	, EnqueuedWindowDrawBuffer(NULL)
 	, FreeBufferIndex(1)
 #endif
 {
 	ResourceManager = InResourceManager;
-	FontCache = InFontCache;
-	FontMeasure = InFontMeasure;
 
 	CrashTrackerResource = NULL;
 	ViewMatrix = FMatrix(	FPlane(1,	0,	0,	0),
@@ -151,7 +155,7 @@ void FSlateRHIRenderer::Initialize()
 {
 	LoadUsedTextures();
 
-	RenderingPolicy = MakeShareable( new FSlateRHIRenderingPolicy( FontCache, ResourceManager.ToSharedRef() ) );
+	RenderingPolicy = MakeShareable( new FSlateRHIRenderingPolicy( SlateFontServices.ToSharedRef(), ResourceManager.ToSharedRef() ) );
 
 	ElementBatcher = MakeShareable( new FSlateElementBatcher( RenderingPolicy.ToSharedRef() ) );
 }
@@ -160,7 +164,7 @@ void FSlateRHIRenderer::Destroy()
 {
 	RenderingPolicy->ReleaseResources();
 	ResourceManager->ReleaseResources();
-	FontCache->ReleaseResources();
+	SlateFontServices->ReleaseResources();
 
 	for( TMap< const SWindow*, FViewportInfo*>::TIterator It(WindowToViewportInfo); It; ++It )
 	{
@@ -178,9 +182,9 @@ void FSlateRHIRenderer::Destroy()
 	
 	check( ElementBatcher.IsUnique() );
 	ElementBatcher.Reset();
-	FontCache.Reset();
 	RenderingPolicy.Reset();
 	ResourceManager.Reset();
+	SlateFontServices.Reset();
 
 	for( TMap< const SWindow*, FViewportInfo*>::TIterator It(WindowToViewportInfo); It; ++It )
 	{
@@ -200,7 +204,6 @@ void FSlateRHIRenderer::Destroy()
 /** Returns a draw buffer that can be used by Slate windows to draw window elements */
 FSlateDrawBuffer& FSlateRHIRenderer::GetDrawBuffer()
 {
-#if USE_MAX_DRAWBUFFERS
 	FreeBufferIndex = (FreeBufferIndex + 1) % NumDrawBuffers;
 	
 	FSlateDrawBuffer* Buffer = &DrawBuffers[FreeBufferIndex];
@@ -232,10 +235,6 @@ FSlateDrawBuffer& FSlateRHIRenderer::GetDrawBuffer()
 
 	Buffer->ClearBuffer();
 	return *Buffer;
-#else
-	// With this method buffers are created on this thread and deleted on the rendering thread
-	return *(new FSlateDrawBuffer);
-#endif
 }
 
 void FSlateRHIRenderer::CreateViewport( const TSharedRef<SWindow> Window )
@@ -282,7 +281,7 @@ void FSlateRHIRenderer::CreateViewport( const TSharedRef<SWindow> Window )
 
 void FSlateRHIRenderer::ConditionalResizeViewport( FViewportInfo* ViewInfo, uint32 Width, uint32 Height, bool bFullscreen )
 {
-	check( IsThreadSafeForSlateRendering() );
+	checkSlow( IsThreadSafeForSlateRendering() );
 
 	if( IsInGameThread() && !IsInSlateThread() && ViewInfo && ( ViewInfo->Height != Height || ViewInfo->Width != Width ||  ViewInfo->bFullscreen != bFullscreen || !IsValidRef(ViewInfo->ViewportRHI) ) )
 	{
@@ -374,7 +373,7 @@ void FSlateRHIRenderer::RestoreSystemResolution(const TSharedRef<SWindow> InWind
 /** Called when a window is destroyed to give the renderer a chance to free resources */
 void FSlateRHIRenderer::OnWindowDestroyed( const TSharedRef<SWindow>& InWindow )
 {
-	check(IsThreadSafeForSlateRendering());
+	checkSlow(IsThreadSafeForSlateRendering());
 
 	FViewportInfo** ViewportInfoPtr = WindowToViewportInfo.Find( &InWindow.Get() );
 	if( ViewportInfoPtr )
@@ -403,10 +402,21 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 		SCOPE_CYCLE_COUNTER( STAT_SlateRenderingRTTime );
 
 		FSlateBatchData& BatchData = WindowElementList.GetBatchData();
+		FElementBatchMap& RootBatchMap = WindowElementList.GetRootDrawLayer().GetElementBatchMap();
 
-		// Update the vertex and index buffer	
-		BatchData.CreateRenderBatches();	
-		RenderingPolicy->UpdateVertexAndIndexBuffers(RHICmdList, BatchData);
+		WindowElementList.PreDraw_ParallelThread();
+
+		{
+			SCOPE_CYCLE_COUNTER(STAT_SlateRTCreateBatches);
+			// Update the vertex and index buffer	
+			BatchData.CreateRenderBatches(RootBatchMap);
+		}
+
+		{
+			SCOPE_CYCLE_COUNTER(STAT_SlateRTFillVertexIndexBuffers);
+			RenderingPolicy->UpdateVertexAndIndexBuffers(RHICmdList, BatchData);
+		}
+
 		// should have been created by the game thread
 		check( IsValidRef(ViewportInfo.ViewportRHI) );
 
@@ -418,25 +428,22 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 		const uint32 ViewportHeight = (ViewportRT) ? ViewportRT->GetSizeY() : ViewportInfo.Height;
 
 		RHICmdList.BeginDrawingViewport( ViewportInfo.ViewportRHI, FTextureRHIRef() );
-		RHICmdList.SetViewport( 0,0,0,ViewportWidth, ViewportHeight, 0.0f ); 
-
+		RHICmdList.SetViewport(0, 0, 0, ViewportWidth, ViewportHeight, 0.0f);
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, BackBuffer);
 		if( ViewportInfo.bRequiresStencilTest )
 		{
 			check(IsValidRef( ViewportInfo.DepthStencil ));
 
 			// Reset the backbuffer as our color render target and also set a depth stencil buffer
-			SetRenderTarget(RHICmdList, BackBuffer, ViewportInfo.DepthStencil);
+			FRHIRenderTargetView ColorView(BackBuffer, 0, -1, bClear ? ERenderTargetLoadAction::EClear : ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::EStore);
+			FRHISetRenderTargetsInfo Info(1, &ColorView, FRHIDepthRenderTargetView(ViewportInfo.DepthStencil, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::EStore, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore));
+
 			// Clear the stencil buffer
-			RHICmdList.Clear( false, FLinearColor::White, false, 0.0f, true, 0x00, FIntRect());
+			RHICmdList.SetRenderTargetsAndClear(Info);
 		}
 		else
 		{
-			SetRenderTarget(RHICmdList, BackBuffer, FTextureRHIRef());
-		}
-
-		if (bClear)
-		{
-			RHICmdList.Clear( true, FLinearColor(ForceInitToZero), false, 0.0f, true, 0x00, FIntRect());
+			SetRenderTarget(RHICmdList, BackBuffer, FTextureRHIRef(), bClear ? ESimpleRenderTargetMode::EClearColorAndDepth : ESimpleRenderTargetMode::EExistingColorAndDepth);
 		}
 
 #if DEBUG_OVERDRAW
@@ -444,6 +451,8 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 #endif
 		if( BatchData.GetRenderBatches().Num() > 0 )
 		{
+			SCOPE_CYCLE_COUNTER(STAT_SlateRTDrawBatches);
+
 			FSlateBackBuffer BackBufferTarget( BackBuffer, FIntPoint( ViewportWidth, ViewportHeight ) );
 
 			RenderingPolicy->DrawElements
@@ -465,12 +474,8 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 
 	// Calculate renderthread time (excluding idle time).	
 	uint32 StartTime		= FPlatformTime::Cycles();
-		
-	// Note - We do not include present time in the slate render thread stat
-	{
-		SCOPE_CYCLE_COUNTER(STAT_SlatePresentRTTime);
-		RHICmdList.EndDrawingViewport(ViewportInfo.ViewportRHI, true, bLockToVsync);
-	}
+
+	RHICmdList.EndDrawingViewport(ViewportInfo.ViewportRHI, true, bLockToVsync);
 
 	if (bNeedCallFinishFrameForStereo)
 	{
@@ -529,18 +534,6 @@ void FSlateRHIRenderer::DrawWindows()
 	}
 }
 
-static void EndDrawingWindows( FSlateDrawBuffer* DrawBuffer, FSlateRHIRenderingPolicy& Policy )
-{
-#if USE_MAX_DRAWBUFFERS
-	DrawBuffer->Unlock();
-#else
-	delete DrawBuffer;
-#endif
-
-	Policy.EndDrawingWindows();
-}
-
-
 void FSlateRHIRenderer::PrepareToTakeScreenshot(const FIntRect& Rect, TArray<FColor>* OutColorData)
 {
 	check(OutColorData);
@@ -557,7 +550,7 @@ void FSlateRHIRenderer::PrepareToTakeScreenshot(const FIntRect& Rect, TArray<FCo
  */
 void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer )
 {
-	check( IsThreadSafeForSlateRendering() );
+	checkSlow( IsThreadSafeForSlateRendering() );
 
 	// Enqueue a command to unlock the draw buffer after all windows have been drawn
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER( SlateBeginDrawingWindowsCommand, 
@@ -566,10 +559,13 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 		Policy.BeginDrawingWindows();
 	});
 
-	ReleaseAccessedResources();
+	// Update texture atlases if needed and safe
+	if (DoesThreadOwnSlateRendering())
+	{
+		ResourceManager->UpdateTextureAtlases();
+	}
 
-	// Update texture atlases if needed
-	ResourceManager->UpdateTextureAtlases();
+	const TSharedRef<FSlateFontCache> FontCache = SlateFontServices->GetFontCache();
 
 	// Iterate through each element list and set up an RHI window for it if needed
 	TArray<TSharedPtr<FSlateWindowElementList>>& WindowElementLists = WindowDrawBuffer.GetWindowElementLists();
@@ -685,7 +681,7 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 		FSlateDrawBuffer*, DrawBuffer, &WindowDrawBuffer,
 		FSlateRHIRenderingPolicy&, Policy, *RenderingPolicy,
 	{
-		EndDrawingWindows( DrawBuffer, Policy );
+		FSlateEndDrawingWindowsCommand::EndDrawingWindows(RHICmdList, DrawBuffer, Policy);
 	});
 
 	// flush the cache if needed
@@ -813,7 +809,7 @@ void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& 
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 		// @todo livestream: Ideally this "desktop background color" should be configurable in the editor's preferences
-		RHICmdList.Clear(true, FLinearColor(0.02f, 0.02f, 0.2f), false, 0.f, false, 0x00, FIntRect());
+		RHICmdList.Clear(true, FLinearColor(0.8f, 0.00f, 0.0f), false, 0.f, false, 0x00, FIntRect());
 	});
 
 	// draw windows to buffer
@@ -823,6 +819,8 @@ void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& 
 	static const FName RendererModuleName( "Renderer" );
 	IRendererModule& RendererModule = FModuleManager::GetModuleChecked<IRendererModule>( RendererModuleName );
 
+	//if ( false )
+	{
 	for (int32 i = 0; i < OutWindows.Num(); ++i)
 	{
 		TSharedPtr<SWindow> WindowPtr = OutWindows[i];
@@ -892,13 +890,14 @@ void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& 
 			});
 		}
 	}
+	}
 
 	// draw mouse cursor and keypresses
 	const FVector2D MouseCursorLocation = FSlateApplication::Get().GetCursorPos();
 	const FIntPoint ScaledCursorLocation = FIntPoint(MouseCursorLocation.X * XScaling, MouseCursorLocation.Y * YScaling) - VirtualScreenPos;
 
 	FSlateWindowElementList* WindowElementList = CrashTrackerResource->GetNextElementList();
-	*WindowElementList = FSlateWindowElementList(TSharedPtr<SWindow>());
+	WindowElementList->ResetBuffers();
 
 	// Don't draw cursor when it is hidden (mouse looking, scrolling, etc.)
 	// @todo livestream: The cursor is probably still hidden when dragging with the mouse captured (grabby hand)
@@ -949,8 +948,9 @@ void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& 
 		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One>::GetRHI());
 		
 		FSlateBatchData& BatchData = Context.SlateElementList->GetBatchData();
+		FElementBatchMap& RootBatchMap = Context.SlateElementList->GetRootDrawLayer().GetElementBatchMap();
 
-		BatchData.CreateRenderBatches();
+		BatchData.CreateRenderBatches(RootBatchMap);
 
 		Context.RenderPolicy->UpdateVertexAndIndexBuffers(RHICmdList, BatchData);
 		if( BatchData.GetRenderBatches().Num() > 0 )
@@ -958,7 +958,7 @@ void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& 
 			FTexture2DRHIRef UnusedTargetTexture;
 			FSlateBackBuffer UnusedTarget( UnusedTargetTexture, FIntPoint::ZeroValue );
 
-			Context.RenderPolicy->DrawElements(RHICmdList, UnusedTarget, CreateProjectionMatrix(Context.ViewportSize.X, Context.ViewportSize.Y),BatchData.GetRenderBatches());
+			Context.RenderPolicy->DrawElements(RHICmdList, UnusedTarget, CreateProjectionMatrix(Context.ViewportSize.X, Context.ViewportSize.Y), BatchData.GetRenderBatches());
 		}
 	});
 
@@ -986,26 +986,29 @@ void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& 
 }
 
 
-void FSlateRHIRenderer::MapVirtualScreenBuffer(void** OutImageData)
+void FSlateRHIRenderer::MapVirtualScreenBuffer(FMappedTextureBuffer* OutTextureData)
 {
+	const FIntRect VirtualScreen = CrashTrackerResource->GetVirtualScreen();
+
 	struct FReadbackFromStagingBufferContext
 	{
 		FSlateCrashReportResource* CrashReportResource;
-		void** OutData;
+		FMappedTextureBuffer* TextureData;
+		FIntRect ExpectedBufferSize;
 	};
 	FReadbackFromStagingBufferContext ReadbackFromStagingBufferContext =
 	{
 		CrashTrackerResource,
-		OutImageData
+		OutTextureData,
+		VirtualScreen,
 	};
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 		ReadbackFromStagingBuffer,
 		FReadbackFromStagingBufferContext,Context,ReadbackFromStagingBufferContext,
 	{
 		SCOPE_CYCLE_COUNTER(STAT_MapStagingBuffer);
-		int32 UnusedWidth = 0;
-		int32 UnusedHeight = 0;
-		RHICmdList.MapStagingSurface(Context.CrashReportResource->GetReadbackBuffer(), *Context.OutData, UnusedWidth, UnusedHeight);
+		RHICmdList.MapStagingSurface(Context.CrashReportResource->GetReadbackBuffer(), Context.TextureData->Data, Context.TextureData->Width, Context.TextureData->Height);
+
 		Context.CrashReportResource->SwapTargetReadbackBuffer();
 	});
 }
@@ -1061,6 +1064,11 @@ bool FSlateRHIRenderer::GenerateDynamicImageResource( FName ResourceName, uint32
 		TextureResource = ResourceManager->MakeDynamicTextureResource( ResourceName, Width, Height, Bytes );
 	}
 	return TextureResource.IsValid();
+}
+
+FSlateResourceHandle FSlateRHIRenderer::GetResourceHandle( const FSlateBrush& Brush )
+{
+	return ResourceManager->GetResourceHandle( Brush );
 }
 
 void FSlateRHIRenderer::RemoveDynamicBrushResource( TSharedPtr<FSlateDynamicImageBrush> BrushToRemove )
@@ -1123,7 +1131,7 @@ void FSlateRHIRenderer::ReleaseDynamicResource( const FSlateBrush& InBrush )
 
 void* FSlateRHIRenderer::GetViewportResource( const SWindow& Window )
 {
-	check(IsThreadSafeForSlateRendering());
+	checkSlow(IsThreadSafeForSlateRendering());
 
 	FViewportInfo** InfoPtr = WindowToViewportInfo.Find( &Window );
 
@@ -1211,22 +1219,35 @@ void FSlateRHIRenderer::InvalidateAllViewports()
 	}
 }
 
-void FSlateRHIRenderer::ReleaseAccessedResources()
+void FSlateRHIRenderer::ReleaseAccessedResources(bool bImmediatelyFlush)
 {
 	// Clear accessed UTexture and Material objects from the previous frame
-	ResourceManager->ReleaseAccessedResources();
+	ResourceManager->BeginReleasingAccessedResources(bImmediatelyFlush);
+
+	if ( bImmediatelyFlush )
+	{
+		FlushCommands();
+	}
 }
 
 void FSlateRHIRenderer::RequestResize( const TSharedPtr<SWindow>& Window, uint32 NewWidth, uint32 NewHeight )
 {
-	check( IsThreadSafeForSlateRendering() );
+	checkSlow( IsThreadSafeForSlateRendering() );
 
 	FViewportInfo* ViewInfo = WindowToViewportInfo.FindRef( Window.Get() );
 
 	if( ViewInfo )
 	{
-		ViewInfo->DesiredWidth = NewWidth;
-		ViewInfo->DesiredHeight = NewHeight;
+		if (ViewInfo->DesiredWidth != NewWidth || ViewInfo->DesiredHeight != NewHeight)
+		{
+			ViewInfo->DesiredWidth = NewWidth;
+			ViewInfo->DesiredHeight = NewHeight;
+
+			if (Window->GetWindowMode() == EWindowMode::Windowed)
+			{
+				FSystemResolution::RequestResolutionChange(NewWidth, NewHeight, Window->GetWindowMode());
+			}
+		}
 	}
 }
 
@@ -1237,4 +1258,104 @@ void FSlateRHIRenderer::SetWindowRenderTarget(const SWindow& Window, IViewportRe
 	{
 		ViewInfo->RTProvider = Provider;
 	}
+}
+
+TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> FSlateRHIRenderer::CacheElementRenderData(const ILayoutCache* Cacher, FSlateWindowElementList& ElementList)
+{
+	TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> RenderDataHandle = MakeShareable(new FSlateRenderDataHandle(Cacher, this));
+
+	checkSlow(ElementList.GetChildDrawLayers().Num() == 0);
+
+	// Add all elements for this window to the element batcher
+	ElementBatcher->AddElements(ElementList);
+
+	// All elements for this window have been batched and rendering data updated
+	ElementBatcher->ResetBatches();
+
+	struct FCacheElementBatchesContext
+	{
+		FSlateRHIRenderingPolicy* RenderPolicy;
+		FSlateWindowElementList* SlateElementList;
+		TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> RenderDataHandle;
+	};
+	FCacheElementBatchesContext CacheElementBatchesContext =
+	{
+		RenderingPolicy.Get(),
+		&ElementList,
+		RenderDataHandle,
+	};
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+		CacheElementBatches,
+		FCacheElementBatchesContext, Context, CacheElementBatchesContext,
+	{
+		FSlateBatchData& BatchData = Context.SlateElementList->GetBatchData();
+		FElementBatchMap& RootBatchMap = Context.SlateElementList->GetRootDrawLayer().GetElementBatchMap();
+
+		BatchData.SetRenderDataHandle(Context.RenderDataHandle);
+		BatchData.CreateRenderBatches(RootBatchMap);
+		Context.RenderPolicy->UpdateVertexAndIndexBuffers(RHICmdList, BatchData, Context.RenderDataHandle);
+	});
+
+	return RenderDataHandle;
+}
+
+void FSlateRHIRenderer::ReleaseCachingResourcesFor(const ILayoutCache* Cacher)
+{
+	struct FReleaseCachingResourcesForContext
+	{
+		FSlateRHIRenderingPolicy* RenderPolicy;
+		const ILayoutCache* Cacher;
+	};
+	FReleaseCachingResourcesForContext MarshalContext =
+	{
+		RenderingPolicy.Get(),
+		Cacher,
+	};
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+		ReleaseCachingResourcesFor,
+		FReleaseCachingResourcesForContext, Context, MarshalContext,
+		{
+			Context.RenderPolicy->ReleaseCachingResourcesFor(Context.Cacher);
+		});
+}
+
+void FSlateRHIRenderer::ReleaseCachedRenderData(FSlateRenderDataHandle* InRenderHandle)
+{
+	struct FReleaseCachedRenderDataContext
+	{
+		FSlateRHIRenderingPolicy* RenderPolicy;
+		FSlateRenderDataHandle* RenderDataHandle;
+	};
+	FReleaseCachedRenderDataContext ReleaseCachedRenderDataContext =
+	{
+		RenderingPolicy.Get(),
+		InRenderHandle,
+	};
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+		ReleaseCachedRenderData,
+		FReleaseCachedRenderDataContext, Context, ReleaseCachedRenderDataContext,
+	{
+		Context.RenderPolicy->ReleaseCachedRenderData(Context.RenderDataHandle);
+	});
+}
+
+FSlateEndDrawingWindowsCommand::FSlateEndDrawingWindowsCommand(FSlateRHIRenderingPolicy& InPolicy, FSlateDrawBuffer* InDrawBuffer)
+	: Policy(InPolicy)
+	, DrawBuffer(InDrawBuffer)
+{}
+
+void FSlateEndDrawingWindowsCommand::Execute(FRHICommandListBase& CmdList)
+{
+	for ( auto& ElementList : DrawBuffer->GetWindowElementLists() )
+	{
+		ElementList->PostDraw_ParallelThread();
+	}
+
+	DrawBuffer->Unlock();
+	Policy.EndDrawingWindows();
+}
+
+void FSlateEndDrawingWindowsCommand::EndDrawingWindows(FRHICommandListImmediate& RHICmdList, FSlateDrawBuffer* DrawBuffer, FSlateRHIRenderingPolicy& Policy)
+{
+	new ( RHICmdList.AllocCommand<FSlateEndDrawingWindowsCommand>() ) FSlateEndDrawingWindowsCommand(Policy, DrawBuffer);
 }

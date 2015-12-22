@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
 
@@ -6,9 +6,10 @@
 	UAssetObjectProperty.
 -----------------------------------------------------------------------------*/
 
-FString UAssetObjectProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint32 CPPExportFlags/*=0*/ ) const
+FString UAssetObjectProperty::GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, const FString& InnerNativeTypeName) const
 {
-	return FString::Printf( TEXT("TAssetPtr<%s%s>"), PropertyClass->GetPrefixCPP(), *PropertyClass->GetName() );
+	ensure(!InnerNativeTypeName.IsEmpty());
+	return FString::Printf(TEXT("TAssetPtr<%s>"), *InnerNativeTypeName);
 }
 FString UAssetObjectProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
 {
@@ -70,6 +71,12 @@ void UAssetObjectProperty::ExportTextItem( FString& ValueStr, const void* Proper
 	else
 	{
 		ID = AssetPtr.GetUniqueID();
+	}
+
+	if (0 != (PortFlags & PPF_ExportCpp))
+	{
+		ValueStr += FString::Printf(TEXT("FStringAssetReference(TEXT(\"%s\"))"), *ID.ToString().ReplaceCharWithEscapedChar());
+		return;
 	}
 
 	if (!ID.ToString().IsEmpty())

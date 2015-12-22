@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -29,6 +29,10 @@
 	TSharedPtr<FUserOnlineAccount> UserInfo;
 	/** local user to run tests for */
 	int32 LocalUserIdx;
+	/** true if the test was successful. */
+	bool bIsTestFinished;
+	/** true if the user is logged in*/
+	bool bIsUserLoggedIn;
 
 	FOnlineAccountCredentials AccountCredentials;
 
@@ -69,12 +73,20 @@
 		, bRunLoginTest(true)
 		, bRunLogoutTest(false)
 		, LocalUserIdx(0)
+		, bIsTestFinished(false)
 	{
-		
 	}
 
 	/**
 	 * Kicks off all of the testing process
 	 */
 	void Test(UWorld* InWorld, const FOnlineAccountCredentials& InAccountCredentials, bool bOnlyRunLogoutTest=false);
+
+	/**
+	* Used to get and set the private variables.
+	*/
+	bool GetTestStatus() const;
+	void SetTestStatus( const bool& NewStatus );
+
+	bool IsTheUserLoggedIn();
  };

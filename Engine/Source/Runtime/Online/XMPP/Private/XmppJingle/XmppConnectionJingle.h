@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -83,7 +83,9 @@ private:
 	/** called to kick off thread to establish connection/login */
 	void Startup();
 	/** called to shutdown thread after disconnect */
-	void Shutdown();		
+	void Shutdown();	
+	/** update all stat counters in a given interval */
+	void UpdateStatCounters();
 
 	// called on the FXmppConnectionPumpThread
 	void HandleLoginChange(ELoginProgress::Type InLastLoginState, ELoginProgress::Type InLoginState);
@@ -108,6 +110,11 @@ private:
 	FString MucDomain;
 	/** cached domain for all PubSub communication */
 	FString PubSubDomain;
+
+	/** Frequency of the stat counter update */
+	double StatUpdateFreq;
+	/** Last time since a stat counter update */
+	double LastStatUpdateTime;
 
 	// completion delegates
 	FOnXmppLoginComplete OnXmppLoginCompleteDelegate;

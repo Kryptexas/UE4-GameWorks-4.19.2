@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Animation/AnimNodeSpaceConversions.h"
@@ -28,7 +28,7 @@ void FAnimNode_ConvertComponentToLocalSpace::Update(const FAnimationUpdateContex
 void FAnimNode_ConvertComponentToLocalSpace::Evaluate(FPoseContext & Output)
 {
 	// Evaluate the child and convert
-	FComponentSpacePoseContext InputCSPose(Output.AnimInstance);
+	FComponentSpacePoseContext InputCSPose(Output.AnimInstanceProxy);
 	ComponentPose.EvaluateComponentSpace(InputCSPose);
 
 	checkSlow( InputCSPose.Pose.GetPose().IsValid() );
@@ -75,7 +75,7 @@ void FAnimNode_ConvertLocalToComponentSpace::GatherDebugData(FNodeDebugData& Deb
 void FAnimNode_ConvertLocalToComponentSpace::EvaluateComponentSpace(FComponentSpacePoseContext & OutputCSPose)
 {
 	// Evaluate the child and convert
-	FPoseContext InputPose(OutputCSPose.AnimInstance);
+	FPoseContext InputPose(OutputCSPose.AnimInstanceProxy);
 	LocalPose.Evaluate(InputPose);
 
 	OutputCSPose.Pose.InitPose(InputPose.Pose);

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -26,6 +26,7 @@ public:
 	static void SetSelectionColor( const FLinearColor& NewColor );
 	static void SetInactiveSelectionColor( const FLinearColor& NewColor );
 	static void SetPressedSelectionColor( const FLinearColor& NewColor );
+	static void SetFocusBrush(FSlateBrush* NewBrush);
 
 	// todo: jdale - These are only here because of UTouchInterface::Activate and the fact that GetDynamicImageBrush is non-const
 	static const TSharedPtr<FSlateDynamicImageBrush> GetDynamicImageBrush( FName BrushTemplate, FName TextureName, const ANSICHAR* Specifier = nullptr );

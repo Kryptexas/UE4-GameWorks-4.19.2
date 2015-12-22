@@ -1,9 +1,11 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "AssetData.h"
 #include "PaperGroupedSpriteActor.h"
 #include "PaperGroupedSpriteUtilities.h"
+#include "PaperSpriteActor.h"
+#include "PaperSpriteComponent.h"
 #include "ScopedTransaction.h"
 #include "ILayers.h"
 #include "ComponentReregisterContext.h"

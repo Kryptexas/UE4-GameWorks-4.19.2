@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraEditorPrivatePCH.h"
 #include "NiagaraEditorModule.h"
@@ -140,7 +140,7 @@ void SNiagaraEffectEditorViewport::Tick( const FGeometry& AllottedGeometry, cons
 	SEditorViewport::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
 }
 
-void SNiagaraEffectEditorViewport::SetPreviewEffect(FNiagaraEffectInstance *InPreviewEffect)
+void SNiagaraEffectEditorViewport::SetPreviewEffect(TSharedPtr<FNiagaraEffectInstance> InPreviewEffect)
 {
 	check( PreviewComponent );
 

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2422946
+﻿INTSourceChangelist:2688239
 Availability:Public
 Title:ディスパッチャーイベントの作成
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/EventDispatcher
 Description:イベントディスパッチャーのイベントリストへ結合および追加可能なイベントを作成する
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -49,7 +50,7 @@ Description:イベントディスパッチャーのイベントリストへ結�
 ![](dispatcher_event.png)
 
 [EXCERPT:Intro]
-[イベントディスパッチャー] メニューの **[イベント]** オプションを使用することにより、イベントディスパッチャーへの結合が可能になるように 
+イベントディスパッチャー のメニューの **[Event (イベント)]** オプションを使用することにより、イベントディスパッチャーへの結合が可能になるように 
 正しいシグネチャでカスタム イベントが作成されます。イベントノードは、 **Bind** ノードに接続されずに [Custom Event ノード](Engine/Blueprints/UserGuide\Events\Custom) と同じように表示されますが、
 このイベントは **Call [イベントディスパッチャー名]** ノードの実行時に決してトリガーされることはありません。  
 [/EXCERPT:Intro]
@@ -61,7 +62,7 @@ Event Dispatcher **Event** ノードは、右上隅の赤く四角いピンを *
 
 1. **Event** 入力ピンをドラッグし、コンテクストメニューを表示するためにリリースします。
 
-1. コンテクストメニューで **[ディスパッチャーにカスタムイベントを追加する]** を選択します。
+1. コンテクストメニューで **[Add Custom Event for Dispatcher ([ディスパッチャーにカスタムイベントを追加)]** を選択します。
 
 	![](add_custom_event_for_dispatcher.png)
 
@@ -69,13 +70,13 @@ Event Dispatcher **Event** ノードは、右上隅の赤く四角いピンを *
 
 	![](delegate_pin_enter_name.png)
 
-[イベントディスパッチャー] メニューまたは [コンテキスト] メニューのいずれから **[Assign]** を選択すると **Bind Event** ノードと対応する **Event** ノードをあらかじめ接続して作成します。
+[Event Dispatcher (イベントディスパッチャー)] メニューまたはコンテキスト メニューのいずれから **[Assign (割り当て)]** を選択すると、あらかじめ接続された **Bind Event** ノードおよびそれに対応する **Event** ノードが作成されます。
 
 ### Blueprint クラスで作成
 
 1. **[My Blueprint]** タブでイベント ディスパッチャー名をドラッグして、作業しているグラフへドロップします。 
 
-1. 表示されるメニューから **[イベント]** を選択します。
+1. 表示されるメニューから **[Event (イベント)]** を選択します。
 
 	![](dispatcher_event_menu.png)
 

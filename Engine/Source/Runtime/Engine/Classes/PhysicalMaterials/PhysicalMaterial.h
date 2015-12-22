@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "PhysicsEngine/PhysicsSettings.h"
@@ -111,14 +111,14 @@ public:
 	FPhysxUserData PhysxUserData;
 #endif
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	static void RebuildPhysicalMaterials();
 #endif // WITH_EDITOR
 	virtual void PostLoad() override;
 	virtual void FinishDestroy() override;
-	// End UObject interface
+	//~ End UObject Interface
 
 #if WITH_PHYSX
 	physx::PxMaterial* GetPhysXMaterial();

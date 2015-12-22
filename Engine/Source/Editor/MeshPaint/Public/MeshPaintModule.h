@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,14 +11,21 @@ class IMeshPaintGeometryAdapter
 {
 public:
 	virtual bool Construct(UMeshComponent* InComponent, int32 InPaintingMeshLODIndex, int32 InUVChannelIndex) = 0;
+	virtual bool Initialize() = 0;
+	virtual void OnAdded() = 0;
+	virtual void OnRemoved() = 0;
+	virtual bool IsValid() const = 0;
 	virtual int32 GetNumTexCoords() const = 0;
 	virtual void GetTriangleInfo(int32 TriIndex, struct FTexturePaintTriangleInfo& OutTriInfo) const = 0;
 	virtual bool SupportsTexturePaint() const = 0;
 	virtual bool SupportsVertexPaint() const = 0;
 	virtual bool LineTraceComponent(struct FHitResult& OutHit, const FVector Start, const FVector End, const struct FCollisionQueryParams& Params) const = 0;
-	virtual void SphereIntersectTriangles(TArray<int32>& OutTriangles, const float ComponentSpaceSquaredBrushRadius, const FVector& ComponentSpaceBrushPosition) const = 0;
+	virtual TArray<uint32> SphereIntersectTriangles(const float ComponentSpaceSquaredBrushRadius, const FVector& ComponentSpaceBrushPosition, const FVector& ComponentSpaceCameraPosition, const bool bOnlyFrontFacing) const = 0;
 	virtual void QueryPaintableTextures(int32 MaterialIndex, int32& OutDefaultIndex, TArray<struct FPaintableTexture>& InOutTextureList) = 0;
 	virtual void ApplyOrRemoveTextureOverride(UTexture* SourceTexture, UTexture* OverrideTexture) const = 0;
+	virtual void SetCurrentUVChannelIndex(int32 InUVChannelIndex) = 0;
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) = 0;
+	virtual const TArray<FVector>& GetMeshVertices() const = 0;
 	virtual ~IMeshPaintGeometryAdapter() {}
 
 	MESHPAINT_API static void DefaultApplyOrRemoveTextureOverride(UMeshComponent* InMeshComponent, UTexture* SourceTexture, UTexture* OverrideTexture);
@@ -32,6 +39,7 @@ class IMeshPaintGeometryAdapterFactory
 {
 public:
 	virtual TSharedPtr<IMeshPaintGeometryAdapter> Construct(class UMeshComponent* InComponent, int32 InPaintingMeshLODIndex, int32 InUVChannelIndex) const = 0;
+	virtual void InitializeAdapterGlobals() = 0;
 	virtual ~IMeshPaintGeometryAdapterFactory() {}
 };
 

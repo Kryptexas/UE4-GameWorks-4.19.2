@@ -7,38 +7,42 @@ Version: 4.9
 
 ## Getting Started
 
-There is a lot of rendering code in Unreal Engine 4 (UE4) so it is hard to get a quick high level view of what is going on. A good place to start reading through the code is `FDeferredShadingSceneRenderer::Render`, which is where a new frame is rendered on the rendering thread. It is also useful to do a 'profilegpu' command and look through the draw events. You can then do a **Find in Files** in Visual Studio on the draw event name to find the corresponding C++ implementation.
+There is a lot of rendering code in Unreal Engine 4 (UE4) so it is hard to get a quick high level view of what is going on. A good place to start reading through the code is `FDeferredShadingSceneRenderer::Render`, which is where a new frame is rendered on the rendering thread. It is also useful to do a profilegpu command and look through the draw events. You can then do a **Find in Files** in Visual Studio on the draw event name to find the corresponding C++ implementation.
 
 * See [Shader Development](Programming/Rendering/ShaderDevelopment) for information on working with shaders.
 
 * See [Coordinate Spaces](Engine/Basics/CoordinateSpace) for an explanation of Coordinate Space terminology used in UE4.
 
-Useful console commands when working on rendering (Usually you get help when using '?' as parameter and the current state with no parameters):
+Useful console commands when working on rendering (Usually you get help when using **?** as parameter and the current state with no parameters):
 
 |Console Command| Description|
 |--|--|
-|'stat unit'|Shows overall frame time as well as the game thread, rendering thread, and GPU times.  Whichever is the longest is the bottleneck.  However, GPU time contains idle time, so is only the bottleneck if it is the longest and stands alone.|
-|Ctrl+Shift+. or 'recompileshaders changed'|Recompile shaders that have changed since you last saved the .usf file.  This will automatically happen on load.|
-|Ctrl+Shift+; or 'profilegpu'|Measure GPU timings for the view being rendered.  You can view the results in the UI that pops up or in the engine log.|
-|'Vis' or 'VisualizeTexture'|Visualize the contents of various render targets with the ability to save as bmp.|
-|'show x'|Toggles specified show flag. Use 'show' to get the list of showflags and their current state.  In the editor, use the viewport UI instead.|
-|'pause'|Pauses the game, but continues rendering.  Any simulation rendering work will stop.|
-|'slomo x'|Changes the game speed.  Can be very useful for slowing down time without skipping simulation work, when profiling.  For example 'slomo .01'|
-|'debugcreateplayer 1'|For testing splitscreen.|
-|'r.CompositionGraphDebug'|Execute to get a single frame dump of the composition graph of one frame (post processing and lighting).|
-|'r.DumpShaderDebugInfo'|When set to 1, will cause any shaders that are then compiled to dump debug info to GameName/Saved/ShaderDebugInfo.|
-|'r.RenderTargetPoolTest'|Clears the texture returned by the rendertarget pool with a special color to track down color leaking bugs.|
-|'r.SetRes'|Set the display resolution for the current game view. Has no effect in the editor.|
-|'r.ViewportTest'|Allows to test different Viewport rectangle configuations (in game only) as they can happen when using Matinee/Editor.|
+|**stat unit**|Shows overall frame time as well as the game thread, rendering thread, and GPU times.  Whichever is the longest is the bottleneck.  However, GPU time contains idle time, so is only the bottleneck if it is the longest and stands alone.|
+|**Ctrl+Shift+.** or **recompileshaders changed**|Recompile shaders that have changed since you last saved the .usf file.  This will automatically happen on load.|
+|**Ctrl+Shift+;** or **profilegpu**|Measure GPU timings for the view being rendered.  You can view the results in the UI that pops up or in the engine log.|
+|**Vis** or **VisualizeTexture**|Visualize the contents of various render targets with the ability to save as bmp.|
+|**show x**|Toggles specified show flag. Use show to get the list of showflags and their current state.  In the editor, use the viewport UI instead.|
+|**pause**|Pauses the game, but continues rendering.  Any simulation rendering work will stop.|
+|**slomo x**|Changes the game speed.  Can be very useful for slowing down time without skipping simulation work, when profiling.  For example slomo .01|
+|**debugcreateplayer 1**|For testing splitscreen.|
+|**r.CompositionGraphDebug**|Execute to get a single frame dump of the composition graph of one frame (post processing and lighting).|
+|**r.DumpShaderDebugInfo**|When set to 1, will cause any shaders that are then compiled to dump debug info to GameName/Saved/ShaderDebugInfo.|
+|**r.RenderTargetPoolTest**|Clears the texture returned by the rendertarget pool with a special color to track down color leaking bugs.|
+|**r.SetRes**|Set the display resolution for the current game view. Has no effect in the editor.|
+|**r.ViewportTest**|Allows to test different Viewport rectangle configuations (in game only) as they can happen when using Matinee/Editor.|
 
 Useful command lines when working on rendering:
 
 |Commandline| Description|
 |--|--|
-|-d3ddebug|Enables the D3D11 debug layer, useful for catching API errors.|
-|-sm4|Forces Feature Level SM4 with the D3D11 RHI.|
-|-opengl3 / -opengl4|Forces use of OpenGL RHI at the specified feature level.|
-|-ddc=noshared|Prevents the use of network (shared) Derived Data Cache.  Can be useful when debugging shader caching issues.|
+|**-d3ddebug**|Enables the D3D11 debug layer, useful for catching API errors.|
+|**-sm4**|Forces Feature Level SM4 with the D3D11 RHI.|
+|**-opengl3** / -opengl4|Forces use of OpenGL RHI at the specified feature level.|
+|**-dx11** | currently the default on windows |
+|**-dx12** | experimental |
+|**-featureleveles2** | ignored when running with editor, there the UI has to be used |
+|**-featureleveles31** | experimental, ignored when running with editor, there it needs to be enabled in Editor Preferences/Experimental/Rendering  |
+|**-ddc=noshared**|Prevents the use of network (shared) Derived Data Cache.  Can be useful when debugging shader caching issues.|
 
 ## Modules
 
@@ -144,12 +148,12 @@ Drawing policies contain the logic to render meshes with pass specific shaders. 
 ## Rendering paths
 
 UE4 has a dynamic path which provides more control but is slower to traverse, and a static rendering path which caches scene traversal as close to the RHI level as possible. The difference is mostly high level, since they both use drawing policies at the lowest level. Each rendering pass (drawing policy) needs to be sure to handle both rendering paths if needed.
-##### Dynamic rendering path
+#### Dynamic rendering path
 
 The dynamic rendering path uses TDynamicPrimitiveDrawer and calls DrawDynamicElements on each primitive scene proxy to render. The set of primitives that need to use the dynamic path to be rendered is tracked by FViewInfo::VisibleDynamicPrimitives. Each rendering pass needs to iterate over this array, and call DrawDynamicElements on each primitive's proxy. DrawDynamicElements of the proxy then needs to assemble as many FMeshElements as it needs and submit them with DrawRichMesh or TDynamicPrimitiveDrawer::DrawMesh. This ends up creating a new temporary drawing policy, calling CreateBoundShaderState, DrawShared, SetMeshRenderState, and finally DrawMesh.
 
 The dynamic rendering path provides a lot of flexibility because each proxy has a callback in DrawDynamicElements where it can execute logic specific to that component type. It also has minimal insertion cost but high traversal cost, because there is no state sorting, and nothing is cached.
-##### Static rendering path
+#### Static rendering path
 
 The static rendering path is implemented through static draw lists. Meshes are inserted into the draw lists when they are attached to the scene. During this insertion, DrawStaticElements on the proxy is called to collect the FStaticMeshElements. A drawing policy instance is then created and stored, along with the result of CreateBoundShaderState. The new drawing policy is sorted based on its Compare and Matches functions and inserted into the appropriate place in the draw list (see TStaticMeshDrawList::AddMesh). In InitViews, a bitarray containing visibility data for the static draw list is initialized and passed into TStaticMeshDrawList::DrawVisible where the draw list is actually drawn. DrawShared is only called once for all the drawing policies that match each other, while SetMeshRenderState and DrawMesh are called for each FStaticMeshElement (see TStaticMeshDrawList::DrawElement).
 

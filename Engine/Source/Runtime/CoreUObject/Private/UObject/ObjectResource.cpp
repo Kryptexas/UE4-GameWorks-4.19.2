@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
 
@@ -44,6 +44,7 @@ FObjectExport::FObjectExport()
 , bNotForEditorGame(true)
 , bIsAsset(false)
 , bExportLoadFailed(false)
+, bDynamicClass(false)
 , PackageGuid(FGuid(0, 0, 0, 0))
 , PackageFlags(0)
 {}
@@ -63,6 +64,7 @@ FObjectExport::FObjectExport( UObject* InObject )
 , bNotForEditorGame(true)
 , bIsAsset(false)
 , bExportLoadFailed(false)
+, bDynamicClass(false)
 , PackageGuid(FGuid(0, 0, 0, 0))
 , PackageFlags(0)
 {
@@ -83,17 +85,9 @@ FArchive& operator<<( FArchive& Ar, FObjectExport& E )
 	Ar << E.ObjectName;
 
 	uint32 Save = E.ObjectFlags & RF_Load;
-	if (Ar.IsSaving() && E.bIsAsset)
-	{
-		// Add RF_AssetExport flag if this is the main asset in the package
-		// This flag should never be set on the actual object
-		Save |= RF_AssetExport;
-	}
 	Ar << Save;
 	if (Ar.IsLoading())
 	{
-		// Remember if the export is the main asset in its package. RF_Load will mask RF_AssetExport flag out.
-		E.bIsAsset = !!(Save & RF_AssetExport);
 		E.ObjectFlags = EObjectFlags(Save & RF_Load);
 	}
 
@@ -112,6 +106,11 @@ FArchive& operator<<( FArchive& Ar, FObjectExport& E )
 		Ar << E.bNotForEditorGame;
 	}
 
+	if (Ar.UE4Ver() >= VER_UE4_COOKED_ASSETS_IN_EDITOR_SUPPORT)
+	{
+		Ar << E.bIsAsset;
+	}
+
 	return Ar;
 }
 
@@ -128,6 +127,16 @@ FObjectImport::FObjectImport( UObject* InObject )
 :	FObjectResource	( InObject																)
 ,	ClassPackage	( InObject ? InObject->GetClass()->GetOuter()->GetFName()	: NAME_None	)
 ,	ClassName		( InObject ? InObject->GetClass()->GetFName()				: NAME_None	)
+,	XObject			( InObject																)
+,	SourceLinker	( NULL																	)
+,	SourceIndex		( INDEX_NONE															)
+{
+}
+
+FObjectImport::FObjectImport(UObject* InObject, UClass* InClass)
+:	FObjectResource	( InObject																)
+,	ClassPackage	( (InObject && InClass) ? InClass->GetOuter()->GetFName()	: NAME_None	)
+,	ClassName		( (InObject && InClass) ? InClass->GetFName()				: NAME_None	)
 ,	XObject			( InObject																)
 ,	SourceLinker	( NULL																	)
 ,	SourceIndex		( INDEX_NONE															)

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -25,8 +25,8 @@ class UK2Node_InputActionEvent : public UK2Node_Event
 	UPROPERTY()
 	uint32 bOverrideParentBinding:1;
 
-	// Begin UK2Node interface
+	//~ Begin UK2Node Interface
 	virtual UClass* GetDynamicBindingClass() const override;
 	virtual void RegisterDynamicBinding(UDynamicBlueprintBinding* BindingObject) const override;
-	// End UK2Node interface
+	//~ End UK2Node Interface
 };

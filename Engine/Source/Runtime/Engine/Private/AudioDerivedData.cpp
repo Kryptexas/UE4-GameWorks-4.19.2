@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #include "EnginePrivate.h"
 #include "AudioDerivedData.h"
 #include "TargetPlatform.h"
@@ -10,6 +10,14 @@ DEFINE_LOG_CATEGORY_STATIC(LogAudioDerivedData, Log, All);
 /*------------------------------------------------------------------------------
 	Derived data key generation.
 ------------------------------------------------------------------------------*/
+
+
+// enable audio building stats these appear in the Saved\Stats\stats.csv file
+#define BUILD_AUDIO_STATS 1
+
+#if BUILD_AUDIO_STATS
+#include "DDCStatsHelper.h"
+#endif
 
 #if WITH_EDITORONLY_DATA
 
@@ -227,6 +235,14 @@ class FStreamedAudioCacheDerivedDataWorker : public FNonAbandonableTask
 	/** Build the streamed audio. This function is safe to call from any thread. */
 	void BuildStreamedAudio()
 	{
+#if BUILD_AUDIO_STATS
+		FString DDCKey;
+		GetStreamedAudioDerivedDataKeyFromSuffix(KeySuffix, DDCKey);
+		static const FName NAME_BuildStreamedAudio(TEXT("BuildStreamedAudio"));
+		FDDCScopeStatHelper ScopeTimer(*DDCKey, NAME_BuildStreamedAudio);
+#endif
+
+
 		GetStreamedAudioDerivedDataKeySuffix(SoundWave, AudioFormatName, KeySuffix);
 
 		DerivedData->Chunks.Empty();
@@ -1123,8 +1139,8 @@ void USoundWave::WillNeverCacheCookedPlatformDataAgain()
 	Super::WillNeverCacheCookedPlatformDataAgain();
 
 	// TODO: We can clear these arrays if we never need to cook again. 
-	// RawData.RemoveBulkData();
-	// CompressedFormatData.FlushData();
+	RawData.RemoveBulkData();
+	CompressedFormatData.FlushData();
 }
 #endif
 

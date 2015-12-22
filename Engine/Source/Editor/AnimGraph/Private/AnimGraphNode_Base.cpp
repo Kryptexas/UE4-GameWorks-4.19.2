@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "AnimGraphPrivatePCH.h"
@@ -248,7 +248,7 @@ FText UAnimGraphNode_Base::GetMenuCategory() const
 
 void UAnimGraphNode_Base::GetPinAssociatedProperty(const UScriptStruct* NodeType, UEdGraphPin* InputPin, UProperty*& OutProperty, int32& OutIndex)
 {
-	OutProperty = NULL;
+	OutProperty = nullptr;
 	OutIndex = INDEX_NONE;
 
 	//@TODO: Name-based hackery, avoid the roundtrip and better indicate when it's an array pose pin
@@ -264,7 +264,9 @@ void UAnimGraphNode_Base::GetPinAssociatedProperty(const UScriptStruct* NodeType
 			OutIndex = ArrayIndex;
 		}
 	}
-	else
+	
+	// If the array check failed or we have no underscores
+	if(OutProperty == nullptr)
 	{
 		if (UProperty* Property = FindField<UProperty>(NodeType, *(InputPin->PinName)))
 		{

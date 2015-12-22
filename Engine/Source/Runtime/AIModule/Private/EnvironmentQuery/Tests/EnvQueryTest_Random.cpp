@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "EnvironmentQuery/Tests/EnvQueryTest_Random.h"
@@ -14,10 +14,16 @@ UEnvQueryTest_Random::UEnvQueryTest_Random(const FObjectInitializer& ObjectIniti
 
 void UEnvQueryTest_Random::RunTest(FEnvQueryInstance& QueryInstance) const
 {
-	FloatValueMin.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
+	UObject* QueryOwner = QueryInstance.Owner.Get();
+	if (QueryOwner == nullptr)
+	{
+		return;
+	}
+
+	FloatValueMin.BindData(QueryOwner, QueryInstance.QueryID);
 	float MinThresholdValue = FloatValueMin.GetValue();
 
-	FloatValueMax.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
+	FloatValueMax.BindData(QueryOwner, QueryInstance.QueryID);
 	float MaxThresholdValue = FloatValueMax.GetValue();
 
 	// loop through all items

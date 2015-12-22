@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GlobalDistanceFieldParameters.h
@@ -30,8 +30,14 @@ class FGlobalDistanceFieldParameters
 public:
 	void Bind(const FShaderParameterMap& ParameterMap)
 	{
-		GlobalDistanceFieldTexture.Bind(ParameterMap,TEXT("GlobalDistanceFieldTexture"));
-		GlobalDistanceFieldSampler.Bind(ParameterMap,TEXT("GlobalDistanceFieldSampler"));
+		GlobalDistanceFieldTexture0.Bind(ParameterMap, TEXT("GlobalDistanceFieldTexture0"));
+		GlobalDistanceFieldTexture1.Bind(ParameterMap, TEXT("GlobalDistanceFieldTexture1"));
+		GlobalDistanceFieldTexture2.Bind(ParameterMap, TEXT("GlobalDistanceFieldTexture2"));
+		GlobalDistanceFieldTexture3.Bind(ParameterMap, TEXT("GlobalDistanceFieldTexture3"));
+		GlobalDistanceFieldSampler0.Bind(ParameterMap, TEXT("GlobalDistanceFieldSampler0"));
+		GlobalDistanceFieldSampler1.Bind(ParameterMap, TEXT("GlobalDistanceFieldSampler1"));
+		GlobalDistanceFieldSampler2.Bind(ParameterMap, TEXT("GlobalDistanceFieldSampler2"));
+		GlobalDistanceFieldSampler3.Bind(ParameterMap, TEXT("GlobalDistanceFieldSampler3"));
 		GlobalVolumeCenterAndExtent.Bind(ParameterMap,TEXT("GlobalVolumeCenterAndExtent"));
 		GlobalVolumeWorldToUVAddAndMul.Bind(ParameterMap,TEXT("GlobalVolumeWorldToUVAddAndMul"));
 		GlobalVolumeDimension.Bind(ParameterMap,TEXT("GlobalVolumeDimension"));
@@ -41,8 +47,14 @@ public:
 
 	friend FArchive& operator<<(FArchive& Ar,FGlobalDistanceFieldParameters& Parameters)
 	{
-		Ar << Parameters.GlobalDistanceFieldTexture;
-		Ar << Parameters.GlobalDistanceFieldSampler;
+		Ar << Parameters.GlobalDistanceFieldTexture0;
+		Ar << Parameters.GlobalDistanceFieldTexture1;
+		Ar << Parameters.GlobalDistanceFieldTexture2;
+		Ar << Parameters.GlobalDistanceFieldTexture3;
+		Ar << Parameters.GlobalDistanceFieldSampler0;
+		Ar << Parameters.GlobalDistanceFieldSampler1;
+		Ar << Parameters.GlobalDistanceFieldSampler2;
+		Ar << Parameters.GlobalDistanceFieldSampler3;
 		Ar << Parameters.GlobalVolumeCenterAndExtent;
 		Ar << Parameters.GlobalVolumeWorldToUVAddAndMul;
 		Ar << Parameters.GlobalVolumeDimension;
@@ -56,17 +68,10 @@ public:
 	{
 		if (GlobalVolumeCenterAndExtent.IsBound() || GlobalVolumeWorldToUVAddAndMul.IsBound())
 		{
-			for (int32 ClipmapIndex = 0; ClipmapIndex < (int32)GlobalDistanceFieldTexture.GetNumResources(); ClipmapIndex++)
-			{
-				SetTextureParameter(
-					RHICmdList,
-					ShaderRHI,
-					GlobalDistanceFieldTexture,
-					GlobalDistanceFieldSampler,
-					TStaticSamplerState<SF_Bilinear,AM_Wrap,AM_Wrap,AM_Wrap>::GetRHI(),
-					ParameterData.Textures[ClipmapIndex],
-					ClipmapIndex);
-			}
+			SetTextureParameter(RHICmdList, ShaderRHI, GlobalDistanceFieldTexture0, GlobalDistanceFieldSampler0, TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI(), ParameterData.Textures[0]);
+			SetTextureParameter(RHICmdList, ShaderRHI, GlobalDistanceFieldTexture1, GlobalDistanceFieldSampler1, TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI(), ParameterData.Textures[1]);
+			SetTextureParameter(RHICmdList, ShaderRHI, GlobalDistanceFieldTexture2, GlobalDistanceFieldSampler2, TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI(), ParameterData.Textures[2]);
+			SetTextureParameter(RHICmdList, ShaderRHI, GlobalDistanceFieldTexture3, GlobalDistanceFieldSampler3, TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI(), ParameterData.Textures[3]);
 
 			SetShaderValueArray(RHICmdList, ShaderRHI, GlobalVolumeCenterAndExtent, ParameterData.CenterAndExtent, GMaxGlobalDistanceFieldClipmaps);
 			SetShaderValueArray(RHICmdList, ShaderRHI, GlobalVolumeWorldToUVAddAndMul, ParameterData.WorldToUVAddAndMul, GMaxGlobalDistanceFieldClipmaps);
@@ -77,8 +82,14 @@ public:
 	}
 
 private:
-	FShaderResourceParameter GlobalDistanceFieldTexture;
-	FShaderResourceParameter GlobalDistanceFieldSampler;
+	FShaderResourceParameter GlobalDistanceFieldTexture0;
+	FShaderResourceParameter GlobalDistanceFieldTexture1;
+	FShaderResourceParameter GlobalDistanceFieldTexture2;
+	FShaderResourceParameter GlobalDistanceFieldTexture3;
+	FShaderResourceParameter GlobalDistanceFieldSampler0;
+	FShaderResourceParameter GlobalDistanceFieldSampler1;
+	FShaderResourceParameter GlobalDistanceFieldSampler2;
+	FShaderResourceParameter GlobalDistanceFieldSampler3;
 	FShaderParameter GlobalVolumeCenterAndExtent;
 	FShaderParameter GlobalVolumeWorldToUVAddAndMul;
 	FShaderParameter GlobalVolumeDimension;

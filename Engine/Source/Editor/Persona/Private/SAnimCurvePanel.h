@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -107,6 +107,12 @@ public:
 	 *
 	 */
 	void DeleteTrack(USkeleton::AnimCurveUID Uid);
+
+	/**
+	 * Delete All Tracks
+	 *
+	 */
+	void DeleteAllTracks();
 
 	/**
 	 * Build and display curve track context menu for all tracks.

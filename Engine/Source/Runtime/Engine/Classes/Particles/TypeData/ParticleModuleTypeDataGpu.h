@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleModuleTypeDataGpu: Type data definition for GPU particle simulation.
@@ -414,15 +414,15 @@ class UParticleModuleTypeDataGpu : public UParticleModuleTypeDataBase
 	UPROPERTY(EditAnywhere, Category = ParticleModuleTypeDataGpu)
 	uint32 bClearExistingParticlesOnInit:1;
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void PostLoad() override;
 	virtual void BeginDestroy() override;
-	// End UObject Interface
+	//~ End UObject Interface
 
-	// Begin UParticleModuleTypeDataBase Interface
+	//~ Begin UParticleModuleTypeDataBase Interface
 	virtual void Build( struct FParticleEmitterBuildInfo& EmitterBuildInfo ) override;
 	virtual bool RequiresBuild() const override { return true; }
 	virtual FParticleEmitterInstance* CreateInstance(UParticleEmitter* InEmitterParent, UParticleSystemComponent* InComponent) override;
-	// End UParticleModuleTypeDataBase Interface
+	//~ End UParticleModuleTypeDataBase Interface
 };
 

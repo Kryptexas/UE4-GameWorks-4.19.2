@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SubversionSourceControlPrivatePCH.h"
 #include "SubversionSourceControlOperations.h"
@@ -360,6 +360,20 @@ bool FSubversionCheckInWorker::Execute(FSubversionSourceControlCommand& InComman
 				InCommand.bCommandSuccessful = SubversionSourceControlUtils::RunAtomicCommand(TEXT("commit"), TArray<FString>(), Parameters, InCommand.InfoMessages, InCommand.ErrorMessages, InCommand.UserName);
 				if(InCommand.bCommandSuccessful)
 				{
+					// Remove any deleted files from status cache
+					FSubversionSourceControlModule& SubversionSourceControl = FModuleManager::LoadModuleChecked<FSubversionSourceControlModule>("SubversionSourceControl");
+					FSubversionSourceControlProvider& Provider = SubversionSourceControl.GetProvider();
+
+					TArray<TSharedRef<ISourceControlState, ESPMode::ThreadSafe>> States;
+					Provider.GetState(InCommand.Files, States, EStateCacheUsage::Use);
+					for (const auto& State : States)
+					{
+						if (State->IsDeleted())
+						{
+							Provider.RemoveFileFromCache(State->GetFilename());
+						}
+					}
+
 					StaticCastSharedRef<FCheckIn>(InCommand.Operation)->SetSuccessMessage(ParseCommitResults(InCommand.InfoMessages));
 				}
 			}

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "StaticMeshEditorModule.h"
 #include "StaticMeshEditorActions.h"
@@ -70,8 +70,9 @@ FStaticMeshEditorViewportClient::FStaticMeshEditorViewportClient(TWeakPtr<IStati
 	WidgetMode = FWidget::WM_None;
 
 	EngineShowFlags.DisableAdvancedFeatures();
+	EngineShowFlags.SetSeparateTranslucency(true);
 	EngineShowFlags.SetSnap(0);
-	EngineShowFlags.CompositeEditorPrimitives = true;
+	EngineShowFlags.SetCompositeEditorPrimitives(true);
 	OverrideNearClipPlane(1.0f);
 	bUsingOrbitCamera = true;
 
@@ -795,7 +796,12 @@ void FStaticMeshEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneV
 	if(bShowCollision && StaticMesh->BodySetup)
 	{
 		TextItems.Add(SStaticMeshEditorViewport::FOverlayTextItem(
-			FText::Format(NSLOCTEXT("UnrealEd", "NumPrimitives_F", "Num Primitives:  {0}"), FText::AsNumber(StaticMesh->BodySetup->AggGeom.GetElementCount()))));
+			FText::Format(NSLOCTEXT("UnrealEd", "NumPrimitives_F", "Num Collision Primitives:  {0}"), FText::AsNumber(StaticMesh->BodySetup->AggGeom.GetElementCount()))));
+	}
+
+	if (StaticMeshComponent && StaticMeshComponent->SectionIndexPreview != INDEX_NONE)
+	{
+		TextItems.Add(SStaticMeshEditorViewport::FOverlayTextItem(NSLOCTEXT("UnrealEd", "MeshSectionsHiddenWarning",  "Mesh Sections Hidden")));
 	}
 
 	StaticMeshEditorViewport->PopulateOverlayText(TextItems);
@@ -809,7 +815,7 @@ void FStaticMeshEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneV
 
 void FStaticMeshEditorViewportClient::DrawUVsForMesh(FViewport* InViewport, FCanvas* InCanvas, int32 InTextYPos )
 {
-	//use the overriden LOD level
+	//use the overridden LOD level
 	const uint32 LODLevel = FMath::Clamp(StaticMeshComponent->ForcedLodModel - 1, 0, StaticMesh->RenderData->LODResources.Num() - 1);
 
 	int32 UVChannel = StaticMeshEditorPtr.Pin()->GetCurrentUVChannel();
@@ -1169,8 +1175,11 @@ void FStaticMeshEditorViewportClient::PerspectiveCameraMoved()
 		);
 
 	ToggleOrbitCamera(bWasOrbit);
-	SetViewLocation(OldCameraLocation);
-	SetViewRotation(OldCameraRotation);
+	if (!GetViewTransform().IsPlaying())
+	{
+		SetViewLocation(OldCameraLocation);
+		SetViewRotation(OldCameraRotation);
+	}
 }
 
 void FStaticMeshEditorViewportClient::SetPreviewMesh(UStaticMesh* InStaticMesh, UStaticMeshComponent* InStaticMeshComponent)

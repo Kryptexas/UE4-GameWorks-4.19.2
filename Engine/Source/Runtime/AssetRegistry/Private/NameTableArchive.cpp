@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetRegistryPCH.h"
 
@@ -15,12 +15,12 @@ bool FNameTableArchiveReader::LoadFile(const TCHAR* Filename, int32 Serializatio
 		int32 MagicNumber = 0;
 		*this << MagicNumber;
 
-		if ( MagicNumber == PACKAGE_FILE_TAG )
+		if (!IsError() && MagicNumber == PACKAGE_FILE_TAG)
 		{
 			int32 VersionNumber = 0;
 			*this << VersionNumber;
 
-			if (VersionNumber == SerializationVersion)
+			if (!IsError() && VersionNumber == SerializationVersion)
 			{
 				return SerializeNameMap();
 			}
@@ -35,7 +35,7 @@ bool FNameTableArchiveReader::SerializeNameMap()
 	int64 NameOffset = 0;
 	*this << NameOffset;
 
-	if (NameOffset > TotalSize())
+	if (IsError() || NameOffset > TotalSize())
 	{
 		// The file was corrupted. Return false to fail to load the cache an thus regenerate it.
 		return false;
@@ -49,11 +49,21 @@ bool FNameTableArchiveReader::SerializeNameMap()
 		int32 NameCount = 0;
 		*this << NameCount;
 
+		if (IsError())
+		{
+			return false;
+		}
+
 		for ( int32 NameMapIdx = 0; NameMapIdx < NameCount; ++NameMapIdx )
 		{
 			// Read the name entry from the file.
 			FNameEntry NameEntry(ENAME_LinkerConstructor);
 			*this << NameEntry;
+
+			if (IsError())
+			{
+				return false;
+			}
 
 			NameMap.Add( 
 				NameEntry.IsWide() ? 

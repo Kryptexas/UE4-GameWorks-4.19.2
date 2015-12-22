@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 //  AActor  used to controll matinee's and to replicate activation, playback, and other relevant flags to net clients
 
@@ -179,7 +179,7 @@ public:
 #endif // WITH_EDITORONLY_DATA
 
 	/** properties that may change on InterpAction that we need to notify clients about, since the object's properties will not be replicated */
-	UPROPERTY(replicated,transient)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, replicated, transient, Category = Play)
 	uint32 bIsPlaying:1;
 
 	UPROPERTY(replicated)
@@ -192,7 +192,7 @@ public:
 	UPROPERTY(replicated,transient)
 	uint32 bPendingStop:1;
 
-	UPROPERTY(replicated)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, replicated, Category = Play)
 	float InterpPosition;
 
 	/** This is just optimization flag to skip checking it again. If all is initialized, it will set this to be true **/
@@ -313,7 +313,7 @@ public:
 	};
 #endif
 
-	// Begin AActor Interface
+	//~ Begin AActor Interface
 	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, AActor* Viewer, AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth) override;
 	virtual void Tick(float DeltaTime) override;
 	virtual void PreNetReceive() override;
@@ -325,14 +325,14 @@ public:
 #if WITH_EDITOR
 	virtual bool GetReferencedContentObjects( TArray<UObject*>& Objects ) const override;
 #endif
-	// Begin AActor Interface
+	//~ Begin AActor Interface
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent ) override; 
 	virtual bool CanEditChange( const UProperty* Property ) const override;
 #endif // WITH_EDITOR
-	// End UObject Interface
+	//~ End UObject Interface
 
 	/** Increment track forwards by given timestep and iterate over each track updating any properties. */
 	ENGINE_API void StepInterp(float DeltaTime, bool bPreview=false);

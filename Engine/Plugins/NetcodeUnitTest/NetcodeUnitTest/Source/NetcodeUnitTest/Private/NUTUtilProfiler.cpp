@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "NetcodeUnitTestPCH.h"
 
@@ -23,7 +23,11 @@ void FFrameProfiler::Start()
 
 		const FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
 
+#if TARGET_UE4_CL >= CL_DEPRECATEDEL
 		OnNewFrameDelegateHandle = Stats.NewFrameDelegate.AddRaw(this, &FFrameProfiler::OnNewFrame);
+#else
+		Stats.NewFrameDelegate.AddRaw(this, &FFrameProfiler::OnNewFrame);
+#endif
 	}
 }
 
@@ -33,13 +37,18 @@ void FFrameProfiler::Stop()
 	{
 		const FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
 
+#if TARGET_UE4_CL >= CL_DEPRECATEDEL
 		Stats.NewFrameDelegate.Remove(OnNewFrameDelegateHandle);
+#else
+		Stats.NewFrameDelegate.RemoveRaw(this, &FFrameProfiler::OnNewFrame);
+#endif
+
 
 		StatsMasterEnableSubtract();
 		bActive = false;
 
 
-		// @todo JohnB: For the moment, these objects are not tracked after creation, and are responsible for deleting themselves
+		// @todo #JohnB: For the moment, these objects are not tracked after creation, and are responsible for deleting themselves
 		delete this;
 	}
 }
@@ -82,7 +91,6 @@ void FFrameProfiler::OnNewFrame(int64 Frame)
 		// Since division is done using integers, the value must be pre-multiplied, or the division result is fractional/not-an-integer
 		float FramePercent = (float)((TotalDuration * 10000) / TotalFrameTime) * 0.01f;
 
-		// @todo JohnB: Remove
 #if 0
 		UE_LOG(LogUnitTest, Log, TEXT("Targeted stat found: Duration: %u, FrameTime: %f"),
 				TotalDuration,

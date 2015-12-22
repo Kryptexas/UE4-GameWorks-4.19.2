@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Sound/SoundBase.h"
@@ -72,19 +72,19 @@ private:
 
 public:
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	virtual FString GetDesc() override;
 #if WITH_EDITOR
 	virtual void PostInitProperties() override;
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
-	virtual void Serialize( FArchive& Ar ) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 #endif
 	virtual void PostLoad() override;
-	// End UObject interface.
+	virtual void Serialize(FArchive& Ar) override;
+	//~ End UObject Interface.
 
-	// Begin USoundBase interface.
+	//~ Begin USoundBase Interface.
 	virtual bool IsPlayable() const override;
 	virtual void Parse( class FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) override;
 	virtual float GetVolumeMultiplier() override;
@@ -92,7 +92,7 @@ public:
 	virtual float GetMaxAudibleDistance() override;
 	virtual float GetDuration() override;
 	virtual const FAttenuationSettings* GetAttenuationSettingsToApply() const override;
-	// End USoundBase interface.
+	//~ End USoundBase Interface.
 
 	/** Construct and initialize a node within this Cue */
 	template<class T>

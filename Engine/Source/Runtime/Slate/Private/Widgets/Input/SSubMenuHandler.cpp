@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "SSubMenuHandler.h"
@@ -95,15 +95,22 @@ bool SSubMenuHandler::ShouldSubMenuAppearHovered() const
 	return MenuAnchor.IsValid() && MenuAnchor.Pin()->IsOpen() && !MenuOwnerWidget.Pin()->IsHovered();
 }
 
-void SSubMenuHandler::RequestSubMenuToggle( bool bOpenMenu, const bool bClobber )
+void SSubMenuHandler::RequestSubMenuToggle( bool bOpenMenu, const bool bClobber, const bool bImmediate )
 {
 	if (MenuAnchor.IsValid())
 	{
-		// Reset the time before the menu opens
-		float TimeToSubMenuOpen = bClobber ? MultiBoxConstants::SubMenuClobberTime : MultiBoxConstants::SubMenuOpenTime;
-		if (!ActiveTimerHandle.IsValid())
+		if (bImmediate)
 		{
-			ActiveTimerHandle = RegisterActiveTimer(TimeToSubMenuOpen, FWidgetActiveTimerDelegate::CreateSP(this, &SSubMenuHandler::UpdateSubMenuState, bOpenMenu));
+			UpdateSubMenuState(0, 0, true);
+		}
+		else
+		{
+			// Reset the time before the menu opens
+			float TimeToSubMenuOpen = bClobber ? MultiBoxConstants::SubMenuClobberTime : MultiBoxConstants::SubMenuOpenTime;
+			if (!ActiveTimerHandle.IsValid())
+			{
+				ActiveTimerHandle = RegisterActiveTimer(TimeToSubMenuOpen, FWidgetActiveTimerDelegate::CreateSP(this, &SSubMenuHandler::UpdateSubMenuState, bOpenMenu));
+			}
 		}
 	}
 }
@@ -118,6 +125,11 @@ void SSubMenuHandler::CancelPendingSubMenu()
 	{
 		UnRegisterActiveTimer(PinnedActiveTimerHandle.ToSharedRef());
 	}
+}
+
+bool SSubMenuHandler::IsSubMenuOpen() const
+{
+	return MenuAnchor.IsValid() && MenuAnchor.Pin()->IsOpen();
 }
 
 EActiveTimerReturnType SSubMenuHandler::UpdateSubMenuState(double InCurrentTime, float InDeltaTime, bool bWantsOpen)

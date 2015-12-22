@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:0
-Title: Unreal Engine 4.6 Release Notes
+﻿Title: 虚幻引擎4.6版本信息
 Crumbs:%ROOT%, Support/Builds
 Description:
 Availability:Public
@@ -7,7 +6,7 @@ Availability:Public
 [TOC(start:2 end:2)]
 
 [PUBLISH:Licensee]
-## Build Info
+## 版本信息
 
 [REGION:simpletable]
 | Item | Info |
@@ -32,352 +31,352 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 [/PUBLISH:Licensee]
 
 
-Unreal Engine 4.6 arrives with a slew of lighting and material improvements, support for capturing and playing back network demos, and huge updates to animation workflows, including root motion blending and multi-montage support! The new Mobile Preview rendering mode lets you edit your scene just as it would appear on a mobile device. UI creation with Unreal Motion Graphics has been greatly enhanced, and you can now place interactive UI widgets right into 3D scenes. We’ve also continued improvements to mobile and console platforms in 4.6, along with hundreds of other features and bug fixes.
+虚幻引擎4.6进行了诸多光照和材质方面的改进，支持捕获和回放网络演示，并对动画工作流程进行了重大更新，其中包括了根骨骼运动混合以及多动画剪辑支持！  全新的移动平台预览渲染模式让您可以编辑您的场景，使之呈现和移动平台相同的效果。 我们已极大地增强了使用虚幻运动图像的UI创建，并且您现在可以马上将可互动的UI控件放置到三维场景中。 我们还继续对4.6版本的移动平台和主机平台进行了改进，并加入了数以百计的其它功能和bug修复。 
 
-This release includes 88 great changes that were submitted from Unreal Engine’s amazing community of developers. We would like to extend our gratitude to the contributors below:
+此次发布包括了88项重大变更，它们都是由虚幻引擎的杰出开发者社区提交的。 在此，我们谨向以下贡献者们表达我们诚挚的谢意：
 
 Alex Silkin (alexSilkin), alwei, Allegorithmic, Artem V. Navrotskiy (bozaro), Cengiz Terzibas (yaakuro), Flenzine, Gigantoad, Rama (EverNewJoy), Joel Riendeau (joelriendeau), Jakub Stasiak (jstasiak), Joe Hegarty (JoeHegarty), Marat Radchenko (slonopotamus), Michael Kösel (TheCodez), Michelle12188, Marcin Polaczyk (mpolaczyk), MyDigitalLife, mordentral, KazumasaOhashi, leobenaducci, Lukasz (iniside), Nicholas Hughes (piinecone), Sebastian Köcke (byte3), Salamanderrake, Stephen Whittle (stephenwhittle), Tomas Jedlicka (jedlickat), Rick Yorgason (Skrapion), Kyle Rocha (kylawl)
 
-## Major New Features
+## 主要新功能
 
-#### Experimental: 3D Unreal Motion Graphics UI
+#### 试验性功能： 三维虚幻运动图像UI 
 
-UI widgets can now be attached to components and displayed in the 3D scene!
+您现在可以附加UI控件到组件中，然后在三维场景中显示它们！ 
 
 ![](3DumgUI01.png)
 
-* To use this feature, simply add a new “Widget Component” to your actor and assign a Widget asset to it.  This feature is still considered experimental but we’ll be improving it and adding more features soon.
+* 为使用此功能，请直接添加新“Widget Component”（控件组件）到您的actor并为其分配一个控件资源。  这项功能仍为实验性功能，但我们正在不断改善它，而且会很快添加更多功能。 
 
-* Your UI will be rendered to an offscreen target, then mapped to a 3D quad attached to your actor.  Input is supported too, so if your game displays a mouse cursor the user will be able to click on buttons and perform other interactions.
+* 您的UI将被渲染到离屏对象，然后映射到附着于您actor的三维方形上。   同时也支持输入，所以如果您的游戏显示鼠标指针，用户将可以点击按钮并进行其它互动。 
 
-* You can configure rendering settings for your 3D widget in the Widget Component’s details view.  Don’t forget to set the “Draw Size” -- that controls the size of the render target the UI will be rendered to.
+* 您可以为您在控件组件详细信息视图中的三维控件配置渲染设置。   请不要忘记设置“Draw Size”（描画尺寸）-- 它控制了UI将被渲染到的渲染对象的大小。 
 
 ![](3DumgUI02.png)
 
-#### Static Lighting from Emissive Materials
-Emissive materials can now directly illuminate surrounding objects!
+#### 来自自发光材质的静态光照 
+自发光材质现在可以直接照亮周围的物体！ 
 
 ![](StaticLightingfromEmissiveMaterials.png)
 
-* Turn this on using the new “**Use Emissive For Static Lighting**” option on shadow-casting components with Mobility set to “Static”.  When enabled, Lightmass generates baked direct lighting from emissive texture sources.  
-* Note: this is a fast but limited version of emissive lighting.  Only direct lighting is computed but build time is not affected.  It is best used in scenes that have other light sources.
+在Mobility（移动性）设置为“Static”（静态）的情况下，您可以通过启用阴影投射组件的新“Use Emissive For Static Lighting”（使用对静态光照的自发光）选项来打开这项功能。  在启用后，Lightmass会从自发光贴图源中生成烘焙的直接光照。   
+* 注意: 这是一个自发光光照的快速但功能有限的版本。   只计算直接光照，但编译时间不受影响。  最好能用于具有其它光源的场景中。 
 
-#### Static Lighting on Foliage
-Precomputed lighting and shadows are now supported on foliage objects and instanced meshes!  This allows for very efficient rendering in scenes with Stationary or Static lights.
+#### 植被的静态光照 
+植被对象和实例化网格物体现在支持预计算光照和阴影！   这样可以对具有固定或静态光照的场景进行非常高效的渲染。 
 
 ![](StaticLightingonFoliage.png)
 
-Static lighting is appropriate for medium sized levels but does not scale up to huge scenes in build times or memory requirements.  Be sure to use very small lightmap resolutions on meshes that will be instanced many times.
+对于中等大小的关卡来说，静态光源较为合适，但对于大型关卡来说，在编译时间或内存需求方面就不够用了。  请您一定要对需要进行多次实例化处理的网格物体使用非常小的光照贴图分辨率。 
 
-#### Demo Recording (Network Replay Capture)
-This allows you to save an “instant replay” of your gameplay!  It captures your game’s network stream to a “demo” file that you can play back later or share with others.  You can even use time-warping to slow down your game or fast-forward through it quickly.
+#### 录制演示(网络回放捕获) 
+这个功能让您可以保存您游戏过程的“instant replay”（实时回放）！   它会捕获您游戏的网络动态载入内容到一个“demo”（演示）文件夹，这样您可以稍后回放或与他人共享。  您甚至可以使用时间调整来快速进行放慢或快进您的游戏。 
 
 ![](DemoRecording.png)
 
-Demo recording works automatically with any Unreal Engine game that is networking-enabled.
+对于任何启用了网络功能的虚幻引擎游戏来说，演示录制都会自动运行。
 
-* To start recording, use the console command “DemoRec `<replay name>`”
-* To play back a previously recorded game, use the console command “DemoPlay `<replay name>`”
-* Try using the slow-motion and fast-forward features! Use the console command “Demo.TimeDilation `<multiplier>`”. For example, to play back at half speed use “Demo.TimeDilation 0.5”.
-* The ShooterGame sample has been updated with built-in support for browsing saved replays using the new “Demos” in-game menu.  Check it out!  (Note that you still have to use “DemoRec” to save a replay, first.)
+* 如需开始录制，请使用控制台命令“DemoRec `<replay name>`”
+* 如需回放之前录制的游戏内容，请使用控制台命令“DemoPlay `<replay name>`”
+* 您可以尝试使用一下慢动作和快进功能！ 请使用控制台命令“Demo.TimeDilation `<multiplier>`”。 举例来说，如您需要以半速来回放，请使用“Demo.TimeDilation 0.5”。 
+* ShooterGame（射击游戏）示例已经更新了内置的支持，以供您使用游戏内菜单的新“Demos”（演示)来浏览保存的回放内容。  试试看！  （请注意您仍然需要首先使用“DemoRec”来保存一段回放内容。） 
 
-#### Experimental: Mobile Preview in Editor
-You can now preview what your scene will look like on mobile devices directly in the editor viewport!  Shaders will emulate the look and feature set of OpenGL ES2, and you can switch back and forth seamlessly.
+#### 试验性功能： 在编辑器中预览移动平台内容 
+您现在可以在编辑器视口中直接预览移动设备上的场景内容！  着色器会模拟OpenGL ES2移动平台的外观和功能集，并且您可以无缝地来回进行切换。 
 
 ![](MobilePreviewInEditor.png)
 
-* You have to enable Feature Level Preview under the Experimental section of Editor Preferences.
-* On the main editor toolbar, click Settings -> Feature Level Preview -> ES2.
+* 您需要在编辑器参数设置的实验性设置中启用 Feature Level Preview （特色关卡预览）。
+* 在主编辑器工具条中，请点击Settings（设置） -> Feature Level Preview （特色关卡预览） -> ES2。 
 
-#### Experimental: Web Browser UI Widget
-Host web pages right inside your game or editor tools using the new Web Browser UI widget.
+#### 试验性功能： 网络浏览器UI控件 
+您可以使用新网络浏览器UI控件在您的游戏或编辑器工具内存放网页。 
 
 ![](WebBrowserUIwidget.png)
 
-* The new Web Browser widget for Slate (SWebBrowser) can be used to easily navigate to interactive web pages and display them as part of your UI.  It’s powered by an embedded Chromium web framework (CEF3).  This feature is currently experimental and only supported on Windows platform.
+* 您可以使用Slate的新网络浏览器控件(SWebBrowser) 来方便地浏览互动网页并将其作为您UI的一部分进行显示。   这项技术是使用植入的Chromium网站框架(CEF3)来驱动的。   此功能目前为实验性功能，而且仅支持Windows平台。 
 
-#### Steam Online Sessions in Blueprints
-Unreal now supports hosting, discovering and joining online sessions through Blueprint scripting!
+#### 在蓝图中动态载入在线会话 
+虚幻引擎现在支持通过蓝图脚本来主持、发现和加入在线会话！ 
 
 ![](SteamOnlineSessions.png)
 
-* We’ve added new Blueprint nodes for hosting, joining, leaving, and finding online sessions, including both Steam and Local Area Network (LAN) sessions
+* 我们添加了新蓝图节点，以供您主持、加入、离开并搜寻在线会话，其中包括了Steam（动态载入）和局域网(LAN)会话。
 
-* Here are the new nodes:
-	* Create Session:  Hosts a session that can be discovered over the network.
-	* Find Sessions:  Searches the network for sessions available to join.
-	* Join Session:  Joins a session that was found with Find Sessions.
-	* Destroy Session:  Leaves a session that was previously created or joined.
+* 以下为新节点：
+	* 创建会话：  主持一个可让用户在网络上发现的会话。 
+	* 搜寻会话：  搜寻网络以查找可供加入的会话。 
+	* 加入会话：  加入在Find Sessions（搜寻会话）部分发现的会话。 
+	* 销毁会话：  离开一个之前创建或加入的会话。
 
-#### New Material System Features
+#### 新材质系统功能 
 
-###### Materials with Many Textures
+###### 具有许多贴图的材质 
 
-* Materials can use up to 128 unique textures by making use of new 'shared' texture samplers.  These are set on a TextureSample node by setting the SamplerSource property.  Previously, you could only use up to 13 textures.
+* 通过使用新‘共享’贴图采样程序，材质现在可以使用最多128张唯一贴图。   您可以通过设置SamplerSource属性来在TextureSample节点上对此进行设置。  之前，您最多仅能使用13张贴图。
 
 ![](MaterialsWithManyTextures.png)
 
-* This is a really important improvement for layered materials like terrain, high quality character materials, and more advanced forward shading materials.
+* 对于诸如地形、高质量角色材质以及更为高级的提前着色材质的分层材质来说，这确实是一项非常重要的改进。 
 
-* DirectX 11 and consoles support 128 textures at once, but the OpenGL rendering path (on Windows or Mac) is still limited to 13 textures per material.  Shaders will fail to compile for GL if they exceed this limit.
+* DirectX 11以及主机平台支持一次128张贴图，但是OpenGL渲染路径（Windows或Mac平台）仍被限制为每个材质13张贴图。  如果超过这个限制，那么OpenGL的着色器就无法编译。 
 
-###### Real-time Preview of Scalar and Vector Parameter default values
+###### 标量和向量参数默认值的实时预览 
 
-* You can now change the default value of any scalar or vector parameter and see the result instantly in all 3D viewports.
+* 您现在可以变更任意标量和向量参数的默认值，并在所有的三维视口中立即查看结果。 
 
-* This is especially useful for Material Functions that implement layers, as you can see the results of a tweak to the layer on all the materials in the scene that use that function.  You can also right click to quickly convert constants to parameters for easy tweaking, then convert them back when you’re done.
+* 这对于应用层的材质函数尤为有用，正如您所看到的，这会对场景中所有使用该函数的材质上的层进行调整。   您也可以点击鼠标右键来快速转换常量为参数以方便调整，然后在您完成时把它们转换回来。 
 
-###### Expose Parameters from Material Functions
+###### 暴露来自材质函数的参数 
 
-* Material Instance parameters are now supported in functions.  This makes it really easy to expose parameters to material instances. This brings functions to feature parity with materials, the same node graphs can be used in either.  The only exceptions are the function input and output nodes which are inherently function-only.
+* 现在我们支持在函数中的材质实例参数。  这使得暴露参数到材质实例中变得很容易。  这使得函数的功能与材质相同，相同的节点图表也可用于两者之一。  唯一的例外是函数输入和输出节点，它们只能用于函数。
 
-* Note that parameters within a material are set by name, so if you have two parameters named 'wetness' in different functions referenced by that material, they will both be overridden with the same value in the Material Instance.  This can be used intentionally but if you don't want to share the parameter, give it a unique name.
+* 请注意，材质内的参数是根据名称来设置的，所以如果您有两个名称为'wetness'的参数由该材质在不同的函数中进行引用，它们将都被材质实例中的相同值覆盖。  如果您需要特意这样使用，这样做是没问题的，但是如果您不想共享参数，请您起一个唯一的名称。 
 
 
-#### Animation: Play Multiple Montages
+#### 动画： 播放多个动画剪辑 
 
-Until now you could only play one Montage at a time on a Skeletal Mesh. Now you can play as many as you would like!
+到目前为止，您一次只能在骨架网格物体上播放一个动画剪辑。 现在您可以播放任意数量的动画剪辑了！ 
 
-Here’s how it works:
-* Animations are now organized into groups. You can play a single montage per group. Want to be able to play another montage at the same time? Simply create a new group for it.
-* We’ve centralized Slots and Groups creation into a new ‘Anim Slot Manager’ tab inside of Persona (see below).
-* There’s a new drop-down UI to select valid slots.  You know longer have to type in animation slot names by hand.  
-* When playing a  Networked Root Motion Montage, you are still limited to just one montage at a time.
-* New Montage assets and Slot nodes start out with a single 'Default Slot' so they’re immediately functional
+以下是关于其运行原理的内容： 
+* 动画现在被分组。 您可以在每组播放单个动画剪辑。 您是不是想要同时播放另一个动画剪辑？ 您可以直接创建一个新组。 
+* 我们把插槽和组的创建集中到了Persona中的新‘Anim Slot Manager’（动画插槽管理器）选项卡中（请参阅下方）。 
+* 现在有了新下拉式UI以供您选择有效插槽。  您不再需要手动输入动画插槽的名称。   
+* 在播放网络根骨骼运动的动画图像时，您仍被限制为一次使用一个动画剪辑。 
+* 新的动画剪辑资源和插槽节点在一开始会有单个 'Default Slot' （默认插槽），这样它们就立即可用了。 
 
-**Anim Slot Manager**
+**动画插槽管理器**
 
-* The ‘Anim Slot Manager’ is where you will manage your Slot and Group names. It displays hierarchical view, and lets you make changes.
+*  ‘Anim Slot Manager’（动画插槽管理器）可供您管理插槽和组的名称。  它显示了层次结构视图，让您可以做出变更。
 
 ![](AnimSlotManager01.png)
 
-* Groups and Slots are saved in the Skeleton asset, so all AnimBlueprints and AnimMontages from the same family use the same settings.
-* A convenient ‘Save’ button was added to manager, so you don’t have to be surprised when the editor asks you to save the Skeleton asset when you make a change.
-* When clicking on a Slot name, the context menu will also allow you to move it to a different group:
+* 组和插槽被保存在骨架资源中，所以来自同一族的AnimBlueprints和AnimMontages都使用相同的设置。 
+* 方便的‘Save’（保存）按钮被添加到了管理器中，这样当您做出变更时，您不必再受编辑器提示您保存骨架资源的困扰了。 
+* 当您点击插槽名称时，关联菜单将可以让您将其移动到不同的组中： 
 
 ![](AnimSlotManager02.png)
 
 
-**Editing Slots on Montage Tracks**
+**在动画剪辑轨迹中编辑插槽 **
 
-Here is the view of the Montage Editor.  Note the Combo Box at the right of the track. This will list all of the available Slots for that track.
+此处是动画剪辑编辑器的视图。  请注意轨迹右侧的Combo Box（组合框）。 它将会列出该轨迹的所有可用插槽。 
 
 ![](EditingSlotsonMontageTracks01.png)
 
-​If you need to create new a new Slot or a new Group name, the Magnifying Glass will take you to the Anim Slot Manager:
+如果您需要创建新插槽或新组的名称，Magnifying Glass（放大镜）将可以带您进入Anim Slot Manager（动画插槽管理器）: 
 
 ![](EditingSlotsonMontageTracks02.png)
 
-The Status Bar on top will tell you which Group the Montage belongs to.  This is determined by the first Track’s Slot.
+顶部状态栏将告知您动画剪辑所从属的组。  这是根据首个Track’s Slot（轨迹插槽）来确定的。 
 
 ![](EditingSlotsonMontageTracks03.png)
 
-If you have multiple Slots, the Status Bar will also tell you if there are any issues with the setup.  For example, if you mix and match Slots that belong to different groups, the little warning sign appears, and you can hover over it to see more about the problem.
+如果您有多个插槽，状态栏也将会告知您在设置上是否存在任何问题。  举例来说，如果您混合并匹配属于不同组的插槽，这时将会出现警告提示，而且您可以将鼠标悬停在该位置以查看关于该问题的更多信息。 
 
 ![](EditingSlotsonMontageTracks04.png)
 
-**Editing Slots in Animation Blueprints**
+**在动画蓝图中编辑插槽**
 
-* In the AnimGraph, a “Slot” node will display its Slot and Group names:
+* 在AnimGraph（动画图表）中，“Slot”（插槽）节点将会显示其插槽名称和组名称： 
 
 ![](EditingSlotsinAnimationBlueprints01.png)
-​
-* With the node selected, over in the Details panel you can see the same options as in the Montage Track view:
+
+* 在选择节点后，您在详细信息面板中可以看到和Montage Track（动画剪辑轨迹）视图出现的相同选项： 
 
 ![](EditingSlotsinAnimationBlueprints02.png)
 
-* From here. you can use the combo box to pick an existing Slot name and the Magnifying Glass to open the Anim Slot Manager.
-* Additional notes:
-	* This is backwards compatible with previous setups.  You shouldn’t notice any changes other than your existing Slots being part of a ‘Default Group’.
-	* The ‘Anim Slot Manager’ does not let you rename or delete Slot/Groups yet, this will be added at a later date.
-	* The Montage Blueprint and C++ API has been enhanced to take Montage asset references. This is how you can control different montages playing at the same time.  For an example, check out the updated “Set Play Rate” function.
+* 在此处，您可以使用组合框来选取存在的插槽名称和放大镜，从而打开动画插槽管理器。 
+* 其他注意事项：
+	* 它具有向上的兼容性，能与先前的设置兼容。  除了您现存的插槽成为‘Default Group’（默认组）的一部分外，您不会看到任何改变。 
+	* ‘Anim Slot Manager’ （动画插槽管理器）尚不能让您重命名或删除插槽/组，这个功能将在稍后进行添加。 
+	* 动画剪辑蓝图和C++ API已经进行了增强，可以将动画剪辑资源作为参考。  这样您就可以同时控制不同动画剪辑的播放。  举例来说，您可以查看一下更新的“Set Play Rate”（设置播放速率）函数。 
 
 
-#### Root Motion from Everything
+#### 来自任意位置的根运动 
 
-Unreal Engine now supports blended root motion from multiple animations!
+虚幻引擎现在支持从多个动画中混合根运动！ 
 
-* We’ve added different modes for handling root motion with Animation Blueprints. The mode can be set via the "**Root Motion Mode**" drop down on the Anim Blueprint Editor. Code can also modify this setting at run-time if dynamic behaviour is required.
+* 我们添加了不同模式，以处理具有动画蓝图的根运动。 您可以通过Anim Blueprint Editor（动画蓝图编辑器）的"Root Motion Mode"（根运动模式）下拉框来设置此模式。 如果需要动态操作，您也可以在运行时使用代码来修改此设置。
 
 ![](RootMotion01.png)
 
-* The options are as follows:
-	* **No Root Motion Extraction** - Root motion is left as is (applied to the root bone).
-	* **Ignore Root Motion** - Root motion is extracted (and removed from the root bone), but not applied to the character.
-	* **Root Motion from Everything** - New method of handling root motion (explained below).
-	* **Root Motion from Montages Only** - This is the original root motion behaviour (and the default for all new blueprints).
+* 选项如下所示：
+	* **No Root Motion Extraction（无根运动提取）** -不对根运动做修改（应用于根骨骼）。 
+	* **Ignore Root Motion（忽略根运动）** - 根运动被提取（并从根骨骼中移除），但不应用于角色。 
+	* **Root Motion from Everything（来自任意位置的根运动） ** - 处理根骨骼运动的新方式（解释内容位于下方）。
+	* **Root Motion from Montages Only （仅来自于动画剪辑的根骨骼）**  - 这是初始的根骨骼操作（以及所有新蓝图的默认值）。
 
-Setting up root motion on assets:
+设置资源上的根运动：
 
 ![](RootMotion02.png)
 
-* There is a new “Enable Root Motion” setting in your Anim Sequence. This replaces the older "Enable Root Motion Translation" and "Enable Root Motion Rotation" options that used to be in the AnimMontage (they will automatically be updated when loaded.)
+* 在您的动画序列中存在新的“Enable Root Motion”（启用根运动）设置。 这将会替换旧有的位于AnimMontage内的 "Enable Root Motion Translation" （启用根运动平移）和"Enable Root Motion Rotation"（启用根运动旋转）选项（它们会在载入时被自动更新)。 
 
-* **NOTE**: The original settings on AnimMontage still exist and have not yet been flagged as deprecated. This is intentional as it helps us correctly propagate them to their animation sequences. They are no longer editable from Persona and no one should be writing code that reads/writes to them.
+* **注意**： AnimMontage的初始设置将仍会存在，并且尚未被标识为废弃。  是特意设置的，因为这样可以帮助我们正确地将其传递到动画序列中。 您不再能从Persona编辑它们，而且您不应再编写读取/写入它们的代码。 
 
-**Root Motion from Everything**:
+**来自任意位置的根运动** :
 
-* Each animation asset (sequence, blendspace, montage etc) that contributes to the final character pose has its root motion extracted (if it has been set as containing root motion). Each piece of extracted root motion is blended based on the weight of the source assets contribution to the pose.
+* 每个对最终角色姿势形成影响的动画资源（序列、混合空间、动画剪辑等）都提取了其根运动（如其被设置为包含根运动）。 每个提取的根运动都会基于其对姿势形成影响的源资源的权重来进行混合。
 
 
 ![](RootMotion03.png)
 
-* For example: In the above graph the root motion of **Jog_Loop_Fwd_RM** and **Jog_Loop_Right_RM** would each be blended together with a weight of 0.5. The resulting animation in this case is a character running diagonally forwards and right across a map.
+* 例如： 在以上图表中， **Jog_Loop_Fwd_RM** 和 **Jog_Loop_Right_RM** 的根运动都会与0.5的权重进行混合。  此例中的结果动画是一个按斜角向前和向右跑动穿过地图的角色。 
 
-* Note: The original system (now labelled "Root Motion from Montages Only") was designed with network games in mind, which is the reason for its more restricted functionality. Because "Root Motion from Everything" is designed to be complete unrestricted, we recommend using it only in games where animation isn’t replicated over the network.
+* 注意: 初始系统（现在被标记为"Root Motion from Montages Only") 在设计时仅考虑了网络游戏，所以其功能受到了更多的限制。 由于"Root Motion from Everything" （来自任意位置的根运动）被设计为完全不受限制，我们推荐仅将其用于动画不通过网络进行复制的游戏中。 
 
 
-#### Animation: “Humanoid Rig” Quick Select
+#### 动画： “Humanoid Rig”（类人骨架）快速选择 
 
-* A new feature in Persona has been added to select the **Humanoid Rig** that is built into the engine. This rig is commonly used for animations you’ll find on the Unreal Engine Marketplace.   
+* 我们在Persona中添加了一项新功能，您可以选择引擎中内置的 **Humanoid Rig（类人骨架）** 。 这个骨架广泛地用于虚幻引擎Marketplace的动画中。    
 
 ![](HumanoidRigQuickSelect.png)
 
-#### New Blueprint Editor Menus
-We’ve redesigned how Blueprint editor’s right-click menu works to provide more accurate and relevant results.
+#### 新蓝图编辑器菜单 
+我们重新设计了蓝图编辑器的右击菜单，以提供更为准确和相关的结果。 
 
 ![](BlueprintEditorMenus01.png)
 
-* As usual, drag off from a node to show a context menu with nodes that pertain directly to that type of node. You can configure this feature using new options Blueprint editor’s preferences:
+* 和以前一样，从节点拖曳可以显示具有直接针对该类型节点的节点的关联菜单。 您可以使用蓝图编辑器的偏好设置的新选项来配置此功能： 
 
 ![](BlueprintEditorMenus02.png)
 
-#### Larger 3D Worlds
-The maximum size of an individual world has been increased to approximately **20 kilometers** across. Also, we now support 3D world origin shifting (instead of only 2D shifting.)
+#### 更大的三维世界 
+单个世界的最大尺寸被增大到大约 **20公里** 的直径。 另外，我们现在支持三维世界的原点变换（而不仅是二维变换。） 
 
-* This is defined by the ‘WORLD_MAX’ constant in C++ code.  It was increased by a factor of four (from approximately 5 km.)
+* 这是由C++代码中的‘WORLD_MAX’常量定义的。   它是按照4的因数来增加的（自大约5公里开始）。 
 
-* Remember, you can create worlds as large as you want by connecting multiple worlds together using Unreal Engine’s World Composition feature!
+* 记住，您可以通过使用虚幻引擎的 World Composition（世界构成）功能来连接多个世界，从而创建您需要的任意大的世界！ 
 
-#### Faster Packaging and Cooking
-Packaging or cooking content from within the editor is now faster than ever!
+#### 更快的打包和烘焙速度 
+在编辑器内对内容进行打包或烘焙从未如此之快！ 
 
-* When cooking from within the editor, we no longer need to invoke a new process.  This means that assets loaded in the editor can be cooked directly from memory which speeds up processing significantly.
+* 当您在编辑器内烘焙时，您不再需要调用新流程。  这表示在编辑器中载入的资源可以直接从内存烘焙，这样极大的加快了处理速度。 
 
-* This is enabled by default, but you can switch back to using the old system using the “Disable Cook in Editor” preference if needed.
+* 这个功能默认启用，但是如果需要，您可以使用“Disable Cook in Editor”（禁用编辑器内烘焙）偏好设置切换回旧系统。 
 
-#### Navigation Mesh Streaming
-Unreal Engine can now stream sections of precomputed navigation data in or out of memory on the fly.
+#### 导航网格物体动态载入 
+虚幻引擎现在可以在运行时在内存或从内存中动态载入预计算的导航数据部分。 
 
-* You can save static navigation mesh data into different sub-levels and the engine will stream this data with that level
+* 您可以把静态导航网格物体数据保存在不同的子关卡中，引擎将会动态载入此数据和关卡。 
 
-* By default, any part of your navigation mesh that intersects with a navigation volume will be saved into the same sub-level where that volume was placed
-
-
-#### Unreal C++ Programming
-
-**Simplified Class Declarations**
-* You now define and use "normal" C++ constructors for your classes.  You can use parameterless constructors too now!
-* You no longer need to supply a category for your properties to expose them to the editor or Blueprints.  You'll get a default category now.
-* FPostContructInitializeProperties is deprecated.  It's replaced by FObjectInitializer, and you only have to specify it when you actually need it
-* "GENERATED_BODY" no longer resets your protection level to "public".  It will preserve your settings.
-* Please use the new "GENERATED_BODY" specifier instead of "GENERATED_UCLASS_BODY".  It enables many of these new improvements!
-
-**Simplified Casting**
-* Easily cast between Unreal classes using the improved Cast() function.  You can even cast between interfaces and classes.  We also now support using dynamic_cast to cast between Unreal types, if you prefer that.
-
-**Other C++ Improvements**
-* New support for C++ 11 lambdas with delegates (see below), as well as the new TFunction class (lightweight lambda wrapper)
-* We're getting rid of TSubobjectPtr.  It was confusing and weird.  Just use normal pointers to your sub-objects now!
-* We no longer need to synthesize "dummy" UObjects if you only have structs and enums in your source file
-
-#### UI: Game Controller Support
-You can now navigate between UI elements using a joystick!
-
-* By default you can use the arrow keys, directional pad or left joystick to navigate.  You can still use Tab or Shift+Tab as well.  This works with both Slate and Unreal Motion Graphics.
-
-* We’ve unified the concept of “Keyboard Focus” and “Controller Focus” into “User Focus”. Changing user focus will affect all controllers and keyboards for that user.
+* 默认情况下，与导航体积相交的导航网格物体的任意部分都将被保存在该体积所放置位置处的同一子关卡中。 
 
 
-#### UI: Composite Fonts
-Slate and UMG now support font families and composite fonts.  These allow you to create fonts that are actually made up of multiple sub-fonts, and each font can be used for different ranges of characters.  This is really useful for displaying localized text.
+#### 虚幻引擎C++编程 
 
-**Font Assets**
-* The font asset type has been updated to support embedding a composite font along with its associated TTF or OTF font file data.
-* Font assets now support two caching methods; "Runtime" which is the new composite font way, or "Offline" which is the older pre-computed font atlas way. You can easily switch between the two in the font editor, providing a simple way to convert existing font assets without having to replace them.
-* Creating a new font asset will now default to creating an empty composite font, and you're also able to create a composite font asset by importing a TTF or OTF file into the Content Browser.
+**简化的类声明**
+* 您现在可以为您的类定义和使用"普通"C++构造函数。  您现在还可以使用无参数的构造函数！
+* 您不再需要为您的属性提供分类，以将它们暴露给编辑器或蓝图。  您现在将获得默认的分类。
+* FPostContructInitializeProperties被废弃。  它被FObjectInitializer取代，而且您仅需要在实际需要使用它时再指定。 
+* "GENERATED_BODY"不再会重设您的保护等级为"public"（公共）。   它将会保留您的设置。 
+* 请使用新的 "GENERATED_BODY"修饰符而不是"GENERATED_UCLASS_BODY"。  它启用了许多新改进！
 
-**Font Editor**
-* The font editor has been updated to allow you to create composite font assets.
+**简化的转换**
+* 您可以使用改进的Cast()函数来很方便地在虚幻类中转换。   您甚至可以在接口和类中转换。  如您需要，我们还支持使用dynamic_cast在虚幻类型间转换。 
+
+**其它C++改进**
+* 新增对具有代理的C++ 11 lambdas的支持（请阅下文），以及对新TFunction类的支持（精简lambda封装）。 
+* 我们已经不再使用TSubobjectPtr。  它让人很难搞懂而且用起来很奇怪。  请您现在使用指向子对象的普通指针！ 
+* 如您在源文件中仅有结构体和枚举，我们不再需要合成"dummy" UObjects。 
+
+#### UI: 游戏控制器支持 
+您现在可以使用手柄在UI元素间查看！ 
+
+* 默认情况下，您可以使用箭头按键、方向键或左摇杆来浏览。  您也可以使用Tab或Shift+Tab。  您可以在Slate和虚幻运动图像中这样操作。 
+
+* 我们把“Keyboard Focus”（键盘聚焦）和“Controller Focus”（控制器聚焦）统一到“User Focus”（用户聚焦内容）中。 改变user focus（用户聚焦内容）将会影响该用户的所有控制器和键盘设置。 
+
+
+#### UI: 复合字体 
+Slate和UMG现在支持字体族和复合字体。  这样您可以创建实际由多个子字体所组成的字体，而且每个字体都可以用于不同的字符范围。   这对于显示本地化的文本很有帮助。 
+
+**字体资源**
+* 字体资源类型进行了更新，已支持植入复合字体及其相关TTF或OTF字体文件数据。 
+* 字体资源现在支持两种缓存方式；"Runtime" 是全新的复合字体方式，或"Offline" ，它是旧有的预计算字体图集的方式。 您现在可以在字体编辑器中方便地切换两者，这样您可以简单地转换已存在的字体资源，而不必替换它们。 
+* 现在创建新字体资源将会默认创建空白的复合字体，而且您也可以通过导入TTF或OTF文件到内容浏览器中来创建复合字体资源。 
+
+**字体编辑器 **
+* 字体编辑器已经进行了更新，以供您创建复合字体资源。
 
 ![](FontEditor.png)
 
-* A composite font will always contain a default font family, and may also contain any number of sub-font families that should be used for a given range of characters. Each font family is itself made up of any number of fonts that can be named based on their style.
-* At runtime we pick the most suitable font to use for each character based on the fonts available in the font family for that character range.
-* As you can see in the preview above, the Japanese text falls within the character ranges of the Japanese font family, and so is drawn using Source Han Sans rather than Roboto. Fonts in a sub-font family are preferably chosen by name match, as in the case of Regular, Bold, and Light, however can also fallback to matching based on the attributes of the default font, as is the case of Bold Italic (it automatically chose the Bold Japanese font because the font contained the Bold attribute, and was the best match).
+* 复合字体将总是包含默认的字体族，而且也可以包含任意数量的应用于给定范围的字符的子字体族。  每个字体族本身都由可基于字体风格来进行命名的任意数量字体来组成的。 
+* 在运行时，我们基于该字符范围内的字体族中的可用字体来为每个字符选取最为合适的字体。
+* 正如您在上方预览中可见的，日语文本位于日语字体族的字符范围内，因此它是使用思源黑体（Source Han Sans）字族而非Roboto字族来进行描画的。   在普通、粗体和雅黑字体中，子字体族中的字体是根据名称匹配来选择的，但是对粗斜体字体来说，其会基于默认字体的属性来进行匹配（它会自动选择粗体日语，因为字体包含了粗体属性，并且它是最佳匹配）。 
 
-**Fonts in Unreal Motion Graphics (UMG)**
-* The old interface in UMG that let you specify a TTF or OTF file from disk has been removed, and replaced with an asset picker that lets you choose a composite font asset, and then pick a font from the default font family.
+**虚幻运动图像(UMG)中的字体**
+* 让您可以从硬盘中指定TTF或OTF文件的UMG中的旧接口已经被移除，我们将其替换为资源选择器，它可以让您选择复合字体资源，并随后从默认字体族中选取字体。  
 
 ![](FontsInUMG01.png)
 ![](FontsInUMG02.png)
 
-* None of your existing file based font settings will be lost, however going forwards you must use font assets with UMG.
-* UMG currently only supports "Runtime" cached font assets.
+* 您已存的基于字体设置的文件将不会丢失，但是此后您必须使用具有UMG的字体资源。 
+* UMG当前仅支持"Runtime"缓存的字体资源。 
 
-**Fonts in Slate**
-* Any existing font code in C++ based Slate style sets will still work, however you might want to consider updating your style sets to take advantage of composite fonts.
-* We recommend using FStandaloneCompositeFont rather than font assets when dealing with composite fonts in C++ Slate code.
-* This is because font objects contained within Slate style sets are not visible to the garbage collector. Using a font asset directly would require an external reference to be maintained yourself, using something like FGCObject.
+**Slate中的字体**
+* 任何在基于C++的Slate风格集中的已存字体代码将仍可正常运行，但您可能需要考虑更新您的字体风格集，以使用复合字体。 
+* 当您处理C++ Slate代码中的复合字体时，我们推荐您使用FStandaloneCompositeFont而非字体资源。 
+* 这是因为Slate风格集中包含的字体对象在垃圾回收器中不可见。  直接使用字体资源将需要您自己保持外部引用，使用类似于FGCObject的对象。 
 
-**Fonts in Canvas**
-* Canvas supports both types of font asset caching, however this is to improve the localization support for some of our tools.
-* We do not recommend using Canvas for new game UIs, and would suggest using UMG instead.
+**Canvas中的字体**
+* Canvas同时支持字体资源缓存的两种类型，但这是为了改善一些工具的本地化支持。 
+* 我们不推荐对新游戏的UI使用Canvas，我们建议使用UMG。 
 
 
-## Learning Resources 
-* New Content Example Maps! You can find the Content Examples project, and many other learning-focused projects, in the [new Learn Tab](https://www.unrealengine.com/blog/learn-tab) in the Unreal Engine Launcher!
-	* **Unreal Motion Graphics**
-	* **Media Framework (Video Playback)**
-	* **Skin Rendering (Subsurface Materials)**
+## 学习资源 
+* 新建内容示例贴图！ 您可以找到内容示例项目，以及许多其它学习项目，它们位于虚幻引擎启动程序的[新学习选项卡](https://www.unrealengine.com/blog/learn-tab) 中！ 
+	* **虚幻运动图像**
+	* ** 媒体框架（视频回放）** 
+	* **皮肤渲染（次表面材质）** 
 ![](SkinRendering_SubsurfaceMaterials.png)
-* New! [Localization](https://docs.unrealengine.com/latest/INT/Gameplay/Localization/index.html)
-* New! Source Control
-* New! In-Game Analytics
-* More [Blueprint How-Tos](https://docs.unrealengine.com/latest/INT/Engine/Blueprints/BP_HowTo/index.html)
-	* [Place Nodes](https://docs.unrealengine.com/latest/INT/Engine/Blueprints/BP_HowTo/PlacingNodes/index.html)
-	* [Navigate the Graph](https://docs.unrealengine.com/latest/INT/Engine/Blueprints/BP_HowTo/NavigatingGraphs/index.html)
-	* [Work with Actor Reference Variables](https://docs.unrealengine.com/latest/INT/Engine/Blueprints/BP_HowTo/ActorReference/index.html)
-	* [Collapse Graphs](https://docs.unrealengine.com/latest/INT/Engine/Blueprints/BP_HowTo/CollapsingGraphs/index.html)
-	* [Create Functions](https://docs.unrealengine.com/latest/INT/Engine/Blueprints/BP_HowTo/MakingFunctions/index.html)
-	* Basic Usage of Blueprints
-	* Connect Nodes
-* More [Material How-Tos](https://docs.unrealengine.com/latest/INT/Engine/Rendering/Materials/HowTo/index.html)
-	* [Place Material Expressions and Functions](https://docs.unrealengine.com/latest/INT/Engine/Rendering/Materials/HowTo/Placing_Expressions_Functions/index.html)
-	* [Create Material Functions](https://docs.unrealengine.com/latest/INT/Engine/Rendering/Materials/HowTo/Making_Functions/index.html)
-	* [Create Material Parameters](https://docs.unrealengine.com/latest/INT/Engine/Rendering/Materials/HowTo/Making_Parameters/index.html)
-	* [Use Bump Offset](https://docs.unrealengine.com/latest/INT/Engine/Rendering/Materials/HowTo/BumpOffset/index.html)
-	* [Set Up Human Skin](https://docs.unrealengine.com/latest/INT/Engine/Rendering/Materials/HowTo/Human_Skin/index.html)
-	* Use Glow
-	* Use Subsurface Profiles
-* Rendering Documentation Updates
-	* Sub-Surface Scattering
-	* Updates to Materials for Mobile Platforms
-* UMG Documentation Updates
-	3D Widget Components
-	Composite Font Support
-* Screenshots
+* 新内容！  [本地化](https://docs.unrealengine.com/latest/INT/Gameplay/Localization/index.html)
+* 新内容！  源码控制
+* 新内容！  游戏中分析
+* 更多 [蓝图提示信息](https://docs.unrealengine.com/latest/INT/Engine/Blueprints/BP_HowTo/index.html)
+	* [放置节点](https://docs.unrealengine.com/latest/INT/Engine/Blueprints/BP_HowTo/PlacingNodes/index.html)
+	* [查看图表](https://docs.unrealengine.com/latest/INT/Engine/Blueprints/BP_HowTo/NavigatingGraphs/index.html)
+	* [使用Actor参考变量](https://docs.unrealengine.com/latest/INT/Engine/Blueprints/BP_HowTo/ActorReference/index.html)
+	* [合并图表](https://docs.unrealengine.com/latest/INT/Engine/Blueprints/BP_HowTo/CollapsingGraphs/index.html)
+	* [创建函数](https://docs.unrealengine.com/latest/INT/Engine/Blueprints/BP_HowTo/MakingFunctions/index.html)
+	* 蓝图的基础使用
+	* 连接节点 
+* 更多 [材质提示信息](https://docs.unrealengine.com/latest/INT/Engine/Rendering/Materials/HowTo/index.html)
+	* [放置材质表达式和函数](https://docs.unrealengine.com/latest/INT/Engine/Rendering/Materials/HowTo/Placing_Expressions_Functions/index.html)
+	* [创建材质函数](https://docs.unrealengine.com/latest/INT/Engine/Rendering/Materials/HowTo/Making_Functions/index.html)
+	* [创建材质参数](https://docs.unrealengine.com/latest/INT/Engine/Rendering/Materials/HowTo/Making_Parameters/index.html)
+	* [使用凹凸偏移](https://docs.unrealengine.com/latest/INT/Engine/Rendering/Materials/HowTo/BumpOffset/index.html)
+	* [使用人类皮肤 ](https://docs.unrealengine.com/latest/INT/Engine/Rendering/Materials/HowTo/Human_Skin/index.html)
+	* 使用闪光 
+	* 使用次表面概述信息
+* 渲染文档更新 
+	* 次表面散射
+	*  对移动平台的材质更新 
+* UMG文档更新 
+	三维控件组件
+	合成字体支持 
+* 屏幕截图
 
-###### In-Editor Help
-* Fixed a problem with window focus in Skeletal Editor Walkthrough tutorial
+###### 编辑器内帮助
+* 修复了在骨架编辑器教程内的窗口问题。
 
-###### API Documentation
-* New: Added some basic documentation to the stats system.
-* Fix comments for ProjectileMovement substepping.
-* Fix comment on Pawn::PossessedBy().
-* Improved documentation for ACharacter::Landed() / OnLanded() indicating that movement mode is still "falling" during this time, and pointing out alternate OnMovementModeChanged() event.
-* Added link for FString docs. Documented ESearchCase, ESearchDir.
-* Add or fix class descriptions for multiple framework classes.
-* Added comments/docs for FNavAgentProperties and FMovementProperties.
-* Improved docs for FVector, FVector2D.
-* Added/improved comments for ENetMode, EVariableReplication and linked to online doc pages.
-* Cleaned up comments in Object.h (skeleton definitions for core object module).
-	* Added links to actual source files. Lots of times intellisense/VA will take you to the less helpful skeleton file rather than the actual source file.
-* FTransform class comments expanded to include description of how transformations are applied and composed. Similar changes to KismetMathLibrary::ComposeTransforms() as well.
-* Documentation for quaternions, explaining order of composition during multiplication.
+###### API 文档
+* 新： 添加对统计数据系统的基础文档。
+* 修复射弹移动substepping（次步进）的注释。
+* 修复Pawn::PossessedBy()的注释。 
+* 改善ACharacter::Landed() / OnLanded()的文档，表明此移动模式在此时仍在"下落",并指出备选的OnMovementModeChanged()事件。 
+* 添加FString文档的链接。 记录的ESearchCase, ESearchDir。 
+* 添加或修复多个框架类的类描述。
+* 添加了对FNavAgentProperties和FMovementProperties的注释/文档 。
+* 对FVector, FVector2D改进文档。
+* 对ENetMode, EVariableReplication添加/改进注释，并链接到在线文档页面。 
+* 清除Object.h中的注释（核心对象模块的骨架定义）。 
+	* 添加链接到实际的源文件。 多次的智能提示/VA将会使您获得不怎么有帮助的骨架文件，而不是实际的源文件。 
+* FTransform类注释扩展为包含了如何应用和组成变换的描述。 对KismetMathLibrary::ComposeTransforms()也作了类似的变更。
+* 四元数据文档，解释了在乘法中的组成顺序。 
 
 
-## Release Notes
+## 版本信息
 
 #### Animation
 * New: Animation Preview Mesh
@@ -1183,7 +1182,7 @@ Slate and UMG now support font families and composite fonts.  These allow you to
 * Metal shader back-end does not use the GLSL back-end anymore; added FramebufferFetchMRT() intrinsic.
 * GRHIFeatureLevel is deprecated.
 
-## Upgrade Notes
+## 更新信息
 
 #### C++ API Changes
 
@@ -1299,11 +1298,11 @@ Slate and UMG now support font families and composite fonts.  These allow you to
 	* If you add a parameter to your Custom node named "MyTex" and connect a TextureObject node, an extra sampler parameter named "MyTexSampler" will be available inside the Custom node's HLSL.
 	* You can sample the texture with an HLSL expression such as "Texture2DSample(MyTex,MyTexSampler,UV);"
 
-## Other
+## 其他
 * You may experience failure for some old bindings depending on how they were setup. Ensure your bindings are Pure, and the return types match.
 
 
-## Known Issues
+## 已知问题
 * Cannot create events in the AnimBP EventGraph for new Anim Notifies.
 	* Workaround for this issue is to reopen the editor. 
 

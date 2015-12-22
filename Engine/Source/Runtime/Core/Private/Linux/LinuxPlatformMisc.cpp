@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GenericPlatformMisc.cpp: Generic implementations of misc platform functions
@@ -13,6 +13,12 @@
 #include <sched.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <sys/vfs.h>	// statfs()
+#include <sys/ioctl.h>
+
+#include <ifaddrs.h>	// ethernet mac
+#include <net/if.h>
+#include <net/if_arp.h>
 
 #include "ModuleManager.h"
 
@@ -23,8 +29,7 @@ namespace PlatformMiscLimits
 {
 	enum
 	{
-		MaxUserHomeDirLength= MAX_PATH + 1,
-		MaxOsGuidLength = 32,
+		MaxOsGuidLength = 32
 	};
 };
 
@@ -76,40 +81,7 @@ void FLinuxPlatformMisc::NormalizePath(FString& InPath)
 	// only expand if path starts with ~, e.g. ~/ should be expanded, /~ should not
 	if (InPath.StartsWith(TEXT("~"), ESearchCase::CaseSensitive))	// case sensitive is quicker, and our substring doesn't care
 	{
-		static bool bHaveHome = false;
-		static TCHAR CachedResult[PlatformMiscLimits::MaxUserHomeDirLength];
-
-		if (!bHaveHome)
-		{
-			CachedResult[0] = TEXT('~');	// init with a default value that changes nothing
-			CachedResult[1] = TEXT('\0');
-
-			//  get user $HOME var first
-			const char * VarValue = secure_getenv("HOME");
-			if (NULL != VarValue)
-			{
-				FCString::Strcpy(CachedResult, ARRAY_COUNT(CachedResult) - 1, ANSI_TO_TCHAR(VarValue));
-				bHaveHome = true;
-			}
-
-			// if var failed
-			if (!bHaveHome)
-			{
-				struct passwd * UserInfo = getpwuid(getuid());
-				if (NULL != UserInfo && NULL != UserInfo->pw_dir)
-				{
-					FCString::Strcpy(CachedResult, ARRAY_COUNT(CachedResult) - 1, ANSI_TO_TCHAR(UserInfo->pw_dir));
-					bHaveHome = true;
-				}
-				else
-				{
-					// fail for realz
-					UE_LOG(LogInit, Fatal, TEXT("Could not get determine user home directory."));
-				}
-			}
-		}
-
-		InPath = InPath.Replace(TEXT("~"), CachedResult, ESearchCase::CaseSensitive);
+		InPath = InPath.Replace(TEXT("~"), FPlatformProcess::UserHomeDir(), ESearchCase::CaseSensitive);
 	}
 }
 
@@ -118,7 +90,7 @@ namespace
 	bool GInitializedSDL = false;
 }
 
-size_t GCacheLineSize = CACHE_LINE_SIZE;
+size_t GCacheLineSize = PLATFORM_CACHE_LINE_SIZE;
 
 void LinuxPlatform_UpdateCacheLineSize()
 {
@@ -142,16 +114,27 @@ void FLinuxPlatformMisc::PlatformInit()
 	// install a platform-specific signal handler
 	InstallChildExitedSignalHanlder();
 
+	// do not remove the below check for IsFirstInstance() - it is not just for logging, it actually lays the claim to be first
+	bool bFirstInstance = FPlatformProcess::IsFirstInstance();
+
 	UE_LOG(LogInit, Log, TEXT("Linux hardware info:"));
+	UE_LOG(LogInit, Log, TEXT(" - we are %sthe first instance of this executable"), bFirstInstance ? TEXT("") : TEXT("not "));
 	UE_LOG(LogInit, Log, TEXT(" - this process' id (pid) is %d, parent process' id (ppid) is %d"), static_cast< int32 >(getpid()), static_cast< int32 >(getppid()));
 	UE_LOG(LogInit, Log, TEXT(" - we are %srunning under debugger"), IsDebuggerPresent() ? TEXT("") : TEXT("not "));
 	UE_LOG(LogInit, Log, TEXT(" - machine network name is '%s'"), FPlatformProcess::ComputerName());
+	UE_LOG(LogInit, Log, TEXT(" - user name is '%s' (%s)"), FPlatformProcess::UserName(), FPlatformProcess::UserName(false));
 	UE_LOG(LogInit, Log, TEXT(" - we're logged in %s"), FPlatformMisc::HasBeenStartedRemotely() ? TEXT("remotely") : TEXT("locally"));
 	UE_LOG(LogInit, Log, TEXT(" - Number of physical cores available for the process: %d"), FPlatformMisc::NumberOfCores());
 	UE_LOG(LogInit, Log, TEXT(" - Number of logical cores available for the process: %d"), FPlatformMisc::NumberOfCoresIncludingHyperthreads());
 	LinuxPlatform_UpdateCacheLineSize();
 	UE_LOG(LogInit, Log, TEXT(" - Cache line size: %Zu"), GCacheLineSize);
 	UE_LOG(LogInit, Log, TEXT(" - Memory allocator used: %s"), GMalloc->GetDescriptiveName());
+
+	// programs don't need it by default
+	if (!IS_PROGRAM || FParse::Param(FCommandLine::Get(), TEXT("calibrateclock")))
+	{
+		FPlatformTime::CalibrateClock();
+	}
 
 	UE_LOG(LogInit, Log, TEXT("Linux-specific commandline switches:"));
 	UE_LOG(LogInit, Log, TEXT(" -%s (currently %s): suppress parsing of DWARF debug info (callstacks will be generated faster, but won't have line numbers)"), 
@@ -165,20 +148,13 @@ void FLinuxPlatformMisc::PlatformInit()
 	UE_LOG(LogInit, Log, TEXT(" -reuseconn - allow libcurl to reuse HTTP connections (only matters if compiled with libcurl)"));
 	UE_LOG(LogInit, Log, TEXT(" -virtmemkb=NUMBER - sets process virtual memory (address space) limit (overrides VirtualMemoryLimitInKB value from .ini)"));
 
-	UE_LOG(LogInit, Log, TEXT("Setting LC_NUMERIC to en_US"));
-	if (setenv("LC_NUMERIC", "en_US", 1) != 0)
-	{
-		int ErrNo = errno;
-		UE_LOG(LogInit, Warning, TEXT("Unable to setenv(): errno=%d (%s)"), ErrNo, ANSI_TO_TCHAR(strerror(ErrNo)));
-	}
-
 	// skip for servers and programs, unless they request later
 	if (!UE_SERVER && !IS_PROGRAM)
 	{
 		PlatformInitMultimedia();
 	}
 
-	if (FPlatformMisc::HasBeenStartedRemotely())
+	if (FPlatformMisc::HasBeenStartedRemotely() || FPlatformMisc::IsDebuggerPresent())
 	{
 		// print output immediately
 		setvbuf(stdout, NULL, _IONBF, 0);
@@ -237,6 +213,8 @@ void FLinuxPlatformMisc::PlatformTearDown()
 		SDL_Quit();
 		GInitializedSDL = false;
 	}
+
+	FPlatformProcess::CeaseBeingFirstInstance();
 }
 
 GenericApplication* FLinuxPlatformMisc::CreateApplication()
@@ -275,7 +253,7 @@ void FLinuxPlatformMisc::SetEnvironmentVar(const TCHAR* InVariableName, const TC
 
 void FLinuxPlatformMisc::PumpMessages( bool bFromMainLoop )
 {
-	if( bFromMainLoop )
+	if (GInitializedSDL && bFromMainLoop)
 	{
 		if( LinuxApplication )
 		{
@@ -388,6 +366,20 @@ uint32 FLinuxPlatformMisc::GetKeyMap( uint32* KeyCodes, FString* KeyNames, uint3
 
 	check(NumMappings < MaxMappings);
 	return NumMappings;
+}
+
+const TCHAR* FLinuxPlatformMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error)
+{
+	check(OutBuffer && BufferCount);
+	if (Error == 0)
+	{
+		Error = errno;
+	}
+
+	FString Message = FString::Printf(TEXT("errno=%d (%s)"), Error, UTF8_TO_TCHAR(strerror(Error)));
+	FCString::Strncpy(OutBuffer, *Message, BufferCount);
+
+	return OutBuffer;
 }
 
 void FLinuxPlatformMisc::ClipboardCopy(const TCHAR* Str)
@@ -851,4 +843,118 @@ FString FLinuxPlatformMisc::GetOperatingSystemId()
 	}
 
 	return CachedResult;
+}
+
+bool FLinuxPlatformMisc::GetDiskTotalAndFreeSpace(const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes)
+{
+	struct statfs FSStat = { 0 };
+	FTCHARToUTF8 Converter(*InPath);
+	int Err = statfs((ANSICHAR*)Converter.Get(), &FSStat);
+	if (Err == 0)
+	{
+		TotalNumberOfBytes = FSStat.f_blocks * FSStat.f_bsize;
+		NumberOfFreeBytes = FSStat.f_bavail * FSStat.f_bsize;
+	}
+	else
+	{
+		int ErrNo = errno;
+		UE_LOG(LogLinux, Warning, TEXT("Unable to statfs('%s'): errno=%d (%s)"), *InPath, ErrNo, ANSI_TO_TCHAR(strerror(ErrNo)));
+	}
+	return (Err == 0);
+}
+
+
+TArray<uint8> FLinuxPlatformMisc::GetMacAddress()
+{
+	struct ifaddrs *ifap, *ifaptr;
+	TArray<uint8> Result;
+
+	if (getifaddrs(&ifap) == 0)
+	{
+		for (ifaptr = ifap; ifaptr != nullptr; ifaptr = (ifaptr)->ifa_next)
+		{
+			struct ifreq ifr;
+
+			strncpy(ifr.ifr_name, ifaptr->ifa_name, IFNAMSIZ-1);
+
+			int Socket = socket(AF_UNIX, SOCK_DGRAM, 0);
+			if (Socket == -1)
+			{
+				continue;
+			}
+
+			if (ioctl(Socket, SIOCGIFHWADDR, &ifr) == -1)
+			{
+				close(Socket);
+				continue;
+			}
+
+			close(Socket);
+
+			if (ifr.ifr_hwaddr.sa_family != ARPHRD_ETHER)
+			{
+				continue;
+			}
+
+			const uint8 *MAC = (uint8 *) ifr.ifr_hwaddr.sa_data;
+
+			for (int32 i=0; i < 6; i++)
+			{
+				Result.Add(MAC[i]);
+			}
+
+			break;
+		}
+
+		freeifaddrs(ifap);
+	}
+
+	return Result;
+}
+
+
+static int64 LastBatteryCheck = 0;
+static bool bIsOnBattery = false;
+
+bool FLinuxPlatformMisc::IsRunningOnBattery()
+{
+	char Scratch[8];
+	FDateTime Time = FDateTime::Now();
+	int64 Seconds = Time.ToUnixTimestamp();
+
+	// don't poll the OS for battery state on every tick. Just do it once every 10 seconds.
+	if (LastBatteryCheck != 0 && (Seconds - LastBatteryCheck) < 10)
+	{
+		return bIsOnBattery;
+	}
+
+	LastBatteryCheck = Seconds;
+	bIsOnBattery = false;
+
+	// [RCL] 2015-09-30 FIXME: find a more robust way?
+	const int kHardCodedNumBatteries = 10;
+	for (int IdxBattery = 0; IdxBattery < kHardCodedNumBatteries; ++IdxBattery)
+	{
+		char Filename[128];
+		sprintf(Filename, "/sys/class/power_supply/ADP%d/online", IdxBattery);
+
+		int State = open(Filename, O_RDONLY);
+		if (State != -1)
+		{
+			// found ACAD device. check its state.
+			ssize_t ReadBytes = read(State, Scratch, 1);
+			close(State);
+
+			if (ReadBytes > 0)
+			{
+				bIsOnBattery = (Scratch[0] == '0');
+			}
+
+			break;	// quit checking after we found at least one
+		}
+	}
+
+	// lack of ADP most likely means that we're not on laptop at all
+
+	return bIsOnBattery;
 }

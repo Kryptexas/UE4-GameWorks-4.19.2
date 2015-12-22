@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessWeightedSampleSum.cpp: Post processing weight sample sum implementation.
@@ -520,9 +520,16 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
+	bool bDoFastBlur = DoFastBlur();
+
 	FVector2D InvSrcSize(1.0f / SrcSize.X, 1.0f / SrcSize.Y);
 	// we scale by width because FOV is defined horizontally
 	float SrcSizeForThisAxis = View.ViewRect.Width() / (float)SrcScaleFactor.X;
+
+	if(bDoFastBlur && FilterShape == EFS_Vert)
+	{
+		SrcSizeForThisAxis *= 2.0f;
+	}
 
 	// in texel (input resolution), /2 as we use the diameter, 100 as we use percent
 	float EffectiveBlurRadius = SizeScale * SrcSizeForThisAxis  / 2 / 100.0f;
@@ -538,7 +545,9 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 
 	uint32 NumSamples = Compute1DGaussianFilterKernel(FeatureLevel, EffectiveBlurRadius, OffsetAndWeight, MaxNumSamples, FilterShape, CrossCenterWeight);
 
-	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessWeightedSampleSum, TEXT("PostProcessWeightedSampleSum#%d"), NumSamples);
+	FIntRect DestRect = FIntRect::DivideAndRoundUp(View.ViewRect, DstScaleFactor);
+
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessWeightedSampleSum, TEXT("PostProcessWeightedSampleSum#%d %dx%d"), NumSamples, DestRect.Width(), DestRect.Height());
 
 	// compute weights as weighted contributions of the TintValue
 	for(uint32 i = 0; i < NumSamples; ++i)
@@ -546,7 +555,7 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 		BlurWeights[i] = TintValue * OffsetAndWeight[i].Y;
 	}
 
-	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
+	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EExistingColorAndDepth);
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f);
 
@@ -580,8 +589,6 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 
 		CombineMethodInt = 1;
 	}
-
-	bool bDoFastBlur = DoFastBlur();
 
 	if (FilterShape == EFS_Horiz)
 	{
@@ -624,7 +631,6 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 	}
 
 	FIntRect SrcRect =  FIntRect::DivideAndRoundUp(View.ViewRect, SrcScaleFactor);
-	FIntRect DestRect = FIntRect::DivideAndRoundUp(View.ViewRect, DstScaleFactor);
 
 	DrawQuad(Context.RHICmdList, bDoFastBlur, SrcRect, DestRect, bRequiresClear, DestSize, SrcSize, VertexShader);
 
@@ -650,6 +656,7 @@ FPooledRenderTargetDesc FRCPassPostProcessWeightedSampleSum::ComputeOutputDesc(E
 
 	Ret.Reset();
 	Ret.DebugName = DebugName;
+	Ret.AutoWritable = false;
 
 	return Ret;
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CrashDebugHelperPrivatePCH.h"
 #include "CrashDebugPDBCache.h"
@@ -12,7 +12,124 @@
 	#define MINIDUMPDIAGNOSTICS	0
 #endif
 
-const TCHAR* ICrashDebugHelper::P4_DEPOT_PREFIX = TEXT( "//depot/" );
+/*-----------------------------------------------------------------------------
+	FCrashDebugHelperConfig
+-----------------------------------------------------------------------------*/
+
+/**
+*  Holds FullCrashDump properties from the config.
+*
+*	PDBCache_0_Branch=UE4-Branch
+*	PDBCache_0_ExecutablePathPattern=ue4.net\Builds\UE4-Branch\%ENGINE_VERSION%
+*	PDBCache_0_SymbolPathPattern=ue4.net\Builds\UE4-Branch\%ENGINE_VERSION%
+*	
+*	If PDBCache_0_SymbolPathPattern is missing, the value from PDBCache_0_ExecutablePathPattern will be used
+*/
+struct FPDBCacheConfigEntry
+{
+	/** Initialization constructor. */
+	FPDBCacheConfigEntry( const FString& InBranch, const FString& InExecutablePathPattern, const FString& InSymbolPathPattern )
+		: Branch( InBranch )
+		, ExecutablePathPattern( InExecutablePathPattern )
+		, SymbolPathPattern( InSymbolPathPattern )
+	{}
+
+
+	/** Branch name. */
+	const FString Branch;
+
+	/** Location of the executables */
+	const FString ExecutablePathPattern;
+
+	/** Location of the symbols, usually the same as the executables. */
+	const FString SymbolPathPattern;
+};
+
+/** Helper struct for reading PDB cache configuration. */
+struct FCrashDebugHelperConfig
+{
+	static FCrashDebugHelperConfig& Get()
+	{
+		static FCrashDebugHelperConfig Instance;
+		return Instance;
+	}
+
+	bool IsValid() const
+	{
+		// We need a least one entry to proceed.
+		return PDBCacheConfigEntries.Num() > 0;
+	}
+
+	/** Reads configuration. */
+	void ReadFullCrashDumpConfigurations();
+
+	/** Gets the config for branch. */
+	FPDBCacheConfigEntry GetCacheConfigEntryForBranch( const FString& Branch ) const
+	{
+		const FString BranchFixed = Branch.Replace( TEXT( "/" ), TEXT( "+" ) );
+		for (const auto& It : PDBCacheConfigEntries)
+		{
+			if (BranchFixed.Contains( It.Branch ))
+			{
+				return It;
+			}
+		}
+
+		// Invalid entry.
+		return FPDBCacheConfigEntry( Branch, FString(), FString() );
+	}
+
+protected:
+	/** Returns empty string if couldn't read. */
+	FString GetKey( const FString& KeyName );
+
+	/** Configuration for PDB Cache. */
+	TArray<FPDBCacheConfigEntry> PDBCacheConfigEntries;
+};
+
+void FCrashDebugHelperConfig::ReadFullCrashDumpConfigurations()
+{
+	for (int32 NumEntries = 0;; ++NumEntries)
+	{
+		const FString Branch = GetKey( FString::Printf( TEXT( "PDBCache_%i_Branch" ), NumEntries ) );
+		if (Branch.IsEmpty())
+		{
+			break;
+		}
+
+		const FString ExecutablePathPattern = GetKey( FString::Printf( TEXT( "PDBCache_%i_ExecutablePathPattern" ), NumEntries ) );
+		if (ExecutablePathPattern.IsEmpty())
+		{
+			break;
+		}
+
+		FString SymbolPathPattern = GetKey( FString::Printf( TEXT( "PDBCache_%i_SymbolPathPattern" ), NumEntries ) );
+		if (SymbolPathPattern.IsEmpty())
+		{
+			SymbolPathPattern = ExecutablePathPattern;
+		}
+		
+		PDBCacheConfigEntries.Add( FPDBCacheConfigEntry( Branch, ExecutablePathPattern, SymbolPathPattern ) );
+
+		UE_LOG( LogCrashDebugHelper, Log, TEXT( "PDBCacheConfigEntry: Branch:%s ExecutablePathPattern:%s SymbolPathPattern:%s" ), *Branch, *ExecutablePathPattern, *SymbolPathPattern );
+	}
+}
+
+FString FCrashDebugHelperConfig::GetKey( const FString& KeyName )
+{
+	const FString SectionName = TEXT( "Engine.CrashDebugHelper" );
+
+	FString Result;
+	if (!GConfig->GetString( *SectionName, *KeyName, Result, GEngineIni ))
+	{
+		return TEXT( "" );
+	}
+	return Result;
+}
+
+/*-----------------------------------------------------------------------------
+	ICrashDebugHelper
+-----------------------------------------------------------------------------*/
 
 void ICrashDebugHelper::SetDepotIndex( FString& PathToChange )
 {
@@ -42,41 +159,12 @@ bool ICrashDebugHelper::Init()
 	}
 	else
 	{
-		// Look up the depot name
-		// Try to use the command line param
-		FString DepotName;
-		FString CmdLineBranchName;
-		if( FParse::Value( FCommandLine::Get(), TEXT( "BranchName=" ), CmdLineBranchName ) )
-		{
-			DepotName = FString::Printf( TEXT( "%s%s" ), P4_DEPOT_PREFIX, *CmdLineBranchName );
-		}
-		// Default to BRANCH_NAME
-		else
-		{
-			DepotName = FString::Printf( TEXT( "%s" ), *FApp::GetBranchName() );
-		}
-
-		CrashInfo.DepotName = DepotName.Replace( TEXT( "+" ), TEXT( "/" ) );
-
-		// Try to get the BuiltFromCL from command line to use this instead of attempting to locate the CL in the minidump
-		FString CmdLineBuiltFromCL;
-		int32 BuiltFromCL = -1;
-		if( FParse::Value( FCommandLine::Get(), TEXT( "BuiltFromCL=" ), CmdLineBuiltFromCL ) )
-		{
-			if( !CmdLineBuiltFromCL.IsEmpty() )
-			{
-				BuiltFromCL = FCString::Atoi( *CmdLineBuiltFromCL );
-			}
-		}
-		// Default to BUILT_FROM_CHANGELIST.
-		else
-		{
-			BuiltFromCL = GEngineVersion.GetChangelist();
-		}
-
-		CrashInfo.BuiltFromCL = BuiltFromCL;
+		// Use the current values.
+		const FEngineVersion& EngineVersion = FEngineVersion::Current();
+		CrashInfo.DepotName = EngineVersion.GetBranch();
+		CrashInfo.BuiltFromCL = (int32)EngineVersion.GetChangelist();
+		CrashInfo.EngineVersion = EngineVersion.ToString();
 	}
-
 
 	UE_LOG( LogCrashDebugHelper, Log, TEXT( "DepotName: %s" ), *CrashInfo.DepotName );
 	UE_LOG( LogCrashDebugHelper, Log, TEXT( "BuiltFromCL: %i" ), CrashInfo.BuiltFromCL );
@@ -84,13 +172,12 @@ bool ICrashDebugHelper::Init()
 	
 	GConfig->GetString( TEXT( "Engine.CrashDebugHelper" ), TEXT( "SourceControlBuildLabelPattern" ), SourceControlBuildLabelPattern, GEngineIni );
 
-	GConfig->GetArray( TEXT( "Engine.CrashDebugHelper" ), TEXT( "ExecutablePathPattern" ), ExecutablePathPatterns, GEngineIni );
-	GConfig->GetArray( TEXT( "Engine.CrashDebugHelper" ), TEXT( "SymbolPathPattern" ), SymbolPathPatterns, GEngineIni );
-	GConfig->GetArray( TEXT( "Engine.CrashDebugHelper" ), TEXT( "Branch" ), Branches, GEngineIni );
-	const bool bCanUseSearchPatterns = Branches.Num() == ExecutablePathPatterns.Num() && ExecutablePathPatterns.Num() == SymbolPathPatterns.Num() && Branches.Num() > 0;
-	UE_CLOG( !bCanUseSearchPatterns, LogCrashDebugHelper, Warning, TEXT( "Search patterns don't match" ) );
+	FCrashDebugHelperConfig::Get().ReadFullCrashDumpConfigurations();
 
-	if (bCanUseSearchPatterns)
+	const bool bUsePDBCache = FCrashDebugHelperConfig::Get().IsValid();
+	UE_CLOG( !bUsePDBCache, LogCrashDebugHelper, Warning, TEXT( "CrashDebugHelperConfig invalid" ) );
+
+	if (bUsePDBCache)
 	{
 		FPDBCache::Get().Init();
 	}
@@ -185,8 +272,13 @@ bool ICrashDebugHelper::SyncModules()
 
 			// Find all executables.
 			TArray<FString> NetworkExecutables;
-			IFileManager::Get().FindFilesRecursive( NetworkExecutables, *CrashInfo.ExecutablesPath, TEXT( "*.dll" ), true, false, false );
-			IFileManager::Get().FindFilesRecursive( NetworkExecutables, *CrashInfo.ExecutablesPath, TEXT( "*.exe" ), true, false, false );
+
+			// Don't duplicate work.
+			if (CrashInfo.ExecutablesPath != CrashInfo.SymbolsPath)
+			{
+				IFileManager::Get().FindFilesRecursive( NetworkExecutables, *CrashInfo.ExecutablesPath, TEXT( "*.dll" ), true, false, false );
+				IFileManager::Get().FindFilesRecursive( NetworkExecutables, *CrashInfo.ExecutablesPath, TEXT( "*.exe" ), true, false, false );
+			}
 
 			// Find all symbols.
 			TArray<FString> NetworkSymbols;
@@ -215,6 +307,7 @@ bool ICrashDebugHelper::SyncModules()
 		}
 	}
 	// Get all labels associated with the crash info's label.
+	// OBSOLETE PATH
 	else if( Labels.Num() >= 1 )
 	{
 		TSharedRef<ISourceControlLabel> Label = Labels[0];
@@ -272,7 +365,7 @@ bool ICrashDebugHelper::SyncModules()
 				for( const auto& PDBPath : PDBPaths )
 				{
 					const FString PDBRelativePath = PDBPath.Replace( *CrashInfo.DepotName, TEXT( "" ) ).Replace( UESymbols, TEXT( "" ) );
-					const FString PDBFullpath = FPDBCache::Get().GetDepotRoot() / PDBPath.Replace( P4_DEPOT_PREFIX, TEXT( "" ) );
+					const FString PDBFullpath = FPDBCache::Get().GetDepotRoot() / PDBPath;
 
 					const FString PDBMatch = PDBRelativePath.Replace( TEXT( "pdb" ), TEXT( "" ) );
 					const FString NetworkRelativePath = NetworkExecutableFullpath.Replace( *CrashInfo.ExecutablesPath, TEXT( "" ) );
@@ -375,6 +468,7 @@ bool ICrashDebugHelper::SyncModules()
 			CrashInfo.PDBCacheEntry = FPDBCache::Get().CreateAndAddPDBCacheEntry( CrashInfo.LabelName, CrashInfo.DepotName, FilesToBeCached );
 		}
 	}
+	// OBSOLETE PATH
 	else
 	{
 		UE_LOG( LogCrashDebugHelper, Error, TEXT( "Could not find label: %s"), *CrashInfo.LabelName );
@@ -409,7 +503,23 @@ bool ICrashDebugHelper::ReadSourceFile( TArray<FString>& OutStrings )
 	FString FilePath;
 	if (bUsePDBCache)
 	{
-		FilePath = CrashInfo.DepotName.Replace( P4_DEPOT_PREFIX, *FPDBCache::Get().GetDepotRoot() ) / CrashInfo.SourceFile;
+		// We assume a special folder for syncing all streams and //depot/ is not used in the view mapping.
+		/*
+			//depot/... //machine/... 
+			//UE4/...	//machine/​​Stream/UE4/...​
+		*/
+		const TCHAR* DepotDelimiter = TEXT( "//depot/" );
+		const bool bIsDepot = CrashInfo.DepotName.Contains( DepotDelimiter );
+
+		if (bIsDepot)
+		{
+			FilePath = FPDBCache::Get().GetDepotRoot() / CrashInfo.DepotName.Replace( DepotDelimiter, TEXT( "" ) ) / CrashInfo.SourceFile;
+		}
+		else
+		{
+			FilePath = FPDBCache::Get().GetDepotRoot() / TEXT( "Stream" ) / CrashInfo.DepotName / CrashInfo.SourceFile;
+			FilePath.ReplaceInline( TEXT( "//" ), TEXT( "/" ) );
+		}
 	}
 	else
 	{
@@ -642,20 +752,6 @@ void FCrashInfo::GenerateReport( const FString& DiagnosticsPath )
 	}
 }
 
-bool ICrashDebugHelper::SyncRequiredFilesForDebuggingFromLabel(const FString& InLabel, const FString& InPlatform)
-{
-	// @TODO yrx 2015-02-19 Use PDB cache
-
-	return false;
-}
-
-bool ICrashDebugHelper::SyncRequiredFilesForDebuggingFromChangelist(int32 InChangelistNumber, const FString& InPlatform)
-{
-	// @TODO yrx 2015-02-19 Use PDB cache
-
-	return false;
-}
-
 void ICrashDebugHelper::FindSymbolsAndBinariesStorage()
 {
 	CrashInfo.ExecutablesPath.Empty();
@@ -670,23 +766,11 @@ void ICrashDebugHelper::FindSymbolsAndBinariesStorage()
 
 	UE_LOG( LogCrashDebugHelper, Log, TEXT( "Engine version: %s" ), *CrashInfo.EngineVersion );
 
-	int32 Index = 0;
-	bool bFoundPattern = false;
-	FString ExecutablePathPattern;
-	FString SymbolPathPattern;
-	// Find branch.
-	for( ; Index < Branches.Num(); Index++ )
-	{
-		if( CrashInfo.DepotName.Contains( Branches[Index] ) )
-		{
-			bFoundPattern = true;
-			ExecutablePathPattern = ExecutablePathPatterns[Index];
-			SymbolPathPattern = SymbolPathPatterns[Index];
-			break;
-		}
-	}
+	const FPDBCacheConfigEntry ConfigEntry = FCrashDebugHelperConfig::Get().GetCacheConfigEntryForBranch( CrashInfo.DepotName );
+	FString ExecutablePathPattern = ConfigEntry.ExecutablePathPattern;
+	FString SymbolPathPattern = ConfigEntry.ExecutablePathPattern;
 
-	if( bFoundPattern )
+	if (!ExecutablePathPattern.IsEmpty() && !SymbolPathPattern.IsEmpty())
 	{
 		UE_LOG( LogCrashDebugHelper, Log, TEXT( "Using branch: %s" ), *CrashInfo.DepotName );
 	}
@@ -698,7 +782,7 @@ void ICrashDebugHelper::FindSymbolsAndBinariesStorage()
 	
 	const FString StrENGINE_VERSION = CrashInfo.EngineVersion;
 	const FString StrPLATFORM_NAME = TEXT( "" ); // Not implemented yet
-	const FString StrOLD_ENGINE_VERSION = FString::Printf( TEXT( "++depot+%s-CL-%i" ), *CrashInfo.DepotName.Replace( P4_DEPOT_PREFIX, TEXT("") ), CrashInfo.BuiltFromCL )
+	const FString StrOLD_ENGINE_VERSION = FString::Printf( TEXT( "%s-CL-%i" ), *CrashInfo.DepotName.Replace( TEXT( "+" ), TEXT( "/" ) ), CrashInfo.BuiltFromCL )
 		.Replace( TEXT("/"), TEXT("+") );
 
 	const FString TestExecutablesPath = ExecutablePathPattern

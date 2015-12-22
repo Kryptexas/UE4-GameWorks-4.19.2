@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=================================================================================
  MacPlatformSurvey.mm: Mac OS X platform hardware-survey classes
@@ -185,7 +185,7 @@ void FMacPlatformSurvey::TickSurveyHardware( FHardwareSurveyResults& OutResults 
 		OutResults.CPUCount = 0;
 	}
 
-	ISynthBenchmark::Get().Run(OutResults.SynthBenchmark);
+	ISynthBenchmark::Get().Run(OutResults.SynthBenchmark, true, 5.f);
 
 	// Get CPU speed
 	if (OutResults.CPUCount > 0)

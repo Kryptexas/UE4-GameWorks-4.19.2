@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -70,13 +70,20 @@ public:
 	//----------------------------------------------------------------------//
 	virtual void OnTaskDeactivated(UGameplayTask& Task) override;
 
+	/** @return true if task search should be discarded when this task is selected to execute but is already running */
+	bool ShouldIgnoreRestartSelf() const;
+
 protected:
 
+	/** if set, task search will be discarded when this task is selected to execute but is already running */
+	UPROPERTY(EditAnywhere, Category=Task)
+	uint32 bIgnoreRestartSelf : 1;
+
 	/** if set, TickTask will be called */
-	uint8 bNotifyTick : 1;
+	uint32 bNotifyTick : 1;
 
 	/** if set, OnTaskFinished will be called */
-	uint8 bNotifyTaskFinished : 1;
+	uint32 bNotifyTaskFinished : 1;
 	
 	/** ticks this task 
 	 * this function should be considered as const (don't modify state of object) if node is not instanced! */
@@ -127,3 +134,8 @@ protected:
 	DEPRECATED(4.7, "This version is deprecated. Please use the one taking reference to UBehaviorTreeComponent rather than a pointer.")
 	void WaitForMessage(UBehaviorTreeComponent* OwnerComp, FName MessageType, int32 RequestID) const;
 };
+
+FORCEINLINE bool UBTTaskNode::ShouldIgnoreRestartSelf() const
+{
+	return bIgnoreRestartSelf;
+}

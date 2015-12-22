@@ -2,17 +2,23 @@ Availability:Public
 Title:Scene Fringe
 Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
 Description:Chromatic aberration effect that simulates the color shifts near the edges of real-world camera lenses.
+Version: 4.9
+
 
 [EXCERPT:SceneFringe_Desc]
 **Scene Fringe** is a chromatic aberration effect that simulates the color shifts in real-world camera lenses. The effect is mostly noticeable near the edges of the image.
 [/EXCERPT:SceneFringe_Desc]
 
-[REGION:imagetable]
-| ![Without Scene Fringe](scenefringe_0.png)(w:455) | ![With Scene Fringe](scenefringe_2.png)(w:455) |
-| :----: | :----: |
-| Without Scene Fringe | With Scene Fringe (extreme settings) |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Without Scene Frigne](scenefringe_0.png)(w:700)
+	[/PARAM]
+	[PARAM:after]
+	![With Scene Fringe](scenefringe_2.png)(w:700)
+	[/PARAM]
+[/OBJECT]
 
+**Scene Fringe** settings can be located under **Scene Color** in the **Post Process Settings**.
 
 | Property | Description |
 | -------- | ----------- |

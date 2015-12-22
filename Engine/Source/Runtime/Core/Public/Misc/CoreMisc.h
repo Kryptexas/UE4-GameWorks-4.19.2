@@ -1,9 +1,10 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "IntPoint.h"
-
+#include "Map.h"
+#include "ThreadingBase.h"
 
 /**
  * Exec handler that registers itself and is being routed via StaticExec.
@@ -34,9 +35,9 @@ public:
 	/** Initialization constructor. */
 	FStaticSelfRegisteringExec(bool (*InStaticExecFunc)(UWorld* Inworld, const TCHAR* Cmd,FOutputDevice& Ar));
 
-	// Begin Exec Interface
+	//~ Begin Exec Interface
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar );
-	// End Exec Interface
+	//~ End Exec Interface
 
 private:
 
@@ -121,6 +122,18 @@ struct CORE_API FCommandLine
 	 */
 	static void Parse(const TCHAR* CmdLine, TArray<FString>& Tokens, TArray<FString>& Switches);
 private:
+#if WANTS_COMMANDLINE_WHITELIST
+	/** Filters both the original and current command line list for approved only args */
+	static void WhitelistCommandLines();
+	/** Filters any command line args that aren't on the approved list */
+	static TArray<FString> FilterCommandLine(TCHAR* CommandLine);
+	/** Rebuilds the command line using the filtered args */
+	static void BuildWhitelistCommandLine(TCHAR* CommandLine, uint32 Length, const TArray<FString>& FilteredArgs);
+	static TArray<FString> ApprovedArgs;
+#else
+#define WhitelistCommandLines()
+#endif
+
 	/** Flag to check if the commandline has been initialized or not. */
 	static bool bIsInitialized;
 	/** character buffer containing the command line */
@@ -168,7 +181,7 @@ struct CORE_API FFileHelper
 	/**
 	 * Load a binary file to a dynamic array.
 	*/
-	static bool LoadFileToArray( TArray<uint8>& Result, const TCHAR* Filename,uint32 Flags = 0 );
+	static bool LoadFileToArray( TArray<uint8>& Result, const TCHAR* Filename, uint32 Flags = 0 );
 
 	/**
 	 * Load a text file to an FString.
@@ -182,13 +195,13 @@ struct CORE_API FFileHelper
 	/**
 	 * Save a binary array to a file.
 	 */
-	static bool SaveArrayToFile( const TArray<uint8>& Array, const TCHAR* Filename, IFileManager* FileManager=&IFileManager::Get() );
+	static bool SaveArrayToFile( const TArray<uint8>& Array, const TCHAR* Filename, IFileManager* FileManager=&IFileManager::Get(), uint32 WriteFlags = 0 );
 
 	/**
 	 * Write the FString to a file.
 	 * Supports all combination of ANSI/Unicode files and platforms.
 	 */
-	static bool SaveStringToFile( const FString& String, const TCHAR* Filename, EEncodingOptions::Type EncodingOptions=EEncodingOptions::AutoDetect, IFileManager* FileManager=&IFileManager::Get() );
+	static bool SaveStringToFile( const FString& String, const TCHAR* Filename, EEncodingOptions::Type EncodingOptions=EEncodingOptions::AutoDetect, IFileManager* FileManager=&IFileManager::Get(), uint32 WriteFlags = 0 );
 
 	/**
 	 * Saves a 24/32Bit BMP file to disk
@@ -240,6 +253,9 @@ CORE_API class FDerivedDataCacheInterface* GetDerivedDataCache();
 
 /** Return the DDC interface, fatal error if it is not available. **/
 CORE_API class FDerivedDataCacheInterface& GetDerivedDataCacheRef();
+
+/** Return the DDC interface, if it is available, otherwise return NULL **/
+CORE_API void DerivedDataCachePrint();
 
 /** Return the Target Platform Manager interface, if it is available, otherwise return NULL **/
 CORE_API class ITargetPlatformManagerModule* GetTargetPlatformManager();
@@ -384,3 +400,40 @@ public:
 		return bValue;
 	}
 };
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	#define DO_BLUEPRINT_GUARD 1
+#endif
+
+#if DO_BLUEPRINT_GUARD
+/** 
+ * Helper struct for dealing with Blueprint exceptions 
+ */
+struct CORE_API FBlueprintExceptionTracker : TThreadSingleton<FBlueprintExceptionTracker>
+{
+	FBlueprintExceptionTracker()
+		: Runaway(0)
+		, Recurse(0)
+		, bRanaway(false)
+		, ScriptEntryTag(0)
+	{}
+
+	void ResetRunaway();
+
+public:
+	// map of currently displayed warnings in exception handler
+	TMap<FName, int32> DisplayedWarningsMap;
+
+	// runaway tracking
+	int32 Runaway;
+	int32 Recurse;
+	bool bRanaway;
+
+	// Script entry point tracking
+	int32 ScriptEntryTag;
+
+	// Stack names from the VM to be unrolled when we assert
+	TArray<FScriptTraceStackNode> ScriptStack;
+};
+
+#endif // DO_BLUEPRINT_GUARD

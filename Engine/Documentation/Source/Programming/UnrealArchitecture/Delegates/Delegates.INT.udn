@@ -2,7 +2,7 @@ Availability:Public
 Title: Delegates
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Functions
 Description:Data types that reference and execute member functions on C++ objects.
-Version: 4.5
+Version: 4.9
 
 [TOC(start:2)]
 
@@ -11,7 +11,7 @@ Delegates allow you to call member functions on C++ objects in a generic, yet ty
 arbitrary object, then call functions on the object, even if the caller does not know the object's type.
 
 It is perfectly safe to copy delegate objects.  Delegates can be passed around by value but this is generally not recommended since they do have to allocate memory on 
-the heap.  **You should always pass delegates by reference when possible.**
+the heap. You should always pass delegates by reference when possible.
 
 Both single-cast and multi-cast delegates are supported, as well as "dynamic" delegates which can be safely serialized to disk.
 
@@ -60,7 +60,7 @@ Variations of the macros above for multi-cast, dynamic, and wrapped delegates ar
 
 Delegate signature declarations can exist at global scope, within a namespace or even within a class declaration (but not function bodies.)
 
-See **[](Programming/UnrealArchitecture/Delegates/Dynamic)** and **[](Programming/UnrealArchitecture/Delegates/Multicast)** for more information on declaring these types of 
+See [](Programming/UnrealArchitecture/Delegates/Dynamic) and [](Programming/UnrealArchitecture/Delegates/Multicast) for more information on declaring these types of 
 delegates.
 
 ## Binding Delegates
@@ -103,7 +103,7 @@ you can call `ExecuteIfBound()`, but be wary of output parameters that may be le
 | `ExecuteIfBound()` |  |
 | `IsBound()` |  |
 
-See **[](Programming/UnrealArchitecture/Delegates/Multicast)** for details on executing multi-cast delegates.
+See [](Programming/UnrealArchitecture/Delegates/Multicast) for details on executing multi-cast delegates.
 [/EXCERPT:ExecutingDelegates]
 
 ## Example Usage
@@ -141,7 +141,7 @@ method of that object instance:
 
 You have just dynamically bound a delegate to a method of a class!  Pretty simple, right?
 
-Note that the `SP` part of `BindSP` stands for `shared pointer`, because we are binding to an object that is owned by a shared pointer.  There are versions for different 
+Note that the SP part of `BindSP` stands for shared pointer, because we are binding to an object that is owned by a shared pointer.  There are versions for different 
 object types, such as BindRaw() and BindUObject().
 
 Now, your 'WriteToLog' method can be called by FMyClass without it even knowing anything about the 'FLogWriter' class!  To call your delegate, just use the 'Execute()' method:

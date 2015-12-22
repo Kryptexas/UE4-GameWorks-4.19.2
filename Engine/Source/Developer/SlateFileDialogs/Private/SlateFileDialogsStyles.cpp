@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateFileDialogsPrivatePCH.h"
 #include "SlateFileDialogsStyles.h"
@@ -81,8 +81,20 @@ TSharedPtr< FSlateStyleSet > FSlateFileDialogsStyle::Create()
 
 	Style->Set("SlateFileDialogs.Folder16", new IMAGE_BRUSH("SlateFileDialogs/Icons/icon_file_folder_16x", Icon16x16));
 	Style->Set("SlateFileDialogs.Folder24", new IMAGE_BRUSH("SlateFileDialogs/Icons/icon_file_folder_40x", Icon24x24));
-	Style->Set("SlateFileDialogs.NewFolder24", new IMAGE_BRUSH("SlateFileDialogs/Icons/icon_new_folder_40x", Icon24x24));		
+	Style->Set("SlateFileDialogs.NewFolder24", new IMAGE_BRUSH("SlateFileDialogs/Icons/icon_new_folder_40x", Icon24x24));
+	Style->Set("SlateFileDialogs.BrowseBack24", new IMAGE_BRUSH("SlateFileDialogs/Common/back_arrow_40x", Icon24x24));
+	Style->Set("SlateFileDialogs.BrowseForward24", new IMAGE_BRUSH("SlateFileDialogs/Common/forward_arrow_40x", Icon24x24));
 	Style->Set("SlateFileDialogs.WhiteBackground", new IMAGE_BRUSH("SlateFileDialogs/Common/Window/WindowWhite", Icon64x64));
+
+	Style->Set("SlateFileDialogs.UAsset16", new IMAGE_BRUSH("SlateFileDialogs/Icons/icon_uasset_24x", Icon16x16));
+	Style->Set("SlateFileDialogs.UProject16", new IMAGE_BRUSH("SlateFileDialogs/Icons/icon_uproject_24x", Icon16x16));
+	Style->Set("SlateFileDialogs.Model3D", new IMAGE_BRUSH("SlateFileDialogs/Icons/icon_model_24x", Icon16x16));
+	Style->Set("SlateFileDialogs.Video", new IMAGE_BRUSH("SlateFileDialogs/Icons/icon_video_24x", Icon16x16));
+	Style->Set("SlateFileDialogs.Audio", new IMAGE_BRUSH("SlateFileDialogs/Icons/icon_audio_24x", Icon16x16));
+	Style->Set("SlateFileDialogs.Image", new IMAGE_BRUSH("SlateFileDialogs/Icons/icon_image_24x", Icon16x16));
+	Style->Set("SlateFileDialogs.TextFile", new IMAGE_BRUSH("SlateFileDialogs/Icons/icon_text_24x", Icon16x16));
+	Style->Set("SlateFileDialogs.PlaceHolder", new IMAGE_BRUSH("SlateFileDialogs/Icons/icon_skull_16x", Icon16x16));
+
 
 	Style->Set( "SlateFileDialogs.PathDelimiter", new IMAGE_BRUSH( "SlateFileDialogs/Common/SmallArrowRight", Icon10x10 ) );
 

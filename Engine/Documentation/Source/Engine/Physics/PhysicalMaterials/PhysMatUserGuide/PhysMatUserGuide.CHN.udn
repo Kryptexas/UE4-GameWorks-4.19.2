@@ -65,7 +65,7 @@ This document will cover the creation and usage of **Physical Materials** as wel
 
 1. **Click Save** ![](Shared\Icons\icon_SaveAsset_40x.png)
 
-See the [Physical Material Reference](Engine/Physics\PhysicalMaterials\PhysMatReference) for information on the properties in the Physical Material.
+See the [Physical Material Reference](Engine/Physics\PhysicalMaterials\Reference) for information on the properties in the Physical Material.
 
 ### Surface Type
 

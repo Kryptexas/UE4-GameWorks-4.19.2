@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "GitSourceControlPrivatePCH.h"
 #include "GitSourceControlUtils.h"
@@ -117,6 +117,14 @@ FString FindGitBinaryPath()
 	{
 		// otherwise check the 32-bit program files directory.
 		GitBinaryPath = TEXT("C:/Program Files (x86)/Git/bin/git.exe");
+		bFound = CheckGitAvailability(GitBinaryPath);
+	}
+	if(!bFound)
+	{
+		// else the install dir for the current user: C:\Users\UserName\AppData\Local\Programs\Git\cmd
+		TCHAR AppDataLocalPath[4096];
+		FPlatformMisc::GetEnvironmentVariable(TEXT("LOCALAPPDATA"), AppDataLocalPath, ARRAY_COUNT(AppDataLocalPath));
+		GitBinaryPath = FString::Printf(TEXT("%s/Programs/Git/cmd/git.exe"), AppDataLocalPath);
 		bFound = CheckGitAvailability(GitBinaryPath);
 	}
 

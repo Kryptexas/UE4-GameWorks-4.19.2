@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
 #include "Sequencer.h"
@@ -62,7 +62,7 @@ void FSequencerEntityWalker::HandleNode(const ISequencerEntityVisitor& Visitor, 
 {
 	if (InNode.GetType() == ESequencerNode::Track)
 	{
-		HandleNode(Visitor, InNode, static_cast<FTrackNode&>(InNode).GetSections());
+		HandleNode(Visitor, InNode, static_cast<FSequencerTrackNode&>(InNode).GetSections());
 	}
 
 	if (InNode.IsExpanded())
@@ -102,12 +102,12 @@ void FSequencerEntityWalker::HandleNode(const ISequencerEntityVisitor& Visitor, 
 		bool bNodeHasKeyArea = false;
 		if (InNode.GetType() == ESequencerNode::KeyArea)
 		{
-			HandleKeyAreaNode(Visitor, static_cast<FSectionKeyAreaNode&>(InNode), InNode, InSections);
+			HandleKeyAreaNode(Visitor, static_cast<FSequencerSectionKeyAreaNode&>(InNode), InNode, InSections);
 			bNodeHasKeyArea = true;
 		}
 		else if (InNode.GetType() == ESequencerNode::Track)
 		{
-			TSharedPtr<FSectionKeyAreaNode> SectionKeyNode = static_cast<FTrackNode&>(InNode).GetTopLevelKeyNode();
+			TSharedPtr<FSequencerSectionKeyAreaNode> SectionKeyNode = static_cast<FSequencerTrackNode&>(InNode).GetTopLevelKeyNode();
 			if (SectionKeyNode.IsValid())
 			{
 				HandleKeyAreaNode(Visitor, *SectionKeyNode, InNode, InSections);
@@ -154,7 +154,7 @@ void FSequencerEntityWalker::HandleNode(const ISequencerEntityVisitor& Visitor, 
 	}
 }
 
-void FSequencerEntityWalker::HandleKeyAreaNode(const ISequencerEntityVisitor& Visitor, FSectionKeyAreaNode& InKeyAreaNode, FSequencerDisplayNode& InOwnerNode, const TArray<TSharedRef<ISequencerSection>>& InSections)
+void FSequencerEntityWalker::HandleKeyAreaNode(const ISequencerEntityVisitor& Visitor, FSequencerSectionKeyAreaNode& InKeyAreaNode, FSequencerDisplayNode& InOwnerNode, const TArray<TSharedRef<ISequencerSection>>& InSections)
 {
 	for( int32 SectionIndex = 0; SectionIndex < InSections.Num(); ++SectionIndex )
 	{

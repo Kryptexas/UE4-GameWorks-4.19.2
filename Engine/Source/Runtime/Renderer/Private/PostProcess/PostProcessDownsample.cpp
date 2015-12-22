@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessDownsample.cpp: Post processing down sample implementation.
@@ -35,6 +35,7 @@ class FPostProcessDownsamplePS : public FGlobalShader
 public:
 	FPostProcessPassParameters PostprocessParameter;
 	FDeferredPixelShaderParameters DeferredParameters;
+	FShaderParameter DownsampleParams;
 
 	/** Initialization constructor. */
 	FPostProcessDownsamplePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -42,23 +43,37 @@ public:
 	{
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 		DeferredParameters.Bind(Initializer.ParameterMap);
+		DownsampleParams.Bind(Initializer.ParameterMap, TEXT("DownsampleParams"));
 	}
 
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << DeferredParameters;
+		Ar << PostprocessParameter << DeferredParameters << DownsampleParams;
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context)
+	void SetParameters(const FRenderingCompositePassContext& Context, const FPooledRenderTargetDesc* InputDesc)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
 		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+
+		// filter only if needed for better performance
+		FSamplerStateRHIParamRef Filter = (Method == 2) ? 
+			TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI():
+			TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
+		
+		{
+			float PixelScale = (Method == 2) ? 0.5f : 1.0f;
+ 
+			FVector4 DownsampleParamsValue(PixelScale / InputDesc->Extent.X, PixelScale / InputDesc->Extent.Y, 0, 0);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, DownsampleParams, DownsampleParamsValue);
+		}
+
+		PostprocessParameter.SetPS(ShaderRHI, Context, Filter);
 	}
 
 	static const TCHAR* GetSourceFilename()
@@ -136,26 +151,23 @@ FRCPassPostProcessDownsample::FRCPassPostProcessDownsample(EPixelFormat InOverri
 
 
 template <uint32 Method>
-void FRCPassPostProcessDownsample::SetShader(const FRenderingCompositePassContext& Context)
+void FRCPassPostProcessDownsample::SetShader(const FRenderingCompositePassContext& Context, const FPooledRenderTargetDesc* InputDesc)
 {
 	auto ShaderMap = Context.GetShaderMap();
 	TShaderMapRef<FPostProcessDownsampleVS> VertexShader(ShaderMap);
 	TShaderMapRef<FPostProcessDownsamplePS<Method> > PixelShader(ShaderMap);
 
 	static FGlobalBoundShaderState BoundShaderState;
-	
 
 	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	PixelShader->SetParameters(Context);
+	PixelShader->SetParameters(Context, InputDesc);
 	VertexShader->SetParameters(Context);
 }
 
 
 void FRCPassPostProcessDownsample::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(Context.RHICmdList, Downsample);
-
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
 	if(!InputDesc)
@@ -173,10 +185,16 @@ void FRCPassPostProcessDownsample::Process(FRenderingCompositePassContext& Conte
 	// e.g. 4 means the input texture is 4x smaller than the buffer size
 	uint32 ScaleFactor = FSceneRenderTargets::Get(Context.RHICmdList).GetBufferSizeXY().X / SrcSize.X;
 
+	FIntRect SrcRect = View.ViewRect / ScaleFactor;
+	FIntRect DestRect = FIntRect::DivideAndRoundUp(SrcRect, 2);
+	SrcRect = DestRect * 2;
+
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, Downsample, TEXT("Downsample %dx%d"), DestRect.Width(), DestRect.Height());
+
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
 	// Set the view family's render target/viewport.
-	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
+	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EExistingColorAndDepth);
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
 
@@ -192,18 +210,18 @@ void FRCPassPostProcessDownsample::Process(FRenderingCompositePassContext& Conte
 	{
 		// also put depth in alpha
 		InflateSize = 2;
-		SetShader<2>(Context);
+		SetShader<2>(Context, InputDesc);
 	}
 	else
 	{
 		if (Quality == 0)
 		{
-			SetShader<0>(Context);
+			SetShader<0>(Context, InputDesc);
 			InflateSize = 1;
 		}
 		else
 		{
-			SetShader<1>(Context);
+			SetShader<1>(Context, InputDesc);
 			InflateSize = 2;
 		}
 	}
@@ -220,10 +238,6 @@ void FRCPassPostProcessDownsample::Process(FRenderingCompositePassContext& Conte
 	}
 
 	TShaderMapRef<FPostProcessDownsampleVS> VertexShader(Context.GetShaderMap());
-
-	FIntRect SrcRect = View.ViewRect / ScaleFactor;
-	FIntRect DestRect = FIntRect::DivideAndRoundUp(SrcRect, 2);
-	SrcRect = DestRect * 2;
 
 	if (!bHasCleared)
 	{

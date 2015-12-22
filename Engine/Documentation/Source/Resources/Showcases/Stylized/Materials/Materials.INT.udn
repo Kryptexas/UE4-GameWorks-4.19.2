@@ -5,6 +5,7 @@ Description:An overview of the special case Materials used in the Stylized Rende
 Related: Engine/Rendering/Materials
 Related: Engine/Rendering/Materials/MaterialInstances
 Related: Engine/Rendering/PostProcessEffects
+Version: 4.9
 
 There are some special techniques which have been applied to Materials in the scene to help give the impression that this is a painted work of art come to life. Two key examples are the "floating brush stroke" effect that can be seen around the treetops, and another is the 2D-style foliage that always orients toward the player.
 
@@ -33,14 +34,18 @@ The critical part of the network is the DitherTemporalAA Material Function. This
 
 Here is the tree with and without the use of the DitherTemporalAA node:
 
-[REGION:imagetable]
-|![](DitheredStrokes.png)(%Dither%)|![](NonDitheredStrokes.png)(%Dither%)|
-|:---:|:---:|
-|With DitherTemporalAA|Without DitherTemporalAA|
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![With DitherTemporalAA](DitheredStrokes.png)(%Dither%)
+	[/PARAM]
+	[PARAM:after]
+	![Without DitherTemporalAA](NonDitheredStrokes.png)(%Dither%)
+	[/PARAM]
+[/OBJECT]
+
 
 [VAR:Dither]
-w:450
+w:600
 [/VAR]
 
 However, it should be noted that this technique requires the use of **TemporalAA**, which is an engine feature that _is active by default_. It can be overridden within a Post Process Volume via the **AA Method** property, which is found under the _Misc_ category.

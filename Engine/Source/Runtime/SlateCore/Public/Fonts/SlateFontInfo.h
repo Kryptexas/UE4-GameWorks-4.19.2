@@ -1,10 +1,30 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "Templates/TypeHash.h"
 #include "CompositeFont.h"
 #include "SlateFontInfo.generated.h"
+
+
+/**
+ * Sets the maximum font fallback level, for when a character can't be found in the selected font set.
+ *
+ * UI code that renders strings from a third party (e.g. player chat in a multiplayer game), should restrict font fallback to localized,
+ * (or to no fallback, if international font isn't important), to prevent potential performance problems.
+ */
+UENUM()
+enum class EFontFallback : uint8
+{
+	/** No fallback font */
+	FF_NoFallback,
+	/** Fallback to localized font set */
+	FF_LocalizedFallback,
+	/** Fallback to last resort font set */
+	FF_LastResortFallback,
+	/** Tries all fallbacks */
+	FF_Max
+};
 
 /**
  * A representation of a font in Slate.
@@ -42,6 +62,11 @@ private:
 	/** The hinting algorithm to use with the font */
 	UPROPERTY()
 	EFontHinting Hinting_DEPRECATED;
+
+public:
+
+	/** The font fallback level. Runtime only, don't set on shared FSlateFontInfo, as it may change the font elsewhere (make a copy). */
+	EFontFallback FontFallback;
 
 public:
 

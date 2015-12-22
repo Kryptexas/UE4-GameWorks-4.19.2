@@ -3,6 +3,7 @@ Title: Adjusting Engine Feature Levels
 Crumbs: %ROOT%, Engine
 Description:How to change features with console variables and commands or command line arguments.
 Navigation:topic
+version: 4.9
 
 
 ## Console Variables and Commands
@@ -26,7 +27,7 @@ The most useful ones for profiling:
 | **r.VisualizeOccludedPrimitives** | Displays the bounding boxes of occluded primitives.|
 | **StartFPSChart** **StopFPSChart** | See below.|
 | **r.SeparateTranslucency** | The feature fixes translucency with depth of field, can be disabled if not needed, has other implications (reading SceneColor).|
-| **r.TonemapperQuality** | To disable the noise we add in the tonemapper to avoid color banding because of 8bit quantization, minor quality improvement, not needed when we output in 10:10:10.|
+| **r.Tonemapper.GrainQuantization** | To disable the noise we add in the tonemapper to avoid color banding because of 8bit quantization, minor quality improvement, not needed when we output in 10:10:10.|
 | **r.SceneColorFormat** | Allows to use a different scenecolor format (default is 64bit for best quality and to support screenspace subsurface scattering).|
 | **FX.AllowGPUSorting** | To disable particle sorting (pays off when used for a lot of particles).|
 | **FX.FreezeParticleSimulation** | To disable the particle updates.|
@@ -36,7 +37,7 @@ The most useful ones for profiling:
 
 ## Command Line Options
 
-Certain features can be disabled on the command line e.g. **UE4.exe -NoSound**
+Certain features can be disabled on the command line e.g. **_UE4.exe -NoSound_**
 The most useful ones for profiling:
 
 | Commandline Option | Description |

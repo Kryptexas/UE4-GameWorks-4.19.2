@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	EditorFactories.cpp: Editor class factories.
@@ -105,7 +105,8 @@
 #include "Engine/DataTable.h"
 #include "DataTableEditorUtils.h"
 #include "Editor/KismetCompiler/Public/KismetCompilerModule.h"
-
+#include "Factories/SubUVAnimationFactory.h"
+#include "Particles/SubUVAnimation.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
@@ -375,6 +376,9 @@ UObject* ULevelFactory::FactoryCreateText
 	// Maintain a lookup for the new actors, keyed by their source FName.
 	TMap<FName, AActor*> NewActorsFNames;
 
+	// Maintain a lookup from existing to new actors, used when replacing internal references when copy+pasting / duplicating
+	TMap<AActor*, AActor*> ExistingToNewMap;
+
 	// Maintain a lookup of the new actors to their parent and socket attachment if provided.
 	struct FAttachmentDetail
 	{
@@ -616,6 +620,10 @@ UObject* ULevelFactory::FactoryCreateText
 							if( ActorSourceName!=NAME_None )
 							{
 								NewActorsFNames.Add( ActorSourceName, NewActor );
+								if (Found)
+								{
+									ExistingToNewMap.Add(Found, NewActor);
+								}
 							}
 
 							// Store the new actor with its parent's FName, and socket FName if applicable
@@ -795,7 +803,7 @@ UObject* ULevelFactory::FactoryCreateText
 			if ( Actor->ShouldImport(PropText, bIsMoveToStreamingLevel) )
 			{
 				Actor->PreEditChange(nullptr);
-				ImportObjectProperties( (uint8*)Actor, **PropText, Actor->GetClass(), Actor, Actor, Warn, 0, INDEX_NONE, NULL, &NewActorsFNames );
+				ImportObjectProperties( (uint8*)Actor, **PropText, Actor->GetClass(), Actor, Actor, Warn, 0, INDEX_NONE, NULL, &ExistingToNewMap );
 				bActorChanged = true;
 
 				GEditor->SelectActor( Actor, true, false, true );
@@ -2407,6 +2415,25 @@ UObject* USoundAttenuationFactory::FactoryCreateNew( UClass* Class, UObject* InP
 }
 
 /*------------------------------------------------------------------------------
+USoundConcurrencyFactory.
+------------------------------------------------------------------------------*/
+USoundConcurrencyFactory::USoundConcurrencyFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+
+	SupportedClass = USoundConcurrency::StaticClass();
+	bCreateNew = true;
+	bEditorImport = false;
+	bEditAfterNew = true;
+}
+
+UObject* USoundConcurrencyFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+{
+	return NewObject<USoundConcurrency>(InParent, Name, Flags);
+}
+
+
+/*------------------------------------------------------------------------------
 	UParticleSystemFactoryNew.
 ------------------------------------------------------------------------------*/
 UParticleSystemFactoryNew::UParticleSystemFactoryNew(const FObjectInitializer& ObjectInitializer)
@@ -2421,6 +2448,33 @@ UParticleSystemFactoryNew::UParticleSystemFactoryNew(const FObjectInitializer& O
 UObject* UParticleSystemFactoryNew::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
 {
 	return NewObject<UObject>(InParent, Class, Name, Flags);
+}
+
+USubUVAnimationFactory::USubUVAnimationFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	bCreateNew = true;
+	bEditAfterNew = true;
+	SupportedClass = USubUVAnimation::StaticClass();
+}
+
+UObject* USubUVAnimationFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+{
+	USubUVAnimation* NewAsset = NewObject<USubUVAnimation>(InParent, Class, Name, Flags | RF_Transactional);
+
+	if ( InitialTexture != nullptr )
+	{
+		//@todo - auto-detect SubImages_Horizontal and SubImages_Vertical from texture contents
+		NewAsset->SubUVTexture = InitialTexture;
+		NewAsset->PostEditChange();
+	}
+
+	return NewAsset;
+}
+
+uint32 USubUVAnimationFactory::GetMenuCategories() const
+{
+	return EAssetTypeCategories::Misc;
 }
 
 /*------------------------------------------------------------------------------
@@ -3650,134 +3704,34 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 	//
 	// BMP
 	//
-	const FBitmapInfoHeader* bmhdr = (FBitmapInfoHeader *)(Buffer + sizeof(FBitmapFileHeader));
-	const FBitmapFileHeader* bmf   = (FBitmapFileHeader *)(Buffer + 0);
-	if( (Length>=sizeof(FBitmapFileHeader)+sizeof(FBitmapInfoHeader)) && Buffer[0]=='B' && Buffer[1]=='M' )
+	IImageWrapperPtr BmpImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::BMP);
+	if (BmpImageWrapper.IsValid() && BmpImageWrapper->SetCompressed(Buffer, Length))
 	{
-		UTexture2D* Texture = 0;
-
 		// Check the resolution of the imported texture to ensure validity
-		if ( !IsImportResolutionValid(bmhdr->biWidth, bmhdr->biHeight, bAllowNonPowerOfTwo, Warn) )
+		if (!IsImportResolutionValid(BmpImageWrapper->GetWidth(), BmpImageWrapper->GetHeight(), bAllowNonPowerOfTwo, Warn))
 		{
 			return nullptr;
 		}
-		if( bmhdr->biCompression != BCBI_RGB )
+
+		UTexture2D* Texture = CreateTexture2D(InParent, Name, Flags);
+		if (Texture)
 		{
-			Warn->Logf(ELogVerbosity::Error, TEXT("RLE compression of BMP images not supported") );
-			return nullptr;
-		}
-		if( bmhdr->biPlanes==1 && bmhdr->biBitCount==8 )
-		{
-			Texture = CreateTexture2D( InParent, Name, Flags );
-			if ( Texture )
+			// Set texture properties.
+			Texture->Source.Init(
+				BmpImageWrapper->GetWidth(),
+				BmpImageWrapper->GetHeight(),
+				/*NumSlices=*/ 1,
+				/*NumMips=*/ 1,
+				TSF_BGRA8
+				);
+
+			const TArray<uint8>* RawBMP = nullptr;
+			if (BmpImageWrapper->GetRaw(BmpImageWrapper->GetFormat(), BmpImageWrapper->GetBitDepth(), RawBMP))
 			{
-				// Do palette.
-				const uint8* bmpal = (uint8*)Buffer + sizeof(FBitmapFileHeader) + sizeof(FBitmapInfoHeader);
-
-				// Set texture properties.
-				Texture->Source.Init(
-					bmhdr->biWidth,
-					bmhdr->biHeight,
-					/*NumSlices=*/ 1,
-					/*NumMips=*/ 1,
-					TSF_BGRA8
-					);
-				FColor* MipData = (FColor*)Texture->Source.LockMip(0);
-
-				// If the number for color palette entries is 0, we need to default to 2^biBitCount entries.  In this case 2^8 = 256
-				int32 clrPaletteCount = bmhdr->biClrUsed ? bmhdr->biClrUsed : 256;
-				TArray<FColor>	Palette;
-				for( int32 i=0; i<clrPaletteCount; i++ )
-					Palette.Add(FColor( bmpal[i*4+2], bmpal[i*4+1], bmpal[i*4+0], 255 ));
-				while( Palette.Num()<256 )
-					Palette.Add(FColor(0,0,0,255));
-
-				// Copy upside-down scanlines.
-				int32 SizeX = Texture->Source.GetSizeX();
-				int32 SizeY = Texture->Source.GetSizeY();
-				for(uint32 Y = 0;Y < bmhdr->biHeight;Y++)
-				{
-					for(uint32 X = 0;X < bmhdr->biWidth;X++)
-					{
-						MipData[(SizeY - Y - 1) * SizeX + X] = Palette[*((uint8*)Buffer + bmf->bfOffBits + Y * Align(bmhdr->biWidth,4) + X)];
-					}
-				}
-				Texture->Source.UnlockMip(0);
-			}
-		}
-		else if( bmhdr->biPlanes==1 && bmhdr->biBitCount==24 )
-		{
-			Texture = CreateTexture2D( InParent, Name, Flags );
-			if ( Texture )
-			{
-				// Set texture properties.
-				Texture->Source.Init(
-					bmhdr->biWidth,
-					bmhdr->biHeight,
-					/*NumSlices=*/ 1,
-					/*NumMips=*/ 1,
-					TSF_BGRA8
-					);
 				uint8* MipData = Texture->Source.LockMip(0);
-
-				// Copy upside-down scanlines.
-				const uint8* Ptr = (uint8*)Buffer + bmf->bfOffBits;
-				for( int32 y=0; y<(int32)bmhdr->biHeight; y++ ) 
-				{
-					uint8* DestPtr = &MipData[(bmhdr->biHeight - 1 - y) * bmhdr->biWidth * 4];
-					uint8* SrcPtr = (uint8*) &Ptr[y * Align(bmhdr->biWidth*3,4)];
-					for( int32 x=0; x<(int32)bmhdr->biWidth; x++ )
-					{
-						*DestPtr++ = *SrcPtr++;
-						*DestPtr++ = *SrcPtr++;
-						*DestPtr++ = *SrcPtr++;
-						*DestPtr++ = 0xFF;
-					}
-				}
+				FMemory::Memcpy(MipData, RawBMP->GetData(), RawBMP->Num());
 				Texture->Source.UnlockMip(0);
 			}
-		}
-		else if( bmhdr->biPlanes==1 && bmhdr->biBitCount==32 )
-		{
-			Texture = CreateTexture2D( InParent, Name, Flags );
-			if ( Texture )
-			{
-				// Set texture properties.
-				Texture->Source.Init(
-					bmhdr->biWidth,
-					bmhdr->biHeight,
-					/*NumSlices=*/ 1,
-					/*NumMips=*/ 1,
-					TSF_BGRA8
-					);
-				uint8* MipData = Texture->Source.LockMip(0);
-
-				// Copy upside-down scanlines.
-				const uint8* Ptr = (uint8*)Buffer + bmf->bfOffBits;
-				for( int32 y=0; y<(int32)bmhdr->biHeight; y++ ) 
-				{
-					uint8* DestPtr = &MipData[(bmhdr->biHeight - 1 - y) * bmhdr->biWidth * 4];
-					uint8* SrcPtr = (uint8*) &Ptr[y * bmhdr->biWidth * 4];
-					for( int32 x=0; x<(int32)bmhdr->biWidth; x++ )
-					{
-						*DestPtr++ = *SrcPtr++;
-						*DestPtr++ = *SrcPtr++;
-						*DestPtr++ = *SrcPtr++;
-						*DestPtr++ = *SrcPtr++;
-					}
-				}
-				Texture->Source.UnlockMip(0);
-			}
-		}
-		else if( bmhdr->biPlanes==1 && bmhdr->biBitCount==16 )
-		{
-			Warn->Logf(ELogVerbosity::Error, TEXT("BMP 16 bit format no longer supported. Use terrain tools for importing/exporting heightmaps.") );
-			return nullptr;
-		}
-		else
-		{
-			Warn->Logf(ELogVerbosity::Error, TEXT("BMP uses an unsupported format (%i/%i)"), bmhdr->biPlanes, bmhdr->biBitCount );
-			return nullptr;
 		}
 
 		return Texture;
@@ -3916,10 +3870,18 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 	const FTGAFileHeader*    TGA   = (FTGAFileHeader *)Buffer;
 	if (Length >= sizeof(FTGAFileHeader) &&
 			 ((TGA->ColorMapType == 0 && TGA->ImageTypeCode == 2) ||
+			  // ImageTypeCode 3 is greyscale
+			  (TGA->ColorMapType == 0 && TGA->ImageTypeCode == 3) ||
 			  (TGA->ColorMapType == 0 && TGA->ImageTypeCode == 10) ||
 			  (TGA->ColorMapType == 1 && TGA->ImageTypeCode == 1 && TGA->BitsPerPixel == 8)))
 	{
 		UTexture2D* Texture = 0;
+
+		if (TGA->ColorMapType == 0 && TGA->ImageTypeCode == 3)
+		{
+			Warn->Logf(ELogVerbosity::Error, *NSLOCTEXT("UnrealEd", "Warning_TGAGreyscale", "TGA Greyscale import not supported, use RGB").ToString() );
+			return nullptr;
+		}
 
 		// Check the resolution of the imported texture to ensure validity
 		if ( !IsImportResolutionValid(TGA->Width, TGA->Height, bAllowNonPowerOfTwo, Warn) )
@@ -4060,9 +4022,6 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 
 			// for now we don't support mip map generation on cubemaps
 			TextureCube->MipGenSettings = TMGS_LeaveExistingMips;
-
-			// generates the mips from the source art
-			TextureCube->PostEditChange();
 		}
 
 		return TextureCube;
@@ -4103,11 +4062,9 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 
 				if(Texture->HasHDRSource())
 				{
+					// the loader can suggest a compression setting
 					Texture->CompressionSettings = TC_HDR;
 				}
-
-				// generates the mips from the source art
-				Texture->PostEditChange();
 			}
 
 			return Texture;
@@ -4135,8 +4092,8 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 				TSF_BGRE8,
 				HDRDDSLoadHelper.GetDDSDataPointer()
 				);
+			// the loader can suggest a compression setting
 			TextureCube->CompressionSettings = TC_HDR;
-			TextureCube->PostEditChange();
 		}
 
 		return TextureCube;
@@ -4172,7 +4129,6 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 				MipGenSettings = TMGS_NoMipmaps;
 				Texture->Brightness = IESLoadHelper.GetBrightness();
 				Texture->TextureMultiplier = Multiplier;
-				Texture->PostEditChange();
 			}
 
 			return Texture;
@@ -4378,7 +4334,13 @@ UObject* UTextureFactory::FactoryCreateBinary
 	Texture->CompressionNoAlpha		= NoAlpha;
 	Texture->DeferCompression		= bDeferCompression;
 	Texture->bDitherMipMapAlpha		= bDitherMipMapAlpha;
-	Texture->MipGenSettings			= MipGenSettings;
+	
+	if(Texture->MipGenSettings == TMGS_FromTextureGroup)
+	{
+		// unless the loader suggest a different setting
+		Texture->MipGenSettings = MipGenSettings;
+	}
+	
 	Texture->bPreserveBorder		= bPreserveBorder;
 
 	Texture->AssetImportData->Update(CurrentFilename);
@@ -5578,7 +5540,14 @@ bool UReimportFbxStaticMeshFactory::CanReimport( UObject* Obj, TArray<FString>& 
 	if(Mesh)
 	{
 		if ( Mesh->AssetImportData )
-		{		
+		{
+			UFbxAssetImportData *FbxAssetImportData = Cast<UFbxAssetImportData>(Mesh->AssetImportData);
+			if (FbxAssetImportData != nullptr && FbxAssetImportData->bImportAsScene)
+			{
+				//This mesh was import with a scene import, we cannot reimport it
+				return false;
+			}
+
 			OutFilenames.Add(Mesh->AssetImportData->GetFirstFilename());
 		}
 		else
@@ -5677,13 +5646,13 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 			{
 				for (int32 Idx = 0; Idx < UserData->Num(); Idx++)
 				{
-					UserDataCopy.Add((UAssetUserData*)StaticDuplicateObject((*UserData)[Idx], GetTransientPackage(), nullptr));
+					UserDataCopy.Add((UAssetUserData*)StaticDuplicateObject((*UserData)[Idx], GetTransientPackage()));
 				}
 			}
 
 			// preserve settings in navcollision subobject
 			UNavCollision* NavCollision = Mesh->NavCollision ? 
-				(UNavCollision*)StaticDuplicateObject(Mesh->NavCollision, GetTransientPackage(), nullptr) :
+				(UNavCollision*)StaticDuplicateObject(Mesh->NavCollision, GetTransientPackage()) :
 				nullptr;
 
 			// preserve extended bound settings
@@ -6390,12 +6359,11 @@ FString UBlueprintInterfaceFactory::GetDefaultNewAssetName() const
 UCurveFactory::UCurveFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-
 	bCreateNew = true;
 	bEditAfterNew = true;
 	SupportedClass = UCurveBase::StaticClass();
 
-	CurveClass = UCurveFloat::StaticClass();
+	CurveClass = nullptr;
 }
 
 class FCurveDataAssetParentFilter : public IClassViewerFilter
@@ -6468,13 +6436,43 @@ UObject* UCurveFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName
 UCurveFloatFactory::UCurveFloatFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	bCreateNew = true;
-	bEditAfterNew = true;
 	SupportedClass = UCurveFloat::StaticClass();
 	CurveClass = UCurveFloat::StaticClass();
 }
 
 bool UCurveFloatFactory::ConfigureProperties()
+{
+	return true;
+}
+
+/*------------------------------------------------------------------------------
+	UCurveLinearColorFactory implementation.
+------------------------------------------------------------------------------*/
+
+UCurveLinearColorFactory::UCurveLinearColorFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SupportedClass = UCurveLinearColor::StaticClass();
+	CurveClass = UCurveLinearColor::StaticClass();
+}
+
+bool UCurveLinearColorFactory::ConfigureProperties()
+{
+	return true;
+}
+
+/*------------------------------------------------------------------------------
+	UCurveVectorFactory implementation.
+------------------------------------------------------------------------------*/
+
+UCurveVectorFactory::UCurveVectorFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SupportedClass = UCurveVector::StaticClass();
+	CurveClass = UCurveVector::StaticClass();
+}
+
+bool UCurveVectorFactory::ConfigureProperties()
 {
 	return true;
 }

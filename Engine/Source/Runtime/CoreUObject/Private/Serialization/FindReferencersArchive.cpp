@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
 
@@ -12,7 +12,7 @@
  * @param	InTargetObjects			array of objects to search for references to
  * @param	bFindAlsoWeakReferences should we also look into weak references?
  */
-FFindReferencersArchive::FFindReferencersArchive(UObject* InPotentialReferencer, TArray<UObject*> InTargetObjects, bool bFindAlsoWeakReferences)
+FFindReferencersArchive::FFindReferencersArchive(UObject* InPotentialReferencer, const TArray<UObject*>& InTargetObjects, bool bFindAlsoWeakReferences)
 {
 	// use the optimized RefLink to skip over properties which don't contain object references
 	ArIsObjectReferenceCollector = true;

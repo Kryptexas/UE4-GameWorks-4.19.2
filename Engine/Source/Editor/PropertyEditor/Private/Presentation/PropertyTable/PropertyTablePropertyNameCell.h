@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "IPropertyTableCell.h"
@@ -11,7 +11,7 @@ public:
 
 	FPropertyTablePropertyNameCell( const TSharedRef< class FPropertyTablePropertyNameColumn >& InColumn, const TSharedRef< class IPropertyTableRow >& InRow );
 
-	// Begin IPropertyTableCell Interface
+	//~ Begin IPropertyTableCell Interface
 
 	virtual void EnterEditMode() override;
 
@@ -49,7 +49,7 @@ public:
 
 	virtual void SetValueFromString( const FString& InString ) override {}
 
-	// End IPropertyTableCell Interface
+	//~ End IPropertyTableCell Interface
 
 private:
 

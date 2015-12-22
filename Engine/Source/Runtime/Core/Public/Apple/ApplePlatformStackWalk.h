@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================================
 	ApplePlatformStackWalk.h: Apple platform stack walk functions
@@ -6,10 +6,6 @@
 
 #pragma once
 #include "GenericPlatform/GenericPlatformStackWalk.h"
-
-#undef PLATFORM_SUPPORTS_STACK_SYMBOLS
-#define PLATFORM_SUPPORTS_STACK_SYMBOLS 1
-
 
 /**
  * Apple platform implementation of the misc OS functions

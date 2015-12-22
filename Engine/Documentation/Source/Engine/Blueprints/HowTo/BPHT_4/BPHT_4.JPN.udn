@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2492313
+﻿INTSourceChangelist:2686156
 Availability:Public
 Title:4.情報をレベルから Character に渡す
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
-Description:Level ブループリント を使用して、スポーン ポイントの位置を取得して、その情報を Character ブループリントに渡すステップです。 
+Description:Level ブループリント を使用して、スポーン ポイントの位置を取得して、その情報を Character ブループリントに渡してみましょう。 
+Version:4.9
 
 
 [VAR:Steps]
@@ -24,7 +25,7 @@ Description:Level ブループリント を使用して、スポーン ポイン
 %Steps%
 
 
-1. メイン ツールバー で **[Blueprints]** ボタンをクリックして、 **[Open Level Blueprint]** を選択します。 
+1. メイン ツールバーで **[Blueprints]** ボタンをクリックして、**[Open Level Blueprint (Level ブループリントを開く)]** を選択します。 
 
 	![](OpenLevelBlueprint.png)
 
@@ -48,7 +49,7 @@ Description:Level ブループリント を使用して、スポーン ポイン
 
 	プレイヤーが使用する **FirstPersonCharacter** ブループリントへのリファレンスを維持するための変数を作成して、Cast を毎回使わなくても済むようにします。Event Begin Play でこの処理をすると、後に時間が節約できます。 
 
-1. 昇格した変数を選択して **[Details]** パネルで名前を「 **MyCharacter** 」に変更し、Boolean 型であることを確認します。 
+1. 昇格した変数を選択して **[Details (詳細)]** パネルで名前を「 **MyCharacter** 」に変更し、Boolean 型であることを確認します。 
 
 	![](RenamedMyCharacter.png)
 
@@ -56,7 +57,7 @@ Description:Level ブループリント を使用して、スポーン ポイン
 
 	![](AssignSpawnLocation.png)
 
-	これが作成された **Event Dispatcher** です。これを選択すると、ノードが 2 つ追加されます。 
+	これが作成された **イベント ディスパッチャー** です。これを選択すると、ノードが 2 つ追加されます。 
 
 	[REGION:note]
 	リストにこのノードがない場合は、 **FirstPersonCharacter** ブループリントで **[Compile]** を必ずクリックして、再度確認してみてください。 
@@ -72,11 +73,11 @@ Description:Level ブループリント を使用して、スポーン ポイン
 
 	![](SetSpawnLocation.png)
 
-1. [Main Editor] ウィンドウに戻り、 **ワールド アウトライナー** で **Target Point** を検索して 1 つずつ選択します。 
+1. メインのエディタ ウィンドウに戻り、 **ワールド アウトライナー** で **Target Point** を検索して 1 つずつ選択します。 
 
 	![](SelectAllTargetPoints.png)
 
-1. **Level ブループリント** に戻り、グラフ内を **右クリック** し **[Create References to 3 selected Actors]** オプションを選びます。 
+1. **Level ブループリント** に戻り、グラフ内を **右クリック** し **[Create References to 3 selected Actors (選択した 3 つのアクタにリファレンスを作成)]** オプションを選びます。 
 
 	![](AddReferences.png)
 
@@ -84,15 +85,15 @@ Description:Level ブループリント を使用して、スポーン ポイン
 
 	![](MakeArray.png)
 
-	**[Add Pin]** ボタンをクリックすれば、ピンを追加することができます。この配列は、アクセスできる Target Point のコレクションを格納します。 
+	**[Add Pin (ピンを追加)]** ボタンをクリックすれば、ピンを追加することができます。この配列は、アクセス可能なターゲットポイントのコレクションを格納します。 
 
 1.	**Array** ピンを引き出して **Get** ノードを追加します。 
 
-1.	**Get** ノードを引き出して、 **Random Integer in Range** ノードを追加し、 **Min** を **0** に、 **Max** を **2** に設定します。 
+1.	**Get** ノードを引き出して、 **Random Integer in Range** ノードを追加し、 **[Min]** を 0 に、 **[Max]** を 2 に設定します。 
 
 	![](GetNodeAdded.png)
 
-	ここで、スポーン ポイントとして使用するために、ランダムに Target Point を取得します。スポーン位置がもっと多い場合、それらを配列に追加して Range ノードの Random Integer の **Max** 値を増やせば、それらを含むことができます。 
+	ここで、スポーン ポイントとして使用するために、ランダムにターゲットポイントを取得します。スポーン位置がもっと多い場合、それらを配列に追加して Range ノードの Random Integer の **Max** 値を増やせば、それらを含むことができます。 
 
 1.	**Get** ノードを引き出して **Get Actor Transform** ノードを追加し、それを **Set Spawn Location** ノードに接続します。 
 
@@ -102,7 +103,7 @@ Description:Level ブループリント を使用して、スポーン ポイン
 
 	スクリプト全体は上の画面のようになるはずです。クリックすると拡大表示されます。 
 
-このページではかなりいろいろな事をやってみました！**Cast** ノードを使って Character ブループリントにアクセスしてから、その中にある Custom Event を Event Dispatcher につなげました。これにより、 Event Dispatcher が呼び出されると必ず Level ブループリントの Custom Event を実行することができます。そして、スポーン位置の 1 つをランダムに取得し、それを (岩をスポーンする位置に使用する) 変数 Spawn Location として Character ブループリントへ戻します。 
+このページではかなりいろいろな事をやってみました！**Cast** ノードを使って Character ブループリントにアクセスしてから、その中にある Custom Event をイベントディスパッチャーにつなげました。これにより、イベントディスパッチャーが呼び出されると必ず Level ブループリントの Custom Event を実行することができます。そして、スポーン位置の 1 つをランダムに取得し、それを (岩をスポーンする位置に使用する) 変数 Spawn Location として Character ブループリントへ戻します。 
 
 次のステップでは、Bind Event と **OnHit** というイベントを使って、岩を撃ち破壊できるようにします。 
 
@@ -119,6 +120,10 @@ Description:Level ブループリント を使用して、スポーン ポイン
 	<!-- old
 
 
+
+
+
+
 情報を **Character** ブループリントから HUD へパスする前に、幾つかのものを作成しておかなければなりません。ダメージのビジュアル ソースおよびダメージ/ヘルス システムそのものを作成する必要があります。プレイヤーのヘルス値を HUD にパスできる設定にしておくと、プレイヤーはヘルス値の残量およびヘルス値が減少しているかどうかを確認できます。
 
 [OBJECT:TopicList]
@@ -132,15 +137,15 @@ Description:Level ブループリント を使用して、スポーン ポイン
 
 1. **ゲーム / ブループリント** の **コンテンツ ブラウザ** から **MyCharacter** ブループリントを開きます。 
 
-1. **[Components]** タブから **[Add Component]** をクリックして **Particle System** コンポーネントを探して追加し、「 **Fire** 」と名付けます。 
+1. **[Components]** タブから **[Add Component (コンポーネントを追加)]** をクリックして **Particle System** コンポーネントを探して追加し、「**Fire**」と名付けます。 
 
 	![](BPHT4_4.png)
 
-1. **[Details]** パネルの **[Particles]** で、 **[None]** のドロップダウン メニューをクリックし **P_Fire** アセットを選択します。 
+1. **[Details]** パネルの **[Particles]** の **[None]** ドロップダウン メニューをクリックし **P_Fire** アセットを選択します。 
 
 	![](BPHT4_5.png)
 
-1. [Details] パネルで、 **[Auto Activate]** オプションのチェックも外します。 
+1. **[Details]** パネルで、 **[Auto Activate]** オプションのチェックも外します。 
 
 	![](BPHT4_6.png)
 
@@ -156,13 +161,13 @@ Description:Level ブループリント を使用して、スポーン ポイン
 
 	![](BPHT4_8.png)(w:740)
 
-	_新規の **Custom Event** に **OverlapFire** のエフェクトのような名前を付けます。_
+	_新規の **Custom Event** に **OverlapFire** のエフェクトを思わせる名前を付けます。_
 
-1. **[MyBlueprint]** ウィンドウで、 **Control** を押しながら **炎の** パーティクルエフェクトへドラッグしたら、 **Activate** ノードを探して追加します。 
+1. **[MyBlueprint]** ウィンドウで、 **Control** を押しながら **Fire** パーティクルエフェクトへドラッグしたら、 **Activate** ノードを探して追加します。 
 
 	![](BPHT4_9.png)
 
-1. **[MyBlueprint]** ウィンドウで、新規に **Bool** 変数を作成し、それを **isOnFire** と名付けます。 
+1. **[MyBlueprint]** ウィンドウで、新規に **Bool** 変数を作成し、それを「**isOnFire**」と名付けます。 
 
 	![](BPHT4_10.png)
 
@@ -227,7 +232,7 @@ Description:Level ブループリント を使用して、スポーン ポイン
 
 	![](BPHT4_18.png)
 
-	_これにより、プレイヤーに火が燃え移っている場合はヘルス値が 0 以下になり、 **「You're Dead!!」** というテキストが表示されます。_
+	_これにより、プレイヤーに火が燃え移っている場合はヘルス値が 0 以下になり、「**You're Dead!!**」というテキストが表示されます。_
 
 	_プレイヤーが燃えていて、ヘルス値が 0 を上回る場合は、 5 秒ごとにヘルス値が .05 減少してきます。_
 
@@ -266,33 +271,33 @@ Description:Level ブループリント を使用して、スポーン ポイン
 
 1. さらに **Palette/Common** セクションで、 **進捗バー** を **[Hierarchy]** ウィンドウの **CanvasPanel** へドラッグします。 
 
-1. **テキストブロック** を選択した状態で、 **[Details]** パネルの **[Text]** に **「Health :」** とテキスト入力し、 **[Size]** を大きくして **32** にします。 
+1. **テキストブロック** を選択した状態で、 **[Details]** パネルの **[Text]** に **「Health :」** とテキスト入力し、(お好みで) **[Size]** を大きくして **32** にします。 
 
 	![](BPHT4_22.png)
 
-1. **レイアウト** の **テキストブロック** の **[Details]** パネルでも **[Anchors]** ボタンをクリックして以下に示されるアンカーを選択します。 
+1. **レイアウト** の **テキストブロック** の **[Details]** パネルでも **[Anchors (アンカー)]** ボタンをクリックして以下に示されるアンカーを選択します。 
 
 	![](BPHT4_23.png)
 
-	_**Anchors** を使うと、画面表示のサイズ調整の際にウィジェットを指定位置に固定されます。_
+	_**[Anchors]** を使うと、画面表示のサイズ調整の際にウィジェットを指定位置に固定されます。_
 
 	[REGION:note]
 	**ウィジェット** と **Widget ブループリント** の使用方法に関しては、こちらを参照してください。[**Unreal Motion Graphics**](Engine/UMG)
 	[/REGION]
 
-1. グリッド上で、「 **Health** 」というテキストが画面の左上隅に近くなるように移動およびリサイズすることができます。 
+1. グリッド上で、「**Health**」というテキストが画面の左上隅に近くなるように移動およびリサイズすることができます。 
 
 	![](BPHT4_24.png)
 
-1. 進捗バーをクリックして「 **Health** 」というテキストと隣り合わせになるように移動 / リサイズします。 
+1. 進捗バーをクリックして「**Health**」というテキストと隣り合わせになるように移動 / リサイズします。 
 
 	![](BPHT4_25.png)
 
-1. 進捗バーの **[Details]** パネルのオプションの **[Fill Color and Opacity]** をクリックして、緑系の色に設定し、 **[OK]** をクリックして割り当てます。
+1. 進捗バーの **[Details]** パネルのオプションの **[Fill Color and Opacity (塗りつぶしの色と不透明度)]** をクリックして、緑系の色に設定し、 **[OK]** をクリックして割り当てます。
 
 	![](BPHT4_26.png)
 
-1. 進捗バーの **[Details]** パネルで、 **Percent** の横の **[Bind]** ボタンをクリックして **[Create Binding]** を選択します。 
+1. 進捗バーの **[Details]** パネルで、 **Percent** の横の **[Bind]** ボタンをクリックして **[Create Binding (バインドを作成)]** を選択します。 
 
 	![](BPHT4_27.png)
 
@@ -302,7 +307,7 @@ Description:Level ブループリント を使用して、スポーン ポイン
 
 1. **PlayerHealth** を **ReturnNode** の **ReturnValue** に接続し、ウィンドウの右上の **[Designer]** タブ ボタンをクリックします。 
 
-1. **Percent** セクションを再度確認して (まだバインドされていない場合は) 、 **[Bind]** をクリックして、作成されたばかりの新規関数を選択します。
+1. **Percent** セクションを再度確認して (まだバインドされていない場合は) 、**[Bind]** をクリックして、作成されたばかりの新規関数を選択します。
 
 	![](BPHT4_29.png)
 
@@ -328,7 +333,7 @@ Description:Level ブループリント を使用して、スポーン ポイン
 
 1. **TriggerBox** 用に **OnActorBeginOverlap** を追加します。 
 
-1. **Get Player Character** ノードと **Cast To MyCharacter** ノードを使って、 **As My Character C** を引き出して **炎を取得*** して **非アクティブ** にします。 
+1. **Get Player Character** ノードと **Cast To MyCharacter** ノードを使って、 **As My Character C** を引き出して **Get Fire*** と **Deactivate** につなぎます。 
 
 1. **As MyCharacter C** ピンから、 **As MyCharacter C** を **False** に設定します。 
 

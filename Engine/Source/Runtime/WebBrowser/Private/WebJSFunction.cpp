@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "WebBrowserPrivatePCH.h"
 #include "WebJSFunction.h"
@@ -19,10 +19,23 @@
 
 FWebJSParam::~FWebJSParam()
 {
-	// Since the FString member is in a union, it may or may not be valid, so we have to call its destructor manually.
-	if (Tag == PTYPE_STRING)
+	// Since the FString, StructWrapper, TArray, and TMap members are in a union, they may or may not be valid, so we have to call the destructors manually.
+	switch (Tag)
 	{
-		delete StringValue;
+		case PTYPE_STRING:
+			delete StringValue;
+			break;
+		case PTYPE_STRUCT:
+			delete StructValue;
+			break;
+		case PTYPE_ARRAY:
+			delete ArrayValue;
+			break;
+		case PTYPE_MAP:
+			delete MapValue;
+			break;
+		default:
+			break;
 	}
 }
 
@@ -49,19 +62,24 @@ FWebJSParam::FWebJSParam(const FWebJSParam& Other)
 			ObjectValue = Other.ObjectValue;
 			break;
 		case PTYPE_STRUCT:
-			StructValue.TypeInfo = Other.StructValue.TypeInfo;
-			StructValue.StructPtr = Other.StructValue.StructPtr;
+			StructValue = Other.StructValue->Clone();
+			break;
+		case PTYPE_ARRAY:
+			ArrayValue = new TArray<FWebJSParam>(*Other.ArrayValue);
+			break;
+		case PTYPE_MAP:
+			MapValue = new TMap<FString, FWebJSParam>(*Other.MapValue);
 			break;
 	}
 }
 
-void FWebJSFunction::Invoke(int32 ArgCount, FWebJSParam Arguments[]) const
+void FWebJSCallbackBase::Invoke(int32 ArgCount, FWebJSParam Arguments[], bool bIsError) const
 {
 #if WITH_CEF3
 	TSharedPtr<FWebJSScripting> Scripting = ScriptingPtr.Pin();
 	if (Scripting.IsValid())
 	{
-		Scripting->InvokeJSFunction(FunctionId, ArgCount, Arguments);
+		Scripting->InvokeJSFunction(CallbackId, ArgCount, Arguments, bIsError);
 	}
 #endif
 }

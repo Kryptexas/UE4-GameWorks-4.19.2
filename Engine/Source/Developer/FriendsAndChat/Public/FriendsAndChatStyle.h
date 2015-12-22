@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -48,49 +48,49 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 
 	// Common Style
 
-	/** Window edging style */
-	UPROPERTY(EditAnywhere, Category = Appearance)
-	FSlateBrush WindowEdgingBrush;
-	FFriendsAndChatStyle& SetWindowEdgingBrush(const FSlateBrush& Value);
-
-	UPROPERTY(EditAnywhere, Category = Appearance)
-	FMargin BorderPadding;
-	FFriendsAndChatStyle& SetBorderPadding(const FMargin& InBorderPadding);
-
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FScrollBarStyle ScrollBarStyle;
 	FFriendsAndChatStyle& SetScrollbarStyle(const FScrollBarStyle& InScrollBarStyle);
 
-	UPROPERTY(EditAnywhere, Category = Appearance)
-	FWindowStyle WindowStyle;
-	FFriendsAndChatStyle& SetWindowStyle(const FWindowStyle& InStyle);
-
 	/** SFriendActions Action Button style */
-	UPROPERTY()
+	UPROPERTY( EditAnywhere, Category = Appearance )
 	FButtonStyle ActionButtonStyle;
 	FFriendsAndChatStyle& SetActionButtonStyle(const FButtonStyle& ButtonStyle);
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FFriendsFontStyle FriendsSmallFontStyle;
+	FFriendsAndChatStyle& SetSmallFriendsFontStyle(const FFriendsFontStyle& FontStyle);
+
+	UPROPERTY( EditAnywhere, Category = Appearance )
 	FFriendsFontStyle FriendsNormalFontStyle;
 	FFriendsAndChatStyle& SetNormalFriendsFontStyle(const FFriendsFontStyle& FontStyle);
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FFriendsFontStyle FriendsLargeFontStyle;
+	FFriendsAndChatStyle& SetLargeFriendsFontStyle(const FFriendsFontStyle& FontStyle);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FCheckBoxStyle CheckBoxStyle;
+	FFriendsAndChatStyle& SetCheckBoxStyle(const FCheckBoxStyle& InCheckBoxStyle);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FCheckBoxStyle RadioBoxStyle;
+	FFriendsAndChatStyle& SetRadioBoxStyle(const FCheckBoxStyle& InRadioBoxStyle);
+
+
+	UPROPERTY( EditAnywhere, Category = Appearance )
 	FFriendsListStyle FriendsListStyle;
 	FFriendsAndChatStyle& SetFriendsListStyle(const FFriendsListStyle& InFriendsListStyle);
 
-	UPROPERTY()
-	FFriendsComboStyle FriendsComboStyle;
-	FFriendsAndChatStyle& SetFriendsComboStyle(const FFriendsComboStyle& InFriendsListStyle);
-
-	UPROPERTY()
+	UPROPERTY( EditAnywhere, Category = Appearance )
 	FFriendsChatStyle FriendsChatStyle;
 	FFriendsAndChatStyle& SetFriendsChatStyle(const FFriendsChatStyle& InFriendsChatStyle);
 
-	UPROPERTY()
+	UPROPERTY( EditAnywhere, Category = Appearance )
 	FFriendsChatChromeStyle FriendsChatChromeStyle;
 	FFriendsAndChatStyle& SetFriendsChatChromeStyle(const FFriendsChatChromeStyle& InFriendsChatChromeStyle);
 
-	UPROPERTY()
+	UPROPERTY( EditAnywhere, Category = Appearance )
 	FFriendsMarkupStyle FriendsMarkupStyle;
 	FFriendsAndChatStyle& SetFriendsMarkupStyle(const FFriendsMarkupStyle& InFriendsMarkupStyle);
 };
@@ -112,8 +112,6 @@ public:
 
 	static FName GetStyleSetName();
 
-	static TSharedPtr<class FFriendsFontStyleService> GetStyleService();
-
 private:
 
 	static TSharedRef< class FSlateStyleSet > Create(FFriendsAndChatStyle FriendStyle);
@@ -121,5 +119,4 @@ private:
 private:
 
 	static TSharedPtr< class FSlateStyleSet > FriendsAndChatModuleStyleInstance;
-	static TSharedPtr< class FFriendsFontStyleService > FriendsFontStyleService;
 };

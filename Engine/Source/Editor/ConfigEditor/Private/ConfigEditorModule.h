@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -12,18 +12,18 @@
 class FConfigEditorModule : public IConfigEditorModule
 {
 public:
-	// Begin IModuleInterface interface
+	//~ Begin IModuleInterface Interface
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
-	// End IModuleInterface interface
+	//~ End IModuleInterface Interface
 
 
 public:
-	// Begin IConfigEditorModule interface
+	//~ Begin IConfigEditorModule Interface
 	virtual void CreateHierarchyEditor(UProperty* EditProperty) override;
 	virtual void AddExternalPropertyValueWidgetAndConfigPairing(const FString& ConfigFile, const TSharedPtr<SWidget> ValueWidget) override;
 	virtual TSharedRef<SWidget> GetValueWidgetForConfigProperty(const FString& ConfigFile) override;
-	// End IConfigEditorModule interface	
+	//~ End IConfigEditorModule Interface	
 	
 
 private:

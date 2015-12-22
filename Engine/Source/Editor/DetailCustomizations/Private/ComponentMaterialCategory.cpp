@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "ComponentMaterialCategory.h"
@@ -190,8 +190,6 @@ void FComponentMaterialCategory::OnGetMaterialsForView( IMaterialListBuilder& Ma
 	for( FMaterialIterator It( SelectedComponents ); It; ++It )
 	{	
 		int32 MaterialIndex = It.GetMaterialIndex();
-
-		MaterialCategory->SetCategoryVisibility( true );
 
 		UActorComponent* CurrentComponent = It.GetComponent();
 

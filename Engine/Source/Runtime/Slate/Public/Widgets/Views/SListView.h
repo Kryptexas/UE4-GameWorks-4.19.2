@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "STableViewBase.h"
@@ -237,7 +237,7 @@ public:
 
 				bWasHandled = true;
 			}
-			else if ( InKeyEvent.GetKey() == EKeys::Up )
+			else if (InKeyEvent.GetKey() == EKeys::Up || InKeyEvent.GetKey() == EKeys::Gamepad_DPad_Up || InKeyEvent.GetKey() == EKeys::Gamepad_LeftStick_Up)
 			{
 				int32 SelectionIndex = 0;
 				if( TListTypeTraits<ItemType>::IsPtrValid(SelectorItem) )
@@ -255,7 +255,7 @@ public:
 
 				bWasHandled = true;
 			}
-			else if ( InKeyEvent.GetKey() == EKeys::Down )
+			else if (InKeyEvent.GetKey() == EKeys::Down || InKeyEvent.GetKey() == EKeys::Gamepad_DPad_Down || InKeyEvent.GetKey() == EKeys::Gamepad_LeftStick_Down)
 			{
 				// Begin at INDEX_NONE so the first item will get selected
 				int32 SelectionIndex = INDEX_NONE;
@@ -1038,6 +1038,16 @@ public:
 			SelectedItemArray.Add( *SelectedItemIt );
 		}
 		return SelectedItemArray;
+	}
+
+	int32 GetSelectedItems(TArray< ItemType >&SelectedItemArray) const
+	{
+		SelectedItemArray.Empty(SelectedItems.Num());
+		for (typename TSet< ItemType >::TConstIterator SelectedItemIt(SelectedItems); SelectedItemIt; ++SelectedItemIt)
+		{
+			SelectedItemArray.Add(*SelectedItemIt);
+		}
+		return SelectedItems.Num();
 	}
 
 	/**

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieScene3DAttachSection.h"
@@ -8,6 +8,7 @@
 UMovieScene3DAttachSection::UMovieScene3DAttachSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
 {
+	AttachSocketName = NAME_None;
 	bConstrainTx = true;
 	bConstrainTy = true;
 	bConstrainTz = true;
@@ -19,10 +20,17 @@ UMovieScene3DAttachSection::UMovieScene3DAttachSection( const FObjectInitializer
 
 void UMovieScene3DAttachSection::Eval( USceneComponent* SceneComponent, float Position, AActor* Actor, FVector& OutTranslation, FRotator& OutRotation ) const
 {
-	OutTranslation = Actor->GetActorLocation();
-	OutRotation = Actor->GetActorRotation();
-
-	//@todo eval with component/bone
+	if (Actor->GetRootComponent()->DoesSocketExist(AttachSocketName))
+	{
+		FTransform SocketTransform = Actor->GetRootComponent()->GetSocketTransform(AttachSocketName);
+		OutTranslation = SocketTransform.GetLocation();
+		OutRotation = SocketTransform.GetRotation().Rotator();
+	}
+	else
+	{
+		OutTranslation = Actor->GetActorLocation();
+		OutRotation = Actor->GetActorRotation();
+	}
 
 	if (!bConstrainTx)
 	{
@@ -58,7 +66,9 @@ void UMovieScene3DAttachSection::Eval( USceneComponent* SceneComponent, float Po
 
 void UMovieScene3DAttachSection::AddAttach( float Time, float SequenceEndTime, const FGuid& InAttachId )
 {
-	Modify();
-	ConstraintId = InAttachId;
+	if (TryModify())
+	{
+		ConstraintId = InAttachId;
+	}
 }
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -102,6 +102,12 @@ struct FMath : public FPlatformMath
 	{
 		const int32 Range = (Max - Min) + 1;
 		return Min + RandHelper(Range);
+	}
+
+	/** Util to generate a random number in a range. Overloaded to distinguish from int32 version, where passing a float is typically a mistake. */
+	static FORCEINLINE float RandRange(float InMin, float InMax)
+	{
+		return FRandRange(InMin, InMax);
 	}
 
 	/** Util to generate a random number in a range. */
@@ -212,9 +218,10 @@ struct FMath : public FPlatformMath
 	 *	@param Value	Number to check
 	 *	@return			true if Value is a power of two
 	 */
-	static FORCEINLINE bool IsPowerOfTwo( uint32 Value )
+	template <typename T>
+	static FORCEINLINE bool IsPowerOfTwo( T Value )
 	{
-		return ((Value & (Value - 1)) == 0);
+		return ((Value & (Value - 1)) == (T)0);
 	}
 
 
@@ -843,7 +850,7 @@ struct FMath : public FPlatformMath
 	 */
 	static float MakePulsatingValue( const double InCurrentTime, const float InPulsesPerSecond, const float InPhase = 0.0f )
 	{
-		return 0.5f + 0.5f * (float)sin( ( ( 0.25f + InPhase ) * PI * 2.0 ) + ( InCurrentTime * PI * 2.0 ) * InPulsesPerSecond );
+		return 0.5f + 0.5f * FMath::Sin( ( ( 0.25f + InPhase ) * PI * 2.0 ) + ( InCurrentTime * PI * 2.0 ) * InPulsesPerSecond );
 	}
 
 	// Geometry intersection 
@@ -1019,19 +1026,19 @@ struct FMath : public FPlatformMath
 	 * @param EndPoint   - end point of segment
 	 * @param Plane		- plane to intersect with
 	 * @param out_IntersectionPoint - out var for the point on the segment that intersects the mesh (if any)
-	 * @return true if intersection occured
+	 * @return true if intersection occurred
 	 */
 	static CORE_API bool SegmentPlaneIntersection(const FVector& StartPoint, const FVector& EndPoint, const FPlane& Plane, FVector& out_IntersectionPoint);
 
 	/**
 	 * Returns true if there is an intersection between the segment specified by SegmentStartA and SegmentEndA, and
-	 * the segment specified by SegmentEndA and SegmentStartB, in 2D space. If there is an intersection, the point is placed in out_IntersectionPoint
+	 * the segment specified by SegmentStartB and SegmentEndB, in 2D space. If there is an intersection, the point is placed in out_IntersectionPoint
 	 * @param SegmentStartA - start point of first segment
 	 * @param SegmentEndA   - end point of first segment
 	 * @param SegmentStartB - start point of second segment
 	 * @param SegmentEndB   - end point of second segment
 	 * @param out_IntersectionPoint - out var for the intersection point (if any)
-	 * @return true if intersection occured
+	 * @return true if intersection occurred
 	 */
 	static CORE_API bool SegmentIntersection2D(const FVector& SegmentStartA, const FVector& SegmentEndA, const FVector& SegmentStartB, const FVector& SegmentEndB, FVector& out_IntersectionPoint);
 
@@ -1094,6 +1101,62 @@ struct FMath : public FPlatformMath
 	 * @return Whether the points are relatively coplanar, based on the tolerance
 	 */
 	static CORE_API bool PointsAreCoplanar(const TArray<FVector>& Points, const float Tolerance = 0.1f);
+
+	/**
+	* Converts a floating point number to the nearest integer, equidistant ties go to the value which is closest to an even value: 1.5 becomes 2, 0.5 becomes 0
+	* @param F		Floating point value to convert
+	* @return		The rounded integer
+	*/
+	static CORE_API float RoundHalfToEven(float F);
+	static CORE_API double RoundHalfToEven(double F);
+
+	/**
+	* Converts a floating point number to the nearest integer, equidistant ties go to the value which is further from zero: -0.5 becomes -1.0, 0.5 becomes 1.0
+	* @param F		Floating point value to convert
+	* @return		The rounded integer
+	*/
+	static CORE_API float RoundHalfFromZero(float F);
+	static CORE_API double RoundHalfFromZero(double F);
+
+	/**
+	* Converts a floating point number to the nearest integer, equidistant ties go to the value which is closer to zero: -0.5 becomes 0, 0.5 becomes 0
+	* @param F		Floating point value to convert
+	* @return		The rounded integer
+	*/
+	static CORE_API float RoundHalfToZero(float F);
+	static CORE_API double RoundHalfToZero(double F);
+
+	/**
+	* Converts a floating point number to an integer which is further from zero, "larger" in absolute value: 0.1 becomes 1, -0.1 becomes -1
+	* @param F		Floating point value to convert
+	* @return		The rounded integer
+	*/
+	static float RoundFromZero(float F);
+	static double RoundFromZero(double F);
+
+	/**
+	* Converts a floating point number to an integer which is closer to zero, "smaller" in absolute value: 0.1 becomes 0, -0.1 becomes 0
+	* @param F		Floating point value to convert
+	* @return		The rounded integer
+	*/
+	static float RoundToZero(float F);
+	static double RoundToZero(double F);
+
+	/**
+	* Converts a floating point number to an integer which is more negative: 0.1 becomes 0, -0.1 becomes -1
+	* @param F		Floating point value to convert
+	* @return		The rounded integer
+	*/
+	static float RoundToNegativeInfinity(float F);
+	static double RoundToNegativeInfinity(double F);
+
+	/**
+	* Converts a floating point number to an integer which is more positive: 0.1 becomes 1, -0.1 becomes 0
+	* @param F		Floating point value to convert
+	* @return		The rounded integer
+	*/
+	static float RoundToPositiveInfinity(float F);
+	static double RoundToPositiveInfinity(double F);
 
 	// Formatting functions
 

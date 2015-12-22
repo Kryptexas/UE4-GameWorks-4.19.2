@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,15 +11,15 @@ class FAndroidDeviceProfileSelectorModule
 {
 public:
 
-	// Begin IDeviceProfileSelectorModule interface
+	//~ Begin IDeviceProfileSelectorModule Interface
 	virtual const FString GetRuntimeDeviceProfileName() override;
-	// End IDeviceProfileSelectorModule interface
+	//~ End IDeviceProfileSelectorModule Interface
 
 
-	// Begin IModuleInterface interface
+	//~ Begin IModuleInterface Interface
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
-	// End IModuleInterface interface
+	//~ End IModuleInterface Interface
 
 	
 	/**
@@ -28,4 +28,11 @@ public:
 	virtual ~FAndroidDeviceProfileSelectorModule()
 	{
 	}
+
+private:
+
+	/**
+	 * Make sure we use the java workaround for view scaling on devices that require this
+	 */
+	void CheckForJavaSurfaceViewWorkaround(const FString& DeviceMake, const FString& DeviceModel) const;
 };

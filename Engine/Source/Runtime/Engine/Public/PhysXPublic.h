@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PhysXSupport.h: PhysX support
@@ -7,6 +7,7 @@
 #pragma once
 
 #if WITH_PHYSX
+
 
 #include "PhysXIncludes.h"
 #include "EngineLogs.h"
@@ -156,7 +157,7 @@ private:
 #endif
 
 /** Get a pointer to the PxScene from an SceneIndex (will be NULL if scene already shut down) */
-PxScene* GetPhysXSceneFromIndex(int32 InSceneIndex);
+ENGINE_API PxScene* GetPhysXSceneFromIndex(int32 InSceneIndex);
 
 template <bool NeedsLock>
 struct FPhysXSupport

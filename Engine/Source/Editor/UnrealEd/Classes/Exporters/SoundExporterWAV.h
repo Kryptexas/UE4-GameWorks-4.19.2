@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "SoundExporterWAV.generated.h"
@@ -12,10 +12,10 @@ public:
 public:
 	USoundExporterWAV(const FObjectInitializer& ObjectInitializer = FObjectInitializer());
 
-	// Begin UExporter Interface
+	//~ Begin UExporter Interface
 	virtual bool ExportBinary( UObject* Object, const TCHAR* Type, FArchive& Ar, FFeedbackContext* Warn, int32 FileIndex = 0, uint32 PortFlags=0 ) override;
 	virtual bool SupportsObject(UObject* Object) const override;
-	// End UExporter Interface
+	//~ End UExporter Interface
 };
 
 

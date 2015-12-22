@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,19 +8,21 @@ public:
 	SLATE_BEGIN_ARGS(SVisualLoggerStatusView){}
 	SLATE_END_ARGS();
 
+	virtual ~SVisualLoggerStatusView();
 	void Construct(const FArguments& InArgs, const TSharedRef<FUICommandList>& InCommandList);
+	void ResetData();
 
-	void OnItemSelectionChanged(const FVisualLogDevice::FVisualLogEntryItem&);
+protected:
+	void OnObjectSelectionChanged(const TArray<FName>& SelectedRows);
+	void OnItemSelectionChanged(const FVisualLoggerDBRow& DBRow, int32 ItemIndex);
 	void GenerateStatusData(const FVisualLogDevice::FVisualLogEntryItem&, bool bAddHeader);
-	void ObjectSelectionChanged(TArray<TSharedPtr<class STimeline> >& TimeLines);
 
 	TSharedRef<ITableRow> HandleGenerateLogStatus(TSharedPtr<struct FLogStatusItem> InItem, const TSharedRef<STableViewBase>& OwnerTable);
 	void OnLogStatusGetChildren(TSharedPtr<struct FLogStatusItem> InItem, TArray< TSharedPtr<FLogStatusItem> >& OutItems);
-	void HideData(bool bInHide);
+	void OnExpansionChanged(TSharedPtr<FLogStatusItem> Item, bool);
 
 protected:
+	TArray<FString> ExpandedCategories;
 	TSharedPtr< STreeView< TSharedPtr<FLogStatusItem> > > StatusItemsView;
-	TSharedPtr< STextBlock > NotificationText;
 	TArray< TSharedPtr<FLogStatusItem> > StatusItems;
-	TArray<TSharedPtr<class STimeline> > SelectedTimeLines;
 };

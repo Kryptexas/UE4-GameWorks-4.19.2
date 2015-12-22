@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "Core.h"
 #include "DesktopPlatformModule.h"
@@ -298,6 +298,14 @@
 		NSString* EnginePath = [self findEngineForUProjectFile:FileURL];
 		if (EnginePath)
 		{
+			// Check it's a code project
+			FString SourceDir = FPaths::GetPath(FString([[PBoard propertyListForType:NSFilenamesPboardType] objectAtIndex:0])) / TEXT("Source");
+			if(!IPlatformFile::GetPlatformPhysical().DirectoryExists(*SourceDir))
+			{
+				FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("This project does not have any source code. You need to add C++ source files to the project from the Editor before you can generate project files."), TEXT("Error"));
+				return;
+			}
+
 			NSString* ScriptPath = [EnginePath stringByAppendingPathComponent:@"Engine/Build/BatchFiles/Mac/GenerateProjectFiles.sh"];
 			if (![[NSFileManager defaultManager] fileExistsAtPath:ScriptPath])
 			{

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieScene3DTransformSection.h"
@@ -104,17 +104,16 @@ static FRichCurve* ChooseCurve( EAxis::Type Axis, FRichCurve* Curves )
 	{
 	case EAxis::X:
 		return &Curves[0];
-		break;
+
 	case EAxis::Y:
 		return &Curves[1];
-		break;
+
 	case EAxis::Z:
 		return &Curves[2];
-		break;
+
 	default:
-		check( false );
-		return NULL;
-		break;
+		check(false);
+		return nullptr;
 	}
 }
 
@@ -137,84 +136,66 @@ FRichCurve& UMovieScene3DTransformSection::GetScaleCurve( EAxis::Type Axis )
 }
 
 
-void UMovieScene3DTransformSection::AddTranslationKeys( const FTransformKey& TransformKey )
+// This function uses a template to avoid duplicating this for const and non-const versions
+template<typename CurveType>
+CurveType* GetCurveForChannelAndAxis( EKey3DTransformChannel::Type Channel, EAxis::Type Axis,
+	CurveType* TranslationCurves, CurveType* RotationCurves, CurveType* ScaleCurves )
 {
-	const float Time = TransformKey.GetKeyTime();
-
-	if( TransformKey.KeyParams.bAddKeyEvenIfUnchanged || TransformKey.ShouldKeyTranslation( EAxis::X ) || Translation[0].GetNumKeys() == 0 )
+	CurveType* ChannelCurves = nullptr;
+	switch ( Channel )
 	{
-		AddKeyToCurve( Translation[0], Time, TransformKey.GetTranslationValue().X, TransformKey.KeyParams );
+	case EKey3DTransformChannel::Translation:
+		ChannelCurves = TranslationCurves;
+		break;
+	case EKey3DTransformChannel::Rotation:
+		ChannelCurves = RotationCurves;
+		break;
+	case EKey3DTransformChannel::Scale:
+		ChannelCurves = ScaleCurves;
+		break;
 	}
-
-	if( TransformKey.KeyParams.bAddKeyEvenIfUnchanged || TransformKey.ShouldKeyTranslation( EAxis::Y ) || Translation[1].GetNumKeys() == 0 )
-	{ 
-		AddKeyToCurve( Translation[1], Time, TransformKey.GetTranslationValue().Y, TransformKey.KeyParams );
+	if ( ChannelCurves != nullptr )
+	{
+		switch ( Axis )
+		{
+		case EAxis::X:
+			return &ChannelCurves[0];
+		case EAxis::Y:
+			return &ChannelCurves[1];
+		case EAxis::Z:
+			return &ChannelCurves[2];
+		}
 	}
-
-	if( TransformKey.KeyParams.bAddKeyEvenIfUnchanged || TransformKey.ShouldKeyTranslation( EAxis::Z ) || Translation[2].GetNumKeys() == 0 )
-	{ 
-		AddKeyToCurve( Translation[2], Time, TransformKey.GetTranslationValue().Z, TransformKey.KeyParams );
-	}
+	checkf( false, TEXT( "Invalid channel and axis combination." ) );
+	return nullptr;
 }
 
 
-void UMovieScene3DTransformSection::AddRotationKeys( const FTransformKey& TransformKey, const bool bUnwindRotation )
+bool UMovieScene3DTransformSection::NewKeyIsNewData( float Time, const FTransformKey& TransformKey ) const
 {
-	const float Time = TransformKey.GetKeyTime();
-
-	if( TransformKey.KeyParams.bAddKeyEvenIfUnchanged || TransformKey.ShouldKeyRotation( EAxis::X ) || Rotation[0].GetNumKeys() == 0 )
-	{
-		AddKeyToCurve( Rotation[0], Time, TransformKey.GetRotationValue().Roll, TransformKey.KeyParams, bUnwindRotation );
-	}
-
-	if( TransformKey.KeyParams.bAddKeyEvenIfUnchanged || TransformKey.ShouldKeyRotation( EAxis::Y ) || Rotation[1].GetNumKeys() == 0 )
-	{ 
-		AddKeyToCurve( Rotation[1], Time, TransformKey.GetRotationValue().Pitch, TransformKey.KeyParams, bUnwindRotation );
-	}
-
-	if( TransformKey.KeyParams.bAddKeyEvenIfUnchanged || TransformKey.ShouldKeyRotation( EAxis::Z ) || Rotation[2].GetNumKeys() == 0 )
-	{ 
-		AddKeyToCurve( Rotation[2], Time, TransformKey.GetRotationValue().Yaw, TransformKey.KeyParams, bUnwindRotation );
-	}
+	const FRichCurve* KeyCurve = GetCurveForChannelAndAxis( TransformKey.Channel, TransformKey.Axis, Translation, Rotation, Scale );
+	return FMath::IsNearlyEqual( KeyCurve->Eval( Time ), TransformKey.Value ) == false;
 }
 
 
-void UMovieScene3DTransformSection::AddScaleKeys( const FTransformKey& TransformKey )
+bool UMovieScene3DTransformSection::HasKeys( const FTransformKey& TransformKey ) const
 {
-	const float Time = TransformKey.GetKeyTime();
-
-	if( TransformKey.KeyParams.bAddKeyEvenIfUnchanged || TransformKey.ShouldKeyScale( EAxis::X ) || Scale[0].GetNumKeys() == 0 )
-	{
-		AddKeyToCurve( Scale[0], Time, TransformKey.GetScaleValue().X, TransformKey.KeyParams );
-	}
-
-	if( TransformKey.KeyParams.bAddKeyEvenIfUnchanged || TransformKey.ShouldKeyScale( EAxis::Y ) || Scale[1].GetNumKeys() == 0 )
-	{ 
-		AddKeyToCurve( Scale[1], Time, TransformKey.GetScaleValue().Y, TransformKey.KeyParams );
-	}
-
-	if( TransformKey.KeyParams.bAddKeyEvenIfUnchanged || TransformKey.ShouldKeyScale( EAxis::Z ) || Scale[2].GetNumKeys() == 0 )
-	{ 
-		AddKeyToCurve( Scale[2], Time, TransformKey.GetScaleValue().Z, TransformKey.KeyParams );
-	}
+	const FRichCurve* KeyCurve = GetCurveForChannelAndAxis( TransformKey.Channel, TransformKey.Axis, Translation, Rotation, Scale );
+	return KeyCurve->GetNumKeys() != 0;
 }
 
 
-bool UMovieScene3DTransformSection::NewKeyIsNewData(const FTransformKey& TransformKey) const
+void UMovieScene3DTransformSection::AddKey( float Time, const FTransformKey& TransformKey, EMovieSceneKeyInterpolation KeyInterpolation )
 {
-	bool bHasEmptyKeys = false;
-	for (int32 i = 0; i < 3; ++i)
-	{
-		bHasEmptyKeys = bHasEmptyKeys ||
-			Translation[i].GetNumKeys() == 0 ||
-			Rotation[i].GetNumKeys() == 0 ||
-			Scale[i].GetNumKeys() == 0;
-	}
-
-	if ( bHasEmptyKeys || (TransformKey.KeyParams.bAutoKeying && TransformKey.ShouldKeyAny() ) )
-	{
-		return true;
-	}
-
-	return false;
+	FRichCurve* KeyCurve = GetCurveForChannelAndAxis( TransformKey.Channel, TransformKey.Axis, Translation, Rotation, Scale );
+	AddKeyToCurve( *KeyCurve, Time, TransformKey.Value, KeyInterpolation );
 }
+
+
+void UMovieScene3DTransformSection::SetDefault( const FTransformKey& TransformKey )
+{
+	FRichCurve* KeyCurve = GetCurveForChannelAndAxis( TransformKey.Channel, TransformKey.Axis, Translation, Rotation, Scale );
+	SetCurveDefault( *KeyCurve, TransformKey.Value );
+}
+
+

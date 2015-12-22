@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "ActiveSound.h"
@@ -24,6 +24,7 @@ void FSlateSoundDevice::PlaySound(const FSlateSound& Sound, int32 UserIndex) con
 				NewActiveSound.Sound = SoundResource;
 				NewActiveSound.bIsUISound = true;
 				NewActiveSound.UserIndex = UserIndex;
+				NewActiveSound.Priority = NewActiveSound.Sound->Priority;
 
 				AudioDevice->AddNewActiveSound(NewActiveSound);
 			}

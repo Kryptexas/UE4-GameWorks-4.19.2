@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -150,7 +150,7 @@ public:
 	void AutoFixMeshComponentErrors(UWorld* OtherWorld);
 #endif
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
@@ -158,21 +158,21 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostEditUndo() override;
 #endif // WITH_EDITOR
-	// End UObject Interface
+	//~ End UObject Interface
 
-	// Begin UActorComponent interface
+	//~ Begin UActorComponent Interface
 #if WITH_EDITOR
 	virtual void CheckForErrors() override;
 #endif
 	virtual void OnRegister() override;
-	// End UActorComponent interface
+	//~ End UActorComponent Interface
 	
-	// Begin UPrimitiveComponent interface.
+	//~ Begin UPrimitiveComponent Interface.
 #if WITH_EDITOR
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 #endif
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
-	// End UPrimitiveComponent interface.
+	//~ End UPrimitiveComponent Interface.
 
 	// many friends
 	friend class FLandscapeToolSplines;

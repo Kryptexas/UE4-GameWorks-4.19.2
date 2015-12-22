@@ -6,6 +6,8 @@ Related: Engine/Rendering/Materials/MaterialInputs
 Related: Engine/Rendering/Materials/MaterialProperties/LightingModels
 Related: Engine/Rendering/PostProcessEffects/Bloom
 Related: Resources/ContentExamples/MaterialNodes/1_5
+Version: 4.9
+SkillLevel: Intermediate
 
 
 [TOC(start:2 end:3)]
@@ -14,7 +16,7 @@ Related: Resources/ContentExamples/MaterialNodes/1_5
 
 During the course of project development, the need might arise for a Self-Illuminated Material or glowing Material. 
 Inside of Unreal Engine 4(UE4), Self-Illuminated Materials are known as Emissive Materials. 
-In the following How - To guide, we will be covering how you setup your Materials to use the Emissive input as well as how you can use the Emissive input to actually light the world that you are creating. 
+In the following How-to guide, we will be covering how you setup your Materials to use the Emissive input as well as how you can use the Emissive input to actually light the world that you are creating. 
 
 ## Emissive Glow
 
@@ -60,7 +62,7 @@ All of the content that is used in the following sections can be found if you in
 	![](EM_Adding_Nodes_&_Textures_To_Material.png)
 
 	[region:tip]
-	If you cannot find the **Tech_Panel** textures that are used in this How - To, that means that you might have forgotten to include the **Starter Content** with your project. 
+	If you cannot find the **Tech_Panel** textures that are used in this How-to, that means that you might have forgotten to include the **Starter Content** with your project. 
 	To find this content, you can create another project, make sure to include the Start Content, and then use the [Migrate Tool](Engine/Content/Browser/UserGuide/Migrate) 
 	to move the textures from that project into your project. 
 	[/region]
@@ -134,17 +136,17 @@ Texture exactly which parts should be illuminated. In the example above, we used
 	When completed, your room should look something like this. 
 	![](EM_Testing_Level.png)
 
-1. When the room is completed, make sure to save your work by pressing **CTRL + S** on the keyboard TO SAVE YOUR WORK.
+1. When the room is completed, make sure to save your work by pressing **CTRL + S** on the keyboard to save your work.
 
 ## Emissive Materials in Action
 
-1. With the room now setup, it is now time to add some meshes for testing.
+1. With the room setup, it is now time to add some meshes for testing.
 	Inside of the **Starter Content** folder, there is a folder labeled **Shapes**. Inside of that folder, you will find a mesh named **Shape_Cube**. Select the **Shape_Cube** with your 
 	**Left Mouse Button** and then drag the mesh from the **Content Browser** into the level releasing the **Left Mouse Button** when the mesh is over the level viewport. This will place the mesh in the level.
 	
 	![](EM_Adding_Test_Box.png)
 
-1. Now that the mesh has been added to level, it is now time to apply the Emissive Material to it. To do this, locate the **Emissive Material** folder in the **Content Browser**. 
+1. Now that the mesh has been added to level, it is time to apply the Emissive Material to it. To do this, locate the **Emissive Material** folder in the **Content Browser**. 
 	Once you find it, select the **Material Instance** with the **Left Mouse Button** and then drag the Material Instance from the **Content Browser** onto the **Shape_Cube** mesh.
 	
 	![](EM_Applying_Material_Instance.png)

@@ -1,22 +1,10 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	EmptyCommands.cpp: Empty RHI commands implementation.
 =============================================================================*/
 
 #include "EmptyRHIPrivate.h"
-
-
-void FEmptyDynamicRHI::RHIGpuTimeBegin(uint32 Hash, bool bCompute)
-{
-	return;
-}
-
-void FEmptyDynamicRHI::RHIGpuTimeEnd(uint32 Hash, bool bCompute)
-{
-	return;
-}
-
 
 void FEmptyDynamicRHI::RHISetStreamSource(uint32 StreamIndex,FVertexBufferRHIParamRef VertexBufferRHI,uint32 Stride,uint32 Offset)
 {
@@ -398,24 +386,6 @@ void FEmptyDynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 
 void FEmptyDynamicRHI::RHIBindClearMRTValues(bool bClearColor, bool bClearDepth, bool bClearStencil)
 {
-}
-
-
-
-void FEmptyDynamicRHI::RHISuspendRendering()
-{
-	// Not supported
-}
-
-void FEmptyDynamicRHI::RHIResumeRendering()
-{
-	// Not supported
-}
-
-bool FEmptyDynamicRHI::RHIIsRenderingSuspended()
-{
-	// Not supported
-	return false;
 }
 
 void FEmptyDynamicRHI::RHIBlockUntilGPUIdle()

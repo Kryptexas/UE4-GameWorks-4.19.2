@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 /*=============================================================================================
@@ -189,6 +189,15 @@ struct CORE_API FGenericPlatformMemory
 	/** Initializes the memory pools, should be called by the init function. */
 	static void SetupMemoryPools();
 
+	
+	/**
+	 * @return whether platform supports memory pools for crash reporting.
+	 */
+	static bool SupportBackupMemoryPool()
+	{
+		return false;
+	}
+
 	/**
 	 * @return the default allocator.
 	 */
@@ -213,9 +222,6 @@ struct CORE_API FGenericPlatformMemory
 	 * @return approximate physical RAM in GB.
 	 */
 	static uint32 GetPhysicalGBRam();
-
-	/** Called once per frame, gathers and sets all platform memory statistics into the corresponding stats. */
-	static void UpdateStats();
 
 	/**
 	 * Allocates pages from the OS.
@@ -283,7 +289,52 @@ struct CORE_API FGenericPlatformMemory
 		return memcpy( Dest, Src, Count );
 	}
 
-	static void Memswap( void* Ptr1, void* Ptr2, SIZE_T Size );
+private:
+	template <typename T>
+	static FORCEINLINE void Valswap(T& A, T& B)
+	{
+		// Usually such an implementation would use move semantics, but
+		// we're only ever going to call it on fundamental types and MoveTemp
+		// is not necessarily in scope here anyway, so we don't want to
+		// #include it if we don't need to.
+		T Tmp = A;
+		A = B;
+		B = Tmp;
+	}
+
+	static void MemswapImpl( void* Ptr1, void* Ptr2, SIZE_T Size );
+
+public:
+	static inline void Memswap( void* Ptr1, void* Ptr2, SIZE_T Size )
+	{
+		switch (Size)
+		{
+			case 1:
+				Valswap(*(uint8*)Ptr1, *(uint8*)Ptr2);
+				break;
+
+			case 2:
+				Valswap(*(uint16*)Ptr1, *(uint16*)Ptr2);
+				break;
+
+			case 4:
+				Valswap(*(uint32*)Ptr1, *(uint32*)Ptr2);
+				break;
+
+			case 8:
+				Valswap(*(uint64*)Ptr1, *(uint64*)Ptr2);
+				break;
+
+			case 16:
+				Valswap(((uint64*)Ptr1)[0], ((uint64*)Ptr2)[0]);
+				Valswap(((uint64*)Ptr1)[1], ((uint64*)Ptr2)[1]);
+				break;
+
+			default:
+				MemswapImpl(Ptr1, Ptr2, Size);
+				break;
+		}
+	}
 
 	/**
 	 * Maps a named shared memory region into process address space (creates or opens it)
@@ -305,4 +356,11 @@ struct CORE_API FGenericPlatformMemory
 	 * @return true if successful
 	 */
 	static bool UnmapNamedSharedMemoryRegion(FSharedMemoryRegion * MemoryRegion);
+
+protected:
+	friend struct FGenericStatsUpdater;
+
+	/** Updates platform specific stats. This method is called through FGenericStatsUpdater from the task graph thread. */
+	static void InternalUpdateStats( const FPlatformMemoryStats& MemoryStats );
+
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnrealTypeTraits.h: Unreal type traits definitions.
@@ -142,6 +142,7 @@ struct TFormatSpecifier<type> \
 	} \
 };
 
+Expose_TFormatSpecifier(bool, "%i")
 Expose_TFormatSpecifier(uint8, "%u")
 Expose_TFormatSpecifier(uint16, "%u")
 Expose_TFormatSpecifier(uint32, "%u")
@@ -181,7 +182,7 @@ template<typename T> struct TIsLValueReferenceType     { enum { Value = false };
 template<typename T> struct TIsLValueReferenceType<T&> { enum { Value = true  }; };
 
 /**
- * TIsLValueReferenceType
+ * TIsRValueReferenceType
  */
 template<typename T> struct TIsRValueReferenceType      { enum { Value = false }; };
 template<typename T> struct TIsRValueReferenceType<T&&> { enum { Value = true  }; };
@@ -613,3 +614,14 @@ struct TIsEnum
 {
 	enum { Value = IS_ENUM(T) };
 };
+
+/*-----------------------------------------------------------------------------
+ * Undef Macros abstracting the presence of certain compiler intrinsic type traits
+ -----------------------------------------------------------------------------*/
+#undef IS_EMPTY
+#undef IS_ENUM
+#undef IS_POD
+#undef HAS_TRIVIAL_COPY
+#undef HAS_TRIVIAL_ASSIGN
+#undef HAS_TRIVIAL_DESTRUCTOR
+#undef HAS_TRIVIAL_CONSTRUCTOR

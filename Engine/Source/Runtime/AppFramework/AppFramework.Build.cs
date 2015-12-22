@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -9,6 +9,7 @@ public class AppFramework : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
+                "CoreUObject",
 				"Slate",
 				"SlateCore",
 			}
@@ -17,7 +18,6 @@ public class AppFramework : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"InputCore",
-				"SlateReflector",
 			}
 		);
 
@@ -33,5 +33,20 @@ public class AppFramework : ModuleRules
                 "Runtime/AppFramework/Private/Widgets/Workflow",
 			}
 		);
+
+		if (Target.Configuration != UnrealTargetConfiguration.Shipping)
+		{
+			PrivateIncludePathModuleNames.AddRange(
+				new string[] {
+					"SlateReflector",
+				}
+			);
+
+			DynamicallyLoadedModuleNames.AddRange(
+				new string[] {
+					"SlateReflector",
+				}
+			);
+		}
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -17,8 +17,20 @@ public class DesktopPlatform : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
+			PrivateIncludePathModuleNames.AddRange(
+				new string[] {
+					"SlateFileDialogs",
+				}
+			);
+
+			DynamicallyLoadedModuleNames.AddRange(
+				new string[] {
+					"SlateFileDialogs",
+				}
+			);
+
 			AddThirdPartyPrivateStaticDependencies(Target, "SDL2");
-			AddThirdPartyPrivateStaticDependencies(Target, "SlateFileDialogs");
+			//AddThirdPartyPrivateStaticDependencies(Target, "LinuxNativeDialogs");
 		}
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CookCommandlet.cpp: Commandlet for cooking content
@@ -6,6 +6,8 @@
 
 #include "UnrealEd.h"
 
+#include "Blueprint/BlueprintSupport.h"
+#include "BlueprintNativeCodeGenModule.h"
 #include "Engine/WorldComposition.h"
 #include "PackageHelperFunctions.h"
 #include "DerivedDataCacheInterface.h"
@@ -29,6 +31,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogCookCommandlet, Log, All);
 
 UCookerSettings::UCookerSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, bCompileBlueprintsInDevelopmentMode(true)
 {
 	SectionName = TEXT("Cooker");
 	DefaultPVRTCQuality = 1;
@@ -178,7 +181,7 @@ bool UCookCommandlet::CookOnTheFly( FGuid InstanceId, int32 Timeout, bool bForce
 
 			UE_LOG(LogCookCommandlet, Display, TEXT("GC..."));
 
-			CollectGarbage( RF_Native );
+			CollectGarbage(RF_NoFlags);
 		}
 
 
@@ -460,7 +463,12 @@ bool UCookCommandlet::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bo
 				}
 				else
 				{
-					bSavedCorrectly &= GEditor->SavePackage( Package, World, Flags, *PlatFilename, GError, NULL, bSwap, false, SaveFlags, Target, FDateTime::MinValue() );
+					ESavePackageResult Result = GEditor->Save(Package, World, Flags, *PlatFilename, GError, NULL, bSwap, false, SaveFlags, Target, FDateTime::MinValue());
+					if (Result == ESavePackageResult::ReplaceCompletely || Result == ESavePackageResult::GenerateStub)
+					{
+						IBlueprintNativeCodeGenModule::Get().Convert(Package, Result == ESavePackageResult::ReplaceCompletely ? EReplacementResult::ReplaceCompletely : EReplacementResult::GenerateStub);
+					}
+					bSavedCorrectly &= (Result == ESavePackageResult::ReplaceCompletely || Result == ESavePackageResult::GenerateStub || Result == ESavePackageResult::Success);
 				}
 				
 				bOutWasUpToDate = false;
@@ -508,6 +516,7 @@ int32 UCookCommandlet::Main(const FString& CmdLineParams)
 	bSkipEditorContent = Switches.Contains(TEXT("SKIPEDITORCONTENT")); // This won't save out any packages in Engine/COntent/Editor*
 	bErrorOnEngineContentUse = Switches.Contains(TEXT("ERRORONENGINECONTENTUSE"));
 	bUseSerializationForGeneratingPackageDependencies = Switches.Contains(TEXT("UseSerializationForGeneratingPackageDependencies"));
+	bCookSinglePackage = Switches.Contains(TEXT("cooksinglepackage"));
 	if (bLeakTest)
 	{
 		for (FObjectIterator It; It; ++It)
@@ -515,7 +524,6 @@ int32 UCookCommandlet::Main(const FString& CmdLineParams)
 			LastGCItems.Add(FWeakObjectPtr(*It));
 		}
 	}
-
 
 	if ( bCookOnTheFly )
 	{
@@ -643,7 +651,7 @@ void UCookCommandlet::CleanSandbox(const TArray<ITargetPlatform*>& Platforms)
 			}
 
 			// Collect garbage to ensure we don't have any packages hanging around from dependent time stamp determination
-			CollectGarbage(RF_Native);
+			CollectGarbage(RF_NoFlags);
 		}
 	}
 
@@ -1056,6 +1064,9 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	FString ChildCookFile;
 	FParse::Value(*Params, TEXT("cookchild="), ChildCookFile);
 
+	FString ChildManifestFilename;
+	FParse::Value(*Params, TEXT("childmanifest="), ChildManifestFilename);
+
 	int32 NumProcesses = 0;
 	FParse::Value(*Params, TEXT("numcookerstospawn="), NumProcesses);
 
@@ -1065,43 +1076,10 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	FString CreateReleaseVersion;
 	FParse::Value( *Params, TEXT("CreateReleaseVersion="), CreateReleaseVersion);
 
-	// Add any map sections specified on command line
-	TArray<FString> AlwaysCookMapList;
-
-	// Add the default map section
-	GEditor->LoadMapListFromIni(TEXT("AlwaysCookMaps"), AlwaysCookMapList);
-
-	TArray<FString> MapList;
-	// Add any map sections specified on command line
-	GEditor->ParseMapSectionIni(*Params, MapList);
-
-	if (MapList.Num() == 0)
-	{
-		// if we didn't find any maps look in the project settings for maps
-
-		UProjectPackagingSettings* PackagingSettings = Cast<UProjectPackagingSettings>(UProjectPackagingSettings::StaticClass()->GetDefaultObject());
-
-		for (const auto& MapToCook : PackagingSettings->MapsToCook)
-		{
-			MapList.Add(MapToCook.FilePath);
-		}
-	}
-
-	// if we still don't have any mapsList check if the allmaps ini section is filled out
-	// this is for backwards compatibility
-	if (MapList.Num() == 0)
-	{
-		GEditor->ParseMapSectionIni(TEXT("-MAPINISECTION=AllMaps"), MapList);
-	}
-
-
-	// put the always cook map list at the front of the map list
-	AlwaysCookMapList.Append(MapList);
-	Swap(MapList, AlwaysCookMapList);
-
 	TArray<FString> CmdLineMapEntries;
 	TArray<FString> CmdLineDirEntries;
 	TArray<FString> CmdLineCultEntries;
+	TArray<FString> CmdLineNeverCookDirEntries;
 	for (int32 SwitchIdx = 0; SwitchIdx < Switches.Num(); SwitchIdx++)
 	{
 		const FString& Switch = Switches[SwitchIdx];
@@ -1145,17 +1123,66 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	{
 		const FString AbsoluteGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir());
 		const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
-		for(const auto& DirToCook : PackagingSettings->DirectoriesToAlwaysCook)
+		for (const auto& DirToCook : PackagingSettings->DirectoriesToAlwaysCook)
 		{
 			CmdLineDirEntries.Add(AbsoluteGameContentDir / DirToCook.Path);
 		}
+
+	}
+
+
+	// Add any map sections specified on command line
+	TArray<FString> AlwaysCookMapList;
+
+	// Add the default map section
+	GEditor->LoadMapListFromIni(TEXT("AlwaysCookMaps"), AlwaysCookMapList);
+
+	TArray<FString> MapList;
+	// Add any map sections specified on command line
+	GEditor->ParseMapSectionIni(*Params, MapList);
+
+	if (MapList.Num() == 0 && !bCookSinglePackage)
+	{
+		// If we didn't find any maps look in the project settings for maps
+
+		UProjectPackagingSettings* PackagingSettings = Cast<UProjectPackagingSettings>(UProjectPackagingSettings::StaticClass()->GetDefaultObject());
+
+		for (const auto& MapToCook : PackagingSettings->MapsToCook)
+		{
+			MapList.Add(MapToCook.FilePath);
+		}
+	}
+
+	// Add any map specified on the command line.
+	for (const auto& MapName : CmdLineMapEntries)
+	{
+		MapList.Add(MapName);
+	}
+
+	// If we still don't have any mapsList check if the allmaps ini section is filled out
+	// this is for backwards compatibility
+	if (MapList.Num() == 0)
+	{
+		GEditor->ParseMapSectionIni(TEXT("-MAPINISECTION=AllMaps"), MapList);
+	}
+
+	// Put the always cook map list at the front of the map list
+	AlwaysCookMapList.Append(MapList);
+	Swap(MapList, AlwaysCookMapList);
+
+	FCookCommandParams CookParams(FCommandLine::Get());
+	if (CookParams.bRunConversion)
+	{
+		const UBlueprintNativeCodeGenConfig* ConfigSettings = GetDefault<UBlueprintNativeCodeGenConfig>();
+		TMap<UObject*, UClass*> ClassReplacementMap;
+		ClassReplacementMap.Add(UUserDefinedEnum::StaticClass(), UEnum::StaticClass());
+		ClassReplacementMap.Add(UUserDefinedStruct::StaticClass(), UScriptStruct::StaticClass());
+		ClassReplacementMap.Add(UBlueprintGeneratedClass::StaticClass(), UDynamicClass::StaticClass());
+		FScriptCookReplacementCoordinator::Create(CookParams.bRunConversion, ConfigSettings->ExcludedAssetTypes, ConfigSettings->ExcludedBlueprintTypes, ClassReplacementMap);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 	// start cook by the book 
-
-
-
 	ECookByTheBookOptions CookOptions = ECookByTheBookOptions::None;
 
 	CookOptions |= bLeakTest ? ECookByTheBookOptions::LeakTest : ECookByTheBookOptions::None; 
@@ -1163,16 +1190,15 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	CookOptions |= Switches.Contains(TEXT("MAPSONLY")) ? ECookByTheBookOptions::MapsOnly : ECookByTheBookOptions::None;
 	CookOptions |= Switches.Contains(TEXT("NODEV")) ? ECookByTheBookOptions::NoDevContent : ECookByTheBookOptions::None;
 
-	for ( const auto& MapName : CmdLineMapEntries )
-	{
-		MapList.Add( MapName );
-	}
+	const ECookByTheBookOptions SinglePackageFlags = ECookByTheBookOptions::NoAlwaysCookMaps | ECookByTheBookOptions::NoDefaultMaps | ECookByTheBookOptions::NoGameAlwaysCookPackages | ECookByTheBookOptions::NoInputPackages | ECookByTheBookOptions::NoSlatePackages | ECookByTheBookOptions::DisableUnsolicitedPackages | ECookByTheBookOptions::ForceDisableSaveGlobalShaders;
+	CookOptions |= bCookSinglePackage ? SinglePackageFlags : ECookByTheBookOptions::None;
 
 	UCookOnTheFlyServer::FCookByTheBookStartupOptions StartupOptions;
 
 	StartupOptions.TargetPlatforms = Platforms;
 	Swap( StartupOptions.CookMaps, MapList );
 	Swap( StartupOptions.CookDirectories, CmdLineDirEntries );
+	Swap( StartupOptions.NeverCookDirectories, CmdLineNeverCookDirEntries);
 	Swap( StartupOptions.CookCultures, CmdLineCultEntries );
 	Swap( StartupOptions.DLCName, DLCName );
 	Swap( StartupOptions.BasedOnReleaseVersion, BasedOnReleaseVersion );
@@ -1182,6 +1208,7 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	StartupOptions.bGenerateDependenciesForMaps = Switches.Contains(TEXT("GenerateDependenciesForMaps"));
 	StartupOptions.bGenerateStreamingInstallManifests = bGenerateStreamingInstallManifests;
 	StartupOptions.ChildCookFileName = ChildCookFile;
+	StartupOptions.ChildManifestFilename = ChildManifestFilename;
 	StartupOptions.NumProcesses = NumProcesses;
 
 	CookOnTheFlyServer->StartCookByTheBook( StartupOptions );
@@ -1242,7 +1269,7 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 
 				UE_LOG( LogCookCommandlet, Display, TEXT( "GC..." ) );
 
-				CollectGarbage( RF_Native );
+				CollectGarbage(RF_NoFlags);
 			}
 			else
 			{
@@ -1414,7 +1441,7 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 			{
 				UE_LOG(LogCookCommandlet, Display, TEXT("Full GC..."));
 
-				CollectGarbage( RF_Native );
+				CollectGarbage(RF_NoFlags);
 				NumProcessedSinceLastGC = 0;
 
 				if (bLeakTest)

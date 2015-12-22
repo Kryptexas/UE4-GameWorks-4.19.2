@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -131,7 +131,7 @@ private:
 	{
 		FString ClaimUser = DeviceService->GetClaimUser();
 
-		if ((ClaimUser == FPlatformProcess::UserName(true)) && !DeviceService->IsRunning())
+		if ((ClaimUser == FPlatformProcess::UserName(false)) && !DeviceService->IsRunning())
 		{
 			ClaimUser += LOCTEXT("RemotelyHint", " (remotely)").ToString();
 		}

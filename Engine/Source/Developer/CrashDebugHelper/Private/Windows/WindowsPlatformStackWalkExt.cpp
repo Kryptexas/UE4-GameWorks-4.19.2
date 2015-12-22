@@ -1,7 +1,7 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CrashDebugHelperPrivatePCH.h"
-#include "GenericPlatform/GenericPlatformContext.h"
+#include "GenericPlatform/GenericPlatformCrashContext.h"
 #include "WindowsPlatformStackWalkExt.h"
 #include "CrashDebugPDBCache.h"
 
@@ -167,6 +167,15 @@ void FWindowsPlatformStackWalkExt::SetSymbolPathsFromModules()
 {
 	const bool bUseCachedData = CrashInfo.PDBCacheEntry.IsValid();
 	FString CombinedPath = TEXT( "" );
+
+	// Use symbol cache from command line
+	FString DebugSymbols;
+	if (FParse::Value(FCommandLine::Get(), TEXT("DebugSymbols="), DebugSymbols))
+	{
+		CombinedPath += TEXT("SRV*");
+		CombinedPath += DebugSymbols;
+		CombinedPath += TEXT(";");
+	}
 
 	// For externally launched minidump diagnostics.
 	if( bUseCachedData )
@@ -501,7 +510,7 @@ int FWindowsPlatformStackWalkExt::GetCallstacks()
 				ModuleName = ModuleAndFunction;
 			}
 
-			// @TODO yrx 2015-02-24 Add for other platforms
+			// #YRX_Crash: 2015-07-24 Add for other platforms
 			// If we find an assert, the actual source file we're interested in is the next one up, so reset the source file found flag
 			if( FunctionName.Len() > 0 )
 			{

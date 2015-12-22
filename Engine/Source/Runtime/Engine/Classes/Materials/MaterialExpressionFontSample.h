@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -19,7 +19,7 @@ class UMaterialExpressionFontSample : public UMaterialExpression
 	int32 FontTexturePage;
 
 
-	// Begin UMaterialExpression Interface
+	//~ Begin UMaterialExpression Interface
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
 	virtual int32 GetWidth() const override;
@@ -32,7 +32,7 @@ class UMaterialExpressionFontSample : public UMaterialExpression
 	 * Any UMaterialExpression whose compilation creates a texture uniform expression (eg Compiler->Texture, Compiler->TextureParameter) must implement this.
 	 */
 	virtual UTexture* GetReferencedTexture() override;
-	// End UMaterialExpression Interface
+	//~ End UMaterialExpression Interface
 };
 
 

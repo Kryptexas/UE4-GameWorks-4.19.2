@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -79,6 +79,7 @@ private:
 		int32 SuccessCount;
 		int32 FailCount;
 		TMap<int32, int32> ResponseCodes;
+		FString LastAnalyticsName;
 	};
 
 	/** Mapping of a service endpoint to summary metrics about it. */

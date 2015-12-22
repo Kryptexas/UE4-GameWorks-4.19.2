@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "DesktopPlatformPrivatePCH.h"
 #include "DesktopPlatformBase.h"
@@ -313,7 +313,7 @@ bool FDesktopPlatformBase::TryGetEngineVersion(const FString& RootDir, FEngineVe
 					{
 						PatchVersion = FCString::Atoi(*Tokens[3]);
 					}
-					else if(Tokens[2] == "ENGINE_VERSION")
+					else if(Tokens[2] == "BUILT_FROM_CHANGELIST")
 					{
 						Changelist = FCString::Atoi(*Tokens[3]);
 					}
@@ -586,14 +586,8 @@ bool FDesktopPlatformBase::CompileGameProject(const FString& RootDir, const FStr
 		}
 	}
 
-	// Append the Rocket flag
-	if(!IsSourceDistribution(RootDir) || FRocketSupport::IsRocket())
-	{
-		Arguments += TEXT(" -rocket");
-	}
-
 	// Append any other options
-	Arguments += " -editorrecompile -progress -noubtmakefiles";
+	Arguments += " -editorrecompile -progress -noubtmakefiles -NoHotReloadFromIDE";
 
 	// Run UBT
 	return RunUnrealBuildTool(LOCTEXT("CompilingProject", "Compiling project..."), RootDir, Arguments, Warn);
@@ -622,13 +616,9 @@ bool FDesktopPlatformBase::GenerateProjectFiles(const FString& RootDir, const FS
 			Arguments += TEXT(" -game");
 
 			// Determine whether or not to include engine source
-			if(IsSourceDistribution(RootDir) && !FRocketSupport::IsRocket())
+			if(IsSourceDistribution(RootDir))
 			{
 				Arguments += TEXT(" -engine");
-			}
-			else
-			{
-				Arguments += TEXT(" -rocket");
 			}
 		}
 	}
@@ -672,11 +662,6 @@ bool FDesktopPlatformBase::InvalidateMakefiles(const FString& RootDir, const FSt
 	
 	// -invalidatemakefilesonly tells UBT to invalidate its UBT makefiles without building
 	Arguments += TEXT(" -invalidatemakefilesonly");
-
-	if (FRocketSupport::IsRocket())
-	{
-		Arguments += TEXT(" -rocket");
-	}
 
 	// Compile UnrealBuildTool if it doesn't exist. This can happen if we're just copying source from somewhere.
 	bool bRes = true;
@@ -745,11 +730,6 @@ bool FDesktopPlatformBase::InvokeUnrealBuildToolSync(const FString& InCmdLinePar
 FProcHandle FDesktopPlatformBase::InvokeUnrealBuildToolAsync(const FString& InCmdLineParams, FOutputDevice &Ar, void*& OutReadPipe, void*& OutWritePipe, bool bSkipBuildUBT)
 {
 	FString CmdLineParams = InCmdLineParams;
-
-	if (FRocketSupport::IsRocket())
-	{
-		CmdLineParams += TEXT(" -rocket");
-	}
 
 #if PLATFORM_WINDOWS
 	#if _MSC_VER >= 1900

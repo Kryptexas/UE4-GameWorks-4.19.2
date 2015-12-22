@@ -66,6 +66,11 @@ version:4.9
 
 	[REGION:note]After deactivating the menu with the Play Game Button, we will be unable to do anything further in our game. This is the point at which we would normally load the first level, play an introductory cutscene, or spawn and possess a **Pawn**.[/REGION]
 
+1. We should now have two screens that look roughly as follows:
+
+	[![](FinalScreen.png)](FinalScreen.png)
+
+	[![](FinalScreen2.png)](FinalScreen2.png)
 
 ----
 
@@ -78,7 +83,7 @@ version:4.9
     [/PARAM]
     [PARAM:content]
 		**HowTo_UMG.Build.cs**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			using UnrealBuildTool;
 
@@ -106,7 +111,7 @@ version:4.9
 			}
 
 		**HowTo_UMGGameMode.h**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -141,7 +146,7 @@ version:4.9
 			};
 
 		**HowTo_UMGGameMode.cpp**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_UMG.h"
 			#include "HowTo_UMGGameMode.h"

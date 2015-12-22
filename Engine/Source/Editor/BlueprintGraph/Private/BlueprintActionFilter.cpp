@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintActionFilter.h"
@@ -788,9 +788,9 @@ static bool BlueprintActionFilterImpl::IsRejectedGlobalField(FBlueprintActionFil
 		UClass* FieldClass = Field->GetOwnerClass();
 		if (bIsFilteredOut && (FieldClass != nullptr))
 		{
-			for (UClass const* Class : Filter.TargetClasses)
+			for (const auto& ClassData : Filter.TargetClasses)
 			{
-				bool const bIsInternalMemberField = IsClassOfType(Class, FieldClass);
+				bool const bIsInternalMemberField = IsClassOfType(ClassData.TargetClass, FieldClass);
 				if (bIsInternalMemberField)
 				{
 					bIsFilteredOut = false;
@@ -823,9 +823,9 @@ static bool BlueprintActionFilterImpl::IsNonTargetMember(FBlueprintActionFilter 
 		{
 			bIsFilteredOut = Filter.TargetClasses.Num() > 0;
 
-			for (UClass const* Class : Filter.TargetClasses)
+			for (const auto& ClassData : Filter.TargetClasses)
 			{
-				bool const bIsTargetOwnedField = IsClassOfType(Class, ActionClass);
+				bool const bIsTargetOwnedField = IsClassOfType(ClassData.TargetClass, ActionClass);
 				if (bIsTargetOwnedField)
 				{
 					bIsFilteredOut = false;
@@ -852,11 +852,11 @@ static bool BlueprintActionFilterImpl::IsFieldCategoryHidden(FBlueprintActionFil
 	{
 		bIsFilteredOut = (Filter.TargetClasses.Num() > 0);
 
-		for (UClass* TargetClass : Filter.TargetClasses)
+		for (const auto& ClassData : Filter.TargetClasses)
 		{
 			// Use the UiSpec to get the category
 			FBlueprintActionUiSpec UiSpec = BlueprintAction.NodeSpawner->GetUiSpec(Filter.Context, BlueprintAction.GetBindings());
-			if (!FEditorCategoryUtils::IsCategoryHiddenFromClass(TargetClass->GetAuthoritativeClass(), UiSpec.Category.ToString()))
+			if (!FEditorCategoryUtils::IsCategoryHiddenFromClass(ClassData.HiddenCategories, ClassData.TargetClass, UiSpec.Category.ToString()))
 			{
 				bIsFilteredOut = false;
 				break;
@@ -1522,13 +1522,13 @@ static bool BlueprintActionFilterImpl::IsExtraneousInterfaceCall(FBlueprintActio
 		bool const bCanBeAddedToBlueprints = !InterfaceClass->HasMetaData(FBlueprintMetadata::MD_CannotImplementInterfaceInBlueprint);
 
 		bIsFilteredOut = (Filter.TargetClasses.Num() > 0);
-		for (const UClass* TargetClass : Filter.TargetClasses)
+		for (const auto& ClassData : Filter.TargetClasses)
 		{
-			bool const bImplementsInterface = IsClassOfType(TargetClass, InterfaceClass);
+			bool const bImplementsInterface = IsClassOfType(ClassData.TargetClass, InterfaceClass);
 			// if this is a blueprint class, and "CannotImplementInterfaceInBlueprint" 
 			// is set on the interface, then we know sub-classes cannot have
 			// the interface either (so there's no point to offering a message node)
-			bool const bIsBlueprintClass = (Cast<UBlueprintGeneratedClass>(TargetClass) != nullptr);
+			bool const bIsBlueprintClass = (Cast<UBlueprintGeneratedClass>(ClassData.TargetClass) != nullptr);
 
 			// if the class doesn't directly implement the interface (and it is 
 			// a possibility that some sub-class does), then we want to offer 
@@ -1549,9 +1549,9 @@ static bool BlueprintActionFilterImpl::IsExtraneousInterfaceCall(FBlueprintActio
 		if (bIsInterfaceAction && !NodeClass->IsChildOf<UK2Node_Event>())
 		{
 			bIsFilteredOut = (Filter.TargetClasses.Num() > 0);
-			for (const UClass* TargetClass : Filter.TargetClasses)
+			for (const auto& ClassData : Filter.TargetClasses)
 			{
-				UClass const* InterfaceImplementingClass = FindInheritedInterfaceClass(TargetClass, FuncClass);
+				UClass const* InterfaceImplementingClass = FindInheritedInterfaceClass(ClassData.TargetClass, FuncClass);
 				// interfaces that are added directly to a Blueprint (even in 
 				// the case of an interface on a parent blueprint) have their 
 				// functions stubbed-out/added to the blueprint class directly;
@@ -1762,6 +1762,8 @@ FBlueprintActionFilter::FBlueprintActionFilter(uint32 Flags/*= 0x00*/)
 {
 	using namespace BlueprintActionFilterImpl;
 
+	BluprintGraphModule = &FModuleManager::LoadModuleChecked<FBlueprintGraphModule>("BlueprintGraph");
+
 	//
 	// NOTE: The order of these tests can have perf implications, the more one
 	//       rejects on average the later it should be added (they're executed
@@ -1814,6 +1816,28 @@ FBlueprintActionFilter::FBlueprintActionFilter(uint32 Flags/*= 0x00*/)
 	// added as the first rejection test, so that we don't operate on stale 
 	// (TRASH/REINST) class fields
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsStaleFieldAction));
+}
+
+//------------------------------------------------------------------------------
+void FBlueprintActionFilter::AddUnique(TArray<FTargetClassFilterData>& ToArray, UClass* TargetClass)
+{
+	for (auto ClassData : ToArray)
+	{
+		if (ClassData.TargetClass == TargetClass)
+		{
+			return;
+		}
+	}
+	FBlueprintActionFilter::Add(ToArray, TargetClass);
+}
+
+//------------------------------------------------------------------------------
+void FBlueprintActionFilter::Add(TArray<FTargetClassFilterData>& ToArray, UClass* TargetClass)
+{
+	TArray<FString> ClassHideCategories;
+	FEditorCategoryUtils::GetClassHideCategories(TargetClass, ClassHideCategories);
+	FTargetClassFilterData Data = { TargetClass, MoveTemp(ClassHideCategories) };
+	ToArray.Add(Data);
 }
 
 //------------------------------------------------------------------------------
@@ -1896,9 +1920,7 @@ bool FBlueprintActionFilter::IsFilteredByThis(FBlueprintActionInfo& BlueprintAct
 
 	if (!bIsFiltered)
 	{
-		FBlueprintGraphModule& BluprintGraphModule = FModuleManager::LoadModuleChecked<FBlueprintGraphModule>("BlueprintGraph");
-
-		for (auto& ExtraRejectionTest : BluprintGraphModule.GetExtendedActionMenuFilters())
+		for (auto& ExtraRejectionTest : BluprintGraphModule->GetExtendedActionMenuFilters())
 		{
 			if (ExtraRejectionTest.Execute(FilterRef, BlueprintAction))
 			{

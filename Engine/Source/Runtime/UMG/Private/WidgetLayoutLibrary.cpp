@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 #include "Slate/SlateBrushAsset.h"
@@ -104,61 +104,71 @@ FVector2D UWidgetLayoutLibrary::GetViewportSize(UObject* WorldContextObject)
 	return FVector2D(1, 1);
 }
 
-UCanvasPanelSlot* UWidgetLayoutLibrary::SlotAsCanvasSlot(UWidget* ChildWidget)
+UBorderSlot* UWidgetLayoutLibrary::SlotAsBorderSlot(UWidget* Widget)
 {
-	if ( ChildWidget )
+	if (Widget)
 	{
-		return Cast<UCanvasPanelSlot>(ChildWidget->Slot);
+		return Cast<UBorderSlot>(Widget->Slot);
 	}
 
 	return nullptr;
 }
 
-UGridSlot* UWidgetLayoutLibrary::SlotAsGridSlot(UWidget* ChildWidget)
+UCanvasPanelSlot* UWidgetLayoutLibrary::SlotAsCanvasSlot(UWidget* Widget)
 {
-	if ( ChildWidget )
+	if (Widget)
 	{
-		return Cast<UGridSlot>(ChildWidget->Slot);
+		return Cast<UCanvasPanelSlot>(Widget->Slot);
 	}
 
 	return nullptr;
 }
 
-UHorizontalBoxSlot* UWidgetLayoutLibrary::SlotAsHorizontalBoxSlot(UWidget* ChildWidget)
+UGridSlot* UWidgetLayoutLibrary::SlotAsGridSlot(UWidget* Widget)
 {
-	if ( ChildWidget )
+	if (Widget)
 	{
-		return Cast<UHorizontalBoxSlot>(ChildWidget->Slot);
+		return Cast<UGridSlot>(Widget->Slot);
 	}
 
 	return nullptr;
 }
 
-UOverlaySlot* UWidgetLayoutLibrary::SlotAsOverlaySlot(UWidget* ChildWidget)
+UHorizontalBoxSlot* UWidgetLayoutLibrary::SlotAsHorizontalBoxSlot(UWidget* Widget)
 {
-	if ( ChildWidget )
+	if (Widget)
 	{
-		return Cast<UOverlaySlot>(ChildWidget->Slot);
+		return Cast<UHorizontalBoxSlot>(Widget->Slot);
 	}
 
 	return nullptr;
 }
 
-UUniformGridSlot* UWidgetLayoutLibrary::SlotAsUniformGridSlot(UWidget* ChildWidget)
+UOverlaySlot* UWidgetLayoutLibrary::SlotAsOverlaySlot(UWidget* Widget)
 {
-	if ( ChildWidget )
+	if (Widget)
 	{
-		return Cast<UUniformGridSlot>(ChildWidget->Slot);
+		return Cast<UOverlaySlot>(Widget->Slot);
 	}
 
 	return nullptr;
 }
 
-UVerticalBoxSlot* UWidgetLayoutLibrary::SlotAsVerticalBoxSlot(UWidget* ChildWidget)
+UUniformGridSlot* UWidgetLayoutLibrary::SlotAsUniformGridSlot(UWidget* Widget)
 {
-	if ( ChildWidget )
+	if (Widget)
 	{
-		return Cast<UVerticalBoxSlot>(ChildWidget->Slot);
+		return Cast<UUniformGridSlot>(Widget->Slot);
+	}
+
+	return nullptr;
+}
+
+UVerticalBoxSlot* UWidgetLayoutLibrary::SlotAsVerticalBoxSlot(UWidget* Widget)
+{
+	if (Widget)
+	{
+		return Cast<UVerticalBoxSlot>(Widget->Slot);
 	}
 
 	return nullptr;

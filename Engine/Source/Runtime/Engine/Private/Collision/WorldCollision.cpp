@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	WorldCollision.cpp: UWorld collision implementation
@@ -36,7 +36,8 @@ DEFINE_STAT(STAT_Collision_GeomSweepMultiple);
 DEFINE_STAT(STAT_Collision_GeomOverlapAny);
 DEFINE_STAT(STAT_Collision_GeomOverlapSingle);
 DEFINE_STAT(STAT_Collision_GeomOverlapMultiple);
-DEFINE_STAT(STAT_Collision_GeomComputePenetration);
+DEFINE_STAT(STAT_Collision_FBodyInstance_OverlapMulti);
+DEFINE_STAT(STAT_Collision_FBodyInstance_OverlapTest);
 DEFINE_STAT(STAT_Collision_PreFilter);
 DEFINE_STAT(STAT_Collision_PostFilter);
 
@@ -46,7 +47,7 @@ FCollisionResponseContainer FCollisionResponseContainer::DefaultResponseContaine
 /* This is default response param that's used by trace query **/
 FCollisionResponseParams		FCollisionResponseParams::DefaultResponseParam;
 FCollisionObjectQueryParams		FCollisionObjectQueryParams::DefaultObjectQueryParam;
-FCollisionQueryParams			FCollisionQueryParams::DefaultQueryParam(TEXT("DefaultQueryParam"));
+FCollisionQueryParams			FCollisionQueryParams::DefaultQueryParam(TEXT("DefaultQueryParam"),true);   
 FComponentQueryParams			FComponentQueryParams::DefaultComponentQueryParams(TEXT("DefaultComponentQueryParam"));
 FCollisionShape					FCollisionShape::LineShape;
 

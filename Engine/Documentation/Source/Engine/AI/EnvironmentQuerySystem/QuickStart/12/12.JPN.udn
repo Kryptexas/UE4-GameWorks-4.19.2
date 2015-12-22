@@ -1,21 +1,22 @@
-﻿INTSourceChangelist:2606076
+﻿INTSourceChangelist:2654627
 Availability:Public
 Title:12.FindHidingSpot EQS を作成する
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
-Description:プレイヤーの TopDownCharacter から隠れるグリッド上の一番良いポイントを見つける EQS を作成します。
+Description:プレイヤーの TopDownCharacter から隠れるためのグリッド上の一番良いポイントを見つける EQS を作成します。
+バージョン：4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Engine/AI/EnvironmentQuerySystem/QuickStart/11 "%Engine/AI/EnvironmentQuerySystem/QuickStart/11:title%")
+		[前のステップ](Engine/AI/EnvironmentQuerySystem/QuickStart/11 "%Engine/AI/EnvironmentQuerySystem/QuickStart/11:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Quick Start Home](Engine/AI/EnvironmentQuerySystem/QuickStart)
+		[クイックスタート ホーム](Engine/AI/EnvironmentQuerySystem/QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Engine/AI/EnvironmentQuerySystem/QuickStart/13 "%Engine/AI/EnvironmentQuerySystem/QuickStart/13:title%")
+		[次のステップ](Engine/AI/EnvironmentQuerySystem/QuickStart/13 "%Engine/AI/EnvironmentQuerySystem/QuickStart/13:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -32,7 +33,7 @@ Description:プレイヤーの TopDownCharacter から隠れるグリッド上�
 
 ## ステップ
 
-1. はじめに、**コンテンツ ブラウザ** にある `FindHidingSpot` Environment Query アセットを **ダブルクリック** します。
+1. はじめに、**コンテンツ ブラウザ** で FindHidingSpot Environment Query アセットを **ダブルクリック** します。
 
 	![](findHide.png)
 
@@ -40,7 +41,7 @@ Description:プレイヤーの TopDownCharacter から隠れるグリッド上�
 
 	![](simpleGrid.png)
 
-1. **Simple Grid** Generator を選択し、その **[Details]** （詳細）パネルで以下のプロパティを設定します。
+1. **Simple Grid** Generator を選択し、その **[Details (詳細)]** パネルで以下のプロパティを設定します。
 
 	 ![](gridProp.png)
 
@@ -66,13 +67,13 @@ Description:プレイヤーの TopDownCharacter から隠れるグリッド上�
 
 	[INCLUDE:#eqsqs123]
 
-	この Distance テストは、AI により _近い_ アイテム により高い _スコア_ を与えるものです。このテストは、この前の **Distance Test** よりも大きなウェイトを持ちます。つまり、AI により近い方を優先するもののプレイヤーから離れたものを選択します。
+	この Distance テストは、AI により近いアイテムにより高いスコアを与えるものです。このテストは、この前の **Distance Test** よりも大きなウェイトを持ちます。つまり、AI により近い方を優先するもののプレイヤーから離れたものを選択します。
 
 1. [REGION:raw] **Simple Grid** ノードを **右クリック** して **Tests** %arrow% **Trace** を選択して 2 つの **Trace** テストを追加します。[/REGION]
 
 	![](addTrace.png)
 
-1. Trace テストのひとつを選択し、その **[Details]** パネルで、**Context** を `PlayerContext` に変更します (このクイックスタートの前の方で作成したContext)。
+1. Trace テストのひとつを選択し、その **[Details]** パネルで、**Context** を PlayerContext に変更します (このクイックスタートの前の方で作成したContext)。
 
 	![](traceProps.png)	
 
@@ -88,13 +89,13 @@ Description:プレイヤーの TopDownCharacter から隠れるグリッド上�
 
 	[INCLUDE:#eqsqs125]
 
-	これからは少し難しくなります。大まかにいうと、「プレイヤーのポーンの横にあるアイテムを優先する」ということですが、その仕組みは少々変わっています。Dot Product (内積) 関数は、1.0 (全く同じ) から -1.0 (完全に逆) のスケールで2 つのベクターがどれくらい「似ている」かを戻します。従って、プレイヤーの回転ベクターとプレイヤーからアイテムまでのベクターとの間の Dot Product の **Absolute Value** を取得すると、プレイヤーの前または後ろのポイントを優先します。しかし、 **Scoring Factor** を -1.0 に設定すると、プレイヤーの側面を優先します。
+	これからは少し難しくなります。大まかにいうと、「プレイヤーのポーンの横にあるアイテムを優先する」ということですが、その仕組みは少々変わっています。Dot Product (内積) 関数は、1.0 (全く同じ) から -1.0 (完全に逆) のスケールで2 つのベクターがどれくらい「似ている」かを戻します。従って、プレイヤーの回転ベクターとプレイヤーからアイテムまでのベクターとの間の Dot Product の **Absolute Value (絶対値)** を取得すると、プレイヤーの前または後ろのポイントを優先します。しかし、 **Scoring Factor** を -1.0 に設定すると、プレイヤーの側面を優先します。
 
 1. [REGION:raw] **Simple Grid** ノードを **右クリック** し、**Tests** %arrow% **PathFinding** を選択して、 **PathFinding** テストを追加します。[/REGION]
 
 	![](addPath.png)
 
-1. **PathFinding** テストを選択し、 **[Details]** パネルで、**Test Purpose** （テスト目的）を `Score Only` に調整します。
+1. **PathFinding** テストを選択し、 **[Details]** パネルで、**Test Purpose (テスト目的)** を Score Only に調整します。
 
 	![](pathProps.png)
 
@@ -108,29 +109,29 @@ Description:プレイヤーの TopDownCharacter から隠れるグリッド上�
 
 <!--
 [EXCERPT:eqsqs125]
-* **Line A - Rotation** = `PlayerContext`
-* **Line B - Line From** = `PlayerContext`
-* **Absolute Value** = `True`
-* **Test Purpose** = `Score Only`
-* **Scoring Factor** = `-1.0`
+* **Line A - Rotation** = PlayerContext
+* **Line B - Line From** = PlayerContext
+* **Absolute Value** = True
+* **Test Purpose** = Score Only
+* **Scoring Factor** = -1.0
 [/EXCERPT]
 
 [EXCERPT:eqsqs121]
-* **Grid Size** = `2000.0`
-* **Space Between** = `150.0`
-* **Navigation Filer** = `RecastFilter_UseDefaultArea`
-* **Project Down** = `2048.0`
-* **Post Projection Vertical Offset** = `32.0`
+* **Grid Size** = 2000.0
+* **Space Between** = 150.0
+* **Navigation Filer** = RecastFilter_UseDefaultArea
+* **Project Down** = 2048.0
+* **Post Projection Vertical Offset** = 32.0
 [/EXCERPT]
 
 [EXCERPT:eqsqs122]
-* **Distance To** = `Player Context`
-* **Test Purpose** = `Score Only`
+* **Distance To** = Player Context
+* **Test Purpose** = Score Only
 [/EXCERPT]
 
 [EXCERPT:eqsqs123]
-* **Test Purpose** = `Score Only`
-* **Scoring Equation** = `Inverse Linear`
-* **Scoring Factor** = `2.0`
+* **Test Purpose** = Score Only
+* **Scoring Equation** = Inverse Linear
+* **Scoring Factor** = 2.0
 [/EXCERPT]
 -->

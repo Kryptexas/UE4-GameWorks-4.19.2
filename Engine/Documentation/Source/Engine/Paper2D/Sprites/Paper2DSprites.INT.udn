@@ -8,6 +8,8 @@ Related: Engine\Paper2D\Sprites\RenderGeometry
 Related: Engine\Paper2D\Flipbooks
 Related: Engine/Rendering/Materials
 Related: Engine/Content/Types/Textures
+Version: 4.9
+SkillLevel: Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -55,7 +57,6 @@ Related: Engine/Content/Types/Textures
 
 [TOC (start:2 end:3)]
 
-## Overview
 
 [EXCERPT:intro]
 A **Sprite** in **Paper 2D** is a Texture Mapped Planar Mesh and associated Material that can be rendered in the world, created entirely within Unreal Engine 4 (UE4). In simpler terms, it's a quick and easy way to draw 2D images in UE4. 
@@ -73,9 +74,9 @@ Sprites are created in the **Content Browser**, like other assets. They can be c
 
 **To create a new blank Sprite asset:**
 
-1. Click the ![Create](button_cb_new.png)(h:24) button in the **Content Browser**, then under _Miscellaneous_, select **Sprite**.
+1. Click the **Add New** button in the **Content Browser**, then under _Paper2D_, select **Sprite**.
 	
-	![](sprite_new_menu.png)
+	![](SpriteCB.jpg)
 
 	[REGION:tip]
 	You can also **Right-click** in the **Content Browser** to bring up the same context menu. 
@@ -83,22 +84,22 @@ Sprites are created in the **Content Browser**, like other assets. They can be c
 
 1. Name the new Sprite asset.
 
-	![](sprite_new_name.png)
+	![](MySpriteCB.jpg)
 
 1. The Sprite has been created but has not been saved yet (indicated by the asterisk in the lower-left corner). 
 
-	![](sprite_new_saveall.png)
+	![](SpriteSaveAll.jpg)
 
-	Click the ![Save All](save_all_button.png)(h:24) button to save the Sprite. 
+	Click the **Save All** button to save the Sprite. 
 
 1. **Double-click** the new Sprite asset to open it in the **Sprite Editor**. 
 
 1. In the **Details** panel, you can assign a Texture to the Sprite asset using the **Source Texture** property.
 	
-	![](sprite_new_details_texture.png)
+	![](DetailsSprite.jpg)
 
 [REGION:note]
-See the [](Engine\Paper2D\Sprites\Editor) documentation for information on working with Sprites in the **Sprite Editor**.
+See the [Sprite Editor Reference](Engine\Paper2D\Sprites\Editor) documentation for information on working with Sprites in the **Sprite Editor**.
 [/REGION]
 
 
@@ -108,7 +109,7 @@ See the [](Engine\Paper2D\Sprites\Editor) documentation for information on worki
 
 1. In the **Content Browser**, **Right-click** on the Texture asset, then under _Sprite Actions_ choose **Create Sprite**.
 
-	![](sprite_create_menu.png)
+	![](ChooseSprite.jpg)
 
 1. Name the new Sprite asset.
 
@@ -133,7 +134,7 @@ See the [](Engine\Paper2D\Sprites\Editor) documentation for information on worki
 **Paper 2D** includes an importer for JSON formatted sprite sheet descriptions, which can be exported from tools like **Adobe Flash CS6** or **Texture Packer**. It will import any referenced textures and create sprite assets for each sprite. The importer also assumes that all of the sprites are frames of an animation, so it will always create a Flipbook in addition to the individual sprites. You can delete the generated flipbook if it is not needed.
 
 [REGION:note]
-See [](Engine\Paper2D\Importing) for more information on Importing Options. 
+See [Paper 2D Import Options](Engine\Paper2D\Importing) for more information on Importing Options. 
 [/REGION]
 
 

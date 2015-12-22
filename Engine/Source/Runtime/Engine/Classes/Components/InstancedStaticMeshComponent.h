@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -167,11 +167,11 @@ public:
 	UPROPERTY()
 	class UPhysicsSerializer* PhysicsSerializer;
 
-	// Begin UActorComponent interface 
+	//~ Begin UActorComponent Interface 
 	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
-	// End UActorComponent interface 
+	//~ End UActorComponent Interface 
 
-	// Begin UPrimitiveComponent Interface
+	//~ Begin UPrimitiveComponent Interface
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual void CreatePhysicsState() override;
 	virtual void DestroyPhysicsState() override;
@@ -185,11 +185,11 @@ public:
 	virtual void GetLightAndShadowMapMemoryUsage( int32& LightMapMemoryUsage, int32& ShadowMapMemoryUsage ) const override;
 	
 	virtual bool DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const override;
-	// End UPrimitiveComponent Interface
+	//~ End UPrimitiveComponent Interface
 	
-	// Begin UNavRelevantInterface interface.
+	//~ Begin UNavRelevantInterface Interface.
 	virtual void GetNavigationData(FNavigationRelevantData& Data) const override;
-	// End UPrimitiveComponent interface.
+	//~ End UPrimitiveComponent Interface.
 	
 	//Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;

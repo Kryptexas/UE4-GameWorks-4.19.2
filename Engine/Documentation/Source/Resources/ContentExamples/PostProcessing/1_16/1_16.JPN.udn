@@ -1,8 +1,30 @@
-﻿INTSourceChangelist:2350233
+﻿INTSourceChangelist:2721782
 Availability:Public
-Title:1.16 -Blendables (合成可能なもの) 
+Title:1.16 -Blendables（合成可能なもの）
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/PostProcessing
-Description:ポストプロセスの事例概要、例 1.16：Blendables
+Description:ポストプロセスのサンプル レベルの概要、サンプル 1.16：Blendables
+Related:Engine/Rendering/Overview
+Related:Engine/Rendering/PostProcessEffects
+Related:Engine/Rendering/PostProcessEffects/PostProcessMaterials
+Version:4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/PostProcessing/1_15 "%Resources/ContentExamples/PostProcessing/1_15:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[ポストプロセスのホーム](Resources/ContentExamples/PostProcessing)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/PostProcessing/1_17 "%Resources/ContentExamples/PostProcessing/1_17:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -51,5 +73,5 @@ Description:ポストプロセスの事例概要、例 1.16：Blendables
 
 [INCLUDE:Engine/Rendering\PostProcessEffects\PostProcessMaterials#PostProcessMaterials_Desc]
 
-**Blendables** は **PostProcessMaterials** としても知られています。これは、バッファーを読み取り、それを合成、修正してからスクリーンにアウトプットします。スクリーン上のマテリアルオーバーレイとして考えるとわかりやすいでしょう。
+**Blendables** は PostProcessMaterials としても知られています。これは、バッファーを読み取り、それを合成、修正してからスクリーンにアウトプットします。スクリーン上のマテリアルオーバーレイとして考えるとわかりやすいでしょう。
 

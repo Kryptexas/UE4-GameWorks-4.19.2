@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,7 +6,7 @@
 /**
  * Implements a rectangular 2D Box.
  */
-class FBox2D
+struct FBox2D
 {
 public:
 	/** Holds the box's minimum point. */

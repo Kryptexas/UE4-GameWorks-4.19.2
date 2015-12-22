@@ -1,8 +1,9 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "Containers/BitArray.h"
+#include "AI/Navigation/NavFilters/NavigationQueryFilter.h"
 #include "NavigationTypes.generated.h"
 
 #define INVALID_NAVNODEREF (0)
@@ -16,7 +17,6 @@
 /** uniform identifier type for navigation data elements may it be a polygon or graph node */
 typedef uint64 NavNodeRef;
 
-struct FNavigationQueryFilter;
 class AActor;
 class ANavigationData;
 class INavAgentInterface;
@@ -458,6 +458,10 @@ struct ENGINE_API FNavAgentProperties : public FMovementProperties
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementProperties)
 	float NavWalkingSearchHeightScale;
 
+	/** Type of navigation data used by agent, null means "any" */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = MovementProperties)
+	TSubclassOf<ANavigationData> PreferredNavData;
+
 	FNavAgentProperties(float Radius = -1.f, float Height = -1.f)
 		: AgentRadius(Radius), AgentHeight(Height), AgentStepHeight(-1), NavWalkingSearchHeightScale(0.5f)
 	{
@@ -468,13 +472,16 @@ struct ENGINE_API FNavAgentProperties : public FMovementProperties
 	FORCEINLINE bool IsValid() const { return AgentRadius >= 0.f && AgentHeight >= 0.f; }
 	FORCEINLINE bool HasStepHeightOverride() const { return AgentStepHeight >= 0.0f; }
 
+	bool IsNavDataMatching(const FNavAgentProperties& Other) const;
+
 	FORCEINLINE bool IsEquivalent(const FNavAgentProperties& Other, float Precision = 5.f) const
 	{
-		return FGenericPlatformMath::Abs(AgentRadius - Other.AgentRadius) < Precision &&
-			FGenericPlatformMath::Abs(AgentHeight - Other.AgentHeight) < Precision &&
-			(HasStepHeightOverride() == false || FGenericPlatformMath::Abs(AgentStepHeight - Other.AgentStepHeight) < Precision);
+		return FGenericPlatformMath::Abs(AgentRadius - Other.AgentRadius) < Precision
+			&& FGenericPlatformMath::Abs(AgentHeight - Other.AgentHeight) < Precision
+			&& (HasStepHeightOverride() == false || FGenericPlatformMath::Abs(AgentStepHeight - Other.AgentStepHeight) < Precision)
+			&& IsNavDataMatching(Other);
 	}
-
+	
 	bool operator==(const FNavAgentProperties& Other) const
 	{
 		return IsEquivalent(Other);
@@ -519,16 +526,17 @@ struct ENGINE_API FNavDataConfig : public FNavAgentProperties
 struct FNavigationProjectionWork
 {
 	const FVector Point;
+	FBox ProjectionLimit;
 	FNavLocation OutLocation;
 	bool bResult;
 	bool bIsValid;
 
-	explicit FNavigationProjectionWork(const FVector& StartPoint)
-		: Point(StartPoint), bResult(false), bIsValid(true)
+	explicit FNavigationProjectionWork(const FVector& StartPoint, const FBox& CustomProjectionLimits = FBox(ForceInit))
+		: Point(StartPoint), ProjectionLimit(CustomProjectionLimits), bResult(false), bIsValid(true)
 	{}
 
 	FNavigationProjectionWork()
-		: Point(FNavigationSystem::InvalidLocation), bResult(false), bIsValid(false)
+		: Point(FNavigationSystem::InvalidLocation), ProjectionLimit(ForceInit), bResult(false), bIsValid(false)
 	{}
 };
 
@@ -563,8 +571,9 @@ struct ENGINE_API FPathFindingQuery
 	TWeakObjectPtr<const UObject> Owner;
 	FVector StartLocation;
 	FVector EndLocation;
-	TSharedPtr<const FNavigationQueryFilter> QueryFilter;
+	FSharedConstNavQueryFilter QueryFilter;
 	FNavPathSharedPtr PathInstanceToFill;
+	FNavAgentProperties NavAgentProperties;
 
 	/** additional flags passed to navigation data handling request */
 	int32 NavDataFlags;
@@ -576,15 +585,15 @@ struct ENGINE_API FPathFindingQuery
 
 	FPathFindingQuery(const FPathFindingQuery& Source);
 
-	DEPRECATED(4.8, "This version of FPathFindingQuery's constructor is deprecated. Please use ANavigationData reference rather than a pointer")
-	FPathFindingQuery(const UObject* InOwner, const ANavigationData* InNavData, const FVector& Start, const FVector& End, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter = NULL, FNavPathSharedPtr InPathInstanceToFill = NULL);
+	FPathFindingQuery(const UObject* InOwner, const ANavigationData& InNavData, const FVector& Start, const FVector& End, FSharedConstNavQueryFilter SourceQueryFilter = NULL, FNavPathSharedPtr InPathInstanceToFill = NULL);
 
-	FPathFindingQuery(const UObject* InOwner, const ANavigationData& InNavData, const FVector& Start, const FVector& End, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter = NULL, FNavPathSharedPtr InPathInstanceToFill = NULL);
+	FPathFindingQuery(const INavAgentInterface& InNavAgent, const ANavigationData& InNavData, const FVector& Start, const FVector& End, FSharedConstNavQueryFilter SourceQueryFilter = NULL, FNavPathSharedPtr InPathInstanceToFill = NULL);
 
 	explicit FPathFindingQuery(FNavPathSharedRef PathToRecalculate, const ANavigationData* NavDataOverride = NULL);
 
 	FPathFindingQuery& SetPathInstanceToUpdate(FNavPathSharedPtr InPathInstanceToFill) { PathInstanceToFill = InPathInstanceToFill; return *this; }
 	FPathFindingQuery& SetAllowPartialPaths(bool bAllow) { bAllowPartialPaths = bAllow; return *this; }
+	FPathFindingQuery& SetNavAgentProperties(const FNavAgentProperties& InNavAgentProperties) { NavAgentProperties = InNavAgentProperties; return *this; }
 };
 
 namespace EPathFindingMode

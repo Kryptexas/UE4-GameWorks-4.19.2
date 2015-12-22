@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -16,7 +16,7 @@ public:
 	 *
 	 * @param InSequencer The sequencer instance to be used by this tool
 	 */
-	FAudioTrackEditor( TSharedRef<ISequencer> InSequencer );
+	FAudioTrackEditor(TSharedRef<ISequencer> InSequencer);
 
 	/** Virtual destructor. */
 	virtual ~FAudioTrackEditor();
@@ -27,23 +27,29 @@ public:
 	 * @param OwningSequencer The sequencer instance to be used by this tool
 	 * @return The new instance of this class
 	 */
-	static TSharedRef<ISequencerTrackEditor> CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer );
+	static TSharedRef<ISequencerTrackEditor> CreateTrackEditor(TSharedRef<ISequencer> OwningSequencer);
 
 public:
 
 	// ISequencerTrackEditor interface
 
+	virtual void BuildAddTrackMenu(FMenuBuilder& MenuBuilder) override;
 	virtual bool HandleAssetAdded(UObject* Asset, const FGuid& TargetObjectGuid) override;
-	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track ) override;
-	virtual bool SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const override;
+	virtual TSharedRef<ISequencerSection> MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack& Track) override;
+	virtual bool SupportsType(TSubclassOf<UMovieSceneTrack> Type) const override;
 	
-private:
+protected:
 
 	/** Delegate for AnimatablePropertyChanged in HandleAssetAdded for master sounds */
-	void AddNewMasterSound( float KeyTime, class USoundBase* Sound );
+	bool AddNewMasterSound(float KeyTime, class USoundBase* Sound);
 
 	/** Delegate for AnimatablePropertyChanged in HandleAssetAdded for attached sounds */
-	void AddNewAttachedSound( float KeyTime, class USoundBase* Sound, TArray<UObject*> ObjectsToAttachTo );
+	bool AddNewAttachedSound(float KeyTime, class USoundBase* Sound, TArray<UObject*> ObjectsToAttachTo);
+
+private:
+
+	/** Callback for executing the "Add Event Track" menu entry. */
+	void HandleAddAudioTrackMenuEntryExecute();
 };
 
 
@@ -57,7 +63,7 @@ class FAudioSection
 public:
 
 	/** Constructor. */
-	FAudioSection( UMovieSceneSection& InSection, bool bOnAMasterTrack );
+	FAudioSection(UMovieSceneSection& InSection, bool bOnAMasterTrack);
 
 	/** Virtual destructor. */
 	virtual ~FAudioSection();
@@ -67,12 +73,13 @@ public:
 	// ISequencerSection interface
 
 	virtual UMovieSceneSection* GetSectionObject() override;
+	virtual bool ShouldDrawKeyAreaBackground() const override;
 	virtual FText GetDisplayName() const override;
 	virtual FText GetSectionTitle() const override;
 	virtual float GetSectionHeight() const override;
-	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override {}
-	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const override;
-	virtual void Tick( const FGeometry& AllottedGeometry, const FGeometry& ParentGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder) const override { }
+	virtual int32 OnPaintSection(const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled) const override;
+	virtual void Tick(const FGeometry& AllottedGeometry, const FGeometry& ParentGeometry, const double InCurrentTime, const float InDeltaTime) override;
 	
 private:
 

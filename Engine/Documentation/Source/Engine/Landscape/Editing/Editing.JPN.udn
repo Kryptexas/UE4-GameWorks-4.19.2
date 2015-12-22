@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2609228
 Availability:Public
 Title:ランドスケープの編集
 Crumbs: %ROOT%, Engine, Engine/Landscape
@@ -26,10 +26,7 @@ Description:ランドスケープのテレイン編集に使用するツール�
 
 [TOC(start:2 end:2)]
 
-
-## 概要
-
-ランドスケープを作成すると、以下の事ができるようになります。
+ランドスケープを作成すると、以下の操作が可能になります。
 
 * 形状を **[Sculpt](Engine/Landscape\Editing\SculptMode)** モードで修正します。
 * 外観を**[Paint](Engine/Landscape\Editing\PaintMode)** モードで修正します。
@@ -42,7 +39,7 @@ Description:ランドスケープのテレイン編集に使用するツール�
 
 ランドスケープの作成に関する詳細は、 **[](Engine/Landscape\Creation)** を参照してください。
 
-様々なランドスケープ ツールのモードやオプションに対するクイック リファレンス ガイドについては、 **[](Engine/Landscape/UI)** を参照してください。
+様々なランドスケープ ツールのモードやオプションに対するクイック リファレンスについては、**[](Engine/Landscape/UI)** を参照してください。
 
 動作中のランドスケープのサンプルは、 **[](Resources\ContentExamples\Landscapes)** を参照してください。
 

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -51,6 +51,9 @@ public class Perforce : ModuleRules
             }
             LibPostfixAndExt += "lib";
             PublicLibraryPaths.Add(P4APIPath + LibFolder);
+
+            RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/Perforce/p4api.dll"));
+            RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/Perforce/p4api.xml"));
         }
         else
         {

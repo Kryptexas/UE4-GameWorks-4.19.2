@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,6 +8,7 @@
 
 
 class UGameplayEffect;
+class UAbilitySystemComponent;
 
 USTRUCT()
 struct FGameplayTagReponsePair
@@ -21,6 +22,10 @@ struct FGameplayTagReponsePair
 	/** The GameplayEffect to apply in reponse to the tag */
 	UPROPERTY(EditAnywhere, Category="Response")
 	TSubclassOf<UGameplayEffect> ResponseGameplayEffect;
+
+	/** The max "count" this response can achieve. This will not prevent counts from being applied, but will be used when calculating the net count of a tag. 0=no cap. */
+	UPROPERTY(EditAnywhere, Category="Response", meta=(ClampMin = "0"))
+	int32 SoftCountCap;
 };
 
 USTRUCT()
@@ -41,7 +46,7 @@ struct FGameplayTagResponseTableEntry
  *	A data driven table for applying gameplay effects based on tag count. This allows designers to map a 
  *	"tag count" -> "response Gameplay Effect" relationship.
  *	
- *	For example, "for every stack of "Status.Haste" I get 1 level of GE_Response_Haste. This class facilitates
+ *	For example, "for every count of "Status.Haste" I get 1 level of GE_Response_Haste. This class facilitates
  *	building this table and automatically registering and responding to tag events on the ability system component.
  */
 UCLASS()
@@ -61,12 +66,15 @@ protected:
 
 	UFUNCTION()
 	void TagResponseEvent(const FGameplayTag Tag, int32 NewCount, UAbilitySystemComponent* ASC, int32 idx);
+	
+	/** Temporary structs to avoid extra heap allocations every time we recalculate tag count */
+	mutable FGameplayEffectQuery Query;
 
-	FGameplayEffectQuery MakeQuery(const FGameplayTag& Tag)
+	FGameplayEffectQuery& MakeQuery(const FGameplayTag& Tag) const
 	{
-		return FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(FGameplayTagContainer(Tag));
+		Query.OwningTagQuery.ReplaceTagFast(Tag);
+		return Query;
 	}
-
 
 	// ----------------------------------------------------
 
@@ -76,29 +84,11 @@ protected:
 		FActiveGameplayEffectHandle NegativeHandle;
 	};
 
-	TMap< TWeakObjectPtr<UAbilitySystemComponent>, FGameplayTagResponseAppliedInfo > RegisteredASCs;
+	TMap< TWeakObjectPtr<UAbilitySystemComponent>, TArray< FGameplayTagResponseAppliedInfo> > RegisteredASCs;
 
-	void Remove(UAbilitySystemComponent* ASC, FActiveGameplayEffectHandle& Handle)
-	{
-		if (Handle.IsValid())
-		{
-			ASC->RemoveActiveGameplayEffect(Handle);
-			Handle.Invalidate();
-		}
-	}
+	void Remove(UAbilitySystemComponent* ASC, FActiveGameplayEffectHandle& Handle);
 
-	void AddOrUpdate(UAbilitySystemComponent* ASC, const TSubclassOf<UGameplayEffect>& ResponseGameplayEffect, int32 TotalCount, FActiveGameplayEffectHandle& Handle)
-	{
-		if (ResponseGameplayEffect)
-		{
-			if (Handle.IsValid())
-			{
-				ASC->SetActiveGameplayEffectLevel(Handle, TotalCount);
-			}
-			else
-			{
-				Handle = ASC->ApplyGameplayEffectToSelf(Cast<UGameplayEffect>(ResponseGameplayEffect->ClassDefaultObject), TotalCount, ASC->GetEffectContext());
-			}
-		}
-	}
+	void AddOrUpdate(UAbilitySystemComponent* ASC, const TSubclassOf<UGameplayEffect>& ResponseGameplayEffect, int32 TotalCount, FActiveGameplayEffectHandle& Handle);
+
+	int32 GetCount(const FGameplayTagReponsePair& Pair, UAbilitySystemComponent* ASC) const;
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PhysicsPublic.h
@@ -14,46 +14,7 @@
 /**
  * Physics stats
  */
-DECLARE_CYCLE_STAT_EXTERN(TEXT("FetchAndStart Time"),STAT_TotalPhysicsTime,STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Start Physics Time"),STAT_PhysicsKickOffDynamicsTime,STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Fetch Results Time"),STAT_PhysicsFetchDynamicsTime,STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Phys Events Time"),STAT_PhysicsEventTime,STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Phys SetBodyTransform"),STAT_SetBodyTransform,STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Phys SubstepStart"), STAT_SubstepSimulationStart,STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Phys SubstepEnd"), STAT_SubstepSimulationEnd, STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("SyncComponentsToBodies"), STAT_SyncComponentsToBodies, STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Init Articulated"), STAT_InitArticulated, STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Init Body"), STAT_InitBody, STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Init Body Debug"), STAT_InitBodyDebug, STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Init Body Scene Interaction"), STAT_InitBodySceneInteraction, STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Init Body Post Add to Scene"), STAT_InitBodyPostAdd, STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Term Body"), STAT_TermBody, STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Update Materials"), STAT_UpdatePhysMats, STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Update Materials Scene Interaction"), STAT_UpdatePhysMatsSceneInteraction, STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Filter Update"), STAT_UpdatePhysFilter, STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Filter Update (PhysX Code)"), STAT_UpdatePhysFilterPhysX, STATGROUP_Physics, );
-
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Init Bodies"), STAT_InitBodies, STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Bulk Body Scene Add"), STAT_BulkSceneAdd, STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Static Init Bodies"), STAT_StaticInitBodies, STATGROUP_Physics, );
-
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Broadphase Adds"), STAT_NumBroadphaseAdds, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Broadphase Removes"), STAT_NumBroadphaseRemoves, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Active Constraints"), STAT_NumActiveConstraints, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Active Simulated Bodies"), STAT_NumActiveSimulatedBodies, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Active Kinematic Bodies"), STAT_NumActiveKinematicBodies, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Mobile Bodies"), STAT_NumMobileBodies, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Static Bodies"), STAT_NumStaticBodies, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Shapes"), STAT_NumShapes, STATGROUP_Physics, );
-
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("(ASync) Broadphase Adds"), STAT_NumBroadphaseAddsAsync, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("(ASync) Broadphase Removes"), STAT_NumBroadphaseRemovesAsync, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("(ASync) Active Constraints"), STAT_NumActiveConstraintsAsync, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("(ASync) Active Simulated Bodies"), STAT_NumActiveSimulatedBodiesAsync, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("(ASync) Active Kinematic Bodies"), STAT_NumActiveKinematicBodiesAsync, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("(ASync) Mobile Bodies"), STAT_NumMobileBodiesAsync, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("(ASync) Static Bodies"), STAT_NumStaticBodiesAsync, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("(ASync) Shapes"), STAT_NumShapesAsync, STATGROUP_Physics, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("FetchAndStart Time (all)"), STAT_TotalPhysicsTime, STATGROUP_Physics, );
 
 #if WITH_PHYSX
 
@@ -285,8 +246,15 @@ public:
 	/** Gets the array of collision notifications, pending execution at the end of the physics engine run. */
 	TArray<FCollisionNotifyInfo>& GetPendingCollisionNotifies(int32 SceneType){ return PendingCollisionData[SceneType].PendingCollisionNotifies; }
 
+private:
 	/** World that owns this physics scene */
 	UWorld*							OwningWorld;
+
+public:
+	//Owning world is made private so that any code which depends on setting an owning world can update
+	void SetOwningWorld(UWorld* InOwningWorld);
+	UWorld* GetOwningWorld(){ return OwningWorld; }
+	const UWorld* GetOwningWorld() const { return OwningWorld; }
 
 	/** These indices are used to get the actual PxScene or NxApexScene from the GPhysXSceneMap. */
 	int16								PhysXSceneIndex[PST_MAX];
@@ -380,7 +348,7 @@ private:
 
 
 	/** Dispatcher for CPU tasks */
-	class PxCpuDispatcher*			CPUDispatcher;
+	class PxCpuDispatcher*			CPUDispatcher[PST_MAX];
 	/** Simulation event callback object */
 	class FPhysXSimEventCallback*			SimEventCallback[PST_MAX];
 #if WITH_VEHICLE
@@ -429,7 +397,7 @@ public:
 	ENGINE_API void EndFrame(ULineBatchComponent* InLineBatcher);
 
 	/** Starts cloth Simulation*/
-	ENGINE_API void StartCloth();
+	ENGINE_API void StartAsync();
 
 	/** returns the completion event for a frame */
 	FGraphEventRef GetCompletionEvent()
@@ -445,9 +413,6 @@ public:
 
 	/** Kill the visual debugger */
 	ENGINE_API void KillVisualDebugger();
-
-	/** Waits for cloth scene to complete */
-	ENGINE_API void WaitClothScene();
 
 	/** Fetches results, fires events, and adds debug lines */
 	void ProcessPhysScene(uint32 SceneType);
@@ -580,6 +545,12 @@ public:
 	void AddPendingDamageEvent(class UDestructibleComponent* DestructibleComponent, const NxApexDamageEventReportData& DamageEvent);
 #endif
 
+	/** Add this SkeletalMeshComponent to the list needing kinematic bodies updated before simulating physics */
+	void MarkForPreSimKinematicUpdate(USkeletalMeshComponent* InSkelComp, ETeleportType InTeleport, bool bNeedsSkinning);
+
+	/** Remove this SkeletalMeshComponent from set needing kinematic update before simulating physics*/
+	void ClearPreSimKinematicUpdate(USkeletalMeshComponent* InSkelComp);
+
 private:
 	/** Initialize a scene of the given type.  Must only be called once for each scene type. */
 	void InitPhysScene(uint32 SceneType);
@@ -592,6 +563,9 @@ private:
 
 	/** Helper function for determining which scene a dyanmic body is in*/
 	EPhysicsSceneType SceneType_AssumesLocked(const FBodyInstance* BodyInstance) const;
+
+	/** Process kinematic updates on any deferred skeletal meshes */
+	void UpdateKinematicsOnDeferredSkelMeshes();
 
 #if WITH_SUBSTEPPING
 	/** Task created from TickPhysScene so we can substep without blocking */
@@ -638,6 +612,18 @@ private:
 #if WITH_PHYSX
 	TMap<PxActor*, SleepEvent::Type> PendingSleepEvents[PST_MAX];
 #endif
+
+	/** Information about how to perform kinematic update before physics */
+	struct FDeferredKinematicUpdateInfo
+	{
+		/** Whether to teleport physics bodies or not */
+		ETeleportType	TeleportType;
+		/** Whether to update skinning info */
+		bool			bNeedsSkinning;
+	};
+
+	/** Map of SkeletalMeshComponents that need their bone transforms sent to the physics engine before simulation. */
+	TMap<USkeletalMeshComponent*, FDeferredKinematicUpdateInfo>	DeferredKinematicUpdateSkelMeshes;
 };
 
 /**

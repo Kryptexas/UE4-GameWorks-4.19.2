@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=======================================================================================
 	PhysXCollision.h: Collision related data structures/types specific to PhysX
@@ -10,6 +10,7 @@
 
 #include "Union.h"
 #include "../PhysicsEngine/PhysXSupport.h"
+#include "CollisionQueryParams.h"
 
 /** Temporary result buffer size */
 #define HIT_BUFFER_SIZE							512		// Hit buffer size for traces and sweeps. This is the total size allowed for sync + async tests.
@@ -92,19 +93,24 @@ public:
 	/** Whether to ignore touches (convert an eTOUCH result to eNONE). */
 	bool bIgnoreTouches;
 
+	/** Whether to ignore blocks (convert an eBLOCK result to eNONE). */
+	bool bIgnoreBlocks;
+
 
 	FPxQueryFilterCallback()
 	{
 		PrefilterReturnValue = PxSceneQueryHitType::eNONE;
 		bIgnoreTouches = false;
+		bIgnoreBlocks = false;
 	}
 
-	FPxQueryFilterCallback(const FilterIgnoreComponentsArrayType& InIgnoreComponents)
+	FPxQueryFilterCallback(const FCollisionQueryParams& InQueryParams)
 	{
 		PrefilterReturnValue = PxSceneQueryHitType::eNONE;
 		
-		IgnoreComponents = InIgnoreComponents;
+		IgnoreComponents = InQueryParams.GetIgnoredComponents();
 		bIgnoreTouches = false;
+		bIgnoreBlocks = InQueryParams.bIgnoreBlocks;
 	}
 
 	/** 
@@ -133,10 +139,10 @@ class FPxQueryFilterCallbackSweep : public FPxQueryFilterCallback
 public:
 	bool DiscardInitialOverlaps;
 
-	FPxQueryFilterCallbackSweep(const FilterIgnoreComponentsArrayType& InIgnoreComponents)
-		: FPxQueryFilterCallback(InIgnoreComponents)
+	FPxQueryFilterCallbackSweep(const FCollisionQueryParams& QueryParams)
+		: FPxQueryFilterCallback(QueryParams)
 	{
-		DiscardInitialOverlaps = false;
+		DiscardInitialOverlaps = !QueryParams.bFindInitialOverlaps;
 	}
 
 	virtual PxSceneQueryHitType::Enum postFilter(const PxFilterData& filterData, const PxSceneQueryHit& hit) override;
@@ -154,7 +160,7 @@ PxTransform ConvertToPhysXCapsulePose(const FTransform& GeomPose);
 // FILTER DATA
 
 /** Utility for creating a PhysX PxFilterData for performing a query (trace) against the scene */
-PxFilterData CreateQueryFilterData(const uint8 MyChannel, const bool bTraceComplex, const FCollisionResponseContainer& InCollisionResponseContainer, const struct FCollisionObjectQueryParams & ObjectParam, const bool bMultitrace);
+PxFilterData CreateQueryFilterData(const uint8 MyChannel, const bool bTraceComplex, const FCollisionResponseContainer& InCollisionResponseContainer, const struct FCollisionQueryParams& QueryParam, const struct FCollisionObjectQueryParams & ObjectParam, const bool bMultitrace);
 
 #endif // WITH_PHYX
 

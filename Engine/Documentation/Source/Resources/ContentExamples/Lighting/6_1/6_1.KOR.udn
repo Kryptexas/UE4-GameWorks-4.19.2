@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2655205
 Availability: Public
 Title:6.1 - 셀프 섀도우 정확도
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
@@ -12,6 +12,23 @@ Related: Engine/Rendering/LightingAndShadows/Lightmass
 Related: Engine/Rendering/LightingAndShadows/Shadows
 Related: Engine/Rendering/LightingAndShadows/IndirectLightingCache
 Related: Engine/Rendering/LightingAndShadows/LightMobility
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[라이팅 홈](Resources/ContentExamples/Lighting)
+	[/PARAM]
+	[PARAM:next]
+		[다음 예제](Resources/ContentExamples/Lighting/6_2 "%Resources/ContentExamples/Lighting/6_2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:TopicCompact]
@@ -39,7 +56,7 @@ Related: Engine/Rendering/LightingAndShadows/LightMobility
 [/REGION]
 
 
-Self Shadowing Accuracy (셀프 섀도우 정확도)를 보여주는 예제입니다. 이 프로퍼티는 주로 오브젝트가 땅 위에 있구나 하는 느낌을 내는 데 사용됩니다. 그러나 장점에 따른 단점도 있는데, 값을 올려 오브젝트가 땅 위에 있는 느낌을 강화시키다 보면 아래 그림과 같이 셀프 섀도우 부작용이 생길 수 있습니다:
+Self Shadowing Accuracy (셀프 섀도우 정확도), 다른 말로 **Shadow Bias** (그림자 편향)를 보여주는 예제입니다. 이 프로퍼티는 주로 오브젝트가 땅 위에 있구나 하는 느낌을 내는 데 사용됩니다. 그러나 장점에 따른 단점도 있는데, 값을 올려 오브젝트가 땅 위에 있는 느낌을 강화시키다 보면 아래 그림과 같이 셀프 섀도우 부작용이 생길 수 있습니다:
 
 ![](SelfShadowingArtifacts.png)
 

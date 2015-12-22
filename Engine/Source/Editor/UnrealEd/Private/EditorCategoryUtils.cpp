@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "EditorCategoryUtils.h"
@@ -336,15 +336,20 @@ bool FEditorCategoryUtils::IsCategoryHiddenFromClass(UClass const* Class, FText 
 //------------------------------------------------------------------------------
 bool FEditorCategoryUtils::IsCategoryHiddenFromClass(UClass const* Class, FString const& Category)
 {
-	bool bIsHidden = false;
-
 	TArray<FString> ClassHideCategories;
 	GetClassHideCategories(Class, ClassHideCategories);
+	return IsCategoryHiddenFromClass(ClassHideCategories, Class, Category);
+}
+
+//------------------------------------------------------------------------------
+bool FEditorCategoryUtils::IsCategoryHiddenFromClass(const TArray<FString>& ClassHideCategories, UClass const* Class, const FString& Category)
+{
+	bool bIsHidden = false;
 
 	// run the category through sanitization so we can ensure compares will hit
 	FString const DisplayCategory = GetCategoryDisplayString(Category);
 
-	for (FString& HideCategory : ClassHideCategories)
+	for (const FString& HideCategory : ClassHideCategories)
 	{
 		bIsHidden = (HideCategory == DisplayCategory);
 		if (bIsHidden)

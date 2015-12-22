@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2603866
+﻿INTSourceChangelist:2743118
 Availability:Public
 Title:最適化の中心的な概念
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Optimization
 Description:エフェクトを最適化するためにトラブル領域と問題のコンテンツを特定します。
+version:4.9
+
 
 
 [TOC]
@@ -135,7 +137,7 @@ Windows でのバッチファイル作成に慣れていない場合は、バッ
    
     cd\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32
     xbreboot /yourIpAddress DEVKIT:\YourGame[Build]\UnrealEngine3\YourGame.xex -novsync -nomovie -noailogging -noverifygc
-    Pause
+    一時停止
     
 
 一行目で定義されている場所で、このプロセスを開始する必要があります。
@@ -171,7 +173,7 @@ Windows でのバッチファイル作成に慣れていない場合は、バッ
 
 複数の一般的な問題について多数のエフェクトをチェックし、スプレッドシートに出力して原因をリスト表示するコマンドレットがいくつか用意されています。 
 
-こうしたコマンドレットには、以下があります。 ：
+こうしたコマンドレットには、以下があります：
 
 
 ### ParticleSystemAudit
@@ -180,12 +182,12 @@ Windows でのバッチファイル作成に慣れていない場合は、バッ
 
 **注記:**これは、'On DVD' タグを使用するとともに、あらゆる既存のパーティクル システムをチェックするように変更されます。
 
-このコマンドレットは、次のような項目を含む csv ファイルを作成するため、コンテンツの最適化 / 修正に役立ちます。：
+このコマンドレットは、次のような項目を含む csv ファイルを作成するため、コンテンツの最適化 / 修正に役立ちます：
 
 $ **All particle systems w/ NO LOD levels** (LOD レベルがない全パーティクル システム) :NO LOD levels とは、パーティクル システムが空であることを意味します。
 $ **All particle systems w/ a single LOD level**  (単一の LOD レベルをともなう全パーティクル システム) :これらのシステムは見直して、環境 (レベル配置の) エフェクトではないことを確認すべきです。そのような場合は、通常、LOD を利用することによって、遠方のエミッタを無効にする必要があります。
-$ **All particle systems w/out fixed bounds set** (固定境界が設定されている全パーティクル システム)：固定された相対的な境界を利用している可能性のある全パーティクル システムです。 
-$ **All particle systems w/ LOD Method of Automatic & a check time of 0.0**  (LOD の方法が自動かつチェック時間が 0.0 である全パーティクル システム) :パーティクル システムがフレームごとに LOD をチェックするシナリオを表示します。 
+$ **All particle systems w/out fixed bounds set** (固定境界が設定されている全パーティクル システム)：固定された相対的な境界を利用している可能性のある全パーティクル システムです。
+$ **All particle systems w/ LOD Method of Automatic & a check time of 0.0**  (LOD の方法が自動かつチェック時間が 0.0 である全パーティクル システム) :パーティクル システムがフレームごとに LOD をチェックするシナリオを表示します。
 $ **All particle systems w/ bOrientZAxisTowardCamera enabled** (bOrientZAxisTowardCamera (Z 軸がカメラ方向に向く) が有効になっている全パーティクル システム)：このようなパーティクル システムは、ゲームが分割スクリーンをサポートしている場合に、問題を引き起こす可能性があります。 
 $ **All particle systems w/ missing materials** (欠けているマテリアルをともなっている全パーティクル システム)：そのようなパーティクル システムは、デフォルトのマテリアルを使ってレンダリングされます。 
 $ **All particle systems w/ no emitters** (エミッタがない全パーティクル システム)：これらのパーティクル システムは空です。(削除すべきでしょうか?) 

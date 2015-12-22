@@ -1,7 +1,9 @@
-Availability:Public
+﻿Availability:Public
 Title:5. Package Your Game
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:Package your game for installation.
+Version:4.9
+Skilllevel:Intermediate
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -18,6 +20,9 @@ Description:Package your game for installation.
 	[/PARAM]
 [/OBJECT]
 [/VAR]
+
+In order for you to be able to share your project with others or put it on a digital store to sell, the project needs to be packaged. 
+In the following section we will take a look at how you can package your finished project for deployment inside of UE4.
 
 %Steps%
 
@@ -55,51 +60,90 @@ Description:Package your game for installation.
 <!--
 [EXCERPT:WindowsSetup]
 
-1.	To push your full game to your Android device, you will need to package it. In the **File** menu, hover over **Package Project** to expand the full list of options. Here you will again see the list of texture formats, and must select the right one (or unlabeled). If you are unsure what to select, use **ETC1**.
+[region:note]
+We are currently packaging in **Development** because we are testing this game, but when your game is complete, you can package it in **Shipping** by hovering over the **Build Configurations** option in the **Package Project** menu.
+[/region]
+
+1.	In the **File** menu, go to **Package Project > Android** and select the Texture format you want to package. 
+	For this example, we will choose Android **ETC1** as it is supported by all devices.
 
 	[REGION:raw]  
 	![](package_menu.png)
 	[/REGION]
 
-1.	You will be prompted for a save location for your packaged game, which should default to your project folder.
+	[REGION:note]
+	Different devices support different Texture formats depending on the hardware they run on. See, [](Platforms/Android/Reference) for a detailed breakdown of the various formats.
+	[/REGION]
+
+1.	You will then be prompted for a location to save your packaged game. For now create a new folder on the desk top and select that as the location to save your project to.
+
 	![](package_folder.png)
-1. A packaging message will appear in the bottom right corner of the editor while the game is being packaged.
+
+1. While your project is being packaged a packaging message will appear in the bottom right corner showing the progress of the packing.
+
 	![](package_toast.png)
+
 1.	Once packaging is successful, a Packaging Complete message will appear in the bottom right of the editor.
-1.	Navigate to the save location you just set. 
-1.	In this folder, there will be a folder named specifically for your texture type. In this example, the folder is named `Android_DXT`. Open this folder.
-1.	**Double-click** on the `Install_[ProjectName]_Development.bat` batch file.
-	![](batch_file.png)
-1.	Your game is now installed and you can open it from your Apps drawer.
+
+	![](Packageing_Completed.png)
+
+1.	Navigate to the folder that was created in step two and in this folder you should have a new folder named specifically for the texture type you selected when packaging. 
+	In this example, the folder is named **Android_ETC1**.
+
+	![](Android_ECT1_Folder.png)
+
+1.	Open up the Android_ETC1 folder and then  **Double-click** on the **Install_[ProjectName]_Development.bat** batch file to install the project on your Android device.
+
+	![](Install_Bat.png)
+	[region:note]
+	You must have your Android device plugged into your development PC via USB to deploy the project to your device. If you do not have your device plugged in running the .BAT file will do nothing.
+	[/region]
+
+1.	After the .BAT file has finished you should now see your project ready to be used on your Android device.
+
+	![](Game_On_Phone.png)(w:320)
 
 [/EXCERPT:WindowsSetup]
 
 [EXCERPT:MacOSSetup]
-1. Now, to push your full game to your Android device, you will need to package it. In the **File** menu, hover over **Package Project** to expand the full list of options. Here you will again see the list of texture formats, and must select the right one (or unlabeled).
+
+[region:note]
+We are currently packaging in **Development** because we are testing this game, but when your game is complete, you can package it in **Shipping** by hovering over the **Build Configurations** option in the **Package Project** menu.
+[/region]
+
+
+1. 	In the **File** menu, go to **Package Project > Android** and select the Texture format you want to package. 
+	For this example, we will choose Android **ETC1** as it is supported by all devices.
 
 	![](AQS_Mac_01.png)
 
-We are currently packaging in **Development** because we are testing this game, but when your game is complete, you can package it in **Shipping** by hovering over the **Build Configurations** option in the **Package Project** menu.
-
-1. You will be prompted for a save location for your packaged game, which should default to your project folder.
+1. You will be prompted for a save location for your packaged game, which should default to your project folder. Create a new folder and call it **Android_Builds**.
 
 	![](AQS_Mac_02.png)
 
-1. A packaging message will appear in the bottom right corner of the editor while the game is being packaged.
+1. While your project is being packaged a packaging message will appear in the bottom right corner showing the progress of the packing.
 
-	![](AQS_Mac_03.png)
+	![](package_toast.png)
 
-1. Once packaging is successful, a Packaging Complete message will appear in the bottom right of the editor.
+1.	Once packaging is successful, a Packaging Complete message will appear in the bottom right of the editor.
 
-1. Navigate to the save location you just set.
+	![](Packageing_Completed.png)
 
-1. In this folder, there will be a folder named specifically for your texture type. In this example, the folder is named Android_DXT. Open this folder.
+1.	Navigate to the folder that was created in step two and in this folder you should have a new folder named specifically for the texture type you selected when packaging. 
+	In this example, the folder is named **Android_ETC1**.
 
-1. **Double-click** on the Install_[ProjectName]_Development-arm*.command script file.
+	![](MAC_Install_Folder.png)
 
-	![](AQS_Mac_04.png)
+1.	Open up the Android_ETC1 folder and then  **Double-click** on the **Install_[ProjectName]_Development_armv7-es3.command** file to install the project on your Android device.
 
-1. Your game is now installed and you can open it from your Apps drawer.
+	![](MAC_Install_BAT.png)
+	[region:note]
+	You must have your Android device plugged into your development PC via USB to deploy the project to your device. If you do not have your device plugged in running the .command file will do nothing.
+	[/region]
+
+1. After the .command file has finished you should now see your project ready to be used on your Android device.
+
+	![](Game_On_Phone.png)(w:320)
 
 [/EXCERPT:MacOSSetup]
 -->

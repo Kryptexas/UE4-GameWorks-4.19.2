@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ContentStreaming.h: Definitions of classes used for content streaming.
@@ -726,11 +726,13 @@ struct FSpawnedTextureInstance
  */
 struct FStreamMemoryTracker
 {
-#if PLATFORM_64BITS
-	typedef int64 TSize;
-#else
+#if WINVER < 0x0600
+	// Windows XP does not have InterlockedIncrement64
 	typedef int32 TSize;
+#else
+	typedef int64 TSize;
 #endif
+
 	/** Stream-in memory that hasn't been allocated yet. */
 	volatile TSize PendingStreamIn;
 	/** Temp memory that hasn't been allocated yet. */
@@ -809,10 +811,12 @@ enum FStreamoutLogic
 struct FStreamableTextureInstance4
 {
 	FStreamableTextureInstance4()
-	:	BoundingSphereX( 3.402823466e+38F, 3.402823466e+38F, 3.402823466e+38F, 3.402823466e+38F )
+	:	BoundingSphereX( MAX_FLT, MAX_FLT, MAX_FLT, MAX_FLT )
 	,	BoundingSphereY( 0, 0, 0, 0 )
 	,	BoundingSphereZ( 0, 0, 0, 0 )
 	,	BoundingSphereRadius( 0, 0, 0, 0 )
+	,	MinDistanceSq( 0, 0, 0, 0 )
+	,	MaxDistanceSq( MAX_FLT, MAX_FLT, MAX_FLT, MAX_FLT )
 	,	TexelFactor( 0, 0, 0, 0 )
 	{
 	}
@@ -824,6 +828,11 @@ struct FStreamableTextureInstance4
 	FVector4 BoundingSphereZ;
 	/** Sphere radii for the bounding sphere of 4 texture instances */
 	FVector4 BoundingSphereRadius;
+	/** Minimal distance ^2 (between the bounding sphere origin and the view origin) for which this entry is valid */
+	FVector4 MinDistanceSq;
+	/** Maximal distance ^2 (between the bounding sphere origin and the view origin) for which this entry is valid */
+	FVector4 MaxDistanceSq;
+
 	/** Texel scale factors for 4 texture instances */
 	FVector4 TexelFactor;
 };
@@ -1278,6 +1287,9 @@ protected:
 	bool					bUseDynamicStreaming;
 
 	float					BoostPlayerTextures;
+
+	/** Extra distance added to the range test, to start streaming the texture before they are actually used. */
+	float					RangePrefetchDistance;
 
 	/** Array of texture streaming objects to use during update. */
 	TArray<FStreamingHandlerTextureBase*> TextureStreamingHandlers;

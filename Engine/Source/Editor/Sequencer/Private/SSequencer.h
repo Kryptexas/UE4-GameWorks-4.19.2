@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,21 +7,38 @@
 #include "SequencerCommonHelpers.h"
 
 
+class FActorDragDropGraphEdOp;
+class FAssetDragDropOp;
+class FClassDragDropOp;
+class FEditPropertyChain;
+class FMovieSceneSequenceInstance;
+class FSequencer;
+class FSequencerNodeTree;
+class FUnloadedClassDragDropOp;
 class IDetailsView;
+class UMovieSceneSection;
+class SSequencerCurveEditor;
+class SSequencerLabelBrowser;
+class SSequencerTrackArea;
+class SSequencerTrackOutliner;
 class SSequencerTreeView;
 struct FSectionHandle;
-
+struct FPaintPlaybackRangeArgs;
 
 namespace SequencerLayoutConstants
 {
 	/** The amount to indent child nodes of the layout tree */
 	const float IndentAmount = 8.0f;
+
 	/** Height of each object node */
 	const float ObjectNodeHeight = 20.0f;
+
 	/** Height of each section area if there are no sections (note: section areas may be larger than this if they have children. This is the height of a section area with no children or all children hidden) */
 	const float SectionAreaDefaultHeight = 15.0f;
+
 	/** Height of each key area */
 	const float KeyAreaHeight = 15.0f;
+
 	/** Height of each category node */
 	const float CategoryNodeHeight = 15.0f;
 }
@@ -40,15 +57,18 @@ struct FSequencerBreadcrumb
 
 	/** The type of breadcrumb this is */
 	FSequencerBreadcrumb::Type BreadcrumbType;
-	/** The movie scene this may point to */
-	class TWeakPtr<FMovieSceneSequenceInstance> MovieSceneInstance;
 
-	FSequencerBreadcrumb( TSharedRef<class FMovieSceneSequenceInstance> InMovieSceneInstance )
+	/** The movie scene this may point to */
+	TWeakPtr<FMovieSceneSequenceInstance> MovieSceneInstance;
+
+	FSequencerBreadcrumb(TSharedRef<FMovieSceneSequenceInstance> InMovieSceneInstance)
 		: BreadcrumbType(FSequencerBreadcrumb::MovieSceneType)
-		, MovieSceneInstance(InMovieSceneInstance) {}
+		, MovieSceneInstance(InMovieSceneInstance)
+	{ }
 
 	FSequencerBreadcrumb()
-		: BreadcrumbType(FSequencerBreadcrumb::ShotType) {}
+		: BreadcrumbType(FSequencerBreadcrumb::ShotType)
+	{ }
 };
 
 
@@ -61,34 +81,56 @@ class SSequencer
 	, public FNotifyHook
 {
 public:
+
 	DECLARE_DELEGATE_OneParam( FOnToggleBoolOption, bool )
 	SLATE_BEGIN_ARGS( SSequencer )
 		: _ScrubPosition( 1.0f )
-	{}
+	{ }
 		/** The current view range (seconds) */
 		SLATE_ATTRIBUTE( FAnimatedRange, ViewRange )
+
 		/** The current clamp range (seconds) */
 		SLATE_ATTRIBUTE( FAnimatedRange, ClampRange )
+
+		/** The playback range */
+		SLATE_ATTRIBUTE( TRange<float>, PlaybackRange )
+		
+		/** Called when the user changes the playback range */
+		SLATE_EVENT( FOnRangeChanged, OnPlaybackRangeChanged )
+
+		/** Called when the user has begun dragging the playback range */
+		SLATE_EVENT( FSimpleDelegate, OnBeginPlaybackRangeDrag )
+
+		/** Called when the user has finished dragging the playback range */
+		SLATE_EVENT( FSimpleDelegate, OnEndPlaybackRangeDrag )
+
 		/** The current scrub position in (seconds) */
 		SLATE_ATTRIBUTE( float, ScrubPosition )
+
 		/** Called when the user changes the view range */
 		SLATE_EVENT( FOnViewRangeChanged, OnViewRangeChanged )
+
 		/** Called when the user changes the clamp range */
-		SLATE_EVENT( FOnClampRangeChanged, OnClampRangeChanged )
+		SLATE_EVENT( FOnRangeChanged, OnClampRangeChanged )
+
 		/** Called when the user has begun scrubbing */
 		SLATE_EVENT( FSimpleDelegate, OnBeginScrubbing )
+
 		/** Called when the user has finished scrubbing */
 		SLATE_EVENT( FSimpleDelegate, OnEndScrubbing )
+
 		/** Called when the user changes the scrub position */
 		SLATE_EVENT( FOnScrubPositionChanged, OnScrubPositionChanged )
+
 		/** Called to populate the add combo button in the toolbar. */
 		SLATE_EVENT( FOnGetAddMenuContent, OnGetAddMenuContent )
+
 		/** Extender to use for the add menu. */
 		SLATE_ARGUMENT( TSharedPtr<FExtender>, AddMenuExtender )
 	SLATE_END_ARGS()
 
 
-	void Construct( const FArguments& InArgs, TSharedRef< class FSequencer > InSequencer );
+	void Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSequencer);
 
 	void BindCommands(TSharedRef<FUICommandList> SequencerCommandBindings);
 	
@@ -99,7 +141,10 @@ public:
 		Collector.AddReferencedObject( Settings );
 	}
 
-	virtual bool SupportsKeyboardFocus() const override { return true; }
+	virtual bool SupportsKeyboardFocus() const override
+	{
+		return true;
+	}
 
 	/** Updates the layout node tree from movie scene data */
 	void UpdateLayoutTree();
@@ -107,12 +152,8 @@ public:
 	/** Causes the widget to register an empty active timer that persists until Sequencer playback stops */
 	void RegisterActiveTimerForPlayback();
 
-	/**
-	 * Updates the breadcrumbs from a change in the shot filter state
-	 *
-	 * @param FilteringShots A list of shots that are now filtering, or none if filtering is off
-	 */
-	void UpdateBreadcrumbs(const TArray< TWeakObjectPtr<class UMovieSceneSection> >& FilteringShots);
+	/** Updates the breadcrumbs from a change in the shot filter state. */
+	void UpdateBreadcrumbs();
 	void ResetBreadcrumbs();
 
 	/** Step to next and previous keyframes */
@@ -123,8 +164,15 @@ public:
 	void StepToKey(bool bStepToNextKey, bool bCameraOnly);
 
 	/** Whether the user is selecting. Ignore selection changes from the level when the user is selecting. */
-	void SetUserIsSelecting(bool bUserIsSelectingIn) { bUserIsSelecting = bUserIsSelectingIn; }
-	bool UserIsSelecting() { return bUserIsSelecting; }
+	void SetUserIsSelecting(bool bUserIsSelectingIn)
+	{
+		bUserIsSelecting = bUserIsSelectingIn;
+	}
+
+	bool UserIsSelecting()
+	{
+		return bUserIsSelecting;
+	}
 
 	/** Called when the save button is clicked */
 	void OnSaveMovieSceneClicked();
@@ -133,7 +181,10 @@ public:
 	TSharedPtr<SSequencerTreeView> GetTreeView() const;
 
 	/** Access the currently active edit tool */
-	ISequencerEditTool& GetEditTool() const { return *EditTool; }
+	ISequencerEditTool& GetEditTool() const
+	{
+		return *EditTool;
+	}
 
 	/** Generate a helper structure that can be used to transform between phsyical space and virtual space in the track area */
 	FVirtualTrackArea GetVirtualTrackArea() const;
@@ -141,27 +192,50 @@ public:
 	/** Get an array of section handles for the given set of movie scene sections */
 	TArray<FSectionHandle> GetSectionHandles(const TSet<TWeakObjectPtr<UMovieSceneSection>>& DesiredSections) const;
 
+	/** @return a numeric type interface that will parse and display numbers as frames and times correctly */
+	TSharedRef<INumericTypeInterface<float>> GetNumericTypeInterface();
+
 public:
 
 	// FNotifyHook overrides
 
-	void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged);
+	void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, FEditPropertyChain* PropertyThatChanged);
 
 protected:
 
 	/** Update the details view from the currently selected keys and sections. */
 	void UpdateDetailsView();
 
+protected:
+
+	// SWidget interface
+
+	// @todo Sequencer Basic drag and drop support. Doesn't belong here most likely.
+	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
+
 private:
 	
 	/** Handles checking whether the details view is enabled. */
 	bool HandleDetailsViewEnabled() const;
+
+	/** Handles determining the visibility of the details view selection tip. */
+	EVisibility HandleDetailsViewTipVisibility() const;
 
 	/** Handles determining the visibility of the details view. */
 	EVisibility HandleDetailsViewVisibility() const;
 
 	/** Handles key selection changes. */
 	void HandleKeySelectionChanged();
+
+	/** Handles selection changes in the label browser. */
+	void HandleLabelBrowserSelectionChanged(FString NewLabel, ESelectInfo::Type SelectInfo);
+
+	/** Handles determining the visibility of the label browser. */
+	EVisibility HandleLabelBrowserVisibility() const;
 
 	/** Handles section selection changes. */
 	void HandleSectionSelectionChanged();
@@ -183,6 +257,9 @@ private:
 
 	/** Makes the snapping menu for the toolbar. */
 	TSharedRef<SWidget> MakeSnapMenu();
+
+	/** Makes the auto-key menu for the toolbar. */
+	TSharedRef<SWidget> MakeAutoKeyMenu();
 
 	/** Makes and configures a set of the standard UE transport controls. */
 	TSharedRef<SWidget> MakeTransportControls();
@@ -219,7 +296,10 @@ private:
 	/**
 	 * @return The fill percentage of the animation outliner
 	 */
-	float GetColumnFillCoefficient(int32 ColumnIndex) const { return ColumnFillCoefficients[ColumnIndex]; }
+	float GetColumnFillCoefficient(int32 ColumnIndex) const
+	{
+		return ColumnFillCoefficients[ColumnIndex];
+	}
 
 	/** Get the amount of space that the outliner spacer should fill */
 	float GetOutlinerSpacerFill() const;
@@ -230,44 +310,33 @@ private:
 	/** Get the visibility of the track area */
 	EVisibility GetTrackAreaVisibility() const;
 
-	/** Get the lock in/out to start/end range value */
-	bool GetLockInOutToStartEndRange() const;
-
-	/** SWidget interface */
-	/** @todo Sequencer Basic drag and drop support.  Doesn't belong here most likely */
-	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
-	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
-	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
-	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
-
 	/**
 	 * Called when one or more assets are dropped into the widget
 	 *
 	 * @param	DragDropOp	Information about the asset(s) that were dropped
 	 */
-	void OnAssetsDropped( const class FAssetDragDropOp& DragDropOp );
+	void OnAssetsDropped(const FAssetDragDropOp& DragDropOp);
 	
 	/**
 	 * Called when one or more classes are dropped into the widget
 	 *
 	 * @param	DragDropOp	Information about the class(es) that were dropped
 	 */
-	void OnClassesDropped( const class FClassDragDropOp& DragDropOp );
+	void OnClassesDropped(const FClassDragDropOp& DragDropOp);
 	
 	/**
 	 * Called when one or more unloaded classes are dropped into the widget
 	 *
 	 * @param	DragDropOp	Information about the unloaded class(es) that were dropped
 	 */
-	void OnUnloadedClassesDropped( const class FUnloadedClassDragDropOp& DragDropOp );
+	void OnUnloadedClassesDropped(const FUnloadedClassDragDropOp& DragDropOp);
 	
 	/**
 	 * Called when one or more actors are dropped into the widget
 	 *
 	 * @param	DragDropOp	Information about the actor(s) that was dropped
 	 */
-	void OnActorsDropped( class FActorDragDropGraphEdOp& DragDropOp ); 
+	void OnActorsDropped(FActorDragDropGraphEdOp& DragDropOp); 
 	
 	/**
 	* Delegate used when actor selection changes in the level
@@ -305,38 +374,78 @@ private:
 	/** Called when the curve editor is shown or hidden */
 	void OnCurveEditorVisibilityChanged();
 
+	/** Gets paint options for painting the playback range on sequencer */
+	FPaintPlaybackRangeArgs GetSectionPlaybackRangeArgs() const;
+
+public:
+
+	/** Open the paste menu */
+	void Paste();
+	
+	/** Open the paste from history menu */
+	void PasteFromHistory();
+
+	/** Generate a paste menu args structure */
+	struct FPasteContextMenuArgs GeneratePasteArgs(float PasteAtTime, TSharedPtr<FMovieSceneClipboard> Clipboard = nullptr);
+
+
 private:
 
 	/** Holds the details view. */
 	TSharedPtr<IDetailsView> DetailsView;
 
 	/** Section area widget */
-	TSharedPtr<class SSequencerTrackArea> TrackArea;
+	TSharedPtr<SSequencerTrackArea> TrackArea;
+
 	/** Outliner widget */
-	TSharedPtr<class SSequencerTrackOutliner> TrackOutliner;
+	TSharedPtr<SSequencerTrackOutliner> TrackOutliner;
+
 	/** The curve editor. */
-	TSharedPtr<class SSequencerCurveEditor> CurveEditor;
+	TSharedPtr<SSequencerCurveEditor> CurveEditor;
+
 	/** Sequencer node tree for movie scene data */
-	TSharedPtr<class FSequencerNodeTree> SequencerNodeTree;
+	TSharedPtr<FSequencerNodeTree> SequencerNodeTree;
+
 	/** The breadcrumb trail widget for this sequencer */
-	TSharedPtr< class SBreadcrumbTrail<FSequencerBreadcrumb> > BreadcrumbTrail;
+	TSharedPtr<SBreadcrumbTrail<FSequencerBreadcrumb>> BreadcrumbTrail;
+
+	/** The label browser for filtering tracks. */
+	TSharedPtr<SSequencerLabelBrowser> LabelBrowser;
+
+	/** The search box for filtering tracks. */
+	TSharedPtr<SSearchBox> SearchBox;
+
 	/** The sequencer tree view responsible for the outliner and track areas */
 	TSharedPtr<SSequencerTreeView> TreeView;
+
 	/** The main sequencer interface */
 	TWeakPtr<FSequencer> Sequencer;
+
 	/** Cached settings provided to the sequencer itself on creation */
 	USequencerSettings* Settings;
+
 	/** The fill coefficients of each column in the grid. */
 	float ColumnFillCoefficients[2];
+
 	/** Whether the active timer is currently registered */
 	bool bIsActiveTimerRegistered;
+
 	/** Whether the user is selecting. Ignore selection changes from the level when the user is selecting. */
 	bool bUserIsSelecting;
+
 	/** The current edit tool */
 	TUniquePtr<ISequencerEditTool> EditTool;
+
 	/** Extender to use for the 'add' menu */
 	TSharedPtr<FExtender> AddMenuExtender;
 
-	FOnGetAddMenuContent OnGetAddMenuContent;
+	/** Numeric type interface used for converting parsing and generating strings from numbers */
+	TSharedPtr<INumericTypeInterface<float>> NumericTypeInterface;
 
+	FOnGetAddMenuContent OnGetAddMenuContent;
+	/** Called when the user has begun dragging the playback range */
+	FSimpleDelegate OnBeginPlaybackRangeDrag;
+
+	/** Called when the user has finished dragging the playback range */
+	FSimpleDelegate OnEndPlaybackRangeDrag;
 };

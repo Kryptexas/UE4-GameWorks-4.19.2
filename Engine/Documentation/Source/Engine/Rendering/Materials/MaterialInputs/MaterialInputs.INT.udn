@@ -2,6 +2,7 @@ Availability:Public
 Title:Material Inputs			
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/IntroductionToMaterials
 Description:An in-depth look at the various inputs available on a Material and how they are used.
+Version: 4.9
 
 Here we take a look at the available inputs when making a Material. By feeding values (by way of constants, parameters, and textures) into these inputs, you can define just about any physical surface you can imagine.
 

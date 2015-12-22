@@ -1,8 +1,9 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 #include "OnlineBeaconClient.h"
 #include "OnlineBeaconHost.h"
+#include "OnlineBeaconHostObject.h"
 #include "Net/DataChannel.h"
 #include "Net/UnrealNetwork.h"
 
@@ -16,6 +17,11 @@ AOnlineBeaconClient::AOnlineBeaconClient(const FObjectInitializer& ObjectInitial
 {
 	NetDriverName = FName(TEXT("BeaconDriverClient"));
 	bOnlyRelevantToOwner = true;
+}
+
+FString AOnlineBeaconClient::GetBeaconType() const
+{
+	return GetClass()->GetName();
 }
 
 AOnlineBeaconHostObject* AOnlineBeaconClient::GetBeaconOwner() const
@@ -36,6 +42,16 @@ const AActor* AOnlineBeaconClient::GetNetOwner() const
 class UNetConnection* AOnlineBeaconClient::GetNetConnection() const
 {
 	return BeaconConnection;
+}
+
+bool AOnlineBeaconClient::DestroyNetworkActorHandled()
+{
+	if (BeaconConnection)
+	{
+		BeaconConnection->bPendingDestroy = true;
+	}
+
+	return false;
 }
 
 EBeaconConnectionState AOnlineBeaconClient::GetConnectionState() const
@@ -64,7 +80,7 @@ bool AOnlineBeaconClient::InitClient(FURL& URL)
 				NetDriver->SetWorld(GetWorld());
 				NetDriver->Notify = this;
 				NetDriver->InitialConnectTimeout = BeaconConnectionInitialTimeout;
-				NetDriver->ConnectionTimeout = BeaconConnectionInitialTimeout;
+				NetDriver->ConnectionTimeout = BeaconConnectionTimeout;
 
 				// Send initial message.
 				uint8 IsLittleEndian = uint8(PLATFORM_LITTLE_ENDIAN);
@@ -102,6 +118,7 @@ void AOnlineBeaconClient::OnFailure()
 void AOnlineBeaconClient::ClientOnConnected_Implementation()
 {
 	SetConnectionState(EBeaconConnectionState::Open);
+	BeaconConnection->State = USOCK_Open;
 
 	Role = ROLE_Authority;
 	SetReplicates(true);
@@ -110,15 +127,13 @@ void AOnlineBeaconClient::ClientOnConnected_Implementation()
 	// Fail safe for connection to server but no client connection RPC
 	GetWorldTimerManager().ClearTimer(TimerHandle_OnFailure);
 
-	if (NetDriver)
-	{
-		// Increase timeout while we are connected
-		NetDriver->InitialConnectTimeout = BeaconConnectionTimeout;
-		NetDriver->ConnectionTimeout = BeaconConnectionTimeout;
-	}
-
 	// Call the overloaded function for this client class
 	OnConnected();
+}
+
+bool AOnlineBeaconClient::UseShortConnectTimeout() const
+{
+	return ConnectionState == EBeaconConnectionState::Open;
 }
 
 void AOnlineBeaconClient::DestroyBeacon()
@@ -137,6 +152,7 @@ void AOnlineBeaconClient::DestroyBeacon()
 
 void AOnlineBeaconClient::OnNetCleanup(UNetConnection* Connection)
 {
+	ensure(Connection == BeaconConnection);
 	SetConnectionState(EBeaconConnectionState::Closed);
 
 	AOnlineBeaconHostObject* BeaconHostObject = GetBeaconOwner();
@@ -154,7 +170,7 @@ void AOnlineBeaconClient::NotifyControlMessage(UNetConnection* Connection, uint8
 
 		// We are the client
 #if !(UE_BUILD_SHIPPING && WITH_EDITOR)
-		UE_LOG(LogBeacon, Log, TEXT("Client received: %s"), FNetControlMessageInfo::GetName(MessageType));
+		UE_LOG(LogBeacon, Log, TEXT("%s Client received: %s"), *Connection->GetName(), FNetControlMessageInfo::GetName(MessageType));
 #endif
 		switch (MessageType)
 		{

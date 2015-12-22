@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_Point.h"
@@ -48,6 +48,11 @@ FVector UEnvQueryItemType_Point::GetItemLocation(const uint8* RawData) const
 FNavLocation UEnvQueryItemType_Point::GetItemNavLocation(const uint8* RawData) const
 {
 	return UEnvQueryItemType_Point::GetNavValue(RawData);
+}
+
+void UEnvQueryItemType_Point::SetItemNavLocation(uint8* RawData, const FNavLocation& Value) const
+{
+	UEnvQueryItemType_Point::SetNavValue(RawData, Value);
 }
 
 void UEnvQueryItemType_Point::SetContextHelper(FEnvQueryContextData& ContextData, const FVector& SinglePoint)

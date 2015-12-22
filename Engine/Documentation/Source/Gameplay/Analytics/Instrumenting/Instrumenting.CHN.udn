@@ -1,13 +1,13 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2601374
 Availability:Public
-Title:Instrumenting Your Game
+Title:检测游戏
 Crumbs: %ROOT%, Gameplay, Gameplay/Analytics
-Description:Using in-game analytics to track player engagement and find balance issues.
+Description:使用游戏内分析跟踪玩家参与和查找平衡问题。
 
 
-The first step in capturing player retention data is to register an analytics provider for your game. This is done via your project's `DefaultEngine.ini` file. You must register a 
-default provider. Optionally, you can register different providers and account details for different build types of your game (development, testing, and production). The sections below 
-are an example of configuring the Apsalar plugin:
+捕获玩家滞留数据的第一步是为游戏注册分析服务商。这可通过项目的“DefaultEngine.ini”文件完成。您必须注册一个 
+默认服务商。您还可以针对游戏的不同版本类型（开发、测试和生产）注册不同的服务商和帐户详情。以下部分是 
+配置 Apsalar 插件的示例：
 
 	[Analytics]
 	ProviderModuleName=IOSApsalar
@@ -25,15 +25,15 @@ are an example of configuring the Apsalar plugin:
 	ApiSecret=YourAnalyticsSecret4
 	SendInterval=60
 
-The `[Analytics]` section is the default one used and is where you should set the name of the default provider module. In the case above, it is set to the IOSApsalar plugin that is part 
-of the 4.5 release. The `ApiKey` and `ApiSecret` fields come from the Apsalar website. Once you create an account, they will give you a key and secret to use.
+“[Analytics]”部分是使用的默认项，您应在这里设置默认服务商模块的名称。在以上示例中，它被设置为属于 4.5 版本一部分的 
+IOSApsalar 插件。“ApiKey”和“ApiSecret”字段来自 Apsalar 网站。创建帐户后，他们会向您提供密钥和使用秘诀。
 
-Once you have it configured for your project, you are ready to start recording analytics events. To get just the basic player retention data, you need to create a session when the 
-game starts up and end it when it is no longer in the foreground. This can be done using the lines of code shown below, or the [Blueprint analytics plugin](Gameplay/Analytics/Blueprints)
-provided in versions 4.5 and later:
+项目配置完成后，您即可开始记录分析事件。要仅获取基本玩家滞留数据，您需要在游戏启动时 
+创建会话，并且在会话不再出现在前台时将其终止。可以使用以下所示的代码行或 4.5 和更高版本中提供的 [蓝图分析插件](Gameplay/Analytics/Blueprints)
+完成此操作：
 
 	FAnalytics::Get().GetDefaultConfiguredProvider()->StartSession();
 	FAnalytics::Get().GetDefaultConfiguredProvider()->EndSession();
 
-With those calls as part of your game, you will automatically start gathering player retention data. After getting basic player retention data, you can start adding more events to 
-tell you even more about player behavior in your game. 
+由于这些调用属于游戏的一部分，您将自动开始收集玩家滞留数据。获得基本玩家滞留数据后，您可以开始添加更多事件， 
+以便进一步了解游戏中玩家的行为。 

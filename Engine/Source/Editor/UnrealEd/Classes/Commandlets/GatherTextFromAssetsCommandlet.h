@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Commandlets/GatherTextCommandletBase.h"
@@ -36,9 +36,9 @@ class UGatherTextFromAssetsCommandlet : public UGatherTextCommandletBase
 	void ProcessPackages( const TArray< UPackage* >& PackagesToProcess );
 
 public:
-	// Begin UCommandlet Interface
+	//~ Begin UCommandlet Interface
 	virtual int32 Main(const FString& Params) override;
-	// End UCommandlet Interface
+	//~ End UCommandlet Interface
 
 private:
 	struct FConflictTracker

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -392,7 +392,7 @@ public:
 				const FArrangedWidget& CurWidget = ArrangedChildren[ ChildIndex ];
 				FSlateRect ChildClipRect = MyClippingRect.IntersectionWith(CurWidget.Geometry.GetClippingRect());
 
-				if( ChildClipRect.GetSize().Size() > 0 )
+				if( ChildClipRect.GetSize().SizeSquared() > 0.f )
 				{
 					const FSlateRect ClipRect = Children[ ChildIndex ].Zone == ENodeZone::Center ? ChildClipRect : MyClippingRect;
 					const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint( Args.WithNewParent( this ), CurWidget.Geometry, ClipRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ));

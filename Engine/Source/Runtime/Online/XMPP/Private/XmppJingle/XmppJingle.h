@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,7 +7,11 @@
 #include "AllowWindowsPlatformTypes.h"
 #endif
 
-#ifdef __clang__
+#if PLATFORM_PS4
+
+PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
+
+#elif defined (__clang__)
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wshadow"
@@ -19,7 +23,6 @@
 #pragma warning(disable: 4996)
 
 #endif
-
 
 #pragma push_macro("NO_LOGGING")
 #pragma push_macro("OVERRIDE")
@@ -51,7 +54,11 @@
 #pragma pop_macro("NO_LOGGING")
 #pragma pop_macro("OVERRIDE")
 
-#ifdef __clang__
+#if PLATFORM_PS4
+
+PRAGMA_POP
+
+#elif defined (__clang__) 
 
 #pragma clang diagnostics pop
 

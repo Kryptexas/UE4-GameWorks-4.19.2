@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -52,7 +52,7 @@ public:
 	virtual ~FXmppPresenceJingle();
 
 	static void ConvertFromPresence(buzz::PresenceStatus& OutStatus, const FXmppUserPresence& InPresence);
-	static void ConvertToPresence(FXmppUserPresence& OutPresence, const buzz::PresenceStatus& InStatus);
+	static void ConvertToPresence(FXmppUserPresence& OutPresence, const buzz::PresenceStatus& InStatus, const FXmppUserJid& InJid);
 
 private:
 
@@ -87,6 +87,13 @@ private:
 	TQueue<buzz::PresenceStatus*> PresenceUpdateRequests;
 	/** list of pending outgoing presence query requests */
 	TQueue<FXmppUserJid> PresenceQueryRequests;
+
+	/** Number of presence/roster updates in a given interval */
+    int32 NumPresenceIn;
+	/** Number of outgoing presence updates in a given interval */
+	int32 NumPresenceOut;
+	/** Number of presence queries made in a given interval */
+	int32 NumQueryRequests;
 
 	class FXmppConnectionJingle& Connection;
 	friend class FXmppConnectionJingle; 

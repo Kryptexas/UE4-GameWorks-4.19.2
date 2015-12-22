@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,7 +6,7 @@
 class ISequencerTrackEditor;
 class UMovieSceneSection;
 class FSequencerDisplayNode;
-class FObjectBindingNode;
+class FSequencerObjectBindingNode;
 class UMovieSceneTrack;
 struct FMovieSceneBinding;
 
@@ -94,19 +94,19 @@ private:
 	 * @param Track	The type to get sections from
 	 * @param SectionAreaNode	The section area which section interfaces belong to
 	 */
-	void MakeSectionInterfaces( UMovieSceneTrack& Track, TSharedRef<class FTrackNode>& SectionAreaNode );
+	void MakeSectionInterfaces( UMovieSceneTrack& Track, TSharedRef<class FSequencerTrackNode>& SectionAreaNode );
 
 	/**
 	 * Creates a new object binding node and any parent binding nodes.
 	 */
-	TSharedRef<FObjectBindingNode> AddObjectBinding( const FString& ObjectName, const FGuid& ObjectBinding, TMap<FGuid, const FMovieSceneBinding*>& GuidToBindingMap, TArray< TSharedRef<FSequencerDisplayNode> >& OutNodeList );
+	TSharedRef<FSequencerObjectBindingNode> AddObjectBinding( const FString& ObjectName, const FGuid& ObjectBinding, TMap<FGuid, const FMovieSceneBinding*>& GuidToBindingMap, TArray< TSharedRef<FSequencerDisplayNode> >& OutNodeList );
 private:
 	/** Tools for building movie scene section layouts.  One tool for each track */
 	TMap< UMovieSceneTrack*, TSharedPtr<ISequencerTrackEditor> > EditorMap;
 	/** Root nodes */
 	TArray< TSharedRef<FSequencerDisplayNode> > RootNodes;
 	/** Mapping of object binding guids to their node (for fast lookup) */
-	TMap< FGuid, TSharedPtr<FObjectBindingNode> > ObjectBindingMap;
+	TMap< FGuid, TSharedPtr<FSequencerObjectBindingNode> > ObjectBindingMap;
 	/** Set of all filtered nodes */
 	TSet< TSharedRef<const FSequencerDisplayNode> > FilteredNodes;
 	/** Active filter string if any */

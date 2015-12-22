@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Components/ShapeComponent.h"
@@ -59,56 +59,114 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components|Capsule")
 	void SetCapsuleHalfHeight(float HalfHeight, bool bUpdateOverlaps=true);
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostLoad() override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	// End UObject interface
+	//~ End UObject Interface
 
-	// Begin USceneComponent interface
+	//~ Begin USceneComponent Interface
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual void CalcBoundingCylinder(float& CylinderRadius, float& CylinderHalfHeight) const override;
-	// End USceneComponent interface
+	//~ End USceneComponent Interface
 
-	// Begin UPrimitiveComponent interface.
+	//~ Begin UPrimitiveComponent Interface.
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual bool IsZeroExtent() const override;
 	virtual struct FCollisionShape GetCollisionShape(float Inflation = 0.0f) const override;
 	virtual bool AreSymmetricRotations(const FQuat& A, const FQuat& B, const FVector& Scale3D) const override;
-	// End UPrimitiveComponent interface.
+	//~ End UPrimitiveComponent Interface.
 
-	// Begin UShapeComponent interface
+	//~ Begin UShapeComponent Interface
 	virtual void UpdateBodySetup() override;
-	// End UShapeComponent interface
+	//~ End UShapeComponent Interface
 
-	// @return the capsule radius scaled by the component scale.
+	/**
+	 * Returns the capsule radius scaled by the component scale.
+	 * @return The capsule radius scaled by the component scale.
+	 */
 	UFUNCTION(BlueprintCallable, Category="Components|Capsule")
 	float GetScaledCapsuleRadius() const;
 
-	// @return the capsule half height scaled by the component scale.
+	/**
+	 * Returns the capsule half-height scaled by the component scale. This includes both the cylinder and hemisphere cap.
+	 * @return The capsule radius scaled by the component scale.
+	 */
 	UFUNCTION(BlueprintCallable, Category="Components|Capsule")
 	float GetScaledCapsuleHalfHeight() const;
 
-	// @return the capsule radius and half height scaled by the component scale.
+	/** 
+	* Returns the capsule half-height minus radius (to exclude the hemisphere), scaled by the component scale.
+	* From the center of the capsule this is the vertical distance along the straight cylindrical portion to the point just before the curve of top hemisphere begins.
+	* @return The capsule half-height minus radius, scaled by the component scale.
+	*/
+	UFUNCTION(BlueprintCallable, Category="Components|Capsule")
+	float GetScaledCapsuleHalfHeight_WithoutHemisphere() const;
+	
+	/**
+	 * Returns the capsule radius and half-height scaled by the component scale. Half-height includes the hemisphere end cap.
+	 * @param OutRadius Radius of the capsule, scaled by the component scale.
+	 * @param OutHalfHeight Half-height of the capsule, scaled by the component scale. Includes the hemisphere end cap.
+	 * @return The capsule radius and half-height scaled by the component scale.
+	 */
 	UFUNCTION(BlueprintCallable, Category="Components|Capsule")
 	void GetScaledCapsuleSize(float& OutRadius, float& OutHalfHeight) const;
 
+	/**
+	 * Returns the capsule radius and half-height scaled by the component scale. Half-height excludes the hemisphere end cap.
+	 * @param OutRadius Radius of the capsule, ignoring component scaling.
+	 * @param OutHalfHeightWithoutHemisphere Half-height of the capsule, scaled by the component scale. Excludes the hemisphere end cap.
+	 * @return The capsule radius and half-height scaled by the component scale.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Components|Capsule")
+	void GetScaledCapsuleSize_WithoutHemisphere(float& OutRadius, float& OutHalfHeightWithoutHemisphere) const;
 
-	// @return the capsule radius, ignoring component scaling.
+	/**
+	 * Returns the capsule radius, ignoring component scaling.
+	 * @return the capsule radius, ignoring component scaling.
+	 */
 	UFUNCTION(BlueprintCallable, Category="Components|Capsule")
 	float GetUnscaledCapsuleRadius() const;
 
-	// @return the capsule half height, ignoring component scaling.
+	/**
+	 * Returns the capsule half-height, ignoring component scaling. This includes the hemisphere end cap.
+	 * @return The capsule radius, ignoring component scaling.
+	 */
 	UFUNCTION(BlueprintCallable, Category="Components|Capsule")
 	float GetUnscaledCapsuleHalfHeight() const;
 	
-	// @return the capsule radius and half height, ignoring component scaling.
+	/** 
+	* Returns the capsule half-height minus radius (to exclude the hemisphere), ignoring component scaling. This excludes the hemisphere end cap.
+	* From the center of the capsule this is the vertical distance along the straight cylindrical portion to the point just before the curve of top hemisphere begins.
+	* @return The capsule half-height minus radius, ignoring component scaling.
+	*/
+	UFUNCTION(BlueprintCallable, Category="Components|Capsule")
+	float GetUnscaledCapsuleHalfHeight_WithoutHemisphere() const;
+	
+	/**
+	 * Returns the capsule radius and half-height scaled by the component scale. Half-height includes the hemisphere end cap.
+	 * @param OutRadius Radius of the capsule, scaled by the component scale.
+	 * @param OutHalfHeight Half-height of the capsule, scaled by the component scale. Includes the hemisphere end cap.
+	 * @return The capsule radius and half-height scaled by the component scale.
+	 */
 	UFUNCTION(BlueprintCallable, Category="Components|Capsule")
 	void GetUnscaledCapsuleSize(float& OutRadius, float& OutHalfHeight) const;
 
-	// Get the scale used by this shape. This is a uniform scale that is the minimum of any non-uniform scaling.
-	// @return the scale used by this shape.
+	/**
+	 * Returns the capsule radius and half-height, ignoring component scaling. Half-height excludes the hemisphere end cap.
+	 * @param OutRadius Radius of the capsule, ignoring component scaling.
+	 * @param OutHalfHeightWithoutHemisphere Half-height of the capsule, scaled by the component scale. Excludes the hemisphere end cap.
+	 * @return The capsule radius and half-height (excluding hemisphere end cap), ignoring component scaling.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Components|Capsule")
+	void GetUnscaledCapsuleSize_WithoutHemisphere(float& OutRadius, float& OutHalfHeightWithoutHemisphere) const;
+
+	/**
+	 * Get the scale used by this shape. This is a uniform scale that is the minimum of any non-uniform scaling.
+	 * @return the scale used by this shape.
+	 */ 
 	UFUNCTION(BlueprintCallable, Category="Components|Capsule")
 	float GetShapeScale() const;
 
@@ -143,11 +201,23 @@ FORCEINLINE float UCapsuleComponent::GetScaledCapsuleHalfHeight() const
 	return CapsuleHalfHeight * GetShapeScale();
 }
 
+FORCEINLINE float UCapsuleComponent::GetScaledCapsuleHalfHeight_WithoutHemisphere() const
+{
+	return (CapsuleHalfHeight - CapsuleRadius) * GetShapeScale();
+}
+
 FORCEINLINE void UCapsuleComponent::GetScaledCapsuleSize(float& OutRadius, float& OutHalfHeight) const
 {
 	const float Scale = GetShapeScale();
 	OutRadius = CapsuleRadius * Scale;
 	OutHalfHeight = CapsuleHalfHeight * Scale;
+}
+
+FORCEINLINE void UCapsuleComponent::GetScaledCapsuleSize_WithoutHemisphere(float& OutRadius, float& OutHalfHeightWithoutHemisphere) const
+{
+	const float Scale = GetShapeScale();
+	OutRadius = CapsuleRadius * Scale;
+	OutHalfHeightWithoutHemisphere = (CapsuleHalfHeight - CapsuleRadius) * Scale;
 }
 
 
@@ -161,10 +231,21 @@ FORCEINLINE float UCapsuleComponent::GetUnscaledCapsuleHalfHeight() const
 	return CapsuleHalfHeight;
 }
 
+FORCEINLINE float UCapsuleComponent::GetUnscaledCapsuleHalfHeight_WithoutHemisphere() const
+{
+	return CapsuleHalfHeight - CapsuleRadius;
+}
+
 FORCEINLINE void UCapsuleComponent::GetUnscaledCapsuleSize(float& OutRadius, float& OutHalfHeight) const
 {
 	OutRadius = CapsuleRadius;
 	OutHalfHeight = CapsuleHalfHeight;
+}
+
+FORCEINLINE void UCapsuleComponent::GetUnscaledCapsuleSize_WithoutHemisphere(float& OutRadius, float& OutHalfHeightWithoutHemisphere) const
+{
+	OutRadius = CapsuleRadius;
+	OutHalfHeightWithoutHemisphere = CapsuleHalfHeight - CapsuleRadius;
 }
 
 FORCEINLINE float UCapsuleComponent::GetShapeScale() const

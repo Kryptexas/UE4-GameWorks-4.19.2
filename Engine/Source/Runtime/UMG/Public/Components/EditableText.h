@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -98,6 +98,14 @@ public:
 	UPROPERTY(EditAnywhere, Category=Behavior, AdvancedDisplay)
 	bool SelectAllTextOnCommit;
 
+	/** Whether the context menu can be opened */
+	UPROPERTY(EditAnywhere, Category = Behavior, AdvancedDisplay)
+	bool AllowContextMenu;
+
+	/** If we're on a platform that requires a virtual keyboard, what kind of keyboard should this widget use? */
+	UPROPERTY( EditAnywhere, Category = Behavior, AdvancedDisplay )
+	TEnumAsByte< EVirtualKeyboardType::Type > KeyboardType;
+
 public:
 
 	/** Called whenever the text is changed interactively by the user */
@@ -134,26 +142,26 @@ public:
 
 public:
 	
-	// UWidget interface
+	//~ Begin UWidget Interface
 	virtual void SynchronizeProperties() override;
-	// End of UWidget interface
+	//~ End UWidget Interface
 
-	// UVisual interface
+	//~ Begin UVisual Interface
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
-	// End of UVisual interface
+	//~ End UVisual Interface
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 	virtual void PostLoad() override;
-	// End of UObject interface
+	//~ End UObject Interface
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual const FText GetPaletteCategory() override;
 #endif
-	// End of UWidget interface
+	//~ End UWidget Interface
 
 protected:
-	// UWidget interface
+	//~ Begin UWidget Interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	// End of UWidget
 

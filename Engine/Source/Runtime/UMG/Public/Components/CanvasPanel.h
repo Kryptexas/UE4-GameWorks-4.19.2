@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Components/PanelWidget.h"
@@ -12,9 +12,9 @@ class UCanvasPanelSlot;
  * for manual layout, but bad when you want to procedurally just generate widgets and place them in a 
  * container (unless you want absolute layout).
  *
- * ● Many Children
- * ● Absolute Layout
- * ● Anchors
+ * * Many Children
+ * * Absolute Layout
+ * * Anchors
  */
 UCLASS()
 class UMG_API UCanvasPanel : public UPanelWidget

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2614050
+﻿INTSourceChangelist:2662759
 Availability: Public
 Title:보안 카메라, 알람, 문
 Crumbs:%ROOT%, Resources, Resources/Showcases/BlueprintExamples
@@ -23,7 +23,7 @@ Related: Gameplay/Framework/Pawn
 
 이 예제에서 Security Alarm Interface 는 데이터 도관 역할을 하여, Alarm Beacon 와 Door Blueprints 사이에 함수성, 구체적으로 알람의 작동 상태를 공유할 수 있도록 합니다.
 
-[REGION:raw]![](InterfaceConceptDiagram.png)[/REGION]
+[REGION:raw]![](InterfaceConceptDiagramNew.jpg)[/REGION]
 
 
 ## 카메라 블루프린트
@@ -47,8 +47,8 @@ Timeline 에는 애니메이션 트랙이 몇 개든 있을 수 있으며, 그 �
 
 
 
-[REGION:fullwidth]
-![](CameraEG.png)
+[REGION:lightbox]
+![](CameraEG.png)(w:920)
 [/REGION]
 
 
@@ -99,7 +99,9 @@ Alarm Blueprint 는 플레이어가 보안 카메라 범위에 걸려 알람을 
 | **Construction Script** | [INCLUDE:#AlarmCS] |
 | **Event Graph** | [INCLUDE:#AlarmEG]  |
 
-![](AlarmGraph.png)
+[Region:lightbox]
+![](AlarmGraph.png)(w:920)
+[/region]
 
 
 ### 편집가능 변수

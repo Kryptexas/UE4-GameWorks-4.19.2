@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "BehaviorTree/BlackboardComponent.h"
@@ -45,8 +45,11 @@ void UBTDecorator_KeepInCone::InitializeFromAsset(UBehaviorTree& Asset)
 	}
 
 	UBlackboardData* BBAsset = GetBlackboardAsset();
-	ConeOrigin.CacheSelectedKey(BBAsset);
-	Observed.CacheSelectedKey(BBAsset);
+	if (ensure(BBAsset))
+	{
+		ConeOrigin.ResolveSelectedKey(*BBAsset);
+		Observed.ResolveSelectedKey(*BBAsset);
+	}
 }
 
 bool UBTDecorator_KeepInCone::CalculateCurrentDirection(const UBehaviorTreeComponent& OwnerComp, FVector& Direction) const

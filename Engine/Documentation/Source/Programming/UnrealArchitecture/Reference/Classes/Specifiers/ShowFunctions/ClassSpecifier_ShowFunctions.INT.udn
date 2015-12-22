@@ -4,4 +4,6 @@ Description:
 Availability:Public
 Version: 4.9
 
-Shows the specified function in a property viewer. Usage: showFunctions=FunctionName or showFunctions=(category0, category1, ...)
+Shows the specified function in a property viewer. 
+
+Usage: showFunctions=FunctionName or showFunctions=(category0, category1, ...)

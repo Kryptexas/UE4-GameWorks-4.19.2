@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -71,8 +71,8 @@ class UParticleSystemReplay : public UObject
 	TArray<struct FParticleSystemReplayFrame> Frames;
 
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void Serialize( FArchive& Ar ) override;
-	// End UObject Interface
+	//~ End UObject Interface
 };
 

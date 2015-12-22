@@ -4,7 +4,8 @@ Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\Networking\ReplicateFunction
 Description:Guide to Replicating Functions in multiplayer games with Blueprints. 
 Related: Engine/Blueprints
 Related: Resources/ContentExamples/Networking
-
+Version: 4.9
+SkillLevel: Advanced
 
 [TOC (start:2 end:2)]
 

@@ -1,15 +1,22 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Editor/Sequencer/Public/ISequencerModule.h"
 #include "Editor/Sequencer/Public/MovieSceneTrackEditor.h"
 #include "Editor/Sequencer/Public/ISequencerSection.h"
 #include "Runtime/MovieScene/Public/MovieScene.h"
-#include "Runtime/MovieScene/Public/MovieSceneTrack.h"
+#include "Runtime/MovieScene/Public/MovieSceneNameableTrack.h"
 #include "Runtime/MovieScene/Public/IMovieSceneTrackInstance.h"
 #include "Runtime/MovieScene/Public/MovieSceneSection.h"
 
 #include "NiagaraSequencer.generated.h"
+
+
+class IMovieScenePlayer;
+class UEmitterMovieSceneTrack;
+class UMovieSceneSection;
+class UMovieSceneTrack;
+
 
 /** 
  *	Niagara editor movie scene section; represents one emitter in the timeline
@@ -29,6 +36,7 @@ private:
 	FText EmitterName;
 	TWeakObjectPtr<const UNiagaraEmitterProperties> EmitterProps;
 };
+
 
 /**
 *	Visual representation of UNiagaraMovieSceneSection
@@ -62,7 +70,6 @@ public:
 			ESlateDrawEffect::None,
 			FLinearColor(0.3f, 0.3f, 0.6f)
 			);
-
 
 		// draw all loops of the emitter as 'ghosts' of the original section
 		float X = AllottedGeometry.AbsolutePosition.X;
@@ -101,76 +108,96 @@ private:
 };
 
 
-
-
-
 /**
 *	One instance of a UEmitterMovieSceneTrack
 */
-class INiagaraTrackInstance : public IMovieSceneTrackInstance
+class INiagaraTrackInstance
+	: public IMovieSceneTrackInstance
 {
 public:
-	INiagaraTrackInstance(class UEmitterMovieSceneTrack *InTrack)
+	INiagaraTrackInstance(UEmitterMovieSceneTrack *InTrack)
 		: Track(InTrack)
 	{
 	}
 
-	virtual void Update(float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player)
+	virtual void Update(float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass)
 	{
 	}
 
-	virtual void RefreshInstance(const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player);
+	virtual void RefreshInstance(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance);
 
-	virtual void ClearInstance( IMovieScenePlayer& Player ) override {}
-	virtual void SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player) override {}
-	virtual void RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player) override {}
+	virtual void ClearInstance( IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance ) override {}
+	virtual void SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) override {}
+	virtual void RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) override {}
 
 private:
 	TSharedPtr<FNiagaraSimulation> Emitter;
-	class UEmitterMovieSceneTrack *Track;
+	UEmitterMovieSceneTrack *Track;
 };
-
-
-
 
 
 /**
 *	Single track containing exactly one UNiagaraMovieSceneSection, representing one emitter
 */
 UCLASS(MinimalAPI)
-class UEmitterMovieSceneTrack : public UMovieSceneTrack
+class UEmitterMovieSceneTrack
+	: public UMovieSceneNameableTrack
 {
 	GENERATED_UCLASS_BODY()
 public:
 
-	/** UMovieSceneTrack interface */
-	virtual FName GetTrackName() const override { return *Emitter->GetProperties()->EmitterName; }
+	TSharedPtr<FNiagaraSimulation> GetEmitter()
+	{
+		return Emitter;
+	}
+
 	void SetEmitter(TSharedPtr<FNiagaraSimulation> InEmitter)
 	{
-		if (InEmitter.IsValid())
+		if (!InEmitter.IsValid())
 		{
-			Emitter = InEmitter;
-			if (const UNiagaraEmitterProperties* EmitterProps = InEmitter->GetProperties().Get())
-			{
-				UNiagaraMovieSceneSection *Section = NewObject<UNiagaraMovieSceneSection>(this, *Emitter->GetProperties()->EmitterName);
-				Section->SetEmitterProps(EmitterProps);
+			return;
+		}
 
+		Emitter = InEmitter;
+
+		if (const UNiagaraEmitterProperties* EmitterProps = InEmitter->GetProperties().Get())
+		{
+			UNiagaraMovieSceneSection *Section = NewObject<UNiagaraMovieSceneSection>(this, *Emitter->GetProperties()->EmitterName);
+			{
+				Section->SetEmitterProps(EmitterProps);
 				Section->SetStartTime(EmitterProps->StartTime);
 				Section->SetEndTime(EmitterProps->EndTime);
 				Section->SetEmitterName(FText::FromString(EmitterProps->EmitterName));
-
-				Sections.Add(Section);
 			}
+
+			Sections.Add(Section);
 		}
 	}
 
-	virtual void RemoveAllAnimationData() override	{};
-	virtual bool HasSection(UMovieSceneSection* Section) const override { return false; }
-	virtual bool IsEmpty() const override { return false; }
-	virtual TSharedPtr<class IMovieSceneTrackInstance> CreateInstance()
+public:
+
+	// UMovieSceneTrack interface
+
+	virtual void RemoveAllAnimationData() override
+	{
+		// do nothing
+	};
+
+	virtual bool HasSection(const UMovieSceneSection& Section) const override
+	{
+		return false;
+	}
+
+	virtual bool IsEmpty() const override
+	{
+		return false;
+	}
+
+	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance()
 	{
 		return MakeShareable(new INiagaraTrackInstance(this));
 	}
+
 	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override
 	{
 		return Sections;
@@ -181,19 +208,18 @@ public:
 		return TRange<float>(0, FLT_MAX);
 	}
 
-	TSharedPtr<FNiagaraSimulation> GetEmitter() { return Emitter; }
-
 private:
+
 	TSharedPtr<FNiagaraSimulation> Emitter;
 	TArray<UMovieSceneSection*> Sections;
 };
 
 
-
 /**
 *	Track editor for Niagara emitter tracks
 */
-class FNiagaraTrackEditor : public FMovieSceneTrackEditor
+class FNiagaraTrackEditor
+	: public FMovieSceneTrackEditor
 {
 public:
 	FNiagaraTrackEditor(TSharedPtr<ISequencer> Sequencer) : FMovieSceneTrackEditor(Sequencer.ToSharedRef())
@@ -201,7 +227,7 @@ public:
 
 	}
 
-	virtual bool SupportsType(TSubclassOf<class UMovieSceneTrack> TrackClass) const
+	virtual bool SupportsType(TSubclassOf<UMovieSceneTrack> TrackClass) const
 	{
 		if (TrackClass == UEmitterMovieSceneTrack::StaticClass())
 		{
@@ -210,10 +236,9 @@ public:
 		return false;
 	}
 
-	virtual TSharedRef<ISequencerSection> MakeSectionInterface(class UMovieSceneSection& SectionObject, UMovieSceneTrack& Track)
+	virtual TSharedRef<ISequencerSection> MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack& Track)
 	{
 		INiagaraSequencerSection *Sec = new INiagaraSequencerSection(SectionObject);
 		return MakeShareable(Sec);
 	}
-
 };

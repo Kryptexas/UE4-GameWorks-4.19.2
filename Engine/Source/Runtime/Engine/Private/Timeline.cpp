@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Timeline.cpp
@@ -589,16 +589,12 @@ void UTimelineComponent::TickComponent(float DeltaTime, enum ELevelTick TickType
 void UTimelineComponent::Activate(bool bReset)
 {
 	Super::Activate(bReset);
-
-	PrimaryComponentTick.bStartWithTickEnabled = true;
 	PrimaryComponentTick.SetTickFunctionEnable(true);
 }
 
 void UTimelineComponent::Deactivate()
 {
 	Super::Deactivate();
-
-	PrimaryComponentTick.bStartWithTickEnabled = false;
 	PrimaryComponentTick.SetTickFunctionEnable(false);
 }
 

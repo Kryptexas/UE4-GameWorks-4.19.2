@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -39,10 +39,9 @@ private_subobject:
 	UPROPERTY()
 	UBillboardComponent* SpriteComponent;
 
-	/* Reference to the selected visualization box component */
-	DEPRECATED_FORGAME(4.6, "BoxComponent should not be accessed directly, please use GetBoxComponent() function instead. BoxComponent will soon be private and your code will not compile.")
+	// formerly we used this component to draw a box, now we use the DecalComponentVisualizer
 	UPROPERTY()
-	UBoxComponent* BoxComponent;
+	UBoxComponent* BoxComponent_DEPRECATED;
 #endif
 
 public:
@@ -58,16 +57,20 @@ public:
 
 	
 #if WITH_EDITOR
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void PostEditMove(bool bFinished) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-	// End UObject Interface
+	//~ End UObject Interface
 
-	// Begin AActor interface.
+	//~ Begin AActor Interface.
 	virtual void EditorApplyScale(const FVector& DeltaScale, const FVector* PivotLocation, bool bAltDown, bool bShiftDown, bool bCtrlDown) override;
 	virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const override;
-	// End AActor interface.
+	//~ End AActor Interface.
 #endif // WITH_EDITOR
+
+	
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostLoad() override;
 
 public:
 
@@ -78,7 +81,5 @@ public:
 	UArrowComponent* GetArrowComponent() const;
 	/** Returns SpriteComponent subobject **/
 	UBillboardComponent* GetSpriteComponent() const;
-	/** Returns BoxComponent subobject **/
-	UBoxComponent* GetBoxComponent() const;
 #endif
 };

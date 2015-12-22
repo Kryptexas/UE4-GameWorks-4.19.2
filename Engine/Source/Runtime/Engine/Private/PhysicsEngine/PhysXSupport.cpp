@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PhysXSupport.cpp: PhysX
@@ -294,8 +294,8 @@ PxFilterFlags PhysXSimFilterShader(	PxFilterObjectAttributes attributes0, PxFilt
 	bool k1 = PxFilterObjectIsKinematic(attributes1);
 
 	// Find out which channels the objects are in
-	ECollisionChannel Channel0 = (ECollisionChannel)(filterData0.word3 >> 24);
-	ECollisionChannel Channel1 = (ECollisionChannel)(filterData1.word3 >> 24);
+	ECollisionChannel Channel0 = GetCollisionChannel(filterData0.word3);
+	ECollisionChannel Channel1 = GetCollisionChannel(filterData1.word3);
 
 	// ignore kinematic-kinematic interactions which don't involve a destructible
 	if(k0 && k1 && (Channel0 != ECC_Destructible) && (Channel1 != ECC_Destructible))
@@ -534,86 +534,6 @@ void FPhysXSimEventCallback::onSleep(PxActor** Actors, PxU32 Count)
 	}
 }
 
-//////////////////////////////////////////////////////////////////////////
-// FPhysXCPUDispatcher
-
-
-class FPhysXTask
-{
-	PxBaseTask&	Task;
-
-public:
-	FPhysXTask(PxBaseTask* InTask)
-		: Task(*InTask)
-	{		
-	}
-
-	~FPhysXTask()
-	{
-		Task.release();
-	}
-
-	FORCEINLINE TStatId GetStatId() const
-	{
-		RETURN_QUICK_DECLARE_CYCLE_STAT(FPhysXTask, STATGROUP_Physics);
-	}
-	static ENamedThreads::Type GetDesiredThread()
-	{
-		return ENamedThreads::AnyThread;
-	}
-	static ESubsequentsMode::Type GetSubsequentsMode() 
-	{ 
-		return ESubsequentsMode::TrackSubsequents; 
-	}
-
-	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
-	{
-		FPlatformMisc::BeginNamedEvent(FColor::Black, Task.getName());
-		Task.run();
-		FPlatformMisc::EndNamedEvent();
-	}
-};
-
-void FPhysXCPUDispatcher::submitTask( PxBaseTask& Task ) 
-{
-	TGraphTask<FPhysXTask>::CreateTask(NULL).ConstructAndDispatchWhenReady(&Task);
-}
-
-PxU32 FPhysXCPUDispatcher::getWorkerCount() const 
-{
-	return FTaskGraphInterface::Get().GetNumWorkerThreads();
-}
-
-
-DECLARE_CYCLE_STAT(TEXT("PhysX Single Thread Task"),STAT_PhysXSingleThread,STATGROUP_Physics);
-
-static TArray<PxBaseTask*> TaskStack;
-
-void FPhysXCPUDispatcherSingleThread::submitTask( PxBaseTask& Task ) 
-{
-	SCOPE_CYCLE_COUNTER(STAT_PhysXSingleThread);
-	check(IsInGameThread());
-
-	TaskStack.Push(&Task);
-	if (TaskStack.Num() > 1)
-	{
-		return;
-	}
-	Task.run();
-	Task.release();
-	while (TaskStack.Num() > 1)
-	{
-		PxBaseTask& ChildTask = *TaskStack.Pop();
-		ChildTask.run();
-		ChildTask.release();
-	}
-	verify(&Task == TaskStack.Pop() && !TaskStack.Num());
-}
-
-PxU32 FPhysXCPUDispatcherSingleThread::getWorkerCount() const 
-{
-	return 1;
-}
 
 //////////////////////////////////////////////////////////////////////////
 // FPhysXFormatDataReader

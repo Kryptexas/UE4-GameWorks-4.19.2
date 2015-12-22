@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -22,6 +22,8 @@ public class QualcommTextureConverter : ModuleRules
 			{
 				LibraryPath += "vs" + WindowsPlatform.GetVisualStudioCompilerVersionName() + "/x64";
 				PublicDelayLoadDLLs.Add("TextureConverter.dll");
+
+				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/Qualcomm/Win64/TextureConverter.dll"));
             }
 			else if (Target.Platform == UnrealTargetPlatform.Mac)
 			{

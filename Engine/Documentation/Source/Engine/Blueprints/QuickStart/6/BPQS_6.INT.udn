@@ -2,8 +2,10 @@ Availability: Public
 Title:6. Launch Your Character
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
 Description:Set up the actual launching behavior with a Launch Character node.
-
-
+version: 4.9
+parent:Engine/Blueprints/QuickStart
+order:6
+type:multi-step
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -44,7 +46,7 @@ and it will succeed. However, not everything in your level is the Pawn represent
 
 	![](LaunchWired.png)
 
-	[REGION:tip]
+	[REGION:note]
 	Notice that the output execution pin for successfully casting automatically connected to the input execution pin of **Launch Character**. 
 	[/REGION]
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -107,8 +107,13 @@ public:
 	{
 		if (AttachedWorld != NULL)
 		{
+#if TARGET_UE4_CL >= CL_DEPRECATEDEL
 			TickDispatchDelegateHandle  = AttachedWorld->OnTickDispatch().AddRaw(this, &FWorldTickHook::TickDispatch);
 			PostTickFlushDelegateHandle = AttachedWorld->OnPostTickFlush().AddRaw(this, &FWorldTickHook::PostTickFlush);
+#else
+			AttachedWorld->OnTickDispatch().AddRaw(this, &FWorldTickHook::TickDispatch);
+			AttachedWorld->OnPostTickFlush().AddRaw(this, &FWorldTickHook::PostTickFlush);
+#endif
 		}
 	}
 
@@ -116,8 +121,13 @@ public:
 	{
 		if (AttachedWorld != NULL)
 		{
+#if TARGET_UE4_CL >= CL_DEPRECATEDEL
 			AttachedWorld->OnPostTickFlush().Remove(PostTickFlushDelegateHandle);
 			AttachedWorld->OnTickDispatch().Remove(TickDispatchDelegateHandle);
+#else
+			AttachedWorld->OnPostTickFlush().RemoveRaw(this, &FWorldTickHook::PostTickFlush);
+			AttachedWorld->OnTickDispatch().RemoveRaw(this, &FWorldTickHook::TickDispatch);
+#endif
 		}
 
 		AttachedWorld = NULL;
@@ -138,12 +148,14 @@ public:
 	/** The world this is attached to */
 	UWorld* AttachedWorld;
 
+#if TARGET_UE4_CL >= CL_DEPRECATEDEL
 private:
 	/** Handle for Tick dispatch delegate */
 	FDelegateHandle TickDispatchDelegateHandle;
 
 	/** Handle for PostTick dispatch delegate */
 	FDelegateHandle PostTickFlushDelegateHandle;
+#endif
 };
 
 /**

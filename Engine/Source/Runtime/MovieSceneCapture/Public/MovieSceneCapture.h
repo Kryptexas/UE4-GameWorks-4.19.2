@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,22 +6,10 @@
 #include "IMovieSceneCapture.h"
 #include "MovieSceneCaptureHandle.h"
 #include "MovieScene.h"
-#include "AVIWriter.h"
+#include "RenderingThread.h"
+#include "IMovieSceneCaptureProtocol.h"
+#include "MovieSceneCaptureProtocolRegistry.h"
 #include "MovieSceneCapture.generated.h"
-
-/** Interface that defines when to capture or drop frames */
-struct ICaptureStrategy
-{
-	virtual ~ICaptureStrategy(){}
-	
-	virtual void OnStart() = 0;
-	virtual void OnStop() = 0;
-	virtual void OnPresent(double CurrentTimeSeconds, uint32 FrameIndex) = 0;
-	virtual bool ShouldSynchronizeFrames() const { return true; }
-
-	virtual bool ShouldPresent(double CurrentTimeSeconds, uint32 FrameIndex) const = 0;
-	virtual int32 GetDroppedFrames(double CurrentTimeSeconds, uint32 FrameIndex) const = 0;
-};
 
 /** Structure used to cache various metrics for our capture */
 struct FCachedMetrics
@@ -37,92 +25,141 @@ struct FCachedMetrics
 };
 
 /** Class responsible for capturing scene data */
-UCLASS(config=EditorSettings)
-class MOVIESCENECAPTURE_API UMovieSceneCapture : public UObject, public IMovieSceneCaptureInterface
+UCLASS(config=EditorPerProjectUserSettings)
+class MOVIESCENECAPTURE_API UMovieSceneCapture : public UObject, public IMovieSceneCaptureInterface, public ICaptureProtocolHost
 {
 public:
-
 	UMovieSceneCapture(const FObjectInitializer& Initializer);
 
 	GENERATED_BODY()
 
+	virtual void PostInitProperties() override;
+
 public:
 
 	// Begin IMovieSceneCaptureInterface
-	virtual void Initialize(FViewport* InViewport) override;
-	virtual void Close() override;
+	virtual void Initialize(TSharedPtr<FSceneViewport> InSceneViewport, int32 PIEInstance = -1) override;
+	virtual void StartCapturing() { StartCapture(); }
+	virtual void Close() override { Finalize(); }
 	virtual FMovieSceneCaptureHandle GetHandle() const override { return Handle; }
 	const FMovieSceneCaptureSettings& GetSettings() const override { return Settings; }
 	// End IMovieSceneCaptureInterface
 
 public:
 
+	/** The type of capture protocol to use */
+	UPROPERTY(config, EditAnywhere, Category=CaptureSettings)
+	FCaptureProtocolID CaptureType;
+
+	/** Settings specific to the capture protocol */
+	UPROPERTY(EditAnywhere, Category=CaptureSettings)
+	UObject* ProtocolSettings;
+
 	/** Settings that define how to capture */
 	UPROPERTY(EditAnywhere, config, Category=CaptureSettings, meta=(ShowOnlyInnerProperties))
 	FMovieSceneCaptureSettings Settings;
 
+	/** Whether to capture the movie in a separate process or not */
+	UPROPERTY(config, EditAnywhere, Category=General, AdvancedDisplay)
+	bool bUseSeparateProcess;
+
 	/** Additional command line arguments to pass to the external process when capturing */
-	UPROPERTY(EditAnywhere, transient, Category=General, AdvancedDisplay)
+	UPROPERTY(EditAnywhere, config, Category=General, AdvancedDisplay, meta=(EditCondition=bUseSeparateProcess))
 	FString AdditionalCommandLineArguments;
 
-	/** Value used to control the BufferVisualizationDumpFrames cvar in the child process */
-	UPROPERTY()
-	bool bBufferVisualizationDumpFrames;
+	/** Command line arguments inherited from this process */
+	UPROPERTY(EditAnywhere, transient, Category=General, AdvancedDisplay, meta=(EditCondition=bUseSeparateProcess))
+	FString InheritedCommandLineArguments;
+
+	/** Event that is fired after we've finished capturing */
+	DECLARE_EVENT( UMovieSceneCapture, FOnCaptureFinished );
+	FOnCaptureFinished& OnCaptureFinished() { return OnCaptureFinishedDelegate; }
 
 public:
 
 	/** Access this object's cached metrics */
 	const FCachedMetrics& GetMetrics() const { return CachedMetrics; }
 
-	/** Initialize the capture */
+	/** Access the capture protocol we are using */
+	IMovieSceneCaptureProtocol* GetCaptureProtocol() { return CaptureProtocol.Get(); }
+
+public:
+
+	/** Starts warming up.  May be optionally called before StartCapture().  This can be used to start rendering frames early, before
+	    any files are captured or written out */
+	void StartWarmup();
+
+	/** Initialize the capture so that it is able to start capturing frames */
 	void StartCapture();
 
-	/** Finalize the capture, waiting for any outstanding processing */
-	void StopCapture();
+	/** Indicate that this frame should be captured - must be called before the movie scene capture is ticked */
+	void CaptureThisFrame(float DeltaSeconds);
 
-	/** Capture a frame from our bound viewport */
-	virtual void CaptureFrame(float DeltaSeconds);
+	/** Automatically finalizes the capture when all currently pending frames are dealt with */
+	void FinalizeWhenReady();
+
+	/** Check whether we should automatically finalize this capture */
+	bool ShouldFinalize() const { return bFinalizeWhenReady && CaptureProtocol->HasFinishedProcessing(); }
+
+	/** Finalize the capturing process, assumes all frames have been processed. */
+	void Finalize();
+
+public:
+
+	/** Called at the end of a frame, before a frame is presented by slate */
+	virtual void Tick(float DeltaSeconds) { CaptureThisFrame(DeltaSeconds); }
+
+protected:
+
+	/**~ ICaptureProtocolHost interface */
+	virtual FString GenerateFilename(const FFrameMetrics& FrameMetrics, const TCHAR* Extension) const override;
+	virtual float GetCaptureFrequency() const { return Settings.FrameRate; }
+	virtual const ICaptureStrategy& GetCaptureStrategy() const { return *CaptureStrategy; }
+
+	/** Resolve the specified format using the user supplied formatting rules. */
+	FString ResolveFileFormat(const FString& Format, const FFrameMetrics& FrameMetrics) const;
 
 protected:
 
 #if WITH_EDITOR
-	/** Implementation function that saves out a snapshot file from the specified color data */
-	void CaptureSnapshot(const TArray<FColor>& Colors);
+	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
 protected:
-
-	/** Resolve the specified format using the user supplied formatting rules. */
-	FString ResolveFileFormat(const FString& Folder, const FString& Format) const;
-
-	/** Get the default extension required for this capture (avi, jpg etc) */
-	const TCHAR* GetDefaultFileExtension() const;
-
-	/** Calculate a unique index for the {unique} formatting rule */
-	FString ResolveUniqueFilename();
-
-protected:
-	
-	/** The viewport we are bound to */
-	FViewport* Viewport;
+	/** Capture protocol responsible for actually capturing frame data */
+	TSharedPtr<IMovieSceneCaptureProtocol> CaptureProtocol;
+	/** Strategy used for capture (real-time/fixed-time-step) */
+	TSharedPtr<ICaptureStrategy> CaptureStrategy;
+	/** The settings we will use to set up the capture protocol */
+	TOptional<FCaptureProtocolInitSettings> InitSettings;
+	/** Whether we should automatically attempt to capture frames every tick or not */
+	bool bFinalizeWhenReady;
 	/** Our unique handle, used for external representation without having to link to the MovieSceneCapture module */
 	FMovieSceneCaptureHandle Handle;
 	/** Cached metrics for this capture operation */
 	FCachedMetrics CachedMetrics;
-	/** Optional AVI file writer used when capturing to video */
-	TUniquePtr<FAVIWriter> AVIWriter;
-	/** Strategy used for capture (real-time/fixed-time-step) */
-	TSharedPtr<ICaptureStrategy> CaptureStrategy;
+	/** Format mappings used for generating filenames */
+	mutable TMap<FString, FStringFormatArg> FormatMappings;
+	/** The number of frames to capture.  If this is zero, we'll capture the entire sequence. */
+	int32 FrameCount;
+	/** Whether we have started capturing or not */
+	bool bCapturing;
+	/** Frame number index offset when saving out frames.  This is used to allow the frame numbers on disk to match
+	    what they would be in the authoring application, rather than a simple 0-based sequential index */
+	int32 FrameNumberOffset;
+	/** Event that is triggered when capturing has finished */
+	FOnCaptureFinished OnCaptureFinishedDelegate;
 };
 
-/** A strategy that employs a fixed frame time-step, and as such never drops a frame. Potentially accelerated.  */
+/** A strategy that employs a fixed frame time-step, and as such never drops a frame. Potentially accelerated. */
 struct MOVIESCENECAPTURE_API FFixedTimeStepCaptureStrategy : ICaptureStrategy
 {
 	FFixedTimeStepCaptureStrategy(uint32 InTargetFPS);
 
+	virtual void OnWarmup() override;
 	virtual void OnStart() override;
 	virtual void OnStop() override;
-	virtual void OnPresent(double CurrentTimeSeconds, uint32 FrameIndex) override;	
+	virtual void OnPresent(double CurrentTimeSeconds, uint32 FrameIndex) override;
 	virtual bool ShouldPresent(double CurrentTimeSeconds, uint32 FrameIndex) const override;
 	virtual int32 GetDroppedFrames(double CurrentTimeSeconds, uint32 FrameIndex) const override;
 
@@ -135,6 +172,7 @@ struct MOVIESCENECAPTURE_API FRealTimeCaptureStrategy : ICaptureStrategy
 {
 	FRealTimeCaptureStrategy(uint32 InTargetFPS);
 
+	virtual void OnWarmup() override;
 	virtual void OnStart() override;
 	virtual void OnStop() override;
 	virtual void OnPresent(double CurrentTimeSeconds, uint32 FrameIndex) override;

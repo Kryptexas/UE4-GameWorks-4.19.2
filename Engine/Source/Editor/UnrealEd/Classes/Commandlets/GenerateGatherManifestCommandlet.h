@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
 #include "Commandlets/Commandlet.h"
@@ -13,10 +13,10 @@ class UGenerateGatherManifestCommandlet : public UGatherTextCommandletBase
     GENERATED_UCLASS_BODY()
 #if CPP || UE_BUILD_DOCS
 public:
-	// Begin UCommandlet Interface
+	//~ Begin UCommandlet Interface
 	virtual int32 Main( const FString& Params ) override;
 
 	bool WriteManifestToFile( const TSharedPtr<FInternationalizationManifest>& InManifest, const FString& OutputFilePath );
-	// End UCommandlet Interface
+	//~ End UCommandlet Interface
 #endif
 };

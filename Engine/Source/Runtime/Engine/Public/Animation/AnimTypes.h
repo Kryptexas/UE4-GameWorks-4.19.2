@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -202,6 +202,29 @@ FORCEINLINE bool FAnimNotifyEvent::operator<(const FAnimNotifyEvent& Other) cons
 	}
 }
 
+USTRUCT()
+struct FAnimSyncMarker
+{
+	GENERATED_USTRUCT_BODY()
+
+	// The name of this marker
+	UPROPERTY()
+	FName MarkerName;
+
+	// Time in seconds of this marker
+	UPROPERTY()
+	float Time;
+
+#if WITH_EDITORONLY_DATA
+	// The editor track this marker sits on
+	UPROPERTY()
+	int32 TrackIndex;
+#endif
+
+	/** This can be used with the Sort() function on a TArray of FAnimSyncMarker to sort the notifies array by time, earliest first. */
+	ENGINE_API bool operator <(const FAnimSyncMarker& Other) const { return Time < Other.Time; }
+};
+
 /**
  * Keyframe position data for one track.  Pos(i) occurs at Time(i).  Pos.Num() always equals Time.Num().
  */
@@ -217,6 +240,8 @@ struct FAnimNotifyTrack
 	FLinearColor TrackColor;
 
 	TArray<FAnimNotifyEvent*> Notifies;
+	
+	TArray<FAnimSyncMarker*> SyncMarkers;
 
 	FAnimNotifyTrack()
 		: TrackName(TEXT(""))
@@ -259,3 +284,50 @@ namespace ECurveBlendOption
 		BlendByWeight
 	};
 }
+
+/**
+ * Slot node weight information - this is transient data that is used by slot node
+ */
+struct FSlotNodeWeightInfo
+{
+	/** Weight of Source Branch. This is the weight of the input pose coming from children.
+	This is different than (1.f - SourceWeight) since the Slot can play additive animations, which are overlayed on top of the source pose. */
+	float SourceWeight;
+
+	/** Weight of Slot Node. Determined by Montages weight playing on this slot */
+	float SlotNodeWeight;
+
+	/** Total Weight of Slot Node. Determined by Montages weight playing on this slot, it can be more than 1 */
+	float TotalNodeWeight;
+
+	FSlotNodeWeightInfo()
+		: SourceWeight(0.f)
+		, SlotNodeWeight(0.f)
+		, TotalNodeWeight(0.f)
+	{}
+
+	void Reset()
+	{
+		SourceWeight = 0.f;
+		SlotNodeWeight = 0.f;
+		TotalNodeWeight = 0.f;
+	}
+};
+
+USTRUCT()
+struct FMarkerSyncData
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Authored Sync markers */
+	UPROPERTY()
+	TArray<FAnimSyncMarker>		AuthoredSyncMarkers;
+
+	/** List of Unique marker names in this animation sequence */
+	TArray<FName>				UniqueMarkerNames;
+
+	void GetMarkerIndicesForTime(float CurrentTime, bool bLooping, const TArray<FName>& ValidMarkerNames, FMarkerPair& OutPrevMarker, FMarkerPair& OutNextMarker, float SequenceLength) const;
+	FMarkerSyncAnimPosition GetMarkerSyncPositionfromMarkerIndicies(int32 PrevMarker, int32 NextMarker, float CurrentTime, float SequenceLength) const;
+	void CollectUniqueNames();
+	void CollectMarkersInRange(float PrevPosition, float NewPosition, TArray<FPassedMarker>& OutMarkersPassedThisTick, float TotalDeltaMove);
+};

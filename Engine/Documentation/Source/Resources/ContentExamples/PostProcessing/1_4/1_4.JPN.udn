@@ -1,13 +1,31 @@
-﻿INTSourceChangelist:2350233
+﻿INTSourceChangelist:2721870
 Availability:Public
 Title:1.4 - ブルーム
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/PostProcessing
-Description:ポストプロセスの事例概要、例 1.4：ブルーム
+Description:ポストプロセスのサンプル レベルの概要、サンプル 1.4：ブルーム
 Related:Engine/Rendering/PostProcessEffects
 Related:Engine/Rendering/Overview
 Related:Engine/Rendering/PostProcessEffects
 Related:Engine/Rendering/PostProcessEffects/PostProcessMaterials
+Version:4.9
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/PostProcessing/1_3 "%Resources/ContentExamples/PostProcessing/1_3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[ポストプロセスのホーム](Resources/ContentExamples/PostProcessing)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/PostProcessing/1_5 "%Resources/ContentExamples/PostProcessing/1_5:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]

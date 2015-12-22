@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayTagsEditorModulePrivatePCH.h"
 #include "SGameplayTagContainerGraphPin.h"
@@ -105,18 +105,10 @@ TSharedRef<SWidget> SGameplayTagContainerGraphPin::GetListContent()
 		.AutoHeight()
 		.MaxHeight( 400 )
 		[
-			SNew(SScaleBox)
-			.HAlign(EHorizontalAlignment::HAlign_Left)
-			.VAlign(EVerticalAlignment::VAlign_Top)
-			.StretchDirection(EStretchDirection::DownOnly)
-			.Stretch(EStretch::ScaleToFit)
-			.Content()
-			[
-				SNew( SGameplayTagWidget, EditableContainers )
-				.OnTagChanged(this, &SGameplayTagContainerGraphPin::RefreshTagList)
-				.TagContainerName( TEXT("SGameplayTagContainerGraphPin") )
-				.Visibility( this, &SGraphPin::GetDefaultValueVisibility )
-			]
+			SNew( SGameplayTagWidget, EditableContainers )
+			.OnTagChanged(this, &SGameplayTagContainerGraphPin::RefreshTagList)
+			.TagContainerName( TEXT("SGameplayTagContainerGraphPin") )
+			.Visibility( this, &SGraphPin::GetDefaultValueVisibility )
 		];
 }
 
@@ -166,7 +158,7 @@ void SGameplayTagContainerGraphPin::RefreshTagList()
 	FString CurrentDefaultValue = GraphPinObj->GetDefaultAsString();
 	if (CurrentDefaultValue.IsEmpty())
 	{
-		CurrentDefaultValue = FString(TEXT("(GameplayTags=())"));
+		CurrentDefaultValue = FString(TEXT("(GameplayTags=)"));
 	}
 	if (!CurrentDefaultValue.Equals(TagContainerString))
 	{

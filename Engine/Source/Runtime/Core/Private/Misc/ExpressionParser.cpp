@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "ExpressionParser.h"
@@ -71,7 +71,7 @@ FString FTokenStream::GetErrorContext() const
 }
 
 /** Parse out a token */
-TOptional<FStringToken> FTokenStream::ParseToken(const TFunctionRef<EParseState(TCHAR)>& Pred, FStringToken* Accumulate) const
+TOptional<FStringToken> FTokenStream::ParseToken(TFunctionRef<EParseState(TCHAR)> Pred, FStringToken* Accumulate) const
 {
 	const TCHAR* OptReadPos = Accumulate ? Accumulate->GetTokenEndPos() : ReadPos;
 
@@ -275,9 +275,9 @@ void FExpressionTokenConsumer::Add(const FStringToken& SourceToken, FExpressionN
 	Tokens.Add(FExpressionToken(SourceToken, MoveTemp(Node)));
 }
 
-void FTokenDefinitions::DefineToken(const TFunction<FExpressionDefinition>& Definition)
+void FTokenDefinitions::DefineToken(TFunction<FExpressionDefinition>&& Definition)
 {
-	Definitions.Emplace(Definition);
+	Definitions.Emplace(MoveTemp(Definition));
 }
 
 TOptional<FExpressionError> FTokenDefinitions::ConsumeToken(FExpressionTokenConsumer& Consumer) const
@@ -711,7 +711,7 @@ namespace ExpressionParser
 				{
 					FFormatOrderedArguments Args;
 					Args.Add(FText::FromString(Token.Context.GetString()));
-					return MakeError(FText::Format(LOCTEXT("SyntaxError_NoUnaryOperand", "Not enough operands for binary operator {0}"), Args));
+					return MakeError(FText::Format(LOCTEXT("SyntaxError_NotEnoughOperandsBinary", "Not enough operands for binary operator {0}"), Args));
 				}
 				break;
 			
@@ -892,7 +892,7 @@ PRAGMA_DISABLE_OPTIMIZATION
 		return true;
 	}
 
-	IMPLEMENT_SIMPLE_AUTOMATION_TEST(FExpressionParserMoveableTypes, "System.Core.Expression Parser.Moveable Types", EAutomationTestFlags::ATF_SmokeTest)
+	IMPLEMENT_SIMPLE_AUTOMATION_TEST(FExpressionParserMoveableTypes, "System.Core.Expression Parser.Moveable Types", EAutomationTestFlags::EditorContext | EAutomationTestFlags::SmokeFilter)
 	bool FExpressionParserMoveableTypes::RunTest( const FString& Parameters )
 	{
 		return TestWithType<FMoveableType>(this);
@@ -904,21 +904,16 @@ PRAGMA_DISABLE_OPTIMIZATION
 		FHugeType(FHugeType&& In) : FMoveableType(MoveTemp(In)) {}
 		FHugeType(const FHugeType& In) : FMoveableType(In) {}
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-		FHugeType& operator=(FHugeType&& In) = default;
-#else
 		FHugeType& operator=(FHugeType&& In)
 		{
 			MoveTemp(In);
 			return *this;
 		}
-#endif
-
 		
 		uint8 Padding[1024];
 	};
 
-	IMPLEMENT_SIMPLE_AUTOMATION_TEST(FExpressionParserAllocatedTypes, "System.Core.Expression Parser.Allocated Types", EAutomationTestFlags::ATF_SmokeTest)
+	IMPLEMENT_SIMPLE_AUTOMATION_TEST(FExpressionParserAllocatedTypes, "System.Core.Expression Parser.Allocated Types", EAutomationTestFlags::EditorContext | EAutomationTestFlags::SmokeFilter)
 	bool FExpressionParserAllocatedTypes::RunTest( const FString& Parameters )
 	{
 		return TestWithType<FHugeType>(this);

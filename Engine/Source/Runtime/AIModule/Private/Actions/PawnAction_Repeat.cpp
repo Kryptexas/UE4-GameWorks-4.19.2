@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "Actions/PawnAction_Repeat.h"
@@ -92,7 +92,7 @@ bool UPawnAction_Repeat::PushSubAction()
 	}
 
 	UPawnAction* ActionCopy = SubActionTriggeringPolicy == EPawnSubActionTriggeringPolicy::CopyBeforeTriggering 
-		? Cast<UPawnAction>(StaticDuplicateObject(ActionToRepeat, this, NULL))
+		? Cast<UPawnAction>(StaticDuplicateObject(ActionToRepeat, this))
 		: ActionToRepeat;
 
 	UE_VLOG(GetPawn(), LogPawnAction, Log, TEXT("%s> pushing repeted action %s %s, repeats left: %d")

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 
@@ -188,20 +188,24 @@ void UAssetImportData::Serialize(FArchive& Ar)
 {
 	if (Ar.UE4Ver() >= VER_UE4_ASSET_IMPORT_DATA_AS_JSON)
 	{
-		FString Json;
-		if (Ar.IsLoading())
+		
+		if (!Ar.IsFilterEditorOnly())
 		{
-			Ar << Json;
-			TOptional<FAssetImportInfo> Copy = FAssetImportInfo::FromJson(MoveTemp(Json));
-			if (Copy.IsSet())
+			FString Json;
+			if (Ar.IsLoading())
 			{
-				SourceData = MoveTemp(Copy.GetValue());
+				Ar << Json;
+				TOptional<FAssetImportInfo> Copy = FAssetImportInfo::FromJson(MoveTemp(Json));
+				if (Copy.IsSet())
+				{
+					SourceData = MoveTemp(Copy.GetValue());
+				}
 			}
-		}
-		else if (Ar.IsSaving())
-		{
-			Json = SourceData.ToJson();
-			Ar << Json;
+			else if (Ar.IsSaving())
+			{
+				Json = SourceData.ToJson();
+				Ar << Json;
+			}
 		}
 	}
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AllDesktopTargetPlatform.h: Declares the FDesktopTargetPlatform class.
@@ -52,18 +52,18 @@ public:
 
 public:
 
-	// Begin TTargetPlatformBase interface
+	//~ Begin TTargetPlatformBase Interface
 
 	virtual bool IsServerOnly( ) const override
 	{
 		return false;
 	}
 
-	// End TTargetPlatformBase interface
+	//~ End TTargetPlatformBase Interface
 
 public:
 
-	// Begin ITargetPlatform interface
+	//~ Begin ITargetPlatform Interface
 
 	virtual void EnableDeviceCheck(bool OnOff) override
 	{
@@ -119,6 +119,8 @@ public:
 	virtual void GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const override;
 
 	virtual void GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const override;
+
+	virtual void GetAllCachedShaderFormats( TArray<FName>& OutFormats ) const override {}
 
 	virtual const class FStaticMeshLODSettings& GetStaticMeshLODSettings( ) const override
 	{

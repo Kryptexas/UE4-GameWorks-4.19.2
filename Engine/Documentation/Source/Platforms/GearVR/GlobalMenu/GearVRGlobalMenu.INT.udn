@@ -14,7 +14,7 @@ In the following Quick Start we will cover everything you need to know so the us
 
 [region:note]
 Please note that the following Quick Start will work on any project that is setup for Gear VR. 
-If you have no done so already please make sure to check out the Gear [VR Quick Start](Platforms\GearVR\QuickStart) for detailed information on how to get a project up and running with Gear VR.
+If you have not done so already please make sure to check out the Gear [VR Quick Start](Platforms\GearVR\QuickStart) for detailed information on how to get a project up and running with Gear VR.
 [/region]
 
 [OBJECT:TopicButtonList]

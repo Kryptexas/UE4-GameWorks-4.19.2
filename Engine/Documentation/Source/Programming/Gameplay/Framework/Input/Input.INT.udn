@@ -2,6 +2,7 @@ Availability: Public
 Title:Input
 Crumbs:%ROOT%, Gameplay
 Description:The **Input** object is responsible for converting input from the player into data in a form Actors can understand and make use of.
+Version: 4.9
 
 [OBJECT:Redirect]
 [PARAM:link]

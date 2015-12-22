@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "AI/NavigationModifier.h"
@@ -210,7 +210,7 @@ protected:
 };
 
 template<>
-FORCEINLINE void SetOctreeMemoryUsage(TOctree<FNavigationOctreeElement, FNavigationOctreeSemantics>* Octree, int32 NewSize)
+FORCEINLINE_DEBUGGABLE void SetOctreeMemoryUsage(TOctree<FNavigationOctreeElement, FNavigationOctreeSemantics>* Octree, int32 NewSize)
 {
 	{
 		DEC_DWORD_STAT_BY( STAT_NavigationMemory, Octree->TotalSizeBytes );

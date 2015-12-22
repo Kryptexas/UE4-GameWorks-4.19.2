@@ -2,16 +2,27 @@ Availability: Public
 title:Pivot Painter
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Functions designed to allow utilization of the Pivot Painter MAXScript.
+Version: 4.9
 
 [TOC (start:2 end:3)]
 
 
 
 [REGION:header_img]
-[![splash_demo.jpg](Engine/Content/Tools/PivotPainter/splash_demo.jpg)](Engine/Content/Tools/PivotPainter/PivotPainterFoliageExamples.mp4)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+G3vUj7c5gUM
+[/PARAMLITERAL]
+[/OBJECT]
 [/REGION]
 
-Pivot Painter material functions allow you to tap into the [Pivot Painter MAXScript](Engine/Content/Tools/PivotPainter), which stores rotation information within the vertices of a mesh. This is a great way to handle dynamic motion on Static Meshes.
+**Pivot Painter** material functions allow you to tap into the [Pivot Painter MAXScript](Engine/Content/Tools/PivotPainter), which stores rotation information within the vertices of a mesh. This is a great way to handle dynamic motion on Static Meshes.
 
 Although the data provided by Pivot Painter can be utilized without these functions, they do make the process much easier.
 

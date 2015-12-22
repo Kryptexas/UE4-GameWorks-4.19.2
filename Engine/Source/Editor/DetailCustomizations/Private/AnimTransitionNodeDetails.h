@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -32,6 +32,7 @@ protected:
 	void BecomeSharedWith(UAnimStateTransitionNode* NewNode, bool bShareRules);
 	void AssignUniqueColorsToAllSharedNodes(UEdGraph* CurrentGraph);
 
+	void OnBlendProfileChanged(UBlendProfile* NewProfile, TSharedPtr<IPropertyHandle> ProfileProperty);
 
 private:
 	TWeakObjectPtr<UAnimStateTransitionNode> TransitionNode;

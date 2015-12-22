@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -15,7 +15,7 @@ class UInterpTrackColorProp : public UInterpTrackVectorBase
 	FName PropertyName;
 
 
-	// Begin UInterpTrack interface
+	//~ Begin UInterpTrack Interface
 	virtual int32 AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode) override;
 	virtual bool CanAddKeyframe( UInterpTrackInst* TrackInst ) override;
 	virtual void UpdateKeyframe(int32 KeyIndex, UInterpTrackInst* TrInst) override;
@@ -26,7 +26,7 @@ class UInterpTrackColorProp : public UInterpTrackVectorBase
 #if WITH_EDITORONLY_DATA
 	virtual class UTexture2D* GetTrackIcon() const override;
 #endif // WITH_EDITORONLY_DATA
-	// End UInterpTrack interface
+	//~ End UInterpTrack Interface
 };
 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "AbilityTask.h"
 #include "AbilityTask_PlayMontageAndWait.generated.h"
@@ -28,7 +28,7 @@ class UAbilityTask_PlayMontageAndWait : public UAbilityTask
 	UFUNCTION(BlueprintCallable, Category="Ability|Tasks", meta = (DisplayName="PlayMontageAndWait",
 		HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
 	static UAbilityTask_PlayMontageAndWait* CreatePlayMontageAndWaitProxy(UObject* WorldContextObject,
-		FName TaskInstanceName, UAnimMontage *MontageToPlay, float Rate = 1.f, FName StartSection = NAME_None);
+		FName TaskInstanceName, UAnimMontage *MontageToPlay, float Rate = 1.f, FName StartSection = NAME_None, bool bStopWhenAbilityEnds = true);
 
 	virtual void Activate() override;
 
@@ -41,10 +41,14 @@ private:
 
 	virtual void OnDestroy(bool AbilityEnded) override;
 
+	/** Checks if the ability is playing a montage and stops that montage, returns true if a montage was stopped, false if not. */
+	bool StopPlayingMontage();
+
 	FOnMontageBlendingOutStarted BlendingOutDelegate;
 	FDelegateHandle InterruptedHandle;
 
 	UAnimMontage* MontageToPlay;
 	float Rate;	
 	FName StartSection;
+	bool bStopWhenAbilityEnds;
 };

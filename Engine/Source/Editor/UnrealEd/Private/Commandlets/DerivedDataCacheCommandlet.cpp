@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DerivedDataCacheCommandlet.cpp: Commandlet for DDC maintenence
@@ -184,13 +184,13 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 				if (NumProcessedSinceLastGC >= GCInterval || FileIndex < 0)
 				{
 					UE_LOG(LogDerivedDataCacheCommandlet, Display, TEXT("GC (Full)..."));
-					CollectGarbage( RF_Native );
+					CollectGarbage(RF_NoFlags);
 					NumProcessedSinceLastGC = 0;
 				}
 				else
 				{
 					UE_LOG(LogDerivedDataCacheCommandlet, Display, TEXT("GC..."));
-					CollectGarbage( RF_Native | RF_Standalone );
+					CollectGarbage(RF_Standalone);
 				}				
 				GCTime += FPlatformTime::Seconds() - StartGCTime;
 
@@ -226,9 +226,12 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 				// cache all the resources for this platform
 				for ( TObjectIterator<UObject> It; It; ++It )
 				{
-					for ( auto Platform : Platforms )
+					if (ProcessedPackages.Contains(It->GetOutermost()->GetName()))
 					{
-						It->BeginCacheForCookedPlatformData( Platform );
+						for (auto Platform : Platforms)
+						{
+							It->BeginCacheForCookedPlatformData(Platform);
+						}
 					}
 				}
 

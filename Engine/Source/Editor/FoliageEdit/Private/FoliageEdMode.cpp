@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "StaticMeshResources.h"
@@ -2251,7 +2251,7 @@ bool FEdModeFoliage::GetStaticMeshVertexColorForHit(const UStaticMeshComponent* 
 
 void FEdModeFoliage::SnapSelectedInstancesToGround(UWorld* InWorld)
 {
-	GEditor->BeginTransaction(NSLOCTEXT("UnrealEd", "FoliageMode_EditTransaction", "Snap Foliage To Ground"));
+	GEditor->BeginTransaction(NSLOCTEXT("UnrealEd", "FoliageMode_Transaction_SnapToGround", "Snap Foliage To Ground"));
 	{
 		bool bMovedInstance = false;
 
@@ -2659,7 +2659,7 @@ UFoliageType* FEdModeFoliage::CopySettingsObject(UFoliageType* Settings)
 	TUniqueObj<FFoliageMeshInfo> MeshInfo;
 	if (IFA->FoliageMeshes.RemoveAndCopyValue(Settings, MeshInfo))
 	{
-		Settings = (UFoliageType*)StaticDuplicateObject(Settings, IFA, nullptr, RF_AllFlags & ~(RF_Standalone | RF_Public));
+		Settings = (UFoliageType*)StaticDuplicateObject(Settings, IFA, NAME_None, RF_AllFlags & ~(RF_Standalone | RF_Public));
 		IFA->FoliageMeshes.Add(Settings, MoveTemp(MeshInfo));
 		return Settings;
 	}

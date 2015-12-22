@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -100,10 +100,13 @@ public:
 	{ 
 		return false; 
 	}
+
 private:
 	void RegisterInstancedCustomPropertyLayout( UClass* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate ) override;
 	void UnregisterInstancedCustomPropertyLayout( UClass* Class ) override;
-	void SetObjectArrayPrivate( const TArray< TWeakObjectPtr< UObject > >& InObjects );
+	
+	void BeginSelectingObjects(const TArray< TWeakObjectPtr< UObject > >& InObjects);
+	EActiveTimerReturnType FinishSelectingObjects(const TArray< TWeakObjectPtr< UObject > > InObjects);
 
 	TSharedRef<SDetailTree> ConstructTreeView( TSharedRef<SScrollBar>& ScrollBar );
 

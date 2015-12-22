@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalRenderCPUSkin.cpp: CPU skinned skeletal mesh rendering code.
@@ -168,16 +168,19 @@ void FSkeletalMeshObjectCPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* In
 {
 	// create the new dynamic data for use by the rendering thread
 	// this data is only deleted when another update is sent
-	FDynamicSkelMeshObjectData* NewDynamicData = new FDynamicSkelMeshObjectDataCPUSkin(InMeshComponent,SkeletalMeshResource,LODIndex,ActiveVertexAnims);
+	FDynamicSkelMeshObjectDataCPUSkin* NewDynamicData = new FDynamicSkelMeshObjectDataCPUSkin(InMeshComponent,SkeletalMeshResource,LODIndex,ActiveVertexAnims);
+
+	UpdateShadowShapes(InMeshComponent);
 
 	// queue a call to update this data
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 		SkelMeshObjectUpdateDataCommand,
-		FSkeletalMeshObject*, MeshObject, this,
-		FDynamicSkelMeshObjectData*, NewDynamicData, NewDynamicData,
+		FSkeletalMeshObjectCPUSkin*, MeshObject, this,
+		uint32, FrameNumber, GFrameNumber,
+		FDynamicSkelMeshObjectDataCPUSkin*, NewDynamicData, NewDynamicData,
 	{
 		FScopeCycleCounter Context(MeshObject->GetStatId());
-		MeshObject->UpdateDynamicData_RenderThread(RHICmdList, NewDynamicData);
+		MeshObject->UpdateDynamicData_RenderThread(RHICmdList, NewDynamicData, FrameNumber);
 	}
 	);
 
@@ -189,48 +192,17 @@ void FSkeletalMeshObjectCPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* In
 	}
 }
 
-void FSkeletalMeshObjectCPUSkin::UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectData* InDynamicData)
+void FSkeletalMeshObjectCPUSkin::UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectDataCPUSkin* InDynamicData, uint32 FrameNumber)
 {
 	// we should be done with the old data at this point
 	delete DynamicData;
 	// update with new data
-	DynamicData = (FDynamicSkelMeshObjectDataCPUSkin*)InDynamicData;	
+	DynamicData = InDynamicData;	
 	check(DynamicData);
 
 	// update vertices using the new data
 	CacheVertices(DynamicData->LODIndex,true);
 }
-
-static bool ComputeTangent(FVector &t,
-							const FVector &p0, const FVector2D &c0,
-							const FVector &p1, const FVector2D &c1,
-							const FVector &p2, const FVector2D &c2)
-{
-	const float epsilon = 0.0001f;
-	bool   Ret = false;
-	FVector dp1 = p1 - p0;
-	FVector dp2 = p2 - p0;
-	float   du1 = c1.X - c0.X;
-	float   dv1 = c1.Y - c0.Y;
-	if(FMath::Abs(dv1) < epsilon && FMath::Abs(du1) >= epsilon)
-	{
-		t = dp1 / du1;
-		Ret = true;
-	}
-	else
-	{
-		float du2 = c2.X - c0.X;
-		float dv2 = c2.Y - c0.Y;
-		float det = dv1*du2 - dv2*du1;
-		if(FMath::Abs(det) >= epsilon)
-		{
-			t = (dp2*dv1-dp1*dv2)/det;
-			Ret = true;
-		}
-	}
-	return Ret;
-}
-
 
 void FSkeletalMeshObjectCPUSkin::CacheVertices(int32 LODIndex, bool bForce) const
 {
@@ -622,7 +594,7 @@ static void SkinVertexChunk( FFinalSkinVertex*& DestVertex, TArray<FVertexAnimEv
 	// Prefetch all bone indices
 	const FBoneIndexType* BoneMap = Chunk.BoneMap.GetData();
 	FPlatformMisc::Prefetch( BoneMap );
-	FPlatformMisc::Prefetch( BoneMap, CACHE_LINE_SIZE );
+	FPlatformMisc::Prefetch( BoneMap, PLATFORM_CACHE_LINE_SIZE );
 
 	VertexType* SrcRigidVertex = NULL;
 	const int32 NumRigidVertices = Chunk.GetNumRigidVertices();
@@ -637,7 +609,7 @@ static void SkinVertexChunk( FFinalSkinVertex*& DestVertex, TArray<FVertexAnimEv
 		{
 			int32 VertexBufferIndex = Chunk.GetRigidVertexBufferIndex() + VertexIndex;
 			SrcRigidVertex = (VertexType*)LOD.VertexBufferGPUSkin.GetVertexPtr<(bExtraBoneInfluences)>(VertexBufferIndex);
-			FPlatformMisc::Prefetch( SrcRigidVertex, CACHE_LINE_SIZE );	// Prefetch next vertices
+			FPlatformMisc::Prefetch( SrcRigidVertex, PLATFORM_CACHE_LINE_SIZE );	// Prefetch next vertices
 			VertexType* MorphedVertex = SrcRigidVertex;
 			if( NumValidMorphs ) 
 			{
@@ -707,7 +679,7 @@ static void SkinVertexChunk( FFinalSkinVertex*& DestVertex, TArray<FVertexAnimEv
 		{
 			const int32 VertexBufferIndex = Chunk.GetSoftVertexBufferIndex() + VertexIndex;
 			SrcSoftVertex = (VertexType*)LOD.VertexBufferGPUSkin.GetVertexPtr<(bExtraBoneInfluences)>(VertexBufferIndex);
-			FPlatformMisc::Prefetch( SrcSoftVertex, CACHE_LINE_SIZE );	// Prefetch next vertices
+			FPlatformMisc::Prefetch( SrcSoftVertex, PLATFORM_CACHE_LINE_SIZE );	// Prefetch next vertices
 			VertexType* MorphedVertex = SrcSoftVertex;
 			if( NumValidMorphs ) 
 			{
@@ -1000,7 +972,7 @@ static void CalculateBoneWeights(FFinalSkinVertex* DestVertex, FStaticLODModel& 
 		FSkelMeshSection& Section = LOD.Sections[SectionIndex];
 		FSkelMeshChunk& Chunk = LOD.Chunks[Section.ChunkIndex];
 
-		if (Chunk.HasExtraBoneInfluences())
+		if (LOD.VertexBufferGPUSkin.HasExtraBoneInfluences())
 		{
 			CalculateChunkBoneWeights<true>(DestVertex, LOD.VertexBufferGPUSkin, Chunk, BonesOfInterest);
 		}

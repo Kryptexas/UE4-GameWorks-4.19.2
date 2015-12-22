@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Sound/SoundCue.h"
@@ -43,6 +43,8 @@ void USoundCue::AddReferencedObjects(UObject* InThis, FReferenceCollector& Colle
 
 	Super::AddReferencedObjects(InThis, Collector);
 }
+#endif // WITH_EDITOR
+
 
 void USoundCue::Serialize(FArchive& Ar)
 {
@@ -54,14 +56,23 @@ void USoundCue::Serialize(FArchive& Ar)
 
 	Super::Serialize(Ar);
 
+	if (Ar.UE4Ver() >= VER_UE4_COOKED_ASSETS_IN_EDITOR_SUPPORT)
+	{
+		FStripDataFlags StripFlags(Ar);
 #if WITH_EDITORONLY_DATA
-	if (!Ar.IsFilterEditorOnly())
+		if (!StripFlags.IsEditorDataStripped())
+		{
+			Ar << SoundCueGraph;
+		}
+#endif
+	}
+#if WITH_EDITOR
+	else
 	{
 		Ar << SoundCueGraph;
 	}
 #endif
 }
-#endif // WITH_EDITOR
 
 void USoundCue::PostLoad()
 {

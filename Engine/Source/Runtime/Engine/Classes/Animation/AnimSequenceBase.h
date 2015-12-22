@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -53,9 +53,9 @@ class UAnimSequenceBase : public UAnimationAsset
 	TArray<FAnimNotifyTrack> AnimNotifyTracks;
 #endif // WITH_EDITORONLY_DATA
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 	virtual void PostLoad() override;
-	// End of UObject interface
+	//~ End UObject Interface
 
 	/** Returns the total play length of the montage, if played back with a speed of 1.0. */
 	UFUNCTION(BlueprintCallable, Category = "Animation")
@@ -98,9 +98,6 @@ class UAnimSequenceBase : public UAnimationAsset
 
 	/** Get the time at the given frame */
 	virtual float GetTimeAtFrame(const int32 Frame) const;
-
-	// update anim notify track cache
-	ENGINE_API void UpdateAnimNotifyTrackCache();
 	
 	// @todo document
 	ENGINE_API void InitializeNotifyTrack();
@@ -116,15 +113,25 @@ class UAnimSequenceBase : public UAnimationAsset
 	// Get a pointer to the data for a given Anim Notify
 	ENGINE_API uint8* FindNotifyPropertyData(int32 NotifyIndex, UArrayProperty*& ArrayProperty);
 
-#endif	//WITH_EDITORONLY_DATA
+	// Get a pointer to the data for a given array property item
+	ENGINE_API uint8* FindArrayProperty(const TCHAR* PropName, UArrayProperty*& ArrayProperty, int32 ArrayIndex);
 
-	// Begin UAnimationAsset interface
-	virtual void TickAssetPlayerInstance(const FAnimTickRecord& Instance, class UAnimInstance* InstanceOwner, FAnimAssetTickContext& Context) const override;
+#endif	//WITH_EDITORONLY_DATA
+	// update cache data (notify tracks, sync markers)
+	ENGINE_API virtual void RefreshCacheData();
+
+	//~ Begin UAnimationAsset Interface
+	virtual void TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNotifyQueue& NotifyQueue, FAnimAssetTickContext& Context) const override;
+
+	void TickByMarkerAsFollower(FMarkerTickRecord &Instance, FMarkerTickContext &MarkerContext, float& CurrentTime, float& OutPreviousTime, const float MoveDelta, const bool bLooping) const;
+
+	void TickByMarkerAsLeader(FMarkerTickRecord& Instance, FMarkerTickContext& MarkerContext, float& CurrentTime, float& OutPreviousTime, const float MoveDelta, const bool bLooping) const;
+
 	// this is used in editor only when used for transition getter
 	// this doesn't mean max time. In Sequence, this is SequenceLength,
 	// but for BlendSpace CurrentTime is normalized [0,1], so this is 1
 	virtual float GetMaxCurrentTime() override { return SequenceLength; }
-	// End of UAnimationAsset interface
+	//~ End UAnimationAsset Interface
 
 	/**
 	* Get Bone Transform of the Time given, relative to Parent for all RequiredBones
@@ -136,11 +143,24 @@ class UAnimSequenceBase : public UAnimationAsset
 	*/
 	ENGINE_API virtual void GetAnimationPose(struct FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const PURE_VIRTUAL(UAnimSequenceBase::GetAnimationPose, );
 	
-	virtual void OnAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, class UAnimInstance* InstanceOwner) const;
+	DEPRECATED(4.11, "This function is deprecated, please use HandleAssetPlayerTickedInternal")
+	virtual void OnAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, class UAnimInstance* InAnimInstance) const;
+
+	virtual void HandleAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, struct FAnimNotifyQueue& NotifyQueue) const;
 
 	virtual bool HasRootMotion() const { return false; }
 
 	virtual void Serialize(FArchive& Ar) override;
+
+	virtual void AdvanceMarkerPhaseAsLeader(bool bLooping, float MoveDelta, const TArray<FName>& ValidMarkerNames, float& CurrentTime, FMarkerPair& PrevMarker, FMarkerPair& NextMarker, TArray<FPassedMarker>& MarkersPassed) const { check(false); /*Should never call this (either missing override or calling on unsupported asset */ }
+	virtual void AdvanceMarkerPhaseAsFollower(const FMarkerTickContext& Context, float DeltaRemaining, bool bLooping, float& CurrentTime, FMarkerPair& PreviousMarker, FMarkerPair& NextMarker) const { check(false); /*Should never call this (either missing override or calling on unsupported asset */ }
+	virtual void GetMarkerIndicesForTime(float CurrentTime, bool bLooping, const TArray<FName>& ValidMarkerNames, FMarkerPair& OutPrevMarker, FMarkerPair& OutNextMarker) const { check(false); /*Should never call this (either missing override or calling on unsupported asset */ }
+	virtual FMarkerSyncAnimPosition GetMarkerSyncPositionfromMarkerIndicies(int32 PrevMarker, int32 NextMarker, float CurrentTime) const { check(false); return FMarkerSyncAnimPosition(); /*Should never call this (either missing override or calling on unsupported asset */ }
+	virtual void GetMarkerIndicesForPosition(const FMarkerSyncAnimPosition& SyncPosition, bool bLooping, FMarkerPair& OutPrevMarker, FMarkerPair& OutNextMarker, float& CurrentTime) const { check(false); /*Should never call this (either missing override or calling on unsupported asset */ }
+	
+	virtual float GetFirstMatchingPosFromMarkerSyncPos(const FMarkerSyncAnimPosition& InMarkerSyncGroupPosition) const { return 0.f; }
+	virtual float GetNextMatchingPosFromMarkerSyncPos(const FMarkerSyncAnimPosition& InMarkerSyncGroupPosition, const float& StartingPosition) const { return 0.f; }
+
 
 #if WITH_EDITOR
 private:

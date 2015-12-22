@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -24,6 +24,9 @@ public:
 
 	/** Simple accessor to owning gameplay spec */
 	const FGameplayEffectSpec& GetOwningSpec() const;
+
+	/** Non const access. Be careful with this, especially when modifying a spec after attribute capture. */
+	FGameplayEffectSpec* GetOwningSpecForPreExecuteMod() const;
 
 	/** Simple accessor to target ability system component */
 	UAbilitySystemComponent* GetTargetAbilitySystemComponent() const;
@@ -145,6 +148,9 @@ public:
 
 	/** Simple accessor to output modifiers of the execution */
 	void GetOutputModifiers(OUT TArray<FGameplayModifierEvaluatedData>& OutOutputModifiers) const;
+
+	/** Returns direct access to output modifiers of the execution (avoid copy) */
+	TArray<FGameplayModifierEvaluatedData>& GetOutputModifiersRef() { return OutputModifiers; }
 
 private:
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -459,8 +459,6 @@ public:
 									const dtQueryFilter* filter, dtPolyRef* resultRef,
 									int* resultCount, const int maxResult) const;
 
-	//@UE4 END
-
 	/// @}
 	/// @name Local Query Functions
 	///@{
@@ -471,11 +469,24 @@ public:
 	///  @param[in]		filter		The polygon filter to apply to the query.
 	///  @param[out]	nearestRef	The reference id of the nearest polygon.
 	///  @param[out]	nearestPt	The nearest point on the polygon. [opt] [(x, y, z)]
+	///  @param[in]		referencePt	If supplied replaces @param center in terms of distance measurements. [opt] [(x, y, z)]
 	/// @returns The status flags for the query.
 	dtStatus findNearestPoly(const float* center, const float* extents,
 							 const dtQueryFilter* filter,
-							 dtPolyRef* nearestRef, float* nearestPt) const;
-	
+							 dtPolyRef* nearestRef, float* nearestPt, const float* referencePt = 0) const;
+
+	/// Finds the nearest polygon containing the specified center point.
+	///  @param[in]		center		The center of the search box. [(x, y, z)]
+	///  @param[in]		extents		The search distance along each axis. [(x, y, z)]
+	///  @param[in]		filter		The polygon filter to apply to the query.
+	///  @param[out]	nearestRef	The reference id of the nearest polygon.
+	///  @param[out]	nearestPt	The nearest point on the polygon. [opt] [(x, y, z)]
+	/// @returns The status flags for the query.
+	dtStatus findNearestContainingPoly(const float* center, const float* extents,
+									   const dtQueryFilter* filter,
+									   dtPolyRef* nearestRef, float* nearestPt) const;
+	//@UE4 END
+
 	/// Finds polygons that overlap the search box.
 	///  @param[in]		center		The center of the search box. [(x, y, z)]
 	///  @param[in]		extents		The search distance along each axis. [(x, y, z)]
@@ -674,7 +685,6 @@ public:
 	/// Gets best node ref and cost from sliced pathfinding data
 	void getCurrentBestResult(struct dtNode*& bestNode, float& bestCost) const { bestNode = m_query.lastBestNode; bestCost = m_query.lastBestNodeCost; }
 
-	float getQueryTime() const { return m_queryTime; }
 	int getQueryNodes() const { return m_queryNodes; }
 	/// @}
 	
@@ -754,7 +764,6 @@ private:
 	class dtNodePool* m_nodePool;		///< Pointer to node pool.
 	class dtNodeQueue* m_openList;		///< Pointer to open list queue.
 
-	mutable float m_queryTime;
 	mutable int m_queryNodes;
 };
 

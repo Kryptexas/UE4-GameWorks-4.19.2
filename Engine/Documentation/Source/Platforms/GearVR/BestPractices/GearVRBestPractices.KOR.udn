@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2602692
+﻿INTSourceChangelist:2638997
 Availability:Public
 Title:삼성 기어 VR 실전 사례
 Crumbs:%ROOT%, Platforms
@@ -13,7 +13,7 @@ Related: Platforms/Mobile/Materials
 Related: Engine/Rendering/Materials/MaterialProperties/BlendModes
 Related: Engine/Rendering/Materials/CustomizedUVs
 Skilllevel: Intermediate
-Version: 4.8
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
@@ -96,8 +96,8 @@ Material Blend Mode 는 이미 배경에 그려진 것에 현재 머티리얼의
 여기 있는 세팅은 모바일 디바이스에서 머티리얼의 렌더링 비용을 낮추는 데 도움이 됩니다.
 | 프로퍼티 | 설명 |
 | -------- | ---------- |
-| bFullyRough | 완전 거침 - 켜면 다수의 셰이더 ALU 인스트럭션과 샘플러 하나가 절약됩니다. 실제로 전체적인 반사 에너지는 유지하면서 스페큘러만 끕니다. |
-| bUseLightmapDirectionality | 라이트맵 방향성 사용 - 끄면 라이트맵의 라이팅이 평이해 지지만 저렴해집니다. |
+| **Fully Rough** | 완전 거침 - 켜면 다수의 셰이더 ALU 인스트럭션과 샘플러 하나가 절약됩니다. 실제로 전체적인 반사 에너지는 유지하면서 스페큘러만 끕니다. |
+| **Use Lightmap Directionality** | 라이트맵 방향성 사용 - 끄면 라이트맵의 라이팅이 평이해 지지만 저렴해집니다. |
 
 ### Customized UVs
 **[Customized UVs](Engine/Rendering/Materials/CustomizedUVs)** 는 특정 셰이더의 연산을 픽셀 셰이더가 아닌 버텍스 셰이더로 옮겨 의존 텍스처 페치를 피하는 데 도움이 됩니다.

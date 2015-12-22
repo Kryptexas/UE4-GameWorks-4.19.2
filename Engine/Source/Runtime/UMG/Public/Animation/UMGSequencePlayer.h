@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -34,9 +34,12 @@ public:
 	/** @return The current animation being played */
 	const UWidgetAnimation* GetAnimation() const { return Animation; }
 
+	/** Sets the number of loops to play */
+	void SetNumLoopsToPlay(int32 InNumLoopsToPlay);
+
 	/** IMovieScenePlayer interface */
 	virtual void GetRuntimeObjects( TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray< UObject* >& OutObjects ) const override;
-	virtual void UpdateCameraCut(UObject* ObjectToViewThrough, bool bNewCameraCut) const override {}
+	virtual void UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject) const override {}
 	virtual void SetViewportSettings(const TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) override {}
 	virtual void GetViewportSettings(TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) const override {}
 	virtual void AddOrUpdateMovieSceneInstance( class UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToAdd ) override {}
@@ -62,6 +65,9 @@ private:
 
 	/** The current time cursor position within the sequence (in seconds) */
 	double TimeCursorPosition;
+
+	/** The offset from 0 to the start of the animation (in seconds) */
+	double AnimationStartOffset;
 
 	/** Status of the player (e.g play, stopped) */
 	EMovieScenePlayerStatus::Type PlayerStatus;

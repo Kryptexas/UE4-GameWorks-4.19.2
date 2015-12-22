@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EnginePrivate.h"
@@ -27,13 +27,11 @@ ADefaultPawn::ADefaultPawn(const FObjectInitializer& ObjectInitializer)
 
 	CollisionComponent = CreateDefaultSubobject<USphereComponent>(ADefaultPawn::CollisionComponentName);
 	CollisionComponent->InitSphereRadius(35.0f);
-
-	static FName CollisionProfileName(TEXT("Pawn"));
-	CollisionComponent->SetCollisionProfileName(CollisionProfileName);
+	CollisionComponent->SetCollisionProfileName(UCollisionProfile::Pawn_ProfileName);
 
 	CollisionComponent->CanCharacterStepUpOn = ECB_No;
 	CollisionComponent->bShouldUpdatePhysicsVolume = true;
-	CollisionComponent->bCanEverAffectNavigation = false;
+	CollisionComponent->SetCanEverAffectNavigation(false);
 	CollisionComponent->bDynamicObstacle = true;
 
 	RootComponent = CollisionComponent;
@@ -62,11 +60,11 @@ ADefaultPawn::ADefaultPawn(const FObjectInitializer& ObjectInitializer)
 		MeshComponent->bAffectDynamicIndirectLighting = false;
 		MeshComponent->PrimaryComponentTick.TickGroup = TG_PrePhysics;
 		MeshComponent->AttachParent = RootComponent;
-		MeshComponent->SetCollisionProfileName(CollisionProfileName);
+		MeshComponent->SetCollisionProfileName(UCollisionProfile::Pawn_ProfileName);
 		const float Scale = CollisionComponent->GetUnscaledSphereRadius() / 160.f; // @TODO: hardcoding known size of EngineMeshes.Sphere. Should use a unit sphere instead.
 		MeshComponent->SetRelativeScale3D(FVector(Scale));
 		MeshComponent->bGenerateOverlapEvents = false;
-		MeshComponent->bCanEverAffectNavigation = false;
+		MeshComponent->SetCanEverAffectNavigation(false);
 	}
 
 	// This is the default pawn class, we want to have it be able to move out of the box.

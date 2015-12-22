@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 // Core includes.
 #include "CorePrivatePCH.h"
@@ -14,6 +14,7 @@
 #include "ModuleManager.h"
 #include "Ticker.h"
 #include "DerivedDataCacheInterface.h"
+#include "ITargetPlatformManagerModule.h"
 
 DEFINE_LOG_CATEGORY(LogSHA);
 DEFINE_LOG_CATEGORY(LogStats);
@@ -94,8 +95,9 @@ bool FFileHelper::LoadFileToArray( TArray<uint8>& Result, const TCHAR* Filename,
 		}
 		return 0;
 	}
-	Result.Reset();
-	Result.AddUninitialized( Reader->TotalSize() );
+	int64 TotalSize = Reader->TotalSize();
+	Result.Reset( TotalSize );
+	Result.AddUninitialized( TotalSize );
 	Reader->Serialize(Result.GetData(), Result.Num());
 	bool Success = Reader->Close();
 	delete Reader;
@@ -165,17 +167,23 @@ void FFileHelper::BufferToString( FString& Result, const uint8* Buffer, int32 Si
  */
 bool FFileHelper::LoadFileToString( FString& Result, const TCHAR* Filename, uint32 VerifyFlags )
 {
-	FArchive* Reader = IFileManager::Get().CreateFileReader( Filename );
+	TUniquePtr<FArchive> Reader( IFileManager::Get().CreateFileReader( Filename ) );
 	if( !Reader )
 	{
 		return 0;
 	}
 	
 	int32 Size = Reader->TotalSize();
+	if( !Size )
+	{
+		Result.Empty();
+		return true;
+	}
+
 	uint8* Ch = (uint8*)FMemory::Malloc(Size);
 	Reader->Serialize( Ch, Size );
 	bool Success = Reader->Close();
-	delete Reader;
+	Reader = nullptr;
 	BufferToString( Result, Ch, Size );
 
 	// handle SHA verify of the file
@@ -196,9 +204,9 @@ bool FFileHelper::LoadFileToString( FString& Result, const TCHAR* Filename, uint
 /**
  * Save a binary array to a file.
  */
-bool FFileHelper::SaveArrayToFile( const TArray<uint8>& Array, const TCHAR* Filename, IFileManager* FileManager /*= &IFileManager::Get()*/ )
+bool FFileHelper::SaveArrayToFile( const TArray<uint8>& Array, const TCHAR* Filename, IFileManager* FileManager /*= &IFileManager::Get()*/, uint32 WriteFlags )
 {
-	FArchive* Ar = FileManager->CreateFileWriter( Filename, 0 );
+	FArchive* Ar = FileManager->CreateFileWriter( Filename, WriteFlags );
 	if( !Ar )
 	{
 		return 0;
@@ -212,10 +220,10 @@ bool FFileHelper::SaveArrayToFile( const TArray<uint8>& Array, const TCHAR* File
  * Write the FString to a file.
  * Supports all combination of ANSI/Unicode files and platforms.
  */
-bool FFileHelper::SaveStringToFile( const FString& String, const TCHAR* Filename,  EEncodingOptions::Type EncodingOptions, IFileManager* FileManager /*= &IFileManager::Get()*/ )
+bool FFileHelper::SaveStringToFile( const FString& String, const TCHAR* Filename,  EEncodingOptions::Type EncodingOptions, IFileManager* FileManager /*= &IFileManager::Get()*/, uint32 WriteFlags )
 {
 	// max size of the string is a UCS2CHAR for each character and some UNICODE magic 
-	auto Ar = TUniquePtr<FArchive>( FileManager->CreateFileWriter( Filename, 0 ) );
+	auto Ar = TUniquePtr<FArchive>( FileManager->CreateFileWriter( Filename, WriteFlags ) );
 	if( !Ar )
 		return false;
 
@@ -578,6 +586,9 @@ bool FCommandLine::Set(const TCHAR* NewCommandLine)
 	}
 
 	FCString::Strncpy( CmdLine, NewCommandLine, ARRAY_COUNT(CmdLine) );
+	// If configured as part of the build, strip out any unapproved args
+	WhitelistCommandLines();
+
 	bIsInitialized = true;
 
 	// Check for the '-' that normal ones get converted to in Outlook. It's important to do it AFTER the command line is initialized
@@ -598,7 +609,81 @@ bool FCommandLine::Set(const TCHAR* NewCommandLine)
 void FCommandLine::Append(const TCHAR* AppendString)
 {
 	FCString::Strncat( CmdLine, AppendString, ARRAY_COUNT(CmdLine) );
+	// If configured as part of the build, strip out any unapproved args
+	WhitelistCommandLines();
 }
+
+#if WANTS_COMMANDLINE_WHITELIST
+TArray<FString> FCommandLine::ApprovedArgs;
+
+#ifdef OVERRIDE_COMMANDLINE_WHITELIST
+/**
+ * When overriding this setting make sure that your define looks like the following in your .cs file:
+ *
+ *		OutCPPEnvironmentConfiguration.Definitions.Add("OVERRIDE_COMMANDLINE_WHITELIST=\"-arg1 -arg2 -arg3 -arg4\"");
+ *
+ * The important part is the \" as they quotes get stripped off by the compiler without them
+ */
+const TCHAR* OverrideList = TEXT(OVERRIDE_COMMANDLINE_WHITELIST);
+#else
+// Default list most conservative restrictions
+const TCHAR* OverrideList = TEXT("-fullscreen /windowed");
+#endif
+
+void FCommandLine::WhitelistCommandLines()
+{
+	if (ApprovedArgs.Num() == 0)
+	{
+		TArray<FString> Ignored;
+		FCommandLine::Parse(OverrideList, ApprovedArgs, Ignored);
+	}
+	// Process the original command line
+	TArray<FString> OriginalList = FilterCommandLine(OriginalCmdLine);
+	BuildWhitelistCommandLine(OriginalCmdLine, ARRAY_COUNT(OriginalCmdLine), OriginalList);
+	// Process the current command line
+	TArray<FString> CmdList = FilterCommandLine(CmdLine);
+	BuildWhitelistCommandLine(CmdLine, ARRAY_COUNT(CmdLine), CmdList);
+}
+
+TArray<FString> FCommandLine::FilterCommandLine(TCHAR* CommandLine)
+{
+	TArray<FString> Ignored;
+	TArray<FString> ParsedList;
+	// Parse the command line list
+	FCommandLine::Parse(CommandLine, ParsedList, Ignored);
+	// Remove any that are not in our approved list
+	for (int32 Index = 0; Index < ParsedList.Num(); Index++)
+	{
+		if (!ApprovedArgs.Contains(ParsedList[Index]))
+		{
+			ParsedList.RemoveAt(Index);
+		}
+	}
+	return ParsedList;
+}
+
+void FCommandLine::BuildWhitelistCommandLine(TCHAR* CommandLine, uint32 ArrayCount, const TArray<FString>& FilteredArgs)
+{
+	check(ArrayCount > 0);
+	// Zero the whole string
+	FMemory::Memzero(OriginalCmdLine, sizeof(TCHAR) * ArrayCount);
+
+	uint32 StartIndex = 0;
+	for (auto Arg : FilteredArgs)
+	{
+		if ((StartIndex + Arg.Len() + 2) < ArrayCount)
+		{
+			if (StartIndex != 0)
+			{
+				CommandLine[StartIndex++] = TEXT(' ');
+			}
+			CommandLine[StartIndex++] = TEXT('-');
+			FCString::Strncpy(&CommandLine[StartIndex], *Arg, ArrayCount - StartIndex);
+			StartIndex += Arg.Len();
+		}
+	}
+}
+#endif
 
 void FCommandLine::AddToSubprocessCommandline( const TCHAR* Param )
 {
@@ -659,9 +744,10 @@ void FCommandLine::Parse(const TCHAR* InCmdLine, TArray<FString>& Tokens, TArray
 	FString NextToken;
 	while (FParse::Token(InCmdLine, NextToken, false))
 	{
-		if ((**NextToken == TCHAR('-')))
+		if ((**NextToken == TCHAR('-')) || (**NextToken == TCHAR('/')))
 		{
 			new(Switches) FString(NextToken.Mid(1));
+			new(Tokens) FString(NextToken.Right(NextToken.Len() - 1));
 		}
 		else
 		{
@@ -736,6 +822,15 @@ class FDerivedDataCacheInterface* GetDerivedDataCache()
 		}
 	}
 	return SingletonInterface;
+}
+
+void DerivedDataCachePrint()
+{
+	class IDerivedDataCacheModule* Module = FModuleManager::LoadModulePtr<IDerivedDataCacheModule>("DerivedDataCache");
+	if (Module)
+	{
+		Module->ShutdownModule();
+	}
 }
 
 class FDerivedDataCacheInterface& GetDerivedDataCacheRef()
@@ -951,10 +1046,21 @@ void GenerateConvenientWindowedResolutions(const FDisplayMetrics& InDisplayMetri
 		}
 	}
 	
-	// if no convenient resolutions have been found, add a minimum one (if it fits)
-	if (OutResolutions.Num() == 0 && InDisplayMetrics.PrimaryDisplayHeight > MinHeight && InDisplayMetrics.PrimaryDisplayWidth > MinWidth)
+	// if no convenient resolutions have been found, add a minimum one
+	if (OutResolutions.Num() == 0)
 	{
-		OutResolutions.Add(FIntPoint(MinWidth, MinHeight));
+		if (InDisplayMetrics.PrimaryDisplayHeight > MinHeight && InDisplayMetrics.PrimaryDisplayWidth > MinWidth)
+		{
+			//Add the minimum size if it fit
+			OutResolutions.Add(FIntPoint(MinWidth, MinHeight));
+		}
+		else
+		{
+			//Force a resolution even if its smaller then the minimum height and width to avoid a bigger window then the desktop
+			float TargetWidth = FMath::RoundToFloat(InDisplayMetrics.PrimaryDisplayWidth) * Scales[NumScales - 1];
+			float TargetHeight = FMath::RoundToFloat(InDisplayMetrics.PrimaryDisplayHeight) * Scales[NumScales - 1];
+			OutResolutions.Add(FIntPoint(TargetWidth, TargetHeight));
+		}
 	}
 }
 
@@ -967,6 +1073,18 @@ FBoolConfigValueHelper::FBoolConfigValueHelper(const TCHAR* Section, const TCHAR
 	GConfig->GetBool(Section, Key, bValue, Filename);
 }
 
+/*----------------------------------------------------------------------------
+FBlueprintExceptionTracker
+----------------------------------------------------------------------------*/
+#if DO_BLUEPRINT_GUARD
+void FBlueprintExceptionTracker::ResetRunaway()
+{
+	Runaway = 0;
+	Recurse = 0;
+	bRanaway = false;
+}
+#endif // DO_BLUEPRINT_GUARD
+
 #if WITH_HOT_RELOAD_CTORS
 bool GIsRetrievingVTablePtr = false;
 
@@ -975,3 +1093,30 @@ void EnsureRetrievingVTablePtrDuringCtor(const TCHAR* CtorSignature)
 	UE_CLOG(!GIsRetrievingVTablePtr, LogCore, Fatal, TEXT("The %s constructor is for internal usage only for hot-reload purposes. Please do NOT use it."), CtorSignature);
 }
 #endif // WITH_HOT_RELOAD_CTORS
+
+/*----------------------------------------------------------------------------
+NAN Diagnostic Failure
+----------------------------------------------------------------------------*/
+
+int32 GEnsureOnNANDiagnostic = false;
+
+#if ENABLE_NAN_DIAGNOSTIC
+static FAutoConsoleVariableRef CVarGEnsureOnNANDiagnostic(
+	TEXT( "EnsureOnNaNFail" ),
+	GEnsureOnNANDiagnostic,
+	TEXT( "If set to 1 NaN Diagnostic failures will result in ensures being emitted" )
+	);
+#endif
+
+#if DO_CHECK
+namespace UE4Asserts_Private
+{
+	void VARARGS InternalLogNANDiagnosticMessage(const TCHAR* FormattedMsg, ...)
+	{		
+		const int32 TempStrSize = 4096;
+		TCHAR TempStr[TempStrSize];
+		GET_VARARGS(TempStr, TempStrSize, TempStrSize - 1, FormattedMsg, FormattedMsg);
+		UE_LOG(LogCore, Error, TempStr);
+	}
+}
+#endif

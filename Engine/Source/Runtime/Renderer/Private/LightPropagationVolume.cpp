@@ -188,6 +188,10 @@ public:
 	{
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 		SetUniformBufferParameter(RHICmdList, ShaderRHI, GetUniformBufferParameter<FLpvWriteUniformBufferParameters>(), Params.UniformBuffer );
+
+		TArray<int32> ResourceIndices;
+		TArray<FUnorderedAccessViewRHIParamRef> UAVs;
+
 		for(int i  =0; i < 7; i++)
 		{
 			if ( LpvBufferSRVParameters[i].IsBound() )
@@ -196,9 +200,9 @@ public:
 			}
 			if ( LpvBufferUAVs[i].IsBound() )
 			{
-				RHICmdList.SetUAVParameter( ShaderRHI, LpvBufferUAVs[i].GetBaseIndex(), Params.LpvBufferUAVs[i] );
+				ResourceIndices.Add(LpvBufferUAVs[i].GetBaseIndex());
+				UAVs.Add(Params.LpvBufferUAVs[i]);
 			}
-
 			SetTextureParameter(RHICmdList, ShaderRHI, LpvBufferSRVParameters[i], LpvVolumeTextureSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), Params.LpvBufferSRVs[i] );
 		}
 		if ( VplListHeadBufferSRV.IsBound() )
@@ -207,15 +211,17 @@ public:
 		}
 		if ( VplListHeadBufferUAV.IsBound() )
 		{
-			RHICmdList.SetUAVParameter( ShaderRHI, VplListHeadBufferUAV.GetBaseIndex(), Params.VplListHeadBufferUAV );
+			ResourceIndices.Add(VplListHeadBufferUAV.GetBaseIndex());
+			UAVs.Add(Params.VplListHeadBufferUAV);
 		}
 		if ( VplListBufferSRV.IsBound() )
 		{
 			RHICmdList.SetShaderResourceViewParameter( ShaderRHI, VplListBufferSRV.GetBaseIndex(), Params.VplListBufferSRV );
 		}
 		if ( VplListBufferUAV.IsBound() )
-		{
-			RHICmdList.SetUAVParameter( ShaderRHI, VplListBufferUAV.GetBaseIndex(), Params.VplListBufferUAV ); 
+		{			
+			ResourceIndices.Add(VplListBufferUAV.GetBaseIndex());
+			UAVs.Add(Params.VplListBufferUAV);
 		}
 
 		// GV Volume texture
@@ -227,7 +233,8 @@ public:
 			}
 			if ( GvBufferUAVs[i].IsBound() )
 			{
-				RHICmdList.SetUAVParameter( ShaderRHI, GvBufferUAVs[i].GetBaseIndex(), Params.GvBufferUAVs[i] );
+				ResourceIndices.Add(GvBufferUAVs[i].GetBaseIndex());
+				UAVs.Add(Params.GvBufferUAVs[i]);				
 			}
 
 			SetTextureParameter(RHICmdList, ShaderRHI, GvBufferSRVParameters[i], LpvVolumeTextureSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), Params.GvBufferSRVs[i] );
@@ -235,11 +242,13 @@ public:
 
 		if(GvListBufferUAV.IsBound())
 		{
-			RHICmdList.SetUAVParameter(ShaderRHI, GvListBufferUAV.GetBaseIndex(), Params.GvListBufferUAV); 
+			ResourceIndices.Add(GvListBufferUAV.GetBaseIndex());
+			UAVs.Add(Params.GvListBufferUAV);
 		}
 		if(GvListHeadBufferUAV.IsBound())
 		{
-			RHICmdList.SetUAVParameter(ShaderRHI, GvListHeadBufferUAV.GetBaseIndex(), Params.GvListHeadBufferUAV); 
+			ResourceIndices.Add(GvListHeadBufferUAV.GetBaseIndex());
+			UAVs.Add(Params.GvListHeadBufferUAV);			
 		}
 		if(GvListBufferSRV.IsBound())
 		{
@@ -251,17 +260,28 @@ public:
 		}
 		if ( AOVolumeTextureUAV.IsBound() )
 		{
-			RHICmdList.SetUAVParameter( ShaderRHI, AOVolumeTextureUAV.GetBaseIndex(), Params.AOVolumeTextureUAV ); 
+			ResourceIndices.Add(AOVolumeTextureUAV.GetBaseIndex());
+			UAVs.Add(Params.AOVolumeTextureUAV);			
 		}
 		if ( AOVolumeTextureSRV.IsBound() )
 		{
 			RHICmdList.SetShaderTexture(ShaderRHI, AOVolumeTextureSRV.GetBaseIndex(), Params.AOVolumeTextureSRV );
 		}
+
+		check(ResourceIndices.Num() == UAVs.Num());
+		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, UAVs.GetData(), UAVs.Num());
+		for (int32 i = 0; i < ResourceIndices.Num(); ++i)
+		{
+			RHICmdList.SetUAVParameter(ShaderRHI, ResourceIndices[i], UAVs[i]);
+		}
 	}
 
 	// Unbinds any buffers that have been bound.
-	void UnbindBuffers(FRHICommandList& RHICmdList)
+	void UnbindBuffers(FRHICommandList& RHICmdList, const FLpvBaseWriteShaderParams& Params)
 	{
+		TArray<int32> ResourceIndices;
+		TArray<FUnorderedAccessViewRHIParamRef> UAVs;
+
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 		for ( int i = 0; i < 7; i++ )
 		{
@@ -271,7 +291,8 @@ public:
 		    }
 			if ( LpvBufferUAVs[i].IsBound() )
 		    {
-			    RHICmdList.SetUAVParameter( ShaderRHI, LpvBufferUAVs[i].GetBaseIndex(), FUnorderedAccessViewRHIParamRef() );
+				ResourceIndices.Add(LpvBufferUAVs[i].GetBaseIndex());
+				UAVs.Add(Params.LpvBufferUAVs[i]);			    
 		    }
 	    }
 		if ( VplListHeadBufferSRV.IsBound() )
@@ -280,7 +301,8 @@ public:
 		}
 		if ( VplListHeadBufferUAV.IsBound() )
 		{
-			RHICmdList.SetUAVParameter( ShaderRHI, VplListHeadBufferUAV.GetBaseIndex(), FUnorderedAccessViewRHIParamRef() );
+			ResourceIndices.Add(VplListHeadBufferUAV.GetBaseIndex());
+			UAVs.Add(Params.VplListHeadBufferUAV);			
 		}
 		if ( VplListBufferSRV.IsBound() )
 		{
@@ -288,7 +310,8 @@ public:
 		}
 		if ( VplListBufferUAV.IsBound() )
 		{
-			RHICmdList.SetUAVParameter( ShaderRHI, VplListBufferUAV.GetBaseIndex(), FUnorderedAccessViewRHIParamRef() );
+			ResourceIndices.Add(VplListBufferUAV.GetBaseIndex());
+			UAVs.Add(Params.VplListBufferUAV);			
 		}
 		for ( int i = 0; i < NUM_GV_TEXTURES; i++ )
 		{
@@ -298,13 +321,15 @@ public:
 			}
 			if ( GvBufferUAVs[i].IsBound() )
 			{
-					RHICmdList.SetUAVParameter( ShaderRHI, GvBufferUAVs[i].GetBaseIndex(), FUnorderedAccessViewRHIParamRef() );
+				ResourceIndices.Add(GvBufferUAVs[i].GetBaseIndex());
+				UAVs.Add(Params.GvBufferUAVs[i]);
 			}
 		}
 
 		if ( AOVolumeTextureUAV.IsBound() )
 		{
-			RHICmdList.SetUAVParameter( ShaderRHI, AOVolumeTextureUAV.GetBaseIndex(), FUnorderedAccessViewRHIParamRef() );
+			ResourceIndices.Add(AOVolumeTextureUAV.GetBaseIndex());
+			UAVs.Add(Params.AOVolumeTextureUAV);
 		}
 		if ( AOVolumeTextureSRV.IsBound() )
 		{
@@ -312,11 +337,13 @@ public:
 		}
 		if(GvListBufferUAV.IsBound())
 		{
-			RHICmdList.SetUAVParameter(ShaderRHI, GvListBufferUAV.GetBaseIndex(), FUnorderedAccessViewRHIParamRef());
+			ResourceIndices.Add(GvListBufferUAV.GetBaseIndex());
+			UAVs.Add(Params.GvListBufferUAV);			
 		}
 		if(GvListHeadBufferUAV.IsBound())
 		{
-			RHICmdList.SetUAVParameter(ShaderRHI, GvListHeadBufferUAV.GetBaseIndex(), FUnorderedAccessViewRHIParamRef());
+			ResourceIndices.Add(GvListHeadBufferUAV.GetBaseIndex());
+			UAVs.Add(Params.GvListHeadBufferUAV);
 		}
 		if ( GvListBufferSRV.IsBound() )
 		{
@@ -325,6 +352,14 @@ public:
 		if ( GvListHeadBufferSRV.IsBound() )
 		{
 			RHICmdList.SetShaderResourceViewParameter( ShaderRHI, GvListHeadBufferSRV.GetBaseIndex(), FShaderResourceViewRHIParamRef() );
+		}
+
+		check(ResourceIndices.Num() == UAVs.Num());
+		RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, UAVs.GetData(), UAVs.Num());
+		FUnorderedAccessViewRHIParamRef NullUAV = nullptr;
+		for (int32 i = 0; i < ResourceIndices.Num(); ++i)
+		{
+			RHICmdList.SetUAVParameter(ShaderRHI, ResourceIndices[i], NullUAV);
 		}
 	}
 
@@ -357,7 +392,7 @@ class FLpvClearCS : public FLpvWriteShaderCSBase
 
 public:
 	//@todo-rco: Remove this when reenabling for OpenGL
-	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsOpenGLPlatform(Platform); }
+	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsOpenGLPlatform(Platform) && !IsMetalPlatform(Platform); }
 
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
 	{
@@ -382,7 +417,7 @@ class FLpvClearGeometryVolumeCS : public FLpvWriteShaderCSBase
 
 public:
 	//@todo-rco: Remove this when reenabling for OpenGL
-	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsOpenGLPlatform(Platform); }
+	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsOpenGLPlatform(Platform) && !IsMetalPlatform(Platform); }
 
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
 	{
@@ -407,7 +442,7 @@ class FLpvClearListsCS : public FLpvWriteShaderCSBase
 
 public:
 	//@todo-rco: Remove this when reenabling for OpenGL
-	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsOpenGLPlatform(Platform); }
+	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsOpenGLPlatform(Platform) && !IsMetalPlatform(Platform); }
 
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
 	{
@@ -431,7 +466,7 @@ class FLpvInject_GenerateVplListsCS : public FLpvWriteShaderCSBase
 
 public:
 	//@todo-rco: Remove this when reenabling for OpenGL
-	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsOpenGLPlatform(Platform); }
+	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsOpenGLPlatform(Platform) && !IsMetalPlatform(Platform); }
 
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
 	{
@@ -470,9 +505,9 @@ public:
 	}
 
 	// Unbinds any buffers that have been bound.
-	void UnbindBuffers(FRHICommandList& RHICmdList)
+	void UnbindBuffers(FRHICommandList& RHICmdList, FLpvBaseWriteShaderParams& BaseParams)
 	{
-		FLpvWriteShaderCSBase::UnbindBuffers(RHICmdList);
+		FLpvWriteShaderCSBase::UnbindBuffers(RHICmdList, BaseParams);
 	}
 
 
@@ -505,7 +540,7 @@ class FLpvInject_AccumulateVplListsCS : public FLpvWriteShaderCSBase
 
 public:
 	//@todo-rco: Remove this when reenabling for OpenGL
-	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsOpenGLPlatform(Platform); }
+	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsOpenGLPlatform(Platform) && !IsMetalPlatform(Platform); }
 
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
 	{
@@ -529,7 +564,7 @@ class FLpvDirectionalOcclusionCS : public FLpvWriteShaderCSBase
 
 public:
 	//@todo-rco: Remove this when reenabling for OpenGL
-	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsOpenGLPlatform(Platform); }
+	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsOpenGLPlatform(Platform) && !IsMetalPlatform(Platform); }
 
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
 	{
@@ -569,7 +604,7 @@ class FLpvCopyAOVolumeCS : public FLpvWriteShaderCSBase
 
 public:
 	//@todo-rco: Remove this when reenabling for OpenGL
-	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsOpenGLPlatform(Platform); }
+	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsOpenGLPlatform(Platform) && !IsMetalPlatform(Platform); }
 
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
 	{
@@ -610,7 +645,7 @@ class FLpvBuildGeometryVolumeCS : public FLpvWriteShaderCSBase
 
 public:
 	//@todo-rco: Remove this when reenabling for OpenGL
-	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsOpenGLPlatform(Platform); }
+	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsOpenGLPlatform(Platform) && !IsMetalPlatform(Platform); }
 
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
 	{
@@ -642,7 +677,7 @@ class TLpvPropagateCS : public FLpvWriteShaderCSBase
 
 public:
 	//@todo-rco: Remove this when reenabling for OpenGL
-	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsOpenGLPlatform(Platform); }
+	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsOpenGLPlatform(Platform) && !IsMetalPlatform(Platform); }
 
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
 	{
@@ -734,7 +769,7 @@ class TLpvInject_LightCS : public FLpvInjectShader_Base
 
 public:
 	//@todo-rco: Remove this when reenabling for OpenGL
-	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsOpenGLPlatform(Platform); }
+	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsOpenGLPlatform(Platform) && !IsMetalPlatform(Platform); }
 
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
 	{
@@ -832,7 +867,7 @@ FLightPropagationVolume::~FLightPropagationVolume()
 /**
 * Sets up the LPV at the beginning of the frame
 */
-void FLightPropagationVolume::InitSettings(FRHICommandList& RHICmdList, const FSceneView& View)
+void FLightPropagationVolume::InitSettings(FRHICommandListImmediate& RHICmdList, const FSceneView& View)
 {
 	int32 NumFastLpvTextures = 7;
 	int32 NumFastGvTextures = 2;
@@ -865,7 +900,7 @@ void FLightPropagationVolume::InitSettings(FRHICommandList& RHICmdList, const FS
 			{
 				for ( int j = 0; j < 7; j++ )
 				{
-					GRenderTargetPool.FindFreeElement(Desc, LpvVolumeTextures[i][j], Names[j * 2 + i] );
+					GRenderTargetPool.FindFreeElement(RHICmdList, Desc, LpvVolumeTextures[i][j], Names[j * 2 + i] );
 				}
 			}
 		}
@@ -875,7 +910,7 @@ void FLightPropagationVolume::InitSettings(FRHICommandList& RHICmdList, const FS
 
 			for ( int i = 0; i < NUM_GV_TEXTURES; i++ )
 			{
-				GRenderTargetPool.FindFreeElement(Desc, GvVolumeTextures[i], Names[i]);
+				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, GvVolumeTextures[i], Names[i]);
 			}
 		}
 
@@ -890,7 +925,7 @@ void FLightPropagationVolume::InitSettings(FRHICommandList& RHICmdList, const FS
 				TexCreate_ShaderResource | TexCreate_UAV | TexCreate_FastVRAM,
 				false,
 				1));
-			GRenderTargetPool.FindFreeElement(AODesc, AOVolumeTexture, TEXT("LPVAOVolume"));
+			GRenderTargetPool.FindFreeElement(RHICmdList, AODesc, AOVolumeTexture, TEXT("LPVAOVolume"));
 		}
 
 		bInitialized = true;
@@ -1009,7 +1044,7 @@ void FLightPropagationVolume::Clear(FRHICommandListImmediate& RHICmdList, FViewI
 		GetShaderParams( ShaderParams );
 		Shader->SetParameters(RHICmdList, ShaderParams );
 		DispatchComputeShader(RHICmdList, *Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
-		Shader->UnbindBuffers(RHICmdList);
+		Shader->UnbindBuffers(RHICmdList, ShaderParams );
 	}
 
 	// Clear the LPV (or fade, if REFINE_OVER_TIME is enabled)
@@ -1021,7 +1056,7 @@ void FLightPropagationVolume::Clear(FRHICommandListImmediate& RHICmdList, FViewI
 		GetShaderParams( ShaderParams );
 		Shader->SetParameters(RHICmdList, ShaderParams );
 		DispatchComputeShader(RHICmdList, *Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
-		Shader->UnbindBuffers(RHICmdList);
+		Shader->UnbindBuffers(RHICmdList, ShaderParams);
 	}
 
 	// Clear the geometry volume if necessary
@@ -1034,7 +1069,7 @@ void FLightPropagationVolume::Clear(FRHICommandListImmediate& RHICmdList, FViewI
 		GetShaderParams( ShaderParams );
 		Shader->SetParameters(RHICmdList, ShaderParams );
 		DispatchComputeShader(RHICmdList, *Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
-		Shader->UnbindBuffers(RHICmdList);
+		Shader->UnbindBuffers(RHICmdList, ShaderParams);
 	}
 	RHICmdList.AutomaticCacheFlushAfterComputeShader(true);
 	RHICmdList.FlushComputeShaderCache();
@@ -1124,7 +1159,7 @@ void FLightPropagationVolume::InjectDirectionalLightRSM(
 		// todo: what if not divisble by 8?
 		DispatchComputeShader(RHICmdList, *Shader, RSMResolution / 8, RSMResolution / 8, 1 ); 
 
-		Shader->UnbindBuffers(RHICmdList); 
+		Shader->UnbindBuffers(RHICmdList, ShaderParams);
 	}
 
 	// If this is the first directional light, build the geometry volume with it
@@ -1150,7 +1185,7 @@ void FLightPropagationVolume::InjectDirectionalLightRSM(
 
 		DispatchComputeShader(RHICmdList, *Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
 
-		Shader->UnbindBuffers(RHICmdList);
+		Shader->UnbindBuffers(RHICmdList, ShaderParams);
 	}
 
 	mInjectedLightCount++;
@@ -1176,7 +1211,7 @@ void FLightPropagationVolume::ComputeDirectionalOcclusion( FRHICommandListImmedi
 			LpvWriteUniformBuffer.SetContents( *LpvWriteUniformBufferParams );
 
 			DispatchComputeShader( RHICmdList, *Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
-			Shader->UnbindBuffers(RHICmdList); 
+			Shader->UnbindBuffers(RHICmdList, ShaderParams);
 		}
 	}
 	RHICmdList.FlushComputeShaderCache();
@@ -1220,7 +1255,7 @@ void FLightPropagationVolume::Update( FRHICommandListImmediate& RHICmdList, FVie
 		DispatchComputeShader(RHICmdList, *Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
 		RHICmdList.FlushComputeShaderCache();
 
-		Shader->UnbindBuffers(RHICmdList);
+		Shader->UnbindBuffers(RHICmdList, ShaderParams);
 	}
 
 	// Propagate lighting, ping-ponging between the two buffers
@@ -1265,7 +1300,7 @@ void FLightPropagationVolume::Update( FRHICommandListImmediate& RHICmdList, FVie
 				RHICmdList.FlushComputeShaderCache();
 			}
 
-			Shader->UnbindBuffers(RHICmdList); 
+			Shader->UnbindBuffers(RHICmdList, ShaderParams);
 		}
 	}
 
@@ -1283,7 +1318,7 @@ void FLightPropagationVolume::Update( FRHICommandListImmediate& RHICmdList, FVie
 		Shader->SetParameters( RHICmdList, ShaderParams );
 		LpvWriteUniformBuffer.SetContents( *LpvWriteUniformBufferParams );
 		DispatchComputeShader( RHICmdList, *Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
-		Shader->UnbindBuffers(RHICmdList); 
+		Shader->UnbindBuffers(RHICmdList, ShaderParams);
 	}
 
 	// End the async compute job
@@ -1415,7 +1450,7 @@ void FLightPropagationVolume::InjectLightDirect(FRHICommandListImmediate& RHICmd
 
 		Shader->SetParameters(RHICmdList, ShaderParams, InjectUniformBuffer );
 		DispatchComputeShader(RHICmdList, Shader, LPV_GRIDRES / 4, LPV_GRIDRES / 4, LPV_GRIDRES / 4 );
-		Shader->UnbindBuffers(RHICmdList); 
+		Shader->UnbindBuffers(RHICmdList, ShaderParams);
 	}
 }
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 
@@ -19,6 +19,7 @@ const FLinearColor UEdGraphSchema_Niagara::NodeTitleColor_Attribute = FLinearCol
 const FLinearColor UEdGraphSchema_Niagara::NodeTitleColor_Constant = FLinearColor::Red;
 const FLinearColor UEdGraphSchema_Niagara::NodeTitleColor_SystemConstant = FLinearColor::White;
 const FLinearColor UEdGraphSchema_Niagara::NodeTitleColor_FunctionCall = FLinearColor::Blue;
+const FLinearColor UEdGraphSchema_Niagara::NodeTitleColor_Event = FLinearColor::Red;
 
 namespace 
 {
@@ -199,6 +200,24 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 
 		UNiagaraNodeFunctionCall* FunctionCallNode = NewObject<UNiagaraNodeFunctionCall>(ContextMenuBuilder.OwnerOfTemporaries);
 		FunctionCallAction->NodeTemplate = FunctionCallNode;
+	}
+
+	//Add event read and writes nodes
+	{
+		const FText MenuDesc = LOCTEXT("NiagaraEventRead", "Event Read");
+
+		TSharedPtr<FNiagaraSchemaAction_NewNode> Action = AddNewNodeAction(ContextMenuBuilder, FText::GetEmpty(), MenuDesc, TEXT(""));
+
+		UNiagaraNodeReadDataSet* EventReadNode = NewObject<UNiagaraNodeReadDataSet>(ContextMenuBuilder.OwnerOfTemporaries);
+		Action->NodeTemplate = EventReadNode;
+	}	
+	{
+		const FText MenuDesc = LOCTEXT("NiagaraEventWrite", "Event Write");
+
+		TSharedPtr<FNiagaraSchemaAction_NewNode> Action = AddNewNodeAction(ContextMenuBuilder, FText::GetEmpty(), MenuDesc, TEXT(""));
+
+		UNiagaraNodeWriteDataSet* EventWriteNode = NewObject<UNiagaraNodeWriteDataSet>(ContextMenuBuilder.OwnerOfTemporaries);
+		Action->NodeTemplate = EventWriteNode;
 	}
 	//TODO: Add quick commands for certain UNiagaraStructs and UNiagaraScripts to be added as functions
 }

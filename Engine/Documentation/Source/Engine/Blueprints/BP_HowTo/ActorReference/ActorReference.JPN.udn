@@ -1,41 +1,47 @@
-﻿INTSourceChangelist:2467863
+﻿INTSourceChangelist:2679100
 Availability:Public
 Title:アクタ リファレンスの設定と取得
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
 Description:アクタ リファレンスを使って、様々なアクタをレベル内で移動させる
-Related:Gameplay/HowTo/ReferenceAssets/Blueprints
+Related: Gameplay/HowTo/ReferenceAssets/Blueprints
+version: 4.9
+skilllevel:Intermediate
+type:howto
+parent:Engine/Blueprints/BP_HowTo
+order:1
 
 [INCLUDE:Gameplay\HowTo\ReferenceAssets#referenceoverview]
 
 以下のステップは、アクタへの参照の **設定** および **取得** 方法のサンプルです。 
 
-_このサンプルでは **Starter Content** を有効にした新しい **Blueprint Third Person Template** を使用しています。_
-
-1. **[Modes]** メニューから **[Basic] ** タブにある **Box Trigger** をレベル内にドラッグします。 
+[REGION:note]
+このサンプルでは **Starter Content** を有効にした新しい **Blueprint Third Person Template** を使用しています。
+[/REGION]
+1. **[Modes]** メニューの **[Basic] ** タブにある **Box Trigger** をレベル内にドラッグします。 
 
 	![](1AddTriggerBox.png)
 
 	これを使って、レベル内の別のアクタの移動をトリガーします。 
 
-1. **Box Trigger** の **[Details]** パネル内の **[Convert to Class Blueprint]** を選択します。 
+1. **Box Trigger** の **[Details (詳細)]** パネル内の **[Convert to Class Blueprint (Class ブループリントに変換)]** を選択します。 
 
 	![](2ReplaceWithBlueprint.png)
 
 	このアクタから **ブループリント** を作成し、その中にリファレンス アクタを格納する変数を代入します。
 
-1. ブループリントに名前を付けて **Create Blueprint** を選択します (**ブループリント エディタ** が開きます)。 
+1. ブループリントに名前を付けて **[Create Blueprint (ブループリントを作成)]** を選択します (**ブループリント エディタ** が開きます)。 
 
-1. ブループリント エディタの **[MyBlueprint]** ウィンドウで、 **[Add Variable]** ボタンをクリックします。 
+1. ブループリント エディタの **[MyBlueprint]** ウィンドウで、 **[Add Variable (変数を追加)]** ボタンをクリックします。 
 
 	![](3AddVariable.png)	
 
-1. 変数の **[Details]** パネルで **[Variable Type]** をクリックし **[Object Reference]** から **[Actor]** を選択します。 
+1. 変数の **[Details]** パネルで **[Variable Type (変数の種類)]** をクリックし **[Object Reference (オブジェクト リファレンス)]** から **[Actor]** を選択します。 
 
 	![](4VariableType.png)
 
 	ここで、リファレンスはレベル内の **アクタ** タイプと **オブジェクト** になるように指定します。 
 
-1. 変数に「 **TargetActor** 」と名前を付けて、 **[Editable]** にチェックを入れます。 
+1. 変数に「**TargetActor**」と名前を付けて、 **[Editable (編集可能)]** にチェックを入れます。 
 
 	![](5NameVariable.png)
 
@@ -66,10 +72,10 @@ _このサンプルでは **Starter Content** を有効にした新しい **Blue
 	![](9AddingAnActor.png)
 
 	[REGION:note]
-	独自のプロジェクトを使っている場合は、好きなアクタ、 **スタティックメッシュ** あるいは **ブループリント** をレベルに追加することができます。 
+	独自のプロジェクトを使っている場合は、好きなアクタ、スタティックメッシュ、あるいはブループリントをレベルに追加することができます。 
 	[/REGION]
 
-1. レベルに追加するものに関係なく、それぞれのアクタの **[Details]** パネルで可動性を **[Moveable]** に設定できます。 
+1. レベルに追加するものに関係なく、それぞれのアクタの **[Details]** パネルで可動性を **[Moveable (ムーバブル)]** に設定できます。 
 
 	![](22Moveable.png)
 
@@ -77,7 +83,7 @@ _このサンプルでは **Starter Content** を有効にした新しい **Blue
 
 1. レベル内の **[Box Trigger]** をクリックします。
 
-1. **[Details]** パネルで、 **[Target Actor]** の下の **[None]** ボックスをクリックし、 **Shape** (または追加したアクタの名前) を検索します。
+1. **[Details]** パネルで、 **[Target Actor]** の下の **[None]** ボックスをクリックし、「**Shape** 」(または追加したアクタの名前) を検索します。
 
 	![](10DropDownSelection.png)
 
@@ -99,13 +105,13 @@ _このサンプルでは **Starter Content** を有効にした新しい **Blue
 
 	ここで、ターゲット アクタになるアクタにリファレンスを **設定** します。 
 
-1. **Box Trigger** ブループリントを開き、 **[MyBlueprint]** ウィンドウの中の目のアイコンをクリックして **[Show Inherited Variables]** を有効にします。 
+1. **Box Trigger** ブループリントを開き、**[MyBlueprint]** ウィンドウの中の目のアイコンをクリックして **[Show Inherited Variables (継承した変数を表示)]** を有効にします。 
 
 	![](showVariables.png)
 
-	Trigger Box を Class ブループリントに最初に変換した時に継承したコンポーネントにイベントを追加できるようになります。 
+	トリガーボックスを Class ブループリントに最初に変換した時に継承したコンポーネントにイベントを追加できるようになります。 
 
-1. **Trigger Base** の下にある **[CollisionComponent]** をクリックして **[Add Event]** そして **[Add OnComponentBeginOverlap]** を選びます。 
+1. **[Trigger Base]** の **[CollisionComponent]** をクリックして **[Add Event (イベントを追加)]** から **[Add OnComponentBeginOverlap]** を選びます。 
 
 	![](14AddOverlap.png)
 
@@ -129,15 +135,15 @@ _このサンプルでは **Starter Content** を有効にした新しい **Blue
 
 	ターゲットの現在位置を取得し、トリガーボックスがオーバーラップすると Z 軸に沿って上方に 500 ユニット移動します。 
 
-1.	**[コンポーネント]** ウィンドウで、 **TriggerBox_Blueprint** コンポーネントをクリックして選択します。 
+1.	**[Components]** ウィンドウで、 **TriggerBox_Blueprint** コンポーネントをクリックして選択します。 
 
 	![](selectTriggerBox.png)
 
-	**[コンポーネント]** ウィンドウが表示されない場合は、 **[Window]** メニュー オプションから有効にすることができます。 
+	**[Component]** ウィンドウが表示されない場合は、 **[Window]** メニュー オプションから有効にすることができます。 
 
 	![](enableComponentWindow.png)
 
-1.	Trigger Box の **[Details]** パネルで、 **Rendering** の下にある **[Actor Hidden In Game]** オプションのチェックを外します。 
+1.	トリガーボックスの **[Details]** パネルで、 **Rendering** の下にある **[Actor Hidden In Game (インゲームでアクタを非表示にする)]** オプションのチェックを外します。 
 
 	![](19ActorHiddenInGame.png)
 
@@ -151,7 +157,7 @@ _このサンプルでは **Starter Content** を有効にした新しい **Blue
 
 1.	メイン エディタ ウィンドウのレベル ビューポートにある **Box Trigger** ブループリントをクリックします。 
 
-1.	**Box Trigger** の **[Details]** パネル内の **ターゲット アクタ** の隣にあるスポイト ツールをクリックします。 
+1.	**[Box Trigger]** の **[Details]** パネルの **[Target Actor]** の隣にあるスポイト ツールをクリックします。 
 
 	![](11PickActor.png)
 
@@ -163,7 +169,7 @@ _このサンプルでは **Starter Content** を有効にした新しい **Blue
 
 この例では、あるオブジェクトを移動させる代わりに、様々なオブジェクトを移動させる方法を説明しましたが、この方法は、プレイヤーがボタンを押した時にドアを開け、様々なライトをオンオフし、プレイヤーが所持あるいは破壊するアイテムをスポーンしたり、様々なことに使用できます。 
 
-これは、アクタにリファレンスをつける数多くの方法の中の 1 つにすぎません。例えば、メイン エディタ ウィンドウからではきちんと設定できないプレイヤー キャラクターにレファレンスを付けるには、別の方法があります (以下の **Related Links** セクションをご覧ください)。 
+これは、アクタにリファレンスをつけるほんの 1 つの方法にすぎません。例えば、メイン エディタ ウィンドウからではきちんと設定できないプレイヤー キャラクターにレファレンスを付けるには、別の方法があります (以下の **Related Links** セクションをご覧ください)。 
 
 
 

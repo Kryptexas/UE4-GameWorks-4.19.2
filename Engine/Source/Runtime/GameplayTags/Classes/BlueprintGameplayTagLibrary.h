@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -92,7 +92,7 @@ class UBlueprintGameplayTagLibrary : public UBlueprintFunctionLibrary
 	* @param InTagContainer			The container to append.
 	* @param InOutTagContainer		The container that will be appended too.
 	*/
-	UFUNCTION(BlueprintPure, Category = "GameplayTags|Tag Container")
+	UFUNCTION(BlueprintCallable, Category = "GameplayTags|Tag Container")
 	static bool AppendGameplayTagContainers(const FGameplayTagContainer& InTagContainer, UPARAM(ref) FGameplayTagContainer& InOutTagContainer);
 
 	/**

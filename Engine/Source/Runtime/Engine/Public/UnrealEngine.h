@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnrealEngine.h: Unreal engine helper definitions.
@@ -9,7 +9,6 @@
 #include "Engine/Engine.h"
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogEngine, Log, All);
-
 //
 //	FLocalPlayerIterator - Iterates over local players in the game.
 //	There are no advantages to using this over GEngine->GetLocalPlayerIterator(GetWorld());
@@ -399,7 +398,8 @@ public:
 };
 
 /**
- * Cache some of the scalability CVars to avoid some virtual function calls and to detect changes and act accordingly if needed.
+ * Cache some of the scalability CVars to avoid some virtual function calls (no longer the case with the new console variable system, but we only have 1 render thread)
+ * and to detect changes and act accordingly if needed.
  * read by rendering thread[s], written by main thread, uses FlushRenderingCommands() to avoid conflict
  */
 struct FCachedSystemScalabilityCVars
@@ -407,15 +407,19 @@ struct FCachedSystemScalabilityCVars
 	bool bInitialized;
 	int32 DetailMode;
 	EMaterialQualityLevel::Type MaterialQualityLevel;
-	int32 MaxAnisotropy;
 	int32 MaxShadowResolution;
 	float ViewDistanceScale;
 	float ViewDistanceScaleSquared;
-	float GaussianDOFNearThreshold;
 	// 0:off, 1:on, -1:unknown
 	int32 SimpleDynamicLighting;
 
 	FCachedSystemScalabilityCVars();
+
+protected:
+	// This isn't public as it's only used to detect the change. Use ComputeAnisotropyRT()
+	int32 MaxAnisotropy;
+
+	friend void ScalabilityCVarsSinkCallback();
 };
 
 ENGINE_API bool AllowHighQualityLightmaps(ERHIFeatureLevel::Type FeatureLevel);

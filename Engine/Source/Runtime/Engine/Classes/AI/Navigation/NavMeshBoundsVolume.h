@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /**
  * this volume only blocks the path builder - it has no gameplay collision
@@ -17,14 +17,14 @@ class ANavMeshBoundsVolume : public AVolume
 	UPROPERTY(EditAnywhere, Category = Navigation)
 	FNavAgentSelector SupportedAgents;
 
-	// Begin AActor Interface
+	//~ Begin AActor Interface
 	virtual void PostRegisterAllComponents() override;
 	virtual void PostUnregisterAllComponents() override;
-	// End AActor Interface
+	//~ End AActor Interface
 #if WITH_EDITOR
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
-	// End UObject Interface
+	//~ End UObject Interface
 #endif // WITH_EDITOR
 };
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealSync.h"
 #include "GUI.h"
@@ -172,7 +172,7 @@ void FUnrealSync::DeleteStaleBinaries(const FOnSyncProgress& OnSyncProgress, boo
 				Extension.Equals(TEXT("so"));
 #elif PLATFORM_MAC
 			return Extension.Equals(TEXT("")) ||
-				Extension.Equals(TEXT("dsym")) ||
+				Extension.Equals(TEXT("dSYM")) ||
 				Extension.Equals(TEXT("dylib"));
 #endif
 		}

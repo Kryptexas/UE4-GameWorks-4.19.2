@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "LinuxApplication.h"
@@ -1682,4 +1682,23 @@ void FLinuxApplication::GetWindowPositionInEventLoop(SDL_HWindow NativeWindow, i
 		*x = 0;
 		*y = 0;
 	}
+}
+
+bool FLinuxApplication::IsMouseAttached() const
+{
+	int rc;
+	char Mouse[64] = "/sys/class/input/mouse0";
+	int MouseIdx = strlen(Mouse) - 1;
+	strcat(Mouse, "/device/name");
+
+	for (int i=0; i<9; i++)
+	{
+		Mouse[MouseIdx] = '0' + i;
+		if (access(Mouse, F_OK) == 0)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }

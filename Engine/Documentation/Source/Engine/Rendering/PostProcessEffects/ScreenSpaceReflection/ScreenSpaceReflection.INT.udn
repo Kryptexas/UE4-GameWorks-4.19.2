@@ -2,6 +2,7 @@ Availability:Public
 Title:Screen Space Reflection
 Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
 Description:Effect which alters the reflection that appear on the surface of materials.
+Version: 4.9
 
 [REGION:fullwidth]
 ![](GlossyScreenSpaceReflection.png)

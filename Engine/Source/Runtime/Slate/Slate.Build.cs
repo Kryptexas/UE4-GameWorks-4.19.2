@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -17,16 +17,6 @@ public class Slate : ModuleRules
 				"SlateCore",
 			}
 		);
-
-		if (Target.Type.Value != TargetRules.TargetType.Server && UEBuildConfiguration.bCompileFreeType)
-        {
-			AddThirdPartyPrivateStaticDependencies(Target, "FreeType2");
-			Definitions.Add("WITH_FREETYPE=1");
-		}
-		else
-		{
-			Definitions.Add("WITH_FREETYPE=0");
-		}
 
 		PrivateIncludePaths.AddRange(
 			new string[] {

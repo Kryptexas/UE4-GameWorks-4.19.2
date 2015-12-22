@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2422946
+﻿INTSourceChangelist:2690516
 Availability:Public
 Title:커스텀 이벤트
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description: 그래프 안에서 발동시킬 수 있는 사용자 제작 커스텀 이벤트입니다.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -47,7 +48,6 @@ Description: 그래프 안에서 발동시킬 수 있는 사용자 제작 커스
 
 [TOC(start:2 end:3)]
 
-## 개요
 
 [EXCERPT:Intro]
 **Custom Event** 는 표준 **Event** 와 비슷하나, 사용자가 생성하고 **EventGraph** 안에서 발동시킬 수 있다는 

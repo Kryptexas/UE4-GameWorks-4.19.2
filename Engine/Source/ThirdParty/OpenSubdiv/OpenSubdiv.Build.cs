@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -16,9 +16,22 @@ public class OpenSubdiv : ModuleRules
 		// @todo subdiv: Add other platforms and debug builds
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
-			PublicLibraryPaths.Add(OpenSubdivPath + "/lib/RelWithDebInfo");
-			PublicAdditionalLibraries.Add("osdCPU.lib");
-		}
+            bool bDebug = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT);
+
+            if (bDebug)
+            {
+                PublicLibraryPaths.Add(OpenSubdivPath + "/lib/Debug");
+            }
+            else
+            {
+                PublicLibraryPaths.Add(OpenSubdivPath + "/lib/RelWithDebInfo");
+            }
+
+            PublicAdditionalLibraries.Add("osd_cpu_obj.lib");
+            PublicAdditionalLibraries.Add("sdc_obj.lib");
+            PublicAdditionalLibraries.Add("vtr_obj.lib");
+            PublicAdditionalLibraries.Add("far_obj.lib");
+        }
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
 		}

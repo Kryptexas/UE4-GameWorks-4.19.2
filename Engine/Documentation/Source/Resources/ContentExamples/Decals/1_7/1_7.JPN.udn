@@ -1,8 +1,7 @@
-﻿INTSourceChangelist:2591123
-Availability:Public
-Title:1.7 - アニメートされたデカールマテリアル
+﻿Availability:Public
+Title:1.7 - アニメートされたデカール マテリアル
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Decals
-Description:デカールの事例概要、例 1.7：アニメートされたデカール マテリアル
+Description:デカールのサンプル レベルの概要、サンプル 1.7：アニメートされたデカール マテリアル
 Related: Engine/Actors/DecalActor
 Related: Engine/Rendering/Materials/PhysicallyBased
 Related: Engine/Rendering/Materials
@@ -11,6 +10,24 @@ Related: Engine/Rendering/Materials/ExpressionReference
 Related: Engine/Rendering/Materials/MaterialInputs
 Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
+Version:4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/Decals/1_6 "%Resources/ContentExamples/Decals/1_6:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[デカールのホーム](Resources/ContentExamples/Decals)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [TOC(start:2 end:2)]
 
@@ -59,7 +76,7 @@ Related: Engine/Rendering/Materials/MaterialInstances
 
 
 
-この例では、デカールマテリアル内の Rotator （ローテータ）マテリアル式を使用してデカールをアニメートします。アニメーションはもちろん、通常のマテリアルに対して設定できるほとんどのことをデカールマテリアルでも設定できます。
+このサンプルでは、デカール マテリアル内の Rotator (ローテータ) マテリアル式を使用してデカールをアニメートします。アニメーションはもちろん、通常のマテリアルに対して設定できるほとんどのことをデカールマテリアルでも設定できます。
 
 
 [/REGION]

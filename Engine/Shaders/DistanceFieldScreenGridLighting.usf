@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DistanceFieldScreenGridLighting.usf
@@ -16,7 +16,7 @@
 
 #define SHARED_VISIBILITY_DIM (CONE_TRACE_DISPATCH_SIZEX * CONE_TRACE_DISPATCH_SIZEX * NUM_CONE_DIRECTIONS)
 groupshared uint SharedConeVisibility[SHARED_VISIBILITY_DIM];
-groupshared uint SharedConeRawVisibility[CONE_TRACE_DISPATCH_SIZEX * CONE_TRACE_DISPATCH_SIZEX * NUM_CONE_DIRECTIONS][NUM_VISIBILITY_STEPS];
+groupshared uint SharedConeRawVisibility[(CONE_TRACE_DISPATCH_SIZEX * CONE_TRACE_DISPATCH_SIZEX * NUM_CONE_DIRECTIONS) * NUM_VISIBILITY_STEPS];
 
 Buffer<float4> TileConeDepthRanges;
 float TanConeHalfAngle;
@@ -182,7 +182,7 @@ void HemisphereConeTraceAgainstTileCulledObjects(uint2 OutputCoordinate, uint Sh
 						UNROLL
 						for (uint i = 0; i < NUM_VISIBILITY_STEPS; i++)
 						{
-							InterlockedMin(SharedConeRawVisibility[SharedVisibilityBaseIndex + ConeIndex][i], asuint(MinRawVisibility[i]));
+							InterlockedMin(SharedConeRawVisibility[(SharedVisibilityBaseIndex + ConeIndex) * NUM_VISIBILITY_STEPS + i], asuint(MinRawVisibility[i]));
 						}
 					#endif
 				}
@@ -213,7 +213,7 @@ void ConeTraceObjectOcclusionCS(
 			UNROLL
 			for (uint i = 0; i < NUM_VISIBILITY_STEPS; i++)
 			{
-				SharedConeRawVisibility[Index][i] = FloatOneEncoded;
+				SharedConeRawVisibility[Index * NUM_VISIBILITY_STEPS + i] = FloatOneEncoded;
 			}
 		#endif
 	}
@@ -265,7 +265,7 @@ void ConeTraceObjectOcclusionCS(
 				UNROLL
 				for (uint StepIndex = 0; StepIndex < NUM_VISIBILITY_STEPS; StepIndex++)
 				{
-					float StepVisibility = asfloat(SharedConeRawVisibility[SharedVisibilityBaseIndex + ConeIndex][StepIndex]);
+					float StepVisibility = asfloat(SharedConeRawVisibility[(SharedVisibilityBaseIndex + ConeIndex) * NUM_VISIBILITY_STEPS + StepIndex]);
 					// Propagate min visibility down the cone
 					MinStepVisibility = min(MinStepVisibility, StepVisibility);
 					RWConeDepthVisibilityFunction[(OutputBaseIndex + ConeIndex) * NUM_VISIBILITY_STEPS + StepIndex] = MinStepVisibility;
@@ -299,7 +299,7 @@ void HemisphereConeTraceAgainstGlobalDistanceFieldClipmap(
 		{
 			float3 WorldSamplePosition = WorldShadingPosition + RotatedConeDirection * WorldStepOffset;
 			float3 StepVolumeUV = ComputeGlobalUV(WorldSamplePosition, ClipmapIndex);
-			float DistanceToOccluder = Texture3DSampleLevel(GlobalDistanceFieldTexture[ClipmapIndex], GlobalDistanceFieldSampler[ClipmapIndex], StepVolumeUV, 0).x;
+			float DistanceToOccluder = SampleGlobalDistanceField(ClipmapIndex, StepVolumeUV).x;
 			float SphereRadius = WorldStepOffset * TanConeHalfAngle;
 			//@todo - have to bias away from surface further for this to work
 			float ShadingSphereRadius = SphereRadius * 1.0f;
@@ -332,7 +332,7 @@ void HemisphereConeTraceAgainstGlobalDistanceField(uint OutputBaseIndex, float3 
 	BRANCH
 	if (DistanceFromClipmap > AOGlobalMaxOcclusionDistance)
 	{
-		HemisphereConeTraceAgainstGlobalDistanceFieldClipmap(0, OutputBaseIndex, WorldShadingPosition, SceneDepth, WorldNormal, TangentX, TangentY);
+		HemisphereConeTraceAgainstGlobalDistanceFieldClipmap((uint)0, OutputBaseIndex, WorldShadingPosition, SceneDepth, WorldNormal, TangentX, TangentY);
 	}
 	else
 	{
@@ -341,7 +341,7 @@ void HemisphereConeTraceAgainstGlobalDistanceField(uint OutputBaseIndex, float3 
 		BRANCH
 		if (DistanceFromClipmap > AOGlobalMaxOcclusionDistance)
 		{
-			HemisphereConeTraceAgainstGlobalDistanceFieldClipmap(1, OutputBaseIndex, WorldShadingPosition, SceneDepth, WorldNormal, TangentX, TangentY);
+			HemisphereConeTraceAgainstGlobalDistanceFieldClipmap((uint)1, OutputBaseIndex, WorldShadingPosition, SceneDepth, WorldNormal, TangentX, TangentY);
 		}
 		else
 		{
@@ -351,17 +351,17 @@ void HemisphereConeTraceAgainstGlobalDistanceField(uint OutputBaseIndex, float3 
 			BRANCH
 			if (DistanceFromClipmap > AOGlobalMaxOcclusionDistance)
 			{
-				HemisphereConeTraceAgainstGlobalDistanceFieldClipmap(2, OutputBaseIndex, WorldShadingPosition, SceneDepth, WorldNormal, TangentX, TangentY);
+				HemisphereConeTraceAgainstGlobalDistanceFieldClipmap((uint)2, OutputBaseIndex, WorldShadingPosition, SceneDepth, WorldNormal, TangentX, TangentY);
 			}
 			else if (DistanceFromLastClipmap > AOGlobalMaxOcclusionDistance)
 			{
-				HemisphereConeTraceAgainstGlobalDistanceFieldClipmap(3, OutputBaseIndex, WorldShadingPosition, SceneDepth, WorldNormal, TangentX, TangentY);
+				HemisphereConeTraceAgainstGlobalDistanceFieldClipmap((uint)3, OutputBaseIndex, WorldShadingPosition, SceneDepth, WorldNormal, TangentX, TangentY);
 			}
 		}
 	}
 #else
 
-	HemisphereConeTraceAgainstGlobalDistanceFieldClipmap(0, SharedVisibilityBaseIndex, ThreadIndex, ThreadStride, WorldShadingPosition, SceneDepth, WorldNormal, TangentX, TangentY);
+	HemisphereConeTraceAgainstGlobalDistanceFieldClipmap((uint)0, SharedVisibilityBaseIndex, ThreadIndex, ThreadStride, WorldShadingPosition, SceneDepth, WorldNormal, TangentX, TangentY);
 
 #endif
 }

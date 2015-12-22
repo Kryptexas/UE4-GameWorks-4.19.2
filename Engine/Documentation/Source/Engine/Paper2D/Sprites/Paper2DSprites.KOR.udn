@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2632132
 Availability:Public
 Title:Paper2D 스프라이트
 Crumbs: %ROOT%, Engine, Engine/Paper2D
@@ -56,7 +56,6 @@ Related: Engine/Content/Types/Textures
 
 [TOC (start:2 end:3)]
 
-## 개요
 
 [EXCERPT:intro]
 **Paper2D** 의 **스프라이트** 는 텍스처 매핑된 평면 메시로 머티리얼에 할당되어 월드에 렌더링 가능한 것을 말하며, 순전히 언리얼 엔진 4 (UE4) 안에서만 제작된 것입니다. 좀 더 단순한 용어로, UE4 에서 2D 이미지를 쉽고 빠르게 그릴 수 있는 방편이 됩니다.

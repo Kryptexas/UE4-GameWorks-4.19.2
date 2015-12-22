@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.IO;
@@ -7,192 +7,296 @@ namespace UnrealBuildTool
 {
 	public class UEBuildConfiguration
 	{
-        static UEBuildConfiguration()
-        {
-            if (!UnrealBuildTool.bIsSafeToReferenceConfigurationValues)
-            {
-                throw new BuildException("UEBuildConfiguration was referenced before the XmlConfig files could be loaded.");
-            }
-        }
+		static UEBuildConfiguration()
+		{
+			if (!UnrealBuildTool.bIsSafeToReferenceConfigurationValues)
+			{
+				throw new BuildException("UEBuildConfiguration was referenced before the XmlConfig files could be loaded.");
+			}
+		}
 
-		/** Whether to include PhysX support */
+		/// <summary>
+		/// Whether to include PhysX support
+		/// </summary>
 		[XmlConfig]
 		public static bool bCompilePhysX;
 
-		/** Whether to include PhysX APEX support */
+		/// <summary>
+		/// Whether to include PhysX APEX support
+		/// </summary>
 		[XmlConfig]
 		public static bool bCompileAPEX;
 
-        /** Whether to allow runtime cooking of physics */
-        [XmlConfig]
-        public static bool bRuntimePhysicsCooking;
+		/// <summary>
+		/// Whether to allow runtime cooking of physics
+		/// </summary>
+		[XmlConfig]
+		public static bool bRuntimePhysicsCooking;
 
-		/** Whether to include Box2D support */
+		/// <summary>
+		/// Whether to include Box2D support
+		/// </summary>
 		[XmlConfig]
 		public static bool bCompileBox2D;
 
-        /** Whether to include ICU unicode/i18n support in core */
+		/// <summary>
+		/// Whether to include ICU unicode/i18n support in core
+		/// </summary>
 		[XmlConfig]
-        public static bool bCompileICU;
+		public static bool bCompileICU;
 
-		/** Whether to build a stripped down version of the game specifically for dedicated server. */
+		/// <summary>
+		/// Whether to build a stripped down version of the game specifically for dedicated server.
+		/// </summary>
 		[Obsolete("bBuildDedicatedServer has been deprecated and will be removed in future release. Update your code to use TargetInfo.Type instead or your code will not compile.")]
 		public static bool bBuildDedicatedServer;
 
-		/** Whether to compile the editor or not. Only desktop platforms (Windows or Mac) will use this, other platforms force this to false */
+		/// <summary>
+		/// Whether to compile the editor or not. Only desktop platforms (Windows or Mac) will use this, other platforms force this to false
+		/// </summary>
 		[XmlConfig]
 		public static bool bBuildEditor;
 
-		/** Whether to compile code related to building assets. Consoles generally cannot build assets. Desktop platforms generally can. */
+		/// <summary>
+		/// Whether to compile code related to building assets. Consoles generally cannot build assets. Desktop platforms generally can.
+		/// </summary>
 		[XmlConfig]
 		public static bool bBuildRequiresCookedData;
 
-		/** Whether to compile WITH_EDITORONLY_DATA disabled. Only Windows will use this, other platforms force this to false */
+		/// <summary>
+		/// Whether to compile WITH_EDITORONLY_DATA disabled. Only Windows will use this, other platforms force this to false
+		/// </summary>
 		[XmlConfig]
 		public static bool bBuildWithEditorOnlyData;
 
-		/** Whether to compile the developer tools. */
+		/// <summary>
+		/// Whether to compile the developer tools.
+		/// </summary>
 		[XmlConfig]
 		public static bool bBuildDeveloperTools;
 
-		/** Whether to force compiling the target platform modules, even if they wouldn't normally be built */
+		/// <summary>
+		/// Whether to force compiling the target platform modules, even if they wouldn't normally be built
+		/// </summary>
 		[XmlConfig]
 		public static bool bForceBuildTargetPlatforms;
 
-		/** Whether to force compiling shader format modules, even if they wouldn't normally be built. */
+		/// <summary>
+		/// Whether to force compiling shader format modules, even if they wouldn't normally be built.
+		/// </summary>
 		[XmlConfig]
 		public static bool bForceBuildShaderFormats;
 
-		/** Whether we should compile in support for Simplygon or not. */
+		/// <summary>
+		/// Whether we should compile in support for Simplygon or not.
+		/// </summary>
 		[XmlConfig]
 		public static bool bCompileSimplygon;
 
-        /** Whether we should compile in support for Steam OnlineSubsystem or not. [RCL] FIXME 2014-Apr-17: bCompileSteamOSS means "bHasSteamworksInstalled" for some code, these meanings need to be untangled */
+		/// <summary>
+		/// Whether we should compile in support for Steam OnlineSubsystem or not. [RCL] FIXME 2014-Apr-17: bCompileSteamOSS means "bHasSteamworksInstalled" for some code, these meanings need to be untangled
+		/// </summary>
 		[XmlConfig]
 		public static bool bCompileSteamOSS;
 
-		/** Whether we should compile in support for Mcp OnlineSubsystem or not. */
+		/// <summary>
+		/// Whether we should compile in support for Mcp OnlineSubsystem or not.
+		/// </summary>
 		[XmlConfig]
 		public static bool bCompileMcpOSS;
 
-		/** Whether to compile lean and mean version of UE. */
+		/// <summary>
+		/// Whether to compile lean and mean version of UE.
+		/// </summary>
 		[XmlConfig]
 		public static bool bCompileLeanAndMeanUE;
 
-		/** Whether to generate a list of external files that are required to build a target */
+		/// <summary>
+		/// Whether to generate a list of external files that are required to build a target
+		/// </summary>
 		[XmlConfig]
 		public static bool bGenerateExternalFileList;
 
-		/** Whether to merge to the existing list of external files */
+		/// <summary>
+		/// Whether to merge to the existing list of external files
+		/// </summary>
 		[XmlConfig]
 		public static bool bMergeExternalFileList;
 
-		/** Whether to generate a manifest file that contains the files to add to Perforce */
+		/** Whether to generate a list of referenced TPS files */
+		public static bool bListThirdPartySoftware;
+
+		/// <summary>
+		/// Whether to generate a manifest file that contains the files to add to Perforce
+		/// </summary>
 		[XmlConfig]
 		public static bool bGenerateManifest;
 
-		/** Whether to add to the existing manifest (if it exists), or start afresh */
+		/// <summary>
+		/// Whether to add to the existing manifest (if it exists), or start afresh
+		/// </summary>
 		[XmlConfig]
 		public static bool bMergeManifests;
 
-		/** Whether to 'clean' the given project */
+		/// <summary>
+		/// Whether to 'clean' the given project
+		/// </summary>
 		[XmlConfig]
 		public static bool bCleanProject;
 
-		/** Whether we are just running the PrepTargetForDeployment step */
+		/// <summary>
+		/// Whether we are just running the PrepTargetForDeployment step
+		/// </summary>
 		[XmlConfig]
 		public static bool bPrepForDeployment;
 
-		/** Enabled for all builds that include the engine project.  Disabled only when building standalone apps that only link with Core. */
+		/// <summary>
+		/// Enabled for all builds that include the engine project.  Disabled only when building standalone apps that only link with Core.
+		/// </summary>
 		[XmlConfig]
 		public static bool bCompileAgainstEngine;
 
-		/** Enabled for all builds that include the CoreUObject project.  Disabled only when building standalone apps that only link with Core. */
+		/// <summary>
+		/// Enabled for all builds that include the CoreUObject project.  Disabled only when building standalone apps that only link with Core.
+		/// </summary>
 		[XmlConfig]
 		public static bool bCompileAgainstCoreUObject;
 
-		/** If true, include ADO database support in core */
+		/// <summary>
+		/// If true, include ADO database support in core
+		/// </summary>
 		[XmlConfig]
 		public static bool bIncludeADO;
 
-		/** Directory for the third party files/libs */
-        [Obsolete("Use UEThirdPartySourceDirectory instead of UEThirdPartyDirectory.", true)]
+		/// <summary>
+		/// Directory for the third party files/libs
+		/// </summary>
+		[Obsolete("Use UEThirdPartySourceDirectory instead of UEThirdPartyDirectory.", true)]
 		[XmlConfig]
 		public static string UEThirdPartyDirectory;
 
-        /** Directory for the third party source */
-        [XmlConfig]
-        public static string UEThirdPartySourceDirectory;
+		/// <summary>
+		/// Directory for the third party source
+		/// </summary>
+		[XmlConfig]
+		public static string UEThirdPartySourceDirectory;
 
-        /** Directory for the third party binaries */
-        [XmlConfig]
-        public static string UEThirdPartyBinariesDirectory;
+		/// <summary>
+		/// Directory for the third party binaries
+		/// </summary>
+		[XmlConfig]
+		public static string UEThirdPartyBinariesDirectory;
 
-		/** If true, force header regeneration. Intended for the build machine */
+		/// <summary>
+		/// If true, force header regeneration. Intended for the build machine
+		/// </summary>
 		[XmlConfig]
 		public static bool bForceHeaderGeneration;
 
-		/** If true, do not build UHT, assume it is already built */
+		/// <summary>
+		/// If true, do not build UHT, assume it is already built
+		/// </summary>
 		[XmlConfig]
 		public static bool bDoNotBuildUHT;
 
-		/** If true, fail if any of the generated header files is out of date. */
+		/// <summary>
+		/// If true, fail if any of the generated header files is out of date.
+		/// </summary>
 		[XmlConfig]
 		public static bool bFailIfGeneratedCodeChanges;
 
-		/** Whether to compile Recast navmesh generation */
+		/// <summary>
+		/// Whether to compile Recast navmesh generation
+		/// </summary>
 		[XmlConfig]
 		public static bool bCompileRecast;
 
-		/** Whether to compile SpeedTree support. */
+		/// <summary>
+		/// Whether to compile SpeedTree support.
+		/// </summary>
 		[XmlConfig]
 		public static bool bCompileSpeedTree;
 
-		/** Enable exceptions for all modules */
+		/// <summary>
+		/// Enable exceptions for all modules
+		/// </summary>
 		[XmlConfig]
 		public static bool bForceEnableExceptions;
 
-		/** Compile server-only code. */
+		/// <summary>
+		/// Compile server-only code.
+		/// </summary>
 		[XmlConfig]
 		public static bool bWithServerCode;
 
-		/** Whether to include stats support even without the engine */
+		/// <summary>
+		/// Whether to include stats support even without the engine
+		/// </summary>
 		[XmlConfig]
 		public static bool bCompileWithStatsWithoutEngine;
 
-		/** Whether to include plugin support */
+		/// <summary>
+		/// Whether to include plugin support
+		/// </summary>
 		[XmlConfig]
 		public static bool bCompileWithPluginSupport;
 
-		/** Whether to turn on logging for test/shipping builds */
+		/// <summary>
+		/// Whether to turn on logging for test/shipping builds
+		/// </summary>
 		[XmlConfig]
 		public static bool bUseLoggingInShipping;
 
-		/** True if we need PhysX vehicle support */
+		/// <summary>
+		/// True if we need PhysX vehicle support
+		/// </summary>
 		[XmlConfig]
 		public static bool bCompilePhysXVehicle;
 
-		/** True if we need FreeType support */
+		/// <summary>
+		/// True if we need FreeType support
+		/// </summary>
 		[XmlConfig]
 		public static bool bCompileFreeType;
 
-		/** True if we want to favor optimizing size over speed */
+		/// <summary>
+		/// True if we want to favor optimizing size over speed
+		/// </summary>
 		[XmlConfig]
 		public static bool bCompileForSize;
 
-		/** True if hot-reload from IDE is allowed */
+		/// <summary>
+		/// True if hot-reload from IDE is allowed
+		/// </summary>
 		[XmlConfig]
 		public static bool bAllowHotReloadFromIDE;
 
-		/** True if performing hot-reload from IDE */
+		/// <summary>
+		/// True if performing hot-reload from IDE
+		/// </summary>
 		public static bool bHotReloadFromIDE;
 
-		/** When true, the targets won't execute their link actions if there was nothing to compile */
+		/// <summary>
+		/// When true, the targets won't execute their link actions if there was nothing to compile
+		/// </summary>
 		public static bool bSkipLinkingWhenNothingToCompile;
 
-		/** Whether to compile CEF3 support. */
+		/// <summary>
+		/// Whether to compile CEF3 support.
+		/// </summary>
 		[XmlConfig]
 		public static bool bCompileCEF3;
+
+		/// <summary>
+		/// Allow a target to specify a preferred sub-platform. Can be used to target a build using sub platform specifics.
+		/// </summary>
+		public static string PreferredSubPlatform = "";
+
+		/// <summary>
+		/// Whether to include a dependency on ShaderCompileWorker when generating project files for the editor.
+		/// </summary>
+		[XmlConfig]
+		public static bool bEditorDependsOnShaderCompileWorker;
 
 		/// <summary>
 		/// Sets the configuration back to defaults.
@@ -203,7 +307,7 @@ namespace UnrealBuildTool
 			// Currently, WITH_PHYSX is forced to true in Engine.h (as it isn't defined anywhere by the builder)
 			bCompilePhysX = true;
 			bCompileAPEX = true;
-            bRuntimePhysicsCooking = true;
+			bRuntimePhysicsCooking = true;
 			bCompileBox2D = true;
 			bCompileICU = true;
 			bBuildEditor = true;
@@ -216,15 +320,15 @@ namespace UnrealBuildTool
 			bCompileLeanAndMeanUE = false;
 			bCompileAgainstEngine = true;
 			bCompileAgainstCoreUObject = true;
-            UEThirdPartySourceDirectory = "ThirdParty/";
-            UEThirdPartyBinariesDirectory = "../Binaries/ThirdParty/";
+			UEThirdPartySourceDirectory = "ThirdParty/";
+			UEThirdPartyBinariesDirectory = "../Binaries/ThirdParty/";
 			bCompileRecast = true;
 			bForceEnableExceptions = false;
 			bWithServerCode = true;
 			bCompileSpeedTree = true;
 			bCompileWithStatsWithoutEngine = false;
 			bCompileWithPluginSupport = false;
-            bUseLoggingInShipping = false;
+			bUseLoggingInShipping = false;
 			bCompileSteamOSS = true;
 			bCompileMcpOSS = true;
 			bCompilePhysXVehicle = true;
@@ -234,6 +338,8 @@ namespace UnrealBuildTool
 			bAllowHotReloadFromIDE = true;
 			bSkipLinkingWhenNothingToCompile = false;
 			bCompileCEF3 = true;
+			PreferredSubPlatform = "";
+			bEditorDependsOnShaderCompileWorker = true;
 		}
 
 		/// <summary>
@@ -257,11 +363,10 @@ namespace UnrealBuildTool
 				&& !(ProjectFileGenerator.bGenerateProjectFiles && ProjectFileGenerator.bGeneratingRocketProjectFiles);
 		}
 
-		/**
-		 * Validates the configuration.
-		 * 
-		 * @warning: the order of validation is important
-		 */
+		/// <summary>
+		/// Validates the configuration.
+		/// Warning: the order of validation is important
+		/// </summary>
 		public static void ValidateConfiguration()
 		{
 			// Lean and mean means no Editor and other frills.

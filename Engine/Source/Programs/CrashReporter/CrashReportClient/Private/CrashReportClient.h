@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -86,13 +86,6 @@ public:
 	FText GetDiagnosticText() const;
 
 	/**
-	 * Access to name (which usually includes the build config) of the app that crashed
-	 * @return Name of executable
-	 */
-	FString GetCrashedAppName() const;
-
-
-	/**
 	 * @return the full path of the crash directory.
 	 */
 	FString GetCrashDirectory() const;
@@ -144,7 +137,7 @@ private:
 	void StartTicker();
 
 	/** Enqueued from the diagnose report worker thread to be executed on the game thread. */
-	void FinalizeDiagnoseReportWorker( FText ReportText );
+	void FinalizeDiagnoseReportWorker();
 
 	/**
 	 * @return true if we are still processing a callstack
@@ -167,10 +160,10 @@ private:
 	FPlatformErrorReport ErrorReport;
 
 	/** Object that uploads report files to the server */
-	FCrashUpload Uploader;
+	FCrashUploadToReceiver ReceiverUploader;
 
-	/** Whether BeginUpload has been called. */
-	bool bBeginUploadCalled;
+	/** Object that uploads report files to the server */
+	FCrashUploadToDataRouter DataRouterUploader;
 
 	/** Whether the main window should be hidden. */
 	bool bShouldWindowBeHidden;

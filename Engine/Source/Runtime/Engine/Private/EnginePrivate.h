@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 EnginePrivate.h: Unreal engine private header file.
@@ -39,6 +39,7 @@ EnginePrivate.h: Unreal engine private header file.
 #include "Components/MeshComponent.h"
 #include "Components/SkinnedMeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/SplineMeshComponent.h"
 #include "Components/AudioComponent.h"
 #include "Components/ArrowComponent.h"
 #include "Components/BillboardComponent.h"

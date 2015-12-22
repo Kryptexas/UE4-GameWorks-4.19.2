@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	ParticleModuleSizeScaleBySpeed: Scale the size of a particle by its velocity.
@@ -22,7 +22,7 @@ class UParticleModuleSizeScaleBySpeed : public UParticleModuleSizeBase
 	FVector2D MaxScale;
 
 
-	// Begin UParticleModule Interface
+	//~ Begin UParticleModule Interface
 	virtual void Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime) override;
 	virtual void CompileModule(struct FParticleEmitterBuildInfo& EmitterInfo) override;
 	// End UParticleModule Interface

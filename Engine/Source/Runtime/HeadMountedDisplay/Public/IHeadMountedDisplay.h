@@ -1,10 +1,13 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "StereoRendering.h"
 #include "Layout/SlateRect.h"
 #include "HeadMountedDisplayTypes.h"
+
+// depending on your kit and SDK, you may want to use this.
+// new distortion handling still in development.
 
 /**
  * HMD device interface
@@ -32,7 +35,7 @@ public:
 	virtual void EnableHMD(bool bEnable = true) = 0;
 
 	/**
-	 * Returns the family of HMD device implemented 
+	 * Returns the family of HMD device implemented
 	 */
 	virtual EHMDDeviceType::Type GetHMDDeviceType() const = 0;
 
@@ -56,12 +59,12 @@ public:
 
 	};
 
-    /**
-     * Get the name or id of the display to output for this HMD. 
-     */
+	/**
+	 * Get the name or id of the display to output for this HMD.
+	 */
 	virtual bool	GetHMDMonitorInfo(MonitorInfo&) = 0;
-	
-    /**
+
+	/**
 	 * Calculates the FOV, based on the screen dimensions of the device. Original FOV is passed as params.
 	 */
 	virtual void	GetFieldOfView(float& InOutHFOVInDegrees, float& InOutVFOVInDegrees) const = 0;
@@ -79,7 +82,7 @@ public:
 	/**
 	 * If the HMD supports positional tracking via a camera, this returns the frustum properties (all in game-world space) of the tracking camera.
 	 */
-	virtual void	GetPositionalTrackingCameraProperties(FVector& OutOrigin, FQuat& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const = 0;	
+	virtual void	GetPositionalTrackingCameraProperties(FVector& OutOrigin, FQuat& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const = 0;
 
 	/**
 	 * Accessors to modify the interpupillary distance (meters)
@@ -87,10 +90,10 @@ public:
 	virtual void	SetInterpupillaryDistance(float NewInterpupillaryDistance) = 0;
 	virtual float	GetInterpupillaryDistance() const = 0;
 
-    /**
-     * Get the current orientation and position reported by the HMD.
-     */
-    virtual void GetCurrentOrientationAndPosition(FQuat& CurrentOrientation, FVector& CurrentPosition) = 0;
+	/**
+	 * Get the current orientation and position reported by the HMD.
+	 */
+	virtual void GetCurrentOrientationAndPosition(FQuat& CurrentOrientation, FVector& CurrentPosition) = 0;
 
 	/**
 	 * Rebase the input position and orientation to that of the HMD's base
@@ -103,19 +106,18 @@ public:
 	virtual TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe> GetViewExtension() = 0;
 
 	/**
-     * Apply the orientation of the headset to the PC's rotation.
-     * If this is not done then the PC will face differently than the camera,
-     * which might be good (depending on the game).
-     */
+	 * Apply the orientation of the headset to the PC's rotation.
+	 * If this is not done then the PC will face differently than the camera,
+	 * which might be good (depending on the game).
+	 */
 	virtual void ApplyHmdRotation(class APlayerController* PC, FRotator& ViewRotation) = 0;
 
 	/**
-	 * Apply the orientation of the headset to the Camera's rotation.
-	 * This method is called for cameras with bFollowHmdOrientation set to 'true'.
+	 * Apply the orientation and position of the headset to the Camera.
 	 */
-	virtual void UpdatePlayerCameraRotation(class APlayerCameraManager* Camera, struct FMinimalViewInfo& POV) = 0;
+	virtual bool UpdatePlayerCamera(FQuat& CurrentOrientation, FVector& CurrentPosition) = 0;
 
-  	/**
+	/**
 	 * Gets the scaling factor, applied to the post process warping effect
 	 */
 	virtual float GetDistortionScalingFactor() const { return 0; }
@@ -136,7 +138,7 @@ public:
 	virtual bool IsChromaAbCorrectionEnabled() const = 0;
 
 	/**
-	 * Gets the chromatic aberration correction shader values for the device. 
+	 * Gets the chromatic aberration correction shader values for the device.
 	 * Returns 'false' if chromatic aberration correction is off.
 	 */
 	virtual bool GetChromaAbCorrectionValues(FVector4& K) const  { return false; }
@@ -144,7 +146,7 @@ public:
 	/**
 	 * Exec handler to allow console commands to be passed through to the HMD for debugging
 	 */
-    virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) = 0;
+	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) = 0;
 
 	/**
 	 * Returns true, if HMD allows fullscreen mode.
@@ -152,23 +154,23 @@ public:
 	virtual bool IsFullscreenAllowed() { return true; }
 
 	/**
-	 * Saves / loads pre-fullscreen rectangle. Could be used to store saved original window position 
+	 * Saves / loads pre-fullscreen rectangle. Could be used to store saved original window position
 	 * before switching to fullscreen mode.
 	 */
 	virtual void PushPreFullScreenRect(const FSlateRect& InPreFullScreenRect);
 	virtual void PopPreFullScreenRect(FSlateRect& OutPreFullScreenRect);
 
 	/**
-	 * A callback that is called when screen mode is changed (fullscreen <-> window). 
+	 * A callback that is called when screen mode is changed (fullscreen <-> window).
 	 */
 	virtual void OnScreenModeChange(EWindowMode::Type WindowMode) = 0;
 
 	/** Returns true if positional tracking enabled and working. */
 	virtual bool IsPositionalTrackingEnabled() const = 0;
 
-	/** 
+	/**
 	 * Tries to enable positional tracking.
-	 * Returns the actual status of positional tracking. 
+	 * Returns the actual status of positional tracking.
 	 */
 	virtual bool EnablePositionalTracking(bool enable) = 0;
 
@@ -190,29 +192,29 @@ public:
 	 */
 	virtual void EnableLowPersistenceMode(bool Enable = true) = 0;
 
-	/** 
+	/**
 	 * Resets orientation by setting roll and pitch to 0, assuming that current yaw is forward direction and assuming
-	 * current position as a 'zero-point' (for positional tracking). 
+	 * current position as a 'zero-point' (for positional tracking).
 	 *
 	 * @param Yaw				(in) the desired yaw to be set after orientation reset.
 	 */
 	virtual void ResetOrientationAndPosition(float Yaw = 0.f) = 0;
 
-	/** 
-	 * Resets orientation by setting roll and pitch to 0, assuming that current yaw is forward direction. Position is not changed. 
+	/**
+	 * Resets orientation by setting roll and pitch to 0, assuming that current yaw is forward direction. Position is not changed.
 	 *
 	 * @param Yaw				(in) the desired yaw to be set after orientation reset.
 	 */
 	virtual void ResetOrientation(float Yaw = 0.f) {}
 
-	/** 
-	 * Resets position, assuming current position as a 'zero-point'. 
+	/**
+	 * Resets position, assuming current position as a 'zero-point'.
 	 */
 	virtual void ResetPosition() {}
 
-	/** 
-	 * Sets base orientation by setting yaw, pitch, roll, assuming that this is forward direction. 
-	 * Position is not changed. 
+	/**
+	 * Sets base orientation by setting yaw, pitch, roll, assuming that this is forward direction.
+	 * Position is not changed.
 	 *
 	 * @param BaseRot			(in) the desired orientation to be treated as a base orientation.
 	 */
@@ -223,9 +225,9 @@ public:
 	 */
 	virtual FRotator GetBaseRotation() const { return FRotator::ZeroRotator; }
 
-	/** 
-	 * Sets base orientation, assuming that this is forward direction. 
-	 * Position is not changed. 
+	/**
+	 * Sets base orientation, assuming that this is forward direction.
+	 * Position is not changed.
 	 *
 	 * @param BaseOrient		(in) the desired orientation to be treated as a base orientation.
 	 */
@@ -235,6 +237,18 @@ public:
 	 * Returns current base orientation of HMD as a quaternion.
 	 */
 	virtual FQuat GetBaseOrientation() const { return FQuat::Identity; }
+
+	/**
+	 * Scales the HMD position that gets added to the virtual camera position.
+	 *
+	 * @param PosScale3D	(in) the scale to apply to the HMD position.
+	 */
+	virtual void SetPositionScale3D(FVector PosScale3D) {}
+
+	/**
+	 * Returns current position scale of HMD.
+	 */
+	virtual FVector GetPositionScale3D() const { return FVector::ZeroVector; }
 
 	/**
 	* @return true if a hidden area mesh is available for the device.
@@ -327,7 +341,21 @@ public:
 	 */
 	virtual FString GetVersionString() const { return FString(TEXT("GenericHMD")); }
 
+	/** Setup state for applying the render thread late update */
+	virtual void SetupLateUpdate(const FTransform& ParentToWorld, USceneComponent* Component);
+
+	/** Apply the late update delta to the cached compeonents */
+	virtual void ApplyLateUpdate(const FTransform& OldRelativeTransform, const FTransform& NewRelativeTransform);
+	
 private:
+
 	/** Stores the dimensions of the window before we moved into fullscreen mode, so they can be restored */
 	FSlateRect PreFullScreenRect;
+
+	/** Scene proxies that need late updates */
+	FPrimitiveSceneProxy*	LateUpdateSceneProxies[16];
+	int32					LateUpdateSceneProxyCount;
+
+	/** Parent world transform used to reconstruct new world transforms for late update scene proxies */
+	FTransform				LateUpdateParentToWorld;
 };

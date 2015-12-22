@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2604022
+﻿INTSourceChangelist:2743682
 Availability:Public
 Title:エンジンの機能
 Crumbs:%ROOT%
 Description:アンリアル エンジンのツールとシステムを見てみましょう。
 Navigation:topic
+parent:%ROOT%
+order:3
 
 [VAR:Params]
 [PARAM:image]
@@ -74,6 +76,15 @@ engine
 
 ## おすすめトピック
 
+[DIR(end:"1" output:"topiccompact" parent:"Engine" org:"hierarchy")]
+
+<!--
+## 目次
+[DIR(end:"3" type:"list")]
+-->
+<!--
+## おすすめトピック
+
 [REGION:topics third]
 %Engine/Rendering:topiccompact%
 %Engine/UMG:topiccompact%
@@ -91,6 +102,7 @@ engine
 %Engine/Performance:topiccompact%
 %Engine/Deployment:topiccompact%
 [/REGION]
+-->
 
 ## 目次
 
@@ -147,7 +159,7 @@ engine
 		![](%ROOT%/levels_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-	[アクタ＆ジオメトリ](Engine/Actors "%Engine/Actors:description%")
+	[](Engine/Actors "%Engine/Actors:description%")
 	[/PARAM]
 	[PARAM:links]
 	* [](Engine/Actors/Placement "%Engine/Actors/Placement:description%")
@@ -157,7 +169,7 @@ engine
 	* [](Engine/Actors/Mobility "%Engine/Actors/Mobility:description%")
 	* [](Engine/Actors/Types "%Engine/Actors/Types:description%")
 		* [スタティックメッシュ アクタ](Engine/Actors/StaticMeshActor "%Engine/Actors/StaticMeshActor:description%")
-		* [スケルタル メッシュ アクタ](Engine/Actors/SkeletalMeshActors "%Engine/Actors/SkeletalMeshActors:description%")
+		* [スケルタルメッシュ アクタ](Engine/Actors/SkeletalMeshActors "%Engine/Actors/SkeletalMeshActors:description%")
 		* [ジオメトリ ブラシ アクタ](Engine/Actors/Brushes "%Engine/Actors/Brushes:description%")
 		* [](Engine/Actors/PlayerStart "%Engine/Actors/PlayerStart:description%")
 		* [](Engine/Actors/Volumes "%Engine/Actors/Volumes:description%")
@@ -455,10 +467,10 @@ engine
 		![](%ROOT%/cine_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-	[マチネ：アクタのアニメートとシネマチック シーケンスの作成](Engine/Matinee "%Engine/Matinee:description%")
+	[](Engine/Matinee "%Engine/Matinee:description%")
 	[/PARAM]
 	[PARAM:links]
-	* [マチネ ツールの使用](Engine/Matinee/UserGuide "%Engine/Matinee/UserGuide:description%")
+	* [](Engine/Matinee/UserGuide "%Engine/Matinee/UserGuide:description%")
 	* [](Engine/Matinee/UserGuide/BlueprintComponents "%Engine/Matinee/UserGuide/BlueprintComponents:description%")
 	* [](Engine/Matinee/UI "%Engine/Matinee/UI:description%")
 	* [](Engine/Matinee/TrackReference) - %Engine/Matinee/TrackReference:description%
@@ -507,9 +519,3 @@ engine
 	* [](Engine/Deployment/UnrealFrontend "%Engine/Deployment/UnrealFrontend:description%")
 	[/PARAM]
 [/OBJECT]
-
-
-
-
-
-

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "GameFramework/NavMovementComponent.h"
@@ -14,6 +14,11 @@ void FNavAgentProperties::UpdateWithCollisionComponent(UShapeComponent* Collisio
 {
 	check( CollisionComponent != NULL);
 	AgentRadius = CollisionComponent->Bounds.SphereRadius;
+}
+
+bool FNavAgentProperties::IsNavDataMatching(const FNavAgentProperties& Other) const
+{
+	return (PreferredNavData == Other.PreferredNavData || PreferredNavData == nullptr || Other.PreferredNavData == nullptr);
 }
 
 //----------------------------------------------------------------------//

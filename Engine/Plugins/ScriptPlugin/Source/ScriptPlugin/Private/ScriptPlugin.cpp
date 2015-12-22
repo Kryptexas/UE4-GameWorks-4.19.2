@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "ScriptPluginPrivatePCH.h"
 #include "ScriptObjectReferencer.h"
@@ -15,10 +15,6 @@ UProperty* FindScriptPropertyHelper(UClass* Class, FName PropertyName)
 	}
 	return NULL;
 }
-
-#if 0
-#include "GeneratedScriptLibraries.inl"
-#endif 
 
 DEFINE_LOG_CATEGORY(LogScriptPlugin);
 

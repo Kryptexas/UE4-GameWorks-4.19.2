@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "HttpPrivatePCH.h"
 #include "CurlHttp.h"
@@ -273,6 +273,12 @@ size_t FCurlHttpRequest::ReceiveResponseHeaderCallback(void* Ptr, size_t SizeInB
 			if (Header.Split(TEXT(": "), &HeaderName, &Param))
 			{
 				Response->Headers.Add(HeaderName, Param);
+
+				//Store the content length so OnRequestProgress() delegates have something to work with
+				if (HeaderName == TEXT("Content-Length"))
+				{
+					Response->ContentLength = FCString::Atoi(*Param);
+				}
 			}
 			return HeaderSize;
 		}
@@ -540,7 +546,7 @@ bool FCurlHttpRequest::StartRequest()
 	// set up headers
 	if (GetHeader("User-Agent").IsEmpty())
 	{
-		SetHeader(TEXT("User-Agent"), FString::Printf(TEXT("game=%s, engine=UE4, version=%s"), FApp::GetGameName(), *GEngineVersion.ToString()));
+		SetHeader(TEXT("User-Agent"), FString::Printf(TEXT("game=%s, engine=UE4, version=%s"), FApp::GetGameName(), *FEngineVersion::Current().ToString()));
 	}
 
 	// content-length should be present http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.4
@@ -566,7 +572,10 @@ bool FCurlHttpRequest::StartRequest()
 	const int32 NumAllHeaders = AllHeaders.Num();
 	for (int32 Idx = 0; Idx < NumAllHeaders; ++Idx)
 	{
-		UE_LOG(LogHttp, Verbose, TEXT("%p: Adding header '%s'"), this, *AllHeaders[Idx] );
+		if (!AllHeaders[Idx].Contains(TEXT("Authorization")))
+		{
+			UE_LOG(LogHttp, Verbose, TEXT("%p: Adding header '%s'"), this, *AllHeaders[Idx]);
+		}
 		HeaderList = curl_slist_append(HeaderList, TCHAR_TO_UTF8(*AllHeaders[Idx]));
 	}
 
@@ -605,6 +614,7 @@ bool FCurlHttpRequest::ProcessRequest()
 	FHttpModule::Get().GetHttpManager().AddRequest(SharedThis(this));
 	// reset timeout
 	ElapsedTime = 0.0f;
+	TimeSinceLastResponse = 0.0f;
 	
 	UE_LOG(LogHttp, Verbose, TEXT("%p: request (easy handle:%p) has been added to multi handle for processing"), this, EasyHandle );
 
@@ -705,8 +715,41 @@ void FCurlHttpRequest::FinishedRequest()
 	if (Response.IsValid() &&
 		Response->bSucceeded)
 	{
-		UE_LOG(LogHttp, Verbose, TEXT("%p: request has been successfully processed. HTTP code: %d, content length: %d, actual payload size: %d"), 
-			this, Response->HttpCode, Response->ContentLength, Response->Payload.Num() );
+		const bool bDebugServerResponse = Response->GetResponseCode() >= 500 && Response->GetResponseCode() <= 505;
+
+		// log info about error responses to identify failed downloads
+		if (UE_LOG_ACTIVE(LogHttp, Verbose) ||
+			bDebugServerResponse)
+		{
+			if (bDebugServerResponse)
+			{
+				UE_LOG(LogHttp, Warning, TEXT("%p: request has been successfully processed. URL: %s, HTTP code: %d, content length: %d, actual payload size: %d"),
+					this, *GetURL(), Response->HttpCode, Response->ContentLength, Response->Payload.Num());
+			}
+			else
+			{
+				UE_LOG(LogHttp, Verbose, TEXT("%p: request has been successfully processed. URL: %s, HTTP code: %d, content length: %d, actual payload size: %d"),
+					this, *GetURL(), Response->HttpCode, Response->ContentLength, Response->Payload.Num());
+			}
+
+			TArray<FString> AllHeaders = Response->GetAllHeaders();
+			for (TArray<FString>::TConstIterator It(AllHeaders); It; ++It)
+			{
+				const FString& HeaderStr = *It;
+				if (!HeaderStr.StartsWith(TEXT("Authorization")) && !HeaderStr.StartsWith(TEXT("Set-Cookie")))
+				{
+					if (bDebugServerResponse)
+					{
+						UE_LOG(LogHttp, Warning, TEXT("%p Response Header %s"), this, *HeaderStr);
+					}
+					else
+					{
+						UE_LOG(LogHttp, Verbose, TEXT("%p Response Header %s"), this, *HeaderStr);
+					}
+				}
+			}
+		}
+
 
 		// Mark last request attempt as completed successfully
 		CompletionStatus = EHttpRequestStatus::Succeeded;

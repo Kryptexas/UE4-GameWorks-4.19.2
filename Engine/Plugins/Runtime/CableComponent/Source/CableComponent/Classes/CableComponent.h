@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -29,23 +29,23 @@ class CABLECOMPONENT_API UCableComponent : public UMeshComponent
 
 public:
 
-	// Begin UActorComponent interface.
+	//~ Begin UActorComponent Interface.
 	virtual void OnRegister() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	virtual void SendRenderDynamicData_Concurrent() override;
-	// Begin UActorComponent interface.
+	//~ Begin UActorComponent Interface.
 
-	// Begin USceneComponent interface.
+	//~ Begin USceneComponent Interface.
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
-	// Begin USceneComponent interface.
+	//~ Begin USceneComponent Interface.
 
-	// Begin UPrimitiveComponent interface.
+	//~ Begin UPrimitiveComponent Interface.
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
-	// End UPrimitiveComponent interface.
+	//~ End UPrimitiveComponent Interface.
 
-	// Begin UMeshComponent interface.
+	//~ Begin UMeshComponent Interface.
 	virtual int32 GetNumMaterials() const override;
-	// End UMeshComponent interface.
+	//~ End UMeshComponent Interface.
 
 
 	/** Actor or Component that the end of the cable should be attached to */
@@ -53,7 +53,7 @@ public:
 	FComponentReference AttachEndTo;
 
 	/** End location of cable, relative to AttachEndTo if specified, otherwise relative to cable component. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cable")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Cable", meta=(MakeEditWidget=true))
 	FVector EndLocation;
 
 	/** Attaches the end of the cable to a specific Component within an Actor **/

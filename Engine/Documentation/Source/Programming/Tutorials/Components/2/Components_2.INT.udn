@@ -24,7 +24,7 @@ version:4.9
 
 1. Returning to the **Unreal Editor**, it's time to configure our project's input settings. These settings can be found under **Project Settings** in the **Edit** dropdown menu.
 
-	[![](EditProjectSettings.png)](EditProjectSettings.png)
+	![](EditProjectSettings.png)
 
 	Once there, we can select **Input** from the **Engine** section in the left panel. We will need an **Action Mapping** to set up our particle-system toggle, two **Axis Mappings** to move our **Pawn**, and one more **Axis Mapping** to turn our Pawn.
 
@@ -40,25 +40,25 @@ version:4.9
 	|  | D | 1.0 |
 	| Turn | Mouse X | 1.0 |
 
-	[![](InputSettings.png)](InputSettings.png)
+	![](InputSettings.png)
 
 1. Instead of handling all our movement in our Pawn class directly, we will create a **Movement Component** to manage it for us. For this tutorial, we'll extend the **Pawn Movement Component** class. We'll start by selecting the **Add Code to Project** command from the **File** dropdown menu.
 
-	[![](AddCPPCode.png)](AddCPPCode.png)
+	![](AddCPPCode.png)
 
 	Unlike our Pawn class, Pawn Movement Component is not visible by default. To find it, we need to check the **Show All Classes** option.
 
-	[![](ShowAllClasses.png)](ShowAllClasses.png)
+	![](ShowAllClasses.png)
 
 	Typing "movement" into the search bar can help narrow the list quickly.
 
-	[![](ChooseParentClass.png)](ChooseParentClass.png)
+	![](ChooseParentClass.png)
 
 	[REGION:tip]Pawn Movement Components have some powerful, built-in features to help with common physics functionality, and are a good way to share movement code between many Pawn types. Using Components to separate functionality is a good practice to reduce clutter as your project grows and your Pawns become more complex.[/REGION]
 
 	Since we called our Pawn class CollidingPawn, let's call this CollidingPawnMovementComponent.
 
-	[![](NameComponent.png)](NameComponent.png)
+	![](NameComponent.png)
 
 ----
 
@@ -73,7 +73,7 @@ We have just defined our input configuration and created a custom Pawn Movement 
     [/PARAM]
     [PARAM:content]
 		**CollidingPawn.h**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -102,7 +102,7 @@ We have just defined our input configuration and created a custom Pawn Movement 
 			};
 
 		**CollidingPawn.cpp**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_Components.h"
 			#include "CollidingPawn.h"

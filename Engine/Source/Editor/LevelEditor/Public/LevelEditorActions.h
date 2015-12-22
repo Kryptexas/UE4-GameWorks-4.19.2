@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 
@@ -19,7 +19,7 @@ public:
 	(
 		"LevelEditor", // Context name for fast lookup
 		NSLOCTEXT("Contexts", "LevelEditor", "Level Editor"), // Localized context name for displaying
-		"MainFrame", // Parent
+		"LevelViewport", // Parent
 		FEditorStyle::GetStyleSetName() // Icon Style Set
 	)
 	{
@@ -51,6 +51,9 @@ public:
 
 	/** Import */
 	TSharedPtr< FUICommandInfo > Import;
+	
+	/** Import Scene */
+	TSharedPtr< FUICommandInfo > ImportScene;
 
 	/** Export All */
 	TSharedPtr< FUICommandInfo > ExportAll;
@@ -71,7 +74,6 @@ public:
 	TSharedPtr< FUICommandInfo > BuildGeometryOnly_OnlyCurrentLevel;
 	TSharedPtr< FUICommandInfo > BuildPathsOnly;
 	TSharedPtr< FUICommandInfo > BuildLODsOnly;
-	TSharedPtr< FUICommandInfo > PreviewHLODClustersOnly;
 	TSharedPtr< FUICommandInfo > LightingQuality_Production;
 	TSharedPtr< FUICommandInfo > LightingQuality_High;
 	TSharedPtr< FUICommandInfo > LightingQuality_Medium;
@@ -350,6 +352,9 @@ public:
 	/** Selects all actors using the same static mesh(es) and same actor class as the current selection */
 	TSharedPtr< FUICommandInfo > SelectStaticMeshesAllClasses;
 
+	/** Selects the HLOD cluster (ALODActor), if available, that has this actor as one of its SubActors */
+	TSharedPtr< FUICommandInfo > SelectOwningHierarchicalLODCluster;
+
 	/** Selects all actors using the same skeletal mesh(es) as the current selection */
 	TSharedPtr< FUICommandInfo > SelectSkeletalMeshesOfSameClass;
 
@@ -487,6 +492,9 @@ public:
 
 	/** Move all the selected actors to the current level */
 	TSharedPtr< FUICommandInfo > MoveSelectedToCurrentLevel;
+
+	/** Finds the level of the selected actors in the content browser */
+	TSharedPtr< FUICommandInfo > FindActorLevelInContentBrowser;
 
 	/** Finds the levels of the selected actors in the level browser */
 	TSharedPtr< FUICommandInfo > FindLevelsInLevelBrowser;
@@ -666,6 +674,11 @@ public:
 	 */
 	static void Import_Clicked();
 
+	/**
+	* Called when import scene is selected
+	*/
+	static void ImportScene_Clicked();
+
 
 	/**
 	 * Called when export all is selected
@@ -704,7 +717,6 @@ public:
 	static void BuildGeometryOnly_OnlyCurrentLevel_Execute();
 	static void BuildPathsOnly_Execute();
 	static void BuildLODsOnly_Execute();
-	static void PreviewHLODClustersOnly_Execute();
 	static void SetLightingQuality( ELightingBuildQuality NewQuality );
 	static bool IsLightingQualityChecked( ELightingBuildQuality TestQuality );
 	static float GetLightingDensityIdeal();
@@ -936,6 +948,11 @@ public:
 	static void OnSelectAllActorsControlledByMatinee();
 	
 	/**
+	* Called when selecting an Actor's (if available) owning HLOD cluster
+	*/
+	static void OnSelectOwningHLODCluster();
+	
+	/**
 	 * Called to change bsp surface alignment
 	 *
 	 * @param AlignmentMode	The new alignment mode
@@ -1025,6 +1042,12 @@ public:
 	 * Moves the currently selected actors to the current level                   
 	 */
 	static void OnMoveSelectedToCurrentLevel();
+
+	/** Finds the currently selected actor(s) level in the content browser */
+	static void OnFindActorLevelInContentBrowser();
+
+	/** @return Returns true if all selected actors are from the same level and hence can browse to it in the content browser */
+	static bool CanExecuteFindActorLevelInContentBrowser();
 
 	/**
 	 * Selects the currently selected actor(s) levels in the level browser

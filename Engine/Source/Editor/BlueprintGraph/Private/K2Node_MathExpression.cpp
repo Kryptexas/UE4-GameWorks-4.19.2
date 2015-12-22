@@ -1,8 +1,7 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "K2Node_MathExpression.h"
-#include "BlueprintGraphClasses.h"
 #include "Kismet2NameValidators.h"
 #include "EdGraphUtilities.h"
 #include "BasicTokenParser.h"
@@ -11,6 +10,7 @@
 #include "BlueprintActionDatabaseRegistrar.h"
 #include "DiffResults.h"
 #include "MathExpressionHandler.h"
+#include "BlueprintNodeSpawner.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -1802,7 +1802,7 @@ private:
 							else if (InputPin->DefaultValue.IsEmpty()) // there is an ErrorTolerance parameter with a default value in EqualEqual_VectorVector
 							{
 								// too many pins - shouldn't be possible due to the checking in FindMatchingFunction() above
-								FText ErrorText = LOCTEXT("ConnectPinError", "The '@@' function requires more parameters than were provided");
+								FText ErrorText = LOCTEXT("ConnectPinError_RequiresMoreParameters", "The '@@' function requires more parameters than were provided");
 								MessageLog.Error(*ErrorText.ToString(), FunctionCall);
 								break;
 							}

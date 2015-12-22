@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2602509
+﻿INTSourceChangelist:2632329
 Availability: Public
 Title:볼륨 사용 안내서
 Crumbs:%ROOT%, Engine, Engine/Actors
@@ -32,7 +32,6 @@ Description:레벨의 작동방식이나 구성법 강화를 위한 볼륨 배�
 볼륨은 레벨에 있는 3차원 공간으로, 저마다 특정한 목적이 있으며, 그 목적은 다음과 같습니다:
 
 * 플레이어에게 대미지 유발
-* 물리 법칙의 변화, 이를테면 일정 볼륨 공간 안에서는 중력을 감소시키거나 부유상태로 전환
 * 플레이어의 볼륨 진입 금지, 즉 충돌 표면 역할
 * 레벨의 라이팅 또는 표시여부 계산 방식 변경
 

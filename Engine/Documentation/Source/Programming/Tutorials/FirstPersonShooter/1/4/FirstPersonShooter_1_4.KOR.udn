@@ -1,0 +1,39 @@
+﻿INTSourceChangelist:2672918
+Availability: Docs
+Title: 1.4 - 프로젝트 컴파일
+Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
+Description: 첫 C++ 클래스 컴파일 방법을 배워봅니다.
+SkillLevel: Beginner
+Version: 4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 단계](Programming/Tutorials/FirstPersonShooter/1/3)
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[섹션 홈](Programming/Tutorials/FirstPersonShooter/1)
+	[/PARAM]
+	[PARAM:next]
+		[다음 단계](Programming/Tutorials/FirstPersonShooter/1/5)
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+이번 단계에서는 프로젝트를 컴파일하여 코드 변경사항을 게임내에 반영시키도록 하겠습니다.
+
+1.	**Solution Explorer** 에서 **FPSProject** 를 찾습니다.
+
+1.	**FPSProject** 에 **우클릭** 하고 **Build** 를 눌러 프로젝트를 컴파일합니다.
+
+	![](CompileProject.png)
+
+1.	빌드 완료 후, 언리얼 에디터를 열어 새로 컴파일된 **FPSGameMode** 클래스가 **콘텐츠 브라우저** 에 보이는지 확인합니다.
+
+	![](CompiledFPSGameModeObj.png)
+
+%Steps%

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*================================================================================
 	DelegateInstancesImpl.inl: Inline implementation of delegate bindings.
@@ -56,26 +56,45 @@ public:
 
 	// IDelegateInstance interface
 
+#if USE_DELEGATE_TRYGETBOUNDFUNCTIONNAME
+
+	virtual FName TryGetBoundFunctionName() const override
+	{
+		return FunctionName;
+	}
+
+#endif
+
+	// Deprecated
 	virtual FName GetFunctionName( ) const override
 	{
 		return FunctionName;
 	}
 
+	// Deprecated
 	virtual const void* GetRawMethodPtr( ) const override
 	{
 		return nullptr;
 	}
 
+	// Deprecated
 	virtual const void* GetRawUserObject( ) const override
 	{
 		return UserObjectPtr.Get();
 	}
 
+	// Deprecated
 	virtual EDelegateInstanceType::Type GetType() const override
 	{
 		return EDelegateInstanceType::UFunction;
 	}
 
+	virtual UObject* GetUObject( ) const override
+	{
+		return (UObject*)UserObjectPtr.Get();
+	}
+
+	// Deprecated
 	virtual bool HasSameObject( const void* InUserObject ) const override
 	{
 		return (UserObjectPtr.Get() == InUserObject);
@@ -95,9 +114,9 @@ public:
 
 	// IBaseDelegateInstance interface
 
-	virtual Super* CreateCopy( ) override
+	virtual void CreateCopy(FDelegateBase& Base) override
 	{
-		return new UnwrappedThisType(*(UnwrappedThisType*)this);
+		new (Base) UnwrappedThisType(*(UnwrappedThisType*)this);
 	}
 
 	virtual RetValType Execute(ParamTypes... Params) const override
@@ -117,6 +136,7 @@ public:
 		return Handle;
 	}
 
+	// Deprecated
 	virtual bool IsSameFunction( const Super& Other ) const override
 	{
 		// NOTE: Payload data is not currently considered when comparing delegate instances.
@@ -135,9 +155,9 @@ public:
 	 * @param InFunctionName The name of the function call.
 	 * @return The new delegate.
 	 */
-	FORCEINLINE static Super* Create(UserClass* InUserObject, const FName& InFunctionName, VarTypes... Vars)
+	FORCEINLINE static void Create(FDelegateBase& Base, UserClass* InUserObject, const FName& InFunctionName, VarTypes... Vars)
 	{
-		return new UnwrappedThisType(InUserObject, InFunctionName, Vars...);
+		new (Base) UnwrappedThisType(InUserObject, InFunctionName, Vars...);
 	}
 
 public:
@@ -223,26 +243,45 @@ public:
 
 	// IDelegateInstance interface
 
+#if USE_DELEGATE_TRYGETBOUNDFUNCTIONNAME
+
+	virtual FName TryGetBoundFunctionName() const override
+	{
+		return NAME_None;
+	}
+
+#endif
+
+	// Deprecated
 	virtual FName GetFunctionName() const override
 	{
 		return NAME_None;
 	}
 
+	// Deprecated
 	virtual const void* GetRawMethodPtr() const override
 	{
 		return GetRawMethodPtrInternal();
 	}
 
+	// Deprecated
 	virtual const void* GetRawUserObject() const override
 	{
 		return GetRawUserObjectInternal();
 	}
 
+	// Deprecated
 	virtual EDelegateInstanceType::Type GetType() const override
 	{
 		return SPMode == ESPMode::ThreadSafe ? EDelegateInstanceType::ThreadSafeSharedPointerMethod : EDelegateInstanceType::SharedPointerMethod;
 	}
 
+	virtual UObject* GetUObject() const override
+	{
+		return nullptr;
+	}
+
+	// Deprecated
 	virtual bool HasSameObject(const void* InUserObject) const override
 	{
 		return UserObject.HasSameObject(InUserObject);
@@ -257,9 +296,9 @@ public:
 
 	// IBaseDelegateInstance interface
 
-	virtual Super* CreateCopy() override
+	virtual void CreateCopy(FDelegateBase& Base) override
 	{
-		return new UnwrappedThisType(*(UnwrappedThisType*)this);
+		new (Base) UnwrappedThisType(*(UnwrappedThisType*)this);
 	}
 
 	virtual RetValType Execute(ParamTypes... Params) const override
@@ -287,6 +326,7 @@ public:
 		return Handle;
 	}
 
+	// Deprecated
 	virtual bool IsSameFunction( const Super& InOtherDelegate ) const override
 	{
 		// NOTE: Payload data is not currently considered when comparing delegate instances.
@@ -310,9 +350,9 @@ public:
 	 * @param InFunc Member function pointer to your class method.
 	 * @return The new delegate.
 	 */
-	FORCEINLINE static Super* Create(const TSharedPtr<UserClass, SPMode>& InUserObjectRef, FMethodPtr InFunc, VarTypes... Vars)
+	FORCEINLINE static void Create(FDelegateBase& Base, const TSharedPtr<UserClass, SPMode>& InUserObjectRef, FMethodPtr InFunc, VarTypes... Vars)
 	{
-		return new UnwrappedThisType(InUserObjectRef, InFunc, Vars...);
+		new (Base) UnwrappedThisType(InUserObjectRef, InFunc, Vars...);
 	}
 
 	/**
@@ -324,11 +364,11 @@ public:
 	 * @param InFunc  Member function pointer to your class method.
 	 * @return The new delegate.
 	 */
-	FORCEINLINE static Super* Create(UserClass* InUserObject, FMethodPtr InFunc, VarTypes... Vars)
+	FORCEINLINE static void Create(FDelegateBase& Base, UserClass* InUserObject, FMethodPtr InFunc, VarTypes... Vars)
 	{
 		// We expect the incoming InUserObject to derived from TSharedFromThis.
 		auto UserObjectRef = StaticCastSharedRef<UserClass>(InUserObject->AsShared());
-		return Create(UserObjectRef, InFunc, Vars...);
+		Create(Base, UserObjectRef, InFunc, Vars...);
 	}
 
 protected:
@@ -434,26 +474,45 @@ public:
 
 	// IDelegateInstance interface
 
+#if USE_DELEGATE_TRYGETBOUNDFUNCTIONNAME
+
+	virtual FName TryGetBoundFunctionName() const override
+	{
+		return NAME_None;
+	}
+
+#endif
+
+	// Deprecated
 	virtual FName GetFunctionName( ) const override
 	{
 		return NAME_None;
 	}
 
+	// Deprecated
 	virtual const void* GetRawMethodPtr( ) const override
 	{
 		return GetRawMethodPtrInternal();
 	}
 
+	// Deprecated
 	virtual const void* GetRawUserObject( ) const override
 	{
 		return GetRawUserObjectInternal();
 	}
 
+	// Deprecated
 	virtual EDelegateInstanceType::Type GetType( ) const override
 	{
 		return EDelegateInstanceType::RawMethod;
 	}
 
+	virtual UObject* GetUObject( ) const override
+	{
+		return nullptr;
+	}
+
+	// Deprecated
 	virtual bool HasSameObject( const void* InUserObject ) const override
 	{
 		return UserObject == InUserObject;
@@ -470,9 +529,9 @@ public:
 
 	// IBaseDelegateInstance interface
 
-	virtual Super* CreateCopy( ) override
+	virtual void CreateCopy(FDelegateBase& Base) override
 	{
-		return new UnwrappedThisType(*(UnwrappedThisType*)this);
+		new (Base) UnwrappedThisType(*(UnwrappedThisType*)this);
 	}
 
 	virtual RetValType Execute(ParamTypes... Params) const override
@@ -496,6 +555,7 @@ public:
 		return Handle;
 	}
 
+	// Deprecated
 	virtual bool IsSameFunction( const Super& InOtherDelegate ) const override
 	{
 		// NOTE: Payload data is not currently considered when comparing delegate instances.
@@ -520,9 +580,9 @@ public:
 	 * @param InFunc Member function pointer to your class method.
 	 * @return The new delegate.
 	 */
-	FORCEINLINE static Super* Create(UserClass* InUserObject, FMethodPtr InFunc, VarTypes... Vars)
+	FORCEINLINE static void Create(FDelegateBase& Base, UserClass* InUserObject, FMethodPtr InFunc, VarTypes... Vars)
 	{
-		return new UnwrappedThisType(InUserObject, InFunc, Vars...);
+		new (Base) UnwrappedThisType(InUserObject, InFunc, Vars...);
 	}
 
 protected:
@@ -618,26 +678,45 @@ public:
 
 	// IDelegateInstance interface
 
+#if USE_DELEGATE_TRYGETBOUNDFUNCTIONNAME
+
+	virtual FName TryGetBoundFunctionName() const override
+	{
+		return NAME_None;
+	}
+
+#endif
+
+	// Deprecated
 	virtual FName GetFunctionName( ) const override
 	{
 		return NAME_None;
 	}
 
+	// Deprecated
 	virtual const void* GetRawMethodPtr( ) const override
 	{
 		return GetRawMethodPtrInternal();
 	}
 
+	// Deprecated
 	virtual const void* GetRawUserObject( ) const override
 	{
 		return GetRawUserObjectInternal();
 	}
 
+	// Deprecated
 	virtual EDelegateInstanceType::Type GetType( ) const override
 	{
 		return EDelegateInstanceType::UObjectMethod;
 	}
 
+	virtual UObject* GetUObject( ) const override
+	{
+		return (UObject*)UserObject.Get();
+	}
+
+	// Deprecated
 	virtual bool HasSameObject( const void* InUserObject ) const override
 	{
 		return (UserObject.Get() == InUserObject);
@@ -657,9 +736,9 @@ public:
 
 	// IBaseDelegateInstance interface
 
-	virtual Super* CreateCopy( ) override
+	virtual void CreateCopy(FDelegateBase& Base) override
 	{
-		return new UnwrappedThisType(*(UnwrappedThisType*)this);
+		new (Base) UnwrappedThisType(*(UnwrappedThisType*)this);
 	}
 
 	virtual RetValType Execute(ParamTypes... Params) const override
@@ -686,6 +765,7 @@ public:
 		return Handle;
 	}
 
+	// Deprecated
 	virtual bool IsSameFunction( const Super& InOtherDelegate ) const override
 	{
 		// NOTE: Payload data is not currently considered when comparing delegate instances.
@@ -708,9 +788,9 @@ public:
 	 * @param InFunc Member function pointer to your class method.
 	 * @return The new delegate.
 	 */
-	FORCEINLINE static Super* Create(UserClass* InUserObject, FMethodPtr InFunc, VarTypes... Vars)
+	FORCEINLINE static void Create(FDelegateBase& Base, UserClass* InUserObject, FMethodPtr InFunc, VarTypes... Vars)
 	{
-		return new UnwrappedThisType(InUserObject, InFunc, Vars...);
+		new (Base) UnwrappedThisType(InUserObject, InFunc, Vars...);
 	}
 
 protected:
@@ -804,26 +884,45 @@ public:
 
 	// IDelegateInstance interface
 
+#if USE_DELEGATE_TRYGETBOUNDFUNCTIONNAME
+
+	virtual FName TryGetBoundFunctionName() const override
+	{
+		return NAME_None;
+	}
+
+#endif
+
+	// Deprecated
 	virtual FName GetFunctionName( ) const override
 	{
 		return NAME_None;
 	}
 
+	// Deprecated
 	virtual const void* GetRawMethodPtr( ) const override
 	{
 		return *(const void**)&StaticFuncPtr;
 	}
 
+	// Deprecated
 	virtual const void* GetRawUserObject( ) const override
 	{
 		return nullptr;
 	}
 
+	// Deprecated
 	virtual EDelegateInstanceType::Type GetType( ) const override
 	{
 		return EDelegateInstanceType::Raw;
 	}
 
+	virtual UObject* GetUObject( ) const override
+	{
+		return nullptr;
+	}
+
+	// Deprecated
 	virtual bool HasSameObject( const void* UserObject ) const override
 	{
 		// Raw Delegates aren't bound to an object so they can never match
@@ -840,9 +939,9 @@ public:
 
 	// IBaseDelegateInstance interface
 
-	virtual Super* CreateCopy( ) override
+	virtual void CreateCopy(FDelegateBase& Base) override
 	{
-		return new UnwrappedThisType(*(UnwrappedThisType*)this);
+		new (Base) UnwrappedThisType(*(UnwrappedThisType*)this);
 	}
 
 	virtual RetValType Execute(ParamTypes... Params) const override
@@ -858,6 +957,7 @@ public:
 		return Handle;
 	}
 
+	// Deprecated
 	virtual bool IsSameFunction( const Super& InOtherDelegate ) const override
 	{
 		// NOTE: Payload data is not currently considered when comparing delegate instances.
@@ -881,9 +981,9 @@ public:
 	 * @param InFunc Static function pointer.
 	 * @return The new delegate.
 	 */
-	FORCEINLINE static Super* Create(FFuncPtr InFunc, VarTypes... Vars)
+	FORCEINLINE static void Create(FDelegateBase& Base, FFuncPtr InFunc, VarTypes... Vars)
 	{
-		return new UnwrappedThisType(InFunc, Vars...);
+		new (Base) UnwrappedThisType(InFunc, Vars...);
 	}
 
 private:
@@ -957,11 +1057,22 @@ public:
 
 	// IDelegateInstance interface
 
+#if USE_DELEGATE_TRYGETBOUNDFUNCTIONNAME
+
+	virtual FName TryGetBoundFunctionName() const override
+	{
+		return NAME_None;
+	}
+
+#endif
+
+	// Deprecated
 	virtual FName GetFunctionName() const override
 	{
 		return NAME_None;
 	}
 
+	// Deprecated
 	virtual const void* GetRawMethodPtr() const override
 	{
 		// casting operator() to void* is not legal C++ if it's a member function
@@ -970,6 +1081,7 @@ public:
 		return nullptr;
 	}
 
+	// Deprecated
 	virtual const void* GetRawUserObject() const override
 	{
 		// returning &Functor wouldn't be particularly useful to the comparison code
@@ -978,11 +1090,18 @@ public:
 		return nullptr;
 	}
 
+	// Deprecated
 	virtual EDelegateInstanceType::Type GetType() const override
 	{
 		return EDelegateInstanceType::Functor;
 	}
 
+	virtual UObject* GetUObject() const override
+	{
+		return nullptr;
+	}
+
+	// Deprecated
 	virtual bool HasSameObject(const void* UserObject) const override
 	{
 		// Functor Delegates aren't bound to a user object so they can never match
@@ -997,9 +1116,9 @@ public:
 
 public:
 	// IBaseDelegateInstance interface
-	virtual Super* CreateCopy() override
+	virtual void CreateCopy(FDelegateBase& Base) override
 	{
-		return new UnwrappedThisType(*(UnwrappedThisType*)this);
+		new (Base) UnwrappedThisType(*(UnwrappedThisType*)this);
 	}
 
 	virtual RetValType Execute(ParamTypes... Params) const override
@@ -1012,6 +1131,7 @@ public:
 		return Handle;
 	}
 
+	// Deprecated
 	virtual bool IsSameFunction(const Super& InOtherDelegate) const override
 	{
 		// There's no nice way to implement this (we don't have the type info necessary to compare against OtherDelegate's Functor)
@@ -1025,13 +1145,13 @@ public:
 	 * @param InFunctor C++ functor
 	 * @return The new delegate.
 	 */
-	FORCEINLINE static Super* Create(const FunctorType& InFunctor, VarTypes... Vars)
+	FORCEINLINE static void Create(FDelegateBase& Base, const FunctorType& InFunctor, VarTypes... Vars)
 	{
-		return new UnwrappedThisType(InFunctor, Vars...);
+		new (Base) UnwrappedThisType(InFunctor, Vars...);
 	}
-	FORCEINLINE static Super* Create(FunctorType&& InFunctor, VarTypes... Vars)
+	FORCEINLINE static void Create(FDelegateBase& Base, FunctorType&& InFunctor, VarTypes... Vars)
 	{
-		return new UnwrappedThisType(MoveTemp(InFunctor), Vars...);
+		new (Base) UnwrappedThisType(MoveTemp(InFunctor), Vars...);
 	}
 
 private:

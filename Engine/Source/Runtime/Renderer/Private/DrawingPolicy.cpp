@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DrawingPolicy.cpp: Base drawing policy implementation.
@@ -24,7 +24,8 @@ FMeshDrawingPolicy::FMeshDrawingPolicy(
 	bool bInOverrideWithShaderComplexity,
 	bool bInTwoSidedOverride,
 	bool bInDitheredLODTransitionOverride,
-	bool bInWireframeOverride
+	bool bInWireframeOverride,
+	EQuadOverdrawMode InQuadOverdrawMode
 	):
 	VertexFactory(InVertexFactory),
 	MaterialRenderProxy(InMaterialRenderProxy),
@@ -32,7 +33,8 @@ FMeshDrawingPolicy::FMeshDrawingPolicy(
 	bIsDitheredLODTransitionMaterial(InMaterialResource.IsDitheredLODTransition() || bInDitheredLODTransitionOverride),
 	bIsWireframeMaterial(InMaterialResource.IsWireframe() || bInWireframeOverride),
 	//convert from signed bool to unsigned uint32
-	bOverrideWithShaderComplexity(bInOverrideWithShaderComplexity != false)
+	bOverrideWithShaderComplexity(bInOverrideWithShaderComplexity != false),
+	QuadOverdrawMode((uint32)InQuadOverdrawMode)
 {
 	// using this saves a virtual function call
 	bool bMaterialResourceIsTwoSided = InMaterialResource.IsTwoSided();
@@ -46,28 +48,7 @@ FMeshDrawingPolicy::FMeshDrawingPolicy(
 	bUsePositionOnlyVS = false;
 }
 
-void FMeshDrawingPolicy::SetMeshRenderState(
-	FRHICommandList& RHICmdList, 
-	const FSceneView& View,
-	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
-	const FMeshBatch& Mesh,
-	int32 BatchElementIndex,
-	bool bBackFace,
-	float DitheredLODTransitionValue,
-	const ElementDataType& ElementData,
-	const ContextDataType PolicyContext
-	) const
-{
-	EmitMeshDrawEvents(RHICmdList, PrimitiveSceneProxy, Mesh);
-
-		// Use bitwise logic ops to avoid branches
-	RHICmdList.SetRasterizerState( GetStaticRasterizerState<true>(
-			( Mesh.bWireframe || IsWireframe() ) ? FM_Wireframe : FM_Solid, ( ( IsTwoSided() && !NeedsBackfacePass() ) || Mesh.bDisableBackfaceCulling ) ? CM_None :
-			( ( (View.bReverseCulling ^ bBackFace) ^ Mesh.ReverseCulling ) ? CM_CCW : CM_CW )
-			));
-}
-
-void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch& Mesh, int32 BatchElementIndex) const
+void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch& Mesh, int32 BatchElementIndex, const bool bIsInstancedStereo) const
 {
 	INC_DWORD_STAT(STAT_MeshDrawCalls);
 	SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, MeshEvent, GEmitMeshDrawEvent != 0, TEXT("Mesh Draw"));
@@ -166,6 +147,9 @@ void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch&
 			}
 			else
 			{
+				// Currently only supporting this path for instanced stereo.
+				const uint32 InstanceCount = (bIsInstancedStereo && !BatchElement.bIsInstancedMesh) ? 2 : BatchElement.NumInstances;
+
 				RHICmdList.DrawIndexedPrimitive(
 					BatchElement.IndexBuffer->IndexBufferRHI,
 					Mesh.Type,
@@ -174,7 +158,7 @@ void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch&
 					BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
 					BatchElement.FirstIndex,
 					BatchElement.NumPrimitives,
-					BatchElement.NumInstances
+					InstanceCount
 					);
 			}
 		}

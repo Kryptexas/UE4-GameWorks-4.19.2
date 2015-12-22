@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "EdGraph/EdGraphNode.h"
@@ -56,6 +56,7 @@ struct ENGINE_API FEdGraphSchemaAction
 	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction"); return Type;}
 	virtual FName GetTypeId() const { return StaticGetTypeId(); }
 
+private:
 	/** The menu text that should be displayed for this node in the creation menu. */
 	UPROPERTY()
 	FText MenuDescription;
@@ -72,6 +73,7 @@ struct ENGINE_API FEdGraphSchemaAction
 	UPROPERTY()
 	FText Keywords;
 
+public:
 	/** This is a priority number for overriding alphabetical order in the action list (higher value  == higher in the list). */
 	UPROPERTY()
 	int32 Grouping;
@@ -80,6 +82,20 @@ struct ENGINE_API FEdGraphSchemaAction
 	UPROPERTY()
 	int32 SectionID;
 
+	UPROPERTY()
+	TArray<FString> MenuDescriptionArray;
+
+	UPROPERTY()
+	TArray<FString> FullSearchTitlesArray;
+
+	UPROPERTY()
+	TArray<FString>  FullSearchKeywordsArray;
+
+	UPROPERTY()
+	TArray<FString>  FullSearchCategoryArray;
+
+	UPROPERTY()
+	FString SearchText;
 	FEdGraphSchemaAction() 
 		: Grouping(0)
 		, SectionID(0)
@@ -87,13 +103,11 @@ struct ENGINE_API FEdGraphSchemaAction
 	
 	virtual ~FEdGraphSchemaAction() {}
 
-	FEdGraphSchemaAction(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: MenuDescription(InMenuDesc)
-		, TooltipDescription(InToolTip)
-		, Category(InNodeCategory)
-		, Grouping(InGrouping)
-		, SectionID(0)
+	FEdGraphSchemaAction(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping, const FText& InKeywords = FText(), int32 InSectionID = 0)
+		: Grouping(InGrouping)
+		, SectionID(InSectionID)
 	{
+		UpdateSearchData(InMenuDesc, InToolTip, InNodeCategory, InKeywords);
 	}
 
 	/** Whether or not this action can be parented to other actions of the same type. */
@@ -118,28 +132,66 @@ struct ENGINE_API FEdGraphSchemaAction
 		return NewNode;
 	}
 
-	/** Retrieves the full searchable title for this action. */
-	FString GetSearchTitle()
+	void UpdateCategory(const FText& NewCategory);
+
+	void UpdateSearchData(const FText& NewMenuDescription, const FString& NewToolTipDescription, const FText& NewCategory, const FText& NewKeywords);
+
+	int32 GetSectionID() const
 	{
-		return (MenuDescription.ToString() +
-			TEXT(' ') +
-			MenuDescription.BuildSourceString()).ToLower();
+		return SectionID;
+	}
+
+	int32 GetGrouping() const 
+	{
+		return Grouping;
+	}
+
+	const FText& GetMenuDescription() const
+	{
+		return MenuDescription;
+	}
+
+	const FString& GetTooltipDescription() const
+	{
+		return TooltipDescription;
+	}
+
+	const FText& GetCategory() const
+	{
+		return Category;
+	}
+
+	const FText& GetKeywords() const
+	{
+		return Keywords;
+	}
+
+	const TArray<FString>& GetMenuDescriptionArray() const
+	{
+		return MenuDescriptionArray;
+	}
+
+	/** Retrieves the full searchable title for this action. */
+	const TArray<FString>& GetSearchTitleArray() const
+	{
+		return FullSearchTitlesArray;
 	}
 
 	/** Retrieves the full searchable keywords for this action. */
-	FString GetSearchKeywords()
+	const TArray<FString>& GetSearchKeywordsArray() const
 	{
-		return (Keywords.ToString() +
-			TEXT(' ') +
-			Keywords.BuildSourceString()).ToLower();
+		return FullSearchKeywordsArray;
 	}
 
 	/** Retrieves the full searchable categories for this action. */
-	FString GetSearchCategory()
+	const TArray<FString>& GetSearchCategoryArray() const
 	{
-		return (Category.ToString() +
-			TEXT(' ') +
-			Category.BuildSourceString()).ToLower();
+		return FullSearchCategoryArray;
+	}
+
+	const FString& GetFullSearchText() const
+	{
+		return SearchText;
 	}
 
 	// GC.
@@ -280,10 +332,9 @@ public:
 
 		ENGINE_API ~ActionGroup();
 		/**
-		 * 
-		 * @param  HierarchyOut	A list of the category tiers that this action should be listed under.
+		 * @return  A reference to the array of strings that represent the category chain
 		 */
-		ENGINE_API void GetCategoryChain(TArray<FString>& HierarchyOut) const;
+		 ENGINE_API const TArray<FString>& GetCategoryChain() const;
 
 		/**
 		 * Goes through all actions and calls PerformAction on them individually
@@ -296,16 +347,16 @@ public:
 		/**
 		 * Returns a the string that should be used when searching for matching actions. Looks only at the first action.
 		 */
-		ENGINE_API const FString& GetSearchTextForFirstAction() const { return SearchText; }
+		ENGINE_API const FString& GetSearchTextForFirstAction() const { return Actions[0]->GetFullSearchText(); }
 
 		/** Returns the SearchKeywordsArray */
-		ENGINE_API const TArray<FString>& GetSearchKeywordsArrayForFirstAction() const { return SearchKeywordsArray; }
+		ENGINE_API const TArray<FString>& GetSearchKeywordsArrayForFirstAction() const { return Actions[0]->GetSearchKeywordsArray(); }
 		/** Returns the MenuDescriptionArray */
-		ENGINE_API const TArray<FString>& GetMenuDescriptionArrayForFirstAction() const { return MenuDescriptionArray; }
+		ENGINE_API const TArray<FString>& GetMenuDescriptionArrayForFirstAction() const { return Actions[0]->GetMenuDescriptionArray(); }
 		/** Returns the SearchTitleArray */
-		ENGINE_API const TArray<FString>& GetSearchTitleArrayForFirstAction() const { return SearchTitleArray; }
+		ENGINE_API const TArray<FString>& GetSearchTitleArrayForFirstAction() const { return Actions[0]->GetSearchTitleArray(); }
 		/** Returns the SearchCategoryArray */
-		ENGINE_API const TArray<FString>& GetSearchCategoryArrayForFirstAction() const { return SearchCategoryArray; }
+		ENGINE_API const TArray<FString>& GetSearchCategoryArrayForFirstAction() const { return Actions[0]->GetSearchCategoryArray(); }
 
 		/** All of the actions this entry contains */
 		TArray< TSharedPtr<FEdGraphSchemaAction> > Actions;
@@ -326,21 +377,10 @@ public:
 		 */
 		void InitSearchText();
 
-		void InitScoringData();
-
 		/** The category to list this entry under (could be left empty, as it gets concatenated with the first sub-action's category) */
 		FString RootCategory;
 		/** The chain of categories */
 		TArray<FString> CategoryChain;
-
-		/** Scoring data */
-		TArray<FString> SearchKeywordsArray;
-		TArray<FString> MenuDescriptionArray;
-		TArray<FString> SearchTitleArray;
-		TArray<FString> SearchCategoryArray;
-
-		/** The text that can be used to find this entry */
-		FString SearchText;
 	};
 private:
 
@@ -722,9 +762,6 @@ class ENGINE_API UEdGraphSchema : public UObject
 
 	/** Returns schema action to create comment from implemention */
 	virtual TSharedPtr<FEdGraphSchemaAction> GetCreateCommentAction() const { return NULL; }
-
-	/** Returns schema action to create documention node from implemention */
-	virtual TSharedPtr<FEdGraphSchemaAction> GetCreateDocumentNodeAction() const { return NULL; }
 
 	/**
 	 * Handle a graph being removed by the user (potentially removing associated bound nodes, etc...)

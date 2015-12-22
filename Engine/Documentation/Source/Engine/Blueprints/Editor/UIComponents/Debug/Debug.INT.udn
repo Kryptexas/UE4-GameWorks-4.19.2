@@ -1,7 +1,8 @@
 Availability:Public
 Title: Debug Panel
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI
-Description:
+Description: Panel that provides a list of all debug tools currently in use for the Blueprint.
+version: 4.9
 
 The **Debug** panel provides a list of all debug tools currently in use for the Blueprint, such as Breakpoints and Watch Values. During Play-In-Editor, it also provides access to the Execution Trace, showing you each node execution taking place within a given Blueprint.
 

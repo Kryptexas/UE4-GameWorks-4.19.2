@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -38,7 +38,7 @@ IMPLEMENT_GET_PRIVATE_VAR(FStackTracker, bIsEnabled, bool);
  * NOTE: If you are trying to catch remote log messages deep within the internal game netcode, 
  *			then this class may not be appropriate, as remote logging passes through the netcode (YMMV)
  */
-class FScopedLog
+class NETCODEUNITTEST_API FScopedLog
 {
 protected:
 	FScopedLog()
@@ -88,14 +88,14 @@ protected:
 /**
  * Version of the above, for scoped logging of all netcode-related logs
  */
-class FScopedLogNet : public FScopedLog
+class NETCODEUNITTEST_API FScopedLogNet : public FScopedLog
 {
 public:
 	FScopedLogNet(UClientUnitTest* InUnitTest, bool bInRemoteLogging=false)
 	{
 		TArray<FString> TempLogCategories;
 
-		// @todo JohnB: See if there are any other good net categories to add here
+		// @todo #JohnBDebug: See if there are any other good net categories to add here
 		TempLogCategories.Add(TEXT("LogNet"));
 		TempLogCategories.Add(TEXT("LogRep"));
 		TempLogCategories.Add(TEXT("LogNetTraffic"));
@@ -115,7 +115,7 @@ public:
 /**
  * Base class for transparently hooking ProcessEvent
  */
-class FProcessEventHookBase
+class NETCODEUNITTEST_API FProcessEventHookBase
 {
 public:
 	FProcessEventHookBase();
@@ -145,7 +145,7 @@ protected:
 /**
  * A class for hooking and logging all ProcessEvent calls, within a particular code scope, similar to the above code
  */
-class FScopedProcessEventLog : FProcessEventHookBase
+class NETCODEUNITTEST_API FScopedProcessEventLog : FProcessEventHookBase
 {
 public:
 	FScopedProcessEventLog()
@@ -219,7 +219,7 @@ protected:
 };
 
 
-// @todo JohnB: Add documentation for all of the stack trace stuff, to the primary NetcodeUnitTest documentation
+// @todo #JohnBDocMain: Add documentation for all of the stack trace stuff, to the primary NetcodeUnitTest documentation
 
 /**
  * Manager for handling multiple debug stack traces on-the-fly, and allowing abstraction of stack traces,
@@ -361,11 +361,11 @@ protected:
 };
 
 
-// @todo JohnB: The log trace stuff doesn't support the 'startenabled' and enable/disable etc. features;
+// @todo #JohnBDebug: The log trace stuff doesn't support the 'startenabled' and enable/disable etc. features;
 //				some stuff (like enable/disable) should be easy to add though, so do that eventually
 
 
-// @todo JohnB: NOTE: Don't move the log stack trace manager to .cpp yet; not until you decide how to implement,
+// @todo #JohnB: NOTE: Don't move the log stack trace manager to .cpp yet; not until you decide how to implement,
 //				the similar ProcessEvent hook that will tie in to the trace manager, as you may try to generalize the below for that
 
 /**
@@ -605,7 +605,7 @@ public:
 };
 
 
-// @todo JohnB: Continue implementing
+// @todo #JohnBFeatureDebug: Continue implementing
 #if 0
 #if !UE_BUILD_SHIPPING
 /**
@@ -636,7 +636,7 @@ public:
  */
 struct NUTDebug
 {
-	// @todo JohnB: Might be useful to find a place for the hexdump functions within the base engine code itself;
+	// @todo #JohnBMerge: Might be useful to find a place for the hexdump functions within the base engine code itself;
 	//				they are very useful
 
 	// NOTE: If outputting hex dump info to the unit test log windows, make use of bMonospace, to retain the hex formatting

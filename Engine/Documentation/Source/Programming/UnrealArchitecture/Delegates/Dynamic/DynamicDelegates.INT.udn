@@ -2,13 +2,13 @@ Availability:Public
 Title:Dynamic Delegates
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture, Programming/UnrealArchitecture/Delegates
 Description:Delegates that can be serialized and support reflection.
-Version: 4.5
+Version: 4.9
 
 Dynamic delegates can be serialized, their functions can be found by name, and they are slower than regular delegates.
 
 ## Declaring Dynamic Delegates
 
-Dynamic delegates are declared in the same manner as you **[declare standard delegates](Programming/UnrealArchitecture/Delegates#DeclaringDelegates)** except they use the macro 
+Dynamic delegates are declared in the same manner as you [declare standard delegates](Programming/UnrealArchitecture/Delegates#DeclaringDelegates) except they use the macro 
 variations specific to dynamic delegates.
 
 | Declaration Macro | Description |

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "PersonaPrivatePCH.h"
 #include "Persona.h"
@@ -148,7 +148,7 @@ void FAnimBlueprintEditAppMode::PostActivateMode()
 		UDebugSkelMeshComponent* PreviewComponent = Persona->GetPreviewMeshComponent();
 		if ((AnimBlueprint->GetObjectBeingDebugged() == NULL) && (PreviewComponent->IsAnimBlueprintInstanced()))
 		{
-			AnimBlueprint->SetObjectBeingDebugged(PreviewComponent->AnimScriptInstance);
+			AnimBlueprint->SetObjectBeingDebugged(PreviewComponent->GetAnimInstance());
 		}
 
 		// If we are a derived anim blueprint always show the overrides tab

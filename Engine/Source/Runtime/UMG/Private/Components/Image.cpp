@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 #include "Slate/SlateBrushAsset.h"
@@ -45,9 +45,12 @@ void UImage::SynchronizeProperties()
 	TAttribute<FSlateColor> ColorAndOpacityBinding = OPTIONAL_BINDING(FSlateColor, ColorAndOpacity);
 	TAttribute<const FSlateBrush*> ImageBinding = OPTIONAL_BINDING_CONVERT(FSlateBrush, Brush, const FSlateBrush*, ConvertImage);
 
-	MyImage->SetImage(ImageBinding);
-	MyImage->SetColorAndOpacity(ColorAndOpacityBinding);
-	MyImage->SetOnMouseButtonDown(BIND_UOBJECT_DELEGATE(FPointerEventHandler, HandleMouseButtonDown));
+	if (MyImage.IsValid())
+	{
+		MyImage->SetImage(ImageBinding);
+		MyImage->SetColorAndOpacity(ColorAndOpacityBinding);
+		MyImage->SetOnMouseButtonDown(BIND_UOBJECT_DELEGATE(FPointerEventHandler, HandleMouseButtonDown));
+	}
 }
 
 void UImage::SetColorAndOpacity(FLinearColor InColorAndOpacity)
@@ -100,7 +103,7 @@ void UImage::SetBrushFromTexture(UTexture2D* Texture, bool bMatchSize)
 {
 	Brush.SetResourceObject(Texture);
 
-	if (bMatchSize)
+	if (bMatchSize && Texture)
 	{
 		Brush.ImageSize.X = Texture->GetSizeX();
 		Brush.ImageSize.Y = Texture->GetSizeY();

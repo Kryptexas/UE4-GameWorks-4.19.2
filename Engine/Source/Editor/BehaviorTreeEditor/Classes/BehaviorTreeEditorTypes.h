@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -19,7 +19,15 @@ struct FCompareNodeXLocation
 {
 	FORCEINLINE bool operator()(const UEdGraphPin& A, const UEdGraphPin& B) const
 	{
-		return A.GetOwningNode()->NodePosX < B.GetOwningNode()->NodePosX;
+		const UEdGraphNode* NodeA = A.GetOwningNode();
+		const UEdGraphNode* NodeB = B.GetOwningNode();
+
+		if (NodeA->NodePosX == NodeB->NodePosX)
+		{
+			return NodeA->NodePosY < NodeB->NodePosY;
+		}
+
+		return NodeA->NodePosX < NodeB->NodePosX;
 	}
 };
 

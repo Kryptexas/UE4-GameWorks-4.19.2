@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2426283
+﻿INTSourceChangelist:2602708
 Title:ゲームプレイ ガイド
 Crumbs:%ROOT%
 Description:プログラマおよびビジュアル スクリプタ向けのゲームプレイ機能の概要とサンプル
@@ -66,16 +66,16 @@ Availability:Public
 		![](%ROOT%/gameplay_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Framework
+		フレームワーク
 	[/PARAM]
 	[PARAM:description]
-		アンリアル エンジン 4 には、ビヘイビアがプリセットされたクラスがたくさん付いていますので、ゲームの着手が容易です。これらのビルディング ブロックや、それらがどのように関わりあって機能するかについては、 
+		アンリアル エンジン 4 には、ビヘイビアがプリセットされたクラスが豊富なので、ゲームを簡単に始めることができます。これらのビルディング ブロックや機能の関連性については、 
 		フレームワークの概要やクイック リファレンス、あるいは 
 		特定のクラスの詳細ページに直接アクセスして参照することができます。
 	[/PARAM]
 	[PARAM:links]
 		* [フレームワークの概要](Gameplay/Framework "%Gameplay/Framework:description%")
-		* [クイック リファレンス](Gameplay/Framework/QuickReference "%Gameplay/Framework/QuickReference:description%")
+		* [クリック リファレンス](Gameplay/Framework/QuickReference "%Gameplay/Framework/QuickReference:description%")
 		* [](Gameplay/Framework/Pawn "%Gameplay/Framework/Pawn:description%")
 		* [](Gameplay/Framework/Controller "%Gameplay/Framework/Controller:description%")
 		* [](Gameplay/Framework/GameMode "%Gameplay/Framework/GameMode:description%")
@@ -107,6 +107,22 @@ Availability:Public
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
+		![](%ROOT%/profile_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Gameplay ツール
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Gameplay/Tools/GameplayDebugger "%Gameplay/Tools/GameplayDebugger:description%")
+		* [](Gameplay/Tools/NetworkProfiler "%Gameplay/Tools/NetworkProfiler:description%")
+		* [](Gameplay/Tools/VisualLogger "%Gameplay/Tools/VisualLogger:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
 		![](%ROOT%/gameplay_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
@@ -120,16 +136,16 @@ Availability:Public
 		* [アクタをスポーン/破壊する](Gameplay\HowTo\SpawnAndDestroyActors)
 		* [Respawning (OnDestroyed)](Gameplay\HowTo\RespawnPlayer)
 		* [ポーンを所有する](Gameplay\HowTo\PossessPawns)
-		* [レイキャストを使用する (トレーシング)](Gameplay\HowTo\UseRaycasts\Code)
+		* [レイキャストを使用する (トレーシング)](Gameplay\HowTo\UseRaycasts)
 		* [アセットを参照する](Gameplay\HowTo\ReferenceAssets)
 		* [タイマーを使用する](Gameplay\HowTo\UseTimers)
 		* [ゲームモードを設定する](Gameplay\HowTo\SettingUpAGameMode)
 		* [入力を設定する](Gameplay\HowTo\SetUpInput)
-		* [アクタに入力を設定する](Gameplay\HowTo\ActorInput\Code)
+		* [アクタに入力を設定する](Gameplay\HowTo\ActorInput)
 		* [キャラクター移動の設定](Gameplay\HowTo\CharacterMovement)
-		* [シーンでアクタを見つける](Gameplay\HowTo\FindingActors\Code)
-		* [カメラを使用する](Gameplay\HowTo\UseTimers)
-		* [コンポーネントを追加する](Gameplay\HowTo\AddingComponents\Code)
+		* [シーンでアクタを見つける](Gameplay\HowTo\FindingActors)
+		* [カメラを使用する](Gameplay\HowTo\UsingCameras)
+		* [コンポーネントを追加する](Gameplay\HowTo\AddingComponents)
 		* [OnHit イベントを使用する](Gameplay\HowTo\UseOnHit)
 			* **ネットワーキング**
 			* [アクタをレプリケートする](Gameplay\HowTo\Networking\ReplicateActor)

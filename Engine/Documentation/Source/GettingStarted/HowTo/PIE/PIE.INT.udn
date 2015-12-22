@@ -1,11 +1,12 @@
 Availability:Public
-Title:Playing & Simulating
+Title:Playing and Simulating
 Crumbs: %ROOT%, Gameplay, GettingStarted\HowTo
 Description:Playtesting and Simulating your game with the Play and Simulate options. 
 Related: Engine/UI/LevelEditor/InEditorTesting
 Related: Engine/UI/LevelEditor/InEditorTesting/Settings
 Related: Engine/UI/LevelEditor/InEditorTesting/KeepSimulationChanges
 Related: Gameplay/HowTo/Networking/TestMultiplayer
+version: 4.9
 
 
 [INCLUDE:Engine\UI\LevelEditor\InEditorTesting#overview]

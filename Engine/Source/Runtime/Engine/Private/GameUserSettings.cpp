@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "SlateBasics.h"
@@ -138,6 +138,7 @@ void UGameUserSettings::SetToDefaults()
 	WindowPosX = GetDefaultWindowPosition().X;
 	WindowPosY = GetDefaultWindowPosition().Y;
 	FullscreenMode = GetDefaultWindowMode();
+	FrameRateLimit = 0.0f;
 
 	ScalabilityQuality.SetDefaults();
 }
@@ -191,9 +192,6 @@ void UGameUserSettings::ApplyNonResolutionSettings()
 {
 	ValidateSettings();
 
-	bool bIsDirty = IsDirty();
-	EWindowMode::Type NewWindowMode = GetFullscreenMode();
-
 	// Update vsync cvar
 	{
 		FString ConfigSection = TEXT("SystemSettings");
@@ -212,6 +210,16 @@ void UGameUserSettings::ApplyNonResolutionSettings()
 		{
 			static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync"));
 			CVar->Set(IsVSyncEnabled(), ECVF_SetByGameSetting);
+		}
+	}
+
+	if (!IsRunningDedicatedServer())
+	{
+		// Update MaxFPS cvar
+		static IConsoleVariable* MaxFPSCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("t.MaxFPS"));
+		if (ensure(MaxFPSCVar) && (FrameRateLimit >= 0.0f))
+		{
+			MaxFPSCVar->Set(FrameRateLimit, ECVF_SetByGameSetting);
 		}
 	}
 
@@ -237,7 +245,6 @@ void UGameUserSettings::ApplyResolutionSettings(bool bCheckForCommandLineOverrid
 	// Request a resolution change
 	RequestResolutionChange(ResolutionSizeX, ResolutionSizeY, NewFullscreenMode, bCheckForCommandLineOverrides);
 	IConsoleManager::Get().CallAllConsoleVariableSinks();
-
 }
 
 void UGameUserSettings::ApplySettings(bool bCheckForCommandLineOverrides)
@@ -247,11 +254,6 @@ void UGameUserSettings::ApplySettings(bool bCheckForCommandLineOverrides)
 
 	SaveSettings();
 	UE_LOG(LogConsoleResponse, Display, TEXT(""));
-}
-
-void UGameUserSettings::ApplySettings()
-{
-	ApplySettings(true);
 }
 
 void UGameUserSettings::LoadSettings( bool bForceReload/*=false*/ )
@@ -402,4 +404,109 @@ void UGameUserSettings::SetBenchmarkFallbackValues()
 void UGameUserSettings::SetAudioQualityLevel(int32 QualityLevel)
 {
 	AudioQualityLevel = QualityLevel;
+}
+
+void UGameUserSettings::SetFrameRateLimit(float NewLimit)
+{
+	FrameRateLimit = NewLimit;
+}
+
+float UGameUserSettings::GetFrameRateLimit() const
+{
+	return FrameRateLimit;
+}
+
+void UGameUserSettings::SetOverallScalabilityLevel(int32 Value)
+{
+	Value = FMath::Clamp(Value, 0, 3);
+	ScalabilityQuality.SetFromSingleQualityLevel(Value);
+}
+
+int32 UGameUserSettings::GetOverallScalabilityLevel() const
+{
+	return ScalabilityQuality.GetSingleQualityLevel();
+}
+
+void UGameUserSettings::GetResolutionScaleInformation(float& CurrentScaleNormalized, int32& CurrentScaleValue, int32& MinScaleValue, int32& MaxScaleValue) const
+{
+	CurrentScaleValue = ScalabilityQuality.ResolutionQuality;
+	MinScaleValue = Scalability::MinResolutionScale;
+	MaxScaleValue = Scalability::MaxResolutionScale;
+	CurrentScaleNormalized = ((float)CurrentScaleValue - (float)MinScaleValue) / (float)(MaxScaleValue - MinScaleValue);
+}
+
+void UGameUserSettings::SetResolutionScaleValue(int32 NewScaleValue)
+{
+	ScalabilityQuality.ResolutionQuality = FMath::Clamp(NewScaleValue, Scalability::MinResolutionScale, Scalability::MaxResolutionScale);
+}
+
+void UGameUserSettings::SetResolutionScaleNormalized(float NewScaleNormalized)
+{
+	const int32 RemappedValue = (int32)FMath::Lerp((float)Scalability::MinResolutionScale, (float)Scalability::MaxResolutionScale, NewScaleNormalized);
+	SetResolutionScaleValue(RemappedValue);
+}
+
+void UGameUserSettings::SetViewDistanceQuality(int32 Value)
+{
+	ScalabilityQuality.ViewDistanceQuality = FMath::Clamp(Value, 0, 3);
+}
+
+int32 UGameUserSettings::GetViewDistanceQuality() const
+{
+	return ScalabilityQuality.ViewDistanceQuality;
+}
+
+void UGameUserSettings::SetShadowQuality(int32 Value)
+{
+	ScalabilityQuality.ShadowQuality = FMath::Clamp(Value, 0, 3);
+}
+
+int32 UGameUserSettings::GetShadowQuality() const
+{
+	return ScalabilityQuality.ShadowQuality;
+}
+
+void UGameUserSettings::SetAntiAliasingQuality(int32 Value)
+{
+	ScalabilityQuality.AntiAliasingQuality = FMath::Clamp(Value, 0, 3);
+}
+
+int32 UGameUserSettings::GetAntiAliasingQuality() const
+{
+	return ScalabilityQuality.AntiAliasingQuality;
+}
+
+void UGameUserSettings::SetTextureQuality(int32 Value)
+{
+	ScalabilityQuality.TextureQuality = FMath::Clamp(Value, 0, 3);
+}
+
+int32 UGameUserSettings::GetTextureQuality() const
+{
+	return ScalabilityQuality.TextureQuality;
+}
+
+void UGameUserSettings::SetVisualEffectQuality(int32 Value)
+{
+	ScalabilityQuality.EffectsQuality = FMath::Clamp(Value, 0, 3);
+}
+
+int32 UGameUserSettings::GetVisualEffectQuality() const
+{
+	return ScalabilityQuality.EffectsQuality;
+}
+
+void UGameUserSettings::SetPostProcessingQuality(int32 Value)
+{
+	ScalabilityQuality.PostProcessQuality = FMath::Clamp(Value, 0, 3);
+}
+
+int32 UGameUserSettings::GetPostProcessingQuality() const
+{
+	return ScalabilityQuality.PostProcessQuality;
+}
+
+UGameUserSettings* UGameUserSettings::GetGameUserSettings()
+{
+	return GEngine->GetGameUserSettings();
 }

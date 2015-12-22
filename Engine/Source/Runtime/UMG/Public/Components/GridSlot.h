@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Components/PanelSlot.h"
@@ -64,6 +64,10 @@ public:
 	/** How many columns this slot spans over */
 	UFUNCTION(BlueprintCallable, Category="Layout|Grid Slot")
 	void SetColumnSpan(int32 InColumnSpan);
+
+	/** Sets positive values offset this cell to be hit-tested and drawn on top of others. */
+	UFUNCTION(BlueprintCallable, Category = "Layout|Grid Slot")
+	void SetLayer(int32 InLayer);
 
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Layout|Grid Slot")

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2666775
 Availability:Public
 Title:앰비언트 오클루전
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:Occlusion, 차폐에 의한 빛의 감쇠를 추정합니다.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -25,7 +26,7 @@ Description:Occlusion, 차폐에 의한 빛의 감쇠를 추정합니다.
 [/VAR]
 
 [EXCERPT:AmbientOcclusion_Desc]
-**Screen Space Ambient Occlusion** (스크린 스페이스 앰비언트 오클루전)은 빛의 차폐로 인한 감쇠 근사치를 구하는 이펙트입니다. 현실에서도 방의 구석 부분은 훨씬 더 어둡듯이, 구석이나 틈 같은 곳을 더 어둡게 하여 더욱 자연스럽고 사실적인 느낌을 낼 수 있도록, 표준 글로벌 일루미네이션에 더해 미묘한 이펙트로 사용하는 것이 보통 가장 좋습니다.
+**Screen Space Ambient Occlusion** (SSAO, 스크린 스페이스 앰비언트 오클루전)은 빛의 차폐로 인한 감쇠 근사치를 구하는 이펙트입니다. 현실에서도 방의 구석 부분은 훨씬 더 어둡듯이, 구석이나 틈 같은 곳을 더 어둡게 하여 더욱 자연스럽고 사실적인 느낌을 낼 수 있도록, 표준 글로벌 일루미네이션에 더해 미묘한 이펙트로 사용하는 것이 보통 가장 좋습니다.
 [/EXCERPT:AmbientOcclusion_Desc]
 
 [REGION:imagetable]
@@ -34,8 +35,8 @@ Description:Occlusion, 차폐에 의한 빛의 감쇠를 추정합니다.
 | 앰비언트 오클루전이 없는 씬 | 앰비언트 오클루전만 | 앰비언트 오클루전이 있는 씬 |
 [/REGION]
 
-이 이펙트는 SSAO (Screen Space Ambient Occlusion) 메소드를 사용하여 이뤄내는데, 즉 AO 양은 스크린 스페이스의 디퍼드 패스에서 계산된다는 뜻입니다.
-저희 메소드는 뎁스 버퍼를 활용하며, 노멀은 GBuffer 를 이룹니다 (디퍼드 셰이딩 참고). 이는 노멀맵 디테일이 결과에 영향을 끼친다는 뜻입니다. UE4 에서 이펙트는 AmbientCubemap 과 Voxel Lighting 에 적용됩니다. 직사광에는 영향을 끼치지 않ㅅ는데, 여기서는 섀도우 매핑을 사용하기 때문입니다.
+이 이펙트는 SSAO 메소드를 사용하여 이뤄내는데, 즉 AO 양은 스크린 스페이스의 디퍼드 패스에서 계산된다는 뜻입니다.
+저희 메소드는 뎁스 버퍼를 활용하며, 노멀은 GBuffer 를 이룹니다 (디퍼드 셰이딩 참고). 이는 노멀맵 디테일이 결과에 영향을 끼친다는 뜻입니다. UE4 에서 이펙트는 AmbientCubemap 과 Voxel Lighting 에 적용됩니다. 직사광에는 영향을 끼치지 않는데, 여기서는 섀도우 매핑을 사용하기 때문입니다.
 
 "Visualize GBuffer" 뷰모드를 사용하거나 (뷰모드 참고) 표시 플래그 "Visualize Ambient Occlusion" 를 사용하면 AO 값을 직접 확인할 수 있습니다.
 

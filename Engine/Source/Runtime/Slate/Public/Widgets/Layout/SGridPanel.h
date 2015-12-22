@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -102,6 +102,19 @@ public:
 				RowSpanParam = FMath::Max(1,RowSpan);
 
 				if(Panel.IsValid())
+				{
+					Panel.Pin()->NotifySlotChanged(this);
+				}
+
+				return *this;
+			}
+
+			/** Positive values offset this cell to be hit-tested and drawn on top of others. Default is 0; i.e. no offset. */
+			FSlot& Layer(int32 Layer)
+			{
+				LayerParam = Layer;
+
+				if (Panel.IsValid())
 				{
 					Panel.Pin()->NotifySlotChanged(this);
 				}

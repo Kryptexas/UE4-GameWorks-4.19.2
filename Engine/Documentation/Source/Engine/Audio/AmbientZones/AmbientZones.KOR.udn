@@ -1,12 +1,10 @@
-﻿INTSourceChangelist:2311102
+﻿INTSourceChangelist:2625860
 Availability:docs
 Title:앰비언트 존
 Crumbs: %ROOT%, Engine, Engine/Audio
 Description:Audio Volume 의 Ambient Zone 을 사용하여 앰비언트 오디오 존을 만드는 법입니다.
 
 [TOC(start:2 end:2)]
-
-## 개요
 
 **Ambient Zones** (앰비언트 존)은 비싸지 않은 내부/외부 앰비언트 오디오 솔루션입니다. **앰비언트 존** 의 장점은 다음과 같습니다:
 

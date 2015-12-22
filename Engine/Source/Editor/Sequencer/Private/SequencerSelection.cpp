@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
 #include "SequencerSelection.h"
@@ -10,7 +10,7 @@ FSequencerSelection::FSequencerSelection()
 	bSuspendBroadcast = false;
 }
 
-const TSet<FSelectedKey>& FSequencerSelection::GetSelectedKeys() const
+const TSet<FSequencerSelectedKey>& FSequencerSelection::GetSelectedKeys() const
 {
 	return SelectedKeys;
 }
@@ -45,7 +45,7 @@ FSequencerSelection::FOnSelectionChanged& FSequencerSelection::GetOnOutlinerNode
 	return OnOutlinerNodeSelectionChanged;
 }
 
-void FSequencerSelection::AddToSelection(FSelectedKey Key)
+void FSequencerSelection::AddToSelection(FSequencerSelectedKey Key)
 {
 	SelectedKeys.Add(Key);
 	ActiveSelection = EActiveSelection::KeyAndSection;
@@ -75,7 +75,7 @@ void FSequencerSelection::AddToSelection(TSharedRef<FSequencerDisplayNode> Outli
 	}
 }
 
-void FSequencerSelection::RemoveFromSelection(FSelectedKey Key)
+void FSequencerSelection::RemoveFromSelection(FSequencerSelectedKey Key)
 {
 	SelectedKeys.Remove(Key);
 	ActiveSelection = EActiveSelection::KeyAndSection;
@@ -105,7 +105,7 @@ void FSequencerSelection::RemoveFromSelection(TSharedRef<FSequencerDisplayNode> 
 	}
 }
 
-bool FSequencerSelection::IsSelected(FSelectedKey Key) const
+bool FSequencerSelection::IsSelected(FSequencerSelectedKey Key) const
 {
 	return SelectedKeys.Contains(Key);
 }

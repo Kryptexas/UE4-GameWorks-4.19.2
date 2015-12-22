@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HitProxyPixelShader.hlsl: Pixel shader for rendering scene hit proxies.
@@ -21,18 +21,21 @@ void Main(
 	float4 PixelPosition	: TEXCOORD6,
 	in INPUT_POSITION_QUALIFIERS float4 SvPosition	: SV_Position
 	OPTIONAL_IsFrontFace
-	OPTIONAL_OutDepth
+	OPTIONAL_OutDepthConservative
 	,out float4 OutColor		: SV_Target0
 	)
 {
-	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, PixelPosition);
-	CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace, PixelPosition);
+	ResolvedView = ResolveView();
+
+	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, SvPosition);
+	FPixelMaterialInputs PixelMaterialInputs;
+	CalcMaterialParameters(MaterialParameters, PixelMaterialInputs, SvPosition, bIsFrontFace);
 
 	#if OUTPUT_PIXEL_DEPTH_OFFSET
-		ApplyPixelDepthOffsetToMaterialParameters(MaterialParameters, OutDepth);
+		ApplyPixelDepthOffsetToMaterialParameters(MaterialParameters, PixelMaterialInputs, OutDepth);
 	#endif
 
-	GetMaterialCoverageAndClipping(MaterialParameters);
+	GetMaterialCoverageAndClipping(MaterialParameters, PixelMaterialInputs);
 
 #if USE_INSTANCING
 	OutColor = HitProxyId + InstanceHitProxyId;

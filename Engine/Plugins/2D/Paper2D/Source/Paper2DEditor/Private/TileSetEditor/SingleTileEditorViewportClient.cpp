@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "SingleTileEditorViewportClient.h"
@@ -39,7 +39,7 @@ FSingleTileEditorViewportClient::FSingleTileEditorViewportClient(UPaperTileSet* 
 	((FAssetEditorModeManager*)ModeTools)->SetPreviewScene(PreviewScene);
 
 	EngineShowFlags.DisableAdvancedFeatures();
-	EngineShowFlags.CompositeEditorPrimitives = true;
+	EngineShowFlags.SetCompositeEditorPrimitives(true);
 
 	// Create a render component for the tile preview
 	PreviewTileSpriteComponent = NewObject<UPaperSpriteComponent>();

@@ -2,6 +2,7 @@ Availability:Public
 Title:C++ Programming Tutorials
 Crumbs: %ROOT%, Programming
 Description: Step-by-step instructional guides for hands-on learning of programming in Unreal Engine.
+version: 4.9
 
 [VAR:Params]
 [PARAM:image]

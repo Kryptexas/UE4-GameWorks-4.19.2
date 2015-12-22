@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "IPropertyTableUtilities.h"
@@ -20,7 +20,7 @@ public:
 
 	virtual ~FPropertyTablePropertyNameColumn() {}
 
-	// Begin IPropertyTableColumn Interface
+	//~ Begin IPropertyTableColumn Interface
 
 	virtual bool CanSelectCells() const override { return true; }
 
@@ -66,7 +66,7 @@ public:
 	DECLARE_DERIVED_EVENT( FPropertyTableColumn, IPropertyTableColumn::FFrozenStateChanged, FFrozenStateChanged );
 	FFrozenStateChanged* OnFrozenStateChanged() override { return &FrozenStateChanged; }
 
-	// End IPropertyTableColumn Interface
+	//~ End IPropertyTableColumn Interface
 
 private:
 

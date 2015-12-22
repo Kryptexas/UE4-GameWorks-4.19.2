@@ -1,8 +1,10 @@
 Availability:Public
 Title:How to Build a Double Wishbone Suspension Vehicle
 Crumbs:%ROOT%, Engine, Engine/Physics
-Description:
+Description: Description of how to setup Double Wish Bone suspension vehicle with Unreal Engine 4.
 Navigation:topic
+SkillLevel: Advanced
+Version: 4.9
 
 [TOC (start:2)]
 

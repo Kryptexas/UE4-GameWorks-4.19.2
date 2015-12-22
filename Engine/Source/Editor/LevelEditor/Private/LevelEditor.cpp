@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "LevelEditor.h"
@@ -59,7 +59,7 @@ public:
 		FColor BadgeTextColor = FColor(128,128,128,255);
 		GConfig->GetColor(TEXT("LevelEditor"), TEXT("ProjectBadgeTextColor"), /*out*/ BadgeTextColor, GEditorPerProjectIni);
 
-		const FString EngineVersionString = GEngineVersion.ToString(GEngineVersion.HasChangelist() ? EVersionComponent::Changelist : EVersionComponent::Patch);
+		const FString EngineVersionString = FEngineVersion::Current().ToString(FEngineVersion::Current().HasChangelist() ? EVersionComponent::Changelist : EVersionComponent::Patch);
 		
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("Branch"), FText::FromString(OptionalBranchPrefix));
@@ -223,10 +223,10 @@ void FLevelEditorModule::StartupModule()
 	NotificationBarExtensibilityManager = MakeShareable(new FExtensibilityManager);
 
 	// Note this must come before any tab spawning because that can create the SLevelEditor and attempt to map commands
-	FLevelEditorCommands::Register();
-	FLevelEditorModesCommands::Register();
 	FEditorViewportCommands::Register();
 	FLevelViewportCommands::Register();
+	FLevelEditorCommands::Register();
+	FLevelEditorModesCommands::Register();
 
 	// Bind level editor commands shared across an instance
 	BindGlobalLevelEditorCommands();
@@ -563,6 +563,9 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 
 	ActionList.MapAction( Commands.Import,
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::Import_Clicked ) );
+
+	ActionList.MapAction(Commands.ImportScene,
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ImportScene_Clicked));
 
 	ActionList.MapAction( Commands.ExportAll,
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ExportAll_Clicked ) );
@@ -1047,6 +1050,11 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 		);
 
 	ActionList.MapAction(
+		Commands.SelectOwningHierarchicalLODCluster,
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::OnSelectOwningHLODCluster)
+		);
+
+	ActionList.MapAction(
 		Commands.SelectSkeletalMeshesOfSameClass,
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ExecuteExecCommand, FString( TEXT("ACTOR SELECT MATCHINGSKELETALMESH") ) )
 		);
@@ -1316,6 +1324,12 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 		);
 
 	ActionList.MapAction(
+		Commands.FindActorLevelInContentBrowser,
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::OnFindActorLevelInContentBrowser),
+		FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::CanExecuteFindActorLevelInContentBrowser)
+		);
+
+	ActionList.MapAction(
 		Commands.FindLevelsInLevelBrowser,
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::OnFindLevelsInLevelBrowser )
 		);
@@ -1369,10 +1383,7 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 
 	ActionList.MapAction(Commands.BuildLODsOnly,
 		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::BuildLODsOnly_Execute));
-
-	ActionList.MapAction(Commands.PreviewHLODClustersOnly,
-		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::PreviewHLODClustersOnly_Execute));
-
+	
 	ActionList.MapAction( 
 		Commands.LightingQuality_Production, 
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::SetLightingQuality, (ELightingBuildQuality)Quality_Production ),

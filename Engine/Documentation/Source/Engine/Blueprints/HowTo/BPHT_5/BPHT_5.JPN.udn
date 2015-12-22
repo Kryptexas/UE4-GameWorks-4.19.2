@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2501099
+﻿INTSourceChangelist:2686179
 Availability:Public
 Title:5.岩を破壊する 
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
-Description:OnHit に結合されている Bind Event を使って、ヒットすると岩が破壊されるようにするステップです。 
+Description:OnHit に結合されている Bind Event を使って、ヒットすると岩が破壊するようにしてみましょう。
+Version:4.9
 
 
 [VAR:Steps]
@@ -23,9 +24,9 @@ Description:OnHit に結合されている Bind Event を使って、ヒット�
 
 %Steps%
 
-このステップでは、プレイヤーが発砲した発射物にヒット岩が破壊されるようにします。これを行うためには別の **Bind Event** を使いますが、それは Event Dispatcher には結像しません。その代り、岩のコリジョンが何かにヒットすると実行される **OnHit** と呼ばれるコリジョン イベントを使います。まさにこの状況にぴったりです。 
+このステップでは、プレイヤーが発砲した発射物にヒット岩が破壊されるようにします。これを行うためには別の **Bind Event** を使いますが、それはイベントディスパッチャーにはバインドされません。その代り、岩のコリジョンが何かにヒットすると実行される **OnHit** と呼ばれるコリジョン イベントを使います。まさにこの状況にぴったりです。 
 
-岩を破壊してみましょう！
+では、岩を破壊してみましょう！
 
 1.	**FirstPersonCharacter** ブループリント内に戻り、岩をスポーンする **Spawn Actor** ノードを検索します。 
 
@@ -45,7 +46,7 @@ Description:OnHit に結合されている Bind Event を使って、ヒット�
 
 	![](EnterDamage.png)
 
-	これにより、確実に岩を粉々にするのに十分なダメージを与えることができます。 
+	これにより、岩を粉々にするのに十分なダメージを確実に与えることができます。 
 
 1.	**Apply Radius Damage** ノードの次に、 **Set Score** ノードを追加します。 
 
@@ -78,7 +79,7 @@ Description:OnHit に結合されている Bind Event を使って、ヒット�
 
 <!-- Old
 
-これまでのページで行った **ブループリント** 間の通信のほとんどは、 1 つの **ブループリント** と別のブループリント間で情報をパスしていました。複数の **ブループリント** 間だけでなく、種類も複数の **ブループリント** 間で情報をパスしたい場合があると思います。 
+これまでのページで行った **ブループリント** 間の通信のほとんどは、 1 つの **ブループリント** と別のブループリント間で情報を渡していました。複数の **ブループリント** 間だけでなく、種類も複数の **ブループリント** 間で情報をパスしたい場合があると思います。 
 
 このページでは、 **Get All Actors of Class** ノードについて、およびそれを使って同じクラスの複数の **ブループリント** へ一度に情報をパスする方法を学習します。**ブループリント** 間で中間物の役割をし、それらの間で情報の格納 / パスが可能な特殊なタイプの **ブループリント** である **ブループリント インターフェイス** の例も見てきます。インターフェースを使う **ブループリント** は全て、内部に格納されたデータへアクセスすることができるようになります。 
 
@@ -91,7 +92,7 @@ Description:OnHit に結合されている Bind Event を使って、ヒット�
 	[/PARAM]
 [/OBJECT]
 
-1. **「Game/Blueprints」** の **コンテンツ ブラウザ** で、 **Blueprint_Effect_Sparks** を開き **[コンポーネント]** タブをクリックします。 
+1. **コンテンツ ブラウザ** の **Game/Blueprints** から **Blueprint_Effect_Sparks** を開き **[Component]** タブをクリックします。 
 
 1. **Sparks** の **[Details]** パネルで、 **[Activation]** セクションの **[Auto Activate]** のチェックを外します。 
 
@@ -102,14 +103,14 @@ Description:OnHit に結合されている Bind Event を使って、ヒット�
 1. **Blueprint_Effect_Sparks** を **レベル ビューポート** へドラッグします。 
 
 	![](BPHT5_2.png)(w:720)
-		1. エフェクトを選択して、 **Control+W** で複製して、レベル内に幾つか配置します。 
 
+1. エフェクトを選択して、 **Control+W** で複製して、レベル内に幾つか配置します。 
 
 	![](BPHT5_3.png)(w:720)
 
 	_見えやすいようにバックウォールに沿って配置してありますが、好きなように配置することができます。_
 
-1. 「 **Game/Blueprints** 」フォルダから **MyCharacter** ブループリントを開き、コードのセクションで **isOnFire** を _true_ に設定します。 
+1. 「**Game/Blueprints**」フォルダから **MyCharacter** ブループリントを開き、コードのセクションで **isOnFire** を _true_ に設定します。 
 
 1. **Set Is on Fire** ノードを引き出して **Get All Actors Of Class** を追加して、 **ActorClass** を **Blueprint_Effect_Sparks** に設定します。 
 
@@ -150,13 +151,13 @@ Description:OnHit に結合されている Bind Event を使って、ヒット�
 
 	![](BPHT5_6.png)
 
-1. 作成した **ブループリント インターフェース** に「 **BP_Interface** 」のような名前を付けて、アセットを開きます。  
+1. 作成した **ブループリント インターフェース** に「**BP_Interface**」のような名前を付けて、アセットを開きます。  
 
-1. **BP_Interface** 内の **[Add Function]** ボタンをクリックして、新しい関数に「 **PlayerCondition** 」のような名前を付けます。 
+1. **BP_Interface** 内の **[Add Function (関数を追加)]** ボタンをクリックして、新しい関数に「**PlayerCondition**」のような名前を付けます。 
 
 	![](BPHT5_7.png)
 
-1. **[Details]** パネルの中の **[Outputs]** の **[New]** ボタンをクリックし、作成された **bool** に **getIsOnFire** のような名前をつけます。 
+1. **[Details]** パネルの中の **[Outputs]** の **[New]** ボタンをクリックし、作成された **bool** に 「**getIsOnFire**」 のような名前をつけます。 
 
 	![](BPHT5_8.png)
 
@@ -188,7 +189,7 @@ Description:OnHit に結合されている Bind Event を使って、ヒット�
 
 1. **コンパイル** し **保存** してから、ブループリントを終了します。 
 
-1. 「 **Game/Blueprints** 」フォルダの **Blueprint_CeilingLight** をレベル内にドラッグします。 
+1. 「**Game/Blueprints**」フォルダの **Blueprint_CeilingLight** をレベル内にドラッグします。 
 
 	![](BPHT5_13.png)
 
@@ -232,7 +233,7 @@ Description:OnHit に結合されている Bind Event を使って、ヒット�
 
 	_**Interface** を使ってオンオフを操作するので、上記のノードを削除します。_
 
-1. 「 **Game/Blueprints** 」フォルダの **Blueprint_Effect_Sparks** を開きます。 
+1. 「**Game/Blueprints**」フォルダの **Blueprint_Effect_Sparks** を開きます。 
 
 1. **[Blueprint Props]** ボタンをクリックし、 **[Details]** パネルで **BP_Interface** を追加します。 
 
@@ -258,7 +259,7 @@ Description:OnHit に結合されている Bind Event を使って、ヒット�
 
 	_画面中央に配置して固定し、リサイズして色も加えます。_
 
-1. **[Text Block]** の **[Details]** パネルで、「 **FireText** 」に名前をつけて **[Is Variable]** ボックスにチェックも入れます。 
+1. **[Text Block]** の **[Details]** パネルで、「**FireText**」に名前をつけて **[Is Variable]** ボックスにチェックも入れます。 
 
 	![](BPHT5_23.png)
 

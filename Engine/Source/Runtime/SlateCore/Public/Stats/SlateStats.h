@@ -1,9 +1,15 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 /** Set to zero to disable the slate stats system completely, meaning all stats-related structures and code are compiled out. */
-#define SLATE_STATS (!UE_BUILD_SHIPPING || WITH_EDITOR)
+//#define SLATE_STATS (!(UE_BUILD_SHIPPING || UE_BUILD_TEST) || WITH_EDITOR)
+
+#ifndef WITH_SLATE_STATS
+	#define WITH_SLATE_STATS 0
+#endif
+
+#define SLATE_STATS (WITH_SLATE_STATS | WITH_EDITOR)
 
 /** 
  * Predefined detail levels to make choosing level slightly easier.

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2492260
+﻿INTSourceChangelist:2723410
 Availability:Public
 Title:シューティング ゲーム
 Crumbs:%ROOT%, Resources
@@ -15,6 +15,7 @@ Related:Engine/Audio/Overview
 Related:Programming/Slate
 Related:Gameplay/Input
 Related:Engine/Rendering/ParticleSystems
+Version:4.9
 
 
 
@@ -65,8 +66,6 @@ Related:Engine/Rendering/ParticleSystems
 [/REGION]
 
 [TOC(start:2)]
-
-## 概要
 
 ファーストパーソンシューティング ゲームのサンプルは PC 向けのマルチプレイ FPS ゲームのサンプルです。このサンプルには、簡単なフロントメニュー システムに沿った、 
 武器やゲームタイプの基本的な実装方法が含まれています。
@@ -181,7 +180,7 @@ Related:Engine/Rendering/ParticleSystems
  `StartMatch()` が呼ばれます。 
 
 バトルは、サーバーの `AShooterGameMode::DefaultTimer()` 関数でゲーム時間を計算して記録されます。 
-この関数は、 _ゲーム_ の 1 秒間に一回と同等の現在の時間の遅れに相当するレートを適用したループタイマーを使用して実行されます。 
+この関数は、1 _ゲーム_ 秒間に一回と同等の現在の時間の遅れに相当するレートを適用したループタイマーを使用して実行されます。 
 これはゲームのレプリケーション情報クラス (`AShooterGRI`) の `RemainingTime` プロパティに格納され、 
 その後クライアントへレプリケートされます。残り時間が 0 になると、 `FinishMatch()` が呼ばれてゲームセッションは終了します。全プレイヤーにバトルの終了が告げられ、 
 動作とヘルスは無効となります。

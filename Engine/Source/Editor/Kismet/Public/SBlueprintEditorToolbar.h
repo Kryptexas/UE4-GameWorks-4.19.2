@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -22,6 +22,8 @@ protected:
 	static void FillViewMenu( FMenuBuilder& MenuBuilder );
 
 	static void FillDebugMenu( FMenuBuilder& MenuBuilder );
+
+	static void FillProfilerMenu( FMenuBuilder& MenuBuilder );
 
 	static void FillDeveloperMenu( FMenuBuilder& MenuBuilder );
 
@@ -48,6 +50,9 @@ public:
 	TSharedPtr<FUICommandInfo> SaveOnCompile_SuccessOnly;
 	TSharedPtr<FUICommandInfo> SaveOnCompile_Always;
 	TSharedPtr<FUICommandInfo> JumpToErrorNode;
+
+	/** Profiler options  */
+	TSharedPtr<FUICommandInfo> ToggleProfiler;
 
 	/** Switch between modes in the blueprint editor */
 	TSharedPtr<FUICommandInfo> SwitchToScriptingMode;
@@ -77,9 +82,13 @@ public:
 	void AddScriptingToolbar(TSharedPtr<FExtender> Extender);
 	void AddDebuggingToolbar(TSharedPtr<FExtender> Extender);
 	void AddComponentsToolbar(TSharedPtr<FExtender> Extender);
+	void AddProfilerToolbar(TSharedPtr<FExtender> Extender);
 
 	/** Returns the current status icon for the blueprint being edited */
 	FSlateIcon GetStatusImage() const;
+
+	/** Returns the current profiler status tool tip */
+	FText GetProfilerStatusTooltip() const;
 
 	/** Returns the current status as text for the blueprint being edited */
 	FText GetStatusTooltip() const;
@@ -95,6 +104,7 @@ private:
 	void FillScriptingToolbar(FToolBarBuilder& ToolbarBuilder);
 	void FillDebuggingToolbar(FToolBarBuilder& ToolbarBuilder);
 	void FillComponentsToolbar(FToolBarBuilder& ToolbarBuilder);
+	void FillProfilerToolbar(FToolBarBuilder& ToolbarBuilder);
 
 protected:
 	/** Pointer back to the blueprint editor tool that owns us */

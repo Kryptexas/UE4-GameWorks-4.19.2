@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "GameFramework/Info.h"
@@ -200,23 +200,36 @@ struct ENGINE_API FNetViewer
 	FNetViewer(UNetConnection* InConnection, float DeltaSeconds);
 };
 
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 
 USTRUCT()
 struct ENGINE_API FHierarchicalSimplification
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** If this is true, it will simplify mesh but it is slower. 
-	 * If false, it will just merge actors but not simplify using the lower LOD if exists. 
-	 * For example if you build LOD 1, it will use LOD 1 of the mesh to merge actors if exists.  
-	 * If you merge material, it will reduce drawcalls. 
-	 */
-	UPROPERTY(Category=FHierarchicalSimplification, EditAnywhere)
+	/** Draw Distance for this LOD actor to display. */
+	DEPRECATED(4.11, "LOD transition is now based on screen size rather than drawing distance, see TransitionScreenSize")
+	float DrawDistance;
+
+	/** The screen radius an mesh object should reach before swapping to the LOD actor, once one of parent displays, it won't draw any of children. */
+	UPROPERTY(Category = FHierarchicalSimplification, EditAnywhere, meta = (UIMin = "0.0000", ClampMin = "0.00000", UIMax = "1.0", ClampMax = "1.0"))
+	float TransitionScreenSize;
+
+	/** If this is true, it will simplify mesh but it is slower.
+	* If false, it will just merge actors but not simplify using the lower LOD if exists.
+	* For example if you build LOD 1, it will use LOD 1 of the mesh to merge actors if exists.
+	* If you merge material, it will reduce drawcalls.
+	*/
+	UPROPERTY(Category = FHierarchicalSimplification, EditAnywhere)
 	bool bSimplifyMesh;
 
-	/** Draw Distance for this LOD actor to display. Once one of parent displays, it won't draw any of children. */
-	UPROPERTY(Category=FHierarchicalSimplification, EditAnywhere, AdvancedDisplay, meta=(UIMin=10.f, ClampMin=10.f))
-	float DrawDistance;
+	/** Simplification Setting if bSimplifyMesh is true */
+	UPROPERTY(Category = FHierarchicalSimplification, EditAnywhere, AdvancedDisplay)
+	FMeshProxySettings ProxySetting;
+
+	/** Merge Mesh Setting if bSimplifyMesh is false */
+	UPROPERTY(Category = FHierarchicalSimplification, EditAnywhere, AdvancedDisplay)
+	FMeshMergingSettings MergeSetting;
 
 	/** Desired Bounding Radius for clustering - this is not guaranteed but used to calculate filling factor for auto clustering */
 	UPROPERTY(EditAnywhere, Category=FHierarchicalSimplification, AdvancedDisplay, meta=(UIMin=10.f, ClampMin=10.f))
@@ -228,27 +241,33 @@ struct ENGINE_API FHierarchicalSimplification
 
 	/** Min number of actors to build LODActor */
 	UPROPERTY(EditAnywhere, Category=FHierarchicalSimplification, AdvancedDisplay, meta=(ClampMin = "1", UIMin = "1"))
-	int32 MinNumberOfActorsToBuild;
-
-	/** Simplification Setting if bSimplifyMesh is true */
-	UPROPERTY(Category=FHierarchicalSimplification, EditAnywhere, AdvancedDisplay)
-	FMeshProxySettings ProxySetting;
-
-	/** Merge Mesh Setting if bSimplifyMesh is false */
-	UPROPERTY(Category=FHierarchicalSimplification, EditAnywhere, AdvancedDisplay)
-	FMeshMergingSettings MergeSetting;
+	int32 MinNumberOfActorsToBuild;	
 
 	FHierarchicalSimplification()
-		: bSimplifyMesh(false)
-		, DrawDistance(3000)
-		, DesiredBoundRadius(3000)
+		: TransitionScreenSize(0.0435f)
+		, bSimplifyMesh(false)		
+		, DesiredBoundRadius(2000) 
 		, DesiredFillingPercentage(50)
 		, MinNumberOfActorsToBuild(2)
 	{
 		MergeSetting.bMergeMaterials = true;
 		MergeSetting.bGenerateLightMapUV = true;
 	}
+
+private:
+
+	// This function exists to force the compiler generated operators to be instantiated while the deprecation warning
+	// pragmas are disabled so no warnings are thrown when used elsewhere and the compiler is forced to generate them
+	void DummyFunction() const
+	{
+		FHierarchicalSimplification ASP1, ASP2;
+		ASP1 = ASP2;
+
+		FHierarchicalSimplification ASP3(ASP2);
+	}
 };
+
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 /**
  * Actor containing all script accessible world properties.
@@ -420,6 +439,9 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	/** Hierarchical LOD Setup */
 	UPROPERTY(EditAnywhere, Category=LODSystem, meta=(editcondition = "bEnableHierarchicalLODSystem"))
 	TArray<struct FHierarchicalSimplification>	HierarchicalLODSetup;
+
+	UPROPERTY()
+	int32 NumHLODLevels;
 #endif
 	/************************************/
 	/** DEFAULT SETTINGS **/
@@ -441,19 +463,20 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	 * Normally 1 - scales real time passage.
 	 * Warning - most use cases should use GetEffectiveTimeDilation() instead of reading from this directly
 	 */
-	UPROPERTY(replicated)
+	UPROPERTY(transient, replicated)
 	float TimeDilation;
 
-	// additional TimeDilation used by Matinee slomo track
-	UPROPERTY(replicated)
+	// Additional time dilation used by Matinee (or Sequencer) slomo track.  Transient because this is often 
+	// temporarily modified by the editor when previewing slow motion effects, yet we don't want it saved or loaded from level packages.
+	UPROPERTY(transient, replicated)
 	float MatineeTimeDilation;
 
 	// Additional TimeDilation used to control demo playback speed
-	UPROPERTY()
+	UPROPERTY(transient)
 	float DemoPlayTimeDilation;
 
 	// If paused, FName of person pausing the game.
-	UPROPERTY(replicated)
+	UPROPERTY(transient, replicated)
 	class APlayerState* Pauser;
 
 	/** when this flag is set, more time is allocated to background loading (replicated) */
@@ -482,21 +505,21 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	TArray<UAssetUserData*> AssetUserData;
 
 public:
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual void PostLoad() override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	// End UObject interface.
+	//~ End UObject Interface.
 
 
-	// Begin AActor interface.
+	//~ Begin AActor Interface.
 #if WITH_EDITOR
 	virtual void CheckForErrors() override;
 #endif
 	virtual void PreInitializeComponents() override;
 	virtual void PostInitializeComponents() override;
-	// End AActor interface.
+	//~ End AActor Interface.
 
 	/**
 	 * Returns the Z component of the current world gravity and initializes it to the default
@@ -526,11 +549,11 @@ public:
 	 */	
 	virtual void NotifyMatchStarted();
 
-	// Begin IInterface_AssetUserData Interface
+	//~ Begin IInterface_AssetUserData Interface
 	virtual void AddAssetUserData(UAssetUserData* InUserData) override;
 	virtual void RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
 	virtual UAssetUserData* GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
-	// End IInterface_AssetUserData Interface
+	//~ End IInterface_AssetUserData Interface
 
 
 private:

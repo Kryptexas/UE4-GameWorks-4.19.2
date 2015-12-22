@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleCurveInjectionShader.usf: Shaders for uploading curves to the GPU.
@@ -47,7 +47,7 @@ void VertexMain(
 		);
 
 	// Pass sample on to the pixel shader.
-	Interpolants.Sample = Input.Sample;
+	Interpolants.Sample = Input.Sample FCOLOR_COMPONENT_SWIZZLE;
 }
 
 #endif // #if VERTEXSHADER

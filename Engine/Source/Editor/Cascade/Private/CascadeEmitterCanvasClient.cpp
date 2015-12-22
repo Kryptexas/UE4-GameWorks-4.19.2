@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CascadeModule.h"
 #include "Cascade.h"
@@ -671,7 +671,7 @@ void FCascadeEmitterCanvasClient::CapturedMouseMove(FViewport* Viewport, int32 X
 
 		int32 MoveThresh = CascadePtr.Pin()->GetEditorOptions() ? CascadePtr.Pin()->GetEditorOptions()->Cascade_MouseMoveThreshold : 4;
 		MoveThresh = FMath::Max<int32>(4,MoveThresh);
-		if (TotalMouseMove.Size() > MoveThresh)
+		if (TotalMouseMove.SizeSquared() > FMath::Square(MoveThresh))
 		{
 			if ((SelectedModuleIndex == INDEX_REQUIREDMODULE) ||
 				(SelectedModuleIndex == INDEX_SPAWNMODULE))
@@ -804,6 +804,11 @@ void FCascadeEmitterCanvasClient::CapturedMouseMove(FViewport* Viewport, int32 X
 
 float FCascadeEmitterCanvasClient::GetViewportVerticalScrollBarRatio() const
 {
+	if (CanvasDimensions.Y == 0.0f)
+	{
+		return 1.0f;
+	}
+
 	float WidgetHeight = 1.0f;
 	if (CascadeViewportPtr.Pin()->GetVerticalScrollBar().IsValid())
 	{

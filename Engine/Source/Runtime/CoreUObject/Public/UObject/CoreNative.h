@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CoreNative.h: Native function lookup table.
@@ -19,6 +19,8 @@ struct FNativeFunctionRegistrar
 		RegisterFunction(Class, InName, InPointer);
 	}
 	static COREUOBJECT_API void RegisterFunction(class UClass* Class, const ANSICHAR* InName, Native InPointer);
+	// overload for types generated from blueprints, which can have unicode names:
+	static COREUOBJECT_API void RegisterFunction(class UClass* Class, const WIDECHAR* InName, Native InPointer);
 };
 
 #endif

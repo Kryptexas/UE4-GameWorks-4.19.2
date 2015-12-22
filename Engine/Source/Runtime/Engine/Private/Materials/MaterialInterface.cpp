@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MaterialInterface.cpp: UMaterialInterface implementation.
@@ -64,7 +64,7 @@ FMaterialRelevance UMaterialInterface::GetRelevance_Internal(const UMaterial* Ma
 		MaterialRelevance.ShadingModelMask = 1 << ShadingModel;
 		MaterialRelevance.bOpaque = !bIsTranslucent;
 		MaterialRelevance.bMasked = IsMasked();
-		MaterialRelevance.bDistortion = Material->bUsesDistortion && bIsTranslucent;
+		MaterialRelevance.bDistortion = MaterialResource->IsDistorted();
 		MaterialRelevance.bSeparateTranslucency = bIsTranslucent && Material->bEnableSeparateTranslucency;
 		MaterialRelevance.bNormalTranslucency = bIsTranslucent && !Material->bEnableSeparateTranslucency;
 		MaterialRelevance.bDisableDepthTest = bIsTranslucent && Material->bDisableDepthTest;		
@@ -169,11 +169,13 @@ void UMaterialInterface::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 
 bool UMaterialInterface::GetVectorParameterValue(FName ParameterName, FLinearColor& OutValue) const
 {
+	// is never called but because our system wants a UMaterialInterface instance we cannot use "virtual =0"
 	return false;
 }
 
 bool UMaterialInterface::GetScalarParameterValue(FName ParameterName, float& OutValue) const
 {
+	// is never called but because our system wants a UMaterialInterface instance we cannot use "virtual =0"
 	return false;
 }
 

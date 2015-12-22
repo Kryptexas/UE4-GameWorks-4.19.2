@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 // This code is largely based on that in ir_print_glsl_visitor.cpp from
 // glsl-optimizer.
@@ -587,15 +587,22 @@ void DebugPrintVisitor::visit(ir_loop_jump* ir)
 
 void DebugPrintVisitor::visit(ir_atomic* ir)
 {
-	ir->lhs->accept(this);
-	irdump_printf(" = %s(&", ir->operator_string());
+	if (ir->lhs)
+	{
+		ir->lhs->accept(this);
+		irdump_printf(" = ");
+	}
+	irdump_printf("%s(&", ir->operator_string());
 	ir->memory_ref->accept(this);
-	irdump_printf(", ");
-	ir->operands[0]->accept(this);
-	if (ir->operands[1])
+	if (ir->operands[0])
 	{
 		irdump_printf(", ");
-		ir->operands[1]->accept(this);
+		ir->operands[0]->accept(this);
+		if (ir->operands[1])
+		{
+			irdump_printf(", ");
+			ir->operands[1]->accept(this);
+		}
 	}
 	irdump_printf(")\n;");
 }

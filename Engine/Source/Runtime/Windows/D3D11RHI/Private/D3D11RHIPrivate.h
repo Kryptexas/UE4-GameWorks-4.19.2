@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D11RHIPrivate.h: Private D3D RHI definitions.
@@ -318,8 +318,6 @@ public:
 	 */
 	bool GetQueryData(ID3D11Query* Query,void* Data,SIZE_T DataSize,bool bWait, ERenderQueryType QueryType);
 
-	virtual void RHIGpuTimeBegin(uint32 Hash,bool bCompute) final override;
-	virtual void RHIGpuTimeEnd(uint32 Hash,bool bCompute) final override;
 	virtual FSamplerStateRHIRef RHICreateSamplerState(const FSamplerStateInitializerRHI& Initializer) final override;
 	virtual FRasterizerStateRHIRef RHICreateRasterizerState(const FRasterizerStateInitializerRHI& Initializer) final override;
 	virtual FDepthStencilStateRHIRef RHICreateDepthStencilState(const FDepthStencilStateInitializerRHI& Initializer) final override;
@@ -392,7 +390,6 @@ public:
 	virtual bool RHIGetRenderQueryResult(FRenderQueryRHIParamRef RenderQuery, uint64& OutResult, bool bWait) final override;
 	virtual FTexture2DRHIRef RHIGetViewportBackBuffer(FViewportRHIParamRef Viewport) final override;
 	virtual void RHIAdvanceFrameForGetViewportBackBuffer() final override;
-	virtual bool RHIIsDrawingViewport() final override;
 	virtual void RHIAcquireThreadOwnership() final override;
 	virtual void RHIReleaseThreadOwnership() final override;
 	virtual void RHIFlushResources() final override;
@@ -403,9 +400,6 @@ public:
 	virtual void RHISetStreamOutTargets(uint32 NumTargets,const FVertexBufferRHIParamRef* VertexBuffers,const uint32* Offsets) final override;
 	virtual void RHIDiscardRenderTargets(bool Depth,bool Stencil,uint32 ColorBitMask) final override;
 	virtual void RHIBlockUntilGPUIdle() final override;
-	virtual void RHISuspendRendering() final override;
-	virtual void RHIResumeRendering() final override;
-	virtual bool RHIIsRenderingSuspended() final override;
 	virtual bool RHIGetAvailableResolutions(FScreenResolutionArray& Resolutions, bool bIgnoreRefreshRate) final override;
 	virtual void RHIGetSupportedResolution(uint32& Width, uint32& Height) final override;
 	virtual void RHIVirtualTextureSetFirstMipInMemory(FTexture2DRHIParamRef Texture, uint32 FirstMip) final override;
@@ -425,6 +419,8 @@ public:
 	virtual void RHISetMultipleViewports(uint32 Count, const FViewportBounds* Data) final override;
 	virtual void RHIClearUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values) final override;
 	virtual void RHICopyToResolveTarget(FTextureRHIParamRef SourceTexture, FTextureRHIParamRef DestTexture, bool bKeepOriginalSurface, const FResolveParams& ResolveParams) final override;
+	virtual void RHITransitionResources(EResourceTransitionAccess TransitionType, FTextureRHIParamRef* InTextures, int32 NumTextures) final override;
+	virtual void RHITransitionResources(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 NumUAVs, FComputeFenceRHIParamRef WriteFence) final override;
 	virtual void RHIBeginRenderQuery(FRenderQueryRHIParamRef RenderQuery) final override;
 	virtual void RHIEndRenderQuery(FRenderQueryRHIParamRef RenderQuery) final override;
 	virtual void RHIBeginOcclusionQueryBatch() final override;
@@ -510,7 +506,7 @@ public:
 	{
 		return DXGIFactory1;
 	}
-private:
+private:	
 	virtual void RHIClearMRTImpl(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect, bool bForceShaderClear);
 
 	template <EShaderFrequency ShaderFrequency>
@@ -522,7 +518,7 @@ private:
 	void CheckIfSRVIsResolved(ID3D11ShaderResourceView* SRV);
 
 	template <EShaderFrequency ShaderFrequency>
-	void InternalSetShaderResourceView(FD3D11BaseShaderResource* Resource, ID3D11ShaderResourceView* SRV, int32 ResourceIndex, FD3D11StateCache::ESRV_Type SrvType = FD3D11StateCache::SRV_Unknown);
+	void InternalSetShaderResourceView(FD3D11BaseShaderResource* Resource, ID3D11ShaderResourceView* SRV, int32 ResourceIndex, FName SRVName, FD3D11StateCache::ESRV_Type SrvType = FD3D11StateCache::SRV_Unknown);
 
 	void SetCurrentComputeShader(FComputeShaderRHIParamRef ComputeShader)
 	{
@@ -537,9 +533,9 @@ private:
 public:
 
 	template <EShaderFrequency ShaderFrequency>
-	void SetShaderResourceView(FD3D11BaseShaderResource* Resource, ID3D11ShaderResourceView* SRV, int32 ResourceIndex, FD3D11StateCache::ESRV_Type SrvType = FD3D11StateCache::SRV_Unknown )
+	void SetShaderResourceView(FD3D11BaseShaderResource* Resource, ID3D11ShaderResourceView* SRV, int32 ResourceIndex, FName SRVName, FD3D11StateCache::ESRV_Type SrvType = FD3D11StateCache::SRV_Unknown)
 	{
-		InternalSetShaderResourceView<ShaderFrequency>(Resource, SRV, ResourceIndex, SrvType);
+		InternalSetShaderResourceView<ShaderFrequency>(Resource, SRV, ResourceIndex, SRVName, SrvType);
 	}
 
 	void ClearState();
@@ -603,6 +599,9 @@ protected:
 
 	/** Internal frame counter, incremented on each call to RHIBeginScene. */
 	uint32 SceneFrameCounter;
+
+	/** Internal frame counter that just counts calls to Present */
+	uint32 PresentCounter;
 
 	/**
 	 * Internal counter used for resource table caching.
@@ -683,6 +682,7 @@ protected:
 		int32 ArraySlice;
 		int32 ArraySize;
 	};
+	FThreadSafeCounter UnresolvedTargetsConcurrencyGuard;
 	TMultiMap<ID3D11Resource*, FUnresolvedRTInfo> UnresolvedTargets;
 #endif
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-## Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+## Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 ##
 ## Unreal Engine 4 AutomationTool setup script
 ##
@@ -40,7 +40,7 @@ if [ ! -f Build/BatchFiles/RunUAT.sh ]; then
 fi
 
 # see if we have the no compile arg
-if echo "${Args[@]}" | grep -q -i "\-nocompile"; then
+if echo "${Args[@]}" | grep -q -w -i "\-nocompile"; then
 	UATCompileArg=
 else
 	UATCompileArg=-compile

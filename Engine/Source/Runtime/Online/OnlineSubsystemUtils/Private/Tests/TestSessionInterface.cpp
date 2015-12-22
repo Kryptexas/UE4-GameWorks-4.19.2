@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 #include "TestSessionInterface.h"
@@ -307,7 +307,9 @@ void FTestSessionInterface::OnJoinSessionComplete(FName SessionName, EOnJoinSess
 void FTestSessionInterface::OnFindFriendSessionComplete(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& SearchResult)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnFindFriendSessionComplete LocalUserNum: %d bSuccess: %d"), LocalUserNum, bWasSuccessful);
-	SessionInt->ClearOnFindFriendSessionCompleteDelegate_Handle(LocalUserNum, OnFindFriendSessionCompleteDelegateHandles.FindRef(LocalUserNum));
+
+	FDelegateHandle DelegateHandle = OnFindFriendSessionCompleteDelegateHandles.FindRef(LocalUserNum);
+	SessionInt->ClearOnFindFriendSessionCompleteDelegate_Handle(LocalUserNum, DelegateHandle);
 	OnFindFriendSessionCompleteDelegateHandles.Remove(LocalUserNum);
 	if (bWasSuccessful)
 	{

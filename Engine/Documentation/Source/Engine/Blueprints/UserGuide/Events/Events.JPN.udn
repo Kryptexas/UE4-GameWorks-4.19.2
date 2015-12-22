@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2599455
+﻿INTSourceChangelist:2688371
 Availability:Public
 Title:イベント
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:EventGraph 内の個々のネットワークの実行を開始するためにゲームプレイ コードから呼び出されるノード
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -48,23 +49,23 @@ Description:EventGraph 内の個々のネットワークの実行を開始する
 [TOC (start:2)]
 
 [EXCERPT:Intro]
-**Events** は、 **EventGraph** 内の個々のネットワークの実行を開始するために 
-ゲームプレイ コードから呼び出されるノードです。これらにより、 _ブループリント_ は、 
+**イベント** は、**イベントグラフ** 内の個々のネットワークの実行を開始するために 
+ゲームプレイ コードから呼び出されるノードです。これらにより、ブループリントは、 
 ゲームの開始、レベルのリセット、ダメージなどのゲーム内で生じる一定のイベントに反応して 
 一連のアクションを実行できるようになります。新規機能を実装したり、デフォルト機能をオーバーライドあるいは補強するために、 
-これらのイベントには _ブループリント_ 内でアクセスすることができます。1 つの **EventGraph** 内でいくつでも **Events** を使うことができます。 
-ただし、各タイプから 1 つのみの使用となります。
+これらのイベントにはブループリント内でアクセスすることができます。1 つの **イベントグラフ** の中で好きなだけ **イベント** を使うことができます。 
+ただし、それぞれの種類から 1 つずつしか使用できません。
 [/EXCERPT:Intro]
 
 ![Blueprint Class Events Expanded](EventsExpanded.png) ![Level Blueprint Events Expanded](LevelBPEventsExpanded.png)
 
 [REGION:note]
-	各イベントが実行できるオブジェクトは 1 つのみです。1 つのイベントから複数のアクションをトリガーしたい場合、 
-	それらをまとめて直線上につなげる必要があります。
+	1 つのイベントが実行できるオブジェクトは 1 つです。1 つのイベントから複数のアクションをトリガーしたい場合、 
+	それらをまとめて線形に並べる必要があります。
 [/REGION]
 
-[REGION:tip]
-マチネを使ってシネマティック シーケンスの再生中に指定回数トリガーされるイベントを作成する情報は、 [](Engine/Matinee\UserGuide\BlueprintComponents) を参照してください。
+[REGION:note]
+マチネを使ってシネマティック シーケンスの再生中に指定回数トリガーされるイベントを作成する情報は、 [](Engine/Matinee\UserGuide\BlueprintComponents) でご覧いただけます。
 [/REGION]
 
 <!--
@@ -77,13 +78,13 @@ Description:EventGraph 内の個々のネットワークの実行を開始する
 
 [EXCERPT:ServerOnly]
 [REGION:note]
-この Blueprint Event ノードはサーバー上でのみ実行します。シングル プレイヤー ゲームの場合、ローカルクライアントがサーバーと見なされます。
+この Blueprint Event ノードはサーバー上でのみ実行します。シングル プレイヤー ゲームの場合、クライアントがサーバーと見なされます。
 [/REGION]
 [/EXCERPT:ServerOnly]
 
 -->
 
-## Event Level Reset
+##イベント レベルのリセット
 
 [INCLUDE:#levelbponly]
 
@@ -91,8 +92,8 @@ Description:EventGraph 内の個々のネットワークの実行を開始する
 
 ![LevelReset.png](LevelReset.png)
 
-LevelReset イベントはレベルの再起動時に実行シグナルを送ります。プレイヤーは死んだもののレベルをリロードする必要がないゲームなど、 
-レベルをリロードした時点で 
+**LevelReset** イベントはレベルの再起動時に実行シグナルを送ります。プレイヤーが消滅するとレベルをリロードする必要がないようなゲームの状態など、 
+レベルがリロードされると 
 何かをトリガーする必要のある場合に便利です。
 
 ![LevelReset_Example.png](LevelReset_Example.png)(w:500)
@@ -104,11 +105,11 @@ LevelReset イベントはレベルの再起動時に実行シグナルを送り
 
 いくつもの条件が同時に一致すると、このイベントが実行されます。
 
-* アクタは両方とも Overlap に設定しなければなりません。
-* イベントを実行するアクタは Generate Overlap Events が _true_ に設定されています。
+* アクタ間のコリジョン反応がオーバーラップできること。
+* イベントを実行するアクタは両方とも **Generate Overlap Events** が true に設定されていること。
 * 最後に、両方のアクタのコリジョンがオーバーラップを開始します。一緒に動くか、一方が他方にオーバーラップするように作成されます。
 
-コリジョンの詳細については、 [**コリジョン反応**](Engine\Physics\Collision) をご覧ください。
+コリジョンの詳細については、[コリジョン反応](Engine\Physics\Collision) をご覧ください。
 
 ![](BeginOverlapEX.png)
 
@@ -117,7 +118,7 @@ _このブループリント アクタが Player Actor 変数に格納されて�
 | アイテム | 説明 |
 | -------- | ----------- |
 | [REGION:tablesection]出力ピン[/REGION] ||
-| **Other Actor** | **Actor** - このブループリントにオーバーラップする アクタ です。 |
+| **Other Actor** | Actor - このブループリントにオーバーラップするアクタです。 |
 [/EXCERPT:EventBeginOverlap]
 
 ## Event Actor End Overlap
@@ -126,43 +127,43 @@ _このブループリント アクタが Player Actor 変数に格納されて�
 
 いくつもの条件が同時に一致すると、このイベントが実行されます。
 
-* アクタは両方とも Overlap に設定しなければなりません。
-* イベントを実行するアクタは Generate Overlap Events が _true_ に設定されています。
-* 最後に、両方のアクタのコリジョンがオーバーラップを停止します。バラバラに動くか、一方が破壊されます。
+* アクタ間のコリジョン反応がオーバーラップできること。
+* イベントを実行するアクタは両方とも **Generate Overlap Events** が true に設定されていること。
+* そして、両方のアクタのコリジョンがバラバラに動くか、一方が破壊されて、オーバーラップを停止すること。
 
-コリジョンの詳細については、 [**コリジョン反応**](Engine\Physics\Collision) をご覧ください。
+コリジョンの詳細については、[コリジョン反応](Engine\Physics\Collision) をご覧ください。
 
-![](EndOverlapEX.png)
+![](EndOverlap.png)
 
 _このブループリント アクタが Player Actor 変数に格納されているアクタ以外のアクタとのオーバーラップを停止すると、オーバーラップされていた側のアクタを破壊します。_
 
 | アイテム | 説明 |
 | -------- | ----------- |
 | [REGION:tablesection]出力ピン[/REGION] ||
-| **Other Actor** | **Actor** - このブループリントにオーバーラップする アクタ です。 |
+| **Other Actor** | Actor - このブループリントにオーバーラップするアクタです。 |
 [/EXCERPT:EventEndOverlap]
 
 ## Event Hit
 
 ![](EventHit.png)
 
-このイベントは、コリジョンに関わる両方のアクタのコリジョン設定の **Simulation Generates Hit Events** が _true_ の場合にのみ実行されます。
+このイベントは、コリジョンに関わる両方のアクタのコリジョン設定の **Simulation Generates Hit Events** が true の場合にのみ実行されます。
 
 | アイテム | 説明 |
 | -------- | ----------- |
 | [REGION:tablesection]出力ピン[/REGION] ||
-| **My Comp** | **PrimitiveComponent** - ヒットされた実行中のアクタ上のコンポーネント。 |
-| **Other** | **Actor** - コリジョンに関わるもう一方のアクタ。 |
-| **Other Comp** | **PrimitiveComponent** - ヒットされたコリジョンに関わるもう一方のアクタ上のコンポーネント。 |
-| **Self Moved** | **Boolean** - |
-| **Hit Location** | **Vector** - 衝突する 2 つのアクタ間のコンタクト位置。 |
-| **Hit Normal** | **Vector** - コリジョンの方向。 |
-| **Normal Impulse** | **Vector** - アクタが衝突する力。 |
-| **Hit** | **Struct** `HitResult` - Hit 内に収集されたすべてのデータである「HitResult」を取り出して、この結果を「細分化して」個々のデータへアクセスすることができます。 |
+| **My Comp** | PrimitiveComponent - ヒットされた実行中のアクタ上のコンポーネント。 |
+| **Other** | Actor - コリジョンに関わるもう一方のアクタ。 |
+| **Other Comp** | PrimitiveComponent - ヒットされたコリジョンに関わるもう一方のアクタ上のコンポーネント。 |
+| **Self Moved** | Boolean - 別のオブジェクトの移動からヒットを受けた際に使用し (false の場合)、Hit Normal と Hit Impact を調整して、ヒット対象となったオブジェクトに対するもう一方のオブジェクトからの力を示します。 |
+| **Hit Location** | Vector - 衝突する 2 つのアクタ間のコンタクト位置。 |
+| **Hit Normal** | Vector - コリジョンの方向。 |
+| **Normal Impulse** | Vector - アクタが衝突する力。 |
+| **Hit** | Struct Hit 内に収集されたすべてのデータである HitResult を引っ張り出し、この結果を「細分化して」個々のデータへのアクセスすることができます。 |
 
 ![](EventHitEX.png)
 
-_このサンプルでは、ブループリントが _Hit_ を実行すると、影響のポイントで爆発のエフェクトをスポーンします。_
+_このサンプルでは、ブループリントが **Hit** を実行すると、影響のポイントで爆発のエフェクトをスポーンします。_
 
 ## Event Any Damage
 
@@ -175,10 +176,10 @@ _このサンプルでは、ブループリントが _Hit_ を実行すると、
 | アイテム | 説明 |
 | -------- | ----------- |
 | [REGION:tablesection]出力ピン[/REGION] ||
-| **Damage** | **Float** - アクタへ渡されているダメージの量。 |
-| **Damage Type** | **Object 'DamageType'** - 処理中のダメージに追加データを格納するオブジェクトです。 |
-| **Instigated By** | **Actor** - ダメージに反応するアクタです。ダメージを与えるために銃を発砲したり手榴弾を投げたりするアクタになります。 |
-| **Damage Causer** | **Actor** - ダメージを与えるアクタです。弾丸や爆発などがこれにあたります。|
+| **Damage** | Float - アクタへ渡されているダメージの量。 |
+| **Damage Type** | Object 'DamageType - 与えられているダメージ上に追加データを含むオブジェクトです。 |
+| **Instigated By** | Actor - ダメージを仕掛けるアクタです。ダメージを与えるために銃を発砲したり手榴弾を投げたりするアクタになります。 |
+| **Damage Causer** | Actor - ダメージを引き起こすアクタです。弾丸や爆発などがこれにあたります。|
 
 [REGION:lightbox]
 [![](AnyDamageEX.png)(w:940)](AnyDamageEX.png)
@@ -192,20 +193,20 @@ _アクタに与えられているダメージが水から発生した場合、�
 
 ![](PointDamage.png)
 
-Point Damage とは、発射物、即着弾武器、そして近接武器などのことをいいます。
+**Point Damage** とは、発射物、即着弾武器、そして近接武器などのことをいいます。
 
 | アイテム | 説明 |
 | -------- | ----------- |
 | [REGION:tablesection]出力ピン[/REGION] ||
-| **Damage** | **Float** - アクタへ渡されているダメージの量。 |
-| **Damage Type** | **Object** `DamageType` - 処理中のダメージに追加データを格納するオブジェクトです。 |
-| **Hit Location** | **Vector** - ダメージが適用されている位置。 |
-| **Hit Normal** | **Vector** - コリジョンの方向。 |
-| **Hit Component** | **PrimitiveComponent** - ヒットされた実行中のアクタのコンポーネント。 |
-| **Bone Name** | **Name** - ヒットされたボーンの名前。 |
-| **Shot from Direction** | **Vector** - ダメージが与えられた方向。 |
-| **Instigated By** | **Actor** - ダメージに反応するアクタ。ダメージを与えるために銃を発砲したり手榴弾を投げたりするアクタになります。 |
-| **Damage Causer** | **Actor** - ダメージを与えるアクタです。弾丸や爆発などがこれにあたります。|
+| **Damage** | Float - アクタへ渡されているダメージの量。 |
+| **Damage Type** | Object 'DamageType - 与えられているダメージ上に追加データを含むオブジェクトです。 |
+| **Hit Location** | Vector - ダメージが適用されている位置。 |
+| **Hit Normal** | Vector - コリジョンの方向。 |
+| **Hit Component** | PrimitiveComponent - ヒットされた実行中のアクタ上のコンポーネント。 |
+| **Bone Name** | Name - 撃たれたボーンの名前。 |
+| **Shot from Direction** | Vector - ダメージが与えられた方向。 |
+| **Instigated By** | Actor - ダメージを仕掛けるアクタです。ダメージを与えるために銃を発砲したり手榴弾を投げたりするアクタになります。 |
+| **Damage Causer** | Actor - ダメージを引き起こすアクタです。弾丸や爆発などがこれにあたります。|
 
 [REGION:lightbox]
 [![](PointDamageEX.png)(w:940)](PointDamageEX.png)
@@ -219,17 +220,17 @@ _このサンプルでは、ダメージを受けた時、与えられたダメ�
 
 ![](RadialDamage.png)
 
-このシーケンスに対する親アクタがラジアル ダメージを受けとるたびに ReceiveRadiusDamage アクタが呼び出されます。爆発によるダメージや、間接的に引き起こされたダメージに合わせてイベント処理する場合に便利です。
+このシーケンスに対する親アクタがラジアル ダメージを受けるたびに **RadiusDamage** アクタが呼び出されます。爆発によるダメージや、間接的に引き起こされたダメージに合わせてイベント処理する場合に便利です。
 
 | アイテム | 説明 |
 | -------- | ----------- |
 | [REGION:tablesection]出力ピン[/REGION] ||
-| **Damage Received** | **Float** - イベントから受け取ったダメージの量。 |
-| **Damage Type** | **Object** `DamageType` - 処理中のダメージに追加データを格納するオブジェクトです。 |
-| **Origin** | **Vector** - ダメージが発生した 3D 空間に位置を表示します。 |
-| **Hit Info** | **Struct** `HitResult` - Hit内に収集されたすべてのデータである「HitResult」を取り出して、この結果を「細分化して」個々のデータへのアクセスすることができます。 |
-| **Instigated By** | **Controller** - ダメージを仕掛けるコントローラー (AI またはプレイヤー) です。 |
-| **Damage Causer** | **Actor** - ダメージを与えるアクタです。弾丸、ロケット、レーザー、相手にパンチするキャラクターなどがこれに当たります。|
+| **Damage** | Float - イベントから受け取ったダメージの量。 |
+| **Damage Type** | Object 'DamageType - 与えられているダメージ上に追加データを含むオブジェクトです。 |
+| **Origin** | Vector - もともとダメージがあった 3D 空間における位置を与えます。 |
+| **Hit Info** | Struct HitResult - Hit 内に収集されたすべてのデータです。この結果を「細分化して」個々のデータへのアクセスすることができます。 |
+| **Instigated By** | Controller - ダメージを仕掛けるコントローラー (AI またはプレイヤー) です。 |
+| **Damage Causer** | Actor - ダメージを引き起こすアクタです。弾丸、ロケット、レーザー、相手にパンチするキャラクターなどがこれに当たります。|
 
 [REGION:lightbox]
 [![](RadialDamageEX.png)(w:940)](RadialDamageEX.png)
@@ -239,18 +240,18 @@ _このサンプルでは、ダメージを受けた時、与えられたダメ�
 
 ![](BeginCursorOver.png)
 
-マウス インターフェースを使用中、マウスのカーソルがアクタにかざされるとこのイベントが実行されます。
+マウス インターフェースを使用中、マウスのカーソルがアクタ上に移動するとこのイベントが実行されます。
 
 ![](BeginCursorOverEX.png)
 
-_マウスがこのアクタに渡されると、 Highlight on the Dynamic Material Instance という名前のスカラー パラメータが 1.0 に設定されます。_
+_このアクタの上にマウスを当てると、 Highlight on the Dynamic Material Instance という名前のスカラー パラメータが 1.0 に設定されます。_
 
 
 ## Event Actor End Cursor Over
 
 ![](EndCursorOver.png)
 
-マウス インターフェースを使用中にマウスのカーソルがアクタから離れるとこのイベントが実行されます。
+マウス インターフェースを使用中にマウスのカーソルがアクタ上から外れると、のイベントが実行されます。
 
 ![](EndCursorOverEX.png)
 
@@ -261,7 +262,7 @@ _これにより、アクタは **Target Notification** に格納されるよう
 [EXCERPT:EventBegin]
 ![](BeginPlay.png)
 
-ゲームが開始すると、このイベントがすべてのアクタにトリガーされます。ゲーム開始後にスポーンされたアクタはすべて、このイベントを直ちに呼び出します。
+ゲームが開始されると、このイベントがすべてのアクタにトリガーされます。ゲーム開始後にスポーンされたすべてのアクタがこのイベントを直ちに呼び出します。
 
 ![](BeginPlayEX.png)
 
@@ -272,30 +273,30 @@ _プレイの開始に伴い、アクタはヘルス値を 1000 に、スコア�
 [EXCERPT:EventEnd]
 ![](EndPlay.png)
 
-アクタがワールド内で破壊されると、このイベントが実行されます。
+アクタが破壊されると実行されるイベントです。
 
 ![](EndPlayEX.png)
 
-_アクタがワールドからいなくなると、 String が出力されて、イベントが呼び出されている理由を表示します。_
+_アクタがワールドから消えると、 String が出力され、イベントの呼び出し理由が表示されます。_
 
 | アイテム | 説明 |
 | -------- | ----------- |
 | [REGION:tablesection]出力ピン[/REGION] ||
-| **End Play Reason** | **enum** `EEndPlayReason` - Event End Play 呼び出しの理由を表示する列挙型変数。 |
+| **End Play Reason** | enum EEndPlayReason - Event End Play の呼び出し理由を表示する列挙型変数です。 |
 [/EXCERPT:EventEnd]
 
 ## Event Destroyed
 
 ![](Destroyed.png)
 
-アクタが破壊されると、このイベントが実行されます。
+アクタが破壊されると実行されるイベントです。
 
 ![](DestroyedEX.png)
 
-_このサンプルでは、 **Score** の変数は **Value** プラス Score に設定されています。_
+_このサンプルは、**Score** の変数が **Value** プラス **Score** に設定されています。_
 
 [REGION:warning]
-	Destroyed Event は今後のリリースで廃止される予定です。Destroyed 関数の機能は Endplay 関数に組み込まれています。
+	破壊されたイベントについては、今後のリリースノートで言及します！Destroyed 関数の機能は Endplay 関数に組み込まれています。
 [/REGION]
 
 ## Event Tick
@@ -307,7 +308,7 @@ _このサンプルでは、 **Score** の変数は **Value** プラス Score �
 | アイテム | 説明 |
 | -------- | ----------- |
 | [REGION:tablesection]出力ピン[/REGION] ||
-| **Delta Seconds** | フレーム間の合計時間を出力します。 |
+| **Delta Seconds** | Float - フレーム間の合計時間を出力します。 |
 
 [![](TickEX.png)(w:940)](TickEX.png)
 
@@ -327,19 +328,19 @@ _このサンプルでは、Delta Seconds を使って「発射！」直前の�
 | アイテム | 説明 |
 | -------- | ----------- |
 | [REGION:tablesection]出力ピン[/REGION] ||
-| **Size X** | **Int** - レンダリング ウィンドウの幅 (ピクセル単位)。 |
-| **Size Y** | **Int** - レンダリング ウィンドウの高さ (ピクセル単位)。 |
+| **Size X** | Int - レンダリング ウィンドウの幅 (ピクセル数)。 |
+| **Size X** | Int - レンダリング ウィンドウの高さ (ピクセル数)。 |
 
 
 [REGION:lightbox]
 [![](DrawHudEX.png)(w:940)](DrawHudEX.png)
 [/REGION]
 
-_このイベントは、レンダリング ウィンドウの中央に、クリック可能な **Hit Box** を作成します。後ろに赤いボックスが表示されます。_
+_このイベントは、レンダリング ウィンドウの中央に、クリック可能な **ヒット ボックス** を作成します。後ろに赤いボックスが表示されます。_
 
 
 ## Custom Event
 
 ![Custom Event Node](Engine\Blueprints\UserGuide\Events\Custom\name_custom_event.png)
 
-Custom Event ノードは専用のワークフローを持つ特殊なノードです。詳しくは [Custom Event] (Engine\Blueprints\UserGuide\Events\Custom) をご覧ください。
+Custom Event ノードは専用のワークフローを持つ特殊なノードです。詳しくは [**Custom Event ノード**](Engine\Blueprints\UserGuide\Events\Custom) をご覧ください。

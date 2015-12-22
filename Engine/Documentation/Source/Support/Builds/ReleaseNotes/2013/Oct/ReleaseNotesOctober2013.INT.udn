@@ -472,7 +472,7 @@ Availability:Licensee
 * Duplicate, via **Ctrl + W**, only requires 1 undo step again.
 * _SoundCue_ and _SoundWave_ no longer play when double clicked, instead opens **SoundCue Editor**.
 * _DecalActors_ marked as **Hidden In Game** will now draw properly in the editor.
-* Optimizations for Gaussian DOF effect. If **Near Blur Size** is less than the threshold defined by the console variable `r.DepthOfFieldNearBlurSizeThreshold`, the near blur effect will be disabled and cheaper shaders used instead.
+* Optimizations for Gaussian DOF effect. If **Near Blur Size** is less than the threshold defined by the console variable `r.DepthOfField.NearBlurSizeThreshold`, the near blur effect will be disabled and cheaper shaders used instead.
 * Buffer visualization system now works correctly in orthographic view modes.
 * New _Landscape_ doesn't try to resize during alt-drag view rotation any more.
 * Optimized _Landscape_ spline rendering in editor by reducing complexity of the lines and optimizing `DrawDashedLine()`.

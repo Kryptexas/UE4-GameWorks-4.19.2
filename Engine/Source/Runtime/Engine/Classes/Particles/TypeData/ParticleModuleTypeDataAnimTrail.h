@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /**
  *	ParticleModuleTypeDataAnimTrail
@@ -64,17 +64,17 @@ class UParticleModuleTypeDataAnimTrail : public UParticleModuleTypeDataBase
 	float WidthTessellationStepSize;
 
 
-	// Begin UParticleModule Interface
-	virtual uint32 RequiredBytes(FParticleEmitterInstance* Owner = NULL) override;
+	//~ Begin UParticleModule Interface
+	virtual uint32 RequiredBytes(UParticleModuleTypeDataBase* TypeData) override;
 	virtual bool CanTickInAnyThread() override
 	{
-		return false;
+		return true;
 	}
-	// End UParticleModule Interface
+	//~ End UParticleModule Interface
 
-	// Begin UParticleModuleTypeDataBase Interface
+	//~ Begin UParticleModuleTypeDataBase Interface
 	virtual FParticleEmitterInstance* CreateInstance(UParticleEmitter* InEmitterParent, UParticleSystemComponent* InComponent) override;
-	// End UParticleModuleTypeDataBase Interface
+	//~ End UParticleModuleTypeDataBase Interface
 };
 
 

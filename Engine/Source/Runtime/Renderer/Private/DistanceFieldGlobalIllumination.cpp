@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DistanceFieldGlobalIllumination.cpp
@@ -158,6 +158,11 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, LightDirectionAndTraceDistance, FVector4(LightSceneProxy->GetDirection(), GVPLDirectionalLightTraceDistance));
 		SetShaderValue(RHICmdList, ShaderRHI, LightColor, LightSceneProxy->GetColor() * LightSceneProxy->GetIndirectLightingScale());
 
+		FUnorderedAccessViewRHIParamRef OutUAVs[2];
+		OutUAVs[0] = GVPLResources.VPLParameterBuffer.UAV;
+		OutUAVs[1] = GVPLResources.VPLData.UAV;
+		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, ARRAY_COUNT(OutUAVs));
+
 		VPLParameterBuffer.SetBuffer(RHICmdList, ShaderRHI, GVPLResources.VPLParameterBuffer);
 		VPLData.SetBuffer(RHICmdList, ShaderRHI, GVPLResources.VPLData);
 
@@ -177,6 +182,11 @@ public:
 	{
 		VPLParameterBuffer.UnsetUAV(RHICmdList, GetComputeShader());
 		VPLData.UnsetUAV(RHICmdList, GetComputeShader());
+
+		FUnorderedAccessViewRHIParamRef OutUAVs[2];
+		OutUAVs[0] = GVPLResources.VPLParameterBuffer.UAV;
+		OutUAVs[1] = GVPLResources.VPLData.UAV;
+		RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, ARRAY_COUNT(OutUAVs));
 	}
 
 	// FShader interface.
@@ -251,6 +261,7 @@ public:
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
 
+		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, GVPLResources.VPLDispatchIndirectBuffer.UAV);
 		DispatchParameters.SetBuffer(RHICmdList, ShaderRHI, GVPLResources.VPLDispatchIndirectBuffer);
 		SetSRVParameter(RHICmdList, ShaderRHI, VPLParameterBuffer, GVPLResources.VPLParameterBuffer.SRV);
 	}
@@ -258,6 +269,7 @@ public:
 	void UnsetParameters(FRHICommandList& RHICmdList)
 	{
 		DispatchParameters.UnsetUAV(RHICmdList, GetComputeShader());
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, GVPLResources.VPLDispatchIndirectBuffer.UAV);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -313,6 +325,11 @@ public:
 	{
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+
+		FUnorderedAccessViewRHIParamRef OutUAVs[2];
+		OutUAVs[0] = GCulledVPLResources.VPLParameterBuffer.UAV;
+		OutUAVs[1] = GCulledVPLResources.VPLData.UAV;
+		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, ARRAY_COUNT(OutUAVs));
 
 		CulledVPLParameterBuffer.SetBuffer(RHICmdList, ShaderRHI, GCulledVPLResources.VPLParameterBuffer);
 		CulledVPLData.SetBuffer(RHICmdList, ShaderRHI, GCulledVPLResources.VPLData);
@@ -578,6 +595,7 @@ public:
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
 
+		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, GAOCulledObjectBuffers.Buffers.ObjectIndirectDispatch.UAV);
 		DispatchParameters.SetBuffer(RHICmdList, ShaderRHI, GAOCulledObjectBuffers.Buffers.ObjectIndirectDispatch);
 		ObjectParameters.Set(RHICmdList, ShaderRHI, GAOCulledObjectBuffers.Buffers);
 
@@ -586,7 +604,11 @@ public:
 
 	void UnsetParameters(FRHICommandList& RHICmdList)
 	{
-		DispatchParameters.UnsetUAV(RHICmdList, GetComputeShader());
+		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
+		DispatchParameters.UnsetUAV(RHICmdList, ShaderRHI);
+
+		ObjectParameters.UnsetParameters(RHICmdList, ShaderRHI, GAOCulledObjectBuffers.Buffers);
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, GAOCulledObjectBuffers.Buffers.ObjectIndirectDispatch.UAV);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -920,14 +942,24 @@ public:
 		SetSRVParameter(RHICmdList, ShaderRHI, ScatterDrawParameters, SurfaceCacheResources.Level[DepthLevel]->ScatterDrawParameters.SRV);
 		SetSRVParameter(RHICmdList, ShaderRHI, SavedStartIndex, SurfaceCacheResources.Level[DepthLevel]->SavedStartIndex.SRV);
 
+		FUnorderedAccessViewRHIParamRef OutUAVs[2];
+		OutUAVs[0] = TemporaryIrradianceCacheResources->SurfelIrradiance.UAV;
+		OutUAVs[1] = TemporaryIrradianceCacheResources->HeightfieldIrradiance.UAV;
+		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, ARRAY_COUNT(OutUAVs));
+
 		SurfelIrradiance.SetBuffer(RHICmdList, ShaderRHI, TemporaryIrradianceCacheResources->SurfelIrradiance);
 		HeightfieldIrradiance.SetBuffer(RHICmdList, ShaderRHI, TemporaryIrradianceCacheResources->HeightfieldIrradiance);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList)
+	void UnsetParameters(FRHICommandList& RHICmdList, FTemporaryIrradianceCacheResources* TemporaryIrradianceCacheResources)
 	{
 		SurfelIrradiance.UnsetUAV(RHICmdList, GetComputeShader());
 		HeightfieldIrradiance.UnsetUAV(RHICmdList, GetComputeShader());
+
+		FUnorderedAccessViewRHIParamRef OutUAVs[2];
+		OutUAVs[0] = TemporaryIrradianceCacheResources->SurfelIrradiance.UAV;
+		OutUAVs[1] = TemporaryIrradianceCacheResources->HeightfieldIrradiance.UAV;
+		RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, ARRAY_COUNT(OutUAVs));
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -993,6 +1025,7 @@ public:
 		SetSRVParameter(RHICmdList, ShaderRHI, SavedStartIndex, SurfaceCacheResources.Level[DepthLevel]->SavedStartIndex.SRV);
 		SetSRVParameter(RHICmdList, ShaderRHI, RecordConeData, TemporaryIrradianceCacheResources->ConeData.SRV);
 
+		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, TemporaryIrradianceCacheResources->StepBentNormal.UAV);
 		StepBentNormal.SetBuffer(RHICmdList, ShaderRHI, TemporaryIrradianceCacheResources->StepBentNormal);
 
 		FAOSampleData2 AOSampleData;
@@ -1018,9 +1051,10 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, BentNormalNormalizeFactor, BentNormalNormalizeFactorValue);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList)
+	void UnsetParameters(FRHICommandList& RHICmdList, FTemporaryIrradianceCacheResources* TemporaryIrradianceCacheResources)
 	{
 		StepBentNormal.UnsetUAV(RHICmdList, GetComputeShader());
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, TemporaryIrradianceCacheResources->StepBentNormal.UAV);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -1124,6 +1158,7 @@ public:
 		SetSRVParameter(RHICmdList, ShaderRHI, ScatterDrawParameters, SurfaceCacheResources.Level[DepthLevel]->ScatterDrawParameters.SRV);
 		SetSRVParameter(RHICmdList, ShaderRHI, SavedStartIndex, SurfaceCacheResources.Level[DepthLevel]->SavedStartIndex.SRV);
 
+		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, TemporaryIrradianceCacheResources->SurfelIrradiance.UAV);
 		SurfelIrradiance.SetBuffer(RHICmdList, ShaderRHI, TemporaryIrradianceCacheResources->SurfelIrradiance);
 
 		GlobalObjectParameters.Set(RHICmdList, ShaderRHI, *Scene->DistanceFieldSceneData.ObjectBuffers, Scene->DistanceFieldSceneData.NumObjectsInBuffer);
@@ -1147,9 +1182,10 @@ public:
 		SetSRVParameter(RHICmdList, ShaderRHI, StepBentNormalBuffer, TemporaryIrradianceCacheResources->StepBentNormal.SRV);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList)
+	void UnsetParameters(FRHICommandList& RHICmdList, FTemporaryIrradianceCacheResources* TemporaryIrradianceCacheResources)
 	{
 		SurfelIrradiance.UnsetUAV(RHICmdList, GetComputeShader());
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, TemporaryIrradianceCacheResources->SurfelIrradiance.UAV);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -1253,12 +1289,17 @@ public:
 		SetSRVParameter(RHICmdList, ShaderRHI, ScatterDrawParameters, SurfaceCacheResources.Level[DepthLevel]->ScatterDrawParameters.SRV);
 		SetSRVParameter(RHICmdList, ShaderRHI, SavedStartIndex, SurfaceCacheResources.Level[DepthLevel]->SavedStartIndex.SRV);
 
+		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, SurfaceCacheResources.Level[DepthLevel]->Irradiance.UAV);
 		IrradianceCacheIrradiance.SetBuffer(RHICmdList, ShaderRHI, SurfaceCacheResources.Level[DepthLevel]->Irradiance);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList)
+	void UnsetParameters(FRHICommandList& RHICmdList, const FSceneView& View, int32 DepthLevel)
 	{
 		IrradianceCacheIrradiance.UnsetUAV(RHICmdList, GetComputeShader());
+
+		const FScene* Scene = (const FScene*)View.Family->Scene;
+		FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, SurfaceCacheResources.Level[DepthLevel]->Irradiance.UAV);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -1302,7 +1343,7 @@ void ComputeIrradianceForSamples(
 			RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 			ComputeShader->SetParameters(RHICmdList, View, DepthLevel);
 			DispatchComputeShader(RHICmdList, *ComputeShader, 1, 1, 1);
-			ComputeShader->UnsetParameters(RHICmdList);
+			ComputeShader->UnsetParameters(RHICmdList, View);
 		}
 
 		{
@@ -1310,7 +1351,7 @@ void ComputeIrradianceForSamples(
 			RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 			ComputeShader->SetParameters(RHICmdList, View, DepthLevel, TemporaryIrradianceCacheResources);
 			DispatchIndirectComputeShader(RHICmdList, *ComputeShader, SurfaceCacheResources.DispatchParameters.Buffer, 0);
-			ComputeShader->UnsetParameters(RHICmdList);
+			ComputeShader->UnsetParameters(RHICmdList, TemporaryIrradianceCacheResources);
 		}
 		
 		{
@@ -1318,7 +1359,7 @@ void ComputeIrradianceForSamples(
 			RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 			ComputeShader->SetParameters(RHICmdList, View, DepthLevel, TemporaryIrradianceCacheResources);
 			DispatchIndirectComputeShader(RHICmdList, *ComputeShader, SurfaceCacheResources.DispatchParameters.Buffer, 0);
-			ComputeShader->UnsetParameters(RHICmdList);
+			ComputeShader->UnsetParameters(RHICmdList, TemporaryIrradianceCacheResources);
 		}
 	}
 
@@ -1333,7 +1374,7 @@ void ComputeIrradianceForSamples(
 			RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 			ComputeShader->SetParameters(RHICmdList, View, DepthLevel);
 			DispatchComputeShader(RHICmdList, *ComputeShader, 1, 1, 1);
-			ComputeShader->UnsetParameters(RHICmdList);
+			ComputeShader->UnsetParameters(RHICmdList, View);
 		}
 	
 		if (GVPLSurfelRepresentation)
@@ -1344,7 +1385,7 @@ void ComputeIrradianceForSamples(
 			ComputeShader->SetParameters(RHICmdList, View, DepthLevel, Parameters, TemporaryIrradianceCacheResources);
 			DispatchIndirectComputeShader(RHICmdList, *ComputeShader, SurfaceCacheResources.DispatchParameters.Buffer, 0);
 
-			ComputeShader->UnsetParameters(RHICmdList);
+			ComputeShader->UnsetParameters(RHICmdList, TemporaryIrradianceCacheResources);
 		}
 		else
 		{
@@ -1354,7 +1395,7 @@ void ComputeIrradianceForSamples(
 			ComputeShader->SetParameters(RHICmdList, View, DepthLevel, Parameters, TemporaryIrradianceCacheResources);
 			DispatchIndirectComputeShader(RHICmdList, *ComputeShader, SurfaceCacheResources.DispatchParameters.Buffer, 0);
 
-			ComputeShader->UnsetParameters(RHICmdList);
+			ComputeShader->UnsetParameters(RHICmdList, TemporaryIrradianceCacheResources);
 		}
 	}
 
@@ -1363,7 +1404,7 @@ void ComputeIrradianceForSamples(
 		RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 		ComputeShader->SetParameters(RHICmdList, View, DepthLevel);
 		DispatchComputeShader(RHICmdList, *ComputeShader, 1, 1, 1);
-		ComputeShader->UnsetParameters(RHICmdList);
+		ComputeShader->UnsetParameters(RHICmdList, View);
 	}
 		
 	{
@@ -1371,7 +1412,7 @@ void ComputeIrradianceForSamples(
 		RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 		ComputeShader->SetParameters(RHICmdList, View, DepthLevel, TemporaryIrradianceCacheResources);
 		DispatchIndirectComputeShader(RHICmdList, *ComputeShader, SurfaceCacheResources.DispatchParameters.Buffer, 0);
-		ComputeShader->UnsetParameters(RHICmdList);
+		ComputeShader->UnsetParameters(RHICmdList, View, DepthLevel);
 	}
 }
 
@@ -1385,7 +1426,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldAO(Platform);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldGI(Platform);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -1446,12 +1487,14 @@ public:
 
 		SetSRVParameter(RHICmdList, ShaderRHI, ConeDepthVisibilityFunction, ScreenGridResources.ConeDepthVisibilityFunction.SRV);
 
+		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, ScreenGridResources.StepBentNormal.UAV);
 		StepBentNormal.SetBuffer(RHICmdList, ShaderRHI, ScreenGridResources.StepBentNormal);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList)
+	void UnsetParameters(FRHICommandList& RHICmdList, const FAOScreenGridResources& ScreenGridResources)
 	{
 		StepBentNormal.UnsetUAV(RHICmdList, GetComputeShader());
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, ScreenGridResources.StepBentNormal.UAV);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -1482,7 +1525,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldAO(Platform);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldGI(Platform);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -1548,12 +1591,17 @@ public:
 		FAOScreenGridResources* ScreenGridResources = View.ViewState->AOScreenGridResources;
 
 		SetSRVParameter(RHICmdList, ShaderRHI, StepBentNormalBuffer, ScreenGridResources->StepBentNormal.SRV);
+
+		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, ScreenGridResources->SurfelIrradiance.UAV);
 		SurfelIrradiance.SetBuffer(RHICmdList, ShaderRHI, ScreenGridResources->SurfelIrradiance);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList)
+	void UnsetParameters(FRHICommandList& RHICmdList, const FViewInfo& View)
 	{
 		SurfelIrradiance.UnsetUAV(RHICmdList, GetComputeShader());
+
+		FAOScreenGridResources* ScreenGridResources = View.ViewState->AOScreenGridResources;
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, ScreenGridResources->SurfelIrradiance.UAV);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -1637,14 +1685,16 @@ public:
 		SetSRVParameter(RHICmdList, ShaderRHI, SurfelIrradiance, ScreenGridResources.SurfelIrradiance.SRV);
 		SetSRVParameter(RHICmdList, ShaderRHI, HeightfieldIrradiance, ScreenGridResources.HeightfieldIrradiance.SRV);
 
+		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, IrradianceTextureValue.UAV);
 		IrradianceTexture.SetTexture(RHICmdList, ShaderRHI, IrradianceTextureValue.ShaderResourceTexture, IrradianceTextureValue.UAV);
 
 		SetShaderValue(RHICmdList, ShaderRHI, ScreenGridConeVisibilitySize, ScreenGridResources.ScreenGridDimensions);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList)
+	void UnsetParameters(FRHICommandList& RHICmdList, FSceneRenderTargetItem& IrradianceTextureValue)
 	{
 		IrradianceTexture.UnsetUAV(RHICmdList, GetComputeShader());
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, IrradianceTextureValue.UAV);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -1696,7 +1746,7 @@ void ComputeIrradianceForScreenGrid(
 			RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 			ComputeShader->SetParameters(RHICmdList, View, DistanceFieldNormal, ScreenGridResources);
 			DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
-			ComputeShader->UnsetParameters(RHICmdList);
+			ComputeShader->UnsetParameters(RHICmdList, ScreenGridResources);
 		}
 
 		if (GVPLSurfelRepresentation)
@@ -1710,7 +1760,7 @@ void ComputeIrradianceForScreenGrid(
 			const uint32 ComputeIrradianceGroupSizeX = View.ViewRect.Size().X / GAODownsampleFactor;
 			const uint32 ComputeIrradianceGroupSizeY = View.ViewRect.Size().Y / GAODownsampleFactor;
 			DispatchComputeShader(RHICmdList, *ComputeShader, ComputeIrradianceGroupSizeX, ComputeIrradianceGroupSizeY, 1);
-			ComputeShader->UnsetParameters(RHICmdList);
+			ComputeShader->UnsetParameters(RHICmdList, View);
 		}
 	}
 		
@@ -1719,7 +1769,7 @@ void ComputeIrradianceForScreenGrid(
 		RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 		ComputeShader->SetParameters(RHICmdList, View, ScreenGridResources, IrradianceTexture);
 		DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
-		ComputeShader->UnsetParameters(RHICmdList);
+		ComputeShader->UnsetParameters(RHICmdList, IrradianceTexture);
 	}
 }
 

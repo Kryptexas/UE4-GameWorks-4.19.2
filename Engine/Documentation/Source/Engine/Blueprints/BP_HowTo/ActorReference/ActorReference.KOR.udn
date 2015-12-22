@@ -1,15 +1,22 @@
-﻿INTSourceChangelist:2595505
+﻿INTSourceChangelist:2679100
 Availability: Public
 Title:액터 레퍼런스 Set / Get
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
 Description:레벨의 여러가지 액터 이동을 위해 액터 레퍼런스 사용하기 입니다.
 Related: Gameplay/HowTo/ReferenceAssets/Blueprints
+version: 4.9
+skilllevel:Intermediate
+type:howto
+parent:Engine/Blueprints/BP_HowTo
+order:1
 
 [INCLUDE:Gameplay\HowTo\ReferenceAssets#referenceoverview]
 
 액터로의 레퍼런스를 **Get** / **Set** 하는 예제는 아래 단계를 참고하세요.
 
-_이 예제에서는 **시작용 콘텐츠가 포함** 된 **블루프린트 삼인칭 템플릿** 을 사용하고 있습니다._
+[REGION:note]
+이 예제에서는 **시작용 콘텐츠가 포함** 된 **블루프린트 삼인칭 템플릿** 을 사용하고 있습니다._
+[/REGION]
 
 1. **모드** 메뉴에서 **기본** 아래 **박스 트리거** 를 끌어 레벨에 놓습니다.
 
@@ -66,7 +73,7 @@ _이 예제에서는 **시작용 콘텐츠가 포함** 된 **블루프린트 삼
 	![](9AddingAnActor.png)
 
 	[REGION:note]
-	별도의 프로젝트를 사용중이시라면, 아무 액터, **스태틱 메시** 나 **블루프린트** 를 레벨에 놓아도 됩니다.
+	별도의 프로젝트를 사용중이시라면, 아무 액터, 스태틱 메시 또는 블루프린트를 레벨에 놓아도 됩니다.
 	[/REGION]
 
 1. 레벨에 무엇을 추가하든, 각 액터의 **디테일** 패널에서 모빌리티를 **무버블** 로 설정합니다.

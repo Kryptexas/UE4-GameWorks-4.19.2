@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "IOSPlatformEditorPrivatePCH.h"
 #include "SWidgetSwitcher.h"
@@ -24,6 +24,7 @@
 #include "SHyperlink.h"
 #include "SProvisionListRow.h"
 #include "SCertificateListRow.h"
+#include "EngineBuildSettings.h"
 
 #define LOCTEXT_NAMESPACE "IOSTargetSettings"
 
@@ -123,7 +124,6 @@ void FIOSTargetSettingsCustomization::UpdateStatus()
 		
 		// format of the line being read here!!
 		bool bCerts = false;
-		bManuallySelected = false;
 		for (int Index = 0; Index < LogLines.Num(); Index++)
 		{
 			FString& Line = LogLines[Index];
@@ -165,7 +165,6 @@ void FIOSTargetSettingsCustomization::UpdateStatus()
 				FString OutString;
 				SignCertificateProperty->GetValueAsFormattedString(OutString);
 				Cert->bManuallySelected = (OutString == Cert->Name);
-				bManuallySelected |= Cert->bManuallySelected;
 				if (!PrevCert.IsValid())
 				{
 					CertificateList->Add(Cert);
@@ -211,7 +210,6 @@ void FIOSTargetSettingsCustomization::UpdateStatus()
 				FString OutString;
 				MobileProvisionProperty->GetValueAsFormattedString(OutString);
 				Prov->bManuallySelected = (OutString == Prov->FileName);
-				bManuallySelected |= Prov->bManuallySelected;
 				ProvisionList->Add(Prov);
 			}
 			else if (Line.Contains(TEXT("MATCHED-"), ESearchCase::CaseSensitive))
@@ -445,7 +443,7 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 						.IsEnabled(this, &FIOSTargetSettingsCustomization::IsImportEnabled)
 						[
 							SNew(STextBlock)
-							.Text(FText::FromString("Import Provision"))
+							.Text(LOCTEXT("ImportProvision", "Import Provision"))
 						]
 					]
 			]
@@ -603,7 +601,7 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 					.IsEnabled(this, &FIOSTargetSettingsCustomization::IsImportEnabled)
 					[
 						SNew(STextBlock)
-						.Text(FText::FromString("Import Certificate"))
+						.Text(LOCTEXT("ImportCertificate", "Import Certificate"))
 					]
 				]
 			]
@@ -633,12 +631,12 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 	// Show properties that are gated by the plist being present and writable
 	RunningIPPProcess = false;
 
-#define SETUP_NONROCKET_PROP(PropName, Category) \
+#define SETUP_SOURCEONLY_PROP(PropName, Category) \
 	{ \
 		TSharedRef<IPropertyHandle> PropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, PropName)); \
 		Category.AddProperty(PropertyHandle) \
-			.IsEnabled(!FRocketSupport::IsRocket()) \
-			.ToolTip(!FRocketSupport::IsRocket() ? PropertyHandle->GetToolTipText() : FIOSTargetSettingsCustomizationConstants::DisabledTip); \
+			.IsEnabled(FEngineBuildSettings::IsSourceDistribution()) \
+			.ToolTip(FEngineBuildSettings::IsSourceDistribution() ? PropertyHandle->GetToolTipText() : FIOSTargetSettingsCustomizationConstants::DisabledTip); \
 	}
 
 #define SETUP_PLIST_PROP(PropName, Category) \
@@ -708,16 +706,16 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 
 	SETUP_PLIST_PROP(AdditionalPlistData, ExtraCategory);
 
-	SETUP_NONROCKET_PROP(bDevForArmV7, BuildCategory);
-	SETUP_NONROCKET_PROP(bDevForArm64, BuildCategory);
-	SETUP_NONROCKET_PROP(bDevForArmV7S, BuildCategory);
-	SETUP_NONROCKET_PROP(bShipForArmV7, BuildCategory);
-	SETUP_NONROCKET_PROP(bShipForArm64, BuildCategory);
-	SETUP_NONROCKET_PROP(bShipForArmV7S, BuildCategory);
+	SETUP_SOURCEONLY_PROP(bDevForArmV7, BuildCategory);
+	SETUP_SOURCEONLY_PROP(bDevForArm64, BuildCategory);
+	SETUP_SOURCEONLY_PROP(bDevForArmV7S, BuildCategory);
+	SETUP_SOURCEONLY_PROP(bShipForArmV7, BuildCategory);
+	SETUP_SOURCEONLY_PROP(bShipForArm64, BuildCategory);
+	SETUP_SOURCEONLY_PROP(bShipForArmV7S, BuildCategory);
 
-	SETUP_NONROCKET_PROP(bSupportsMetalMRT, RenderCategory);
+	SETUP_SOURCEONLY_PROP(bSupportsMetalMRT, RenderCategory);
 
-#undef SETUP_NONROCKET_PROP
+#undef SETUP_SOURCEONLY_PROP
 }
 
 
@@ -830,8 +828,11 @@ void FIOSTargetSettingsCustomization::BuildRemoteBuildingSection(IDetailLayoutBu
 	SSHPrivateKeyOverridePathPropertyRow
 		.ToolTip(LOCTEXT("SSHPrivateKeyOverridePathToolTip", "Override the existing SSH Private Key with one from a specified location."));
 
+	const FText GenerateSSHText = LOCTEXT("GenerateSSHKey", "Generate SSH Key");
+
 	// Add a generate key button
 	RemoteBuildingGroup.AddWidgetRow()
+		.FilterString(GenerateSSHText)
 		.WholeRowWidget
 		.MinDesiredWidth(0.f)
 		.MaxDesiredWidth(0.f)
@@ -853,7 +854,7 @@ void FIOSTargetSettingsCustomization::BuildRemoteBuildingSection(IDetailLayoutBu
 						.IsEnabled(this, &FIOSTargetSettingsCustomization::IsImportEnabled)
 						[
 							SNew(STextBlock)
-							.Text(FText::FromString("Generate SSH Key"))
+							.Text(GenerateSSHText)
 						]
 					]
 				]
@@ -1016,7 +1017,7 @@ FReply FIOSTargetSettingsCustomization::OnInstallProvisionClicked()
 
 		bOpened = DesktopPlatform->OpenFileDialog(
 			ParentWindowWindowHandle,
-			LOCTEXT("ImportDialogTitle", "Import Provision").ToString(),
+			LOCTEXT("ImportProvisionDialogTitle", "Import Provision").ToString(),
 			FPaths::GetProjectFilePath(),
 			TEXT(""),
 			FileTypes,
@@ -1102,7 +1103,7 @@ FReply FIOSTargetSettingsCustomization::OnInstallCertificateClicked()
 
 		bOpened = DesktopPlatform->OpenFileDialog(
 			ParentWindowWindowHandle,
-			LOCTEXT("ImportDialogTitle", "Import Certificate").ToString(),
+			LOCTEXT("ImportCertificateDialogTitle", "Import Certificate").ToString(),
 			FPaths::GetProjectFilePath(),
 			TEXT(""),
 			FileTypes,
@@ -1250,17 +1251,6 @@ void FIOSTargetSettingsCustomization::HandleProvisionChanged(FString Provision)
 	{
 		MobileProvisionProperty->SetValueFromFormattedString(Provision);
 	}
-	SignCertificateProperty->GetValueAsFormattedText(OutText);
-	if (Provision == TEXT("") && OutText.ToString() == TEXT(""))
-	{
-		bManuallySelected = false;
-		FilterLists();
-	}
-	else if (!bManuallySelected)
-	{
-		bManuallySelected = true;
-		FilterLists();
-	}
 }
 
 void FIOSTargetSettingsCustomization::HandleCertificateChanged(FString Certificate)
@@ -1270,17 +1260,6 @@ void FIOSTargetSettingsCustomization::HandleCertificateChanged(FString Certifica
 	if (OutText.ToString() != Certificate)
 	{
 		SignCertificateProperty->SetValueFromFormattedString(Certificate);
-	}
-	MobileProvisionProperty->GetValueAsFormattedText(OutText);
-	if (Certificate == TEXT("") && OutText.ToString() == TEXT(""))
-	{
-		bManuallySelected = false;
-		FilterLists();
-	}
-	else if (!bManuallySelected)
-	{
-		bManuallySelected = true;
-		FilterLists();
 	}
 }
 
@@ -1311,7 +1290,7 @@ void FIOSTargetSettingsCustomization::FilterLists()
 
 	for (int Index = 0; Index < ProvisionList->Num(); ++Index)
 	{
-		if (SelectedProvision.Contains((*ProvisionList)[Index]->Name) && SelectedFile.Contains((*ProvisionList)[Index]->FileName) && !bManuallySelected)
+		if (SelectedProvision.Contains((*ProvisionList)[Index]->Name) && SelectedFile.Contains((*ProvisionList)[Index]->FileName))
 		{
 			(*ProvisionList)[Index]->bSelected = true;
 		}
@@ -1346,7 +1325,7 @@ void FIOSTargetSettingsCustomization::FilterLists()
 
 	for (int Index = 0; Index < CertificateList->Num(); ++Index)
 	{
-		if (SelectedCert.Contains((*CertificateList)[Index]->Name) && !bManuallySelected)
+		if (SelectedCert.Contains((*CertificateList)[Index]->Name))
 		{
 			(*CertificateList)[Index]->bSelected = true;
 		}

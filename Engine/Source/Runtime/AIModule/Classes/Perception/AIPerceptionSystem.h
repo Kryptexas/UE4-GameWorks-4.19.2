@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -121,7 +121,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AI|Perception")
 	void ReportEvent(UAISenseEvent* PerceptionEvent);
 
-	UFUNCTION(BlueprintCallable, Category = "AI|Perception", meta = (HidePin = "WorldContext", DefaultToSelf = "WorldContext"))
+	UFUNCTION(BlueprintCallable, Category = "AI|Perception", meta = (WorldContext="WorldContext"))
 	static void ReportPerceptionEvent(UObject* WorldContext, UAISenseEvent* PerceptionEvent);
 
 	template<typename FSenseClass>
@@ -134,18 +134,21 @@ public:
 	 */
 	void UnregisterSource(AActor& SourceActor, TSubclassOf<UAISense> Sense = nullptr);
 
+	void OnListenerForgetsActor(const UAIPerceptionComponent& Listener, AActor& ActorToForget);
+	void OnListenerForgetsAll(const UAIPerceptionComponent& Listener);
+
 	void RegisterDelayedStimulus(FPerceptionListenerID ListenerId, float Delay, AActor* Instigator, const FAIStimulus& Stimulus);
 
 	static UAIPerceptionSystem* GetCurrent(UObject* WorldContextObject);
 
 	static void MakeNoiseImpl(AActor* NoiseMaker, float Loudness, APawn* NoiseInstigator, const FVector& NoiseLocation, float MaxRange, FName Tag);
 
-	UFUNCTION(BlueprintCallable, Category = "AI|Perception", meta = (HidePin = "WorldContext", DefaultToSelf = "WorldContext"))
+	UFUNCTION(BlueprintCallable, Category = "AI|Perception", meta = (WorldContext="WorldContext"))
 	static bool RegisterPerceptionStimuliSource(UObject* WorldContext, TSubclassOf<UAISense> Sense, AActor* Target);
 
 	FAISenseID RegisterSenseClass(TSubclassOf<UAISense> SenseClass);
 
-	UFUNCTION(BlueprintCallable, Category = "AI|Perception", meta = (HidePin = "WorldContext", DefaultToSelf = "WorldContext"))
+	UFUNCTION(BlueprintCallable, Category = "AI|Perception", meta = (WorldContext="WorldContext"))
 	static TSubclassOf<UAISense> GetSenseClassForStimulus(UObject* WorldContext, const FAIStimulus& Stimulus);
 	
 protected:

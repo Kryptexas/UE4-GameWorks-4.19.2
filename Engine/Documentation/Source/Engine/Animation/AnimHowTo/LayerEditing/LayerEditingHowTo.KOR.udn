@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2601213
+﻿INTSourceChangelist:2661444
 Availability: Public
 Title:애니메이션 레이어 편집하기
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
@@ -9,6 +9,8 @@ Related: Engine\Animation\AnimBlueprints
 Related: Engine\Animation\AnimHowTo\AdditiveAnimations
 Related: Engine\Animation\Skeleton
 Related: Engine\Animation\Overview
+version: 4.9
+skilllevel: Advanced
 
 **애니메이션 레이어 편집** 은 언리얼 엔진 4 안에서 기존 [](Engine\Animation\Sequences) 를 **애디티브 레이어 트랙** 의 일부로 편집할 수 있습니다. 애니메이션 레이어 편집을 통해 기존 애니메이션을 조절하여 애니메이션을 다른 자세로 찍거나, 원본을 기반으로 제공한 자체 모션으로 별도의 애니메이션을 새로 만들 수 있습니다.
 
@@ -24,7 +26,7 @@ Related: Engine\Animation\Overview
 
 여기서는 Idle 애니메이션 사본을 만들어 편집하여, 원본은 보존하도록 하겠습니다.
 
-1.  **콘텐츠 브라우저** 에서 **Game/FirstPersonBP/Animations** 폴더 아래 **Prone_Idle** 애니메이션을 엽니다.
+1.  **콘텐츠 브라우저** 에서 **Game/FirstPerson/Animations** 폴더 아래 **FirstPerson_Idle** 애니메이션을 엽니다.
 
 	![](AnimEdit1.png)
 
@@ -34,7 +36,7 @@ Related: Engine\Animation\Overview
 
 1.	툴바 메뉴의 **애셋 생성** 버튼을 클릭한 다음, _애니메이션 생성_ 아래 **현재 애니메이션에서** 를 선택합니다.
 
-	![](AnimEdit3.png)
+	![](LE_FromCurrentAnimation.jpg)
 
 	여기서는 Idle 애니메이션을 기반으로 새 애니메이션을 만듭니다. 애니메이션의 특정 포즈나 베이스 레퍼런스 포즈를 기반으로 애니메이션을 새로 만드는 옵션도 있습니다. 우리 용도상 전체 idle 애니메이션을 작업하여 reload 애니메이션으로 변경할 것이므로, **현재 애니메이션에서** 옵션이 가장 좋습니다.
 
@@ -48,13 +50,13 @@ Related: Engine\Animation\Overview
 
 **FirstPerson_Reload** 애니메이션이 생성되었으니, 애니메이션 레이어 편집을 통해 편집을 시작할 수 있습니다.
 
-1.  **FirstPerson_Reload** 애니메이션을 열고, **재생 콘트롤** 의 **ToNext** 버튼을 클릭하여 15 프레임으로 이동합니다.
+1.  **FirstPerson_Reload** 애니메이션을 열고, **재생 콘트롤** 의 **To Next** 버튼을 클릭하여 15 프레임으로 이동합니다.
 
 	![](AnimEdit5.png)
 
 1.	**스켈레톤 트리** 에서 **upperarm_l** 본을 클릭하여 선택합니다.
 
-	![](AnimEdit6.png)
+	![](LE_Leftarm.jpg)
 
 	편집을 시작하려면, 먼저 위에서 이미 했던 대로 **애디티브 레이어 트랙** 에서 변경할 본을 선택해야 합니다.
 
@@ -72,17 +74,17 @@ Related: Engine\Animation\Overview
 
 	위에서 **upperarm_l** 본에 세 개의 트랙이 추가되었습니다: **Translation** 트랙 (1), **Rotation** 트랙 (2), **Scale** 트랙 (3) 입니다.
 
-1.	**ToNext** 버튼을 클릭하여 30 프레임으로 진행합니다.
+1.	**To Next** 버튼을 클릭하여 30 프레임으로 진행합니다.
 
 	![](AnimEdit9.png)
 
-1.	뷰포트 안에서 **회전** 위젯의 노랑 원호에 **좌클릭** 합니다.
+1.	뷰포트 안에서 **회전** 위젯의 초록 원호에 **좌클릭** 합니다.
 
-	![](AnimEdit10.png)
+	![](LE_LeftArmRot.jpg)
 
 	그러면 축 회전 위젯으로 변경되고, 마우스를 왼쪽 **-60.00** 마크로 움직입니다.
 
-	![](AnimEdit11.png)
+	![](LE_LeftArmMinus60.jpg)
 
 	일인칭 관점에서 보면, 손을 화면 밖 아래로 끌어냅니다.
 
@@ -92,11 +94,11 @@ Related: Engine\Animation\Overview
 
 	애디티브 레이어 트랙에 새로운 키가 추가되며, 첫 키에서 두 번째 키까지 커브가 생성됩니다.
 
-1.	**재생 콘트롤** 의 **ToNext** 버튼을 클릭하여 45 프레임으로 진행합니다.
+1.	**재생 콘트롤** 의 **To Next** 버튼을 클릭하여 45 프레임으로 진행합니다.
 
-1.	뷰포트에서 **회전** 위젯의 노랑 원호를 **좌클릭** 한 뒤 끌어, 오른쪽으로 **60.00** 마크까지 회전시킵니다.
+1.	뷰포트에서 **회전** 위젯의 초록 원호를 **좌클릭** 한 뒤 끌어, 오른쪽으로 **60.00** 마크까지 회전시킵니다.
 
-	![](AnimEdit14.png)
+	![](LE_LeftArmUp60.jpg)
 
 1.	툴바 메뉴에서 **키 추가** 버튼( 또는 **S** 키)을 누릅니다.
 
@@ -104,15 +106,15 @@ Related: Engine\Animation\Overview
 
 	새 키가 추가되며, 키 첫 세트와 값이 똑같을 것입니다.
 
-1.	**재생 콘트롤** 의 **ToNext** 버튼을 클릭하여 50 프레임으로 진행한 뒤, **S** 키를 눌러 키 세트를 추가합니다.
+1.	**재생 콘트롤** 의 **To Next** 버튼을 클릭하여 50 프레임으로 진행한 뒤, **S** 키를 눌러 키 세트를 추가합니다.
 
 	![](AnimEdit17.png)(w:640)
 
-1.	**재생 콘트롤** 의 **ToNext** 버튼을 클릭하여 60 프레임으로 진행합니다.
+1.	**재생 콘트롤** 의 **To Next** 버튼을 클릭하여 60 프레임으로 진행합니다.
 
-1.	뷰포트에서 **W** 키를 눌러 **이동** 모드로 전환한 다음, 노랑 화살표를 **좌클릭** 하고 오른쪽으로 약간 잡아 끕니다.
+1.	뷰포트에서 **W** 키를 눌러 **이동** 모드로 전환한 다음, 빨강 화살표를 **좌클릭** 하고 오른쪽으로 약간 잡아 끕니다.
 
-	![](AnimEdit19.png)
+	![](LE_LeftArmPump.jpg)
 
 	그러면 팔이 샷건을 "펌핑" 하는 것처럼 뒤로 약간 이동됩니다. 얼마만큼 움직일지는 재량껏 하시면 됩니다.
 
@@ -122,7 +124,7 @@ Related: Engine\Animation\Overview
 
 	예전 키에서의 커브와 함께 애디티브 레이어 트랙에 포즈에 대한 키가 추가됩니다.
 
-1.	**재생 콘트롤** 의 **ToNext** 버튼을 클릭하여 65 프레임으로 진행한 뒤, **S** 키를 눌러 키 세트를 추가합니다.
+1.	**재생 콘트롤** 의 **To Next** 버튼을 클릭하여 65 프레임으로 진행한 뒤, **S** 키를 눌러 키 세트를 추가합니다.
 
 	![](AnimEdit22.png)(w:640)
 
@@ -140,9 +142,45 @@ Related: Engine\Animation\Overview
 
 1.	애니메이션이 완료되었으니 **저장** 버튼을 클릭합니다.
  
+1. **Game/FirstPerson/Animations** 폴더 안의 **FirstPerson_AnimBP** 를 더블클릭하여 엽니다.
+
+	![](AnimEdit28.png)
+
+1. **애니메이션 블루프린트 에디터** 안의 **내 블루프린트** 패널에서 **애님 그래프** 를 더블클릭하여 엽니다.
+
+	![](AnimEdit29.png)
+
+1.  **애님 그래프** 의 **New State Mahchine** 노드를 더블클릭합니다.
+
+	![](AnimEdit30.png)
+
+1. 제목이 **FPP_Idle** 인 노드를 찾아 더블클릭하여 엽니다.
+
+	![](AnimEdit31.png)
+
+1. 그래프에서 우클릭한 다음 **Play FirstPerson_Reload** 노드를 생성합니다.
+
+	![](AnimEdit32.png)
+
+1. **Play FirstPerson_Idle** 노드 출력에서 **Play FirstPerson_Reload** 노드로 **Ctrl + 좌클릭 드래그** 할 때 기존 **Play FirstPerson_Idle** 노드를 새로운 **Play FirstPerson_Reload** 노드로 대체합니다.
+
+	![](AnimEdit33.png)
+
+1. 애니메이션 블루프린트를 **컴파일**, **저장** 한 다음 닫고서 **플레이** 를 눌러 새 애니메이션을 테스트합니다.
+
 아래는 게임내 캐릭터에 애니메이션이 재생되는 예제입니다.
 
-![](ReloadGIF.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+Soior02AUtE
+[/PARAMLITERAL]
+[/OBJECT]
 
 ## 결론 & 잦은 질문
 
@@ -168,13 +206,13 @@ Related: Engine\Animation\Overview
 
 *	**표시** 메뉴 옵션 중 뷰포트에 **소스 애니메이션** 및 (또는) **구은 애니메이션** 을 표시하도록 할 수 있습니다. 아래 그림에서 소스 애니메이션은 흰색 스켈레톤으로 보이는 반면, 구은 애니메이션은 파랑색 스켈레톤으로 보입니다.
 
-	![](AnimEdit26.png)
+	![](LE_SourceBakedAnim.jpg)
 
 **애니메이션 레이어 편집을 사용하여 루트 모션을 만들 수도 있나요?**
 
 *	네, 루트 본을 선택하고 키를 추가한 다음, 타임라인을 앞으로 이동한 뒤 루트 본을 이동하여 다시 키를 추가하면 됩니다.
 
-	![](AnimEdit27.png)
+	![](LE_ThirdPersonAnim.jpg)
 
 	위에서는 소스 / 구은 애니메이션 미리보기를 켰으며, 흰색 스켈레톤이 소스 애니메이션입니다.
 

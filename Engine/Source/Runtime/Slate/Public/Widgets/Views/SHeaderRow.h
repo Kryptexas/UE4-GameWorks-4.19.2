@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "SBorder.h"
@@ -102,8 +102,8 @@ public:
 			, _OnSort()
 			{}
 			SLATE_ARGUMENT( FName, ColumnId )
-			SLATE_TEXT_ATTRIBUTE( DefaultLabel )
-			SLATE_TEXT_ATTRIBUTE( DefaultTooltip )
+			SLATE_ATTRIBUTE( FText, DefaultLabel )
+			SLATE_ATTRIBUTE( FText, DefaultTooltip )
 			SLATE_ATTRIBUTE( float, FillWidth )
 			SLATE_ARGUMENT( TOptional< float >, FixedWidth )
 			SLATE_ATTRIBUTE( float, ManualWidth )

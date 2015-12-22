@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DistortApplyScreenPixelShader.usf: Pixel shader for rendering screen distortion pass
@@ -29,7 +29,7 @@ float4		SceneColorRect;
 
 /** distorts screen texture using accumulated distortion offsets */
 void Main(
-	in float4 TexCoord: TEXCOORD0,
+	in noperspective float4 TexCoord: TEXCOORD0,
 	out float4 OutColor : SV_Target0
 	)
 {
@@ -61,7 +61,7 @@ void Main(
 }
 
 void Merge(
-	in float4 TexCoord: TEXCOORD0,
+	in noperspective float4 TexCoord: TEXCOORD0,
 	out float4 OutColor : SV_Target0
 	)
 {

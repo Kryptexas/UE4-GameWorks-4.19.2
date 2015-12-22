@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2600494
+﻿INTSourceChangelist:2692002
 Availability:Public
 Title:문 열기
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/Timelines
 Description: 타임라인을 사용하여 접근 여부에 따라 열리는 문을 만들어 보는 예제입니다.
+version: 4.9
 
 %Description%
 
@@ -23,9 +24,9 @@ Description: 타임라인을 사용하여 접근 여부에 따라 열리는 문�
 플레이어가 볼륨에서 나갈 때, 2 초간 기다린 다음 타임라인을 역방향 재생하여 문을 원래 위치로 되돌려 놓습니다.
 
 **클릭하면 원래 크기로**
-
+[REGION:lightbox]
 [![DoorNetwork.png](DoorNetwork.png)(w:800)](DoorNetwork.png)
-
+[/REGION]
 참고로 이 구성에서 소리 효과는 고려치 않습니다.
 
 ## 타임라인 셋업

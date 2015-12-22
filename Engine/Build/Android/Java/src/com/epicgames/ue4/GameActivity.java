@@ -1,3 +1,4 @@
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 //This file needs to be here so the "ant" build step doesnt fail when looking for a /src folder.
 
 package com.epicgames.ue4;
@@ -40,6 +41,8 @@ import android.view.View.OnTouchListener;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup.LayoutParams;
 import android.view.ViewGroup.MarginLayoutParams;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.WindowManager;
 import android.view.Window;
 import android.widget.LinearLayout;
@@ -86,7 +89,7 @@ import com.epicgames.ue4.DownloadShim;
 //  Java libraries at the startup of the program and store references 
 //  to them in this class.
 
-public class GameActivity extends NativeActivity
+public class GameActivity extends NativeActivity implements SurfaceHolder.Callback2
 {
 	public static Logger Log = new Logger("UE4");
 	
@@ -101,6 +104,7 @@ public class GameActivity extends NativeActivity
 	public static final String DOWNLOAD_RETURN_NAME = "Result";
 	
 	static GameActivity _activity;
+	static Bundle _bundle;
 
 	protected Dialog mSplashDialog;
 	private int noActionAnimID = -1;
@@ -173,6 +177,12 @@ public class GameActivity extends NativeActivity
 
 	/** Whether this application is for distribution */
 	private boolean IsForDistribution = false;
+
+	/** Used for SurfaceHolder.setFixedSize buffer scaling workaround on early Amazon devices and some others */
+	private boolean bUseSurfaceView = false;
+	private SurfaceView MySurfaceView;
+	private int DesiredHolderWidth = 0;
+	private int DesiredHolderHeight = 0;
 	
 	/** Access singleton activity for game. **/
 	public static GameActivity Get()
@@ -283,6 +293,12 @@ public class GameActivity extends NativeActivity
 				catch (Exception e) {
 					e.printStackTrace();
 				}
+			}
+			try {
+				noActionAnimID = getResources().getIdentifier("noaction", "anim", getPackageName());
+			}
+			catch (Exception e) {
+				e.printStackTrace();
 			}
 		}
 		
@@ -405,6 +421,7 @@ public class GameActivity extends NativeActivity
 		try {
 			ApplicationInfo ai = getPackageManager().getApplicationInfo(getPackageName(), PackageManager.GET_META_DATA);
 			Bundle bundle = ai.metaData;
+			_bundle = bundle;
 
 			if ((ai.flags & ApplicationInfo.FLAG_DEBUGGABLE) == 0) 
 			{
@@ -646,6 +663,11 @@ public class GameActivity extends NativeActivity
 		}
 
 //$${gameActivityOnCreateAdditions}$$
+		// Need to create our surface view here regardless of if we are going to end up using it
+		getWindow().takeSurface(null);
+		MySurfaceView = new SurfaceView(this);
+		MySurfaceView.getHolder().addCallback(this);
+		setContentView(MySurfaceView);
 		
 		Log.debug("==============> GameActive.onCreate complete!");
 	}
@@ -750,8 +772,31 @@ public class GameActivity extends NativeActivity
 	public void onDestroy()
 	{
 		super.onDestroy();
+		if( IapStoreHelper != null )
+		{
+			IapStoreHelper.onDestroy();
+		}
 //$${gameActivityOnDestroyAdditions}$$
 		Log.debug("==============> GameActive.onDestroy complete!");
+	}
+
+	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height)
+	{
+		if(bUseSurfaceView)
+		{
+			int newWidth = (DesiredHolderWidth > 0) ? DesiredHolderWidth : width;
+			int newHeight = (DesiredHolderHeight > 0) ? DesiredHolderHeight : height;
+
+			super.surfaceChanged(holder, format, newWidth, newHeight);
+
+			holder.setFixedSize(newWidth, newHeight);
+
+			nativeSetSurfaceViewInfo(holder.getSurfaceFrame().width(), holder.getSurfaceFrame().height());
+		}
+		else
+		{
+			super.surfaceChanged(holder, format, width, height);
+		}
 	}
 
 	// handle ad popup visibility and requests
@@ -1155,11 +1200,18 @@ public class GameActivity extends NativeActivity
 	// In app purchase functionality
 	public void AndroidThunkJava_IapSetupService(String InProductKey)
 	{
-		Log.debug("[JAVA] - AndroidThunkJava_IapSetupService");
-		IapStoreHelper = new GooglePlayStoreHelper(InProductKey, this, Log);
-		if( IapStoreHelper == null )
+		if (getPackageManager().checkPermission("com.android.vending.BILLING", getPackageName()) == getPackageManager().PERMISSION_GRANTED)
 		{
-			Log.debug("[JAVA] - Store Helper is invalid");
+			IapStoreHelper = new GooglePlayStoreHelper(InProductKey, this, Log);
+			if (IapStoreHelper != null)
+			{
+				Log.debug("[JAVA] - AndroidThunkJava_IapSetupService - Failed to setup IAP service");
+			}
+		}
+		else
+		{
+			Log.debug("[JAVA] - AndroidThunkJava_IapSetupService - You do not have the appropriate permission setup.");
+			Log.debug("[JAVA] - AndroidThunkJava_IapSetupService - Please ensure com.android.vending.BILLING is added to the manifest.");
 		}
 	}
 	
@@ -1307,6 +1359,22 @@ public class GameActivity extends NativeActivity
 		return bIsAllowedToMakePurchase;
 	}
 
+	public boolean AndroidThunkJava_IapRestorePurchases()
+	{
+		Log.debug("[JAVA] - AndroidThunkJava_IapRestorePurchases");
+		boolean bTriggeredRestore = false;
+		if( IapStoreHelper != null )
+		{
+			Log.debug("[JAVA] - AndroidThunkJava_IapRestorePurchases - Kick off logic here!");
+			bTriggeredRestore = IapStoreHelper.RestorePurchases();
+		}
+		else
+		{
+			Log.debug("[JAVA] - Store Helper is invalid");
+		}
+		return bTriggeredRestore;
+	}
+
 	public void AndroidThunkJava_DismissSplashScreen()
 	{
 		if (mSplashDialog != null)
@@ -1388,11 +1456,100 @@ public class GameActivity extends NativeActivity
 		return new InputDeviceInfo(deviceId, 0, 0, -1, "Unknown", "Unknown");
 	}
 
+	public void AndroidThunkJava_UseSurfaceViewWorkaround()
+	{
+		// We only need apply a change to the SurfaceHolder on the first call
+		// Once bUseSurfaceView is true, it is never changed back
+		if(bUseSurfaceView)
+		{
+			return;
+		}
+
+		bUseSurfaceView = true;
+		Log.debug("[JAVA] Using SurfaceView sizing workaround for this device");
+
+		if(DesiredHolderWidth > 0 && 
+			DesiredHolderHeight > 0 &&
+			MySurfaceView != null)
+		{
+			_activity.runOnUiThread(new Runnable()
+			{
+				@Override
+				public void run()
+				{
+					MySurfaceView.getHolder().setFixedSize(DesiredHolderWidth, DesiredHolderHeight);
+				}
+			});
+		}
+	}
+
+	public void AndroidThunkJava_SetDesiredViewSize(int width, int height)
+	{
+		if (width == DesiredHolderWidth && height == DesiredHolderHeight)
+		{
+			return;
+		}
+
+		Log.debug("[JAVA] - SetDesiredViewSize width=" + width + " and height=" + height);
+		DesiredHolderWidth = width;
+		DesiredHolderHeight = height;
+
+		if(bUseSurfaceView && MySurfaceView != null)
+		{
+			_activity.runOnUiThread(new Runnable()
+			{
+				@Override
+				public void run()
+				{
+					MySurfaceView.getHolder().setFixedSize(DesiredHolderWidth, DesiredHolderHeight);
+				}
+			});
+		}
+	}
+
+	public boolean AndroidThunkJava_HasMetaDataKey(String key)
+	{
+		if (_bundle == null || key == null)
+		{
+			return false;
+		}
+		return _bundle.containsKey(key);
+	}
+
+	public boolean AndroidThunkJava_GetMetaDataBoolean(String key)
+	{
+		if (_bundle == null || key == null)
+		{
+			return false;
+		}
+		return _bundle.getBoolean(key);
+	}
+
+	public int AndroidThunkJava_GetMetaDataInt(String key)
+	{
+		if (_bundle == null || key == null)
+		{
+			return 0;
+		}
+		return _bundle.getInt(key);
+	}
+
+	public String AndroidThunkJava_GetMetaDataString(String key)
+	{
+		if (_bundle == null || key == null)
+		{
+			return null;
+		}
+		return _bundle.getString(key);
+	}
+
 	public native boolean nativeIsShippingBuild();
 	public native void nativeSetGlobalActivity();
 	public native void nativeSetWindowInfo(boolean bIsPortrait, int DepthBufferPreference);
 	public native void nativeSetObbInfo(String ProjectName, String PackageName, int Version, int PatchVersion);
 	public native void nativeSetAndroidVersionInformation( String AndroidVersion, String PhoneMake, String PhoneModel, String OSLanguage );
+
+	public native void nativeSetSurfaceViewInfo(int width, int height);
 
 	public native void nativeConsoleCommand(String commandString);
 	public native void nativeVirtualKeyboardResult(boolean update, String contents);

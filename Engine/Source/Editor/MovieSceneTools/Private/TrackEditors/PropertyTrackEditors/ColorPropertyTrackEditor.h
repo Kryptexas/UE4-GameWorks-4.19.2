@@ -1,15 +1,16 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "MovieSceneColorTrack.h"
+#include "MovieSceneColorSection.h"
 
 
 /**
 * A property track editor for colors.
 */
 class FColorPropertyTrackEditor
-	: public FPropertyTrackEditor<UMovieSceneColorTrack, FColorKey>
+	: public FPropertyTrackEditor<UMovieSceneColorTrack, UMovieSceneColorSection, FColorKey>
 {
 public:
 
@@ -19,7 +20,7 @@ public:
 	 * @param InSequencer The sequencer instance to be used by this tool
 	 */
 	FColorPropertyTrackEditor( TSharedRef<ISequencer> InSequencer )
-		: FPropertyTrackEditor<UMovieSceneColorTrack, FColorKey>( InSequencer, NAME_Color, NAME_LinearColor, "SlateColor" )
+		: FPropertyTrackEditor<UMovieSceneColorTrack, UMovieSceneColorSection, FColorKey>( InSequencer, NAME_Color, NAME_LinearColor, "SlateColor" )
 	{ }
 
 	/**
@@ -30,14 +31,16 @@ public:
 	 */
 	static TSharedRef<ISequencerTrackEditor> CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer );
 
-public:
-
-	// ISequencerTrackEditor interface
-
-	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track ) override;
-
 protected:
 
 	// FPropertyTrackEditor interface
-	virtual bool TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, FColorKey& OutKey ) override;
+
+	virtual TSharedRef<FPropertySection> MakePropertySectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track ) override;
+	virtual void GenerateKeysFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, TArray<FColorKey>& NewGeneratedKeys, TArray<FColorKey>& DefaultGeneratedKeys ) override;
+
+private:
+	static FName RedName;
+	static FName GreenName;
+	static FName BlueName;
+	static FName AlphaName;
 };

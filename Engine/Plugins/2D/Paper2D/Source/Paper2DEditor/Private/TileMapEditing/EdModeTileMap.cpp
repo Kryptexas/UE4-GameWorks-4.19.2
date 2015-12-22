@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "EdModeTileMap.h"
@@ -225,10 +225,10 @@ void FEdModeTileMap::FlushPendingDirtyRegions()
 
 	for (UPaperTileMapComponent* Component : ComponentsToInvalidate)
 	{
-		if (UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Component))
+		if (Component)
 		{
-			NavSys->UpdateNavOctree(Component);
-		}
+			UNavigationSystem::UpdateComponentInNavOctree(*Component);
+		}		
 	}
 
 	PendingDirtyRegions.Empty();

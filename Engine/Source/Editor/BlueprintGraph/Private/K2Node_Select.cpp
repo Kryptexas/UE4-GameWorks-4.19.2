@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "../../../Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
@@ -585,6 +585,8 @@ void UK2Node_Select::PostReconstructNode()
 
 	//After ReconstructNode we must be sure, that no additional reconstruction is required
 	bReconstructNode = false;
+
+	Super::PostReconstructNode();
 }
 
 /** Determine if any pins are connected, if so make all the other pins the same type, if not, make sure pins are switched back to wildcards */

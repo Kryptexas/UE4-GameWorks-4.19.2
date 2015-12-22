@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2712764
 Availability:Public
 Title:1.6 - 簡単な計算
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
-Description:ブループリントの事例概要、例1.6：簡単な計算
+Description:ブループリントのサンプル レベルの概要、サンプル1.6：簡単な計算
 Related:Engine/Blueprints/Overview 
 Related:Engine/Blueprints/UserGuide/Components
 Related:Engine/Blueprints/UserGuide/Variables
@@ -11,8 +11,25 @@ Related:Engine/Blueprints/UserGuide/Types/MacroLibrary
 Related:Engine/Animation/AnimBlueprints/EventGraph
 Related:Engine/Blueprints/UserGuide/UserConstructionScript
 Related:Gameplay/HowTo/SetUpInput/Blueprints
+Version:4.9
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/Blueprints/1_5 "%Resources/ContentExamples/Blueprints/1_5:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[ブループリントのコンテンツ サンプル ホーム](Resources/ContentExamples/Blueprints)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/Blueprints/1_7 "%Resources/ContentExamples/Blueprints/1_7:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -33,21 +50,21 @@ Related:Gameplay/HowTo/SetUpInput/Blueprints
 
 [REGION:fullwidth]
 
-## 概要
 
-この例はブループリント内のデータで実行する簡易な数学方程式を実演します。ゲームの実行時間を加算して、 Text Render コンポーネントへ秒数を適用します。 
+
+このサンプルではブループリントのデータで簡単な数式の計算を実演します。ゲームの実行時間を加算して、Text Render コンポーネントへ秒数を適用します。 
 
 ## コンポーネント
-この例のコンポーネントは、 2 つの Text Render コンポーネントで構成されています。片方のコンポーネントは単に経過した秒数を表示し、もう片方はテキストのラベルを提供します。
+このサンプルのコンポーネントは、2 つの Text Render コンポーネントで構成されています。1 つのコンポーネントは経過秒数を表示し、もう 1 つはテキストのラベルを提供します。
 
 ![](1.6Components.png)(w:500)
 
-## コンストラクションスクリプト
-この例のコンストラクションスクリプトは、 Text Render Component のテキストを Integer Variable （プライベート変数）の値に設定します。データは、Text Renderコンポーネントの _Text_ プロパティと互換性をもたせるために、文字列型に変換します。
+## コンストラクション スクリプト
+このサンプルのコンストラクション スクリプトは、 Text Render Component のテキストを Integer Variable (プライベート変数) の値に設定します。このデータは、Text Render コンポーネントの _Text_ プロパティと互換性をもたせるために、文字列型に変換されます。
 
 ![](1.6ConstructionScript.png)
 
-##EventGraph（イベントグラフ）
+## イベントグラフ
 
 このブループリントのイベントグラフは加算処理をします。
 
@@ -55,8 +72,8 @@ Related:Gameplay/HowTo/SetUpInput/Blueprints
 
 
 * ティックごと (**Event Tick**):
-	1. 1秒遅れて開始
-	1. 遅延の最後に、IntegerVariableの現在の値に1を加算して、合計値をIntegerVariableの新しい値として設定します。 
-	1. TextRenderComponentのテキストをIntegerVariableの値に設定します。この値は、文字列型へ変換されます。
+	1. 1 秒遅れて開始
+	1. 遅延の最後に、IntegerVariable の現在の値に 1 を加算して、合計値をIntegerVariable の新しい値として設定します。
+	1. TextRenderComponent のテキストを IntegerVariable の値に設定します。この値は、文字列型へ変換されます。
 
 [/REGION]

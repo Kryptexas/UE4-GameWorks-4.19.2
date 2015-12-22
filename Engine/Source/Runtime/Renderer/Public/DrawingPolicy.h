@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DrawingPolicy.h: Drawing policy definitions.
@@ -19,6 +19,37 @@
 	else if(A.MemberName > B.MemberName) { return +1; }
 
 /**
+ * Helper structure used to store mesh drawing state
+ */
+enum class EDitheredLODState
+{
+	None,
+	FadeIn,
+	FadeOut,
+};
+
+struct FMeshDrawingRenderState
+{
+	FMeshDrawingRenderState(float DitherAlpha = 0.0f)
+	: DitheredLODTransitionAlpha(DitherAlpha)
+	, DitheredLODState(EDitheredLODState::None)
+	, bAllowStencilDither(false)
+	{
+	}
+
+	FMeshDrawingRenderState(EDitheredLODState DitherState, bool InAllowStencilDither = false)
+	: DitheredLODTransitionAlpha(0.0f)
+	, DitheredLODState(DitherState)
+	, bAllowStencilDither(InAllowStencilDither)
+	{
+	}
+
+	float				DitheredLODTransitionAlpha;
+	EDitheredLODState	DitheredLODState;
+	bool				bAllowStencilDither;
+};
+
+/**
  * The base mesh drawing policy.  Subclasses are used to draw meshes with type-specific context variables.
  * May be used either simply as a helper to render a dynamic mesh, or as a static instance shared between
  * similar meshs.
@@ -30,7 +61,12 @@ public:
 	struct ElementDataType {};
 
 	/** Context data required by the drawing policy that is not known when caching policies in static mesh draw lists. */
-	struct ContextDataType {};
+	struct ContextDataType
+	{
+		ContextDataType(bool InbIsInstancedStereo) : bIsInstancedStereo(InbIsInstancedStereo) {};
+		ContextDataType() : bIsInstancedStereo(false) {};
+		bool bIsInstancedStereo;
+	};
 
 	FMeshDrawingPolicy(
 		const FVertexFactory* InVertexFactory,
@@ -39,7 +75,8 @@ public:
 		bool bInOverrideWithShaderComplexity = false,
 		bool bInTwoSidedOverride = false,
 		bool bInDitheredLODTransitionOverride = false,
-		bool bInWireframeOverride = false
+		bool bInWireframeOverride = false,
+		EQuadOverdrawMode InQuadOverdrawMode = QOM_None
 		);
 
 	FMeshDrawingPolicy& operator = (const FMeshDrawingPolicy& Other)
@@ -53,6 +90,7 @@ public:
 		bNeedsBackfacePass = Other.bNeedsBackfacePass;
 		bUsePositionOnlyVS = Other.bUsePositionOnlyVS;
 		bOverrideWithShaderComplexity = Other.bOverrideWithShaderComplexity;
+		QuadOverdrawMode = Other.QuadOverdrawMode;
 		return *this; 
 	}
 
@@ -76,22 +114,36 @@ public:
 	 * Sets the render states for drawing a mesh.
 	 * @param PrimitiveSceneProxy - The primitive drawing the dynamic mesh.  If this is a view element, this will be NULL.
 	 */
-	void SetMeshRenderState(
+	FORCEINLINE_DEBUGGABLE void SetMeshRenderState(
 		FRHICommandList& RHICmdList, 
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
 		bool bBackFace,
-		float DitheredLODTransitionValue,
+		const FMeshDrawingRenderState& DrawRenderState,
 		const ElementDataType& ElementData,
 		const ContextDataType PolicyContext
-		) const;
+		) const
+	{
+		// Use bitwise logic ops to avoid branches
+		RHICmdList.SetRasterizerState(GetStaticRasterizerState<true>(
+			(Mesh.bWireframe || IsWireframe()) ? FM_Wireframe : FM_Solid, ((IsTwoSided() && !NeedsBackfacePass()) || Mesh.bDisableBackfaceCulling) ? CM_None :
+			(((View.bReverseCulling ^ bBackFace) ^ Mesh.ReverseCulling) ? CM_CCW : CM_CW)
+			));
+	}
 
 	/**
 	 * Executes the draw commands for a mesh.
 	 */
-	void DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch& Mesh, int32 BatchElementIndex) const;
+	void DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch& Mesh, int32 BatchElementIndex, const bool bIsInstancedStereo = false) const;
+
+	/** 
+	 * Sets the instanced eye index shader uniform value where supported. 
+	 * Used for explicitly setting which eye an instanced mesh will render to when rendering with instanced stereo.
+	 * @param EyeIndex - Eye to render to: 0 = Left, 1 = Right
+	 */
+	void SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) const { /*Empty*/ };
 
 	/**
 	 * Executes the draw commands which can be shared between any meshes using this drawer.
@@ -135,6 +187,7 @@ public:
 	const FVertexFactory* GetVertexFactory() const { return VertexFactory; }
 	const FMaterialRenderProxy* GetMaterialRenderProxy() const { return MaterialRenderProxy; }
 
+	FORCEINLINE EQuadOverdrawMode GetQuadOverdrawMode() const { return (EQuadOverdrawMode)QuadOverdrawMode; }
 protected:
 	const FVertexFactory* VertexFactory;
 	const FMaterialRenderProxy* MaterialRenderProxy;
@@ -145,6 +198,7 @@ protected:
 	uint32 bNeedsBackfacePass : 1;
 	uint32 bUsePositionOnlyVS : 1;
 	uint32 bOverrideWithShaderComplexity : 1;
+	uint32 QuadOverdrawMode : 3;
 };
 
 

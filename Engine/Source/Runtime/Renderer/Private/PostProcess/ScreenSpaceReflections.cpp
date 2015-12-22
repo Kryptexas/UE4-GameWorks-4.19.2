@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScreenSpaceReflections.cpp: Post processing Screen Space Reflections implementation.
@@ -321,7 +321,7 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 	
 	if (SSRStencilPrePass)
 	{ // ScreenSpaceReflectionsStencil draw event
-		SCOPED_DRAW_EVENT(RHICmdList, ScreenSpaceReflectionsStencil);
+		SCOPED_DRAW_EVENTF(Context.RHICmdList, ScreenSpaceReflectionsStencil, TEXT("ScreenSpaceReflectionsStencil %dx%d"), View.ViewRect.Width(), View.ViewRect.Height());
 
 		TShaderMapRef< FPostProcessVS > VertexShader(Context.GetShaderMap());
 		TShaderMapRef< FPostProcessScreenSpaceReflectionsStencilPS > PixelShader(Context.GetShaderMap());
@@ -364,7 +364,7 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 	} // ScreenSpaceReflectionsStencil draw event
 
 	{ // ScreenSpaceReflections draw event
-		SCOPED_DRAW_EVENT(Context.RHICmdList, ScreenSpaceReflections);
+		SCOPED_DRAW_EVENTF(Context.RHICmdList, ScreenSpaceReflections, TEXT("ScreenSpaceReflections %dx%d"), View.ViewRect.Width(), View.ViewRect.Height());
 
 		if (SSRStencilPrePass)
 		{
@@ -435,14 +435,14 @@ FPooledRenderTargetDesc FRCPassPostProcessScreenSpaceReflections::ComputeOutputD
 	FPooledRenderTargetDesc Ret(FPooledRenderTargetDesc::Create2DDesc(FSceneRenderTargets::Get_FrameConstantsOnly().GetBufferSizeXY(), PF_FloatRGBA, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
 
 	Ret.DebugName = TEXT("ScreenSpaceReflections");
-
+	Ret.AutoWritable = false;
 	return Ret;
 }
 
 void ScreenSpaceReflections(FRHICommandListImmediate& RHICmdList, FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& SSROutput)
 {
 	FRenderingCompositePassContext CompositeContext(RHICmdList, View);	
-	FPostprocessContext Context( CompositeContext.Graph, View );
+	FPostprocessContext Context(RHICmdList, CompositeContext.Graph, View );
 
 	FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
 

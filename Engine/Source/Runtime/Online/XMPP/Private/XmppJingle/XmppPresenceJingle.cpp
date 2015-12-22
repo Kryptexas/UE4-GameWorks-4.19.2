@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "XmppPrivatePCH.h"
 #include "XmppJingle.h"
@@ -286,6 +286,9 @@ private:
 FXmppPresenceJingle::FXmppPresenceJingle(class FXmppConnectionJingle& InConnection)
 	: PresenceSendTask(NULL)
 	, PresenceRcvTask(NULL)
+	, NumPresenceIn(0)
+    , NumPresenceOut(0)
+	, NumQueryRequests(0)
 	, Connection(InConnection) 
 {
 
@@ -300,7 +303,7 @@ FXmppPresenceJingle::~FXmppPresenceJingle()
 	}
 }
 
-void FXmppPresenceJingle::ConvertToPresence(FXmppUserPresence& OutPresence, const buzz::PresenceStatus& InStatus)
+void FXmppPresenceJingle::ConvertToPresence(FXmppUserPresence& OutPresence, const buzz::PresenceStatus& InStatus, const FXmppUserJid& InJid)
 {
 	OutPresence.bIsAvailable = InStatus.available();
 	OutPresence.StatusStr = UTF8_TO_TCHAR(InStatus.status().c_str());
@@ -343,15 +346,8 @@ void FXmppPresenceJingle::ConvertToPresence(FXmppUserPresence& OutPresence, cons
 			break;
 		}
 	}
-	OutPresence.ClientResource = UTF8_TO_TCHAR(InStatus.jid().resource().c_str());
-
-	// strip off the guid portion of the full resource id <clientid>-<guid>
-	FString ClientId, NotUsed;
-	if (OutPresence.ClientResource.Split(TEXT("-"), &ClientId, &NotUsed) &&
-		!ClientId.IsEmpty())
-	{
-		OutPresence.ClientResource = ClientId;
-	}
+	
+	InJid.ParseResource(OutPresence.AppId, OutPresence.Platform);
 }
 
 void FXmppPresenceJingle::ConvertFromPresence(buzz::PresenceStatus& OutStatus, const FXmppUserPresence& InPresence)
@@ -392,7 +388,8 @@ static void DebugPrintPresence(const FXmppUserPresence& Presence)
 	UE_LOG(LogXmpp, Verbose, TEXT("   Status = %s"), EXmppPresenceStatus::ToString(Presence.Status));
 	UE_LOG(LogXmpp, Verbose, TEXT("   bIsAvailable = %s"), Presence.bIsAvailable ? TEXT("true") : TEXT("false"));
 	UE_LOG(LogXmpp, Verbose, TEXT("   SentTime = %s"), *Presence.SentTime.ToString());
-	UE_LOG(LogXmpp, Verbose, TEXT("   ClientResource = %s"), *Presence.ClientResource);
+	UE_LOG(LogXmpp, Verbose, TEXT("   AppId = %s"), *Presence.AppId);
+	UE_LOG(LogXmpp, Verbose, TEXT("   Platform = %s"), *Presence.Platform);
 	UE_LOG(LogXmpp, Verbose, TEXT("   StatusStr = %s"), *Presence.StatusStr);
 }
 
@@ -410,6 +407,7 @@ bool FXmppPresenceJingle::UpdatePresence(const FXmppUserPresence& InPresence)
 		DebugPrintPresence(CachedPresence);
 
 		bResult = PresenceUpdateRequests.Enqueue(new buzz::PresenceStatus(CachedStatus));
+		NumPresenceOut++;
 	}
 
 	return bResult;
@@ -431,6 +429,7 @@ bool FXmppPresenceJingle::QueryPresence(const FString& UserId)
 		UE_LOG(LogXmpp, Verbose, TEXT("Querying presence for user [%s]"), *UserId);
 
 		bResult = PresenceQueryRequests.Enqueue(FXmppUserJid(UserId));
+		NumQueryRequests++;
 	}
 #endif
 
@@ -471,8 +470,9 @@ bool FXmppPresenceJingle::Tick(float DeltaTime)
 		FString UserId;
 		if (RosterUpdates.Dequeue(UserId))
 		{
-			FScopeLock Lock(&RosterLock);
+			NumPresenceIn++;
 
+			FScopeLock Lock(&RosterLock);
 			const FXmppUserPresenceJingle* FoundEntry = RosterPresence.Find(UserId);
 			if (FoundEntry != NULL)
 			{
@@ -553,7 +553,7 @@ void FXmppPresenceJingle::OnSignalPresenceUpdate(const buzz::PresenceStatus& InS
 			FScopeLock Lock(&RosterLock);
 		
 			FXmppUserPresenceJingle& RosterEntry = RosterPresence.FindOrAdd(UserJid.GetFullPath());
-			ConvertToPresence(*RosterEntry.Presence, InStatus);
+			ConvertToPresence(*RosterEntry.Presence, InStatus, UserJid);
 			FXmppJingle::ConvertToJid(RosterEntry.UserJid, InStatus.jid());
 
 			UE_LOG(LogXmpp, Verbose, TEXT("Received presence for user [%s]"), *UserJid.GetFullPath());

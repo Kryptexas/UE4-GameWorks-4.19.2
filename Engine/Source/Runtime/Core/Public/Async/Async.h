@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -26,7 +26,13 @@ enum class EAsyncExecution
  * Template for setting a promise's value from a function.
  */
 template<typename ResultType>
-inline void SetPromise(TPromise<ResultType>& Promise, TFunction<ResultType()> Function)
+inline void SetPromise(TPromise<ResultType>& Promise, const TFunction<ResultType()>& Function)
+{
+	Promise.SetValue(Function());
+}
+
+template<typename ResultType>
+inline void SetPromise(TPromise<ResultType>& Promise, const TFunctionRef<ResultType()>& Function)
 {
 	Promise.SetValue(Function());
 }
@@ -36,7 +42,14 @@ inline void SetPromise(TPromise<ResultType>& Promise, TFunction<ResultType()> Fu
  * Template for setting a promise's value from a function (specialization for void results).
  */
 template<>
-inline void SetPromise(TPromise<void>& Promise, TFunction<void()> Function)
+inline void SetPromise(TPromise<void>& Promise, const TFunction<void()>& Function)
+{
+	Function();
+	Promise.SetValue();
+}
+
+template<>
+inline void SetPromise(TPromise<void>& Promise, const TFunctionRef<void()>& Function)
 {
 	Function();
 	Promise.SetValue();
@@ -49,16 +62,6 @@ inline void SetPromise(TPromise<void>& Promise, TFunction<void()> Function)
 class FAsyncGraphTaskBase
 {
 public:
-
-	/**
-	 * Returns the name of the thread that this task should run on.
-	 *
-	 * @return Always run on any thread.
-	 */
-	ENamedThreads::Type GetDesiredThread()
-	{
-		return ENamedThreads::AnyThread;
-	}
 
 	/**
 	 * Gets the task's stats tracking identifier.
@@ -116,6 +119,16 @@ public:
 	}
 
 	/**
+	 * Returns the name of the thread that this task should run on.
+	 *
+	 * @return Always run on any thread.
+	 */
+	ENamedThreads::Type GetDesiredThread()
+	{
+		return ENamedThreads::AnyThread;
+	}
+
+	/**
 	 * Gets the future that will hold the asynchronous result.
 	 *
 	 * @return A TFuture object.
@@ -152,7 +165,7 @@ public:
 	 * @param InThreadFuture The thread that is running this task.
 	 */
 	TAsyncRunnable(TFunction<ResultType()>&& InFunction, TPromise<ResultType>&& InPromise, TFuture<FRunnableThread*>&& InThreadFuture)
-		: Function(InFunction)
+		: Function(MoveTemp(InFunction))
 		, Promise(MoveTemp(InPromise))
 		, ThreadFuture(MoveTemp(InThreadFuture))
 	{ }
@@ -192,7 +205,7 @@ public:
 	 * @param InPromise The promise object used to return the function's result.
 	 */
 	TAsyncQueuedWork(TFunction<ResultType()>&& InFunction, TPromise<ResultType>&& InPromise)
-		: Function(InFunction)
+		: Function(MoveTemp(InFunction))
 		, Promise(MoveTemp(InPromise))
 	{ }
 
@@ -268,14 +281,16 @@ struct FAsyncThreadIndex
  *			return 123;
  *		}
  *
+ * @param ResultType The type of the function's return value.
  * @param Execution The execution method to use, i.e. on Task Graph or in a separate thread.
  * @param Function The function to execute.
+ * @param CompletionCallback An optional callback function that is executed when the function completed execution.
  * @result A TFuture object that will receive the return value from the function.
  */
 template<typename ResultType>
-TFuture<ResultType> Async(EAsyncExecution Execution, TFunction<ResultType()> Function)
+TFuture<ResultType> Async(EAsyncExecution Execution, TFunction<ResultType()> Function, TFunction<void()> CompletionCallback = TFunction<void()>())
 {
-	TPromise<ResultType> Promise;
+	TPromise<ResultType> Promise(MoveTemp(CompletionCallback));
 	TFuture<ResultType> Future = Promise.GetFuture();
 
 	switch (Execution)
@@ -314,10 +329,22 @@ TFuture<ResultType> Async(EAsyncExecution Execution, TFunction<ResultType()> Fun
 }
 
 
-template<typename ResultType> uint32 TAsyncRunnable<ResultType>::Run()
+/**
+ * Convenience function for executing code asynchronously on the Task Graph.
+ *
+ * @param Thread The name of the thread to run on.
+ * @param Function The function to execute.
+ */
+CORE_API void AsyncTask(ENamedThreads::Type Thread, TFunction<void()> Function);
+
+
+/* Inline functions
+ *****************************************************************************/
+
+template<typename ResultType>
+uint32 TAsyncRunnable<ResultType>::Run()
 {
 	SetPromise(Promise, Function);
-
 	FRunnableThread* Thread = ThreadFuture.Get();
 
 	// Enqueue deletion of the thread to a different thread.

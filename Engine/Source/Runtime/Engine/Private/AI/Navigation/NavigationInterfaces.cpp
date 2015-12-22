@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "AI/Navigation/NavAgentInterface.h"
@@ -8,6 +8,7 @@
 #include "AI/Navigation/NavPathObserverInterface.h"
 #include "AI/Navigation/NavRelevantInterface.h"
 #include "AI/Navigation/NavLinkCustomInterface.h"
+#include "AI/Navigation/NavEdgeProviderInterface.h"
 #include "AI/RVOAvoidanceInterface.h"
 
 uint32 INavLinkCustomInterface::NextUniqueId = 1;
@@ -79,3 +80,8 @@ UNavRelevantInterface::UNavRelevantInterface(const FObjectInitializer& ObjectIni
 	: Super(ObjectInitializer)
 {
 }
+
+UNavEdgeProviderInterface::UNavEdgeProviderInterface(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+{
+}
+

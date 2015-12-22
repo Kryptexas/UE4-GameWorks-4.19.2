@@ -1,73 +1,94 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
+#include "MovieSceneSequence.h"
+#include "MovieSceneSequenceInstance.h"
 #include "MovieSceneShotTrack.h"
 #include "MovieSceneShotTrackInstance.h"
 #include "MovieSceneShotSection.h"
 #include "IMovieScenePlayer.h"
 
 
-FMovieSceneShotTrackInstance::FMovieSceneShotTrackInstance( UMovieSceneShotTrack& InShotTrack )
-	: FSubMovieSceneTrackInstance( InShotTrack )
+/* FMovieSceneShotTrackInstance structors
+ *****************************************************************************/
+
+FMovieSceneShotTrackInstance::FMovieSceneShotTrackInstance(UMovieSceneShotTrack& InShotTrack)
+	: ShotTrack(&InShotTrack)
 { }
 
 
-void FMovieSceneShotTrackInstance::RefreshInstance( const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player )
+/* IMovieSceneTrackInstance interface
+ *****************************************************************************/
+
+void FMovieSceneShotTrackInstance::ClearInstance(IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
-	const TArray<UMovieSceneSection*>& ShotSections = SubMovieSceneTrack->GetAllSections();
-
-	RuntimeCameraObjects.Empty( ShotSections.Num() );
-
-	for( UMovieSceneSection* Section : ShotSections )
-	{
-		// @todo Sequencer - Sub-moviescenes: Get the cameras from the root movie scene instance.  We should support adding cameras for sub-moviescenes as shots
-		TArray<UObject*> CameraObjects;
-		Player.GetRuntimeObjects(Player.GetRootMovieSceneSequenceInstance(), CastChecked<UMovieSceneShotSection>( Section )->GetCameraGuid(), CameraObjects );
-		if( CameraObjects.Num() == 1 )
-		{
-			RuntimeCameraObjects.Add( CameraObjects[0] );
-		}
-		else
-		{
-			// No valid camera object was found, take up space.  There should be one entry per section
-			RuntimeCameraObjects.Add( nullptr );
-		}
-	}
-
-	FSubMovieSceneTrackInstance::RefreshInstance( RuntimeObjects, Player );
+	Player.UpdateCameraCut(nullptr, nullptr);
 }
 
 
-void FMovieSceneShotTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
+void FMovieSceneShotTrackInstance::RefreshInstance(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
-	FSubMovieSceneTrackInstance::Update( Position, LastPosition, RuntimeObjects, Player );
+	const TArray<UMovieSceneSection*>& ShotSections = ShotTrack->GetAllSections();
 
-	const TArray<UMovieSceneSection*>& ShotSections = SubMovieSceneTrack->GetAllSections();
+	CachedCameraObjects.SetNumZeroed(ShotSections.Num());
 
 	for (int32 ShotIndex = 0; ShotIndex < ShotSections.Num(); ++ShotIndex)
 	{
 		UMovieSceneShotSection* ShotSection = CastChecked<UMovieSceneShotSection>(ShotSections[ShotIndex]);
+		AcquireCameraForShot(ShotIndex, ShotSection->GetCameraGuid(), SequenceInstance, Player);
+	}
+}
 
-		// Note shot times are not inclusive
-		// @todo Sequencer: This could be faster with a binary search
-		if( ShotSection->GetStartTime() <= Position && ShotSection->GetEndTime() > Position )
+	
+void FMovieSceneShotTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+{
+	Player.UpdateCameraCut(nullptr, nullptr);
+}
+	
+void FMovieSceneShotTrackInstance::Update(float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass) 
+{
+	UObject* CameraObject = nullptr;
+	const TArray<UMovieSceneSection*>& ShotSections = ShotTrack->GetAllSections();
+
+	UMovieSceneShotSection* NearestShotSection = Cast<UMovieSceneShotSection>(MovieSceneHelpers::FindNearestSectionAtTime(ShotSections, Position));
+	if (NearestShotSection != nullptr)
+	{
+		for (int32 ShotIndex = 0; ShotIndex < ShotSections.Num(); ++ShotIndex)
 		{
-			UObject* Camera = RuntimeCameraObjects[ShotIndex].Get();
-			
-			const bool bNewCameraCut = CurrentCameraObject != Camera;
-			Player.UpdateCameraCut(Camera, bNewCameraCut);
+			UMovieSceneShotSection* ShotSection = CastChecked<UMovieSceneShotSection>(ShotSections[ShotIndex]);
 
-			CurrentCameraObject = Camera;
+			if (ShotSection == NearestShotSection)
+			{
+				CameraObject = AcquireCameraForShot(ShotIndex, ShotSection->GetCameraGuid(), SequenceInstance, Player);
 
-			// no need to process any more shots.  Only one shot can be active at a time
-			break;
+				break;
+			}
 		}
+	}
+
+	if (CameraObject != LastCameraObject)
+	{
+		Player.UpdateCameraCut(CameraObject, LastCameraObject.Get());
+		LastCameraObject = CameraObject;
+	}
+	else if (CameraObject != nullptr)
+	{
+		Player.UpdateCameraCut(CameraObject, nullptr);
 	}
 }
 
 
-void FMovieSceneShotTrackInstance::ClearInstance( IMovieScenePlayer& Player )
+/* FMovieSceneShotTrackInstance implementation
+ *****************************************************************************/
+
+UObject* FMovieSceneShotTrackInstance::AcquireCameraForShot(int32 ShotIndex, const FGuid& CameraGuid, FMovieSceneSequenceInstance& SequenceInstance, const IMovieScenePlayer& Player)
 {
-	FSubMovieSceneTrackInstance::ClearInstance( Player );
-	Player.UpdateCameraCut( nullptr, false );
+	auto& CachedCamera = CachedCameraObjects[ShotIndex];
+
+	if (!CachedCamera.IsValid())
+	{
+		CachedCamera = SequenceInstance.FindObject(CameraGuid, Player);
+	}
+
+	return CachedCamera.Get();
 }

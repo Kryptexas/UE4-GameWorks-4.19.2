@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "LocalizationPrivatePCH.h"
 #include "LocalizationConfigurationScript.h"
@@ -279,14 +279,9 @@ namespace LocalizationConfigurationScript
 
 		const FString ContentDirRelativeToGameDir = MakePathRelativeForCommandletProcess(GetContentDir(Target), !Target->IsMemberOfEngineTargetSet());
 
-		// GatherTextStep0 - InternationalizationExport
+		// CommonSettings
 		{
-			FConfigSection& ConfigSection = Script.GatherTextStep(0);
-
-			// CommandletClass
-			ConfigSection.Add( TEXT("CommandletClass"), TEXT("InternationalizationExport") );
-
-			ConfigSection.Add( TEXT("bImportLoc"), TEXT("true") );
+			FConfigSection& ConfigSection = Script.CommonSettings();
 
 			FString SourcePath;
 			// Overriding output path changes the source directory for the PO file.
@@ -323,12 +318,12 @@ namespace LocalizationConfigurationScript
 				ConfigSection.Add( TEXT("CulturesToGenerate"), Target->Settings.SupportedCulturesStatistics[Index].CultureName );
 			};
 
-			// Export for a specific culture.
+			// Import for a specific culture.
 			if (CultureName.IsSet())
 			{
 				ConfigSection.Add( TEXT("CulturesToGenerate"), CultureName.GetValue() );
 			}
-			// Export for all cultures.
+			// Import for all cultures.
 			else
 			{
 				for (const FCultureStatistics& CultureStatistics : Target->Settings.SupportedCulturesStatistics)
@@ -360,6 +355,16 @@ namespace LocalizationConfigurationScript
 			ConfigSection.Add( TEXT("PortableObjectName"), POFileName );
 		}
 
+		// GatherTextStep0 - InternationalizationExport
+		{
+			FConfigSection& ConfigSection = Script.GatherTextStep(0);
+
+			// CommandletClass
+			ConfigSection.Add( TEXT("CommandletClass"), TEXT("InternationalizationExport") );
+
+			ConfigSection.Add( TEXT("bImportLoc"), TEXT("true") );
+		}
+
 		Script.Dirty = true;
 
 		return Script;
@@ -386,14 +391,9 @@ namespace LocalizationConfigurationScript
 
 		const FString ContentDirRelativeToGameDir = MakePathRelativeForCommandletProcess(GetContentDir(Target), !Target->IsMemberOfEngineTargetSet());
 
-		// GatherTextStep0 - InternationalizationExport
+		// CommonSettings
 		{
-			FConfigSection& ConfigSection = Script.GatherTextStep(0);
-
-			// CommandletClass
-			ConfigSection.Add( TEXT("CommandletClass"), TEXT("InternationalizationExport") );
-
-			ConfigSection.Add( TEXT("bExportLoc"), TEXT("true") );
+			FConfigSection& ConfigSection = Script.CommonSettings();
 
 			const FString SourcePath = ContentDirRelativeToGameDir / TEXT("Localization") / Target->Settings.Name;
 			ConfigSection.Add( TEXT("SourcePath"), SourcePath );
@@ -451,7 +451,6 @@ namespace LocalizationConfigurationScript
 				ConfigSection.Add( TEXT("bUseCultureDirectory"), "false" );
 			}
 
-
 			ConfigSection.Add( TEXT("ManifestName"), FPaths::GetCleanFilename(GetManifestPath(Target)) );
 			ConfigSection.Add( TEXT("ArchiveName"), FPaths::GetCleanFilename(GetArchivePath(Target, FString())) );
 			FString POFileName;
@@ -466,6 +465,22 @@ namespace LocalizationConfigurationScript
 				POFileName = FPaths::GetCleanFilename( GetDefaultPOPath( Target, CultureName.Get( TEXT("") ) ) );
 			}
 			ConfigSection.Add( TEXT("PortableObjectName"), POFileName );
+		}
+
+		// GatherTextStep0 - InternationalizationExport
+		{
+			FConfigSection& ConfigSection = Script.GatherTextStep(0);
+
+			// CommandletClass
+			ConfigSection.Add( TEXT("CommandletClass"), TEXT("InternationalizationExport") );
+
+			ConfigSection.Add(TEXT("bExportLoc"), TEXT("true"));
+
+			// Export-specific settings.
+			{
+				ConfigSection.Add(TEXT("ShouldPersistCommentsOnExport"), Target->Settings.ExportSettings.ShouldPersistCommentsOnExport ? TEXT("true") : TEXT("false"));
+				ConfigSection.Add(TEXT("ShouldAddSourceLocationsAsComments"), Target->Settings.ExportSettings.ShouldAddSourceLocationsAsComments ? TEXT("true") : TEXT("false"));
+			}
 		}
 
 		Script.Dirty = true;
@@ -494,12 +509,9 @@ namespace LocalizationConfigurationScript
 
 		const FString ContentDirRelativeToGameDir = MakePathRelativeForCommandletProcess(GetContentDir(Target), !Target->IsMemberOfEngineTargetSet());
 
-		// GatherTextStep0 - GenerateTextLocalizationReport
+		// CommonSettings
 		{
-			FConfigSection& ConfigSection = Script.GatherTextStep(0);
-
-			// CommandletClass
-			ConfigSection.Add( TEXT("CommandletClass"), TEXT("GenerateTextLocalizationReport") );
+			FConfigSection& ConfigSection = Script.CommonSettings();
 
 			const FString SourcePath = ContentDirRelativeToGameDir / TEXT("Localization") / Target->Settings.Name;
 			ConfigSection.Add( TEXT("SourcePath"), SourcePath );
@@ -512,6 +524,14 @@ namespace LocalizationConfigurationScript
 			{
 				ConfigSection.Add( TEXT("CulturesToGenerate"), CultureStatistics.CultureName );
 			}
+		}
+
+		// GatherTextStep0 - GenerateTextLocalizationReport
+		{
+			FConfigSection& ConfigSection = Script.GatherTextStep(0);
+
+			// CommandletClass
+			ConfigSection.Add( TEXT("CommandletClass"), TEXT("GenerateTextLocalizationReport") );
 
 			ConfigSection.Add( TEXT("bWordCountReport"), TEXT("true") );
 
@@ -534,12 +554,9 @@ namespace LocalizationConfigurationScript
 
 		const FString ContentDirRelativeToGameDir = MakePathRelativeForCommandletProcess(GetContentDir(Target), !Target->IsMemberOfEngineTargetSet());
 
-		// GatherTextStep0 - GenerateTextLocalizationResource
+		// CommonSettings
 		{
-			FConfigSection& ConfigSection = Script.GatherTextStep(0);
-
-			// CommandletClass
-			ConfigSection.Add( TEXT("CommandletClass"), TEXT("GenerateTextLocalizationResource") );
+			FConfigSection& ConfigSection = Script.CommonSettings();
 
 			const FString SourcePath = ContentDirRelativeToGameDir / TEXT("Localization") / Target->Settings.Name;
 			ConfigSection.Add( TEXT("SourcePath"), SourcePath );
@@ -573,6 +590,14 @@ namespace LocalizationConfigurationScript
 					AddCultureToGenerate(CultureIndex);
 				}
 			}
+		}
+
+		// GatherTextStep0 - GenerateTextLocalizationResource
+		{
+			FConfigSection& ConfigSection = Script.GatherTextStep(0);
+
+			// CommandletClass
+			ConfigSection.Add( TEXT("CommandletClass"), TEXT("GenerateTextLocalizationResource") );
 		}
 
 		Script.Dirty = true;

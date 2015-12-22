@@ -1,7 +1,6 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AndroidMediaPCH.h"
-
 #include "AndroidMediaPlayer.h"
 #include "AndroidApplication.h"
 #include "AndroidJava.h"
@@ -9,9 +8,11 @@
 #include "Paths.h"
 #include "RenderingThread.h"
 
+
 DEFINE_LOG_CATEGORY_STATIC(LogAndroidMediaPlayer, Log, All);
 
 #define LOCTEXT_NAMESPACE "FAndroidMediaModule"
+
 
 class FAndroidMediaPlayer::MediaTrack
 	: public IMediaStream
@@ -115,6 +116,7 @@ protected:
 	TArray<IMediaSinkWeakPtr> Sinks;
 };
 
+
 class FAndroidMediaPlayer::VideoTrack
 	: public FAndroidMediaPlayer::MediaTrack
 	, public IMediaVideoTrack
@@ -181,6 +183,18 @@ public:
 		return *this;
 	}
 
+#if WITH_ENGINE
+	virtual void BindTexture(class FRHITexture* Texture) override
+	{
+		// @todo android: cbabcock: implement texture binding
+	}
+
+	virtual void UnbindTexture(class FRHITexture* Texture) override
+	{
+		// @todo android: cbabcock: implement texture binding
+	}
+#endif
+
 	virtual void Tick(float DeltaTime)
 	{
 		if (MediaPlayer.MediaState != EMediaState::Error)
@@ -208,6 +222,7 @@ private:
 
 	int32 LastFramePosition;
 };
+
 
 class FAndroidMediaPlayer::AudioTrack
 	: public FAndroidMediaPlayer::MediaTrack
@@ -261,6 +276,7 @@ public:
 	}
 };
 
+
 FAndroidMediaPlayer::FAndroidMediaPlayer()
 	: JavaMediaPlayer(nullptr)
 	, MediaState(EMediaState::Error)
@@ -272,6 +288,7 @@ FAndroidMediaPlayer::FAndroidMediaPlayer()
 	}
 }
 
+
 FAndroidMediaPlayer::~FAndroidMediaPlayer()
 {
 	Close();
@@ -281,6 +298,7 @@ FAndroidMediaPlayer::~FAndroidMediaPlayer()
 		MediaState = EMediaState::End;
 	}
 }
+
 
 FTimespan FAndroidMediaPlayer::GetDuration() const
 {
@@ -294,31 +312,37 @@ FTimespan FAndroidMediaPlayer::GetDuration() const
 	return FTimespan::FromMilliseconds(Milliseconds);
 }
 
+
 TRange<float> FAndroidMediaPlayer::GetSupportedRates(
 	EMediaPlaybackDirections Direction, bool Unthinned) const
 {
 	return TRange<float>(1.0f);
 }
 
+
 FString FAndroidMediaPlayer::GetUrl() const
 {
 	return MediaUrl;
 }
+
 
 bool FAndroidMediaPlayer::SupportsRate(float Rate, bool Unthinned) const
 {
 	return Rate == 1.0f;
 }
 
+
 bool FAndroidMediaPlayer::SupportsScrubbing() const
 {
 	return true;
 }
 
+
 bool FAndroidMediaPlayer::SupportsSeeking() const
 {
 	return true;
 }
+
 
 void FAndroidMediaPlayer::Close()
 {
@@ -331,6 +355,7 @@ void FAndroidMediaPlayer::Close()
 			JavaMediaPlayer->Stop();
 			JavaMediaPlayer->Reset();
 		}
+
 		MediaUrl = FString();
 		MediaState = EMediaState::Idle;
 		
@@ -338,10 +363,11 @@ void FAndroidMediaPlayer::Close()
 		CaptionTracks.Reset();
 		VideoTracks.Reset();
 
-		TracksChangedEvent.Broadcast();
-		ClosedEvent.Broadcast();
+		MediaEvent.Broadcast(EMediaEvent::TracksChanged);
+		MediaEvent.Broadcast(EMediaEvent::MediaClosed);
 	}
 }
+
 
 const TArray<IMediaAudioTrackRef>& FAndroidMediaPlayer::GetAudioTracks() const
 {
@@ -354,15 +380,18 @@ const TArray<IMediaCaptionTrackRef>& FAndroidMediaPlayer::GetCaptionTracks() con
 	return CaptionTracks;
 }
 
+
 const IMediaInfo& FAndroidMediaPlayer::GetMediaInfo() const
 {
 	return *this;
 }
 
+
 float FAndroidMediaPlayer::GetRate() const
 {
 	return 1.0f;
 }
+
 
 FTimespan FAndroidMediaPlayer::GetTime() const
 {
@@ -376,10 +405,12 @@ FTimespan FAndroidMediaPlayer::GetTime() const
 	}
 }
 
+
 const TArray<IMediaVideoTrackRef>& FAndroidMediaPlayer::GetVideoTracks() const
 {
 	return VideoTracks;
 }
+
 
 bool FAndroidMediaPlayer::IsLooping() const
 {
@@ -395,10 +426,12 @@ bool FAndroidMediaPlayer::IsLooping() const
 	}
 }
 
+
 bool FAndroidMediaPlayer::IsPaused() const
 {
 	return MediaState == EMediaState::Paused;
 }
+
 
 bool FAndroidMediaPlayer::IsPlaying() const
 {
@@ -412,6 +445,7 @@ bool FAndroidMediaPlayer::IsPlaying() const
 	}
 }
 
+
 bool FAndroidMediaPlayer::IsReady() const
 {
 	return
@@ -420,6 +454,7 @@ bool FAndroidMediaPlayer::IsReady() const
 		MediaState == EMediaState::Paused ||
 		MediaState == EMediaState::PlaybackCompleted;
 }
+
 
 bool FAndroidMediaPlayer::Open(const FString& Url)
 {
@@ -480,12 +515,14 @@ bool FAndroidMediaPlayer::Open(const FString& Url)
 			}
 		}
 	}
+
 	if (MediaState == EMediaState::Initialized)
 	{
 		MediaUrl = Url;
 		JavaMediaPlayer->Prepare();
 		MediaState = EMediaState::Prepared;
 	}
+
 	if (MediaState == EMediaState::Prepared)
 	{
 		// Use the extension as a rough guess as to what tracks
@@ -504,20 +541,24 @@ bool FAndroidMediaPlayer::Open(const FString& Url)
 			AudioTracks.Add(MakeShareable(new AudioTrack(*this, AudioTracks.Num())));
 		}
 
-		TracksChangedEvent.Broadcast();
+		MediaEvent.Broadcast(EMediaEvent::TracksChanged);
 	}
+
 	if (MediaState == EMediaState::Prepared)
 	{
-		OpenedEvent.Broadcast(MediaUrl);
+		MediaEvent.Broadcast(EMediaEvent::MediaOpenFailed);
 	}
+
 	return MediaState == EMediaState::Prepared;
 }
+
 
 bool FAndroidMediaPlayer::Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive,
 	const FString& OriginalUrl)
 {
 	return false;
 }
+
 
 bool FAndroidMediaPlayer::Seek(const FTimespan& Time)
 {
@@ -527,11 +568,10 @@ bool FAndroidMediaPlayer::Seek(const FTimespan& Time)
 		JavaMediaPlayer->SeekTo(Time.GetMilliseconds());
 		return true;
 	}
-	else
-	{
-		return false;
-	}
+
+	return false;
 }
+
 
 bool FAndroidMediaPlayer::SetLooping(bool Looping)
 {
@@ -540,11 +580,10 @@ bool FAndroidMediaPlayer::SetLooping(bool Looping)
 		JavaMediaPlayer->SetLooping(Looping);
 		return true;
 	}
-	else
-	{
-		return false;
-	}
+
+	return false;
 }
+
 
 bool FAndroidMediaPlayer::SetRate(float Rate)
 {
@@ -555,38 +594,36 @@ bool FAndroidMediaPlayer::SetRate(float Rate)
 		{
 			JavaMediaPlayer->Start();
 			MediaState = EMediaState::Started;
+			MediaEvent.Broadcast(EMediaEvent::PlaybackResumed);
 			return true;
 		}
 		else if (0.0f == Rate)
 		{
 			JavaMediaPlayer->Pause();
 			MediaState = EMediaState::Paused;
+			MediaEvent.Broadcast(EMediaEvent::PlaybackSuspended);
 			return true;
 		}
 		break;
 
 	case EMediaState::Paused:
-		if (1.0f == Rate)
-		{
-			JavaMediaPlayer->Start();
-			MediaState = EMediaState::Started;
-			return true;
-		}
-		break;
-
 	case EMediaState::PlaybackCompleted:
 		if (1.0f == Rate)
 		{
 			JavaMediaPlayer->Start();
 			MediaState = EMediaState::Started;
+			MediaEvent.Broadcast(EMediaEvent::PlaybackResumed);
 			return true;
 		}
 		break;
 	}
+
 	return false;
 }
 
+
 typedef TWeakPtr<IMediaVideoTrack, ESPMode::ThreadSafe> IMediaVideoTrackWeakPtr;
+
 
 void FAndroidMediaPlayer::Tick(float DeltaTime)
 {
@@ -614,10 +651,12 @@ void FAndroidMediaPlayer::Tick(float DeltaTime)
 	}
 }
 
+
 TStatId FAndroidMediaPlayer::GetStatId() const
 {
 	RETURN_QUICK_DECLARE_CYCLE_STAT(FAndroidMediaPlayer, STATGROUP_Tickables);
 }
+
 
 bool FAndroidMediaPlayer::IsTickable() const
 {

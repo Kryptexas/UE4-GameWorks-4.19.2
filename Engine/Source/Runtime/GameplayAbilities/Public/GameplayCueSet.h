@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -58,6 +58,13 @@ class GAMEPLAYABILITIES_API UGameplayCueSet : public UDataAsset
 
 	/** Removes all cues from the set matching the supplied string refs */
 	virtual void RemoveCuesByStringRefs(const TArray<FStringAssetReference>& CuesToRemove);
+
+#if WITH_EDITOR
+
+	/** Updates an existing cue */
+	virtual void UpdateCueByStringRefs(const FStringAssetReference& CueToRemove, FString NewPath);
+
+#endif
 
 	/** Removes all cues from the set */
 	virtual void Empty();

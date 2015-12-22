@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "TP_VehicleAdv.h"
 #include "TP_VehicleAdvPawn.h"
@@ -169,6 +169,8 @@ ATP_VehicleAdvPawn::ATP_VehicleAdvPawn()
 
 void ATP_VehicleAdvPawn::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 {
+	Super::SetupPlayerInputComponent(InputComponent);
+
 	// set up gameplay key bindings
 	check(InputComponent);
 
@@ -221,12 +223,6 @@ void ATP_VehicleAdvPawn::EnableIncarView(const bool bState)
 			OnResetVR();
 			Camera->Deactivate();
 			InternalCamera->Activate();
-			
-			APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
-			if ( (PlayerController != nullptr) && (PlayerController->PlayerCameraManager != nullptr ) )
-			{
-				PlayerController->PlayerCameraManager->bFollowHmdOrientation = true;
-			}
 		}
 		else
 		{
@@ -241,6 +237,8 @@ void ATP_VehicleAdvPawn::EnableIncarView(const bool bState)
 
 void ATP_VehicleAdvPawn::Tick(float Delta)
 {
+	Super::Tick(Delta);
+
 	// Setup the flag to say we are in reverse gear
 	bInReverseGear = GetVehicleMovement()->GetCurrentGear() < 0;
 	
@@ -278,6 +276,8 @@ void ATP_VehicleAdvPawn::Tick(float Delta)
 
 void ATP_VehicleAdvPawn::BeginPlay()
 {
+	Super::BeginPlay();
+
 	bool bWantInCar = false;
 	// First disable both speed/gear displays
 	bInCarCameraActive = false;

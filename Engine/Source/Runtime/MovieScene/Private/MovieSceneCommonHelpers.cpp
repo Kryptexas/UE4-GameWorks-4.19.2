@@ -1,33 +1,63 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieScenePrivatePCH.h"
 #include "IMovieScenePlayer.h"
 #include "MovieSceneCommonHelpers.h"
 
 
-TArray<UMovieSceneSection*> MovieSceneHelpers::GetTraversedSections( const TArray<UMovieSceneSection*>& Sections, float CurrentTime, float PreviousTime )
+TArray<UMovieSceneSection*> MovieSceneHelpers::GetAllTraversedSections( const TArray<UMovieSceneSection*>& Sections, float CurrentTime, float PreviousTime )
 {
 	TArray<UMovieSceneSection*> TraversedSections;
 
 	bool bPlayingBackwards = CurrentTime - PreviousTime < 0.0f;
-	
 	float MaxTime = bPlayingBackwards ? PreviousTime : CurrentTime;
 	float MinTime = bPlayingBackwards ? CurrentTime : PreviousTime;
 
-	TRange<float> SliderRange(MinTime, MaxTime);
+	TRange<float> TraversedRange(MinTime, TRangeBound<float>::Inclusive(MaxTime));
 
-	for( int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex )
+	for (int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex)
 	{
 		UMovieSceneSection* Section = Sections[SectionIndex];
-		if( Section->GetStartTime() == CurrentTime || SliderRange.Overlaps( TRange<float>( Section->GetRange() ) ) )
+		if ((Section->GetStartTime() == CurrentTime) || TraversedRange.Overlaps(TRange<float>(Section->GetRange())))
 		{
-			TraversedSections.Add( Section );
+			TraversedSections.Add(Section);
 		}
 	}
 
 	return TraversedSections;
 }
 
+TArray<UMovieSceneSection*> MovieSceneHelpers::GetTraversedSections( const TArray<UMovieSceneSection*>& Sections, float CurrentTime, float PreviousTime )
+{
+	TArray<UMovieSceneSection*> TraversedSections = GetAllTraversedSections(Sections, CurrentTime, PreviousTime);
+
+	// Remove any overlaps that are underneath another
+	for (int32 RemoveAt = 0; RemoveAt < TraversedSections.Num(); )
+	{
+		UMovieSceneSection* Section = TraversedSections[RemoveAt];
+		
+		const bool bShouldRemove = TraversedSections.ContainsByPredicate([=](UMovieSceneSection* OtherSection){
+			if (Section->GetRowIndex() == OtherSection->GetRowIndex() &&
+				Section->GetRange().Overlaps(OtherSection->GetRange()) &&
+				Section->GetOverlapPriority() < OtherSection->GetOverlapPriority())
+			{
+				return true;
+			}
+			return false;
+		});
+		
+		if (bShouldRemove)
+		{
+			TraversedSections.RemoveAt(RemoveAt, 1, false);
+		}
+		else
+		{
+			++RemoveAt;
+		}
+	}
+
+	return TraversedSections;
+}
 
 UMovieSceneSection* MovieSceneHelpers::FindSectionAtTime( const TArray<UMovieSceneSection*>& Sections, float Time )
 {
@@ -35,14 +65,14 @@ UMovieSceneSection* MovieSceneHelpers::FindSectionAtTime( const TArray<UMovieSce
 	{
 		UMovieSceneSection* Section = Sections[SectionIndex];
 
-		//@todo Sequencer - There can be multiple sections overlapping in time. Returning instantly does not account for that.
+		//@todo sequencer: There can be multiple sections overlapping in time. Returning instantly does not account for that.
 		if( Section->IsTimeWithinSection( Time ) && Section->IsActive() )
 		{
 			return Section;
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 
@@ -61,7 +91,7 @@ UMovieSceneSection* MovieSceneHelpers::FindNearestSectionAtTime( const TArray<UM
 
 		if (Section->IsActive())
 		{
-			//@todo Sequencer - There can be multiple sections overlapping in time. Returning instantly does not account for that.
+			//@todo sequencer: There can be multiple sections overlapping in time. Returning instantly does not account for that.
 			if( Section->IsTimeWithinSection( Time ) )
 			{
 				return Section;
@@ -113,17 +143,39 @@ USceneComponent* MovieSceneHelpers::SceneComponentFromRuntimeObject(UObject* Obj
 	return SceneComponent;
 }
 
-void MovieSceneHelpers::SetRuntimeObjectMobility(UObject* Object, EComponentMobility::Type ComponentMobility)
+void MovieSceneHelpers::SetKeyInterpolation(FRichCurve& InCurve, FKeyHandle InKeyHandle, EMovieSceneKeyInterpolation InKeyInterpolation)
 {
-	USceneComponent* SceneComponent = SceneComponentFromRuntimeObject(Object);
-	if (SceneComponent)
+	switch (InKeyInterpolation)
 	{
-		if (SceneComponent->Mobility != ComponentMobility)
-		{
-			SceneComponent->Modify();
+		case EMovieSceneKeyInterpolation::Auto:
+			InCurve.SetKeyInterpMode(InKeyHandle, RCIM_Cubic);
+			InCurve.SetKeyTangentMode(InKeyHandle, RCTM_Auto);
+			break;
 
-			SceneComponent->SetMobility(ComponentMobility);
-		}
+		case EMovieSceneKeyInterpolation::User:
+			InCurve.SetKeyInterpMode(InKeyHandle, RCIM_Cubic);
+			InCurve.SetKeyTangentMode(InKeyHandle, RCTM_User);
+			break;
+
+		case EMovieSceneKeyInterpolation::Break:
+			InCurve.SetKeyInterpMode(InKeyHandle, RCIM_Cubic);
+			InCurve.SetKeyTangentMode(InKeyHandle, RCTM_Break);
+			break;
+
+		case EMovieSceneKeyInterpolation::Linear:
+			InCurve.SetKeyInterpMode(InKeyHandle, RCIM_Linear);
+			InCurve.SetKeyTangentMode(InKeyHandle, RCTM_Auto);
+			break;
+
+		case EMovieSceneKeyInterpolation::Constant:
+			InCurve.SetKeyInterpMode(InKeyHandle, RCIM_Constant);
+			InCurve.SetKeyTangentMode(InKeyHandle, RCTM_Auto);
+			break;
+
+		default:
+			InCurve.SetKeyInterpMode(InKeyHandle, RCIM_Cubic);
+			InCurve.SetKeyTangentMode(InKeyHandle, RCTM_Auto);
+			break;
 	}
 }
 

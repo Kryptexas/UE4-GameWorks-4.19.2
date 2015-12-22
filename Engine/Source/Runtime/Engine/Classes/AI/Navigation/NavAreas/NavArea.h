@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "NavArea.generated.h"
@@ -72,7 +72,6 @@ public:
 	};
 #endif
 
-	virtual void PostInitProperties() override;
 	virtual void FinishDestroy() override;
 	virtual void PostLoad() override;
 	virtual void Serialize(FArchive& Ar) override;

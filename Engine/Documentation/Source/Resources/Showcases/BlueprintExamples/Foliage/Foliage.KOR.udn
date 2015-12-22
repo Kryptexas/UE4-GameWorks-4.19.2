@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2613960
+﻿INTSourceChangelist:2661633
 Availability: Public
 Title:임의 생성 폴리지
 Crumbs:%ROOT%, Resources, Resources/Showcases/BlueprintExamples
@@ -31,8 +31,8 @@ Related: Engine/Blueprints/UserGuide/UserConstructionScript
 | **컨스트럭션 스크립트** | [INCLUDE:#FoliageCS] |
 | **이벤트 그래프** | 이 블루프린트에는 _이벤트 그래프_ 가 없습니다. 즉 프로퍼티가 설정되면 게임플레이 내내 그대로 남아있는다는 뜻입니다. |
 
-[REGION:fullwidth]
-![](FoliageCS.png)
+[REGION:lightbox]
+![](FoliageCS.png)(w:920)
 [/REGION]
 
 
@@ -42,7 +42,7 @@ Related: Engine/Blueprints/UserGuide/UserConstructionScript
 예측하시듯이 이 블루프린트 대부분의 작업은 _컨스트럭션 스크립트_ 안에서 이루어지기에 확장성이 좋습니다. 아래는 노출된 주요 프로퍼티와 그 용도입니다.
 
 
-![](Variables_Foliage.png) ![](Properties_Foliage.png)
+![](MyBlueprintNoVar.jpg) ![](Properties_Foliage.png)
 
 
 | 프로퍼티 | 용도 |

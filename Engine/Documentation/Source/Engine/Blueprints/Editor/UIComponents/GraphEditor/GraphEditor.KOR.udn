@@ -1,11 +1,9 @@
-﻿INTSourceChangelist:2597239
+﻿INTSourceChangelist:2683385
 Availability:Public
 Title: 그래프 에디터 탭
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI
 Description:블루프린트 안의 노드 망을 시각적으로 표현한 것으로, 편집도 가능합니다.
-
-
-[TOC(start:2 end:3)]
+version: 4.9
 
 
 [EXCERPT:Intro]
@@ -48,6 +46,7 @@ Description:블루프린트 안의 노드 망을 시각적으로 표현한 것�
 | 핀에서 핀으로 클릭 + 드래그 | 두 핀을 선으로 연결합니다. |
 | 핀에서 핀으로 Ctrl + 클릭 + 드래그 | 원래 핀에서 대상 핀으로 선 연결을 옮깁니다. |
 | 핀에서 빈 공간으로 클릭 + 드래그 | 관련된 노드만 표시되는 맥락 메뉴를 띄웁니다. 원래 핀에서 생성된 팬의 호환 핀으로 선이 연결됩니다. |
+| 핀에 Alt + 클릭 | 선택된 핀으로 연결되는 모든 선을 제거합니다. |
 
 [/EXCERPT:Controls]
 

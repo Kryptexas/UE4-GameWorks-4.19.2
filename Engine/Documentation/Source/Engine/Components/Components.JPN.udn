@@ -1,8 +1,11 @@
-﻿INTSourceChangelist:2604022
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title: コンポーネント
 Crumbs:%ROOT%, Engine
-Description:Description:アクタ内のサブオブジェクトとして使用するように設計された様々なタイプののコンポーネントの概要。  
+Description:Description:アクタ内のサブオブジェクトとして使用するように設計された様々なタイプののコンポーネントの概要。
+version:4.9
+parent:Engine/Editor
+order:6
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -50,18 +53,18 @@ Description:Description:アクタ内のサブオブジェクトとして使用�
 
 ## コンポーネントのインスタンス化
 
-一般的にサブオブジェクトのデフォルト ビヘイビアとは逆に、アクタ内でサブオブジェクトとして作成されたコンポーネントはインスタンス化されます。つまり、各アクタの特定クラスのインスタンスは、コンポーネントの独自の固有インスタンスを取得します。 
-上述の乗り物の例で思い描くとわかりやすいでしょう。**Car** クラスは、車輪の表現にコンポーネントを使用する場合もあります。 
-クラスのデフォルトプロパティにはサブオブジェクトとして 4 つの **Wheel** コンポーネントが作成され、"Wheels" 配列へ割り当てられます。新規の **Car** インスタンスが作成されると、Wheel コンポーネントの新しいインスタンスは前述の **Car** 用に作成されます。 
-これが該当しない場合、ワールドにある一台の **Car** が動くと、全ての **Car** の車輪が回転します。これは明らかに望まれる動作ではありません。デフォルトのコンポーネントのインスタンス化は、**アクタ** へ固有のサブオブジェクトを迅速に追加するプロセスを簡素化します。
+一般的にサブオブジェクトのデフォルトの挙動とは逆に、アクタ内でサブオブジェクトとして作成されたコンポーネントはインスタンス化されます。つまり、各アクタの特定クラスのインスタンスは、コンポーネントの独自の固有インスタンスを取得します。 
+上述の乗り物の例で思い描くとわかりやすいでしょう。Car クラスは、車輪の表現にコンポーネントを使用するかもしれません。 
+クラスのデフォルトプロパティにはサブオブジェクトとして 4 つの Wheel コンポーネントが作成され、"Wheels" 配列へ割り当てられます。新規の Car インスタンスが作成されると、Wheel コンポーネントの新しいインスタンスはその特定の Car 用に作成されます。 
+これが該当しない場合、ワールドにある一台のCar が動くと、全ての Car の車輪が回転します。これは明らかに望まれる動作ではありません。デフォルトのコンポーネントのインスタンス化は、アクタへ固有のサブオブジェクトを迅速に追加するプロセスを簡素化します。
 
 [REGION:note]
-コンポーネントをインスタンス化しないと、全てのコンポーネント変数は [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/Instanced) プロパティ指定子を使用して宣言されなくてはいけません。 
+コンポーネントをインスタンス化しないと、全てのコンポーネント変数は [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/Instanced) プロパティ指定子を使用して宣言する必要があります。 
 [/REGION]
 
 ## コンポーネントのタイプ
 
-多様な種類のコンポーネントをアクタへ追加することができます。詳細は以下のリンクを参照してください。 
+多様なコンポーネントをアクタへ追加することができます。詳細は以下のリンクを参照してください。 
 
 [OBJECT:TopicButtonList]
 	[PARAM:links] 
@@ -83,5 +86,5 @@ Description:Description:アクタ内のサブオブジェクトとして使用�
 [/OBJECT]
 
 [REGION:note]
-上記以外のコンポーネントについては、 [アンリアル エンジンAPI リファレンス](https://docs.unrealengine.com/latest/INT/API/index.html) の [コンポーネント](https://docs.unrealengine.com/latest/INT/API/Runtime/Engine/Components/index.html) セクションを参照することもできます。 
+上記以外のコンポーネントについては、 [アンリアル エンジンAPI リファレンス](https://docs.unrealengine.com/latest/INT/API/index.html) の [コンポーネント](https://docs.unrealengine.com/latest/INT/API/Runtime/Engine/Components/index.html) セクションをご覧いただくこともできます。 
 [/REGION]

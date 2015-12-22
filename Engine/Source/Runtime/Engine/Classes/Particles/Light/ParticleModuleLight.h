@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -49,21 +49,27 @@ class UParticleModuleLight : public UParticleModuleLightBase
 	UPROPERTY(EditAnywhere, Category=Light)
 	struct FRawDistributionFloat LightExponent;
 
+	UPROPERTY(EditAnywhere, Category = Light)
+	bool bHighQualityLights;
+
+	UPROPERTY(EditAnywhere, Category = Light)
+	bool bShadowCastingLights;	
+
 	/** Initializes the default values for this property */
 	void InitializeDefaults();
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	virtual void PostInitProperties() override;
-	// End UObject Interface
+	//~ End UObject Interface
 
 
 	//Begin UParticleModule Interface
 	virtual void Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) override;
 	virtual void Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime) override;
-	virtual uint32 RequiredBytes(FParticleEmitterInstance* Owner = NULL) override;
+	virtual uint32 RequiredBytes(UParticleModuleTypeDataBase* TypeData) override;
 	virtual void SetToSensibleDefaults(UParticleEmitter* Owner) override;
 	virtual EModuleType	GetModuleType() const override { return EPMT_Light; }
 	virtual void Render3DPreview(FParticleEmitterInstance* Owner, const FSceneView* View,FPrimitiveDrawInterface* PDI) override;
@@ -72,6 +78,11 @@ class UParticleModuleLight : public UParticleModuleLightBase
 	void SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, struct FRandomStream* InRandomStream, FBaseParticle* ParticleBase);
 
 	virtual bool CanTickInAnyThread() override;
+
+private:
+		
+	uint64 SpawnHQLight(const FLightParticlePayload& Payload, const FBaseParticle& Particle, FParticleEmitterInstance* Owner);	
+	void UpdateHQLight(UPointLightComponent* PointLightComponent, const FLightParticlePayload& Payload, const FBaseParticle& Particle, int32 ScreenAlignment, FVector ComponentScale, bool bLocalSpace, FSceneInterface* OwnerScene, bool bDoRTUpdate);
 };
 
 

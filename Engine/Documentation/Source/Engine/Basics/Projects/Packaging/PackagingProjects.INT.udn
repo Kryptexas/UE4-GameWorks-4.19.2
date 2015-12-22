@@ -2,11 +2,11 @@ Availability:Public
 Title:Packaging Projects
 Crumbs: %ROOT%, Engine, Engine/Basics/Projects
 Description:Packaging Unreal game projects for distribution.
+version: 4.9
 
 [TOC(start:2)]
 
 
-## Overview
 
 [EXCERPT:Intro]
 Before an Unreal project can be distributed to users, it must be properly packaged. Packaging ensures that all code and content is up to date and in the proper format to run on the desired target platform. 
@@ -26,6 +26,15 @@ Once you select the platform, the editor will compile your game if it contains c
 Starter Content in your project, or if you have made a lot of test/temporary content and maps.
 
 
+## Setting A Game Default Map
+
+Before you package your game you will first need to set a **Game Default Map** to load when your packaged game starts. If you do not set a map and are using a blank project you will only see a black screen when the packaged game starts. If you have used one of the template maps, like the First Person template or Third Person template the starting map will be loaded.
+
+To set the Game Default Map click on **Edit > Project Settings > Maps & Modes** in the Editor's main menu:
+
+![](Project_Settings_MapsNModes.png)
+
+
 
 
 ## Creating Packages
@@ -40,18 +49,22 @@ Confirming the target directory will then initiate the actual process that packa
 
 ![](progress.png)
 
-The status indicator provides a way to cancel the active packaging process by clicking the Cancel button. It is also possible to display extended output log information by clicking the Show Log link. The output log is useful for figuring out what went wrong in case a packaging process did not complete successfully:
+The status indicator provides a way to cancel the active packaging process by clicking the **Cancel** button. It is also possible to display extended output log information by clicking the **Show Log** link. The output log is useful for figuring out what went wrong in case a packaging process did not complete successfully:
 
 ![](log.png)
 
-For less experienced users, the most important log messages, such as errors and warnings, are logged to the regular Message Log window:
+For less experienced users, the most important log messages, such as errors and warnings, are logged to the regular **Message Log** window:
 
 ![](message_log.png)
+
+[REGION:note]
+If neither of these windows are visible, they can be accessed by the **Window** > **Developer Tools** > **Output Log** / **Message Log** options.
+[/REGION]
  
 ## Running Packaged Games
 
 When you packaged, you selected a directory for the output. If packaging completes successfully, your packaged game will be in a platform-specific subdirectory. For instance, if you selected TappyChicken/Final, then the iOS build would be 
-in `TappyChicken/Final/IOS` and an Android build would be in `TappyChicken/Final/Android`. When you go to that subdirectory, you will see the packaged game, in a format appropriate for the platform. 
+in TappyChicken/Final/IOS and an Android build would be in TappyChicken/Final/Android. When you go to that subdirectory, you will see the packaged game, in a format appropriate for the platform. 
 For Android, you will see .apk, .obb, and .bat files (run the .bat to install the game on your device). For IOS, you will see an .ipa file. This can be installed via iTunes or Xcode.
 The number and type of files created will vary depending on the target platform. The following image shows example output for a Windows project:
 
@@ -77,16 +90,16 @@ To submit an IOS or Android game to the App Store or Google Play Store, you need
 and check the Distribution check box. This will sign the final package appropriately.
 
 On IOS, you will need to create a distribution Certificate and MobileProvision on Apple's developer website. Install the certificate the same way as your Development certificate, and name your 
-distribution provision with a `Distro_` prefix, next to your other one (so you would have `Distro_MyProject.mobileprovision` and `MyProject.mobileprovision`).
+distribution provision with a Distro_ prefix, next to your other one (so you would have Distro_MyProject.mobileprovision and MyProject.mobileprovision).
 
-On Android, you will need to create a key to sign the .apk, and give some information to our build tools with a file called `SigningConfig.xml`. This file exists in the installed Engine directory 
-(`Engine/Build/Android/Java`). If you edit this file, it will apply to all your projects. However, you can copy this file to your project's `Build/Android` directory (no Java directory), and it 
+On Android, you will need to create a key to sign the .apk, and give some information to our build tools with a file called SigningConfig.xml. This file exists in the installed Engine directory 
+(Engine/Build/Android/Java). If you edit this file, it will apply to all your projects. However, you can copy this file to your project's Build/Android directory (no Java directory), and it 
 will be used for just that project. Directions for how to generate the key and fill out the file are found in the file itself.
 
 
 ## Advanced Settings
 
-Clicking **File > Package Project > Packaging Settings...** in the main menu will present you with a number of advanced configuration options for the packaging feature.
+Clicking **File > Package Project > Packaging Settings...** or **Edit > Project Settings > Packaging** in the main menu will present you with a number of advanced configuration options for the packaging feature.
 
 ![](settings.png)
 
@@ -98,16 +111,13 @@ Clicking **File > Package Project > Packaging Settings...** in the main menu wil
 | Staging Directory | The directory that will contain your packaged build. This will be updated automatically when you pick a different directory in the target directory selection. |
 | Full Rebuild | Whether all of your code should be compiled. If disabled, only the modified code will be compiled. This may speed up the packaging process. For shipping builds you should always do a full rebuild to make sure nothing is missing or outdated. This option is enabled by default. |
 | Use Pak File | Whether to package your project's assets as individual files or a single package. If enabled, all assets will be put into a single .pak file instead of copying out all the individual files. If your project has a lot of asset files, using a Pak may make it easier to distribute it, because you do not have to transfer so many files. This option is enabled by default. |
+| Generate Chunks | Whether to generate .pak file chunks that can be used for streaming installs. |
+| Build Http Chunk Install Data | Whether to generate data for HTTP chunk installer. This allows this data to be hosted on a webserver to be installed at runtime. |
+| Http Chunk Install Data Directory | This is the directory where data will be built to. |
+| Http Chunk Install Data Version | This is the version name for HTTP chunk install data. |
+| Include Prerequisites | This specifies whether to include prerequisites of packaged games, such as redistributable operating system components. |
 [PUBLISH:Licensee]
 | Directories to Always Cook | The list of directories with files that should always be cooked. By default, the packaging feature automatically detects and cooks all content that is referenced by your game. Some required content may not be referenced directly, such as textures for a custom Slate UI. The directories in which such content resides should be listed here in order to also include it in the package. |
-[/PUBLISH:Licensee]
-
-[PUBLISH:Licensee]
-## Supported Platforms
-
-At the time of this writing, the only support platform is Windows. We are in the process of adding support for other platforms, such as iOS, PS4, and Android. Although these platforms may already be listed in the Package Project menu, they are currently grayed out and cannot be selected.
-
-Creating an installer for Windows is not yet supported. The packaged files are simply copied out to the staging directory for the time being.
 [/PUBLISH:Licensee]
 
 

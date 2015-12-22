@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2609228
+﻿INTSourceChangelist:2633855
 Availability: Public
 Title:조각 모드
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
@@ -165,7 +165,7 @@ Erosion (침식) 툴은 융해 침식 시뮬레이션을 사용하여 하이트�
 | **Iteration Num** | 반복처리 횟수 - 반복처리할 횟수입니다. 값이 클 수록 침식 수준도 커 집니다. |
 | **Noise Mode** | 노이즈 모드 - 노이즈를 적용할 때 하이트맵을 낮출지, 높일지, 또는 둘다 가능한지 입니다.|
 | **Noise Scale** 노이즈 스케일 | 사용된 노이즈 필터의 크기입니다. 노이즈 필터는 위치와 스케일에 관계되어 있는데, **Noise Scale** 을 변경하지만 않으면 같은 필터가 같은 위치에 몇 번이고 적용된다는 뜻입니다. | 
-| ![Landscape_Thermal_Erosion_Filter.jpg](Landscape_Thermal_Erosion_Filter.jpg)(w:900 h:325) ||
+| ![](Erosion_New.jpg)(w:900 h:325) ||
 
 
 
@@ -186,7 +186,7 @@ Hydro Erosion (수성 침식) 툴은 강우로 인한 침식 시뮬레이션을 
 | **Sediment Cap.** | 퇴적 제한량 - 물이 운반할 수 있는 퇴적량입니다. 값이 클 수록 침식량도 늘어납니다. |
 | **Iterations** | 반복처리 횟수 - 반복처리할 횟수입니다. 값이 클 수록 침식 레벨도 높아집니다. |
 | **Initial Rain Distribution** | 초기 강우 분포 - 강우 지역을 노이즈 필터가 양성인 곳으로만 할 지, 전체 영역으로 할 지 입니다.|
-| ![Landscape_Hydraulic_Erosion_Filter.jpg](Landscape_Hydraulic_Erosion_Filter.jpg)(w:900 h:325) ||
+| ![](Hydro_Erosion.jpg)(w:900 h:325) ||
 | **Rain Dist Scale** | 강우 분포 스케일 - 표면의 초기 강우지역에 적용할 노이즈 필터 크기입니다. 노이즈 필터는 위치와 스케일에 관련되어 있는데, **Rain Dist Scale** 을 바꾸지 않는 다면 같은 필터가 같은 위치에 몇 번이고 적용된다는 뜻입니다. | 
 | **Detail Smooth** | 디테일 스무드 - 체크하면 지정된 디테일 스무딩 값을 사용하여 침식 효과에 디테일을 보존하는 스무딩 작업을 합니다. 스무딩 값이 클수록 디테일 제거량도 늘어나는 반면, 작을수록 디테일 보존량이 늘어납니다. |
 
@@ -203,7 +203,7 @@ Noise (노이즈) 툴은 하이트맵이나 레이어 웨이트에 노이즈 필
 | **Tool Strength** | 툴 세기 - 각 브러시 스트로크마다 발생하는 스무딩 정도를 조절합니다. |
 | **Use Target Value** | 목표 값 사용 - 체크하면, 목표 값을 향해 노이즈 값 블렌딩이 일어나도록 합니다. |
 | **Noise Mode** | 노이즈 모드 - 노이즈 이펙트를 전부 적용할지, 하이트맵을 올리도록만 아니면 내리도록만 적용할지 입니다. |
-| ![Landscape_Noise_Filter.jpg](Landscape_Noise_Filter.jpg)(w:900 h:325) ||
+| ![](Noise.jpg)(w:900 h:325) ||
 | **Noise Scale** | 노이즈 스케일 - 사용된 펄린(perlin) 노이즈 필터의 크기입니다. 노이즈 필터는 위치와 스케일에 관련되어 있는데, **Noise Scale** 을 바꾸지 않는다면 같은 필터가 같은 위치에 몇 번이고 적용된다는 뜻입니다. |
 
 

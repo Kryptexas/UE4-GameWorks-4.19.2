@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Tasks/BTTask_MoveTo.h"
@@ -13,11 +13,14 @@ UBTTask_MoveTo::UBTTask_MoveTo(const FObjectInitializer& ObjectInitializer)
 {
 	NodeName = "Move To";
 	bNotifyTick = true;
+	bNotifyTaskFinished = true;
 
 	AcceptableRadius = GET_AI_CONFIG_VAR(AcceptanceRadius);
 	bStopOnOverlap = GET_AI_CONFIG_VAR(bFinishMoveOnGoalOverlap); 
 	bAllowStrafe = GET_AI_CONFIG_VAR(bAllowStrafing);
 	bAllowPartialPath = GET_AI_CONFIG_VAR(bAcceptPartialPaths);
+
+	ObservedBlackboardValueTolerance = AcceptableRadius * 0.95f;
 
 	// accept only actors and vectors
 	BlackboardKey.AddObjectFilter(this, GET_MEMBER_NAME_CHECKED(UBTTask_MoveTo, BlackboardKey), AActor::StaticClass());
@@ -28,7 +31,8 @@ EBTNodeResult::Type UBTTask_MoveTo::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 {
 	EBTNodeResult::Type NodeResult = EBTNodeResult::InProgress;
 
-	FBTMoveToTaskMemory* MyMemory = (FBTMoveToTaskMemory*)NodeMemory;
+	FBTMoveToTaskMemory* MyMemory = reinterpret_cast<FBTMoveToTaskMemory*>(NodeMemory);
+	MyMemory->PreviousGoalLocation = FAISystem::InvalidLocation;
 	AAIController* MyController = OwnerComp.GetAIOwner();
 
 	MyMemory->bWaitingForPath = MyController->ShouldPostponePathUpdates();
@@ -40,6 +44,21 @@ EBTNodeResult::Type UBTTask_MoveTo::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 	{
 		UE_VLOG(MyController, LogBehaviorTree, Log, TEXT("Pathfinding requests are freezed, waiting..."));
 	}
+
+	if (NodeResult == EBTNodeResult::InProgress && bObserveBlackboardValue)
+	{
+		UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
+		if (ensure(BlackboardComp))
+		{
+			if (MyMemory->BBObserverDelegateHandle.IsValid())
+			{
+				UE_VLOG(MyController, LogBehaviorTree, Warning, TEXT("UBTTask_MoveTo::ExecuteTask \'%s\' Old BBObserverDelegateHandle is still valid! Removing old Observer."), *GetNodeName());
+				BlackboardComp->UnregisterObserver(BlackboardKey.GetSelectedKeyID(), MyMemory->BBObserverDelegateHandle);
+			}
+			MyMemory->BBObserverDelegateHandle = BlackboardComp->RegisterObserver(BlackboardKey.GetSelectedKeyID(), this, FOnBlackboardChangeNotification::CreateUObject(this, &UBTTask_MoveTo::OnBlackboardValueChange));
+		}
+	}
+	
 	
 	return NodeResult;
 }
@@ -47,7 +66,7 @@ EBTNodeResult::Type UBTTask_MoveTo::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 EBTNodeResult::Type UBTTask_MoveTo::PerformMoveTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	const UBlackboardComponent* MyBlackboard = OwnerComp.GetBlackboardComponent();
-	FBTMoveToTaskMemory* MyMemory = (FBTMoveToTaskMemory*)NodeMemory;
+	FBTMoveToTaskMemory* MyMemory = reinterpret_cast<FBTMoveToTaskMemory*>(NodeMemory);
 	AAIController* MyController = OwnerComp.GetAIOwner();
 
 	EBTNodeResult::Type NodeResult = EBTNodeResult::Failed;
@@ -56,8 +75,20 @@ EBTNodeResult::Type UBTTask_MoveTo::PerformMoveTask(UBehaviorTreeComponent& Owne
 	{
 		if (GET_AI_CONFIG_VAR(bEnableBTAITasks))
 		{
-			UAITask_MoveTo* AIMoveTask = NewBTAITask<UAITask_MoveTo>(OwnerComp);
+			bool bTaskReusing = false;
+			UAITask_MoveTo* AIMoveTask = nullptr;
 
+			if (MyMemory->Task.IsValid())
+			{
+				AIMoveTask = MyMemory->Task.Get();
+				ensure(AIMoveTask->GetState() != EGameplayTaskState::Finished);
+				bTaskReusing = true;
+			}
+			else
+			{
+				AIMoveTask = NewBTAITask<UAITask_MoveTo>(OwnerComp);
+			}			
+			
 			if (AIMoveTask != nullptr)
 			{
 				bool bSetUp = false;
@@ -78,13 +109,28 @@ EBTNodeResult::Type UBTTask_MoveTo::PerformMoveTask(UBehaviorTreeComponent& Owne
 				else if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Vector::StaticClass())
 				{
 					const FVector TargetLocation = MyBlackboard->GetValue<UBlackboardKeyType_Vector>(BlackboardKey.GetSelectedKeyID());
+					MyMemory->PreviousGoalLocation = TargetLocation;
 					AIMoveTask->SetUp(MyController, TargetLocation, nullptr, AcceptableRadius, /*bUsePathfinding=*/true, FAISystem::BoolToAIOption(bStopOnOverlap), FAISystem::BoolToAIOption(bAllowPartialPath));
 					NodeResult = EBTNodeResult::InProgress;
 				}
 
 				if (NodeResult == EBTNodeResult::InProgress)
 				{
-					AIMoveTask->ReadyForActivation();
+					/*WaitForMessage(OwnerComp, UBrainComponent::AIMessage_MoveFinished, RequestID);
+					WaitForMessage(OwnerComp, UBrainComponent::AIMessage_RepathFailed);*/
+
+					if (bTaskReusing == false)
+					{
+						MyMemory->Task = AIMoveTask;
+						UE_VLOG(MyController, LogBehaviorTree, Verbose, TEXT("\'%s\' task implementing move with task %s"), *GetNodeName(), *AIMoveTask->GetName());
+						AIMoveTask->ReadyForActivation();
+					}
+					else
+					{
+						ensure(AIMoveTask->IsActive());
+						UE_VLOG(MyController, LogBehaviorTree, Verbose, TEXT("\'%s\' reusing AITask %s"), *GetNodeName(), *AIMoveTask->GetName());
+						AIMoveTask->PerformMove();
+					}
 				}
 			}
 		}
@@ -118,6 +164,7 @@ EBTNodeResult::Type UBTTask_MoveTo::PerformMoveTask(UBehaviorTreeComponent& Owne
 			{
 				const FVector TargetLocation = MyBlackboard->GetValue<UBlackboardKeyType_Vector>(BlackboardKey.GetSelectedKeyID());
 				MoveReq.SetGoalLocation(TargetLocation);
+				MyMemory->PreviousGoalLocation = TargetLocation;
 
 				RequestResult = MyController->MoveTo(MoveReq);
 			}
@@ -142,9 +189,76 @@ EBTNodeResult::Type UBTTask_MoveTo::PerformMoveTask(UBehaviorTreeComponent& Owne
 	return NodeResult;
 }
 
+EBlackboardNotificationResult UBTTask_MoveTo::OnBlackboardValueChange(const UBlackboardComponent& Blackboard, FBlackboard::FKey ChangedKeyID)
+{
+	UBehaviorTreeComponent* BehaviorComp = Cast<UBehaviorTreeComponent>(Blackboard.GetBrainComponent());
+	if (BehaviorComp == nullptr)
+	{
+		return EBlackboardNotificationResult::RemoveObserver;
+	}
+
+	uint8* RawMemory = BehaviorComp->GetNodeMemory(this, BehaviorComp->FindInstanceContainingNode(this));
+	FBTMoveToTaskMemory* MyMemory = reinterpret_cast<FBTMoveToTaskMemory*>(RawMemory);
+
+	const EBTTaskStatus::Type TaskStatus = BehaviorComp->GetTaskStatus(this);
+	if (TaskStatus != EBTTaskStatus::Active)
+	{
+		UE_VLOG(BehaviorComp, LogBehaviorTree, Error, TEXT("BT MoveTo \'%s\' task observing BB entry while no longer being active!"), *GetNodeName());
+
+		// resetting BBObserverDelegateHandle without unregistering observer since 
+		// returning EBlackboardNotificationResult::RemoveObserver here will take care of that for us
+		MyMemory->BBObserverDelegateHandle.Reset();
+
+		return EBlackboardNotificationResult::RemoveObserver;
+	}
+	
+	// this means the move has already started. MyMemory->bWaitingForPath == true would mean we're waiting for right moment to start it anyway,
+	// so we don't need to do anything due to BB value change 
+	if (MyMemory != nullptr && MyMemory->bWaitingForPath == false && BehaviorComp->GetAIOwner() != nullptr)
+	{
+		check(BehaviorComp->GetAIOwner()->GetPathFollowingComponent());
+
+		bool bUpdateMove = true;
+		// check if new goal is almost identical to previous one
+		if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Vector::StaticClass())
+		{
+			const FVector TargetLocation = Blackboard.GetValue<UBlackboardKeyType_Vector>(BlackboardKey.GetSelectedKeyID());
+
+			bUpdateMove = (FVector::DistSquared(TargetLocation, MyMemory->PreviousGoalLocation) > ObservedBlackboardValueTolerance*ObservedBlackboardValueTolerance);
+		}
+
+		if (bUpdateMove)
+		{
+			// don't abort move if using AI tasks - it will mess things up
+			if (GET_AI_CONFIG_VAR(bEnableBTAITasks) == false)
+			{
+				StopWaitingForMessages(*BehaviorComp);
+				BehaviorComp->GetAIOwner()->GetPathFollowingComponent()->AbortMove(TEXT("Updating move due to BB value change"), MyMemory->MoveRequestID, /*bResetVelocity=*/false, /*bSilent=*/true);
+			}
+
+			if (BehaviorComp->GetAIOwner()->ShouldPostponePathUpdates())
+			{
+				// NodeTick will take care of requesting move
+				MyMemory->bWaitingForPath = true;
+			}
+			else
+			{
+				const EBTNodeResult::Type NodeResult = PerformMoveTask(*BehaviorComp, RawMemory);
+
+				if (NodeResult != EBTNodeResult::InProgress)
+				{
+					FinishLatentTask(*BehaviorComp, NodeResult);
+				}
+			}
+		}
+	}
+
+	return EBlackboardNotificationResult::ContinueObserving;
+}
+
 EBTNodeResult::Type UBTTask_MoveTo::AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	FBTMoveToTaskMemory* MyMemory = (FBTMoveToTaskMemory*)NodeMemory;
+	FBTMoveToTaskMemory* MyMemory = reinterpret_cast<FBTMoveToTaskMemory*>(NodeMemory);
 	if (!MyMemory->bWaitingForPath)
 	{
 		AAIController* MyController = OwnerComp.GetAIOwner();
@@ -156,6 +270,28 @@ EBTNodeResult::Type UBTTask_MoveTo::AbortTask(UBehaviorTreeComponent& OwnerComp,
 	}
 
 	return Super::AbortTask(OwnerComp, NodeMemory);
+}
+
+void UBTTask_MoveTo::OnTaskFinished(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult)
+{
+	FBTMoveToTaskMemory* MyMemory = reinterpret_cast<FBTMoveToTaskMemory*>(NodeMemory);
+
+	if (bObserveBlackboardValue)
+	{
+		UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
+		if (ensure(BlackboardComp) && MyMemory->BBObserverDelegateHandle.IsValid())
+		{
+			BlackboardComp->UnregisterObserver(BlackboardKey.GetSelectedKeyID(), MyMemory->BBObserverDelegateHandle);
+		}
+		MyMemory->BBObserverDelegateHandle.Reset();
+	}
+
+	if (GET_AI_CONFIG_VAR(bEnableBTAITasks))
+	{
+		MyMemory->Task = nullptr;
+	}
+
+	Super::OnTaskFinished(OwnerComp, NodeMemory, TaskResult);
 }
 
 void UBTTask_MoveTo::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)

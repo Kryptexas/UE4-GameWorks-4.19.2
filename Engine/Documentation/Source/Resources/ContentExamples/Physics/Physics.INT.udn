@@ -3,11 +3,12 @@ Title:Physics Content Examples
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
 Description:Overview of the samples provided in the Physics Content Examples.
 Related: Engine/Physics/PhysicsBodies
-Related: Engine/Physics/PhAT/UserGuide
+Related: Engine/Physics/PhAT
 Related: Engine/Physics/Constraints/ConstraintsReference
 Related: Engine/Physics/Constraints/ConstraintsUserGuide
 Related: Engine/Physics/Collision
-Related: Engine/Physics/PhysicalMaterials/PhysMatReference
+Related: Engine/Physics/PhysicalMaterials/Reference
+Version: 4.9
 
 [REGION:banner]
 ![](Physics_Header.png)(convert:false)
@@ -44,10 +45,9 @@ Related: Engine/Physics/PhysicalMaterials/PhysMatReference
 [/OBJECT]
 [/VAR]
 
-[TOC(start:2 end:2)]
 
 
-Inside the **Physics** map, you will find several examples of how physics can be used in Unreal Engine 4. Creating **Physics Actors** out of **Static Meshes** so that they respond to player interaction, applying a **Physics Asset** to a **Skeletal Mesh** so that it responds to physics, and several examples of how **Force**, **Impulse**, **Motors**, and **Physical Constraints** are on display in this map with details of how they can aid in your level design or gameplay scenarios. 
+Inside the **Physics** map, you will find several examples of how physics can be used in Unreal Engine 4. Creating Physics Actors out of Static Meshes so that they respond to player interaction, applying a Physics Asset to a Skeletal Mesh so that it responds to physics, and several examples of how Force, Impulse, Motors, and Physical Constraints are on display in this map with details of how they can aid in your level design or gameplay scenarios. 
 
 
 

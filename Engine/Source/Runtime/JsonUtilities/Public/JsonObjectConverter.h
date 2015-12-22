@@ -1,6 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "Json.h"
 
 /** Class that handles converting Json objects to and from UStructs */
 class JSONUTILITIES_API FJsonObjectConverter
@@ -24,13 +26,15 @@ public: // UStruct -> JSON
 	 * 
 	 * @param InStruct The UStruct instance to read from
 	 * @param ExportCb Optional callback for types we don't understand. This is called right before falling back to the generic ToString()
+	 * @param CheckFlags Only convert properties that match at least one of these flags. If 0 check all properties.
+	 * @param SkipFlags Skip properties that match any of these flags
 	 * @return FJsonObject pointer. Invalid if an error occurred.
 	 */
 	template<typename InStructType>
-	static TSharedPtr<FJsonObject> UStructToJsonObject(const InStructType& InStruct, const CustomExportCallback* ExportCb = nullptr)
+	static TSharedPtr<FJsonObject> UStructToJsonObject(const InStructType& InStruct, int64 CheckFlags = 0, int64 SkipFlags = 0, const CustomExportCallback* ExportCb = nullptr)
 	{
 		TSharedRef<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
-		if (UStructToJsonObject(InStructType::StaticStruct(), &InStruct, JsonObject, 0, 0, ExportCb))
+		if (UStructToJsonObject(InStructType::StaticStruct(), &InStruct, JsonObject, CheckFlags, SkipFlags, ExportCb))
 		{
 			return JsonObject;
 		}
@@ -65,6 +69,32 @@ public: // UStruct -> JSON
 	 * @return False if any properties failed to write
 	 */
 	static bool UStructToJsonObjectString(const UStruct* StructDefinition, const void* Struct, FString& OutJsonString, int64 CheckFlags, int64 SkipFlags, int32 Indent = 0, const CustomExportCallback* ExportCb = nullptr);
+
+	/**
+	 * Wrapper to UStructToJsonObjectString that allows a print policy to be specified.
+	 */
+	template<typename CharType, template<typename> class PrintPolicy>
+	static bool UStructToFormattedJsonObjectString(const UStruct* StructDefinition, const void* Struct, FString& OutJsonString, int64 CheckFlags, int64 SkipFlags, int32 Indent = 0, const CustomExportCallback* ExportCb = nullptr)
+	{
+		TSharedRef<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
+		if (UStructToJsonObject(StructDefinition, Struct, JsonObject, CheckFlags, SkipFlags, ExportCb))
+		{
+			TSharedRef<TJsonWriter<CharType, PrintPolicy<CharType>>> JsonWriter = TJsonWriterFactory<CharType, PrintPolicy<CharType>>::Create(&OutJsonString, Indent);
+
+			if (FJsonSerializer::Serialize(JsonObject, JsonWriter))
+			{
+				JsonWriter->Close();
+				return true;
+			}
+			else
+			{
+				UE_LOG(LogJson, Warning, TEXT("UStructToFormattedObjectString - Unable to write out json"));
+				JsonWriter->Close();
+			}
+		}
+
+		return false;
+	}
 
 	/**
 	 * Converts from a UStruct to a set of json attributes (possibly from within a JsonObject)
@@ -236,4 +266,3 @@ public: // JSON -> UStruct
 		return true;
 	}
 };
-

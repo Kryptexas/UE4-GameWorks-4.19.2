@@ -1,6 +1,7 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
+#include "StatsData.h"
 #include "TaskGraphInterfaces.h"
 
 /*-----------------------------------------------------------------------------
@@ -21,7 +22,6 @@ struct FStats2Globals
 static struct FForceInitAtBootFStats2 : public TForceInitAtBoot<FStats2Globals>
 {} FForceInitAtBootFStats2;
 
-DECLARE_FLOAT_COUNTER_STAT( TEXT("Seconds Per Cycle"), STAT_SecondsPerCycle, STATGROUP_Engine );
 DECLARE_DWORD_COUNTER_STAT( TEXT("Frame Packets Received"),STAT_StatFramePacketsRecv,STATGROUP_StatSystem);
 
 DECLARE_CYCLE_STAT(TEXT("WaitForStats"),STAT_WaitForStats,STATGROUP_Engine);
@@ -35,6 +35,7 @@ DECLARE_MEMORY_STAT( TEXT("Stats Descriptions"), STAT_StatDescMemory, STATGROUP_
 
 DEFINE_STAT(STAT_FrameTime);
 DEFINE_STAT(STAT_NamedMarker);
+DEFINE_STAT(STAT_SecondsPerCycle);
 
 /*-----------------------------------------------------------------------------
 	DebugLeakTest, for the stats based memory profiler
@@ -94,7 +95,7 @@ void DebugLeakTest()
 		}
 
 
-		if (GFrameCounter <= 250)
+		if (GFrameCounter < 250)
 		{
 			// Background threads memory test.
 			struct FAllocTask
@@ -103,7 +104,7 @@ void DebugLeakTest()
 				{
 					DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FAllocTask::Alloc" ), Stat_FAllocTask_Alloc, STATGROUP_Quick );
 
-					int* IntAlloc = new int[1000];
+					int8* IntAlloc = new int8[112233];
 					int8* LeakTask = new int8[100000];
 					delete[] IntAlloc;
 				}
@@ -121,7 +122,7 @@ void DebugLeakTest()
 				{
 					DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FAllocPool::DoWork" ), Stat_FAllocPool_DoWork, STATGROUP_Quick );
 
-					int* IntAlloc = new int[1000];
+					int8* IntAlloc = new int8[223311];
 					int8* LeakTask = new int8[100000];
 					delete[] IntAlloc;
 				}
@@ -136,6 +137,15 @@ void DebugLeakTest()
 			{
 				(new FAutoDeleteAsyncTask<FAllocPool>())->StartBackgroundTask();
 			}
+		}
+
+		for (int32 Index = 0; Index < 40; ++Index)
+		{
+			DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "DebugLeakTest::Alloc" ), Stat_LeakTest_Alloc, STATGROUP_Quick );
+
+			int8* IntAlloc = new int8[331122];
+			int8* LeakTask = new int8[100000];
+			delete[] IntAlloc;
 		}
 
 		if (GIsRequestingExit)
@@ -178,11 +188,10 @@ void FStats::AdvanceFrame( bool bDiscardCallstack, const FOnAdvanceRenderingThre
 	// Update the seconds per cycle.
 	SET_FLOAT_STAT( STAT_SecondsPerCycle, FPlatformTime::GetSecondsPerCycle() );
 
-	static FStatNameAndInfo Adv( NAME_AdvanceFrame, "", "", TEXT( "" ), EStatDataType::ST_int64, true, false );
-	FThreadStats::AddMessage( Adv.GetEncodedName(), EStatOperation::AdvanceFrameEventGameThread, Frame ); // we need to flush here if we aren't collecting stats to make sure the meta data is up to date
+	FThreadStats::AddMessage( FStatConstants::AdvanceFrame.GetEncodedName(), EStatOperation::AdvanceFrameEventGameThread, Frame ); // we need to flush here if we aren't collecting stats to make sure the meta data is up to date
 	if( FPlatformProperties::IsServerOnly() )
 	{
-		FThreadStats::AddMessage( Adv.GetEncodedName(), EStatOperation::AdvanceFrameEventRenderThread, Frame ); // we need to flush here if we aren't collecting stats to make sure the meta data is up to date
+		FThreadStats::AddMessage( FStatConstants::AdvanceFrame.GetEncodedName(), EStatOperation::AdvanceFrameEventRenderThread, Frame ); // we need to flush here if we aren't collecting stats to make sure the meta data is up to date
 	}
 
 	if( AdvanceRenderingThreadStatsDelegate.IsBound() )
@@ -192,7 +201,7 @@ void FStats::AdvanceFrame( bool bDiscardCallstack, const FOnAdvanceRenderingThre
 	else
 	{
 		// There is no rendering thread, so this message is sufficient to make stats happy and don't leak memory.
-		FThreadStats::AddMessage( Adv.GetEncodedName(), EStatOperation::AdvanceFrameEventRenderThread, Frame );
+		FThreadStats::AddMessage( FStatConstants::AdvanceFrame.GetEncodedName(), EStatOperation::AdvanceFrameEventRenderThread, Frame );
 	}
 
 	FThreadStats::ExplicitFlush( bDiscardCallstack );
@@ -1067,6 +1076,12 @@ void FThreadStats::Flush( bool bHasBrokenCallstacks /*= false*/, bool bForceFlus
 
 void FThreadStats::FlushRegularStats( bool bHasBrokenCallstacks, bool bForceFlush )
 {
+	if (bReentranceGuard)
+	{
+		return;
+	}
+	TGuardValue<bool> Guard( bReentranceGuard, true );
+
 	enum
 	{
 		PRESIZE_MAX_NUM_ENTRIES = 10,
@@ -1085,7 +1100,7 @@ void FThreadStats::FlushRegularStats( bool bHasBrokenCallstacks, bool bForceFlus
 		return;
 	}
 
-	if (!ScopeCount && Packet.StatMessages.Num())
+	if ((!ScopeCount || bForceFlush) && Packet.StatMessages.Num())
 	{
 		if( Packet.StatMessagesPresize.Num() >= PRESIZE_MAX_NUM_ENTRIES )
 		{
@@ -1124,11 +1139,11 @@ void FThreadStats::FlushRegularStats( bool bHasBrokenCallstacks, bool bForceFlus
 
 void FThreadStats::FlushRawStats( bool bHasBrokenCallstacks /*= false*/, bool bForceFlush /*= false*/ )
 {
-	if( bReentranceGuard )
+	if (bReentranceGuard)
 	{
 		return;
 	}
-	bReentranceGuard = true;
+	TGuardValue<bool> Guard( bReentranceGuard, true );
 	
 	enum
 	{
@@ -1164,8 +1179,6 @@ void FThreadStats::FlushRawStats( bool bHasBrokenCallstacks /*= false*/, bool bF
 
 		UE_LOG( LogStats, Verbose, TEXT( "FlushRawStats NumMessages: %i (%.2f MB), Thread: %u" ), NumMessages, NumMessagesAsMB, Packet.ThreadId );
 	}
-	
-	bReentranceGuard = false;
 }
 
 void FThreadStats::CheckForCollectingStartupStats()

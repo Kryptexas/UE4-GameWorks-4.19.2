@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D11RHI.cpp: Unreal D3D RHI library implementation.
@@ -158,7 +158,9 @@ void FD3D11DynamicRHI::CheckIfSRVIsResolved(ID3D11ShaderResourceView* SRV)
 	int32 LastSlice = ArraySlice + NumSlices - 1;
 
 	TArray<FUnresolvedRTInfo> RTInfoArray;
+	check(UnresolvedTargetsConcurrencyGuard.Increment() == 1);
 	UnresolvedTargets.MultiFind(SRVResource, RTInfoArray);
+	check(UnresolvedTargetsConcurrencyGuard.Decrement() == 0);
 
 	for (int32 InfoIndex = 0; InfoIndex < RTInfoArray.Num(); ++InfoIndex)
 	{
@@ -175,12 +177,20 @@ void FD3D11DynamicRHI::CheckIfSRVIsResolved(ID3D11ShaderResourceView* SRV)
 #endif
 }
 
+extern int32 GEnableDX11TransitionChecks;
 template <EShaderFrequency ShaderFrequency>
-void FD3D11DynamicRHI::InternalSetShaderResourceView(FD3D11BaseShaderResource* Resource, ID3D11ShaderResourceView* SRV, int32 ResourceIndex, FD3D11StateCache::ESRV_Type SrvType)
+void FD3D11DynamicRHI::InternalSetShaderResourceView(FD3D11BaseShaderResource* Resource, ID3D11ShaderResourceView* SRV, int32 ResourceIndex, FName SRVName, FD3D11StateCache::ESRV_Type SrvType)
 {
 	// Check either both are set, or both are null.
 	check((Resource && SRV) || (!Resource && !SRV));
 	CheckIfSRVIsResolved(SRV);
+
+	if (Resource)
+	{		
+		const EResourceTransitionAccess CurrentAccess = Resource->GetCurrentGPUAccess();
+		const bool bAccessPass = CurrentAccess == EResourceTransitionAccess::EReadable || (CurrentAccess == EResourceTransitionAccess::ERWBarrier && !Resource->IsDirty()) || CurrentAccess == EResourceTransitionAccess::ERWSubResBarrier;
+		ensureMsgf((GEnableDX11TransitionChecks == 0) || bAccessPass || Resource->GetLastFrameWritten() != PresentCounter, TEXT("Shader resource %s is not GPU readable.  Missing a call to RHITransitionResources()"), *SRVName.ToString());
+	}
 
 	FD3D11BaseShaderResource*& ResourceSlot = CurrentResourcesBoundAsSRVs[ShaderFrequency][ResourceIndex];
 	int32& MaxResourceIndex = MaxBoundShaderResourcesIndex[ShaderFrequency];
@@ -223,7 +233,7 @@ void FD3D11DynamicRHI::ClearShaderResourceViews(FD3D11BaseShaderResource* Resour
 		if (CurrentResourcesBoundAsSRVs[ShaderFrequency][ResourceIndex] == Resource)
 		{
 			// Unset the SRV from the device context
-			InternalSetShaderResourceView<ShaderFrequency>(nullptr, nullptr, ResourceIndex);
+			InternalSetShaderResourceView<ShaderFrequency>(nullptr, nullptr, ResourceIndex, NAME_None);
 		}
 	}
 }
@@ -249,7 +259,7 @@ void FD3D11DynamicRHI::ClearAllShaderResourcesForFrequency()
 		if (CurrentResourcesBoundAsSRVs[ShaderFrequency][ResourceIndex] != nullptr)
 		{
 			// Unset the SRV from the device context
-			InternalSetShaderResourceView<ShaderFrequency>(nullptr, nullptr, ResourceIndex);
+			InternalSetShaderResourceView<ShaderFrequency>(nullptr, nullptr, ResourceIndex, NAME_None);
 		}
 	}
 }

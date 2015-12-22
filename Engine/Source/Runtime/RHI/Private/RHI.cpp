@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RHI.cpp: Render Hardware Interface implementation.
@@ -29,6 +29,15 @@ DEFINE_STAT(STAT_IndexBufferMemory);
 DEFINE_STAT(STAT_VertexBufferMemory);
 DEFINE_STAT(STAT_StructuredBufferMemory);
 DEFINE_STAT(STAT_PixelBufferMemory);
+
+const FString FResourceTransitionUtility::ResourceTransitionAccessStrings[(int32)EResourceTransitionAccess::EMaxAccess + 1] =
+{
+	FString(TEXT("EReadable")),
+	FString(TEXT("EWritable")),	
+	FString(TEXT("ERWBarrier")),
+	FString(TEXT("ERWNoBarrier")),
+	FString(TEXT("EMaxAccess")),
+};
 
 #if STATS
 #include "StatsData.h"
@@ -72,8 +81,10 @@ const FClearValueBinding FClearValueBinding::DepthNear((float)ERHIZBuffer::NearP
 const FClearValueBinding FClearValueBinding::DepthFar((float)ERHIZBuffer::FarPlane, 0);
 
 
-TLockFreePointerList<FRHIResource> FRHIResource::PendingDeletes;
+TLockFreePointerListUnordered<FRHIResource> FRHIResource::PendingDeletes;
 FRHIResource* FRHIResource::CurrentlyDeleting = nullptr;
+TQueue<FRHIResource::ResourceToDelete> FRHIResource::DeferredDeletionQueue;
+uint32 FRHIResource::CurrentFrame = 0;
 
 #if !DISABLE_RHI_DEFFERED_DELETE
 bool FRHIResource::Bypass()
@@ -106,7 +117,15 @@ void FRHIResource::FlushPendingDeletes()
 			if (Ref->GetRefCount() == 0) // caches can bring dead objects back to life
 			{
 				CurrentlyDeleting = Ref;
-				delete Ref;
+				if (PlatformNeedsExtraDeletionLatency())
+				{
+					DeferredDeletionQueue.Enqueue(ResourceToDelete(Ref, CurrentFrame));
+				}
+				else
+				{
+					delete Ref;
+				}
+
 				CurrentlyDeleting = nullptr;
 			}
 			else
@@ -116,8 +135,36 @@ void FRHIResource::FlushPendingDeletes()
 			}
 		}
 	}
-}
 
+	const uint32 NumFramesToExpire = 3;
+
+	if (PlatformNeedsExtraDeletionLatency())
+	{
+		ResourceToDelete TempResource;
+
+		while (!DeferredDeletionQueue.IsEmpty())
+		{
+			DeferredDeletionQueue.Peek(TempResource);
+
+			if ((TempResource.FrameDeleted + NumFramesToExpire) < CurrentFrame)
+			{
+				// It's possible the resource has been resurrected elsewhere
+				if (TempResource.Resource->GetRefCount() == 0)
+				{
+					delete TempResource.Resource;
+				}
+
+				DeferredDeletionQueue.Dequeue(TempResource);
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		++CurrentFrame;
+	}
+}
 
 static_assert(ERHIZBuffer::FarPlane != ERHIZBuffer::NearPlane, "Near and Far planes must be different!");
 static_assert((int32)ERHIZBuffer::NearPlane == 0 || (int32)ERHIZBuffer::NearPlane == 1, "Invalid Values for Near Plane, can only be 0 or 1!");
@@ -204,12 +251,15 @@ bool GTriggerGPUProfile = false;
 bool GRHISupportsTextureStreaming = false;
 bool GSupportsDepthBoundsTest = false;
 bool GRHISupportsBaseVertexIndex = true;
+bool GRHISupportsInstancing = true;
 bool GRHISupportsFirstInstance = false;
 bool GRHIRequiresEarlyBackBufferRenderTarget = true;
 bool GRHISupportsRHIThread = false;
 bool GRHISupportsParallelRHIExecute = false;
 bool GSupportsHDR32bppEncodeModeIntrinsic = false;
+bool GSupportsParallelOcclusionQueries = false;
 
+bool GRHISupportsMSAADepthSampleAccess = false;
 
 /** Whether we are profiling GPU hitches. */
 bool GTriggerGPUHitchProfile = false;
@@ -303,6 +353,7 @@ static FName NAME_SF_METAL_MRT(TEXT("SF_METAL_MRT"));
 static FName NAME_GLSL_310_ES_EXT(TEXT("GLSL_310_ES_EXT"));
 static FName NAME_SF_METAL_SM5(TEXT("SF_METAL_SM5"));
 static FName NAME_PC_VULKAN_ES2(TEXT("PC_VULKAN_ES2"));
+static FName NAME_SF_METAL_SM4(TEXT("SF_METAL_SM4"));
 
 FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 {
@@ -343,6 +394,8 @@ FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 		return NAME_SF_METAL;
 	case SP_METAL_MRT:
 		return NAME_SF_METAL_MRT;
+	case SP_METAL_SM4:
+		return NAME_SF_METAL_SM4;
 	case SP_METAL_SM5:
 		return NAME_SF_METAL_SM5;
 	case SP_OPENGL_ES31_EXT:
@@ -378,6 +431,7 @@ EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_GLSL_310_ES_EXT)	return SP_OPENGL_ES31_EXT;
 	if (ShaderFormat == NAME_SF_METAL_SM5)		return SP_METAL_SM5;
 	if (ShaderFormat == NAME_PC_VULKAN_ES2)		return SP_VULKAN_ES2;
+	if (ShaderFormat == NAME_SF_METAL_SM4)		return SP_METAL_SM4;
 	return SP_NumPlatforms;
 }
 

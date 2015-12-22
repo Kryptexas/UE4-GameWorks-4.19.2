@@ -2,6 +2,8 @@ Availability: Public
 Title:7. Animation Blueprint - Jog State
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:This section focuses on setting up the Jog States for our Character. 
+Version: 4.9
+SkillLevel:Advanced
 
 [VAR:Steps]
 [OBJECT:Navigation]

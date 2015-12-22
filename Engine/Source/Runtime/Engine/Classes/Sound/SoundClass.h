@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "SoundClass.generated.h"
@@ -182,7 +182,7 @@ public:
 
 protected:
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual FString GetDesc( void ) override;
 	virtual void BeginDestroy() override;
@@ -191,7 +191,7 @@ protected:
 	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
-	// End UObject interface.
+	//~ End UObject Interface.
 
 public:
 	/** 

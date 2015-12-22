@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /**
  * 
@@ -26,9 +26,9 @@ private_subobject:
 
 public:
 
-	// Begin AActor interface
+	//~ Begin AActor Interface
 	ENGINE_API virtual void PostActorCreated() override;
-	// End AActor interface.
+	//~ End AActor Interface.
 
 	/** Used to synchronize the DrawFrustumComponent with the SceneCaptureComponent2D settings. */
 	void UpdateDrawFrustum();

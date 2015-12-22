@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShadowDepthPixelShader.usf: Pixel shader for writing shadow depth.
@@ -6,6 +6,7 @@
 
 // needs to before Common.usf
 #define SHADOW_DEPTH_SHADER 1
+#define USE_STENCIL_LOD_DITHER	0
 
 #include "Common.usf"
 #include "Material.usf"
@@ -21,8 +22,8 @@
 // to increase AO contribution. The AO calculation works best with closed geometry and small-medium scale objects
 #define LPV_GV_BOOST				1
 
-//@todo-rco: Remove this when reenabling for OpenGL
-#if !COMPILER_GLSL
+//@todo-rco: Remove this when reenabling for OpenGL & Metal
+#if !COMPILER_GLSL && !COMPILER_METAL
 #if REFLECTIVE_SHADOW_MAP
 	#include "LPVWriteVplCommon.usf"
 
@@ -34,17 +35,16 @@
 #endif
 
 
-float3 GetMaterialBounceColor(FMaterialPixelParameters MaterialParameters)
+float3 GetMaterialBounceColor(FPixelMaterialInputs PixelMaterialInputs)
 {
-	half3 BaseColor = GetMaterialBaseColor(MaterialParameters);
-
+	half3 BaseColor = GetMaterialBaseColor(PixelMaterialInputs);
 	return BaseColor;
 }
 
 
 void Main( 
 	FShadowDepthVSToPS Inputs,
-	in float4 SvPosition : SV_Position,
+	in float4 SvPosition : SV_Position,		// after all interpolators
 	out float4 OutColor : SV_Target0
 #if REFLECTIVE_SHADOW_MAP
 	,out float4 OutReflectiveShadowMapDiffuse : SV_Target1
@@ -54,18 +54,23 @@ void Main(
 #endif
 	)
 {
+	ResolvedView = ResolveView();
+
 #if INTERPOLATE_VF_ATTRIBUTES
 	
-	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Inputs.FactoryInterpolants, float4(0,0,.00001f,1));
-
+	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Inputs.FactoryInterpolants, SvPosition);
+	FPixelMaterialInputs PixelMaterialInputs;
 	#if INTERPOLATE_POSITION
-		CalcMaterialParameters(MaterialParameters, SvPosition, 1, Inputs.PixelPosition);
+		{
+			float4 ScreenPosition = SvPositionToScreenPosition(SvPosition);
+			CalcMaterialParametersEx(MaterialParameters, PixelMaterialInputs, SvPosition, ScreenPosition, 1, SvPositionToResolvedTranslatedWorld(SvPosition), SvPosition.xyz);
+		}
 	#else
-		// Note: Using default values for PixelPosition to reduce interpolator cost
-		CalcMaterialParameters(MaterialParameters, SvPosition, 1, float4(0,0,.00001f,1));
+		CalcMaterialParameters(MaterialParameters, PixelMaterialInputs, SvPosition, 1);
 	#endif
+
 	// Evaluate the mask for masked materials
-	GetMaterialClippingShadowDepth(MaterialParameters);
+	GetMaterialClippingShadowDepth(MaterialParameters, PixelMaterialInputs);
 #else
 	ClipLODTransition(SvPosition.xy);
 #endif
@@ -85,24 +90,24 @@ void Main(
 #if REFLECTIVE_SHADOW_MAP
 	OutReflectiveShadowMapDiffuse = 0;
 	float3 normal = normalize( MaterialParameters.TangentToWorld[2] ); // Smooth normal
-	float3 flux = GetMaterialBounceColor(MaterialParameters);
+	float3 flux = GetMaterialBounceColor(PixelMaterialInputs);
 
-//@todo-rco: Remove this when reenabling for OpenGL
-#if !COMPILER_GLSL
+//@todo-rco: Remove this when reenabling for OpenGL & Metal
+#if !COMPILER_GLSL && !COMPILER_METAL
 #if MATERIAL_INJECT_EMISSIVE_INTO_LPV
-	float3 emissive = GetMaterialEmissive( MaterialParameters );
+	float3 emissive = GetMaterialEmissive(PixelMaterialInputs);
 
 	// Remove directionality from the light in the VPL.
 	normal = float3 (0.0f, 0.0f, 0.0f);
 #endif
 
 #if MATERIAL_INJECT_EMISSIVE_INTO_LPV || MATERIAL_BLOCK_GI
-	float opacity = GetMaterialOpacity( MaterialParameters );
+	float opacity = GetMaterialOpacity(PixelMaterialInputs);
 #endif
 
 #if SECONDARY_OCCLUSION || MATERIAL_INJECT_EMISSIVE_INTO_LPV
 	// Optimisation: only add to GV/VPL if the fragment is within the grid
-	float3 grid = WorldToGrid( MaterialParameters.WorldPosition.xyz );
+	float3 grid = WorldToGrid( MaterialParameters.AbsoluteWorldPosition.xyz );
 	float minGrid = min( grid.x, min(grid.y,grid.z ) );
 	float maxGrid = max( grid.x, max(grid.y,grid.z ) );
 
@@ -110,7 +115,7 @@ void Main(
 	if ( minGrid > -0.5f && maxGrid <= 32.5f ) // Account for 0.5 cell offset
 	{
 #if SECONDARY_OCCLUSION && (MATERIALBLENDING_MASKED || MATERIALBLENDING_SOLID) && !MATERIAL_BLOCK_GI
-		float3 GvInjectPosition = MaterialParameters.WorldPosition - normal * LpvWrite.GeometryVolumeInjectionBias;
+		float3 GvInjectPosition = MaterialParameters.AbsoluteWorldPosition - normal * LpvWrite.GeometryVolumeInjectionBias;
 #if LPV_GV_BOOST
 		if ( Primitive.LpvBiasMultiplier < 0.25 ) 
 		{
@@ -126,7 +131,7 @@ void Main(
 #endif
 
 #if MATERIAL_INJECT_EMISSIVE_INTO_LPV && !MATERIAL_BLOCK_GI
-		AddToVplList( MaterialParameters.WorldPosition, emissive * LpvWrite.EmissiveInjectionMultiplier, normal, true );
+		AddToVplList( MaterialParameters.AbsoluteWorldPosition, emissive * LpvWrite.EmissiveInjectionMultiplier, normal, true );
 #endif
 	}
 	else

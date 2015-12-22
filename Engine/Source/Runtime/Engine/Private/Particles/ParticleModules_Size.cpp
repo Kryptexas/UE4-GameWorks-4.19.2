@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleModules_Size.cpp: 
@@ -110,7 +110,7 @@ void UParticleModuleSize_Seeded::Spawn(FParticleEmitterInstance* Owner, int32 Of
 	SpawnEx(Owner, Offset, SpawnTime, (Payload != NULL) ? &(Payload->RandomStream) : NULL, ParticleBase);
 }
 
-uint32 UParticleModuleSize_Seeded::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleSize_Seeded::RequiredBytesPerInstance()
 {
 	return RandomSeedInfo.GetInstancePayloadSize();
 }
@@ -226,7 +226,7 @@ void UParticleModuleSizeMultiplyLife::Update(FParticleEmitterInstance* Owner, in
 	}
 	const FRawDistribution* FastDistribution = LifeMultiplier.GetFastRawDistribution();
 	FPlatformMisc::Prefetch(Owner->ParticleData, (Owner->ParticleIndices[0] * Owner->ParticleStride));
-	FPlatformMisc::Prefetch(Owner->ParticleData, (Owner->ParticleIndices[0] * Owner->ParticleStride) + CACHE_LINE_SIZE);
+	FPlatformMisc::Prefetch(Owner->ParticleData, (Owner->ParticleIndices[0] * Owner->ParticleStride) + PLATFORM_CACHE_LINE_SIZE);
 	if (MultiplyX && MultiplyY && MultiplyZ)
 	{
 		if (FastDistribution)
@@ -236,7 +236,7 @@ void UParticleModuleSizeMultiplyLife::Update(FParticleEmitterInstance* Owner, in
 			BEGIN_UPDATE_LOOP;
 				FastDistribution->GetValue3None(Particle.RelativeTime, &SizeScale.X);
 				FPlatformMisc::Prefetch(ParticleData, (ParticleIndices[i+1] * ParticleStride));
-				FPlatformMisc::Prefetch(ParticleData, (ParticleIndices[i+1] * ParticleStride) + CACHE_LINE_SIZE);
+				FPlatformMisc::Prefetch(ParticleData, (ParticleIndices[i+1] * ParticleStride) + PLATFORM_CACHE_LINE_SIZE);
 				Particle.Size.X *= SizeScale.X;
 				Particle.Size.Y *= SizeScale.Y;
 				Particle.Size.Z *= SizeScale.Z;
@@ -248,7 +248,7 @@ void UParticleModuleSizeMultiplyLife::Update(FParticleEmitterInstance* Owner, in
 			{
 				FVector SizeScale = LifeMultiplier.GetValue(Particle.RelativeTime, Owner->Component);
 				FPlatformMisc::Prefetch(ParticleData, (ParticleIndices[i+1] * ParticleStride));
-				FPlatformMisc::Prefetch(ParticleData, (ParticleIndices[i+1] * ParticleStride) + CACHE_LINE_SIZE);
+				FPlatformMisc::Prefetch(ParticleData, (ParticleIndices[i+1] * ParticleStride) + PLATFORM_CACHE_LINE_SIZE);
 				Particle.Size.X *= SizeScale.X;
 				Particle.Size.Y *= SizeScale.Y;
 				Particle.Size.Z *= SizeScale.Z;
@@ -269,7 +269,7 @@ void UParticleModuleSizeMultiplyLife::Update(FParticleEmitterInstance* Owner, in
 			{
 				FVector SizeScale = LifeMultiplier.GetValue(Particle.RelativeTime, Owner->Component);
 				FPlatformMisc::Prefetch(ParticleData, (ParticleIndices[i+1] * ParticleStride));
-				FPlatformMisc::Prefetch(ParticleData, (ParticleIndices[i+1] * ParticleStride) + CACHE_LINE_SIZE);
+				FPlatformMisc::Prefetch(ParticleData, (ParticleIndices[i+1] * ParticleStride) + PLATFORM_CACHE_LINE_SIZE);
 				Particle.Size[Index] *= SizeScale[Index];
 			}
 			END_UPDATE_LOOP;
@@ -280,7 +280,7 @@ void UParticleModuleSizeMultiplyLife::Update(FParticleEmitterInstance* Owner, in
 			{
 				FVector SizeScale = LifeMultiplier.GetValue(Particle.RelativeTime, Owner->Component);
 				FPlatformMisc::Prefetch(ParticleData, (ParticleIndices[i+1] * ParticleStride));
-				FPlatformMisc::Prefetch(ParticleData, (ParticleIndices[i+1] * ParticleStride) + CACHE_LINE_SIZE);
+				FPlatformMisc::Prefetch(ParticleData, (ParticleIndices[i+1] * ParticleStride) + PLATFORM_CACHE_LINE_SIZE);
 				if(MultiplyX)
 				{
 					Particle.Size.X *= SizeScale.X;

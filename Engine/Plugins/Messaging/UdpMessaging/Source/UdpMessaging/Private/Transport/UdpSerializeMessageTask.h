@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -19,7 +19,7 @@ public:
 	 * @param InMessageContext The context of the message to serialize.
 	 * @param InSerializedMessage Will hold the serialized message data.
 	 */
-	FUdpSerializeMessageTask( IMessageContextRef InMessageContext, FUdpSerializedMessageRef InSerializedMessage )
+	FUdpSerializeMessageTask(IMessageContextRef InMessageContext, FUdpSerializedMessageRef InSerializedMessage)
 		: MessageContext(InMessageContext)
 		, SerializedMessage(InSerializedMessage)
 	{ }
@@ -32,7 +32,7 @@ public:
 	 * @param CurrentThread The thread that this task is executing on.
 	 * @param MyCompletionGraphEvent The completion event.
 	 */
-	void DoTask( ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent );
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent);
 	
 	/**
 	 * Returns the name of the thread that this task should run on.

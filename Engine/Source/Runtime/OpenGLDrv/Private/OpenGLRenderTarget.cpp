@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLRenderTarget.cpp: OpenGL render target implementation.
@@ -477,8 +477,8 @@ void FOpenGLDynamicRHI::RHICopyToResolveTarget(FTextureRHIParamRef SourceTexture
 		
 		// For CPU readback resolve targets we should issue the resolve to the internal PBO immediately.
 		// This makes any subsequent locking of that texture much cheaper as it won't have to stall on a pixel pack op.
-		bool bLockableTarget = DestTextureRHI->GetTexture2D() && (DestTextureRHI->GetFlags() & TexCreate_CPUReadback) && !(DestTextureRHI->GetFlags() & (TexCreate_RenderTargetable|TexCreate_DepthStencilTargetable));
-		if(bTrueBlit && bLockableTarget && FOpenGL::SupportsPixelBuffers() && !ResolveParams.Rect.IsValid())
+		bool bLockableTarget = DestTextureRHI->GetTexture2D() && (DestTextureRHI->GetFlags() & TexCreate_CPUReadback) && !(DestTextureRHI->GetFlags() & (TexCreate_RenderTargetable|TexCreate_DepthStencilTargetable)) && !DestTextureRHI->IsMultisampled();
+		if(bLockableTarget && FOpenGL::SupportsPixelBuffers() && !ResolveParams.Rect.IsValid())
 		{
 			FOpenGLTexture2D* DestTex = (FOpenGLTexture2D*)DestTexture;
 			DestTex->Resolve(MipmapLevel, DestIndex);

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
 #include "PropertyHandle.h"
@@ -45,6 +45,7 @@ FKeyPropertyParams::FKeyPropertyParams(TArray<UObject*> InObjectsToKey, const IP
 {
 	ObjectsToKey = InObjectsToKey;
 	PropertyHandleToPropertyPath(InObjectsToKey[0]->GetClass(), InPropertyHandle, PropertyPath);
+	KeyParams.bCreateKeyOnlyWhenAutoKeying = true;
 }
 
 FString FPropertyChangedParams::GetPropertyPathString() const

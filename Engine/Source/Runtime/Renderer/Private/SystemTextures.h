@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SystemTextures.h: System textures definitions.
@@ -34,10 +34,12 @@ public:
 
 	// -----------
 
-	// used in case a light is not shadow casting
+	// float4(1,1,1,1) can be used in case a light is not shadow casting
 	TRefCountPtr<IPooledRenderTarget> WhiteDummy;
-	// use in additive postprocessing to avoid a shader combination
+	// float4(0,0,0,0) can be used in additive postprocessing to avoid a shader combination
 	TRefCountPtr<IPooledRenderTarget> BlackDummy;
+	// float4(0,0,0,1)
+	TRefCountPtr<IPooledRenderTarget> BlackAlphaOneDummy;
 	// used by the material expression Noise
 	TRefCountPtr<IPooledRenderTarget> PerlinNoiseGradient;
 	// used by the material expression Noise (faster version, should replace old version), todo: move out of SceneRenderTargets

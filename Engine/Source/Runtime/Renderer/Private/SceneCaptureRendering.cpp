@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	
@@ -96,7 +96,7 @@ static void UpdateSceneCaptureContent_RenderThread(FRHICommandListImmediate& RHI
 				TexCreate_None, 
 				TexCreate_RenderTargetable,
 				false));
-			GRenderTargetPool.FindFreeElement(Desc, FlippedPooledRenderTarget, TEXT("SceneCaptureFlipped"));
+			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, FlippedPooledRenderTarget, TEXT("SceneCaptureFlipped"));
 		}
 
 		// Helper class to allow setting render target
@@ -117,7 +117,7 @@ static void UpdateSceneCaptureContent_RenderThread(FRHICommandListImmediate& RHI
 		FViewInfo& View = SceneRenderer->Views[0];
 		FIntRect ViewRect = View.ViewRect;
 		FIntRect UnconstrainedViewRect = View.UnconstrainedViewRect;
-		SetRenderTarget(RHICmdList, Target->GetRenderTargetTexture(), NULL);
+		SetRenderTarget(RHICmdList, Target->GetRenderTargetTexture(), NULL, true);
 		RHICmdList.Clear(true, FLinearColor::Black, false, (float)ERHIZBuffer::FarPlane, false, 0, ViewRect);
 
 		// Render the scene normally
@@ -176,6 +176,7 @@ FSceneRenderer* FScene::CreateSceneRenderer( USceneCaptureComponent* SceneCaptur
 	ViewInitOptions.BackgroundColor = FLinearColor::Black;
 	ViewInitOptions.OverrideFarClippingPlaneDistance = MaxViewDistance;
 	ViewInitOptions.SceneViewStateInterface = SceneCaptureComponent->GetViewState();
+    ViewInitOptions.StereoPass = SceneCaptureComponent->CaptureStereoPass;
 
 	if (bCaptureSceneColour)
 	{

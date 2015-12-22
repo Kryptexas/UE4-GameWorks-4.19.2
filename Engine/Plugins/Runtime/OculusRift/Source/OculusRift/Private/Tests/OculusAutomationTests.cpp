@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "HMDPrivatePCH.h"
 #include "IOculusRiftPlugin.h"
@@ -229,7 +229,7 @@ namespace
 }
 
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FOculusAutomationTest_Performance, "Oculus.Performance", EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_Game | EAutomationTestFlags::ATF_NonNullRHI)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FOculusAutomationTest_Performance, "Oculus.Performance", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::NonNullRHI | EAutomationTestFlags::PerfFilter)
 
 bool FOculusAutomationTest_Performance::RunTest(const FString& Parameters)
 {

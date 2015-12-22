@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -67,7 +67,7 @@ public:
 	template<typename MessageType, typename HandlerType>
 	FMessageEndpointBuilder& Handling( HandlerType* Handler, typename TRawMessageHandler<MessageType, HandlerType>::FuncType HandlerFunc )
 	{
-		Handlers.Add(MakeShareable(new TRawMessageHandler<MessageType, HandlerType>(Handler, HandlerFunc)));
+		Handlers.Add(MakeShareable(new TRawMessageHandler<MessageType, HandlerType>(Handler, MoveTemp(HandlerFunc))));
 
 		return *this;
 	}
@@ -89,7 +89,7 @@ public:
 	template<typename MessageType>
 	FMessageEndpointBuilder& Handling( typename TFunctionMessageHandler<MessageType>::FuncType HandlerFunc )
 	{
-		Handlers.Add(MakeShareable(new TFunctionMessageHandler<MessageType>(HandlerFunc)));
+		Handlers.Add(MakeShareable(new TFunctionMessageHandler<MessageType>(MoveTemp(HandlerFunc))));
 
 		return *this;
 	}
@@ -165,7 +165,7 @@ public:
 	template<typename HandlerType>
 	FMessageEndpointBuilder& WithCatchall( HandlerType* Handler, typename TRawMessageCatchall<HandlerType>::FuncType HandlerFunc )
 	{
-		Handlers.Add(MakeShareable(new TRawMessageCatchall<HandlerType>(Handler, HandlerFunc)));
+		Handlers.Add(MakeShareable(new TRawMessageCatchall<HandlerType>(Handler, MoveTemp(HandlerFunc))));
 
 		return *this;
 	}
@@ -186,7 +186,7 @@ public:
 	 */
 	FMessageEndpointBuilder& WithCatchall( FFunctionMessageCatchall::FuncType HandlerFunc )
 	{
-		Handlers.Add(MakeShareable(new FFunctionMessageCatchall(HandlerFunc)));
+		Handlers.Add(MakeShareable(new FFunctionMessageCatchall(MoveTemp(HandlerFunc))));
 
 		return *this;
 	}

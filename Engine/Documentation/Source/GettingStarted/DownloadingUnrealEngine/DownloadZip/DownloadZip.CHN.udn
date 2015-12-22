@@ -1,8 +1,15 @@
-﻿INTSourceChangelist:0
-Availability:NoPublish
-Title:Downloading Unreal Engine As a Zip File
+﻿Availability:NoPublish
+Title:从GitHub下载虚幻引擎的压缩文件
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
-Description:Downloading the Unreal Engine source code as a Zip file.
+Description:从GitHub下载虚幻引擎源码的压缩文件。
+Prereq: GettingStarted/DownloadingUnrealEngine
+Related: Programming/Development/BuildingUnrealEngine
+Version: 4.8
+SkillLevel: Advanced
+
+如果您想要从GitHub下载源代码的压缩文件，请认真阅读本页面。
+
+%Globals:osselect_linux%
 
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
@@ -15,29 +22,30 @@ Description:Downloading the Unreal Engine source code as a Zip file.
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-	1.	**Navigate** to our GitHub page.
-	1.	**Click** the **Download ZIP** button (pictured below).
+	1.	浏览GitHub页面。
+	1.	**点击** **下载ZIP** 按钮。
 		![](DownloadZipButton.png)
 		[REGION:warning]
-		The built-in Windows zip utility marks downloaded zip file contents as unsafe to execute.  
-		Before decompressing the zip file:
-		1.	**Right-click** the zip file.
-		1.	**Click 'Properties...'**.
-		1.	**Select 'Unblock'**.
+		内置的Windows压缩功能将下载的zip文件内容标记为不安全执行内容。  
+		在解压缩zip文件前：
 
-		Third party zip utilities may not require the above mentioned steps prior to decompression.
+		1.	**右键点击** zip文件。
+		1.	**点击'属性...'** 。
+		1.	**选择'Unblock'（取消阻止）** 。
+
+		第三方的压缩程序可能不会在解压缩之前要求执行以上所提步骤。
 		[/REGION]
-	1.	**Decompress** 'UnrealEngine-(branch_name).zip' onto your hard disk.
-	1.	If you already haven't done so, **install** Visual Studio 2013. Although MFC libraries are included in Visual Studio's default installation settings, make sure that MFC libraries are included for ATL support.
+	1.	解压缩'UnrealEngine-(branch_name).zip'文件到您的硬盘。
+	1.	如果您还没有执行此项操作，请安装Visual Studio 2013。尽管MFC库已经被包含在Visual Studio的默认安装设置中，请您确认包含了MFC库，以供ATL支持的使用。
 		[REGION:note]
-		Developers build UE4 with all desktop editions of Visual Studio, including Microsoft's free version ([Visual Studio Community 2013](https://www.visualstudio.com/products/visual-studio-community-vs)).
+		开发者们可以使用Visual Studio的所有桌面版本，包括微软的免费版本来编译虚幻引擎4([Visual Studio社区2013](https://www.visualstudio.com/products/visual-studio-community-vs))。
 		[/REGION]
-	1.	**Open** your source folder in Explorer and **run Setup.bat**.
+	1.	打开您在浏览器中的源文件夹并运行 **Setup.bat** 。
 		[REGION:note]
-		Our Setup batch file downloads binary content for the engine, installs prerequesites, and sets up Unreal file associations. Downloading engine binaries may take some time because they are currently take up three to four gigabytes of memory. Subsequent checkouts take less time to download.
+		我们的设置批处理文件会为引擎下载二进制内容，安装必备软件，并设置虚幻文件的关联内容。 下载引擎的二进制文件可能会花费一些时间，因为当前它们会占据3-4G的硬盘空间。 之后的迁出下载所花的时间就要短得多了。
 		[/REGION]
 		[REGION:warning]
-		A warning from SmartScreen may appear in Windows 8. **Click "More Info"**, then **"Run Anyway"** to continue running our Setup batch file.
+		在Windows 8中可能会出现来自SmartScreen的一条警告信息。 **点击‘更多信息’** ，然后 **点击‘总是运行’** 来继续运行设置的批处理文件。
 		[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -53,14 +61,15 @@ Description:Downloading the Unreal Engine source code as a Zip file.
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-	1.	**Navigate** to our GitHub page.
-	1.	**Click** the **Download ZIP** button (pictured below).
+	1.	浏览GitHub页面。
+	1.	**点击** **下载ZIP** 按钮。
 		![](DownloadZipButton.png)
-	1.	**Decompress** 'UnrealEngine-(branch_name).zip' onto your hard disk.
-	1.	If you haven't already done so, **install** the latest version of [Xcode](https://itunes.apple.com/us/app/xcode/id497799835).
-	1.	**Open** your source folder in Finder and **run Setup.command**.
+	1.	解压缩'UnrealEngine-(branch_name).zip'文件到您的硬盘。
+	1.	请安装[Xcode](https://itunes.apple.com/us/app/xcode/id497799835)的最新版本。
+	1.	打开您在搜寻程序中的源文件夹并运行 **Setup.command** 。
 		[REGION:note]
-		**Close** the Terminal window after Setup.command downloads binary content for the engine, installs prequisites, and sets up Unreal file associations.
+		*	我们的设置批处理文件会为引擎下载二进制内容，安装必备软件，并设置虚幻文件的关联内容。 下载引擎的二进制文件可能会花费一些时间，因为当前它们会占据3-4G的硬盘空间。 之后的迁出下载所花的时间就要短得多了。  
+		*	在 **Setup.command** 下载引擎的二进制内容后关闭临时窗口，安装必备软件，并设置虚幻引擎的文件关联。
 		[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -76,14 +85,26 @@ Description:Downloading the Unreal Engine source code as a Zip file.
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-	1.	**Navigate** to our GitHub page.
-	1.	**Click** the **Download ZIP** button (pictured below).
+
+	[REGION:warning]
+	我们的开发者和支持团队当前使用Ubuntu的最新版本；因此，我们可能无法提供对其它Linux版本的支持（包括Ubuntu的其它版本）。
+	[/REGION]
+
+	1.	浏览GitHub页面。
+	1.	**点击** **下载ZIP** 按钮。
 		![](DownloadZipButton.png)
-	1.	**Decompress** 'UnrealEngine-(branch_name).zip' onto your hard disk.
-	1.	**Open** your source folder and **run Setup.sh** to **download** the engine's binary content.
+	1.	解压缩'UnrealEngine-(branch_name).zip'文件到您的硬盘。
+	1.	在根文件夹内，从终端运行 **Setup.sh** 以下载引擎的二进制内容。
+
+		![](RunSetupShellScript_Linux.png)
+
+		[REGION:note]
+		*	我们的设置shell脚本会下载引擎的二进制内容并安装必备软件。 下载引擎的二进制文件可能会花费一些时间，因为当前它们会占据3-4G的硬盘空间。 之后的迁出下载所花的时间就要短得多了。  
+		*	如果您没有在运行这个步骤后看到 ** \*\*SUCCESS\*\* ** 信息，请参照 **'BuildThirdParty.log'** 文件以获得更多信息。 **'BuildThirdParty.log'** 位于 `[UE4Root]/Engine/Build/BatchFiles/Linux` 目录中。
+		[/REGION]
 	[/PARAM]
 [/OBJECT]
 
-## Next Steps
+## 下一步
 
-Now that you've downloaded and set-up Unreal Engine, you're ready to [build the engine from source](Programming/Development/BuildingUnrealEngine).
+现在您已下载了并设置完成了虚幻引擎，您可以[从源码中编译引擎](Programming/Development/BuildingUnrealEngine)。

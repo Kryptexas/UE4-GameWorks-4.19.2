@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -45,8 +45,8 @@ private:
 	/** A list of all group names to choose from */
 	TArray<TSharedPtr<FString>> GroupsSource;
 
-	TWeakObjectPtr<UObject> ScalarParameterObject;
-	TSharedPtr<IPropertyHandle> DefaultValueHandle;
+	TArray<TWeakObjectPtr<UObject>> ScalarParameterObjects;
+	TArray<TSharedPtr<IPropertyHandle>> DefaultValueHandles;
 };
 
 /** 

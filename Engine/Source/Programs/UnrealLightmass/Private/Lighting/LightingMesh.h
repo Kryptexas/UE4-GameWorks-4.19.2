@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -175,6 +175,8 @@ struct FFullStaticLightingVertex : public FStaticLightingVertex
 		TriangleTangentY = TriangleNormal ^ TriangleTangentX;
 		checkSlow(TriangleTangentY.IsUnit3());
 	}
+
+	void ApplyVertexModifications(int32 ElementIndex, bool bUseNormalMapsForLighting, const class FStaticLightingMesh* Mesh);
 };
 
 /** The result of an intersection between a light ray and the scene. */
@@ -381,7 +383,8 @@ public:
 	{ return true; }
 
 	/** Returns the LOD of this instance. */
-	virtual int32 GetLODIndex() const { return 0; }
+	virtual uint32 GetLODIndices() const { return 0; }
+	virtual uint32 GetHLODRange() const { return 0; }
 
 	/** For debugging */
 	virtual void SetDebugMaterial(bool bUseDebugMaterial, FLinearColor Diffuse);

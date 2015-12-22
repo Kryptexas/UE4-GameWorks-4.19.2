@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -32,8 +32,13 @@ class GAMEPLAYABILITIES_API UAbilitySystemBlueprintLibrary : public UBlueprintFu
 	//		Attribute
 	// -------------------------------------------------------------------------------
 
+	/** Returns the value of Attribute from the ability system component belonging to Actor. */
 	UFUNCTION(BlueprintPure, Category = "Ability|Attribute")
 	static float GetFloatAttribute(const class AActor* Actor, FGameplayAttribute Attribute, bool& bSuccessfullyFoundAttribute);
+
+	/** Returns the value of Attribute from the ability system component AbilitySystem. */
+	UFUNCTION(BlueprintPure, Category = "Ability|Attribute")
+	static float GetFloatAttributeFromAbilitySystemComponent(const class UAbilitySystemComponent* AbilitySystem, FGameplayAttribute Attribute, bool& bSuccessfullyFoundAttribute);
 
 	// -------------------------------------------------------------------------------
 	//		TargetData
@@ -104,6 +109,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemBlueprintLibrary : public UBlueprintFu
 	// -------------------------------------------------------------------------------
 	//		GameplayEffectContext
 	// -------------------------------------------------------------------------------
+
+	UFUNCTION(BlueprintPure, Category = "Ability|EffectContext", Meta = (DisplayName = "IsValid"))
+	static bool EffectContextIsValid(FGameplayEffectContextHandle EffectContext);
 
 	UFUNCTION(BlueprintPure, Category = "Ability|EffectContext", Meta = (DisplayName = "IsInstigatorLocallyControlled"))
 	static bool EffectContextIsInstigatorLocallyControlled(FGameplayEffectContextHandle EffectContext);
@@ -222,10 +230,25 @@ class GAMEPLAYABILITIES_API UAbilitySystemBlueprintLibrary : public UBlueprintFu
 	static FGameplayEffectSpecHandle SetStackCountToMax(FGameplayEffectSpecHandle SpecHandle);
 
 	// -------------------------------------------------------------------------------
+	//		GameplayEffectSpec
+	// -------------------------------------------------------------------------------
+
+	/** Gets the magnitude of change for an attribute on an APPLIED GameplayEffectSpec. */
+	UFUNCTION(BlueprintCallable, Category = "Ability|GameplayEffect")
+	static float GetModifiedAttributeMagnitude(FGameplayEffectSpecHandle SpecHandle, FGameplayAttribute Attribute);
+
+	// -------------------------------------------------------------------------------
 	//		FActiveGameplayEffectHandle
 	// -------------------------------------------------------------------------------
 	
 	/** Returns current stack count of an active Gameplay Effect. Will return 0 if the GameplayEffect is no longer valid. */
 	UFUNCTION(BlueprintCallable, Category = "Ability|GameplayEffect")
 	static int32 GetActiveGameplayEffectStackCount(FActiveGameplayEffectHandle ActiveHandle);
+
+	/** Returns stack limit count of an active Gameplay Effect. Will return 0 if the GameplayEffect is no longer valid. */
+	UFUNCTION(BlueprintCallable, Category = "Ability|GameplayEffect")
+	static int32 GetActiveGameplayEffectStackLimitCount(FActiveGameplayEffectHandle ActiveHandle);
+
+	UFUNCTION(BlueprintPure, Category = "Ability|GameplayEffect", Meta = (DisplayName = "Get Active GameplayEffect Debug String "))
+	static FString GetActiveGameplayEffectDebugString(FActiveGameplayEffectHandle ActiveHandle);
 };

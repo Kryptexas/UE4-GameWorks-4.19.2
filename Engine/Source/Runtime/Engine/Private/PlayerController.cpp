@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Engine/Console.h"
@@ -69,6 +69,7 @@ APlayerController::APlayerController(const FObjectInitializer& ObjectInitializer
 	bIsUsingStreamingVolumes = true;
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
 	PrimaryActorTick.bTickEvenWhenPaused = true;
+	bAllowTickBeforeBeginPlay = true;
 	bShouldPerformFullTickWhenPaused = false;
 	LastRetryPlayerTime = 0.f;
 	DefaultMouseCursor = EMouseCursor::Default;
@@ -83,6 +84,7 @@ APlayerController::APlayerController(const FObjectInitializer& ObjectInitializer
 	bForceFeedbackEnabled = true;
 
 	bAutoManageActiveCameraTarget = true;
+	bHidePawnInCinematicMode = false;
 
 	bIsLocalPlayerController = false;
 
@@ -122,6 +124,22 @@ UNetConnection* APlayerController::GetNetConnection() const
 {
 	// A controller without a player has no "owner"
 	return (Player != NULL) ? NetConnection : NULL;
+}
+
+bool APlayerController::DestroyNetworkActorHandled()
+{
+	UNetConnection* C = Cast<UNetConnection>(Player);
+	if (C)
+	{
+		if (C->Channels[0] && C->State != USOCK_Closed)
+		{
+			C->bPendingDestroy = true;
+			C->Channels[0]->Close();
+		}
+		return true;
+	}
+
+	return false;
 }
 
 bool APlayerController::IsLocalController() const
@@ -894,7 +912,8 @@ void APlayerController::UpdateRotation( float DeltaTime )
 		PlayerCameraManager->ProcessViewRotation(DeltaTime, ViewRotation, DeltaRot);
 	}
 
-	if (!PlayerCameraManager || !PlayerCameraManager->bFollowHmdOrientation)
+	AActor* ViewTarget = GetViewTarget();
+	if (!ViewTarget || !ViewTarget->HasActiveCameraComponent())
 	{
 		if (IsLocalPlayerController() && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
 		{
@@ -1196,6 +1215,8 @@ void APlayerController::CleanupPlayerState()
 
 void APlayerController::OnActorChannelOpen(FInBunch& InBunch, UNetConnection* Connection)
 {
+	SetAsLocalPlayerController();
+
 	// Attempt to match the player controller to a local viewport (client side)
 	InBunch << NetPlayerIndex;
 	if (Connection->Driver != NULL && Connection == Connection->Driver->ServerConnection)
@@ -1222,6 +1243,11 @@ void APlayerController::OnActorChannelOpen(FInBunch& InBunch, UNetConnection* Co
 			}
 		}
 	}
+}
+
+bool APlayerController::UseShortConnectTimeout() const
+{
+	return bShortConnectTimeOut;
 }
 
 void APlayerController::OnSerializeNewActor(FOutBunch& OutBunch)
@@ -1304,9 +1330,13 @@ void APlayerController::ClientTeamMessage_Implementation( APlayerState* SenderPl
 	}
 
 	// since this is on the client, we can assume that if Player exists, it is a LocalPlayer
-	if( Player != NULL && CastChecked<ULocalPlayer>(Player)->ViewportClient->ViewportConsole )
+	if (Player != NULL)
 	{
-		CastChecked<ULocalPlayer>(Player)->ViewportClient->ViewportConsole->OutputText( SMod );
+		UGameViewportClient *ViewportClient = CastChecked<ULocalPlayer>(Player)->ViewportClient;
+		if ( ViewportClient && ViewportClient->ViewportConsole )
+		{
+			CastChecked<ULocalPlayer>(Player)->ViewportClient->ViewportConsole->OutputText(SMod);
+		}
 	}
 }
 
@@ -1713,7 +1743,7 @@ bool APlayerController::GetHitResultUnderCursor(ECollisionChannel TraceChannel, 
 {
 	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
 	bool bHit = false;
-	if (LocalPlayer)
+	if (LocalPlayer && LocalPlayer->ViewportClient)
 	{
 		FVector2D MousePosition;
 		if (LocalPlayer->ViewportClient->GetMousePosition(MousePosition))
@@ -1734,7 +1764,7 @@ bool APlayerController::GetHitResultUnderCursorByChannel(ETraceTypeQuery TraceCh
 {
 	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
 	bool bHit = false;
-	if (LocalPlayer)
+	if (LocalPlayer && LocalPlayer->ViewportClient)
 	{
 		FVector2D MousePosition;
 		if (LocalPlayer->ViewportClient->GetMousePosition(MousePosition))
@@ -1755,7 +1785,7 @@ bool APlayerController::GetHitResultUnderCursorForObjects(const TArray<TEnumAsBy
 {
 	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
 	bool bHit = false;
-	if (LocalPlayer)
+	if (LocalPlayer && LocalPlayer->ViewportClient)
 	{
 		FVector2D MousePosition;
 		if (LocalPlayer->ViewportClient->GetMousePosition(MousePosition))
@@ -2019,7 +2049,8 @@ bool APlayerController::InputKey(FKey Key, EInputEvent EventType, float AmountDe
 		if (bEnableClickEvents && Key == EKeys::LeftMouseButton)
 		{
 			FVector2D MousePosition;
-			if (CastChecked<ULocalPlayer>(Player)->ViewportClient->GetMousePosition(MousePosition))
+			UGameViewportClient* ViewportClient = CastChecked<ULocalPlayer>(Player)->ViewportClient;
+			if (ViewportClient && ViewportClient->GetMousePosition(MousePosition))
 			{
 				UPrimitiveComponent* ClickedPrimitive = NULL;
 				if (bEnableMouseOverEvents)
@@ -2196,12 +2227,10 @@ void APlayerController::SetupInputComponent()
 		InputComponent->RegisterComponent();
 	}
 
-	// Only do this if this actor is of a blueprint class
-	UBlueprintGeneratedClass* BGClass = Cast<UBlueprintGeneratedClass>(GetClass());
-	if(BGClass != NULL)
+	if (UInputDelegateBinding::SupportsInputDelegate(GetClass()))
 	{
 		InputComponent->bBlockInput = bBlockInput;
-		UInputDelegateBinding::BindInputDelegates(BGClass, InputComponent);
+		UInputDelegateBinding::BindInputDelegates(GetClass(), InputComponent);
 	}
 }
 
@@ -2297,8 +2326,16 @@ void APlayerController::PostProcessInput(const float DeltaTime, const bool bGame
 
 void APlayerController::ResetIgnoreInputFlags()
 {
-	IgnoreMoveInput = GetDefault<APlayerController>()->IgnoreMoveInput;
-	IgnoreLookInput = GetDefault<APlayerController>()->IgnoreLookInput;
+	// The movement locks can be set in cinematic mode, but if a restart occurs, we don't want them to be reset.
+	if (!bCinemaDisableInputMove)
+	{
+		IgnoreMoveInput = GetDefault<APlayerController>()->IgnoreMoveInput;
+	}
+
+	if (!bCinemaDisableInputLook)
+	{
+		IgnoreLookInput = GetDefault<APlayerController>()->IgnoreLookInput;
+	}
 }
 
 void APlayerController::SetCinematicMode( bool bInCinematicMode, bool bAffectsMovement, bool bAffectsTurning)
@@ -2753,24 +2790,21 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayI
 {
 	Super::DisplayDebug(Canvas, DebugDisplay, YL, YPos);
 
-	Canvas->SetDrawColor(255,255,0);
-	UFont* RenderFont = GEngine->GetSmallFont();
-	YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT("STATE %s"), *GetStateName().ToString()), 4.0f, YPos );
-	YPos += YL;
+	FDisplayDebugManager DisplayDebugManager = Canvas->DisplayDebugManager;
+	DisplayDebugManager.SetDrawColor(FColor(255, 255, 0));
+	DisplayDebugManager.DrawString(FString::Printf(TEXT("STATE %s"), *GetStateName().ToString()));
 
 	if (DebugDisplay.IsDisplayOn(NAME_Camera))
 	{
 		if (PlayerCameraManager != NULL)
 		{
-			YL = Canvas->DrawText(RenderFont, "<<<< CAMERA >>>>", 4.0f, YPos );
-			YPos += YL;
-			PlayerCameraManager->DisplayDebug( Canvas, DebugDisplay, YL, YPos );
+			DisplayDebugManager.DrawString(FString(TEXT("<<<< CAMERA >>>>")));
+			PlayerCameraManager->DisplayDebug(Canvas, DebugDisplay, YL, YPos);
 		}
 		else
 		{
-			Canvas->SetDrawColor(255,0,0);
-			YL = Canvas->DrawText(RenderFont, "<<<< NO CAMERA >>>>", 4.0f, YPos );
-			YPos += YL;
+			DisplayDebugManager.SetDrawColor(FColor::Red);
+			DisplayDebugManager.DrawString(FString(TEXT("<<<< NO CAMERA >>>>")));
 		}
 	}
 	if ( DebugDisplay.IsDisplayOn(NAME_Input) )
@@ -2778,23 +2812,21 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayI
 		TArray<UInputComponent*> InputStack;
 		BuildInputStack(InputStack);
 
-		Canvas->SetDrawColor(255,255,255);
-		YL = Canvas->DrawText(RenderFont, TEXT("<<<< INPUT STACK >>>"), 4.0f, YPos);
-		YPos += YL;
+		DisplayDebugManager.SetDrawColor(FColor::White);
+		DisplayDebugManager.DrawString(FString(TEXT("<<<< INPUT STACK >>>")));
 
 		for(int32 i=InputStack.Num() - 1; i >= 0; --i)
 		{
 			AActor* Owner = InputStack[i]->GetOwner();
-			Canvas->SetDrawColor(255,255,255);
+			DisplayDebugManager.SetDrawColor(FColor::White);
 			if (Owner)
 			{
-				YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT(" %s.%s"), *Owner->GetName(), *InputStack[i]->GetName()), 4.0f, YPos);
+				DisplayDebugManager.DrawString(FString::Printf(TEXT(" %s.%s"), *Owner->GetName(), *InputStack[i]->GetName()));
 			}
 			else
 			{
-				YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT(" %s"), *InputStack[i]->GetName()), 4.0f, YPos);
+				DisplayDebugManager.DrawString(FString::Printf(TEXT(" %s"), *InputStack[i]->GetName()));
 			}
-			YPos += YL;
 		}
 
 		if (PlayerInput)
@@ -2803,28 +2835,27 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayI
 		}
 		else
 		{
-			Canvas->SetDrawColor(255,0,0);
-			YL = Canvas->DrawText(RenderFont, "NO INPUT", 4.0f, YPos);
-			YPos += YL;
+			DisplayDebugManager.SetDrawColor(FColor::Red);
+			DisplayDebugManager.DrawString(FString(TEXT("NO INPUT")));
 		}
 	}
 	if ( DebugDisplay.IsDisplayOn("ForceFeedback"))
 	{
-		Canvas->SetDrawColor(255, 255, 255);
-		YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT("Force Feedback - Enabled: %s LL: %.2f LS: %.2f RL: %.2f RS: %.2f"), (bForceFeedbackEnabled ? TEXT("true") : TEXT("false")), ForceFeedbackValues.LeftLarge, ForceFeedbackValues.LeftSmall, ForceFeedbackValues.RightLarge, ForceFeedbackValues.RightSmall), 4.0f, YPos);
-		YPos += YL;
+		DisplayDebugManager.SetDrawColor(FColor::White);
+		DisplayDebugManager.DrawString(FString::Printf(TEXT("Force Feedback - Enabled: %s LL: %.2f LS: %.2f RL: %.2f RS: %.2f"), (bForceFeedbackEnabled ? TEXT("true") : TEXT("false")), ForceFeedbackValues.LeftLarge, ForceFeedbackValues.LeftSmall, ForceFeedbackValues.RightLarge, ForceFeedbackValues.RightSmall));
 	}
 }
 
 void APlayerController::SetCinematicMode(bool bInCinematicMode, bool bHidePlayer, bool bAffectsHUD, bool bAffectsMovement, bool bAffectsTurning)
 {
 	bCinematicMode = bInCinematicMode;
+	bHidePawnInCinematicMode = bCinematicMode && bHidePlayer;
 
 	// If we have a pawn we need to determine if we should show/hide the player
 	if (GetPawn() != NULL)
 	{
 		// Only hide the pawn if in cinematic mode and we want to
-		if (bCinematicMode && bHidePlayer)
+		if (bCinematicMode && bHidePawnInCinematicMode)
 		{
 			GetPawn()->SetActorHiddenInGame(true);
 		}
@@ -2874,7 +2905,12 @@ void APlayerController::LevelStreamingStatusChanged(ULevelStreaming* LevelObject
 void APlayerController::ClientPrepareMapChange_Implementation(FName LevelName, bool bFirst, bool bLast)
 {
 	// Only call on the first local player controller to handle it being called on multiple PCs for splitscreen.
-	APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+	if (GetWorld()->GetGameInstance() == nullptr)
+	{
+		return;
+	}
+
+	APlayerController* PlayerController = GetWorld()->GetGameInstance()->GetFirstLocalPlayerController();
 	if( PlayerController != this )
 	{
 		return;
@@ -3110,7 +3146,7 @@ void APlayerController::ConsoleKey(FKey Key)
 #if !UE_BUILD_SHIPPING
 	if (ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player))
 	{
-		if (LocalPlayer->ViewportClient->ViewportConsole)
+		if (LocalPlayer->ViewportClient && LocalPlayer->ViewportClient->ViewportConsole)
 		{
 			LocalPlayer->ViewportClient->ViewportConsole->InputKey(0, Key, IE_Pressed);
 		}
@@ -3122,7 +3158,7 @@ void APlayerController::SendToConsole(const FString& Command)
 #if !UE_BUILD_SHIPPING
 	if (ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player))
 	{
-		if (LocalPlayer->ViewportClient->ViewportConsole)
+		if (LocalPlayer->ViewportClient && LocalPlayer->ViewportClient->ViewportConsole)
 		{
 			LocalPlayer->ViewportClient->ViewportConsole->ConsoleCommand(Command);
 		}
@@ -3202,7 +3238,7 @@ APlayerState* APlayerController::GetSplitscreenPlayerByIndex(int32 PlayerIndex) 
 			UNetConnection* RemoteConnection = Cast<UNetConnection>(Player);
 			if ( LP != NULL )
 			{
-				const TArray<ULocalPlayer*>& GamePlayers = LP->ViewportClient->GetOuterUEngine()->GetGamePlayers(GetWorld());
+				const TArray<ULocalPlayer*>& GamePlayers = LP->GetOuterUEngine()->GetGamePlayers(GetWorld());
 				// this PC is a local player
 				if ( PlayerIndex >= 0 && PlayerIndex < GamePlayers.Num() )
 				{
@@ -3297,7 +3333,7 @@ int32 APlayerController::GetSplitscreenPlayerCount() const
 			UNetConnection* RemoteConnection = Cast<UNetConnection>(Player);
 			if ( LP != NULL )
 			{
-				Result = LP->ViewportClient->GetOuterUEngine()->GetNumGamePlayers(GetWorld());
+				Result = LP->GetOuterUEngine()->GetNumGamePlayers(GetWorld());
 			}
 			else if ( RemoteConnection != NULL )
 			{
@@ -3590,14 +3626,13 @@ void APlayerController::ProcessForceFeedbackAndHaptics(const float DeltaTime, co
 
 	if (FSlateApplication::IsInitialized())
 	{
+		const int32 ControllerId = CastChecked<ULocalPlayer>(Player)->GetControllerId();
+
 		IInputInterface* InputInterface = FSlateApplication::Get().GetInputInterface();
 		if (InputInterface)
 		{
-			const int32 ControllerId = CastChecked<ULocalPlayer>(Player)->GetControllerId();
-
-			// Force Feedback Update
 			InputInterface->SetForceFeedbackChannelValues(ControllerId, (bForceFeedbackEnabled ? ForceFeedbackValues : FForceFeedbackValues()));
-
+			
 			// Haptic Updates
 			if (bLeftHapticsNeedUpdate)
 			{
@@ -3706,6 +3741,12 @@ void APlayerController::SetPawn(APawn* InPawn)
 	}
 
 	Super::SetPawn(InPawn);
+
+	// If we have a pawn we need to determine if we should show/hide the player for cinematic mode
+	if (GetPawn() && bCinematicMode && bHidePawnInCinematicMode)
+	{
+		GetPawn()->SetActorHiddenInGame(true);
+	}
 }
 
 
@@ -3713,8 +3754,9 @@ void APlayerController::SetPlayer( UPlayer* InPlayer )
 {
 	check(InPlayer!=NULL);
 
-	// Detach old player.
-	if (InPlayer->PlayerController)
+	const bool bIsSameWorld = InPlayer->PlayerController && (InPlayer->PlayerController->GetWorld() == GetWorld());
+	// Detach old player if same world.
+	if (bIsSameWorld)
 	{
 		InPlayer->PlayerController->Player = NULL;
 	}
@@ -3777,7 +3819,7 @@ void APlayerController::TickPlayerInput(const float DeltaSeconds, const bool bGa
 			UGameViewportClient* ViewportClient = LocalPlayer->ViewportClient;
 
 			// Only send mouse hit events if we're directly over the viewport.
-			if ( ViewportClient->GetGameViewportWidget().IsValid() && ViewportClient->GetGameViewportWidget()->IsDirectlyHovered() )
+			if ( ViewportClient && ViewportClient->GetGameViewportWidget().IsValid() && ViewportClient->GetGameViewportWidget()->IsDirectlyHovered() )
 			{
 				if ( LocalPlayer->ViewportClient->GetMousePosition(MousePosition) )
 				{
@@ -4335,7 +4377,7 @@ bool APlayerController::GetMousePosition(float& LocationX, float& LocationY) con
 	bool bGotMousePosition = false;
 	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
 
-	if (LocalPlayer)
+	if (LocalPlayer && LocalPlayer->ViewportClient)
 	{
 		FVector2D MousePosition;
 		

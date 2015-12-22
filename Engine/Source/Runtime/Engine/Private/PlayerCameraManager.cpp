@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
@@ -14,6 +14,8 @@
 #include "GameFramework/PlayerState.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPlayerCameraManager, Log, All);
+
+DECLARE_CYCLE_STAT(TEXT("ServerUpdateCamera"), STAT_ServerUpdateCamera, STATGROUP_Game);
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -40,8 +42,6 @@ APlayerCameraManager::APlayerCameraManager(const FObjectInitializer& ObjectIniti
 	bUseClientSideCameraUpdates = true;
 	CameraStyle = NAME_Default;
 	bCanBeDamaged = false;
-	
-	bFollowHmdOrientation = false;
 
 	// create dummy transform component
 	TransformComponent = CreateDefaultSubobject<USceneComponent>(TEXT("TransformComponent0"));
@@ -573,14 +573,6 @@ void APlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float DeltaTime
 		ApplyCameraModifiers(DeltaTime, OutVT.POV);
 	}
 
-	if (bFollowHmdOrientation)
-	{
-		if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
-		{
-			GEngine->HMDDevice->UpdatePlayerCameraRotation(this, OutVT.POV);
-		}
-	}
-
 	// Synchronize the actor with the view target results
 	SetActorLocationAndRotation(OutVT.POV.Location, OutVT.POV.Rotation, false);
 
@@ -883,6 +875,8 @@ void APlayerCameraManager::UpdateCamera(float DeltaTime)
 
 		if (GetNetMode() == NM_Client && bShouldSendClientSideCameraUpdate)
 		{
+			SCOPE_CYCLE_COUNTER(STAT_ServerUpdateCamera);
+
 			// compress the rotation down to 4 bytes
 			int32 const ShortYaw = FRotator::CompressAxisToShort(CameraCache.POV.Rotation.Yaw);
 			int32 const ShortPitch = FRotator::CompressAxisToShort(CameraCache.POV.Rotation.Pitch);
@@ -1085,18 +1079,11 @@ void APlayerCameraManager::LimitViewYaw(FRotator& ViewRotation, float InViewYawM
 
 void APlayerCameraManager::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
-	Canvas->SetDrawColor(255,255,255);
-
-	UFont* RenderFont = GEngine->GetSmallFont();
-	YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT("   Camera Style:%s main ViewTarget:%s"), *CameraStyle.ToString(), *ViewTarget.Target->GetName()), 4.0f, YPos );
-	YPos += YL;
-
-	//@TODO: Print out more information
-	YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT("   CamLoc:%s CamRot:%s FOV:%f"), *CameraCache.POV.Location.ToCompactString(), *CameraCache.POV.Rotation.ToCompactString(), CameraCache.POV.FOV), 4.0f, YPos );
-	YPos += YL;
-
-	YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT("   AspectRatio: %1.3f"), CameraCache.POV.AspectRatio), 4.0f, YPos );
-	YPos += YL;
+	FDisplayDebugManager& DisplayDebugManager = Canvas->DisplayDebugManager;
+	DisplayDebugManager.SetDrawColor(FColor(255, 255, 255));
+	DisplayDebugManager.DrawString(FString::Printf(TEXT("   Camera Style:%s main ViewTarget:%s"), *CameraStyle.ToString(), *ViewTarget.Target->GetName()));
+	DisplayDebugManager.DrawString(FString::Printf(TEXT("   CamLoc:%s CamRot:%s FOV:%f"), *CameraCache.POV.Location.ToCompactString(), *CameraCache.POV.Rotation.ToCompactString(), CameraCache.POV.FOV));
+	DisplayDebugManager.DrawString(FString::Printf(TEXT("   AspectRatio: %1.3f"), CameraCache.POV.AspectRatio));
 }
 
 void APlayerCameraManager::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
@@ -1241,7 +1228,7 @@ float APlayerCameraManager::CalcRadialShakeScale(APlayerCameraManager* Camera, F
 	else
 	{
 		// ignore OuterRadius and do a cliff falloff at InnerRadius
-		return ((Epicenter - POVLoc).Size() < InnerRadius) ? 1.f : 0.f;
+		return ((Epicenter - POVLoc).SizeSquared() < FMath::Square(InnerRadius)) ? 1.f : 0.f;
 	}
 }
 
