@@ -337,10 +337,10 @@ const FAnimationTransitionBetweenStates& FAnimNode_StateMachine::GetTransitionIn
 void FAnimNode_StateMachine::Update(const FAnimationUpdateContext& Context)
 {
 	// If we just became relevant and haven't been initialized yet, then reinitialize state machine.
+	bool bShouldReinitialize = false;
 	if (!bFirstUpdate && (UpdateCounter.Get() != INDEX_NONE) && !UpdateCounter.WasSynchronizedInTheLastFrame(Context.AnimInstanceProxy->GetUpdateCounter()))
 	{
-		FAnimationInitializeContext InitializationContext(Context.AnimInstanceProxy);
-		this->Initialize(InitializationContext);
+		bShouldReinitialize = true;
 	}
 	UpdateCounter.SynchronizeWith(Context.AnimInstanceProxy->GetUpdateCounter());
 
@@ -501,6 +501,12 @@ void FAnimNode_StateMachine::Update(const FAnimationUpdateContext& Context)
 	// Update the only active state if there are no transitions still in flight
 	if (ActiveTransitionArray.Num() == 0 && !IsAConduitState(CurrentState) && !StatesUpdated.Contains(CurrentState))
 	{
+		if (bShouldReinitialize)
+		{
+			FAnimationInitializeContext InitializationContext(Context.AnimInstanceProxy);
+			StatePoseLinks[CurrentState].Initialize(InitializationContext);
+		}
+
 		StatePoseLinks[CurrentState].Update(Context);
 	}
 
