@@ -513,11 +513,6 @@ namespace BlueprintSearchMetaDataHelpers
 
 		FORCEINLINE virtual const FString& GetIdentifier() const override
 		{
-			// The identifier from Json is a Hex value that must be looked up in the LookupTable to find the FText it represents
-			if(const FText* LookupText = LookupTable.Find(FCString::Atoi(*this->Identifier)))
-			{
-				return LookupText->ToString();
-			}
 			return this->Identifier;
 		}
 
