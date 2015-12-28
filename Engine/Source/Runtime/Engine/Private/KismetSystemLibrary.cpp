@@ -767,6 +767,18 @@ void UKismetSystemLibrary::SetClassPropertyByName(UObject* Object, FName Propert
 	}
 }
 
+void UKismetSystemLibrary::SetInterfacePropertyByName(UObject* Object, FName PropertyName, const FScriptInterface& Value)
+{
+	if (Object)
+	{
+		UInterfaceProperty* InterfaceProp = FindField<UInterfaceProperty>(Object->GetClass(), PropertyName);
+		if (InterfaceProp != NULL && Value.GetObject()->GetClass()->ImplementsInterface(InterfaceProp->InterfaceClass)) // check it's the right type
+		{
+			InterfaceProp->SetPropertyValue_InContainer(Object, Value);
+		}
+	}
+}
+
 void UKismetSystemLibrary::SetStringPropertyByName(UObject* Object, FName PropertyName, const FString& Value)
 {
 	if(Object != NULL)

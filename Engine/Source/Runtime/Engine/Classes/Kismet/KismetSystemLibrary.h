@@ -555,9 +555,13 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true"))
 	static void SetObjectPropertyByName(UObject* Object, FName PropertyName, UObject* Value);
 
-	/** Set an OBJECT property by name */
+	/** Set a CLASS property by name */
 	UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true"))
 	static void SetClassPropertyByName(UObject* Object, FName PropertyName, TSubclassOf<UObject> Value);
+
+	/** Set an INTERFACE property by name */
+	UFUNCTION(BlueprintCallable, Category = "Collision", meta = (BlueprintInternalUseOnly = "true"))
+	static void SetInterfacePropertyByName(UObject* Object, FName PropertyName, const FScriptInterface& Value);
 
 	/** Set a NAME property by name */
 	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true", AutoCreateRefTerm = "Value" ))
