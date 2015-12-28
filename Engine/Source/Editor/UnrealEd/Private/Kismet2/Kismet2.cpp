@@ -1211,7 +1211,9 @@ void FKismetEditorUtilities::AddComponentsToBlueprint(UBlueprint* Blueprint, con
 			}
 
 			USCS_Node* NewSCSNode = TargetSCS->CreateNode(ActorComponent->GetClass(), ActorComponent->GetFName());
-			UEditorEngine::CopyPropertiesForUnrelatedObjects(ActorComponent, NewSCSNode->ComponentTemplate);
+			UEditorEngine::FCopyPropertiesForUnrelatedObjectsParams Params;
+			Params.bDoDelta = false; // We need a deep copy of parameters here so the CDO values get copied as well
+			UEditorEngine::CopyPropertiesForUnrelatedObjects(ActorComponent, NewSCSNode->ComponentTemplate, Params);
 
 			// Clear the instance component flag
 			NewSCSNode->ComponentTemplate->CreationMethod = EComponentCreationMethod::Native;
