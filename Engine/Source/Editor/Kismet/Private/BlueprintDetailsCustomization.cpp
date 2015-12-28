@@ -2363,6 +2363,8 @@ void FBlueprintGraphArgumentLayout::OnRefCheckStateChanged(ECheckBoxState InStat
 {
 	FEdGraphPinType PinType = OnGetPinInfo();
 	PinType.bIsReference = (InState == ECheckBoxState::Checked)? true : false;
+	// Note: Array types are implicitly passed by reference. For custom event nodes, the reference flag is essentially
+	//  treated as being redundant on array inputs, but we also need to implicitly set the 'const' flag to avoid a compiler note.
 	PinType.bIsConst = (PinType.bIsArray || PinType.bIsReference) && TargetNode && TargetNode->IsA<UK2Node_CustomEvent>();
 	PinInfoChanged(PinType);
 }
@@ -2392,6 +2394,9 @@ void FBlueprintGraphArgumentLayout::PinInfoChanged(const FEdGraphPinType& PinTyp
 					if (UDPinPtr)
 					{
 						(*UDPinPtr)->PinType = PinType;
+
+						// Array types are implicitly passed by reference. For custom event nodes, since they are inputs, also implicitly treat them as 'const' so that they don't result in a compiler note.
+						(*UDPinPtr)->PinType.bIsConst = PinType.bIsArray && Node && Node->IsA<UK2Node_CustomEvent>();
 					}
 					GraphActionDetailsPinned->OnParamsChanged(Node);
 				}
