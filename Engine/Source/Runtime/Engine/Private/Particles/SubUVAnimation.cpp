@@ -2,7 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "Particles/SubUVAnimation.h"
-#include "ConvexHull2D.h"
+#include "ConvexHull2d.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "ParticleHelper.h"
 #include "DerivedDataCacheInterface.h"
