@@ -501,6 +501,12 @@ void UActorComponent::PostEditUndo()
 	// so they can leave an EditReregisterContexts entry around if they are deleted by an undo action.
 	if( IsPendingKill() )
 	{
+		// For the redo case, ensure that we're no longer in the OwnedComponents array.
+		if (AActor* Owner = GetOwner())
+		{
+			Owner->RemoveOwnedComponent(this);
+		}
+
 		// The reregister context won't bother attaching components that are 'pending kill'. 
 		FComponentReregisterContext* ReregisterContext = nullptr;
 		if (EditReregisterContexts.RemoveAndCopyValue(this, ReregisterContext))
