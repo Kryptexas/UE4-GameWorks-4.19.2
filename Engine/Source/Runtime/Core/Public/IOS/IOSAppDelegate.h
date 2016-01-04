@@ -83,9 +83,6 @@ UITextFieldDelegate>
 @property (retain) NSTimer* CommandLineParseTimer;
 @property (atomic) bool bCommandLineReady;
 
-/** True if we need to reset the idle timer */
-@property (readonly) bool bResetIdleTimer;
-
 /** initial launch options */
 @property(retain) NSDictionary* launchOptions;
 
@@ -94,6 +91,7 @@ UITextFieldDelegate>
  */
 + (IOSAppDelegate*)GetDelegate;
 
+-(void)EnableIdleTimer:(bool)bEnable;
 
 -(void) ParseCommandLineOverrides;
 

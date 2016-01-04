@@ -80,7 +80,6 @@ void InstallSignalHandlers()
 @synthesize bDeviceInPortraitMode;
 @synthesize bEngineInit;
 @synthesize OSVersion;
-@synthesize bResetIdleTimer;
 
 @synthesize Window;
 @synthesize IOSView;
@@ -111,12 +110,10 @@ void InstallSignalHandlers()
 	//}
 
 	// check to see if we are using the network file system, if so, disable the idle timer
-	bResetIdleTimer = false;
 	FString HostIP;
 	if (FParse::Value(FCommandLine::Get(), TEXT("-FileHostIP="), HostIP))
 	{
-		bResetIdleTimer = true;
-		[[UIApplication sharedApplication] setIdleTimerDisabled: YES];
+		[UIApplication sharedApplication].idleTimerDisabled = YES;
 	}
 }
 
@@ -167,11 +164,7 @@ void InstallSignalHandlers()
         [FIOSAsyncTask ProcessAsyncTasks];
 	}
 
-	if (bResetIdleTimer)
-	{
-		[[UIApplication sharedApplication] setIdleTimerDisabled: NO];
-		bResetIdleTimer = false;
-	}
+	[UIApplication sharedApplication].idleTimerDisabled = NO;
 
 	[AutoreleasePool release];
 	FAppEntry::Shutdown();
@@ -191,7 +184,13 @@ void InstallSignalHandlers()
     }
 }
 
-- (void)NoUrlCommandLine
+-(void)EnableIdleTimer:(bool)bEnabled
+{
+	[UIApplication sharedApplication].idleTimerDisabled = NO;
+	[UIApplication sharedApplication].idleTimerDisabled = (bEnabled ? NO : YES);
+}
+
+-(void)NoUrlCommandLine
 {
 	//Since it is non-repeating, the timer should kill itself.
 	self.bCommandLineReady = true;
