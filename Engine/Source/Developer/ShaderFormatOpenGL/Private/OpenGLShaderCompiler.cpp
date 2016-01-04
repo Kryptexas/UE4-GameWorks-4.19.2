@@ -1163,17 +1163,6 @@ static FString CreateCrossCompilerBatchFile( const FString& ShaderFile, const FS
 }
 
 /**
- * Strip out instanced stereo support.
- * This causes the shaders to fall back to directly referencing View.
- * @param ShaderSource - Preprocessed shader source
- */
-static void StripInstancedStereo(FString& ShaderSource)
-{
-	ShaderSource.ReplaceInline(TEXT("ResolvedView = ResolveView();"), TEXT(""));
-	ShaderSource.ReplaceInline(TEXT("ResolvedView"), TEXT("View"));
-}
-
-/**
  * Compile a shader for OpenGL on Windows.
  * @param Input - The input shader code and environment.
  * @param Output - Contains shader compilation results upon return.

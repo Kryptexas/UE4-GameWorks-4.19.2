@@ -2957,6 +2957,7 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 					BatchElement.NumPrimitives = MAX_PARTICLES_PER_INSTANCE * 2;
 					BatchElement.NumInstances = ParticleCount / MAX_PARTICLES_PER_INSTANCE;
 					BatchElement.FirstIndex = 0;
+					BatchElement.bIsInstancedMesh = true;
 					Mesh.VertexFactory = &VertexFactory;
 					Mesh.LCI = NULL;
 					if ( bUseLocalSpace )

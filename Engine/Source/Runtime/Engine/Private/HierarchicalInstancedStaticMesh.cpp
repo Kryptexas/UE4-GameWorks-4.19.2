@@ -1111,6 +1111,7 @@ void FHierarchicalStaticMeshSceneProxy::FillDynamicMeshElements(FMeshElementColl
 					BatchElement0.MinScreenSize = 0.0;
 					BatchElement0.InstancedLODIndex = LODIndex;
 					BatchElement0.InstancedLODRange = bDitherLODEnabled ? 1 : 0;
+					BatchElement0.bIsInstancedMesh = true;
 					MeshElement.bCanApplyViewModeOverrides = true;
 					MeshElement.bUseSelectionOutline = ElementParams.BatchRenderSelection[SelectionGroupIndex];
 					MeshElement.bUseWireframeSelectionColoring = ElementParams.BatchRenderSelection[SelectionGroupIndex];

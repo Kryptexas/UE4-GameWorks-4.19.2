@@ -829,6 +829,6 @@ void VertexFactoryUnpackInterpolants(FVertexFactoryInterpolantsVSToPS Interpolan
 #if INSTANCED_STEREO
 uint VertexFactoryGetEyeIndex(uint InstanceId)
 {
-	return 0;
+	return InstanceId & 1;
 }
 #endif

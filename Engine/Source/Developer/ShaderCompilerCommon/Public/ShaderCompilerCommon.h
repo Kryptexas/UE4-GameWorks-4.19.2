@@ -62,11 +62,16 @@ extern SHADERCOMPILERCOMMON_API int16 GetNumUniformBuffersUsed(const FShaderComp
 //		[...]UniformBuffer_Member[...]
 //		}
 //
-// If instanced stereo is not enabled, replace ResolvedView with View.
 extern SHADERCOMPILERCOMMON_API bool RemoveUniformBuffersFromSource(FString& SourceCode);
 extern SHADERCOMPILERCOMMON_API bool RemoveUnusedOutputs(FString& InOutSourceCode, const TArray<FString>& InUsedOutputs, FString& InOutEntryPoint, TArray<FString>& OutErrors);
 
 extern SHADERCOMPILERCOMMON_API bool RemoveUnusedInputs(FString& InOutSourceCode, const TArray<FString>& InUsedInputs, FString& InOutEntryPoint, TArray<FString>& OutErrors);
+
+/**
+* Fall back to using the View uniform buffer directly for platforms that don't support instanced stereo.
+* @param ShaderSource - Preprocessed shader source
+*/
+extern SHADERCOMPILERCOMMON_API void StripInstancedStereo(FString& ShaderSource);
 
 // Cross compiler support/common functionality
 namespace CrossCompiler

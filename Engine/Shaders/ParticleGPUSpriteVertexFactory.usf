@@ -648,8 +648,12 @@ float4 VertexFactoryGetPreviousWorldPosition( FVertexFactoryInput Input, FVertex
 }
 
 #if INSTANCED_STEREO
+
+// Instanced stereo sets the eye index explicitly for instanced geometry
+uint InstancedEyeIndex;	 
+
 uint VertexFactoryGetEyeIndex(uint InstanceId)
 {
-	return 0;
+	return InstancedEyeIndex & bIsInstancedStereo;
 }
 #endif

@@ -489,17 +489,6 @@ static FString CreateCommandLineHLSLCC( const FString& ShaderFile, const FString
 	return CrossCompiler::CreateBatchFileContents(ShaderFile, OutputFile, Frequency, EntryPoint, VersionSwitch, CCFlags, TEXT(""));
 }
 
-/**
-* Strip out instanced stereo support.
-* This causes the shaders to fall back to directly referencing View.
-* @param ShaderSource - Preprocessed shader source
-*/
-static void StripInstancedStereo(FString& ShaderSource)
-{
-	ShaderSource.ReplaceInline(TEXT("ResolvedView = ResolveView();"), TEXT(""));
-	ShaderSource.ReplaceInline(TEXT("ResolvedView"), TEXT("View"));
-}
-
 void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput& Output,const FString& WorkingDirectory)
 {
 	FString PreprocessedShader;
