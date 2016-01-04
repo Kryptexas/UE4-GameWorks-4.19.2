@@ -99,6 +99,8 @@ float4 ComputeControlPoint(float4 PositionA, float4 PositionB, float4 NormalA)
 	TESSELLATION_ATTRIBUTES
 	FPNTessellationHSToDS MainHull( InputPatch<FPassSpecificVSToDS, IN_CONTROL_POINTS> I, uint ControlPointID : SV_OutputControlPointID )
 	{
+		ResolvedView = ResolveView();
+
 		FPNTessellationHSToDS O = (FPNTessellationHSToDS) 0;
 
 		float3x3 TangentToLocal = VertexFactoryGetTangentToLocalDS(I[ControlPointID].FactoryInterpolants);
@@ -159,6 +161,8 @@ float4 ComputeControlPoint(float4 PositionA, float4 PositionB, float4 NormalA)
 		float3 BarycentricCoords : SV_DomainLocation
 		)
 	{
+		ResolvedView = ResolveView();
+
 		// Get the barycentric coords
 		float U = BarycentricCoords.x;
 		float V = BarycentricCoords.y;
