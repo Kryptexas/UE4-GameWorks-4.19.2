@@ -124,6 +124,7 @@ void FIOSTargetSettingsCustomization::UpdateStatus()
 		
 		// format of the line being read here!!
 		bool bCerts = false;
+		bManuallySelected = false;
 		for (int Index = 0; Index < LogLines.Num(); Index++)
 		{
 			FString& Line = LogLines[Index];
@@ -165,6 +166,7 @@ void FIOSTargetSettingsCustomization::UpdateStatus()
 				FString OutString;
 				SignCertificateProperty->GetValueAsFormattedString(OutString);
 				Cert->bManuallySelected = (OutString == Cert->Name);
+				bManuallySelected |= Cert->bManuallySelected;
 				if (!PrevCert.IsValid())
 				{
 					CertificateList->Add(Cert);
@@ -210,6 +212,7 @@ void FIOSTargetSettingsCustomization::UpdateStatus()
 				FString OutString;
 				MobileProvisionProperty->GetValueAsFormattedString(OutString);
 				Prov->bManuallySelected = (OutString == Prov->FileName);
+				bManuallySelected |= Prov->bManuallySelected;
 				ProvisionList->Add(Prov);
 			}
 			else if (Line.Contains(TEXT("MATCHED-"), ESearchCase::CaseSensitive))
@@ -1251,6 +1254,17 @@ void FIOSTargetSettingsCustomization::HandleProvisionChanged(FString Provision)
 	{
 		MobileProvisionProperty->SetValueFromFormattedString(Provision);
 	}
+	SignCertificateProperty->GetValueAsFormattedText(OutText);
+	if (Provision == TEXT("") && OutText.ToString() == TEXT(""))
+	{
+		bManuallySelected = false;
+		FilterLists();
+	}
+	else if (!bManuallySelected)
+	{
+		bManuallySelected = true;
+		FilterLists();
+	}
 }
 
 void FIOSTargetSettingsCustomization::HandleCertificateChanged(FString Certificate)
@@ -1260,6 +1274,17 @@ void FIOSTargetSettingsCustomization::HandleCertificateChanged(FString Certifica
 	if (OutText.ToString() != Certificate)
 	{
 		SignCertificateProperty->SetValueFromFormattedString(Certificate);
+	}
+	MobileProvisionProperty->GetValueAsFormattedText(OutText);
+	if (Certificate == TEXT("") && OutText.ToString() == TEXT(""))
+	{
+		bManuallySelected = false;
+		FilterLists();
+	}
+	else if (!bManuallySelected)
+	{
+		bManuallySelected = true;
+		FilterLists();
 	}
 }
 
@@ -1290,7 +1315,7 @@ void FIOSTargetSettingsCustomization::FilterLists()
 
 	for (int Index = 0; Index < ProvisionList->Num(); ++Index)
 	{
-		if (SelectedProvision.Contains((*ProvisionList)[Index]->Name) && SelectedFile.Contains((*ProvisionList)[Index]->FileName))
+		if (SelectedProvision.Contains((*ProvisionList)[Index]->Name) && SelectedFile.Contains((*ProvisionList)[Index]->FileName) && !bManuallySelected)
 		{
 			(*ProvisionList)[Index]->bSelected = true;
 		}
@@ -1325,7 +1350,7 @@ void FIOSTargetSettingsCustomization::FilterLists()
 
 	for (int Index = 0; Index < CertificateList->Num(); ++Index)
 	{
-		if (SelectedCert.Contains((*CertificateList)[Index]->Name))
+		if (SelectedCert.Contains((*CertificateList)[Index]->Name) && !bManuallySelected)
 		{
 			(*CertificateList)[Index]->bSelected = true;
 		}
