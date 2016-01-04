@@ -12,5 +12,6 @@ class ENGINE_API UDynamicBlueprintBinding
 	GENERATED_UCLASS_BODY()
 
 	virtual void BindDynamicDelegates(UObject* InInstance) const { }
+	virtual void UnbindDynamicDelegates(UObject* Instance) const { }
 	virtual void UnbindDynamicDelegatesForProperty(UObject* InInstance, const UObjectProperty* InObjectProperty) const { }
 };
