@@ -1304,7 +1304,7 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 	}
 
 	// Disable the HMD device in the new process if present. The editor process owns the HMD resource.
-	if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected())
+	if (!bPlayUsingMobilePreview && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected())
 	{
 		AdditionalParameters += TEXT(" -nohmd");
 		UE_LOG(LogHMD, Warning, TEXT("Standalone game VR not supported, please use VR Preview."));
