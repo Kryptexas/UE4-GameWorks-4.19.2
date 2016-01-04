@@ -1993,6 +1993,20 @@ void FBlueprintVarActionDetails::OnFinishedChangingProperties(const FPropertyCha
 	}
 }
 
+bool FBlueprintVarActionDetails::IsVariableInheritedByBlueprint() const
+{
+	UClass* PropertyOwnerClass = nullptr;
+	if (UBlueprint* PropertyOwnerBlueprint = GetPropertyOwnerBlueprint())
+	{
+		PropertyOwnerClass = PropertyOwnerBlueprint->SkeletonGeneratedClass;
+	}
+	else if (CachedVariableProperty.IsValid())
+	{
+		PropertyOwnerClass = CachedVariableProperty->GetOwnerClass();
+	}
+	return GetBlueprintObj()->SkeletonGeneratedClass->IsChildOf(PropertyOwnerClass);
+}
+
 static FDetailWidgetRow& AddRow( TArray<TSharedRef<FDetailWidgetRow> >& OutChildRows )
 {
 	TSharedRef<FDetailWidgetRow> NewRow( new FDetailWidgetRow );
