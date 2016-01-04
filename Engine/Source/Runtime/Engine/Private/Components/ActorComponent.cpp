@@ -502,9 +502,9 @@ void UActorComponent::PostEditUndo()
 	if( IsPendingKill() )
 	{
 		// For the redo case, ensure that we're no longer in the OwnedComponents array.
-		if (AActor* Owner = GetOwner())
+		if (AActor* OwningActor = GetOwner())
 		{
-			Owner->RemoveOwnedComponent(this);
+			OwningActor->RemoveOwnedComponent(this);
 		}
 
 		// The reregister context won't bother attaching components that are 'pending kill'. 
