@@ -742,6 +742,15 @@ namespace UnrealBuildTool
 							UBTArguments.Append(" -2013");
 						}
 
+						// Add UHT plugins to UBT command line as external plugins
+						if (Target.ProjectDescriptor != null && Target.UnrealHeaderToolPlugins != null)
+						{
+							foreach (PluginInfo Plugin in Target.UnrealHeaderToolPlugins)
+							{
+								UBTArguments.Append(" -PLUGIN \"" + Plugin.File + "\"");
+							}
+						}
+
 						if (RunExternalExecutable(UnrealBuildTool.GetUBTPath(), UBTArguments.ToString()) != 0)
 						{
 							return false;

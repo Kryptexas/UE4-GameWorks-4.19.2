@@ -8,7 +8,6 @@ public class UnrealHeaderToolTarget : TargetRules
 	public UnrealHeaderToolTarget(TargetInfo Target)
 	{
 		Type = TargetType.Program;
-		AdditionalPlugins.Add("ScriptGeneratorPlugin");
 	}
 
 	//

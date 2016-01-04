@@ -228,7 +228,7 @@ bool ParseGameProjectFromCommandLine(const TCHAR* InCmdLine, FString& OutProject
 			OutGameName = FPaths::GetBaseFilename(OutProjectFilePath);
 			return true;
 		}
-		else if (FPlatformProperties::IsMonolithicBuild() == false)
+		else if (FPaths::IsRelative(FirstCommandLineToken) && FPlatformProperties::IsMonolithicBuild() == false)
 		{
 			// Full game name is assumed to be the first token
 			OutGameName = MoveTemp(FirstCommandLineToken);
@@ -1078,11 +1078,17 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		const FString ProjectFilePath = FPaths::Combine(*FPaths::GameDir(), *FString::Printf(TEXT("%s.%s"), FApp::GetGameName(), *FProjectDescriptor::GetExtension()));
 		FPaths::SetProjectFilePath(ProjectFilePath);
 	}
+#endif
 
 	// Now verify the project file if we have one
-	if ( FPaths::IsProjectFilePathSet() )
+	if (FPaths::IsProjectFilePathSet()
+#if IS_PROGRAM
+		// Programs don't need uproject files to exist, but some do specify them and if they exist we should load them
+		&& FPaths::FileExists(FPaths::GetProjectFilePath())
+#endif
+		)
 	{
-		if ( !IProjectManager::Get().LoadProjectFile(FPaths::GetProjectFilePath()) )
+		if (!IProjectManager::Get().LoadProjectFile(FPaths::GetProjectFilePath()))
 		{
 			// The project file was invalid or saved with a newer version of the engine. Exit.
 			UE_LOG(LogInit, Warning, TEXT("Could not find a valid project file, the engine will exit now."));
@@ -1090,6 +1096,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		}
 	}
 
+#if !IS_PROGRAM
 	if( FApp::HasGameName() )
 	{
 		// Tell the module manager what the game binaries folder is
