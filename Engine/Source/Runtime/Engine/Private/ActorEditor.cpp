@@ -28,7 +28,7 @@ void AActor::PreEditChange(UProperty* PropertyThatWillChange)
 	}
 
 	// During SIE, allow components to be unregistered here, and then reregistered and reconstructed in PostEditChangeProperty.
-	if (GEditor->bIsSimulatingInEditor || ReregisterComponentsWhenModified())
+	if ((GEditor && GEditor->bIsSimulatingInEditor) || ReregisterComponentsWhenModified())
 	{
 		UnregisterAllComponents();
 	}
