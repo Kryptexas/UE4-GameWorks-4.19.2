@@ -265,6 +265,8 @@ void SSRTemporalAAPS( noperspective float2 UV : TEXCOORD0, float3 InExposureScal
 }
 
 void DOFTemporalAAPS( noperspective float2 UV : TEXCOORD0, float3 InExposureScaleVignette : TEXCOORD1, 
+	in noperspective float4 Unused1 : TEXCOORD2,
+	in noperspective float4 Unused2 : TEXCOORD3,
 	float4 SvPosition : SV_POSITION,		// after all interpolators
 	out float4 OutColor : SV_Target0 )
 {
@@ -288,6 +290,8 @@ void DOFTemporalAAPS( noperspective float2 UV : TEXCOORD0, float3 InExposureScal
 }
 
 void LightShaftTemporalAAPS( noperspective float2 UV : TEXCOORD0, float3 InExposureScaleVignette : TEXCOORD1, 
+	in noperspective float4 Unused1 : TEXCOORD2,
+	in noperspective float4 Unused2 : TEXCOORD3,
 	float4 SvPosition : SV_POSITION,		// after all interpolators
 	out float4 OutColor : SV_Target0 )
 {
@@ -344,6 +348,8 @@ void MainTemporalAAPS(
 void MainFastTemporalAAPS(
 	in noperspective float2 UV: TEXCOORD0,
 	in noperspective float3 InExposureScaleVignette : TEXCOORD1,
+	in noperspective float4 Unused1 : TEXCOORD2,
+	in noperspective float4 Unused2 : TEXCOORD3,
 	in float4 SvPosition : SV_Position,		// after all interpolators
 	out float4 OutColor : SV_Target0 )
 {
