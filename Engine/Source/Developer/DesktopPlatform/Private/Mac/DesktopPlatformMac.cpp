@@ -160,7 +160,7 @@ private:
 }
 
 - (int32)SelectedExtension {
-    return SelectedExtension;
+	return SelectedExtension;
 }
 
 @end
@@ -372,9 +372,17 @@ bool FDesktopPlatformMac::OpenLauncher(bool Install, FString LauncherRelativeUrl
 		LauncherUriRequest = FString::Printf(TEXT("com.epicgames.launcher://%s"), *LauncherRelativeUrl);
 	}
 
-	if (FParse::Param(FCommandLine::Get(), TEXT("Dev")))
+	// We need to take the silent option and convert it to a uri query string option.
+	if ( CommandLineParams.Contains("-silent") )
 	{
-		CommandLineParams += TEXT(" -noselfupdate");
+		if ( LauncherUriRequest.Contains("?") )
+		{
+			LauncherUriRequest += TEXT("&silent=true");
+		}
+		else
+		{
+			LauncherUriRequest += TEXT("?silent=true");
+		}
 	}
 
 	// If the launcher is already running, bring it to front
