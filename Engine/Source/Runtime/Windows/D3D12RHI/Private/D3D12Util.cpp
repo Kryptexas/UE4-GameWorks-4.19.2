@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 D3D12Util.h: D3D RHI utility implementation.
@@ -274,6 +274,78 @@ namespace D3D12RHI
 	}
 }
 
+void FD3D12QuantizedBoundShaderState::InitShaderRegisterCounts(const D3D12_RESOURCE_BINDING_TIER& ResourceBindingTier, const FShaderCodePackedResourceCounts& Counts, FShaderRegisterCounts& Shader)
+{
+	static const uint32 MaxSamplerCount = D3D12_COMMONSHADER_SAMPLER_SLOT_COUNT;
+	static const uint32 MaxConstantBufferCount = MAX_CBS;
+	static const uint32 MaxShaderResourceCount = MAX_SRVS;
+	static const uint32 MaxUnorderedAccessCount = D3D12_PS_CS_UAV_REGISTER_COUNT;
+
+	// Round up and clamp values to their max
+	// Note: Rounding and setting counts based on binding tier allows us to create fewer root signatures.
+
+	if (ResourceBindingTier <= D3D12_RESOURCE_BINDING_TIER_1)
+	{
+		Shader.SamplerCount = (Counts.NumSamplers > 0) ? FMath::Min(MaxSamplerCount, FMath::RoundUpToPowerOfTwo(Counts.NumSamplers)) : 0;
+		Shader.ShaderResourceCount = (Counts.NumSRVs > 0) ? FMath::Min(MaxShaderResourceCount, FMath::RoundUpToPowerOfTwo(Counts.NumSRVs)) : 0;
+	}
+	else
+	{
+		Shader.SamplerCount = MaxSamplerCount;
+		Shader.ShaderResourceCount = MaxShaderResourceCount;
+	}
+
+	if (ResourceBindingTier <= D3D12_RESOURCE_BINDING_TIER_2)
+	{
+		Shader.ConstantBufferCount = (Counts.NumCBs > 0) ? FMath::Min(MaxConstantBufferCount, FMath::RoundUpToPowerOfTwo(Counts.NumCBs)) : 0;
+		Shader.UnorderedAccessCount = (Counts.NumUAVs > 0) ? FMath::Min(MaxUnorderedAccessCount, FMath::RoundUpToPowerOfTwo(Counts.NumUAVs)) : 0;
+	}
+	else
+	{
+		Shader.ConstantBufferCount = MaxConstantBufferCount;
+		Shader.UnorderedAccessCount = MaxUnorderedAccessCount;
+	}
+}
+
+void QuantizeBoundShaderState(
+	const D3D12_RESOURCE_BINDING_TIER& ResourceBindingTier,
+	const FD3D12BoundShaderState* const BSS,
+	FD3D12QuantizedBoundShaderState &QBSS
+	)
+{
+	// BSS quantizer. There is a 1:1 mapping of quantized bound shader state objects to root signatures.
+	// The objective is to allow a single root signature to represent many bound shader state objects.
+	// The bigger the quantization step sizes, the fewer the root signatures.
+	FMemory::Memzero(&QBSS, sizeof(QBSS));
+	QBSS.bAllowIAInputLayout = BSS->InputLayout.NumElements > 0;	// Does the root signature need access to vertex buffers?
+
+	const FD3D12VertexShader* const VertexShader = BSS->GetVertexShader();
+	const FD3D12PixelShader* const PixelShader = BSS->GetPixelShader();
+	const FD3D12HullShader* const HullShader = BSS->GetHullShader();
+	const FD3D12DomainShader* const DomainShader = BSS->GetDomainShader();
+	const FD3D12GeometryShader* const GeometryShader = BSS->GetGeometryShader();
+	if (VertexShader) FD3D12QuantizedBoundShaderState::InitShaderRegisterCounts(ResourceBindingTier, VertexShader->ResourceCounts, QBSS.RegisterCounts[SV_Vertex]);
+	if (PixelShader) FD3D12QuantizedBoundShaderState::InitShaderRegisterCounts(ResourceBindingTier, PixelShader->ResourceCounts, QBSS.RegisterCounts[SV_Pixel]);
+	if (HullShader) FD3D12QuantizedBoundShaderState::InitShaderRegisterCounts(ResourceBindingTier, HullShader->ResourceCounts, QBSS.RegisterCounts[SV_Hull]);
+	if (DomainShader) FD3D12QuantizedBoundShaderState::InitShaderRegisterCounts(ResourceBindingTier, DomainShader->ResourceCounts, QBSS.RegisterCounts[SV_Domain]);
+	if (GeometryShader) FD3D12QuantizedBoundShaderState::InitShaderRegisterCounts(ResourceBindingTier, GeometryShader->ResourceCounts, QBSS.RegisterCounts[SV_Geometry]);
+}
+
+void QuantizeBoundShaderState(
+	const D3D12_RESOURCE_BINDING_TIER& ResourceBindingTier,
+	const FD3D12ComputeShader* const ComputeShader,
+	FD3D12QuantizedBoundShaderState &QBSS
+	)
+{
+	// BSS quantizer. There is a 1:1 mapping of quantized bound shader state objects to root signatures.
+	// The objective is to allow a single root signature to represent many bound shader state objects.
+	// The bigger the quantization step sizes, the fewer the root signatures.
+	FMemory::Memzero(&QBSS, sizeof(QBSS));
+	check(QBSS.bAllowIAInputLayout == false);	// No access to vertex buffers needed
+	check(ComputeShader);
+	FD3D12QuantizedBoundShaderState::InitShaderRegisterCounts(ResourceBindingTier, ComputeShader->ResourceCounts, QBSS.RegisterCounts[SV_All]);
+}
+
 FD3D12BoundRenderTargets::FD3D12BoundRenderTargets(FD3D12RenderTargetView** RTArray, uint32 NumActiveRTs, FD3D12DepthStencilView* DSView)
 {
 	FMemory::Memcpy(RenderTargetViews, RTArray, sizeof(RenderTargetViews));
@@ -509,6 +581,15 @@ void CResourceState::SetSubresourceState(uint32 SubresourceIndex, D3D12_RESOURCE
 	}
 }
 
+bool FD3D12SyncPoint::IsComplete() const
+{
+	return (Fence == nullptr) || (Fence->IsFenceComplete(Value));
+}
+
+void FD3D12SyncPoint::WaitForCompletion() const
+{
+	Fence->WaitForFence(Value);
+}
 
 //
 // Stat declarations.

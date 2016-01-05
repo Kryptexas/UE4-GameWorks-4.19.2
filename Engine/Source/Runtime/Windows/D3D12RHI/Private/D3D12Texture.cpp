@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12VertexBuffer.cpp: D3D texture RHI implementation.
@@ -1255,33 +1255,40 @@ FTexture2DRHIRef FD3D12DynamicRHI::RHIAsyncCreateTexture2D(uint32 SizeX, uint32 
 		SubResourceData[MipIndex].SlicePitch = MipSize;
 	}
 
-    if (bForceSingleQueueGPU || !SubResourceData)
-    {
-		FD3D12DynamicHeapAllocator& DynamicHeapAllocator = GetHelperThreadDynamicUploadHeapAllocator();
-		FD3D12CommandListHandle hCommandList = GetRHIDevice()->GetCommandListManager().BeginCommandList();
+	FD3D12DynamicHeapAllocator& DynamicHeapAllocator = GetHelperThreadDynamicUploadHeapAllocator();
+	FD3D12CommandAllocatorManager& CommandAllocatorManager = GetRHIDevice()->GetTextureStreamingCommandAllocatorManager();
+	FD3D12CommandAllocator* CurrentCommandAllocator = CommandAllocatorManager.ObtainCommandAllocator();
+
+	if (!GEnableMultiEngine)
+	{
+		FD3D12CommandListHandle hCommandList = GetRHIDevice()->GetCommandListManager().ObtainCommandList(*CurrentCommandAllocator, nullptr);
+
 		hCommandList.SetCurrentOwningContext(&GetRHIDevice()->GetDefaultCommandContext());
 
-	    DynamicHeapAllocator.SetCurrentCommandListHandle(hCommandList);
+		DynamicHeapAllocator.SetCurrentCommandListHandle(hCommandList);
 		SafeCreateTexture2D(GetRHIDevice(), TextureDesc, SubResourceData, nullptr, hCommandList, DynamicHeapAllocator, TextureResource.GetInitReference(), Format, Flags);
 
 		// Wait for the copy context to finish before continuing as this function is only expected to return once all the texture streaming has finished.
 		// Execute command list which contains CopySubresourceRegion call to upload initial texture data.
 		hCommandList.Close();
 		GetRHIDevice()->GetCommandListManager().ExecuteCommandList(hCommandList, true);
-    }
+	}
 	else
 	{
-		FD3D12DynamicHeapAllocator& DynamicHeapAllocator = GetHelperThreadDynamicUploadHeapAllocator();
-		FD3D12CommandListHandle hCopyCommandList = GetRHIDevice()->GetCopyCommandListManager().BeginCommandList();
+		
+		FD3D12CommandListHandle hCopyCommandList = GetRHIDevice()->GetCopyCommandListManager().ObtainCommandList(*CurrentCommandAllocator, nullptr);
+
 		hCopyCommandList.SetCurrentOwningContext(&GetRHIDevice()->GetDefaultCommandContext());
 
-        DynamicHeapAllocator.SetCurrentCommandListHandle(hCopyCommandList);
+		DynamicHeapAllocator.SetCurrentCommandListHandle(hCopyCommandList);
 		SafeCreateTexture2D(GetRHIDevice(), TextureDesc, SubResourceData, nullptr, hCopyCommandList, DynamicHeapAllocator, TextureResource.GetInitReference(), Format, Flags);
 		
 		// Wait for the copy context to finish before continuing as this function is only expected to return once all the texture streaming has finished.
 		hCopyCommandList.Close();
 		GetRHIDevice()->GetCopyCommandListManager().ExecuteCommandList(hCopyCommandList, true);
-    }
+	}
+
+	CommandAllocatorManager.ReleaseCommandAllocator(CurrentCommandAllocator);
 
 	if (TempBufferSize != ZeroBufferSize)
 	{

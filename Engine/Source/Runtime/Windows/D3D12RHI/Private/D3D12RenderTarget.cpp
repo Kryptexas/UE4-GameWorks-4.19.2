@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12RenderTarget.cpp: D3D render target implementation.
@@ -1065,11 +1065,15 @@ void FD3D12DynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntRe
 
 	if (!!SyncPoint)
 	{
-		CommandListState listState = GetRHIDevice()->GetCommandListManager().GetCommandListState(SyncPoint);
-		if (listState == CommandListState::kOpen)
+		CommandListState ListState = GetRHIDevice()->GetCommandListManager().GetCommandListState(SyncPoint);
+		if (ListState == CommandListState::kOpen)
+		{
 			GetRHIDevice()->GetDefaultCommandContext().FlushCommands(true);
+		}
 		else
-			GetRHIDevice()->GetCommandListManager().WaitForCompletion(SyncPoint);
+		{
+			SyncPoint.WaitForCompletion();
+		}
 	}
 
 	// Check the format of the surface

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 D3D12Commands.cpp: D3D RHI commands implementation.
@@ -7,7 +7,14 @@ D3D12Commands.cpp: D3D RHI commands implementation.
 #include "D3D12RHIPrivate.h"
 #if WITH_D3DX_LIBS
 #include "AllowWindowsPlatformTypes.h"
+	#if _MSC_VER == 1900
+		#pragma warning(push)
+		#pragma warning(disable:4838)
+	#endif // _MSC_VER == 1900
 	#include <xnamath.h>
+	#if _MSC_VER == 1900
+		#pragma warning(pop)
+	#endif // _MSC_VER == 1900
 #include "HideWindowsPlatformTypes.h"
 #endif
 #include "D3D12RHIPrivateUtil.h"
@@ -51,6 +58,20 @@ DECLARE_ISBOUNDSHADER(ComputeShader)
 #else
 #define VALIDATE_BOUND_SHADER(s)
 #endif
+
+#define WITH_GPA 0//(!PLATFORM_XBOXONE)
+#if WITH_GPA
+#define GPA_WINDOWS 1
+#include <GPUPerfAPI/Gpa.h>
+#endif
+
+static int32 GD3D12AllowDrawClears = 0;
+static FAutoConsoleVariableRef CVarAllowDrawClears(
+	TEXT("D3D12.AllowDrawClears"),
+	GD3D12AllowDrawClears,
+	TEXT("Allows the use of draw calls to clear render targets."),
+	ECVF_RenderThreadSafe
+	);
 
 void FD3D12DynamicRHI::SetupRecursiveResources()
 {
@@ -118,6 +139,26 @@ void FD3D12DynamicRHI::SetupRecursiveResources()
 
 	//SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, ResolveBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *ResolveVertexShader, *ResolvePixelShader);
 }
+
+#if 0
+void FD3D12DynamicRHI::RHIGpuTimeBegin(uint32 Hash, bool bCompute)
+{
+#if WITH_GPA
+	char Str[256];
+	if (GpaBegin(Str, Hash, bCompute, (void*)GetRHIDevice()->GetDevice()))
+	{
+		OutputDebugStringA(Str);
+	}
+#endif
+}
+
+void FD3D12DynamicRHI::RHIGpuTimeEnd(uint32 Hash, bool bCompute)
+{
+#if WITH_GPA
+	GpaEnd(Hash, bCompute);
+#endif
+}
+#endif
 
 // Vertex state.
 void FD3D12CommandContext::RHISetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBufferRHI, uint32 Stride, uint32 Offset)
@@ -229,7 +270,7 @@ void FD3D12CommandContext::RHISetViewport(uint32 MinX, uint32 MinY, float MinZ, 
 	check(MaxX <= (uint32)D3D12_VIEWPORT_BOUNDS_MAX);
 	check(MaxY <= (uint32)D3D12_VIEWPORT_BOUNDS_MAX);
 
-	D3D12_VIEWPORT Viewport = { MinX, MinY, MaxX - MinX, MaxY - MinY, MinZ, MaxZ };
+	D3D12_VIEWPORT Viewport = { (float)MinX, (float)MinY, (float)MaxX - MinX, (float)MaxY - MinY, MinZ, MaxZ };
 	//avoid setting a 0 extent viewport, which the debug runtime doesn't like
 	if (Viewport.Width > 0 && Viewport.Height > 0)
 	{
@@ -1743,10 +1784,15 @@ void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColor
 	class FDeviceStateHelper
 	{
 		enum { ResourceCount = D3D12_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT };
+		enum { ConstantBufferCount = D3D12_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT };
+
 		//////////////////////////////////////////////////////////////////////////
 		// Relevant recorded states:
 		FD3D12ShaderResourceView* VertResources[ResourceCount];
 		uint32 NumVertResources;
+		// TODO: Restore constant buffers
+		//ID3D11Buffer* VertexConstantBuffers[ConstantBufferCount];
+		//ID3D11Buffer* PixelConstantBuffers[ConstantBufferCount];
 		FD3D12BoundShaderState* OldShaderState;
 		D3D12_DEPTH_STENCIL_DESC* pOldDepthStencilState;
 		D3D12_RASTERIZER_DESC* pOldRasterizerState;
@@ -1771,6 +1817,9 @@ void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColor
 		{
 			StateCacheRef.GetBoundShaderState(&OldShaderState);
 			StateCacheRef.GetShaderResourceViews<SF_Vertex>(0, NumVertResources, &VertResources[0]);
+			// TODO: Capture constant buffers
+			//StateCacheRef.GetConstantBuffers<SF_Pixel>(0, ConstantBufferCount, &(PixelConstantBuffers[0]));
+			//StateCacheRef.GetConstantBuffers<SF_Vertex>(0, ConstantBufferCount, &(VertexConstantBuffers[0]));
 			StateCacheRef.GetDepthStencilState(&pOldDepthStencilState, &StencilRef);
 			StateCacheRef.GetBlendState(&pOldBlendState, BlendFactor, &SampleMask);
 			StateCacheRef.GetRasterizerState(&pOldRasterizerState);
@@ -1794,6 +1843,12 @@ void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColor
 			{
 				StateCacheRef.SetShaderResourceView<SF_Vertex>(VertResources[ResourceLoop], ResourceLoop);
 			}
+			// TODO: Restore constant buffers
+			/*for (int BufferIndex = 0; BufferIndex < ConstantBufferCount; ++BufferIndex)
+			{
+				StateCacheRef.SetConstantBuffer<SF_Pixel>(PixelConstantBuffers[BufferIndex], BufferIndex);
+				StateCacheRef.SetConstantBuffer<SF_Vertex>(VertexConstantBuffers[BufferIndex], BufferIndex);
+			}*/
 			StateCacheRef.SetDepthStencilState(pOldDepthStencilState, StencilRef);
 			StateCacheRef.SetBlendState(pOldBlendState, BlendFactor, SampleMask);
 			StateCacheRef.SetRasterizerState(pOldRasterizerState);
@@ -1862,7 +1917,7 @@ void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColor
 	}
 
 	/*	// possible optimization
-	if (ExcludeRect.Width() > 0 && ExcludeRect.Height() > 0 && HardwareHasLinearClearPerformance) 
+	if (ExcludeRect.Width() > 0 && ExcludeRect.Height() > 0 && HardwareHasLinearClearPerformance)
 	{
 	UseDrawClear = true;
 	}
@@ -1873,8 +1928,8 @@ void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColor
 		return;
 	}
 
-	D3D12_RECT ScissorRect = { 0 };
 	uint32 NumRects = 1;
+	D3D12_RECT ScissorRect;
 	StateCache.GetScissorRect(&ScissorRect);
 	if (ScissorRect.left > 0
 		|| ScissorRect.right < Viewport.TopLeftX + Viewport.Width
@@ -1915,14 +1970,14 @@ void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColor
 			}
 		}
 
-		if ((Viewport.Width < Width || Viewport.Height < Height) 
+		if ((Viewport.Width < Width || Viewport.Height < Height)
 			&& (Viewport.Width > 1 && Viewport.Height > 1))
 		{
 			UseDrawClear = true;
 		}
 	}
 
-	if (UseDrawClear)
+	if (UseDrawClear && GD3D12AllowDrawClears)
 	{
 		// we don't support draw call clears before the RHI is initialized, reorder the code or make sure it's not a draw call clear
 		check(GIsRHIInitialized);
@@ -2106,7 +2161,7 @@ void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColor
 		{
 			for (int32 TargetIndex = 0; TargetIndex < BoundRenderTargets.GetNumActiveTargets(); TargetIndex++)
 			{
-				TRefCountPtr<FD3D12RenderTargetView> RTView = BoundRenderTargets.GetRenderTargetView(TargetIndex);
+				FD3D12RenderTargetView* RTView = BoundRenderTargets.GetRenderTargetView(TargetIndex);
 
 				FD3D12DynamicRHI::TransitionResource(CommandListHandle, RTView, D3D12_RESOURCE_STATE_RENDER_TARGET);
 				numClears++;
@@ -2116,22 +2171,19 @@ void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColor
 
 		if ((bClearDepth || bClearStencil) && DepthStencilView)
 		{
-			FExclusiveDepthStencil ExclusiveDepthStencil;
 			uint32 ClearFlags = 0;
 			if (bClearDepth)
 			{
 				ClearFlags |= D3D12_CLEAR_FLAG_DEPTH;
 				check(DepthStencilView->HasDepth());
-				ExclusiveDepthStencil.SetDepthWrite();
 			}
 			if (bClearStencil)
 			{
 				ClearFlags |= D3D12_CLEAR_FLAG_STENCIL;
 				check(DepthStencilView->HasStencil());
-				ExclusiveDepthStencil.SetStencilWrite();
 			}
 
-			if (ExclusiveDepthStencil.IsDepthWrite() && (!DepthStencilView->HasStencil() || ExclusiveDepthStencil.IsStencilWrite()))
+			if (bClearDepth && (!DepthStencilView->HasStencil() || bClearStencil))
 			{
 				// Transition the entire view (Both depth and stencil planes if applicable)
 				// Some DSVs don't have stencil bits.
@@ -2139,16 +2191,16 @@ void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColor
 			}
 			else 
 			{
-				if (ExclusiveDepthStencil.IsDepthWrite())
+				if (bClearDepth)
 				{
 					// Transition just the depth plane
-					check(ExclusiveDepthStencil.IsDepthWrite() && !ExclusiveDepthStencil.IsStencilWrite());
+					check(bClearDepth && !bClearStencil);
 					FD3D12DynamicRHI::TransitionResource(CommandListHandle, DepthStencilView->GetResource(), D3D12_RESOURCE_STATE_DEPTH_WRITE, DepthStencilView->GetDepthOnlyViewSubresourceSubset());
 				}
 				else
 				{
 					// Transition just the stencil plane
-					check(!ExclusiveDepthStencil.IsDepthWrite() && ExclusiveDepthStencil.IsStencilWrite());
+					check(!bClearDepth && bClearStencil);
 					FD3D12DynamicRHI::TransitionResource(CommandListHandle, DepthStencilView->GetResource(), D3D12_RESOURCE_STATE_DEPTH_WRITE, DepthStencilView->GetStencilOnlyViewSubresourceSubset());
 				}
 			}
@@ -2184,6 +2236,24 @@ void FD3D12CommandContext::RHIGraphicsWaitOnAsyncComputeJob(uint32 FenceIndex)
 #endif
 }
 
+// Functions to yield and regain rendering control from D3D
+
+void FD3D12DynamicRHI::RHISuspendRendering()
+{
+	// Not supported
+}
+
+void FD3D12DynamicRHI::RHIResumeRendering()
+{
+	// Not supported
+}
+
+bool FD3D12DynamicRHI::RHIIsRenderingSuspended()
+{
+	// Not supported
+	return false;
+}
+
 // Blocks the CPU until the GPU catches up and goes idle.
 void FD3D12DynamicRHI::RHIBlockUntilGPUIdle()
 {
@@ -2206,7 +2276,12 @@ void FD3D12DynamicRHI::RHIExecuteCommandList(FRHICommandList* CmdList)
 // NVIDIA Depth Bounds Test interface
 void FD3D12CommandContext::RHIEnableDepthBoundsTest(bool bEnable, float MinDepth, float MaxDepth)
 {
-	//UE_LOG(LogD3D12RHI, Warning, TEXT("RHIEnableDepthBoundsTest not supported on DX12."));
+	static bool bOnce = false;
+	if (!bOnce)
+	{
+		UE_LOG(LogD3D12RHI, Warning, TEXT("RHIEnableDepthBoundsTest not supported on DX12."));
+		bOnce = true;
+	}
 }
 
 void FD3D12CommandContext::RHISubmitCommandsHint()

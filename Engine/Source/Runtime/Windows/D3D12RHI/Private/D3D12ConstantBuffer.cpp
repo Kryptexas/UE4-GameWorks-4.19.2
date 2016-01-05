@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 D3D12ConstantBuffer.cpp: D3D Constant buffer RHI implementation.
@@ -18,7 +18,7 @@ namespace D3D12RHI
 	const uint32 GConstantBufferSizes[MAX_CONSTANT_BUFFER_SLOTS] =
 	{
 		// CBs must be a multiple of 16
-		Align(MAX_GLOBAL_CONSTANT_BUFFER_SIZE, 16),
+		(uint32)Align(MAX_GLOBAL_CONSTANT_BUFFER_SIZE, 16),
 	};
 }
 

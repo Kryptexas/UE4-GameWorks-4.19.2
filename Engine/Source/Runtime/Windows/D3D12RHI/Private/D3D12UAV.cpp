@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "D3D12RHIPrivate.h"
 
@@ -69,7 +69,25 @@ FUnorderedAccessViewRHIRef FD3D12DynamicRHI::RHICreateUnorderedAccessView(FTextu
 		UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
 		UAVDesc.Texture3D.MipSlice = MipLevel;
 		UAVDesc.Texture3D.FirstWSlice = 0;
-		UAVDesc.Texture3D.WSize = Texture3D->GetSizeZ();
+		UAVDesc.Texture3D.WSize = Texture3D->GetSizeZ() >> MipLevel;
+	}
+	else if (TextureRHI->GetTexture2DArray() != NULL)
+	{
+		FD3D12Texture2DArray* Texture2DArray = (FD3D12Texture2DArray*)Texture;
+		UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+		UAVDesc.Texture2DArray.MipSlice = MipLevel;
+		UAVDesc.Texture2DArray.FirstArraySlice = 0;
+		UAVDesc.Texture2DArray.ArraySize = Texture2DArray->GetSizeZ();
+		UAVDesc.Texture2DArray.PlaneSlice = GetPlaneSliceFromViewFormat(PlatformResourceFormat, UAVDesc.Format);
+	}
+	else if (TextureRHI->GetTextureCube() != NULL)
+	{
+		FD3D12TextureCube* TextureCube = (FD3D12TextureCube*)Texture;
+		UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+		UAVDesc.Texture2DArray.MipSlice = MipLevel;
+		UAVDesc.Texture2DArray.FirstArraySlice = 0;
+		UAVDesc.Texture2DArray.ArraySize = 6;
+		UAVDesc.Texture2DArray.PlaneSlice = GetPlaneSliceFromViewFormat(PlatformResourceFormat, UAVDesc.Format);
 	}
 	else
 	{

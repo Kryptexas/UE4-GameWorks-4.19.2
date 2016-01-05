@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12Viewport.cpp: D3D viewport RHI implementation.
@@ -482,7 +482,14 @@ bool FD3D12Viewport::Present(bool bLockToVsync)
 	bool bNativelyPresented = true;
 	FD3D12DynamicRHI::TransitionResource(DefaultContext.CommandListHandle, GetBackBuffer()->GetShaderResourceView(), D3D12_RESOURCE_STATE_PRESENT);
 
-	DefaultContext.FlushCommands();
+	// Close and execute the default context before Present
+	DefaultContext.CloseCommandList();
+	DefaultContext.ExecuteCommandList();
+
+	// Return the current command allocator to the pool and then open a new command list with
+	// a new command allocator.
+	DefaultContext.ReleaseCommandAllocator();
+	DefaultContext.OpenCommandList(true);
 
 	// Reset the default context state
 	DefaultContext.ClearState();
@@ -670,6 +677,18 @@ void FD3D12CommandContext::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRH
 	UnresolvedTargets.Reset();
 #endif
 }
+
+/**
+ * Determine if currently drawing the viewport
+ *
+ * @return true if currently within a BeginDrawingViewport/EndDrawingViewport block
+ */
+#if 0
+bool FD3D12DynamicRHI::RHIIsDrawingViewport()
+{
+	return GetRHIDevice()->GetDrawingViewport() != NULL;
+}
+#endif
 
 void FD3D12DynamicRHI::RHIAdvanceFrameForGetViewportBackBuffer()
 {

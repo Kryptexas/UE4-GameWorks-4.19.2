@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12RHIPrivate.h: Private D3D RHI definitions.
@@ -128,13 +128,18 @@ struct FD3D12GlobalStats
 	static int64 GTotalGraphicsMemory;
 };
 
+static int32 GEnableMultiEngine = 1;
+static FAutoConsoleVariableRef CVarEnableMultiEngine(
+	TEXT("D3D12.EnableMultiEngine"),
+	GEnableMultiEngine,
+	TEXT("Enables multi engine (3D, Copy, Compute) use."),
+	ECVF_RenderThreadSafe | ECVF_ReadOnly
+	);
 
 // This class handles query heaps
 class FD3D12QueryHeap : public FD3D12DeviceChild
 {
 private:
-    typedef TPair<FD3D12CLSyncPoint, int64> FenceBatchIDPair;
-
     struct QueryBatch
     {
     private:
@@ -178,7 +183,6 @@ public:
     ~FD3D12QueryHeap();
 
     void Init();
-    uint32 ReserveElement();            // Reserve a single element in the query heap. Ensure you have room in the heap.
 
     void StartQueryBatch(FD3D12CommandContext& CmdContext);           // Start tracking a new batch of begin/end query calls that will be resolved together
     void EndQueryBatchAndResolveQueryData(FD3D12CommandContext& CmdContext, D3D12_QUERY_TYPE InQueryType);  // Stop tracking the current batch of begin/end query calls that will be resolved together
@@ -235,7 +239,6 @@ private:
     uint32 ActiveAllocatedElementCount;         // The number of elements that are in use (Active). Between the head and the tail.
 
     uint32 LastAllocatedElement;                // The last element that was allocated for BeginQuery
-    uint32 ReservedElementCount;                // The number of queries that are reserved in the pool. Used to know when we need to grow the heap.
     uint32 ResultSize;                          // The byte size of a result for a single query
     D3D12_QUERY_HEAP_DESC QueryHeapDesc;        // The description of the current query heap
     D3D12_QUERY_TYPE QueryType;
@@ -485,8 +488,26 @@ public:
 		InternalSetShaderResourceView<ShaderFrequency>(Resource, SRV, ResourceIndex, SrvType);
 	}
 
+	void EndFrame()
+	{
+		StateCache.GetDescriptorCache()->EndFrame();
+		UploadHeapAllocator.CleanupFreeBlocks();
+
+		// Return the current command allocator to the pool so it can be reused for a future frame
+		// Note: the default context releases it's command allocator before Present.
+		if (!IsDefaultContext())
+		{
+			ReleaseCommandAllocator();
+		}
+	}
+
+	void ConditionalObtainCommandAllocator();
+	void ReleaseCommandAllocator();
+
 	// Cycle to a new command list, but don't execute the current one yet.
 	void OpenCommandList(bool bRestoreState = false);
+	void CloseCommandList();
+	void ExecuteCommandList(bool WaitForCompletion = false);
 
 	// Close the D3D command list and execute it.  Optionally wait for the GPU to finish. Returns the handle to the command list so you can wait for it later.
 	FD3D12CommandListHandle FlushCommands(bool WaitForCompletion = false);
@@ -497,16 +518,17 @@ public:
 	void ConditionalClearShaderResource(FD3D12ResourceLocation* Resource);
 	void ClearAllShaderResources();
 
-    FD3D12DynamicHeapAllocator	UploadHeapAllocator;
-    FD3D12DynamicHeapAllocator& GetUploadHeapAllocator() { return UploadHeapAllocator; }
+	FD3D12DynamicHeapAllocator	UploadHeapAllocator;
+	FD3D12DynamicHeapAllocator& GetUploadHeapAllocator() { return UploadHeapAllocator; }
 
-
-	// A handle to the command list this context owns (granted by the command list manager), and a direct pointer to the D3D command list itself.
-	FD3D12CommandListHandle		CommandListHandle;
+	// Handles to the command list and direct command allocator this context owns (granted by the command list manager/command allocator manager), and a direct pointer to the D3D command list/command allocator.
+	FD3D12CommandListHandle CommandListHandle;
+	FD3D12CommandAllocator* CommandAllocator;
+	FD3D12CommandAllocatorManager CommandAllocatorManager;
 
 	FD3D12StateCache StateCache;
 
-	FD3D12DynamicRHI&			OwningRHI;
+	FD3D12DynamicRHI& OwningRHI;
 
 	// Tracks the currently set state blocks.
 
@@ -819,8 +841,6 @@ public:
     inline void                         SetDrawingViewport(FD3D12Viewport* InViewport)  { DrawingViewport = InViewport; }
 
     inline FD3D12PipelineStateCache&    GetPSOCache()                               { return PipelineStateCache; }
-    inline ID3D12RootSignature*         GetGraphicsRootSignature()                  { return GraphicsRS; }
-    inline ID3D12RootSignature*         GetComputeRootSignature()                   { return ComputeRS; }
     inline ID3D12CommandSignature*      GetDrawIndirectCommandSignature()           { return DrawIndirectCommandSignature; }
     inline ID3D12CommandSignature*      GetDrawIndexedIndirectCommandSignature()    { return DrawIndexedIndirectCommandSignature; }
     inline ID3D12CommandSignature*      GetDispatchIndirectCommandSignature()       { return DispatchIndirectCommandSignature; }
@@ -837,12 +857,13 @@ public:
     template<> FDescriptorHeapManager& GetViewDescriptorAllocator<D3D12_UNORDERED_ACCESS_VIEW_DESC>()   { return UAVAllocator; }
     template<> FDescriptorHeapManager& GetViewDescriptorAllocator<D3D12_CONSTANT_BUFFER_VIEW_DESC>()    { return CBVAllocator; }
 
-    inline FDescriptorHeapManager&          GetSamplerDescriptorAllocator() { return SamplerAllocator; }
-    inline FD3D12CommandListManager&        GetCommandListManager()         { return CommandListManager; }
-    inline FD3D12CommandListManager&        GetCopyCommandListManager()     { return CopyCommandListManager; }
-    inline FD3D12ResourceHelper&            GetResourceHelper()             { return ResourceHelper; }
-    inline FD3D12DeferredDeletionQueue&     GetDeferredDeletionQueue()      { return DeferredDeletionQueue; }
-    inline FD3D12DefaultBufferAllocator&    GetDefaultBufferAllocator()     { return DefaultBufferAllocator; }
+    inline FDescriptorHeapManager&          GetSamplerDescriptorAllocator()                { return SamplerAllocator; }
+    inline FD3D12CommandListManager&        GetCommandListManager()                        { return CommandListManager; }
+    inline FD3D12CommandListManager&        GetCopyCommandListManager()                    { return CopyCommandListManager; }
+    inline FD3D12CommandAllocatorManager&   GetTextureStreamingCommandAllocatorManager()   { return TextureStreamingCommandAllocatorManager; }
+    inline FD3D12ResourceHelper&            GetResourceHelper()                            { return ResourceHelper; }
+    inline FD3D12DeferredDeletionQueue&     GetDeferredDeletionQueue()                     { return DeferredDeletionQueue; }
+    inline FD3D12DefaultBufferAllocator&    GetDefaultBufferAllocator()                    { return DefaultBufferAllocator; }
 
 	inline uint32 GetNumContexts() { return CommandContextArray.Num(); }
 	inline FD3D12CommandContext& GetCommandContext(uint32 i = 0) const { return *CommandContextArray[i];	}
@@ -856,10 +877,14 @@ public:
 		FreeCommandContexts.Add(CmdContext);
 	}
 
+	inline FD3D12RootSignature* GetRootSignature(const FD3D12QuantizedBoundShaderState& QBSS) {
+		return RootSignatureManager.GetRootSignature(QBSS);
+	}
+
 	inline FD3D12CommandContext& GetDefaultCommandContext() const { return GetCommandContext(0); }
 	inline FD3D12DynamicHeapAllocator& GetDefaultUploadHeapAllocator() { return GetDefaultCommandContext().GetUploadHeapAllocator();	}
 
-	inline D3D12_RESOURCE_HEAP_TIER   GetResourceHeapTier() { return ResourceHeapTier; }
+	inline D3D12_RESOURCE_HEAP_TIER    GetResourceHeapTier() { return ResourceHeapTier; }
 	inline D3D12_RESOURCE_BINDING_TIER GetResourceBindingTier() { return ResourceBindingTier; }
 
 	TArray<FD3D12CommandListHandle> PendingCommandLists;
@@ -868,12 +893,14 @@ public:
 protected:
 
 
-    /** A pool of command lists and allocators we can cycle through for the global D3D device */
+    /** A pool of command lists we can cycle through for the global D3D device */
     FD3D12CommandListManager CommandListManager;
     FD3D12CommandListManager CopyCommandListManager;
 
-    TRefCountPtr<ID3D12RootSignature> GraphicsRS;
-    TRefCountPtr<ID3D12RootSignature> ComputeRS;
+    /** A pool of command allocators that texture streaming threads share */
+    FD3D12CommandAllocatorManager TextureStreamingCommandAllocatorManager;
+
+	FD3D12RootSignatureManager RootSignatureManager;
 
     TRefCountPtr<ID3D12CommandSignature> DrawIndirectCommandSignature;
     TRefCountPtr<ID3D12CommandSignature> DrawIndexedIndirectCommandSignature;
@@ -965,6 +992,8 @@ public:
         return static_cast<typename TD3D12ResourceTraits<TRHIType>::TConcreteType*>(Resource);
     }
 
+	//virtual void RHIGpuTimeBegin(uint32 Hash,bool bCompute) final override;
+	//virtual void RHIGpuTimeEnd(uint32 Hash,bool bCompute) final override;
 	virtual FSamplerStateRHIRef RHICreateSamplerState(const FSamplerStateInitializerRHI& Initializer) final override;
 	virtual FRasterizerStateRHIRef RHICreateRasterizerState(const FRasterizerStateInitializerRHI& Initializer) final override;
 	virtual FDepthStencilStateRHIRef RHICreateDepthStencilState(const FDepthStencilStateInitializerRHI& Initializer) final override;
@@ -1036,6 +1065,7 @@ public:
 	virtual bool RHIGetRenderQueryResult(FRenderQueryRHIParamRef RenderQuery, uint64& OutResult, bool bWait) final override;
 	virtual FTexture2DRHIRef RHIGetViewportBackBuffer(FViewportRHIParamRef Viewport) final override;
 	virtual void RHIAdvanceFrameForGetViewportBackBuffer() final override;
+	//virtual bool RHIIsDrawingViewport() final override;
 	virtual void RHIAcquireThreadOwnership() final override;
 	virtual void RHIReleaseThreadOwnership() final override;
 	virtual void RHIFlushResources() final override;
@@ -1046,6 +1076,9 @@ public:
 	virtual void RHISetStreamOutTargets(uint32 NumTargets,const FVertexBufferRHIParamRef* VertexBuffers,const uint32* Offsets) final override;
 	virtual void RHIDiscardRenderTargets(bool Depth,bool Stencil,uint32 ColorBitMask) final override;
 	virtual void RHIBlockUntilGPUIdle() final override;
+	virtual void RHISuspendRendering() final override;
+	virtual void RHIResumeRendering() final override;
+	virtual bool RHIIsRenderingSuspended() final override;
 	virtual bool RHIGetAvailableResolutions(FScreenResolutionArray& Resolutions, bool bIgnoreRefreshRate) final override;
 	virtual void RHIGetSupportedResolution(uint32& Width, uint32& Height) final override;
 	virtual void RHIVirtualTextureSetFirstMipInMemory(FTexture2DRHIParamRef Texture, uint32 FirstMip) final override;
@@ -1722,9 +1755,6 @@ private:
 	TGlobalResource< TBoundShaderStateHistory<10000> > BoundShaderStateHistory;
 
 	FD3DGPUProfiler GPUProfilingData;
-
-    /** Disables multi-queue support for the engine. */
-    bool bForceSingleQueueGPU;
 
 	template<typename BaseResourceType>
 	TD3D12Texture2D<BaseResourceType>* CreateD3D11Texture2D(uint32 SizeX, uint32 SizeY, uint32 SizeZ, bool bTextureArray, bool CubeTexture, uint8 Format,

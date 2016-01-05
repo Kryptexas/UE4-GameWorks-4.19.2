@@ -541,6 +541,7 @@ public:
 	FBuiltinSamplersUniformBuffer();
 
 	virtual void InitDynamicRHI() override;
+	virtual void ReleaseDynamicRHI() override;
 };
 
 extern ENGINE_API TGlobalResource<FBuiltinSamplersUniformBuffer> GBuiltinSamplersUniformBuffer;	
