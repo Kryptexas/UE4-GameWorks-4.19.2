@@ -52,43 +52,46 @@ void UAnimGraphNode_AnimDynamics::Draw(FPrimitiveDrawInterface* PDI, USkeletalMe
 					}
 				}
 				
-				const int32 BoneIndex = PreviewSkelMeshComp->GetBoneIndex(Node.BoundBone.BoneName);
-				FTransform BodyJointTransform = PreviewSkelMeshComp->GetBoneTransform(BoneIndex);
-				FTransform ShapeOriginalTransform = BodyJointTransform;
-
-				// Draw pin location
-				FVector LocalPinOffset = BodyTransform.Rotator().RotateVector(Node.GetBodyLocalJointOffset(BodyIndex));
-				PDI->DrawLine(Body.Pose.Position, Body.Pose.Position + LocalPinOffset, FLinearColor::Green, SDPG_Foreground, AnimDynamicsNodeConstants::ShapeLineWidth);
-
-				// Draw basis at body location
-				FVector Origin = BodyTransform.GetTranslation();
-				FVector XAxis(1.0f, 0.0f, 0.0f);
-				FVector YAxis(0.0f, 1.0f, 0.0f);
-				FVector ZAxis(0.0f, 0.0f, 1.0f);
-
-				XAxis = BodyTransform.TransformVector(XAxis);
-				YAxis = BodyTransform.TransformVector(YAxis);
-				ZAxis = BodyTransform.TransformVector(ZAxis);
-
-				PDI->DrawLine(Origin, Origin + XAxis * AnimDynamicsNodeConstants::TransformBasisScale, FLinearColor::Red, SDPG_Foreground, AnimDynamicsNodeConstants::TransformLineWidth);
-				PDI->DrawLine(Origin, Origin + YAxis * AnimDynamicsNodeConstants::TransformBasisScale, FLinearColor::Green, SDPG_Foreground, AnimDynamicsNodeConstants::TransformLineWidth);
-				PDI->DrawLine(Origin, Origin + ZAxis * AnimDynamicsNodeConstants::TransformBasisScale, FLinearColor::Blue, SDPG_Foreground, AnimDynamicsNodeConstants::TransformLineWidth);
-
-				if (bShowLinearLimits)
+				const int32 BoneIndex = PreviewSkelMeshComp->GetBoneIndex(ActivePreviewNode->BoundBone.BoneName);
+				if(BoneIndex != INDEX_NONE)
 				{
-					DrawLinearLimits(PDI, BodyJointTransform, *ActivePreviewNode);
-				}
+					FTransform BodyJointTransform = PreviewSkelMeshComp->GetBoneTransform(BoneIndex);
+					FTransform ShapeOriginalTransform = BodyJointTransform;
 
-				if (bShowAngularLimits)
-				{
-					FTransform AngularLimitsTM(BodyJointTransform.GetRotation(), BodyTransform.GetTranslation() + LocalPinOffset);
-					DrawAngularLimits(PDI, AngularLimitsTM, *ActivePreviewNode);
-				}
+					// Draw pin location
+					FVector LocalPinOffset = BodyTransform.Rotator().RotateVector(Node.GetBodyLocalJointOffset(BodyIndex));
+					PDI->DrawLine(Body.Pose.Position, Body.Pose.Position + LocalPinOffset, FLinearColor::Green, SDPG_Foreground, AnimDynamicsNodeConstants::ShapeLineWidth);
 
-				if(bShowPlanarLimit && bShowCollisionSpheres && Body.CollisionType != AnimPhysCollisionType::CoM)
-				{
-					// Draw collision sphere
-					DrawWireSphere(PDI, BodyTransform, FLinearColor(FColor::Cyan), Body.SphereCollisionRadius, 24, SDPG_Foreground, 0.2f);
+					// Draw basis at body location
+					FVector Origin = BodyTransform.GetTranslation();
+					FVector XAxis(1.0f, 0.0f, 0.0f);
+					FVector YAxis(0.0f, 1.0f, 0.0f);
+					FVector ZAxis(0.0f, 0.0f, 1.0f);
+
+					XAxis = BodyTransform.TransformVector(XAxis);
+					YAxis = BodyTransform.TransformVector(YAxis);
+					ZAxis = BodyTransform.TransformVector(ZAxis);
+
+					PDI->DrawLine(Origin, Origin + XAxis * AnimDynamicsNodeConstants::TransformBasisScale, FLinearColor::Red, SDPG_Foreground, AnimDynamicsNodeConstants::TransformLineWidth);
+					PDI->DrawLine(Origin, Origin + YAxis * AnimDynamicsNodeConstants::TransformBasisScale, FLinearColor::Green, SDPG_Foreground, AnimDynamicsNodeConstants::TransformLineWidth);
+					PDI->DrawLine(Origin, Origin + ZAxis * AnimDynamicsNodeConstants::TransformBasisScale, FLinearColor::Blue, SDPG_Foreground, AnimDynamicsNodeConstants::TransformLineWidth);
+
+					if(bShowLinearLimits)
+					{
+						DrawLinearLimits(PDI, BodyJointTransform, *ActivePreviewNode);
+					}
+
+					if(bShowAngularLimits)
+					{
+						FTransform AngularLimitsTM(BodyJointTransform.GetRotation(), BodyTransform.GetTranslation() + LocalPinOffset);
+						DrawAngularLimits(PDI, AngularLimitsTM, *ActivePreviewNode);
+					}
+
+					if(bShowPlanarLimit && bShowCollisionSpheres && Body.CollisionType != AnimPhysCollisionType::CoM)
+					{
+						// Draw collision sphere
+						DrawWireSphere(PDI, BodyTransform, FLinearColor(FColor::Cyan), Body.SphereCollisionRadius, 24, SDPG_Foreground, 0.2f);
+					}
 				}
 			}
 
