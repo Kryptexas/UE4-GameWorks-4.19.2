@@ -2701,6 +2701,7 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 						MakeArrayNode->PinConnectionListChanged(MakeArrayOut);
 					}
 					else if (Pin->LinkedTo.Num() == 0 &&
+							Pin->Direction == EGPD_Input &&
 							Pin->DefaultValue != FString() &&
 							Pin->PinType.PinCategory == Schema->PC_Byte &&
 							Pin->PinType.PinSubCategoryObject.IsValid() &&
