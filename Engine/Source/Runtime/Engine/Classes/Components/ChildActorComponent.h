@@ -46,7 +46,7 @@ public:
 
 	//~ Begin ActorComponent Interface.
 	virtual void OnComponentCreated() override;
-	virtual void OnComponentDestroyed() override;
+	virtual void OnComponentDestroyed(bool bDestroyingHierarchy) override;
 	virtual void OnRegister() override;
 	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
 	//~ End ActorComponent Interface.

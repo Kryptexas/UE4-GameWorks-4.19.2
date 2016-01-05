@@ -396,7 +396,7 @@ void UActorComponent::BeginDestroy()
 	// Ensure that we call OnComponentDestroyed before we destroy this component
 	if (bHasBeenCreated)
 	{
-		OnComponentDestroyed();
+		OnComponentDestroyed(GExitPurge);
 	}
 
 	World = NULL;
@@ -991,7 +991,7 @@ void UActorComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 	}
 
 	// Tell the component it is being destroyed
-	OnComponentDestroyed();
+	OnComponentDestroyed(false);
 
 	// Finally mark pending kill, to NULL out any other refs
 	MarkPendingKill();
@@ -1003,7 +1003,7 @@ void UActorComponent::OnComponentCreated()
 	bHasBeenCreated = true;
 }
 
-void UActorComponent::OnComponentDestroyed()
+void UActorComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 {
 	// @TODO: Would be nice to ensure(bHasBeenCreated), but there are still many places where components are created without calling OnComponentCreated
 	bHasBeenCreated = false;

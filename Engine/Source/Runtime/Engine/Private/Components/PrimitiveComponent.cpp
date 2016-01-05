@@ -879,7 +879,7 @@ void UPrimitiveComponent::BeginDestroy()
 	}
 }
 
-void UPrimitiveComponent::OnComponentDestroyed()
+void UPrimitiveComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 {
 	// Prevent future overlap events. Any later calls to UpdateOverlaps will only allow this to end overlaps.
 	bGenerateOverlapEvents = false;
@@ -892,7 +892,7 @@ void UPrimitiveComponent::OnComponentDestroyed()
 		ClearComponentOverlaps(bDoNotifies, bSkipNotifySelf);
 	}
 
-	Super::OnComponentDestroyed();
+	Super::OnComponentDestroyed(bDestroyingHierarchy);
 }
 
 bool UPrimitiveComponent::IsReadyForFinishDestroy()
