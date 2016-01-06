@@ -436,7 +436,9 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 		!FApp::IsBenchmarking() &&
 		!GIsDemoMode &&
 		!IsRunningCommandlet() &&
-		!FPlatformProcess::IsApplicationRunning(TEXT("EpicGamesLauncher"))) )
+		!FPlatformProcess::IsApplicationRunning(TEXT("EpicGamesLauncher")) &&
+		!FPlatformProcess::IsApplicationRunning(TEXT("EpicGamesLauncher-Mac-Shipping"))
+		))
 	{
 		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 		if ( DesktopPlatform != NULL )
