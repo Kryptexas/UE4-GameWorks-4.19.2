@@ -140,26 +140,6 @@ void FD3D12DynamicRHI::SetupRecursiveResources()
 	//SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, ResolveBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *ResolveVertexShader, *ResolvePixelShader);
 }
 
-#if 0
-void FD3D12DynamicRHI::RHIGpuTimeBegin(uint32 Hash, bool bCompute)
-{
-#if WITH_GPA
-	char Str[256];
-	if (GpaBegin(Str, Hash, bCompute, (void*)GetRHIDevice()->GetDevice()))
-	{
-		OutputDebugStringA(Str);
-	}
-#endif
-}
-
-void FD3D12DynamicRHI::RHIGpuTimeEnd(uint32 Hash, bool bCompute)
-{
-#if WITH_GPA
-	GpaEnd(Hash, bCompute);
-#endif
-}
-#endif
-
 // Vertex state.
 void FD3D12CommandContext::RHISetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBufferRHI, uint32 Stride, uint32 Offset)
 {
@@ -2286,5 +2266,6 @@ void FD3D12CommandContext::RHIEnableDepthBoundsTest(bool bEnable, float MinDepth
 
 void FD3D12CommandContext::RHISubmitCommandsHint()
 {
-
+	// Submit the work we have so far, and start a new command list.
+	FlushCommands();
 }

@@ -108,16 +108,33 @@ FD3D12CommandListHandle FD3D12CommandContext::FlushCommands(bool WaitForCompleti
 	// We should only be flushing the default context
 	check(IsDefaultContext());
 
+	FD3D12Device* Device = GetParentDevice();
+	const bool bExecutePendingWork = GCommandListBatchingMode == CLB_AggressiveBatching;
+	const bool bHasPendingWork = bExecutePendingWork && (Device->PendingCommandListsTotalWorkCommands > 0);
+	const bool bHasDoneWork = HasDoneWork() || bHasPendingWork;
+
 	// Only submit a command list if it does meaningful work or the flush is expected to wait for completion.
-	if (WaitForCompletion || HasDoneWork())
+	if (WaitForCompletion || bHasDoneWork)
 	{
 #if SUPPORTS_MEMORY_RESIDENCY
-		GetParentDevice()->GetOwningRHI()->GetResourceResidencyManager().MakeResident();
+		Device->GetOwningRHI()->GetResourceResidencyManager().MakeResident();
 #endif
 		// Close the current command list
 		CloseCommandList();
 
-		CommandListHandle.Execute(WaitForCompletion);
+		if (bHasPendingWork)
+		{
+			// Submit all pending command lists and the current command list
+			Device->PendingCommandLists.Add(CommandListHandle);
+			Device->GetCommandListManager().ExecuteCommandLists(Device->PendingCommandLists, WaitForCompletion);
+			Device->PendingCommandLists.Reset();
+			Device->PendingCommandListsTotalWorkCommands = 0;
+		}
+		else
+		{
+			// Just submit the current command list
+			CommandListHandle.Execute(WaitForCompletion);
+		}
 
 		// Get a new command list to replace the one we submitted for execution. 
 		// Restore the state from the previous command list.

@@ -150,9 +150,8 @@ void FD3D12CommandContext::RHIEndOcclusionQueryBatch()
 {
 	GetParentDevice()->GetQueryHeap()->EndQueryBatchAndResolveQueryData(*this, D3D12_QUERY_TYPE_OCCLUSION);
 	
-	// MSFT: Seb: Do we still need to do this if we support parallel execute?
-	// Break up the command list here so that the wait on the previous frame's results don't block.
-	FlushCommands();
+	// Note: We want to execute this ASAP. The Engine will call RHISubmitCommandHint after this.
+	// We'll break up the command list there so that the wait on the previous frame's results don't block.
 }
 
 /*=============================================================================

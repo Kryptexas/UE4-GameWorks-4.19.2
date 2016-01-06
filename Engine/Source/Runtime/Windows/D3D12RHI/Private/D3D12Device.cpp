@@ -96,10 +96,22 @@ public:
 		{
 			check((IsInRenderingThread() || IsInRHIThread()));
 
-			OwningDevice->GetDefaultCommandContext().FlushCommands();
+			FD3D12CommandContext& DefaultContext = OwningDevice->GetDefaultCommandContext();
+
+			// Don't really submit the default context yet, just start a new command list.
+			// Close the command list, add it to the pending command lists, then open a new command list (with the previous state restored).
+			DefaultContext.CloseCommandList();
+
+			OwningDevice->PendingCommandLists.Add(DefaultContext.CommandListHandle);
+			OwningDevice->PendingCommandListsTotalWorkCommands +=
+				DefaultContext.numClears +
+				DefaultContext.numCopies +
+				DefaultContext.numDraws;
+
+			DefaultContext.OpenCommandList(true);
 		}
 
-		// Add the current lists for execution (now or possibly later)
+		// Add the current lists for execution (now or possibly later depending on the command list batching mode).
 		for (int32 i = 0; i < CommandLists.Num(); ++i)
 		{
 			OwningDevice->PendingCommandLists.Add(CommandLists[i]);
@@ -111,16 +123,19 @@ public:
 
 		CommandLists.Reset();
 
-		// Submission occurs when a batch is finished
-		const bool FinalCommandListInBatch = Index == (Num - 1);
-		if (FinalCommandListInBatch && OwningDevice->PendingCommandLists.Num() > 0)
+		if (GCommandListBatchingMode != CLB_AggressiveBatching)
 		{
+			// Submit when the batch is finished.
+			const bool FinalCommandListInBatch = Index == (Num - 1);
+			if (FinalCommandListInBatch && OwningDevice->PendingCommandLists.Num() > 0)
+			{
 #if SUPPORTS_MEMORY_RESIDENCY
-			OwningDevice->GetOwningRHI()->GetResourceResidencyManager().MakeResident();
+				OwningDevice->GetOwningRHI()->GetResourceResidencyManager().MakeResident();
 #endif
-			OwningDevice->GetCommandListManager().ExecuteCommandLists(OwningDevice->PendingCommandLists);
-			OwningDevice->PendingCommandLists.Reset();
-			OwningDevice->PendingCommandListsTotalWorkCommands = 0;
+				OwningDevice->GetCommandListManager().ExecuteCommandLists(OwningDevice->PendingCommandLists);
+				OwningDevice->PendingCommandLists.Reset();
+				OwningDevice->PendingCommandListsTotalWorkCommands = 0;
+			}
 		}
 
 		delete this;

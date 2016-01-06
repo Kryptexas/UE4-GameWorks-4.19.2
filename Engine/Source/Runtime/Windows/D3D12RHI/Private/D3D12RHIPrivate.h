@@ -136,6 +136,20 @@ static FAutoConsoleVariableRef CVarEnableMultiEngine(
 	ECVF_RenderThreadSafe | ECVF_ReadOnly
 	);
 
+enum ECommandListBatchMode
+{
+	CLB_NormalBatching = 1,			// Submits work on explicit Flush and at the end of a context container batch
+	CLB_AggressiveBatching = 2,		// Submits work on explicit Flush (after Occlusion queries, and before Present) - Least # of submits.
+};
+
+static int32 GCommandListBatchingMode = CLB_NormalBatching;
+static FAutoConsoleVariableRef CVarCommandListBatchingMode(
+	TEXT("D3D12.CommandListBatchingMode"),
+	GCommandListBatchingMode,
+	TEXT("Changes how command lists are batched and submitted to the GPU."),
+	ECVF_RenderThreadSafe
+	);
+
 // This class handles query heaps
 class FD3D12QueryHeap : public FD3D12DeviceChild
 {
@@ -992,8 +1006,6 @@ public:
         return static_cast<typename TD3D12ResourceTraits<TRHIType>::TConcreteType*>(Resource);
     }
 
-	//virtual void RHIGpuTimeBegin(uint32 Hash,bool bCompute) final override;
-	//virtual void RHIGpuTimeEnd(uint32 Hash,bool bCompute) final override;
 	virtual FSamplerStateRHIRef RHICreateSamplerState(const FSamplerStateInitializerRHI& Initializer) final override;
 	virtual FRasterizerStateRHIRef RHICreateRasterizerState(const FRasterizerStateInitializerRHI& Initializer) final override;
 	virtual FDepthStencilStateRHIRef RHICreateDepthStencilState(const FDepthStencilStateInitializerRHI& Initializer) final override;
@@ -1065,7 +1077,6 @@ public:
 	virtual bool RHIGetRenderQueryResult(FRenderQueryRHIParamRef RenderQuery, uint64& OutResult, bool bWait) final override;
 	virtual FTexture2DRHIRef RHIGetViewportBackBuffer(FViewportRHIParamRef Viewport) final override;
 	virtual void RHIAdvanceFrameForGetViewportBackBuffer() final override;
-	//virtual bool RHIIsDrawingViewport() final override;
 	virtual void RHIAcquireThreadOwnership() final override;
 	virtual void RHIReleaseThreadOwnership() final override;
 	virtual void RHIFlushResources() final override;
