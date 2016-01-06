@@ -10,35 +10,60 @@
 #include "GenericCommands.h"
 #include "IMenu.h"
 
-void SMultiLineEditableText::FCursorInfo::SetCursorLocationAndCalculateAlignment(const TSharedPtr<FTextLayout>& InTextLayout, const FTextLocation& InCursorPosition)
+void SMultiLineEditableText::FCursorInfo::SetCursorLocationAndCalculateAlignment(const FTextLayout& InTextLayout, const FTextLocation& InCursorPosition)
 {
 	FTextLocation NewCursorPosition = InCursorPosition;
 	ECursorAlignment NewAlignment = ECursorAlignment::Left;
 
-	const int32 CursorLineIndex = InCursorPosition.GetLineIndex();
-	const int32 CursorOffset = InCursorPosition.GetOffset();
-
-	// A CursorOffset of zero could mark the end of an empty line, but we don't need to adjust the cursor for an empty line
-	if (InTextLayout.IsValid() && CursorOffset > 0)
 	{
-		const TArray< FTextLayout::FLineModel >& Lines = InTextLayout->GetLineModels();
-		const FTextLayout::FLineModel& Line = Lines[CursorLineIndex];
-		if (Line.Text->Len() == CursorOffset)
+		const int32 CursorLineIndex = InCursorPosition.GetLineIndex();
+		const int32 CursorOffset = InCursorPosition.GetOffset();
+
+		// A CursorOffset of zero could mark the end of an empty line, but we don't need to adjust the cursor for an empty line
+		if (CursorOffset > 0)
 		{
-			// We need to move the cursor back one from where it currently is; this keeps the interaction point the same 
-			// (since the cursor is aligned to the right), but visually draws the cursor in the correct place
-			NewCursorPosition = FTextLocation(NewCursorPosition, -1);
-			NewAlignment = ECursorAlignment::Right;
+			const TArray<FTextLayout::FLineModel>& Lines = InTextLayout.GetLineModels();
+			const FTextLayout::FLineModel& Line = Lines[CursorLineIndex];
+			if (Line.Text->Len() == CursorOffset)
+			{
+				// We need to move the cursor back one from where it currently is; this keeps the interaction point the same 
+				// (since the cursor is aligned to the right), but visually draws the cursor in the correct place
+				NewCursorPosition = FTextLocation(NewCursorPosition, -1);
+				NewAlignment = ECursorAlignment::Right;
+			}
 		}
 	}
 
-	SetCursorLocationAndAlignment(NewCursorPosition, NewAlignment);
+	SetCursorLocationAndAlignment(InTextLayout, NewCursorPosition, NewAlignment);
 }
 
-void SMultiLineEditableText::FCursorInfo::SetCursorLocationAndAlignment(const FTextLocation& InCursorPosition, const ECursorAlignment InCursorAlignment)
+void SMultiLineEditableText::FCursorInfo::SetCursorLocationAndAlignment(const FTextLayout& InTextLayout, const FTextLocation& InCursorPosition, const ECursorAlignment InCursorAlignment)
 {
 	CursorPosition = InCursorPosition;
 	CursorAlignment = InCursorAlignment;
+	CursorTextDirection = TextBiDi::ETextDirection::LeftToRight;
+
+	// Get the text direction for the block under the cursor
+	{
+		const TArray<FTextLayout::FLineView>& LineViews = InTextLayout.GetLineViews();
+		const int32 LineViewIndex = InTextLayout.GetLineViewIndexForTextLocation(LineViews, InCursorPosition, InCursorAlignment == ECursorAlignment::Right);
+		if (LineViews.IsValidIndex(LineViewIndex))
+		{
+			const FTextLayout::FLineView& LineView = LineViews[LineViewIndex];
+			const int32 CursorOffset = InCursorPosition.GetOffset();
+
+			for (const auto& Block : LineView.Blocks)
+			{
+				const FTextRange BlockTextRange = Block->GetTextRange();
+				if (BlockTextRange.Contains(CursorOffset))
+				{
+					CursorTextDirection = Block->GetTextContext().TextDirection;
+					break;
+				}
+			}
+		}
+	}
+
 	LastCursorInteractionTime = FSlateApplication::Get().GetCurrentTime();
 }
 
@@ -47,13 +72,16 @@ SMultiLineEditableText::FCursorInfo SMultiLineEditableText::FCursorInfo::CreateU
 	FCursorInfo UndoData;
 	UndoData.CursorPosition = CursorPosition;
 	UndoData.CursorAlignment = CursorAlignment;
+	UndoData.CursorTextDirection = CursorTextDirection;
 	return UndoData;
 }
 
 void SMultiLineEditableText::FCursorInfo::RestoreFromUndo(const FCursorInfo& UndoData)
 {
-	// Use SetCursorLocationAndAlignment since it updates LastCursorInteractionTime
-	SetCursorLocationAndAlignment(UndoData.CursorPosition, UndoData.CursorAlignment);
+	CursorPosition = UndoData.CursorPosition;
+	CursorAlignment = UndoData.CursorAlignment;
+	CursorTextDirection = UndoData.CursorTextDirection;
+	LastCursorInteractionTime = FSlateApplication::Get().GetCurrentTime();
 }
 
 SMultiLineEditableText::FCursorLineHighlighter::FCursorLineHighlighter(const FCursorInfo* InCursorInfo)
@@ -88,7 +116,13 @@ int32 SMultiLineEditableText::FCursorLineHighlighter::OnPaint(const FPaintArgs& 
 	// @todo: Slate Styles - make this brush part of the widget style
 	const FSlateBrush* CursorBrush = FCoreStyle::Get().GetBrush("EditableText.SelectionBackground");
 
-	const FVector2D OptionalWidth = CursorInfo->GetCursorAlignment() == ECursorAlignment::Right ? FVector2D(Size.X, 0) : FVector2D::ZeroVector;
+	ECursorAlignment VisualCursorAlignment = CursorInfo->GetCursorAlignment();
+	if (CursorInfo->GetCursorTextDirection() == TextBiDi::ETextDirection::RightToLeft)
+	{
+		// We need to flip the visual alignment for right-to-left text, as the start of the glyph is one the right hand side of the highlight
+		VisualCursorAlignment = VisualCursorAlignment == ECursorAlignment::Left ? ECursorAlignment::Right : ECursorAlignment::Left;
+	}
+	const FVector2D OptionalWidth = VisualCursorAlignment == ECursorAlignment::Right ? FVector2D(Size.X, 0) : FVector2D::ZeroVector;
 
 	FSlateDrawElement::MakeBox(
 		OutDrawElements,
@@ -97,7 +131,8 @@ int32 SMultiLineEditableText::FCursorLineHighlighter::OnPaint(const FPaintArgs& 
 		CursorBrush,
 		MyClippingRect,
 		bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
-		CursorColorAndOpacity*InWidgetStyle.GetColorAndOpacityTint());
+		CursorColorAndOpacity*InWidgetStyle.GetColorAndOpacityTint()
+		);
 
 	return LayerId;
 }
@@ -541,7 +576,7 @@ bool SMultiLineEditableText::SetEditableText(const FText& TextToSet, const bool 
 				const int32 LastLineIndex = Lines.Num() - 1;
 				const FTextLocation NewCursorPosition = FTextLocation(LastLineIndex, Lines[LastLineIndex].Text->Len());
 
-				CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+				CursorInfo.SetCursorLocationAndCalculateAlignment(*TextLayout, NewCursorPosition);
 				OnCursorMoved.ExecuteIfBound(CursorInfo.GetCursorInteractionLocation());
 				UpdatePreferredCursorScreenOffsetInLine();
 				UpdateCursorHighlight();
@@ -826,7 +861,7 @@ void SMultiLineEditableText::BackspaceChar()
 			}
 		}
 
-		CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, FinalCursorLocation);
+		CursorInfo.SetCursorLocationAndCalculateAlignment(*TextLayout, FinalCursorLocation);
 
 		ClearSelection();
 		UpdateCursorHighlight();
@@ -914,7 +949,7 @@ void SMultiLineEditableText::DeleteChar()
 				//do nothing to the cursor as the FinalCursorLocation is already correct
 			}
 
-			CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, FinalCursorLocation);
+			CursorInfo.SetCursorLocationAndCalculateAlignment(*TextLayout, FinalCursorLocation);
 
 			ClearSelection();
 			UpdateCursorHighlight();
@@ -961,7 +996,7 @@ void SMultiLineEditableText::TypeChar( const int32 Character )
 		ClearSelection();
 		const FTextLocation FinalCursorLocation = FTextLocation( CursorInteractionPosition.GetLineIndex(), FMath::Min( CursorInteractionPosition.GetOffset() + 1, Line.Text->Len() ) );
 
-		CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, FinalCursorLocation);
+		CursorInfo.SetCursorLocationAndCalculateAlignment(*TextLayout, FinalCursorLocation);
 		UpdateCursorHighlight();
 	}
 }
@@ -1022,7 +1057,7 @@ void SMultiLineEditableText::DeleteSelectedText()
 		// Clear selection
 		ClearSelection();
 		const FTextLocation FinalCursorLocation = FTextLocation(SelectionBeginningLineIndex, SelectionBeginningLineOffset);
-		CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, FinalCursorLocation);
+		CursorInfo.SetCursorLocationAndCalculateAlignment(*TextLayout, FinalCursorLocation);
 		UpdateCursorHighlight();
 	}
 }
@@ -1135,11 +1170,11 @@ FReply SMultiLineEditableText::MoveCursor( FMoveCursor Args )
 
 	if (NewCursorAlignment.IsSet())
 	{
-		CursorInfo.SetCursorLocationAndAlignment(NewCursorPosition, NewCursorAlignment.GetValue());
+		CursorInfo.SetCursorLocationAndAlignment(*TextLayout, NewCursorPosition, NewCursorAlignment.GetValue());
 	}
 	else
 	{
-		CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+		CursorInfo.SetCursorLocationAndCalculateAlignment(*TextLayout, NewCursorPosition);
 	}
 
 	OnCursorMoved.ExecuteIfBound(CursorInfo.GetCursorInteractionLocation());
@@ -1335,7 +1370,7 @@ void SMultiLineEditableText::JumpTo(ETextLocation JumpLocation, ECursorAction Ac
 					ClearSelection();
 				}
 
-				CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+				CursorInfo.SetCursorLocationAndCalculateAlignment(*TextLayout, NewCursorPosition);
 				OnCursorMoved.ExecuteIfBound(CursorInfo.GetCursorInteractionLocation());
 				UpdatePreferredCursorScreenOffsetInLine();
 				UpdateCursorHighlight();
@@ -1360,7 +1395,7 @@ void SMultiLineEditableText::JumpTo(ETextLocation JumpLocation, ECursorAction Ac
 				ClearSelection();
 			}
 
-			CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+			CursorInfo.SetCursorLocationAndCalculateAlignment(*TextLayout, NewCursorPosition);
 			OnCursorMoved.ExecuteIfBound(CursorInfo.GetCursorInteractionLocation());
 			UpdatePreferredCursorScreenOffsetInLine();
 			UpdateCursorHighlight();
@@ -1392,7 +1427,7 @@ void SMultiLineEditableText::JumpTo(ETextLocation JumpLocation, ECursorAction Ac
 					ClearSelection();
 				}
 
-				CursorInfo.SetCursorLocationAndAlignment(NewCursorPosition, ECursorAlignment::Right);
+				CursorInfo.SetCursorLocationAndAlignment(*TextLayout, NewCursorPosition, ECursorAlignment::Right);
 				OnCursorMoved.ExecuteIfBound(CursorInfo.GetCursorInteractionLocation());
 				UpdatePreferredCursorScreenOffsetInLine();
 				UpdateCursorHighlight();
@@ -1422,7 +1457,7 @@ void SMultiLineEditableText::JumpTo(ETextLocation JumpLocation, ECursorAction Ac
 					ClearSelection();
 				}
 
-				CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+				CursorInfo.SetCursorLocationAndCalculateAlignment(*TextLayout, NewCursorPosition);
 				OnCursorMoved.ExecuteIfBound(CursorInfo.GetCursorInteractionLocation());
 				UpdatePreferredCursorScreenOffsetInLine();
 				UpdateCursorHighlight();
@@ -1461,11 +1496,11 @@ void SMultiLineEditableText::JumpTo(ETextLocation JumpLocation, ECursorAction Ac
 
 				if (NewCursorAlignment.IsSet())
 				{
-					CursorInfo.SetCursorLocationAndAlignment(NewCursorPosition, NewCursorAlignment.GetValue());
+					CursorInfo.SetCursorLocationAndAlignment(*TextLayout, NewCursorPosition, NewCursorAlignment.GetValue());
 				}
 				else
 				{
-					CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+					CursorInfo.SetCursorLocationAndCalculateAlignment(*TextLayout, NewCursorPosition);
 				}
 				OnCursorMoved.ExecuteIfBound(CursorInfo.GetCursorInteractionLocation());
 				UpdatePreferredCursorScreenOffsetInLine();
@@ -1518,11 +1553,11 @@ void SMultiLineEditableText::JumpTo(ETextLocation JumpLocation, ECursorAction Ac
 
 				if (NewCursorAlignment.IsSet())
 				{
-					CursorInfo.SetCursorLocationAndAlignment(NewCursorPosition, NewCursorAlignment.GetValue());
+					CursorInfo.SetCursorLocationAndAlignment(*TextLayout, NewCursorPosition, NewCursorAlignment.GetValue());
 				}
 				else
 				{
-					CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+					CursorInfo.SetCursorLocationAndCalculateAlignment(*TextLayout, NewCursorPosition);
 				}
 				OnCursorMoved.ExecuteIfBound(CursorInfo.GetCursorInteractionLocation());
 				UpdatePreferredCursorScreenOffsetInLine();
@@ -1602,7 +1637,7 @@ void SMultiLineEditableText::InsertRunAtCursor(TSharedRef<IRun> InRun)
 	const FTextLayout::FLineModel& Line = Lines[CursorInteractionPosition.GetLineIndex()];
 	const FTextLocation FinalCursorLocation = FTextLocation(CursorInteractionPosition.GetLineIndex(), FMath::Min(CursorInteractionPosition.GetOffset() + InRunText.Len(), Line.Text->Len()));
 
-	CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, FinalCursorLocation);
+	CursorInfo.SetCursorLocationAndCalculateAlignment(*TextLayout, FinalCursorLocation);
 	UpdateCursorHighlight();
 
 	FinishChangingText();
@@ -1618,7 +1653,7 @@ void SMultiLineEditableText::GoTo(const FTextLocation& NewLocation)
 		{
 			ClearSelection();
 
-			CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewLocation);
+			CursorInfo.SetCursorLocationAndCalculateAlignment(*TextLayout, NewLocation);
 			OnCursorMoved.ExecuteIfBound(CursorInfo.GetCursorInteractionLocation());
 			UpdatePreferredCursorScreenOffsetInLine();
 			UpdateCursorHighlight();
@@ -1721,7 +1756,7 @@ void SMultiLineEditableText::ApplyToSelection(const FRunInfo& InRunInfo, const F
 	}
 
 	SelectionStart = SelectionLocation;
-	CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, CursorInteractionPosition);
+	CursorInfo.SetCursorLocationAndCalculateAlignment(*TextLayout, CursorInteractionPosition);
 
 	UpdatePreferredCursorScreenOffsetInLine();
 	UpdateCursorHighlight();
@@ -1918,7 +1953,7 @@ void SMultiLineEditableText::SelectAllText()
 
 	SelectionStart = FTextLocation(0,0);
 	const FTextLocation NewCursorPosition = FTextLocation( NumberOfLines - 1, Lines[ NumberOfLines - 1 ].Text->Len() );
-	CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+	CursorInfo.SetCursorLocationAndCalculateAlignment(*TextLayout, NewCursorPosition);
 	UpdateCursorHighlight();
 }
 
@@ -1948,7 +1983,7 @@ void SMultiLineEditableText::SelectWordAt( const FGeometry& MyGeometry, const FV
 		}
 
 		const FTextLocation NewCursorPosition = WordEnd;
-		CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+		CursorInfo.SetCursorLocationAndCalculateAlignment(*TextLayout, NewCursorPosition);
 		UpdateCursorHighlight();
 	}
 }
@@ -2238,7 +2273,7 @@ void SMultiLineEditableText::InsertNewLineAtCursorImpl()
 	{
 		// Adjust the cursor position to be at the beginning of the new line
 		const FTextLocation NewCursorPosition = FTextLocation(CursorInteractionPosition.GetLineIndex() + 1, 0);
-		CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+		CursorInfo.SetCursorLocationAndCalculateAlignment(*TextLayout, NewCursorPosition);
 	}
 
 	ClearSelection();
@@ -3113,7 +3148,7 @@ void SMultiLineEditableText::FTextInputMethodContext::SetSelectionRange(const ui
 		{
 		case ITextInputMethodContext::ECaretPosition::Beginning:
 			{
-				OwningWidgetPtr->CursorInfo.SetCursorLocationAndCalculateAlignment(OwningWidgetPtr->TextLayout, MinTextLocation);
+				OwningWidgetPtr->CursorInfo.SetCursorLocationAndCalculateAlignment(*OwningWidgetPtr->TextLayout, MinTextLocation);
 				OwningWidgetPtr->SelectionStart = MaxTextLocation;
 			}
 			break;
@@ -3121,7 +3156,7 @@ void SMultiLineEditableText::FTextInputMethodContext::SetSelectionRange(const ui
 		case ITextInputMethodContext::ECaretPosition::Ending:
 			{
 				OwningWidgetPtr->SelectionStart = MinTextLocation;
-				OwningWidgetPtr->CursorInfo.SetCursorLocationAndCalculateAlignment(OwningWidgetPtr->TextLayout, MaxTextLocation);
+				OwningWidgetPtr->CursorInfo.SetCursorLocationAndCalculateAlignment(*OwningWidgetPtr->TextLayout, MaxTextLocation);
 			}
 			break;
 		}

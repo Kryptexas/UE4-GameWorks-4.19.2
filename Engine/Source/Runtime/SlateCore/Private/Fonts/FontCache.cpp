@@ -92,6 +92,12 @@ TOptional<int32> FShapedGlyphSequence::GetMeasuredWidth(const int32 InStartIndex
 	bool bFoundStartGlyph = false;
 	bool bFoundEndGlyph = false;
 
+	if (InIncludeKerningWithPrecedingGlyph && InStartIndex > 0)
+	{
+		const TOptional<int8> Kerning = GetKerning(InStartIndex - 1);
+		MeasuredWidth += Kerning.Get(0);
+	}
+
 	const TRange<int32> MeasureRange(InStartIndex, InEndIndex);
 	for (const FShapedGlyphClusterBlock& CurrentClusterBlock : GlyphClusterBlocks)
 	{
@@ -102,6 +108,9 @@ TOptional<int32> FShapedGlyphSequence::GetMeasuredWidth(const int32 InStartIndex
 			for (int32 CurrentGlyphIndex = CurrentClusterBlock.ShapedGlyphStartIndex; CurrentGlyphIndex < CurrentClusterBlock.ShapedGlyphEndIndex; ++CurrentGlyphIndex)
 			{
 				const FShapedGlyphEntry& CurrentGlyph = GlyphsToRender[CurrentGlyphIndex];
+
+				// A single character may produce multiple glyphs which must be treated as a single logic unit
+				const bool bIsWithinGlyphCluster = GlyphsToRender.IsValidIndex(CurrentGlyphIndex + 1) && CurrentGlyph.ClusterIndex == GlyphsToRender[CurrentGlyphIndex + 1].ClusterIndex;
 
 				if (!bFoundStartGlyph && CurrentGlyph.ClusterIndex == InStartIndex)
 				{
@@ -117,6 +126,12 @@ TOptional<int32> FShapedGlyphSequence::GetMeasuredWidth(const int32 InStartIndex
 				{
 					MeasuredWidth += CurrentGlyph.XAdvance;
 				}
+
+				// If we found both our end-points (and we're not within a glyph cluster), we can bail now
+				if (bFoundStartGlyph && bFoundEndGlyph && !bIsWithinGlyphCluster)
+				{
+					break;
+				}
 			}
 
 			// The shaped glyphs don't contain the end cluster block index, so if we matched end of the cluster range, say we measured okay
@@ -127,12 +142,6 @@ TOptional<int32> FShapedGlyphSequence::GetMeasuredWidth(const int32 InStartIndex
 		}
 	}
 
-	if (InIncludeKerningWithPrecedingGlyph && InStartIndex > 0)
-	{
-		const TOptional<int8> Kerning = GetKerning(InStartIndex - 1);
-		MeasuredWidth += Kerning.Get(0);
-	}
-
 	// Did we measure okay?
 	if (bFoundStartGlyph && bFoundEndGlyph)
 	{
@@ -140,6 +149,215 @@ TOptional<int32> FShapedGlyphSequence::GetMeasuredWidth(const int32 InStartIndex
 	}
 
 	return TOptional<int32>();
+}
+
+FShapedGlyphSequence::FGlyphOffsetResult FShapedGlyphSequence::GetGlyphAtOffset(FSlateFontCache& InFontCache, const int32 InHorizontalOffset) const
+{
+	if (GlyphsToRender.Num() == 0)
+	{
+		return FGlyphOffsetResult();
+	}
+
+	int32 CurrentOffset = 0;
+	int32 MatchedGlyphIndex = INDEX_NONE;
+	TextBiDi::ETextDirection MatchedGlyphTextDirection = TextBiDi::ETextDirection::LeftToRight;
+
+	int32 PreviousGlyphIndex = INDEX_NONE;
+	for (const FShapedGlyphClusterBlock& CurrentClusterBlock : GlyphClusterBlocks)
+	{
+		// Measure all the in-range glyphs from this cluster block
+		for (int32 CurrentGlyphIndex = CurrentClusterBlock.ShapedGlyphStartIndex; CurrentGlyphIndex < CurrentClusterBlock.ShapedGlyphEndIndex; ++CurrentGlyphIndex)
+		{
+			const FShapedGlyphEntry* CurrentGlyphPtr = &GlyphsToRender[CurrentGlyphIndex];
+			const int32 FirstGlyphIndexInGlyphCluster = CurrentGlyphIndex;
+
+			// A single character may produce multiple glyphs which must be treated as a single logic unit
+			int32 TotalGlyphSpacing = 0;
+			for (;;)
+			{
+				const FShapedGlyphFontAtlasData GlyphAtlasData = InFontCache.GetShapedGlyphFontAtlasData(*CurrentGlyphPtr);
+				TotalGlyphSpacing += GlyphAtlasData.HorizontalOffset + CurrentGlyphPtr->XAdvance;
+
+				const bool bIsWithinGlyphCluster = GlyphsToRender.IsValidIndex(CurrentGlyphIndex + 1) && CurrentGlyphPtr->ClusterIndex == GlyphsToRender[CurrentGlyphIndex + 1].ClusterIndex;
+				if (!bIsWithinGlyphCluster)
+				{
+					break;
+				}
+
+				CurrentGlyphPtr = &GlyphsToRender[++CurrentGlyphIndex];
+			}
+
+			// Round our test toward the glyphs center position based on the reading direction of the text
+			const int32 GlyphWidthToTest = (CurrentGlyphPtr->NumCharactersInGlyph > 1) ? TotalGlyphSpacing : TotalGlyphSpacing / 2;
+
+			if (InHorizontalOffset < (CurrentOffset + GlyphWidthToTest))
+			{
+				if (CurrentClusterBlock.TextDirection == TextBiDi::ETextDirection::LeftToRight)
+				{
+					MatchedGlyphIndex = FirstGlyphIndexInGlyphCluster;
+				}
+				else
+				{
+					// Right-to-left text needs to return the previous glyph index, since that is the logical "next" glyph
+					if (PreviousGlyphIndex == INDEX_NONE)
+					{
+						// No previous glyph, so use the end index of the current cluster block since that will draw to the left of this glyph, and will trigger the cursor to move to the opposite side of the current glyph
+						return FGlyphOffsetResult(CurrentClusterBlock.ClusterEndIndex);
+					}
+					else
+					{
+						MatchedGlyphIndex = PreviousGlyphIndex;
+					}
+				}
+				MatchedGlyphTextDirection = CurrentClusterBlock.TextDirection;
+				break;
+			}
+
+			PreviousGlyphIndex = FirstGlyphIndexInGlyphCluster;
+
+			CurrentOffset += CurrentGlyphPtr->XAdvance;
+		}
+	}
+
+	if (MatchedGlyphIndex == INDEX_NONE)
+	{
+		// The offset was outside of the current text, so say we hit the rightmost cluster from the last cluster block
+		const FShapedGlyphClusterBlock& LastClusterBlock = GlyphClusterBlocks.Last();
+		return FGlyphOffsetResult((LastClusterBlock.TextDirection == TextBiDi::ETextDirection::LeftToRight) ? LastClusterBlock.ClusterEndIndex : LastClusterBlock.ClusterStartIndex);
+	}
+
+	const FShapedGlyphEntry& MatchedGlyph = GlyphsToRender[MatchedGlyphIndex];
+	return FGlyphOffsetResult(&MatchedGlyph, MatchedGlyphTextDirection, CurrentOffset);
+}
+
+TOptional<FShapedGlyphSequence::FGlyphOffsetResult> FShapedGlyphSequence::GetGlyphAtOffset(FSlateFontCache& InFontCache, int32 InStartIndex, int32 InEndIndex, const int32 InHorizontalOffset, const bool InIncludeKerningWithPrecedingGlyph) const
+{
+	int32 CurrentOffset = 0;
+	int32 VisuallyRightmostClusterIndex = INDEX_NONE;
+	int32 MatchedGlyphIndex = INDEX_NONE;
+	TextBiDi::ETextDirection MatchedGlyphTextDirection = TextBiDi::ETextDirection::LeftToRight;
+
+	bool bFoundStartGlyph = false;
+	bool bFoundEndGlyph = false;
+
+	if (InIncludeKerningWithPrecedingGlyph && InStartIndex > 0)
+	{
+		const TOptional<int8> Kerning = GetKerning(InStartIndex - 1);
+		CurrentOffset += Kerning.Get(0);
+	}
+
+	const TRange<int32> SearchRange(InStartIndex, InEndIndex);
+	int32 PreviousGlyphIndex = INDEX_NONE;
+	for (const FShapedGlyphClusterBlock& CurrentClusterBlock : GlyphClusterBlocks)
+	{
+		const TRange<int32> CurrentClusterBlockRange(CurrentClusterBlock.ClusterStartIndex, CurrentClusterBlock.ClusterEndIndex);
+		if (CurrentClusterBlockRange.Overlaps(SearchRange))
+		{
+			// Measure all the in-range glyphs from this cluster block
+			for (int32 CurrentGlyphIndex = CurrentClusterBlock.ShapedGlyphStartIndex; CurrentGlyphIndex < CurrentClusterBlock.ShapedGlyphEndIndex; ++CurrentGlyphIndex)
+			{
+				const FShapedGlyphEntry* CurrentGlyphPtr = &GlyphsToRender[CurrentGlyphIndex];
+				const int32 FirstGlyphIndexInGlyphCluster = CurrentGlyphIndex;
+
+				if (!bFoundStartGlyph && CurrentGlyphPtr->ClusterIndex == InStartIndex)
+				{
+					bFoundStartGlyph = true;
+				}
+
+				if (!bFoundEndGlyph && CurrentGlyphPtr->ClusterIndex == InEndIndex)
+				{
+					bFoundEndGlyph = true;
+				}
+
+				if (CurrentGlyphPtr->ClusterIndex >= InStartIndex && CurrentGlyphPtr->ClusterIndex < InEndIndex)
+				{
+					// A single character may produce multiple glyphs which must be treated as a single logic unit
+					int32 TotalGlyphSpacing = 0;
+					for (;;)
+					{
+						const FShapedGlyphFontAtlasData GlyphAtlasData = InFontCache.GetShapedGlyphFontAtlasData(*CurrentGlyphPtr);
+						TotalGlyphSpacing += GlyphAtlasData.HorizontalOffset + CurrentGlyphPtr->XAdvance;
+
+						const bool bIsWithinGlyphCluster = GlyphsToRender.IsValidIndex(CurrentGlyphIndex + 1) && CurrentGlyphPtr->ClusterIndex == GlyphsToRender[CurrentGlyphIndex + 1].ClusterIndex;
+						if (!bIsWithinGlyphCluster)
+						{
+							break;
+						}
+
+						CurrentGlyphPtr = &GlyphsToRender[++CurrentGlyphIndex];
+					}
+
+					// Round our test toward the glyphs center position based on the reading direction of the text
+					const int32 GlyphWidthToTest = (CurrentGlyphPtr->NumCharactersInGlyph > 1) ? TotalGlyphSpacing : TotalGlyphSpacing / 2;
+
+					// Round our test toward the glyphs center position based on the reading direction of the text
+					if (InHorizontalOffset < (CurrentOffset + GlyphWidthToTest))
+					{
+						if (CurrentClusterBlock.TextDirection == TextBiDi::ETextDirection::LeftToRight)
+						{
+							MatchedGlyphIndex = CurrentGlyphIndex;
+						}
+						else
+						{
+							// Right-to-left text needs to return the previous glyph index, since that is the logical "next" glyph
+							if (PreviousGlyphIndex == INDEX_NONE)
+							{
+								// No previous glyph, so use the end index of the current cluster block since that will draw to the left of this glyph, and will trigger the cursor to move to the opposite side of the current glyph
+								return FGlyphOffsetResult(FMath::Min(InEndIndex, CurrentClusterBlock.ClusterEndIndex));
+							}
+							else
+							{
+								MatchedGlyphIndex = PreviousGlyphIndex;
+							}
+						}
+						MatchedGlyphTextDirection = CurrentClusterBlock.TextDirection;
+						break;
+					}
+
+					CurrentOffset += CurrentGlyphPtr->XAdvance;
+				}
+
+				PreviousGlyphIndex = FirstGlyphIndexInGlyphCluster;
+
+				// If we found both our end-points, we can bail now
+				if (bFoundStartGlyph && bFoundEndGlyph)
+				{
+					break;
+				}
+			}
+
+			// Update VisuallyRightmostClusterIndex from this cluster based on the text direction
+			VisuallyRightmostClusterIndex = (CurrentClusterBlock.TextDirection == TextBiDi::ETextDirection::LeftToRight)
+				? FMath::Min(InEndIndex, CurrentClusterBlock.ClusterEndIndex)
+				: FMath::Max(InStartIndex, CurrentClusterBlock.ClusterStartIndex);
+
+			// The shaped glyphs don't contain the end cluster block index, so if we matched end of the cluster range, say we measured okay
+			if (CurrentClusterBlock.ClusterEndIndex == InEndIndex)
+			{
+				bFoundEndGlyph = true;
+			}
+		}
+
+		if (MatchedGlyphIndex != INDEX_NONE)
+		{
+			break;
+		}
+	}
+
+	if (MatchedGlyphIndex == INDEX_NONE && bFoundEndGlyph)
+	{
+		// The offset was outside of the current text, so say we hit the rightmost cluster that was within range
+		return FGlyphOffsetResult(VisuallyRightmostClusterIndex);
+	}
+
+	// Did we measure okay?
+	if (bFoundStartGlyph && MatchedGlyphIndex != INDEX_NONE)
+	{
+		const FShapedGlyphEntry& MatchedGlyph = GlyphsToRender[MatchedGlyphIndex];
+		return FGlyphOffsetResult(&MatchedGlyph, MatchedGlyphTextDirection, CurrentOffset);
+	}
+
+	return TOptional<FGlyphOffsetResult>();
 }
 
 TOptional<int8> FShapedGlyphSequence::GetKerning(const int32 InIndex) const
@@ -195,6 +413,9 @@ FShapedGlyphSequencePtr FShapedGlyphSequence::GetSubSequence(const int32 InStart
 			{
 				const FShapedGlyphEntry& CurrentGlyph = GlyphsToRender[CurrentGlyphIndex];
 
+				// A single character may produce multiple glyphs which must be treated as a single logic unit
+				const bool bIsWithinGlyphCluster = GlyphsToRender.IsValidIndex(CurrentGlyphIndex + 1) && CurrentGlyph.ClusterIndex == GlyphsToRender[CurrentGlyphIndex + 1].ClusterIndex;
+
 				if (!bFoundStartGlyph && CurrentGlyph.ClusterIndex == InStartIndex)
 				{
 					bFoundStartGlyph = true;
@@ -208,6 +429,12 @@ FShapedGlyphSequencePtr FShapedGlyphSequence::GetSubSequence(const int32 InStart
 				if (CurrentGlyph.ClusterIndex >= InStartIndex && CurrentGlyph.ClusterIndex < InEndIndex)
 				{
 					SubGlyphsToRender.Add(CurrentGlyph);
+				}
+
+				// If we found both our end-points (and we're not within a glyph cluster), we can bail now
+				if (bFoundStartGlyph && bFoundEndGlyph && !bIsWithinGlyphCluster)
+				{
+					break;
 				}
 			}
 

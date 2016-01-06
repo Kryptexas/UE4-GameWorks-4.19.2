@@ -1,6 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "ShapedTextCacheFwd.h"
+
 enum class ETextHitPoint : uint8;
 
 struct FRunInfo
@@ -41,9 +43,10 @@ ENUM_CLASS_FLAGS(ERunAttributes);
 /** The context needed when performing text operations on a run of text */
 struct FRunTextContext
 {
-	FRunTextContext(const ETextShapingMethod InTextShapingMethod, const TextBiDi::ETextDirection InBaseDirection)
+	FRunTextContext(const ETextShapingMethod InTextShapingMethod, const TextBiDi::ETextDirection InBaseDirection, FShapedTextCacheRef InShapedTextCache)
 		: TextShapingMethod(InTextShapingMethod)
 		, BaseDirection(InBaseDirection)
+		, ShapedTextCache(MoveTemp(InShapedTextCache))
 	{
 	}
 
@@ -71,6 +74,9 @@ struct FRunTextContext
 
 	/** The base direction of the current line of text */
 	TextBiDi::ETextDirection BaseDirection;
+
+	/** The shaped text cache that should be used by this line of text */
+	FShapedTextCacheRef ShapedTextCache;
 };
 
 /** The context needed when creating a block from a run of a text */

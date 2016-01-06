@@ -1,8 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "ShapedTextCache.h"
-
 #if WITH_FANCY_TEXT
 
 class SLATE_API FSlateTextRun : public ISlateRun, public TSharedFromThis< FSlateTextRun >
@@ -64,8 +62,6 @@ protected:
 	TSharedRef< const FString > Text;
 	FTextBlockStyle Style;
 	FTextRange Range;
-
-	FShapedTextCacheRef ShapedTextCache;
 
 #if TEXT_LAYOUT_DEBUG
 	FString DebugSlice;

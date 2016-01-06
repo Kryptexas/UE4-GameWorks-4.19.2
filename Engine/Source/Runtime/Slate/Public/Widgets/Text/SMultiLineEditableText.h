@@ -303,6 +303,7 @@ private:
 		FCursorInfo()
 			: CursorPosition()
 			, CursorAlignment(ECursorAlignment::Left)
+			, CursorTextDirection(TextBiDi::ETextDirection::LeftToRight)
 			, LastCursorInteractionTime(0)
 		{
 		}
@@ -319,6 +320,12 @@ private:
 			return CursorAlignment;
 		}
 
+		/** Get the direction of the text under the cursor */
+		FORCEINLINE TextBiDi::ETextDirection GetCursorTextDirection() const
+		{
+			return CursorTextDirection;
+		}
+
 		/** Get the interaction position of the cursor (where to insert, delete, etc, text from/to) */
 		FORCEINLINE FTextLocation GetCursorInteractionLocation() const
 		{
@@ -332,10 +339,10 @@ private:
 		}
 
 		/** Set the position of the cursor, and then work out the correct alignment based on the current text layout */
-		void SetCursorLocationAndCalculateAlignment(const TSharedPtr<FTextLayout>& TextLayout, const FTextLocation& InCursorPosition);
+		void SetCursorLocationAndCalculateAlignment(const FTextLayout& InTextLayout, const FTextLocation& InCursorPosition);
 
 		/** Set the literal position and alignment of the cursor */
-		void SetCursorLocationAndAlignment(const FTextLocation& InCursorPosition, const ECursorAlignment InCursorAlignment);
+		void SetCursorLocationAndAlignment(const FTextLayout& InTextLayout, const FTextLocation& InCursorPosition, const ECursorAlignment InCursorAlignment);
 
 		/** Create an undo for this cursor data */
 		FCursorInfo CreateUndo() const;
@@ -349,6 +356,9 @@ private:
 
 		/** Cursor alignment (horizontal) within its position. This affects the rendering and behavior of the cursor when adding new characters */
 		ECursorAlignment CursorAlignment;
+
+		/** The direction of the text under the cursor */
+		TextBiDi::ETextDirection CursorTextDirection;
 
 		/** Last time the user did anything with the cursor.*/
 		double LastCursorInteractionTime;
