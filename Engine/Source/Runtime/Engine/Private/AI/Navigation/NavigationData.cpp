@@ -352,6 +352,7 @@ void ANavigationData::InstantiateAndRegisterRenderingComponent()
 #if !UE_BUILD_SHIPPING
 	if (!IsPendingKill() && (RenderingComp == NULL || RenderingComp->IsPendingKill()))
 	{
+		const bool bRootIsRenderComp = (RenderingComp == RootComponent);
 		if (RenderingComp)
 		{
 			// rename the old rendering component out of the way
@@ -362,6 +363,11 @@ void ANavigationData::InstantiateAndRegisterRenderingComponent()
 		if (RenderingComp != NULL)
 		{
 			RenderingComp->RegisterComponent();
+		}
+
+		if (bRootIsRenderComp)
+		{
+			RootComponent = RenderingComp;
 		}
 	}
 #endif // !UE_BUILD_SHIPPING
@@ -385,6 +391,9 @@ void ANavigationData::PurgeUnusedPaths()
 #if WITH_EDITOR
 void ANavigationData::PostEditUndo()
 {
+	// make sure that rendering component is not pending kill before trying to register all components
+	InstantiateAndRegisterRenderingComponent();
+
 	Super::PostEditUndo();
 
 	UWorld* WorldOuter = GetWorld();
