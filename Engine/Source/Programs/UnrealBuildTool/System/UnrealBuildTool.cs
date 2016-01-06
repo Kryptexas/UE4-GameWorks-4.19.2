@@ -213,7 +213,6 @@ namespace UnrealBuildTool
 					|| (RunningRocket() ? !UnrealBuildTool.CommandLineContains("-NotInstalledEngine") : UnrealBuildTool.CommandLineContains("-InstalledEngine"));
 				FileReference InstalledBuildFile = FileReference.Combine(RootDirectory, "Engine", "Build", "InstalledBuild.txt");
 				bIsEngineInstalled |= InstalledBuildFile.Exists();
-				bIsEngineInstalled &= !UnrealBuildTool.CommandLineContains("-validateplatform");
 			}
 
 			return bIsEngineInstalled.Value;
@@ -388,6 +387,11 @@ namespace UnrealBuildTool
 		/// <returns>true if valid, false if not</returns>
 		static public bool IsValidPlatform(UnrealTargetPlatform InPlatform)
 		{
+			if (UnrealBuildTool.CommandLineContains("-validateplatform"))
+			{
+				// We need all platforms to be registered when we run this command to check SDK status of each
+				return true;
+			}
 			return InstalledPlatformInfo.Current.IsValidPlatform(InPlatform, EProjectType.Code);
 		}
 
