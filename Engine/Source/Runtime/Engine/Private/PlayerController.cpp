@@ -4237,10 +4237,13 @@ void APlayerController::BeginInactiveState()
 	}
 	SetPawn(NULL);
 
-	AGameState const* const GameState = GetWorld()->GameState;
+	GetWorldTimerManager().SetTimer(TimerHandle_UnFreeze, this, &APlayerController::UnFreeze, GetMinRespawnDelay());
+}
 
-	float const MinRespawnDelay = ((GameState != NULL) && (GameState->GameModeClass != NULL)) ? GetDefault<AGameMode>(GameState->GameModeClass)->MinRespawnDelay : 1.0f;
-	GetWorldTimerManager().SetTimer(TimerHandle_UnFreeze, this, &APlayerController::UnFreeze, MinRespawnDelay);
+float APlayerController::GetMinRespawnDelay()
+{
+	AGameState const* const GameState = GetWorld()->GameState;
+	return ((GameState != NULL) && (GameState->GameModeClass != NULL)) ? GetDefault<AGameMode>(GameState->GameModeClass)->MinRespawnDelay : 1.0f;
 }
 
 void APlayerController::EndInactiveState()
