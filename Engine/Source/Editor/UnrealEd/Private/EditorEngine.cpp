@@ -445,7 +445,9 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 		!FApp::IsBenchmarking() &&
 		!GIsDemoMode &&
 		!IsRunningCommandlet() &&
-		!FPlatformProcess::IsApplicationRunning(TEXT("EpicGamesLauncher")) ) )
+		!FPlatformProcess::IsApplicationRunning(TEXT("EpicGamesLauncher")) &&
+		!FPlatformProcess::IsApplicationRunning(TEXT("EpicGamesLauncher-Mac-Shipping"))
+		))
 	{
 		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 		if ( DesktopPlatform != NULL )
@@ -5601,7 +5603,7 @@ bool UEditorEngine::ShouldThrottleCPUUsage() const
 		return false;
 	}
 
-    return bShouldThrottle && !IsRunningCommandlet();
+	return bShouldThrottle && !IsRunningCommandlet();
 }
 
 bool UEditorEngine::AreAllWindowsHidden() const
