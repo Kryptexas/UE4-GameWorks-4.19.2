@@ -722,17 +722,26 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 				{
 					TargetBlueprintDefaultObject = GetBlueprintObj()->GeneratedClass->GetDefaultObject();
 				}
-				else
+				else if (UBlueprint* PropertyOwnerBP = GetPropertyOwnerBlueprint())
 				{
-					TargetBlueprintDefaultObject = GetPropertyOwnerBlueprint()->GeneratedClass->GetDefaultObject();
+					TargetBlueprintDefaultObject = PropertyOwnerBP->GeneratedClass->GetDefaultObject();
 				}
-				// Things are in order, show the property and allow it to be edited
-				TArray<UObject*> ObjectList;
-				ObjectList.Add(TargetBlueprintDefaultObject);
-				IDetailPropertyRow* Row = DefaultValueCategory.AddExternalProperty(ObjectList, VariableProperty->GetFName());
-				if (Row != nullptr)
+				else if (CachedVariableProperty.IsValid())
 				{
-					Row->IsEnabled(IsVariableInheritedByBlueprint());
+					// Capture the non-BP class CDO so we can show the default value
+					TargetBlueprintDefaultObject = CachedVariableProperty->GetOwnerClass()->GetDefaultObject();
+				}
+
+				if (TargetBlueprintDefaultObject)
+				{
+					// Things are in order, show the property and allow it to be edited
+					TArray<UObject*> ObjectList;
+					ObjectList.Add(TargetBlueprintDefaultObject);
+					IDetailPropertyRow* Row = DefaultValueCategory.AddExternalProperty(ObjectList, VariableProperty->GetFName());
+					if (Row != nullptr)
+					{
+						Row->IsEnabled(IsVariableInheritedByBlueprint());
+					}
 				}
 			}
 		}
