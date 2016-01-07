@@ -1896,17 +1896,24 @@ namespace UnrealBuildTool
 			}
 
 			// Find all the modules which are part of this target
-			foreach (UEBuildModule Module in Modules.Values)
+			HashSet<UEBuildModule> UniqueLinkedModules = new HashSet<UEBuildModule>();
+			foreach (UEBuildBinaryCPP Binary in AppBinaries.OfType<UEBuildBinaryCPP>())
 			{
-				if (Module.bIncludedInTarget && !PrecompiledBinaries.Contains(Module.Binary))
+				if (!PrecompiledBinaries.Contains(Binary))
 				{
-					foreach (RuntimeDependency RuntimeDependency in Module.RuntimeDependencies)
+					foreach (UEBuildModule Module in Binary.Modules)
 					{
-						string SourcePath = TargetReceipt.InsertPathVariables(RuntimeDependency.Path, UnrealBuildTool.EngineDirectory, ProjectDirectory);
-						string TargetPath = TargetReceipt.InsertPathVariables(RuntimeDependency.StagePath, UnrealBuildTool.EngineDirectory, ProjectDirectory);
-						Receipt.AddRuntimeDependency(SourcePath, TargetPath);
+						if (UniqueLinkedModules.Add(Module))
+						{
+							foreach (RuntimeDependency RuntimeDependency in Module.RuntimeDependencies)
+							{
+								string SourcePath = TargetReceipt.InsertPathVariables(RuntimeDependency.Path, UnrealBuildTool.EngineDirectory, ProjectDirectory);
+								string TargetPath = TargetReceipt.InsertPathVariables(RuntimeDependency.StagePath, UnrealBuildTool.EngineDirectory, ProjectDirectory);
+								Receipt.AddRuntimeDependency(SourcePath, TargetPath);
+							}
+							Receipt.AdditionalProperties.AddRange(Module.Rules.AdditionalPropertiesForReceipt);
+						}
 					}
-					Receipt.AdditionalProperties.AddRange(Module.Rules.AdditionalPropertiesForReceipt);
 				}
 			}
 
@@ -1998,12 +2005,10 @@ namespace UnrealBuildTool
 				var DependencyModules = Binary.GetAllDependencyModules(bIncludeDynamicallyLoaded: false, bForceCircular: false);
 				foreach (var Module in DependencyModules.OfType<UEBuildModuleCPP>())
 				{
-					if (!Module.bIncludedInTarget)
+					if (Module.Binary != null)
 					{
-						throw new BuildException("Expecting module {0} to have bIncludeInTarget set", Module.Name);
+						Output.Add(Module);
 					}
-
-					Output.Add(Module);
 				}
 			}
 
@@ -2286,6 +2291,7 @@ namespace UnrealBuildTool
 				foreach (string ModuleName in Binary.Config.ModuleNames)
 				{
 					UEBuildModule Module = FindOrCreateModuleByName(ModuleName);
+					Module.Binary = Binary;
 					Binary.AddModule(Module);
 				}
 			}
@@ -2317,30 +2323,48 @@ namespace UnrealBuildTool
 				Binary.CreateAllDependentModules();
 			}
 
+			// Bind every referenced C++ module to a binary
+			for (int Idx = 0; Idx < AppBinaries.Count; Idx++)
+			{
+				List<UEBuildModule> DependencyModules = AppBinaries[Idx].GetAllDependencyModules(true, true);
+				foreach (UEBuildModuleCPP DependencyModule in DependencyModules.OfType<UEBuildModuleCPP>())
+				{
+					if(DependencyModule.Binary == null)
+					{
+						AddModuleToBinary(DependencyModule, false);
+					}
+				}
+			}
+
 			// Add all the precompiled modules to the target. In contrast to "Extra Modules", these modules are not compiled into monolithic targets by default.
 			AddPrecompiledModules();
 
-			// Bind modules for all app binaries. Static libraries can be linked into other binaries, so bound modules to those first.
-			foreach (UEBuildBinary Binary in AppBinaries)
+			// Add the external and non-C++ referenced modules to the binaries that reference them.
+			foreach (UEBuildModuleCPP Module in Modules.Values.OfType<UEBuildModuleCPP>())
 			{
-				if (Binary.Config.Type == UEBuildBinaryType.StaticLibrary)
+				if(Module.Binary != null)
 				{
-					Binary.BindModules();
-				}
-			}
-			foreach (var Binary in AppBinaries)
-			{
-				if (Binary.Config.Type != UEBuildBinaryType.StaticLibrary)
-				{
-					Binary.BindModules();
+					foreach (UEBuildModule ReferencedModule in Module.GetUnboundReferences())
+					{
+						Module.Binary.AddModule(ReferencedModule);
+					}
 				}
 			}
 
-			// Process all referenced modules and create new binaries for DLL dependencies if needed. The AppBinaries 
-			// list may have entries added to it as modules are bound, so make sure we handle those too.
-			for (int Idx = 0; Idx < AppBinaries.Count; Idx++)
+			// Markup all the binaries containing modules with circular references
+			if (!bCompileMonolithic)
 			{
-				AppBinaries[Idx].ProcessUnboundModules();
+				foreach (UEBuildModule Module in Modules.Values.Where(x => x.Binary != null))
+				{
+					foreach (string CircularlyReferencedModuleName in Module.Rules.CircularlyReferencedDependentModules)
+					{
+						UEBuildModule CircularlyReferencedModule;
+						if (Modules.TryGetValue(CircularlyReferencedModuleName, out CircularlyReferencedModule) && CircularlyReferencedModule.Binary != null)
+						{
+							CircularlyReferencedModule.Binary.SetCreateImportLibrarySeparately(true);
+						}
+					}
+				}
 			}
 
 			// On Mac AppBinaries paths for non-console targets need to be adjusted to be inside the app bundle
@@ -2680,7 +2704,6 @@ namespace UnrealBuildTool
 		private void BindArtificialModuleToBinary(UEBuildModuleCPP Module, UEBuildBinary Binary)
 		{
 			Module.Binary = Binary;
-			Module.bIncludedInTarget = true;
 
 			// Process dependencies for this new module
 			Module.CachePCHUsageForModuleSourceFiles(Module.CreateModuleCompileEnvironment(GlobalCompileEnvironment));
@@ -2829,7 +2852,13 @@ namespace UnrealBuildTool
 
 						// Add the corresponding binary for it
 						bool bHasSource = RulesAssembly.DoesModuleHaveSource(Module.Name);
-						AddBinaryForModule(ModuleInstance, BinaryType, bAllowCompilation: bHasSource, bIsCrossTarget: false);
+						ModuleInstance.Binary = CreateBinaryForModule(ModuleInstance, BinaryType, bAllowCompilation: bHasSource, bIsCrossTarget: false);
+
+						// If it's not enabled, add it to the precompiled binaries list
+						if (!EnabledPlugins.Contains(Plugin))
+						{
+							PrecompiledBinaries.Add(ModuleInstance.Binary);
+						}
 
 						// Add it to the binary if we're compiling monolithic (and it's enabled)
 						if (ShouldCompileMonolithic() && EnabledPlugins.Contains(Plugin))
@@ -2849,8 +2878,7 @@ namespace UnrealBuildTool
 			foreach (var ModuleName in ExtraModuleNames)
 			{
 				UEBuildModule Module = FindOrCreateModuleByName(ModuleName);
-				UEBuildBinaryCPP Binary = FindOrAddBinaryForModule(Module, false);
-				Binary.AddModule(Module);
+				AddModuleToBinary(Module, false);
 			}
 		}
 
@@ -2861,23 +2889,22 @@ namespace UnrealBuildTool
 		{
 			if (bPrecompile || bUsePrecompiled)
 			{
-				// Add all the engine modules referenced by this target
+				// Find all the modules that are part of the target
 				List<UEBuildModule> PrecompiledModules = new List<UEBuildModule>();
-				foreach(UEBuildBinary Binary in AppBinaries)
+				foreach (UEBuildModuleCPP Module in Modules.Values.OfType<UEBuildModuleCPP>())
 				{
-					List<UEBuildModule> Modules = Binary.GetAllDependencyModules(true, true);
-					foreach(UEBuildModule Module in Modules)
+					if(Module.Binary != null && Module.RulesFile.IsUnderDirectory(UnrealBuildTool.EngineDirectory) && !PrecompiledModules.Contains(Module))
 					{
-						if((Module is UEBuildModuleCPP) && Module.RulesFile.IsUnderDirectory(UnrealBuildTool.EngineDirectory) && !PrecompiledModules.Contains(Module))
-						{
-							PrecompiledModules.Add(Module);
-						}
+						PrecompiledModules.Add(Module);
 					}
 				}
 
 				// If we're precompiling a base engine target, create binaries for all the engine modules that are compatible with it.
-				if(bPrecompile && ProjectFile == null && TargetType != TargetRules.TargetType.Program)
+				if (bPrecompile && ProjectFile == null && TargetType != TargetRules.TargetType.Program)
 				{
+					// Whether to build static libraries for developer modules. Currently disabled to reduce the size of installed builds.
+					bool bIncludeDeveloperModules = (TargetType == TargetRules.TargetType.Editor); // UEBuildConfiguration.bBuildDeveloperTools
+
 					// Find all the known module names in this assembly
 					List<string> ModuleNames = new List<string>();
 					RulesAssembly.GetAllModuleNames(ModuleNames);
@@ -2886,7 +2913,7 @@ namespace UnrealBuildTool
 					List<string> ExcludeFolders = new List<string>();
 					foreach (UnrealTargetPlatform TargetPlatform in Enum.GetValues(typeof(UnrealTargetPlatform)))
 					{
-						if(TargetPlatform != Platform)
+						if (TargetPlatform != Platform)
 						{
 							string DirectoryFragment = Path.DirectorySeparatorChar + TargetPlatform.ToString() + Path.DirectorySeparatorChar;
 							ExcludeFolders.Add(DirectoryFragment);
@@ -2895,9 +2922,9 @@ namespace UnrealBuildTool
 
 					// Also exclude all the platform groups that this platform is not a part of
 					List<UnrealPlatformGroup> IncludePlatformGroups = new List<UnrealPlatformGroup>(UEBuildPlatform.GetPlatformGroups(Platform));
-					foreach(UnrealPlatformGroup PlatformGroup in Enum.GetValues(typeof(UnrealPlatformGroup)))
+					foreach (UnrealPlatformGroup PlatformGroup in Enum.GetValues(typeof(UnrealPlatformGroup)))
 					{
-						if(!IncludePlatformGroups.Contains(PlatformGroup))
+						if (!IncludePlatformGroups.Contains(PlatformGroup))
 						{
 							string DirectoryFragment = Path.DirectorySeparatorChar + PlatformGroup.ToString() + Path.DirectorySeparatorChar;
 							ExcludeFolders.Add(DirectoryFragment);
@@ -2906,118 +2933,137 @@ namespace UnrealBuildTool
 
 					// Find all the directories containing engine modules that may be compatible with this target
 					List<DirectoryReference> Directories = new List<DirectoryReference>();
-					if(TargetType == TargetRules.TargetType.Editor)
+					if(bIncludeDeveloperModules)
 					{
 						Directories.Add(DirectoryReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Developer"));
+					}
+					if (TargetType == TargetRules.TargetType.Editor)
+					{
 						Directories.Add(DirectoryReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Editor"));
 					}
 					Directories.Add(DirectoryReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Runtime"));
 
 					// Find all the modules that are not part of the standard set
-					List<string> CompatibleModuleNames = new List<string>();
-					foreach(string ModuleName in ModuleNames)
+					HashSet<string> FilteredModuleNames = new HashSet<string>();
+					foreach (string ModuleName in ModuleNames)
 					{
 						FileReference ModuleFileName = RulesAssembly.GetModuleFileName(ModuleName);
-						if(Directories.Any(x => ModuleFileName.IsUnderDirectory(x)))
+						if (Directories.Any(x => ModuleFileName.IsUnderDirectory(x)))
 						{
 							string RelativeFileName = ModuleFileName.MakeRelativeTo(UnrealBuildTool.EngineSourceDirectory);
-							if(!ExcludeFolders.Any(x => RelativeFileName.Contains(x)) && !PrecompiledModules.Any(x => x.Name == ModuleName))
+							if (!ExcludeFolders.Any(x => RelativeFileName.Contains(x)) && !PrecompiledModules.Any(x => x.Name == ModuleName))
 							{
-								// Try to create the rules object, but catch any exceptions if it fails. Some modules (eg. SQLite) may determine that they are unavailable in the constructor.
-								ModuleRules Rules;
-								try
-								{
-									Rules = RulesAssembly.CreateModuleRules(ModuleName, TargetInfo);
-								}
-								catch(BuildException)
-								{
-									Rules = null;
-								}
+								FilteredModuleNames.Add(ModuleName);
+							}
+						}
+					}
 
-								// Figure out if it can be precompiled
-								bool bCanPrecompile = false;
-								if(Rules != null)
+					// Add all the plugins which aren't already being built
+					foreach (PluginInfo Plugin in ValidPlugins.Except(BuildPlugins))
+					{
+						if (Plugin.LoadedFrom == PluginLoadedFrom.Engine && Plugin.Descriptor.Modules != null)
+						{
+							foreach (ModuleDescriptor ModuleDescriptor in Plugin.Descriptor.Modules)
+							{
+								if (ModuleDescriptor.IsCompiledInConfiguration(Platform, TargetType, bIncludeDeveloperModules, UEBuildConfiguration.bBuildEditor))
 								{
-									switch(Rules.PrecompileForTargets)
+									string RelativeFileName = RulesAssembly.GetModuleFileName(ModuleDescriptor.Name).MakeRelativeTo(UnrealBuildTool.EngineDirectory);
+									if (!ExcludeFolders.Any(x => RelativeFileName.Contains(x)) && !PrecompiledModules.Any(x => x.Name == ModuleDescriptor.Name))
 									{
-										case ModuleRules.PrecompileTargetsType.None:
-											bCanPrecompile = false;
-											break;
-										case ModuleRules.PrecompileTargetsType.Default:
-											bCanPrecompile = true;
-											break;
-										case ModuleRules.PrecompileTargetsType.Game:
-											bCanPrecompile = (TargetType == TargetRules.TargetType.Client || TargetType == TargetRules.TargetType.Server || TargetType == TargetRules.TargetType.Game);
-											break;
-										case ModuleRules.PrecompileTargetsType.Editor:
-											bCanPrecompile = (TargetType == TargetRules.TargetType.Editor);
-											break;
+										FilteredModuleNames.Add(ModuleDescriptor.Name);
 									}
-								}
-
-								// Create the module
-								if(bCanPrecompile)
-								{
-									UEBuildModule Module = FindOrCreateModuleByName(ModuleName);
-									Module.RecursivelyCreateModules();
-									PrecompiledModules.Add(Module);
 								}
 							}
 						}
 					}
-				}
 
-				// Remove all the modules which are already compiled into a binary of a valid type. In non-monolithic builds, every binary containing a module is already a DLL or EXE. In monolithic builds,
-				// we can compile everything into a static library if it isn't already.
-				foreach(UEBuildBinary AppBinary in AppBinaries)
-				{
-					if(!bCompileMonolithic || AppBinary.Config.Type == UEBuildBinaryType.StaticLibrary)
+					// Create rules for each remaining module, and check that it's set to be precompiled
+					foreach(string FilteredModuleName in FilteredModuleNames)
 					{
-						foreach(string ModuleName in AppBinary.Config.ModuleNames)
+						// Try to create the rules object, but catch any exceptions if it fails. Some modules (eg. SQLite) may determine that they are unavailable in the constructor.
+						ModuleRules Rules;
+						try
 						{
-							PrecompiledModules.RemoveAll(x => x.Name == ModuleName);
+							Rules = RulesAssembly.CreateModuleRules(FilteredModuleName, TargetInfo);
+						}
+						catch (BuildException)
+						{
+							Rules = null;
+						}
+
+						// Figure out if it can be precompiled
+						bool bCanPrecompile = false;
+						if (Rules != null && Rules.Type == ModuleRules.ModuleType.CPlusPlus)
+						{
+							switch (Rules.PrecompileForTargets)
+							{
+								case ModuleRules.PrecompileTargetsType.None:
+									bCanPrecompile = false;
+									break;
+								case ModuleRules.PrecompileTargetsType.Default:
+									bCanPrecompile = true;
+									break;
+								case ModuleRules.PrecompileTargetsType.Game:
+									bCanPrecompile = (TargetType == TargetRules.TargetType.Client || TargetType == TargetRules.TargetType.Server || TargetType == TargetRules.TargetType.Game);
+									break;
+								case ModuleRules.PrecompileTargetsType.Editor:
+									bCanPrecompile = (TargetType == TargetRules.TargetType.Editor);
+									break;
+							}
+						}
+
+						// Create the module
+						if (bCanPrecompile)
+						{
+							UEBuildModule Module = FindOrCreateModuleByName(FilteredModuleName);
+							Module.RecursivelyCreateModules();
+							PrecompiledModules.Add(Module);
 						}
 					}
 				}
 
-				// Create binaries for all the precompiled modules
-				UEBuildBinaryType BinaryType = bCompileMonolithic ? UEBuildBinaryType.StaticLibrary : UEBuildBinaryType.DynamicLinkLibrary;
-				foreach(UEBuildModule PrecompiledModule in PrecompiledModules)
+				// In monolithic, make sure every module is compiled into a static library first. Even if it's linked into an existing executable, we can add it into a static library and link it into
+				// the executable afterwards. In modular builds, just compile every module into a DLL.
+				UEBuildBinaryType PrecompiledBinaryType = bCompileMonolithic ? UEBuildBinaryType.StaticLibrary : UEBuildBinaryType.DynamicLinkLibrary;
+				foreach (UEBuildModule PrecompiledModule in PrecompiledModules)
 				{
-					if(PrecompiledModule.Binary == null)
+					if (PrecompiledModule.Binary == null || (bCompileMonolithic && PrecompiledModule.Binary.Config.Type != UEBuildBinaryType.StaticLibrary))
 					{
-						UEBuildBinary Binary = AddBinaryForModule(PrecompiledModule, BinaryType, bAllowCompilation: !bUsePrecompiled, bIsCrossTarget: false);
-						PrecompiledBinaries.Add(Binary);
+						PrecompiledModule.Binary = CreateBinaryForModule(PrecompiledModule, PrecompiledBinaryType, bAllowCompilation: !bUsePrecompiled, bIsCrossTarget: false);
+						PrecompiledBinaries.Add(PrecompiledModule.Binary);
+					}
+					else if (bUsePrecompiled && !ProjectFileGenerator.bGenerateProjectFiles)
+					{
+						// Even if there's already a binary for this module, we never want to compile it.
+						PrecompiledModule.Binary.Config.bAllowCompilation = false;
 					}
 				}
 			}
 		}
 
-		public UEBuildBinaryCPP FindOrAddBinaryForModule(UEBuildModule Module, bool bIsCrossTarget)
+		public void AddModuleToBinary(UEBuildModule Module, bool bIsCrossTarget)
 		{
-			UEBuildBinaryCPP Binary;
 			if (ShouldCompileMonolithic())
 			{
 				// When linking monolithically, any unbound modules will be linked into the main executable
-				Binary = (UEBuildBinaryCPP)AppBinaries[0];
+				Module.Binary = (UEBuildBinaryCPP)AppBinaries[0];
+				Module.Binary.AddModule(Module);
 			}
 			else
 			{
 				// Otherwise create a new module for it
-				Binary = AddBinaryForModule(Module, UEBuildBinaryType.DynamicLinkLibrary, bAllowCompilation: true, bIsCrossTarget: bIsCrossTarget);
+				Module.Binary = CreateBinaryForModule(Module, UEBuildBinaryType.DynamicLinkLibrary, bAllowCompilation: true, bIsCrossTarget: bIsCrossTarget);
 			}
-			return Binary;
 		}
 
 		/// <summary>
 		/// Adds a binary for the given module. Does not check whether a binary already exists, or whether a binary should be created for this build configuration.
 		/// </summary>
-		/// <param name="ModuleName">Name of the binary</param>
+		/// <param name="Module">The module to create a binary for</param>
 		/// <param name="BinaryType">Type of binary to be created</param>
 		/// <param name="bAllowCompilation">Whether this binary can be compiled. The function will check whether plugin binaries can be compiled.</param>
-		/// <param name="bIsCrossTarget">True if module is for supporting a different target-platform</param>
 		/// <returns>The new binary</returns>
-		private UEBuildBinaryCPP AddBinaryForModule(UEBuildModule Module, UEBuildBinaryType BinaryType, bool bAllowCompilation, bool bIsCrossTarget)
+		private UEBuildBinaryCPP CreateBinaryForModule(UEBuildModule Module, UEBuildBinaryType BinaryType, bool bAllowCompilation, bool bIsCrossTarget)
 		{
 			// Get the plugin info for this module
 			PluginInfo Plugin = null;
@@ -3243,7 +3289,7 @@ namespace UnrealBuildTool
 			}
 
 			// Set the list of plugins that should be built
-			if ((bPrecompile && TargetType != TargetRules.TargetType.Program) || Rules.bBuildAllPlugins)
+			if (Rules.bBuildAllPlugins)
 			{
 				BuildPlugins = new List<PluginInfo>(ValidPlugins);
 			}

@@ -48,5 +48,7 @@ public class Toolbox : ModuleRules
 				}
 			);
 		}
+
+		PrecompileForTargets = PrecompileTargetsType.None;
 	}
 }

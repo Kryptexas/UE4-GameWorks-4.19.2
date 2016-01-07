@@ -271,6 +271,11 @@ public:
 	{
 		SeparateTranslucencyRT.SafeRelease();
 		check(!SeparateTranslucencyRT);
+
+		if (SeparateTranslucencyDepthRT.GetReference())
+		{
+			SeparateTranslucencyDepthRT.SafeRelease();
+		}
 	}
 
 	void ResolveSceneDepthTexture(FRHICommandList& RHICmdList);

@@ -365,6 +365,12 @@ bool FAndroidMisc::AllowRenderThread()
 		return false;
 	}
 
+	// Vivante GC1000 with 2.x driver has issues with render thread
+	if (FAndroidMisc::GetGPUFamily().StartsWith(TEXT("Vivante GC1000")) && FAndroidMisc::GetGLVersion().StartsWith(TEXT("OpenGL ES 2.")))
+	{
+		return false;
+	}
+
 	// there is an issue with presenting the buffer on kindle fire (1st gen) with multiple threads using opengl
 	if (FAndroidMisc::GetDeviceModel() == FString(TEXT("Kindle Fire")))
 	{

@@ -392,6 +392,19 @@ public:
 		return RetVal;
 	}
 
+	virtual ETrackingStatus GetControllerTrackingStatus(const int32 ControllerIndex, const EControllerHand DeviceHand) const
+	{
+		ETrackingStatus TrackingStatus = ETrackingStatus::NotTracked;
+
+		FSteamVRHMD* SteamVRHMD = GetSteamVRHMD();
+ 		if (SteamVRHMD)
+ 		{
+			TrackingStatus = SteamVRHMD->GetControllerTrackingStatus(ControllerIndex, DeviceHand);
+ 		}
+
+		return TrackingStatus;
+	}
+
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override
 	{
 		return false;

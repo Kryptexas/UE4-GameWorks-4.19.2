@@ -69,3 +69,5 @@ FCoreDelegates::FApplicationLicenseChange FCoreDelegates::ApplicationLicenseChan
 FCoreDelegates::FPlatformChangedLaptopMode FCoreDelegates::PlatformChangedLaptopMode;
 
 FCoreDelegates::FLoadStringAssetReferenceInCook FCoreDelegates::LoadStringAssetReferenceInCook;
+
+FCoreDelegates::FVRHeadsetRecenter FCoreDelegates::VRHeadsetRecenter;

@@ -1167,7 +1167,7 @@ void FFbxImporter::FillFbxMeshArray(FbxNode* Node, TArray<FbxNode*>& outMeshArra
 {
 	if (Node->GetMesh())
 	{
-		if (!FFbxImporter->FillCollisionModelList(Node))
+		if (!FFbxImporter->FillCollisionModelList(Node) && Node->GetMesh()->GetPolygonVertexCount() > 0)
 		{ 
 			outMeshArray.Add(Node);
 		}

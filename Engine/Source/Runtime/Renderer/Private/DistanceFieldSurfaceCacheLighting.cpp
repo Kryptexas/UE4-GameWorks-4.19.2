@@ -150,7 +150,7 @@ FAutoConsoleVariableRef CVarAOScatterTileCulling(
 	TEXT("r.AOScatterTileCulling"),
 	GAOScatterTileCulling,
 	TEXT("Whether to use the rasterizer for binning occluder objects into screenspace tiles."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 int32 GAOComputeShaderNormalCalculation = 0;

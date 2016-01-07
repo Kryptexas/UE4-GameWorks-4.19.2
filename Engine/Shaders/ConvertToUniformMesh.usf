@@ -19,11 +19,7 @@ void ConvertToUniformMeshVS(
 	out FConvertToUniformMeshVSToGS Output
 	)
 {
-
-// Instanced stereo not implemented
-#if INSTANCED_STEREO
 	ResolvedView = ResolveView();
-#endif
 
 	FVertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
 	float3 WorldPosition = VertexFactoryGetWorldPosition(Input, VFIntermediates).xyz - ResolvedView.PreViewTranslation.xyz;

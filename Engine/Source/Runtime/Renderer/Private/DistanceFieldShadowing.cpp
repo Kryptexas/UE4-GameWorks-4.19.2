@@ -37,7 +37,7 @@ FAutoConsoleVariableRef CVarShadowScatterTileCulling(
 	TEXT("r.DFShadowScatterTileCulling"),
 	GShadowScatterTileCulling,
 	TEXT("Whether to use the rasterizer to scatter objects onto the tile grid for culling."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 float GShadowWorldTileSize = 200.0f;

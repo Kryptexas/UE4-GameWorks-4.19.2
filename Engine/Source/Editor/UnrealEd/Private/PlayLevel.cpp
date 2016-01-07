@@ -1304,7 +1304,7 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 	}
 
 	// Disable the HMD device in the new process if present. The editor process owns the HMD resource.
-	if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected())
+	if (!bPlayUsingMobilePreview && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected())
 	{
 		AdditionalParameters += TEXT(" -nohmd");
 		UE_LOG(LogHMD, Warning, TEXT("Standalone game VR not supported, please use VR Preview."));
@@ -3459,7 +3459,6 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 {
 	double StartTime = FPlatformTime::Seconds();
 	UPackage* InPackage = Cast<UPackage>(InWorld->GetOutermost());
-	UWorld* CurrentWorld = InWorld;
 	UWorld* NewPIEWorld = NULL;
 	
 	const FString WorldPackageName = InPackage->GetName();
@@ -3498,7 +3497,7 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 		// Prepare string asset references for fixup
 		TArray<FString> PackageNamesBeingDuplicatedForPIE;
 		PackageNamesBeingDuplicatedForPIE.Add(PlayWorldMapName);
-		for ( auto LevelIt = EditorWorld->StreamingLevels.CreateConstIterator(); LevelIt; ++LevelIt )
+		for ( auto LevelIt = InWorld->StreamingLevels.CreateConstIterator(); LevelIt; ++LevelIt )
 		{
 			ULevelStreaming* StreamingLevel = *LevelIt;
 			if ( StreamingLevel )
@@ -3515,9 +3514,9 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 
 		// Duplicate the editor world to create the PIE world
 		NewPIEWorld = CastChecked<UWorld>( StaticDuplicateObject(
-			EditorWorld,			// Source root
+			InWorld,				// Source root
 			PlayWorldPackage,		// Destination root
-			EditorWorld->GetFName(),// Name for new object
+			InWorld->GetFName(),	// Name for new object
 			RF_AllFlags,			// FlagMask
 			NULL,					// DestClass
 			SDO_DuplicateForPie		// bDuplicateForPIE
@@ -3527,17 +3526,17 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 
 		// Store prefix we used to rename this world and streaming levels package names
 		NewPIEWorld->StreamingLevelsPrefix = UWorld::BuildPIEPackagePrefix(WorldContext.PIEInstance);
-		// Fixup model components. The index buffers have been created for the components in the EditorWorld and the order
+		// Fixup model components. The index buffers have been created for the components in the source world and the order
 		// in which components were post-loaded matters. So don't try to guarantee a particular order here, just copy the
 		// elements over.
 		if ( NewPIEWorld->PersistentLevel->Model != NULL
-			&& NewPIEWorld->PersistentLevel->Model == EditorWorld->PersistentLevel->Model
-			&& NewPIEWorld->PersistentLevel->ModelComponents.Num() == EditorWorld->PersistentLevel->ModelComponents.Num() )
+			&& NewPIEWorld->PersistentLevel->Model == InWorld->PersistentLevel->Model
+			&& NewPIEWorld->PersistentLevel->ModelComponents.Num() == InWorld->PersistentLevel->ModelComponents.Num() )
 		{
 			NewPIEWorld->PersistentLevel->Model->ClearLocalMaterialIndexBuffersData();
 			for (int32 ComponentIndex = 0; ComponentIndex < NewPIEWorld->PersistentLevel->ModelComponents.Num(); ++ComponentIndex)
 			{
-				UModelComponent* SrcComponent = EditorWorld->PersistentLevel->ModelComponents[ComponentIndex];
+				UModelComponent* SrcComponent = InWorld->PersistentLevel->ModelComponents[ComponentIndex];
 				UModelComponent* DestComponent = NewPIEWorld->PersistentLevel->ModelComponents[ComponentIndex];
 				DestComponent->CopyElementsFrom(SrcComponent);
 			}
@@ -3551,13 +3550,13 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 
 	GPlayInEditorID = -1;
 	check( NewPIEWorld );
-	NewPIEWorld->FeatureLevel = EditorWorld->FeatureLevel;
+	NewPIEWorld->FeatureLevel = InWorld->FeatureLevel;
 	PostCreatePIEWorld(NewPIEWorld);
 
 	// After loading the map, reset these so that things continue as normal
 	GIsPlayInEditorWorld = false;
 	
-	UE_LOG(LogPlayLevel, Log, TEXT("PIE: Created PIE world by copying editor world from %s to %s (%fs)"), *EditorWorld->GetPathName(), *NewPIEWorld->GetPathName(), float(FPlatformTime::Seconds() - StartTime));
+	UE_LOG(LogPlayLevel, Log, TEXT("PIE: Created PIE world by copying editor world from %s to %s (%fs)"), *InWorld->GetPathName(), *NewPIEWorld->GetPathName(), float(FPlatformTime::Seconds() - StartTime));
 	return NewPIEWorld;
 }
 

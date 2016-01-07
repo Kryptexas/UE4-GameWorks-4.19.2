@@ -229,16 +229,18 @@ void Main(
 	out half4 OutColor	: SV_Target0
 	)
 {
-
-// Instanced stereo not implemented
-#if INSTANCED_STEREO
 	ResolvedView = ResolveView();
-#endif
 
 #if PACK_INTERPOLANTS
 	float4 PackedInterpolants[NUM_VF_PACKED_INTERPOLANTS];
 	VertexFactoryUnpackInterpolants(Interpolants, PackedInterpolants);
 #endif
+
+#if ES2_PROFILE && OUTPUT_GAMMA_SPACE && !MOBILE_EMULATION
+	// LDR ES2 needs screen vertical flipped
+	SvPosition.y = Frame.BufferSizeAndInvSize.y - SvPosition.y - 1;
+#endif
+
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, SvPosition);
 	FPixelMaterialInputs PixelMaterialInputs;
 	#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS

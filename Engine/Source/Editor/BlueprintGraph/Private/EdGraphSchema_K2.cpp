@@ -3771,6 +3771,43 @@ namespace
 
 bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, const FEdGraphPinType& Input, const UClass* CallingContext, bool bIgnoreArray /*= false*/) const
 {
+	// During compilation, pins are moved around for node expansion and the Blueprints may still inherit from REINST_ classes
+	// which causes problems for IsChildOf. Because we do not want to modify IsChildOf we must use a separate function
+	// that can check to see if classes have an AuthoritativeClass that IsChildOf a Target class.
+	struct Local
+	{
+		static bool IsAuthoritativeChildOf(const UStruct* InSourceStruct, const UStruct* InTargetStruct)
+		{
+			bool bResult = false;
+			bool bIsNonNativeClass = false;
+			if (UClass* SourceAsClass = const_cast<UClass*>(Cast<UClass>(InSourceStruct)))
+			{
+				if (SourceAsClass->ClassGeneratedBy)
+				{
+					// We have a non-native (Blueprint) class which means it can exist in a semi-compiled state and inherit from a REINST_ class.
+					bIsNonNativeClass = true;
+					while (SourceAsClass)
+					{
+						if (SourceAsClass->GetAuthoritativeClass() == InTargetStruct)
+						{
+							bResult = true;
+							break;
+						}
+						SourceAsClass = SourceAsClass->GetSuperClass();
+					}
+				}
+			}
+
+			// We have a native (C++) class, do a normal IsChildOf check
+			if (!bIsNonNativeClass)
+			{
+				bResult = InSourceStruct->IsChildOf(InTargetStruct);
+			}
+			
+			return bResult;
+		}
+	};
+
 	if( !bIgnoreArray && (Output.bIsArray != Input.bIsArray) && (Input.PinCategory != PC_Wildcard || Input.bIsArray) )
 	{
 		return false;
@@ -3836,7 +3873,7 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 					}
 				}				
 
-				return (OutputObject->IsChildOf(InputObject) || (OutputClass && InputClass && ExtendedIsChildOf(OutputClass, InputClass)))
+				return (Local::IsAuthoritativeChildOf(OutputObject, InputObject) || (OutputClass && InputClass && ExtendedIsChildOf(OutputClass, InputClass)))
 					&& (bInputIsInterface == bOutputIsInterface);
 			}
 		}
@@ -4410,7 +4447,7 @@ UFunction* UEdGraphSchema_K2::FindSetVariableByNameFunction(const FEdGraphPinTyp
 	}
 	else if(PinType.PinCategory == K2Schema->PC_Interface)
 	{
-		static FName SetObjectName(GET_FUNCTION_NAME_CHECKED(UKismetSystemLibrary, SetObjectPropertyByName));
+		static FName SetObjectName(GET_FUNCTION_NAME_CHECKED(UKismetSystemLibrary, SetInterfacePropertyByName));
 		SetFunctionName = SetObjectName;
 	}
 	else if(PinType.PinCategory == K2Schema->PC_String)

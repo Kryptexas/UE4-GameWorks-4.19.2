@@ -81,6 +81,8 @@ struct FFlatTessellationHSToDS
 	TESSELLATION_ATTRIBUTES
 	FFlatTessellationHSToDS MainHull( InputPatch<FPassSpecificVSToDS, IN_CONTROL_POINTS> I, uint ControlPointID : SV_OutputControlPointID )
 	{
+		ResolvedView = ResolveView();
+
 		FFlatTessellationHSToDS O = (FFlatTessellationHSToDS) 0;
 		
 		float3x3 TangentToLocal = VertexFactoryGetTangentToLocalDS(I[ControlPointID].FactoryInterpolants);
@@ -120,6 +122,8 @@ struct FFlatTessellationHSToDS
 		const OutputPatch<FFlatTessellationHSToDS, 3> I,
 		float3 BarycentricCoords : SV_DomainLocation )
 	{
+		ResolvedView = ResolveView();
+
 		// Get the barycentric coords
 		float U = BarycentricCoords.x;
 		float V = BarycentricCoords.y;

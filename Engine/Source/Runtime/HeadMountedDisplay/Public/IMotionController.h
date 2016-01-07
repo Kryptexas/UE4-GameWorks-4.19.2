@@ -3,6 +3,14 @@
 #pragma once
 #include "InputCoreTypes.h"
 
+UENUM(BlueprintType)
+enum class ETrackingStatus
+{
+	NotTracked,
+	InertialOnly,
+	Tracked
+};
+
 /**
  * Motion Controller device interface
  *
@@ -30,4 +38,11 @@ public:
 	 * @return					True if the device requested is valid and tracked, false otherwise
 	 */
 	virtual bool GetControllerOrientationAndPosition(const int32 ControllerIndex, const EControllerHand DeviceHand, FRotator& OutOrientation, FVector& OutPosition) const = 0;
+
+	/**
+	 * Returns the tracking status (e.g. not tracked, intertial-only, fully tracked) of the specified controller
+	 *
+	 * @return	Tracking status of the specified controller, or ETrackingStatus::NotTracked if the device is not found
+	 */
+	virtual ETrackingStatus GetControllerTrackingStatus(const int32 ControllerIndex, const EControllerHand DeviceHand) const = 0;
 };

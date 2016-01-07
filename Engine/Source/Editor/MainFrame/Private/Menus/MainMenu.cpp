@@ -219,7 +219,7 @@ void FMainMenu::FillWindowMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FEx
 				{
 					MenuBuilder.AddMenuEntry(
 						LOCTEXT("LocalizationDashboardLabel", "Localization Dashboard"),
-						LOCTEXT("BlutilityShelfToolTip", "Open the Localization Dashboard for this Project."),
+						LOCTEXT("LocalizationDashboardToolTip", "Open the Localization Dashboard for this Project."),
 						FSlateIcon(),
 						FUIAction(FExecuteAction::CreateStatic(&FMainMenu::OpenLocalizationDashboard))
 						);

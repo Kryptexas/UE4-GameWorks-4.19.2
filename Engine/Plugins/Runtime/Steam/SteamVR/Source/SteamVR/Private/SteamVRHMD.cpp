@@ -429,6 +429,17 @@ bool FSteamVRHMD::GetTrackedObjectOrientationAndPosition(uint32 DeviceId, FQuat&
 	return bHasValidPose;
 }
 
+ETrackingStatus FSteamVRHMD::GetControllerTrackingStatus(uint32 DeviceId) const
+{
+	ETrackingStatus TrackingStatus = ETrackingStatus::NotTracked;
+
+	if (DeviceId < vr::k_unMaxTrackedDeviceCount && TrackingFrame.bPoseIsValid[DeviceId] && TrackingFrame.bDeviceIsConnected[DeviceId])
+	{
+		TrackingStatus = ETrackingStatus::Tracked;
+	}
+
+	return TrackingStatus;
+}
 
 bool FSteamVRHMD::GetControllerHandPositionAndOrientation( const int32 ControllerIndex, EControllerHand Hand, FVector& OutPosition, FQuat& OutOrientation )
 {
@@ -439,6 +450,17 @@ bool FSteamVRHMD::GetControllerHandPositionAndOrientation( const int32 Controlle
 
 	const int32 DeviceId = UnrealControllerIdAndHandToDeviceIdMap[ ControllerIndex ][ (int32)Hand ];
 	return GetTrackedObjectOrientationAndPosition(DeviceId, OutOrientation, OutPosition);
+}
+
+ETrackingStatus FSteamVRHMD::GetControllerTrackingStatus(int32 ControllerIndex, EControllerHand DeviceHand) const
+{
+	if ((ControllerIndex < 0) || (ControllerIndex >= MAX_STEAMVR_CONTROLLER_PAIRS) || DeviceHand < EControllerHand::Left || DeviceHand > EControllerHand::Right)
+	{
+		return ETrackingStatus::NotTracked;
+	}
+
+	const int32 DeviceId = UnrealControllerIdAndHandToDeviceIdMap[ ControllerIndex ][ (int32)DeviceHand ];
+	return GetControllerTrackingStatus(DeviceId);
 }
 
 

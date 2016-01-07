@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12VertexBuffer.cpp: D3D vertex buffer RHI implementation.
@@ -123,7 +123,7 @@ void* FD3D12VertexBuffer::DynamicLock()
 
 		// Prune old allocations.
 		ResourceViewHandleDesc PruneViewHandleDesc;
-		while (SRVPool.TryAllocate(PruneViewHandleDesc, PruneFenceCount))
+		while (SRVPool.TryAllocate(PruneViewHandleDesc))
 		{
 			FD3D12ResourceAllocator* Allocator = PruneViewHandleDesc.BlockInfo->Allocator;
 			check(!!Allocator);
@@ -162,7 +162,8 @@ void* FD3D12VertexBuffer::DynamicLock()
 
 void* FD3D12DynamicRHI::RHILockVertexBuffer(FVertexBufferRHIParamRef VertexBufferRHI, uint32 Offset, uint32 Size, EResourceLockMode LockMode)
 {
-	check(Size > 0);
+	// TEMP: Disable check due to engine bug where it passes Size = 0 when doing parallel rendering.
+	//check(Size > 0);
 
 	FD3D12VertexBuffer*  VertexBuffer = FD3D12DynamicRHI::ResourceCast(VertexBufferRHI);
 

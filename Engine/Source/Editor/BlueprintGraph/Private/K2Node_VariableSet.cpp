@@ -210,7 +210,7 @@ FText UK2Node_VariableSet::GetBlueprintVarTooltip(FBPVariableDescription const& 
 		Args.Add(TEXT("VarName"), FText::FromName(VarDesc.VarName));
 		Args.Add(TEXT("UserTooltip"), FText::FromString(UserTooltipData));
 
-		return FText::Format(LOCTEXT("SetVariableProperty_Tooltip", "Set the value of variable {VarName}\n{UserTooltip}"), Args);
+		return FText::Format(LOCTEXT("SetBlueprintVariable_Tooltip", "Set the value of variable {VarName}\n{UserTooltip}"), Args);
 	}
 	return K2Node_VariableSetImpl::GetBaseTooltip(VarDesc.VarName);
 }

@@ -52,6 +52,22 @@ void UComponentDelegateBinding::BindDynamicDelegates(UObject* InInstance) const
 	}
 }
 
+void UComponentDelegateBinding::UnbindDynamicDelegates(UObject* InInstance) const
+{
+	for (int32 BindIdx = 0; BindIdx<ComponentDelegateBindings.Num(); BindIdx++)
+	{
+		const FBlueprintComponentDelegateBinding& Binding = ComponentDelegateBindings[BindIdx];
+
+		// Get the delegate property on the component we want to unbind from
+		FMulticastScriptDelegate* TargetDelegate = FindComponentTargetDelegate(InInstance, Binding);
+		if (TargetDelegate != nullptr)
+		{
+			// Unbind function on the instance from this delegate
+			TargetDelegate->Remove(InInstance, Binding.FunctionNameToBind);
+		}
+	}
+}
+
 void UComponentDelegateBinding::UnbindDynamicDelegatesForProperty(UObject* InInstance, const UObjectProperty* InObjectProperty) const
 {
 	for(int32 BindIdx=0; BindIdx<ComponentDelegateBindings.Num(); BindIdx++)

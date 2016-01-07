@@ -801,24 +801,31 @@ namespace UnrealBuildTool
 			}
 
 			DirectoryReference UserSettingsFolder = Utils.GetUserSettingDirectory(); // Match FPlatformProcess::UserSettingsDir()
-			DirectoryReference PersonalFolder = null; // Match FPlatformProcess::UserDir()
-			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
-			{
-				PersonalFolder = new DirectoryReference(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Documents"));
-			}
-			else if (Environment.OSVersion.Platform == PlatformID.Unix)
-			{
-				PersonalFolder = new DirectoryReference(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Documents"));
-			}
-			else
-			{
-				PersonalFolder = new DirectoryReference(Environment.GetFolderPath(Environment.SpecialFolder.Personal));
-			}
 
 			// <AppData>/UE4/EngineConfig/User* ini
 			yield return FileReference.Combine(UserSettingsFolder, "Unreal Engine", "Engine", "Config", "User" + BaseIniName + ".ini");
-			// <Documents>/UE4/EngineConfig/User* ini
-			yield return FileReference.Combine(PersonalFolder, "Unreal Engine", "Engine", "Config", "User" + BaseIniName + ".ini");
+
+			// Some user accounts (eg. SYSTEM on Windows) don't have a home directory. Ignore them if Environment.GetFolderPath() returns an empty string.
+			string PersonalFolder = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
+			if (!String.IsNullOrEmpty(PersonalFolder))
+			{
+				DirectoryReference PersonalConfigFolder; // Match FPlatformProcess::UserDir()
+				if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
+				{
+					PersonalConfigFolder = new DirectoryReference(Path.Combine(PersonalFolder, "Documents"));
+				}
+				else if (Environment.OSVersion.Platform == PlatformID.Unix)
+				{
+					PersonalConfigFolder = new DirectoryReference(Path.Combine(PersonalFolder, "Documents"));
+				}
+				else
+				{
+					PersonalConfigFolder = new DirectoryReference(PersonalFolder);
+				}
+
+				// <Documents>/UE4/EngineConfig/User* ini
+				yield return FileReference.Combine(PersonalConfigFolder, "Unreal Engine", "Engine", "Config", "User" + BaseIniName + ".ini");
+			}
 
 			// Game/Config/User* ini
 			if (ProjectDirectory != null)

@@ -641,7 +641,7 @@ void PopulateCacheCS(
 	GroupMemoryBarrierWithGroupSync();
 
 	float2 ScreenUV = (DispatchThreadId.xy * CurrentLevelDownsampleFactor + Frame.ViewRectMin.xy + float2(.5f, .5f)) * Frame.BufferSizeAndInvSize.zw;
-	float2 ScreenPosition = (ScreenUV.xy - Frame.ScreenPositionScaleBias.wz) / Frame.ScreenPositionScaleBias.xy;
+	float2 ScreenPosition = (ScreenUV.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy;
 	float2 DownsampledScreenUV = (DispatchThreadId.xy + float2(.5f, .5f)) / AOBufferSize;
 
 	FGBufferData GBufferData = GetGBufferData(ScreenUV);

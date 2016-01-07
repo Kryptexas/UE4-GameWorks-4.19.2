@@ -177,7 +177,9 @@ public:
 	ESteamVRTrackedDeviceType GetTrackedDeviceType(uint32 DeviceId) const;
 	void GetTrackedDeviceIds(ESteamVRTrackedDeviceType DeviceType, TArray<int32>& TrackedIds);
 	bool GetTrackedObjectOrientationAndPosition(uint32 DeviceId, FQuat& CurrentOrientation, FVector& CurrentPosition);
+	ETrackingStatus GetControllerTrackingStatus(uint32 DeviceId) const;
 	STEAMVR_API bool GetControllerHandPositionAndOrientation( const int32 ControllerIndex, EControllerHand Hand, FVector& OutPosition, FQuat& OutOrientation );
+	STEAMVR_API ETrackingStatus GetControllerTrackingStatus(int32 ControllerIndex, EControllerHand DeviceHand) const;
 
 
 	/** Chaperone */

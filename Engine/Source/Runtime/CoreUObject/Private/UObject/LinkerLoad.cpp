@@ -3598,6 +3598,10 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 					return Export.Object;
 				}				
 			}
+			else if (Cast<ULinkerPlaceholderExportObject>(Export.Object))
+			{
+				return Export.Object;
+			}
 #else  // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 			Preload(LoadClass);
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING

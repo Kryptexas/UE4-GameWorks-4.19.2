@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12RHI.cpp: Unreal D3D RHI library implementation.
@@ -31,16 +31,40 @@ namespace D3D12RHI
 }
 using namespace D3D12RHI;
 
+void FD3D12CommandContext::ConditionalObtainCommandAllocator()
+{
+	if (CommandAllocator == nullptr)
+	{
+		// Obtain a command allocator if the context doesn't already have one.
+		// This will check necessary fence values to ensure the returned command allocator isn't being used by the GPU, then reset it.
+		CommandAllocator = CommandAllocatorManager.ObtainCommandAllocator();
+	}
+}
+
+void FD3D12CommandContext::ReleaseCommandAllocator()
+{
+	if (CommandAllocator != nullptr)
+	{
+		// Release the command allocator so it can be reused.
+		CommandAllocatorManager.ReleaseCommandAllocator(CommandAllocator);
+		CommandAllocator = nullptr;
+	}
+}
+
 void FD3D12CommandContext::OpenCommandList(bool bRestoreState)
 {
 	FD3D12CommandListManager& CommandListManager = GetParentDevice()->GetCommandListManager();
 
+	// Conditionally get a new command allocator.
+	// Each command context uses a new allocator for all command lists with a single frame.
+	ConditionalObtainCommandAllocator();
+
 	// Get a new command list
-	CommandListHandle = CommandListManager.BeginCommandList(StateCache.GetPipelineStateObject());
+	CommandListHandle = CommandListManager.ObtainCommandList(*CommandAllocator, StateCache.GetPipelineStateObject());
 
 	CommandListHandle->SetDescriptorHeaps(DescriptorHeaps.Num(), DescriptorHeaps.GetData());
-	CommandListHandle->SetGraphicsRootSignature(GetParentDevice()->GetGraphicsRootSignature());
-	CommandListHandle->SetComputeRootSignature(GetParentDevice()->GetComputeRootSignature());
+	StateCache.ForceSetGraphicsRootSignature();
+	StateCache.ForceSetComputeRootSignature();
 
 	StateCache.GetDescriptorCache()->NotifyCurrentCommandList(CommandListHandle);
 
@@ -59,21 +83,58 @@ void FD3D12CommandContext::OpenCommandList(bool bRestoreState)
 	CommandListHandle.SetCurrentOwningContext(this);
 }
 
-FD3D12CommandListHandle FD3D12CommandContext::FlushCommands(bool WaitForCompletion)
+void FD3D12CommandContext::CloseCommandList()
 {
-	// We should only be flushing the default context
-	check(IsDefaultContext());
+	CommandListHandle.Close();
+}
 
-	// Only submit a command list if it does meaningful work or the flush is expected to wait for completion.
+void FD3D12CommandContext::ExecuteCommandList(bool WaitForCompletion)
+{
+	check(CommandListHandle.IsClosed());
+
+	// Only submit a command list if it does meaningful work or is expected to wait for completion.
 	if (WaitForCompletion || HasDoneWork())
 	{
 #if SUPPORTS_MEMORY_RESIDENCY
 		GetParentDevice()->GetOwningRHI()->GetResourceResidencyManager().MakeResident();
 #endif
-		// Close the current command list
-		CommandListHandle.Close();
 
 		CommandListHandle.Execute(WaitForCompletion);
+	}
+}
+
+FD3D12CommandListHandle FD3D12CommandContext::FlushCommands(bool WaitForCompletion)
+{
+	// We should only be flushing the default context
+	check(IsDefaultContext());
+
+	FD3D12Device* Device = GetParentDevice();
+	const bool bExecutePendingWork = GCommandListBatchingMode == CLB_AggressiveBatching;
+	const bool bHasPendingWork = bExecutePendingWork && (Device->PendingCommandListsTotalWorkCommands > 0);
+	const bool bHasDoneWork = HasDoneWork() || bHasPendingWork;
+
+	// Only submit a command list if it does meaningful work or the flush is expected to wait for completion.
+	if (WaitForCompletion || bHasDoneWork)
+	{
+#if SUPPORTS_MEMORY_RESIDENCY
+		Device->GetOwningRHI()->GetResourceResidencyManager().MakeResident();
+#endif
+		// Close the current command list
+		CloseCommandList();
+
+		if (bHasPendingWork)
+		{
+			// Submit all pending command lists and the current command list
+			Device->PendingCommandLists.Add(CommandListHandle);
+			Device->GetCommandListManager().ExecuteCommandLists(Device->PendingCommandLists, WaitForCompletion);
+			Device->PendingCommandLists.Reset();
+			Device->PendingCommandListsTotalWorkCommands = 0;
+		}
+		else
+		{
+			// Just submit the current command list
+			CommandListHandle.Execute(WaitForCompletion);
+		}
 
 		// Get a new command list to replace the one we submitted for execution. 
 		// Restore the state from the previous command list.
@@ -85,16 +146,20 @@ FD3D12CommandListHandle FD3D12CommandContext::FlushCommands(bool WaitForCompleti
 
 void FD3D12CommandContext::Finish(TArray<FD3D12CommandListHandle>& CommandLists)
 {
+	CloseCommandList();
+
 	if (HasDoneWork())
 	{
-		// Close the current command list
-		CommandListHandle.Close();
-
 		CommandLists.Add(CommandListHandle);
-
-		// Get a new command list to replace the one we submitted for execution
-		OpenCommandList();
 	}
+	else
+	{
+		// Release the unused command list.
+		GetParentDevice()->GetCommandListManager().ReleaseCommandList(CommandListHandle);
+	}
+
+	// The context is done with this command list handle.
+	CommandListHandle = nullptr;
 }
 
 void FD3D12CommandContext::RHIBeginFrame()
@@ -354,25 +419,21 @@ void FD3D12CommandContext::RHIEndFrame()
 	OwningRHI.GPUProfilingData.EndFrame();
 
 	FD3D12Device* Device = GetParentDevice();
-
-	// MSFT: Seb: Is any of this needed? Perhaps there is now a better place to clean up this stuff
-	//TODO: do for all devices?
-	//TODO: move this into the device
 	Device->GetDeferredDeletionQueue().ReleaseResources();
 	Device->GetDefaultBufferAllocator().CleanupFreeBlocks();
 
-	for (uint32 i = 0; i < Device->GetNumContexts(); ++i)
-    {
-		Device->GetCommandContext(i).StateCache.GetDescriptorCache()->EndFrame();
-		Device->GetCommandContext(i).UploadHeapAllocator.CleanupFreeBlocks();
+	const uint32 NumContexts = Device->GetNumContexts();
+	for (uint32 i = 0; i < NumContexts; ++i)
+	{
+		Device->GetCommandContext(i).EndFrame();
 	}
 
 	for (uint32 i = 0; i < FD3D12DynamicRHI::GetD3DRHI()->NumThreadDynamicHeapAllocators; ++i)
-    {
+	{
 		FD3D12DynamicHeapAllocator* pCurrentHelperThreadDynamicHeapAllocator = FD3D12DynamicRHI::GetD3DRHI()->ThreadDynamicHeapAllocatorArray[i];
 		check(pCurrentHelperThreadDynamicHeapAllocator != nullptr);
 		pCurrentHelperThreadDynamicHeapAllocator->CleanupFreeBlocks();
-    }
+	}
 
 #if SUPPORTS_MEMORY_RESIDENCY
 	GetResourceResidencyManager().Process();
@@ -547,7 +608,7 @@ void FD3D12CommandContext::RHIEndScene()
 void FD3DGPUProfiler::PushEvent(const TCHAR* Name)
 {
 #if WITH_DX_PERF
-	D3DPERF_BeginEvent(FColor(0, 0, 0).DWColor(), Name);
+	D3DPERF_BeginEvent(FColor(0, 255, 0, 255).DWColor(), Name);
 #endif
 
 	FGPUProfiler::PushEvent(Name);

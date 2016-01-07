@@ -3184,7 +3184,7 @@ GameProjectUtils::EAddCodeToProjectResult GameProjectUtils::AddCodeToProject_Int
 {
 	if ( !ParentClassInfo.IsSet() )
 	{
-		OutFailReason = LOCTEXT("NoParentClass", "You must specify a parent class");
+		OutFailReason = LOCTEXT("MissingParentClass", "You must specify a parent class");
 		return EAddCodeToProjectResult::InvalidInput;
 	}
 

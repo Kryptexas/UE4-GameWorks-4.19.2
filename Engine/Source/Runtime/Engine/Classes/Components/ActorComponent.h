@@ -453,14 +453,14 @@ public:
 	/** 
 	 * Set this component's tick functions to be enabled or disabled. Only has an effect if the function is registered
 	 * 
-	 * @param	bEnabled - Rather it should be enabled or not
+	 * @param	bEnabled - Whether it should be enabled or not
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities")
 	virtual void SetComponentTickEnabled(bool bEnabled);
 	/** 
 	 * Spawns a task on GameThread that will call SetComponentTickEnabled
 	 * 
-	 * @param	bEnabled - Rather it should be enabled or not
+	 * @param	bEnabled - Whether it should be enabled or not
 	 */
 	virtual void SetComponentTickEnabledAsync(bool bEnabled);
 	/** 
@@ -644,8 +644,12 @@ public:
 	/** Called when a component is created (not loaded) */
 	virtual void OnComponentCreated();
 
-	/** Called when a component is destroyed */
-	virtual void OnComponentDestroyed();
+	/** 
+	 * Called when a component is destroyed
+	 * 
+	 * @param	bDestroyingHierarchy  - True if the entire component hierarchy is being torn down, allows avoiding expensive operations
+	 */
+	virtual void OnComponentDestroyed(bool bDestroyingHierarchy);
 
 	/**
 	 * Unregister and mark for pending kill a component.  This may not be used to destroy a component is owned by an actor other than the one calling the function.

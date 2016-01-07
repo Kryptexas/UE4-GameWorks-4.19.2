@@ -24,6 +24,10 @@ class HEADMOUNTEDDISPLAY_API UMotionControllerComponent : public UPrimitiveCompo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MotionController")
 	uint32 bDisableLowLatencyUpdate:1;
 
+	/** The tracking status for the device (e.g. full tracking, inertial tracking only, no tracking) */
+	UPROPERTY(BlueprintReadOnly, Category = "MotionController")
+	TEnumAsByte<ETrackingStatus> CurrentTrackingStatus;
+
 	void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 
 	/** Whether or not this component had a valid tracked device this frame */

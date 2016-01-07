@@ -1233,3 +1233,9 @@ bool RemoveUnusedInputs(FString& InOutSourceCode, const TArray<FString>& InInput
 	OutErrors = Data.Errors;
 	return false;
 }
+
+void StripInstancedStereo(FString& ShaderSource)
+{
+	ShaderSource.ReplaceInline(TEXT("ResolvedView = ResolveView();"), TEXT(""));
+	ShaderSource.ReplaceInline(TEXT("ResolvedView"), TEXT("View"));
+}

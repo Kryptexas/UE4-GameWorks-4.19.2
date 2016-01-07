@@ -31,6 +31,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogCookCommandlet, Log, All);
 
 UCookerSettings::UCookerSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, bCompileBlueprintsInDevelopmentMode(true)
 {
 	SectionName = TEXT("Cooker");
 	DefaultPVRTCQuality = 1;

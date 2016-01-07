@@ -140,5 +140,11 @@ class UBlueprintGameplayTagLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta = (BlueprintInternalUseOnly = "TRUE"))
 	static bool DoesTagAssetInterfaceHaveTag(TScriptInterface<IGameplayTagAssetInterface> TagContainerInterface, TEnumAsByte<EGameplayTagMatchType::Type> ContainerTagsMatchType, const FGameplayTag& Tag, TEnumAsByte<EGameplayTagMatchType::Type> TagMatchType);
 
+	/** Checks if a gameplay tag's name and a string are not equal to one another */
+	UFUNCTION(BlueprintPure, Category = PinOptions, meta = (BlueprintInternalUseOnly = "TRUE"))
+	static bool NotEqual_TagTag(FGameplayTag A, FString B);
 
+	/** Checks if a gameplay tag containers's name and a string are not equal to one another */
+	UFUNCTION(BlueprintPure, Category = PinOptions)
+	static bool NotEqual_TagContainerTagContainer(FGameplayTagContainer A, FString B);
 };

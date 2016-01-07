@@ -165,7 +165,7 @@ public class Launch : ModuleRules
 			Target.Platform == UnrealTargetPlatform.TVOS)
 		{
 			PrivateDependencyModuleNames.Add("OpenGLDrv");
-			DynamicallyLoadedModuleNames.Add("IOSAudio");
+			PrivateDependencyModuleNames.Add("IOSAudio");
 			DynamicallyLoadedModuleNames.Add("IOSRuntimeSettings");
 			PublicFrameworks.Add("OpenGLES");
 			// this is weak for IOS8 support for CAMetalLayer that is in QuartzCore

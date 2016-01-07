@@ -963,6 +963,7 @@ AActor *UFbxSceneImportFactory::CreateActorComponentsHierarchy(TSharedPtr<FFbxSc
 		else
 		{
 			//TODO log which fbx attribute we cannot create an actor from
+			continue;
 		}
 
 		//////////////////////////////////////////////////////////////////////////
@@ -1235,7 +1236,7 @@ UObject* UFbxSceneImportFactory::RecursiveImportNode(void* VoidFbxImporter, void
 	}
 	else
 	{
-		if (Node->GetMesh())
+		if (Node->GetMesh() && Node->GetMesh()->GetPolygonVertexCount() > 0)
 		{
 			NewObject = ImportANode(VoidFbxImporter, Node, Flags, NodeIndex, SceneInfo, OutNodeInfo, PackagePath, Total);
 

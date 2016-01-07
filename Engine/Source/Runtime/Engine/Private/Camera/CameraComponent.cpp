@@ -55,17 +55,17 @@ void UCameraComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector
 	Super::AddReferencedObjects(InThis, Collector);
 }
 
-void UCameraComponent::OnComponentDestroyed()
+void UCameraComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 {
-	Super::OnComponentDestroyed();
+	Super::OnComponentDestroyed(bDestroyingHierarchy);
 
 	if (ProxyMeshComponent)
 	{
-		ProxyMeshComponent->DestroyComponent();
+		ProxyMeshComponent->DestroyComponent(bDestroyingHierarchy);
 	}
 	if (DrawFrustum)
 	{
-		DrawFrustum->DestroyComponent();
+		DrawFrustum->DestroyComponent(bDestroyingHierarchy);
 	}
 }
 #endif

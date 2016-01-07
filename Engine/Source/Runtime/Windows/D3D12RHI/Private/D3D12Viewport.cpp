@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12Viewport.cpp: D3D viewport RHI implementation.
@@ -482,6 +482,9 @@ bool FD3D12Viewport::Present(bool bLockToVsync)
 	bool bNativelyPresented = true;
 	FD3D12DynamicRHI::TransitionResource(DefaultContext.CommandListHandle, GetBackBuffer()->GetShaderResourceView(), D3D12_RESOURCE_STATE_PRESENT);
 
+	// Return the current command allocator to the pool, execute the current command list, and 
+	// then open a new command list with a new command allocator.
+	DefaultContext.ReleaseCommandAllocator();
 	DefaultContext.FlushCommands();
 
 	// Reset the default context state

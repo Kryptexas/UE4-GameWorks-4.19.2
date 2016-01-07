@@ -1,3 +1,4 @@
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 //This file needs to be here so the "ant" build step doesnt fail when looking for a /src folder.
 
 package com.epicgames.ue4;
@@ -103,6 +104,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	public static final String DOWNLOAD_RETURN_NAME = "Result";
 	
 	static GameActivity _activity;
+	static Bundle _bundle;
 
 	protected Dialog mSplashDialog;
 	private int noActionAnimID = -1;
@@ -419,6 +421,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		try {
 			ApplicationInfo ai = getPackageManager().getApplicationInfo(getPackageName(), PackageManager.GET_META_DATA);
 			Bundle bundle = ai.metaData;
+			_bundle = bundle;
 
 			if ((ai.flags & ApplicationInfo.FLAG_DEBUGGABLE) == 0) 
 			{
@@ -1502,6 +1505,42 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 				}
 			});
 		}
+	}
+
+	public boolean AndroidThunkJava_HasMetaDataKey(String key)
+	{
+		if (_bundle == null || key == null)
+		{
+			return false;
+		}
+		return _bundle.containsKey(key);
+	}
+
+	public boolean AndroidThunkJava_GetMetaDataBoolean(String key)
+	{
+		if (_bundle == null || key == null)
+		{
+			return false;
+		}
+		return _bundle.getBoolean(key);
+	}
+
+	public int AndroidThunkJava_GetMetaDataInt(String key)
+	{
+		if (_bundle == null || key == null)
+		{
+			return 0;
+		}
+		return _bundle.getInt(key);
+	}
+
+	public String AndroidThunkJava_GetMetaDataString(String key)
+	{
+		if (_bundle == null || key == null)
+		{
+			return null;
+		}
+		return _bundle.getString(key);
 	}
 
 	public native boolean nativeIsShippingBuild();

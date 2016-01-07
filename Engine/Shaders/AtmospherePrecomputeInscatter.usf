@@ -34,9 +34,8 @@ void MainVS(
 	out FAtmosphereVSOutput Out
 	)
 {
-	Out.OutPosition = InPosition;
-	Out.OutTexCoord = InTexCoord;
-    Out.LayerIndex = AtmosphereLayer;
+	DrawRectangle(InPosition, InTexCoord, Out.OutPosition, Out.OutTexCoord);
+	Out.LayerIndex = AtmosphereLayer;
 }
 
 struct FAtmosphereGSOut

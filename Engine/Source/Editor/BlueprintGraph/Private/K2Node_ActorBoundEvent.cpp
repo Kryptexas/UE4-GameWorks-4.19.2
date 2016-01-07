@@ -87,7 +87,7 @@ FText UK2Node_ActorBoundEvent::GetNodeTitle(ENodeTitleType::Type TitleType) cons
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("DelegatePropertyName"), FText::FromName(DelegatePropertyName));
-		return FText::Format(LOCTEXT("ActorBoundEventTitle", "{DelegatePropertyName} (None)"), Args);
+		return FText::Format(LOCTEXT("ActorBoundEventTitleNoOwner", "{DelegatePropertyName} (None)"), Args);
 	}
 	else if (CachedNodeTitle.IsOutOfDate(this))
 	{

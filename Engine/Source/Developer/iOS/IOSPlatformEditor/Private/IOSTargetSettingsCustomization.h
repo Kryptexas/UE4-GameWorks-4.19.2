@@ -69,6 +69,7 @@ private:
 	bool bCertificateInstalled;
 	bool bShowAllProvisions;
 	bool bShowAllCertificates;
+	bool bManuallySelected;
 
 	TSharedPtr<FMonitoredProcess> IPPProcess;
 	FDelegateHandle TickerHandle;

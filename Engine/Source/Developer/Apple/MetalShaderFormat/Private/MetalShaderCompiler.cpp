@@ -565,6 +565,9 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 
 	if (PreprocessShader(PreprocessedShader, Output, Input, AdditionalDefines))
 	{
+		// Disable instanced stereo until supported for metal
+		StripInstancedStereo(PreprocessedShader);
+
 		char* MetalShaderSource = NULL;
 		char* ErrorLog = NULL;
 

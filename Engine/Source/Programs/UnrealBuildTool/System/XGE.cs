@@ -450,7 +450,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="TaskFilePath">- The path to the file containing the tasks to execute in XGE XML format.</param>
 		/// <returns>Indicates whether the tasks were successfully executed.</returns>
-		public static ExecutionResult ExecuteTaskFile(string TaskFilePath, DataReceivedEventHandler OutputEventHandler)
+		public static ExecutionResult ExecuteTaskFile(string TaskFilePath, DataReceivedEventHandler OutputEventHandler, int ActionCount)
 		{
 			bool bSilentCompileOutput = false;
 			string SilentOption = bSilentCompileOutput ? "/Silent" : "";
@@ -494,6 +494,11 @@ namespace UnrealBuildTool
 					XGEProcess.BeginErrorReadLine();
 				}
 
+				Log.TraceInformation("{0} {1} action{2} to XGE",
+					BuildConfiguration.bXGEExport ? "Exporting" : "Distributing",
+					ActionCount,
+					ActionCount == 1 ? "" : "s");
+
 				// Wait until the process is finished and return whether it all the tasks successfully executed.
 				XGEProcess.WaitForExit();
 				return XGEProcess.ExitCode == 0 ?
@@ -531,7 +536,7 @@ namespace UnrealBuildTool
 				};
 
 				// Run through the standard XGE executor
-				return ExecuteTaskFile(TaskFilePath, EventHandlerWrapper);
+				return ExecuteTaskFile(TaskFilePath, EventHandlerWrapper, NumActions);
 			}
 		}
 	}

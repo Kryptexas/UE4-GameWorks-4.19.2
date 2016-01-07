@@ -715,11 +715,20 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 				IDetailPropertyRow* Row = DefaultValueCategory.AddExternalProperty(StructData, VariableProperty->GetFName());
 			}
-			else if (GetPropertyOwnerBlueprint())
+			else
 			{
+				UObject* TargetBlueprintDefaultObject = nullptr;
+				if (IsVariableInheritedByBlueprint())
+				{
+					TargetBlueprintDefaultObject = GetBlueprintObj()->GeneratedClass->GetDefaultObject();
+				}
+				else
+				{
+					TargetBlueprintDefaultObject = GetPropertyOwnerBlueprint()->GeneratedClass->GetDefaultObject();
+				}
 				// Things are in order, show the property and allow it to be edited
 				TArray<UObject*> ObjectList;
-				ObjectList.Add(GetPropertyOwnerBlueprint()->GeneratedClass->GetDefaultObject());
+				ObjectList.Add(TargetBlueprintDefaultObject);
 				IDetailPropertyRow* Row = DefaultValueCategory.AddExternalProperty(ObjectList, VariableProperty->GetFName());
 				if (Row != nullptr)
 				{
@@ -962,7 +971,7 @@ void FBlueprintVarActionDetails::OnVarNameChanged(const FText& InNewText)
 	}
 	else if(ValidatorResult == EValidatorResult::TooLong)
 	{
-		VarNameEditableTextBox->SetError(LOCTEXT("RenameFailed_NameTooLong", "Names must have fewer than 100 characters!"));
+		VarNameEditableTextBox->SetError(FText::Format( LOCTEXT("RenameFailed_NameTooLong", "Names must have fewer than {0} characters!"), FText::AsNumber( FKismetNameValidator::GetMaximumNameLength())));
 	}
 	else if(ValidatorResult == EValidatorResult::LocallyInUse)
 	{
@@ -1984,6 +1993,20 @@ void FBlueprintVarActionDetails::OnFinishedChangingProperties(const FPropertyCha
 	}
 }
 
+bool FBlueprintVarActionDetails::IsVariableInheritedByBlueprint() const
+{
+	UClass* PropertyOwnerClass = nullptr;
+	if (UBlueprint* PropertyOwnerBlueprint = GetPropertyOwnerBlueprint())
+	{
+		PropertyOwnerClass = PropertyOwnerBlueprint->SkeletonGeneratedClass;
+	}
+	else if (CachedVariableProperty.IsValid())
+	{
+		PropertyOwnerClass = CachedVariableProperty->GetOwnerClass();
+	}
+	return GetBlueprintObj()->SkeletonGeneratedClass->IsChildOf(PropertyOwnerClass);
+}
+
 static FDetailWidgetRow& AddRow( TArray<TSharedRef<FDetailWidgetRow> >& OutChildRows )
 {
 	TSharedRef<FDetailWidgetRow> NewRow( new FDetailWidgetRow );
@@ -2354,6 +2377,8 @@ void FBlueprintGraphArgumentLayout::OnRefCheckStateChanged(ECheckBoxState InStat
 {
 	FEdGraphPinType PinType = OnGetPinInfo();
 	PinType.bIsReference = (InState == ECheckBoxState::Checked)? true : false;
+	// Note: Array types are implicitly passed by reference. For custom event nodes, the reference flag is essentially
+	//  treated as being redundant on array inputs, but we also need to implicitly set the 'const' flag to avoid a compiler note.
 	PinType.bIsConst = (PinType.bIsArray || PinType.bIsReference) && TargetNode && TargetNode->IsA<UK2Node_CustomEvent>();
 	PinInfoChanged(PinType);
 }
@@ -2383,6 +2408,9 @@ void FBlueprintGraphArgumentLayout::PinInfoChanged(const FEdGraphPinType& PinTyp
 					if (UDPinPtr)
 					{
 						(*UDPinPtr)->PinType = PinType;
+
+						// Array types are implicitly passed by reference. For custom event nodes, since they are inputs, also implicitly treat them as 'const' so that they don't result in a compiler note.
+						(*UDPinPtr)->PinType.bIsConst = PinType.bIsArray && Node && Node->IsA<UK2Node_CustomEvent>();
 					}
 					GraphActionDetailsPinned->OnParamsChanged(Node);
 				}
@@ -2481,7 +2509,7 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 				TSharedPtr<SListView<TSharedPtr<FText>>> NewListView;
 
 				const FString DocLink = TEXT("Shared/Editors/BlueprintEditor/GraphDetails");
-				TSharedPtr<SToolTip> CategoryTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("EditCategoryName_Tooltip", "The category of the graph; editing this will place the graph into another category or create a new one."), NULL, DocLink, TEXT("Category"));
+				TSharedPtr<SToolTip> CategoryTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("EditGraphCategoryName_Tooltip", "The category of the graph; editing this will place the graph into another category or create a new one."), NULL, DocLink, TEXT("Category"));
 
 				Category.AddCustomRow( LOCTEXT("CategoryLabel", "Category") )
 					.NameContent()
@@ -4769,7 +4797,7 @@ void FBlueprintComponentDetails::OnVariableTextChanged(const FText& InNewText)
 	}
 	else if(ValidatorResult == EValidatorResult::TooLong)
 	{
-		VariableNameEditableTextBox->SetError(LOCTEXT("RenameFailed_NameTooLong", "Names must have fewer than 100 characters!"));
+		VariableNameEditableTextBox->SetError(FText::Format( LOCTEXT("RenameFailed_NameTooLong", "Names must have fewer than {0} characters!"), FText::AsNumber( FKismetNameValidator::GetMaximumNameLength())));
 	}
 	else
 	{

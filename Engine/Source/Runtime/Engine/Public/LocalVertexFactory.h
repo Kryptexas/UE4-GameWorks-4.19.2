@@ -99,6 +99,4 @@ public:
 	bool bAnySpeedTreeParamIsBound;
 	// SpeedTree LOD parameter
 	FShaderParameter LODParameter;
-	// SpeedTree wind parameter
-	FShaderResourceParameter WindParameter;
 };

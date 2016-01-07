@@ -707,44 +707,113 @@ void USceneComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 	Super::DestroyComponent(bPromoteChildren);
 }
 
-void USceneComponent::OnComponentDestroyed()
+void USceneComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 {
-	Super::OnComponentDestroyed();
+	Super::OnComponentDestroyed(bDestroyingHierarchy);
 
 #if WITH_EDITORONLY_DATA
 	if (SpriteComponent)
 	{
-		SpriteComponent->DestroyComponent();
+		SpriteComponent->DestroyComponent(bDestroyingHierarchy);
 	}
 #endif
 
 	ScopedMovementStack.Reset();
 
-	int32 ChildCount = AttachChildren.Num();
-	while (ChildCount > 0)
+	// If we're just destroying for the exit purge don't bother with any of this
+	if (!GExitPurge)
 	{
-		if (USceneComponent* Child = AttachChildren.Last())
+		// If we're destroying the hierarchy we only have to make sure that we detach children from other Actor's
+		AActor* MyOwner = GetOwner();
+
+		if (bDestroyingHierarchy)
 		{
-			bool bNeedsDetach = true;
-			if (AttachParent)
+			// We'll lazily determine if we were attached in any way to a component from another Actor so that any of our children
+			// can be attached to this anyways as that would have been what ultimately occurred after the entire hierarchy was torn down
+			bool bExternalAttachParentDetermined = false;
+			USceneComponent* ExternalAttachParent = nullptr;
+
+			int32 ChildCount = AttachChildren.Num();
+
+			// We cache the actual children to put back after the detach process
+			TArray<USceneComponent*> CachedChildren;
+			CachedChildren.Reserve(ChildCount);
+
+			while (ChildCount > 0)
 			{
-				bNeedsDetach = (Child->AttachTo(AttachParent) == false);
+				USceneComponent* Child = AttachChildren.Last();
+				if (Child && Child->GetOwner() != MyOwner)
+				{
+					if (!bExternalAttachParentDetermined)
+					{
+						ExternalAttachParent = AttachParent;
+						while (ExternalAttachParent)
+						{
+							if (ExternalAttachParent->GetOwner() != MyOwner)
+							{
+								break;
+							}
+							ExternalAttachParent = ExternalAttachParent->GetAttachParent();
+						}
+						bExternalAttachParentDetermined = true;
+					}
+					bool bNeedsDetach = true;
+					if (ExternalAttachParent)
+					{
+						bNeedsDetach = (Child->AttachTo(ExternalAttachParent) == false);
+					}
+					if (bNeedsDetach)
+					{
+						Child->DetachFromParent();
+					}
+					checkf(ChildCount > AttachChildren.Num(), TEXT("AttachChildren count increased while detaching '%s', likely caused by OnAttachmentChanged introducing new children, which could lead to an infinite loop."), *Child->GetName());
+				}
+				else
+				{
+					AttachChildren.Pop(false);
+					if (Child)
+					{
+						CachedChildren.Add(Child);
+					}
+				}
+				ChildCount = AttachChildren.Num();
 			}
-			if (bNeedsDetach)
-			{
-				Child->DetachFromParent();
-			}
-			checkf(ChildCount > AttachChildren.Num(), TEXT("AttachChildren count increased while detaching '%s', likely caused by OnAttachmentChanged introducing new children, which could lead to an infinite loop."), *Child->GetName());
+			AttachChildren = MoveTemp(CachedChildren);
 		}
 		else
 		{
-			AttachChildren.Pop(false);
+			int32 ChildCount = AttachChildren.Num();
+			while (ChildCount > 0)
+			{
+				if (USceneComponent* Child = AttachChildren.Last())
+				{
+					bool bNeedsDetach = true;
+					if (AttachParent)
+					{
+						bNeedsDetach = (Child->AttachTo(AttachParent) == false);
+					}
+					if (bNeedsDetach)
+					{
+						Child->DetachFromParent();
+					}
+					checkf(ChildCount > AttachChildren.Num(), TEXT("AttachChildren count increased while detaching '%s', likely caused by OnAttachmentChanged introducing new children, which could lead to an infinite loop."), *Child->GetName());
+				}
+				else
+				{
+					AttachChildren.Pop(false);
+				}
+				ChildCount = AttachChildren.Num();
+			}
 		}
-		ChildCount = AttachChildren.Num();
-	}
 
-	// Ensure we are detached before destroying
-	DetachFromParent();
+		// Don't bother detaching from our parent if we're destroying the hierarchy, unless we're attached to
+		// another Actor's component
+		if (AttachParent && (!bDestroyingHierarchy || AttachParent->GetOwner() != MyOwner))
+		{
+			// Ensure we are detached before destroying
+			DetachFromParent();
+		}
+	}
 }
 
 FBoxSphereBounds USceneComponent::CalcBounds(const FTransform& LocalToWorld) const

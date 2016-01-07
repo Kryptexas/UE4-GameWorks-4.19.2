@@ -252,11 +252,6 @@ namespace UnrealBuildTool
 		public UEBuildBinary Binary = null;
 
 		/// <summary>
-		/// Whether this module is included in the current target.  Only set after UEBuildBinary.BindModules is called.
-		/// </summary>
-		public bool bIncludedInTarget = false;
-
-		/// <summary>
 		/// Include path for this module's base directory, relative to the Engine/Source directory
 		/// </summary>
 		protected string NormalizedModuleIncludePath;
@@ -566,56 +561,52 @@ namespace UnrealBuildTool
 			// There may be circular dependencies in compile dependencies, so we need to avoid reentrance.
 			if (VisitedModules.Add(this))
 			{
-				// Only process modules that are included in the current target.
-				if (bIncludedInTarget)
-				{
-					// Add this module's binary to the binary dependencies.
-					if (Binary != null
+				// Add this module's binary to the binary dependencies.
+				if (Binary != null
 					&& Binary != SourceBinary
 					&& !BinaryDependencies.Contains(Binary))
-					{
-						BinaryDependencies.Add(Binary);
-					}
+				{
+					BinaryDependencies.Add(Binary);
+				}
 
-					// If this module belongs to a static library that we are not currently building, recursively add the link environment settings for all of its dependencies too.
-					// Keep doing this until we reach a module that is not part of a static library (or external module, since they have no associated binary).
-					// Static libraries do not contain the symbols for their dependencies, so we need to recursively gather them to be linked into other binary types.
-					bool bIsBuildingAStaticLibrary = (SourceBinary != null && SourceBinary.Config.Type == UEBuildBinaryType.StaticLibrary);
-					bool bIsModuleBinaryAStaticLibrary = (Binary != null && Binary.Config.Type == UEBuildBinaryType.StaticLibrary);
-					if (!bIsBuildingAStaticLibrary && bIsModuleBinaryAStaticLibrary)
-					{
-						// Gather all dependencies and recursively call SetupPublicLinkEnvironmnet
-						List<UEBuildModule> AllDependencyModules = new List<UEBuildModule>();
-						AllDependencyModules.AddRange(PrivateDependencyModules);
-						AllDependencyModules.AddRange(PublicDependencyModules);
+				// If this module belongs to a static library that we are not currently building, recursively add the link environment settings for all of its dependencies too.
+				// Keep doing this until we reach a module that is not part of a static library (or external module, since they have no associated binary).
+				// Static libraries do not contain the symbols for their dependencies, so we need to recursively gather them to be linked into other binary types.
+				bool bIsBuildingAStaticLibrary = (SourceBinary != null && SourceBinary.Config.Type == UEBuildBinaryType.StaticLibrary);
+				bool bIsModuleBinaryAStaticLibrary = (Binary != null && Binary.Config.Type == UEBuildBinaryType.StaticLibrary);
+				if (!bIsBuildingAStaticLibrary && bIsModuleBinaryAStaticLibrary)
+				{
+					// Gather all dependencies and recursively call SetupPublicLinkEnvironmnet
+					List<UEBuildModule> AllDependencyModules = new List<UEBuildModule>();
+					AllDependencyModules.AddRange(PrivateDependencyModules);
+					AllDependencyModules.AddRange(PublicDependencyModules);
 
-						foreach (UEBuildModule DependencyModule in AllDependencyModules)
+					foreach (UEBuildModule DependencyModule in AllDependencyModules)
+					{
+						bool bIsExternalModule = (DependencyModule as UEBuildExternalModule != null);
+						bool bIsInStaticLibrary = (DependencyModule.Binary != null && DependencyModule.Binary.Config.Type == UEBuildBinaryType.StaticLibrary);
+						if (bIsExternalModule || bIsInStaticLibrary)
 						{
-							bool bIsExternalModule = (DependencyModule as UEBuildExternalModule != null);
-							bool bIsInStaticLibrary = (DependencyModule.Binary != null && DependencyModule.Binary.Config.Type == UEBuildBinaryType.StaticLibrary);
-							if (bIsExternalModule || bIsInStaticLibrary)
-							{
-								DependencyModule.SetupPublicLinkEnvironment(SourceBinary, LibraryPaths, AdditionalLibraries, Frameworks, WeakFrameworks,
-									AdditionalFrameworks, AdditionalShadowFiles, AdditionalBundleResources, DelayLoadDLLs, BinaryDependencies, VisitedModules);
-							}
+							DependencyModule.SetupPublicLinkEnvironment(SourceBinary, LibraryPaths, AdditionalLibraries, Frameworks, WeakFrameworks,
+								AdditionalFrameworks, AdditionalShadowFiles, AdditionalBundleResources, DelayLoadDLLs, BinaryDependencies, VisitedModules);
 						}
 					}
-
-					// Add this module's public include library paths and additional libraries.
-					LibraryPaths.AddRange(PublicLibraryPaths);
-					AdditionalLibraries.AddRange(PublicAdditionalLibraries);
-					Frameworks.AddRange(PublicFrameworks);
-					WeakFrameworks.AddRange(PublicWeakFrameworks);
-					AdditionalBundleResources.AddRange(PublicAdditionalBundleResources);
-					// Remember the module so we can refer to it when needed
-					foreach (var Framework in PublicAdditionalFrameworks)
-					{
-						Framework.OwningModule = this;
-					}
-					AdditionalFrameworks.AddRange(PublicAdditionalFrameworks);
-					AdditionalShadowFiles.AddRange(PublicAdditionalShadowFiles);
-					DelayLoadDLLs.AddRange(PublicDelayLoadDLLs);
 				}
+
+				// Add this module's public include library paths and additional libraries.
+				LibraryPaths.AddRange(PublicLibraryPaths);
+				AdditionalLibraries.AddRange(PublicAdditionalLibraries);
+				Frameworks.AddRange(PublicFrameworks);
+				WeakFrameworks.AddRange(PublicWeakFrameworks);
+				AdditionalBundleResources.AddRange(PublicAdditionalBundleResources);
+				// Remember the module so we can refer to it when needed
+				foreach (var Framework in PublicAdditionalFrameworks)
+				{
+					Framework.OwningModule = this;
+				}
+				AdditionalFrameworks.AddRange(PublicAdditionalFrameworks);
+				AdditionalShadowFiles.AddRange(PublicAdditionalShadowFiles);
+				DelayLoadDLLs.AddRange(PublicDelayLoadDLLs);
 			}
 		}
 
@@ -656,6 +647,18 @@ namespace UnrealBuildTool
 			return Name;
 		}
 
+		/// <summary>
+		/// Finds the modules referenced by this module which have not yet been bound to a binary
+		/// </summary>
+		/// <returns>List of unbound modules</returns>
+		public List<UEBuildModule> GetUnboundReferences()
+		{
+			List<UEBuildModule> Modules = new List<UEBuildModule>();
+			Modules.AddRange(PrivateDependencyModules.Where(x => x.Binary == null));
+			Modules.AddRange(PublicDependencyModules.Where(x => x.Binary == null));
+			return Modules;
+		}
+
 		[DebuggerDisplay("{Index}: {Module}")]
 		public class ModuleIndexPair
 		{
@@ -679,13 +682,6 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="Modules">Set of all the precompiled modules</param>
 		public virtual void RecursivelyAddPrecompiledModules(List<UEBuildModule> Modules)
-		{
-		}
-
-		/// <summary>
-		/// Gathers and binds binaries for this module and all of it's dependent modules
-		/// </summary>
-		public virtual void RecursivelyProcessUnboundModules()
 		{
 		}
 
@@ -762,7 +758,6 @@ namespace UnrealBuildTool
 				InRulesFile: InRulesFile
 				)
 		{
-			bIncludedInTarget = true;
 		}
 
 		// UEBuildModule interface.
@@ -1811,59 +1806,6 @@ namespace UnrealBuildTool
 				{
 					DependentModule.RecursivelyAddPrecompiledModules(Modules);
 				}
-			}
-		}
-
-		public override void RecursivelyProcessUnboundModules()
-		{
-			try
-			{
-				// Make sure this module is bound to a binary
-				if (!bIncludedInTarget)
-				{
-					throw new BuildException("Module '{0}' should already have been bound to a binary!", Name);
-				}
-
-				List<UEBuildModule> AllDependencyModules = new List<UEBuildModule>();
-				AllDependencyModules.AddRange(PrivateDependencyModules);
-				AllDependencyModules.AddRange(PublicDependencyModules);
-				AllDependencyModules.AddRange(DynamicallyLoadedModules);
-				AllDependencyModules.AddRange(PlatformSpecificDynamicallyLoadedModules);
-
-				foreach (UEBuildModule DependencyModule in AllDependencyModules)
-				{
-					// Skip modules that are included with the target (externals)
-					if (!DependencyModule.bIncludedInTarget)
-					{
-						bool bIsCrossTarget = Rules.PlatformSpecificDynamicallyLoadedModuleNames.Contains(DependencyModule.Name) && !Rules.DynamicallyLoadedModuleNames.Contains(DependencyModule.Name);
-
-						// Get the binary that this module should be bound to
-						UEBuildBinary BinaryToBindTo = Target.FindOrAddBinaryForModule(DependencyModule, bIsCrossTarget);
-
-						// Bind this module
-						DependencyModule.Binary = BinaryToBindTo;
-						DependencyModule.bIncludedInTarget = true;
-
-						// Also add binaries for this module's dependencies
-						DependencyModule.RecursivelyProcessUnboundModules();
-					}
-
-					if (Target.ShouldCompileMonolithic() == false)
-					{
-						// Check to see if there is a circular relationship between the module and it's referencer
-						if (DependencyModule.Binary != null)
-						{
-							if (Rules.CircularlyReferencedDependentModules.Contains(DependencyModule.Name))
-							{
-								DependencyModule.Binary.SetCreateImportLibrarySeparately(true);
-							}
-						}
-					}
-				}
-			}
-			catch (System.Exception ex)
-			{
-				throw new ModuleProcessingException(this, ex);
 			}
 		}
 	}

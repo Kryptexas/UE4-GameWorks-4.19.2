@@ -21,6 +21,8 @@ void Main(
 {
 #if INSTANCED_STEREO
 	ResolvedView = ResolveView(FactoryInterpolants.EyeIndex);
+#else
+	ResolvedView = ResolveView();
 #endif
 
 #if !MATERIALBLENDING_SOLID || OUTPUT_PIXEL_DEPTH_OFFSET

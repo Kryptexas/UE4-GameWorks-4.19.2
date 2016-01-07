@@ -397,6 +397,43 @@ void UBlueprintGeneratedClass::BindDynamicDelegates(const UClass* ThisClass, UOb
 }
 
 #if WITH_EDITOR
+void UBlueprintGeneratedClass::UnbindDynamicDelegates(const UClass* ThisClass, UObject* InInstance)
+{
+	check(ThisClass && InInstance);
+	if (!InInstance->IsA(ThisClass))
+	{
+		UE_LOG(LogBlueprint, Warning, TEXT("UnbindDynamicDelegates: '%s' is not an instance of '%s'."), *InInstance->GetName(), *ThisClass->GetName());
+		return;
+	}
+
+	if (auto BPGC = Cast<UBlueprintGeneratedClass>(ThisClass))
+	{
+		for (auto DynamicBindingObject : BPGC->DynamicBindingObjects)
+		{
+			if (ensure(DynamicBindingObject))
+			{
+				DynamicBindingObject->UnbindDynamicDelegates(InInstance);
+			}
+		}
+	}
+	else if (auto DynamicClass = Cast<UDynamicClass>(ThisClass))
+	{
+		for (auto MiscObj : DynamicClass->DynamicBindingObjects)
+		{
+			auto DynamicBindingObject = Cast<UDynamicBlueprintBinding>(MiscObj);
+			if (DynamicBindingObject)
+			{
+				DynamicBindingObject->UnbindDynamicDelegates(InInstance);
+			}
+		}
+	}
+
+	if (auto TheSuperClass = ThisClass->GetSuperClass())
+	{
+		UnbindDynamicDelegates(TheSuperClass, InInstance);
+	}
+}
+
 void UBlueprintGeneratedClass::UnbindDynamicDelegatesForProperty(UObject* InInstance, const UObjectProperty* InObjectProperty)
 {
 	for (int32 Index = 0; Index < DynamicBindingObjects.Num(); ++Index)

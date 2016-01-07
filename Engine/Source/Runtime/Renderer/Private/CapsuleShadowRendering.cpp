@@ -794,70 +794,38 @@ bool FDeferredShadingSceneRenderer::RenderCapsuleDirectShadows(
 
 void FDeferredShadingSceneRenderer::CreateIndirectCapsuleShadows()
 {
-	for (FScenePrimitiveOctree::TConstIterator<SceneRenderingAllocator> PrimitiveOctreeIt(Scene->PrimitiveOctree);
-		PrimitiveOctreeIt.HasPendingNodes();
-		PrimitiveOctreeIt.Advance())
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_CreateIndirectCapsuleShadows);
+
+	for (int32 PrimitiveIndex = 0; PrimitiveIndex < Scene->CapsuleIndirectCasterPrimitives.Num(); PrimitiveIndex++)
 	{
-		const FScenePrimitiveOctree::FNode& PrimitiveOctreeNode = PrimitiveOctreeIt.GetCurrentNode();
-		const FOctreeNodeContext& PrimitiveOctreeNodeContext = PrimitiveOctreeIt.GetCurrentContext();
+		FPrimitiveSceneInfo* PrimitiveSceneInfo = Scene->CapsuleIndirectCasterPrimitives[PrimitiveIndex];
+		FPrimitiveSceneProxy* PrimitiveProxy = PrimitiveSceneInfo->Proxy;
 
-		// Find children of this octree node that may contain relevant primitives.
-		FOREACH_OCTREE_CHILD_NODE(ChildRef)
+		if (PrimitiveProxy->CastsDynamicShadow() && PrimitiveProxy->CastsCapsuleIndirectShadow())
 		{
-			if(PrimitiveOctreeNode.HasChild(ChildRef))
+			TArray<FPrimitiveSceneInfo*, SceneRenderingAllocator> ShadowGroupPrimitives;
+			PrimitiveSceneInfo->GatherLightingAttachmentGroupPrimitives(ShadowGroupPrimitives);
+
+			// Compute the composite bounds of this group of shadow primitives.
+			FBoxSphereBounds LightingGroupBounds = ShadowGroupPrimitives[0]->Proxy->GetBounds();
+
+			for (int32 ChildIndex = 1; ChildIndex < ShadowGroupPrimitives.Num(); ChildIndex++)
 			{
-				// Check that the child node is in the frustum
-				const FOctreeNodeContext ChildContext = PrimitiveOctreeNodeContext.GetChildContext(ChildRef);
+				const FPrimitiveSceneInfo* ShadowChild = ShadowGroupPrimitives[ChildIndex];
 
-				for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+				if (ShadowChild->Proxy->CastsDynamicShadow())
 				{
-					const FViewInfo& View = Views[ViewIndex];
-
-					if (View.ViewFrustum.IntersectBox(ChildContext.Bounds.Center, ChildContext.Bounds.Extent + FVector(GCapsuleMaxIndirectOcclusionDistance)))
-					{
-						PrimitiveOctreeIt.PushChild(ChildRef);
-					}
+					LightingGroupBounds = LightingGroupBounds + ShadowChild->Proxy->GetBounds();
 				}
 			}
-		}
 
-		// Check all the primitives in this octree node.
-		for (FScenePrimitiveOctree::ElementConstIt NodePrimitiveIt(PrimitiveOctreeNode.GetElementIt());NodePrimitiveIt;++NodePrimitiveIt)
-		{
-			const FPrimitiveSceneInfoCompact& PrimitiveSceneInfoCompact = *NodePrimitiveIt;
-
-			if (PrimitiveSceneInfoCompact.bCastDynamicShadow)
+			for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 			{
-				FPrimitiveSceneInfo* PrimitiveSceneInfo = PrimitiveSceneInfoCompact.PrimitiveSceneInfo;
-				FPrimitiveSceneProxy* PrimitiveProxy = PrimitiveSceneInfoCompact.Proxy;
+				FViewInfo& View = Views[ViewIndex];
 
-				if (PrimitiveProxy->CastsCapsuleIndirectShadow())
+				if (View.ViewFrustum.IntersectBox(LightingGroupBounds.Origin, LightingGroupBounds.BoxExtent + FVector(GCapsuleMaxIndirectOcclusionDistance)))
 				{
-					TArray<FPrimitiveSceneInfo*, SceneRenderingAllocator> ShadowGroupPrimitives;
-					PrimitiveSceneInfo->GatherLightingAttachmentGroupPrimitives(ShadowGroupPrimitives);
-
-					// Compute the composite bounds of this group of shadow primitives.
-					FBoxSphereBounds LightingGroupBounds = ShadowGroupPrimitives[0]->Proxy->GetBounds();
-
-					for (int32 ChildIndex = 1; ChildIndex < ShadowGroupPrimitives.Num(); ChildIndex++)
-					{
-						const FPrimitiveSceneInfo* ShadowChild = ShadowGroupPrimitives[ChildIndex];
-
-						if (ShadowChild->Proxy->CastsDynamicShadow())
-						{
-							LightingGroupBounds = LightingGroupBounds + ShadowChild->Proxy->GetBounds();
-						}
-					}
-
-					for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
-					{
-						FViewInfo& View = Views[ViewIndex];
-
-						if (View.ViewFrustum.IntersectBox(LightingGroupBounds.Origin, LightingGroupBounds.BoxExtent + FVector(GCapsuleMaxIndirectOcclusionDistance)))
-						{
-							View.IndirectShadowPrimitives.Add(PrimitiveSceneInfo);
-						}
-					}
+					View.IndirectShadowPrimitives.Add(PrimitiveSceneInfo);
 				}
 			}
 		}

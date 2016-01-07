@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12Device.cpp: D3D device RHI implementation.
@@ -633,15 +633,6 @@ void FD3D12Device::InitD3DDevice()
 				));
 		}
 
-        TRefCountPtr<ID3D12RootSignature> NullRS;
-        {
-            CD3DX12_ROOT_SIGNATURE_DESC NullRSDesc;
-            NullRSDesc.Init(0, nullptr, 0);
-            TRefCountPtr<ID3DBlob> Blob;
-            VERIFYD3D11RESULT(D3D12SerializeRootSignature(&NullRSDesc, D3D_ROOT_SIGNATURE_VERSION_1, Blob.GetInitReference(), nullptr));
-            VERIFYD3D11RESULT(Direct3DDevice->CreateRootSignature(0, Blob->GetBufferPointer(), Blob->GetBufferSize(), IID_PPV_ARGS(NullRS.GetInitReference())));
-        }
-
 #if UE_BUILD_DEBUG	
 		//break on debug
 		TRefCountPtr<ID3D12Debug> d3dDebug;
@@ -677,8 +668,8 @@ void FD3D12Device::InitD3DDevice()
 		OcclusionQueryHeap.Init();
 
 		// Create the main set of command lists used for rendering a frame
-		CommandListManager.Create(Direct3DDevice, D3D12_COMMAND_LIST_TYPE_DIRECT);
-		CopyCommandListManager.Create(Direct3DDevice, D3D12_COMMAND_LIST_TYPE_COPY);
+		CommandListManager.Create();
+		CopyCommandListManager.Create();
 
 #if !(UE_BUILD_SHIPPING && WITH_EDITOR)
 		// Add some filter outs for known debug spew messages (that we don't care about)

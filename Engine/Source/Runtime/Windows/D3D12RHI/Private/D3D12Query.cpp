@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12Query.cpp: D3D query RHI implementation.
@@ -26,41 +26,33 @@ using namespace D3D12RHI;
 
 FRenderQueryRHIRef FD3D12DynamicRHI::RHICreateRenderQuery(ERenderQueryType QueryType)
 {
-    TRefCountPtr<ID3D12QueryHeap> queryHeap;
-    TRefCountPtr<ID3D12Resource> queryResultBuffer;
+	TRefCountPtr<ID3D12QueryHeap> queryHeap;
+	TRefCountPtr<ID3D12Resource> queryResultBuffer;
 
-	if(QueryType == RQT_Occlusion)
+	check(QueryType == RQT_Occlusion || QueryType == RQT_AbsoluteTime);
+	if (QueryType == RQT_AbsoluteTime)
 	{
-        // Don't actually allocate an element until BeginQuery
-        GetRHIDevice()->GetQueryHeap()->ReserveElement();
-	}
-	else if(QueryType == RQT_AbsoluteTime)
-	{
-        D3D12_QUERY_HEAP_DESC queryHeapDesc = {};
-        queryHeapDesc.Count = 1;
+		D3D12_QUERY_HEAP_DESC queryHeapDesc = {};
+		queryHeapDesc.Count = 1;
 
 		queryHeapDesc.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
 
-        VERIFYD3D11RESULT(GetRHIDevice()->GetDevice()->CreateQueryHeap(&queryHeapDesc, IID_PPV_ARGS(queryHeap.GetInitReference())));
+		VERIFYD3D11RESULT(GetRHIDevice()->GetDevice()->CreateQueryHeap(&queryHeapDesc, IID_PPV_ARGS(queryHeap.GetInitReference())));
 
-        D3D12_HEAP_PROPERTIES heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK);
+		D3D12_HEAP_PROPERTIES heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK);
 
-        D3D12_RESOURCE_DESC heapDesc = CD3DX12_RESOURCE_DESC::Buffer(8);
+		D3D12_RESOURCE_DESC heapDesc = CD3DX12_RESOURCE_DESC::Buffer(8);
 
-        VERIFYD3D11RESULT(
-            GetRHIDevice()->GetDevice()->CreateCommittedResource(
-            &heapProperties,
-            D3D12_HEAP_FLAG_NONE,
-            &heapDesc,
-            D3D12_RESOURCE_STATE_COPY_DEST,
-            nullptr,
-            IID_PPV_ARGS(queryResultBuffer.GetInitReference())
-            )
-            );
-	}
-	else
-	{
-		check(0);
+		VERIFYD3D11RESULT(
+			GetRHIDevice()->GetDevice()->CreateCommittedResource(
+			&heapProperties,
+			D3D12_HEAP_FLAG_NONE,
+			&heapDesc,
+			D3D12_RESOURCE_STATE_COPY_DEST,
+			nullptr,
+			IID_PPV_ARGS(queryResultBuffer.GetInitReference())
+			)
+			);
 	}
 
 	return new FD3D12OcclusionQuery(queryHeap, queryResultBuffer, QueryType);
@@ -99,7 +91,7 @@ bool FD3D12Device::GetQueryData(FD3D12OcclusionQuery& Query, bool bWait)
 {
 	FD3D12CommandContext& CmdContext = (Query.Type == RQT_Occlusion) ? OcclusionQueryHeap.GetOwningContext() : *Query.OwningContext;
 	FD3D12CLSyncPoint SyncPoint = (Query.Type == RQT_Occlusion) ? OcclusionQueryHeap.GetSyncPoint() : Query.OwningCommandList;
-    CommandListState ListState = GetCommandListManager().GetCommandListState(SyncPoint);
+	CommandListState ListState = GetCommandListManager().GetCommandListState(SyncPoint);
 
 	if (ListState != CommandListState::kFinished)
 	{
@@ -109,7 +101,7 @@ bool FD3D12Device::GetQueryData(FD3D12OcclusionQuery& Query, bool bWait)
 		if (ListState == CommandListState::kOpen)
 			CmdContext.FlushCommands(true);
 		else
-			GetCommandListManager().WaitForCompletion(SyncPoint);
+			SyncPoint.WaitForCompletion();
 	}
 	
 	// Read the data from the query's buffer.
@@ -158,9 +150,8 @@ void FD3D12CommandContext::RHIEndOcclusionQueryBatch()
 {
 	GetParentDevice()->GetQueryHeap()->EndQueryBatchAndResolveQueryData(*this, D3D12_QUERY_TYPE_OCCLUSION);
 	
-	// MSFT: Seb: Do we still need to do this if we support parallel execute?
-	// Break up the command list here so that the wait on the previous frame's results don't block.
-	FlushCommands();
+	// Note: We want to execute this ASAP. The Engine will call RHISubmitCommandHint after this.
+	// We'll break up the command list there so that the wait on the previous frame's results don't block.
 }
 
 /*=============================================================================
@@ -172,18 +163,20 @@ FD3D12QueryHeap::FD3D12QueryHeap(FD3D12Device* InParent, const D3D12_QUERY_HEAP_
 , TailActiveElement(0)
 , ActiveAllocatedElementCount(0)
 , LastAllocatedElement(InQueryHeapCount - 1)
-, ReservedElementCount(0)
 , ResultSize(8)
 , OwningContext(nullptr)
 , pResultData(nullptr)
 , FD3D12DeviceChild(InParent)
 , LastBatch(MAX_ACTIVE_BATCHES - 1)
 {
-	if (InQueryHeapType == D3D12_QUERY_HEAP_TYPE_OCCLUSION)
-		QueryType = D3D12_QUERY_TYPE_OCCLUSION;
-
-	else if (InQueryHeapType == D3D12_QUERY_HEAP_TYPE_TIMESTAMP)
-		QueryType = D3D12_QUERY_TYPE_TIMESTAMP;
+    if (InQueryHeapType == D3D12_QUERY_HEAP_TYPE_OCCLUSION)
+    {
+        QueryType = D3D12_QUERY_TYPE_OCCLUSION;
+    }
+    else if (InQueryHeapType == D3D12_QUERY_HEAP_TYPE_TIMESTAMP)
+    {
+        QueryType = D3D12_QUERY_TYPE_TIMESTAMP;
+    }
 
     // Setup the query heap desc
     QueryHeapDesc = {};
@@ -218,22 +211,6 @@ void FD3D12QueryHeap::Init()
 
     // Create the result buffer
     CreateResultBuffer();
-}
-
-uint32 FD3D12QueryHeap::ReserveElement()
-{
-    // Increment the reserved count
-    ReservedElementCount++;
-
-    // Make sure we have enough room in the query heap
-    if (ReservedElementCount > GetQueryHeapCount())
-    {
-        // We need more queries than what currently fit in the query heap. Need to grow/rollover.
-        // MSFT: TODO: Do some checks to make sure active heap elements rollover?
-        check(0);
-    }
-
-    return ReservedElementCount;
 }
 
 uint32 FD3D12QueryHeap::GetNextElement(uint32 InElement)
@@ -327,8 +304,8 @@ void FD3D12QueryHeap::StartQueryBatch(FD3D12CommandContext& CmdContext)
     check(&CmdContext == &GetParentDevice()->GetDefaultCommandContext());
     check(!CurrentQueryBatch.bOpen);
 
-	OwningContext = &CmdContext;
-	SyncPoint = CmdContext.CommandListHandle;
+    OwningContext = &CmdContext;
+    SyncPoint = CmdContext.CommandListHandle;
 
     // Clear the current batch
     CurrentQueryBatch.Clear();
@@ -595,15 +572,17 @@ uint64 FD3D12BufferedGPUTiming::GetTiming(bool bGetCurrentResultsAndBlock)
 			// Quickly check the most recent measurements to see if any of them has been resolved.  Do not flush these queries.
 			for ( int32 IssueIndex = 1; IssueIndex < NumIssuedTimestamps; ++IssueIndex )
 			{
-				if (CommandListManager.IsFinished(EndTimestampListHandles[TimestampIndex]))
+				if (CommandListManager.IsComplete(EndTimestampListHandles[TimestampIndex]))
 				{
-					check(CommandListManager.IsFinished(StartTimestampListHandles[TimestampIndex]));
+					check(CommandListManager.IsComplete(StartTimestampListHandles[TimestampIndex]));
 
 					StartTime = StartTimestampQueryHeapBufferData[TimestampIndex];
 					EndTime = EndTimestampQueryHeapBufferData[TimestampIndex];
 
 					if (EndTime > StartTime)
+					{
 						return EndTime - StartTime;
+					}
 				}
 
 				TimestampIndex = (TimestampIndex + BufferSize - 1) % BufferSize;

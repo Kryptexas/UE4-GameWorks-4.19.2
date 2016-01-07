@@ -200,6 +200,11 @@ void FPrimitiveSceneInfo::AddToScene(FRHICommandListImmediate& RHICmdList, bool 
 	Scene->PrimitiveOctree.AddElement(LocalCompactPrimitiveSceneInfo);
 	check(OctreeId.IsValidId());
 
+	if (Proxy->CastsCapsuleIndirectShadow())
+	{
+		Scene->CapsuleIndirectCasterPrimitives.Add(this);
+	}
+
 	// Set bounds.
 	FPrimitiveBounds& PrimitiveBounds = Scene->PrimitiveBounds[PackedIndex];
 	FBoxSphereBounds BoxSphereBounds = Proxy->GetBounds();
@@ -294,6 +299,11 @@ void FPrimitiveSceneInfo::RemoveFromScene(bool bUpdateStaticDrawLists)
 	check(Scene->PrimitiveOctree.GetElementById(OctreeId).PrimitiveSceneInfo == this);
 	Scene->PrimitiveOctree.RemoveElement(OctreeId);
 	OctreeId = FOctreeElementId();
+
+	if (Proxy->CastsCapsuleIndirectShadow())
+	{
+		Scene->CapsuleIndirectCasterPrimitives.RemoveSingleSwap(this);
+	}
 
 	IndirectLightingCacheAllocation = NULL;
 	ClearPrecomputedLightingBuffer(false);

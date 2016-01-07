@@ -5,6 +5,7 @@
 #include "Runtime/Launch/Resources/Version.h"
 #include "EngineBuildSettings.h"
 #include "ModuleVersion.h"
+#include "UObject/ReleaseObjectVersion.h"
 
 /** Version numbers for networking */
 int32 GEngineNetVersion			= BUILT_FROM_CHANGELIST;
@@ -226,3 +227,9 @@ void operator<<(FArchive &Ar, FEngineVersion &Version)
 	Ar << Version.Changelist;
 	Ar << Version.Branch;
 }
+
+
+// Unique Release Object version id
+const FGuid FReleaseObjectVersion::GUID(0x9C54D522, 0xA8264FBE, 0x94210746, 0x61B482D0);
+// Register Release custom version with Core
+FCustomVersionRegistration GRegisterReleaseObjectVersion(FReleaseObjectVersion::GUID, FReleaseObjectVersion::LatestVersion, TEXT("Release"));

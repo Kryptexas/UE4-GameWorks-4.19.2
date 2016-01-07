@@ -396,7 +396,7 @@ void UActorComponent::BeginDestroy()
 	// Ensure that we call OnComponentDestroyed before we destroy this component
 	if (bHasBeenCreated)
 	{
-		OnComponentDestroyed();
+		OnComponentDestroyed(GExitPurge);
 	}
 
 	World = NULL;
@@ -501,6 +501,12 @@ void UActorComponent::PostEditUndo()
 	// so they can leave an EditReregisterContexts entry around if they are deleted by an undo action.
 	if( IsPendingKill() )
 	{
+		// For the redo case, ensure that we're no longer in the OwnedComponents array.
+		if (AActor* OwningActor = GetOwner())
+		{
+			OwningActor->RemoveOwnedComponent(this);
+		}
+
 		// The reregister context won't bother attaching components that are 'pending kill'. 
 		FComponentReregisterContext* ReregisterContext = nullptr;
 		if (EditReregisterContexts.RemoveAndCopyValue(this, ReregisterContext))
@@ -985,7 +991,7 @@ void UActorComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 	}
 
 	// Tell the component it is being destroyed
-	OnComponentDestroyed();
+	OnComponentDestroyed(false);
 
 	// Finally mark pending kill, to NULL out any other refs
 	MarkPendingKill();
@@ -997,7 +1003,7 @@ void UActorComponent::OnComponentCreated()
 	bHasBeenCreated = true;
 }
 
-void UActorComponent::OnComponentDestroyed()
+void UActorComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 {
 	// @TODO: Would be nice to ensure(bHasBeenCreated), but there are still many places where components are created without calling OnComponentCreated
 	bHasBeenCreated = false;

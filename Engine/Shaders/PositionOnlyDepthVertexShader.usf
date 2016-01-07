@@ -22,6 +22,8 @@ void Main(
 	OutCullDistance = OutClipDistance = 0.0;
 	const uint EyeIndex = VertexFactoryGetEyeIndex(InstanceId);
 	ResolvedView = ResolveView(EyeIndex);
+#else
+	ResolvedView = ResolveView();
 #endif
 
 	float4 WorldPos = VertexFactoryGetWorldPosition(Input);

@@ -5,6 +5,7 @@
 /** FName declaration of IOS subsystem */
 
 #include "Core.h"
+#include "CoreUObject.h"
 #include "SocketSubsystem.h"
 #include "ModuleManager.h"
 #include "IOSAppDelegate.h"

@@ -1591,4 +1591,4 @@ namespace HLODOutliner
 
 };
 
-#undef LOCTEXT_NAMESPACE // LOCTEXT_NAMESPACE "HLODOutliner"
+#undef LOCTEXT_NAMESPACE

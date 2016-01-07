@@ -2331,15 +2331,6 @@ void FSlateApplication::ResetToDefaultPointerInputSettings()
 	{
 		PlatformApplication->Cursor->SetType(EMouseCursor::Default);
 	}
-
-	// Clear user focus entries, so SetUserFocus restores mouse capture etc. after the app regains focus
-	for (int32 UserIndex = 0; UserIndex < SlateApplicationDefs::MaxUsers; ++UserIndex)
-	{
-		FUserFocusEntry& UserFocusEntry = UserFocusEntries[UserIndex];
-		UserFocusEntry.WidgetPath = FWidgetPath();
-		UserFocusEntry.FocusCause = EFocusCause::Cleared;
-		UserFocusEntry.ShowFocus = false;
-	}
 }
 
 void* FSlateApplication::GetMouseCaptureWindow( void ) const
@@ -5502,6 +5493,15 @@ bool FSlateApplication::ProcessWindowActivatedEvent( const FWindowActivateEvent&
 
 		// A window was deactivated; mouse capture should be cleared
 		ResetToDefaultPointerInputSettings();
+
+		// Clear user focus entries, so SetUserFocus restores mouse capture etc. after the window regains focus
+		for (int32 UserIndex = 0; UserIndex < SlateApplicationDefs::MaxUsers; ++UserIndex)
+		{
+			FUserFocusEntry& UserFocusEntry = UserFocusEntries[UserIndex];
+			UserFocusEntry.WidgetPath = FWidgetPath();
+			UserFocusEntry.FocusCause = EFocusCause::Cleared;
+			UserFocusEntry.ShowFocus = false;
+		}
 	}
 
 	return true;

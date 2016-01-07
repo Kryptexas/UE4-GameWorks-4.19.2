@@ -10,12 +10,6 @@
 
 #pragma once
 
-#if INSTANCED_STEREO
-static const float EyeOffsetScale[2] = { -0.5, 0.5 };
-static const float4 EyeClipEdge[2] = { float4(-1.0, 0.0, 0.0, 1.0), float4(1.0, 0.0, 0.0, 1.0) };
-
-bool bIsInstancedStereo;
-
 struct ViewDependentState {
 	float4x4 TranslatedWorldToClip;
 	float4x4 WorldToClip;
@@ -33,6 +27,7 @@ struct ViewDependentState {
 	float3  ViewUp;
 	float3  ViewRight;
 	float4 InvDeviceZToWorldZTransform;
+	float4 ScreenPositionScaleBias;
 	float3 WorldCameraOrigin;
 	float3 TranslatedWorldCameraOrigin;
 	float3 WorldViewOrigin;
@@ -54,6 +49,63 @@ struct ViewDependentState {
 	float4x4 PrevScreenToTranslatedWorld;
 	float4x4 ClipToPrevClip;
 };
+
+// Used when instanced stereo is disabled and for shaders which don't support or need it.
+// Copy propagation should collapse this to a direct reference to View.
+ViewDependentState ResolveView()
+{
+	ViewDependentState Result;
+
+	Result.TranslatedWorldToClip = View.TranslatedWorldToClip;
+	Result.WorldToClip = View.WorldToClip;
+	Result.TranslatedWorldToView = View.TranslatedWorldToView;
+	Result.ViewToTranslatedWorld = View.ViewToTranslatedWorld;
+	Result.TranslatedWorldToCameraView = View.TranslatedWorldToCameraView;
+	Result.CameraViewToTranslatedWorld = View.CameraViewToTranslatedWorld;
+	Result.ViewToClip = View.ViewToClip;
+	Result.ClipToView = View.ClipToView;
+	Result.ClipToTranslatedWorld = View.ClipToTranslatedWorld;
+	Result.SVPositionToTranslatedWorld = View.SVPositionToTranslatedWorld;
+	Result.ScreenToWorld = View.ScreenToWorld;
+	Result.ScreenToTranslatedWorld = View.ScreenToTranslatedWorld;
+	Result.ViewForward = View.ViewForward;
+	Result.ViewUp = View.ViewUp;
+	Result.ViewRight = View.ViewRight;
+	Result.InvDeviceZToWorldZTransform = View.InvDeviceZToWorldZTransform;
+	Result.ScreenPositionScaleBias = View.ScreenPositionScaleBias;
+	Result.WorldCameraOrigin = View.WorldCameraOrigin;
+	Result.TranslatedWorldCameraOrigin = View.TranslatedWorldCameraOrigin;
+	Result.WorldViewOrigin = View.WorldViewOrigin;
+	Result.PreViewTranslation = View.PreViewTranslation;
+	Result.PrevProjection = View.PrevProjection;
+	Result.PrevViewProj = View.PrevViewProj;
+	Result.PrevViewRotationProj = View.PrevViewRotationProj;
+	Result.PrevViewToClip = View.PrevViewToClip;
+	Result.PrevClipToView = View.PrevClipToView;
+	Result.PrevTranslatedWorldToClip = View.PrevTranslatedWorldToClip;
+	Result.PrevTranslatedWorldToView = View.PrevTranslatedWorldToView;
+	Result.PrevViewToTranslatedWorld = View.PrevViewToTranslatedWorld;
+	Result.PrevTranslatedWorldToCameraView = View.PrevTranslatedWorldToCameraView;
+	Result.PrevCameraViewToTranslatedWorld = View.PrevCameraViewToTranslatedWorld;
+	Result.PrevWorldCameraOrigin = View.PrevWorldCameraOrigin;
+	Result.PrevWorldViewOrigin = View.PrevWorldViewOrigin;
+	Result.PrevPreViewTranslation = View.PrevPreViewTranslation;
+	Result.PrevInvViewProj = View.PrevInvViewProj;
+	Result.PrevScreenToTranslatedWorld = View.PrevScreenToTranslatedWorld;
+	Result.ClipToPrevClip = View.ClipToPrevClip;
+
+	return Result;
+}
+
+#if !COMPILER_HLSLCC
+static ViewDependentState ResolvedView;
+#endif
+
+#if INSTANCED_STEREO
+static const float EyeOffsetScale[2] = { -0.5, 0.5 };
+static const float4 EyeClipEdge[2] = { float4(-1.0, 0.0, 0.0, 1.0), float4(1.0, 0.0, 0.0, 1.0) };
+
+bool bIsInstancedStereo;
 
 ViewDependentState ResolveView(uint ViewIndex)
 {
@@ -77,6 +129,7 @@ ViewDependentState ResolveView(uint ViewIndex)
 		Result.ViewUp = View.ViewUp;
 		Result.ViewRight = View.ViewRight;
 		Result.InvDeviceZToWorldZTransform = View.InvDeviceZToWorldZTransform;
+		Result.ScreenPositionScaleBias = View.ScreenPositionScaleBias;
 		Result.WorldCameraOrigin = View.WorldCameraOrigin;
 		Result.TranslatedWorldCameraOrigin = View.TranslatedWorldCameraOrigin;
 		Result.WorldViewOrigin = View.WorldViewOrigin;
@@ -116,6 +169,7 @@ ViewDependentState ResolveView(uint ViewIndex)
 		Result.ViewUp = InstancedView.ViewUp;
 		Result.ViewRight = InstancedView.ViewRight;
 		Result.InvDeviceZToWorldZTransform = InstancedView.InvDeviceZToWorldZTransform;
+		Result.ScreenPositionScaleBias = InstancedView.ScreenPositionScaleBias;
 		Result.WorldCameraOrigin = InstancedView.WorldCameraOrigin;
 		Result.TranslatedWorldCameraOrigin = InstancedView.TranslatedWorldCameraOrigin;
 		Result.WorldViewOrigin = InstancedView.WorldViewOrigin;
@@ -140,12 +194,4 @@ ViewDependentState ResolveView(uint ViewIndex)
 
 	return Result;
 }
-
-// Used for shaders which don't support or need instanced stereo, default to primary view.
-ViewDependentState ResolveView()
-{
-	return ResolveView(0);
-}
-
-static ViewDependentState ResolvedView;
 #endif

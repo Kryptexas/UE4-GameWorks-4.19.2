@@ -45,6 +45,8 @@ namespace UnrealBuildTool.Rules
                 AddThirdPartyPrivateStaticDependencies(Target,"WebSockets");
                 Definitions.Add("ENABLE_HTTP_FOR_NFS=1");
             }
-        }
+
+			PrecompileForTargets = PrecompileTargetsType.None;
+		}
 	}
 }

@@ -489,13 +489,6 @@ public class HTML5Platform : Platform
 		return HTMLPakAutomation.CanCreateMapPaks(Params) ? " -GenerateDependenciesForMaps " : ""; 
 	}
 
-	public override List<string> GetCookExtraMaps()
-	{
-		var Maps = new List<string>();
-		Maps.Add("/Engine/Maps/Entry");
-		return Maps; 
-	}
-
 	public override bool DeployPakInternalLowerCaseFilenames()
 	{
 		return false;

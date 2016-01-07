@@ -473,6 +473,33 @@ bool FOculusInput::GetControllerOrientationAndPosition( const int32 ControllerIn
 	return bHaveControllerData;
 }
 
+ETrackingStatus FOculusInput::GetControllerTrackingStatus(const int32 ControllerIndex, const EControllerHand DeviceHand) const
+{
+	ETrackingStatus TrackingStatus = ETrackingStatus::NotTracked;
+
+	if ((int32) DeviceHand < 0 || (int32)DeviceHand >= 2)
+	{
+		return TrackingStatus;
+	}
+
+	for( const FOculusTouchControllerPair& ControllerPair : ControllerPairs )
+	{
+		if( ControllerPair.UnrealControllerIndex == ControllerIndex )
+		{
+			const FOculusTouchControllerState& ControllerState = ControllerPair.ControllerStates[ (int32)DeviceHand ];
+
+			if( ControllerState.bIsCurrentlyTracked )
+			{
+				TrackingStatus = ETrackingStatus::Tracked;
+			}
+
+			break;
+		}
+	}
+
+	return TrackingStatus;
+}
+
 void FOculusInput::SetHapticFeedbackValues(int32 ControllerId, int32 Hand, const FHapticFeedbackValues& Values)
 {
 	for (FOculusTouchControllerPair& ControllerPair : ControllerPairs)

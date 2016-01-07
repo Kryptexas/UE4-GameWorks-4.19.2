@@ -89,6 +89,7 @@ bool UMotionControllerComponent::PollControllerState(FVector& Position, FRotator
 		{
 			if ((MotionController != nullptr) && MotionController->GetControllerOrientationAndPosition(PlayerIndex, Hand, Orientation, Position))
 			{
+				CurrentTrackingStatus = MotionController->GetControllerTrackingStatus(PlayerIndex, Hand);
 				return true;
 			}
 		}

@@ -41,7 +41,7 @@ struct FVertexFactoryInterpolantsVSToPS
 #endif	//USE_DYNAMIC_PARAMETERS
 
 #if INSTANCED_STEREO
-	uint EyeIndex : EYE_INDEX;
+	nointerpolation uint EyeIndex : EYE_INDEX;
 #endif
 };
 
@@ -236,6 +236,6 @@ float3x3 VertexFactoryGetTangentToLocal( FVertexFactoryInput Input, FVertexFacto
 #if INSTANCED_STEREO
 uint VertexFactoryGetEyeIndex(uint InstanceId)
 {
-	return 0;
+	return InstanceId & 1;
 }
 #endif

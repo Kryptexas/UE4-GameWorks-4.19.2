@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 D3D12Device.cpp: D3D device RHI implementation.
@@ -71,12 +71,9 @@ public:
 		check(CmdContext == nullptr);
 		CmdContext = OwningDevice->ObtainCommandContext();
 		check(CmdContext != nullptr);
+		check(CmdContext->CommandListHandle == nullptr);
 
-		if (CmdContext->CommandListHandle == nullptr)
-		{
-			CmdContext->OpenCommandList();
-		}
-
+		CmdContext->OpenCommandList();
 		CmdContext->ClearState();
 
 		return CmdContext;
@@ -99,10 +96,22 @@ public:
 		{
 			check((IsInRenderingThread() || IsInRHIThread()));
 
-			OwningDevice->GetDefaultCommandContext().FlushCommands();
+			FD3D12CommandContext& DefaultContext = OwningDevice->GetDefaultCommandContext();
+
+			// Don't really submit the default context yet, just start a new command list.
+			// Close the command list, add it to the pending command lists, then open a new command list (with the previous state restored).
+			DefaultContext.CloseCommandList();
+
+			OwningDevice->PendingCommandLists.Add(DefaultContext.CommandListHandle);
+			OwningDevice->PendingCommandListsTotalWorkCommands +=
+				DefaultContext.numClears +
+				DefaultContext.numCopies +
+				DefaultContext.numDraws;
+
+			DefaultContext.OpenCommandList(true);
 		}
 
-		// Add the current lists for execution (now or possibly later)
+		// Add the current lists for execution (now or possibly later depending on the command list batching mode).
 		for (int32 i = 0; i < CommandLists.Num(); ++i)
 		{
 			OwningDevice->PendingCommandLists.Add(CommandLists[i]);
@@ -114,16 +123,19 @@ public:
 
 		CommandLists.Reset();
 
-		// Submission occurs when a batch is finished
-		const bool FinalCommandListInBatch = Index == (Num - 1);
-		if (FinalCommandListInBatch && OwningDevice->PendingCommandLists.Num() > 0)
+		if (GCommandListBatchingMode != CLB_AggressiveBatching)
 		{
+			// Submit when the batch is finished.
+			const bool FinalCommandListInBatch = Index == (Num - 1);
+			if (FinalCommandListInBatch && OwningDevice->PendingCommandLists.Num() > 0)
+			{
 #if SUPPORTS_MEMORY_RESIDENCY
-			OwningDevice->GetOwningRHI()->GetResourceResidencyManager().MakeResident();
+				OwningDevice->GetOwningRHI()->GetResourceResidencyManager().MakeResident();
 #endif
-			OwningDevice->GetCommandListManager().ExecuteCommandLists(OwningDevice->PendingCommandLists);
-			OwningDevice->PendingCommandLists.Reset();
-			OwningDevice->PendingCommandListsTotalWorkCommands = 0;
+				OwningDevice->GetCommandListManager().ExecuteCommandLists(OwningDevice->PendingCommandLists);
+				OwningDevice->PendingCommandLists.Reset();
+				OwningDevice->PendingCommandListsTotalWorkCommands = 0;
+			}
 		}
 
 		delete this;
@@ -168,7 +180,9 @@ FD3D12CommandContext::FD3D12CommandContext(FD3D12Device* InParent) :
 	CurrentDSVAccessType(FExclusiveDepthStencil::DepthWrite_StencilWrite),
 	bDiscardSharedConstants(false),
 	CommandListHandle(),
-    FD3D12DeviceChild(InParent)
+	CommandAllocator(nullptr),
+	CommandAllocatorManager(InParent, D3D12_COMMAND_LIST_TYPE_DIRECT),
+	FD3D12DeviceChild(InParent)
 {
 	FMemory::Memzero(DirtyUniformBuffers, sizeof(DirtyUniformBuffers));
 
@@ -224,7 +238,11 @@ FD3D12Device::FD3D12Device(FD3D12DynamicRHI* InOwningRHI, IDXGIFactory4* InDXGIF
     ResourceHelper(this),
     DeferredDeletionQueue(this),
     DefaultBufferAllocator(this),
-    PendingCommandListsTotalWorkCommands(0)
+    PendingCommandListsTotalWorkCommands(0),
+    RootSignatureManager(this),
+    CommandListManager(this, D3D12_COMMAND_LIST_TYPE_DIRECT),
+    CopyCommandListManager(this, D3D12_COMMAND_LIST_TYPE_COPY),
+    TextureStreamingCommandAllocatorManager(this, GEnableMultiEngine ? D3D12_COMMAND_LIST_TYPE_COPY : D3D12_COMMAND_LIST_TYPE_DIRECT)
 {
 }
 
@@ -247,7 +265,6 @@ FD3D12DynamicRHI::FD3D12DynamicRHI(IDXGIFactory4* InDXGIFactory, FD3D12Adapter& 
 	SetTextureInTableCalls(0),
 	SceneFrameCounter(0),
 	ResourceTableFrameCounter(INDEX_NONE),
-	bForceSingleQueueGPU(false),
 	NumThreadDynamicHeapAllocators(0),
 	ViewportFrameCounter(0),
 	MainAdapter(InAdapter),
@@ -313,11 +330,6 @@ FD3D12DynamicRHI::FD3D12DynamicRHI(IDXGIFactory4* InDXGIFactory, FD3D12Adapter& 
 	{
 		GMaxRHIFeatureLevel = ERHIFeatureLevel::SM4;
 		GMaxRHIShaderPlatform = SP_PCD3D_SM4;
-	}
-
-	if (FParse::Param(FCommandLine::Get(), TEXT("ForceSingleQueue")))
-	{
-		bForceSingleQueueGPU = true;
 	}
 
 	// Initialize the platform pixel format map.
@@ -390,7 +402,6 @@ FD3D12DynamicRHI::FD3D12DynamicRHI(IDXGIFactory4* InDXGIFactory, FD3D12Adapter& 
 	GMaxTextureDimensions = D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION;
 	GMaxCubeTextureDimensions = D3D12_REQ_TEXTURECUBE_DIMENSION;
 	GMaxTextureArrayLayers = D3D12_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION;
-	GRHISupportsMSAADepthSampleAccess = true;
 
 	GMaxShadowDepthBufferSizeX = 4096;
 	GMaxShadowDepthBufferSizeY = 4096;
@@ -610,85 +621,6 @@ uint32 FD3D12DynamicRHI::GetMaxMSAAQuality(uint32 SampleCount)
 
 void FD3D12Device::CreateSignatures()
 {
-	// Graphics
-	struct
-	{
-		D3D12_SHADER_VISIBILITY Vis;
-		D3D12_DESCRIPTOR_RANGE_TYPE Type;
-		uint32 Count;
-		uint32 BaseShaderReg;
-	} RangeDesc[Graphics_DescriptorTableCount] =
-	{
-		{ D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, MAX_SRVS, 0 },
-		{ D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_CBV, MAX_CBS, 0 },
-		{ D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, D3D12_COMMONSHADER_SAMPLER_SLOT_COUNT, 0 },
-
-		{ D3D12_SHADER_VISIBILITY_VERTEX, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, MAX_SRVS, 0 },
-		{ D3D12_SHADER_VISIBILITY_VERTEX, D3D12_DESCRIPTOR_RANGE_TYPE_CBV, MAX_CBS, 0 },
-		{ D3D12_SHADER_VISIBILITY_VERTEX, D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, D3D12_COMMONSHADER_SAMPLER_SLOT_COUNT, 0 },
-
-		{ D3D12_SHADER_VISIBILITY_GEOMETRY, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, MAX_SRVS, 0 },
-		{ D3D12_SHADER_VISIBILITY_GEOMETRY, D3D12_DESCRIPTOR_RANGE_TYPE_CBV, MAX_CBS, 0 },
-		{ D3D12_SHADER_VISIBILITY_GEOMETRY, D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, D3D12_COMMONSHADER_SAMPLER_SLOT_COUNT, 0 },
-
-		{ D3D12_SHADER_VISIBILITY_HULL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, MAX_SRVS, 0 },
-		{ D3D12_SHADER_VISIBILITY_HULL, D3D12_DESCRIPTOR_RANGE_TYPE_CBV, MAX_CBS, 0 },
-		{ D3D12_SHADER_VISIBILITY_HULL, D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, D3D12_COMMONSHADER_SAMPLER_SLOT_COUNT, 0 },
-
-		{ D3D12_SHADER_VISIBILITY_DOMAIN, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, MAX_SRVS, 0 },
-		{ D3D12_SHADER_VISIBILITY_DOMAIN, D3D12_DESCRIPTOR_RANGE_TYPE_CBV, MAX_CBS, 0 },
-		{ D3D12_SHADER_VISIBILITY_DOMAIN, D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, D3D12_COMMONSHADER_SAMPLER_SLOT_COUNT, 0 },
-
-		{ D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, D3D12_PS_CS_UAV_REGISTER_COUNT, 0 },
-	};
-
-	CD3DX12_ROOT_PARAMETER TableSlots[Graphics_DescriptorTableCount];
-	CD3DX12_DESCRIPTOR_RANGE DescriptorRanges[Graphics_DescriptorTableCount];
-
-	for (uint32 i = 0; i < Graphics_DescriptorTableCount; i++)
-	{
-		DescriptorRanges[i].Init(
-			RangeDesc[i].Type,
-			RangeDesc[i].Count,
-			RangeDesc[i].BaseShaderReg
-			);
-
-		TableSlots[i].InitAsDescriptorTable(1, &DescriptorRanges[i], RangeDesc[i].Vis);
-	}
-
-	{
-		CD3DX12_ROOT_SIGNATURE_DESC RootDesc;
-		RootDesc.Init(Graphics_DescriptorTableCount, TableSlots, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
-
-		TRefCountPtr<ID3DBlob> SerializedRS;
-		VERIFYD3D11RESULT(D3D12SerializeRootSignature(&RootDesc, D3D_ROOT_SIGNATURE_VERSION_1, SerializedRS.GetInitReference(), nullptr));
-		VERIFYD3D11RESULT(GetDevice()->CreateRootSignature(0, SerializedRS->GetBufferPointer(), SerializedRS->GetBufferSize(), IID_PPV_ARGS(GraphicsRS.GetInitReference())));
-	}
-
-	// Compute
-	uint32 RangeIndex = 0;
-	DescriptorRanges[RangeIndex].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, MAX_SRVS, 0);
-	TableSlots[RangeIndex].InitAsDescriptorTable(1, &DescriptorRanges[RangeIndex], D3D12_SHADER_VISIBILITY_ALL);
-	++RangeIndex;
-	DescriptorRanges[RangeIndex].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, MAX_CBS, 0);
-	TableSlots[RangeIndex].InitAsDescriptorTable(1, &DescriptorRanges[RangeIndex], D3D12_SHADER_VISIBILITY_ALL);
-	++RangeIndex;
-	DescriptorRanges[RangeIndex].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, D3D12_COMMONSHADER_SAMPLER_SLOT_COUNT, 0);
-	TableSlots[RangeIndex].InitAsDescriptorTable(1, &DescriptorRanges[RangeIndex], D3D12_SHADER_VISIBILITY_ALL);
-	++RangeIndex;
-	DescriptorRanges[RangeIndex].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, D3D12_PS_CS_UAV_REGISTER_COUNT, 0);
-	TableSlots[RangeIndex].InitAsDescriptorTable(1, &DescriptorRanges[RangeIndex], D3D12_SHADER_VISIBILITY_ALL);
-	++RangeIndex;
-
-	{
-		CD3DX12_ROOT_SIGNATURE_DESC RootDesc;
-		RootDesc.Init(RangeIndex, TableSlots, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_NONE);
-
-		TRefCountPtr<ID3DBlob> SerializedRS;
-		VERIFYD3D11RESULT(D3D12SerializeRootSignature(&RootDesc, D3D_ROOT_SIGNATURE_VERSION_1, SerializedRS.GetInitReference(), nullptr));
-		VERIFYD3D11RESULT(GetDevice()->CreateRootSignature(0, SerializedRS->GetBufferPointer(), SerializedRS->GetBufferSize(), IID_PPV_ARGS(ComputeRS.GetInitReference())));
-	}
-
 	// ExecuteIndirect command signatures
 	D3D12_COMMAND_SIGNATURE_DESC commandSignatureDesc = {};
 	commandSignatureDesc.NumArgumentDescs = 1;
@@ -735,11 +667,12 @@ void FD3D12Device::SetupAfterDeviceCreation()
 {
 	CreateSignatures();
 
+    PipelineStateCache = FD3D12PipelineStateCache(this);
     FString GraphicsCacheFile = FPaths::GameSavedDir() / TEXT("D3DGraphics.ushaderprecache");
     FString ComputeCacheFile = FPaths::GameSavedDir() / TEXT("D3DCompute.ushaderprecache");
 
 	PipelineStateCache.Init(GraphicsCacheFile, ComputeCacheFile);
-	PipelineStateCache.RebuildFromDiskCache(GraphicsRS, ComputeRS);
+	PipelineStateCache.RebuildFromDiskCache();
 
 	CreateCommandContexts();
 

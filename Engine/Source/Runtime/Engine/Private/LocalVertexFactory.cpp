@@ -12,19 +12,12 @@
 void FLocalVertexFactoryShaderParameters::Bind(const FShaderParameterMap& ParameterMap)
 {
 	LODParameter.Bind(ParameterMap, TEXT("SpeedTreeLODInfo"));
-	WindParameter.Bind(ParameterMap, TEXT("SpeedTreeData"));
-
-	bAnySpeedTreeParamIsBound = WindParameter.IsBound() || LODParameter.IsBound();
+	bAnySpeedTreeParamIsBound = LODParameter.IsBound() || ParameterMap.ContainsParameterAllocation(TEXT("SpeedTreeData"));
 }
 
 void FLocalVertexFactoryShaderParameters::Serialize(FArchive& Ar)
 {
-	Ar << LODParameter;
-	Ar << WindParameter;
-	if (Ar.IsLoading())
-	{
-		bAnySpeedTreeParamIsBound = WindParameter.IsBound() || LODParameter.IsBound();
-	}
+	Ar << LODParameter << bAnySpeedTreeParamIsBound;
 }
 
 void FLocalVertexFactoryShaderParameters::SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const

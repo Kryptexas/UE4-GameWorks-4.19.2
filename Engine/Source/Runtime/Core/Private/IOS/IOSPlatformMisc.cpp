@@ -318,6 +318,13 @@ EAppReturnType::Type FIOSPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgType,
 #endif
 }
 
+bool FIOSPlatformMisc::ControlScreensaver(EScreenSaverAction Action)
+{
+	IOSAppDelegate* AppDelegate = [IOSAppDelegate GetDelegate];
+	[AppDelegate EnableIdleTimer : (Action == FGenericPlatformMisc::Enable)];
+	return true;
+}
+
 int32 FIOSPlatformMisc::NumberOfCores()
 {
 	// cache the number of cores

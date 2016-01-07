@@ -230,7 +230,7 @@ TSharedRef<SWidget> FShotSequencerSection::GenerateSectionWidget()
 
 FText FShotSequencerSection::GetDisplayName() const
 {
-	return NSLOCTEXT("FShotSection", "", "Shots");
+	return NSLOCTEXT("FShotSection", "Shots", "Shots");
 }
 
 

@@ -444,6 +444,28 @@ FBoxSphereBounds UStaticMeshComponent::CalcBounds(const FTransform& LocalToWorld
 	}
 }
 
+void UStaticMeshComponent::AddSpeedTreeWind()
+{
+	if (StaticMesh && StaticMesh->RenderData && StaticMesh->SpeedTreeWind.IsValid() && GetScene())
+	{
+		for (int32 LODIndex = 0; LODIndex < StaticMesh->RenderData->LODResources.Num(); ++LODIndex)
+		{
+			GetScene()->AddSpeedTreeWind(&StaticMesh->RenderData->LODResources[LODIndex].VertexFactory, StaticMesh);
+		}
+	}
+}
+
+void UStaticMeshComponent::RemoveSpeedTreeWind()
+{
+	if (StaticMesh && StaticMesh->RenderData && StaticMesh->SpeedTreeWind.IsValid() && GetScene())
+	{
+		for (int32 LODIndex = 0; LODIndex < StaticMesh->RenderData->LODResources.Num(); ++LODIndex)
+		{
+			GetScene()->RemoveSpeedTreeWind(&StaticMesh->RenderData->LODResources[LODIndex].VertexFactory, StaticMesh);
+		}
+	}
+}
+
 void UStaticMeshComponent::OnRegister()
 {
 	if(StaticMesh != NULL && StaticMesh->RenderData)
@@ -459,26 +481,14 @@ void UStaticMeshComponent::OnRegister()
 				LODData[i].ShadowMap = NULL;
 			}
 		}
-		if (StaticMesh->SpeedTreeWind.IsValid() && GetScene())
-		{
-			for (int32 LODIndex = 0; LODIndex < StaticMesh->RenderData->LODResources.Num(); ++LODIndex)
-			{
-				GetScene()->AddSpeedTreeWind(&StaticMesh->RenderData->LODResources[LODIndex].VertexFactory, StaticMesh);
-			}
-		}
+		AddSpeedTreeWind();
 	}
 	Super::OnRegister();
 }
 
 void UStaticMeshComponent::OnUnregister()
 {
-	if (StaticMesh && StaticMesh->RenderData && StaticMesh->SpeedTreeWind.IsValid() && GetScene())
-	{
-		for (int32 LODIndex = 0; LODIndex < StaticMesh->RenderData->LODResources.Num(); ++LODIndex)
-		{
-			GetScene()->RemoveSpeedTreeWind(&StaticMesh->RenderData->LODResources[LODIndex].VertexFactory, StaticMesh);
-		}
-	}
+	RemoveSpeedTreeWind();
 
 	Super::OnUnregister();
 }
@@ -1280,8 +1290,13 @@ bool UStaticMeshComponent::SetStaticMesh(UStaticMesh* NewMesh)
 		return false;
 	}
 
+	// Remove speed tree wind for this staticmesh from scene
+	RemoveSpeedTreeWind();
 
 	StaticMesh = NewMesh;
+
+	// Add speed tree wind if required
+	AddSpeedTreeWind();
 
 	// Need to send this to render thread at some point
 	MarkRenderStateDirty();

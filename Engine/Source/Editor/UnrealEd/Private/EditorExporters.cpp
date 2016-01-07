@@ -452,6 +452,9 @@ bool ULevelExporterT3D::ExportText( const FExportObjectInnerContext* Context, UO
 		{
 			if (Actor->ShouldExport())
 			{
+				// Temporarily unbind dynamic delegates so we don't export the bindings.
+				UBlueprintGeneratedClass::UnbindDynamicDelegates(Actor->GetClass(), Actor);
+
 				AActor* ParentActor = Actor->GetAttachParentActor();
 				FName SocketName = Actor->GetAttachParentSocketName();
 				Actor->DetachRootComponentFromParent(true);
@@ -469,6 +472,9 @@ bool ULevelExporterT3D::ExportText( const FExportObjectInnerContext* Context, UO
 
 				Ar.Logf( TEXT("%sEnd Actor\r\n"), FCString::Spc(TextIndent) );
 				Actor->AttachRootComponentToActor(ParentActor, SocketName, EAttachLocation::KeepWorldPosition);
+
+				// Restore dynamic delegate bindings.
+				UBlueprintGeneratedClass::BindDynamicDelegates(Actor->GetClass(), Actor);
 			}
 			else
 			{

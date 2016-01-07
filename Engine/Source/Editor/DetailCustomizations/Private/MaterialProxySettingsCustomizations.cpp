@@ -103,4 +103,4 @@ EVisibility FMaterialProxySettingsCustomizations::IsTextureSizeEnabled() const
 	return EVisibility::Visible;	
 }
 
-#undef LOCTEXT_NAMESPACE // MaterialProxySettingsCustomizations
+#undef LOCTEXT_NAMESPACE

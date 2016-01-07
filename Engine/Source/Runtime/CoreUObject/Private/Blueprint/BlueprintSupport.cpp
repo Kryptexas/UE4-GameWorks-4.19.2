@@ -577,7 +577,7 @@ bool FLinkerLoad::DeferExportCreation(const int32 Index)
 	// class... either way, we don't have to defer the export (as long as we 
 	// make sure the export's class is fully regenerated... presumably it is in 
 	// the midst of doing so somewhere up the callstack)
-	if (!bIsLoadingExportClass)
+	if (!bIsLoadingExportClass || (LoadFlags & LOAD_ResolvingDeferredExports) != 0 )
 	{
 		DEFERRED_DEPENDENCY_CHECK(!IsExportBeingResolved(Index));
 		FScopedResolvingExportTracker ReentranceGuard(this, Index);
@@ -1188,7 +1188,7 @@ void FLinkerLoad::ResolveDeferredExports(UClass* LoadClass)
 		{
 			FReferencerInformationList UnresolvedReferences;
 			UObject* PlaceholderObj = ExportPlaceholder;
-			return IsReferenced(PlaceholderObj, RF_NoFlags, /*bCheckSubObjects =*/false, &UnresolvedReferences);
+			return IsReferenced(PlaceholderObj, GARBAGE_COLLECTION_KEEPFLAGS, EInternalObjectFlags::GarbageCollectionKeepFlags, /*bCheckSubObjects =*/false, &UnresolvedReferences);
 		};
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
@@ -1197,6 +1197,12 @@ void FLinkerLoad::ResolveDeferredExports(UClass* LoadClass)
 		// instancing operations when the class ultimately finalizes)... so here, we
 		// find those skipped exports and properly create them (before we finalize 
 		// our own class)
+
+		// Mark this linker as ResolvingDeferredExports so that we don't continue deferring exports
+		// we clear this flag after the loop. We have no TGuardValue for flags and so I'm setting
+		// and clearing the bit manually:
+		LoadFlags |= LOAD_ResolvingDeferredExports;
+
 		for (int32 ExportIndex = 0; ExportIndex < ExportMap.Num() && IsBlueprintFinalizationPending(); ++ExportIndex)
 		{
 			FObjectExport& Export = ExportMap[ExportIndex];
@@ -1251,6 +1257,8 @@ void FLinkerLoad::ResolveDeferredExports(UClass* LoadClass)
 				DEFERRED_DEPENDENCY_CHECK( !IsPlaceholderReferenced(PlaceholderExport) );
 			}
 		}
+
+		LoadFlags &= ~LOAD_ResolvingDeferredExports;
 	}
 
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
