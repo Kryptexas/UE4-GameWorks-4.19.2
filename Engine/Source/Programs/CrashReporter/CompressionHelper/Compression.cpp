@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "../../../ThirdParty/zlib/zlib-1.2.5/Inc/zlib.h"
 #pragma comment( lib, "../../../ThirdParty/zlib/zlib-1.2.5/Lib/Win64/zlib_64.lib" )

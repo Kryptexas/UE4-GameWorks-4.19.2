@@ -61,7 +61,7 @@ The constructor sets the name of the application and the type of target to gener
 
 Here is the ShaderCompileWorker.Target.cs file as a complete example:
 
-	// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 	using UnrealBuildTool;
 	using System.Collections.Generic;

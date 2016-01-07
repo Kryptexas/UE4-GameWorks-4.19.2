@@ -88,7 +88,7 @@ Description:メニュースクリーンとして使用する Widget ブループ
     [/PARAM]
     [PARAM:content]
 		**HowTo_UMG.Build.cs**
-			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc.All Rights Reserved.
 
 			using UnrealBuildTool;
 
@@ -116,7 +116,7 @@ Description:メニュースクリーンとして使用する Widget ブループ
 			}
 
 		**HowTo_UMGGameMode.h**
-			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc.All Rights Reserved.
 
 			#pragma once
 
@@ -151,7 +151,7 @@ Description:メニュースクリーンとして使用する Widget ブループ
 			};
 
 		**HowTo_UMGGameMode.cpp**
-			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc.All Rights Reserved.
 
 			#include "HowTo_UMG.h"
 			#include "HowTo_UMGGameMode.h"
