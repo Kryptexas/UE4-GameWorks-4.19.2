@@ -15,7 +15,7 @@ float4x4 PreviousLocalToWorld;
 
 	// Instanced stereo sets the eye index explicitly for instanced geometry
 	#if INSTANCED_STEREO
-		uint InstancedEyeIndex;	 
+		uint InstancedEyeIndex;
 	#endif
 
 	#ifndef USE_DITHERED_LOD_TRANSITION_FOR_INSTANCED
@@ -616,7 +616,7 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 #endif
 
 #if INSTANCED_STEREO
-	Interpolants.EyeIndex = 0;
+	Interpolants.PackedEyeIndex = 0;
 #endif
 
 	return Interpolants;

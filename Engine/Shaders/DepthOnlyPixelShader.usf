@@ -20,7 +20,7 @@ void Main(
 	)
 {
 #if INSTANCED_STEREO
-	ResolvedView = ResolveView(FactoryInterpolants.EyeIndex);
+	ResolvedView = ResolveView(GetEyeIndex(FactoryInterpolants.PackedEyeIndex));
 #else
 	ResolvedView = ResolveView();
 #endif
