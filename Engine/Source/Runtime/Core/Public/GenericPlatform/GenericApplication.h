@@ -416,6 +416,9 @@ public:
 	/** @return true if the system cursor is currently directly over a slate window. */
 	virtual bool IsCursorDirectlyOverSlateWindow() const { return true; }
 
+	/** @return Native window under the mouse cursor. */
+	virtual TSharedPtr< FGenericWindow > GetWindowUnderCursor() { return TSharedPtr< FGenericWindow >( nullptr ); }
+
 	virtual void SetHighPrecisionMouseMode( const bool Enable, const TSharedPtr< FGenericWindow >& InWindow ) { };
 
 	virtual bool IsUsingHighPrecisionMouseMode() const { return false; }
