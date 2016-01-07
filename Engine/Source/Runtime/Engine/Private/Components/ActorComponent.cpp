@@ -703,7 +703,7 @@ FActorComponentInstanceData* UActorComponent::GetComponentInstanceData() const
 
 void FActorComponentTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 {
-	ExecuteTickHelper(Target, DeltaTime, TickType, [this, TickType](float DilatedTime)
+	ExecuteTickHelper(Target, Target->bTickInEditor, DeltaTime, TickType, [this, TickType](float DilatedTime)
 	{
 		Target->TickComponent(DilatedTime, TickType, this);
 	});

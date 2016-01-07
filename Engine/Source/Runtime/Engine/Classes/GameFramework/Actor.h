@@ -2683,7 +2683,7 @@ public:
 /** Helper function for executing tick functions based on the normal conditions previous found in UActorComponent::ConditionalTick */
 
 template <typename ExecuteTickLambda>
-void FActorComponentTickFunction::ExecuteTickHelper(UActorComponent* Target, float DeltaTime, ELevelTick TickType, const ExecuteTickLambda& ExecuteTickFunc)
+void FActorComponentTickFunction::ExecuteTickHelper(UActorComponent* Target, bool bTickInEditor, float DeltaTime, ELevelTick TickType, const ExecuteTickLambda& ExecuteTickFunc)
 {
 	if (Target && !Target->IsPendingKillOrUnreachable())
 	{
@@ -2695,7 +2695,7 @@ void FActorComponentTickFunction::ExecuteTickHelper(UActorComponent* Target, flo
 			AActor* MyOwner = Target->GetOwner();
 			//@optimization, I imagine this is all unnecessary in a shipping game with no editor
 			if (TickType != LEVELTICK_ViewportsOnly ||
-				(Target->bTickInEditor && TickType == LEVELTICK_ViewportsOnly) ||
+				(bTickInEditor && TickType == LEVELTICK_ViewportsOnly) ||
 				(MyOwner && MyOwner->ShouldTickIfViewportsOnly())
 				)
 			{
