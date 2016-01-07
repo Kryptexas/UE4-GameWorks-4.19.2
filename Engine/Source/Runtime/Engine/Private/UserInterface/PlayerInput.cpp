@@ -1042,12 +1042,14 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 						if (TB.bExecuteWhenPaused || !bGamePaused)
 						{
 							check(EventIndices.Num() > 0);
-							FDelegateDispatchDetails TouchInfo(EventIndices[0], NonAxisDelegates.Num(), TB.TouchDelegate, TouchEventLocations[EventIndices[0]], TouchIndex);
+							FVector *TouchedLocation = TouchEventLocations.Find(EventIndices[0]);
+							FDelegateDispatchDetails TouchInfo(EventIndices[0], NonAxisDelegates.Num(), TB.TouchDelegate, TouchedLocation != nullptr ? *TouchedLocation : FVector(-1.0f, -1.0f, 0.0f), TouchIndex);
 							NonAxisDelegates.Add(TouchInfo);
 							for (int32 EventsIndex = 1; EventsIndex < EventIndices.Num(); ++EventsIndex)
 							{
 								TouchInfo.EventIndex = EventIndices[EventsIndex];
-								TouchInfo.TouchLocation = TouchEventLocations[TouchInfo.EventIndex];
+								TouchedLocation = TouchEventLocations.Find(TouchInfo.EventIndex);
+								TouchInfo.TouchLocation = TouchedLocation != nullptr ? *TouchedLocation : FVector(-1.0f, -1.0f, 0.0f);
 								NonAxisDelegates.Add(TouchInfo);
 							}
 						}

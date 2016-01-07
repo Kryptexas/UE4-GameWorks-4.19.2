@@ -104,7 +104,7 @@ bool NormalizePackageNames( TArray<FString> PackageNames, TArray<FString>& Packa
 
 	if ( PackagePathNames.Num() == 0 )
 	{
-		UE_LOG(LogPackageUtilities, Warning, TEXT("No packages found using '%s'!"), *PackageWildcard);
+		UE_LOG(LogPackageUtilities, Log, TEXT("No packages found using '%s'!"), *PackageWildcard);
 		return false;
 	}
 

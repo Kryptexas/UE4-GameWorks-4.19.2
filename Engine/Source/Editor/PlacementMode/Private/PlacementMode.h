@@ -3,7 +3,7 @@
 
 #include "IPlacementMode.h"
 
-class FPlacementMode : public FEdMode, public IPlacementMode
+class FPlacementMode : public IPlacementMode
 {
 public:
 	FPlacementMode();

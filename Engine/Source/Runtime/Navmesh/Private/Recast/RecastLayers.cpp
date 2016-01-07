@@ -1049,7 +1049,7 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 	const int w = chf.width;
 	const int h = chf.height;
 	const int nreg = chf.maxRegions + 1;
-	rcLayerRegion* regions = (rcLayerRegion*)rcAlloc(sizeof(rcLayerRegion)*nreg, RC_ALLOC_TEMP);
+	rcScopedStructArrayDelete<rcLayerRegion> regions(nreg);
 	if (!regions)
 	{
 		ctx->log(RC_LOG_ERROR, "rcBuildHeightfieldLayers: Out of memory 'regions' (%d).", nreg);

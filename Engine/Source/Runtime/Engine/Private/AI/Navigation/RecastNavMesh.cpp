@@ -2070,6 +2070,7 @@ void ARecastNavMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChang
 {
 	static const FName NAME_Generation = FName(TEXT("Generation"));
 	static const FName NAME_Display = FName(TEXT("Display"));
+	static const FName NAME_RuntimeGeneration = FName(TEXT("RuntimeGeneration"));
 	static const FName NAME_TileNumberHardLimit = GET_MEMBER_NAME_CHECKED(ARecastNavMesh, TileNumberHardLimit);
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
@@ -2111,6 +2112,18 @@ void ARecastNavMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChang
 		else if (FObjectEditorUtils::GetCategoryFName(PropertyChangedEvent.Property) == NAME_Display)
 		{
 			RequestDrawingUpdate();
+		}
+		else if (PropertyChangedEvent.Property->GetFName() == NAME_RuntimeGeneration)
+		{
+			// @todo this contraption is required to clear RuntimeGeneration value in DefaultEngine.ini
+			// if it gets set to its default value (UE-23762). This is hopefully a temporary solution
+			// since it's an Core-level issue (UE-23873).
+			if (RuntimeGeneration == ERuntimeGenerationType::Static)
+			{
+				const FString EngineIniFilename = FPaths::ConvertRelativePathToFull(GetDefault<UEngine>()->GetDefaultConfigFilename());
+				GConfig->SetString(TEXT("/Script/Engine.RecastNavMesh"), *NAME_RuntimeGeneration.ToString(), TEXT(""), *EngineIniFilename);
+				GConfig->Flush(false);
+			}
 		}
 	}
 }

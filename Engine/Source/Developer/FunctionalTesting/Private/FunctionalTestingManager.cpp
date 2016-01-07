@@ -380,6 +380,3 @@ void UFunctionalTestingManager::SetReproString(FString ReproString)
 		ReproString.ParseIntoArray(TestReproStrings, FFunctionalTesting::ReproStringTestSeparator, /*InCullEmpty=*/true);
 	}
 }
-
-
-#undef LOCTEXT_NAMESPACE

@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -35,6 +37,7 @@ namespace AutomationTool
 		{
 			LinkGraph(AggregateNodeDefinitions, BuildNodeDefinitions, out AggregateNodes, out BuildNodes);
 			FindControllingTriggers(BuildNodes);
+			AddTriggerDependencies(BuildNodes);
 		}
 
 		/// <summary>
@@ -289,6 +292,22 @@ namespace AutomationTool
 					ControllingTriggers.AddRange(PreviousTriggers[0].ControllingTriggers);
 					ControllingTriggers.Add(PreviousTriggers[0]);
 					Node.ControllingTriggers = ControllingTriggers.ToArray();
+				}
+			}
+		}
+
+		/// <summary>
+		/// Adds all the dependencies from nodes behind triggers to the nodes in front of a trigger as pseudo-dependencies of the trigger itself.
+		/// This prevents situations where the trigger can be activated before all the dependencies behind it are complete.
+		/// </summary>
+		void AddTriggerDependencies(List<BuildNode> Nodes)
+		{
+			foreach(BuildNode Node in Nodes)
+			{
+				foreach(TriggerNode TriggerNode in Node.ControllingTriggers)
+				{
+					TriggerNode.OrderDependencies.UnionWith(Node.InputDependencies.Where(x => x != TriggerNode && !x.ControllingTriggers.Contains(TriggerNode)));
+					TriggerNode.OrderDependencies.UnionWith(Node.OrderDependencies.Where(x => x != TriggerNode && !x.ControllingTriggers.Contains(TriggerNode)));
 				}
 			}
 		}

@@ -1,3 +1,5 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
 // Used by PCLaunch.rc

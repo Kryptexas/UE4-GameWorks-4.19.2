@@ -3,6 +3,7 @@
 #include "AIModulePrivate.h"
 #include "EnvironmentQuery/EnvQueryInstanceBlueprintWrapper.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_ActorBase.h"
+#include "EnvironmentQuery/EnvQueryManager.h"
 
 UEnvQueryInstanceBlueprintWrapper::UEnvQueryInstanceBlueprintWrapper(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -19,6 +20,13 @@ void UEnvQueryInstanceBlueprintWrapper::OnQueryFinished(TSharedPtr<FEnvQueryResu
 	OptionIndex = Result->OptionIndex;
 
 	OnQueryFinishedEvent.Broadcast(this, Result->GetRawStatus());
+
+	// unregister self, no longer shielded from GC
+	UEnvQueryManager* EnvQueryManager = Cast<UEnvQueryManager>(GetOuter());
+	if (ensure(EnvQueryManager))
+	{
+		EnvQueryManager->UnregisterActiveWrapper(*this);
+	}
 }
 
 float UEnvQueryInstanceBlueprintWrapper::GetItemScore(int32 ItemIndex)
@@ -62,4 +70,19 @@ TArray<FVector> UEnvQueryInstanceBlueprintWrapper::GetResultsAsLocations()
 	}
 
 	return Results;
+}
+
+void UEnvQueryInstanceBlueprintWrapper::RunQuery(const EEnvQueryRunMode::Type InRunMode, FEnvQueryRequest& QueryRequest)
+{
+	RunMode = InRunMode;
+	QueryID = QueryRequest.Execute(RunMode, this, &UEnvQueryInstanceBlueprintWrapper::OnQueryFinished);
+	if (QueryID != INDEX_NONE)
+	{
+		// register self as a wrapper needing shielding from GC
+		UEnvQueryManager* EnvQueryManager = Cast<UEnvQueryManager>(GetOuter());
+		if (ensure(EnvQueryManager))
+		{
+			EnvQueryManager->RegisterActiveWrapper(*this);
+		}
+	}
 }

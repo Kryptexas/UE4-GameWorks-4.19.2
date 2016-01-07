@@ -132,7 +132,7 @@ FText SProjectLauncherProjectPicker::HandleProjectComboButtonText( ) const
 
 FText SProjectLauncherProjectPicker::HandleProjectComboButtonToolTip( ) const
 {
-	return LOCTEXT("SelectProjectText", "Select or browse for a project");
+	return LOCTEXT("SelectProjectText_Tooltip", "Select or browse for a project");
 }
 
 

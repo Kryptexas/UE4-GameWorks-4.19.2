@@ -29,7 +29,7 @@ bool FVideoCaptureProtocol::Initialize(const FCaptureProtocolInitSettings& InSet
 
 	if (CaptureSettings->bUseCompression)
 	{
-		Options.CompressionQuality = CaptureSettings->CompressionQuality;
+		Options.CompressionQuality = CaptureSettings->CompressionQuality / 100.f;
 		
 		float QualityOverride = 100.f;
 		if (FParse::Value( FCommandLine::Get(), TEXT( "-MovieQuality=" ), QualityOverride ))

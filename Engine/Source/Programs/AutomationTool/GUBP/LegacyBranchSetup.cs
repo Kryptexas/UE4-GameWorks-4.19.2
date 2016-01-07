@@ -1,4 +1,5 @@
 ﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -147,6 +148,10 @@ partial class GUBP
             public List<string> PromotablesWithoutTools = new List<string>();
             public List<string> NodesToRemovePseudoDependencies = new List<string>();
             public List<string> EnhanceAgentRequirements = new List<string>();
+			/// <summary>
+			/// Whether to put game builds behind triggers, so that engine branches don't always build them by default.
+			/// </summary>
+			public bool bGameBuildsBehindTriggers = false;
             /// <summary>
             /// This turns off ALL automatedtesting in ALL branches by default.
             /// A branch hacker must set this value to false explicitly to use automated testing.

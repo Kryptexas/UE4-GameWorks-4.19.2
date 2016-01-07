@@ -5,17 +5,11 @@
 #include "PluginWardenModule.h"
 #include "SAuthorizingPlugin.h"
 
-#include "SThrobber.h"
-#include "IPortalApplicationWindow.h"
-#include "IPortalServiceLocator.h"
-#include "Application/IPortalApplicationWindow.h"
-#include "DesktopPlatformModule.h"
-
 IMPLEMENT_MODULE( FPluginWardenModule, PluginWarden );
 
 #define LOCTEXT_NAMESPACE "PluginWarden"
 
-static TSet<FString> AuthorizedPlugins;
+TSet<FString> AuthorizedPlugins;
 
 void FPluginWardenModule::StartupModule()
 {

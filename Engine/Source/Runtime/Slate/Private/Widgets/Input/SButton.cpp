@@ -73,7 +73,7 @@ int32 SButton::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry
 	bool bEnabled = ShouldBeEnabled(bParentEnabled);
 	bool bShowDisabledEffect = GetShowDisabledEffect();
 
-	const FSlateBrush* BrushResource = GetBorder();
+	const FSlateBrush* BrushResource = !bShowDisabledEffect && !bEnabled ? DisabledImage : GetBorder();
 	
 	ESlateDrawEffect::Type DrawEffects = bShowDisabledEffect && !bEnabled ? ESlateDrawEffect::DisabledEffect : ESlateDrawEffect::None;
 
@@ -254,7 +254,12 @@ FReply SButton::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEven
 		}
 		else
 		{
-			if( IsHovered() )
+			bool bEventOverButton = IsHovered();
+			if (!bEventOverButton && MouseEvent.IsTouchEvent())
+			{
+				bEventOverButton = MyGeometry.IsUnderLocation(MouseEvent.GetScreenSpacePosition());
+			}
+			if (bEventOverButton)
 			{
 				// If we asked for a precise tap, all we need is for the user to have not moved their pointer very far.
 				const bool bTriggerForTouchEvent = IsPreciseTapOrClick(MouseEvent);

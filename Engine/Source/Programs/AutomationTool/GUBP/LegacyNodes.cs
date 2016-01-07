@@ -1,4 +1,5 @@
 ﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -1564,7 +1565,7 @@ partial class GUBP
 
     public class CookNode : HostPlatformNode
     {
-        BranchInfo.BranchUProject GameProj;
+        public BranchInfo.BranchUProject GameProj;
         UnrealTargetPlatform TargetPlatform;
         string CookPlatform;
         bool bIsMassive;

@@ -1,11 +1,10 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PluginWardenPrivatePCH.h"
+
 #include "SAuthorizingPlugin.h"
 
 #define LOCTEXT_NAMESPACE "PluginWarden"
-
-extern TSet<FString> AuthorizedPlugins;
 
 void SAuthorizingPlugin::Construct(const FArguments& InArgs, const TSharedRef<SWindow>& InParentWindow, const FText& InPluginFriendlyName, const FString& InPluginGuid, TFunction<void()> InAuthorizedCallback)
 {
@@ -51,7 +50,10 @@ void SAuthorizingPlugin::Construct(const FArguments& InArgs, const TSharedRef<SW
 		]
 	];
 
-	PortalWindowService = GEditor->GetServiceLocator()->GetServiceRef<IPortalApplicationWindow>();
+	TSharedRef<IPortalServiceLocator> ServiceLocator = GEditor->GetServiceLocator();
+	PortalWindowService = ServiceLocator->GetServiceRef<IPortalApplicationWindow>();
+	PortalUserService = ServiceLocator->GetServiceRef<IPortalUser>();
+	PortalUserLoginService = ServiceLocator->GetServiceRef<IPortalUserLogin>();
 }
 
 FText SAuthorizingPlugin::GetWaitingText() const
@@ -61,11 +63,17 @@ FText SAuthorizingPlugin::GetWaitingText() const
 	case EPluginAuthorizationState::Initializing:
 	case EPluginAuthorizationState::StartLauncher:
 		return LOCTEXT("StartingLauncher", "Starting Epic Games Launcher...");
-	case EPluginAuthorizationState::WaitingForAvailableLauncher:
+	case EPluginAuthorizationState::StartLauncher_Waiting:
 		return LOCTEXT("ConnectingToLauncher", "Connecting...");
 	case EPluginAuthorizationState::AuthorizePlugin:
-	case EPluginAuthorizationState::WaitingForPluginAuthorization:
+	case EPluginAuthorizationState::AuthorizePlugin_Waiting:
 		return FText::Format(LOCTEXT("CheckingIfYouCanUseFormat", "Checking license for {0}..."), PluginFriendlyName);
+	case EPluginAuthorizationState::IsUserSignedIn:
+	case EPluginAuthorizationState::IsUserSignedIn_Waiting:
+		return LOCTEXT("CheckingIfUserSignedIn", "Authorization failed, checking user information...");
+	case EPluginAuthorizationState::SigninRequired:
+	case EPluginAuthorizationState::SigninRequired_Waiting:
+		return LOCTEXT("NeedUserToLoginToCheck", "Authorization failed, Sign-in required...");
 	}
 
 	return LOCTEXT("Processing", "Processing...");
@@ -101,7 +109,7 @@ EActiveTimerReturnType SAuthorizingPlugin::RefreshStatus(double InCurrentTime, f
 			{
 				if ( DesktopPlatform->OpenLauncher(false, FString(), FString(" -silent")) )
 				{
-					CurrentState = EPluginAuthorizationState::WaitingForAvailableLauncher;
+					CurrentState = EPluginAuthorizationState::StartLauncher_Waiting;
 				}
 				else
 				{
@@ -114,9 +122,9 @@ EActiveTimerReturnType SAuthorizingPlugin::RefreshStatus(double InCurrentTime, f
 			}
 			break;
 		}
-		case EPluginAuthorizationState::WaitingForAvailableLauncher:
+		case EPluginAuthorizationState::StartLauncher_Waiting:
 		{
-			if ( PortalWindowService->IsAvailable() )
+			if ( PortalWindowService->IsAvailable() && PortalUserService->IsAvailable() )
 			{
 				CurrentState = EPluginAuthorizationState::AuthorizePlugin;
 			}
@@ -129,31 +137,90 @@ EActiveTimerReturnType SAuthorizingPlugin::RefreshStatus(double InCurrentTime, f
 		case EPluginAuthorizationState::AuthorizePlugin:
 		{
 			WaitingTime = 0;
-			// TODO GET API TO CHECK PLUGIN
-			CurrentState = EPluginAuthorizationState::WaitingForPluginAuthorization;
+			EntitlementResult = PortalUserService->IsEntitledToItem(PluginGuid, EEntitlementCacheLevelRequest::Memory);
+			CurrentState = EPluginAuthorizationState::AuthorizePlugin_Waiting;
 			break;
 		}
-		case EPluginAuthorizationState::WaitingForPluginAuthorization:
+		case EPluginAuthorizationState::AuthorizePlugin_Waiting:
 		{
 			WaitingTime += InDeltaTime;
-			// TODO GET API TO CHECK PLUGIN
+			
+			check(EntitlementResult.GetFuture().IsValid());
+			if ( EntitlementResult.GetFuture().IsReady() )
+			{
+				FPortalUserIsEntitledToItemResult Entitlement = EntitlementResult.GetFuture().Get();
+				if ( Entitlement.IsEntitled )
+				{
+					CurrentState = EPluginAuthorizationState::Authorized;
+				}
+				else
+				{
+					CurrentState = EPluginAuthorizationState::IsUserSignedIn;
+				}
+			}
+
+			break;
+		}
+		case EPluginAuthorizationState::IsUserSignedIn:
+		{
+			WaitingTime = 0;
+			UserDetailsResult = PortalUserService->GetUserDetails();
+			CurrentState = EPluginAuthorizationState::IsUserSignedIn_Waiting;
+			break;
+		}
+		case EPluginAuthorizationState::IsUserSignedIn_Waiting:
+		{
+			WaitingTime += InDeltaTime;
+
+			check(UserDetailsResult.GetFuture().IsValid());
+			if ( UserDetailsResult.GetFuture().IsReady() )
+			{
+				FPortalUserDetails UserDetails = UserDetailsResult.GetFuture().Get();
+
+				if ( UserDetails.IsSignedIn )
+				{
+					// if the user is signed in, and we're at this stage, we know they are unauthorized.
+					CurrentState = EPluginAuthorizationState::Unauthorized;
+				}
+				else
+				{
+					// If they're not signed in, but they were unauthorized, they may have purchased it
+					// they may just need to sign-in.
+					if ( PortalUserLoginService->IsAvailable() )
+					{
+						CurrentState = EPluginAuthorizationState::SigninRequired;
+					}
+				}
+			}
+
 			break;
 		}
 		case EPluginAuthorizationState::SigninRequired:
 		{
-			//TODO Move Launcher sign-in to the foreground
+			WaitingTime = 0;
+			UserSigninResult = PortalUserLoginService->PromptUserForSignIn();
+			CurrentState = EPluginAuthorizationState::SigninRequired_Waiting;
+			break;
+		}
+		case EPluginAuthorizationState::SigninRequired_Waiting:
+		{
+			// We don't advance the wait time in the sign-required state, as this may take a long time.
 
-			FText SigninMessage = FText::Format(LOCTEXT("UnauthorizedNeedSignin", "We can't tell if you've purchased {0}.\n\nCan you please sign-in to Epic Launcher and click [OK] when complete?"), PluginFriendlyName);
-			EAppReturnType::Type Response = FMessageDialog::Open(EAppMsgType::OkCancel, SigninMessage);
-			if ( Response == EAppReturnType::Cancel )
+			check(UserSigninResult.GetFuture().IsValid());
+			if ( UserSigninResult.GetFuture().IsReady() )
 			{
-				CurrentState = EPluginAuthorizationState::Canceled;
+				bool IsUserSignedIn = UserSigninResult.GetFuture().Get();
+				if ( IsUserSignedIn )
+				{
+					// if the user is signed in, and we're at this stage, we know they are unauthorized.
+					CurrentState = EPluginAuthorizationState::AuthorizePlugin;
+				}
+				else
+				{
+					CurrentState = EPluginAuthorizationState::Unauthorized;
+				}
 			}
-			else
-			{
-				// Return to the authorize plug-in state now that the user has signed in.
-				CurrentState = EPluginAuthorizationState::AuthorizePlugin;
-			}
+
 			break;
 		}
 		case EPluginAuthorizationState::Authorized:
@@ -182,8 +249,10 @@ EActiveTimerReturnType SAuthorizingPlugin::RefreshStatus(double InCurrentTime, f
 		// If we're in a waiting state, check to see if we're over the timeout period.
 		switch ( CurrentState )
 		{
-		case EPluginAuthorizationState::WaitingForAvailableLauncher:
-		case EPluginAuthorizationState::WaitingForPluginAuthorization:
+		case EPluginAuthorizationState::StartLauncher_Waiting:
+		case EPluginAuthorizationState::AuthorizePlugin_Waiting:
+		case EPluginAuthorizationState::IsUserSignedIn_Waiting:
+		// We Ignore EPluginAuthorizationState::SigninRequired_Waiting, that state could take forever, the user needs to sign-in or close the dialog.
 		{
 			const float TimeoutSeconds = 15;
 			if ( WaitingTime > TimeoutSeconds )

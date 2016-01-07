@@ -145,7 +145,8 @@ public class UnrealEd : ModuleRules
 				"AddContentDialog",
 				"GameProjectGeneration",
                 "HierarchicalLODUtilities",
-                "Analytics"
+                "Analytics",
+                "PluginWarden"
 			}
 		);
 
