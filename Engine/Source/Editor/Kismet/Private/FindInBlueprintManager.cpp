@@ -1587,6 +1587,7 @@ void FFindInBlueprintSearchManager::AddOrUpdateBlueprintSearchMetadata(UBlueprin
 	if(InBlueprint->SkeletonGeneratedClass != nullptr)
 	{
 		SearchArray[Index].Value = GatherBlueprintSearchMetadata(InBlueprint);
+		SearchArray[Index].Version = FIB_VER_LATEST;
 	}
 	SearchArray[Index].bMarkedForDeletion = false;
 }
