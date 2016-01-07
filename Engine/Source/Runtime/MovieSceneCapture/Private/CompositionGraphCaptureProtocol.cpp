@@ -85,6 +85,9 @@ struct FSceneViewExtension : ISceneViewExtension
 			FWeightedBlendable Blendable(1.f, PostProcessingMaterial);
 			PostProcessingMaterial->OverrideBlendableSettings(InView, 1.f);
 		}
+		
+		// Ensure we're rendering at full size
+		InView.ViewRect = InView.UnscaledViewRect;
 
 		bNeedsCapture = false;
 	}
