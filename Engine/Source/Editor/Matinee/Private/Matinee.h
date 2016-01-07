@@ -53,7 +53,7 @@ public:
 	/** @return the documentation location for this editor */
 	virtual FString GetDocumentationLink() const override
 	{
-		return FString(TEXT("Editor/Matinee"));
+		return FString(TEXT("Engine/Matinee"));
 	}
 
 	////////////////////////////////
