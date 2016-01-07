@@ -153,13 +153,13 @@ void ATP_FirstPersonCharacter::TouchUpdate(const ETouchIndex::Type FingerIndex, 
 					FVector2D ScreenSize;
 					ViewportClient->GetViewportSize(ScreenSize);
 					FVector2D ScaledDelta = FVector2D( MoveDelta.X, MoveDelta.Y) / ScreenSize;									
-					if (ScaledDelta.X != 0.0f)
+					if (fabs(ScaledDelta.X) >= 4.0 / ScreenSize.X)
 					{
 						TouchItem.bMoved = true;
 						float Value = ScaledDelta.X * BaseTurnRate;
 						AddControllerYawInput(Value);
 					}
-					if (ScaledDelta.Y != 0.0f)
+					if (fabs(ScaledDelta.Y) >= 4.0 / ScreenSize.Y)
 					{
 						TouchItem.bMoved = true;
 						float Value = ScaledDelta.Y* BaseTurnRate;
