@@ -45,7 +45,7 @@ TOptional<FKey> FKeyStructCustomization::GetCurrentKey() const
 	TArray<void*> StructPtrs;
 	PropertyHandle->AccessRawData(StructPtrs);
 
-	if (StructPtrs.Num() != 0)
+	if (StructPtrs.Num() > 0)
 	{
 		FKey* SelectedKey = (FKey*)StructPtrs[0];
 
@@ -53,7 +53,7 @@ TOptional<FKey> FKeyStructCustomization::GetCurrentKey() const
 		{
 			for(int32 StructPtrIndex = 1; StructPtrIndex < StructPtrs.Num(); ++StructPtrIndex)
 			{
-				if (SelectedKey && *(FKey*)StructPtrs[StructPtrIndex] != *SelectedKey)
+				if (*(FKey*)StructPtrs[StructPtrIndex] != *SelectedKey)
 				{
 					return TOptional<FKey>();
 				}
