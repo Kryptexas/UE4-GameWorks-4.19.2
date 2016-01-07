@@ -732,7 +732,7 @@ bool UActorFactoryPhysicsAsset::CanCreateActorFrom( const FAssetData& AssetData,
 bool UActorFactoryPhysicsAsset::PreSpawnActor(UObject* Asset, FTransform& InOutLocation)
 {
 	UPhysicsAsset* PhysicsAsset = CastChecked<UPhysicsAsset>(Asset);
-	USkeletalMesh* UseSkelMesh = PhysicsAsset->PreviewSkeletalMesh.Get();
+	USkeletalMesh* UseSkelMesh = PhysicsAsset->PreviewSkeletalMesh.LoadSynchronous();
 
 	if(!UseSkelMesh)
 	{
