@@ -338,13 +338,49 @@ bool FPluginManager::ConfigureEnabledPlugins()
 
 		// If a current project is set, check that we know about any plugin that's explicitly enabled
 		const FProjectDescriptor *Project = IProjectManager::Get().GetCurrentProject();
-		if(Project != nullptr)
+		const bool bHasProjectFile = Project != nullptr;
+
+		// Get all the enabled plugin names
+		TArray< FString > EnabledPluginNames;
+#if IS_PROGRAM
+		// Programs with a project file specified take the list of enabled plugins from the project file
+		if (bHasProjectFile)
+		{
+			FProjectManager::Get().GetEnabledPlugins(EnabledPluginNames);
+		}
+		else
+		{
+			GConfig->GetArray(TEXT("Plugins"), TEXT("ProgramEnabledPlugins"), EnabledPluginNames, GEngineIni);
+		}
+#else
+		FProjectManager::Get().GetEnabledPlugins(EnabledPluginNames);
+#endif
+
+		// Build a set from the array
+		TSet< FString > AllEnabledPlugins;
+		AllEnabledPlugins.Append(MoveTemp(EnabledPluginNames));
+
+		// Enable all the plugins by name
+		for (const TSharedRef< FPlugin > Plugin : AllPlugins)
+		{
+			if (AllEnabledPlugins.Contains(Plugin->Name))
+			{
+				Plugin->bEnabled = (!IS_PROGRAM || !bHasProjectFile) || IsPluginSupportedByCurrentTarget(Plugin);
+				if (!Plugin->bEnabled)
+				{
+					AllEnabledPlugins.Remove(Plugin->Name);
+				}
+			}
+		}
+
+		if (bHasProjectFile)
 		{
 			// Take a copy of the Project's plugins as we may remove some
 			TArray<FPluginReferenceDescriptor> PluginsCopy = Project->Plugins;
 			for(const FPluginReferenceDescriptor& Plugin: PluginsCopy)
 			{
-				if(Plugin.bEnabled && !FindPluginInstance(Plugin.Name).IsValid())
+				if ((Plugin.bEnabled && !FindPluginInstance(Plugin.Name).IsValid()) &&
+					 (!IS_PROGRAM || AllEnabledPlugins.Contains(Plugin.Name))) // skip if this is a program and the plugin is not enabled
 				{
 					FText Caption(LOCTEXT("PluginMissingCaption", "Plugin missing"));
 					if(Plugin.MarketplaceURL.Len() > 0)
@@ -379,36 +415,6 @@ bool FPluginManager::ConfigureEnabledPlugins()
 
 		// If we made it here, we have all the required plugins
 		bHaveAllRequiredPlugins = true;
-
-		const bool bHasProjectFile = IProjectManager::Get().GetCurrentProject() != nullptr;
-		// Get all the enabled plugin names
-		TArray< FString > EnabledPluginNames;
-	#if IS_PROGRAM
-		// Programs with a project file specified take the list of enabled plugins from the project file
-		if (bHasProjectFile)
-		{
-			FProjectManager::Get().GetEnabledPlugins(EnabledPluginNames);
-		}
-		else
-		{
-			GConfig->GetArray(TEXT("Plugins"), TEXT("ProgramEnabledPlugins"), EnabledPluginNames, GEngineIni);
-		}
-	#else
-		FProjectManager::Get().GetEnabledPlugins(EnabledPluginNames);
-	#endif
-
-		// Build a set from the array
-		TSet< FString > AllEnabledPlugins;
-		AllEnabledPlugins.Append( MoveTemp(EnabledPluginNames) );
-
-		// Enable all the plugins by name
-		for( const TSharedRef< FPlugin > Plugin : AllPlugins )
-		{
-			if ( AllEnabledPlugins.Contains(Plugin->Name) )
-			{				
-				Plugin->bEnabled = (!IS_PROGRAM || !bHasProjectFile) || IsPluginSupportedByCurrentTarget(Plugin);
-			}
-		}
 
 		for(const TSharedRef<FPlugin>& Plugin: AllPlugins)
 		{

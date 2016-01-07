@@ -57,7 +57,11 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 	}
 
 	GIsUCCMakeStandaloneHeaderGenerator = true;
-	GEngineLoop.PreInit(*ShortCmdLine);
+	if (GEngineLoop.PreInit(*ShortCmdLine) != 0)
+	{
+		UE_LOG(LogCompile, Error, TEXT("Failed to initialize the engine (PreInit failed)."));
+		return ECompilationResult::CrashOrAssert;
+	}
 
 	// Log full command line for UHT as UBT overrides LogInit verbosity settings
 	UE_LOG(LogCompile, Log, TEXT("UHT Command Line: %s"), *CmdLine);
@@ -67,7 +71,7 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 		if (!FPlatformMisc::IsDebuggerPresent())
 		{
 			UE_LOG(LogCompile, Error, TEXT( "Missing module info filename on command line" ));
-			return 1;
+			return ECompilationResult::OtherCompilationError;
 		}
 
 		// If we have a debugger, let's use a pre-existing manifest file to streamline debugging
