@@ -49,9 +49,9 @@
 		}
 
 #if NUM_MATERIAL_TEXCOORDS > 0
-	Output.TexCoords = VertexParameters.TexCoords[0];
+		O.TexCoords = MaterialParameters.TexCoords[0];
 #else
-	Output.TexCoords = 0;
+		O.TexCoords = 0;
 #endif
 
 		

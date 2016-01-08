@@ -7,12 +7,7 @@ WantedMipsAccuracyRendering.cpp: Contains definitions for rendering the viewmode
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
 
-static TAutoConsoleVariable<int32> CVarStreamingUseAABBRenderer(
-	TEXT("r.Streaming.UseAABB"),
-	0,
-	TEXT("If non-zero, will use AABB to compute distance."),
-	ECVF_Default);
-
+extern ENGINE_API TAutoConsoleVariable<int32> CVarStreamingUseAABB;
 
 IMPLEMENT_SHADER_TYPE(,FWantedMipsAccuracyPS,TEXT("WantedMipsAccuracyPixelShader"),TEXT("Main"),SF_Pixel);
 
@@ -54,7 +49,7 @@ void FWantedMipsAccuracyPS::SetMesh(
 		float DistSqMinusRadiusSq = 0;
 		float ViewSize = View.ViewRect.Size().X;
 
-		if (CVarStreamingUseAABBRenderer.GetValueOnRenderThread())
+		if (CVarStreamingUseAABB.GetValueOnRenderThread())
 		{
 			ViewToObject = ViewToObject.GetAbs();
 			FVector BoxViewToObject = ViewToObject.ComponentMin(Proxy->GetBounds().BoxExtent);

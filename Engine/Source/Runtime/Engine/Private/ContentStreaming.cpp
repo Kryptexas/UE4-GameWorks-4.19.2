@@ -156,7 +156,7 @@ static TAutoConsoleVariable<int32> CVarStreamingShowWantedMips(
 	TEXT("If non-zero, will limit resolution to wanted mip."),
 	ECVF_Cheat);
 
-static TAutoConsoleVariable<int32> CVarStreamingUseAABB(
+ENGINE_API TAutoConsoleVariable<int32> CVarStreamingUseAABB(
 	TEXT("r.Streaming.UseAABB"),
 	0,
 	TEXT("If non-zero, will use AABB to compute distance."),
