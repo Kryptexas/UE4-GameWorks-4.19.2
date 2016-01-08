@@ -1101,6 +1101,8 @@ public:
 	 */
 	void SetTransformIncludingDecalSize(const FTransform& InComponentToWorldIncludingDecalSize);
 
+	void InitializeFadingParameters(float AbsSpawnTime, float FadeDuration, float FadeStartDelay);
+
 	/** Pointer back to the game thread decal component. */
 	const UDecalComponent* Component;
 
@@ -1119,6 +1121,16 @@ public:
 
 	/** Larger values draw later (on top). */
 	int32 SortOrder;
+
+	float InvFadeDuration;
+
+	/**
+	* FadeT = saturate(1 - (AbsTime - FadeStartDelay - AbsSpawnTime) / FadeDuration)
+	*
+	*		refactored as muladd:
+	*		FadeT = saturate((AbsTime * -InvFadeDuration) + ((FadeStartDelay + AbsSpawnTime + FadeDuration) * InvFadeDuration))
+	*/
+	float FadeStartDelayNormalized;
 };
 
 /** Reflection capture shapes. */

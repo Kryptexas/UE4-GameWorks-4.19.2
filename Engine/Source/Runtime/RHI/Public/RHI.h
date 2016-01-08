@@ -116,8 +116,11 @@ extern RHI_API bool GSupportsSeparateRenderTargetBlendState;
 /** True if the RHI can render to a depth-only render target with no additional color render target. */
 extern RHI_API bool GSupportsDepthRenderTargetWithoutColorRenderTarget;
 
-/** True if the RHI supports depth bounds testing */
+/** True if the RHI and current hardware supports supports depth bounds testing */
 extern RHI_API bool GSupportsDepthBoundsTest;
+
+/** True if the RHI and current hardware supports efficient AsyncCompute (by default we assume false and later we can enable this for more hardware) */
+extern RHI_API bool GSupportsEfficientAsyncCompute;
 
 /** True if the RHI supports 'GetHDR32bppEncodeModeES2' shader intrinsic. */
 extern RHI_API bool GSupportsHDR32bppEncodeModeIntrinsic;

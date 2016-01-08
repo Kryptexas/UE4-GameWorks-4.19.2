@@ -694,7 +694,7 @@ bool DoesViewFamilyAllowLightShafts(const FSceneViewFamily& ViewFamily)
 	return GLightShafts
 		&& ViewFamily.EngineShowFlags.LightShafts
 		&& ViewFamily.EngineShowFlags.Lighting
-		&& !(ViewFamily.EngineShowFlags.ShaderComplexity)
+		&& ViewFamily.GetDebugViewShaderMode() == DVSM_None
 		&& !(ViewFamily.EngineShowFlags.VisualizeAdaptiveDOF)
 		&& !(ViewFamily.EngineShowFlags.VisualizeDOF)
 		&& !(ViewFamily.EngineShowFlags.VisualizeBuffer)

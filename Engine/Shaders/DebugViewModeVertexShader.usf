@@ -1,0 +1,108 @@
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	DebugViewModeVertexShader.hlsl: Debug shader used for special viewmode that need to preserve the geometry shape.
+=============================================================================*/
+
+#include "Common.usf"
+#include "Material.usf"
+#include "VertexFactory.usf"
+
+#include "DebugViewModeCommon.usf"
+// struct FDebugVSToPS
+
+#if USING_TESSELLATION	
+	struct FDebugVSToDS
+	{
+		FVertexFactoryInterpolantsVSToDS FactoryInterpolants;
+		float4 Position : VS_To_DS_Position;
+		OPTIONAL_VertexID_VS_To_DS
+	};
+	
+	#define FDebugVSOutput FDebugVSToDS
+#else
+	#define FDebugVSOutput FDebugVSToPS
+#endif
+
+#if USING_TESSELLATION	
+	#define FPassSpecificVSToDS FDebugVSToDS
+	#define FPassSpecificVSToPS FDebugVSToPS
+	
+	FDebugVSToDS PassInterpolate(FDebugVSToDS a, float aInterp, FDebugVSToDS b, float bInterp)
+	{
+		FDebugVSToDS O;
+		
+		O.FactoryInterpolants = VertexFactoryInterpolate(a.FactoryInterpolants, aInterp, b.FactoryInterpolants, bInterp);
+
+		return O;
+	}
+
+	FDebugVSToPS PassFinalizeTessellationOutput(FDebugVSToDS Interpolants, float4 WorldPosition, FMaterialTessellationParameters MaterialParameters)
+	{
+		FDebugVSToPS O;
+		
+		// Finally, transform position to clip-space
+		ISOLATE
+		{
+
+			O.Position = mul(WorldPosition, View.TranslatedWorldToClip);
+		}
+
+#if NUM_MATERIAL_TEXCOORDS > 0
+	Output.TexCoords = VertexParameters.TexCoords[0];
+#else
+	Output.TexCoords = 0;
+#endif
+
+		
+		return O;
+	}
+	
+	#include "Tessellation.usf"
+#endif
+
+#if VERTEXSHADER
+
+void Main(
+	FVertexFactoryInput Input,
+	OPTIONAL_VertexID
+	out FDebugVSOutput Output
+	)
+{
+	FVertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
+	float4 WorldPos = VertexFactoryGetWorldPosition(Input, VFIntermediates);
+
+	float3x3 TangentToLocal = VertexFactoryGetTangentToLocal(Input, VFIntermediates);
+	FMaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, WorldPos.xyz, TangentToLocal);
+
+	// Isolate instructions used for world position offset
+	// As these cause the optimizer to generate different position calculating instructions in each pass, resulting in self-z-fighting.
+	// This is only necessary for shaders used in passes that have depth testing enabled.
+	ISOLATE
+	{
+		WorldPos.xyz += GetMaterialWorldPositionOffset(VertexParameters);
+	}
+
+#if USING_TESSELLATION
+	// Transformation is done in Domain shader when tessellating
+	Output.Position = WorldPos;
+	Output.FactoryInterpolants = VertexFactoryGetInterpolantsVSToDS(Input, VFIntermediates, VertexParameters);
+#else
+	ISOLATE
+	{
+		float4 RasterizedWorldPosition = VertexFactoryGetRasterizedWorldPosition(Input, VFIntermediates, WorldPos);
+		Output.Position = mul(RasterizedWorldPosition, View.TranslatedWorldToClip);
+	}
+
+#if NUM_MATERIAL_TEXCOORDS > 0
+	Output.TexCoords = VertexParameters.TexCoords[0];
+#else
+	Output.TexCoords = 0;
+#endif
+
+#endif
+
+	OutputVertexID( Output );
+}
+
+#endif // VERTEXSHADER

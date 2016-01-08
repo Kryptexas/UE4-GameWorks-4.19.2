@@ -468,19 +468,7 @@ public:
 
 			if (MaterialCompilationOutput.bNeedsSceneTextures)
 			{
-				if (Domain == MD_DeferredDecal)
-				{
-					uint32 DecalBlendMode = Material->GetDecalBlendMode();
-					if (DecalBlendMode != DBM_Translucent && DecalBlendMode != DBM_Stain && DecalBlendMode != DBM_Emissive && DecalBlendMode != DBM_Normal && DecalBlendMode != DBM_Volumetric_DistanceFunction)
-					{
-						Errorf(TEXT("SceneTexture expressions can not be used with decals using DBuffer"));
-					} 
-					else if (MaterialCompilationOutput.bNeedsGBuffer && Material->HasNormalConnected()) // GBuffer can only relate to WorldNormal here.
-					{
-						Errorf(TEXT("Can't read WorldNormal and output to normal at the same time"));
-					}
-				}
-				else if (Domain != MD_PostProcess)
+				if (Domain != MD_DeferredDecal && Domain != MD_PostProcess)
 				{
 					if (Material->GetBlendMode() == BLEND_Opaque || Material->GetBlendMode() == BLEND_Masked)
 					{
@@ -2737,6 +2725,24 @@ protected:
 			);
 	}
 
+	virtual int32 DecalLifetimeOpacity() override
+	{
+		if (Material->GetMaterialDomain() != MD_DeferredDecal)
+		{
+			return Errorf(TEXT("Decal lifetime fade is only available in the decal material domain."));
+		}
+
+		if (ShaderFrequency != SF_Pixel)
+		{
+			return Errorf(TEXT("Decal lifetime fade is only available in the pixel shader."));
+		}
+
+		return AddCodeChunk(
+			MCT_Float,
+			TEXT("DecalLifetimeOpacity()")
+			);
+	}
+
 	virtual int32 PixelDepth() override
 	{
 		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute && ShaderFrequency != SF_Vertex)
@@ -2900,16 +2906,38 @@ protected:
 	{
 		MaterialCompilationOutput.bNeedsSceneTextures = true;
 
-		//todo: available textures change depending on whether this is a dbuffer decal or not.  Need to pass that information in to warn properly.
 		if(Material->GetMaterialDomain() == MD_DeferredDecal)
 		{
-			if (SceneTextureId == PPI_WorldNormal || SceneTextureId == PPI_CustomDepth || SceneTextureId == PPI_CustomStencil || SceneTextureId == PPI_AmbientOcclusion)
+			EDecalBlendMode DecalBlendMode = (EDecalBlendMode)Material->GetDecalBlendMode();
+			bool bDBuffer = IsDBufferDecalBlendMode(DecalBlendMode);
+
+			bool bRequiresSM5 = (SceneTextureId == PPI_WorldNormal || SceneTextureId == PPI_CustomDepth || SceneTextureId == PPI_CustomStencil || SceneTextureId == PPI_AmbientOcclusion);
+
+			if(bDBuffer)
 			{
-				ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4);
+				if(!(SceneTextureId == PPI_SceneDepth || SceneTextureId == PPI_CustomDepth || SceneTextureId == PPI_CustomStencil))
+				{
+					// Note: For DBuffer decals: CustomDepth and CustomStencil are only available if r.CustomDepth.Order = 0
+					Errorf(TEXT("DBuffer decals (MaterialDomain=DeferredDecal and DecalBlendMode is using DBuffer) can only access SceneDepth, CustomDepth, CustomStencil"));
+				}
 			}
 			else
 			{
-				Errorf(TEXT("Only some SceneTextureId are available when MaterialDomain = Deferred Decal."));
+				if(!(SceneTextureId == PPI_SceneDepth || SceneTextureId == PPI_CustomDepth || SceneTextureId == PPI_CustomStencil || SceneTextureId == PPI_WorldNormal || SceneTextureId == PPI_AmbientOcclusion))
+				{
+					Errorf(TEXT("Decals (MaterialDomain=DeferredDecal) can only access WorldNormal, AmbientOcclusion, SceneDepth, CustomDepth, CustomStencil"));
+				}
+
+				if (SceneTextureId == PPI_WorldNormal && Material->HasNormalConnected())
+				{
+					 // GBuffer can only relate to WorldNormal here.
+					Errorf(TEXT("Decals that read WorldNormal cannot output to normal at the same time"));
+				}
+			}
+
+			if (bRequiresSM5)
+			{
+				ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4);
 			}
 		}
 

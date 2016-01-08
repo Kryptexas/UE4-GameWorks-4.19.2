@@ -434,9 +434,23 @@ ENGINE_API void InitializeRenderingCVarsCaching()
 	ScalabilityCVarsSinkCallback();
 }
 
-void ShutdownRenderingCVarsCaching()
+static void ShutdownRenderingCVarsCaching()
 {
 	IConsoleManager::Get().UnregisterConsoleVariableSink_Handle(GRefreshEngineSettingsSinkHandle);
+}
+
+static bool HandleDumpShaderPipelineStatsCommand(const TCHAR* Cmd, FOutputDevice& Ar)
+{
+	FString FlagStr(FParse::Token(Cmd, 0));
+	EShaderPlatform Platform = GMaxRHIShaderPlatform;
+	if (FlagStr.Len() > 0)
+	{
+		Platform = ShaderFormatToLegacyShaderPlatform(FName(*FlagStr));
+	}
+	Ar.Logf(TEXT("Dumping shader pipeline stats for platform %s"), *LegacyShaderPlatformToShaderFormat(Platform).ToString());
+
+	DumpShaderPipelineStats(Platform);
+	return true;
 }
 
 namespace
@@ -2526,6 +2540,10 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	else if( FParse::Command(&Cmd,TEXT("DUMPMATERIALSTATS")) )
 	{
 		return HandleDumpMaterialStatsCommand( Cmd, Ar );	
+	}
+	else if (FParse::Command(&Cmd, TEXT("DumpShaderPipelineStats")))
+	{
+		return HandleDumpShaderPipelineStatsCommand(Cmd, Ar);
 	}
 	else if( FParse::Command(&Cmd,TEXT("PROFILEGPU")) )
 	{

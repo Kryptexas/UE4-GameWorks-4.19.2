@@ -104,8 +104,6 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FBoneMatricesUniformShaderParameters,)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FSkinMatrix3x4, BoneMatrices, [MAX_GPU_BONE_MATRICES_UNIFORMBUFFER])
 END_UNIFORM_BUFFER_STRUCT(FBoneMatricesUniformShaderParameters)
 
-typedef FSkinMatrix3x4 FBoneSkinning;
-
 #define SET_BONE_DATA(B, X) B.SetMatrixTranspose(X)
 
 /** Shared data & implementation for the different types of pool */
@@ -140,7 +138,7 @@ private:
 };
 
 /** Struct to pool the vertex buffer & SRV together */
-struct FBoneBuffer
+struct FVertexBufferAndSRV
 {
 	void SafeRelease()
     {
@@ -152,17 +150,15 @@ struct FBoneBuffer
     FShaderResourceViewRHIRef VertexBufferSRV;
 };
 
-/** Helper function to test whether the buffer is valid.
- * @param BoneBuffer Buffer to test
+/**
+ * Helper function to test whether the buffer is valid.
+ * @param Buffer Buffer to test
  * @returns True if the buffer is valid otherwise false
  */
-inline bool IsValidRef(const FBoneBuffer& BoneBuffer)
+inline bool IsValidRef(const FVertexBufferAndSRV& Buffer)
 {
-    return IsValidRef(BoneBuffer.VertexBufferRHI) && IsValidRef(BoneBuffer.VertexBufferSRV);
+    return IsValidRef(Buffer.VertexBufferRHI) && IsValidRef(Buffer.VertexBufferSRV);
 }
-
-/** The type for bone buffers */
-typedef FBoneBuffer FBoneBufferTypeRef;
 
 /** The policy for pooling bone vertex buffers */
 class FBoneBufferPoolPolicy : public FSharedPoolPolicyData
@@ -177,19 +173,18 @@ public:
 	};
 	/** Creates the resource 
 	 * @param Args The buffer size in bytes.
-	 * @returns A suitably sized buffer or NULL on failure.
 	 */
-	FBoneBufferTypeRef CreateResource(FSharedPoolPolicyData::CreationArguments Args);
+	FVertexBufferAndSRV CreateResource(FSharedPoolPolicyData::CreationArguments Args);
 	
 	/** Gets the arguments used to create resource
 	 * @param Resource The buffer to get data for.
 	 * @returns The arguments used to create the buffer.
 	 */
-	FSharedPoolPolicyData::CreationArguments GetCreationArguments(FBoneBufferTypeRef Resource);
+	FSharedPoolPolicyData::CreationArguments GetCreationArguments(const FVertexBufferAndSRV& Resource);
 };
 
 /** A pool for vertex buffers with consistent usage, bucketed for efficiency. */
-class FBoneBufferPool : public TRenderResourcePool<FBoneBufferTypeRef, FBoneBufferPoolPolicy, FSharedPoolPolicyData::CreationArguments>
+class FBoneBufferPool : public TRenderResourcePool<FVertexBufferAndSRV, FBoneBufferPoolPolicy, FSharedPoolPolicyData::CreationArguments>
 {
 public:
 	/** Destructor */
@@ -205,13 +200,12 @@ class FClothBufferPoolPolicy : public FBoneBufferPoolPolicy
 public:
 	/** Creates the resource 
 	 * @param Args The buffer size in bytes.
-	 * @returns A suitably sized buffer or NULL on failure.
 	 */
-	FBoneBufferTypeRef CreateResource(FSharedPoolPolicyData::CreationArguments Args);
+	FVertexBufferAndSRV CreateResource(FSharedPoolPolicyData::CreationArguments Args);
 };
 
 /** A pool for vertex buffers with consistent usage, bucketed for efficiency. */
-class FClothBufferPool : public TRenderResourcePool<FBoneBufferTypeRef, FClothBufferPoolPolicy, FSharedPoolPolicyData::CreationArguments>
+class FClothBufferPool : public TRenderResourcePool<FVertexBufferAndSRV, FClothBufferPoolPolicy, FSharedPoolPolicyData::CreationArguments>
 {
 public:
 	/** Destructor */
@@ -270,7 +264,7 @@ public:
 	}
 	
 	/** Bone buffer reference. */
-	FBoneBufferTypeRef BoneBuffer;
+	FVertexBufferAndSRV BoneBuffer;
 	
 private: // -------------------------------------------------------
 	/** Buffer size in texels */
@@ -331,9 +325,9 @@ public:
 		
 		// @param bPrevious true:previous, false:current
 		// @param FrameNumber usually from View.Family->FrameNumber
-		const FBoneBufferTypeRef& GetBoneBufferForReading(bool bPrevious, uint32 FrameNumber) const
+		const FVertexBufferAndSRV& GetBoneBufferForReading(bool bPrevious, uint32 FrameNumber) const
 		{
-			const FBoneBufferTypeRef* RetPtr = &GetBoneBufferInternal(bPrevious, FrameNumber);
+			const FVertexBufferAndSRV* RetPtr = &GetBoneBufferInternal(bPrevious, FrameNumber);
 
 			if(!RetPtr->VertexBufferRHI.IsValid())
 			{
@@ -353,17 +347,16 @@ public:
 		// @param bPrevious true:previous, false:current
 		// @param FrameNumber usually from View.Family->FrameNumber
 		// @return IsValid() can fail, then you have to create the buffers first (or if the size changes)
-		FBoneBufferTypeRef& GetBoneBufferForWriting(bool bPrevious, uint32 FrameNumber)
+		FVertexBufferAndSRV& GetBoneBufferForWriting(bool bPrevious, uint32 FrameNumber)
 		{
 			const ShaderDataType* This = (const ShaderDataType*)this;
 
 			// non const version maps to const version
-			return (FBoneBufferTypeRef&)This->GetBoneBufferInternal(bPrevious, FrameNumber);
+			return (FVertexBufferAndSRV&)This->GetBoneBufferInternal(bPrevious, FrameNumber);
 		}
 
 	private:
-
-		FBoneBufferTypeRef BoneBuffer[2];
+		FVertexBufferAndSRV BoneBuffer[2];
 		// 0 / 1 to index into BoneBuffer
 		uint32 CurrentBuffer;
 		// from GFrameNumber, to detect pause and old data when an object was not rendered for some time
@@ -381,7 +374,7 @@ public:
 		// @param bPrevious true:previous, false:current
 		// @param FrameNumber usually from View.Family->FrameNumber
 		// @return might not pass the IsValid() 
-		const FBoneBufferTypeRef& GetBoneBufferInternal(bool bPrevious, uint32 FrameNumber) const
+		const FVertexBufferAndSRV& GetBoneBufferInternal(bool bPrevious, uint32 FrameNumber) const
 		{
 			check(IsInParallelRenderingThread());
 
@@ -393,16 +386,11 @@ public:
 
 			uint32 BufferIndex = CurrentBuffer ^ (uint32)bPrevious;
 
-			const FBoneBufferTypeRef& Ret = BoneBuffer[BufferIndex];
+			const FVertexBufferAndSRV& Ret = BoneBuffer[BufferIndex];
 			return Ret;
 		}
 	};
 
-	/**
-	 * Constructor presizing bone matrices array to used amount.
-	 *
-	 * @param	InBoneMatrices	Reference to shared bone matrices array.
-	 */
 	FGPUBaseSkinVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
 	:	FVertexFactory(InFeatureLevel)
 	{}
@@ -509,6 +497,8 @@ public:
 
 	static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency);
 
+	void CopyDataTypeForPassthroughFactory(class FGPUSkinPassthroughVertexFactory* PassthroughVertexFactory);
+
 protected:
 	/**
 	* Add the decl elements for the streams
@@ -516,6 +506,8 @@ protected:
 	* @param OutElements - vertex decl list to modify
 	*/
 	void AddVertexElements(DataType& InData, FVertexDeclarationElementList& OutElements);
+
+	inline const DataType& GetData() const { return Data; }
 
 private:
 	/** stream component data bound to this vertex factory */
@@ -525,27 +517,43 @@ private:
 /** 
  * Vertex factory with vertex stream components for GPU-skinned streams, enabled for passthrough mode when vertices have been pre-skinned 
  */
-class FGPUSkinPassthroughVertexFactory : public TGPUSkinVertexFactory<false>
+class FGPUSkinPassthroughVertexFactory : public FLocalVertexFactory
 {
 	DECLARE_VERTEX_FACTORY_TYPE(FGPUSkinPassthroughVertexFactory);
 
-	typedef TGPUSkinVertexFactory<false> Super;
+	typedef FLocalVertexFactory Super;
 
 public:
-	/**
-	 * Constructor presizing bone matrices array to used amount.
-	 *
-	 * @param	InBoneMatrices	Reference to shared bone matrices array.
-	 */
-	FGPUSkinPassthroughVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
-		: TGPUSkinVertexFactory<false>(InFeatureLevel)
+	FGPUSkinPassthroughVertexFactory()
+		: StreamIndex(-1)
 	{}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const class FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment);
 	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const FShaderType* ShaderType);
 
+	inline void UpdateVertexDeclaration(FGPUBaseSkinVertexFactory* SourceVertexFactory, struct FRWBuffer* RWBuffer)
+	{
+		if (StreamIndex == -1)
+		{
+			InternalUpdateVertexDeclaration(SourceVertexFactory, RWBuffer);
+		}
+	}
+
+	inline int32 GetStreamIndex(int32 RWBufferIndex) const
+	{
+		check(StreamIndex != -1);
+		return (uint32)StreamIndex;
+	}
+
 	// FRenderResource interface.
 	static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency);
+
+protected:
+	// Vertex buffer required for creating the Vertex Declaration
+	FVertexBuffer VBAlias;
+	int32 StreamIndex;
+
+	void InternalUpdateVertexDeclaration(FGPUBaseSkinVertexFactory* SourceVertexFactory, struct FRWBuffer* RWBuffer);
 };
 
 /** Vertex factory with vertex stream components for GPU-skinned and morph target streams */
@@ -612,10 +620,6 @@ private:
 
 };
 
-// to reuse BoneBuffer structure for clothing simulation data
-typedef FBoneBufferTypeRef FClothSimulDataBufferTypeRef;
-typedef FClothBufferPool FClothSimulDataBufferPool;
-
 /** Vertex factory with vertex stream components for GPU-skinned and morph target streams */
 class FGPUBaseSkinAPEXClothVertexFactory
 {
@@ -654,7 +658,7 @@ public:
 		
 		// @param FrameNumber usually from View.Family->FrameNumber
 		// @return IsValid() can fail, then you have to create the buffers first (or if the size changes)
-		FClothSimulDataBufferTypeRef& GetClothBufferForWriting(uint32 FrameNumber)
+		FVertexBufferAndSRV& GetClothBufferForWriting(uint32 FrameNumber)
 		{
 			uint32 Index = GetOldestIndex(FrameNumber);
 
@@ -672,7 +676,7 @@ public:
 
 		// @param bPrevious true:previous, false:current
 		// @param FrameNumber usually from View.Family->FrameNumber
-		const FClothSimulDataBufferTypeRef& GetClothBufferForReading(bool bPrevious, uint32 FrameNumber) const
+		const FVertexBufferAndSRV& GetClothBufferForReading(bool bPrevious, uint32 FrameNumber) const
 		{
 			int32 Index = GetMostRecentIndex(FrameNumber);
 
@@ -696,7 +700,7 @@ public:
 		// fallback for ClothSimulPositionNormalBuffer if the shadermodel doesn't allow it
 		TUniformBufferRef<FAPEXClothUniformShaderParameters> APEXClothUniformBuffer;
 		// 
-		FClothSimulDataBufferTypeRef ClothSimulPositionNormalBuffer[2];
+		FVertexBufferAndSRV ClothSimulPositionNormalBuffer[2];
 		// from GFrameNumber, to detect pause and old data when an object was not rendered for some time
 		uint32 BufferFrameNumber[2];
 
@@ -784,7 +788,7 @@ protected:
 	ClothShaderType ClothShaderData;
 
 	/** Pool of buffers for clothing simulation data */
-	static TGlobalResource<FClothSimulDataBufferPool> ClothSimulDataBufferPool;
+	static TGlobalResource<FClothBufferPool> ClothSimulDataBufferPool;
 };
 
 /** Vertex factory with vertex stream components for GPU-skinned and morph target streams */

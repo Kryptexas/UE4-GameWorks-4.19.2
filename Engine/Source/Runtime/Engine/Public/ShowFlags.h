@@ -272,6 +272,7 @@ private:
 
 		// The following code sets what should be off by default.
 		SetVisualizeHDR(false);
+		SetVisualizeShadingModels(false);
 		SetOverrideDiffuseAndSpecular(false);
 		SetReflectionOverride(false);
 		SetVisualizeBuffer(false);
@@ -341,6 +342,8 @@ private:
 		SetVisualizeSSR(false);
 		SetVisualizeSSS(false);
 		SetVisualizeBloom(false);
+		SetWantedMipsAccuracy(false);
+		SetTexelFactorAccuracy(false);
 	}
 
 

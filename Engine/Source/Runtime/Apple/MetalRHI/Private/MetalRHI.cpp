@@ -429,11 +429,11 @@ void FMetalRHICommandContext::RHIEndScene()
 	check(false);
 }
 
-void FMetalRHICommandContext::RHIPushEvent(const TCHAR* Name)
+void FMetalRHICommandContext::RHIPushEvent(const TCHAR* Name, FColor Color)
 {
 #if ENABLE_METAL_GPUEVENTS
 #if ENABLE_METAL_GPUPROFILE
-	Profiler->PushEvent(Name);
+	Profiler->PushEvent(Name, Color);
 #endif
 	// @todo zebra : this was "[NSString stringWithTCHARString:Name]", an extension only on ios for some reason, it should be on Mac also
 	Context->GetCommandEncoder().PushDebugGroup([NSString stringWithCString:TCHAR_TO_UTF8(Name) encoding:NSUTF8StringEncoding]);

@@ -913,6 +913,7 @@ protected:
 	/** Updates state for the end of the frame. */
 	void RenderFinish(FRHICommandListImmediate& RHICmdList);
 
+	void RenderCustomDepthPassAtLocation(FRHICommandListImmediate& RHICmdList, int32 Location);
 	void RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList);
 
 	void OnStartFrame();

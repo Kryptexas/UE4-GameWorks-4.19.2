@@ -22,12 +22,12 @@ struct FNavigableGeometryExport;
 struct FStreamingTexturePrimitiveInfo
 {
 	UTexture* Texture;
-	FSphere Bounds;
+	FBoxSphereBounds Bounds;
 	float TexelFactor;
 
 	FStreamingTexturePrimitiveInfo()
 		: Texture(nullptr)
-		, Bounds(0)
+		, Bounds(ForceInit)
 		, TexelFactor(1.0f)
 	{
 	}

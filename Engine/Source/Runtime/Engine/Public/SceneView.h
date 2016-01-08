@@ -356,13 +356,23 @@ enum ETranslucencyVolumeCascade
 /** 
  * Enumeration for different Quad Overdraw visualization mode.
  */
-enum EQuadOverdrawMode
+enum EDebugViewShaderMode
 {
-	QOM_None,						// No quad overdraw.
-	QOM_QuadComplexity,				// Show quad overdraw only.
-	QOM_ShaderComplexityContained,	// Show shader complexity with quad overdraw scaling the PS instruction count.
-	QOM_ShaderComplexityBleeding	// Show shader complexity with quad overdraw bleeding the PS instruction count over the quad.
+	DVSM_None,						// No debug view.
+	DVSM_ShaderComplexity,			// Default shader complexity viewmode
+	DVSM_ShaderComplexityContainedQuadOverhead,	// Show shader complexity with quad overdraw scaling the PS instruction count.
+	DVSM_ShaderComplexityBleedingQuadOverhead,	// Show shader complexity with quad overdraw bleeding the PS instruction count over the quad.
+	DVSM_QuadComplexity,			// Show quad overdraw only.
+	DVSM_WantedMipsAccuracy,		// Accuraty of the wanted mips computed by the texture streamer.
+	DVSM_TexelFactorAccuracy,		// Accuraty of the texel factor computed on each mesh.
+	DVSM_MAX
 };
+
+// This defines for what shader platform the FDebugViewModeVS/DS/HS will be compiled.
+FORCEINLINE bool AllowDebugViewModeShader(EShaderPlatform Platform)
+{
+	return Platform == SP_PCD3D_SM5;
+}
 
 /** The view dependent uniform shader parameters associated with a view. */
 BEGIN_UNIFORM_BUFFER_STRUCT(FViewUniformShaderParameters,ENGINE_API)
@@ -1060,9 +1070,9 @@ public:
 	EShaderPlatform GetShaderPlatform() const { return GShaderPlatformForFeatureLevel[GetFeatureLevel()]; }
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	EQuadOverdrawMode GetQuadOverdrawMode() const;
+	EDebugViewShaderMode GetDebugViewShaderMode() const;
 #else
-	FORCEINLINE EQuadOverdrawMode GetQuadOverdrawMode() const { return QOM_None; }
+	FORCEINLINE EDebugViewShaderMode GetDebugViewShaderMode() const { return DVSM_None; }
 #endif
 
 	/** Returns the appropriate view for a given eye in a stereo pair. */

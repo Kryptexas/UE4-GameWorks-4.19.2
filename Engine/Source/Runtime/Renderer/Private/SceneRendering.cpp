@@ -68,8 +68,16 @@ static TAutoConsoleVariable<int32> CVarRefractionQuality(
 static TAutoConsoleVariable<int32> CVarInstancedStereo(
 	TEXT("vr.InstancedStereo"),
 	0,
-	TEXT("0 to disable instanced stereo, 1 to enable."),
+	TEXT("0 to disable instanced stereo (default), 1 to enable."),
 	ECVF_ReadOnly | ECVF_RenderThreadSafe);
+
+TAutoConsoleVariable<int32> CVarCustomDepthOrder(
+	TEXT("r.CustomDepth.Order"),
+	1,	
+	TEXT("When CustomDepth (and CustomStencil) is getting rendered\n")
+	TEXT("  0: Before GBuffer (can be more efficient with AsyncCompute, allows using it in DBuffer pass, no GBuffer blending decals allow GBuffer compression)\n")
+	TEXT("  1: After Base Pass (default)"),
+	ECVF_RenderThreadSafe);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<float> CVarGeneralPurposeTweak(
@@ -1510,6 +1518,20 @@ FSceneRenderer* FSceneRenderer::CreateSceneRenderer(const FSceneViewFamily* InVi
 	}
 }
 
+void ServiceLocalQueue();
+
+void FSceneRenderer::RenderCustomDepthPassAtLocation(FRHICommandListImmediate& RHICmdList, int32 Location)
+{		
+	int32 CustomDepthOrder = FMath::Clamp(CVarCustomDepthOrder.GetValueOnRenderThread(), 0, 1);
+
+	if(CustomDepthOrder == Location)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_CustomDepthPass);
+		RenderCustomDepthPass(RHICmdList);
+		ServiceLocalQueue();
+	}
+}
+
 void FSceneRenderer::RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList)
 {
 	if(FeatureLevel < ERHIFeatureLevel::SM4)
@@ -1597,7 +1619,7 @@ bool FSceneRenderer::ShouldCompositeEditorPrimitives(const FViewInfo& View)
 	}
 
 	if (View.Family->EngineShowFlags.VisualizeHDR ||
-		View.Family->EngineShowFlags.ShaderComplexity)
+		View.Family->GetDebugViewShaderMode() != DVSM_None)
 	{
 		// certain visualize modes get obstructed too much
 		return false;

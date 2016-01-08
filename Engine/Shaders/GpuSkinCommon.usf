@@ -29,3 +29,73 @@
 #define	GPUSKIN_VB_OFFSET_INFLUENCEWEIGHTS	(3 + GPUSKIN_USE_EXTRA_INFLUENCES)
 #define	GPUSKIN_VB_OFFSET_POSITION			(GPUSKIN_VB_OFFSET_INFLUENCEWEIGHTS + GPUSKIN_USE_EXTRA_INFLUENCES + 1)
 #define	GPUSKIN_VB_OFFSET_UVS				(GPUSKIN_VB_OFFSET_POSITION + 3)
+
+// Should be set from FGPUSkinCacheCS!
+#ifndef GPUSKIN_RWBUFFER_OFFSET_POSITION
+#define GPUSKIN_RWBUFFER_OFFSET_POSITION	0
+#endif
+
+#ifndef GPUSKIN_RWBUFFER_OFFSET_TANGENT_X
+#define GPUSKIN_RWBUFFER_OFFSET_TANGENT_X	3
+#endif
+
+#ifndef GPUSKIN_RWBUFFER_OFFSET_TANGENT_Z
+#define GPUSKIN_RWBUFFER_OFFSET_TANGENT_Z	4
+#endif
+
+// Must match RWStrideInFloats
+#ifndef GPUSKIN_RWBUFFER_NUM_FLOATS
+#define GPUSKIN_RWBUFFER_NUM_FLOATS			5
+#endif
+
+float4 UnpackS8x4N(uint Packed)
+{
+	float4 Unpacked;
+	Unpacked.x = (float((Packed >> 0) & 0xff) / 127.5f) - 1.0f;
+	Unpacked.y = (float((Packed >> 8) & 0xff) / 127.5f) - 1.0f;
+	Unpacked.z = (float((Packed >> 16) & 0xff) / 127.5f) - 1.0f;
+	Unpacked.w = (float((Packed >> 24) & 0xff) / 127.5f) - 1.0f;
+	return Unpacked;
+}
+
+uint4 UnpackU8x4(uint Packed)
+{
+	uint4 Unpacked;
+	Unpacked.x = (Packed >> 0) & 0xff;
+	Unpacked.y = (Packed >> 8) & 0xff;
+	Unpacked.z = (Packed >> 16) & 0xff;
+	Unpacked.w = (Packed >> 24) & 0xff;
+	return Unpacked;
+}
+
+float4 UnpackU8x4N(uint Packed)
+{
+	float4 Unpacked;
+	Unpacked.x = (float((Packed >> 0) & 0xff) / 255.0f);
+	Unpacked.y = (float((Packed >> 8) & 0xff) / 255.0f);
+	Unpacked.z = (float((Packed >> 16) & 0xff) / 255.0f);
+	Unpacked.w = (float((Packed >> 24) & 0xff) / 255.0f);
+	return Unpacked;
+}
+
+// Leaves the high 8 bits unset
+uint PackS8x3N(float3 Unpacked)
+{
+	uint Packed = asuint(
+		(uint((Unpacked.x + 1.0f) * 127.5f) << 0) |
+		(uint((Unpacked.y + 1.0f) * 127.5f) << 8) |
+		(uint((Unpacked.z + 1.0f) * 127.5f) << 16))
+		;
+	return Packed;
+}
+
+uint PackS8x4N(float4 Unpacked)
+{
+	uint Packed = asuint(
+		(uint((Unpacked.x + 1.0f) * 127.5f) << 0) |
+		(uint((Unpacked.y + 1.0f) * 127.5f) << 8) |
+		(uint((Unpacked.z + 1.0f) * 127.5f) << 16) |
+		(uint((Unpacked.w + 1.0f) * 127.5f) << 24))
+		;
+	return Packed;
+}

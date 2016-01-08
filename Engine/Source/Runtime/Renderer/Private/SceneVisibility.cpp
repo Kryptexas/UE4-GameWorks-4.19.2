@@ -1501,11 +1501,12 @@ struct FRelevancePacket
 				*(PrimitiveSceneInfo->ComponentLastRenderTime) = CurrentWorldTime;
 			}
 
+			uint32 bHasClearCoat = ViewRelevance.ShadingModelMaskRelevance & (1 << MSM_ClearCoat);
+
 			// Cache the nearest reflection proxy if needed
 			if (PrimitiveSceneInfo->bNeedsCachedReflectionCaptureUpdate
 				// During Forward Shading, the per-object reflection is used for everything
-				// Otherwise it is just used on translucency
-				&& (!Scene->ShouldUseDeferredRenderer() || bTranslucentRelevance))
+				&& (!Scene->ShouldUseDeferredRenderer() || bTranslucentRelevance || bHasClearCoat))
 			{
 				PrimitiveSceneInfo->CachedReflectionCaptureProxy = Scene->FindClosestReflectionCapture(Scene->PrimitiveBounds[BitIndex].Origin);
 
@@ -1547,6 +1548,7 @@ struct FRelevancePacket
 			FLODMask LODToRender = ComputeLODForMeshes( PrimitiveSceneInfo->StaticMeshes, View, Bounds.Origin, Bounds.SphereRadius, ViewData.ForcedLODLevel, ViewData.LODScale);
 			const bool bIsHLODFading = bHLODActive && Scene->SceneLODHierarchy.IsNodeFading(PrimitiveIndex);
 			const bool bIsHLODFadingOut = bHLODActive && Scene->SceneLODHierarchy.IsNodeFadingOut(PrimitiveIndex);
+			const bool bIsLODDithered = LODToRender.IsDithered();
 
 			float DistanceSquared = (Bounds.Origin - ViewData.ViewOrigin).SizeSquared();
 			const float LODFactorDistanceSquared = DistanceSquared * FMath::Square(View.LODDistanceFactor * ViewData.InvLODScale);
@@ -1561,19 +1563,34 @@ struct FRelevancePacket
 				{
 					uint8 MarkMask = 0;
 					bool bNeedsBatchVisibility = false;
+					bool bHiddenByHLODFade = false; // Hide mesh LOD levels that HLOD is substituting
 
 					if (bIsHLODFading)
 					{
 						if (bIsHLODFadingOut)
 						{
-							MarkMask |= EMarkMaskBits::StaticMeshFadeOutDitheredLODMapMask;
+							if (bIsLODDithered && LODToRender.DitheredLODIndices[1] == StaticMesh.LODIndex)
+							{
+								bHiddenByHLODFade = true;
+							}
+							else
+							{
+								MarkMask |= EMarkMaskBits::StaticMeshFadeOutDitheredLODMapMask;	
+							}
 						}
 						else
 						{
-							MarkMask |= EMarkMaskBits::StaticMeshFadeInDitheredLODMapMask;
-						}	
+							if (bIsLODDithered && LODToRender.DitheredLODIndices[0] == StaticMesh.LODIndex)
+							{
+								bHiddenByHLODFade = true;
+							}
+							else
+							{
+								MarkMask |= EMarkMaskBits::StaticMeshFadeInDitheredLODMapMask;
+							}
+						}
 					}
-					else if (LODToRender.IsDithered())
+					else if (bIsLODDithered)
 					{
 						if (LODToRender.DitheredLODIndices[0] == StaticMesh.LODIndex)
 						{
@@ -1592,7 +1609,7 @@ struct FRelevancePacket
 						bNeedsBatchVisibility = true;
 					}
 
-					if(ViewRelevance.bDrawRelevance && (StaticMesh.bUseForMaterial || StaticMesh.bUseAsOccluder) && (ViewRelevance.bRenderInMainPass || ViewRelevance.bRenderCustomDepth))
+					if(ViewRelevance.bDrawRelevance && (StaticMesh.bUseForMaterial || StaticMesh.bUseAsOccluder) && (ViewRelevance.bRenderInMainPass || ViewRelevance.bRenderCustomDepth) && !bHiddenByHLODFade)
 					{
 						// Mark static mesh as visible for rendering
 						if (StaticMesh.bUseForMaterial)

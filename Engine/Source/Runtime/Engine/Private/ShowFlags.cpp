@@ -256,6 +256,8 @@ void ApplyViewMode(EViewModeIndex ViewModeIndex, bool bPerspective, FEngineShowF
 			break;
 		case VMI_ShaderComplexity:
 		case VMI_QuadComplexity:
+		case VMI_WantedMipsAccuracy:
+		case VMI_TexelFactorAccuracy:
 			bPostProcessing = false;
 			break;
 		case VMI_StationaryLightOverlap:
@@ -301,6 +303,8 @@ void ApplyViewMode(EViewModeIndex ViewModeIndex, bool bPerspective, FEngineShowF
 	EngineShowFlags.SetVisualizeLightCulling(ViewModeIndex == VMI_LightComplexity);
 	EngineShowFlags.SetShaderComplexity(ViewModeIndex == VMI_ShaderComplexity || ViewModeIndex == VMI_QuadComplexity);
 	EngineShowFlags.SetQuadComplexity(ViewModeIndex == VMI_QuadComplexity);
+	EngineShowFlags.SetWantedMipsAccuracy(ViewModeIndex == VMI_WantedMipsAccuracy);
+	EngineShowFlags.SetTexelFactorAccuracy(ViewModeIndex == VMI_TexelFactorAccuracy);
 	EngineShowFlags.SetStationaryLightOverlap(ViewModeIndex == VMI_StationaryLightOverlap);
 	EngineShowFlags.SetLightMapDensity(ViewModeIndex == VMI_LightmapDensity || ViewModeIndex == VMI_LitLightmapDensity);
 	EngineShowFlags.SetPostProcessing(bPostProcessing);
@@ -388,6 +392,8 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 			ViewModeIndex == VMI_Unlit ||
 			ViewModeIndex == VMI_ShaderComplexity ||
 			ViewModeIndex == VMI_QuadComplexity ||
+			ViewModeIndex == VMI_WantedMipsAccuracy ||
+			ViewModeIndex == VMI_TexelFactorAccuracy ||
 			ViewModeIndex == VMI_LightmapDensity ||
 			ViewModeIndex == VMI_VertexDensities ||
 			ViewModeIndex == VMI_LitLightmapDensity)
@@ -406,6 +412,8 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 			ViewModeIndex == VMI_StationaryLightOverlap ||
 			ViewModeIndex == VMI_ShaderComplexity ||
 			ViewModeIndex == VMI_QuadComplexity ||
+			ViewModeIndex == VMI_WantedMipsAccuracy ||
+			ViewModeIndex == VMI_TexelFactorAccuracy ||
 			ViewModeIndex == VMI_VertexDensities ||
 			ViewModeIndex == VMI_LightmapDensity)
 		{
@@ -440,6 +448,14 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 			EngineShowFlags.Fog = 0;			// Removed fog to improve color readability.
 			EngineShowFlags.AtmosphericFog = 0;
 			EngineShowFlags.Translucency = 0;	// Translucent are off because there are no color override shader currently for translucency.
+		}
+
+		if (ViewModeIndex == VMI_WantedMipsAccuracy ||
+			ViewModeIndex == VMI_TexelFactorAccuracy)
+		{
+			EngineShowFlags.Decals = 0; // Decals require the use of FDebugPSInLean.
+			EngineShowFlags.Particles = 0; // FX are fully streamed.
+			EngineShowFlags.Fog = 0;
 		}
 	}
 
@@ -534,6 +550,14 @@ EViewModeIndex FindViewMode(const FEngineShowFlags& EngineShowFlags)
 	{
 		return VMI_QuadComplexity;
 	}
+	else if(EngineShowFlags.WantedMipsAccuracy)
+	{
+		return VMI_WantedMipsAccuracy;
+	}
+	else if(EngineShowFlags.TexelFactorAccuracy)
+	{
+		return VMI_TexelFactorAccuracy;
+	}
 	else if(EngineShowFlags.ShaderComplexity)
 	{
 		return VMI_ShaderComplexity;
@@ -609,7 +633,9 @@ const TCHAR* GetViewModeName(EViewModeIndex ViewModeIndex)
 		case VMI_LightingOnly:				return TEXT("LightingOnly");
 		case VMI_LightComplexity:			return TEXT("LightComplexity");
 		case VMI_ShaderComplexity:			return TEXT("ShaderComplexity");
-		case VMI_QuadComplexity:			return TEXT("QuadComplexity");
+		case VMI_QuadComplexity:			return TEXT("QuadOverdraw");
+		case VMI_WantedMipsAccuracy:		return TEXT("WantedMipsAccuracy");
+		case VMI_TexelFactorAccuracy:		return TEXT("TexelFactorAccuracy");
 		case VMI_StationaryLightOverlap:	return TEXT("StationaryLightOverlap");
 		case VMI_LightmapDensity:			return TEXT("LightmapDensity");
 		case VMI_LitLightmapDensity:		return TEXT("LitLightmapDensity");

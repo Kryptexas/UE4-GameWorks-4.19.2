@@ -68,6 +68,12 @@ public:
 	/** Changes the viewport to quad complexity mode */
 	TSharedPtr< FUICommandInfo > QuadComplexityMode;
 
+	/** Changes the viewport to wanted mips accuracy mode */
+	TSharedPtr< FUICommandInfo > WantedMipsAccuracyMode;
+
+	/** Changes the viewport to texel factor accuracy mode */
+	TSharedPtr< FUICommandInfo > TexelFactorAccuracyMode;
+
 	/** Changes the viewport to stationary light overlap mode */
 	TSharedPtr< FUICommandInfo > StationaryLightOverlapMode;
 

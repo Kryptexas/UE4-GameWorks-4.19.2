@@ -181,7 +181,7 @@ struct FMetalGPUProfiler : public FGPUProfiler
 	
 	void Cleanup();
 	
-	virtual void PushEvent(const TCHAR* Name) override;
+	virtual void PushEvent(const TCHAR* Name, FColor Color) override;
 	virtual void PopEvent() override;
 	
 	void BeginFrame();

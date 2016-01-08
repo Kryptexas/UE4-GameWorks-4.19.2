@@ -352,7 +352,7 @@ void FGPUProfilerEventNodeFrame::DumpEventTree()
 	}
 }
 
-void FGPUProfiler::PushEvent(const TCHAR* Name)
+void FGPUProfiler::PushEvent(const TCHAR* Name, FColor Color)
 {
 	if (bTrackingEvents)
 	{

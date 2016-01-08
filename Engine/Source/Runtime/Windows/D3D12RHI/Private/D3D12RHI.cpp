@@ -133,7 +133,7 @@ FD3D12CommandListHandle FD3D12CommandContext::FlushCommands(bool WaitForCompleti
 		else
 		{
 			// Just submit the current command list
-			CommandListHandle.Execute(WaitForCompletion);
+		CommandListHandle.Execute(WaitForCompletion);
 		}
 
 		// Get a new command list to replace the one we submitted for execution. 
@@ -408,7 +408,7 @@ namespace D3D12RHI
 
 		if (GEmitDrawEvents)
 		{
-			PushEvent(TEXT("FRAME"));
+			PushEvent(TEXT("FRAME"), FColor(0, 255, 0, 255));
 		}
 	}
 }
@@ -424,16 +424,16 @@ void FD3D12CommandContext::RHIEndFrame()
 
 	const uint32 NumContexts = Device->GetNumContexts();
 	for (uint32 i = 0; i < NumContexts; ++i)
-	{
+    {
 		Device->GetCommandContext(i).EndFrame();
 	}
 
 	for (uint32 i = 0; i < FD3D12DynamicRHI::GetD3DRHI()->NumThreadDynamicHeapAllocators; ++i)
-	{
+    {
 		FD3D12DynamicHeapAllocator* pCurrentHelperThreadDynamicHeapAllocator = FD3D12DynamicRHI::GetD3DRHI()->ThreadDynamicHeapAllocatorArray[i];
 		check(pCurrentHelperThreadDynamicHeapAllocator != nullptr);
 		pCurrentHelperThreadDynamicHeapAllocator->CleanupFreeBlocks();
-	}
+    }
 
 #if SUPPORTS_MEMORY_RESIDENCY
 	GetResourceResidencyManager().Process();
@@ -605,13 +605,13 @@ void FD3D12CommandContext::RHIEndScene()
 	OwningRHI.ResourceTableFrameCounter = INDEX_NONE;
 }
 
-void FD3DGPUProfiler::PushEvent(const TCHAR* Name)
+void FD3DGPUProfiler::PushEvent(const TCHAR* Name, FColor Color)
 {
 #if WITH_DX_PERF
-	D3DPERF_BeginEvent(FColor(0, 255, 0, 255).DWColor(), Name);
+	D3DPERF_BeginEvent(Color.DWColor(), Name);
 #endif
 
-	FGPUProfiler::PushEvent(Name);
+	FGPUProfiler::PushEvent(Name, Color);
 }
 
 void FD3DGPUProfiler::PopEvent()

@@ -1879,22 +1879,43 @@ ERHIFeatureLevel::Type FSceneViewFamily::GetFeatureLevel() const
 }
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-ENGINE_API EQuadOverdrawMode FSceneViewFamily::GetQuadOverdrawMode() const
+EDebugViewShaderMode FSceneViewFamily::GetDebugViewShaderMode() const
 {
-	if (EngineShowFlags.ShaderComplexity)
+	const bool bDebugViewShaderExists = AllowDebugViewModeShader(GetFeatureLevelShaderPlatform(GetFeatureLevel()));
+
+	if (bDebugViewShaderExists)
 	{
-		if (EngineShowFlags.QuadComplexity)
+		if (EngineShowFlags.ShaderComplexity)
 		{
-			// This can be used to visualize the QOM_ShaderComplexityBleeding mode.
-			// return EngineShowFlags.QuadOverhead ? QOM_ShaderComplexityBleeding : QOM_QuadComplexity;
-			return QOM_QuadComplexity;
+			if (EngineShowFlags.QuadComplexity)
+			{
+				// This can be used to visualize the QOM_ShaderComplexityBleeding mode.
+				// return EngineShowFlags.QuadOverhead ? DVSM_ShaderComplexityBleedingQuadOverhead : DVSM_QuadComplexity;
+				return DVSM_QuadComplexity;
+			}
+			else if (EngineShowFlags.QuadOverhead)
+			{
+				return DVSM_ShaderComplexityContainedQuadOverhead;
+			}
+			else
+			{
+				return DVSM_ShaderComplexity;
+			}
 		}
-		else if (EngineShowFlags.QuadOverhead)
+		else if (EngineShowFlags.WantedMipsAccuracy)
 		{
-			return QOM_ShaderComplexityContained;
+			return DVSM_WantedMipsAccuracy;
+		}
+		else if (EngineShowFlags.TexelFactorAccuracy)
+		{
+			return DVSM_TexelFactorAccuracy;
 		}
 	}
-	return QOM_None;
+	else if (EngineShowFlags.ShaderComplexity && !EngineShowFlags.QuadComplexity)
+	{
+		return DVSM_ShaderComplexity;
+	}
+	return DVSM_None;
 };
 #endif
 

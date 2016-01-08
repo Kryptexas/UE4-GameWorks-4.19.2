@@ -62,8 +62,7 @@ void FVisualizeComplexityApplyPS::SetParameters(
 	SetTextureParameter(Context.RHICmdList, ShaderRHI, MiniFontTexture, GEngine->MiniFontTexture ? GEngine->MiniFontTexture->Resource->TextureRHI : GSystemTextures.WhiteDummy->GetRenderTargetItem().TargetableTexture);
 
 	// Whether acccess or not the QuadOverdraw buffer.
-	EQuadOverdrawMode QuadOverdrawMode = Context.View.Family->GetQuadOverdrawMode();
-
+	EDebugViewShaderMode DebugViewShaderMode = Context.View.Family->GetDebugViewShaderMode();
 	if (QuadOverdrawTexture.IsBound())
 	{
 		const FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
@@ -72,14 +71,14 @@ void FVisualizeComplexityApplyPS::SetParameters(
 			Context.RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EGfxToGfx, SceneContext.QuadOverdrawBuffer->GetRenderTargetItem().UAV);
 			SetTextureParameter(Context.RHICmdList, ShaderRHI, QuadOverdrawTexture, SceneContext.QuadOverdrawBuffer->GetRenderTargetItem().ShaderResourceTexture);
 		}
-		else
+		else // Otherwise fallback to a complexity mode that does not require the QuadOverdraw resources.
 		{
 			SetTextureParameter(Context.RHICmdList, ShaderRHI, QuadOverdrawTexture, FTextureRHIRef());
-			QuadOverdrawMode = QOM_None;
+			DebugViewShaderMode = DVSM_ShaderComplexity;
 		}
 	}
 
-	SetShaderValue(Context.RHICmdList, ShaderRHI, ShaderComplexityParams, FVector4(bLegend, QuadOverdrawMode, ColorSampling, ComplexityScale));
+	SetShaderValue(Context.RHICmdList, ShaderRHI, ShaderComplexityParams, FVector4(bLegend, DebugViewShaderMode, ColorSampling, ComplexityScale));
 	SetShaderValue(Context.RHICmdList, ShaderRHI, NumComplexityColors, Colors.Num());
 }
 
@@ -168,7 +167,7 @@ void FRCPassPostProcessVisualizeComplexity::Process(FRenderingCompositePassConte
 //later?		Canvas.DrawShadowedString(View.ViewRect.Max.X - View.ViewRect.Width() / 3 - 64 + 8, View.ViewRect.Max.Y - 80, TEXT("Overdraw"), GetStatsFont(), FLinearColor(0.7f, 0.7f, 0.7f), FLinearColor(0,0,0,0));
 //later?		Canvas.DrawShadowedString(View.ViewRect.Min.X + 64 + 4, View.ViewRect.Max.Y - 80, TEXT("VS Instructions"), GetStatsFont(), FLinearColor(0.0f, 0.0f, 0.0f), FLinearColor(0,0,0,0));
 
-		if (View.Family->GetQuadOverdrawMode() == QOM_QuadComplexity)
+		if (View.Family->GetDebugViewShaderMode() == DVSM_QuadComplexity)
 		{
 			int32 StartX = View.ViewRect.Min.X + 62;
 			int32 EndX = View.ViewRect.Max.X - 66;

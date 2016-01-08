@@ -796,8 +796,6 @@ private:
 	bool bNeedsFinalize;
 	/** If true, it means the Async work is in process and not yet completed */
 	bool bAsyncWorkOutstanding;
-	/** This flag is only valid during finalize. It is sent back from the potentially async task to indicate that all emitters are finished */
-	bool bAllEmittersFinished;
 	/** Time in ms since a tick was last performed; used with MinTimeBetweenTicks (on UParticleSystem) to control tick rate */
 	uint32 TimeSinceLastTick;
 

@@ -42,7 +42,6 @@ float GetRoughness(const in FGBufferData GBuffer)
 {
 	float Roughness = GBuffer.Roughness;
 
-#if 1//USE_CLEARCOAT
 	BRANCH
 	if( GBuffer.ShadingModelID == SHADINGMODELID_CLEAR_COAT )
 	{
@@ -51,7 +50,6 @@ float GetRoughness(const in FGBufferData GBuffer)
 
 		Roughness = lerp( Roughness, ClearCoatRoughness, ClearCoat );
 	}
-#endif
 
 	return Roughness;
 }

@@ -959,7 +959,7 @@ void FMetalRHICommandContext::RHIClearMRT(bool bClearColor,int32 NumClearColors,
 		return;
 	}
 
-	RHIPushEvent(TEXT("MetalClearMRT"));
+	RHIPushEvent(TEXT("MetalClearMRT"), FColor(255, 0, 255, 255));
 
 	// Build new states
 	FBlendStateRHIRef BlendStateRHI;

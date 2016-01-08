@@ -657,6 +657,16 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAtLocation(UObject* Worl
 			PSC->RegisterComponentWithWorld(World);
 
 			PSC->ActivateSystem(true);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			if (PSC->Template && PSC->Template->IsPotentiallyImmortal())
+			{
+				UE_LOG(LogParticles, Warning, TEXT("GameplayStatics::SpawnEmitterAtLocation spawned potentially immortal particle system! %s (%s) may stay in world despite never spawning particles after burst spawning is over."),
+					*(PSC->GetPathName()), *(PSC->Template->GetPathName())
+					);
+			}
+#endif
+
 			return PSC;
 		}
 	}
@@ -676,6 +686,16 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAtLocation(UWorld* World
 		PSC->RegisterComponentWithWorld(World);
 
 		PSC->ActivateSystem(true);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		if (PSC->Template && PSC->Template->IsPotentiallyImmortal())
+		{
+			UE_LOG(LogParticles, Warning, TEXT("GameplayStatics::SpawnEmitterAtLocation spawned potentially immortal particle system! %s (%s) may stay in world despite never spawning particles after burst spawning is over."),
+				*(PSC->GetPathName()), *(PSC->Template->GetPathName())
+				);
+		}
+#endif
+
 	}
 	return PSC;
 }
@@ -708,6 +728,15 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAttached(UParticleSystem
 				PSC->SetRelativeScale3D(FVector(1.f));
 				PSC->RegisterComponentWithWorld(World);
 				PSC->ActivateSystem(true);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+				if (PSC->Template && PSC->Template->IsPotentiallyImmortal())
+				{
+					UE_LOG(LogParticles, Log, TEXT("GameplayStatics::SpawnEmitterAttached spawned potentially immortal particle system! %s (%s) may stay in world despite never spawning particles after burst spawning is over."),
+						*(PSC->GetPathName()), *(PSC->Template->GetPathName())
+						);
+				}
+#endif
 			}
 		}
 	}

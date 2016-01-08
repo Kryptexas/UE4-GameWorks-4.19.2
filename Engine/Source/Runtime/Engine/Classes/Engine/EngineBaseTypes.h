@@ -845,6 +845,10 @@ enum EViewModeIndex
 	VMI_LODColoration = 18,
 	/** Colored according to the quad coverage. */
 	VMI_QuadComplexity = 19,
+	/** Colored according to the accuracy of the texture streamer wanted mips computation. */
+	VMI_WantedMipsAccuracy = 20,
+	/** Colored according to the texel factor accuracy. */
+	VMI_TexelFactorAccuracy = 21,
 
 	VMI_Max UMETA(Hidden),
 

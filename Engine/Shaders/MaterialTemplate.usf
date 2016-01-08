@@ -470,6 +470,18 @@ float4 GetScreenPosition(FMaterialPixelParameters Parameters)
 	}
 #endif //DECAL_RENDERSTAGE
 
+#if DECAL_RENDERSTAGE && DECAL_PRIMITIVE
+	float DecalLifetimeOpacity()
+	{
+		return DecalParams.y;
+	}
+#else
+	float DecalLifetimeOpacity()
+	{
+		return 0.0f;
+	}
+#endif // DECAL_RENDERSTAGE && DECAL_PRIMITIVE
+
 /** Transforms a vector from tangent space to world space, prescaling by an amount calculated previously */
 MaterialFloat3 TransformTangentVectorToWorld_PreScaled(FMaterialTessellationParameters Parameters, MaterialFloat3 InTangentVector)
 {
@@ -1066,40 +1078,6 @@ MaterialFloat2 GetLightmapUVs(FMaterialPixelParameters Parameters)
 #if NEEDS_SCENE_TEXTURES
 #include "DeferredShadingCommon.usf"		// GetGBufferData()
 
-float3 GetShadingModelColor(FGBufferData GBuffer)
-{
-	// TODO: PS4 doesn't optimize out correctly the switch(), so it thinks it needs all the Samplers even if they get compiled out
-	//	This will get fixed after launch per Sony...
-#if PS4_PROFILE
-		 if (GBuffer.ShadingModelID == SHADINGMODELID_UNLIT) return float3(0.1f, 0.1f, 0.2f); // Dark Blue
-	else if (GBuffer.ShadingModelID == SHADINGMODELID_DEFAULT_LIT) return float3(0.1f, 1.0f, 0.1f); // Green
-	else if (GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE) return float3(1.0f, 0.1f, 0.1f); // Red
-	else if (GBuffer.ShadingModelID == SHADINGMODELID_PREINTEGRATED_SKIN) return float3(0.6f, 0.4f, 0.1f); // Brown
-	else if (GBuffer.ShadingModelID == SHADINGMODELID_CLEAR_COAT) return float3(0.1f, 0.4f, 0.4f); 
-	else if (GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE) return float3(0.2f, 0.6f, 0.5f); // Cyan
-	else if (GBuffer.ShadingModelID == SHADINGMODELID_TWOSIDED_FOLIAGE) return float3(0.2f, 0.2f, 0.8f); // Blue
-	else if (GBuffer.ShadingModelID == SHADINGMODELID_HAIR) return float3(0.6f, 0.1f, 0.5f);
-	else if (GBuffer.ShadingModelID == SHADINGMODELID_CLOTH) return float3(0.7f, 1.0f, 1.0f); 
-	else if (GBuffer.ShadingModelID == SHADINGMODELID_EYE) return float3(0.3f, 1.0f, 1.0f); 
-	else return float3(1.0f, 1.0f, 1.0f); // White
-#else
-	switch(GBuffer.ShadingModelID)
-	{
-		case SHADINGMODELID_UNLIT: return float3(0.1f, 0.1f, 0.2f); // Dark Blue
-		case SHADINGMODELID_DEFAULT_LIT: return float3(0.1f, 1.0f, 0.1f); // Green
-		case SHADINGMODELID_SUBSURFACE: return float3(1.0f, 0.1f, 0.1f); // Red
-		case SHADINGMODELID_PREINTEGRATED_SKIN: return float3(0.6f, 0.4f, 0.1f); // Brown
-		case SHADINGMODELID_CLEAR_COAT: return float3(0.1f, 0.4f, 0.4f); // Brown
-		case SHADINGMODELID_SUBSURFACE_PROFILE: return float3(0.2f, 0.6f, 0.5f); // Cyan
-		case SHADINGMODELID_TWOSIDED_FOLIAGE: return float3(0.2f, 0.2f, 0.8f); // Cyan
-		case SHADINGMODELID_HAIR: return float3(0.6f, 0.1f, 0.5f);
-		case SHADINGMODELID_CLOTH: return float3(0.7f, 1.0f, 1.0f);
-		case SHADINGMODELID_EYE: return float3(0.3f, 1.0f, 1.0f);
-		default: return float3(1.0f, 1.0f, 1.0f); // White
-	}
-#endif
-}
-
 float4 GetPostProcessInputSize(uint Index)
 {
 #if POST_PROCESS_MATERIAL
@@ -1168,7 +1146,7 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex, bool bFiltered)
 	else if (SceneTextureIndex == 20)	if (bFiltered) { return Texture2DSample(PostprocessInput6, BilinearTextureSampler0, UV);} else { return Texture2DSample(PostprocessInput6, PostprocessInput6Sampler, UV);} 
 #endif // POST_PROCESS_MATERIAL
 	else if (SceneTextureIndex == 21)	return 0; // material compiler will return an error
-	else if (SceneTextureIndex == 22)	return float4(GetShadingModelColor(ScreenSpaceData.GBuffer), 1);
+	else if (SceneTextureIndex == 22)	return float4(GetShadingModelColor(ScreenSpaceData.GBuffer.ShadingModelID), 1);
 	else if (SceneTextureIndex == 23)	return ScreenSpaceData.AmbientOcclusion;
 	else if (SceneTextureIndex == 24)	return ScreenSpaceData.GBuffer.CustomStencil;
 	else if (SceneTextureIndex == 25)	return float4(ScreenSpaceData.GBuffer.StoredBaseColor, 0);
@@ -1225,7 +1203,7 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex, bool bFiltered)
 		// PPI_DecalMask
 		case 21: return 0;  // material compiler will return an error
 		// PPI_ShadingModel
-		case 22: return float4(GetShadingModelColor(ScreenSpaceData.GBuffer), 1);
+		case 22: return float4(GetShadingModelColor(ScreenSpaceData.GBuffer.ShadingModelID), 1);
 		// PPI_AmbientOcclusion
 		case 23: return ScreenSpaceData.AmbientOcclusion;
 		// PPI_CustomStencil
@@ -1329,6 +1307,9 @@ half GetMaterialRoughnessRaw(FPixelMaterialInputs PixelMaterialInputs)
 
 half GetMaterialRoughness(FPixelMaterialInputs PixelMaterialInputs)
 {
+#if MATERIAL_FULLY_ROUGH
+	return 1;
+#endif
 #if (ES2_PROFILE || ES3_1_PROFILE)
 	// The smallest normalized value that can be represented in IEEE 754 (FP16) is 2^-14 = 6.1e-5.
 	// The code will make the following computation involving roughness: 1.0 / Roughness^4.

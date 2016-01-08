@@ -24,6 +24,8 @@ void FEditorViewportCommands::RegisterCommands()
 	UI_COMMAND( LightComplexityMode, "Light Complexity View Mode", "Renders the scene with light complexity visualization", EUserInterfaceActionType::RadioButton, FInputChord( EModifierKey::Alt, EKeys::Seven ) );
 	UI_COMMAND( ShaderComplexityMode, "Shader Complexity View Mode", "Renders the scene with shader complexity visualization", EUserInterfaceActionType::RadioButton, FInputChord( EModifierKey::Alt, EKeys::Eight ) );
 	UI_COMMAND( QuadComplexityMode, "Quad Complexity View Mode", "Renders the scene with quad complexity visualization", EUserInterfaceActionType::RadioButton, FInputChord() );
+	UI_COMMAND( WantedMipsAccuracyMode, "Wanted Mips Accuracy View Mode", "Visualize how accurate is the wanted mips computed by the texture streamer", EUserInterfaceActionType::RadioButton, FInputChord() );
+	UI_COMMAND( TexelFactorAccuracyMode, "Texel Factor Accuracy View Mode", "Visualize how accurate is the texel factor is computed on each mesh", EUserInterfaceActionType::RadioButton, FInputChord() );
 	UI_COMMAND( StationaryLightOverlapMode, "Stationary Light Overlap View Mode", "Visualizes overlap of stationary lights", EUserInterfaceActionType::RadioButton, FInputChord() );
 	UI_COMMAND( LightmapDensityMode, "Lightmap Density View Mode", "Renders the scene with lightmap density visualization", EUserInterfaceActionType::RadioButton, FInputChord( EModifierKey::Alt, EKeys::Zero ) );
 	UI_COMMAND( LODColorationMode, "LOD Coloration View Mode", "Renders the scene using LOD color visualization", EUserInterfaceActionType::RadioButton, FInputChord() );

@@ -493,42 +493,40 @@ void UStaticMeshComponent::OnUnregister()
 	Super::OnUnregister();
 }
 
-void UStaticMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
+bool UStaticMeshComponent::GetStreamingTextureFactors(float& OutWorldTexelFactor, float& OutWorldLightmapFactor) const
 {
-	if ( !bIgnoreInstanceForTextureStreaming && StaticMesh && StaticMesh->RenderData && StaticMesh->RenderData->LODResources.Num() > 0)
+	if (StaticMesh && StaticMesh && StaticMesh->RenderData && StaticMesh->RenderData->LODResources.Num() > 0)
 	{
 		const auto FeatureLevel = GetWorld() ? GetWorld()->FeatureLevel : GMaxRHIFeatureLevel;
 
 		bool bHasValidLightmapCoordinates = ((StaticMesh->LightMapCoordinateIndex >= 0)
 			&& ((uint32)StaticMesh->LightMapCoordinateIndex < StaticMesh->RenderData->LODResources[0].VertexBuffer.GetNumTexCoords()));
 
-		// We need to come up with a compensation factor for spline deformed meshes
-		float SplineDeformFactor = 1.f;
-		const USplineMeshComponent* SplineComp = Cast<const USplineMeshComponent>(this);
-		if (SplineComp)
-		{
-			// We do this by looking at the ratio between current bounds (including deformation) and undeformed (straight from staticmesh)
-			const float MinExtent = 1.0f;
-			FBoxSphereBounds UndeformedBounds = StaticMesh->GetBounds().TransformBy(ComponentToWorld);
-			if (UndeformedBounds.BoxExtent.X >= MinExtent)
-			{
-				SplineDeformFactor = FMath::Max(SplineDeformFactor, Bounds.BoxExtent.X / UndeformedBounds.BoxExtent.X);
-			}
-			if (UndeformedBounds.BoxExtent.Y >= MinExtent)
-			{
-				SplineDeformFactor = FMath::Max(SplineDeformFactor, Bounds.BoxExtent.Y / UndeformedBounds.BoxExtent.Y);
-			}
-			if (UndeformedBounds.BoxExtent.Z >= MinExtent)
-			{
-				SplineDeformFactor = FMath::Max(SplineDeformFactor, Bounds.BoxExtent.Z / UndeformedBounds.BoxExtent.Z);
-			}
-		}
-
-		const FSphere BoundingSphere	= Bounds.GetSphere();
 		const float LocalTexelFactor	= StaticMesh->GetStreamingTextureFactor(0) * FMath::Max(0.0f, StreamingDistanceMultiplier);
 		const float LocalLightmapFactor	= bHasValidLightmapCoordinates ? StaticMesh->GetStreamingTextureFactor(StaticMesh->LightMapCoordinateIndex) : 1.0f;
-		const float WorldTexelFactor	= SplineDeformFactor * LocalTexelFactor * ComponentToWorld.GetMaximumAxisScale();
-		const float WorldLightmapFactor	= SplineDeformFactor * LocalLightmapFactor * ComponentToWorld.GetMaximumAxisScale();
+
+		OutWorldTexelFactor	= LocalTexelFactor * ComponentToWorld.GetMaximumAxisScale();
+		OutWorldLightmapFactor	= LocalLightmapFactor * ComponentToWorld.GetMaximumAxisScale();
+
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+
+void UStaticMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
+{
+	float WorldTexelFactor = 1.f;
+	float WorldLightmapFactor = 1.f;
+
+	if ( !bIgnoreInstanceForTextureStreaming && GetStreamingTextureFactors(WorldTexelFactor, WorldLightmapFactor) )
+	{
+		const auto FeatureLevel = GetWorld() ? GetWorld()->FeatureLevel : GMaxRHIFeatureLevel;
+		bool bHasValidLightmapCoordinates = ((StaticMesh->LightMapCoordinateIndex >= 0)
+			&& ((uint32)StaticMesh->LightMapCoordinateIndex < StaticMesh->RenderData->LODResources[0].VertexBuffer.GetNumTexCoords()));
 
 		for (int32 LODIndex = 0; LODIndex < StaticMesh->RenderData->LODResources.Num(); ++LODIndex)
 		{
@@ -554,7 +552,7 @@ void UStaticMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimi
 				for(int32 TextureIndex = 0;TextureIndex < Textures.Num();TextureIndex++)
 				{
 					FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures) FStreamingTexturePrimitiveInfo;
-					StreamingTexture.Bounds = BoundingSphere;
+					StreamingTexture.Bounds = Bounds;
 					StreamingTexture.TexelFactor = WorldTexelFactor;
 					StreamingTexture.Texture = Textures[TextureIndex];
 				}
@@ -574,7 +572,7 @@ void UStaticMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimi
 						float LightmapFactorX		 = WorldLightmapFactor / Scale.X;
 						float LightmapFactorY		 = WorldLightmapFactor / Scale.Y;
 						FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures) FStreamingTexturePrimitiveInfo;
-						StreamingTexture.Bounds		 = BoundingSphere;
+						StreamingTexture.Bounds		 = Bounds;
 						StreamingTexture.TexelFactor = FMath::Max(LightmapFactorX, LightmapFactorY);
 						StreamingTexture.Texture	 = Lightmap->GetTexture(LightmapIndex);
 					}
@@ -590,7 +588,7 @@ void UStaticMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimi
 						float ShadowmapFactorX		 = WorldLightmapFactor / Scale.X;
 						float ShadowmapFactorY		 = WorldLightmapFactor / Scale.Y;
 						FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures) FStreamingTexturePrimitiveInfo;
-						StreamingTexture.Bounds		 = BoundingSphere;
+						StreamingTexture.Bounds		 = Bounds;
 						StreamingTexture.TexelFactor = FMath::Max(ShadowmapFactorX, ShadowmapFactorY);
 						StreamingTexture.Texture	 = Shadowmap->GetTexture();
 					}

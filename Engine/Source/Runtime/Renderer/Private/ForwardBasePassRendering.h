@@ -604,12 +604,12 @@ public:
 		EBlendMode InBlendMode,
 		ESceneRenderTargetsMode::Type InSceneTextureMode,
 		bool bInEnableSkyLight,
-		bool bOverrideWithShaderComplexity,
+		EDebugViewShaderMode InDebugViewShaderMode,
 		ERHIFeatureLevel::Type FeatureLevel,
 		bool bInEnableEditorPrimitiveDepthTest = false,
 		bool bInEnableReceiveDecalOutput = false
 		):
-		FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,bOverrideWithShaderComplexity),
+		FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,InDebugViewShaderMode),
 		LightMapPolicy(InLightMapPolicy),
 		BlendMode(InBlendMode),
 		SceneTextureMode(InSceneTextureMode),
@@ -650,21 +650,22 @@ public:
 		VertexShader->SetParameters(RHICmdList, MaterialRenderProxy, VertexFactory, *MaterialResource, *View, SceneTextureMode);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (bOverrideWithShaderComplexity)
+		if (GetDebugViewShaderMode() != DVSM_None)
 		{
-			if (BlendMode == BLEND_Opaque)
+			if (View->Family->EngineShowFlags.ShaderComplexity)
 			{
-				RHICmdList.SetBlendState( TStaticBlendStateWriteMask<CW_RGBA>::GetRHI());
-			}
-			else
-			{
-				// Add complexity to existing
-				RHICmdList.SetBlendState( TStaticBlendState<CW_RGBA,BO_Add,BF_One,BF_One,BO_Add,BF_Zero,BF_One>::GetRHI());
+				if (BlendMode == BLEND_Opaque)
+				{
+					RHICmdList.SetBlendState( TStaticBlendStateWriteMask<CW_RGBA>::GetRHI());
+				}
+				else
+				{
+					// Add complexity to existing
+					RHICmdList.SetBlendState( TStaticBlendState<CW_RGBA,BO_Add,BF_One,BF_One,BO_Add,BF_Zero,BF_One>::GetRHI());
+				}
 			}
 
-			const uint32 NumPixelShaderInstructions = PixelShader->GetNumInstructions();
-			const uint32 NumVertexShaderInstructions = VertexShader->GetNumInstructions();
-			FShaderComplexityAccumulatePS::SetParameters(View->ShaderMap,RHICmdList,NumVertexShaderInstructions,NumPixelShaderInstructions,GetQuadOverdrawMode(),View->GetFeatureLevel());
+			FDebugViewMode::GetPixelShader(View->ShaderMap, GetDebugViewShaderMode())->SetParameters(RHICmdList, VertexShader, PixelShader, *View);
 		}
 		else
 #endif
@@ -698,7 +699,7 @@ public:
 		}
 		
 		// Set the light-map policy.
-		LightMapPolicy.Set(RHICmdList, VertexShader,bOverrideWithShaderComplexity ? NULL : PixelShader,VertexShader,PixelShader,VertexFactory,MaterialRenderProxy,View);		
+		LightMapPolicy.Set(RHICmdList, VertexShader, GetDebugViewShaderMode() == DVSM_None ? PixelShader : nullptr, VertexShader, PixelShader, VertexFactory, MaterialRenderProxy, View);		
 	}
 
 	/** 
@@ -711,9 +712,9 @@ public:
 		FPixelShaderRHIParamRef PixelShaderRHIRef = PixelShader->GetPixelShader();
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (bOverrideWithShaderComplexity)
+		if (GetDebugViewShaderMode() != DVSM_None)
 		{
-			PixelShaderRHIRef = FShaderComplexityAccumulatePS::GetPixelShader(GetGlobalShaderMap(InFeatureLevel),GetQuadOverdrawMode())->GetPixelShader();
+			PixelShaderRHIRef = FDebugViewMode::GetPixelShader(GetGlobalShaderMap(InFeatureLevel), GetDebugViewShaderMode())->GetPixelShader();
 		}
 #endif
 
@@ -744,7 +745,7 @@ public:
 			View,
 			PrimitiveSceneProxy,
 			VertexShader,
-			bOverrideWithShaderComplexity ? NULL : PixelShader,
+			GetDebugViewShaderMode() == DVSM_None ? PixelShader : nullptr,
 			VertexShader,
 			PixelShader,
 			VertexFactory,
@@ -755,18 +756,16 @@ public:
 		VertexShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (bOverrideWithShaderComplexity)
+		if (GetDebugViewShaderMode() != DVSM_None)
 		{
 			// If we are in the translucent pass or rendering a masked material then override the blend mode, otherwise maintain opaque blending
-			if (BlendMode != BLEND_Opaque)
+			if (View.Family->EngineShowFlags.ShaderComplexity && BlendMode != BLEND_Opaque)
 			{
 				// Add complexity to existing, keep alpha
 				RHICmdList.SetBlendState(TStaticBlendState<CW_RGB,BO_Add,BF_One,BF_One>::GetRHI());
 			}
 
-			const uint32 NumPixelShaderInstructions = PixelShader->GetNumInstructions();
-			const uint32 NumVertexShaderInstructions = VertexShader->GetNumInstructions();
-			FShaderComplexityAccumulatePS::SetParameters(GetGlobalShaderMap(View.FeatureLevel),RHICmdList,NumVertexShaderInstructions,NumPixelShaderInstructions,GetQuadOverdrawMode(),View.GetFeatureLevel());
+			FDebugViewMode::GetPixelShader(GetGlobalShaderMap(View.FeatureLevel), GetDebugViewShaderMode())->SetParameters(RHICmdList, VertexShader, PixelShader, View);
 		}
 		else
 #endif

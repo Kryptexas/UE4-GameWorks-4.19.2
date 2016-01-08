@@ -2546,7 +2546,7 @@ void FEngineLoop::Tick()
 		{
 			GRHICommandList.LatchBypass();
 			GFrameNumberRenderThread++;
-			RHICmdList.PushEvent(*FString::Printf(TEXT("Frame%d"),GFrameNumberRenderThread));
+			RHICmdList.PushEvent(*FString::Printf(TEXT("Frame%d"),GFrameNumberRenderThread), FColor(0, 255, 0, 255));
 			RHICmdList.BeginFrame();
 		});
 

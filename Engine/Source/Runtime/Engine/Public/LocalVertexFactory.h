@@ -78,6 +78,8 @@ public:
 protected:
 	DataType Data;
 	int32 ColorStreamIndex;
+
+	const DataType& GetData() const { return Data; }
 };
 
 /**

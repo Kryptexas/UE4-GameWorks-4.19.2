@@ -1911,7 +1911,7 @@ UParticleSystem::UParticleSystem(const FObjectInitializer& ObjectInitializer)
 	MacroUVPosition = FVector(0.0f, 0.0f, 0.0f);
 
 	MacroUVRadius = 200.0f;
-	bAutoDeactivate = false;
+	bAutoDeactivate = true;
 	MinTimeBetweenTicks = 0;
 }
 
@@ -2304,8 +2304,21 @@ void UParticleSystem::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) c
 	}
 	OutTags.Add(FAssetRegistryTag("LODMethod", LODMethodString, FAssetRegistryTag::TT_Alphabetical));
 
+	OutTags.Add(FAssetRegistryTag("Looping", bAnyEmitterLoopsForever ? TEXT("True") : TEXT("False"), FAssetRegistryTag::TT_Alphabetical));
+	OutTags.Add(FAssetRegistryTag("Immortal", IsPotentiallyImmortal() ? TEXT("True") : TEXT("False"), FAssetRegistryTag::TT_Alphabetical));
+
+	Super::GetAssetRegistryTags(OutTags);
+}
+
+
+bool UParticleSystem::IsPotentiallyImmortal() const
+{
+	if (bAutoDeactivate)
+	{
+		return false;
+	}
+
 	// Run thru the emitters and see if any will loop forever
-	bool bEmitterIsDangerous = false;
 	for (int32 EmitterIndex = 0; EmitterIndex < Emitters.Num(); ++EmitterIndex)
 	{
 		if (const UParticleEmitter* Emitter = Emitters[EmitterIndex])
@@ -2320,22 +2333,18 @@ void UParticleSystem::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) c
 					UParticleModuleSpawn* SpawnModule = LODLevel->SpawnModule;
 					check(SpawnModule);
 
-					if (SpawnModule->GetMaximumSpawnRate() == 0 
+					if (SpawnModule->GetMaximumSpawnRate() == 0
 						&& RequiredModule->EmitterDuration == 0
-						&& RequiredModule->EmitterLoops == 0 
+						&& RequiredModule->EmitterLoops == 0
 						)
 					{
-						bEmitterIsDangerous = true;
+						return true;
 					}
 				}
 			}
 		}
 	}
-
-	OutTags.Add(FAssetRegistryTag("Looping", bAnyEmitterLoopsForever ? TEXT("True") : TEXT("False"), FAssetRegistryTag::TT_Alphabetical));
-	OutTags.Add(FAssetRegistryTag("Immortal", bEmitterIsDangerous ? TEXT("True") : TEXT("False"), FAssetRegistryTag::TT_Alphabetical));
-
-	Super::GetAssetRegistryTags(OutTags);
+	return false;
 }
 
 bool UParticleSystem::CanBeClusterRoot() const
@@ -2986,7 +2995,6 @@ UParticleSystemComponent::UParticleSystemComponent(const FObjectInitializer& Obj
 	bWantsOnUpdateTransform = false;
 
 	SavedAutoAttachRelativeScale3D = FVector(1.f, 1.f, 1.f);
-	bAllEmittersFinished = false;
 	TimeSinceLastTick = 0;
 }
 
@@ -4178,7 +4186,6 @@ void UParticleSystemComponent::ComputeTickComponent_Concurrent()
 	FScopeCycleCounterUObject AdditionalScope(AdditionalStatObject(), GET_STATID(STAT_ParticleComputeTickTime));
 	// Tick Subemitters.
 	int32 EmitterIndex;
-	bAllEmittersFinished = true;
 	for (EmitterIndex = 0; EmitterIndex < EmitterInstances.Num(); EmitterIndex++)
 	{
 		FParticleEmitterInstance* Instance = EmitterInstances[EmitterIndex];
@@ -4197,10 +4204,6 @@ void UParticleSystemComponent::ComputeTickComponent_Concurrent()
 			if (SpriteLODLevel && SpriteLODLevel->bEnabled)
 			{
 				Instance->Tick(DeltaTimeTick, bSuppressSpawning);
-				if (!Instance->bEmitterIsDone == true)
-				{
-					bAllEmittersFinished = false;
-				}
 
 				if (!Instance->Tick_MaterialOverrides())
 				{
@@ -4234,11 +4237,6 @@ void UParticleSystemComponent::FinalizeTickComponent()
 	AsyncWork = NULL; // this task is done
 	bNeedsFinalize = false;
 
-	// should this be moved later?
-	if (bAllEmittersFinished == true && Template->bAutoDeactivate==true)
-	{
-		this->DeactivateSystem();
-	}
 	if (FXConsoleVariables::bFreezeParticleSimulation == false)
 	{
 		int32 EmitterIndex;
@@ -5138,6 +5136,7 @@ bool UParticleSystemComponent::HasCompleted()
 {
 	ForceAsyncWorkCompletion(STALL);
 	bool bHasCompleted = true;
+	bool bCanBeDeactivated = true;
 
 	// If we're currently capturing or replaying captured frames, then we'll stay active for that
 	if( ReplayState != PRS_Disabled )
@@ -5208,6 +5207,12 @@ bool UParticleSystemComponent::HasCompleted()
 						bHasCompleted = false;
 					}
 				}
+
+				if (!Instance->bEmitterIsDone)
+				{
+					bCanBeDeactivated = false;
+				}
+
 			}
 			else
 			{
@@ -5216,8 +5221,17 @@ bool UParticleSystemComponent::HasCompleted()
 				{
 					bHasCompleted = false;
 				}
+				else if (!Instance->bEmitterIsDone)
+				{
+					bCanBeDeactivated = false;
+				}
 			}
 		}
+	}
+
+	if (bCanBeDeactivated && bAutoActivate)
+	{
+		DeactivateSystem();
 	}
 
 	if (bClearDynamicData)

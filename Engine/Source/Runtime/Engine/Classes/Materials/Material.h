@@ -78,6 +78,23 @@ enum EDecalBlendMode
 	DBM_MAX,
 };
 
+inline bool IsDBufferDecalBlendMode(EDecalBlendMode In)
+{
+	switch(In)
+	{
+		case DBM_DBuffer_ColorNormalRoughness:
+		case DBM_DBuffer_Color:
+		case DBM_DBuffer_ColorNormal:
+		case DBM_DBuffer_ColorRoughness:
+		case DBM_DBuffer_Normal:
+		case DBM_DBuffer_NormalRoughness:
+		case DBM_DBuffer_Roughness:
+			return true;
+	}
+
+	return false;
+}
+
 /** Defines the domain of a material. */
 UENUM()
 enum EMaterialDomain

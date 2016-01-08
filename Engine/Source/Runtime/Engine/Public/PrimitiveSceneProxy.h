@@ -516,6 +516,16 @@ public:
 	typedef TArray<class FLightCacheInterface*, TInlineAllocator<8> > FLCIArray;
 	ENGINE_API virtual void GetLCIs(FLCIArray& LCIs) {}
 
+	/**
+	 * Get the texture streaming texel factor for this primitive. Taken from ComputeStreamingTextureFactors
+	 */
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	float GetWorldTexelFactor() const { return WorldTexelFactor; }
+#else
+	FORCEINLINE float GetWorldTexelFactor() const { return 0; }
+#endif
+
+
 protected:
 
 	/** Allow subclasses to override the primitive name. Used primarily by BSP. */
@@ -711,6 +721,11 @@ protected:
 
 	/** Quality of interpolated indirect lighting for Movable components. */
 	EIndirectLightingCacheQuality IndirectLightingCacheQuality;
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	/** Texture streaming factor used for material textures */
+	float WorldTexelFactor;
+#endif
 
 private:
 	/** The primitive's local to world transform. */

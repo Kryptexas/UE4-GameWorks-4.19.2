@@ -40,10 +40,6 @@ float4x4 PreviousLocalToWorld;
 #define GPUSKIN_USE_EXTRA_INFLUENCES 0
 #endif
 
-#ifndef GPUSKIN_PASS_THROUGH
-#define GPUSKIN_PASS_THROUGH 0
-#endif
-
 #define FIXED_VERTEX_INDEX 0xFFFF
 
 float3 MeshOrigin;
@@ -175,13 +171,6 @@ Buffer<float4> BoneMatrices;
 // The previous bone matrix buffer stored as 4x3 (3 float4 behind each other), all chunks of a skeletal mesh in one, each skeletal mesh has it's own buffer
 Buffer<float4> PreviousBoneMatrices;
 
-
-	#if GPUSKIN_PASS_THROUGH
-uint GPUSkinCacheStreamFloatOffset;
-uint GPUSkinCacheStreamStride;
-Buffer<float> GPUSkinCacheStreamBuffer;
-	#endif
-
 #endif
 
 // Cache data to avoid multiple calculation 
@@ -198,10 +187,6 @@ struct FVertexFactoryIntermediates
 
 	// Vertex Color
 	float4 Color;
-
-#if GPUSKIN_PASS_THROUGH
-	uint VertexID;
-#endif
 
 #if GPUSKIN_APEX_CLOTH
 	// in world space (non translated)
@@ -454,15 +439,11 @@ float3x3 SkinTangents( FVertexFactoryInput Input, FVertexFactoryIntermediates In
 
 #endif // GPUSKIN_MORPH_BLEND
 
-#if GPUSKIN_PASS_THROUGH
-	TangentToLocal[0] = float3(Tangents[0]);
-	TangentToLocal[2] = float3(Tangents[1]);
-#else	
 	// Note the use of mul(Matrix,Vector), bone matrices are stored transposed
 	// for tighter packing.
 	TangentToLocal[0] = mul( Intermediates.BlendMatrix, float4(Tangents[0],0) );
 	TangentToLocal[2] = mul( Intermediates.BlendMatrix, float4(Tangents[1],0) );
-#endif	// GPUSKIN_PASS_THROUGH
+
 	// derive the new binormal by getting the cross product of the normal and tangent
 	// and flip vector based on sign of tangent basis determinant
 	TangentToLocal[1] = cross(TangentToLocal[2], TangentToLocal[0]) * TangentZ.w;
@@ -476,11 +457,7 @@ float3x3 SkinTangents( FVertexFactoryInput Input, FVertexFactoryIntermediates In
 
 FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput Input)
 {
-#if GPUSKIN_PASS_THROUGH
-	FVertexFactoryIntermediates Intermediates = (FVertexFactoryIntermediates)0;
-#else
 	FVertexFactoryIntermediates Intermediates;
-#endif
 	
 	Intermediates.UnpackedPosition = UnpackedPosition(Input);
 #if GPUSKIN_APEX_CLOTH
@@ -496,12 +473,8 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	
 #endif
 
-#if GPUSKIN_PASS_THROUGH
-	// Blend Matrix not used
-#else
 	// DQ Note: This does not work with Scale
 	Intermediates.BlendMatrix = CalcBoneMatrix( Input );
-#endif
 
 	// Fill TangentToLocal
 	Intermediates.TangentToLocal = SkinTangents(Input, Intermediates);
@@ -528,11 +501,7 @@ float4 CalcWorldPosition(FVertexFactoryInput Input, FVertexFactoryIntermediates 
 	else
 #endif
 	{
-#if GPUSKIN_PASS_THROUGH
-		return TransformLocalToTranslatedWorld(Intermediates.UnpackedPosition);
-#else
 		return TransformLocalToTranslatedWorld(SkinPosition(Input, Intermediates));
-#endif
 	}
 }
 
@@ -596,10 +565,6 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 // @return previous translated world position
 float4 VertexFactoryGetPreviousWorldPosition(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates)
 {
-#if GPUSKIN_PASS_THROUGH
-	//#todo-rco: Currently have no information to calculate it, so return current World Position
-	return TransformLocalToTranslatedWorld(Intermediates.UnpackedPosition);
-#else
 	float4 PrevSkinPosInWorld = mul(float4(SkinPreviousPosition(Input, Intermediates),1), PreviousLocalToWorld);
 #if GPUSKIN_APEX_CLOTH
 	if( IsSimulatedVertex(Input) )
@@ -611,8 +576,7 @@ float4 VertexFactoryGetPreviousWorldPosition(FVertexFactoryInput Input, FVertexF
 #endif // GPUSKIN_APEX_CLOTH
 
 	return PrevSkinPosInWorld;
-#endif
-	}
+}
 
 
 #if USING_TESSELLATION

@@ -4,8 +4,8 @@
 	GPUSkinPublicDefs.h: Public definitions for GPU skinning.
 =============================================================================*/
 
-#ifndef __GPUSKINPUBLICDEFS_H__
-#define __GPUSKINPUBLICDEFS_H__
+#pragma once
+
 
 /** Max number of bone influences that a single skinned vert can have. */
 #define MAX_TOTAL_INFLUENCES		8
@@ -36,5 +36,5 @@ namespace SkinningTools
 	}
 }
 
-
-#endif // __GPUSKINPUBLICDEFS_H__
+// Number of frames buffered
+#define GPUSKINCACHE_FRAMES 3

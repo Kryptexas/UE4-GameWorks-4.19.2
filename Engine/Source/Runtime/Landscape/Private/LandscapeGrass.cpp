@@ -212,7 +212,7 @@ public:
 		const FMaterial& InMaterialResource
 		)
 		:
-		FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, false, false)
+		FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource)
 	{
 		PixelShader = InMaterialResource.GetShader<FLandscapeGrassWeightPS>(InVertexFactory->GetType());
 		VertexShader = InMaterialResource.GetShader<FLandscapeGrassWeightVS>(VertexFactory->GetType());

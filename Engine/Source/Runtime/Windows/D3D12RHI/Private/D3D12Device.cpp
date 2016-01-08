@@ -468,9 +468,9 @@ void FD3D12DynamicRHI::Shutdown()
 	ZeroBufferSize = 0;
 }
 
-void FD3D12CommandContext::RHIPushEvent(const TCHAR* Name)
+void FD3D12CommandContext::RHIPushEvent(const TCHAR* Name, FColor Color)
 {
-    OwningRHI.PushGPUEvent(Name);
+    OwningRHI.PushGPUEvent(Name, Color);
 }
 
 void FD3D12CommandContext::RHIPopEvent()

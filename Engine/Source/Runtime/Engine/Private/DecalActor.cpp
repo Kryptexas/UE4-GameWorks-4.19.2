@@ -18,10 +18,11 @@ namespace DecalEditorConstants
 #endif
 
 ADecalActor::ADecalActor(const FObjectInitializer& ObjectInitializer)
-: Super(ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Decal = CreateDefaultSubobject<UDecalComponent>(TEXT("NewDecalComponent"));
 	Decal->RelativeRotation = FRotator(-90, 0, 0);
+	Decal->bDestroyOwnerAfterFade = true;
 
 	RootComponent = Decal;
 

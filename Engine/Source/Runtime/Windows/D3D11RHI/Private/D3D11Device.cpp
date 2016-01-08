@@ -226,9 +226,9 @@ void FD3D11DynamicRHI::Shutdown()
 	ZeroBufferSize = 0;
 }
 
-void FD3D11DynamicRHI::RHIPushEvent(const TCHAR* Name)
+void FD3D11DynamicRHI::RHIPushEvent(const TCHAR* Name, FColor Color)
 { 
-	GPUProfilingData.PushEvent(Name);
+	GPUProfilingData.PushEvent(Name, Color);
 }
 
 void FD3D11DynamicRHI::RHIPopEvent()

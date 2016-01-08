@@ -596,6 +596,18 @@ enum class ESimpleRenderTargetMode
 	// If you add an item here, make sure to add it to DecodeRenderTargetMode() as well!
 };
 
+/**
+ * Hint to the driver on how to load balance async compute work.  On some platforms this may be a priority, on others actually masking out parts of the GPU for types of work.
+ */
+enum class EAsyncComputeBudget
+{
+	ELeast_0,			//Least amount of GPU allocated to AsyncCompute that still gets 'some' done.
+	EGfxHeavy_1,		//Gfx gets most of the GPU.
+	EBalanced_2,		//Async compute and Gfx share GPU equally.
+	EComputeHeavy_3,	//Async compute can use most of the GPU
+	EAll_4,				//Async compute can use the entire GPU.
+};
+
 inline bool IsPCPlatform(const EShaderPlatform Platform)
 {
 	return Platform == SP_PCD3D_SM5 || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_ES2 || Platform == SP_PCD3D_ES3_1 || Platform ==  SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_PCES3_1 || Platform == SP_METAL_SM4 || Platform == SP_METAL_SM5;

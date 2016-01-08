@@ -72,11 +72,10 @@ public:
 		const FVertexFactory* InVertexFactory,
 		const FMaterialRenderProxy* InMaterialRenderProxy,
 		const FMaterial& InMaterialResource,
-		bool bInOverrideWithShaderComplexity = false,
+		EDebugViewShaderMode InDebugViewShaderMode = DVSM_None,
 		bool bInTwoSidedOverride = false,
 		bool bInDitheredLODTransitionOverride = false,
-		bool bInWireframeOverride = false,
-		EQuadOverdrawMode InQuadOverdrawMode = QOM_None
+		bool bInWireframeOverride = false
 		);
 
 	FMeshDrawingPolicy& operator = (const FMeshDrawingPolicy& Other)
@@ -89,8 +88,7 @@ public:
 		bIsWireframeMaterial = Other.bIsWireframeMaterial;
 		bNeedsBackfacePass = Other.bNeedsBackfacePass;
 		bUsePositionOnlyVS = Other.bUsePositionOnlyVS;
-		bOverrideWithShaderComplexity = Other.bOverrideWithShaderComplexity;
-		QuadOverdrawMode = Other.QuadOverdrawMode;
+		DebugViewShaderMode = Other.DebugViewShaderMode;
 		return *this; 
 	}
 
@@ -187,7 +185,12 @@ public:
 	const FVertexFactory* GetVertexFactory() const { return VertexFactory; }
 	const FMaterialRenderProxy* GetMaterialRenderProxy() const { return MaterialRenderProxy; }
 
-	FORCEINLINE EQuadOverdrawMode GetQuadOverdrawMode() const { return (EQuadOverdrawMode)QuadOverdrawMode; }
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	FORCEINLINE EDebugViewShaderMode GetDebugViewShaderMode() const { return (EDebugViewShaderMode)DebugViewShaderMode; }
+#else
+	FORCEINLINE EDebugViewShaderMode GetDebugViewShaderMode() const { return DVSM_None; }
+#endif
+
 protected:
 	const FVertexFactory* VertexFactory;
 	const FMaterialRenderProxy* MaterialRenderProxy;
@@ -197,8 +200,7 @@ protected:
 	uint32 bIsWireframeMaterial : 1;
 	uint32 bNeedsBackfacePass : 1;
 	uint32 bUsePositionOnlyVS : 1;
-	uint32 bOverrideWithShaderComplexity : 1;
-	uint32 QuadOverdrawMode : 3;
+	uint32 DebugViewShaderMode : 6; // EDebugViewShaderMode
 };
 
 

@@ -1,0 +1,40 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	WantedMipsAccuracyPixelShader.usf: Outputs the wanted mips.
+=============================================================================*/
+
+#include "Common.usf"
+
+#include "DebugViewModeCommon.usf"
+
+float4 StreamingAccuracyColors[5];
+float CPUWantedMips;
+
+// Needed because UAV accesses disable early depth test otherwises.
+EARLYDEPTHSTENCIL
+void Main(
+	in FDebugPSIn DebugInputs,
+	out float4 OutColor : SV_Target0
+	)
+{
+	float3 Result = float3(.1, .1, .1);
+
+	if (CPUWantedMips >= 0)
+	{
+		float2 CoordDDX = ddx(DebugInputs.TexCoords.xy);
+		float2 CoordDDY = ddy(DebugInputs.TexCoords.xy);
+
+		float TexelRatio = max(1 / length(CoordDDX), 1 / length(CoordDDY));
+
+		float GPUWantedMips = clamp(log2(TexelRatio), 0, MAX_MIPS);
+		// Range expected to go for 0 to 11 (1X1 to 2048X2048)
+
+		float Accuracy = clamp(CPUWantedMips - GPUWantedMips, -1.99, 1.99);
+		int ColorIndex = floor(Accuracy) + 2;
+
+		Result = lerp(StreamingAccuracyColors[ColorIndex].rgb, StreamingAccuracyColors[ColorIndex + 1].rgb, frac(Accuracy));
+	}
+
+	OutColor = RETURN_COLOR(float4(Result, .25f));
+}

@@ -609,8 +609,44 @@ int64 FStatsThreadState::GetLatestValidFrame() const
 	return Result;
 }
 
+static TAutoConsoleVariable<int32> CVarSpewStatsSpam(
+	TEXT("stats.SpewSpam"),
+	0,
+	TEXT("If set to 1, periodically prints a profile of messages coming into the stats system. Messages should be minimized to cut down on overhead.")
+	);
+
+
 void FStatsThreadState::ScanForAdvance(const FStatMessagesArray& Data)
 {
+	if (CVarSpewStatsSpam.GetValueOnAnyThread())
+	{
+		static const int32 FramesPerSpew = 300;
+		static TMap<FName, int32> Profile;
+		static uint64 LastFrame = GFrameCounter;
+		for (int32 Index = 0; Index < Data.Num(); Index++)
+		{
+			FStatMessage const& Item = Data[Index];
+			FName ItemName = Item.NameAndInfo.GetRawName();
+			Profile.FindOrAdd(ItemName)++;
+		}
+		if (GFrameCounter > LastFrame + FramesPerSpew)
+		{
+			LastFrame = GFrameCounter;
+			Profile.ValueSort(TGreater<int32>());
+			UE_LOG(LogStats, Log, TEXT("---- stats spam profile -------------"));
+			for (auto Pair : Profile)
+			{
+				float PerFrame = float(Pair.Value) / float(FramesPerSpew);
+
+				if (PerFrame < 50.0f)
+				{
+					break;
+				}
+				UE_LOG(LogStats, Log, TEXT("       %6.0f    %s"), PerFrame, *Pair.Key.ToString());
+			}
+			Profile.Reset();
+		}
+	}
 	for (int32 Index = 0; Index < Data.Num(); Index++)
 	{
 		FStatMessage const& Item = Data[Index];

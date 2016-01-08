@@ -290,9 +290,17 @@ public:
 	void BeginRenderingLightAttenuation(FRHICommandList& RHICmdList, bool bClearToWhite = false);
 	void FinishRenderingLightAttenuation(FRHICommandList& RHICmdList);
 
+	void GetSeparateTranslucencyDimensionsAndSamplecount(FIntPoint &OutScaledSize, uint32 &OutNumSamples, float &OutScale)
+	{
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.SeparateTranslucencyScreenPercentage"));
+		OutScale = FMath::Clamp(CVar->GetValueOnRenderThread() / 100.0f, 0.0f, 100.0f);
+		int32 ScaledX = GetBufferSizeXY().X * OutScale;
+		int32 ScaledY = GetBufferSizeXY().Y * OutScale;
+		OutScaledSize = FIntPoint(  FMath::Max(ScaledX, 1), FMath::Max(ScaledY, 1));
+		OutNumSamples = OutScale < 1.0f ? 4 : 1;
+	}
 
-
-	TRefCountPtr<IPooledRenderTarget>& GetSeparateTranslucency(FRHICommandList& RHICmdList, FIntPoint Size)
+	TRefCountPtr<IPooledRenderTarget>& GetSeparateTranslucency(FRHICommandList& RHICmdList, FIntPoint Size, uint32 NumSamples = 1)
 	{
 		if (!SeparateTranslucencyRT || SeparateTranslucencyRT->GetDesc().Extent != Size)
 		{
@@ -309,7 +317,7 @@ public:
 		return SeparateTranslucencyDepthRT != nullptr;
 	}
 
-	TRefCountPtr<IPooledRenderTarget>& GetSeparateTranslucencyDepth(FRHICommandList& RHICmdList, FIntPoint Size)
+	TRefCountPtr<IPooledRenderTarget>& GetSeparateTranslucencyDepth(FRHICommandList& RHICmdList, FIntPoint Size, uint32 NumSamples = 1)
 	{
 		if (!SeparateTranslucencyDepthRT || SeparateTranslucencyDepthRT->GetDesc().Extent != Size)
 		{

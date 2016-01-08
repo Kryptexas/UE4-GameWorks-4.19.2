@@ -805,7 +805,7 @@ public:
 	{ 
 		return 0; 
 	}
-	virtual void RHIPushEvent(const TCHAR* Name) final override
+	virtual void RHIPushEvent(const TCHAR* Name, FColor Color) final override
 	{
 	}
 	virtual void RHIPopEvent()

@@ -126,8 +126,7 @@ void FMaterialShader::SetParameters(
 	// Validate that the shader is being used for a material that matches the uniform expression set the shader was compiled for.
 	const FUniformExpressionSet& MaterialUniformExpressionSet = Material.GetRenderingThreadShaderMap()->GetUniformExpressionSet();
 
-	//#todo-rco: Enable always for now to get better logging on Test builds
-#if 1//NO_LOGGING == 0
+#if NO_LOGGING == 0
 	bool bUniformExpressionSetMismatch = !DebugUniformExpressionSet.Matches(MaterialUniformExpressionSet)
 		|| UniformExpressionCache->CachedUniformExpressionShaderMap != Material.GetRenderingThreadShaderMap();
 	if (!bUniformExpressionSetMismatch)

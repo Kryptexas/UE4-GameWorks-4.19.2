@@ -274,7 +274,7 @@ private:
 		TIndirectArray<FGPUBaseSkinVertexFactory> VertexFactories;
 
 		/** one passthrough vertex factory for each chunk */
-		TIndirectArray<FGPUBaseSkinVertexFactory> PassthroughVertexFactories;
+		TIndirectArray<FGPUSkinPassthroughVertexFactory> PassthroughVertexFactories;
 
 		/** Vertex factory defining both the base mesh as well as the morph delta vertex decals */
 		TIndirectArray<FGPUBaseSkinVertexFactory> MorphVertexFactories;

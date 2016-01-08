@@ -276,7 +276,7 @@ struct FOpenGLGPUProfiler : public FGPUProfiler
 
 	void Cleanup();
 
-	virtual void PushEvent(const TCHAR* Name) override;
+	virtual void PushEvent(const TCHAR* Name, FColor Color) override;
 	virtual void PopEvent() override;
 
 	void BeginFrame(class FOpenGLDynamicRHI* InRHI);
@@ -475,7 +475,7 @@ public:
 	virtual void RHIClear(bool bClearColor, const FLinearColor& Color, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect) final override;
 	virtual void RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect) final override;
 	virtual void RHIEnableDepthBoundsTest(bool bEnable, float MinDepth, float MaxDepth) final override;
-	virtual void RHIPushEvent(const TCHAR* Name) final override;
+	virtual void RHIPushEvent(const TCHAR* Name, FColor Color) final override;
 	virtual void RHIPopEvent() final override;
 	virtual void RHIBeginAsyncComputeJob_DrawThread(EAsyncComputePriority Priority) override;
 	virtual void RHIEndAsyncComputeJob_DrawThread(uint32 FenceIndex) override;

@@ -69,7 +69,15 @@ FText SEditorViewportViewMenu::GetViewMenuLabel() const
 				break;
 
 			case VMI_QuadComplexity:
-				Label = LOCTEXT("ViewMenuTitle_QuadComplexity", "Quad Complexity");
+				Label = LOCTEXT("ViewMenuTitle_QuadOverdraw", "Quad Overdraw");
+				break;
+
+			case VMI_WantedMipsAccuracy:
+				Label = LOCTEXT("ViewMenuTitle_WantedMipAccuracy", "Wanted Mips Accuracy");
+				break;
+
+			case VMI_TexelFactorAccuracy:
+				Label = LOCTEXT("ViewMenuTitle_TexelFactorAccuracy", "Texel Factor Accuracy");
 				break;
 
 			case VMI_StationaryLightOverlap:
@@ -122,6 +130,8 @@ const FSlateBrush* SEditorViewportViewMenu::GetViewMenuLabelIcon() const
 		static FName LightComplexityIcon("EditorViewport.LightComplexityMode");
 		static FName ShaderComplexityIcon("EditorViewport.ShaderComplexityMode");
 		static FName QuadComplexityIcon("EditorViewport.QuadComplexityMode");
+		static FName WantedMipsAccuracyIcon("EditorViewport.WantedMipsAccuracyMode");
+		static FName TexelFactorAccuracyIcon("EditorViewport.TexelFactorAccuracyMode");
 		static FName LightOverlapIcon("EditorViewport.StationaryLightOverlapMode");
 		static FName LightmapDensityIcon("EditorViewport.LightmapDensityMode");
 		static FName ReflectionModeIcon("EditorViewport.ReflectionOverrideMode");
@@ -166,6 +176,14 @@ const FSlateBrush* SEditorViewportViewMenu::GetViewMenuLabelIcon() const
 
 			case VMI_QuadComplexity:
 				Icon = QuadComplexityIcon;
+				break;
+
+			case VMI_WantedMipsAccuracy:
+				Icon = WantedMipsAccuracyIcon;
+				break;
+
+			case VMI_TexelFactorAccuracy:
+				Icon = TexelFactorAccuracyIcon;
 				break;
 
 			case VMI_StationaryLightOverlap:
@@ -222,14 +240,30 @@ TSharedRef<SWidget> SEditorViewportViewMenu::GenerateViewMenuContent() const
 				ViewMenuBuilder.AddMenuEntry( BaseViewportActions.WireframeMode, NAME_None, LOCTEXT("BrushWireframeViewModeDisplayName", "Wireframe") );
 				ViewMenuBuilder.AddMenuEntry( BaseViewportActions.DetailLightingMode, NAME_None, LOCTEXT("DetailLightingViewModeDisplayName", "Detail Lighting") );
 				ViewMenuBuilder.AddMenuEntry( BaseViewportActions.LightingOnlyMode, NAME_None, LOCTEXT("LightingOnlyViewModeDisplayName", "Lighting Only") );
-				ViewMenuBuilder.AddMenuEntry( BaseViewportActions.LightComplexityMode, NAME_None, LOCTEXT("LightComplexityViewModeDisplayName", "Light Complexity") );
-				ViewMenuBuilder.AddMenuEntry( BaseViewportActions.ShaderComplexityMode, NAME_None, LOCTEXT("ShaderComplexityViewModeDisplayName", "Shader Complexity") );
-				ViewMenuBuilder.AddMenuEntry( BaseViewportActions.QuadComplexityMode, NAME_None, LOCTEXT("QuadComplexityViewModeDisplayName", "Quad Complexity") );
-				ViewMenuBuilder.AddMenuEntry( BaseViewportActions.StationaryLightOverlapMode, NAME_None, LOCTEXT("StationaryLightOverlapViewModeDisplayName", "Stationary Light Overlap") );
-				ViewMenuBuilder.AddMenuEntry( BaseViewportActions.LightmapDensityMode, NAME_None, LOCTEXT("LightmapDensityViewModeDisplayName", "Lightmap Density") );
 				ViewMenuBuilder.AddMenuEntry( BaseViewportActions.ReflectionOverrideMode, NAME_None, LOCTEXT("ReflectionOverrideViewModeDisplayName", "Reflections") );
-				ViewMenuBuilder.AddMenuEntry( BaseViewportActions.LODColorationMode, NAME_None, LOCTEXT("LODColorationViewModeDisplayName", "LOD Coloration") );
 			}
+
+			// Optimization
+			{
+				struct Local
+				{
+					static void BuildOptimizationMenu( FMenuBuilder& Menu )
+					{
+						const FEditorViewportCommands& BaseViewportCommands = FEditorViewportCommands::Get();
+						Menu.AddMenuEntry( BaseViewportCommands.LightComplexityMode, NAME_None, LOCTEXT("LightComplexityViewModeDisplayName", "Light Complexity") );
+						Menu.AddMenuEntry( BaseViewportCommands.LightmapDensityMode, NAME_None, LOCTEXT("LightmapDensityViewModeDisplayName", "Lightmap Density") );
+						Menu.AddMenuEntry( BaseViewportCommands.StationaryLightOverlapMode, NAME_None, LOCTEXT("StationaryLightOverlapViewModeDisplayName", "Stationary Light Overlap") );
+						Menu.AddMenuEntry( BaseViewportCommands.ShaderComplexityMode, NAME_None, LOCTEXT("ShaderComplexityViewModeDisplayName", "Shader Complexity") );
+						Menu.AddMenuEntry( BaseViewportCommands.QuadComplexityMode, NAME_None, LOCTEXT("QuadComplexityViewModeDisplayName", "Quad Overdraw") );
+						Menu.AddMenuEntry( BaseViewportCommands.LODColorationMode, NAME_None, LOCTEXT("LODColorationViewModeDisplayName", "LOD Coloration") );
+						Menu.AddMenuEntry( BaseViewportCommands.WantedMipsAccuracyMode, NAME_None, LOCTEXT("WantedMipsAccuracyDisplayName", "Wanted Mips Accuracy") );
+						Menu.AddMenuEntry( BaseViewportCommands.TexelFactorAccuracyMode, NAME_None, LOCTEXT("TexelFactorAccuracyDisplayName", "Texel Factor Accuracy") );
+					}
+				};
+
+				ViewMenuBuilder.AddSubMenu( LOCTEXT("OptimizationSubMenu", "Optimizations"), LOCTEXT("Optimization_ToolTip", "Select optimization visualizer"), FNewMenuDelegate::CreateStatic( &Local::BuildOptimizationMenu ) );
+			}
+
 			ViewMenuBuilder.EndSection();
 		}
 

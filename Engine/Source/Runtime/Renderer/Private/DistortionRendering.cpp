@@ -328,7 +328,7 @@ public:
 		const FMaterialRenderProxy* InMaterialRenderProxy,
 		const FMaterial& MaterialResouce,
 		bool bInitializeOffsets,
-		bool bInOverrideWithShaderComplexity,
+		EDebugViewShaderMode InDebugViewShaderMode,
 		ERHIFeatureLevel::Type InFeatureLevel
 		);
 
@@ -400,10 +400,10 @@ TDistortionMeshDrawingPolicy<DistortMeshPolicy>::TDistortionMeshDrawingPolicy(
 	const FMaterialRenderProxy* InMaterialRenderProxy,
 	const FMaterial& InMaterialResource,
 	bool bInInitializeOffsets,
-	bool bInOverrideWithShaderComplexity,
+	EDebugViewShaderMode InDebugViewShaderMode,
 	ERHIFeatureLevel::Type InFeatureLevel
 	)
-:	FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,bInOverrideWithShaderComplexity)
+:	FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,InDebugViewShaderMode)
 ,	bInitializeOffsets(bInInitializeOffsets)
 {
 	HullShader = NULL;
@@ -475,7 +475,7 @@ void TDistortionMeshDrawingPolicy<DistortMeshPolicy>::SetSharedState(
 		DomainShader->SetParameters(RHICmdList, MaterialRenderProxy,*View);
 	}
 
-	if (bOverrideWithShaderComplexity)
+	if (GetDebugViewShaderMode() != DVSM_None)
 	{
 		check(!bInitializeOffsets);
 //later		TShaderMapRef<FShaderComplexityAccumulatePixelShader> ShaderComplexityPixelShader(GetGlobalShaderMap(View->ShaderMap));
@@ -502,7 +502,7 @@ FBoundShaderStateInput TDistortionMeshDrawingPolicy<DistortMeshPolicy>::GetBound
 {
 	FPixelShaderRHIParamRef PixelShaderRHIRef = NULL;
 
-	if (bOverrideWithShaderComplexity)
+	if (GetDebugViewShaderMode() != DVSM_None)
 	{
 		check(!bInitializeOffsets);
 //later		TShaderMapRef<FShaderComplexityAccumulatePixelShader> ShaderComplexityAccumulatePixelShader(GetGlobalShaderMap(InFeatureLevel));
@@ -562,7 +562,7 @@ void TDistortionMeshDrawingPolicy<DistortMeshPolicy>::SetMeshRenderState(
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	// Don't set pixel shader constants if we are overriding with the shader complexity pixel shader
-	if (!bOverrideWithShaderComplexity)
+	if (GetDebugViewShaderMode() == DVSM_None)
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	{
 		if (!bInitializeOffsets)
@@ -650,7 +650,7 @@ bool TDistortionMeshDrawingPolicyFactory<DistortMeshPolicy>::DrawDynamicMesh(
 			Mesh.MaterialRenderProxy,
 			*Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel),
 			bInitializeOffsets,
-			View.Family->EngineShowFlags.ShaderComplexity,
+			View.Family->GetDebugViewShaderMode(),
 			FeatureLevel
 			);
 		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
@@ -700,7 +700,7 @@ bool TDistortionMeshDrawingPolicyFactory<DistortMeshPolicy>::DrawStaticMesh(
 			StaticMesh.MaterialRenderProxy,
 			*StaticMesh.MaterialRenderProxy->GetMaterial(FeatureLevel),
 			bInitializeOffsets,
-			View->Family->EngineShowFlags.ShaderComplexity,
+			View->Family->GetDebugViewShaderMode(),
 			FeatureLevel
 			);
 		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View->GetFeatureLevel()));

@@ -172,7 +172,7 @@ public:
 				Parameters.BlendMode,
 				Parameters.TextureMode,
 				Parameters.ShadingModel != MSM_Unlit && Scene->ShouldRenderSkylight(),
-				false,
+				DVSM_None,
 				FeatureLevel,
 				Parameters.bEditorCompositeDepthTest,
 				IsMobileHDR() // bEnableReceiveDecalOutput
@@ -277,7 +277,7 @@ public:
 			Parameters.BlendMode,
 			Parameters.TextureMode,
 			Parameters.ShadingModel != MSM_Unlit && Scene && Scene->ShouldRenderSkylight(),
-			View.Family->EngineShowFlags.ShaderComplexity,
+			View.Family->GetDebugViewShaderMode(),
 			View.GetFeatureLevel(),
 			Parameters.bEditorCompositeDepthTest,
 			IsMobileHDR() // bEnableReceiveDecalOutput

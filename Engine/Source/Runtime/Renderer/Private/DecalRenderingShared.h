@@ -61,6 +61,6 @@ struct FDecalRendering
 	static ERenderTargetMode ComputeRenderTargetMode(EShaderPlatform Platfrom, EDecalBlendMode DecalBlendMode, bool bHasNormal);
 	static EDecalRenderStage ComputeRenderStage(EShaderPlatform Platfrom, EDecalBlendMode DecalBlendMode);
 	static uint32 ComputeRenderTargetCount(EShaderPlatform Platfrom, ERenderTargetMode RenderTargetMode);
-	static void SetShader(FRHICommandList& RHICmdList, const FViewInfo& View, bool bShaderComplexity, const FTransientDecalRenderData& DecalData, const FMatrix& FrustumComponentToClip);
+	static void SetShader(FRHICommandList& RHICmdList, const FViewInfo& View, const FTransientDecalRenderData& DecalData, const FMatrix& FrustumComponentToClip);
 	static void SetVertexShaderOnly(FRHICommandList& RHICmdList, const FViewInfo& View, const FMatrix& FrustumComponentToClip);
 };

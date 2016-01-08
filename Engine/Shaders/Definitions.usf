@@ -180,18 +180,6 @@
 #define ENABLE_RE_Z
 #endif
 
-#ifndef USE_CLEARCOAT
-#define USE_CLEARCOAT									0
-#endif
-
-#ifndef USE_CLOTH
-#define USE_CLOTH										0
-#endif
-
-#ifndef USE_EYE
-#define USE_EYE										0
-#endif
-
 #ifndef INSTANCED_STEREO
 #define INSTANCED_STEREO								0
 #endif	

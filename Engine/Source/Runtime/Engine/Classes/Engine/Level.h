@@ -19,7 +19,7 @@ struct ENGINE_API FStreamableTextureInstance
 	GENERATED_USTRUCT_BODY()
 
 	/** Bounding sphere/ box of object */
-	FSphere BoundingSphere;
+	FBoxSphereBounds  Bounds;
 
 	/** Min distance from view where this instance is usable */
 	float MinDistance;

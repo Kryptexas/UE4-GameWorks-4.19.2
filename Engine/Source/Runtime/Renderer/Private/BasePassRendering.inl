@@ -57,10 +57,9 @@ void TBasePassVertexShaderPolicyParamType<VertexParametersType>::SetInstancedEye
 template<typename PixelParametersType>
 void TBasePassPixelShaderPolicyParamType<PixelParametersType>::SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory, const FSceneView& View, const FPrimitiveSceneProxy* Proxy, const FMeshBatchElement& BatchElement, const FMeshDrawingRenderState& DrawRenderState, EBlendMode BlendMode)
 {
-	if (View.GetFeatureLevel() >= ERHIFeatureLevel::SM4
-		&& IsTranslucentBlendMode(BlendMode))
+	if (View.GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
-		TranslucentLightingParameters.SetMesh(RHICmdList, this, Proxy, View.GetFeatureLevel());
+		ReflectionParameters.SetMesh(RHICmdList, this, Proxy, View.GetFeatureLevel());
 	}
 
 	FMeshMaterialShader::SetMesh(RHICmdList, GetPixelShader(), VertexFactory, View, Proxy, BatchElement, DrawRenderState);

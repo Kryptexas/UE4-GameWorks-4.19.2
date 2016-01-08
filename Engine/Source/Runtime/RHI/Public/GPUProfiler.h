@@ -214,7 +214,7 @@ struct RHI_API FGPUProfiler
 		return new FGPUProfilerEventNode(InName, InParent);
 	}
 
-	virtual void PushEvent(const TCHAR* Name);
+	virtual void PushEvent(const TCHAR* Name, FColor Color);
 	virtual void PopEvent();
 
 	void BeginFrame();

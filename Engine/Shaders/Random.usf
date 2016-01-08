@@ -210,7 +210,7 @@ SamplerState PerlinNoiseGradientTextureSampler;
 Texture3D PerlinNoise3DTexture;
 SamplerState PerlinNoise3DTextureSampler;
 
-// filtered 2D noise, can be optimized
+// filtered 3D noise, can be optimized
 // @param v >0
 // @return random number in the range -1 .. 1
 float GradientNoise3D_TEX(float3 fv)

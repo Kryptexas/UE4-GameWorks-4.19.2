@@ -46,7 +46,7 @@ SamplerState	PrevSceneColorSampler;
 
 #define EDITOR_ALPHA2COVERAGE (USE_EDITOR_COMPOSITING && FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && !COMPILER_GLSL)
 
-#if TRANSLUCENCY_LIGHTING_SURFACE || TRANSLUCENCY_LIGHTING_SURFACE_PERPIXEL
+#if TRANSLUCENCY_LIGHTING_SURFACE || TRANSLUCENCY_LIGHTING_SURFACE_PERPIXEL || MATERIAL_SHADINGMODEL_CLEAR_COAT
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 	/** Prenormalized capture of the scene that's closest to the object being rendered, used for reflection environment on translucency. */
@@ -727,11 +727,6 @@ void Main(
 	}
 #endif
 
-#if MATERIAL_FULLY_ROUGH
-	Roughness = 1;
-#endif
-
-
 #if USE_DBUFFER && MATERIALDECALRESPONSEMASK && !(MATERIALBLENDING_TRANSLUCENT || MATERIALBLENDING_ADDITIVE || MATERIALBLENDING_MODULATE)
 	// apply decals from the DBuffer
 	BRANCH if(Primitive.DecalReceiverMask > 0)
@@ -762,6 +757,101 @@ void Main(
 	}
 #endif
 
+	half Opacity = GetMaterialOpacity(PixelMaterialInputs);
+
+	FGBufferData GBuffer = (FGBufferData)0;
+
+	GBuffer.WorldNormal = MaterialParameters.WorldNormal;
+	GBuffer.BaseColor = BaseColor;
+	GBuffer.Metallic = Metallic;
+	GBuffer.Specular = Specular;
+	GBuffer.Roughness = Roughness;
+	GBuffer.GBufferAO = MaterialAO;
+	GBuffer.PerObjectGBufferData = Primitive.PerObjectGBufferData;
+
+	#if MATERIAL_SHADINGMODEL_UNLIT
+		GBuffer.ShadingModelID = SHADINGMODELID_UNLIT;
+	#elif MATERIAL_SHADINGMODEL_DEFAULT_LIT
+		GBuffer.ShadingModelID = SHADINGMODELID_DEFAULT_LIT;
+	#elif MATERIAL_SHADINGMODEL_SUBSURFACE
+		GBuffer.ShadingModelID = SHADINGMODELID_SUBSURFACE;
+		GBuffer.CustomData.rgb = EncodeSubsurfaceColor(SubsurfaceColor);
+		GBuffer.CustomData.a = Opacity;
+	#elif MATERIAL_SHADINGMODEL_PREINTEGRATED_SKIN
+		GBuffer.ShadingModelID = SHADINGMODELID_PREINTEGRATED_SKIN;
+		GBuffer.CustomData.rgb = EncodeSubsurfaceColor(SubsurfaceColor);
+		GBuffer.CustomData.a = Opacity;
+	#elif MATERIAL_SHADINGMODEL_SUBSURFACE_PROFILE
+		GBuffer.ShadingModelID = SHADINGMODELID_SUBSURFACE_PROFILE;
+		GBuffer.CustomData.rgb = EncodeSubsurfaceProfile(SubsurfaceProfile);
+		GBuffer.CustomData.a = Opacity;
+	#elif MATERIAL_SHADINGMODEL_CLEAR_COAT
+	{
+		GBuffer.ShadingModelID = SHADINGMODELID_CLEAR_COAT;
+
+		float ClearCoat				= saturate( GetMaterialCustomData0(MaterialParameters) );
+		float ClearCoatRoughness	= saturate( GetMaterialCustomData1(MaterialParameters) );
+		float MetalSpec = 0.9;
+
+		float NoV = saturate( dot( MaterialParameters.WorldNormal, MaterialParameters.CameraVector ) );
+
+		// Approximation of refraction's effect on EnvBRDF
+		float RefractionScale = ( (NoV * 0.5 + 0.5) * NoV - 1 ) * saturate( 1.25 - 1.25 * Roughness ) + 1;
+
+		// Approximation of absorption integral, tuned for Roughness=0.4
+		float3 AbsorptionColor = BaseColor * (1 / MetalSpec);
+		float3 Absorption = AbsorptionColor * ( (NoV - 1) * 0.85 * ( 1 - lerp( AbsorptionColor, Square(AbsorptionColor), -0.78 ) ) + 1 );
+
+		GBuffer.BaseColor = lerp( BaseColor, lerp( BaseColor, MetalSpec * Absorption, Metallic ) * RefractionScale, ClearCoat );
+		GBuffer.Specular *= lerp( 1, RefractionScale, ClearCoat );
+
+		GBuffer.CustomData.x = ClearCoat;
+		GBuffer.CustomData.y = ClearCoatRoughness;
+	}
+	#elif MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE
+		GBuffer.ShadingModelID = SHADINGMODELID_TWOSIDED_FOLIAGE;
+		GBuffer.CustomData.rgb = EncodeSubsurfaceColor(SubsurfaceColor);
+		GBuffer.CustomData.a = Opacity;
+	#elif MATERIAL_SHADINGMODEL_HAIR
+		GBuffer.ShadingModelID = SHADINGMODELID_HAIR;
+		GBuffer.CustomData.xy = UnitVectorToOctahedron( MaterialParameters.WorldNormal ) * 0.5 + 0.5;
+		GBuffer.CustomData.z = saturate( GetMaterialCustomData0(MaterialParameters) );	// Backlit
+	#elif MATERIAL_SHADINGMODEL_CLOTH
+		GBuffer.ShadingModelID = SHADINGMODELID_CLOTH;
+		GBuffer.CustomData.rgb = SubsurfaceColor;
+		GBuffer.CustomData.a = saturate( GetMaterialCustomData0(MaterialParameters) );	// Cloth
+	#elif MATERIAL_SHADINGMODEL_EYE
+		GBuffer.ShadingModelID = SHADINGMODELID_EYE;
+		#if NUM_MATERIAL_OUTPUTS_GETTANGENTOUTPUT > 0
+			float3 Tangent = GetTangentOutput0(MaterialParameters);
+			GBuffer.CustomData.xy = UnitVectorToOctahedron( normalize(Tangent) ) * 0.5 + 0.5;
+		#endif
+		GBuffer.CustomData.z = saturate( GetMaterialCustomData0(MaterialParameters) );	// Iris Mask
+		GBuffer.CustomData.w = saturate( GetMaterialCustomData1(MaterialParameters) );	// Iris Distance
+	#else
+		// missing shading model, compiler should report ShadingModelID is not set
+	#endif
+
+	#if USES_GBUFFER
+		GBuffer.SelectiveOutputMask = GetSelectiveOutputMask();
+
+		#if WRITES_VELOCITY_TO_GBUFFER
+			{
+				// 2d velocity, includes camera an object motion
+			#if WRITES_VELOCITY_TO_GBUFFER_USE_POS_INTERPOLATOR
+				float2 Velocity = Calculate2DVelocity(BasePassInterpolants.VelocityScreenPosition, BasePassInterpolants.VelocityPrevScreenPosition);
+			#else
+				float2 Velocity = Calculate2DVelocity(MaterialParameters.ScreenPosition, BasePassInterpolants.VelocityPrevScreenPosition);
+			#endif
+
+				// Make sure not to touch 0,0 which is clear color
+				GBuffer.Velocity = float4(EncodeVelocityToTexture(Velocity), 0, 0) * BasePassInterpolants.VelocityPrevScreenPosition.z;
+			}
+		#else
+			GBuffer.Velocity = 0;
+		#endif
+	#endif
+
 
 	half3 Color = 0;
 	float IndirectIrradiance = 0;
@@ -778,21 +868,13 @@ void Main(
 		#endif
 
 		#if MATERIAL_SHADINGMODEL_HAIR
-			{
-				// TODO rearrange so that this doesn't need to be built twice
-				FGBufferData GBuffer = (FGBufferData)0;
-				GBuffer.WorldNormal = MaterialParameters.WorldNormal;
-				GBuffer.BaseColor = BaseColor;
-				GBuffer.Metallic = Metallic;
-				GBuffer.Specular = Specular;
-				GBuffer.Roughness = Roughness;
-				
-				float3 N = MaterialParameters.WorldNormal;
-				float3 V = MaterialParameters.CameraVector;
-				float3 L = normalize( V - N * dot(V,N) );
-				DiffuseDir = L;
-				EffectiveDiffuseColor = PI * HairShading( GBuffer, L, V, N, 1, 0, 0.2, uint2(0,0) );
-			}
+		{
+			float3 N = MaterialParameters.WorldNormal;
+			float3 V = MaterialParameters.CameraVector;
+			float3 L = normalize( V - N * dot(V,N) );
+			DiffuseDir = L;
+			EffectiveDiffuseColor = PI * HairShading( GBuffer, L, V, N, 1, 0, 0.2, uint2(0,0) );
+		}
 		#endif
 			
 		float3 DiffuseIndirectLighting;
@@ -800,6 +882,31 @@ void Main(
 		GetPrecomputedIndirectLightingAndSkyLight(MaterialParameters, Interpolants, BasePassInterpolants, DiffuseDir, DiffuseIndirectLighting, SubsurfaceIndirectLighting, IndirectIrradiance);
 		
 		Color += (DiffuseIndirectLighting * EffectiveDiffuseColor + SubsurfaceIndirectLighting * SubsurfaceColor) * MaterialAO;
+
+		#if MATERIAL_SHADINGMODEL_CLEAR_COAT
+		{
+			const float ClearCoat			= GBuffer.CustomData.x;
+			const float ClearCoatRoughness	= GBuffer.CustomData.y;
+
+			// TODO EnvBRDF should have a mask param
+			//float2 AB = PreIntegratedGF.SampleLevel( PreIntegratedGFSampler, float2( NoV, GBuffer.Roughness ), 0 ).rg;
+			//Color.rgb *= GBuffer.SpecularColor * AB.x + AB.y * saturate( 50 * GBuffer.SpecularColor.g ) * (1 - ClearCoat);
+
+			float3 N = MaterialParameters.WorldNormal;
+			float3 V = MaterialParameters.CameraVector;
+			float NoV = saturate( dot( N, V ) );
+
+			// F_Schlick
+			float F0 = 0.04;
+			float Fc = Pow5( 1 - NoV );
+			float F = Fc + (1 - Fc) * F0;
+			F *= ClearCoat;
+			
+			float LayerAttenuation = (1 - F);
+
+			Color += LayerAttenuation * GetImageBasedReflectionLighting(MaterialParameters, GBuffer.Roughness, SpecularColor, IndirectIrradiance);
+		}
+		#endif
 
 		#if SIMPLE_DYNAMIC_LIGHTING
 			// always unshadowed so BiasedNDotL is not needed
@@ -814,8 +921,6 @@ void Main(
 				);
 		#endif
 	#endif
-
-	half Opacity = GetMaterialOpacity(PixelMaterialInputs);
 
 	#if NEEDS_BASEPASS_FOGGING
 		float4 VertexFog = BasePassInterpolants.VertexFog;
@@ -873,100 +978,11 @@ void Main(
 		}
 	#endif
 
-	float4 PrecomputedShadowFactors = GetPrecomputedShadowMasks(Interpolants);
-
 	#if USES_GBUFFER
-
-		FGBufferData GBuffer = (FGBufferData)0;
-
-		GBuffer.WorldNormal = MaterialParameters.WorldNormal;
-		GBuffer.BaseColor = BaseColor;
-		GBuffer.Metallic = Metallic;
-		GBuffer.Specular = Specular;
-		GBuffer.Roughness = Roughness;
+		float4 PrecomputedShadowFactors = GetPrecomputedShadowMasks(Interpolants);
+		
 		GBuffer.IndirectIrradiance = IndirectIrradiance;
 		GBuffer.PrecomputedShadowFactors = PrecomputedShadowFactors;
-		GBuffer.GBufferAO = MaterialAO;
-		GBuffer.PerObjectGBufferData = Primitive.PerObjectGBufferData;
-
-		#if MATERIAL_SHADINGMODEL_UNLIT
-			GBuffer.ShadingModelID = SHADINGMODELID_UNLIT;
-		#elif MATERIAL_SHADINGMODEL_DEFAULT_LIT
-			GBuffer.ShadingModelID = SHADINGMODELID_DEFAULT_LIT;
-		#elif MATERIAL_SHADINGMODEL_SUBSURFACE
-			GBuffer.ShadingModelID = SHADINGMODELID_SUBSURFACE;
-			GBuffer.CustomData.rgb = EncodeSubsurfaceColor(SubsurfaceColor);
-			GBuffer.CustomData.a = Opacity;
-		#elif MATERIAL_SHADINGMODEL_PREINTEGRATED_SKIN
-			GBuffer.ShadingModelID = SHADINGMODELID_PREINTEGRATED_SKIN;
-			GBuffer.CustomData.rgb = EncodeSubsurfaceColor(SubsurfaceColor);
-			GBuffer.CustomData.a = Opacity;
-		#elif MATERIAL_SHADINGMODEL_SUBSURFACE_PROFILE
-			GBuffer.ShadingModelID = SHADINGMODELID_SUBSURFACE_PROFILE;
-			GBuffer.CustomData.rgb = EncodeSubsurfaceProfile(SubsurfaceProfile);
-			GBuffer.CustomData.a = Opacity;
-		#elif MATERIAL_SHADINGMODEL_CLEAR_COAT
-			GBuffer.ShadingModelID = SHADINGMODELID_CLEAR_COAT;
-
-			float ClearCoat				= saturate( GetMaterialCustomData0(MaterialParameters) );
-			float ClearCoatRoughness	= saturate( GetMaterialCustomData1(MaterialParameters) );
-			float MetalSpec = 0.9;
-
-			float NoV = saturate( dot( MaterialParameters.WorldNormal, MaterialParameters.CameraVector ) );
-
-			// Approximation of refraction's effect on EnvBRDF
-			float RefractionScale = ( (NoV * 0.5 + 0.5) * NoV - 1 ) * saturate( 1.25 - 1.25 * Roughness ) + 1;
-
-			// Approximation of absorption integral, tuned for Roughness=0.4
-			float3 AbsorptionColor = BaseColor * (1 / MetalSpec);
-			float3 Absorption = AbsorptionColor * ( (NoV - 1) * 0.85 * ( 1 - lerp( AbsorptionColor, Square(AbsorptionColor), -0.78 ) ) + 1 );
-
-			GBuffer.BaseColor = lerp( BaseColor, lerp( BaseColor, MetalSpec * Absorption, Metallic ) * RefractionScale, ClearCoat );
-			GBuffer.Specular *= lerp( 1, RefractionScale, ClearCoat );
-
-			GBuffer.CustomData.x = ClearCoat;
-			GBuffer.CustomData.y = ClearCoatRoughness;
-		#elif MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE
-			GBuffer.ShadingModelID = SHADINGMODELID_TWOSIDED_FOLIAGE;
-			GBuffer.CustomData.rgb = EncodeSubsurfaceColor(SubsurfaceColor);
-			GBuffer.CustomData.a = Opacity;
-		#elif MATERIAL_SHADINGMODEL_HAIR
-			GBuffer.ShadingModelID = SHADINGMODELID_HAIR;
-			GBuffer.CustomData.xy = UnitVectorToOctahedron( MaterialParameters.WorldNormal ) * 0.5 + 0.5;
-			GBuffer.CustomData.z = saturate( GetMaterialCustomData0(MaterialParameters) );	// Backlit
-		#elif MATERIAL_SHADINGMODEL_CLOTH
-			GBuffer.ShadingModelID = SHADINGMODELID_CLOTH;
-			GBuffer.CustomData.rgb = SubsurfaceColor;
-			GBuffer.CustomData.a = saturate( GetMaterialCustomData0(MaterialParameters) );	// Cloth
-		#elif MATERIAL_SHADINGMODEL_EYE
-			GBuffer.ShadingModelID = SHADINGMODELID_EYE;
-			#if NUM_MATERIAL_OUTPUTS_GETTANGENTOUTPUT > 0
-				float3 Tangent = GetTangentOutput0(MaterialParameters);
-				GBuffer.CustomData.xy = UnitVectorToOctahedron( normalize(Tangent) ) * 0.5 + 0.5;
-			#endif
-			GBuffer.CustomData.z = saturate( GetMaterialCustomData0(MaterialParameters) );	// Iris Mask
-			GBuffer.CustomData.w = saturate( GetMaterialCustomData1(MaterialParameters) );	// Iris Distance
-		#else
-			// missing shading model, compiler should report ShadingModelID is not set
-		#endif
-
-		GBuffer.SelectiveOutputMask = GetSelectiveOutputMask();
-
-	#if WRITES_VELOCITY_TO_GBUFFER
-		{
-			// 2d velocity, includes camera an object motion
-		#if WRITES_VELOCITY_TO_GBUFFER_USE_POS_INTERPOLATOR
-			float2 Velocity = Calculate2DVelocity(BasePassInterpolants.VelocityScreenPosition, BasePassInterpolants.VelocityPrevScreenPosition);
-		#else
-			float2 Velocity = Calculate2DVelocity(MaterialParameters.ScreenPosition, BasePassInterpolants.VelocityPrevScreenPosition);
-		#endif
-
-			// Make sure not to touch 0,0 which is clear color
-			GBuffer.Velocity = float4(EncodeVelocityToTexture(Velocity), 0, 0) * BasePassInterpolants.VelocityPrevScreenPosition.z;
-		}
-	#else
-		GBuffer.Velocity = 0;
-	#endif
 
 		// -0.5 .. 0.5, could be optimzed as lower quality noise would be sufficient
 		float QuantizationBias = PseudoRandom( MaterialParameters.SvPosition.xy ) - 0.5f;

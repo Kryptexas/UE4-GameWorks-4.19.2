@@ -150,6 +150,18 @@ static TAutoConsoleVariable<int32> CVarStreamingPoolSize(
 	TEXT("-1: Default texture pool size, otherwise the size in MB"),
 	ECVF_Scalability);
 
+static TAutoConsoleVariable<int32> CVarStreamingShowWantedMips(
+	TEXT("r.Streaming.ShowWantedMips"),
+	0,
+	TEXT("If non-zero, will limit resolution to wanted mip."),
+	ECVF_Cheat);
+
+static TAutoConsoleVariable<int32> CVarStreamingUseAABB(
+	TEXT("r.Streaming.UseAABB"),
+	0,
+	TEXT("If non-zero, will use AABB to compute distance."),
+	ECVF_Default);
+
 /** Streaming priority: Linear distance factor from 0 to MAX_STREAMINGDISTANCE. */
 #define MAX_STREAMINGDISTANCE	10000.0f
 #define MAX_MIPDELTA			5.0f
@@ -2566,10 +2578,13 @@ void FStreamingManagerTexture::UpdateThreadData()
 					}
 					const FStreamableTextureInstance& Instance = TextureInstances[ InstanceIndex ];
 					FStreamableTextureInstance4& Instance4 = TextureInstances4[ InstanceIndex/4 ];
-					Instance4.BoundingSphereX[ InstanceIndex & 3 ] = Instance.BoundingSphere.Center.X;
-					Instance4.BoundingSphereY[ InstanceIndex & 3 ] = Instance.BoundingSphere.Center.Y;
-					Instance4.BoundingSphereZ[ InstanceIndex & 3 ] = Instance.BoundingSphere.Center.Z;
-					Instance4.BoundingSphereRadius[ InstanceIndex & 3 ] = Instance.BoundingSphere.W;
+					Instance4.BoundsOriginX[ InstanceIndex & 3 ] = Instance.Bounds.Origin.X;
+					Instance4.BoundsOriginY[ InstanceIndex & 3 ] = Instance.Bounds.Origin.Y;
+					Instance4.BoundsOriginZ[ InstanceIndex & 3 ] = Instance.Bounds.Origin.Z;
+					Instance4.BoxExtentSizeX[ InstanceIndex & 3 ] = Instance.Bounds.BoxExtent.X;
+					Instance4.BoxExtentSizeY[ InstanceIndex & 3 ] = Instance.Bounds.BoxExtent.Y;
+					Instance4.BoxExtentSizeZ[ InstanceIndex & 3 ] = Instance.Bounds.BoxExtent.Z;
+					Instance4.BoundingSphereRadius[ InstanceIndex & 3 ] = Instance.Bounds.SphereRadius;
 					Instance4.MinDistanceSq[ InstanceIndex & 3 ] = FMath::Square(FMath::Max(0.f, Instance.MinDistance - RangePrefetchDistance));
 					Instance4.MaxDistanceSq[ InstanceIndex & 3 ] = Instance.MaxDistance == MAX_FLT ? MAX_FLT : FMath::Square(Instance.MaxDistance + RangePrefetchDistance);
 					Instance4.TexelFactor[ InstanceIndex & 3 ] = Instance.TexelFactor;
@@ -2676,7 +2691,7 @@ bool FStreamingManagerTexture::AddDynamicPrimitive( const UPrimitiveComponent* P
 		{
 			FStreamingTexturePrimitiveInfo& Info = TextureInstanceInfos[InstanceIndex];
 			UTexture2D* Texture2D = Cast<UTexture2D>(Info.Texture);
-			if ( Texture2D && IsManagedStreamingTexture(Texture2D) && Info.TexelFactor > 0.0f && Info.Bounds.W > 0.0f && ensure(FMath::IsFinite(Info.TexelFactor)) )
+			if ( Texture2D && IsManagedStreamingTexture(Texture2D) && Info.TexelFactor > 0.0f && Info.Bounds.SphereRadius > 0.0f && ensure(FMath::IsFinite(Info.TexelFactor)) )
 			{
 				// Create instance array on first use
 				if ( TextureInstances == NULL )
@@ -2691,7 +2706,7 @@ bool FStreamingManagerTexture::AddDynamicPrimitive( const UPrimitiveComponent* P
 					const FSpawnedTextureInstance& ExistingInstance = (*TextureInstances)[ExistingTextureIndex];
 					if ( ExistingInstance.Texture2D == Texture2D &&
 						 FMath::IsNearlyEqual(ExistingInstance.TexelFactor, Info.TexelFactor) && 
-						 FMath::IsNearlyEqual(ExistingInstance.InvOriginalRadius, 1.0f/Info.Bounds.W) )
+						 FMath::IsNearlyEqual(ExistingInstance.InvOriginalRadius, 1.0f/Info.Bounds.SphereRadius) )
 					{
 						bExistedAlready = true;
 						break;
@@ -2699,7 +2714,7 @@ bool FStreamingManagerTexture::AddDynamicPrimitive( const UPrimitiveComponent* P
 				}
 				if ( !bExistedAlready )
 				{
-					FSpawnedTextureInstance* TextureInstance = new (*TextureInstances) FSpawnedTextureInstance(Texture2D, Info.TexelFactor, Info.Bounds.W);
+					FSpawnedTextureInstance* TextureInstance = new (*TextureInstances) FSpawnedTextureInstance(Texture2D, Info.TexelFactor, Info.Bounds.SphereRadius);
 				}
 			}
 		}
@@ -3438,7 +3453,7 @@ void FStreamingManagerTexture::StreamTextures( bool bProcessEverything )
 				}
 
 				// Would we like to stream in this texture?
-				if ( HighPrioTexture.bInFlight == false && HighPrioTexture.WantedMips > HighPrioTexture.ResidentMips )
+				if ( HighPrioTexture.bInFlight == false && (HighPrioTexture.WantedMips > HighPrioTexture.ResidentMips || (HighPrioTexture.WantedMips < HighPrioTexture.ResidentMips && CVarStreamingShowWantedMips.GetValueOnGameThread()) ) )
 				{
 					//@TODO: TempSize=0 when using in-place reallocation, but we're conservative here.
 					int64 TempSize = HighPrioTexture.GetSize( HighPrioTexture.ResidentMips );
@@ -4578,9 +4593,9 @@ bool FStreamingManagerTexture::HandleDebugTrackedTexturesCommand( const TCHAR* C
 									{
 										Ar.Logf(
 											TEXT("    Instance: %f,%f,%f Radius: %f Range: [%f, %f] TexelFactor: %f"),
-											TextureInstance.BoundingSphereX[i],
-											TextureInstance.BoundingSphereY[i],
-											TextureInstance.BoundingSphereZ[i],
+											TextureInstance.BoundsOriginX[i],
+											TextureInstance.BoundsOriginY[i],
+											TextureInstance.BoundsOriginZ[i],
 											TextureInstance.BoundingSphereRadius[i],
 											FMath::Sqrt(TextureInstance.MinDistanceSq[i]),
 											SqrtKeepMax(TextureInstance.MaxDistanceSq[i]),
@@ -5093,9 +5108,9 @@ void FStreamingManagerTexture::InvestigateTexture( const FString& InInvestigateT
 					for ( int32 InstanceIndex=0; InstanceIndex < TextureInstances->Num(); ++InstanceIndex )
 					{
 						const FStreamableTextureInstance4& Instance = (*TextureInstances)[InstanceIndex];
-						const FVector4& CenterX = Instance.BoundingSphereX;
-						const FVector4& CenterY = Instance.BoundingSphereY;
-						const FVector4& CenterZ = Instance.BoundingSphereZ;
+						const FVector4& CenterX = Instance.BoundsOriginX;
+						const FVector4& CenterY = Instance.BoundsOriginY;
+						const FVector4& CenterZ = Instance.BoundsOriginZ;
 						for ( int32 PartialIndex=0; PartialIndex < 4; ++PartialIndex )
 						{
 							if ( CenterX[PartialIndex] < 3.402823466e+30F )
@@ -5279,6 +5294,8 @@ FFloatMipLevel FStreamingHandlerTextureStatic::GetWantedMips( FStreamingManagerT
 	bool bShouldAbortLoop = false;
 	bool bEntryFound = false; // True an entry for this texture exists­.
 
+	const bool bUseAABB = CVarStreamingUseAABB.GetValueOnAnyThread() > 0;
+
 	// Nothing do to if there are no views or instances.
 	if( StreamingManager.ThreadNumViews() /*&& StreamingTexture.Instances.Num() > 0*/ )
 	{
@@ -5313,9 +5330,14 @@ FFloatMipLevel FStreamingHandlerTextureStatic::GetWantedMips( FStreamingManagerT
 					const FStreamableTextureInstance4& TextureInstance = (*TextureInstances)[InstanceIndex];
 
 					// Calculate distance of viewer to bounding sphere.
-					const VectorRegister CenterX = VectorLoadAligned( &TextureInstance.BoundingSphereX );
-					const VectorRegister CenterY = VectorLoadAligned( &TextureInstance.BoundingSphereY );
-					const VectorRegister CenterZ = VectorLoadAligned( &TextureInstance.BoundingSphereZ );
+					const VectorRegister CenterX = VectorLoadAligned( &TextureInstance.BoundsOriginX );
+					const VectorRegister CenterY = VectorLoadAligned( &TextureInstance.BoundsOriginY );
+					const VectorRegister CenterZ = VectorLoadAligned( &TextureInstance.BoundsOriginZ );
+
+					// Calculate distance of viewer to bounding sphere.
+					const VectorRegister ExtentX = VectorLoadAligned( &TextureInstance.BoxExtentSizeX );
+					const VectorRegister ExtentY = VectorLoadAligned( &TextureInstance.BoxExtentSizeY );
+					const VectorRegister ExtentZ = VectorLoadAligned( &TextureInstance.BoxExtentSizeZ );
 
 					// Iterate over all view infos.
 					for( int32 ViewIndex=0; ViewIndex < StreamingManager.ThreadNumViews() && !bShouldAbortLoop; ViewIndex++ )
@@ -5345,11 +5367,36 @@ FFloatMipLevel FStreamingHandlerTextureStatic::GetWantedMips( FStreamingManagerT
 							const VectorRegister InRangeMask = VectorCompareEQ(DistSq, ClampedDistSq);
 							DistSq = VectorSelect(InRangeMask, DistSq, MaxFloat4);
 						}
-						
-						// const float DistSqMinusRadiusSq = DistSq - FMath::Square(TextureInstance.BoundingSphere.W);
-						VectorRegister DistSqMinusRadiusSq = VectorLoadAligned( &TextureInstance.BoundingSphereRadius );
-						DistSqMinusRadiusSq = VectorMultiply( DistSqMinusRadiusSq, DistSqMinusRadiusSq );
-						DistSqMinusRadiusSq = VectorSubtract( DistSq, DistSqMinusRadiusSq );
+
+						VectorRegister DistSqMinusRadiusSq = VectorZero();
+						if (bUseAABB)
+						{
+							// In this case DistSqMinusRadiusSq will contain the distance to the box^2
+							Temp = VectorSubtract( ViewOriginX, CenterX );
+							Temp = VectorAbs( Temp );
+							VectorRegister BoxRef = VectorMin( Temp, ExtentX );
+							Temp = VectorSubtract( Temp, BoxRef );
+							DistSqMinusRadiusSq = VectorMultiply( Temp, Temp );
+
+							Temp = VectorSubtract( ViewOriginY, CenterY );
+							Temp = VectorAbs( Temp );
+							BoxRef = VectorMin( Temp, ExtentY );
+							Temp = VectorSubtract( Temp, BoxRef );
+							DistSqMinusRadiusSq = VectorMultiplyAdd( Temp, Temp, DistSqMinusRadiusSq );
+
+							Temp = VectorSubtract( ViewOriginZ, CenterZ );
+							Temp = VectorAbs( Temp );
+							BoxRef = VectorMin( Temp, ExtentZ );
+							Temp = VectorSubtract( Temp, BoxRef );
+							DistSqMinusRadiusSq = VectorMultiplyAdd( Temp, Temp, DistSqMinusRadiusSq );
+						}
+						else
+						{
+							// const float DistSqMinusRadiusSq = DistSq - FMath::Square(TextureInstance.BoundingSphere.W);
+							DistSqMinusRadiusSq = VectorLoadAligned( &TextureInstance.BoundingSphereRadius );
+							DistSqMinusRadiusSq = VectorMultiply( DistSqMinusRadiusSq, DistSqMinusRadiusSq );
+							DistSqMinusRadiusSq = VectorSubtract( DistSq, DistSqMinusRadiusSq );
+						}
 						MinDistanceSq4 = VectorMin( MinDistanceSq4, DistSqMinusRadiusSq );
 
 						if ( VectorAllGreaterThan( DistSqMinusRadiusSq, VectorOne() ) )
@@ -5611,7 +5658,16 @@ FFloatMipLevel FStreamingHandlerTextureLevelForced::GetWantedMips( FStreamingMan
  */
 FArchive& operator<<( FArchive& Ar, FStreamableTextureInstance& TextureInstance )
 {
-	Ar << TextureInstance.BoundingSphere;
+	if (Ar.UE4Ver() >= VER_UE4_STREAMABLE_TEXTURE_AABB)
+	{
+		Ar << TextureInstance.Bounds;
+	}
+	else if (Ar.IsLoading())
+	{
+		FSphere BoundingSphere;
+		Ar << BoundingSphere;
+		TextureInstance.Bounds = FBoxSphereBounds(BoundingSphere);
+	}
 
 	if (Ar.UE4Ver() >= VER_UE4_STREAMABLE_TEXTURE_MIN_MAX_DISTANCE)
 	{

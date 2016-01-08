@@ -393,7 +393,7 @@ void FLevelUtils::ApplyLevelTransform( ULevel* Level, const FTransform& LevelTra
 			TArray<FStreamableTextureInstance>& TextureInfo = It.Value();
 			for (int32 i = 0; i < TextureInfo.Num(); i++)
 			{
-				TextureInfo[i].BoundingSphere.Center = LevelTransform.TransformPosition(TextureInfo[i].BoundingSphere.Center);
+				TextureInfo[i].Bounds.Origin = LevelTransform.TransformPosition(TextureInfo[i].Bounds.Origin);
 			}
 		}
 

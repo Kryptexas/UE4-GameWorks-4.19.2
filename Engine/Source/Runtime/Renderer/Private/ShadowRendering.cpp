@@ -803,7 +803,7 @@ FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::FShadowDepthDrawingPo
 	bool bInCastShadowAsTwoSided,
 	bool bInReverseCulling
 	):
-	FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,*InMaterialResource,false,bInCastShadowAsTwoSided),
+	FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,*InMaterialResource,DVSM_None,bInCastShadowAsTwoSided),
 	GeometryShader(NULL),
 	FeatureLevel(InFeatureLevel),
 	bDirectionalLight(bInDirectionalLight),

@@ -591,14 +591,15 @@ enum EUnrealEngineObjectUE4Version
 	// Updating custom material expression nodes for instanced stereo implementation
 	VER_UE4_INSTANCED_STEREO_UNIFORM_UPDATE,
 	// Texture streaming min and max distance to handle HLOD
-	VER_UE4_STREAMABLE_TEXTURE_MIN_MAX_DISTANCE,	// -----<new versions can be added before this line>-------------------------------------------------
+	VER_UE4_STREAMABLE_TEXTURE_MIN_MAX_DISTANCE,	
 	// Fixing up invalid struct-to-struct pin connections by injecting available conversion nodes
 	VER_UE4_INJECT_BLUEPRINT_STRUCT_PIN_CONVERSION_NODES,
 	// Saving tag data for Array Property's inner property
 	VER_UE4_INNER_ARRAY_TAG_INFO,
 	// Fixed duplicating slot node names in skeleton due to skeleton preload on compile
 	VER_UE4_FIX_SLOT_NAME_DUPLICATION,
-
+	// Texture streaming using AABBs instead of Spheres
+	VER_UE4_STREAMABLE_TEXTURE_AABB,
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

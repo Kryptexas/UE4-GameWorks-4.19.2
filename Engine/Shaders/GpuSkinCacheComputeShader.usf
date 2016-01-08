@@ -10,7 +10,7 @@
 #include "GpuSkinCommon.usf"
 
 // Set to 1 to enable passing through values from vertex buffer (ie do not skin)
-#define GPUSKIN_USE_PASSTHROUGH	0
+#define GPUSKIN_DEBUG_PASSTHROUGH	0
 
 #define FBoneMatrix float3x4
 
@@ -66,14 +66,15 @@ Buffer<float> SkinStreamInputBuffer;
 
 RWBuffer<float> SkinCacheBuffer;
 
+uint SkinCacheInputStreamFloatOffset;
+uint SkinCacheOutputBufferFloatOffset;
+uint SkinCacheVertexStride;
+uint SkinCacheVertexCount;
+
 float3 MeshOrigin;
 float3 MeshExtension;
 
-uint SkinCacheInputStreamFloatOffset;
-uint SkinCacheOutputBufferFloatOffset;
-
-uint SkinCacheVertexStride;
-uint SkinCacheVertexCount;
+//uint4 DebugParameter;
 
 FVertexUnpacked UnpackedVertex( uint Offset )
 {
@@ -132,25 +133,29 @@ void SkinCacheUpdateBatchCS(uint3 GroupID : SV_GroupID,
  uint3 GroupThreadID : SV_GroupThreadID)
 {
 	uint ThreadId = DispatchThreadID.x;
-
-	if (ThreadId > SkinCacheVertexCount)
+	if (ThreadId >= SkinCacheVertexCount)
 	{
 		return;
 	}
 
-	uint FloatCount = SkinCacheVertexStride / 4;
-	uint Offset = ThreadId * FloatCount;
-	uint InputOffset = SkinCacheInputStreamFloatOffset + Offset;
-	uint OutputOffset = SkinCacheOutputBufferFloatOffset + Offset;
+	uint FloatsPerVertex = SkinCacheVertexStride / 4;
+	uint VBOffset = ThreadId * FloatsPerVertex;
+	uint RWOffset = ThreadId * GPUSKIN_RWBUFFER_NUM_FLOATS;
+	uint InputOffset = SkinCacheInputStreamFloatOffset + VBOffset;
+	uint OutputOffset = SkinCacheOutputBufferFloatOffset + RWOffset;
 
 	FVertexUnpacked	Unpacked = UnpackedVertex(InputOffset);
 
 	// Perform the skinning
 	FVertexFactoryIntermediates	Intermediates;
+#if 1
 	Intermediates.BlendMatrix = CalcBoneMatrix(Unpacked);
-	//Intermediates.BlendMatrix[0] = float4(1,0,0,0);
-	//Intermediates.BlendMatrix[1] = float4(0,1,0,0);
-	//Intermediates.BlendMatrix[2] = float4(0,0,1,0);
+#else
+	// Test no blend mtx
+	Intermediates.BlendMatrix[0] = float4(1,0,0,0);
+	Intermediates.BlendMatrix[1] = float4(0,1,0,0);
+	Intermediates.BlendMatrix[2] = float4(0,0,1,0);
+#endif
 
 	Intermediates.UnpackedPosition.x = SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_POSITION + 0] * MeshExtension.x + MeshOrigin.x;
 	Intermediates.UnpackedPosition.y = SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_POSITION + 1] * MeshExtension.y + MeshOrigin.y;
@@ -161,34 +166,18 @@ void SkinCacheUpdateBatchCS(uint3 GroupID : SV_GroupID,
 	float3 TangentX = mul((float3x3)Intermediates.BlendMatrix, Unpacked.TangentX);
 	float3 TangentZ = mul((float3x3)Intermediates.BlendMatrix, Unpacked.TangentZ);
 
-	// Write into output buffer
-	SkinCacheBuffer[OutputOffset + GPUSKIN_VB_OFFSET_TANGENT_X] = asfloat(asuint((uint((TangentX.x + 1.0f) * 128.0f) << 0) | (uint((TangentX.y + 1.0f) * 128.0f) << 8) | (uint((TangentX.z + 1.0f) * 128.0f) << 16) | (asuint(SkinStreamInputBuffer[ InputOffset + GPUSKIN_VB_OFFSET_TANGENT_X]) & 0xff000000)));
-	SkinCacheBuffer[OutputOffset + GPUSKIN_VB_OFFSET_TANGENT_Z] = asfloat(asuint((uint((TangentZ.x + 1.0f) * 128.0f) << 0) | (uint((TangentZ.y + 1.0f) * 128.0f) << 8) | (uint((TangentZ.z + 1.0f) * 128.0f) << 16) | (asuint(SkinStreamInputBuffer[ InputOffset + GPUSKIN_VB_OFFSET_TANGENT_Z]) & 0xff000000)));
-	 
-	SkinCacheBuffer[OutputOffset + GPUSKIN_VB_OFFSET_INFLUENCEBONES] = SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_INFLUENCEBONES];
-#if GPUSKIN_USE_EXTRA_INFLUENCES
-	SkinCacheBuffer[OutputOffset + GPUSKIN_VB_OFFSET_INFLUENCEBONES + 1] = SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_INFLUENCEBONES + 1];
-#endif
-	SkinCacheBuffer[OutputOffset + GPUSKIN_VB_OFFSET_INFLUENCEWEIGHTS] = SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_INFLUENCEWEIGHTS];
-#if GPUSKIN_USE_EXTRA_INFLUENCES
-	SkinCacheBuffer[OutputOffset + GPUSKIN_VB_OFFSET_INFLUENCEWEIGHTS + 1] = SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_INFLUENCEWEIGHTS + 1];
-#endif
- 
-	SkinCacheBuffer[OutputOffset + GPUSKIN_VB_OFFSET_POSITION + 0] = SPos.x;
-	SkinCacheBuffer[OutputOffset + GPUSKIN_VB_OFFSET_POSITION + 1] = SPos.y;
-	SkinCacheBuffer[OutputOffset + GPUSKIN_VB_OFFSET_POSITION + 2] = SPos.z;
-
-	// Passthrough any extra info
-	for (uint i = GPUSKIN_VB_OFFSET_UVS; i < FloatCount; i++)
-	{
-		SkinCacheBuffer[OutputOffset + i] = SkinStreamInputBuffer[InputOffset + i];
-	}
-
+#if GPUSKIN_DEBUG_PASSTHROUGH
 	// Passthrough debug code
-#if GPUSKIN_USE_PASSTHROUGH
-	for (uint i = 0; i < FloatCount; i++)
-	{
-		SkinCacheBuffer[OutputOffset + i] = SkinStreamInputBuffer[InputOffset + i];
-	}
+	SkinCacheBuffer[OutputOffset + GPUSKIN_RWBUFFER_OFFSET_POSITION + 0] = SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_POSITION + 0];
+	SkinCacheBuffer[OutputOffset + GPUSKIN_RWBUFFER_OFFSET_POSITION + 1] = SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_POSITION + 1];
+	SkinCacheBuffer[OutputOffset + GPUSKIN_RWBUFFER_OFFSET_POSITION + 2] = SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_POSITION + 2];
+	SkinCacheBuffer[OutputOffset + GPUSKIN_RWBUFFER_OFFSET_TANGENT_X] = SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_TANGENT_X];
+	SkinCacheBuffer[OutputOffset + GPUSKIN_RWBUFFER_OFFSET_TANGENT_Z] = SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_TANGENT_Z];
+#else
+	SkinCacheBuffer[OutputOffset + GPUSKIN_RWBUFFER_OFFSET_POSITION + 0] = SPos.x;
+	SkinCacheBuffer[OutputOffset + GPUSKIN_RWBUFFER_OFFSET_POSITION + 1] = SPos.y;
+	SkinCacheBuffer[OutputOffset + GPUSKIN_RWBUFFER_OFFSET_POSITION + 2] = SPos.z;
+	SkinCacheBuffer[OutputOffset + GPUSKIN_RWBUFFER_OFFSET_TANGENT_X] = asfloat(asuint((uint((TangentX.x + 1.0f) * 128.0f) << 0) | (uint((TangentX.y + 1.0f) * 128.0f) << 8) | (uint((TangentX.z + 1.0f) * 128.0f) << 16) | (asuint(SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_TANGENT_X]) & 0xff000000)));
+	SkinCacheBuffer[OutputOffset + GPUSKIN_RWBUFFER_OFFSET_TANGENT_Z] = asfloat(asuint((uint((TangentZ.x + 1.0f) * 128.0f) << 0) | (uint((TangentZ.y + 1.0f) * 128.0f) << 8) | (uint((TangentZ.z + 1.0f) * 128.0f) << 16) | (asuint(SkinStreamInputBuffer[ InputOffset + GPUSKIN_VB_OFFSET_TANGENT_Z]) & 0xff000000)));
 #endif
 }

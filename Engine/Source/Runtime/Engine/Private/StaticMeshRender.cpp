@@ -97,6 +97,9 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 #if WITH_EDITORONLY_DATA
 	, SectionIndexPreview(InComponent->SectionIndexPreview)
 #endif
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	, WorldLightmapFactor(0)
+#endif
 {
 	check(RenderData);
 
@@ -168,6 +171,11 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 			PropertyColor = TempPropertyColor;
 		}
 	}
+#endif
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	// Update texture streaming factors
+	InComponent->GetStreamingTextureFactors(WorldTexelFactor, WorldLightmapFactor);
 #endif
 
 	if (BodySetup)

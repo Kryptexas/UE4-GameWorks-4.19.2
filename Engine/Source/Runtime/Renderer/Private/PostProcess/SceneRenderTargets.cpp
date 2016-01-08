@@ -549,7 +549,7 @@ void FSceneRenderTargets::BeginRenderingGBuffer(FRHICommandList& RHICmdList, ERe
 			bSceneDepthCleared = true;			
 		}		
 
-		if (bBindQuadOverdrawBuffers && AllowRuntimeQuadOverdraw(CurrentFeatureLevel))
+		if (bBindQuadOverdrawBuffers && RuntimeAllowDebugViewModeShader(CurrentFeatureLevel))
 		{
 			if (QuadOverdrawBuffer.IsValid() && QuadOverdrawBuffer->GetRenderTargetItem().UAV.IsValid())
 			{
@@ -1272,9 +1272,10 @@ bool FSceneRenderTargets::BeginRenderingSeparateTranslucency(FRHICommandList& RH
 	bSeparateTranslucencyPass = true;
 	if(IsSeparateTranslucencyActive(View))
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.SeparateTranslucencyScreenPercentage"));
-		float Scale = CVar->GetValueOnRenderThread() / 100.0f;
-		FIntPoint ScaledSize(GetBufferSizeXY().X * Scale, GetBufferSizeXY().Y * Scale);
+		FIntPoint ScaledSize;
+		uint32 NumSamples = 1;
+		float Scale = 1.0f;
+		GetSeparateTranslucencyDimensionsAndSamplecount(ScaledSize, NumSamples, Scale);
 
 		SCOPED_DRAW_EVENT(RHICmdList, BeginSeparateTranslucency);
 
@@ -1325,10 +1326,11 @@ void FSceneRenderTargets::FinishRenderingSeparateTranslucency(FRHICommandList& R
 		}
 		else
 		{
-			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.SeparateTranslucencyScreenPercentage"));
-			float Scale = CVar->GetValueOnRenderThread() / 100.0f;
-			FIntPoint ScaledSize(GetBufferSizeXY().X * Scale, GetBufferSizeXY().Y * Scale);
-			SeparateTranslucency = &GetSeparateTranslucency( RHICmdList, ScaledSize );
+			FIntPoint ScaledSize;
+			uint32 NumSamples = 1;
+			float Scale = 1.0f;
+			GetSeparateTranslucencyDimensionsAndSamplecount(ScaledSize, NumSamples, Scale);
+			SeparateTranslucency = &GetSeparateTranslucency(RHICmdList, ScaledSize);
 			SeparateTranslucencyDepth = &GetSeparateTranslucencyDepth(RHICmdList, GetBufferSizeXY());
 		}
 
@@ -1618,7 +1620,7 @@ void FSceneRenderTargets::AllocateReflectionTargets(FRHICommandList& RHICmdList)
 void FSceneRenderTargets::AllocateDebugViewModeTargets(FRHICommandList& RHICmdList)
 {
 	// If the shader/quad complexity shader need a quad overdraw buffer to be bind, allocate it.
-	if (AllowRuntimeQuadOverdraw(CurrentFeatureLevel) && AllowDebugViewmodes())
+	if (RuntimeAllowDebugViewModeShader(CurrentFeatureLevel) && AllowDebugViewmodes())
 	{
 		FIntPoint QuadOverdrawSize;
 		QuadOverdrawSize.X = 2 * FMath::Max<uint32>((BufferSize.X + 1) / 2, 1); // The size is time 2 since left side is QuadDescriptor, and right side QuadComplexity.

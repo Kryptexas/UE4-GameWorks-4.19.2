@@ -55,7 +55,7 @@ public:
 
 	bool SupportsVelocity() const
 	{
-		return PreviousLocalToWorld.IsBound();
+		return PreviousLocalToWorld.IsBound() || GPUSkinCachePreviousBuffer.IsBound();
 	}
 
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
@@ -75,18 +75,21 @@ protected:
 		FMeshMaterialShader(Initializer)
 	{
 		PreviousLocalToWorld.Bind(Initializer.ParameterMap,TEXT("PreviousLocalToWorld"));
+		GPUSkinCachePreviousBuffer.Bind(Initializer.ParameterMap, TEXT("GPUSkinCachePreviousBuffer"));
 	}
+
 	FVelocityVS() {}
 
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FMeshMaterialShader::Serialize(Ar);
-		Ar << PreviousLocalToWorld;
+		Ar << PreviousLocalToWorld << GPUSkinCachePreviousBuffer;
 		return bShaderHasOutdatedParameters;
 	}
 
 private:
 	FShaderParameter PreviousLocalToWorld;
+	FShaderResourceParameter GPUSkinCachePreviousBuffer;
 };
 
 

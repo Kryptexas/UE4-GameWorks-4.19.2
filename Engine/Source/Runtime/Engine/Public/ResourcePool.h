@@ -68,7 +68,7 @@ public:
 	/** Release a resource back into the pool.
 	 * @param Resource The resource to return to the pool
 	 */
-	void ReleasePooledResource(ResourceType Resource)
+	void ReleasePooledResource(const ResourceType& Resource)
 	{
 		FPooledResource NewEntry;
 		NewEntry.Resource = Resource;

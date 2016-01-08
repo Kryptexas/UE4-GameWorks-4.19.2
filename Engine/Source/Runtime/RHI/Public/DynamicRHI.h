@@ -30,6 +30,8 @@ public:
 
 	virtual void RHIDispatchIndirectComputeShader(FVertexBufferRHIParamRef ArgumentBuffer, uint32 ArgumentOffset) = 0;
 
+	virtual void RHISetAsyncComputeBudget(EAsyncComputeBudget Budget) = 0;
+
 	/**
 	* Explicitly transition a UAV from readable -> writable by the GPU or vice versa.
 	* Also explicitly states which pipeline the UAV can be used on next.  For example, if a Compute job just wrote this UAV for a Pixel shader to read
@@ -77,7 +79,7 @@ public:
 
 	virtual void RHISetShaderParameter(FComputeShaderRHIParamRef ComputeShader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue) = 0;
 
-	virtual void RHIPushEvent(const TCHAR* Name) = 0;
+	virtual void RHIPushEvent(const TCHAR* Name, FColor Color) = 0;
 
 	virtual void RHIPopEvent() = 0;
 
@@ -117,6 +119,10 @@ public:
 	virtual void RHIDispatchComputeShader(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ) = 0;
 
 	virtual void RHIDispatchIndirectComputeShader(FVertexBufferRHIParamRef ArgumentBuffer, uint32 ArgumentOffset) = 0;
+	
+	virtual void RHISetAsyncComputeBudget(EAsyncComputeBudget Budget) override
+	{
+	}
 
 	virtual void RHIAutomaticCacheFlushAfterComputeShader(bool bEnable) = 0;
 
@@ -442,7 +448,7 @@ public:
 	 */
 	virtual void RHIEnableDepthBoundsTest(bool bEnable, float MinDepth, float MaxDepth) = 0;
 
-	virtual void RHIPushEvent(const TCHAR* Name) = 0;
+	virtual void RHIPushEvent(const TCHAR* Name, FColor Color) = 0;
 
 	virtual void RHIPopEvent() = 0;
 
@@ -456,7 +462,6 @@ public:
 
 	/** Wait for AsyncCompute command stream to finish (no effect if not supported) */
 	virtual void RHIGraphicsWaitOnAsyncComputeJob(uint32 FenceIndex) = 0;
-
 };
 
 /** The interface which is implemented by the dynamically bound RHI. */
@@ -942,6 +947,7 @@ public:
 
 	// FlushType: Thread safe
 	virtual void RHIBindDebugLabelName(FTextureRHIParamRef Texture, const TCHAR* Name) = 0;
+	virtual void RHIBindDebugLabelName(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const TCHAR* Name) {}
 
 	/**
 	 * Reads the contents of a texture to an output buffer (non MSAA and MSAA) and returns it as a FColor array.
@@ -1195,6 +1201,11 @@ FORCEINLINE uint32 RHIComputeMemorySize(FTextureRHIParamRef TextureRHI)
 FORCEINLINE void RHIBindDebugLabelName(FTextureRHIParamRef Texture, const TCHAR* Name)
 {
 	 GDynamicRHI->RHIBindDebugLabelName(Texture, Name);
+}
+
+FORCEINLINE void RHIBindDebugLabelName(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const TCHAR* Name)
+{
+	GDynamicRHI->RHIBindDebugLabelName(UnorderedAccessViewRHI, Name);
 }
 
 FORCEINLINE bool RHIGetRenderQueryResult(FRenderQueryRHIParamRef RenderQuery, uint64& OutResult, bool bWait)

@@ -140,6 +140,8 @@ void FSynthBenchmark::Run(FSynthBenchmarkResults& InOut, bool bGPUBenchmark, flo
 		}
 	}
 
+	float GPUTime = 0.0f;
+
 	// not always done - cost some time.
 	if(bGPUBenchmark)
 	{
@@ -152,57 +154,69 @@ void FSynthBenchmark::Run(FSynthBenchmarkResults& InOut, bool bGPUBenchmark, flo
 			const float fFirstWorkScale = 0.01f;
 			const float fSecondWorkScale = 0.1f;
 
-			float GPUTime = 0.0f;
-
 			RendererModule.GPUBenchmark(InOut, fFirstWorkScale);
 			GPUTime = InOut.ComputeTotalGPUTime();
-			UE_LOG(LogSynthBenchmark, Display, TEXT("  GPU first test: %.2fs"), GPUTime);
-
-			for(uint32 MethodId = 0; MethodId < sizeof(InOut.GPUStats) / sizeof(InOut.GPUStats[0]); ++MethodId)
+			if(GPUTime > 0.0f)
 			{
-				UE_LOG(LogSynthBenchmark, Display, TEXT("         ... %.3f GigaPix/s, Confidence=%.0f%% '%s' (likely to be very inaccurate)"),
-					1.0f / InOut.GPUStats[MethodId].GetNormalizedTime(), InOut.GPUStats[MethodId].GetConfidence(), InOut.GPUStats[MethodId].GetDesc());
+				UE_LOG(LogSynthBenchmark, Display, TEXT("  GPU first test: %.2fs"), GPUTime);
+
+				for (uint32 MethodId = 0; MethodId < sizeof(InOut.GPUStats) / sizeof(InOut.GPUStats[0]); ++MethodId)
+				{
+					UE_LOG(LogSynthBenchmark, Display, TEXT("         ... %.3f GigaPix/s, Confidence=%.0f%% '%s' (likely to be very inaccurate)"),
+						1.0f / InOut.GPUStats[MethodId].GetNormalizedTime(), InOut.GPUStats[MethodId].GetConfidence(), InOut.GPUStats[MethodId].GetDesc());
+				}
 			}
 
 			if(GPUTime < 0.1f)
 			{
 				RendererModule.GPUBenchmark(InOut, fSecondWorkScale);
 				GPUTime = InOut.ComputeTotalGPUTime();
-				UE_LOG(LogSynthBenchmark, Display, TEXT("  GPU second test: %.2fs"), GPUTime);
 
-				// for testing
-				for(uint32 MethodId = 0; MethodId < sizeof(InOut.GPUStats) / sizeof(InOut.GPUStats[0]); ++MethodId)
+				if(GPUTime > 0.0f)
 				{
-					UE_LOG(LogSynthBenchmark, Display, TEXT("         ... %.3f GigaPix/s, Confidence=%.0f%% '%s' (likely to be inaccurate)"),
-						1.0f / InOut.GPUStats[MethodId].GetNormalizedTime(), InOut.GPUStats[MethodId].GetConfidence(), InOut.GPUStats[MethodId].GetDesc());
+					UE_LOG(LogSynthBenchmark, Display, TEXT("  GPU second test: %.2fs"), GPUTime);
+
+					// for testing
+					for(uint32 MethodId = 0; MethodId < sizeof(InOut.GPUStats) / sizeof(InOut.GPUStats[0]); ++MethodId)
+					{
+						UE_LOG(LogSynthBenchmark, Display, TEXT("         ... %.3f GigaPix/s, Confidence=%.0f%% '%s' (likely to be inaccurate)"),
+							1.0f / InOut.GPUStats[MethodId].GetNormalizedTime(), InOut.GPUStats[MethodId].GetConfidence(), InOut.GPUStats[MethodId].GetDesc());
+					}
 				}
 
 				if(GPUTime < 0.1f)
 				{
 					RendererModule.GPUBenchmark(InOut, WorkScale);
 					GPUTime = InOut.ComputeTotalGPUTime();
-					UE_LOG(LogSynthBenchmark, Display, TEXT("  GPU third test: %.2fs"), GPUTime);
+
+					if(GPUTime > 0.0f)
+					{
+						UE_LOG(LogSynthBenchmark, Display, TEXT("  GPU third test: %.2fs"), GPUTime);
+					}
 				}
 			}
 		}
 
-		for(uint32 MethodId = 0; MethodId < sizeof(InOut.GPUStats) / sizeof(InOut.GPUStats[0]); ++MethodId)
+		if(GPUTime > 0.0f)
 		{
-			UE_LOG(LogSynthBenchmark, Display, TEXT("         ... %.3f GigaPix/s, Confidence=%.0f%% '%s'"),
-				1.0f / InOut.GPUStats[MethodId].GetNormalizedTime(), InOut.GPUStats[MethodId].GetConfidence(), InOut.GPUStats[MethodId].GetDesc());
-		}
-		UE_LOG(LogSynthBenchmark, Display, TEXT(""));
+			for(uint32 MethodId = 0; MethodId < sizeof(InOut.GPUStats) / sizeof(InOut.GPUStats[0]); ++MethodId)
+			{
+				UE_LOG(LogSynthBenchmark, Display, TEXT("         ... %.3f GigaPix/s, Confidence=%.0f%% '%s'"),
+					1.0f / InOut.GPUStats[MethodId].GetNormalizedTime(), InOut.GPUStats[MethodId].GetConfidence(), InOut.GPUStats[MethodId].GetDesc());
+			}
+			UE_LOG(LogSynthBenchmark, Display, TEXT(""));
 
-		UE_LOG(LogSynthBenchmark, Display, TEXT("  GPU Perf Index 0: %.1f (weight %.2f)"), InOut.GPUStats[0].ComputePerfIndex(), InOut.GPUStats[0].GetWeight());
-		UE_LOG(LogSynthBenchmark, Display, TEXT("  GPU Perf Index 1: %.1f (weight %.2f)"), InOut.GPUStats[1].ComputePerfIndex(), InOut.GPUStats[1].GetWeight());
-		UE_LOG(LogSynthBenchmark, Display, TEXT("  GPU Perf Index 2: %.1f (weight %.2f)"), InOut.GPUStats[2].ComputePerfIndex(), InOut.GPUStats[2].GetWeight());
-		UE_LOG(LogSynthBenchmark, Display, TEXT("  GPU Perf Index 3: %.1f (weight %.2f)"), InOut.GPUStats[3].ComputePerfIndex(), InOut.GPUStats[3].GetWeight());
-		UE_LOG(LogSynthBenchmark, Display, TEXT("  GPU Perf Index 4: %.1f (weight %.2f)"), InOut.GPUStats[4].ComputePerfIndex(), InOut.GPUStats[4].GetWeight());
+			UE_LOG(LogSynthBenchmark, Display, TEXT("  GPU Perf Index 0: %.1f (weight %.2f)"), InOut.GPUStats[0].ComputePerfIndex(), InOut.GPUStats[0].GetWeight());
+			UE_LOG(LogSynthBenchmark, Display, TEXT("  GPU Perf Index 1: %.1f (weight %.2f)"), InOut.GPUStats[1].ComputePerfIndex(), InOut.GPUStats[1].GetWeight());
+			UE_LOG(LogSynthBenchmark, Display, TEXT("  GPU Perf Index 2: %.1f (weight %.2f)"), InOut.GPUStats[2].ComputePerfIndex(), InOut.GPUStats[2].GetWeight());
+			UE_LOG(LogSynthBenchmark, Display, TEXT("  GPU Perf Index 3: %.1f (weight %.2f)"), InOut.GPUStats[3].ComputePerfIndex(), InOut.GPUStats[3].GetWeight());
+			UE_LOG(LogSynthBenchmark, Display, TEXT("  GPU Perf Index 4: %.1f (weight %.2f)"), InOut.GPUStats[4].ComputePerfIndex(), InOut.GPUStats[4].GetWeight());
+		}
 	}
 	
 	UE_LOG(LogSynthBenchmark, Display, TEXT("  CPUIndex: %.1f"), InOut.ComputeCPUPerfIndex());
 
-	if(bGPUBenchmark)
+	if(GPUTime > 0.0f)
 	{
 		UE_LOG(LogSynthBenchmark, Display, TEXT("  GPUIndex: %.1f"), InOut.ComputeGPUPerfIndex());
 	}

@@ -296,12 +296,10 @@ public:
 			ESceneRenderTargetsMode::SetTextures,
 			bIsLitMaterial && Scene && Scene->SkyLight && !Scene->SkyLight->bHasStaticLighting,
 			Scene && Scene->HasAtmosphericFog() && View.Family->EngineShowFlags.AtmosphericFog && View.Family->EngineShowFlags.Fog,
-			View.Family->EngineShowFlags.ShaderComplexity,
+			View.Family->GetDebugViewShaderMode(),
 			Parameters.bAllowFog,
 			false,
-			false,
-			View.Family->GetQuadOverdrawMode()
-			);
+			false);
 		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
 		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType(), SeparateTranslucencyScreenTextureScaleFactor);
 
@@ -683,22 +681,22 @@ void FTranslucentPrimSet::DrawPrimitives(
 
 void FTranslucentPrimSet::RenderPrimitive(
 	FRHICommandList& RHICmdList,
-	const FViewInfo& View, 
-	FPrimitiveSceneInfo* PrimitiveSceneInfo, 
-	const FPrimitiveViewRelevance& ViewRelevance, 
+	const FViewInfo& View,
+	FPrimitiveSceneInfo* PrimitiveSceneInfo,
+	const FPrimitiveViewRelevance& ViewRelevance,
 	const FProjectedShadowInfo* TranslucentSelfShadow,
 	ETranslucencyPassType TranslucenyPassType) const
 {
 	checkSlow(ViewRelevance.HasTranslucency());
 	auto FeatureLevel = View.GetFeatureLevel();
 
-	if(ViewRelevance.bDrawRelevance)
+	if (ViewRelevance.bDrawRelevance)
 	{
 		FTranslucencyDrawingPolicyFactory::ContextType Context(TranslucentSelfShadow, TranslucenyPassType);
 
 		// need to chec further down if we can skip rendering ST primitives, because we need to make sure they render in the normal translucency pass otherwise
 		// getting the cvar here and passing it down to be more efficient		
-		bool bSeparateTranslucencyPossible = (FSceneRenderTargets::CVarSetSeperateTranslucencyEnabled.GetValueOnRenderThread() == 0 ? false : true) && (View.Family->EngineShowFlags.SeparateTranslucency && View.Family->EngineShowFlags.PostProcessing);
+		bool bSeparateTranslucencyPossible = (FSceneRenderTargets::CVarSetSeperateTranslucencyEnabled.GetValueOnRenderThread() != 0) && View.Family->EngineShowFlags.SeparateTranslucency && View.Family->EngineShowFlags.PostProcessing;
 
 
 		//@todo parallelrendering - come up with a better way to filter these by primitive
@@ -714,28 +712,31 @@ void FTranslucentPrimSet::RenderPrimitive(
 		}
 
 		// Render static scene prim
-		if( ViewRelevance.bStaticRelevance )
+		if (ViewRelevance.bStaticRelevance)
 		{
 			// Render static meshes from static scene prim
-			for( int32 StaticMeshIdx = 0, Count = PrimitiveSceneInfo->StaticMeshes.Num(); StaticMeshIdx < Count; StaticMeshIdx++ )
+			for (int32 StaticMeshIdx = 0, Count = PrimitiveSceneInfo->StaticMeshes.Num(); StaticMeshIdx < Count; StaticMeshIdx++)
 			{
 				FStaticMesh& StaticMesh = PrimitiveSceneInfo->StaticMeshes[StaticMeshIdx];
+				bool bMaterialMatchesPass = (StaticMesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->IsSeparateTranslucencyEnabled() == (TranslucenyPassType == TPT_SeparateTransluceny));
+				bool bShouldRenderMesh = bMaterialMatchesPass || (!bSeparateTranslucencyPossible);
+
 				if (View.StaticMeshVisibilityMap[StaticMesh.Id]
 					// Only render static mesh elements using translucent materials
 					&& StaticMesh.IsTranslucent(FeatureLevel)
-					&& (StaticMesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->IsSeparateTranslucencyEnabled() == (TranslucenyPassType == TPT_SeparateTransluceny)))
+					&& bShouldRenderMesh )
 				{
 					FTranslucencyDrawingPolicyFactory::DrawStaticMesh(
-						RHICmdList,
-						View,
-						FTranslucencyDrawingPolicyFactory::ContextType( TranslucentSelfShadow, TranslucenyPassType),
-						StaticMesh,
-						StaticMesh.Elements.Num() == 1 ? 1 : View.StaticMeshBatchVisibility[StaticMesh.Id],
-						false,
-						PrimitiveSceneInfo->Proxy,
-						StaticMesh.BatchHitProxyId,
-						bSeparateTranslucencyPossible
-						);
+					RHICmdList,
+					View,
+					FTranslucencyDrawingPolicyFactory::ContextType(TranslucentSelfShadow, TranslucenyPassType),
+					StaticMesh,
+					StaticMesh.Elements.Num() == 1 ? 1 : View.StaticMeshBatchVisibility[StaticMesh.Id],
+					false,
+					PrimitiveSceneInfo->Proxy,
+					StaticMesh.BatchHitProxyId,
+					bSeparateTranslucencyPossible
+					);
 				}
 			}
 		}
@@ -820,12 +821,15 @@ void FTranslucentPrimSet::PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveScen
 
 	if (bUseNormalTranslucency 
 
-		// Force separate translucency to be rendered normally if the view doesn't support PostProcessing
-		|| (ViewInfo.Family->EngineShowFlags.SeparateTranslucency && !ViewInfo.Family->EngineShowFlags.PostProcessing)
+		// Force separate translucency to be rendered normally if separate translucency is disabled via cvar
+		|| Value == 0
 
 		// Force separate translucency to be rendered normally if the feature level does not support separate translucency
-		|| Value == 0
-		|| (bUseSeparateTranslucency && FeatureLevel < ERHIFeatureLevel::SM4))
+		|| (bUseSeparateTranslucency && FeatureLevel < ERHIFeatureLevel::SM4)
+
+		// Force separate translucency to be rendered normally if separate translucency is disabled in the view
+		|| (!ViewInfo.Family->EngineShowFlags.SeparateTranslucency))
+
 	{
 		// add to list of translucent prims
 		new (NormalPlace) FSortedPrim(PrimitiveSceneInfo,SortKey,PrimitiveSceneInfo->Proxy->GetTranslucencySortPriority());
@@ -968,10 +972,10 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 			if (SceneContext.IsSeparateTranslucencyActive(View))
 			{
 				// we need to allocate this now so it ends up in the snapshot
-				static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.SeparateTranslucencyScreenPercentage"));
-				float Scale = CVar->GetValueOnRenderThread() / 100.0f;
-				FIntPoint ScaledSize(SceneContext.GetBufferSizeXY().X * Scale, SceneContext.GetBufferSizeXY().Y * (Scale / 100.0f) );
-				SceneContext.GetSeparateTranslucency(RHICmdList, ScaledSize);
+				FIntPoint ScaledSize;
+				uint32 NumSamples = 1;
+				float Scale = 1.0f;
+				SceneContext.GetSeparateTranslucencyDimensionsAndSamplecount(ScaledSize, NumSamples, Scale);
 
 				if (Scale<1.0f)
 				{
@@ -1145,8 +1149,10 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 				if (SceneContext.IsSeparateTranslucencyActive(View))
 				{
 					// always call BeginRenderingSeparateTranslucency() even if there are no primitives to we keep the RT allocated
-					static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.SeparateTranslucencyScreenPercentage"));
-					float Scale = CVar->GetValueOnRenderThread() / 100.0f;
+					FIntPoint ScaledSize;
+					uint32 NumSamples = 1;
+					float Scale = 1.0f;
+					SceneContext.GetSeparateTranslucencyDimensionsAndSamplecount(ScaledSize, NumSamples, Scale);
 					if (Scale < 1.0f)
 					{
 						SceneContext.GetSeparateTranslucencyDepth(RHICmdList, SceneContext.GetBufferSizeXY());

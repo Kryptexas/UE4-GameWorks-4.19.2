@@ -9,6 +9,8 @@
 #include "Components/DecalComponent.h"
 
 FDeferredDecalProxy::FDeferredDecalProxy(const UDecalComponent* InComponent)
+	: InvFadeDuration(0.0f)
+	, FadeStartDelayNormalized(1.0f)
 {
 	UMaterialInterface* EffectiveMaterial = UMaterial::GetDefaultMaterial(MD_DeferredDecal);
 
@@ -28,6 +30,8 @@ FDeferredDecalProxy::FDeferredDecalProxy(const UDecalComponent* InComponent)
 	DrawInGame = InComponent->ShouldRender();
 	bOwnerSelected = InComponent->IsOwnerSelected();
 	SortOrder = InComponent->SortOrder;
+	InitializeFadingParameters(InComponent->GetWorld()->GetTimeSeconds(), InComponent->GetFadeDuration(), InComponent->GetFadeStartDelay());
+	
 }
 
 void FDeferredDecalProxy::SetTransformIncludingDecalSize(const FTransform& InComponentToWorldIncludingDecalSize)
@@ -35,9 +39,19 @@ void FDeferredDecalProxy::SetTransformIncludingDecalSize(const FTransform& InCom
 	ComponentTrans = InComponentToWorldIncludingDecalSize;
 }
 
+void FDeferredDecalProxy::InitializeFadingParameters(float AbsSpawnTime, float FadeDuration, float FadeStartDelay)
+{
+	if (FadeDuration > 0.0f)
+	{
+		InvFadeDuration = 1.0f / FadeDuration;
+		FadeStartDelayNormalized = (AbsSpawnTime + FadeStartDelay + FadeDuration) * InvFadeDuration;
+	}
+}
+
 UDecalComponent::UDecalComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, FadeScreenSize(0.01)
+	, bDestroyOwnerAfterFade(true)
 	, DecalSize(128.0f, 256.0f, 256.0f)
 {
 }
@@ -67,11 +81,39 @@ void UDecalComponent::SetLifeSpan(const float LifeSpan)
 void UDecalComponent::LifeSpanCallback()
 {
 	DestroyComponent();
+
+	auto* Owner = GetOwner();
+
+	if (bDestroyOwnerAfterFade && Owner)
+	{
+		Owner->Destroy();
+	}
+}
+
+float UDecalComponent::GetFadeStartDelay() const
+{
+	return FadeStartDelay;
+}
+
+float UDecalComponent::GetFadeDuration() const
+{
+	return FadeDuration;
+}
+
+void UDecalComponent::SetFadeOut(float StartDelay, float Duration, bool DestroyOwnerAfterFade /*= true*/)
+{
+	FadeStartDelay = StartDelay;
+	FadeDuration = Duration;
+	bDestroyOwnerAfterFade = DestroyOwnerAfterFade;
+	SetLifeSpan(FadeStartDelay + FadeDuration);
+
+	MarkRenderStateDirty();
 }
 
 void UDecalComponent::SetSortOrder(int32 Value)
 {
 	SortOrder = Value;
+
 	MarkRenderStateDirty();
 }
 
@@ -117,6 +159,13 @@ FDeferredDecalProxy* UDecalComponent::CreateSceneProxy()
 FBoxSphereBounds UDecalComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	return FBoxSphereBounds(FVector(0, 0, 0), DecalSize, DecalSize.Size()).TransformBy(LocalToWorld);
+}
+
+void UDecalComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	SetLifeSpan(FadeStartDelay + FadeDuration);
 }
 
 void UDecalComponent::CreateRenderState_Concurrent()

@@ -230,9 +230,9 @@ void FMetalGPUProfiler::Cleanup()
 	
 }
 
-void FMetalGPUProfiler::PushEvent(const TCHAR* Name)
+void FMetalGPUProfiler::PushEvent(const TCHAR* Name, FColor Color)
 {
-	FGPUProfiler::PushEvent(Name);
+	FGPUProfiler::PushEvent(Name, Color);
 }
 
 void FMetalGPUProfiler::PopEvent()
@@ -304,7 +304,7 @@ void FMetalGPUProfiler::BeginFrame()
 			}*/
         }
         
-        PushEvent(TEXT("FRAME"));
+        PushEvent(TEXT("FRAME"), FColor(0, 255, 0, 255));
     }
     NumNestedFrames++;
 }

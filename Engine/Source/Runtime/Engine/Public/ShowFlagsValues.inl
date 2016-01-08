@@ -282,6 +282,8 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(DistanceFieldAO, SFG_LightingFeatures, LOCTEXT("Dista
 SHOWFLAG_FIXED_IN_SHIPPING(1, DistanceFieldGI, SFG_LightingFeatures, LOCTEXT("DistanceFieldGISF", "Distance Field Global Illumination"))
 /** Visualize screen space reflections, for developer (by default off): */
 SHOWFLAG_FIXED_IN_SHIPPING(0, VisualizeSSR, SFG_Visualize, LOCTEXT("VisualizeSSR", "Screen Space Reflections"))
+/** Visualize the Shading Models, mostly or debugging and profiling */
+SHOWFLAG_FIXED_IN_SHIPPING(0, VisualizeShadingModels, SFG_Visualize, LOCTEXT("VisualizeShadingModels", "Shading Models"))
 /** Visualize the senses configuration of AIs' PawnSensingComponent */
 SHOWFLAG_FIXED_IN_SHIPPING(0, VisualizeSenses, SFG_Advanced, LOCTEXT("VisualizeSenses", "Senses"))
 /** Visualize the bloom, for developer (by default off): */
@@ -293,7 +295,10 @@ SHOWFLAG_FIXED_IN_SHIPPING(0, LODColoration, SFG_Hidden, LOCTEXT("VisualizeLODCo
 /** Visualize screen quads */
 SHOWFLAG_FIXED_IN_SHIPPING(0, QuadComplexity, SFG_Hidden, LOCTEXT("QuadComplexitySF", "Quad Complexity"))
 /** Visualize the overhead of material quads */
-SHOWFLAG_FIXED_IN_SHIPPING(0, QuadOverhead, SFG_Visualize, LOCTEXT("QuadOverheadSF", "Quad Overhead"))
-
+SHOWFLAG_FIXED_IN_SHIPPING(0, QuadOverhead, SFG_Hidden, LOCTEXT("QuadOverheadSF", "Quad Overhead"))
+/** Visualize the streaming texture scale in the mesh editors */
+SHOWFLAG_FIXED_IN_SHIPPING(0, WantedMipsAccuracy, SFG_Hidden, LOCTEXT("WantedMipsAccuracy", "Streaming Wanted Mips Accuracy"))
+/** Visualize how accurate is the texel factor is computed on each mesh */
+SHOWFLAG_FIXED_IN_SHIPPING(0, TexelFactorAccuracy, SFG_Hidden, LOCTEXT("TexelFactorAccuracy", "Texel Factor Accuracy"))
 #undef SHOWFLAG_ALWAYS_ACCESSIBLE
 #undef SHOWFLAG_FIXED_IN_SHIPPING

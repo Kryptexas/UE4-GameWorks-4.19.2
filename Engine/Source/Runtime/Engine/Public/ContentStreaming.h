@@ -811,21 +811,33 @@ enum FStreamoutLogic
 struct FStreamableTextureInstance4
 {
 	FStreamableTextureInstance4()
-	:	BoundingSphereX( MAX_FLT, MAX_FLT, MAX_FLT, MAX_FLT )
-	,	BoundingSphereY( 0, 0, 0, 0 )
-	,	BoundingSphereZ( 0, 0, 0, 0 )
+	:	BoundsOriginX( MAX_FLT, MAX_FLT, MAX_FLT, MAX_FLT )
+	,	BoundsOriginY( 0, 0, 0, 0 )
+	,	BoundsOriginZ( 0, 0, 0, 0 )
+	,	BoxExtentSizeX( 0, 0, 0, 0 )
+	,	BoxExtentSizeY( 0, 0, 0, 0 )
+	,	BoxExtentSizeZ( 0, 0, 0, 0 )
 	,	BoundingSphereRadius( 0, 0, 0, 0 )
 	,	MinDistanceSq( 0, 0, 0, 0 )
 	,	MaxDistanceSq( MAX_FLT, MAX_FLT, MAX_FLT, MAX_FLT )
 	,	TexelFactor( 0, 0, 0, 0 )
 	{
 	}
-	/** X coordinates for the bounding sphere origin of 4 texture instances */
-	FVector4 BoundingSphereX;
-	/** Y coordinates for the bounding sphere origin of 4 texture instances */
-	FVector4 BoundingSphereY;
-	/** Z coordinates for the bounding sphere origin of 4 texture instances */
-	FVector4 BoundingSphereZ;
+
+	/** X coordinates for the bounds origin of 4 texture instances */
+	FVector4 BoundsOriginX;
+	/** Y coordinates for the bounds origin of 4 texture instances */
+	FVector4 BoundsOriginY;
+	/** Z coordinates for the bounds origin of 4 texture instances */
+	FVector4 BoundsOriginZ;
+
+	/** X size of the bounds box extent of 4 texture instances */
+	FVector4 BoxExtentSizeX;
+	/** Y size of the bounds box extent of 4 texture instances */
+	FVector4 BoxExtentSizeY;
+	/** Z size of the bounds box extent of 4 texture instances */
+	FVector4 BoxExtentSizeZ;
+
 	/** Sphere radii for the bounding sphere of 4 texture instances */
 	FVector4 BoundingSphereRadius;
 	/** Minimal distance ^2 (between the bounding sphere origin and the view origin) for which this entry is valid */

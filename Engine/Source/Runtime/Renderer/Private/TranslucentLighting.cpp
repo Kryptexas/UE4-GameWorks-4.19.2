@@ -333,7 +333,7 @@ public:
 		const FMaterial& InMaterialResource,
 		bool bInDirectionalLight
 		):
-		FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,false,false)
+		FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource)
 	{
 		const bool bUsePerspectiveCorrectShadowDepths = !bInDirectionalLight;
 

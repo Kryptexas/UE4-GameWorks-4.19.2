@@ -355,7 +355,7 @@ private:
 	FDistanceFieldAOSpecularOcclusionParameters SpecularOcclusionParameters;
 };
 
-template< uint32 bUseLightmaps, uint32 bUseClearCoat, uint32 bBoxCapturesOnly, uint32 bSphereCapturesOnly >
+template< uint32 bUseLightmaps, uint32 bHasSkyLight, uint32 bBoxCapturesOnly, uint32 bSphereCapturesOnly >
 class TReflectionEnvironmentTiledDeferredCS : public FReflectionEnvironmentTiledDeferredCS
 {
 	DECLARE_SHADER_TYPE(TReflectionEnvironmentTiledDeferredCS, Global);
@@ -371,7 +371,7 @@ public:
 	{
 		FReflectionEnvironmentTiledDeferredCS::ModifyCompilationEnvironment(Platform, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("USE_LIGHTMAPS"), bUseLightmaps);
-		OutEnvironment.SetDefine(TEXT("USE_CLEARCOAT"), bUseClearCoat);
+		OutEnvironment.SetDefine(TEXT("HAS_SKYLIGHT"), bHasSkyLight);
 		OutEnvironment.SetDefine(TEXT("HAS_BOX_CAPTURES"), bBoxCapturesOnly);
 		OutEnvironment.SetDefine(TEXT("HAS_SPHERE_CAPTURES"), bSphereCapturesOnly);
 	}
@@ -754,12 +754,12 @@ void GatherAndSortReflectionCaptures(const FScene* Scene, TArray<FReflectionCapt
 	OutSortData.Sort();	
 }
 
-FReflectionEnvironmentTiledDeferredCS* SelectReflectionEnvironmentTiledDeferredCS(TShaderMap<FGlobalShaderType>* ShaderMap, bool bUseLightmaps, bool bUseClearCoat, bool bHasBoxCaptures, bool bHasSphereCaptures)
+FReflectionEnvironmentTiledDeferredCS* SelectReflectionEnvironmentTiledDeferredCS(TShaderMap<FGlobalShaderType>* ShaderMap, bool bUseLightmaps, bool bHasSkyLight, bool bHasBoxCaptures, bool bHasSphereCaptures)
 {
 	FReflectionEnvironmentTiledDeferredCS* ComputeShader = nullptr;
 	if (bUseLightmaps)
 	{
-		if (bUseClearCoat)
+		if (bHasSkyLight)
 		{
 			if (bHasBoxCaptures && bHasSphereCaptures)
 			{
@@ -800,7 +800,7 @@ FReflectionEnvironmentTiledDeferredCS* SelectReflectionEnvironmentTiledDeferredC
 	}
 	else
 	{
-		if (bUseClearCoat)
+		if (bHasSkyLight)
 		{
 			if (bHasBoxCaptures && bHasSphereCaptures)
 			{
@@ -888,7 +888,7 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 
 			bool bHasBoxCaptures = (NumBoxCaptures > 0);
 			bool bHasSphereCaptures = (NumSphereCaptures > 0);
-			bool bNeedsClearCoat = (View.ShadingModelMaskInView & (1 << MSM_ClearCoat)) != 0;
+			bool bHasSkyLight = Scene && Scene->SkyLight && !Scene->SkyLight->bHasStaticLighting;
 
 			static const FName TiledReflBeginComputeName(TEXT("ReflectionEnvBeginComputeFence"));
 			static const FName TiledReflEndComputeName(TEXT("ReflectionEnvEndComputeFence"));
@@ -898,35 +898,35 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 			//Grab the async compute commandlist.
 			FRHIAsyncComputeCommandListImmediate& RHICmdListComputeImmediate = FRHICommandListExecutor::GetImmediateAsyncComputeCommandList();
 			{
-			SCOPED_COMPUTE_EVENTF(RHICmdListComputeImmediate, ReflectionEnvironment, TEXT("ReflectionEnvironment ComputeShader %dx%d Tile:%dx%d Box:%d Sphere:%d ClearCoat:%d"),
-				View.ViewRect.Width(), View.ViewRect.Height(), GReflectionEnvironmentTileSizeX, GReflectionEnvironmentTileSizeY,
-				NumBoxCaptures, NumSphereCaptures, bNeedsClearCoat);
+				SCOPED_COMPUTE_EVENTF(RHICmdListComputeImmediate, ReflectionEnvironment, TEXT("ReflectionEnvironment ComputeShader %dx%d Tile:%dx%d Box:%d Sphere:%d SkyLight:%d"),
+					View.ViewRect.Width(), View.ViewRect.Height(), GReflectionEnvironmentTileSizeX, GReflectionEnvironmentTileSizeY,
+					NumBoxCaptures, NumSphereCaptures, bHasSkyLight);
 
-			ComputeShader = SelectReflectionEnvironmentTiledDeferredCS(View.ShaderMap, bUseLightmaps, bNeedsClearCoat, bHasBoxCaptures, bHasSphereCaptures);
+				ComputeShader = SelectReflectionEnvironmentTiledDeferredCS(View.ShaderMap, bUseLightmaps, bHasSkyLight, bHasBoxCaptures, bHasSphereCaptures);
 
 
 			
-			//Really we should write this fence where we transition the final depedency for the reflections.  We may add an RHI command just for writing fences if this
-			//can't be done in the general case.  In the meantime, hack this command a bit to write the fence.
-			RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EGfxToCompute, nullptr, 0, ReflectionBeginFence);
+				//Really we should write this fence where we transition the final depedency for the reflections.  We may add an RHI command just for writing fences if this
+				//can't be done in the general case.  In the meantime, hack this command a bit to write the fence.
+				RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EGfxToCompute, nullptr, 0, ReflectionBeginFence);
 					
-			//we must wait on the fence written from the Gfx pipe to let us know all our dependencies are ready.
-			RHICmdListComputeImmediate.WaitComputeFence(ReflectionBeginFence);
+				//we must wait on the fence written from the Gfx pipe to let us know all our dependencies are ready.
+				RHICmdListComputeImmediate.WaitComputeFence(ReflectionBeginFence);
 
-			//standard compute setup, but on the async commandlist.
-			RHICmdListComputeImmediate.SetComputeShader(ComputeShader->GetComputeShader());
+				//standard compute setup, but on the async commandlist.
+				RHICmdListComputeImmediate.SetComputeShader(ComputeShader->GetComputeShader());
 
-			FUnorderedAccessViewRHIParamRef OutUAV = NewSceneColor->GetRenderTargetItem().UAV;
-			ComputeShader->SetParameters(RHICmdListComputeImmediate, View, SSROutput->GetRenderTargetItem().ShaderResourceTexture, SortData, OutUAV, DynamicBentNormalAO);
+				FUnorderedAccessViewRHIParamRef OutUAV = NewSceneColor->GetRenderTargetItem().UAV;
+				ComputeShader->SetParameters(RHICmdListComputeImmediate, View, SSROutput->GetRenderTargetItem().ShaderResourceTexture, SortData, OutUAV, DynamicBentNormalAO);
 			
-			uint32 GroupSizeX = (View.ViewRect.Size().X + GReflectionEnvironmentTileSizeX - 1) / GReflectionEnvironmentTileSizeX;
-			uint32 GroupSizeY = (View.ViewRect.Size().Y + GReflectionEnvironmentTileSizeY - 1) / GReflectionEnvironmentTileSizeY;
-			DispatchComputeShader(RHICmdListComputeImmediate, ComputeShader, GroupSizeX, GroupSizeY, 1);
+				uint32 GroupSizeX = (View.ViewRect.Size().X + GReflectionEnvironmentTileSizeX - 1) / GReflectionEnvironmentTileSizeX;
+				uint32 GroupSizeY = (View.ViewRect.Size().Y + GReflectionEnvironmentTileSizeY - 1) / GReflectionEnvironmentTileSizeY;
+				DispatchComputeShader(RHICmdListComputeImmediate, ComputeShader, GroupSizeX, GroupSizeY, 1);
 
-			ComputeShader->UnsetParameters(RHICmdListComputeImmediate, OutUAV);
+				ComputeShader->UnsetParameters(RHICmdListComputeImmediate, OutUAV);
 			
-			//transition the output to readable and write the fence to allow the Gfx pipe to carry on.
-			RHICmdListComputeImmediate.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, &OutUAV, 1, ReflectionEndFence);
+				//transition the output to readable and write the fence to allow the Gfx pipe to carry on.
+				RHICmdListComputeImmediate.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, &OutUAV, 1, ReflectionEndFence);
 			}
 
 			//immediately dispatch our async compute commands to the RHI thread to be submitted to the GPU as soon as possible.

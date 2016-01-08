@@ -1449,7 +1449,7 @@ void ULevel::BuildStreamingData(UTexture2D* UpdateSpecificTextureOnly/*=NULL*/)
 				{
 					const FStreamingTexturePrimitiveInfo& PrimitiveStreamingTexture = PrimitiveStreamingTextures[TextureIndex];
 					UTexture2D* Texture2D = Cast<UTexture2D>(PrimitiveStreamingTexture.Texture);
-					bool bCanBeStreamedByDistance = !FMath::IsNearlyZero(PrimitiveStreamingTexture.TexelFactor) && !FMath::IsNearlyZero(PrimitiveStreamingTexture.Bounds.W);
+					bool bCanBeStreamedByDistance = !FMath::IsNearlyZero(PrimitiveStreamingTexture.TexelFactor) && !FMath::IsNearlyZero(PrimitiveStreamingTexture.Bounds.SphereRadius);
 
 					// Only handle 2D textures that match the target texture.
 					const bool bIsTargetTexture = (!UpdateSpecificTextureOnly || UpdateSpecificTextureOnly == Texture2D);
@@ -1475,7 +1475,7 @@ void ULevel::BuildStreamingData(UTexture2D* UpdateSpecificTextureOnly/*=NULL*/)
 							const FStreamingTexturePrimitiveInfo& HandledStreamingTexture = PrimitiveStreamingTextures[HandledTextureIndex];
 							if ( PrimitiveStreamingTexture.Texture == HandledStreamingTexture.Texture &&
 								FMath::IsNearlyEqual(PrimitiveStreamingTexture.TexelFactor, HandledStreamingTexture.TexelFactor) &&
-								PrimitiveStreamingTexture.Bounds.Equals( HandledStreamingTexture.Bounds ) )
+								PrimitiveStreamingTexture.Bounds.GetSphere().Equals( HandledStreamingTexture.Bounds.GetSphere() ) )
 							{
 								// It's a duplicate, don't handle this one.
 								bShouldHandleTexture = false;
@@ -1497,8 +1497,8 @@ void ULevel::BuildStreamingData(UTexture2D* UpdateSpecificTextureOnly/*=NULL*/)
 						{
 							// Texture instance information.
 							FStreamableTextureInstance TextureInstance;
-							TextureInstance.BoundingSphere	= PrimitiveStreamingTexture.Bounds;
-							TextureInstance.TexelFactor		= PrimitiveStreamingTexture.TexelFactor;
+							TextureInstance.Bounds = PrimitiveStreamingTexture.Bounds;
+							TextureInstance.TexelFactor = PrimitiveStreamingTexture.TexelFactor;
 
 							// HLOD support.
 							TextureInstance.MinDistance = Primitive->MinDrawDistance;
@@ -1538,9 +1538,9 @@ void ULevel::BuildStreamingData(UTexture2D* UpdateSpecificTextureOnly/*=NULL*/)
 							// Texture instance information.
 							FDynamicTextureInstance TextureInstance;
 							TextureInstance.Texture = Texture2D;
-							TextureInstance.BoundingSphere = PrimitiveStreamingTexture.Bounds;
+							TextureInstance.Bounds = PrimitiveStreamingTexture.Bounds;
 							TextureInstance.TexelFactor	= PrimitiveStreamingTexture.TexelFactor;
-							TextureInstance.OriginalRadius = PrimitiveStreamingTexture.Bounds.W;
+							TextureInstance.OriginalRadius = PrimitiveStreamingTexture.Bounds.SphereRadius;
 
 							// See whether there already is an instance in the level.
 							TArray<FDynamicTextureInstance>* TextureInstances = DynamicTextureInstances.Find( Primitive );
@@ -1912,7 +1912,7 @@ void ULevel::ApplyWorldOffset(const FVector& InWorldOffset, bool bWorldShift)
 			TArray<FStreamableTextureInstance>& TextureInfo = It.Value();
 			for (int32 i = 0; i < TextureInfo.Num(); i++)
 			{
-				TextureInfo[i].BoundingSphere.Center+= InWorldOffset;
+				TextureInfo[i].Bounds.Origin += InWorldOffset;
 			}
 		}
 

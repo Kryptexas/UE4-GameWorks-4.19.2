@@ -26,7 +26,7 @@ uint2 QuadOverdrawOffset()
 
 float3 ShaderComplexityColors[MAX_NUM_COMPLEXITY_COLORS];
 
-// float4(bLegend, QuadOverdrawMode, ColorSamping, ComplexityScale), can be optimzied as define if needed
+// float4(bLegend, DebugViewShaderMode, ColorSamping, ComplexityScale), can be optimzied as define if needed
 float4 ShaderComplexityParams;
 int NumComplexityColors;
 
@@ -160,12 +160,12 @@ void Main(
 
 	bool bLegend = ShaderComplexityParams.x > 0;
 	float ComplexityScale = ShaderComplexityParams.w;
-	int QuadOverdrawMode = QOM_None;
+	int DebugViewShaderMode = DVSM_ShaderComplexity;
 
 #if READ_QUAD_OVERDRAW
-	QuadOverdrawMode = (int)ShaderComplexityParams.y;
+	DebugViewShaderMode = (int)ShaderComplexityParams.y;
 	[branch]
-	if (QuadOverdrawMode != QOM_None)
+	if (DebugViewShaderMode != DVSM_ShaderComplexity)
 	{
 		uint2 QuadID = SvPosition.xy / 2 + QuadOverdrawOffset();
 		SceneColor.r += ComplexityToFloat(QuadOverdrawTexture.Load(int3(QuadID,0)));
@@ -200,7 +200,7 @@ void Main(
 
 #if READ_QUAD_OVERDRAW
 	[branch]
-	if (QuadOverdrawMode != QOM_None)
+	if (DebugViewShaderMode != DVSM_ShaderComplexity)
 	{
 		uint2 QuadID = ViewportCenter / 2 + QuadOverdrawOffset();
 		CenterViewportHDRColor.r += ComplexityToFloat(QuadOverdrawTexture.Load(int3(QuadID,0)));
@@ -250,7 +250,7 @@ void Main(
 		OutColor.xyz = lerp(LegendColor, OutColor.xyz, saturate(BorderDistance - (OuterBorder + 1)));
 
 		[branch]
-		if (QuadOverdrawMode == QOM_QuadComplexity)
+		if (DebugViewShaderMode == DVSM_QuadComplexity)
 		{
 			// OverDraw
 			int2 Cursor = LeftTop + int2(saturate(CenterViewportHDRColor.r) * (Size.x - 2 * 8), 5);

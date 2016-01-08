@@ -793,9 +793,6 @@ public:
 
 	virtual ~FShaderType();
 
-	/** @return An existing shader of this type with the specified output, or NULL. */
-	FShader* FindShaderByOutput(const FShaderCompilerOutput& Output) const;
-
 	/**
 	 * Finds a shader of this type by ID.
 	 * @return NULL if no shader with the specified ID was found.
@@ -826,36 +823,36 @@ public:
 	virtual const FMeshMaterialShaderType* GetMeshMaterialShaderType() const { return nullptr; }
 	
 	// Accessors.
-	EShaderFrequency GetFrequency() const 
+	inline EShaderFrequency GetFrequency() const
 	{ 
 		return (EShaderFrequency)Frequency; 
 	}
-	const TCHAR* GetName() const 
+	inline const TCHAR* GetName() const
 	{ 
 		return Name; 
 	}
-	const FName& GetFName() const
+	inline const FName& GetFName() const
 	{
 		return TypeName;
 	}
-	const TCHAR* GetShaderFilename() const 
+	inline const TCHAR* GetShaderFilename() const
 	{ 
 		return SourceFilename; 
 	}
-	const TCHAR* GetFunctionName() const
+	inline const TCHAR* GetFunctionName() const
 	{
 		return FunctionName;
 	}
-	int32 GetNumShaders() const
+	inline int32 GetNumShaders() const
 	{
 		return ShaderIdMap.Num();
 	}
-	const FSerializationHistory& GetSerializationHistory() const
+	inline const FSerializationHistory& GetSerializationHistory() const
 	{
 		return SerializationHistory;
 	}
 
-	const TMap<const TCHAR*, FCachedUniformBufferDeclaration>& GetReferencedUniformBufferStructsCache() const
+	inline const TMap<const TCHAR*, FCachedUniformBufferDeclaration>& GetReferencedUniformBufferStructsCache() const
 	{
 		return ReferencedUniformBufferStructsCache;
 	}
@@ -881,18 +878,18 @@ public:
 	}
 
 	/** Locks the ShaderIdMap before deregistration */
-	void LockShaderIdMap()
+	inline void LockShaderIdMap()
 	{
 		ShaderIdMapCritical.Lock();
 	}
 
-	void RemoveFromShaderIdMap(FShaderId Id)
+	inline void RemoveFromShaderIdMap(FShaderId Id)
 	{
 		ShaderIdMap.Remove(Id);
 	}
 
 	/** Unlocks the ShaderIdMap after deregistration has completed */
-	void UnlockShaderIdMap()
+	inline void UnlockShaderIdMap()
 	{
 		ShaderIdMapCritical.Unlock();
 	}
@@ -1946,11 +1943,17 @@ inline void FShader::CheckShaderIsValid() const
 }
 
 /**
- * Dumps shader stats to the log.
+ * Dumps shader stats to the log. Will also print some shader pipeline information.
  * @param Platform  - Platform to dump shader info for, use SP_NumPlatforms for all
  * @param Frequency - Whether to dump PS or VS info, use SF_NumFrequencies to dump both
  */
 extern SHADERCORE_API void DumpShaderStats( EShaderPlatform Platform, EShaderFrequency Frequency );
+
+/**
+ * Dumps shader pipeline stats to the log. Does not include material (eg shader pipeline instance) information.
+ * @param Platform  - Platform to dump shader info for, use SP_NumPlatforms for all
+ */
+extern SHADERCORE_API void DumpShaderPipelineStats(EShaderPlatform Platform);
 
 /**
  * Finds the shader type with a given name.

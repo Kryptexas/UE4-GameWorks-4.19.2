@@ -907,6 +907,11 @@ protected:
 	int32 SectionIndexPreview;
 #endif
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	/** Texture streaming factor used for lightmap textures */
+	float WorldLightmapFactor;
+#endif
+
 	/**
 	 * Returns the display factor for the given LOD level
 	 *

@@ -963,6 +963,10 @@ public:
 	UPROPERTY(globalconfig)
 	TArray<FLinearColor> HLODColorationColors;
 
+	/** The colors used for TexelFactorAccuracy and WantedMipsAccuracy. */
+	UPROPERTY(globalconfig)
+	TArray<FLinearColor> StreamingAccuracyColors;
+
 	/**
 	* Complexity limits for the various complexity view mode combinations.
 	* These limits are used to map instruction counts to ShaderComplexityColors.

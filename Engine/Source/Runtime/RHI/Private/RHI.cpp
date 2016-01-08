@@ -250,6 +250,7 @@ int32 GDrawUPIndexCheckCount = MAX_int32;
 bool GTriggerGPUProfile = false;
 bool GRHISupportsTextureStreaming = false;
 bool GSupportsDepthBoundsTest = false;
+bool GSupportsEfficientAsyncCompute = false;
 bool GRHISupportsBaseVertexIndex = true;
 bool GRHISupportsInstancing = true;
 bool GRHISupportsFirstInstance = false;

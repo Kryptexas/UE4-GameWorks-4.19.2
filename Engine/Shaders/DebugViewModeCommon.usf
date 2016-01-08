@@ -1,0 +1,31 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	DebugViewModeCommon.hlsl: Debug pixel shader interpolants.
+=============================================================================*/
+
+// This define the interpolant needed by the pixel shader used for debug viewmode.
+// Those use a global shader that must have exactly the same inputs as the VS outputs.
+// This is also compatible with shaders that modify the mesh position (like tesselation).
+// Which is better in the end than simply defining a material override.
+
+struct FDebugVSToPS
+{
+	// TexCoords must first in order to be compatible with viewmode requiring using only SV_Position
+	float4 Position : SV_POSITION;
+	float2 TexCoords : TEXCOORD0;
+};
+
+struct FDebugPSIn
+{
+	float4 SvPosition : SV_POSITION;
+	float2 TexCoords : TEXCOORD0;
+	uint SvPrimitiveID : SV_PrimitiveID;
+};
+
+// This one is only compatible if no previous stage outputed SV_PrimitiveID (i.e. geometry shader)
+struct FDebugPSInLean
+{
+	float4 SvPosition : SV_POSITION;
+	uint PrimitiveID : SV_PrimitiveID;
+};

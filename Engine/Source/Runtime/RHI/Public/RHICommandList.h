@@ -867,6 +867,18 @@ struct FRHICommandTransitionUAVs : public FRHICommand<FRHICommandTransitionUAVs<
 };
 
 template<ECmdList CmdListType>
+struct FRHICommandSetAsyncComputeBudget : public FRHICommand<FRHICommandSetAsyncComputeBudget<CmdListType>>
+{
+	EAsyncComputeBudget Budget;
+
+	FORCEINLINE_DEBUGGABLE FRHICommandSetAsyncComputeBudget(EAsyncComputeBudget InBudget)
+		: Budget(InBudget)
+	{
+	}
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
+
+template<ECmdList CmdListType>
 struct FRHICommandWaitComputeFence : public FRHICommand<FRHICommandWaitComputeFence<CmdListType>>
 {
 	FComputeFenceRHIParamRef WaitFence;
@@ -1263,9 +1275,11 @@ template<ECmdList CmdListType>
 struct FRHICommandPushEvent : public FRHICommand<FRHICommandPushEvent<CmdListType>>
 {
 	const TCHAR *Name;
+	FColor Color;
 
-	FORCEINLINE_DEBUGGABLE FRHICommandPushEvent(const TCHAR *InName)
+	FORCEINLINE_DEBUGGABLE FRHICommandPushEvent(const TCHAR *InName, FColor InColor)
 		: Name(InName)
+		, Color(InColor)
 	{
 	}
 	RHI_API void Execute(FRHICommandListBase& CmdList);
@@ -2015,17 +2029,17 @@ public:
 	void BeginFrame();
 	void EndFrame();
 
-	FORCEINLINE_DEBUGGABLE void PushEvent(const TCHAR* Name)
+	FORCEINLINE_DEBUGGABLE void PushEvent(const TCHAR* Name, FColor Color)
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(PushEvent)(Name);
+			CMD_CONTEXT(PushEvent)(Name, Color);
 			return;
 		}
 		int32 Len = FCString::Strlen(Name) + 1;
 		TCHAR* NameCopy  = (TCHAR*)Alloc(Len * (int32)sizeof(TCHAR), (int32)sizeof(TCHAR));
 		FCString::Strcpy(NameCopy, Len, Name);
-		new (AllocCommand<FRHICommandPushEvent<ECmdList::EGfx>>()) FRHICommandPushEvent<ECmdList::EGfx>(NameCopy);
+		new (AllocCommand<FRHICommandPushEvent<ECmdList::EGfx>>()) FRHICommandPushEvent<ECmdList::EGfx>(NameCopy, Color);
 	}
 
 	FORCEINLINE_DEBUGGABLE void PopEvent()
@@ -2187,6 +2201,16 @@ public:
 		new (AllocCommand<FRHICommandSetComputeShader<ECmdList::ECompute> >()) FRHICommandSetComputeShader<ECmdList::ECompute>(ComputeShader);
 	}
 
+	FORCEINLINE_DEBUGGABLE void SetAsyncComputeBudget(EAsyncComputeBudget Budget)
+	{
+		if (Bypass())
+		{
+			CMD_CONTEXT(SetAsyncComputeBudget)(Budget);
+			return;
+		}
+		new (AllocCommand<FRHICommandSetAsyncComputeBudget<ECmdList::ECompute>>()) FRHICommandSetAsyncComputeBudget<ECmdList::ECompute>(Budget);
+	}
+
 	FORCEINLINE_DEBUGGABLE void DispatchComputeShader(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ)
 	{
 		if (Bypass())
@@ -2238,17 +2262,17 @@ public:
 		TransitionResources(TransitionType, TransitionPipeline, InUAVs, NumUAVs, nullptr);
 	}
 	
-	FORCEINLINE_DEBUGGABLE void PushEvent(const TCHAR* Name)
+	FORCEINLINE_DEBUGGABLE void PushEvent(const TCHAR* Name, FColor Color)
 	{
 		if (Bypass())
 		{
-			COMPUTE_CONTEXT(PushEvent)(Name);
+			COMPUTE_CONTEXT(PushEvent)(Name, Color);
 			return;
 		}
 		int32 Len = FCString::Strlen(Name) + 1;
 		TCHAR* NameCopy = (TCHAR*)Alloc(Len * (int32)sizeof(TCHAR), (int32)sizeof(TCHAR));
 		FCString::Strcpy(NameCopy, Len, Name);
-		new (AllocCommand<FRHICommandPushEvent<ECmdList::ECompute> >()) FRHICommandPushEvent<ECmdList::ECompute>(NameCopy);
+		new (AllocCommand<FRHICommandPushEvent<ECmdList::ECompute> >()) FRHICommandPushEvent<ECmdList::ECompute>(NameCopy, Color);
 	}
 
 	FORCEINLINE_DEBUGGABLE void PopEvent()
@@ -2700,7 +2724,12 @@ public:
 	{
 		RHIBindDebugLabelName(Texture, Name);
 	}
-	
+
+	FORCEINLINE void BindDebugLabelName(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const TCHAR* Name)
+	{
+		RHIBindDebugLabelName(UnorderedAccessViewRHI, Name);
+	}
+
 	FORCEINLINE void ReadSurfaceData(FTextureRHIParamRef Texture,FIntRect Rect,TArray<FColor>& OutData,FReadSurfaceDataFlags InFlags)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_ReadSurfaceData_Flush);
