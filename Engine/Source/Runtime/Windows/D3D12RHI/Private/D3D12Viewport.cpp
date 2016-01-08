@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12Viewport.cpp: D3D viewport RHI implementation.
@@ -29,7 +29,7 @@ namespace D3D12RHI
 	{
 		int32 bSyncWithDWM = 0;
 		static FAutoConsoleVariableRef CVarSyncWithDWM(
-		TEXT("D3D12.SyncWithDWM"),
+			TEXT("D3D12.SyncWithDWM"),
 			bSyncWithDWM,
 			TEXT("If true, synchronize with the desktop window manager for vblank."),
 			ECVF_RenderThreadSafe
@@ -37,7 +37,7 @@ namespace D3D12RHI
 
 		float RefreshPercentageBeforePresent = 1.0f;
 		static FAutoConsoleVariableRef CVarRefreshPercentageBeforePresent(
-		TEXT("D3D12.RefreshPercentageBeforePresent"),
+			TEXT("D3D12.RefreshPercentageBeforePresent"),
 			RefreshPercentageBeforePresent,
 			TEXT("The percentage of the refresh period to wait before presenting."),
 			ECVF_RenderThreadSafe
@@ -45,7 +45,7 @@ namespace D3D12RHI
 
 		int32 bForceThirtyHz = 1;
 		static FAutoConsoleVariableRef CVarForceThirtyHz(
-		TEXT("D3D12.ForceThirtyHz"),
+			TEXT("D3D12.ForceThirtyHz"),
 			bForceThirtyHz,
 			TEXT("If true, the display will never update more often than 30Hz."),
 			ECVF_RenderThreadSafe
@@ -53,7 +53,7 @@ namespace D3D12RHI
 
 		int32 SyncInterval = 1;
 		static FAutoConsoleVariableRef CVarSyncInterval(
-		TEXT("D3D12.SyncInterval"),
+			TEXT("D3D12.SyncInterval"),
 			SyncInterval,
 			TEXT("When synchronizing with D3D, specifies the interval at which to refresh."),
 			ECVF_RenderThreadSafe
@@ -61,7 +61,7 @@ namespace D3D12RHI
 
 		float SyncRefreshThreshold = 1.05f;
 		static FAutoConsoleVariableRef CVarSyncRefreshThreshold(
-		TEXT("D3D12.SyncRefreshThreshold"),
+			TEXT("D3D12.SyncRefreshThreshold"),
 			SyncRefreshThreshold,
 			TEXT("Threshold for time above which vsync will be disabled as a percentage of the refresh rate."),
 			ECVF_RenderThreadSafe
@@ -156,7 +156,7 @@ FD3D12Texture2D* GetSwapChainSurface(FD3D12Device* Parent, EPixelFormat PixelFor
 		FClearValueBinding()
 		);
 
-    FD3D12ShaderResourceView* pWrappedShaderResourceView = new FD3D12ShaderResourceView(Parent, &SRVDesc, NewTexture->ResourceLocation);
+	FD3D12ShaderResourceView* pWrappedShaderResourceView = new FD3D12ShaderResourceView(Parent, &SRVDesc, NewTexture->ResourceLocation);
 	NewTexture->SetShaderResourceView(pWrappedShaderResourceView);
 
 	D3D11TextureAllocated2D(*NewTexture);
@@ -209,7 +209,7 @@ void FD3D12Viewport::Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen
 		BackBuffers[i].SafeRelease();
 		check(BackBuffers[i] == nullptr);
 	}
-	
+
 	// Flush all pending deletes. The resize may not happen on the rendering thread so we need to
 	// enqueue a command on the rendering thread to ensure it happens.
 	ENQUEUE_UNIQUE_RENDER_COMMAND(FlushCommand,
@@ -562,7 +562,7 @@ void FD3D12CommandContext::RHIBeginDrawingViewport(FViewportRHIParamRef Viewport
 	SCOPE_CYCLE_COUNTER(STAT_D3D12PresentTime);
 
 	check(!Device->GetDrawingViewport());
-	Device->SetDrawingViewport( Viewport );
+	Device->SetDrawingViewport(Viewport);
 
 	// Set the render target and viewport.
 	// MSFT: Seb

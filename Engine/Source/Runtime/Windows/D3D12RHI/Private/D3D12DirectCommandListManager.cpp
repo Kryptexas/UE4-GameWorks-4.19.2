@@ -1,3 +1,5 @@
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+
 #include "D3D12RHIPrivate.h"
 #include "Windows.h"
 
@@ -53,7 +55,9 @@ bool FD3D12Fence::IsFenceComplete(uint64 FenceValue)
 
 	// Avoid repeatedly calling GetCompletedValue()
 	if (FenceValue <= LastCompletedFence)
+	{
 		return true;
+	}
 
 	// Refresh the completed fence value
 	LastCompletedFence = Fence->GetCompletedValue();
@@ -73,7 +77,9 @@ void FD3D12Fence::WaitForFence(uint64 FenceValue)
 	check(Fence != nullptr);
 
 	if (IsFenceComplete(FenceValue))
+	{
 		return;
+	}
 
 	// We must wait.  Do so with an event handler so we don't oversleep.
 	VERIFYD3D11RESULT(Fence->SetEventOnCompletion(FenceValue, hFenceCompleteEvent));
@@ -138,7 +144,9 @@ void FD3D12CommandListManager::Destroy()
 
 	FD3D12CommandListHandle hList;
 	while (!ReadyLists.IsEmpty())
-		ReadyLists.Dequeue (hList);
+	{
+		ReadyLists.Dequeue(hList);
+	}
 }
 
 void FD3D12CommandListManager::Create(uint32 NumCommandLists)
@@ -148,12 +156,12 @@ void FD3D12CommandListManager::Create(uint32 NumCommandLists)
 	checkf(NumCommandLists <= 0xffff, TEXT("Exceeded maximum supported command lists"));
 
 	ID3D12Device* Direct3DDevice = GetParentDevice()->GetDevice();
-    D3D12_COMMAND_QUEUE_DESC CommandQueueDesc = {};
-    CommandQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-    CommandQueueDesc.NodeMask = 0;
-    CommandQueueDesc.Priority = 0;
-    CommandQueueDesc.Type = CommandListType;
-    VERIFYD3D11RESULT(Direct3DDevice->CreateCommandQueue(&CommandQueueDesc, IID_PPV_ARGS(D3DCommandQueue.GetInitReference())));
+	D3D12_COMMAND_QUEUE_DESC CommandQueueDesc ={};
+	CommandQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+	CommandQueueDesc.NodeMask = 0;
+	CommandQueueDesc.Priority = 0;
+	CommandQueueDesc.Type = CommandListType;
+	VERIFYD3D11RESULT(Direct3DDevice->CreateCommandQueue(&CommandQueueDesc, IID_PPV_ARGS(D3DCommandQueue.GetInitReference())));
 
 	for (uint32 i = 0; i < FT_NumTypes; i++)
 	{
@@ -277,14 +285,14 @@ void FD3D12CommandListManager::ExecuteCommandLists(TArray<FD3D12CommandListHandl
 	FD3D12CommandListHandle BarrierCommandList[128];
 	if (NeedsResourceBarriers)
 	{
-//#todo-rco: Need verification from MS
+		//#todo-rco: Need verification from MS
 #if 0//UE_BUILD_DEBUG	
 		if (!ResourceStateCS.TryLock())
 		{
 			FD3D12DynamicRHI::GetD3DRHI()->SubmissionLockStalls++;
 			// We don't think this will get hit but it's possible. If we do see this happen,
 			// we should evaluate how often and why this is happening
-			check(0); 
+			check(0);
 		}
 #endif
 		FScopeLock Lock(&ResourceStateCS);
@@ -293,7 +301,7 @@ void FD3D12CommandListManager::ExecuteCommandLists(TArray<FD3D12CommandListHandl
 		{
 			FD3D12CommandListHandle& commandList = Lists[i];
 
-			FD3D12CommandListHandle barrierCommandList = {};
+			FD3D12CommandListHandle barrierCommandList ={};
 			const uint32 numBarriers = GetResourceBarrierCommandList(commandList, barrierCommandList);
 			if (numBarriers)
 			{
@@ -367,8 +375,8 @@ uint32 FD3D12CommandListManager::GetResourceBarrierCommandList(FD3D12CommandList
 		BarrierDescs.Reserve(NumPendingResourceBarriers);
 
 		// Fill out the descs
-		D3D12_RESOURCE_BARRIER desc = {};
-		desc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		D3D12_RESOURCE_BARRIER Desc ={};
+		Desc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
 		for (uint32 i = 0; i < NumPendingResourceBarriers; ++i)
 		{
@@ -380,26 +388,26 @@ uint32 FD3D12CommandListManager::GetResourceBarrierCommandList(FD3D12CommandList
 			CResourceState* pResourceState = PRB.Resource->GetResourceState();
 			check(pResourceState);
 
-			desc.Transition.Subresource = PRB.SubResource;
-			const D3D12_RESOURCE_STATES before = pResourceState->GetSubresourceState(desc.Transition.Subresource);
-			const D3D12_RESOURCE_STATES after = PRB.State;
+			Desc.Transition.Subresource = PRB.SubResource;
+			const D3D12_RESOURCE_STATES Before = pResourceState->GetSubresourceState(Desc.Transition.Subresource);
+			const D3D12_RESOURCE_STATES After = PRB.State;
 
-			check(before != D3D12_RESOURCE_STATE_TBD && before != D3D12_RESOURCE_STATE_CORRUPT);
-			if (before != after)
+			check(Before != D3D12_RESOURCE_STATE_TBD && Before != D3D12_RESOURCE_STATE_CORRUPT);
+			if (Before != After)
 			{
-				desc.Transition.pResource = PRB.Resource->GetResource();
-				desc.Transition.StateBefore = before;
-				desc.Transition.StateAfter = after;
+				Desc.Transition.pResource = PRB.Resource->GetResource();
+				Desc.Transition.StateBefore = Before;
+				Desc.Transition.StateAfter = After;
 
 				// Add the desc
-				BarrierDescs.Add(desc);
+				BarrierDescs.Add(Desc);
 			}
 
 			// Update the state to the what it will be after hList executes
-			const D3D12_RESOURCE_STATES LastState = hList.GetResourceState(PRB.Resource).GetSubresourceState(desc.Transition.Subresource);
-			if (before != LastState)
+			const D3D12_RESOURCE_STATES LastState = hList.GetResourceState(PRB.Resource).GetSubresourceState(Desc.Transition.Subresource);
+			if (Before != LastState)
 			{
-				pResourceState->SetSubresourceState(desc.Transition.Subresource, LastState);
+				pResourceState->SetSubresourceState(Desc.Transition.Subresource, LastState);
 			}
 		}
 
@@ -437,7 +445,7 @@ bool FD3D12CommandListManager::IsComplete(const FD3D12CLSyncPoint& hSyncPoint, u
 	{
 		return false;
 	}
-		
+
 	checkf(FenceOffset == 0, TEXT("This currently doesn't support offsetting fence values."));
 	return hSyncPoint.IsComplete();
 }

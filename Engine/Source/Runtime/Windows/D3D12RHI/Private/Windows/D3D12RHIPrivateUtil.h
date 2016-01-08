@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12RHIPrivateUtil.h: Private D3D RHI Utility definitions for Windows.
@@ -15,7 +15,7 @@ struct FD3DRHIUtil
 	{
 		auto* ConstantBuffer = ((FWinD3D12ConstantBuffer*)InConstantBuffer);
 		// Array may contain NULL entries to pad out to proper 
-        if (ConstantBuffer && ConstantBuffer->CommitConstantsToDevice(UploadHeap, bDiscardSharedConstants))
+		if (ConstantBuffer && ConstantBuffer->CommitConstantsToDevice(UploadHeap, bDiscardSharedConstants))
 		{
 			FD3D12ResourceLocation* DeviceBufferLocation = ConstantBuffer->GetConstantBufferLocation();
 			StateCache.SetConstantBuffer<ShaderFrequencyT>(Index, DeviceBufferLocation, nullptr);

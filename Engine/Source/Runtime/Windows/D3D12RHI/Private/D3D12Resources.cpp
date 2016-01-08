@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 D3D12Resources.cpp: D3D RHI utility implementation.
@@ -19,7 +19,7 @@ void FD3D12CommandAllocator::Init(ID3D12Device* InDevice, const D3D12_COMMAND_LI
 }
 
 FD3D12DeferredDeletionQueue::FD3D12DeferredDeletionQueue(FD3D12Device* InParent) :
-FD3D12DeviceChild(InParent){}
+	FD3D12DeviceChild(InParent) {}
 
 bool FD3D12DeferredDeletionQueue::ReleaseResources()
 {
@@ -61,7 +61,9 @@ FD3D12Resource::~FD3D12Resource()
 {
 #if SUPPORTS_MEMORY_RESIDENCY
 	if (HeapType == D3D12_HEAP_TYPE_DEFAULT)
-		FD3D12DynamicRHI::GetD3DRHI()->GetResourceResidencyManager().ResourceFreed (this);
+	{
+		FD3D12DynamicRHI::GetD3DRHI()->GetResourceResidencyManager().ResourceFreed(this);
+	}
 #endif
 
 	if (pResourceState)
@@ -75,13 +77,17 @@ FD3D12Resource::~FD3D12Resource()
 void FD3D12Resource::UpdateResourceSize()
 {
 	if (HeapType == D3D12_HEAP_TYPE_DEFAULT)
+	{
 		ResourceSize = (uint32)GetRequiredIntermediateSize(GetResource(), 0, Desc.MipLevels);
+	}
 }
 
 void FD3D12Resource::UpdateResidency()
 {
 	if (HeapType == D3D12_HEAP_TYPE_DEFAULT)
-		FD3D12DynamicRHI::GetD3DRHI()->GetResourceResidencyManager().UpdateResidency (this);
+	{
+		FD3D12DynamicRHI::GetD3DRHI()->GetResourceResidencyManager().UpdateResidency(this);
+	}
 }
 #endif
 

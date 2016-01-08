@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12Util.h: D3D RHI utility definitions.
@@ -145,7 +145,7 @@ struct FD3D12QuantizedBoundShaderState
 	{
 		return 0 == FMemory::Memcmp(this, &RHS, sizeof(RHS));
 	}
-	
+
 	friend uint32 GetTypeHash(const FD3D12QuantizedBoundShaderState& Key);
 
 	static void InitShaderRegisterCounts(const D3D12_RESOURCE_BINDING_TIER& ResourceBindingTier, const FShaderCodePackedResourceCounts& Counts, FShaderRegisterCounts& Shader);
@@ -420,9 +420,9 @@ private:
 	class FD3D12DynamicHeapAllocator& UploadHeapAllocator;
 };
 
-static D3D12_DESCRIPTOR_HEAP_DESC CreateDHD (D3D12_DESCRIPTOR_HEAP_TYPE Type, uint32 NumDescriptorsPerHeap, D3D12_DESCRIPTOR_HEAP_FLAGS Flags)
+static D3D12_DESCRIPTOR_HEAP_DESC CreateDHD(D3D12_DESCRIPTOR_HEAP_TYPE Type, uint32 NumDescriptorsPerHeap, D3D12_DESCRIPTOR_HEAP_FLAGS Flags)
 {
-	D3D12_DESCRIPTOR_HEAP_DESC DHD = {Type, NumDescriptorsPerHeap, Flags};
+	D3D12_DESCRIPTOR_HEAP_DESC DHD ={Type, NumDescriptorsPerHeap, Flags};
 
 	return DHD;
 }
@@ -448,7 +448,7 @@ private: // Types
 public: // Methods
 	FDescriptorHeapManager(D3D12_DESCRIPTOR_HEAP_TYPE Type,
 		uint32 NumDescriptorsPerHeap)
-		: m_Desc(CreateDHD (Type, NumDescriptorsPerHeap, D3D12_DESCRIPTOR_HEAP_FLAG_NONE))
+		: m_Desc(CreateDHD(Type, NumDescriptorsPerHeap, D3D12_DESCRIPTOR_HEAP_FLAG_NONE))
 		, m_DescriptorSize(0)
 		, m_pDevice(nullptr)
 	{
@@ -492,7 +492,7 @@ public: // Methods
 		FScopeLock Lock(&CritSect);
 		SHeapEntry &HeapEntry = m_Heaps[index];
 
-		SFreeRange NewRange = 
+		SFreeRange NewRange =
 		{
 			Offset.ptr,
 			Offset.ptr + m_DescriptorSize
@@ -540,12 +540,12 @@ private: // Methods
 	void AllocateHeap()
 	{
 		TRefCountPtr<ID3D12DescriptorHeap> Heap;
-		VERIFYD3D11RESULT( m_pDevice->CreateDescriptorHeap(&m_Desc, IID_PPV_ARGS(Heap.GetInitReference())) );
+		VERIFYD3D11RESULT(m_pDevice->CreateDescriptorHeap(&m_Desc, IID_PPV_ARGS(Heap.GetInitReference())));
 		HeapOffset HeapBase = Heap->GetCPUDescriptorHandleForHeapStart();
 		check(HeapBase.ptr != 0);
 
 		// Allocate and initialize a single new entry in the map
-		m_Heaps.SetNum(m_Heaps.Num() + 1); 
+		m_Heaps.SetNum(m_Heaps.Num() + 1);
 		SHeapEntry& HeapEntry = m_Heaps.Last();
 		HeapEntry.m_FreeList.AddTail({HeapBase.ptr,
 			HeapBase.ptr + m_Desc.NumDescriptors * m_DescriptorSize});
@@ -634,17 +634,17 @@ struct ShaderBytecodeHash
 class FD3D12ShaderBytecode
 {
 public:
-	 FD3D12ShaderBytecode()
+	FD3D12ShaderBytecode()
 	{
-		 FMemory::Memzero(&Shader, sizeof(Shader));
-		 FMemory::Memset(&Hash, 0, sizeof(Hash));
+		FMemory::Memzero(&Shader, sizeof(Shader));
+		FMemory::Memset(&Hash, 0, sizeof(Hash));
 	}
 
-	 FD3D12ShaderBytecode(const D3D12_SHADER_BYTECODE &InShader) :
+	FD3D12ShaderBytecode(const D3D12_SHADER_BYTECODE &InShader) :
 		Shader(InShader)
-	 {
-		 HashShader();
-	 }
+	{
+		HashShader();
+	}
 
 	void SetShaderBytecode(const D3D12_SHADER_BYTECODE &InShader)
 	{
@@ -696,7 +696,7 @@ struct FD3D12HighLevelGraphicsPipelineStateDesc
 	uint32 SampleMask;
 	D3D12_PRIMITIVE_TOPOLOGY_TYPE PrimitiveTopologyType;
 	uint32 NumRenderTargets;
-	DXGI_FORMAT RTVFormats[ 8 ];
+	DXGI_FORMAT RTVFormats[8];
 	DXGI_FORMAT DSVFormat;
 	DXGI_SAMPLE_DESC SampleDesc;
 
@@ -734,8 +734,8 @@ public:
 	bool Dequeue(Type& Result)
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
-		
-		return Items.Dequeue (Result);
+
+		return Items.Dequeue(Result);
 	}
 
 	template <typename CompareFunc>
@@ -743,12 +743,12 @@ public:
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
 
-		if (Items.Peek (Result))
+		if (Items.Peek(Result))
 		{
-			if (Func (Result))
+			if (Func(Result))
 			{
-				Items.Dequeue (Result);
-				
+				Items.Dequeue(Result);
+
 				return true;
 			}
 		}
@@ -756,24 +756,24 @@ public:
 		return false;
 	}
 
-	bool Peek (Type& Result)
+	bool Peek(Type& Result)
 	{
-		FScopeLock ScopeLock( &SynchronizationObject );
-		return Items.Peek (Result);
+		FScopeLock ScopeLock(&SynchronizationObject);
+		return Items.Peek(Result);
 	}
 
 	bool IsEmpty()
 	{
-		FScopeLock ScopeLock( &SynchronizationObject );
+		FScopeLock ScopeLock(&SynchronizationObject);
 		return Items.IsEmpty();
 	}
 
 	void Empty()
 	{
-		FScopeLock ScopeLock( &SynchronizationObject );
+		FScopeLock ScopeLock(&SynchronizationObject);
 
 		Type Result;
-		while (Items.Dequeue (Result)) {}
+		while (Items.Dequeue(Result)) {}
 	}
 };
 class FD3D12Fence;
