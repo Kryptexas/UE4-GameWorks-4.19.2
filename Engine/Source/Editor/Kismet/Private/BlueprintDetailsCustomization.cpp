@@ -1996,9 +1996,9 @@ void FBlueprintVarActionDetails::OnFinishedChangingProperties(const FPropertyCha
 bool FBlueprintVarActionDetails::IsVariableInheritedByBlueprint() const
 {
 	UClass* PropertyOwnerClass = nullptr;
-	if (UBlueprint* PropertyOwnerBlueprint = GetPropertyOwnerBlueprint())
+	if (UBlueprint* PropertyOwnerBP = GetPropertyOwnerBlueprint())
 	{
-		PropertyOwnerClass = PropertyOwnerBlueprint->SkeletonGeneratedClass;
+		PropertyOwnerClass = PropertyOwnerBP->SkeletonGeneratedClass;
 	}
 	else if (CachedVariableProperty.IsValid())
 	{
