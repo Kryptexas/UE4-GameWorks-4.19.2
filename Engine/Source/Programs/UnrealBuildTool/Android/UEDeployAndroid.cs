@@ -1759,6 +1759,9 @@ namespace UnrealBuildTool
 				ManifestFile = Path.Combine(UE4BuildPath, "AndroidManifest.xml");
 				File.WriteAllText(ManifestFile, Manifest);
 
+				// copy prebuild plugin files
+				APL.ProcessPluginNode(NDKArch, "prebuildCopies", "");
+
 				// update metadata files (like project.properties, build.xml) if we are missing a build.xml or if we just overwrote project.properties with a bad version in it (from game/engine dir)
 				UpdateProjectProperties(ToolChain, UE4BuildPath, ProjectName);
 
@@ -1840,7 +1843,9 @@ namespace UnrealBuildTool
 				// copy libgnustl_shared.so to library (use 4.8 if possible, otherwise 4.6)
 				CopySTL(ToolChain, UE4BuildPath, Arch, NDKArch, bForDistribution);
 				CopyGfxDebugger(UE4BuildPath, Arch, NDKArch);
-				CopyPluginLibs(EngineDirectory, UE4BuildPath, Arch, NDKArch);
+
+				// copy postbuild plugin files
+				APL.ProcessPluginNode(NDKArch, "resourceCopies", "");
 
 				Log.TraceInformation("\n===={0}====PERFORMING FINAL APK PACKAGE OPERATION================================================", DateTime.Now.ToString());
 
@@ -1996,12 +2001,6 @@ namespace UnrealBuildTool
 			{
 				Log.TraceInformation(Line.Data);
 			}
-		}
-
-		private void CopyPluginLibs(string EngineDirectory, string UE4BuildPath, string UE4Arch, string NDKArch)
-		{
-			// allow modules to copy dependencies
-			APL.ProcessPluginNode(NDKArch, "resourceCopies", "");
 		}
 
 		private void UpdateGameActivity(string UE4Arch, string NDKArch, string EngineDir, string UE4BuildPath)

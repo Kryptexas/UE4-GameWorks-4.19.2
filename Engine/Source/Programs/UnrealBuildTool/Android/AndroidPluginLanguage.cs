@@ -299,7 +299,10 @@ namespace UnrealBuildTool
 	 * 	<!-- optional additions to proguard -->
 	 * 	<proguardAdditions>	</proguardAdditions>
 	 * 	
-	 * 	<!-- optional files or directories to copy or delete from Intermediate/Android/APK -->
+	 * 	<!-- optional files or directories to copy or delete from Intermediate/Android/APK before ndk-build -->
+	 * 	<prebuildCopies> </prebuildCopies>
+	 * 	
+	 * 	<!-- optional files or directories to copy or delete from Intermediate/Android/APK after ndk-build -->
 	 * 	<resourceCopies> </resourceCopies>
 	 * 	
 	 * 	<!-- optional additions to the GameActivity imports in GameActivity.java -->
