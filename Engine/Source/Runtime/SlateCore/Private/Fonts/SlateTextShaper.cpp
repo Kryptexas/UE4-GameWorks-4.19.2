@@ -405,6 +405,12 @@ void FSlateTextShaper::PerformHarfBuzzTextShaping(const TCHAR* InText, const int
 		AppendPendingTextToSequence();
 	}
 
+	if (InTextDirection == TextBiDi::ETextDirection::RightToLeft)
+	{
+		// Need to flip the sequence here to mimic what HarfBuzz would do if the text had been a single sequence of right-to-left text
+		Algo::Reverse(HarfBuzzTextSequence);
+	}
+
 	// Step 3) Now we use HarfBuzz to shape each font data sequence using its FreeType glyph
 	{
 		hb_buffer_t* HarfBuzzTextBuffer = hb_buffer_create();
