@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,7 +14,7 @@
 #define ENGINE_IS_PROMOTED_BUILD (BUILT_FROM_CHANGELIST > 0)
 
 #define EPIC_COMPANY_NAME  "Epic Games, Inc."
-#define EPIC_COPYRIGHT_STRING "Copyright 1998-2015 Epic Games, Inc. All Rights Reserved."
+#define EPIC_COPYRIGHT_STRING "Copyright 1998-2016 Epic Games, Inc. All Rights Reserved."
 #define EPIC_PRODUCT_NAME "Unreal Engine"
 #define EPIC_PRODUCT_IDENTIFIER "UnrealEngine"
 
