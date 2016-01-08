@@ -4,10 +4,6 @@
 	InstancedStereo.usf: Resolve which view uniforms in a stereo pair to use.
 =============================================================================*/
 
-// Note: If instanced stereo is disabled, the shader compiler will remove the InstancedView
-// uniform buffer. ResolvedView will be replaced with View. This ensures we don't incur 
-// instanced stereo overhead when we're not using it.
-
 #pragma once
 
 struct ViewDependentState {
