@@ -17,11 +17,19 @@
 
 FWidgetBlueprintCompiler::FWidgetBlueprintCompiler(UWidgetBlueprint* SourceSketch, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompilerOptions, TArray<UObject*>* InObjLoaded)
 	: Super(SourceSketch, InMessageLog, InCompilerOptions, InObjLoaded)
+	, NewWidgetBlueprintClass(nullptr)
 {
 }
 
 FWidgetBlueprintCompiler::~FWidgetBlueprintCompiler()
 {
+}
+
+void FWidgetBlueprintCompiler::SetClassForBytecodeCompile(UClass* TargetClass)
+{
+	FKismetCompilerContext::SetClassForBytecodeCompile(TargetClass);
+
+	NewWidgetBlueprintClass = CastChecked<UWidgetBlueprintGeneratedClass>(TargetClass);
 }
 
 void FWidgetBlueprintCompiler::CreateFunctionList()
