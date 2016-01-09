@@ -443,7 +443,7 @@ void FCompilerResultsLog::GetGlobalModuleCompilerDump(const FString& LogDump, EC
 
 	if ( bShowLog )
 	{
-		MessageLog.Open();
+		MessageLog.Open(EMessageSeverity::Info, GetDefault<UEditorPerProjectUserSettings>()->bShowCompilerLogOnCompileError);
 	}
 
 	MessageLog.AddMessages(ParseCompilerLogDump(LogDump));

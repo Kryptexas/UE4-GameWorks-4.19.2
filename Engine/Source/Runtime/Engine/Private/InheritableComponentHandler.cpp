@@ -179,6 +179,12 @@ bool UInheritableComponentHandler::IsRecordValid(const FComponentOverrideRecord&
 		return false;
 	}
 
+	UBlueprintGeneratedClass* ComponentOwner = Record.ComponentKey.GetComponentOwner();
+	if (!ComponentOwner || !OwnerClass->IsChildOf(ComponentOwner))
+	{
+		return false;
+	}
+
 	auto OriginalTemplate = Record.ComponentKey.GetOriginalTemplate();
 	if (!OriginalTemplate)
 	{

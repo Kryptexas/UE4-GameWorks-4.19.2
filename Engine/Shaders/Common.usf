@@ -703,7 +703,7 @@ MaterialFloat4 CalcFullSceneColor(MaterialFloat2 ScreenUV)
 #if SCENE_TEXTURES_DISABLED
 	return MaterialFloat4(0.0f, 0.0f, 0.0f, 0.0f);
 #else
-	  return Texture2DSample(SceneColorTexture, SceneColorTextureSampler,ScreenUV);
+	return Texture2DSample(SceneColorTexture, SceneColorTextureSampler,ScreenUV);
 #endif
 }
 

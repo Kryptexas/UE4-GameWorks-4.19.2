@@ -9,6 +9,10 @@ DEFINE_LOG_CATEGORY_STATIC(LogAutomationTest, Warning, All);
 
 void FAutomationTestFramework::FAutomationTestFeedbackContext::Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category )
 {
+	if (FAutomationTestFramework::GetInstance().CachedContext)
+	{
+		FAutomationTestFramework::GetInstance().CachedContext->Serialize(V, Verbosity, Category);
+	}
 	//ignore 
 	if (!IsRunningCommandlet() && (Verbosity == ELogVerbosity::SetColor))
 	{

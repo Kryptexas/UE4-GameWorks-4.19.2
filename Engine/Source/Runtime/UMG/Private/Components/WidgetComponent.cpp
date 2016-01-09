@@ -959,6 +959,12 @@ void UWidgetComponent::UpdateWidget()
 	{
 		if ( Space != EWidgetSpace::Screen )
 		{
+			TSharedPtr<SWidget> NewWidget;
+			if (Widget)
+			{
+				NewWidget = Widget->TakeWidget();
+			}
+
 			if ( !SlateWidget.IsValid() )
 			{
 				SlateWidget = SNew(SVirtualWindow).Size(DrawSize);
@@ -971,9 +977,9 @@ void UWidgetComponent::UpdateWidget()
 
 			SlateWidget->Resize(DrawSize);
 
-			if ( Widget )
+			if (NewWidget.IsValid())
 			{
-				SlateWidget->SetContent(Widget->TakeWidget());
+				SlateWidget->SetContent(NewWidget.ToSharedRef());
 			}
 			else
 			{

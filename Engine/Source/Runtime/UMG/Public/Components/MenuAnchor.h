@@ -35,6 +35,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Menu Anchor")
 	TEnumAsByte<EMenuPlacement> Placement;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Menu Anchor")
+	bool ShouldDeferPaintingAfterWindowContent;
+
 public:
 	/** Called when the opened state of the menu changes */
 	UPROPERTY(BlueprintAssignable, Category="Menu Anchor|Event")

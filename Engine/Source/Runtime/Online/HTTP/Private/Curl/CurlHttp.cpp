@@ -761,9 +761,20 @@ void FCurlHttpRequest::FinishedRequest()
 		UE_LOG(LogHttp, Verbose, TEXT("%p: request failed, libcurl error: %d (%s)"), this, (int32)CurlCompletionResult, ANSI_TO_TCHAR(curl_easy_strerror(CurlCompletionResult)));
 
 		// Mark last request attempt as completed but failed
-		CompletionStatus = EHttpRequestStatus::Failed;
+		switch (CurlCompletionResult)
+		{
+		case CURLE_COULDNT_CONNECT:
+		case CURLE_COULDNT_RESOLVE_PROXY:
+		case CURLE_COULDNT_RESOLVE_HOST:
+			// report these as connection errors (safe to retry)
+			CompletionStatus = EHttpRequestStatus::Failed_ConnectionError;
+			break;
+		default:
+			CompletionStatus = EHttpRequestStatus::Failed;
+		}
 		// No response since connection failed
 		Response = NULL;
+
 		// Call delegate with failure
 		OnProcessRequestComplete().ExecuteIfBound(SharedThis(this),NULL,false);
 	}

@@ -936,6 +936,7 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	// games can override these to provide proper behavior in each error case
 	OnTravelFailure().AddUObject(this, &UEngine::HandleTravelFailure);
 	OnNetworkFailure().AddUObject(this, &UEngine::HandleNetworkFailure);
+	OnNetworkLagStateChanged().AddUObject(this, &UEngine::HandleNetworkLagStateChanged);
 
 	UE_LOG(LogInit, Log, TEXT("Texture streaming: %s"), IStreamingManager::Get().IsTextureStreamingEnabled() ? TEXT("Enabled") : TEXT("Disabled") );
 
@@ -1515,7 +1516,7 @@ void UEngine::InitializeObjectReferences()
 	}
 
 	// set the font object pointers, unless on server
-	if (!UE_SERVER)
+	if (!IsRunningDedicatedServer())
 	{
 		if (TinyFont == NULL && TinyFontName.ToString().Len())
 		{
@@ -8449,6 +8450,11 @@ void UEngine::HandleNetworkFailure(UWorld *World, UNetDriver *NetDriver, ENetwor
 			CallHandleDisconnectForFailure(World, NetDriver);
 		}
 	}
+}
+
+void UEngine::HandleNetworkLagStateChanged(UWorld* World, UNetDriver* NetDriver, ENetworkLagState::Type LagType)
+{
+	// Stub. Implement in subclasses
 }
 
 void UEngine::HandleNetworkFailure_NotifyGameInstance(UWorld *World, UNetDriver *NetDriver, ENetworkFailure::Type FailureType)

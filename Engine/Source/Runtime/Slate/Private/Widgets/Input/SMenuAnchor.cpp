@@ -108,6 +108,7 @@ void SMenuAnchor::Construct( const FArguments& InArgs )
 	OnMenuOpenChanged = InArgs._OnMenuOpenChanged;
 	Placement = InArgs._Placement;
 	Method = InArgs._Method;
+	ShouldDeferPaintingAfterWindowContent = InArgs._ShouldDeferPaintingAfterWindowContent;
 }
 
 
@@ -242,8 +243,19 @@ int32 SMenuAnchor::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 
 			if ( PopupChild != nullptr )
 			{
-				 OutDrawElements.QueueDeferredPainting(
-					FSlateWindowElementList::FDeferredPaint(PopupChild->Widget, Args, PopupChild->Geometry, MyClippingRect, InWidgetStyle, bParentEnabled));
+				if (ShouldDeferPaintingAfterWindowContent)
+				{
+					OutDrawElements.QueueDeferredPainting(
+						FSlateWindowElementList::FDeferredPaint(PopupChild->Widget, Args, PopupChild->Geometry, MyClippingRect, InWidgetStyle, bParentEnabled));
+				}
+				else
+				{
+					const TSharedPtr<SWindow> PresentingWindow = PopupWindowPtr.Pin();
+					if (PresentingWindow.IsValid())
+					{
+						PopupChild->Widget->Paint(Args.WithNewParent(this), PopupChild->Geometry, PresentingWindow->GetClippingRectangleInWindow(), OutDrawElements, LayerId + 1, InWidgetStyle, ShouldBeEnabled(bParentEnabled));
+					}
+				}
 			}
 		} 
 	}

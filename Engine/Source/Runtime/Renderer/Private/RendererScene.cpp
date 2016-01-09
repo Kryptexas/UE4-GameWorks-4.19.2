@@ -245,7 +245,7 @@ void FDistanceFieldSceneData::VerifyIntegrity()
 		check(PrimitiveAndInstance.Primitive->DistanceFieldInstanceIndices.IsValidIndex(PrimitiveAndInstance.InstanceIndex));
 
 		const int32 InstanceIndex = PrimitiveAndInstance.Primitive->DistanceFieldInstanceIndices[PrimitiveAndInstance.InstanceIndex];
-		check(InstanceIndex == PrimitiveInstanceIndex);
+		check(InstanceIndex == PrimitiveInstanceIndex || InstanceIndex == -1);
 	}
 }
 

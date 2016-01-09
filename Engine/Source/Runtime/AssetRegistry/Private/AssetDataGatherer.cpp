@@ -401,6 +401,7 @@ FAssetDataGatherer::FAssetDataGatherer(const TArray<FString>& InPaths, bool bInI
 		}
 	}
 
+
 	if ( bIsSynchronous )
 	{
 		// Run the package file discovery synchronously
@@ -467,9 +468,8 @@ uint32 FAssetDataGatherer::Run()
 	int32 NumFilesProcessedSinceLastCacheSave = 0;
 	auto WriteAssetCacheFile = [&]()
 	{
-		FNameTableArchiveWriter CachedAssetDataWriter(CacheSerializationVersion);
+		FNameTableArchiveWriter CachedAssetDataWriter(CacheSerializationVersion, CacheFilename);
 		SerializeCache(CachedAssetDataWriter);
-		CachedAssetDataWriter.SaveToFile(*CacheFilename);
 
 		NumFilesProcessedSinceLastCacheSave = 0;
 	};

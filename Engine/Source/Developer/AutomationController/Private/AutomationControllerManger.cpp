@@ -189,7 +189,6 @@ void FAutomationControllerManager::ProcessAvailableTasks()
 				if ( ClusterDistributionMask == 0 )
 				{
 					ProcessResults();
-
 					//Notify the graphical layout we are done processing results.
 					TestsCompleteDelegate.ExecuteIfBound();
 				}
@@ -517,6 +516,7 @@ void FAutomationControllerManager::UpdateTests( )
 				TArray<FString> ErrorStringArray;
 				ErrorStringArray.Add( FString( TEXT( "Failed" ) ) );
 				bHasErrors = true;
+				GLog->Logf(ELogVerbosity::Display, TEXT("Timeout hit. Nooooooo."));
 
 				FAutomationTestResults TestResults;
 				TestResults.State = EAutomationState::Fail;
@@ -535,11 +535,13 @@ void FAutomationControllerManager::UpdateTests( )
 				// If there are no more devices, set the module state to disabled
 				if ( DeviceClusterManager.HasActiveDevice() == false )
 				{
+					GLog->Logf(ELogVerbosity::Display, TEXT("Module disabled"));
 					SetControllerStatus( EAutomationControllerModuleState::Disabled );
 					ClusterDistributionMask = 0;
 				}
 				else
 				{
+					GLog->Logf(ELogVerbosity::Display, TEXT("Module not disabled. Keep looking."));
 					// Remove the cluster from the mask if there are no active devices left
 					if ( DeviceClusterManager.GetNumActiveDevicesInCluster( ClusterIndex ) == 0 )
 					{

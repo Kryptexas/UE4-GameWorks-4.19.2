@@ -4,6 +4,7 @@
 #include "GenericPlatformCrashContext.h"
 #include "UnrealString.h"
 #include "XmlFile.h"
+#include "EngineVersion.h"
 
 struct FPrimaryCrashProperties;
 

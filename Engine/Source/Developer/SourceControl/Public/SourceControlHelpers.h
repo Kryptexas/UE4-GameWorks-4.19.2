@@ -100,6 +100,13 @@ namespace SourceControlHelpers
 	SOURCECONTROL_API extern bool CheckOutFile( const FString& InFile );
 
 	/**
+	 * Helper function to mark a file for add. Does nothing (and returns true) if the file is already under SC
+	 * @param	InFile		The file path to check in
+	 * @return	Success or failure of the mark for add operation
+	 */
+	SOURCECONTROL_API extern bool MarkFileForAdd( const FString& InFile );
+
+	/**
 	 * Helper function perform an operation on files in our 'source controlled' directories, handling checkout/add etc.
 	 * @param	InDestFile			The path to the destination file
 	 * @param	InFileDescription	Description of the file to display to the user, e.g. "Text" or "Image"

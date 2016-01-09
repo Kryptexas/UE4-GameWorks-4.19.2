@@ -1535,6 +1535,7 @@ void SAssetView::RefreshSourceItems()
 	// Remove any assets that should be filtered out any redirectors and non-assets
 	const bool bDisplayEngine = GetDefault<UContentBrowserSettings>()->GetDisplayEngineFolder();
 	const bool bDisplayPlugins = GetDefault<UContentBrowserSettings>()->GetDisplayPluginFolders();
+	const bool bDisplayL10N = GetDefault<UContentBrowserSettings>()->GetDisplayL10NFolder();
 	for (int32 AssetIdx = Items.Num() - 1; AssetIdx >= 0; --AssetIdx)
 	{
 		const FAssetData& Item = Items[AssetIdx];
@@ -1545,9 +1546,9 @@ void SAssetView::RefreshSourceItems()
 		// If this is a plugin folder, and we don't want to show them, remove
 		const bool IsAHiddenPluginFolder = !bDisplayPlugins && ContentBrowserUtils::IsPluginFolder(Item.PackagePath.ToString());
 		// Do not show localized content folders.
-		const bool IsLocalizedContentFolder = ContentBrowserUtils::IsLocalizationFolder(Item.PackagePath.ToString());
+		const bool IsTheHiddenLocalizedContentFolder = !bDisplayL10N && ContentBrowserUtils::IsLocalizationFolder(Item.PackagePath.ToString());
 
-		const bool ShouldFilterOut = IsMainlyARedirector || IsHiddenEngineFolder || IsAHiddenPluginFolder || IsLocalizedContentFolder;
+		const bool ShouldFilterOut = IsMainlyARedirector || IsHiddenEngineFolder || IsAHiddenPluginFolder || IsTheHiddenLocalizedContentFolder;
 		if (ShouldFilterOut)
 		{
 			Items.RemoveAtSwap(AssetIdx);
@@ -1781,6 +1782,7 @@ void SAssetView::RefreshFolders()
 	TArray<FString> FoldersToAdd;
 
 	const bool bDisplayDev = GetDefault<UContentBrowserSettings>()->GetDisplayDevelopersFolder();
+	const bool bDisplayL10N = GetDefault<UContentBrowserSettings>()->GetDisplayL10NFolder();
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 	{
 		TArray<FString> SubPaths;
@@ -1797,7 +1799,7 @@ void SAssetView::RefreshFolders()
 					continue;
 				}
 
-				if (ContentBrowserUtils::IsLocalizationFolder(SubPath))
+				if (!bDisplayL10N && ContentBrowserUtils::IsLocalizationFolder(SubPath))
 				{
 					continue;
 				}
@@ -2475,6 +2477,19 @@ TSharedRef<SWidget> SAssetView::GetViewButtonContent()
 			);
 
 		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ShowL10NFolderOption", "Show Localized Assets"),
+			LOCTEXT("ShowFoldersOptionToolTip", "Show assets within the localized asset directory."),
+			FSlateIcon(),
+			FUIAction(
+			FExecuteAction::CreateSP(this, &SAssetView::ToggleShowL10NFolder),
+			FCanExecuteAction::CreateSP(this, &SAssetView::IsToggleShowL10NFolderAllowed),
+			FIsActionChecked::CreateSP(this, &SAssetView::IsShowingL10NFolder)
+			),
+			NAME_None,
+			EUserInterfaceActionType::ToggleButton
+			);
+
+		MenuBuilder.AddMenuEntry(
 			LOCTEXT("ShowDevelopersFolderOption", "Show Developers Folder"),
 			LOCTEXT("ShowDevelopersFolderOptionToolTip", "Show the developers folder in the view."),
 			FSlateIcon(),
@@ -2677,6 +2692,23 @@ bool SAssetView::IsToggleShowDevelopersFolderAllowed() const
 bool SAssetView::IsShowingDevelopersFolder() const
 {
 	return GetDefault<UContentBrowserSettings>()->GetDisplayDevelopersFolder();
+}
+
+void SAssetView::ToggleShowL10NFolder()
+{
+	check(IsToggleShowFoldersAllowed());
+	GetMutableDefault<UContentBrowserSettings>()->SetDisplayL10NFolder(!GetDefault<UContentBrowserSettings>()->GetDisplayL10NFolder());
+	GetMutableDefault<UContentBrowserSettings>()->PostEditChange();
+}
+
+bool SAssetView::IsToggleShowL10NFolderAllowed() const
+{
+	return true;
+}
+
+bool SAssetView::IsShowingL10NFolder() const
+{
+	return GetDefault<UContentBrowserSettings>()->GetDisplayL10NFolder();
 }
 
 void SAssetView::ToggleShowCollections()

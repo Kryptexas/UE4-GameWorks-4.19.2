@@ -210,7 +210,12 @@ void ALobbyBeaconHost::ProcessJoinServer(ALobbyBeaconClient* ClientActor)
 	if (Player && Player->bInLobby)
 	{
 		Player->bInLobby = false;
-		ClientActor->ClientAckJoiningServer();
+		ClientActor->AckJoiningServer();
+	}
+	else
+	{
+		FString PlayerName = ClientActor ? (ClientActor->PlayerState ? *ClientActor->PlayerState->UniqueId.ToString() : TEXT("Unknown")) : TEXT("Unknown Client Actor");
+		UE_LOG(LogBeacon, Warning, TEXT("Player attempting to join server while not logged in %s Id: %s"), *GetName(), *PlayerName);
 	}
 }
 

@@ -3178,15 +3178,6 @@ void FKismetCompilerContext::Compile()
 		++TimelineIndex;
 	}
 
-	if (CompileOptions.CompileType == EKismetCompileType::Full)
-	{
-		auto InheritableComponentHandler = Blueprint->GetInheritableComponentHandler(false);
-		if (InheritableComponentHandler)
-		{
-			InheritableComponentHandler->ValidateTemplates();
-		}
-	}
-
 	CleanAndSanitizeClass(TargetClass, OldCDO);
 
 	FKismetCompilerVMBackend Backend_VM(Blueprint, Schema, *this);
@@ -3201,6 +3192,15 @@ void FKismetCompilerContext::Compile()
 	if(Blueprint->bGenerateConstClass)
 	{
 		NewClass->ClassFlags |= CLASS_Const;
+	}
+
+	if (CompileOptions.CompileType == EKismetCompileType::Full)
+	{
+		auto InheritableComponentHandler = Blueprint->GetInheritableComponentHandler(false);
+		if (InheritableComponentHandler)
+		{
+			InheritableComponentHandler->ValidateTemplates();
+		}
 	}
 
 	// Make sure that this blueprint is up-to-date with regards to its parent functions
@@ -3417,7 +3417,6 @@ void FKismetCompilerContext::Compile()
 		CopyTermDefaultsToDefaultObject(NewCDO);
 		SetCanEverTick();
 		SetWantsBeginPlay();
-		FKismetCompilerUtilities::ValidateEnumProperties(NewCDO, MessageLog);
 	}
 
 	// Fill out the function bodies, either with function bodies, or simple stubs if this is skeleton generation
@@ -3701,6 +3700,9 @@ void FKismetCompilerContext::Compile()
 
 bool FKismetCompilerContext::ValidateGeneratedClass(UBlueprintGeneratedClass* Class)
 {
+	// Our CDO should be properly constructed by this point and should always exist
+	FKismetCompilerUtilities::ValidateEnumProperties(NewClass->GetDefaultObject(), MessageLog);
+
 	return UBlueprint::ValidateGeneratedClass(Class);
 }
 

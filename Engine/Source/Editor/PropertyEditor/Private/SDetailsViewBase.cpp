@@ -830,7 +830,7 @@ void GetExpandedItems(TSharedPtr<FPropertyNode> InPropertyNode, TArray<FString>&
 * @param InNode			The node to set expanded items on
 * @param OutExpandedItems	List of expanded items to set
 */
-void SetExpandedItems(TSharedPtr<FPropertyNode> InPropertyNode, const TArray<FString>& InExpandedItems)
+void SetExpandedItems(TSharedPtr<FPropertyNode> InPropertyNode, const TSet<FString>& InExpandedItems)
 {
 	if (InExpandedItems.Num() > 0)
 	{
@@ -839,13 +839,9 @@ void SetExpandedItems(TSharedPtr<FPropertyNode> InPropertyNode, const TArray<FSt
 		Path.Empty(128);
 		InPropertyNode->GetQualifiedName(Path, bWithArrayIndex);
 
-		for (int32 ItemIndex = 0; ItemIndex < InExpandedItems.Num(); ++ItemIndex)
+		if (InExpandedItems.Contains(Path))
 		{
-			if (InExpandedItems[ItemIndex] == Path)
-			{
-				InPropertyNode->SetNodeFlags(EPropertyNodeFlags::Expanded, true);
-				break;
-			}
+			InPropertyNode->SetNodeFlags(EPropertyNodeFlags::Expanded, true);
 		}
 
 		for (int32 NodeIndex = 0; NodeIndex < InPropertyNode->GetNumChildNodes(); ++NodeIndex)
@@ -922,17 +918,20 @@ void SDetailsViewBase::RestoreExpandedItems(TSharedRef<FPropertyNode> InitialSta
 
 	ExpandedDetailNodes.Empty();
 
-	TArray<FString> ExpandedPropertyItems;
 	FString ExpandedCustomItems;
 
 	UStruct* BestBaseStruct = StartNode->FindComplexParent()->GetBaseStructure();
 
 	//while a valid class, and we're either the same as the base class (for multiple actors being selected and base class is AActor) OR we're not down to AActor yet)
+	TArray<FString> DetailPropertyExpansionStrings;
 	for (UStruct* Struct = BestBaseStruct; Struct && ((BestBaseStruct == Struct) || (Struct != AActor::StaticClass())); Struct = Struct->GetSuperStruct())
 	{
-		GConfig->GetSingleLineArray(TEXT("DetailPropertyExpansion"), *Struct->GetName(), ExpandedPropertyItems, GEditorPerProjectIni);
-		SetExpandedItems(StartNode, ExpandedPropertyItems);
+		GConfig->GetSingleLineArray(TEXT("DetailPropertyExpansion"), *Struct->GetName(), DetailPropertyExpansionStrings, GEditorPerProjectIni);
 	}
+
+	TSet<FString> ExpandedPropertyItems;
+	ExpandedPropertyItems.Append(DetailPropertyExpansionStrings);
+	SetExpandedItems(StartNode, ExpandedPropertyItems);
 
 	if (BestBaseStruct)
 	{

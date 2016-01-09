@@ -53,6 +53,16 @@
 /** The global center for all post processing activities. */
 FPostProcessing GPostProcessing;
 
+int32 GShaderModelDebug = 0;
+static FAutoConsoleVariableRef CVarShaderModelDebug(
+	TEXT("r.ShaderModelDebug"),
+	GShaderModelDebug,
+	TEXT("Added logging to each frame that should allow to track down issues with View.ShadingModelMaskInView\n")
+	TEXT(" 0: off (default)\n")
+	TEXT(" 1: logging is enabled\n")
+	TEXT("-1: logging is enabled for one frame only"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
 static TAutoConsoleVariable<int32> CVarUseMobileBloom(
 	TEXT("r.UseMobileBloom"),
 	0,

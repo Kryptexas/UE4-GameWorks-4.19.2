@@ -1690,8 +1690,55 @@ void FOpenGLDynamicRHI::RHISetRenderTargets(
 				ContextState.LastES2ColorTargetType = NewColorTargetType;
 		}
 	}
+	
+	// For Depth/Stencil textures whose Stencil component we wish to sample we must blit the stencil component out to an intermediate texture when we 'Store' the texture.
+#if PLATFORM_DESKTOP || PLATFORM_ANDROIDGL4 || PLATFORM_ANDROIDES31
+	if (FOpenGL::GetFeatureLevel() >= ERHIFeatureLevel::SM4 && FOpenGL::SupportsPixelBuffers() && PendingState.DepthStencil && PendingState.DepthStencil->SRVResource && PendingState.StencilStoreAction == ERenderTargetStoreAction::EStore)
+	{
+		uint32 ArrayIndices = 0;
+		uint32 MipmapLevels = 0;
+		
+		GLuint SourceFBO = GetOpenGLFramebuffer(0, nullptr, &ArrayIndices, &MipmapLevels, PendingState.DepthStencil);
+		
+		glBindFramebuffer(GL_FRAMEBUFFER, SourceFBO);
+		
+		uint32 SizeX = PendingState.DepthTargetWidth;
+		uint32 SizeY = PendingState.DepthTargetHeight;
+		
+		uint32 MipBytes = SizeX * SizeY;
+		TRefCountPtr<FOpenGLPixelBuffer> PixelBuffer = new FOpenGLPixelBuffer(0, MipBytes, BUF_Dynamic);
+		
+		glBindBuffer( GL_PIXEL_PACK_BUFFER, PixelBuffer->Resource );
+		glPixelStorei(GL_PACK_ALIGNMENT, 1);
+		glReadPixels(0, 0, SizeX, SizeY, GL_STENCIL_INDEX, GL_UNSIGNED_BYTE, 0 );
+		glPixelStorei(GL_PACK_ALIGNMENT, 4);
+		glBindBuffer( GL_PIXEL_PACK_BUFFER, 0 );
+		
+		FOpenGLContextState& ContextState = GetContextStateForCurrentContext();
+		
+		CachedSetupTextureStage(ContextState, FOpenGL::GetMaxCombinedTextureImageUnits() - 1, PendingState.DepthStencil->Target, PendingState.DepthStencil->SRVResource, -1, 1);
+		CachedBindPixelUnpackBuffer(ContextState, PixelBuffer->Resource);
+		
+		glPixelStorei(GL_UNPACK_ROW_LENGTH, SizeX);
+		
+		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+		glTexSubImage2D(PendingState.DepthStencil->Target, 0, 0, 0, SizeX, SizeY, GL_RED_INTEGER, GL_UNSIGNED_BYTE, nullptr);
+		glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+		
+		glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+		
+		CachedBindPixelUnpackBuffer(ContextState, 0);
+		
+		glBindFramebuffer(GL_FRAMEBUFFER, ContextState.Framebuffer);
+		ContextState.Framebuffer = -1;
+	}
+#endif
+	
 	PendingState.DepthStencil = NewDepthStencilRT;
-
+	PendingState.StencilStoreAction = NewDepthStencilTargetRHI ? NewDepthStencilTargetRHI->GetStencilStoreAction() : ERenderTargetStoreAction::ENoAction;
+	PendingState.DepthTargetWidth = NewDepthStencilTargetRHI ? GetOpenGLTextureSizeXFromRHITexture(NewDepthStencilTargetRHI->Texture) : 0u;
+	PendingState.DepthTargetHeight = NewDepthStencilTargetRHI ? GetOpenGLTextureSizeYFromRHITexture(NewDepthStencilTargetRHI->Texture) : 0u;
+	
 	if (PendingState.FirstNonzeroRenderTarget == -1 && !PendingState.DepthStencil)
 	{
 		// Special case - invalid setup, but sometimes performed by the engine

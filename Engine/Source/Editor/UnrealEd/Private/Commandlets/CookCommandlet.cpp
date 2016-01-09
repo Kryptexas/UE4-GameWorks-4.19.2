@@ -748,7 +748,6 @@ void UCookCommandlet::CollectFilesToCook(TArray<FString>& FilesInPath)
 
 	TArray<FString> CmdLineMapEntries;
 	TArray<FString> CmdLineDirEntries;
-	TArray<FString> CmdLineCultEntries;
 	for (int32 SwitchIdx = 0; SwitchIdx < Switches.Num(); SwitchIdx++)
 	{
 		const FString& Switch = Switches[SwitchIdx];
@@ -783,9 +782,6 @@ void UCookCommandlet::CollectFilesToCook(TArray<FString>& FilesInPath)
 			Entry = Entry.TrimQuotes();
 			FPaths::NormalizeDirectoryName(Entry);
 		}
-
-		// Check for -COOKCULTURES=<culture name> entries
-		CmdLineCultEntries += GetSwitchValueElements(TEXT("COOKCULTURES"));
 	}
 
 	// Also append any cookdirs from the project ini files; these dirs are relative to the game content directory
@@ -1168,6 +1164,22 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	AlwaysCookMapList.Append(MapList);
 	Swap(MapList, AlwaysCookMapList);
 
+	// Set the list of cultures to cook as those on the commandline, if specified.
+	// Otherwise, use the project packaging settings.
+	TArray<FString> CookCultures;
+	if (Switches.ContainsByPredicate([](const FString& Switch) -> bool
+		{
+			return Switch.StartsWith("COOKCULTURES=");
+		}))
+	{
+		CookCultures = CmdLineCultEntries;
+	}
+	else
+	{
+		UProjectPackagingSettings* const PackagingSettings = Cast<UProjectPackagingSettings>(UProjectPackagingSettings::StaticClass()->GetDefaultObject());
+		CookCultures = PackagingSettings->CulturesToStage;
+	}
+
 	//////////////////////////////////////////////////////////////////////////
 	// start cook by the book 
 	ECookByTheBookOptions CookOptions = ECookByTheBookOptions::None;
@@ -1186,7 +1198,7 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	Swap( StartupOptions.CookMaps, MapList );
 	Swap( StartupOptions.CookDirectories, CmdLineDirEntries );
 	Swap( StartupOptions.NeverCookDirectories, CmdLineNeverCookDirEntries);
-	Swap( StartupOptions.CookCultures, CmdLineCultEntries );
+	Swap( StartupOptions.CookCultures, CookCultures );
 	Swap( StartupOptions.DLCName, DLCName );
 	Swap( StartupOptions.BasedOnReleaseVersion, BasedOnReleaseVersion );
 	Swap( StartupOptions.CreateReleaseVersion, CreateReleaseVersion );

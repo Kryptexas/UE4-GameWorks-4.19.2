@@ -938,6 +938,8 @@ FGameplayTagTableRow& FGameplayTagTableRow::operator=(FGameplayTagTableRow const
 	}
 
 	Tag = Other.Tag;
+	CategoryText = Other.CategoryText;
+	DevComment = Other.DevComment;
 
 	return *this;
 }

@@ -28,7 +28,7 @@ class UAbilityTask_PlayMontageAndWait : public UAbilityTask
 	UFUNCTION(BlueprintCallable, Category="Ability|Tasks", meta = (DisplayName="PlayMontageAndWait",
 		HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
 	static UAbilityTask_PlayMontageAndWait* CreatePlayMontageAndWaitProxy(UObject* WorldContextObject,
-		FName TaskInstanceName, UAnimMontage *MontageToPlay, float Rate = 1.f, FName StartSection = NAME_None, bool bStopWhenAbilityEnds = true);
+		FName TaskInstanceName, UAnimMontage *MontageToPlay, float Rate = 1.f, FName StartSection = NAME_None, bool bStopWhenAbilityEnds = true, float AnimRootMotionTranslationScale = 1.f);
 
 	virtual void Activate() override;
 
@@ -50,5 +50,6 @@ private:
 	UAnimMontage* MontageToPlay;
 	float Rate;	
 	FName StartSection;
+	float AnimRootMotionTranslationScale;
 	bool bStopWhenAbilityEnds;
 };

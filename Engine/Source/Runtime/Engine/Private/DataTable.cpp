@@ -6,9 +6,6 @@
 #include "DataTableJSON.h"
 #include "EditorFramework/AssetImportData.h"
 
-ENGINE_API const FString FDataTableRowHandle::Unknown(TEXT("UNKNOWN"));
-ENGINE_API const FString FDataTableCategoryHandle::Unknown(TEXT("UNKNOWN"));
-
 #if WITH_EDITORONLY_DATA
 namespace
 {
@@ -562,4 +559,24 @@ TArray<FName> UDataTable::GetRowNames() const
 	TArray<FName> Keys;
 	RowMap.GetKeys(Keys);
 	return Keys;
+}
+
+bool FDataTableRowHandle::operator==(FDataTableRowHandle const& Other) const
+{
+	return DataTable == Other.DataTable && RowName == Other.RowName;
+}
+
+bool FDataTableRowHandle::operator != (FDataTableRowHandle const& Other) const
+{
+	return DataTable != Other.DataTable || RowName != Other.RowName;
+}
+
+bool FDataTableCategoryHandle::operator==(FDataTableCategoryHandle const& Other) const
+{
+	return DataTable == Other.DataTable && ColumnName == Other.ColumnName && RowContents == Other.RowContents;
+}
+
+bool FDataTableCategoryHandle::operator != (FDataTableCategoryHandle const& Other) const
+{
+	return DataTable != Other.DataTable || ColumnName != Other.ColumnName || RowContents != Other.RowContents;
 }

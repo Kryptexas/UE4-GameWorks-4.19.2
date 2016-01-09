@@ -329,6 +329,15 @@ void FViewInfo::Init()
 	bDisableQuerySubmissions = false;
 	bDisableDistanceBasedFadeTransitions = false;	
 	ShadingModelMaskInView = 0;
+
+	{
+		extern int32 GShaderModelDebug;
+		if(GShaderModelDebug)
+		{
+			UE_LOG(LogRenderer, Log, TEXT("r.ShaderModelDebug: FViewInfo::Init %x"), ShadingModelMaskInView);
+		}
+	}
+
 	NumVisibleStaticMeshElements = 0;
 	PrecomputedVisibilityData = 0;
 	bSceneHasDecals = 0;

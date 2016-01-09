@@ -479,6 +479,11 @@ public:
 	ENGINE_API virtual void ProcessLocalClientPackets();
 
 	/**
+	 * Update the LagState based on a heuristic to determine if we are network lagging
+	 */
+	ENGINE_API virtual void UpdateNetworkLagState();
+
+	/**
 	 * Determines which other connections should receive the voice packet and
 	 * queues the packet for those connections. Used for sending both local/remote voice packets.
 	 *
@@ -608,4 +613,7 @@ protected:
 private:
 	/** Stores the list of objects to replicate into the replay stream. This should be a TUniquePtr, but it appears the generated.cpp file needs the full definition of the pointed-to type. */
 	TSharedPtr<FNetworkObjectList> NetworkObjects;
+
+	/** Set to "Lagging" on the server when all client connections are near timing out. We are lagging on the client when the server connection is near timed out. */
+	ENetworkLagState::Type LagState;
 };

@@ -3780,6 +3780,30 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const T
 		}
 	}
 
+	// Add any files of the desired cultures localized assets to cook.
+	for (const FString& CultureToCookName : CookCultures)
+	{
+		FCulturePtr CultureToCook = FInternationalization::Get().GetCulture(CultureToCookName);
+		if (!CultureToCook.IsValid())
+		{
+			continue;
+		}
+
+		const TArray<FString> CultureNamesToSearchFor = CultureToCook->GetPrioritizedParentCultureNames();
+
+		for (const FString& L10NSubdirectoryName : CultureNamesToSearchFor)
+		{
+			TArray<FString> Files;
+			const FString DirectoryToSearch = FPaths::Combine(*FPaths::GameContentDir(), *FString::Printf(TEXT("L10N/%s"), *L10NSubdirectoryName));
+			IFileManager::Get().FindFilesRecursive(Files, *DirectoryToSearch, *(FString(TEXT("*")) + FPackageName::GetAssetPackageExtension()), true, false);
+			for (FString StdFile : Files)
+			{
+				FPaths::MakeStandardFilename(StdFile);
+				AddFileToCook(FilesInPath, StdFile);
+			}
+		}			
+	}
+
 	if ( IsCookingDLC() )
 	{
 		// get the dlc and make sure we cook that directory 

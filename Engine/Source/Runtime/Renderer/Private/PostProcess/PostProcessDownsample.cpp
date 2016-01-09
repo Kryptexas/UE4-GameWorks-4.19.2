@@ -286,6 +286,7 @@ FPooledRenderTargetDesc FRCPassPostProcessDownsample::ComputeOutputDesc(EPassOut
 
 	Ret.TargetableFlags &= ~TexCreate_UAV;
 	Ret.TargetableFlags |= TexCreate_RenderTargetable;
+	Ret.AutoWritable = false;
 	Ret.DebugName = DebugName;
 
 	return Ret;

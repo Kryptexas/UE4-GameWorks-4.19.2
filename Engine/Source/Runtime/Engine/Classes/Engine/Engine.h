@@ -1430,6 +1430,12 @@ public:
 	DECLARE_EVENT_FourParams(UEngine, FOnNetworkFailure, UWorld*, UNetDriver*, ENetworkFailure::Type, const FString&);
 	FOnNetworkFailure NetworkFailureEvent;
 
+	/** 
+	 * Network lag detected. For the server this means all clients are timing out. On the client it means you are timing out.
+	 */
+	DECLARE_EVENT_ThreeParams(UEngine, FOnNetworkLagStateChanged, UWorld*, UNetDriver*, ENetworkLagState::Type);
+	FOnNetworkLagStateChanged NetworkLagStateChangedEvent;
+
 	// for IsInitialized()
 	bool bIsInitialized;
 
@@ -1636,6 +1642,14 @@ public:
 	void BroadcastNetworkFailure(UWorld * World, UNetDriver *NetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString = TEXT(""))
 	{
 		NetworkFailureEvent.Broadcast(World, NetDriver, FailureType, ErrorString);
+	}
+
+	/** Event triggered after network lag is being experienced or lag has ended */
+	FOnNetworkLagStateChanged& OnNetworkLagStateChanged() { return NetworkLagStateChangedEvent; }
+	/** Called by internal engine systems after network lag has been detected */
+	void BroadcastNetworkLagStateChanged(UWorld * World, UNetDriver *NetDriver, ENetworkLagState::Type LagType)
+	{
+		NetworkLagStateChangedEvent.Broadcast(World, NetDriver, LagType);
 	}
 
 	//~ Begin UObject Interface.
@@ -2023,6 +2037,9 @@ public:
 	/** Delegate called when FPS charting detects a hitch (it is not triggered if a capture isn't in progress). */
 	FEngineHitchDetectedDelegate OnHitchDetectedDelegate;
 
+	/** After running Start/StopFPSChart, this returns the number of frames that were bound by the game thread, render thread, or GPU. */
+	virtual void GetFPSChartBoundByFrameCounts(uint32& OutGameThread, uint32& OutRenderThread, uint32& OutGPU) const;
+
 private:
 
 	/**
@@ -2406,6 +2423,16 @@ public:
 	 * @param	ErrorString	additional string detailing the error
 	 */
 	virtual void HandleTravelFailure(UWorld* InWorld, ETravelFailure::Type FailureType, const FString& ErrorString);
+
+	
+	/**
+	 * Notification of network lag state change messages.
+	 *
+	 * @param	World associated with the lag
+	 * @param	NetDriver associated with the lag
+	 * @param	LagType	Whether we started lagging or we are no longer lagging
+	 */
+	virtual void HandleNetworkLagStateChanged(UWorld* World, UNetDriver* NetDriver, ENetworkLagState::Type LagType);
 
 	/**
 	 * Shutdown any relevant net drivers

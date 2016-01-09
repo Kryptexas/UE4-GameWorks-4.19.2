@@ -53,6 +53,14 @@ static TAutoConsoleVariable<int32> CVarTemporalAASamples(
 	TEXT("Number of jittered positions for temporal AA (4, 8=default, 16, 32, 64)."),
 	ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarWorkaroundJiraFORT16913(
+	TEXT("r.WorkaroundJiraFORT16913"),
+	0,
+	TEXT("Workaround for Jira FORT-16913 which sometimes causes ClearCoat and SubsurfaceScatteringProfile to not render properly.\n")
+	TEXT(" 0: disabled (default)\n")
+	TEXT(" 1: enabled (cost some GPUperformace)"),
+	ECVF_RenderThreadSafe);
+
 #if PLATFORM_MAC // @todo: disabled until rendering problems with HZB occlusion in OpenGL are solved
 static int32 GHZBOcclusion = 0;
 #else
@@ -1470,6 +1478,18 @@ struct FRelevancePacket
 				}
 			}
 
+			{
+				extern int32 GShaderModelDebug;
+				if(GShaderModelDebug)
+				{
+					UE_LOG(LogRenderer, Log, TEXT("r.ShaderModelDebug: %p ComputeRelevance %x = %x | %x"), 
+						this,
+						CombinedShadingModelMask,
+						ViewRelevance.ShadingModelMaskRelevance,
+						CombinedShadingModelMask | ViewRelevance.ShadingModelMaskRelevance);
+				}
+			}
+
 			CombinedShadingModelMask |= ViewRelevance.ShadingModelMaskRelevance;			
 			bUsesGlobalDistanceField |= ViewRelevance.bUsesGlobalDistanceField;
 			bUsesLightingChannels |= ViewRelevance.bUsesLightingChannels;
@@ -1654,7 +1674,26 @@ struct FRelevancePacket
 		{
 			WriteView.PrimitiveVisibilityMap[NotDrawRelevant.Prims[Index]] = false;
 		}
+
+		{
+			extern int32 GShaderModelDebug;
+			if(GShaderModelDebug)
+			{
+				UE_LOG(LogRenderer, Log, TEXT("r.ShaderModelDebug: %p RenderThreadFinalize %x = %x | %x"), 
+					this,
+					WriteView.ShadingModelMaskInView,
+					CombinedShadingModelMask,
+					WriteView.ShadingModelMaskInView | CombinedShadingModelMask);
+			}
+		}
+
 		WriteView.ShadingModelMaskInView |= CombinedShadingModelMask;
+
+		if(CVarWorkaroundJiraFORT16913.GetValueOnRenderThread())
+		{
+			WriteView.ShadingModelMaskInView = 0xffff;
+		}
+
 		WriteView.bUsesGlobalDistanceField |= bUsesGlobalDistanceField;
 		WriteView.bUsesLightingChannels |= bUsesLightingChannels;
 		VisibleEditorPrimitives.AppendTo(WriteView.VisibleEditorPrimitives);

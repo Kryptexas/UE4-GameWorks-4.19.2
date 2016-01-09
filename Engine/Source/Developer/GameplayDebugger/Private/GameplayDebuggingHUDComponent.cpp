@@ -376,7 +376,7 @@ void AGameplayDebuggingHUDComponent::DrawOverHeadInformation(APlayerController* 
 	FString ObjectName = FString::Printf( TEXT("{yellow}%s {white}(%s)"), *DebugComponent->ControllerName, *DebugComponent->PawnName);
 	CalulateStringSize(OverHeadContext, OverHeadContext.Font, ObjectName, TextXL, YL);
 
-	bool bDrawFullOverHead = GetDebuggingReplicator()->GetSelectedActorToDebug() == MyPawn;
+	bool bDrawFullOverHead = MyPawn != nullptr && GetDebuggingReplicator()->GetSelectedActorToDebug() == MyPawn;
 	float IconXLocation = OverHeadContext.DefaultX;
 	float IconYLocation = OverHeadContext.DefaultY;
 	if (bDrawFullOverHead)

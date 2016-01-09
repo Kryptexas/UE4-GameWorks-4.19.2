@@ -1609,12 +1609,6 @@ bool ContentBrowserUtils::IsValidFolderPathForCreate(const FString& InFolderPath
 
 	const FString NewFolderPath = InFolderPath / NewFolderName;
 
-	if (ContentBrowserUtils::IsLocalizationFolder(NewFolderPath))
-	{
-		OutErrorMessage = LOCTEXT("LocalizationFolderReserved", "The L10N folder is reserved for localized content.");
-		return false;
-	}
-
 	if (ContentBrowserUtils::DoesFolderExist(NewFolderPath))
 	{
 		OutErrorMessage = LOCTEXT("RenameFolderAlreadyExists", "A folder already exists at this location with this name.");
@@ -1629,6 +1623,13 @@ bool ContentBrowserUtils::IsValidFolderPathForCreate(const FString& InFolderPath
 			"The full path for the folder is too deep, the maximum is '{0}'. Please choose a shorter name for the folder or create it in a shallower folder structure."),
 			FText::AsNumber(PLATFORM_MAX_FILEPATH_LENGTH));
 		// Return false to indicate that the user should enter a new name for the folder
+		return false;
+	}
+
+	const bool bDisplayL10N = GetDefault<UContentBrowserSettings>()->GetDisplayL10NFolder();
+	if (!bDisplayL10N && ContentBrowserUtils::IsLocalizationFolder(NewFolderPath))
+	{
+		OutErrorMessage = LOCTEXT("LocalizationFolderReserved", "The L10N folder is reserved for localized content and is currently hidden.");
 		return false;
 	}
 

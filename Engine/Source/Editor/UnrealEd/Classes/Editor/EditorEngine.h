@@ -2757,7 +2757,7 @@ public:
 
 	virtual void HandleTravelFailure(UWorld* InWorld, ETravelFailure::Type FailureType, const FString& ErrorString);
 
-	void AutomationLoadMap(const FString& MapName);
+	void AutomationLoadMap(const FString& MapName, FString* OutError);
 
 private:
 	FTimerHandle CleanupPIEOnlineSessionsTimerHandle;

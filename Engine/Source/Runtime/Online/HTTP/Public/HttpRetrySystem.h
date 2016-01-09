@@ -84,7 +84,8 @@ namespace FHttpRetrySystem
 			const FRetryTimeoutRelativeSecondsSetting& InRetryTimeoutRelativeSecondsOverride = FRetryTimeoutRelativeSecondsSetting::Unused(),
 			const FRetryResponseCodes& InRetryResponseCodes = FRetryResponseCodes());
 
-        EStatus::Type                      GetStatus()                { return Status; }
+		EHttpRequestStatus::Type           GetRequestStatus() const   { return HttpRequest->GetStatus(); }
+        EStatus::Type                      GetStatus() const          { return Status; }
         FOnProcessRequestCompleteDelegate& OnProcessRequestComplete() { return OnProcessRequestCompleteDelegate; }
 
     protected:
@@ -97,7 +98,7 @@ namespace FHttpRetrySystem
 
         FRetryLimitCountSetting              RetryLimitCountOverride;
         FRetryTimeoutRelativeSecondsSetting  RetryTimeoutRelativeSecondsOverride;
-		FRetryResponseCodes					 RetryResponseCodesOverride;
+		FRetryResponseCodes					 RetryResponseCodes;
 
         FOnProcessRequestCompleteDelegate    OnProcessRequestCompleteDelegate;
     };
@@ -109,7 +110,7 @@ namespace FHttpRetrySystem
     {
     public:
         // FManager
-		HTTP_API FManager(const FRetryLimitCountSetting& InRetryLimitCountDefault, const FRetryTimeoutRelativeSecondsSetting& InRetryTimeoutRelativeSecondsDefault, const FRetryResponseCodes& InRetryResponseCodesDefault);
+		HTTP_API FManager(const FRetryLimitCountSetting& InRetryLimitCountDefault, const FRetryTimeoutRelativeSecondsSetting& InRetryTimeoutRelativeSecondsDefault);
 
         /**
          * Updates the entries in the list of retry requests. Optional parameters are for future connection health assessment
@@ -158,7 +159,6 @@ namespace FHttpRetrySystem
         FRandomFailureRateSetting            RandomFailureRate;
         FRetryLimitCountSetting              RetryLimitCountDefault;
         FRetryTimeoutRelativeSecondsSetting  RetryTimeoutRelativeSecondsDefault;
-		FRetryResponseCodes					 RetryResponseCodesDefault;
 
         TArray<FHttpRetryRequestEntry>        RequestList;
     };

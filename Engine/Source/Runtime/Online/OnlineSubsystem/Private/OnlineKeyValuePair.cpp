@@ -2,6 +2,7 @@
 
 #include "OnlineSubsystemPrivatePCH.h"
 #include "OnlineKeyValuePair.h"
+#include "JsonObjectConverter.h"
 #include "Json.h"
 
 /**
@@ -805,13 +806,6 @@ bool FVariantDataConverter::VariantDataToUProperty(const FVariantData* Variant, 
 		return false;
 	}
 
-	bool bArrayProperty = Property->IsA<UArrayProperty>();
-	if (bArrayProperty)
-	{
-		UE_LOG(LogOnline, Error, TEXT("VariantDataToUProperty - doesn't support array properties"));
-		return false;
-	}
-
 	if (Property->ArrayDim != 1)
 	{
 		UE_LOG(LogOnline, Warning, TEXT("Ignoring excess properties when deserializing %s"), *Property->GetName());
@@ -930,8 +924,22 @@ bool FVariantDataConverter::ConvertScalarVariantToUProperty(const FVariantData* 
 	}
 	else if (UArrayProperty *ArrayProperty = Cast<UArrayProperty>(Property))
 	{
-		UE_LOG(LogOnline, Error, TEXT("ConvertScalarVariantToUProperty - arrays not supported for property %s"), *Property->GetNameCPP());
-		return false;
+		FString StrValue;
+		Variant->GetValue(StrValue);
+
+		TSharedPtr<FJsonObject> JsonObject;
+		TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(StrValue);
+		if (!FJsonSerializer::Deserialize(JsonReader, JsonObject) || !JsonObject.IsValid())
+		{
+			UE_LOG(LogOnline, Warning, TEXT("ConvertScalarVariantToUProperty - Unable to parse json=[%s]"), *StrValue);
+			return false;
+		}
+		
+		if (!FJsonObjectConverter::JsonValueToUProperty(JsonObject->GetField<EJson::Array>(Property->GetNameCPP()), Property, OutValue, 0, 0))
+		{
+			UE_LOG(LogOnline, Warning, TEXT("ConvertScalarVariantToUProperty - Unable to parse %s from JSON"), *Property->GetNameCPP());
+			return false;
+		}
 	}
 	else if (UTextProperty *TextProperty = Cast<UTextProperty>(Property))
 	{
@@ -1099,7 +1107,19 @@ bool FVariantDataConverter::ConvertScalarUPropertyToVariant(UProperty* Property,
 	}
 	else if (UArrayProperty *ArrayProperty = Cast<UArrayProperty>(Property))
 	{
-		// not supported yet
+		TSharedPtr<FJsonValue> Json = FJsonObjectConverter::UPropertyToJsonValue(Property, Value, 0, 0);
+
+		TSharedRef<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
+		JsonObject->SetField(Property->GetNameCPP(), Json);
+		
+		FString Contents;
+		TSharedRef< TJsonWriter<> > Writer = TJsonWriterFactory<>::Create(&Contents);
+		if (!FJsonSerializer::Serialize(JsonObject, Writer))
+		{
+			return false;
+		}
+
+		OutVariantData.SetValue(Contents);
 	}
 	else if (UStructProperty *StructProperty = Cast<UStructProperty>(Property))
 	{

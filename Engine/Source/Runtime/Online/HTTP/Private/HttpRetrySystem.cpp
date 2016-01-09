@@ -8,37 +8,56 @@ FHttpRetrySystem::FRequest::FRequest(
 	const TSharedRef<IHttpRequest>& HttpRequest, 
 	const FHttpRetrySystem::FRetryLimitCountSetting& InRetryLimitCountOverride,
 	const FHttpRetrySystem::FRetryTimeoutRelativeSecondsSetting& InRetryTimeoutRelativeSecondsOverride,
-	const FHttpRetrySystem::FRetryResponseCodes& InRetryResponseCodesOverride
+	const FHttpRetrySystem::FRetryResponseCodes& InRetryResponseCodes
 	)
     : FHttpRequestAdapterBase(HttpRequest)
     , Status(FHttpRetrySystem::FRequest::EStatus::NotStarted)
     , RetryLimitCountOverride(InRetryLimitCountOverride)
     , RetryTimeoutRelativeSecondsOverride(InRetryTimeoutRelativeSecondsOverride)
-	, RetryResponseCodesOverride(InRetryResponseCodesOverride)
+	, RetryResponseCodes(InRetryResponseCodes)
 {
     // if the InRetryTimeoutRelativeSecondsOverride override is being used the value cannot be negative
     check(!(InRetryTimeoutRelativeSecondsOverride.bUseValue) || (InRetryTimeoutRelativeSecondsOverride.Value >= 0.0));
 }
 
-FHttpRetrySystem::FManager::FManager(const FRetryLimitCountSetting& InRetryLimitCountDefault, const FRetryTimeoutRelativeSecondsSetting& InRetryTimeoutRelativeSecondsDefault, const FRetryResponseCodes& InRetryResponseCodesDefault)
+FHttpRetrySystem::FManager::FManager(const FRetryLimitCountSetting& InRetryLimitCountDefault, const FRetryTimeoutRelativeSecondsSetting& InRetryTimeoutRelativeSecondsDefault)
     : RandomFailureRate(FRandomFailureRateSetting::Unused())
     , RetryLimitCountDefault(InRetryLimitCountDefault)
-    , RetryTimeoutRelativeSecondsDefault(InRetryTimeoutRelativeSecondsDefault)
-	, RetryResponseCodesDefault(InRetryResponseCodesDefault)
+	, RetryTimeoutRelativeSecondsDefault(InRetryTimeoutRelativeSecondsDefault)
 {}
 
 bool FHttpRetrySystem::FManager::ShouldRetry(const FHttpRetryRequestEntry& HttpRetryRequestEntry)
 {
     bool bResult = false;
 
-    FHttpResponsePtr Response = HttpRetryRequestEntry.HttpRequest->GetResponse();
-    if (!Response.IsValid() || 
-		Response->GetResponseCode() == 0 || 
-		HttpRetryRequestEntry.HttpRequest->RetryResponseCodesOverride.Contains(Response->GetResponseCode()) ||
-		RetryResponseCodesDefault.Contains(Response->GetResponseCode()))
-    {
-        bResult = true;
-    }
+	FHttpResponsePtr Response = HttpRetryRequestEntry.HttpRequest->GetResponse();
+	// invalid response means connection or network error but we need to know which one
+	if (!Response.IsValid())
+	{
+		// ONLY retry bad responses if they are connection errors (NOT protocol errors or unknown) otherwise request may be sent (and processed!) twice
+		EHttpRequestStatus::Type Status = HttpRetryRequestEntry.HttpRequest->GetRequestStatus();
+		if (Status == EHttpRequestStatus::Failed_ConnectionError)
+		{
+			bResult = true;
+		}
+		else if (Status == EHttpRequestStatus::Failed)
+		{
+			// we will also allow retry for GET and HEAD requests even if they may duplicate on the server
+			FString Verb = HttpRetryRequestEntry.HttpRequest->GetVerb();
+			if (Verb == TEXT("GET") || Verb == TEXT("HEAD"))
+			{
+				bResult = true;
+			}
+		}
+	}
+	else
+	{
+		// this may be a successful response with one of the explicitly listed response codes we want to retry on
+		if (HttpRetryRequestEntry.HttpRequest->RetryResponseCodes.Contains(Response->GetResponseCode()))
+		{
+			bResult = true;
+		}
+	}
 
     return bResult;
 }

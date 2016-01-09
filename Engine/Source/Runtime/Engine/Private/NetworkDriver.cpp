@@ -150,6 +150,7 @@ UNetDriver::UNetDriver(const FObjectInitializer& ObjectInitializer)
 ,	DebugRelevantActors(false)
 ,	ProcessQueuedBunchesCurrentFrameMilliseconds(0.0f)
 ,	NetworkObjects(new FNetworkObjectList)
+,	LagState(ENetworkLagState::NotLagging)
 {
 }
 
@@ -549,6 +550,79 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 			// If there are no more unmapped objects, we can also stop checking
 			It.RemoveCurrent();
 		}
+	}
+
+	// Update the lag state
+	UpdateNetworkLagState();
+}
+
+void UNetDriver::UpdateNetworkLagState()
+{
+	ENetworkLagState::Type OldLagState = LagState;
+
+	// Percentage of the timeout time that a connection is considered "lagging"
+	const float TimeoutPercentThreshold = 0.75f;
+
+	if ( IsServer() )
+	{
+		// Server network lag detection
+
+		// See if all clients connected to us are lagging. If so there might be network connection problems.
+		// Only trigger this if there are a few connections since a single client could have just crashed or disconnected suddenly,
+		// and is less likely to happen with multiple clients simultaneously.
+		int32 NumValidConnections = 0;
+		int32 NumLaggingConnections = 0;
+		for (UNetConnection* Connection : ClientConnections)
+		{
+			if (Connection)
+			{
+				NumValidConnections++;
+
+				const float HalfTimeout = Connection->GetTimeoutValue() * TimeoutPercentThreshold;
+				const float DeltaTimeSinceLastMessage = Time - Connection->LastReceiveTime;
+				if (DeltaTimeSinceLastMessage > HalfTimeout)
+				{
+					NumLaggingConnections++;
+				}
+			}
+		}
+
+		if (NumValidConnections >= 2 && NumValidConnections == NumLaggingConnections)
+		{
+			// All connections that we could measure are lagging and there are enough to know it is not likely the fault of the clients.
+			LagState = ENetworkLagState::Lagging;
+		}
+		else
+		{
+			// We have at least one non-lagging client or we don't have enough clients to know if the server is lagging.
+			LagState = ENetworkLagState::NotLagging;
+		}
+	}
+	else
+	{
+		// Client network lag detection.
+		
+		// Just check the server connection.
+		if (ensure(ServerConnection))
+		{
+			const float HalfTimeout = ServerConnection->GetTimeoutValue() * TimeoutPercentThreshold;
+			const float DeltaTimeSinceLastMessage = Time - ServerConnection->LastReceiveTime;
+			if (DeltaTimeSinceLastMessage > HalfTimeout)
+			{
+				// We have exceeded half our timeout. We are lagging.
+				LagState = ENetworkLagState::Lagging;
+			}
+			else
+			{
+				// Not lagging yet. We have received a message recently.
+				LagState = ENetworkLagState::NotLagging;
+			}
+		}
+	}
+
+	if (OldLagState != LagState)
+	{
+		GEngine->BroadcastNetworkLagStateChanged(GetWorld(), this, LagState);
 	}
 }
 
@@ -1226,6 +1300,13 @@ void UNetDriver::FinishDestroy()
 {
 	if ( !HasAnyFlags(RF_ClassDefaultObject) )
 	{
+		// Make sure we tell listeners we are no longer lagging in case they set something up when lagging started.
+		if (GEngine && LagState != ENetworkLagState::NotLagging)
+		{
+			LagState = ENetworkLagState::NotLagging;
+			GEngine->BroadcastNetworkLagStateChanged(GetWorld(), this, LagState);
+		}
+
 		// Destroy server connection.
 		if( ServerConnection )
 		{

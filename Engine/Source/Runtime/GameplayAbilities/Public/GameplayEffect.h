@@ -110,9 +110,13 @@ public:
 	/** Filter to use on target tags; If specified, only modifiers applied with all of these tags will factor into the calculation */
 	UPROPERTY(EditDefaultsOnly, Category=AttributeFloat)
 	FGameplayTagContainer TargetTagFilter;
+
+	/** Equality/Inequality operators */
+	bool operator==(const FAttributeBasedFloat& Other) const;
+	bool operator!=(const FAttributeBasedFloat& Other) const;
 };
 
-/** Structure to encapsulte magnitude that are calculated via custom calculation */
+/** Structure to encapsulate magnitude that are calculated via custom calculation */
 USTRUCT()
 struct FCustomCalculationBasedFloat
 {
@@ -153,6 +157,10 @@ public:
 	/** Additive value to the attribute calculation, added in after the coefficient applies */
 	UPROPERTY(EditDefaultsOnly, Category=AttributeFloat)
 	FScalableFloat PostMultiplyAdditiveValue;
+
+	/** Equality/Inequality operators */
+	bool operator==(const FCustomCalculationBasedFloat& Other) const;
+	bool operator!=(const FCustomCalculationBasedFloat& Other) const;
 };
 
 /** Struct for holding SetBytCaller data */
@@ -168,6 +176,10 @@ struct FSetByCallerFloat
 	/** The Name the caller (code or blueprint) will use to set this magnitude by. */
 	UPROPERTY(EditDefaultsOnly, Category=SetByCaller)
 	FName	DataName;
+
+	/** Equality/Inequality operators */
+	bool operator==(const FSetByCallerFloat& Other) const;
+	bool operator!=(const FSetByCallerFloat& Other) const;
 };
 
 /** Struct representing the magnitude of a gameplay effect modifier, potentially calculated in numerous different ways */
@@ -243,6 +255,9 @@ public:
 
 	/** Returns the DataName associated with this magnitude if it is set by caller */
 	bool GetSetByCallerDataNameIfPossible(FName& OutDataName) const;
+
+	bool operator==(const FGameplayEffectModifierMagnitude& Other) const;
+	bool operator!=(const FGameplayEffectModifierMagnitude& Other) const;
 
 #if WITH_EDITOR
 	FText GetValueForEditorDisplay() const;
@@ -398,6 +413,10 @@ struct GAMEPLAYABILITIES_API FGameplayModifierInfo
 	{
 		return FString::Printf(TEXT("%s BaseVaue: %s"), *EGameplayModOpToString(ModifierOp), *Magnitude.ToSimpleString());
 	}
+
+	/** Equality/Inequality operators */
+	bool operator==(const FGameplayModifierInfo& Other) const;
+	bool operator!=(const FGameplayModifierInfo& Other) const;
 };
 
 /**
@@ -1619,6 +1638,9 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 	TArray<FActiveGameplayEffectHandle> GetActiveEffects(const FGameplayEffectQuery& Query) const;
 
 	float GetActiveEffectsEndTime(const FGameplayEffectQuery& Query) const;
+
+	/** Returns an array of all of the active gameplay effect handles */
+	TArray<FActiveGameplayEffectHandle> GetAllActiveEffectHandles() const;
 
 	void ModifyActiveEffectStartTime(FActiveGameplayEffectHandle Handle, float StartTimeDiff);
 

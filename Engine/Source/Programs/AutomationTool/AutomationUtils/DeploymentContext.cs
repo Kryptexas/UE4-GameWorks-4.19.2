@@ -249,7 +249,7 @@ public class DeploymentContext //: ProjectParams
 		bool InCookOnTheFly,
 		bool InArchive,
 		bool InProgram,
-		bool bHasDedicatedServerAndClient,
+		bool IsClientInsteadOfNoEditor,
 		bool bInUseWebsocketNetDriver = false
 		)
 	{
@@ -270,7 +270,7 @@ public class DeploymentContext //: ProjectParams
 
         if (CookSourcePlatform != null && InCooked)
         {
-            CookPlatform = CookSourcePlatform.GetCookPlatform(DedicatedServer, bHasDedicatedServerAndClient, CookFlavor);
+			CookPlatform = CookSourcePlatform.GetCookPlatform(DedicatedServer, IsClientInsteadOfNoEditor, CookFlavor);
         }
         else if (CookSourcePlatform != null && InProgram)
         {
@@ -283,7 +283,7 @@ public class DeploymentContext //: ProjectParams
 
 		if (StageTargetPlatform != null && InCooked)
 		{
-            FinalCookPlatform = StageTargetPlatform.GetCookPlatform(DedicatedServer, bHasDedicatedServerAndClient, CookFlavor);
+			FinalCookPlatform = StageTargetPlatform.GetCookPlatform(DedicatedServer, IsClientInsteadOfNoEditor, CookFlavor);
 		}
 		else if (StageTargetPlatform != null && InProgram)
 		{

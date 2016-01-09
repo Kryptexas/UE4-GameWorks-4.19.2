@@ -812,7 +812,7 @@ bool FPackageName::DoesPackageExistWithLocalization(const FString& LongPackageNa
 	return Filenames[0].Len() > 0;
 }
 
-bool FPackageName::SearchForPackageOnDisk(const FString& PackageName, FString* OutLongPackageName, FString* OutFilename, bool bUseLocalizedNames)
+bool FPackageName::SearchForPackageOnDisk(const FString& PackageName, FString* OutLongPackageName, FString* OutFilename, bool ShouldRedirectToLocalizedPackage)
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FPackageName::SearchForPackageOnDisk"), STAT_PackageName_SearchForPackageOnDisk, STATGROUP_LoadTime);
 
@@ -822,7 +822,7 @@ bool FPackageName::SearchForPackageOnDisk(const FString& PackageName, FString* O
 	{
 		// If this is long package name, revert to using DoesPackageExist because it's a lot faster.
 		FString Filename;
-		if (DoesPackageExist(PackageName, NULL, &Filename))
+		if (DoesPackageExist(PackageName, NULL, &Filename, ShouldRedirectToLocalizedPackage))
 		{
 			if (OutLongPackageName)
 			{
@@ -845,7 +845,7 @@ bool FPackageName::SearchForPackageOnDisk(const FString& PackageName, FString* O
 			for( TArray<FString>::TConstIterator RootPathIt( RootContentPaths ); RootPathIt; ++RootPathIt )
 			{
 				const FString& RootPath = *RootPathIt;
-				const FString& ContentFolder = FPackageName::LongPackageNameToFilename( RootPath );
+				const FString& ContentFolder = FPackageName::LongPackageNameToFilename(RootPath, TEXT(""), ShouldRedirectToLocalizedPackage);
 				Paths.Add( ContentFolder );
 			}
 		}

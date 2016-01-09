@@ -613,6 +613,10 @@ GLuint FOpenGLTextureBase::GetOpenGLFramebuffer(uint32 ArrayIndices, uint32 Mipm
 void FOpenGLTextureBase::InvalidateTextureResourceInCache()
 {
 	OpenGLRHI->InvalidateTextureResourceInCache(Resource);
+	if (SRVResource)
+	{
+		OpenGLRHI->InvalidateTextureResourceInCache(SRVResource);
+	}
 }
 
 template<typename RHIResourceType>
@@ -1755,7 +1759,47 @@ FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FTextur
 	}
 	else
 	{
-		View = new FOpenGLShaderResourceView(this, Texture2D->Resource, Texture2D->Target, MipLevel, false);
+		GLuint Resource = Texture2D->Resource;
+		
+		// For stencil sampling we have to use a separate single channel texture to blit stencil data into
+#if PLATFORM_DESKTOP || PLATFORM_ANDROIDGL4 || PLATFORM_ANDROIDES31
+		if (FOpenGL::GetFeatureLevel() >= ERHIFeatureLevel::SM4 && Format == PF_X24_G8 && FOpenGL::SupportsPixelBuffers())
+		{
+			check(NumMipLevels == 1 && MipLevel == 0);
+			
+			if (!Texture2D->SRVResource)
+			{
+				FOpenGL::GenTextures(1, &Texture2D->SRVResource);
+				
+				uint32 const Target = Texture2D->Target;
+				GLenum const InternalFormat = GL_R8UI;
+				GLenum const ChannelFormat = GL_RED_INTEGER;
+				uint32 const SizeX = Texture2D->GetSizeX();
+				uint32 const SizeY = Texture2D->GetSizeY();
+				GLenum const Type = GL_UNSIGNED_BYTE;
+				uint32 const Flags = 0;
+				
+				FOpenGLContextState& ContextState = GetContextStateForCurrentContext();
+				CachedSetupTextureStage(ContextState, FOpenGL::GetMaxCombinedTextureImageUnits() - 1, Target, Texture2D->SRVResource, MipLevel, NumMipLevels);
+				
+				if (!FOpenGL::TexStorage2D(Target, NumMipLevels, InternalFormat, SizeX, SizeY, ChannelFormat, Type, Flags))
+				{
+					glTexImage2D(Target, 0, InternalFormat, SizeX, SizeY, 0, ChannelFormat, Type, nullptr);
+				}
+				
+				//set the texture to return the stencil index, and then force the components to match D3D
+				glTexParameteri( Texture2D->Target, GL_TEXTURE_SWIZZLE_R, GL_ZERO);
+				glTexParameteri( Texture2D->Target, GL_TEXTURE_SWIZZLE_G, GL_RED);
+				glTexParameteri( Texture2D->Target, GL_TEXTURE_SWIZZLE_B, GL_ZERO);
+				glTexParameteri( Texture2D->Target, GL_TEXTURE_SWIZZLE_A, GL_ZERO);
+			}
+			check(Texture2D->SRVResource);
+			
+			Resource = Texture2D->SRVResource;
+		}
+#endif
+		
+		View = new FOpenGLShaderResourceView(this, Resource, Texture2D->Target, MipLevel, false);
 	}
 	
 	FShaderCache::LogSRV(View, Texture2DRHI, MipLevel, NumMipLevels, Format);
@@ -2120,6 +2164,11 @@ void FOpenGLDynamicRHI::InvalidateTextureResourceInCache(GLuint Resource)
 	}
 	
 	TextureMipLimits.Remove(Resource);
+	
+	if (PendingState.DepthStencil && PendingState.DepthStencil->Resource == Resource)
+	{
+		PendingState.DepthStencil = nullptr;
+	}
 }
 
 void FOpenGLDynamicRHI::InvalidateUAVResourceInCache(GLuint Resource)

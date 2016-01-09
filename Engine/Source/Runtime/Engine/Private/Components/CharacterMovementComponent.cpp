@@ -4258,8 +4258,7 @@ bool UCharacterMovementComponent::FindNavFloor(const FVector& TestLocation, FNav
 		SearchHeight = AgentProps.AgentHeight * AgentProps.NavWalkingSearchHeightScale;
 	}
 
-	NavData->ProjectPoint(TestLocation, NavFloorLocation, FVector(SearchRadius, SearchRadius, SearchHeight));
-	return true;
+	return NavData->ProjectPoint(TestLocation, NavFloorLocation, FVector(SearchRadius, SearchRadius, SearchHeight));
 }
 
 FVector UCharacterMovementComponent::ProjectLocationFromNavMesh(float DeltaSeconds, const FVector& CurrentFeetLocation, const FVector& TargetNavLocation, float UpOffset, float DownOffset)
@@ -7964,6 +7963,7 @@ void UCharacterMovementComponent::TickCharacterPose(float DeltaTime)
 		FRootMotionMovementParams RootMotion = CharacterOwner->GetMesh()->ConsumeRootMotion();
 		if (RootMotion.bHasRootMotion)
 		{
+			RootMotion.RootMotionTransform.ScaleTranslation(CharacterOwner->GetAnimRootMotionTranslationScale());
 			RootMotionParams.Accumulate(RootMotion);
 		}
 

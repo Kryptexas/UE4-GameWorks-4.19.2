@@ -154,10 +154,22 @@ void UAIGraph::RemoveOrphanedNodes()
 		UObject* TestObject = *InnerIt;
 		if (!NodeInstances.Contains(TestObject) && CanRemoveNestedObject(TestObject))
 		{
+			OnNodeInstanceRemoved(TestObject);
+
 			TestObject->SetFlags(RF_Transient);
 			TestObject->Rename(NULL, GetTransientPackage(), REN_DontCreateRedirectors | REN_NonTransactional | REN_ForceNoResetLoaders);
 		}
 	}
+}
+
+void UAIGraph::OnNodeInstanceRemoved(UObject* NodeInstance)
+{
+	// empty in base class
+}
+
+void UAIGraph::OnNodesPasted(const FString& ImportStr)
+{
+	// empty in base class
 }
 
 UEdGraphPin* UAIGraph::FindGraphNodePin(UEdGraphNode* Node, EEdGraphPinDirection Dir)

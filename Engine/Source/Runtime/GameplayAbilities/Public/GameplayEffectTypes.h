@@ -327,7 +327,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 	}
 
 	/** Returns the object this effect was created from. */
-	virtual const UObject* GetSourceObject() const
+	virtual UObject* GetSourceObject() const
 	{
 		return SourceObject.Get();
 	}
@@ -405,7 +405,7 @@ protected:
 
 	/** Object this effect was created from, can be an actor or static object. Useful to bind an effect to a gameplay object */
 	UPROPERTY()
-	TWeakObjectPtr<const UObject> SourceObject;
+	TWeakObjectPtr<UObject> SourceObject;
 
 	/** The ability system component that's bound to instigator */
 	UPROPERTY(NotReplicated)
@@ -556,13 +556,13 @@ struct FGameplayEffectContextHandle
 	}
 
 	/** Returns the object this effect was created from. */
-	const UObject* GetSourceObject() const
+	UObject* GetSourceObject() const
 	{
 		if (IsValid())
 		{
 			return Data->GetSourceObject();
 		}
-		return NULL;
+		return nullptr;
 	}
 
 	/** Returns if the instigator is locally controlled */

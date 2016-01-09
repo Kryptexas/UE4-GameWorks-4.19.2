@@ -1649,6 +1649,11 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.Optimize"));
 		KeyString += (CVar && CVar->GetInt() != 0) ? TEXT("") : TEXT("_NoOpt");
 	}
+	
+	{
+		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.AvoidFlowControl"));
+		KeyString += (CVar && CVar->GetInt() != 0) ? TEXT("_Unroll") : TEXT("_Flow");
+	}
 
 	if (Platform == SP_PS4)
 	{

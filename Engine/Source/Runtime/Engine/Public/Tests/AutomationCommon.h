@@ -12,7 +12,7 @@
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogEditorAutomationTests, Log, All);
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogEngineAutomationTests, Log, All);
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnEditorAutomationMapLoad, const FString&);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnEditorAutomationMapLoad, const FString&, FString*);
 
 /** Common automation functions */
 namespace AutomationCommon

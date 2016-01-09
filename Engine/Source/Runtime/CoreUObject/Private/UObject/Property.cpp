@@ -816,6 +816,8 @@ static bool IsPropertyValueSpecified( const TCHAR* Buffer )
 const TCHAR* UProperty::ImportSingleProperty( const TCHAR* Str, void* DestData, UStruct* ObjectStruct, UObject* SubobjectOuter, int32 PortFlags,
 											FOutputDevice* Warn, TArray<FDefinedProperty>& DefinedProperties )
 {
+	check(ObjectStruct);
+
 	while (*Str == ' ' || *Str == 9)
 	{
 		Str++;
@@ -844,9 +846,22 @@ const TCHAR* UProperty::ImportSingleProperty( const TCHAR* Str, void* DestData, 
 
 		UProperty* Property = FindField<UProperty>(ObjectStruct, Token);
 
+		if (Property == NULL)
+		{
+			// Check for redirects
+			const TMap<FName, FName>* const ClassTaggedPropertyRedirects = UStruct::TaggedPropertyRedirects.Find(ObjectStruct->GetFName());
+			if (ClassTaggedPropertyRedirects)
+			{
+				const FName* const NewPropertyName = ClassTaggedPropertyRedirects->Find(FName(Token));
+				if (NewPropertyName)
+				{
+					Property = FindField<UProperty>(ObjectStruct, *NewPropertyName);
+				}
+			}
+		}		
+
 		delete[] Token;
 		Token = NULL;
-
 
 		if (Property == NULL)
 		{

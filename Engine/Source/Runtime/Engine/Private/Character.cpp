@@ -61,6 +61,8 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 	JumpKeyHoldTime = 0.0f;
 	JumpMaxHoldTime = 0.0f;
 
+	AnimRootMotionTranslationScale = 1.0f;
+
 #if WITH_EDITORONLY_DATA
 	ArrowComponent = CreateEditorOnlyDefaultSubobject<UArrowComponent>(TEXT("Arrow"));
 	if (ArrowComponent)
@@ -1327,10 +1329,11 @@ void ACharacter::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLi
 {
 	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
 
-	DOREPLIFETIME_CONDITION( ACharacter, RepRootMotion,				COND_SimulatedOnly );
-	DOREPLIFETIME_CONDITION( ACharacter, ReplicatedBasedMovement,	COND_SimulatedOnly );
-	DOREPLIFETIME_CONDITION( ACharacter, ReplicatedMovementMode,	COND_SimulatedOnly );
-	DOREPLIFETIME_CONDITION( ACharacter, bIsCrouched,				COND_SimulatedOnly );
+	DOREPLIFETIME_CONDITION( ACharacter, RepRootMotion,						COND_SimulatedOnly );
+	DOREPLIFETIME_CONDITION( ACharacter, ReplicatedBasedMovement,			COND_SimulatedOnly );
+	DOREPLIFETIME_CONDITION( ACharacter, ReplicatedMovementMode,			COND_SimulatedOnly );
+	DOREPLIFETIME_CONDITION( ACharacter, bIsCrouched,						COND_SimulatedOnly );
+	DOREPLIFETIME_CONDITION( ACharacter, AnimRootMotionTranslationScale,	COND_SimulatedOnly );
 }
 
 bool ACharacter::IsPlayingRootMotion() const
@@ -1359,6 +1362,16 @@ bool ACharacter::IsPlayingNetworkedRootMotionMontage() const
 		}
 	}
 	return false;
+}
+
+void ACharacter::SetAnimRootMotionTranslationScale(float InAnimRootMotionTranslationScale)
+{
+	AnimRootMotionTranslationScale = InAnimRootMotionTranslationScale;
+}
+
+float ACharacter::GetAnimRootMotionTranslationScale() const
+{
+	return AnimRootMotionTranslationScale;
 }
 
 float ACharacter::PlayAnimMontage(class UAnimMontage* AnimMontage, float InPlayRate, FName StartSectionName)

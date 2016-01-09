@@ -172,8 +172,8 @@ private:
 	void GetSubClasses(const TArray<FName>& InClassNames, const TSet<FName>& ExcludedClassNames, TSet<FName>& SubClassNames) const;
 	void GetSubClasses_Recursive(FName InClassName, TSet<FName>& SubClassNames, const TMap<FName, TSet<FName>>& ReverseInheritanceMap, const TSet<FName>& ExcludedClassNames) const;
 
-	/** Registers the configured cooked tags whitelist to prevent non-whitelisted tags from being added to cooked builds */
-	void SetupCookedTagsWhitelist();
+	/** Registers the configured cooked tags blacklist to prevent blacklisted tags from being added to cooked builds. If configured, we will configure a whitelist instead to prevent non-whitelist tags */
+	void SetupCookedFilterlistTags();
 
 	/** Finds all class names of classes capable of generating new UClasses */
 	void CollectCodeGeneratorClasses();
@@ -203,8 +203,11 @@ private:
 	/** The map of classes to their parents, and a map of parents to their classes */
 	TMap<FName, FName> CachedInheritanceMap;
 
+	/** True if CookFilterlistTagsByClass is a whitelist. False if it is a blacklist. */
+	bool bFilterlistIsWhitelist;
+
 	/** The map of classname to tag set of tags that are allowed in cooked builds */
-	TMap<FName, TSet<FName>> CookWhitelistedTagsByClass;
+	TMap<FName, TSet<FName>> CookFilterlistTagsByClass;
 
 	/** The tree of known cached paths that assets may reside within */
 	FPathTree CachedPathTree;

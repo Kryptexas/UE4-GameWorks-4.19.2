@@ -1129,16 +1129,23 @@ bool UAbilitySystemComponent::InternalTryActivateAbility(FGameplayAbilitySpecHan
 	// If we are the server or this is local only
 	if (Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::LocalOnly || (NetMode == ROLE_Authority))
 	{
-		if (InPredictionKey.IsValidKey())
+		// if we're the server and don't have a valid key or this ability should be started on the server create a new activation key
+		bool bCreateNewServerKey = NetMode == ROLE_Authority &&
+			(!InPredictionKey.IsValidKey() ||
+			 (Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::ServerInitiated ||
+			  Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::ServerOnly));
+		if (bCreateNewServerKey)
 		{
-			// If available, set the prediction key to what was passed up
-			ActivationInfo.ServerSetActivationPredictionKey(InPredictionKey);
-		}
-		else if (NetMode == ROLE_Authority)
-		{
-			// Otherwise if we're the server give it a server activation key to uniquely identify it
 			ActivationInfo.ServerSetActivationPredictionKey(FPredictionKey::CreateNewServerInitiatedKey(this));
 		}
+		else if (InPredictionKey.IsValidKey())
+		{
+			// Otherwise if available, set the prediction key to what was passed up
+			ActivationInfo.ServerSetActivationPredictionKey(InPredictionKey);
+		}
+
+		// we may have changed the prediction key so we need to update the scoped key to match
+		FScopedPredictionWindow ScopedPredictionWindow(this, ActivationInfo.GetActivationPredictionKey());
 
 		// Create instance of this ability if necessary
 		if (Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
@@ -2418,6 +2425,26 @@ void UAbilitySystemComponent::CurrentMontageSetNextSectionName(FName FromSection
 	}
 }
 
+void UAbilitySystemComponent::CurrentMontageSetPlayRate(float InPlayRate)
+{
+	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->AnimInstance.Get() : nullptr;
+	if (LocalAnimMontageInfo.AnimMontage && AnimInstance)
+	{
+		// Set Play Rate
+		AnimInstance->Montage_SetPlayRate(LocalAnimMontageInfo.AnimMontage, InPlayRate);
+
+		// Update replicated version for Simulated Proxies if we are on the server.
+		if (IsOwnerActorAuthoritative())
+		{
+			AnimMontage_UpdateReplicatedData();
+		}
+		else
+		{
+			ServerCurrentMontageSetPlayRate(LocalAnimMontageInfo.AnimMontage, InPlayRate);
+		}
+	}
+}
+
 bool UAbilitySystemComponent::ServerCurrentMontageSetNextSectionName_Validate(UAnimMontage* ClientAnimMontage, float ClientPosition, FName SectionName, FName NextSectionName)
 {
 	return true;
@@ -2471,6 +2498,31 @@ void UAbilitySystemComponent::ServerCurrentMontageJumpToSectionName_Implementati
 		{
 			// Set NextSectionName
 			AnimInstance->Montage_JumpToSection(SectionName, CurrentAnimMontage);
+
+			// Update replicated version for Simulated Proxies if we are on the server.
+			if (IsOwnerActorAuthoritative())
+			{
+				AnimMontage_UpdateReplicatedData();
+			}
+		}
+	}
+}
+
+bool UAbilitySystemComponent::ServerCurrentMontageSetPlayRate_Validate(UAnimMontage* ClientAnimMontage, float InPlayRate)
+{
+	return true;
+}
+
+void UAbilitySystemComponent::ServerCurrentMontageSetPlayRate_Implementation(UAnimMontage* ClientAnimMontage, float InPlayRate)
+{
+	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->AnimInstance.Get() : nullptr;
+	if (AnimInstance)
+	{
+		UAnimMontage* CurrentAnimMontage = LocalAnimMontageInfo.AnimMontage;
+		if (ClientAnimMontage == CurrentAnimMontage)
+		{
+			// Set PlayRate
+			AnimInstance->Montage_SetPlayRate(LocalAnimMontageInfo.AnimMontage, InPlayRate);
 
 			// Update replicated version for Simulated Proxies if we are on the server.
 			if (IsOwnerActorAuthoritative())

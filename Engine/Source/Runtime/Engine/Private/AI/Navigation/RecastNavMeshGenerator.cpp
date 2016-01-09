@@ -2361,12 +2361,6 @@ bool FRecastTileGenerator::GenerateCompressedLayers(FNavMeshBuildContext& BuildC
 		}
 	}
 
-	// remove all low area marking at this point
-	if (TileConfig.bMarkLowHeightAreas)
-	{
-		rcReplaceBoxArea(&BuildContext, TileConfig.bmin, TileConfig.bmax, RECAST_NULL_AREA, RECAST_LOW_AREA, *RasterContext.CompactHF);
-	}
-
 	// Build layers
 	{
 		RECAST_STAT(STAT_Navigation_Async_Recast_Layers);
@@ -2561,6 +2555,12 @@ bool FRecastTileGenerator::GenerateNavigationData(FNavMeshBuildContext& BuildCon
 
 		// Rasterize obstacles.
 		MarkDynamicAreas(*GenerationContext.Layer);
+
+		// remove all low area marking at this point
+		if (TileConfig.bMarkLowHeightAreas)
+		{
+			dtReplaceArea(*GenerationContext.Layer, RECAST_NULL_AREA, RECAST_LOW_AREA);
+		}
 
 		{
 			RECAST_STAT(STAT_Navigation_Async_Recast_BuildRegions)
@@ -3691,6 +3691,13 @@ TArray<uint32> FRecastNavMeshGenerator::AddGeneratedTiles(FRecastTileGenerator& 
 					QUICK_SCOPE_CYCLE_COUNTER(STAT_NavMesh_AddTileToDetourMesh);
 					// let navmesh know it's tile generator who owns the data
 					status = DetourMesh->addTile(TileLayers[i].GetData(), TileLayers[i].DataSize, DT_TILE_FREE_DATA, OldTileRef, &ResultTileRef);
+
+					// if tile index was already taken by other layer try adding it on first free entry (salt was already updated by whatever took that spot)
+					if (dtStatusFailed(status) && dtStatusDetail(status, DT_OUT_OF_MEMORY) && OldTileRef)
+					{
+						OldTileRef = 0;
+						status = DetourMesh->addTile(TileLayers[i].GetData(), TileLayers[i].DataSize, DT_TILE_FREE_DATA, OldTileRef, &ResultTileRef);
+					}
 				}
 
 				if (dtStatusFailed(status))

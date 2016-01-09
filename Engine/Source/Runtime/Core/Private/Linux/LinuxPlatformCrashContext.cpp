@@ -338,7 +338,7 @@ void DLLEXPORT GenerateCrashInfoAndLaunchReporter(const FLinuxCrashContext & Con
 	if (IFileManager::Get().MakeDirectory(*CrashInfoFolder))
 	{
 		// generate "minidump"
-		Context.GenerateReport(FPaths::Combine(*CrashInfoFolder, TEXT("diagnostics.txt")));
+		Context.GenerateReport(FPaths::Combine(*CrashInfoFolder, TEXT("Diagnostics.txt")));
 
 		// generate "WER"
 		GenerateWindowsErrorReport(FPaths::Combine(*CrashInfoFolder, TEXT("wermeta.xml")));

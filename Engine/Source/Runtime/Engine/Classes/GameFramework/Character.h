@@ -272,6 +272,10 @@ protected:
 	UPROPERTY(ReplicatedUsing=OnRep_ReplicatedBasedMovement)
 	struct FBasedMovementInfo ReplicatedBasedMovement;
 
+	/** Scale to apply to root motion translation on this Character */
+	UPROPERTY(Replicated)
+	float AnimRootMotionTranslationScale;
+
 public:
 	/** Rep notify for ReplicatedBasedMovement */
 	UFUNCTION()
@@ -787,6 +791,13 @@ public:
 	 * This means code path for networked root motion is enabled. */
 	UFUNCTION(BlueprintCallable, Category = Animation)
 	bool IsPlayingNetworkedRootMotionMontage() const;
+
+	/** Sets scale to apply to root motion translation on this Character */
+	void SetAnimRootMotionTranslationScale(float InAnimRootMotionTranslationScale = 1.f);
+
+	/** Returns current value of AnimRootMotionScale */
+	UFUNCTION(BlueprintCallable, Category = Animation)
+	float GetAnimRootMotionTranslationScale() const;
 
 	/** Called on the actor right before replication occurs */
 	virtual void PreReplication( IRepChangedPropertyTracker & ChangedPropertyTracker ) override;

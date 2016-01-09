@@ -536,8 +536,12 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 		// See if the array changed at all. If the ArrayReplicationKey matches we can skip checking individual items
 		if (Parms.OldState && (ArraySerializer.ArrayReplicationKey == BaseReplicationKey))
 		{
-			// Double check the old/new maps are the same size.
-			ensure(OldMap && OldMap->Num() == Items.Num());
+			// Double check the old map is valid and the old/new maps are the same size.
+			if (ensureMsgf(OldMap, TEXT("Invalid OldMap")))
+			{
+				ensureMsgf((OldMap->Num() == Items.Num()), TEXT("OldMap size (%d) does not match Items size (%d)"), OldMap->Num(), Items.Num());
+			}
+
 			return false;
 		}
 

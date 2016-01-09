@@ -418,6 +418,9 @@ public:
 	/** Handles a gesture input event.  Returns true. */
 	bool InputGesture(const FKey Gesture, const EInputEvent Event, const float Value);
 
+	/** Manually update the GestureRecognizer AnchorDistance using the current locations of the touches */
+	void UpdatePinchStartDistance();
+
 	/** Per frame tick function. Primarily for gesture recognition */
 	void Tick(float DeltaTime);
 

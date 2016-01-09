@@ -170,7 +170,7 @@ void FMetalStateCache::SetComputeShader(FMetalComputeShader* InComputeShader)
 void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRenderTargets, id<MTLBuffer> const QueryBuffer)
 {
 #if METAL_API_1_1
-	if(RenderTargetsInfo.DepthStencilRenderTarget.Texture && RenderTargetsInfo.DepthStencilRenderTarget.Texture->GetFormat() == PF_DepthStencil)
+	if(IsValidRef(DepthStencilTexture) && DepthStencilTexture->GetFormat() == PF_DepthStencil)
 	{
 		MTLStoreAction StoreAction = MTLStoreActionDontCare;
 #if PLATFORM_MAC
@@ -188,7 +188,7 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 		
 		if(StoreAction == MTLStoreActionStore)
 		{
-			FMetalSurface& Surface = *GetMetalSurfaceFromRHITexture(RenderTargetsInfo.DepthStencilRenderTarget.Texture);
+			FMetalSurface& Surface = *GetMetalSurfaceFromRHITexture(DepthStencilTexture);
 			
 			if(Surface.StencilTexture != Surface.Texture && (Surface.Texture.pixelFormat == MTLPixelFormatDepth32Float_Stencil8
 #if PLATFORM_MAC
@@ -225,6 +225,8 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 #endif
 	
 	ConditionalSwitchToRender();
+	
+	DepthStencilTexture = InRenderTargets.DepthStencilRenderTarget.Texture;
 
 	// see if our new Info matches our previous Info
 	if (NeedsToSetRenderTarget(InRenderTargets) || QueryBuffer != VisibilityResults)

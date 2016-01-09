@@ -59,6 +59,40 @@ float UAbilitySystemBlueprintLibrary::GetFloatAttributeFromAbilitySystemComponen
 	return Result;
 }
 
+float UAbilitySystemBlueprintLibrary::EvaluateAttributeValueWithTags(UAbilitySystemComponent* AbilitySystem, FGameplayAttribute Attribute, const FGameplayTagContainer& SourceTags, const FGameplayTagContainer& TargetTags, bool& bSuccess)
+{
+	float RetVal = 0.f;
+	if (!AbilitySystem || !AbilitySystem->HasAttributeSetForAttribute(Attribute))
+	{
+		bSuccess = false;
+		return RetVal;
+	}
+
+	FGameplayEffectAttributeCaptureDefinition Capture(Attribute, EGameplayEffectAttributeCaptureSource::Source, true);
+
+	FGameplayEffectAttributeCaptureSpec CaptureSpec(Capture);
+	AbilitySystem->CaptureAttributeForGameplayEffect(CaptureSpec);
+
+	FAggregatorEvaluateParameters EvalParams;
+
+	EvalParams.SourceTags = &SourceTags;
+	EvalParams.TargetTags = &TargetTags;
+
+	bSuccess = CaptureSpec.AttemptCalculateAttributeMagnitude(EvalParams, RetVal);
+
+	return RetVal;
+}
+
+bool UAbilitySystemBlueprintLibrary::EqualEqual_GameplayAttributeGameplayAttribute(FGameplayAttribute AttributeA, FGameplayAttribute AttributeB)
+{
+	return (AttributeA == AttributeB);
+}
+
+bool UAbilitySystemBlueprintLibrary::NotEqual_GameplayAttributeGameplayAttribute(FGameplayAttribute AttributeA, FGameplayAttribute AttributeB)
+{
+	return (AttributeA != AttributeB);
+}
+
 FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AppendTargetDataHandle(FGameplayAbilityTargetDataHandle TargetHandle, const FGameplayAbilityTargetDataHandle& HandleToAdd)
 {
 	TargetHandle.Append(HandleToAdd);

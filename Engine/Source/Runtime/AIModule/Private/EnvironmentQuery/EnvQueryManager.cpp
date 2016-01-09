@@ -575,16 +575,6 @@ TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(const UEnvQu
 				}
 			}
 
-			if (SortedTests.Num() == 0)
-			{
-				UE_LOG(LogEQS, Warning, TEXT("Query [%s] doesn't have any tests in option %d [%s]"),
-					*GetNameSafe(LocalTemplate), OptionIndex, *MyOption->Generator->OptionName);
-
-				LocalTemplate->Options.RemoveAt(OptionIndex, 1, false);
-				--OptionIndex; // See note at top of for loop.  We cannot iterate backwards here.
-				continue;
-			}
-
 			LocalOption->Tests.Reset(SortedTests.Num());
 			for (int32 TestIdx = 0; TestIdx < SortedTests.Num(); TestIdx++)
 			{

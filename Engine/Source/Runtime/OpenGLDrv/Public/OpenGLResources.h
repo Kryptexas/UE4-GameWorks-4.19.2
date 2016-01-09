@@ -797,6 +797,9 @@ public:
 
 	/** The OpenGL attachment point. This should always be GL_COLOR_ATTACHMENT0 in case of color buffer, but the actual texture may be attached on other color attachments. */
 	GLenum Attachment;
+	
+	/** OpenGL 3 Stencil/SRV workaround texture resource */
+	GLuint SRVResource;
 
 	/** Initialization constructor. */
 	FOpenGLTextureBase(
@@ -812,6 +815,7 @@ public:
 	, Target(InTarget)
 	, NumMips(InNumMips)
 	, Attachment(InAttachment)
+	, SRVResource( 0 )
 	, MemorySize( 0 )
 	, bIsPowerOfTwo(false)
 	{}
@@ -959,6 +963,10 @@ public:
 					{
 						InvalidateTextureResourceInCache();
 						FOpenGL::DeleteTextures(1, &Resource);
+						if (SRVResource)
+						{
+							FOpenGL::DeleteTextures(1, &SRVResource);
+						}
 						break;
 					}
 					case GL_RENDERBUFFER:

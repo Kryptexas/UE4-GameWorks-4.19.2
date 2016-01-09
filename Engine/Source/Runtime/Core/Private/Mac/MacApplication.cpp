@@ -674,7 +674,7 @@ void FMacApplication::ProcessMouseMovedEvent(const FDeferredMacEvent& Event, TSh
 
 	FMacCursor* MacCursor = (FMacCursor*)Cursor.Get();
 
-	if (bUsingHighPrecisionMouseInput || MacCursor->IsLocked())
+	if (bUsingHighPrecisionMouseInput)
 	{
 		// Get the mouse position
 		FVector2D HighPrecisionMousePos = MacCursor->GetPositionNoScaling();
@@ -791,6 +791,9 @@ void FMacApplication::ProcessMouseDownEvent(const FDeferredMacEvent& Event, TSha
 	if (EventWindow.IsValid())
 	{
 		const EWindowZone::Type Zone = GetCurrentWindowZone(EventWindow.ToSharedRef());
+		
+		bool const bResizable = !bUsingHighPrecisionMouseInput && EventWindow->IsRegularWindow() && (EventWindow->GetDefinition().SupportsMaximize || EventWindow->GetDefinition().HasSizingFrame);
+		
 		if (Button == LastPressedMouseButton && (Event.ClickCount % 2) == 0)
 		{
 			if (Zone == EWindowZone::TitleBar)
@@ -812,7 +815,7 @@ void FMacApplication::ProcessMouseDownEvent(const FDeferredMacEvent& Event, TSha
 			}
 		}
 		// Only forward left mouse button down events if it's not inside the resize edge zone of a normal resizable window.
-		else if (!EventWindow->IsRegularWindow() || Button != EMouseButtons::Left || !IsEdgeZone(Zone))
+		else if (!bResizable || Button != EMouseButtons::Left || !IsEdgeZone(Zone))
 		{
 			MessageHandler->OnMouseDown(EventWindow, Button);
 		}

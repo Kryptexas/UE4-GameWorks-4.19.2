@@ -133,10 +133,10 @@ public partial class Project : CommandUtils
                 InternationalizationPreset = Params.InternationalizationPreset;
             }
 
-			string[] Cultures = null;
+			string[] CulturesToCook = null;
 			if (Params.HasCulturesToCook)
 			{
-				Cultures = Params.CulturesToCook.ToArray();
+				CulturesToCook = Params.CulturesToCook.ToArray();
 			}
 
             try
@@ -250,7 +250,7 @@ public partial class Project : CommandUtils
                     Maps = MapsList.ToArray();
                 }
 
-                CookCommandlet(Params.RawProjectPath, Params.UE4Exe, Maps, Dirs, InternationalizationPreset, Cultures, CombineCommandletParams(PlatformsToCook.ToArray()), CommandletParams);
+                CookCommandlet(Params.RawProjectPath, Params.UE4Exe, Maps, Dirs, InternationalizationPreset, CulturesToCook, CombineCommandletParams(PlatformsToCook.ToArray()), CommandletParams);
             }
 			catch (Exception Ex)
 			{

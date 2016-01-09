@@ -215,7 +215,7 @@ UEditorEngine* GEditor = nullptr;
 UEditorEngine::UEditorEngine(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	if (!IsRunningCommandlet())
+	if (!IsRunningCommandlet() && !IsRunningDedicatedServer())
 	{
 		// Structure to hold one-time initialization
 		struct FConstructorStatics
@@ -6563,7 +6563,7 @@ void UEditorEngine::HandleTravelFailure(UWorld* InWorld, ETravelFailure::Type Fa
 	}
 }
 
-void UEditorEngine::AutomationLoadMap(const FString& MapName)
+void UEditorEngine::AutomationLoadMap(const FString& MapName, FString* OutError)
 {
 #if !UE_BUILD_SHIPPING
 	struct FFailedGameStartHandler
@@ -6631,7 +6631,10 @@ void UEditorEngine::AutomationLoadMap(const FString& MapName)
 	{
 		FFailedGameStartHandler FailHandler;
 		GEditor->PlayInEditor(GWorld, /*bInSimulateInEditor=*/false);
-		//bCanProceed = FailHandler.CanProceed();
+		if (!FailHandler.CanProceed())
+		{
+			*OutError = TEXT("Error encountered.");
+		}
 	}
 
 	//should really be wait until the map is properly loaded....in PIE or gameplay....
@@ -6640,6 +6643,7 @@ void UEditorEngine::AutomationLoadMap(const FString& MapName)
 		ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(10.f));
 	}
 #endif
+	return;
 }
 
 #undef LOCTEXT_NAMESPACE 

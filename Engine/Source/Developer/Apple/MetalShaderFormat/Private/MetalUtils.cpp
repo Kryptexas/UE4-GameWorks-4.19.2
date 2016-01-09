@@ -1,12 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MetalShaderFormat.h"
+#include "MetalUtils.h"
+#include "MetalBackend.h"
+
 #include "Core.h"
+
 #include "hlslcc.h"
 #include "hlslcc_private.h"
-#include "MetalBackend.h"
 #include "compiler.h"
+
+PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 #include "glsl_parser_extras.h"
+PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
+
 #include "hash_table.h"
 #include "ir_rvalue_visitor.h"
 #include "ast.h"
@@ -14,7 +21,6 @@
 #include "IRDump.h"
 #include "OptValueNumbering.h"
 #include "ir_optimization.h"
-#include "MetalUtils.h"
 
 const bool bExpandVSInputsToFloat4 = false;
 const bool bGenerateVSInputDummies = false;

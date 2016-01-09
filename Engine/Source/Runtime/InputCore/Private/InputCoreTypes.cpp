@@ -221,6 +221,7 @@ const FKey EKeys::TouchKeys[NUM_TOUCH_KEYS] =
 // Gestures
 const FKey EKeys::Gesture_Pinch("Gesture_Pinch");
 const FKey EKeys::Gesture_Flick("Gesture_Flick");
+const FKey EKeys::Gesture_Rotate("Gesture_Rotate");
 
 // Motion Controllers
 //		Left Controller
@@ -579,6 +580,7 @@ void EKeys::Initialize()
 
 	AddKey(FKeyDetails(EKeys::Gesture_Pinch, LOCTEXT("Gesture_Pinch", "Pinch"), 0, "Gesture"));
 	AddKey(FKeyDetails(EKeys::Gesture_Flick, LOCTEXT("Gesture_Flick", "Flick"), 0, "Gesture"));
+	AddKey(FKeyDetails(EKeys::Gesture_Rotate, LOCTEXT("Gesture_Rotate", "Rotate"), 0, "Gesture"));
 
 	// Motion Controllers
 	AddMenuCategoryDisplayInfo("MotionController", LOCTEXT("MotionControllerSubCategory", "Motion Controller"), TEXT("GraphEditor.PadEvent_16x"));

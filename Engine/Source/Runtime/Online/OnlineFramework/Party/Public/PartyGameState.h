@@ -607,6 +607,8 @@ protected:
 	UParty* GetPartyOuter() const;
 
 private:
+	
+	virtual void PrePromoteMember();
 
 	/** Scratch copy of child USTRUCT for handling replication comparisons */
 	FPartyState* PartyStateRefScratch;

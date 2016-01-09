@@ -22,6 +22,10 @@
 #define SETTING_REGION FName(TEXT("REGION"))
 /** Setting describing the unique id of a datacenter (value is FString) */
 #define SETTING_DCID FName(TEXT("DCID"))
+/** Number of players needed to fill out this session (value is int32) */
+#define SETTING_NEEDS FName(TEXT("NEEDS"))
+/** Second key for "needs" because can't set same value with two criteria (value is int32) */
+#define SETTING_NEEDSSORT FName(TEXT("NEEDSSORT"))
 
 /** 8 user defined integer params to be used when filtering searches for sessions */
 #define SETTING_CUSTOMSEARCHINT1 FName(TEXT("CUSTOMSEARCHINT1"))

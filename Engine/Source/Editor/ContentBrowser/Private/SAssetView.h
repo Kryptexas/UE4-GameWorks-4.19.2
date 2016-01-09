@@ -377,6 +377,15 @@ private:
 	/** @return true when we are showing folders */
 	bool IsShowingFolders() const;
 
+	/** Toggle whether folders should be shown or not */
+	void ToggleShowL10NFolder();
+
+	/** Whether or not it's possible to show folders */
+	bool IsToggleShowL10NFolderAllowed() const;
+
+	/** @return true when we are showing folders */
+	bool IsShowingL10NFolder() const;
+
 	/** Toggle whether to show real-time thumbnails */
 	void ToggleRealTimeThumbnails();
 

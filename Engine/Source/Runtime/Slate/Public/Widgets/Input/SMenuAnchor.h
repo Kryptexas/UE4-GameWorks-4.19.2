@@ -30,6 +30,7 @@ public:
 		, _OnGetMenuContent()
 		, _Placement( MenuPlacement_BelowAnchor )
 		, _Method()
+		, _ShouldDeferPaintingAfterWindowContent(true)
 		{}
 		
 		SLATE_DEFAULT_SLOT( FArguments, Content )
@@ -43,6 +44,8 @@ public:
 		SLATE_ATTRIBUTE( EMenuPlacement, Placement )
 
 		SLATE_ARGUMENT(TOptional<EPopupMethod>, Method)
+
+		SLATE_ARGUMENT(bool, ShouldDeferPaintingAfterWindowContent)
 
 	SLATE_END_ARGS()
 
@@ -144,6 +147,9 @@ protected:
 
 	/** Method currently being used to show the popup. No value if popup is closed. */
 	FPopupMethodReply MethodInUse;
+
+	/** Should the menu content painting be deferred? If not, the menu content will layer over the menu anchor, rather than above all window contents. */
+	bool ShouldDeferPaintingAfterWindowContent;
 
 	/**
 	 * @todo Slate : Unify geometry so that this is not necessary.

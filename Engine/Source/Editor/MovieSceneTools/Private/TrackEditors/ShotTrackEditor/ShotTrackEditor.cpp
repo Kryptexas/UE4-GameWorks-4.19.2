@@ -392,6 +392,7 @@ void FShotTrackEditor::OnLockCameraClicked(ECheckBoxState CheckBoxState)
 	}
 	else
 	{
+		// TODO: MaxC, is this right?
 		GetSequencer()->UpdateCameraCut(nullptr, nullptr);
 		GetSequencer()->SetPerspectiveViewportCameraCutEnabled(false);
 	}

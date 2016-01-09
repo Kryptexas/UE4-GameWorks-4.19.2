@@ -598,7 +598,8 @@ FText FScalableFloatDetails::GetRowValuePreviewText() const
 			static const FNumberFormattingOptions FormatOptions = FNumberFormattingOptions()
 				.SetMinimumFractionalDigits(3)
 				.SetMaximumFractionalDigits(3);
-			return FText::AsNumber(Value * Curve.Eval(PreviewLevel), &FormatOptions);
+			static const FString GetRowValuePreviewTextContext(TEXT("FScalableFloatDetails::GetRowValuePreviewText"));
+			return FText::AsNumber(Value * Curve.Eval(PreviewLevel, GetRowValuePreviewTextContext), &FormatOptions);
 		}
 	}
 

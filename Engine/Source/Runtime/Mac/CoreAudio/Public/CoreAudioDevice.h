@@ -432,6 +432,9 @@ private:
 
 	class FCoreAudioSoundSource* AudioChannels[CORE_AUDIO_MAX_CHANNELS + 1];
 
+	TSet<AudioConverterRef>		CovertersToDispose;
+	bool						bNeedsUpdate;
+	
 	friend class FCoreAudioSoundBuffer;
 	friend class FCoreAudioSoundSource;
 	friend class FCoreAudioEffectsManager;

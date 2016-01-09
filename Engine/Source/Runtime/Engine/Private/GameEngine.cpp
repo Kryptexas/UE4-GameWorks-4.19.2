@@ -203,21 +203,42 @@ void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& Resol
 	FParse::Value(FCommandLine::Get(), TEXT("ResX="), ResolutionX);
 	FParse::Value(FCommandLine::Get(), TEXT("ResY="), ResolutionY);
 
-		// consume available desktop area
-		FDisplayMetrics DisplayMetrics;
+	// consume available desktop area
+	FDisplayMetrics DisplayMetrics;
 	FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
-		
-	int32 DesktopResolutionX = DisplayMetrics.PrimaryDisplayWidth;
-	int32 DesktopResolutionY = DisplayMetrics.PrimaryDisplayHeight;
+
+	// Find the maximum allowed resolution
+	// Use PrimaryDisplayWidth/Height in windowed mode
+	int32 MaxResolutionX = DisplayMetrics.PrimaryDisplayWidth;
+	int32 MaxResolutionY = DisplayMetrics.PrimaryDisplayHeight;
+	if (WindowMode == EWindowMode::Fullscreen && DisplayMetrics.MonitorInfo.Num() > 0)
+	{
+		// In fullscreen, PrimaryDisplayWidth/Height is equal to your current resolution, so we will use your max native resolution instead
+		// Since we have info for at least one monitor, default to that if the primary can not be found
+		MaxResolutionX = DisplayMetrics.MonitorInfo[0].NativeWidth;
+		MaxResolutionY = DisplayMetrics.MonitorInfo[0].NativeHeight;
+
+		// Now try to find the primary monitor
+		for (const FMonitorInfo& MonitorInfo : DisplayMetrics.MonitorInfo)
+		{
+			if (MonitorInfo.bIsPrimary)
+			{
+				// This is the primary monitor. Use this monitor's native width/height
+				MaxResolutionX = MonitorInfo.NativeWidth;
+				MaxResolutionY = MonitorInfo.NativeHeight;
+				break;
+			}
+		}
+	}
 
 	// Optionally force the resolution by passing -ForceRes
 	const bool bForceRes = FParse::Param(FCommandLine::Get(), TEXT("ForceRes"));
 
 	//Dont allow a resolution bigger then the desktop found a convenient one
-	if (!bForceRes && !IsRunningDedicatedServer() && ((ResolutionX <= 0 || ResolutionX >= DesktopResolutionX) || (ResolutionY <= 0 || ResolutionY >= DesktopResolutionY)))
+	if (!bForceRes && !IsRunningDedicatedServer() && ((ResolutionX <= 0 || ResolutionX >= MaxResolutionX) || (ResolutionY <= 0 || ResolutionY >= MaxResolutionY)))
 	{
-		ResolutionX = DesktopResolutionX;
-		ResolutionY = DesktopResolutionY;
+		ResolutionX = MaxResolutionX;
+		ResolutionY = MaxResolutionY;
 
 		// If we're in windowed mode, attempt to choose a suitable starting resolution that is smaller than the desktop, with a matching aspect ratio
 		if (WindowMode == EWindowMode::Windowed)

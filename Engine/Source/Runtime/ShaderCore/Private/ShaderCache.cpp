@@ -26,6 +26,7 @@ DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("Binary Cache Load Time (s)"),STATGROUP_Bina
 const FGuid FShaderCacheCustomVersion::Key(0xB954F018, 0xC9624DD6, 0xA74E79B1, 0x8EA113C2);
 const FGuid FShaderCacheCustomVersion::GameKey(0x03D4EB48, 0xB50B4CC3, 0xA598DE41, 0x5C6CC993);
 FCustomVersionRegistration GRegisterShaderCacheVersion(FShaderCacheCustomVersion::Key, FShaderCacheCustomVersion::Latest, TEXT("ShaderCacheVersion"));
+FCustomVersionRegistration GRegisterShaderCacheGameVersion(FShaderCacheCustomVersion::GameKey, 0, TEXT("ShaderCacheGameVersion"));
 #if WITH_EDITOR
 static TCHAR const* GShaderCacheFileName = TEXT("EditorDrawCache.ushadercache");
 static TCHAR const* GShaderCodeCacheFileName = TEXT("EditorCodeCache.ushadercode");
@@ -171,7 +172,12 @@ void FShaderCache::SetGameVersion(int32 InGameVersion)
 
 void FShaderCache::InitShaderCache(uint32 Options, uint32 InMaxResources)
 {
+#if WITH_EDITORONLY_DATA
+	check(!CookCache);
+#endif
 	check(!Cache);
+	checkf(!(Options & SCO_Cooking) || (Options == SCO_Cooking && WITH_EDITORONLY_DATA), TEXT("Binary shader cache cooking is only permitted on its own & within the editor/cooker."));
+	
 	if(bUseShaderCaching)
 	{
 		checkf(!(Options & SCO_Cooking) || (Options == SCO_Cooking && WITH_EDITORONLY_DATA), TEXT("Binary shader cache cooking is only permitted on its own & within the editor/cooker."));
@@ -1319,6 +1325,12 @@ void FShaderCache::InternalPreDrawShaders(FRHICommandList& RHICmdList, float Del
 				PredrawVBs.Empty();
 			}
 			
+			if ( ShadersToDraw.FindOrAdd(StreamingKey).ShaderDrawStates.Num() == 0 )
+			{
+				PredrawRTs.Empty();
+				PredrawBindings.Empty();
+				PredrawVBs.Empty();
+			}
 			bIsPreDraw = false;
 			
 			double LoadTimeUpdate = FPlatformTime::Seconds();

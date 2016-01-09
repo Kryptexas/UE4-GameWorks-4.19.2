@@ -16,6 +16,17 @@
 
 DEFINE_LOG_CATEGORY(LogCoreAudio);
 
+// CoreAudio functions may return error -10863 (output device not available) if called while OS X is switching to a different output device.
+// This happens, for example, when headphones are plugged in or unplugged.
+#define SAFE_CA_CALL(Expression)\
+{\
+	OSStatus Status = noErr;\
+	do {\
+		Status = Expression;\
+	} while (Status == -10863);\
+	check(Status == noErr);\
+}
+
 class FCoreAudioDeviceModule : public IAudioDeviceModule
 {
 public:
@@ -44,6 +55,8 @@ bool FCoreAudioDevice::InitializeHardware()
 	{
 		return false;
 	}
+	
+	bNeedsUpdate = false;
 
 	// Load ogg and vorbis dlls if they haven't been loaded yet
 	LoadVorbisLibraries();
@@ -299,6 +312,18 @@ void FCoreAudioDevice::UpdateHardware()
 	const FVector Up = Listeners[0].GetUp();
 	const FVector Right = Listeners[0].GetFront();
 	InverseTransform = FMatrix(Up, Right, Up ^ Right, Listeners[0].Transform.GetTranslation()).InverseFast();
+	
+	if (AudioUnitGraph && bNeedsUpdate)
+	{
+		SAFE_CA_CALL(AUGraphUpdate( AudioUnitGraph, NULL ));
+		bNeedsUpdate = false;
+		
+		for(AudioConverterRef CoreAudioConverter : CovertersToDispose)
+		{
+			AudioConverterDispose( CoreAudioConverter );
+		}
+		CovertersToDispose.Empty();
+	}
 }
 
 FAudioEffectsManager* FCoreAudioDevice::CreateEffectsManager()

@@ -720,7 +720,8 @@ void FPImplRecastNavMesh::SetRecastMesh(dtNavMesh* NavMesh)
 	}
 }
 
-void FPImplRecastNavMesh::Raycast2D(const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& InQueryFilter, const UObject* Owner, ARecastNavMesh::FRaycastResult& RaycastResult) const
+void FPImplRecastNavMesh::Raycast(const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& InQueryFilter, const UObject* Owner, 
+	ARecastNavMesh::FRaycastResult& RaycastResult, NavNodeRef StartNode) const
 {
 	if (DetourNavMesh == NULL || NavMeshOwner == NULL)
 	{
@@ -730,7 +731,7 @@ void FPImplRecastNavMesh::Raycast2D(const FVector& StartLoc, const FVector& EndL
 	const dtQueryFilter* QueryFilter = ((const FRecastQueryFilter*)(InQueryFilter.GetImplementation()))->GetAsDetourQueryFilter();
 	if (QueryFilter == NULL)
 	{
-		UE_VLOG(NavMeshOwner, LogNavigation, Warning, TEXT("FPImplRecastNavMesh::FindPath failing due to QueryFilter == NULL"));
+		UE_VLOG(NavMeshOwner, LogNavigation, Warning, TEXT("FPImplRecastNavMesh::Raycast failing due to QueryFilter == NULL"));
 		return;
 	}
 
@@ -743,8 +744,10 @@ void FPImplRecastNavMesh::Raycast2D(const FVector& StartLoc, const FVector& EndL
 	const FVector RecastStart = Unreal2RecastPoint(StartLoc);
 	const FVector RecastEnd = Unreal2RecastPoint(EndLoc);
 
-	NavNodeRef StartNode = INVALID_NAVNODEREF;
-	NavQuery.findNearestContainingPoly(&RecastStart.X, Extent, QueryFilter, &StartNode, NULL);
+	if (StartNode == INVALID_NAVNODEREF)
+	{
+		NavQuery.findNearestContainingPoly(&RecastStart.X, Extent, QueryFilter, &StartNode, NULL);
+	}
 
 	if (StartNode != INVALID_NAVNODEREF)
 	{
@@ -756,57 +759,22 @@ void FPImplRecastNavMesh::Raycast2D(const FVector& StartLoc, const FVector& EndL
 
 		RaycastResult.HitNormal = Recast2UnrVector(RecastHitNormal);
 
-		if (dtStatusSucceed(RaycastStatus) == false)
+		if (dtStatusSucceed(RaycastStatus) == false && !RaycastResult.HasHit())
 		{
-			UE_VLOG(NavMeshOwner, LogNavigation, Log, TEXT("FPImplRecastNavMesh::Raycast2D failed"));
+			NavNodeRef EndNode = INVALID_NAVNODEREF;
+			NavQuery.findNearestPoly(&RecastEnd.X, Extent, QueryFilter, &EndNode, NULL);
+
+			// if raycast corridor ends in different poly, ray was probably stopped by 2D edge check
+			// return blocking hit at end
+			if (EndNode != RaycastResult.GetLastNodeRef())
+			{
+				RaycastResult.HitTime = 1.f;
+				RaycastResult.HitNormal = (StartLoc - EndLoc).GetSafeNormal();
+			}
 		}
 	}
 	else
 	{
-		// start location is not on navmesh, treat it as a blocked raycast
-		RaycastResult.HitTime = 0.f;
-		RaycastResult.HitNormal = (StartLoc - EndLoc).GetSafeNormal();
-	}
-}
-
-void FPImplRecastNavMesh::Raycast2D(NavNodeRef StartNode, const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& InQueryFilter, const UObject* Owner, ARecastNavMesh::FRaycastResult& RaycastResult) const
-{
-	if (DetourNavMesh == NULL || NavMeshOwner == NULL)
-	{
-		return;
-	}
-
-	const dtQueryFilter* QueryFilter = ((const FRecastQueryFilter*)(InQueryFilter.GetImplementation()))->GetAsDetourQueryFilter();
-	if (QueryFilter == NULL)
-	{
-		UE_VLOG(NavMeshOwner, LogNavigation, Warning, TEXT("FPImplRecastNavMesh::FindPath failing due to QueryFilter == NULL"));
-		return;
-	}
-
-	FRecastSpeciaLinkFilter LinkFilter(UNavigationSystem::GetCurrent(NavMeshOwner->GetWorld()), Owner);
-	INITIALIZE_NAVQUERY(NavQuery, InQueryFilter.GetMaxSearchNodes(), LinkFilter);
-
-	const FVector RecastStart = Unreal2RecastPoint(StartLoc);
-	const FVector RecastEnd = Unreal2RecastPoint(EndLoc);
-
-	if (StartNode != INVALID_NAVNODEREF)
-	{
-		float RecastHitNormal[3];
-
-		const dtStatus RaycastStatus = NavQuery.raycast(StartNode, &RecastStart.X, &RecastEnd.X
-			, QueryFilter, &RaycastResult.HitTime, RecastHitNormal
-			, RaycastResult.CorridorPolys, &RaycastResult.CorridorPolysCount, RaycastResult.GetMaxCorridorSize());
-
-		RaycastResult.HitNormal = Recast2UnrVector(RecastHitNormal);
-
-		if (dtStatusSucceed(RaycastStatus) == false)
-		{
-			UE_VLOG(NavMeshOwner, LogNavigation, Log, TEXT("FPImplRecastNavMesh::Raycast2D failed"));
-		}
-	}
-	else
-	{
-		// start location is not on navmesh, treat it as a blocked raycast
 		RaycastResult.HitTime = 0.f;
 		RaycastResult.HitNormal = (StartLoc - EndLoc).GetSafeNormal();
 	}

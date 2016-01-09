@@ -40,11 +40,11 @@ namespace AutomationCommon
 bool AutomationOpenMap(const FString& MapName)
 {
 	bool bCanProceed = true;
-
+	FString OutString = TEXT("");
 #if WITH_EDITOR
 	if (GIsEditor && AutomationCommon::OnEditorAutomationMapLoad.IsBound())
 	{
-		AutomationCommon::OnEditorAutomationMapLoad.Broadcast(MapName);
+		AutomationCommon::OnEditorAutomationMapLoad.Broadcast(MapName, &OutString);
 	}
 	else
 #endif
@@ -62,7 +62,7 @@ bool AutomationOpenMap(const FString& MapName)
 		ADD_LATENT_AUTOMATION_COMMAND(FWaitForMapToLoadCommand());
 	}
 
-	return bCanProceed;
+	return (OutString.IsEmpty());
 }
 
 

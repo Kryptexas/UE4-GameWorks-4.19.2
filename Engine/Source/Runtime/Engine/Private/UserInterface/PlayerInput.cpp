@@ -362,6 +362,11 @@ bool UPlayerInput::InputGesture(const FKey Gesture, const EInputEvent Event, con
 	return true;
 }
 
+void UPlayerInput::UpdatePinchStartDistance()
+{
+	GestureRecognizer.SetAnchorDistanceSquared(FVector2D(Touches[ETouchIndex::Touch1]), FVector2D(Touches[ETouchIndex::Touch2]));
+}
+
 bool UPlayerInput::GetAxisProperties(const FKey AxisKey, FInputAxisProperties& OutAxisProperties)
 {
 	ConditionalInitAxisProperties();

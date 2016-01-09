@@ -562,6 +562,8 @@ void FMetalRHICommandContext::RHIDrawPrimitive(uint32 PrimitiveType, uint32 Base
 	SCOPE_CYCLE_COUNTER(STAT_MetalDrawCallTime);
 	//checkf(NumInstances == 1, TEXT("Currently only 1 instance is supported"));
 	
+	NumInstances = FMath::Max(NumInstances,1u);
+	
 	RHI_DRAW_CALL_STATS(PrimitiveType,NumInstances*NumPrimitives);
 
 	// how many verts to render
@@ -621,6 +623,8 @@ void FMetalRHICommandContext::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef In
 	checkf(BaseVertexIndex  == 0, TEXT("BaseVertexIndex must be 0, see GRHISupportsBaseVertexIndex"));
 	checkf(FirstInstance  == 0, TEXT("FirstInstance is currently unsupported on this RHI"));
 #endif
+	
+	NumInstances = FMath::Max(NumInstances,1u);
 
 	RHI_DRAW_CALL_STATS(PrimitiveType,NumInstances*NumPrimitives);
 

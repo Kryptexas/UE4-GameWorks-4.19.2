@@ -85,7 +85,8 @@ FAssetRegistry::FAssetRegistry()
 	MaxSecondsPerFrame = 0.015;
 
 	// Registers the configured cooked tags whitelist to prevent non-whitelisted tags from being added to cooked builds
-	SetupCookedTagsWhitelist();
+	bFilterlistIsWhitelist = false;
+	SetupCookedFilterlistTags();
 
 	// Collect all code generator classes (currently BlueprintCore-derived ones)
 	CollectCodeGeneratorClasses();
@@ -142,30 +143,39 @@ FAssetRegistry::FAssetRegistry()
 	FPackageName::OnContentPathDismounted().AddRaw( this, &FAssetRegistry::OnContentPathDismounted );
 }
 
-void FAssetRegistry::SetupCookedTagsWhitelist()
+void FAssetRegistry::SetupCookedFilterlistTags()
 {
 	if (ensure(GConfig))
 	{
-		TArray<FString> WhitelistItems;
-		GConfig->GetArray(TEXT("AssetRegistry"), TEXT("CookedTagsWhitelist"), WhitelistItems, GEngineIni);
+		GConfig->GetBool(TEXT("AssetRegistry"), TEXT("bUseAssetRegistryTagsWhitelistInsteadOfBlacklist"), bFilterlistIsWhitelist, GEngineIni);
+		
+		TArray<FString> FilterlistItems;
+		if (bFilterlistIsWhitelist)
+		{
+			GConfig->GetArray(TEXT("AssetRegistry"), TEXT("CookedTagsWhitelist"), FilterlistItems, GEngineIni);
+		}
+		else
+		{
+			GConfig->GetArray(TEXT("AssetRegistry"), TEXT("CookedTagsBlacklist"), FilterlistItems, GEngineIni);
+		}
 
 		// Takes on the pattern "(Class=SomeClass,Tag=SomeTag)"
-		for (const FString& WhitelistItem : WhitelistItems)
+		for (const FString& FilterlistItem : FilterlistItems)
 		{
-			FString TrimmedWhitelistItem = WhitelistItem;
-			TrimmedWhitelistItem.Trim();
-			TrimmedWhitelistItem.TrimTrailing();
-			if (TrimmedWhitelistItem.Left(1) == TEXT("("))
+			FString TrimmedFilterlistItem = FilterlistItem;
+			TrimmedFilterlistItem.Trim();
+			TrimmedFilterlistItem.TrimTrailing();
+			if (TrimmedFilterlistItem.Left(1) == TEXT("("))
 			{
-				TrimmedWhitelistItem = TrimmedWhitelistItem.RightChop(1);
+				TrimmedFilterlistItem = TrimmedFilterlistItem.RightChop(1);
 			}
-			if (TrimmedWhitelistItem.Right(1) == TEXT(")"))
+			if (TrimmedFilterlistItem.Right(1) == TEXT(")"))
 			{
-				TrimmedWhitelistItem = TrimmedWhitelistItem.LeftChop(1);
+				TrimmedFilterlistItem = TrimmedFilterlistItem.LeftChop(1);
 			}
 
 			TArray<FString> Tokens;
-			TrimmedWhitelistItem.ParseIntoArray(Tokens, TEXT(","));
+			TrimmedFilterlistItem.ParseIntoArray(Tokens, TEXT(","));
 			FString ClassName;
 			FString TagName;
 
@@ -195,24 +205,24 @@ void FAssetRegistry::SetupCookedTagsWhitelist()
 				FName TagFName = FName(*TagName);
 
 				// Include subclasses if the class is in memory at this time (native classes only)
-				UClass* WhitelistClass = Cast<UClass>(StaticFindObject(UClass::StaticClass(), ANY_PACKAGE, *ClassName));
-				if (WhitelistClass)
+				UClass* FilterlistClass = Cast<UClass>(StaticFindObject(UClass::StaticClass(), ANY_PACKAGE, *ClassName));
+				if (FilterlistClass)
 				{
-					CookWhitelistedTagsByClass.FindOrAdd(WhitelistClass->GetFName()).Add(TagFName);
+					CookFilterlistTagsByClass.FindOrAdd(FilterlistClass->GetFName()).Add(TagFName);
 
 					TArray<UClass*> DerivedClasses;
-					GetDerivedClasses(WhitelistClass, DerivedClasses);
+					GetDerivedClasses(FilterlistClass, DerivedClasses);
 					for (UClass* DerivedClass : DerivedClasses)
 					{
-						CookWhitelistedTagsByClass.FindOrAdd(DerivedClass->GetFName()).Add(TagFName);
+						CookFilterlistTagsByClass.FindOrAdd(DerivedClass->GetFName()).Add(TagFName);
 					}
 				}
 				else
 				{
-					// Class is not in memory yet. Just add an explicit whitelist.
+					// Class is not in memory yet. Just add an explicit filter.
 					// Automatically adding subclasses of non-native classes is not supported.
 					// In these cases, using Class=* is usually sufficient
-					CookWhitelistedTagsByClass.FindOrAdd(FName(*ClassName)).Add(TagFName);
+					CookFilterlistTagsByClass.FindOrAdd(FName(*ClassName)).Add(TagFName);
 				}
 			}
 		}
@@ -1638,20 +1648,33 @@ void FAssetRegistry::SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Da
 			const FAssetData& AssetData(*It.Value());
 
 			static FName WildcardName(TEXT("*"));
-			const TSet<FName>* AllClassesWhitelist = CookWhitelistedTagsByClass.Find(WildcardName);
-			const TSet<FName>* ClassSpecificWhitelist = CookWhitelistedTagsByClass.Find(AssetData.AssetClass);
+			const TSet<FName>* AllClassesFilterlist = CookFilterlistTagsByClass.Find(WildcardName);
+			const TSet<FName>* ClassSpecificFilterlist = CookFilterlistTagsByClass.Find(AssetData.AssetClass);
 
-			// Include only whitelisted tags
+			// Exclude blacklisted tags or include only whitelisted tags, based on how we were configured in ini
 			TMap<FName, FString> LocalTagsAndValues;
 			for (auto TagIt = AssetData.TagsAndValues.GetMap().CreateConstIterator(); TagIt; ++TagIt)
 			{
 				FName TagName = TagIt.Key();
-				const bool bInAllClassesWhitelist = AllClassesWhitelist && (AllClassesWhitelist->Contains(TagName) || AllClassesWhitelist->Contains(WildcardName));
-				const bool bInClassSpecificWhitelist = ClassSpecificWhitelist && (ClassSpecificWhitelist->Contains(TagName) || ClassSpecificWhitelist->Contains(WildcardName));
-				if (bInAllClassesWhitelist || bInClassSpecificWhitelist)
+				const bool bInAllClasseslist = AllClassesFilterlist && (AllClassesFilterlist->Contains(TagName) || AllClassesFilterlist->Contains(WildcardName));
+				const bool bInClassSpecificlist = ClassSpecificFilterlist && (ClassSpecificFilterlist->Contains(TagName) || ClassSpecificFilterlist->Contains(WildcardName));
+				if (bFilterlistIsWhitelist)
 				{
-					// It is in the whitelist. Keep it.
-					LocalTagsAndValues.Add(TagIt.Key(), TagIt.Value());
+					// It's a whitelist, only include it if it is in the all classes list or in the class specific list
+					if (bInAllClasseslist || bInClassSpecificlist)
+					{
+						// It is in the whitelist. Keep it.
+						LocalTagsAndValues.Add(TagIt.Key(), TagIt.Value());
+					}
+				}
+				else
+				{
+					// It's a blacklist, include it unless it is in the all classes list or in the class specific list
+					if (!bInAllClasseslist && !bInClassSpecificlist)
+					{
+						// It isn't in the blacklist. Keep it.
+						LocalTagsAndValues.Add(TagIt.Key(), TagIt.Value());
+					}
 				}
 			}
 

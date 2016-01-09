@@ -59,6 +59,10 @@ class UEditorPerProjectUserSettings : public UObject
 	UPROPERTY(EditAnywhere, config, Category=HotReload, meta=(DisplayName="Automatically Compile Newly Added C++ Classes"))
 	uint32 bAutomaticallyHotReloadNewClasses:1;
 
+	/** If enabled, the compile message log window will open if there is a compiler error on Hot Reload */
+	UPROPERTY(EditAnywhere, config, Category=HotReload)
+	uint32 bShowCompilerLogOnCompileError : 1;
+
 	/** If enabled, export level with attachment hierarchy set */
 	UPROPERTY(EditAnywhere, config, Category=Export)
 	uint32 bKeepAttachHierarchy:1;

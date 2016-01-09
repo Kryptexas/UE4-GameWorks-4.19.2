@@ -370,6 +370,7 @@ struct INPUTCORE_API EKeys
 	// Gestures
 	static const FKey Gesture_Pinch;
 	static const FKey Gesture_Flick;
+	static const FKey Gesture_Rotate;
 
 	// Motion Controllers
 	//		Left Controller

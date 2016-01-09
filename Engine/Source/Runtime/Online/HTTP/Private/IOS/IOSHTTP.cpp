@@ -242,7 +242,7 @@ bool FIOSHttpRequest::StartRequest()
 	else
 	{
 		UE_LOG(LogHttp, Warning, TEXT("ProcessRequest failed. Could not initialize Internet connection."));
-		CompletionStatus = EHttpRequestStatus::Failed;
+		CompletionStatus = EHttpRequestStatus::Failed_ConnectionError;
 	}
 	StartRequestTime = FPlatformTime::Seconds();
 	// reset the elapsed time.

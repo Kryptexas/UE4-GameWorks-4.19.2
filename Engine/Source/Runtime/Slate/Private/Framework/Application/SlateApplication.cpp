@@ -1315,6 +1315,14 @@ void FSlateApplication::Tick()
 		SCOPE_CYCLE_COUNTER(STAT_SlateTickTime);
 		SLATE_CYCLE_COUNTER_SCOPE(GSlateTotalTickTime);
 
+
+	if (Renderer.IsValid())
+	{
+		// Release any temporary material or texture resources we may have cached and are reporting to prevent
+		// GC on those resources.  We don't need to force it, we just need to let the ones used last frame to
+		// be queued up to be released.
+		Renderer->ReleaseAccessedResources(/* Flush State */ false);
+	}
 		const float DeltaTime = GetDeltaTime();
 
 		TickPlatform(DeltaTime);

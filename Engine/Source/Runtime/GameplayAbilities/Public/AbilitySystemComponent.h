@@ -328,8 +328,6 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 
 	float GetGameplayEffectDuration(FActiveGameplayEffectHandle Handle) const;
 
-	float GetGameplayEffectDuration() const;
-
 	/** Updates the level of an already applied gameplay effect. The intention is that this is 'seemless' and doesnt behave like removing/reapplying */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = GameplayEffects)
 	void SetActiveGameplayEffectLevel(FActiveGameplayEffectHandle ActiveHandle, int32 NewLevel);
@@ -949,7 +947,7 @@ public:
 	//	
 	//	TODO:
 	//	-Continously update RepAnimMontageInfo on server for join in progress clients.
-	//	-Some missing functionality may still be needed (GetCurrentSectionTime, SetPlayRate, etc)	
+	//	-Some missing functionality may still be needed (GetCurrentSectionTime, etc)	
 	// ----------------------------------------------------------------------------------------------------------------	
 
 	/** Plays a montage and handles replication and prediction based on passed in ability/activation info */
@@ -969,6 +967,9 @@ public:
 
 	/** Sets current montages next section name. Expectation is caller should only be stopping it if they are the current animating ability (or have good reason not to check) */
 	void CurrentMontageSetNextSectionName(FName FromSectionName, FName ToSectionName);
+
+	/** Sets current montage's play rate */
+	void CurrentMontageSetPlayRate(float InPlayRate);
 
 	/** Returns true if the passed in ability is the current animating ability */
 	bool IsAnimatingAbility(UGameplayAbility* Ability) const;
@@ -1020,6 +1021,10 @@ protected:
 	/** RPC function called from CurrentMontageJumpToSection, replicates to other clients */
 	UFUNCTION(reliable, server, WithValidation)
 	void ServerCurrentMontageJumpToSectionName(UAnimMontage* ClientAnimMontage, FName SectionName);
+
+	/** RPC function called from CurrentMontageSetPlayRate, replicates to other clients */
+	UFUNCTION(reliable, server, WithValidation)
+	void ServerCurrentMontageSetPlayRate(UAnimMontage* ClientAnimMontage, float InPlayRate);
 
 	/** Abilities that are triggered from a gameplay event */
 	TMap<FGameplayTag, TArray<FGameplayAbilitySpecHandle > > GameplayEventTriggeredAbilities;
@@ -1149,10 +1154,10 @@ public:
 	void ServerSetInputReleased(FGameplayAbilitySpecHandle AbilityHandle);
 
 	/** Called on local player always. Called on server only if bReplicateInputDirectly is set on the GameplayAbility. */
-	void AbilitySpecInputPressed(FGameplayAbilitySpec& Spec);
+	virtual void AbilitySpecInputPressed(FGameplayAbilitySpec& Spec);
 
 	/** Called on local player always. Called on server only if bReplicateInputDirectly is set on the GameplayAbility. */
-	void AbilitySpecInputReleased(FGameplayAbilitySpec& Spec);
+	virtual void AbilitySpecInputReleased(FGameplayAbilitySpec& Spec);
 
 	// ---------------------------------------------------------------------
 

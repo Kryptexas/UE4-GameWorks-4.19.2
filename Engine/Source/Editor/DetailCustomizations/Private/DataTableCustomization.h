@@ -2,6 +2,7 @@
 
 #pragma once
 #include "Engine/DataTable.h"
+#include "IPropertyUtilities.h"
 
 #define LOCTEXT_NAMESPACE "FDataTableCustomizationLayout"
 
@@ -36,8 +37,8 @@ public:
 
 		if( DataTablePropertyHandle->IsValidHandle() && RowNamePropertyHandle->IsValidHandle() )
 		{
-			/** Init the array of strings from the fname map */
-			CurrentSelectedItem = InitWidgetContent();
+			/** Queue up a refresh of the selected item, not safe to do from here */
+			StructCustomizationUtils.GetPropertyUtilities()->EnqueueDeferredAction(FSimpleDelegate::CreateSP(this, &FDataTableCustomizationLayout::OnDataTableChanged));
 
 			/** Edit the data table uobject as normal */
 			StructBuilder.AddChildProperty( DataTablePropertyHandle.ToSharedRef() );
@@ -115,10 +116,10 @@ private:
 	/** Delegate to refresh the drop down when the datatable changes */
 	void OnDataTableChanged()
 	{
+		CurrentSelectedItem = InitWidgetContent();
 		if( RowNameComboListView.IsValid() )
 		{
-			TSharedPtr<FString> InitialValue = InitWidgetContent();
-			RowNameComboListView->SetSelection( InitialValue );
+			RowNameComboListView->SetSelection(CurrentSelectedItem);
 			RowNameComboListView->RequestListRefresh();
 		}
 	}

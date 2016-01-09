@@ -1134,7 +1134,9 @@ partial class GUBP
 		}
 
         BranchConfig.AddNode(new WaitForTestShared(this));
-		BranchConfig.AddNode(new WaitToPackageSamplesNode(BranchConfig.HostPlatforms));
+		List<UnrealTargetPlatform> HostPlatformsToWaitFor = BranchConfig.HostPlatforms;
+		HostPlatformsToWaitFor.RemoveAll(HostPlatform => BranchOptions.ExcludePlatformsForEditor.Contains(HostPlatform));
+		BranchConfig.AddNode(new WaitToPackageSamplesNode(HostPlatformsToWaitFor));
 
 		AddCustomNodes(BranchConfig, HostPlatforms, ActivePlatforms);
         

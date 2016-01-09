@@ -19,6 +19,10 @@ struct FGameplayTagTableRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=GameplayTag)
 	FText CategoryText;
 
+	/** Developer comment clarifying the usage of a particular tag, not user facing */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=GameplayTag)
+	FString DevComment;
+
 	/** Constructors */
 	FGameplayTagTableRow() { CategoryText = NSLOCTEXT("TAGCATEGORY", "TAGCATEGORYTESTING", "Category and Category"); }
 	FGameplayTagTableRow(FGameplayTagTableRow const& Other);

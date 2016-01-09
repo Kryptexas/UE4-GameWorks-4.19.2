@@ -197,7 +197,6 @@ public:
 			{
 				check(Data.Num());
 				FString Filename = BuildFilename(CacheKey);
-				double StartTime = FPlatformTime::Seconds();
 				FString TempFilename(TEXT("temp.")); 
 				TempFilename += FGuid::NewGuid().ToString();
 				TempFilename = FPaths::GetPath(Filename) / TempFilename;

@@ -305,7 +305,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Constructor. Be sure to use this.ParamName to set the actual property name as parameter names and property names
 		/// overlap here.
-		/// If a parameter value is not set, it will be parsed from the command line if the command is null, the default value will be used.
+		/// If a parameter value is not set, it will be parsed from the command line; if the command is null, the default value will be used.
 		/// </summary>
 		public ProjectParams(			
 			FileReference RawProjectPath,
@@ -425,10 +425,24 @@ namespace AutomationTool
 				this.DirectoriesToCook = DirectoriesToCook;
 			}
             this.InternationalizationPreset = ParseParamValueIfNotSpecified(Command, InternationalizationPreset, "i18npreset");
-            if (CulturesToCook != null)
-			{
+
+            // If not specified in parameters, check commandline.
+            if (CulturesToCook == null)
+            {
+                if (Command != null)
+                {
+                    var CookCulturesString = Command.ParseParamValue("CookCultures");
+                    if (CookCulturesString != null)
+                    {
+                        this.CulturesToCook = new ParamList<string>(CookCulturesString.Split(','));
+                    }
+                }
+            }
+            else
+            {
                 this.CulturesToCook = CulturesToCook;
-			}
+            }
+
 			if (ClientCookedTargets != null)
 			{
 				this.ClientCookedTargets = ClientCookedTargets;
@@ -1170,7 +1184,7 @@ namespace AutomationTool
         /// <summary>
         /// Cook: List of cultures to cook.
         /// </summary>
-        public ParamList<string> CulturesToCook = new ParamList<string>();
+        public ParamList<string> CulturesToCook;
 
         /// <summary>
         /// Compress packages during cook.
@@ -1853,7 +1867,7 @@ namespace AutomationTool
 
         public bool HasCulturesToCook
         {
-            get { return !CommandUtils.IsNullOrEmpty(CulturesToCook); }
+            get { return CulturesToCook != null; }
         }
 
 		public bool HasGameTargetDetected
@@ -2228,7 +2242,7 @@ namespace AutomationTool
                 CommandUtils.LogLog("AdditionalCookerOptions={0}", AdditionalCookerOptions);
 				CommandUtils.LogLog("DedicatedServer={0}", DedicatedServer);
 				CommandUtils.LogLog("DirectoriesToCook={0}", DirectoriesToCook.ToString());
-                CommandUtils.LogLog("CulturesToCook={0}", CulturesToCook.ToString());
+                CommandUtils.LogLog("CulturesToCook={0}", CommandUtils.IsNullOrEmpty(CulturesToCook) ? "<Not Specified> (Use Defaults)" : CulturesToCook.ToString());
 				CommandUtils.LogLog("EditorTargets={0}", EditorTargets.ToString());
 				CommandUtils.LogLog("Foreign={0}", Foreign);
 				CommandUtils.LogLog("IsCodeBasedProject={0}", IsCodeBasedProject.ToString());

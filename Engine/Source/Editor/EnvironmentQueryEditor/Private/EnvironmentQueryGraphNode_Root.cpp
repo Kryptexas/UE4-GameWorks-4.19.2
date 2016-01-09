@@ -16,3 +16,32 @@ FText UEnvironmentQueryGraphNode_Root::GetNodeTitle(ENodeTitleType::Type TitleTy
 {
 	return NSLOCTEXT("EnvironmentQueryEditor", "Root", "ROOT");
 }
+
+void UEnvironmentQueryGraphNode_Root::LogDebugMessage(const FString& Message)
+{
+	if (DebugMessages.Num() == 0)
+	{
+		bHasDebugError = false;
+	}
+
+	// store only 1 error message, discard everything after it
+	if (!bHasDebugError)
+	{
+		DebugMessages.Add(Message);
+	}
+}
+
+void UEnvironmentQueryGraphNode_Root::LogDebugError(const FString& Message)
+{
+	if (DebugMessages.Num() == 0)
+	{
+		bHasDebugError = false;
+	}
+
+	// store only 1 error message, discard everything after it
+	if (!bHasDebugError)
+	{
+		DebugMessages.Add(Message);
+		bHasDebugError = true;
+	}
+}

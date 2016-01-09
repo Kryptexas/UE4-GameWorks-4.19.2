@@ -9,13 +9,13 @@ UDataTableFunctionLibrary::UDataTableFunctionLibrary(const FObjectInitializer& O
 {
 }
 
-void UDataTableFunctionLibrary::EvaluateCurveTableRow(UCurveTable* CurveTable, FName RowName, float InXY, TEnumAsByte<EEvaluateCurveTableResult::Type>& OutResult, float& OutXY)
+void UDataTableFunctionLibrary::EvaluateCurveTableRow(UCurveTable* CurveTable, FName RowName, float InXY, TEnumAsByte<EEvaluateCurveTableResult::Type>& OutResult, float& OutXY,const FString& ContextString)
 {
 	FCurveTableRowHandle Handle;
 	Handle.CurveTable = CurveTable;
 	Handle.RowName = RowName;
 	
-	bool found = Handle.Eval(InXY, &OutXY);
+	bool found = Handle.Eval(InXY, &OutXY,ContextString);
 	
 	if (found)
 	{

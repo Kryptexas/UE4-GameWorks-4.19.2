@@ -25,12 +25,15 @@ UObject* FPackageItem::GetPackageObject() const
 {
 	if ( !EntryName.StartsWith(TEXT("/Temp/Untitled")) )
 	{
-		// Get the object which belongs in this package (there has to be a quicker function than GetObjectsInPackages!)
-		TArray<UPackage*> Packages;
-		Packages.Add( Package );
-		TArray<UObject*> ObjectsInPackages;
-		PackageTools::GetObjectsInPackages(&Packages, ObjectsInPackages);
-		return ( ObjectsInPackages.Num() > 0 ? ObjectsInPackages.Last() : NULL );
+		TArray<UObject*> ObjectsInPackage;
+		GetObjectsWithOuter(Package, ObjectsInPackage, false);
+		for (UObject* Obj : ObjectsInPackage)
+		{
+			if (Obj->IsAsset())
+			{
+				return Obj;
+			}
+		}
 	}
 	return nullptr;
 }

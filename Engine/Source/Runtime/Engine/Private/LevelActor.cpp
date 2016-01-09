@@ -869,7 +869,7 @@ static bool ComponentEncroachesBlockingGeometry_WithAdjustment(UWorld const* Wor
 					// #hack: sometimes for boxes, physx returns a 0 MTD even though it reports a contact (returns true)
 					// to get around this, let's go ahead and test again with the epsilon-shrunken collision shape to see if we're really in 
 					// the clear.  if so, we'll say we have no contact (despite what OverlapMultiByChannel said -- it uses a different algorithm)
-					if (FMath::IsNearlyZero(MTDResult.Distance))
+					if (bSuccess && FMath::IsNearlyZero(MTDResult.Distance))
 					{
 						FCollisionShape const ShrunkenCollisionShape = PrimComp->GetCollisionShape(-Epsilon);
 						bSuccess = OverlapComponent->ComputePenetration(MTDResult, ShrunkenCollisionShape, TestWorldTransform.GetLocation(), TestWorldTransform.GetRotation());

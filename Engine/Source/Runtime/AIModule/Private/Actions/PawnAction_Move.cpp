@@ -287,10 +287,7 @@ void UPawnAction_Move::OnPathUpdated(FNavigationPath* UpdatedPath, ENavPathEvent
 	// log new path when action is paused, otherwise it will be logged by path following component's update
 	if (Event == ENavPathEvent::UpdatedDueToGoalMoved || Event == ENavPathEvent::UpdatedDueToNavigationChanged)
 	{
-		if (IsPaused() && UpdatedPath)
-		{
-			UPathFollowingComponent::LogPathHelper(MyOwner, UpdatedPath, UpdatedPath->GetGoalActor());
-		}
+		bool bShouldLog = UpdatedPath && IsPaused();
 
 		// make sure it's still satisfying partial path condition
 		if (UpdatedPath && UpdatedPath->IsPartial())
@@ -300,8 +297,16 @@ void UPawnAction_Move::OnPathUpdated(FNavigationPath* UpdatedPath, ENavPathEvent
 			{
 				UE_VLOG(MyOwner, LogPawnAction, Log, TEXT(">> partial path is not allowed, aborting"));
 				GetOwnerComponent()->AbortAction(*this);
+				bShouldLog = true;
 			}
 		}
+
+#if ENABLE_VISUAL_LOG
+		if (bShouldLog)
+		{
+			UPathFollowingComponent::LogPathHelper(MyOwner, UpdatedPath, UpdatedPath->GetGoalActor());
+		}
+#endif
 	}
 }
 

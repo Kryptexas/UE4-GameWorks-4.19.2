@@ -1019,6 +1019,9 @@ void UPartyGameState::PromoteMember(const FUniqueNetIdRepl& NewPartyLeader)
 				IOnlinePartyPtr PartyInt = Online::GetPartyInterface(World);
 				if (ensure(PartyInt.IsValid()))
 				{
+					// Do any internal updates
+					PrePromoteMember();
+
 					FOnPromotePartyMemberComplete CompletionDelegate;
 					CompletionDelegate.BindUObject(this, &ThisClass::OnPartyMemberPromoted);
 					PartyInt->PromoteMember(*OwningUserId, *OssParty->PartyId, *NewPartyLeader, CompletionDelegate);
@@ -1038,6 +1041,10 @@ void UPartyGameState::PromoteMember(const FUniqueNetIdRepl& NewPartyLeader)
 	{
 		UE_LOG(LogParty, Warning, TEXT("Non party leader trying to promote party leader!"));
 	}
+}
+
+void UPartyGameState::PrePromoteMember()
+{
 }
 
 void UPartyGameState::OnPartyMemberKicked(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, const FUniqueNetId& InMemberId, const EKickMemberCompletionResult Result)
@@ -1147,6 +1154,7 @@ void UPartyGameState::UpdatePartyData(const FUniqueNetIdRepl& InLocalUserId)
 			if (ensure(PartyInt.IsValid()))
 			{
 				FOnlinePartyData PartyData;
+				ensure(PartyStateRefDef != nullptr && PartyStateRef != nullptr);
 				if (FVariantDataConverter::UStructToVariantMap(PartyStateRefDef, PartyStateRef, PartyData.KeyValAttrs, 0, CPF_Transient | CPF_RepSkip))
 				{
 					PartyInt->UpdatePartyData(*OwningUserId, *PartyId, PartyData);
@@ -1188,6 +1196,7 @@ void UPartyGameState::UpdatePartyMemberState(const FUniqueNetIdRepl& InLocalUser
 				if (ensure(PartyInt.IsValid()))
 				{
 					FOnlinePartyData PartyMemberData;
+					ensure(InPartyMemberState->MemberStateRefDef != nullptr && InPartyMemberState->MemberStateRef != nullptr);
 					if (FVariantDataConverter::UStructToVariantMap(InPartyMemberState->MemberStateRefDef, InPartyMemberState->MemberStateRef, PartyMemberData.KeyValAttrs, 0, CPF_Transient | CPF_RepSkip))
 					{
 						PartyInt->UpdatePartyMemberData(*InLocalUserId, *PartyId, PartyMemberData);

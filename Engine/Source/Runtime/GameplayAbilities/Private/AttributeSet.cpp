@@ -164,10 +164,6 @@ float FScalableFloat::GetValueAtLevel(float Level) const
 		{
 			return Value * FinalCurve->Eval(Level);
 		}
-		else
-		{
-			ABILITY_LOG(Error, TEXT("Unable to find RowName: %s for FScalableFloat."), *Curve.RowName.ToString());
-		}
 	}
 
 	return Value;

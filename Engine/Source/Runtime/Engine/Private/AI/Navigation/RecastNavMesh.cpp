@@ -1937,8 +1937,7 @@ bool ARecastNavMesh::NavMeshRaycast(const ANavigationData* Self, const FVector& 
 		return true;
 	}
 
-	RecastNavMesh->RecastNavMeshImpl->Raycast2D(RayStart, RayEnd, RecastNavMesh->GetRightFilterRef(QueryFilter), QueryOwner, Result);
-
+	RecastNavMesh->RecastNavMeshImpl->Raycast(RayStart, RayEnd, RecastNavMesh->GetRightFilterRef(QueryFilter), QueryOwner, Result);
 	HitLocation = Result.HasHit() ? (RayStart + (RayEnd - RayStart) * Result.HitTime) : RayEnd;
 
 	return Result.HasHit();
@@ -1956,10 +1955,9 @@ bool ARecastNavMesh::NavMeshRaycast(const ANavigationData* Self, NavNodeRef RayS
 	}
 
 	FRaycastResult Result;
-	RecastNavMesh->RecastNavMeshImpl->Raycast2D(RayStartNode, RayStart, RayEnd, RecastNavMesh->GetRightFilterRef(QueryFilter), QueryOwner, Result);
+	RecastNavMesh->RecastNavMeshImpl->Raycast(RayStart, RayEnd, RecastNavMesh->GetRightFilterRef(QueryFilter), QueryOwner, Result, RayStartNode);
 
 	HitLocation = Result.HasHit() ? (RayStart + (RayEnd - RayStart) * Result.HitTime) : RayEnd;
-
 	return Result.HasHit();
 }
 
@@ -2007,8 +2005,14 @@ void ARecastNavMesh::BatchRaycast(TArray<FNavigationRaycastWork>& Workload, FSha
 
 			if (dtStatusSucceed(RaycastStatus) && RaycastResult.HasHit())
 			{
-				WorkItem.bDidHit = true;
-				WorkItem.HitLocation = FNavLocation(WorkItem.RayStart + (WorkItem.RayEnd - WorkItem.RayStart) * RaycastResult.HitTime, RaycastResult.GetLastNodeRef());
+				NavNodeRef ExpectedEndNode = INVALID_NAVNODEREF;
+				NavQuery.findNearestPoly(&RecastEnd.X, Extent, QueryFilter, &ExpectedEndNode, NULL);
+
+				if (ExpectedEndNode == RaycastResult.GetLastNodeRef())
+				{
+					WorkItem.bDidHit = true;
+					WorkItem.HitLocation = FNavLocation(WorkItem.RayStart + (WorkItem.RayEnd - WorkItem.RayStart) * RaycastResult.HitTime, ExpectedEndNode);
+				}
 			}
 		}
 	}
@@ -2022,7 +2026,7 @@ bool ARecastNavMesh::IsSegmentOnNavmesh(const FVector& SegmentStart, const FVect
 	}
 	
 	FRaycastResult Result;
-	RecastNavMeshImpl->Raycast2D(SegmentStart, SegmentEnd, GetRightFilterRef(Filter), QueryOwner, Result);
+	RecastNavMeshImpl->Raycast(SegmentStart, SegmentEnd, GetRightFilterRef(Filter), QueryOwner, Result);
 
 	return Result.HasHit() == false;
 }

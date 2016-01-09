@@ -152,3 +152,7 @@ bool UBlueprintGameplayTagLibrary::NotEqual_TagContainerTagContainer(FGameplayTa
 
 	return A != TagContainer;
 }
+FString UBlueprintGameplayTagLibrary::GetDebugStringFromGameplayTagContainer(const FGameplayTagContainer& TagContainer)
+{
+	return TagContainer.ToStringSimple();
+}

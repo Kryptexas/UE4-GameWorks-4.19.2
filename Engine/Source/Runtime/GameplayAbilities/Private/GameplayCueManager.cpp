@@ -8,6 +8,8 @@
 #include "GameplayTagsModule.h"
 #include "GameplayCueNotify_Static.h"
 #include "AbilitySystemComponent.h"
+#include "Net/DataReplication.h"
+#include "Engine/ActorChannel.h"
 #include "UnrealNetwork.h"
 
 #if WITH_EDITOR
@@ -403,6 +405,49 @@ void UGameplayCueManager::BuildCuesToAddToGlobalSet(const TArray<FAssetData>& As
 	}
 }
 
+void UGameplayCueManager::CheckForTooManyRPCs(FName FuncName, const FGameplayCuePendingExecute& PendingCue, const FString& CueID, const FGameplayEffectContext* EffectContext)
+{
+	static IConsoleVariable* MaxRPCPerNetUpdateCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("net.MaxRPCPerNetUpdate"));
+	if (MaxRPCPerNetUpdateCVar)
+	{
+		AActor* Owner = PendingCue.OwningComponent ? PendingCue.OwningComponent->GetOwner() : nullptr;
+		UWorld* World = Owner ? Owner->GetWorld() : nullptr;
+		UNetDriver* NetDriver = World ? World->GetNetDriver() : nullptr;
+		if (NetDriver)
+		{
+			const int32 MaxRPCs = MaxRPCPerNetUpdateCVar->GetInt();
+			for (UNetConnection* ClientConnection : NetDriver->ClientConnections)
+			{
+				if (ClientConnection)
+				{
+					UActorChannel** OwningActorChannelPtr = ClientConnection->ActorChannels.Find(Owner);
+					TSharedRef<FObjectReplicator>* ComponentReplicatorPtr = (OwningActorChannelPtr && *OwningActorChannelPtr) ? (*OwningActorChannelPtr)->ReplicationMap.Find(PendingCue.OwningComponent) : nullptr;
+					if (ComponentReplicatorPtr)
+					{
+						const TArray<FObjectReplicator::FRPCCallInfo>& RemoteFuncInfo = (*ComponentReplicatorPtr)->RemoteFuncInfo;
+						for (const FObjectReplicator::FRPCCallInfo& CallInfo : RemoteFuncInfo)
+						{
+							if (CallInfo.FuncName == FuncName)
+							{
+								if (CallInfo.Calls > MaxRPCs)
+								{
+									const FString Instigator = EffectContext ? EffectContext->ToString() : TEXT("None");
+									ABILITY_LOG(Warning, TEXT("Attempted to fire %s when no more RPCs are allowed this net update. Max:%d Cue:%s Instigator:%s Component:%s"), *FuncName.ToString(), MaxRPCs, *CueID, *Instigator, *GetPathNameSafe(PendingCue.OwningComponent));
+									
+									// Returning here to only log once per offending RPC.
+									return;
+								}
+
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 void UGameplayCueManager::OnGameplayCueNotifyAsyncLoadComplete(FStringAssetReference StringRef)
 {
 	UClass* GCClass = FindObject<UClass>(nullptr, *StringRef.ToString());
@@ -683,9 +728,11 @@ void UGameplayCueManager::EndGameplayCueSendContext()
 
 void UGameplayCueManager::FlushPendingCues()
 {
-	for (int32 i = 0; i < PendingExecuteCues.Num(); i++)
+	TArray<FGameplayCuePendingExecute> LocalPendingExecuteCues = PendingExecuteCues;
+	PendingExecuteCues.Empty();
+	for (int32 i = 0; i < LocalPendingExecuteCues.Num(); i++)
 	{
-		FGameplayCuePendingExecute& PendingCue = PendingExecuteCues[i];
+		FGameplayCuePendingExecute& PendingCue = LocalPendingExecuteCues[i];
 
 		// Our component may have gone away
 		if (PendingCue.OwningComponent)
@@ -701,6 +748,8 @@ void UGameplayCueManager::FlushPendingCues()
 				{
 					PendingCue.OwningComponent->ForceReplication();
 					PendingCue.OwningComponent->NetMulticast_InvokeGameplayCueExecuted_WithParams(PendingCue.GameplayCueTag, PendingCue.PredictionKey, PendingCue.CueParameters);
+					static FName NetMulticast_InvokeGameplayCueExecuted_WithParamsName = TEXT("NetMulticast_InvokeGameplayCueExecuted_WithParams");
+					CheckForTooManyRPCs(NetMulticast_InvokeGameplayCueExecuted_WithParamsName, PendingCue, PendingCue.GameplayCueTag.ToString(), nullptr);
 				}
 				else if (bLocalPredictionKey)
 				{
@@ -712,6 +761,8 @@ void UGameplayCueManager::FlushPendingCues()
 				{
 					PendingCue.OwningComponent->ForceReplication();
 					PendingCue.OwningComponent->NetMulticast_InvokeGameplayCueExecuted(PendingCue.GameplayCueTag, PendingCue.PredictionKey, PendingCue.CueParameters.EffectContext);
+					static FName NetMulticast_InvokeGameplayCueExecutedName = TEXT("NetMulticast_InvokeGameplayCueExecuted");
+					CheckForTooManyRPCs(NetMulticast_InvokeGameplayCueExecutedName, PendingCue, PendingCue.GameplayCueTag.ToString(), PendingCue.CueParameters.EffectContext.Get());
 				}
 				else if (bLocalPredictionKey)
 				{
@@ -723,6 +774,8 @@ void UGameplayCueManager::FlushPendingCues()
 				{
 					PendingCue.OwningComponent->ForceReplication();
 					PendingCue.OwningComponent->NetMulticast_InvokeGameplayCueExecuted_FromSpec(PendingCue.FromSpec, PendingCue.PredictionKey);
+					static FName NetMulticast_InvokeGameplayCueExecuted_FromSpecName = TEXT("NetMulticast_InvokeGameplayCueExecuted_FromSpec");
+					CheckForTooManyRPCs(NetMulticast_InvokeGameplayCueExecuted_FromSpecName, PendingCue, PendingCue.FromSpec.Def ? PendingCue.FromSpec.ToSimpleString() : TEXT("FromSpecWithNoDef"), PendingCue.FromSpec.EffectContext.Get());
 				}
 				else if (bLocalPredictionKey)
 				{
@@ -732,8 +785,6 @@ void UGameplayCueManager::FlushPendingCues()
 			}
 		}
 	}
-
-	PendingExecuteCues.Empty();
 }
 
 bool UGameplayCueManager::ProcessPendingCueExecute(FGameplayCuePendingExecute& PendingCue)

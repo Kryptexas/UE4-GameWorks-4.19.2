@@ -168,6 +168,11 @@ void CALLBACK InternetStatusCallbackWinInet(
 		break;
 	case INTERNET_STATUS_RECEIVING_RESPONSE:
 		DEBUG_LOG_HTTP(bDebugLog, VeryVerbose, TEXT("RECEIVING_RESPONSE: %p"), dwContext);
+		if (Response != NULL)
+		{
+			// if we receive a response, we sent the request (and it's no longer safe to retry)
+			FPlatformAtomics::InterlockedExchange(&Response->bRequestSent, 1);
+		}
 		break;
 	case INTERNET_STATUS_RESPONSE_RECEIVED:
 		DEBUG_LOG_HTTP(bDebugLog, VeryVerbose, TEXT("RESPONSE_RECEIVED (%d bytes): %p"), *(uint32*)lpvStatusInformation, dwContext);		
@@ -211,6 +216,11 @@ void CALLBACK InternetStatusCallbackWinInet(
 		break;
 	case INTERNET_STATUS_SENDING_REQUEST:
 		DEBUG_LOG_HTTP(bDebugLog, VeryVerbose, TEXT("SENDING_REQUEST: %p"), dwContext);
+		if (Response != NULL)
+		{
+			// mark that we have started sending the request (at this point it's no longer safe to retry)
+			FPlatformAtomics::InterlockedExchange(&Response->bRequestSent, 1);
+		}
 		break;
 	case INTERNET_STATUS_STATE_CHANGE:
 		DEBUG_LOG_HTTP(bDebugLog, VeryVerbose, TEXT("STATE_CHANGE: %p"), dwContext);
@@ -479,8 +489,6 @@ bool FHttpRequestWinInet::ProcessRequest()
 	
 	if (!bStarted)
 	{
-		// No response since connection failed
-		Response = NULL;
 		// Cleanup and call delegate
 		FinishedRequest();
 	}
@@ -671,7 +679,7 @@ void FHttpRequestWinInet::FinishedRequest()
 			this, *GetVerb(), *GetURL(), ElapsedTime);
 
 		// Mark last request attempt as completed but failed
-		CompletionStatus = EHttpRequestStatus::Failed;
+		CompletionStatus = (Response.IsValid() && Response->bRequestSent) ? EHttpRequestStatus::Failed : EHttpRequestStatus::Failed_ConnectionError;
 		// No response since connection failed
 		Response = NULL;
 		// Call delegate with failure
@@ -811,6 +819,7 @@ FHttpResponseWinInet::FHttpResponseWinInet(FHttpRequestWinInet& InRequest)
 ,	ContentLength(0)
 ,	bIsReady(0)
 ,	bResponseSucceeded(0)
+,	bRequestSent(0)
 ,	MaxReadBufferSize(FHttpModule::Get().GetMaxReadBufferSize())
 {
 

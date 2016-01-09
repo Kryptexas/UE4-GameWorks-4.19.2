@@ -2576,6 +2576,13 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 		{
 			Ar << ClothingAssets[Idx];
 		}
+
+#if WITH_APEX_CLOTHING
+		if (Ar.IsLoading())
+		{
+			BuildApexToUnrealBoneMapping();
+		}
+#endif
 	}
 
 	if ( Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_SKELETALMESH_SHADOWCASTING )
@@ -4763,7 +4770,11 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 			Mesh.VisualizeLODIndex = LODIndex;
 		#endif
 
-			Collector.AddMesh(ViewIndex, Mesh);
+			if ( ensureMsgf(Mesh.MaterialRenderProxy, TEXT("GetDynamicElementsSection with invalid MaterialRenderProxy. Owner:%s LODIndex:%d UseMaterialIndex:%d"), *GetOwnerName().ToString(), LODIndex, SectionElementInfo.UseMaterialIndex) &&
+				 ensureMsgf(Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel), TEXT("GetDynamicElementsSection with invalid FMaterial. Owner:%s LODIndex:%d UseMaterialIndex:%d"), *GetOwnerName().ToString(), LODIndex, SectionElementInfo.UseMaterialIndex) )
+			{
+				Collector.AddMesh(ViewIndex, Mesh);
+			}
 
 			const int32 NumVertices = Chunk.NumRigidVertices + Chunk.NumSoftVertices;
 			INC_DWORD_STAT_BY(STAT_GPUSkinVertices,(uint32)(bIsCPUSkinned ? 0 : NumVertices));

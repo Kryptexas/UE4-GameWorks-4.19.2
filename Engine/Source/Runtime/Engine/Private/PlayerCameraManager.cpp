@@ -336,7 +336,18 @@ void APlayerCameraManager::ApplyAnimToCamera(ACameraActor const* AnimatedCamActo
 	// fov
 	const float FOVMin = 5.f;
 	const float FOVMax = 170.f;
-	InOutPOV.FOV += (AnimatedCamActor->GetCameraComponent()->FieldOfView - AnimInst->InitialFOV) * Scale;
+
+	// Interp the FOV toward the camera component's FOV based on Scale
+	const int32 DesiredDirection = FMath::Sign(AnimatedCamActor->GetCameraComponent()->FieldOfView - InOutPOV.FOV);
+	const int32 InitialDirection = FMath::Sign(AnimatedCamActor->GetCameraComponent()->FieldOfView - AnimInst->InitialFOV);
+	if (DesiredDirection != InitialDirection)
+	{
+		InOutPOV.FOV = FMath::Clamp(InOutPOV.FOV + ((AnimatedCamActor->GetCameraComponent()->FieldOfView - InOutPOV.FOV) * Scale), InOutPOV.FOV, AnimatedCamActor->GetCameraComponent()->FieldOfView);
+	}
+	else
+	{
+		InOutPOV.FOV = FMath::Clamp<float>(InOutPOV.FOV + ((AnimatedCamActor->GetCameraComponent()->FieldOfView - AnimInst->InitialFOV) * Scale), AnimatedCamActor->GetCameraComponent()->FieldOfView, AnimInst->InitialFOV);
+	}
 	InOutPOV.FOV = FMath::Clamp<float>(InOutPOV.FOV, FOVMin, FOVMax);
 
 	// postprocess
@@ -400,6 +411,7 @@ UCameraAnimInst* APlayerCameraManager::PlayCameraAnim(UCameraAnim* Anim, float R
 		if (Inst)
 		{
 			Inst->LastCameraLoc = FVector::ZeroVector;		// clear LastCameraLoc
+			Inst->InitialFOV = ViewTarget.POV.FOV;
 			Inst->Play(Anim, AnimCameraActor, Rate, Scale, BlendInTime, BlendOutTime, bLoop, bRandomStartTime, Duration);
 			Inst->SetPlaySpace(PlaySpace, UserPlaySpaceRot);
 			return Inst;
@@ -450,7 +462,6 @@ void APlayerCameraManager::InitTempCameraActor(ACameraActor* CamActor, UCameraAn
 			if (DefaultCamActor)
 			{
 				CamActor->GetCameraComponent()->AspectRatio = DefaultCamActor->GetCameraComponent()->AspectRatio;
-				CamActor->GetCameraComponent()->FieldOfView = AnimInstToInitFor->CamAnim->BaseFOV;
 				CamActor->GetCameraComponent()->PostProcessSettings = AnimInstToInitFor->CamAnim->BasePostProcessSettings;
 				CamActor->GetCameraComponent()->PostProcessBlendWeight = AnimInstToInitFor->CamAnim->BasePostProcessBlendWeight;
 			}

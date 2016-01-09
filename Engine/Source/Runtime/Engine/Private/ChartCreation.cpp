@@ -32,7 +32,7 @@ FString GCaptureStartTime;
 FString GFPSChartLabel;
 
 /** Start time of current FPS chart.										*/
-double			GFPSChartStartTime;
+double			GFPSChartStartTime = 0;
 
 /** FPS chart information. Time spent for each bucket and count.			*/
 FFPSChartEntry	GFPSChart[STAT_FPSChartLastBucketStat - STAT_FPSChartFirstStat];
@@ -286,13 +286,15 @@ void UEngine::TickFPSChart( float DeltaSeconds )
 
 	// Track per frame stats.
 
-	// Capturing FPS chart info.
+	// Capturing FPS chart info. We only use these when we intend to write out to a stats log
+#if ALLOW_DEBUG_FILES
 	{		
 		GGameThreadFrameTimes.Add( FPlatformTime::ToSeconds(GGameThreadTime) );
 		GRenderThreadFrameTimes.Add( FPlatformTime::ToSeconds(LocalRenderThreadTime) );
 		GGPUFrameTimes.Add( FPlatformTime::ToSeconds(LocalGPUFrameTime) );
 		GFrameTimes.Add(DeltaSeconds);
 	}
+#endif
 
 	// Check for hitches
 	{
@@ -390,12 +392,14 @@ void UEngine::StartFPSChart( const FString& Label )
 		GHitchChart[ BucketIndex ].GPUBoundHitchCount = 0;
 	}
 
-	// Pre-allocate 10 minutes worth of frames at 30 Hz.
+	// Pre-allocate 10 minutes worth of frames at 30 Hz. This is only needed if we intend to write out a stats log
+#if ALLOW_DEBUG_FILES
 	int32 NumFrames = 10 * 60 * 30;
 	GRenderThreadFrameTimes.Reset(NumFrames);
 	GGPUFrameTimes.Reset(NumFrames);
 	GGameThreadFrameTimes.Reset(NumFrames);
 	GFrameTimes.Reset(NumFrames);
+#endif
 
 	GTotalGPUTime = 0;
 	GGPUFrameTime = 0;
@@ -1258,6 +1262,13 @@ void UEngine::DumpFPSChartAnalytics(const FString& InMapName, TArray<FAnalyticsE
 }
 
 
+
+void UEngine::GetFPSChartBoundByFrameCounts(uint32& OutGameThread, uint32& OutRenderThread, uint32& OutGPU) const
+{
+	OutGameThread = GNumFramesBound_GameThread;
+	OutRenderThread = GNumFramesBound_RenderThread;
+	OutGPU = GTotalFramesBoundTime_GPU;
+}
 
 #endif // DO_CHARTING
 

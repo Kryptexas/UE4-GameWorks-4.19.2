@@ -93,6 +93,7 @@ struct FGameplayAbilitySpecDef
 		: Level(INDEX_NONE)
 		, InputID(INDEX_NONE)
 		, RemovalPolicy(EGameplayEffectGrantedAbilityRemovePolicy::CancelAbilityImmediately)
+		, SourceObject(nullptr)
 	{
 		LevelScalableFloat.SetValue(1.f);
 	}

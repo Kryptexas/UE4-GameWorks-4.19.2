@@ -74,7 +74,8 @@ void UGameplayEffect::PostLoad()
 	for (FGameplayModifierInfo& CurModInfo : Modifiers)
 	{
 		// If the old magnitude actually had some value in it, copy it over and then clear out the old data
-		if (CurModInfo.Magnitude.Value != 0.f || CurModInfo.Magnitude.Curve.IsValid())
+		static const FString GameplayEffectPostLoadContext(TEXT("UGameplayEffect::PostLoad"));
+		if (CurModInfo.Magnitude.Value != 0.f || CurModInfo.Magnitude.Curve.IsValid(GameplayEffectPostLoadContext))
 		{
 			CurModInfo.ModifierMagnitude.ScalableFloatMagnitude = CurModInfo.Magnitude;
 			CurModInfo.Magnitude = FScalableFloat();
@@ -204,13 +205,44 @@ float FAttributeBasedFloat::CalculateMagnitude(const FGameplayEffectSpec& InRele
 	}
 
 	// if a curve table entry is specified, use the attribute value as a lookup into the curve instead of using it directly
-	if (AttributeCurve.IsValid())
+	static const FString CalculateMagnitudeContext(TEXT("FAttributeBasedFloat::CalculateMagnitude"));
+	if (AttributeCurve.IsValid(CalculateMagnitudeContext))
 	{
-		AttributeCurve.Eval(AttribValue, &AttribValue);
+		AttributeCurve.Eval(AttribValue, &AttribValue, CalculateMagnitudeContext);
 	}
 
 	const float SpecLvl = InRelevantSpec.GetLevel();
 	return ((Coefficient.GetValueAtLevel(SpecLvl) * (AttribValue + PreMultiplyAdditiveValue.GetValueAtLevel(SpecLvl))) + PostMultiplyAdditiveValue.GetValueAtLevel(SpecLvl));
+}
+
+bool FAttributeBasedFloat::operator==(const FAttributeBasedFloat& Other) const
+{
+	if (Coefficient != Other.Coefficient ||
+		PreMultiplyAdditiveValue != Other.PreMultiplyAdditiveValue ||
+		PostMultiplyAdditiveValue != Other.PostMultiplyAdditiveValue ||
+		BackingAttribute != Other.BackingAttribute ||
+		AttributeCurve != Other.AttributeCurve ||
+		AttributeCalculationType != Other.AttributeCalculationType)
+	{
+		return false;
+	}
+	if (SourceTagFilter.Num() != Other.SourceTagFilter.Num() ||
+		!SourceTagFilter.MatchesAll(Other.SourceTagFilter, true))
+	{
+		return false;
+	}
+	if (TargetTagFilter.Num() != Other.TargetTagFilter.Num() ||
+		!TargetTagFilter.MatchesAll(Other.TargetTagFilter, true))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool FAttributeBasedFloat::operator!=(const FAttributeBasedFloat& Other) const
+{
+	return !(*this == Other);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -228,6 +260,28 @@ float FCustomCalculationBasedFloat::CalculateMagnitude(const FGameplayEffectSpec
 
 	const float SpecLvl = InRelevantSpec.GetLevel();
 	return ((Coefficient.GetValueAtLevel(SpecLvl) * (CustomBaseValue + PreMultiplyAdditiveValue.GetValueAtLevel(SpecLvl))) + PostMultiplyAdditiveValue.GetValueAtLevel(SpecLvl));
+}
+
+/** Equality/Inequality operators */
+bool FCustomCalculationBasedFloat::operator==(const FCustomCalculationBasedFloat& Other) const
+{
+	if (CalculationClassMagnitude != Other.CalculationClassMagnitude)
+	{
+		return false;
+	}
+	if (Coefficient != Other.Coefficient ||
+		PreMultiplyAdditiveValue != Other.PreMultiplyAdditiveValue ||
+		PostMultiplyAdditiveValue != Other.PostMultiplyAdditiveValue)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool FCustomCalculationBasedFloat::operator!=(const FCustomCalculationBasedFloat& Other) const
+{
+	return !(*this == Other);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -360,6 +414,49 @@ bool FGameplayEffectModifierMagnitude::GetSetByCallerDataNameIfPossible(FName& O
 	return false;
 }
 
+bool FGameplayEffectModifierMagnitude::operator==(const FGameplayEffectModifierMagnitude& Other) const
+{
+	if (MagnitudeCalculationType != Other.MagnitudeCalculationType)
+	{
+		return false;
+	}
+
+	switch (MagnitudeCalculationType)
+	{
+	case EGameplayEffectMagnitudeCalculation::ScalableFloat:
+		if (ScalableFloatMagnitude != Other.ScalableFloatMagnitude)
+		{
+			return false;
+		}
+		break;
+	case EGameplayEffectMagnitudeCalculation::AttributeBased:
+		if (AttributeBasedMagnitude != Other.AttributeBasedMagnitude)
+		{
+			return false;
+		}
+		break;
+	case EGameplayEffectMagnitudeCalculation::CustomCalculationClass:
+		if (CustomMagnitude != Other.CustomMagnitude)
+		{
+			return false;
+		}
+		break;
+	case EGameplayEffectMagnitudeCalculation::SetByCaller:
+		if (SetByCallerMagnitude.DataName != Other.SetByCallerMagnitude.DataName)
+		{
+			return false;
+		}
+		break;
+	}
+
+	return true;
+}
+
+bool FGameplayEffectModifierMagnitude::operator!=(const FGameplayEffectModifierMagnitude& Other) const
+{
+	return !(*this == Other);
+}
+
 #if WITH_EDITOR
 FText FGameplayEffectModifierMagnitude::GetValueForEditorDisplay() const
 {
@@ -479,6 +576,15 @@ FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect* InDef, const FGa
 
 	// Make Granted AbilitySpecs (caller may modify these specs after creating spec, which is why we dont just reference them from the def)
 	GrantedAbilitySpecs = InDef->GrantedAbilities;
+
+	// if we're granting abilities and they don't specify a source object use the source of this GE
+	for (FGameplayAbilitySpecDef& AbilitySpecDef : GrantedAbilitySpecs)
+	{
+		if (AbilitySpecDef.SourceObject == nullptr)
+		{
+			AbilitySpecDef.SourceObject = InEffectContext.GetSourceObject();
+		}
+	}
 
 	// Everything is setup now, capture data from our source
 	CaptureDataFromSource();
@@ -1736,6 +1842,12 @@ void FActiveGameplayEffectsContainer::UpdateAllAggregatorModMagnitudes(FActiveGa
 		return;
 	}
 
+	// we don't need to update inhibited effects
+	if (ActiveEffect.bIsInhibited)
+	{
+		return;
+	}
+
 	const FGameplayEffectSpec& Spec = ActiveEffect.Spec;
 
 	if (Spec.Def == nullptr)
@@ -2271,8 +2383,8 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(
 	// Note: One day may want to not call gameplay cues unless ongoing tag requirements are met (will need to move this there)
 	{
 		const bool HasModifiedAttributes = AppliedEffectSpec.ModifiedAttributes.Num() > 0;
-		const bool HasDurationAndNoPeriod = AppliedEffectSpec.GetDuration() > 0.0f && AppliedEffectSpec.GetPeriod() == UGameplayEffect::NO_PERIOD;
-		const bool HasPeriodAndNoDuration =	AppliedEffectSpec.GetDuration() == UGameplayEffect::INSTANT_APPLICATION && 
+		const bool HasDurationAndNoPeriod = AppliedEffectSpec.Def->DurationPolicy == EGameplayEffectDurationType::HasDuration && AppliedEffectSpec.GetPeriod() == UGameplayEffect::NO_PERIOD;
+		const bool HasPeriodAndNoDuration = AppliedEffectSpec.Def->DurationPolicy == EGameplayEffectDurationType::Instant &&
 											AppliedEffectSpec.GetPeriod() != UGameplayEffect::NO_PERIOD;
 		const bool ShouldBuildModifiedAttributeList = !HasModifiedAttributes && (HasDurationAndNoPeriod || HasPeriodAndNoDuration);
 		if (ShouldBuildModifiedAttributeList)
@@ -2311,6 +2423,10 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(
 		if (AppliedEffectSpec.AttemptCalculateDurationFromDef(DefCalcDuration))
 		{
 			AppliedEffectSpec.SetDuration(DefCalcDuration, false);
+		}
+		else if (AppliedEffectSpec.Def->DurationMagnitude.GetMagnitudeCalculationType() == EGameplayEffectMagnitudeCalculation::SetByCaller)
+		{
+			AppliedEffectSpec.Def->DurationMagnitude.AttemptCalculateMagnitude(AppliedEffectSpec, AppliedEffectSpec.Duration);
 		}
 
 		const float DurationBaseValue = AppliedEffectSpec.GetDuration();
@@ -2892,7 +3008,7 @@ void FActiveGameplayEffectsContainer::CheckDuration(FActiveGameplayEffectHandle 
 {
 	GAMEPLAYEFFECT_SCOPE_LOCK();
 	// Intentionally iterating through only the internal list since we need to pass the index for removal
-	// and pending effecets will never need to be checked for duration expiration (They will be added to the real list first)
+	// and pending effects will never need to be checked for duration expiration (They will be added to the real list first)
 	for (int32 ActiveGEIdx = 0; ActiveGEIdx < GameplayEffects_Internal.Num(); ++ActiveGEIdx)
 	{
 		FActiveGameplayEffect& Effect = GameplayEffects_Internal[ActiveGEIdx];
@@ -3163,6 +3279,20 @@ float FActiveGameplayEffectsContainer::GetActiveEffectsEndTime(const FGameplayEf
 		}
 	}
 	return ReturnTime;
+}
+
+TArray<FActiveGameplayEffectHandle> FActiveGameplayEffectsContainer::GetAllActiveEffectHandles() const
+{
+	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsGetAllActiveEffectHandles);
+
+	TArray<FActiveGameplayEffectHandle> ReturnList;
+
+	for (const FActiveGameplayEffect& Effect : this)
+	{
+		ReturnList.Add(Effect.Handle);
+	}
+
+	return ReturnList;
 }
 
 void FActiveGameplayEffectsContainer::ModifyActiveEffectStartTime(FActiveGameplayEffectHandle Handle, float StartTimeDiff)
@@ -3911,6 +4041,49 @@ bool FActiveGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) co
 
 	// passed all the checks
 	return true;
+}
+
+bool FGameplayModifierInfo::operator==(const FGameplayModifierInfo& Other) const
+{
+	if (Attribute != Other.Attribute)
+	{
+		return false;
+	}
+
+	if (ModifierOp != Other.ModifierOp)
+	{
+		return false;
+	}
+
+	if (ModifierMagnitude != Other.ModifierMagnitude)
+	{
+		return false;
+	}
+
+	if (SourceTags.RequireTags.Num() != Other.SourceTags.RequireTags.Num() || !SourceTags.RequireTags.MatchesAll(Other.SourceTags.RequireTags, true))
+	{
+		return false;
+	}
+	if (SourceTags.IgnoreTags.Num() != Other.SourceTags.IgnoreTags.Num() || !SourceTags.IgnoreTags.MatchesAll(Other.SourceTags.IgnoreTags, true))
+	{
+		return false;
+	}
+
+	if (TargetTags.RequireTags.Num() != Other.TargetTags.RequireTags.Num() || !TargetTags.RequireTags.MatchesAll(Other.TargetTags.RequireTags, true))
+	{
+		return false;
+	}
+	if (TargetTags.IgnoreTags.Num() != Other.TargetTags.IgnoreTags.Num() || !TargetTags.IgnoreTags.MatchesAll(Other.TargetTags.IgnoreTags, true))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool FGameplayModifierInfo::operator!=(const FGameplayModifierInfo& Other) const
+{
+	return !(*this == Other);
 }
 
 void FInheritedTagContainer::UpdateInheritedTagProperties(const FInheritedTagContainer* Parent)

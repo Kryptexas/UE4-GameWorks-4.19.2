@@ -3756,7 +3756,7 @@ void USkeletalMeshComponent::ParallelEvaluateCloth(float DeltaTime, const FCloth
 		if (BoneIndex != INDEX_NONE)
 		{
 			BoneMatrices[Index] = U2PMatrix(BoneTransforms[BoneIndex].ToMatrixWithScale());
-			if (BoneTransforms[BoneIndex].GetScale3D().IsNearlyZero())
+			if (BoneIndex == INDEX_NONE || BoneTransforms[BoneIndex].GetScale3D().IsNearlyZero())
 			{
 				BoneMatrices[Index].column0 = PxMat44::createIdentity().column0;
 				BoneMatrices[Index].column1 = PxMat44::createIdentity().column1;

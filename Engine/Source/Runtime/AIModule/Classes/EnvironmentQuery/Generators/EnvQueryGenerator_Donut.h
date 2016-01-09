@@ -35,6 +35,11 @@ class AIMODULE_API UEnvQueryGenerator_Donut : public UEnvQueryGenerator_Projecte
 	UPROPERTY(EditDefaultsOnly, Category = Generator)
 	FAIDataProviderFloatValue ArcAngle;
 
+	/** If true, the rings of the wheel will be rotated in a spiral pattern.  If false, they will all be at a zero
+	  * rotation, looking more like the spokes on a wheel.  */
+	UPROPERTY(EditDefaultsOnly, Category = Generator)
+	bool bUseSpiralPattern;
+
 	/** context */
 	UPROPERTY(EditAnywhere, Category = Generator)
 	TSubclassOf<class UEnvQueryContext> Center;

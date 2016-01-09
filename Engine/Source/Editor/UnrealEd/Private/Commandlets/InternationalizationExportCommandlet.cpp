@@ -788,7 +788,7 @@ int32 UInternationalizationExportCommandlet::Main( const FString& Params )
 
 	GetBoolFromConfig( *SectionName, TEXT("bImportLoc"), bDoImport, ConfigPath );
 	GetBoolFromConfig( *SectionName, TEXT("bExportLoc"), bDoExport, ConfigPath );
-	GetBoolFromConfig(*SectionName, TEXT("ShouldPersistComments"), ShouldPersistComments, ConfigPath);
+	GetBoolFromConfig(*SectionName, TEXT("ShouldPersistCommentsOnExport"), ShouldPersistComments, ConfigPath);
 
 	// Reject the ShouldPersistComments flag and warn if not exporting - we're not writing to anything, so we can't persist.
 	if (ShouldPersistComments && !bDoExport)

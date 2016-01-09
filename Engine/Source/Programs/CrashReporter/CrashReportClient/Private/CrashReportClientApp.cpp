@@ -48,11 +48,41 @@ void ParseCommandLine(const TCHAR* CommandLine)
 	// Use the first argument if present and it's not a flag
 	if (*CommandLineAfterExe)
 	{
-		if (*CommandLineAfterExe != '-')
+		TArray<FString> Switches;
+		TArray<FString> Tokens;
+		TMap<FString, FString> Params;
 		{
-			ReportDirectoryAbsolutePath = FParse::Token(CommandLineAfterExe, true /* handle escaped quotes */);
+			FString NextToken;
+			while (FParse::Token(CommandLineAfterExe, NextToken, false))
+			{
+				if (**NextToken == TCHAR('-'))
+				{
+					new(Switches)FString(NextToken.Mid(1));
+				}
+				else
+				{
+					new(Tokens)FString(NextToken);
+				}
+			}
+
+			for (int32 SwitchIdx = Switches.Num() - 1; SwitchIdx >= 0; --SwitchIdx)
+			{
+				FString& Switch = Switches[SwitchIdx];
+				TArray<FString> SplitSwitch;
+				if (2 == Switch.ParseIntoArray(SplitSwitch, TEXT("="), true))
+				{
+					Params.Add(SplitSwitch[0], SplitSwitch[1].TrimQuotes());
+					Switches.RemoveAt(SwitchIdx);
+				}
+			}
 		}
-		FParse::Value( CommandLineAfterExe, TEXT( "AppName=" ), GameNameFromCmd );
+
+		if (Tokens.Num() > 0)
+		{
+			ReportDirectoryAbsolutePath = Tokens[0];
+		}
+
+		GameNameFromCmd = Params.FindRef("AppName=");
 	}
 
 	if (ReportDirectoryAbsolutePath.IsEmpty())

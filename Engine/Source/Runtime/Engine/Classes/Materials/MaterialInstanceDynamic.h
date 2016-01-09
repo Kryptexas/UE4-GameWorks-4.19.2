@@ -52,7 +52,7 @@ class UMaterialInstanceDynamic : public UMaterialInstance
 	 * The output is the object itself (this).
 	 */
 	UFUNCTION(BlueprintCallable, meta=(DisplayName = "CopyMaterialInstanceParameters"), Category="Rendering|Material")
-	void K2_CopyMaterialInstanceParameters(UMaterialInterface* Source);
+	ENGINE_API void K2_CopyMaterialInstanceParameters(UMaterialInterface* Source);
 
 	/**
 	 * Copies over parameters given a material instance (only copy from the instance, not following the hierarchy)

@@ -436,7 +436,7 @@ void FAsyncLoadingThread::UpdateExistingPackagePriorities(FAsyncPackage* InPacka
 		AsyncLoadingCounter.Decrement();
 		AsyncPackagesCounter.Decrement();
 
-		InsertPackage(InPackage, InAssetRegistry != nullptr ? EAsyncPackageInsertMode::InsertAfterMatchingPriorities : EAsyncPackageInsertMode::InsertBeforeMatchingPriorities);
+		InsertPackage(InPackage, EAsyncPackageInsertMode::InsertBeforeMatchingPriorities);
 	}
 
 	if (InAssetRegistry)
@@ -527,7 +527,7 @@ void FAsyncLoadingThread::ProcessAsyncPackageRequest(FAsyncPackageDesc* InReques
 		}
 #endif
 		// Add to queue according to priority.
-		InsertPackage(Package, InAssetRegistry != nullptr ? EAsyncPackageInsertMode::InsertAfterMatchingPriorities : EAsyncPackageInsertMode::InsertBeforeMatchingPriorities);
+		InsertPackage(Package, EAsyncPackageInsertMode::InsertAfterMatchingPriorities);
 
 		// For all other cases this is handled in FindExistingPackageAndAddCompletionCallback
 		const int32 QueuedPackagesCount = QueuedPackagesCounter.Decrement();
@@ -1370,10 +1370,40 @@ EAsyncPackageState::Type FAsyncPackage::CreateLinker()
 
 		if (!Linker)
 		{
+			const FString NameToLoad = Desc.NameToLoad.ToString();
+			const FGuid* const Guid = Desc.Guid.IsValid() ? &Desc.Guid : nullptr;
+			FString NativeFilename;
+			const bool DoesNativePackageExist = FPackageName::DoesPackageExist(NameToLoad, Guid, &NativeFilename, false);
+			FString LocalizedFilename;
+			const bool DoesLocalizedPackageExist = FPackageName::DoesPackageExist(NameToLoad, Guid, &LocalizedFilename, true);
+
 			FString PackageFileName;
-			if (Desc.NameToLoad == NAME_None || 
+			bool DoesPackageExist = false;
+			// The editor must not redirect packages for localization.
+			if (GIsEditor)
+			{
+				PackageFileName = NativeFilename;
+				DoesPackageExist = DoesNativePackageExist;
+			}
+			else
+			{
+				// Use the localized package if possible.
+				if (DoesLocalizedPackageExist)
+				{
+					PackageFileName = LocalizedFilename;
+					DoesPackageExist = DoesLocalizedPackageExist;
+				}
+				// If we are the game, we can fallback to the native package.
+				else
+				{
+					PackageFileName = NativeFilename;
+					DoesPackageExist = DoesNativePackageExist;
+				}
+			}
+
+			if (Desc.NameToLoad == NAME_None ||
 				(!GetConvertedDynamicPackageNameToTypeName().Contains(Desc.Name) &&
-				 !FPackageName::DoesPackageExist(Desc.NameToLoad.ToString(), Desc.Guid.IsValid() ? &Desc.Guid : nullptr, &PackageFileName)))
+				!DoesPackageExist))
 			{
 				UE_LOG(LogStreaming, Error, TEXT("Couldn't find file for package %s requested by async loading code."), *Desc.Name.ToString());
 				bLoadHasFailed = true;

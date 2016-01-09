@@ -98,5 +98,9 @@ struct FRIENDSANDCHAT_API FFriendsChatChromeStyle
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FLinearColor ChatBackgroundColor;
 	FFriendsChatChromeStyle& SetChatBackgroundColor(const FLinearColor& Value);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush ChatMenuBackgroundBrush;
+	FFriendsChatChromeStyle& SetChatMenuBackgroundBrush(const FSlateBrush& InChatMenuBackgroundBrush);
 };
 

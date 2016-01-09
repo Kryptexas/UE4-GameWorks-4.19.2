@@ -900,7 +900,12 @@ void ProcessPrimitiveUpdate(
 					}
 					else 
 					{
-						DistanceFieldSceneData.PrimitiveInstanceMapping[PrimitiveSceneInfo->DistanceFieldInstanceIndices[TransformIndex]].BoundingSphere = ObjectBoundingSphere;
+						// InstanceIndex will be -1 with zero scale meshes
+						const int32 InstanceIndex = PrimitiveSceneInfo->DistanceFieldInstanceIndices[TransformIndex];
+						if (InstanceIndex >= 0)
+						{
+							DistanceFieldSceneData.PrimitiveInstanceMapping[InstanceIndex].BoundingSphere = ObjectBoundingSphere;
+						}
 					}
 
 					DistanceFieldSceneData.PrimitiveModifiedBounds.Add(ObjectBoundingSphere);

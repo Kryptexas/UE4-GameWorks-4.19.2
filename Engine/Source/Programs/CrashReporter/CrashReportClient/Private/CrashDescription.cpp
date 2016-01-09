@@ -3,7 +3,6 @@
 #include "CrashReportClientApp.h"
 #include "GenericPlatformCrashContext.h"
 
-#include "EngineVersion.h"
 #include "XmlFile.h"
 #include "CrashDescription.h"
 #include "CrashReportAnalytics.h"
