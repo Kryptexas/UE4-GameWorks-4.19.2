@@ -151,6 +151,32 @@ namespace UnrealBuildTool
 					BuildConfiguration.bUsePCHFiles = false;
 				}
 			}
+
+			// A bug in the UCRT can cause XGE to hang on VS2015 builds. Figure out if this hang is likely to effect this build and workaround it if able.
+			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
+			{
+				if (BuildConfiguration.bAllowXGE)
+				{
+					// @todo: There is a KB coming that will fix this. Once that KB is available, test if it is present. Stalls will not be a problem if it is.
+
+					// Stalls are possible. However there is a workaround in XGE build 1659 and newer that can avoid the issue.
+					string XGEVersion = (string)Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Xoreax\IncrediBuild\Builder", "Version", null);
+					if (XGEVersion != null)
+					{
+						int XGEBuildNumber;
+						if (Int32.TryParse(XGEVersion, out XGEBuildNumber))
+						{
+							// Per Xoreax support, subtract 1001000 from the registry value to get the build number of the installed XGE.
+							if (XGEBuildNumber - 1001000 >= 1659)
+							{
+								BuildConfiguration.bXGENoWatchdogThread = true;
+							}
+							// @todo: Stalls are possible and we don't have a workaround. What should we do? Most people still won't encounter stalls, we don't really
+							// want to disable XGE on them if it would have worked.
+						}
+					}
+				}
+			}
 		}
 
 		/// <summary>

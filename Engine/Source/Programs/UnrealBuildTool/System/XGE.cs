@@ -457,10 +457,11 @@ namespace UnrealBuildTool
 
 			ProcessStartInfo XGEStartInfo = new ProcessStartInfo(
 				"xgConsole",
-				string.Format(@"{0} /Rebuild /NoWait {1} /NoLogo {2} /ShowTime",
+				string.Format(@"{0} /Rebuild /NoWait {1} /NoLogo {2} /ShowTime {3}",
 					TaskFilePath,
 					BuildConfiguration.bStopXGECompilationAfterErrors ? "/StopOnErrors" : "",
-					SilentOption)
+					SilentOption,
+					BuildConfiguration.bXGENoWatchdogThread ? "/no_watchdog_thread" : "")
 				);
 			XGEStartInfo.UseShellExecute = false;
 
