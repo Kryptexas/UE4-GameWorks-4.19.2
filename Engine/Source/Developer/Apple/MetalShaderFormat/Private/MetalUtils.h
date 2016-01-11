@@ -3,6 +3,7 @@
 #pragma once
 
 #include "hlslcc.h"
+#include "CustomStdAllocator.h"
 
 inline FCustomStdString FixVecPrefix(FCustomStdString Type)
 {
