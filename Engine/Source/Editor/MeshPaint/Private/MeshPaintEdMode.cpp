@@ -942,8 +942,11 @@ IMeshPaintGeometryAdapter* FEdModeMeshPaint::FindOrAddGeometryAdapter(UMeshCompo
 	{
 		// If this component hasn't yet been seen, make an adapter for it and add it to the map
 		TSharedPtr<IMeshPaintGeometryAdapter> NewAdapter = FMeshPaintAdapterFactory::CreateAdapterForMesh(MeshComponent, PaintingMeshLODIndex, /*TODO: Shouldn't be part of the construction contract: FMeshPaintSettings::Get().UVChannel*/ 0);
-		ComponentToAdapterMap.Add(MeshComponent, NewAdapter);
-		NewAdapter->OnAdded();
+		if (NewAdapter.IsValid())
+		{
+			ComponentToAdapterMap.Add(MeshComponent, NewAdapter);
+			NewAdapter->OnAdded();
+		}
 		return NewAdapter.Get();
 	}
 	else
@@ -1021,7 +1024,10 @@ void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
 		for (UMeshComponent* MeshComponent : SelectedMeshComponents)
 		{
 			IMeshPaintGeometryAdapter* MeshAdapter = FindOrAddGeometryAdapter(MeshComponent);
-			check(MeshAdapter);
+			if (!MeshAdapter)
+			{
+				continue;
+			}
 
 			//@TODO: MESHPAINT: This is copied from the original logic, but the split between this loop and the next still feels a bit off
 			if (InPaintAction == EMeshPaintAction::Fill)
@@ -2773,19 +2779,22 @@ bool FEdModeMeshPaint::Select( AActor* InActor, bool bInSelected )
 			if (!ComponentToAdapterMap.Contains(MeshComponent))
 			{
 				TSharedPtr<IMeshPaintGeometryAdapter> GeomInfo = FMeshPaintAdapterFactory::CreateAdapterForMesh(MeshComponent, PaintingMeshLODIndex, /*TODO: Shouldn't be part of the construction contract: FMeshPaintSettings::Get().UVChannel*/ 0);
-				ComponentToAdapterMap.Add(MeshComponent, GeomInfo);
-				GeomInfo->OnAdded();
+				if (GeomInfo.IsValid())
+				{
+					ComponentToAdapterMap.Add(MeshComponent, GeomInfo);
+					GeomInfo->OnAdded();
 
-				if (FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::Texture)
-				{
-					SetAllTextureOverrides(*GeomInfo.Get(), MeshComponent);
-				}
-				else if (FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::VertexColors)
-				{
-					//Painting is done on LOD0 so force the mesh to render only LOD0.
-					ApplyOrRemoveForceBestLOD(*GeomInfo.Get(), MeshComponent, /*bApply=*/ true);
+					if (FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::Texture)
 					{
-						FComponentReregisterContext ReregisterContext(MeshComponent);
+						SetAllTextureOverrides(*GeomInfo.Get(), MeshComponent);
+					}
+					else if (FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::VertexColors)
+					{
+						//Painting is done on LOD0 so force the mesh to render only LOD0.
+						ApplyOrRemoveForceBestLOD(*GeomInfo.Get(), MeshComponent, /*bApply=*/ true);
+						{
+							FComponentReregisterContext ReregisterContext(MeshComponent);
+						}
 					}
 				}
 			}
@@ -3716,8 +3725,10 @@ void FEdModeMeshPaint::ApplyOrRemoveForceBestLOD(bool bApply)
 	for (UMeshComponent* MeshComponent : SelectedMeshComponents)
 	{
 		IMeshPaintGeometryAdapter* MeshAdapter = FindOrAddGeometryAdapter(MeshComponent);
-		check(MeshAdapter);
-		ApplyOrRemoveForceBestLOD(*MeshAdapter, MeshComponent, bApply);
+		if (MeshAdapter)
+		{
+			ApplyOrRemoveForceBestLOD(*MeshAdapter, MeshComponent, bApply);
+		}
 	}
 
 	CleanStaleGeometryAdapters(SelectedMeshComponents);
@@ -3740,8 +3751,10 @@ void FEdModeMeshPaint::ApplyVertexColorsToAllLODs()
 	for (UMeshComponent* MeshComponent : SelectedMeshComponents)
 	{
 		IMeshPaintGeometryAdapter* MeshAdapter = FindOrAddGeometryAdapter(MeshComponent);
-		check(MeshAdapter);
-		ApplyVertexColorsToAllLODs(*MeshAdapter, MeshComponent);
+		if (MeshAdapter)
+		{
+			ApplyVertexColorsToAllLODs(*MeshAdapter, MeshComponent);
+		}
 	}
 
 	CleanStaleGeometryAdapters(SelectedMeshComponents);
@@ -4649,8 +4662,10 @@ void FEdModeMeshPaint::Tick(FEditorViewportClient* ViewportClient,float DeltaTim
 		for (UMeshComponent* MeshComponent : SelectedMeshComponents)
 		{
 			IMeshPaintGeometryAdapter* MeshAdapter = FindOrAddGeometryAdapter(MeshComponent);
-			check(MeshAdapter != nullptr);
-			SetSpecificTextureOverrideForMesh(*MeshAdapter, GetSelectedTexture());
+			if (MeshAdapter)
+			{
+				SetSpecificTextureOverrideForMesh(*MeshAdapter, GetSelectedTexture());
+			}
 		}
 
 		CleanStaleGeometryAdapters(SelectedMeshComponents);
