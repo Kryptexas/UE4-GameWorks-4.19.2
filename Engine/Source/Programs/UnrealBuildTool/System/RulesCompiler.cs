@@ -451,7 +451,7 @@ namespace UnrealBuildTool
 		/// <param name="ModuleNames">The names of the modules to add</param>
 		public void AddThirdPartyPrivateStaticDependencies(TargetInfo Target, params string[] InModuleNames)
 		{
-			if (UnrealBuildTool.RunningRocket() == false || Target.Type == TargetRules.TargetType.Game)
+			if (UnrealBuildTool.RunningRocket() == false || Target.bIsMonolithic.Value == true)
 			{
 				PrivateDependencyModuleNames.AddRange(InModuleNames);
 			}
@@ -466,7 +466,7 @@ namespace UnrealBuildTool
 		/// <param name="ModuleNames">The names of the modules to add</param>
 		public void AddThirdPartyPrivateDynamicDependencies(TargetInfo Target, params string[] InModuleNames)
 		{
-			if (UnrealBuildTool.RunningRocket() == false || Target.Type == TargetRules.TargetType.Game)
+			if (UnrealBuildTool.RunningRocket() == false || Target.bIsMonolithic.Value == true)
 			{
 				PrivateIncludePathModuleNames.AddRange(InModuleNames);
 				DynamicallyLoadedModuleNames.AddRange(InModuleNames);
@@ -857,7 +857,7 @@ namespace UnrealBuildTool
 		/// <returns>True if the target should use the shared build environment</returns>
 		public virtual bool ShouldUseSharedBuildEnvironment(TargetInfo Target)
 		{
-			return UnrealBuildTool.RunningRocket() || (Target.Type != TargetType.Program && !Target.IsMonolithic);
+			return UnrealBuildTool.IsEngineInstalled() || (Target.Type != TargetType.Program && !Target.IsMonolithic);
 		}
 
 		/// <summary>
@@ -1488,21 +1488,6 @@ namespace UnrealBuildTool
 			bool bFoundTargetName = TargetNameToTargetFile.ContainsKey(TargetName);
 			if (bFoundTargetName == false)
 			{
-				if (UnrealBuildTool.RunningRocket())
-				{
-					//@todo Rocket: Remove this when full game support is implemented
-					// If we are Rocket, they will currently only have an editor target.
-					// See if that exists
-					bFoundTargetName = TargetNameToTargetFile.ContainsKey(TargetName + "Editor");
-					if (bFoundTargetName)
-					{
-						TargetName += "Editor";
-					}
-				}
-			}
-
-			if (bFoundTargetName == false)
-			{
 				if (Parent == null)
 				{
 					//				throw new BuildException("Couldn't find target rules file for target '{0}' in rules assembly '{1}'.", TargetName, RulesAssembly.FullName);
@@ -1681,23 +1666,6 @@ namespace UnrealBuildTool
 		/// We cache these file names so we can avoid searching for them later on.
 		static Dictionary<DirectoryReference, RulesFileCache> RootFolderToRulesFileCache = new Dictionary<DirectoryReference, RulesFileCache>();
 		
-		// Included for compatibility during //UE4/Main import
-		[Obsolete]
-		public static string GetModuleFilename(string ModuleName)
-		{
-			foreach(RulesFileCache Cache in RootFolderToRulesFileCache.Values)
-			{
-				foreach(FileReference ModuleFile in Cache.ModuleRules)
-				{
-					if(String.Compare(ModuleFile.GetFileNameWithoutAnyExtensions(), ModuleName, StringComparison.InvariantCultureIgnoreCase) == 0)
-					{
-						return ModuleFile.FullName;
-					}
-				}
-			}
-			return null;
-		}
-
 		public static List<FileReference> FindAllRulesSourceFiles(RulesFileType RulesFileType, List<DirectoryReference> GameFolders, List<FileReference> ForeignPlugins, List<DirectoryReference> AdditionalSearchPaths, bool bIncludeEngine = true)
 		{
 			List<DirectoryReference> Folders = new List<DirectoryReference>();

@@ -307,6 +307,7 @@ namespace UnrealGameSync
 			IgnoreNoSuchFilesError = 0x10,
 			IgnoreFilesNotOpenedOnThisClientError = 0x20,
 			IgnoreExitCode = 0x40,
+			IgnoreFilesNotInClientViewError = 0x80,
 		}
 
 		delegate bool HandleRecordDelegate(Dictionary<string, string> Tags);
@@ -461,7 +462,7 @@ namespace UnrealGameSync
 		public bool FileExists(string Filter, out bool bExists, TextWriter Log)
 		{
 			List<PerforceFileRecord> FileRecords;
-			if(RunCommand(String.Format("fstat \"{0}\"", Filter), out FileRecords, CommandOptions.IgnoreNoSuchFilesError, Log))
+			if(RunCommand(String.Format("fstat \"{0}\"", Filter), out FileRecords, CommandOptions.IgnoreNoSuchFilesError | CommandOptions.IgnoreFilesNotInClientViewError, Log))
 			{
 				bExists = (FileRecords.Count > 0);
 				return true;
@@ -685,6 +686,37 @@ namespace UnrealGameSync
 				LocalFileName = null;
 				return false;
 			}
+		}
+
+		public bool FindStreams(string Filter, out List<string> OutStreamNames, TextWriter Log)
+		{
+			List<string> Lines;
+			if(!RunCommand(String.Format("streams -F \"Stream={0}\"", Filter), out Lines, CommandOptions.None, Log))
+			{
+				OutStreamNames = null;
+				return false;
+			}
+
+			List<string> StreamNames = new List<string>();
+			foreach(string Line in Lines)
+			{
+				string[] Tokens = Line.Split(new char[]{ ' ' }, StringSplitOptions.RemoveEmptyEntries);
+				if(Tokens.Length < 2 || Tokens[0] != "Stream" || !Tokens[1].StartsWith("//"))
+				{
+					Log.WriteLine("Unexpected output from stream query: {0}", Line);
+					OutStreamNames = null;
+					return false;
+				}
+				StreamNames.Add(Tokens[1]);
+			}
+			OutStreamNames = StreamNames;
+
+			return true;
+		}
+
+		public bool SwitchStream(string NewStream, TextWriter Log)
+		{
+			return RunCommand(String.Format("client -f -s -S \"{0}\" \"{1}\"", NewStream, ClientName), CommandOptions.None, Log);
 		}
 
 		public bool Where(string Filter, out PerforceWhereRecord WhereRecord, TextWriter Log)
@@ -1015,6 +1047,10 @@ namespace UnrealGameSync
 				return true;
 			}
 			else if(Options.HasFlag(CommandOptions.IgnoreNoSuchFilesError) && Text.StartsWith("error: ") && Text.EndsWith(" - no such file(s)."))
+			{
+				return true;
+			}
+			else if(Options.HasFlag(CommandOptions.IgnoreFilesNotInClientViewError) && Text.StartsWith("error: ") && Text.EndsWith("- file(s) not in client view."))
 			{
 				return true;
 			}

@@ -213,9 +213,9 @@ namespace AutomationTool
 			}
 		}
 
-        public void SaveStatus(TempStorageNodeInfo TempStorageNodeInfo, bool bSaveSharedTempStorage, string JobStepIDForFailure = null)
+        public void SaveStatus(string SharedStorageDir, string NodeStorageName, bool bSaveSharedTempStorage, string JobStepIDForFailure = null)
 		{
-			string Contents = "Just a status record: " + TempStorageNodeInfo.NodeStorageName;
+			string Contents = "Just a status record: " + NodeStorageName;
 			if (!String.IsNullOrEmpty(JobStepIDForFailure) && CommandUtils.IsBuildMachine)
 			{
 				try
@@ -228,10 +228,10 @@ namespace AutomationTool
 					CommandUtils.LogWarning(LogUtils.FormatException(Ex));
 				}
 			}
-			string RecordOfSuccess = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Saved", "Logs", TempStorageNodeInfo.NodeStorageName +".log");
+			string RecordOfSuccess = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Saved", "Logs", NodeStorageName +".log");
 			CommandUtils.CreateDirectory(Path.GetDirectoryName(RecordOfSuccess));
 			CommandUtils.WriteAllText(RecordOfSuccess, Contents);
-            TempStorage.StoreToTempStorage(TempStorageNodeInfo, new List<string> { RecordOfSuccess }, !bSaveSharedTempStorage, CommandUtils.CmdEnv.LocalRoot);		
+            TempStorage.StoreToTempStorage(NodeStorageName, new List<string> { RecordOfSuccess }, SharedStorageDir, bSaveSharedTempStorage);		
 		}
 
 		public void UpdateEmailProperties(BuildNode NodeToDo, int LastSucceededCL, string FailedString, string FailCauserEMails, string EMailNote, bool SendSuccessForGreenAfterRed)
@@ -285,7 +285,8 @@ namespace AutomationTool
 			WriteJobSteps(OrderedToDo, bSkipTriggers);
 
 			// Export it as JSON too
-			WriteJson(OrderedToDo, bSkipTriggers);
+			Dictionary<BuildNode, int> FullNodeListSortKey = GetDisplayOrder(SortedNodes);
+			WriteJson(OrderedToDo, bSkipTriggers, ExplicitTrigger, FullNodeListSortKey.OrderBy(x => x.Value).Select(x => x.Key).ToList());
 		}
 
 		private void WriteProperties(IEnumerable<BuildNode> AllNodes, IEnumerable<AggregateNode> AllAggregates, List<BuildNode> OrderedToDo, List<BuildNode> SortedNodes, int TimeIndex, int TimeQuantum)
@@ -343,25 +344,29 @@ namespace AutomationTool
 				{
 					throw new AutomationException("Node {0} is sticky but has agent requirements.", NodeToDo.Name);
 				}
-				AgentGroup = "Sticky";
+				AgentGroup = "Startup";
 			}
 			return AgentGroup;
 		}
 
-		private void WriteJson(List<BuildNode> OrderedToDo, bool bSkipTriggers)
+		private void WriteJson(List<BuildNode> OrderedToDo, bool bSkipTriggers, TriggerNode ExplicitTrigger, List<BuildNode> AllNodes)
 		{
 			using(JsonWriter JsonWriter = new JsonWriter(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LogFolder, "JobSteps.json")))
 			{
 				JsonWriter.WriteObjectStart();
-				JsonWriter.WriteArrayStart("JobSteps");
+				JsonWriter.WriteArrayStart("Groups");
 
 				string CurrentAgentGroup = "";
 				foreach (BuildNode NodeToDo in OrderedToDo)
 				{
-					if (!NodeToDo.IsComplete) // if something is already finished, we don't put it into EC  
+					if (!NodeToDo.IsComplete && (!(NodeToDo is TriggerNode) || NodeToDo == ExplicitTrigger)) // if something is already finished, we don't put it into EC  
 					{
 						// Write the agent group object
 						string AgentGroup = GetAgentGroupOrSticky(NodeToDo);
+						if(String.IsNullOrEmpty(AgentGroup))
+						{
+							AgentGroup = NodeToDo.Name + "_Agent";
+						}
 						if(AgentGroup != CurrentAgentGroup)
 						{
 							if(CurrentAgentGroup != "")
@@ -373,61 +378,19 @@ namespace AutomationTool
 							if(CurrentAgentGroup != "")
 							{
 								JsonWriter.WriteObjectStart();
-								JsonWriter.WriteValue("Group", AgentGroup);
-								JsonWriter.WriteValue("AgentPlatform", NodeToDo.AgentPlatform.ToString());
-								JsonWriter.WriteArrayStart("JobSteps");
+								JsonWriter.WriteValue("Name", AgentGroup);
+								JsonWriter.WriteArrayStart("Agent Types");
+								JsonWriter.WriteValue(NodeToDo.AgentPlatform.ToString());
+								JsonWriter.WriteArrayEnd();
+								JsonWriter.WriteArrayStart("Nodes");
 							}
 						}
 
 						// Add this node
 						JsonWriter.WriteObjectStart();
-						JsonWriter.WriteValue("Node", NodeToDo.Name);
-						if(CurrentAgentGroup == "")
-						{
-							JsonWriter.WriteValue("AgentPlatform", NodeToDo.AgentPlatform.ToString());
-						}
-						if(!String.IsNullOrEmpty(NodeToDo.AgentRequirements))
-						{
-							JsonWriter.WriteValue("AgentRequirements", NodeToDo.AgentRequirements);
-						}
-
-						// Write all the dependencies
-						StringBuilder DependsOnList = new StringBuilder();
-						foreach (BuildNode Dep in FindDirectOrderDependencies(NodeToDo))
-						{
-							if (!Dep.IsComplete && OrderedToDo.Contains(Dep)) // if something is already finished, we don't put it into EC
-							{
-								if (OrderedToDo.IndexOf(Dep) > OrderedToDo.IndexOf(NodeToDo))
-								{
-									throw new AutomationException("Topological sort error, node {0} has a dependency of {1} which sorted after it.", NodeToDo.Name, Dep.Name);
-								}
-								if(DependsOnList.Length > 0)
-								{
-									DependsOnList.Append(";");
-								}
-								string DepAgentGroup = GetAgentGroupOrSticky(Dep);
-								if(DepAgentGroup != "")
-								{
-									DependsOnList.AppendFormat("{0}/", DepAgentGroup);
-								}
-								DependsOnList.Append(Dep.Name);
-							}
-						}
-						JsonWriter.WriteValue("DependsOn", DependsOnList.ToString());
-
-						// Add any trigger-specific settings
-						TriggerNode TriggerNodeToDo = NodeToDo as TriggerNode;
-						if (TriggerNodeToDo != null && !TriggerNodeToDo.IsTriggered)
-						{
-							JsonWriter.WriteValue("TriggerState", TriggerNodeToDo.StateName);
-							JsonWriter.WriteValue("TriggerActionText", TriggerNodeToDo.ActionText);
-							JsonWriter.WriteValue("TriggerDescriptionText", TriggerNodeToDo.DescriptionText);
-							if (NodeToDo.RecipientsForFailureEmails.Length > 0)
-							{
-								JsonWriter.WriteValue("TriggerEmailRecipients", String.Join(" ", NodeToDo.RecipientsForFailureEmails));
-							}
-						}
-
+						JsonWriter.WriteValue("Name", NodeToDo.Name);
+						JsonWriter.WriteValue("DependsOn", GetDirectDependencyList(NodeToDo, OrderedToDo));
+						JsonWriter.WriteValue("CopyToSharedStorage", NodeToDo.CopyToSharedStorage);
 						JsonWriter.WriteObjectEnd();
 					}
 				}
@@ -437,8 +400,79 @@ namespace AutomationTool
 					JsonWriter.WriteObjectEnd();
 				}
 				JsonWriter.WriteArrayEnd();
+
+				JsonWriter.WriteArrayStart("Triggers");
+				foreach (TriggerNode NodeToDo in OrderedToDo.OfType<TriggerNode>())
+				{
+					if(NodeToDo != ExplicitTrigger)
+					{
+						JsonWriter.WriteObjectStart();
+						JsonWriter.WriteValue("Name", NodeToDo.Name);
+						JsonWriter.WriteValue("DirectDependencies", GetDirectDependencyList(NodeToDo, OrderedToDo));
+						JsonWriter.WriteValue("AllDependencies", GetCompleteDependencyList(NodeToDo, OrderedToDo));
+						JsonWriter.WriteValue("ActionText", NodeToDo.ActionText);
+						JsonWriter.WriteValue("DescriptionText", NodeToDo.DescriptionText);
+						if (NodeToDo.RecipientsForFailureEmails.Length > 0)
+						{
+							JsonWriter.WriteValue("Notify", String.Join(" ", NodeToDo.RecipientsForFailureEmails));
+						}
+						JsonWriter.WriteObjectEnd();
+					}
+				}
+				JsonWriter.WriteArrayEnd();
+
+				JsonWriter.WriteArrayStart("NodesInGraph");
+				foreach(BuildNode NodeToDo in AllNodes)
+				{
+					if(NodeToDo.ControllingTriggers.Length == 0 && !(NodeToDo is TriggerNode))
+					{
+						JsonWriter.WriteValue(NodeToDo.Name);
+					}
+				}
+				JsonWriter.WriteArrayEnd();
+
 				JsonWriter.WriteObjectEnd();
 			}
+		}
+
+		private string GetDirectDependencyList(BuildNode NodeToDo, List<BuildNode> OrderedToDo)
+		{
+			HashSet<BuildNode> DirectDependencies = FindDirectOrderDependencies(NodeToDo);
+
+			StringBuilder DependsOnList = new StringBuilder();
+			foreach(BuildNode Dep in OrderedToDo.Where(x => DirectDependencies.Contains(x)))
+			{
+				if (!Dep.IsComplete) // if something is already finished, we don't put it into EC
+				{
+					if (OrderedToDo.IndexOf(Dep) > OrderedToDo.IndexOf(NodeToDo))
+					{
+						throw new AutomationException("Topological sort error, node {0} has a dependency of {1} which sorted after it.", NodeToDo.Name, Dep.Name);
+					}
+					if(DependsOnList.Length > 0)
+					{
+						DependsOnList.Append(";");
+					}
+					DependsOnList.Append(Dep.Name);
+				}
+			}
+			return DependsOnList.ToString();
+		}
+
+		private static string GetCompleteDependencyList(BuildNode NodeToDo, List<BuildNode> OrderedToDo)
+		{
+			List<BuildNode> Nodes = new List<BuildNode>(NodeToDo.OrderDependencies);
+			for(int Idx = 0; Idx < Nodes.Count; Idx++)
+			{
+				BuildNode Node = Nodes[Idx];
+				foreach(BuildNode DependencyNode in Node.OrderDependencies)
+				{
+					if(!Nodes.Contains(DependencyNode))
+					{
+						Nodes.Add(DependencyNode);
+					}
+				}
+			}
+			return String.Join(";", Nodes.Where(x => OrderedToDo.Contains(x)).OrderBy(x => OrderedToDo.IndexOf(x)).Select(x => x.Name));
 		}
 
 		private void WriteJobSteps(List<BuildNode> OrderedToDo, bool bSkipTriggers)
@@ -629,6 +663,10 @@ namespace AutomationTool
 							JobStep MainStep = new JobStep(NodeParentPath, NodeToDo.Name, Procedure, DoParallel, PreCondition, RunCondition, (NodeToDo.IsSticky && NodeToDo == LastSticky) ? JobStepReleaseMode.Release : JobStepReleaseMode.Keep);
 							MainStep.ActualParameters.Add("NodeName", NodeToDo.Name);
 							MainStep.ActualParameters.Add("Sticky", NodeToDo.IsSticky ? "1" : "0");
+							if(!NodeToDo.CopyToSharedStorage)
+							{
+								MainStep.ActualParameters.Add("ExtraOptions", "-NoCopyToSharedStorage");
+							}
 							if (NodeToDo.AgentSharingGroup != "")
 							{
 								MainStep.ActualParameters.Add("AgentSharingGroup", NodeToDo.AgentSharingGroup);

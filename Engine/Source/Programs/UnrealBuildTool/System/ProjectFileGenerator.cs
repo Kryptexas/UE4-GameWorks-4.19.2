@@ -126,9 +126,6 @@ namespace UnrealBuildTool
 		/// True if we're generating lightweight project files for a single game only, excluding most engine code, documentation, etc.
 		public bool bGeneratingGameProjectFiles = false;
 
-		/// True if we're generating project files to be used with Rocket
-		public static bool bGeneratingRocketProjectFiles = false;
-
 		/// Optional list of platforms to generate projects for
 		readonly List<UnrealTargetPlatform> ProjectPlatforms = new List<UnrealTargetPlatform>();
 
@@ -334,7 +331,7 @@ namespace UnrealBuildTool
 				}
 				IntermediateProjectFilesPath = DirectoryReference.Combine(MasterProjectPath, "Intermediate", "ProjectFiles");
 			}
-			else if( bGeneratingRocketProjectFiles )
+			else if( UnrealBuildTool.RunningRocket() )
 			{
 				Log.TraceInformation("Discovering modules, targets and source code for project...");
 
@@ -388,16 +385,6 @@ namespace UnrealBuildTool
 
 			// Build the list of games to generate projects for
 			List<UProjectInfo> AllGameProjects = FindGameProjects();
-
-			var AssemblyName = "ProjectFileGenerator";
-			if (bGeneratingRocketProjectFiles)
-			{
-				AssemblyName = "RocketProjectFileGenerator";
-			}
-			else if (bGeneratingGameProjectFiles)
-			{
-				AssemblyName = GameProjectName + "ProjectFileGenerator";
-			}
 
 			// Find all of the module files.  This will filter out any modules or targets that don't belong to platforms
 			// we're generating project files for.
@@ -793,10 +780,7 @@ namespace UnrealBuildTool
 				}
 			}
 
-			bGeneratingRocketProjectFiles = UnrealBuildTool.RunningRocket();
-
-
-			if( bGeneratingRocketProjectFiles )
+			if( UnrealBuildTool.RunningRocket() )
 			{
 				// Make sure we can get a valid game name out of this project
 				var GameName = OnlyGameProject.GetFileNameWithoutExtension();
@@ -804,6 +788,8 @@ namespace UnrealBuildTool
 				{
 					throw new BuildException("A valid Rocket game project was not found in the specified location (" + OnlyGameProject.Directory.FullName + ")");
 				}
+
+				bIncludeTestAndShippingConfigs = true;
 
 				IncludeEngineSource = true;
 				IncludeDocumentation = false;
@@ -1516,16 +1502,10 @@ namespace UnrealBuildTool
 				bool IsEngineModule = CurModuleFile.IsUnderDirectory(UnrealBuildTool.EngineDirectory);
 				bool IsThirdPartyModule = CurModuleFile.IsUnderDirectory(EngineSourceThirdPartyDirectory);
 
-				if( bGeneratingGameProjectFiles || bGeneratingRocketProjectFiles )
+				if( IsEngineModule && !IncludeEngineSource )
 				{
-					if( IsEngineModule )
-					{
-						if( !IncludeEngineSource )
-						{
-							// We were asked to exclude engine modules from the generated projects
-							WantProjectFileForModule = false;
-						}
-					}
+					// We were asked to exclude engine modules from the generated projects
+					WantProjectFileForModule = false;
 				}
 
 				if( WantProjectFileForModule )
@@ -1735,9 +1715,9 @@ namespace UnrealBuildTool
 						{
 							EngineProject = ProjectFile;
 							BaseFolder = UnrealBuildTool.EngineDirectory;
-							if (bGeneratingRocketProjectFiles)
+							if (UnrealBuildTool.IsEngineInstalled())
 							{
-								// Allow engine projects to be created but not built for Rocket
+								// Allow engine projects to be created but not built for Installed Engine builds
 								EngineProject.IsForeignProject = false;
 								EngineProject.IsGeneratedProject = true;
 								EngineProject.IsStubProject = true;

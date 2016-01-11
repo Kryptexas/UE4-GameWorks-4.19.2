@@ -397,10 +397,6 @@ partial class GUBP
             string AddArgs = "-CopyAppBundleBackToDevice";
 
             Agenda.AddTargets(new string[] { "UnrealHeaderTool" }, HostPlatform, UnrealTargetConfiguration.Development, InAddArgs: AddArgs);
-			if (HostPlatform == UnrealTargetPlatform.Win64)
-			{
-				Agenda.AddTargets(new string[] { "ParallelExecutor" }, HostPlatform, UnrealTargetConfiguration.Development, InAddArgs: AddArgs);
-			}
             return Agenda;
         }
         public override void PostBuild(GUBP bp, UE4Build UE4Build)
@@ -1084,7 +1080,7 @@ partial class GUBP
 
 			if(IsSample(BranchConfig, InGameProj))
 			{
-				AddDependency(WaitToPackageSamplesNode.StaticGetFullName());
+				AddPseudodependency(WaitToPackageSamplesNode.StaticGetFullName());
 			}
 
             if (InGameProj.GameName != BranchConfig.Branch.BaseEngineProject.GameName && GameProj.Properties.Targets.ContainsKey(TargetRules.TargetType.Editor))
@@ -1523,7 +1519,7 @@ partial class GUBP
         {
 			foreach(UnrealTargetPlatform HostPlatform in HostPlatforms)
 			{
-				AddDependency(RootEditorNode.StaticGetFullName(HostPlatform));
+				AddPseudodependency(RootEditorNode.StaticGetFullName(HostPlatform));
 			}
 		}
 
@@ -1637,7 +1633,7 @@ partial class GUBP
 
 			if(GamePlatformMonolithicsNode.IsSample(BranchConfig, GameProj))
 			{
-				AddDependency(WaitToPackageSamplesNode.StaticGetFullName());
+				AddPseudodependency(WaitToPackageSamplesNode.StaticGetFullName());
 				AgentSharingGroup = "SampleCooks" + StaticGetHostPlatformSuffix(HostPlatform);
 			}
         }
@@ -2014,8 +2010,8 @@ partial class GUBP
             }
             string BaseDir = CommandUtils.CombinePaths(CommandUtils.RootBuildStorageDirectory(), BuildShareName);
             string NodeName = StaticGetFullName(InGameProj, InHostPlatform, InClientTargetPlatforms, InClientConfigs, InServerTargetPlatforms, InServerConfigs, InClientNotGame);
-            string Inner = P4Env.BuildRootEscaped + "-CL-" + P4Env.ChangelistString + BranchConfig.JobInfo.GetPreflightSuffix();
-            string ArchiveDirectory = CombinePaths(BaseDir, NodeName, Inner);
+            string Inner = P4Env.BuildRootEscaped + "-" + BranchConfig.JobInfo.BuildName;
+			string ArchiveDirectory = CombinePaths(BaseDir, NodeName, Inner);
             return ArchiveDirectory;
         }
         public override void DoBuild(GUBP bp)
@@ -2812,7 +2808,7 @@ partial class GUBP
         public CleanSharedTempStorageNode(GUBP bp, GUBPBranchConfig BranchConfig)
         {
             var ToolsNode = BranchConfig.FindNode(ToolsForCompileNode.StaticGetFullName(UnrealTargetPlatform.Win64));
-            RootNameForTempStorage = BranchConfig.JobInfo.RootNameForTempStorage;
+            RootNameForTempStorage = BranchConfig.BranchOptions.RootNameForTempStorage ?? "UE4";
             AgentSharingGroup = ToolsNode.AgentSharingGroup;
         }
         public override float Priority()

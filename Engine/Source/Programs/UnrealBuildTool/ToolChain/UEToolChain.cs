@@ -9,29 +9,13 @@ using Microsoft.Win32;
 
 namespace UnrealBuildTool
 {
-	// Included for compatibility during //UE4/Main import
-	public interface IUEToolChain
-	{
-		[Obsolete]
-		void StripSymbols(string SourceFile, string TargetFile);
-	}
-
-	public abstract class UEToolChain : IUEToolChain
+	public abstract class UEToolChain
 	{
 		public readonly CPPTargetPlatform CppPlatform;
 
 		public UEToolChain(CPPTargetPlatform InCppPlatform)
 		{
 			CppPlatform = InCppPlatform;
-		}
-
-		// Included for compatibility during //UE4/Main import
-		[Obsolete]
-		public static IUEToolChain GetPlatformToolChain(CPPTargetPlatform Platform)
-		{
-			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(UEBuildTarget.CPPTargetPlatformToUnrealTargetPlatform(Platform));
-			UEBuildPlatformContext Context = BuildPlatform.CreateContext(null);
-			return Context.CreateToolChain(BuildPlatform.DefaultCppPlatform);
 		}
 
 		public abstract CPPOutput CompileCPPFiles(UEBuildTarget Target, CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName);

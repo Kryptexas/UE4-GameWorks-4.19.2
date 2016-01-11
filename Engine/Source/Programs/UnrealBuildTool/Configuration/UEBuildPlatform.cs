@@ -476,20 +476,6 @@ namespace UnrealBuildTool
 			}
 		}
 
-		// Included for compatibility during //UE4/Main import
-		[Obsolete]
-		public CPPTargetPlatform GetCPPTargetPlatform(UnrealTargetPlatform ForPlatform)
-		{
-			if(Platform == ForPlatform)
-			{
-				return DefaultCppPlatform;
-			}
-			else
-			{
-				throw new BuildException("Target platform {0} can not be compiled on {1}", ForPlatform, Platform);
-			}
-		}
-
 		/// <summary>
 		/// Returns the delimiter used to separate paths in the PATH environment variable for the platform we are executing on.
 		/// </summary>

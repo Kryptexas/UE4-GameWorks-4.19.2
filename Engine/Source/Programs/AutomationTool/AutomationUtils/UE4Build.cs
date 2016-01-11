@@ -21,7 +21,6 @@ namespace AutomationTool
 		private BuildCommand OwnerCommand;
 
 		private String XGEConsoleExePath = "";
-		private String ParallelExecutorPath = "";
 
 		public void PrepareBuildProduct(string File, bool DeleteProduct = true)
 		{
@@ -735,27 +734,8 @@ namespace AutomationTool
 			return XGEConsoleExePath;
 		}
 
-		public string ParallelExecutorExec()
-		{
-			if (string.IsNullOrEmpty(ParallelExecutorPath))
-			{
-				string RootPath = Path.Combine(CmdEnv.LocalRoot, @"Engine\Binaries\Win64");
-				string FullPath = Path.Combine(RootPath, "ParallelExecutor.exe");
-				if (FileExists(FullPath))
-				{
-					ParallelExecutorPath = FullPath;
-				}
-			}
-			return ParallelExecutorPath;
-		}
-
 		public bool ProcessXGEItems(List<XGEItem> Actions, string XGETool, string Args, string TaskFilePath, bool DoRetries, bool SpecialTestFlag, bool ShowProgress)
 		{
-            if (string.IsNullOrEmpty(XGETool))
-			{
-				throw new AutomationException("Unable to find xge tool: " + XGETool);
-			}
-
 			TelemetryStopwatch CombineXGEStopwatch = new TelemetryStopwatch("CombineXGEItemFiles.{0}", Path.GetFileNameWithoutExtension(XGETool));
 
 			XmlDocument XGETaskDocument;	
@@ -825,10 +805,22 @@ namespace AutomationTool
 								LogVerbose("Running {0} *******", XGETool);
 								PushDir(CombinePaths(CmdEnv.LocalRoot, @"\Engine\Source"));
 								int SuccesCode;
-								string LogFile = GetRunAndLogOnlyName(CmdEnv, XGETool);
-								string Output = RunAndLog(XGETool, Args, out SuccesCode, LogFile);
+								string LogFile;
+								bool bOutputContainsProject;
+								if(XGETool == null)
+								{
+									LogFile = GetRunAndLogOnlyName(CmdEnv, "ParallelExecutor");
+									SuccesCode = ParallelExecutor.Execute(TaskFilePath);
+									bOutputContainsProject = false;
+								}
+								else
+								{
+									LogFile = GetRunAndLogOnlyName(CmdEnv, XGETool);
+									string Output = RunAndLog(XGETool, Args, out SuccesCode, LogFile);
+									bOutputContainsProject = Output.Contains("------Project:");
+								}
 								PopDir();
-								if (ConnectionRetries > 0 && (SuccesCode == 4 || SuccesCode == 2) && !Output.Contains("------Project:"))
+								if (ConnectionRetries > 0 && (SuccesCode == 4 || SuccesCode == 2) && !bOutputContainsProject)
 								{
 									LogWarning(String.Format("{0} failure on the local connection timeout", XGETool));
 									if (ConnectionRetries < 2)
@@ -1334,7 +1326,7 @@ namespace AutomationTool
 			}
 
 			// only run ParallelExecutor if not running XGE (and we've requested ParallelExecutor and it exists)
-			bool bCanUseParallelExecutor = !bCanUseXGE && InUseParallelExecutor && !string.IsNullOrEmpty(ParallelExecutorExec());
+			bool bCanUseParallelExecutor = !bCanUseXGE && InUseParallelExecutor;
 			LogLog("************************* UE4Build:");
 			LogLog("************************* ForceMonolithic: {0}", bForceMonolithic);
 			LogLog("************************* ForceNonUnity:{0} ", bForceNonUnity);
@@ -1361,7 +1353,7 @@ namespace AutomationTool
 						// When building a target for Mac or iOS, use UBT's -flushmac option to clean up the remote builder
 						bool bForceFlushMac = DeleteBuildProducts && (Target.Platform == UnrealBuildTool.UnrealTargetPlatform.Mac || Target.Platform == UnrealBuildTool.UnrealTargetPlatform.IOS);
 						LogSetProgress(InShowProgress, "Building header tool...");
-						BuildWithUBT(Target.TargetName, Target.Platform, Target.Config.ToString(), Target.UprojectPath, bForceMonolithic, bForceNonUnity, bForceDebugInfo, bForceFlushMac, true, Target.UBTArgs, bForceUnity);
+						BuildWithUBT(Target.TargetName, Target.Platform, Target.Config.ToString(), Target.UprojectPath, bForceMonolithic, bForceNonUnity, bForceDebugInfo, bForceFlushMac, !CanUseXGE(Target.Platform), Target.UBTArgs, bForceUnity);
 					}
 				}
 
@@ -1377,19 +1369,15 @@ namespace AutomationTool
 				}
 				if (XGEItems.Count > 0)
 				{
-					string XGETool = "";
-					string Args = "";
+					string XGETool = null;
+					string Args = null;
 					if (bCanUseXGE) 
 					{
 						XGETool = XGEConsoleExePath;
 						Args = "\"" + TaskFilePath + "\" /Rebuild /MaxCPUS=200";
 					}
-					else if (bCanUseParallelExecutor)
-					{
-						XGETool = ParallelExecutorExec();
-						Args = "\"" + TaskFilePath + "\"";
-					}
-					if (XGETool.Equals(""))
+
+					if (!bCanUseParallelExecutor && String.IsNullOrEmpty(XGETool))
 					{
 						throw new AutomationException("BUILD FAILED: no tool present to process XGE files");
 					}

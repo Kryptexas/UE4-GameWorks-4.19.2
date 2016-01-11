@@ -359,8 +359,7 @@ namespace UnrealBuildTool
 			bCompileSimplygon = bCompileSimplygon
 				&& Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees") == true
 				&& Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees/Simplygon") == true
-				&& Directory.Exists("Developer/SimplygonMeshReduction") == true
-				&& !(ProjectFileGenerator.bGenerateProjectFiles && ProjectFileGenerator.bGeneratingRocketProjectFiles);
+				&& Directory.Exists("Developer/SimplygonMeshReduction") == true;
 		}
 
 		/// <summary>

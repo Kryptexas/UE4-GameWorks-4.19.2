@@ -109,6 +109,7 @@ namespace AutomationTool
 		public bool IsParallelAgentShareEditor;
 		public bool IsSticky;
 		public bool IsTest;
+		public bool CopyToSharedStorage;
 		public string DisplayGroupName;
 
 		public List<string> BuildProducts;
@@ -132,17 +133,17 @@ namespace AutomationTool
 			DisplayGroupName = Definition.DisplayGroupName;
 		}
 
-		public virtual void ArchiveBuildProducts(TempStorageNodeInfo TempStorageNodeInfo, bool bLocalOnly)
+		public virtual void ArchiveBuildProducts(string SharedStorageDir, bool bWriteToSharedStorage)
 		{
-			TempStorage.StoreToTempStorage(TempStorageNodeInfo, BuildProducts, bLocalOnly, CommandUtils.CmdEnv.LocalRoot);
+			TempStorage.StoreToTempStorage(Name, BuildProducts, SharedStorageDir, bWriteToSharedStorage);
 		}
 
-		public virtual void RetrieveBuildProducts(TempStorageNodeInfo TempStorageNodeInfo)
+		public virtual void RetrieveBuildProducts(string SharedStorageDir)
 		{
-			CommandUtils.Log("***** Retrieving GUBP Node {0} from {1}", Name, TempStorageNodeInfo.GetRelativeDirectory());
+			CommandUtils.Log("***** Retrieving GUBP Node {0}", Name);
 			try
 			{
-				BuildProducts = TempStorage.RetrieveFromTempStorage(TempStorageNodeInfo, CommandUtils.CmdEnv.LocalRoot);
+				BuildProducts = TempStorage.RetrieveFromTempStorage(SharedStorageDir, Name);
 			}
 			catch (Exception Ex)
 			{

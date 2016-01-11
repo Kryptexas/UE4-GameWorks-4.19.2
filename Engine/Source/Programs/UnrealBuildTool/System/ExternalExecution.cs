@@ -417,9 +417,9 @@ namespace UnrealBuildTool
 		private static DateTime GetCoreGeneratedTimestamp(string ModuleName, string ModuleGeneratedCodeDirectory)
 		{
 			DateTime Timestamp;
-			if (UnrealBuildTool.RunningRocket())
+			if (UnrealBuildTool.IsEngineInstalled())
 			{
-				// In Rocket, we don't check the timestamps on engine headers.  Default to a very old date.
+				// In Installed Builds, we don't check the timestamps on engine headers.  Default to a very old date.
 				Timestamp = DateTime.MinValue;
 			}
 			else
@@ -705,8 +705,8 @@ namespace UnrealBuildTool
 
 				if (!bIsBuildingUHT && bUHTNeedsToRun)
 				{
-					// Always build UnrealHeaderTool if header regeneration is required, unless we're running within a Rocket ecosystem or hot-reloading
-					if (UnrealBuildTool.RunningRocket() == false &&
+					// Always build UnrealHeaderTool if header regeneration is required, unless we're running within an installed ecosystem or hot-reloading
+					if (UnrealBuildTool.IsEngineInstalled() == false &&
 						UEBuildConfiguration.bDoNotBuildUHT == false &&
 						UEBuildConfiguration.bHotReloadFromIDE == false &&
 						!(bHaveHeaderTool && !UnrealBuildTool.IsGatheringBuild && UnrealBuildTool.IsAssemblingBuild))	// If running in "assembler only" mode, we assume UHT is already up to date for much faster iteration!

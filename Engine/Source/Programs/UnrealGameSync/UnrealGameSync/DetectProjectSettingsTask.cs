@@ -19,6 +19,7 @@ namespace UnrealGameSync
 		public string BranchClientPath;
 		public string BaseEditorTargetPath;
 		public string NewSelectedClientFileName;
+		public string StreamName;
 		public Image ProjectLogo;
 		public TimeSpan ServerTimeZone;
 		TextWriter Log;
@@ -186,7 +187,6 @@ namespace UnrealGameSync
 			}
 
 			// Get a unique name for the project that's selected. For regular branches, this can be the depot path. For streams, we want to include the stream name to encode imports.
-			string StreamName;
 			if(PerforceClient.GetActiveStream(out StreamName, Log))
 			{
 				string ExpectedPrefix = String.Format("//{0}/", PerforceClient.ClientName);

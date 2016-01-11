@@ -56,6 +56,7 @@ namespace UnrealGameSync
 			SelectedProjectIdentifier = InSelectedProjectIdentifier;
 			PendingMaxChangesValue = 100;
 			LastCodeChangeByCurrentUser = -1;
+			OtherStreamNames = new List<string>();
 
 			LogWriter = new BoundedLogWriter(InLogPath);
 
@@ -100,6 +101,12 @@ namespace UnrealGameSync
 			set { lock(this){ if(value != PendingMaxChangesValue){ PendingMaxChangesValue = value; RefreshEvent.Set(); } } }
 		}
 
+		public IReadOnlyList<string> OtherStreamNames
+		{
+			get;
+			private set;
+		}
+
 		void PollForUpdates()
 		{
 			string StreamName;
@@ -120,6 +127,17 @@ namespace UnrealGameSync
 				if(Perforce.GetActiveStream(out NewStreamName, LogWriter) && NewStreamName != StreamName)
 				{
 					OnStreamChange();
+				}
+
+				// Update the stream list
+				if(StreamName != null)
+				{
+					List<string> NewOtherStreamNames;
+					if(!Perforce.FindStreams(PerforceUtils.GetClientOrDepotDirectoryName(StreamName) + "/*", out NewOtherStreamNames, LogWriter))
+					{
+						NewOtherStreamNames = new List<string>();
+					}
+					OtherStreamNames = NewOtherStreamNames;
 				}
 
 				// Check for any p4 changes
@@ -382,6 +400,12 @@ namespace UnrealGameSync
 			{
 				return new HashSet<int>(PromotedChangeNumbers);
 			}
+		}
+
+		public string CurrentStream
+		{
+			get;
+			private set;
 		}
 
 		public int LastCodeChangeByCurrentUser

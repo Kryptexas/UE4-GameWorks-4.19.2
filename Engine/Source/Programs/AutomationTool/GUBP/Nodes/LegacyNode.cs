@@ -57,9 +57,9 @@ namespace AutomationTool
 			Node = Definition.Node;
 		}
 
-		public override void RetrieveBuildProducts(TempStorageNodeInfo TempStorageNodeInfo)
+		public override void RetrieveBuildProducts(string SharedStorageDir)
 		{
-			base.RetrieveBuildProducts(TempStorageNodeInfo);
+			base.RetrieveBuildProducts(SharedStorageDir);
 
 			Node.BuildProducts = BuildProducts;
 		}

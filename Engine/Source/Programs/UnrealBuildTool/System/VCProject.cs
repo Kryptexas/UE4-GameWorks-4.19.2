@@ -203,11 +203,10 @@ namespace UnrealBuildTool
 			{
 				UnrealBuildTool.GetAllPlatforms(ref SupportedPlatforms);
 			}
-			bool bIncludeTestAndShippingConfigs = ProjectFileGenerator.bIncludeTestAndShippingConfigs || ProjectFileGenerator.bGeneratingRocketProjectFiles;
+
 			if (ProjectTarget.TargetRules != null)
 			{
-				// Rocket projects always get shipping configs
-				ProjectTarget.TargetRules.GetSupportedConfigurations(ref SupportedConfigurations, bIncludeTestAndShippingConfigs: bIncludeTestAndShippingConfigs);
+				ProjectTarget.TargetRules.GetSupportedConfigurations(ref SupportedConfigurations, ProjectFileGenerator.bIncludeTestAndShippingConfigs);
 			}
 
 			// Add all of the extra platforms/configurations for this target
@@ -221,7 +220,7 @@ namespace UnrealBuildTool
 				}
 				foreach (var ExtraConfig in ProjectTarget.ExtraSupportedConfigurations)
 				{
-					if (bIncludeTestAndShippingConfigs || (ExtraConfig != UnrealTargetConfiguration.Shipping && ExtraConfig != UnrealTargetConfiguration.Test))
+					if (ProjectFileGenerator.bIncludeTestAndShippingConfigs || (ExtraConfig != UnrealTargetConfiguration.Shipping && ExtraConfig != UnrealTargetConfiguration.Test))
 					{
 						if (!SupportedConfigurations.Contains(ExtraConfig))
 						{
@@ -631,8 +630,8 @@ namespace UnrealBuildTool
 					"	</ItemGroup>" + ProjectFileGenerator.NewLine);
 			}
 
-			// For Rocket, include engine source in the source search paths. We never build it locally, so the debugger can't find it.
-			if (UnrealBuildTool.RunningRocket() && !IsStubProject)
+			// For Installed engine builds, include engine source in the source search paths if it exists. We never build it locally, so the debugger can't find it.
+			if (UnrealBuildTool.IsEngineInstalled() && !IsStubProject)
 			{
 				VCProjectFileContent.Append("	<PropertyGroup>" + ProjectFileGenerator.NewLine);
 				VCProjectFileContent.Append("		<SourcePath>");
@@ -964,7 +963,7 @@ namespace UnrealBuildTool
 						"		<NMakeOutput/>" + ProjectFileGenerator.NewLine +
 						"	</PropertyGroup>" + ProjectFileGenerator.NewLine);
 				}
-				else if (ProjectFileGenerator.bGeneratingRocketProjectFiles && Combination.ProjectTarget != null && Combination.ProjectTarget.TargetRules != null && !Combination.ProjectTarget.TargetRules.SupportsPlatform(Combination.Platform))
+				else if (UnrealBuildTool.IsEngineInstalled() && Combination.ProjectTarget != null && Combination.ProjectTarget.TargetRules != null && !Combination.ProjectTarget.TargetRules.SupportsPlatform(Combination.Platform))
 				{
 					List<UnrealTargetPlatform> SupportedPlatforms = new List<UnrealTargetPlatform>();
 					Combination.ProjectTarget.TargetRules.GetSupportedPlatforms(ref SupportedPlatforms);

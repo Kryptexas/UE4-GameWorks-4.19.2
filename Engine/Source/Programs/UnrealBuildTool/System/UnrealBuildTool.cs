@@ -2430,8 +2430,8 @@ namespace UnrealBuildTool
 			//			-> UPDATE: Seems to work OK right now though on Windows platform, maybe due to GUID changes
 			// @todo ubtmake: Some platforms may not save any files into this folder.  We should delete + generate a "touch" file to force the directory timestamp to be updated (or just check the timestamp file itself.  We could put it ANYWHERE, actually)
 
-			// Rocket doesn't need to check engine projects for outdatedness
-			if (!UnrealBuildTool.RunningRocket())
+			// Installed Build doesn't need to check engine projects for outdatedness
+			if (!UnrealBuildTool.IsEngineInstalled())
 			{
 				if (ProjectFileGenerator.IntermediateProjectFilesPath.Exists())
 				{

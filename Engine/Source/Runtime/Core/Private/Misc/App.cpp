@@ -136,10 +136,19 @@ bool FApp::IsEngineInstalled()
 
 	if (EngineInstalledState == -1)
 	{
-		bool bIsInstalledEngine = IsInstalled() || (FRocketSupport::IsRocket() ? !FParse::Param(FCommandLine::Get(), TEXT("NotInstalledEngine")) : FParse::Param(FCommandLine::Get(), TEXT("InstalledEngine")));
+		bool bIsInstalledEngine = IsInstalled();
 		FString InstalledBuildFile = FPaths::RootDir() / TEXT("Engine/Build/InstalledBuild.txt");
 		FPaths::NormalizeFilename(InstalledBuildFile);
 		bIsInstalledEngine |= IFileManager::Get().FileExists(*InstalledBuildFile);
+		// Allow commandline options to disable/enable installed engine behavior
+		if (bIsInstalledEngine)
+		{
+			bIsInstalledEngine = !FParse::Param(FCommandLine::Get(), TEXT("NotInstalledEngine"));
+		}
+		else
+		{
+			bIsInstalledEngine = FParse::Param(FCommandLine::Get(), TEXT("InstalledEngine"));
+		}
 		EngineInstalledState = bIsInstalledEngine ? 1 : 0;
 	}
 

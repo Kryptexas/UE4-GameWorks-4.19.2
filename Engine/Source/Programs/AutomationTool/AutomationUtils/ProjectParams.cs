@@ -270,7 +270,6 @@ namespace AutomationTool
             this.CrashIndex = InParams.CrashIndex;
             this.Port = InParams.Port;
 			this.SkipServer = InParams.SkipServer;
-			this.Rocket = InParams.Rocket;
 			this.Unattended = InParams.Unattended;
             this.ServerDeviceAddress = InParams.ServerDeviceAddress;
             this.DeviceUsername = InParams.DeviceUsername;
@@ -384,7 +383,6 @@ namespace AutomationTool
             bool? RunAutomationTests = null,
             string RunAutomationTest = null,
             int? CrashIndex = null,
-            bool? Rocket = null,
 			bool? SkipCook = null,
 			bool? SkipCookOnTheFly = null,
 			bool? SkipPak = null,
@@ -609,7 +607,6 @@ namespace AutomationTool
             this.RunAutomationTest = ParseParamValueIfNotSpecified(Command, RunAutomationTest, "RunAutomationTest");
             this.RunAutomationTests = this.RunAutomationTest != "" || GetParamValueIfNotSpecified(Command, RunAutomationTests, this.RunAutomationTests, "RunAutomationTests");
             this.SkipServer = GetParamValueIfNotSpecified(Command, SkipServer, this.SkipServer, "skipserver");
-			this.Rocket = GetParamValueIfNotSpecified(Command, Rocket, this.Rocket || Automation.RunningRocket(), "rocket");
 			this.UE4Exe = ParseParamValueIfNotSpecified(Command, UE4Exe, "ue4exe", "UE4Editor-Cmd.exe");
 			this.Unattended = GetParamValueIfNotSpecified(Command, Unattended, this.Unattended, "unattended");
 			this.DeviceUsername = ParseParamValueIfNotSpecified(Command, DeviceUsername, "deviceuser", String.Empty);
@@ -803,13 +800,7 @@ namespace AutomationTool
 		public bool ForeignCode { private set; get; }
 
 		/// <summary>
-		/// Shared: true if we are running rocket
-		/// </summary>
-		[Help("Rocket", "true if we are running rocket")]
-		public bool Rocket { private set; get; }
-
-		/// <summary>
-		/// Shared: true if we are running rocket
+		/// Shared: true if we should build crash reporter
 		/// </summary>
 		[Help("CrashReporter", "true if we should build crash reporter")]
 		public bool CrashReporter { private set; get; }
@@ -1703,7 +1694,7 @@ namespace AutomationTool
 
 			IsProgramTarget = ProjectType == TargetRules.TargetType.Program;
 
-			if (String.IsNullOrEmpty(EditorTarget) && ProjectType != TargetRules.TargetType.Program && CommandUtils.IsNullOrEmpty(EditorTargetsList) && !Rocket)
+			if (String.IsNullOrEmpty(EditorTarget) && ProjectType != TargetRules.TargetType.Program && CommandUtils.IsNullOrEmpty(EditorTargetsList) && !Automation.RunningRocket())
 			{
 				if (Properties.bWasGenerated)
 				{
@@ -1714,7 +1705,7 @@ namespace AutomationTool
 					throw new AutomationException("Editor target not found!");
 				}
 			}
-			if (String.IsNullOrEmpty(GameTarget) && Run && !NoClient && (Cook || CookOnTheFly) && CommandUtils.IsNullOrEmpty(ClientCookedTargetsList) && !Rocket)
+			if (String.IsNullOrEmpty(GameTarget) && Run && !NoClient && (Cook || CookOnTheFly) && CommandUtils.IsNullOrEmpty(ClientCookedTargetsList) && !Automation.RunningRocket())
 			{
 				throw new AutomationException("Game target not found. Game target is required with -cook or -cookonthefly");
 			}
@@ -2281,7 +2272,7 @@ namespace AutomationTool
 				CommandUtils.LogLog("Prereqs={0}", Prereqs);
 				CommandUtils.LogLog("NoBootstrapExe={0}", NoBootstrapExe);
 				CommandUtils.LogLog("RawProjectPath={0}", RawProjectPath);
-				CommandUtils.LogLog("Rocket={0}", Rocket);
+				CommandUtils.LogLog("Rocket={0}", Automation.RunningRocket());
 				CommandUtils.LogLog("Run={0}", Run);
 				CommandUtils.LogLog("ServerConfigsToBuild={0}", string.Join(",", ServerConfigsToBuild));
 				CommandUtils.LogLog("ServerCookedTargets={0}", ServerCookedTargets.ToString());

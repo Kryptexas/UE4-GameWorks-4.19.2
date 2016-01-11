@@ -110,6 +110,7 @@ namespace UnrealGameSync
 			this.SyncContextMenu_LatestStarredChange = new System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSeparator8 = new System.Windows.Forms.ToolStripSeparator();
 			this.SyncContexMenu_EnterChangelist = new System.Windows.Forms.ToolStripMenuItem();
+			this.StreamContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
 			this.OptionsContextMenu.SuspendLayout();
 			this.BuildListContextMenu.SuspendLayout();
 			this.NotifyMenu.SuspendLayout();
@@ -148,6 +149,7 @@ namespace UnrealGameSync
 			this.ProjectList.TabIndex = 1;
 			this.ProjectList.SelectionChangeCommitted += new System.EventHandler(this.ProjectList_SelectionChangeCommitted);
 			this.ProjectList.KeyDown += new System.Windows.Forms.KeyEventHandler(this.ProjectList_KeyDown);
+			this.ProjectList.MouseWheel += new System.Windows.Forms.MouseEventHandler(this.ProjectList_MouseWheel);
 			// 
 			// BrowseProject
 			// 
@@ -180,7 +182,7 @@ namespace UnrealGameSync
             this.toolStripSeparator6,
             this.OptionsContextMenu_Diagnostics});
 			this.OptionsContextMenu.Name = "ToolsMenuStrip";
-			this.OptionsContextMenu.Size = new System.Drawing.Size(268, 308);
+			this.OptionsContextMenu.Size = new System.Drawing.Size(268, 286);
 			// 
 			// OptionsContextMenu_ScheduledSync
 			// 
@@ -928,6 +930,11 @@ namespace UnrealGameSync
 			this.SyncContexMenu_EnterChangelist.Text = "Specific Changelist...";
 			this.SyncContexMenu_EnterChangelist.Click += new System.EventHandler(this.SyncContextMenu_EnterChangelist_Click);
 			// 
+			// StreamContextMenu
+			// 
+			this.StreamContextMenu.Name = "StreamContextMenu";
+			this.StreamContextMenu.Size = new System.Drawing.Size(61, 4);
+			// 
 			// MainWindow
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -1060,6 +1067,7 @@ namespace UnrealGameSync
 		private System.Windows.Forms.ToolStripMenuItem SyncContexMenu_EnterChangelist;
 		private System.Windows.Forms.ToolStripMenuItem SyncContextMenu_LatestStarredChange;
 		private System.Windows.Forms.ToolStripMenuItem OptionsContextMenu_KeepInTray;
+		private System.Windows.Forms.ContextMenuStrip StreamContextMenu;
 	}
 }
 

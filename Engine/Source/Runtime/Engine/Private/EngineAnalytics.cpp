@@ -65,7 +65,8 @@ void FEngineAnalytics::Initialize()
 					if (ConfigMap.Num() == 0)
 					{
 						ConfigMap.Add(TEXT("ProviderModuleName"), TEXT("AnalyticsET"));
-						ConfigMap.Add(TEXT("APIServerET"), TEXT("http://etsource.epicgames.com/ET2/"));
+						ConfigMap.Add(TEXT("APIServerET"), TEXT("https://datarouter.ol.epicgames.com/"));
+						ConfigMap.Add(TEXT("AppEnvironment"), TEXT("datacollector-source"));
 
 						// We always use the "Release" analytics account unless we're running in analytics test mode (usually with
 						// a command-line parameter), or we're an internal Epic build
@@ -76,7 +77,7 @@ void FEngineAnalytics::Initialize()
 						const TCHAR* BuildTypeStr = bUseReleaseAccount ? TEXT("Release") : TEXT("Dev");
 
 						FString UE4TypeOverride;
-						bool bHasOverride = FAnalytics::ConfigFromIni::GetUE4TypeOverride(UE4TypeOverride);
+						bool bHasOverride = GConfig->GetString(TEXT("Analytics"), TEXT("UE4TypeOverride"), UE4TypeOverride, GEngineIni);
 						const TCHAR* UE4TypeStr = bHasOverride ? *UE4TypeOverride : FEngineBuildSettings::IsPerforceBuild() ? TEXT("Perforce") : TEXT("UnrealEngine");
 						if (bIsEditorRun)
 						{

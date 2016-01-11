@@ -269,7 +269,7 @@ namespace UnrealBuildTool
 
 			// Settings for creating/using static libraries for the engine
 			bool bPrecompile = false;
-			bool bUsePrecompiled = UnrealBuildTool.RunningRocket();
+			bool bUsePrecompiled = UnrealBuildTool.IsEngineInstalled();
 
 			// Combine the two arrays of arguments
 			List<string> Arguments = new List<string>(SourceArguments.Length);
@@ -1300,7 +1300,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		private void CleanUnrealHeaderTool()
 		{
-			if (!UnrealBuildTool.RunningRocket())
+			if (!UnrealBuildTool.IsEngineInstalled())
 			{
 				var UBTArguments = new StringBuilder();
 
@@ -1348,8 +1348,8 @@ namespace UnrealBuildTool
 						continue;
 					}
 
-					// if we're cleaning and in an installed or rocket binary and the build product path matches the engine install location, we don't want to delete them
-					if (UEBuildConfiguration.bCleanProject && (UnrealBuildTool.IsEngineInstalled() || UnrealBuildTool.RunningRocket()) && BuildProduct.Path.Contains(Path.GetFullPath(BuildConfiguration.RelativeEnginePath)))
+					// if we're cleaning and in an installed binary and the build product path matches the engine install location, we don't want to delete them
+					if (UEBuildConfiguration.bCleanProject && UnrealBuildTool.IsEngineInstalled() && BuildProduct.Path.Contains(Path.GetFullPath(BuildConfiguration.RelativeEnginePath)))
 					{
 						continue;
 					}
@@ -1393,7 +1393,7 @@ namespace UnrealBuildTool
 				{
 					if (Binary.Config.IntermediateDirectory.Exists())
 					{
-						if (!UnrealBuildTool.RunningRocket() || !Binary.Config.IntermediateDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
+						if (!UnrealBuildTool.IsEngineInstalled() || !Binary.Config.IntermediateDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
 						{
 							CleanDirectory(Binary.Config.IntermediateDirectory.FullName);
 						}
@@ -1464,9 +1464,9 @@ namespace UnrealBuildTool
 						CleanDirectory(ProjectIntermediateDirectory.FullName);
 					}
 				}
-				if (!UnrealBuildTool.RunningRocket())
+				if (!UnrealBuildTool.IsEngineInstalled())
 				{
-					// This is always under Rocket installation folder
+					// This is always under Engine installation folder
 					if (GlobalLinkEnvironment.Config.IntermediateDirectory.Exists())
 					{
 						Log.TraceVerbose("\tDeleting " + GlobalLinkEnvironment.Config.IntermediateDirectory);
@@ -1475,7 +1475,7 @@ namespace UnrealBuildTool
 				}
 				else if (ShouldCompileMonolithic())
 				{
-					// Only in monolithic, otherwise it's pointing to Rocket installation folder
+					// Only in monolithic, otherwise it's pointing to Engine installation folder
 					if (GlobalLinkEnvironment.Config.OutputDirectory.Exists())
 					{
 						Log.TraceVerbose("\tDeleting " + GlobalLinkEnvironment.Config.OutputDirectory);
@@ -1606,8 +1606,8 @@ namespace UnrealBuildTool
 						continue;
 					}
 
-					// don't add any installed or rocket binary and the build product path matches the engine install location, we don't want to delete them
-					if ((UnrealBuildTool.IsEngineInstalled() || UnrealBuildTool.RunningRocket()) && BuildProduct.Path.Contains(Path.GetFullPath(BuildConfiguration.RelativeEnginePath)))
+					// don't add any installed binary and the build product path matches the engine install location, we don't want to delete them
+					if (UnrealBuildTool.IsEngineInstalled() && BuildProduct.Path.Contains(Path.GetFullPath(BuildConfiguration.RelativeEnginePath)))
 					{
 						continue;
 					}
@@ -1807,7 +1807,7 @@ namespace UnrealBuildTool
 		public void GenerateManifest()
 		{
 			FileReference ManifestPath;
-			if (UnrealBuildTool.RunningRocket() && ProjectFile != null)
+			if (UnrealBuildTool.IsEngineInstalled() && ProjectFile != null)
 			{
 				ManifestPath = FileReference.Combine(ProjectFile.Directory, BuildConfiguration.BaseIntermediateFolder, "Manifest.xml");
 			}
@@ -2449,7 +2449,7 @@ namespace UnrealBuildTool
 			}
 
 			//@todo.Rocket: Will users be able to rebuild UnrealHeaderTool? NO
-			if (!ProjectFileGenerator.bGenerateProjectFiles && UnrealBuildTool.RunningRocket() && AppName != "UnrealHeaderTool")
+			if (!ProjectFileGenerator.bGenerateProjectFiles && UnrealBuildTool.IsEngineInstalled() && AppName != "UnrealHeaderTool")
 			{
 				var FilteredBinaries = new List<UEBuildBinary>();
 
@@ -3441,35 +3441,25 @@ namespace UnrealBuildTool
 
 			string OutputAppName = GetAppName();
 
+			UnrealTargetConfiguration EngineTargetConfiguration = Configuration == UnrealTargetConfiguration.DebugGame ? UnrealTargetConfiguration.Development : Configuration;
+			GlobalCompileEnvironment.Config.OutputDirectory = DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, BuildConfiguration.PlatformIntermediateFolder, OutputAppName, EngineTargetConfiguration.ToString());
+
 			// Installed Engine intermediates go to the project's intermediate folder. Installed Engine never writes to the engine intermediate folder. (Those files are immutable)
 			// Also, when compiling in monolithic, all intermediates go to the project's folder.  This is because a project can change definitions that affects all engine translation
 			// units too, so they can't be shared between different targets.  They are effectively project-specific engine intermediates.
 			if (UnrealBuildTool.IsEngineInstalled() || (ProjectFile != null && ShouldCompileMonolithic()))
 			{
-				var IntermediateConfiguration = Configuration;
-				if (UnrealBuildTool.RunningRocket())
-				{
-					// Only Development and Shipping are supported for engine modules
-					IntermediateConfiguration = Configuration == UnrealTargetConfiguration.DebugGame ? UnrealTargetConfiguration.Development : Configuration;
-				}
-
-				GlobalCompileEnvironment.Config.OutputDirectory = DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, BuildConfiguration.PlatformIntermediateFolder, OutputAppName, IntermediateConfiguration.ToString());
 				if (ShouldCompileMonolithic())
 				{
 					if (ProjectFile != null)
 					{
-						GlobalCompileEnvironment.Config.OutputDirectory = DirectoryReference.Combine(ProjectFile.Directory, BuildConfiguration.PlatformIntermediateFolder, OutputAppName, IntermediateConfiguration.ToString());
+						GlobalCompileEnvironment.Config.OutputDirectory = DirectoryReference.Combine(ProjectFile.Directory, BuildConfiguration.PlatformIntermediateFolder, OutputAppName, Configuration.ToString());
 					}
 					else if (ForeignPlugins.Count > 0)
 					{
-						GlobalCompileEnvironment.Config.OutputDirectory = DirectoryReference.Combine(ForeignPlugins[0].Directory, BuildConfiguration.PlatformIntermediateFolder, OutputAppName, IntermediateConfiguration.ToString());
+						GlobalCompileEnvironment.Config.OutputDirectory = DirectoryReference.Combine(ForeignPlugins[0].Directory, BuildConfiguration.PlatformIntermediateFolder, OutputAppName, Configuration.ToString());
 					}
 				}
-			}
-			else
-			{
-				var GlobalEnvironmentConfiguration = Configuration == UnrealTargetConfiguration.DebugGame ? UnrealTargetConfiguration.Development : Configuration;
-				GlobalCompileEnvironment.Config.OutputDirectory = DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, BuildConfiguration.PlatformIntermediateFolder, OutputAppName, GlobalEnvironmentConfiguration.ToString());
 			}
 
 			// By default, shadow source files for this target in the root OutputDirectory
