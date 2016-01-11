@@ -3,6 +3,8 @@
 #pragma once
 
 #include "hlslcc.h"
+#include "ir.h"
+#include "PackUniformBuffers.h"
 #include "LanguageSpec.h"
 
 
