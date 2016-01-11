@@ -1382,7 +1382,7 @@ namespace HLODOutliner
 		{
 			// Retrieve current world settings
 			CurrentWorldSettings = CurrentWorld->GetWorldSettings();
-			checkf(CurrentWorldSettings != nullptr, TEXT("CurrentWorld (%s) does not contain a valid WorldSettings actor"), CurrentWorld->GetName());
+			checkf(CurrentWorldSettings != nullptr, TEXT("CurrentWorld (%s) does not contain a valid WorldSettings actor"), *CurrentWorld->GetName());
 
 			// Update settings view
 			SettingsView->SetObject(CurrentWorldSettings);
@@ -1440,7 +1440,7 @@ namespace HLODOutliner
 							// Add LOD Actor item to the treeview
 							if (LODActor)
 							{
-								checkf((LODActor->LODLevel - 1) < LevelNodes.Num(), TEXT("LODActor (%s) found with LODLevel (%i) that is out of current WorldSettings range (%i)"), LODActor->GetName(), LODActor->LODLevel - 1, LevelNodes.Num());
+								checkf((LODActor->LODLevel - 1) < LevelNodes.Num(), TEXT("LODActor (%s) found with LODLevel (%i) that is out of current WorldSettings range (%i)"), *LODActor->GetName(), LODActor->LODLevel - 1, LevelNodes.Num());
 
 								FTreeItemRef Item = MakeShareable(new FLODActorItem(LODActor));
 								AllNodes.Add(Item->AsShared());
