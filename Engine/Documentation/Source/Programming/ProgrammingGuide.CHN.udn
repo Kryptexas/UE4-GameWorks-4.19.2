@@ -1,7 +1,8 @@
-﻿Availability:Public
-Title:编程指南
+﻿INTSourceChangelist:0
+Availability:Public
+Title:Programming Guide
 Crumbs: %ROOT%
-Description:程序员使用虚幻引擎进行开发的信息。
+Description:Information for programmers developing with Unreal Engine.
 
 [VAR:Params]
 [PARAM:image]
@@ -29,7 +30,7 @@ Description:程序员使用虚幻引擎进行开发的信息。
 	![](%ROOT%/prog_icon.png)(convert:false)
 [/PARAM]
 [PARAM:title]
-	程序员
+	Programmers
 [/PARAM]
 [PARAM:description]
 	%Programming:description%
@@ -55,7 +56,7 @@ Description:程序员使用虚幻引擎进行开发的信息。
 [OBJECT:Role]
 %homeparams%
 [PARAMLITERAL:id]
-程序员
+programmer
 [/PARAMLITERAL]
 [/OBJECT]
 [/VAR]
@@ -64,16 +65,18 @@ Description:程序员使用虚幻引擎进行开发的信息。
 [OBJECT:Role]
 %params%
 [PARAMLITERAL:id]
-编程
+programming
 [/PARAMLITERAL]
 [/OBJECT]
 [/VAR]
 
-虚幻引擎4为程序员提供了两套工具集，可共同使用来加速开发的工作流程。 新的游戏类、Slate和Canvas用户接口元素以及编辑器功能可以使用C++语言来编写，并且在使用Visual Studio 或 XCode之一编译后可以在虚幻编辑器中反映出全部变更内容。 蓝图可视化脚本系统是一个强劲的工具，可以让类通过连接函数区块和属性引用来在编辑器中进行创建。 
+Unreal Engine 4 provides two toolsets for programmers which can also be used in tandem to accelerate development workflows. New gameplay classes, Slate and Canvas user interface elements,
+and editor functionality can be written with C++, and all changes will be reflected in Unreal Editor after compiling with either Visual Studio or XCode. The Blueprints visual scripting system
+is a robust tool which enables classes to be created in-editor through wiring together function blocks and property references. 
 
-C++类可以作为蓝图类的基类使用，并且这样的话，程序员就可以设置基础的游戏类，随后，它们由关卡设计师来进行子类和迭代处理。  
+C++ classes can be used as a base for Blueprint classes, and in this way programmers can set up fundamental gameplay classes that are then sub-classed and iterated on by level designers.  
 
-## 入门指南
+## Getting Started
 
 [REGION:features third]
 [OBJECT:Role]
@@ -81,7 +84,7 @@ C++类可以作为蓝图类的基类使用，并且这样的话，程序员就�
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		编程入门指南
+		Programming Quick Start
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Programming/QuickStart]
@@ -90,7 +93,7 @@ C++类可以作为蓝图类的基类使用，并且这样的话，程序员就�
 		%Programming/QuickStart:description%
 	[/PARAM]
 	[PARAMLITERAL:id]
-		快速启动
+		quickstart
 	[/PARAMLITERAL]
 [/OBJECT]
 
@@ -99,7 +102,7 @@ C++类可以作为蓝图类的基类使用，并且这样的话，程序员就�
 		![](%ROOT%/prog_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		使用虚幻引擎中的C++的导论
+		Intro to C++ in Unreal
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Programming/Introduction]
@@ -108,7 +111,7 @@ C++类可以作为蓝图类的基类使用，并且这样的话，程序员就�
 		%Programming/Introduction:description%
 	[/PARAM]
 	[PARAMLITERAL:id]
-		简介
+		intro
 	[/PARAMLITERAL]
 [/OBJECT]
 
@@ -126,7 +129,7 @@ C++类可以作为蓝图类的基类使用，并且这样的话，程序员就�
 		%Programming/Tutorials:description%
 	[/PARAM]
 	[PARAMLITERAL:id]
-		教程
+		tutorials
 	[/PARAMLITERAL]
 [/OBJECT]
 [/REGION]
@@ -137,15 +140,15 @@ C++类可以作为蓝图类的基类使用，并且这样的话，程序员就�
 		![](%ROOT%/api_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		虚幻引擎API引用
+		Unreal Engine API Reference
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-	* [虚幻引擎API](https://docs.unrealengine.com/latest/INT/API/index.html)
-		* [核心API](https://docs.unrealengine.com/latest/INT/API/Runtime/Core/index.html)
-		* [核心UObject API](https://docs.unrealengine.com/latest/INT/API/Runtime/CoreUObject/index.html)
-		* [引擎API](https://docs.unrealengine.com/latest/INT/API/Runtime/Engine/index.html)
+	* [Unreal Engine API](https://docs.unrealengine.com/latest/INT/API/index.html)
+		* [Core API](https://docs.unrealengine.com/latest/INT/API/Runtime/Core/index.html)
+		* [Core UObject API](https://docs.unrealengine.com/latest/INT/API/Runtime/CoreUObject/index.html)
+		* [Engine API](https://docs.unrealengine.com/latest/INT/API/Runtime/Engine/index.html)
 	[/PARAM]
 [/OBJECT]
 
@@ -154,10 +157,10 @@ C++类可以作为蓝图类的基类使用，并且这样的话，程序员就�
 		![](%ROOT%/prog_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		虚幻引擎架构
+		Unreal Engine Architecture
 	[/PARAM]
 	[PARAM:description]
-		无论您使用C++、蓝图还是同时使用两者来编程，底层的虚幻架构是相同的。 
+		Whether you are programming with C++, Blueprints, or a combination of the two, the underlying Unreal architecture is the same. 
 	[/PARAM]
 	[PARAM:links]
 	* [](Programming/UnrealArchitecture "%Programming/UnrealArchitecture:description%")
@@ -186,7 +189,7 @@ C++类可以作为蓝图类的基类使用，并且这样的话，程序员就�
 		![](%ROOT%/gameplay_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		虚幻引擎游戏的游戏性
+		Unreal Gameplay
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
@@ -200,12 +203,12 @@ C++类可以作为蓝图类的基类使用，并且这样的话，程序员就�
 		![](%ROOT%/engine_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		系统指南
+		System Guides
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-		* [](Programming/Animation/AnimNodes "%Programming/Animation/AnimNodes:description%")
+		* [](Programming/Animation "%Programming/Animation:description%")
 		* [](Programming/Automation "%Programming/Automation:description%")
 		* [](Engine/Blueprints/TechnicalGuide "%Engine/Blueprints/TechnicalGuide:description%")
 		* [](Programming/Online "%Programming/Online:description%")
@@ -221,7 +224,7 @@ C++类可以作为蓝图类的基类使用，并且这样的话，程序员就�
 		![](%ROOT%/content_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		资源处理参考指南
+		Asset Handling Reference Guides
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

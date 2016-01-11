@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
  
 #include "SlatePrivatePCH.h"
 #include "LayoutUtils.h"
@@ -13,9 +13,6 @@ static FVector2D GetMenuOffsetForPlacement(const FGeometry& AllottedGeometry, EM
 			break;
 		case MenuPlacement_CenteredBelowAnchor:
 			return FVector2D(-((PopupSizeLocalSpace.X / 2) - (AllottedGeometry.GetLocalSize().X / 2)), AllottedGeometry.GetLocalSize().Y);
-			break;
-		case MenuPlacement_BelowRightAnchor:
-			return FVector2D( -( PopupSizeLocalSpace.X ) - ( AllottedGeometry.GetLocalSize().X ), AllottedGeometry.GetLocalSize().Y );
 			break;
 		case MenuPlacement_ComboBox:
 			return FVector2D(0.0f, AllottedGeometry.GetLocalSize().Y);
@@ -32,14 +29,8 @@ static FVector2D GetMenuOffsetForPlacement(const FGeometry& AllottedGeometry, EM
 		case MenuPlacement_CenteredAboveAnchor:
 			return FVector2D(-((PopupSizeLocalSpace.X / 2) - (AllottedGeometry.GetLocalSize().X / 2)), -PopupSizeLocalSpace.Y);
 			break;
-		case MenuPlacement_AboveRightAnchor:
-			return FVector2D( -( PopupSizeLocalSpace.X ) - ( AllottedGeometry.GetLocalSize().X ), -PopupSizeLocalSpace.Y );
-			break;
 		case MenuPlacement_MenuLeft:
 			return FVector2D(-PopupSizeLocalSpace.X, 0.0f);
-			break;
-		case MenuPlacement_Center:
-			return FVector2D( -( ( PopupSizeLocalSpace.X / 2 ) - ( AllottedGeometry.GetLocalSize().X / 2 ) ), -( ( PopupSizeLocalSpace.Y / 2 ) - ( AllottedGeometry.GetLocalSize().Y / 2 ) ) );
 			break;
 		default:
 			ensureMsgf( false, TEXT("Unhandled placement mode: %d"), PlacementMode );
@@ -191,12 +182,7 @@ void SMenuAnchor::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrange
 
 FVector2D SMenuAnchor::ComputeDesiredSize( float ) const
 {
-	FVector2D DesiredSize = Children[0].GetWidget()->GetDesiredSize();
-
-	// Menu anchors might be created with null content, in which case they must still get drawn in order to 
-	// draw pop-up content, therefore it must lie and always request a desired size of at least 1,1, otherwise 
-	// a panel may filter it from drawing thinking the it doesn't have anything to draw.
-	return FVector2D(FMath::Max(DesiredSize.X, 1.0f), FMath::Max(DesiredSize.Y, 1.0f));
+	return Children[0].GetWidget()->GetDesiredSize();
 }
 
 FChildren* SMenuAnchor::GetChildren()
@@ -253,12 +239,12 @@ int32 SMenuAnchor::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 
 bool SMenuAnchor::IsOpenAndReusingWindow() const
 {
-	return MethodInUse.IsSet() && MethodInUse.GetPopupMethod() == EPopupMethod::UseCurrentWindow;
+	return MethodInUse.IsSet() && MethodInUse.GetValue() == EPopupMethod::UseCurrentWindow;
 }
 
 bool SMenuAnchor::IsOpenViaCreatedWindow() const
 {
-	return MethodInUse.IsSet() && MethodInUse.GetPopupMethod() == EPopupMethod::CreateNewWindow;
+	return MethodInUse.IsSet() && MethodInUse.GetValue() == EPopupMethod::CreateNewWindow;
 }
 
 void SMenuAnchor::SetContent(TSharedRef<SWidget> InContent)
@@ -276,18 +262,18 @@ void SMenuAnchor::SetMenuContent(TSharedRef<SWidget> InMenuContent)
 	WrappedContent = InMenuContent;	// wrapping, if any will happen when the menu is opened
 }
 
-FPopupMethodReply QueryPopupMethod(const FWidgetPath& PathToQuery)
+EPopupMethod QueryPopupMethod(const FWidgetPath& PathToQuery)
 {
 	for (int32 WidgetIndex = PathToQuery.Widgets.Num() - 1; WidgetIndex >= 0; --WidgetIndex)
 	{
-		FPopupMethodReply PopupMethod = PathToQuery.Widgets[WidgetIndex].Widget->OnQueryPopupMethod();
-		if (PopupMethod.IsEventHandled())
+		TOptional<EPopupMethod> PopupMethod = PathToQuery.Widgets[WidgetIndex].Widget->OnQueryPopupMethod();
+		if (PopupMethod.IsSet())
 		{
-			return PopupMethod;
+			return PopupMethod.GetValue();
 		}
 	}
 
-	return FPopupMethodReply::UseMethod(EPopupMethod::CreateNewWindow);
+	return EPopupMethod::CreateNewWindow;
 }
 
 
@@ -357,14 +343,14 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 					}
 
 					MethodInUse = Method.IsSet()
-						? FPopupMethodReply::UseMethod(Method.GetValue())
+						? Method.GetValue()
 						: QueryPopupMethod(MyWidgetPath);
 
-					if (MethodInUse.GetPopupMethod() == EPopupMethod::CreateNewWindow)
+					if (MethodInUse == EPopupMethod::CreateNewWindow)
 					{
 						// Open the pop-up
 						const bool bIsCollapsedByParent = false;	// don't auto-close child menus when the parent gets focus
-						TSharedPtr<IMenu> NewMenu = FSlateApplication::Get().PushMenu(AsShared(), MyWidgetPath, MenuContentRef, NewPosition, TransitionEffect, bFocusMenu, SummonLocationSize, MethodInUse.GetPopupMethod(), bIsCollapsedByParent);
+						TSharedPtr<IMenu> NewMenu = FSlateApplication::Get().PushMenu(AsShared(), MyWidgetPath, MenuContentRef, NewPosition, TransitionEffect, bFocusMenu, SummonLocationSize, MethodInUse, bIsCollapsedByParent);
 
 						PopupMenuPtr = NewMenu;
 						check(NewMenu.IsValid() && NewMenu->GetOwnedWindow().IsValid());
@@ -375,7 +361,7 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 					{
 						// We are re-using the current window instead of creating a new one.
 						// The popup will be presented via an overlay service.
-						ensure(MethodInUse.GetPopupMethod() == EPopupMethod::UseCurrentWindow);
+						ensure(MethodInUse == EPopupMethod::UseCurrentWindow);
 						TSharedRef<SWindow> PopupWindow = MyWidgetPath.GetWindow();
 						PopupWindowPtr = PopupWindow;
 
@@ -388,7 +374,7 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 
 						const bool bIsCollapsedByParent = false;	// don't auto-close child menus when the parent gets focus
 						TSharedPtr<IMenu> NewMenu = FSlateApplication::Get().PushHostedMenu(
-							SharedThis, MyWidgetPath, SharedThis, MenuContentRef, WrappedContent, TransitionEffect, MethodInUse.GetShouldThrottle(), bIsCollapsedByParent);
+							SharedThis, MyWidgetPath, SharedThis, MenuContentRef, WrappedContent, TransitionEffect, bIsCollapsedByParent);
 
 						PopupMenuPtr = NewMenu;
 						check(NewMenu.IsValid());
@@ -418,7 +404,7 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 			else
 			{
 				PopupWindowPtr.Reset();
-				MethodInUse = FPopupMethodReply::Unhandled();
+				MethodInUse.Reset();
 			}
 		}
 	}
@@ -427,7 +413,7 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 void SMenuAnchor::OnMenuClosed(TSharedRef<IMenu> InMenu)
 {
 	bDismissedThisTick = true;
-	MethodInUse = FPopupMethodReply::Unhandled();
+	MethodInUse = TOptional<EPopupMethod>();
 	PopupMenuPtr.Reset();
 	PopupWindowPtr.Reset();
 
@@ -506,5 +492,5 @@ SMenuAnchor::~SMenuAnchor()
 	// We no longer have a popup open, so reset all the tracking state associated.
 	PopupMenuPtr.Reset();
 	PopupWindowPtr.Reset();
-	MethodInUse = FPopupMethodReply::Unhandled();
+	MethodInUse.Reset();
 }

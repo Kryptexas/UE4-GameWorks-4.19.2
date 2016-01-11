@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "DataTableEditorUtils.h"
@@ -175,7 +175,7 @@ void FDataTableEditorUtils::BroadcastPostChange(UDataTable* DataTable, EDataTabl
 {
 	if (DataTable && (EDataTableChangeInfo::RowList == Info))
 	{
-		for (TObjectIterator<UK2Node_GetDataTableRow> It(RF_Transient | RF_ClassDefaultObject, /** bIncludeDerivedClasses */ true, /** InternalExcludeFlags */ EInternalObjectFlags::PendingKill); It; ++It)
+		for (TObjectIterator<UK2Node_GetDataTableRow> It(RF_Transient | RF_PendingKill | RF_ClassDefaultObject); It; ++It)
 		{
 			It->OnDataTableRowListChanged(DataTable);
 		}
@@ -224,7 +224,6 @@ void FDataTableEditorUtils::CacheDataTableForEditing(const UDataTable* DataTable
 		FDataTableEditorRowListViewDataPtr CachedRowData = MakeShareable(new FDataTableEditorRowListViewData());
 		CachedRowData->RowId = RowIt->Key;
 		CachedRowData->DisplayName = FText::FromName(RowIt->Key);
-		CachedRowData->DesiredRowHeight = FontMeasure->GetMaxCharacterHeight(CellTextStyle.Font);
 
 		CachedRowData->CellData.Reserve(StructProps.Num());
 		{
@@ -237,11 +236,7 @@ void FDataTableEditorUtils::CacheDataTableForEditing(const UDataTable* DataTable
 				const FText CellText = DataTableUtils::GetPropertyValueAsText(Prop, RowData);
 				CachedRowData->CellData.Add(CellText);
 
-				const FVector2D CellTextSize = FontMeasure->Measure(CellText, CellTextStyle.Font);
-
-				CachedRowData->DesiredRowHeight = FMath::Max(CachedRowData->DesiredRowHeight, CellTextSize.Y);
-
-				const float CellWidth = CellTextSize.X + CellPadding;
+				const float CellWidth = FontMeasure->Measure(CellText, CellTextStyle.Font).X + CellPadding;
 				CachedColumnData->DesiredColumnWidth = FMath::Max(CachedColumnData->DesiredColumnWidth, CellWidth);
 			}
 		}

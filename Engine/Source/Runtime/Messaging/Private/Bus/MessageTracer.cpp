@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MessagingPrivatePCH.h"
 
@@ -27,28 +27,17 @@ FMessageTracer::~FMessageTracer()
 /* FMessageTracer interface
  *****************************************************************************/
 
-void FMessageTracer::TraceAddedInterceptor(const IMessageInterceptorRef& Interceptor, const FName& MessageType)
+void FMessageTracer::TraceAddedInterceptor( const IMessageInterceptorRef& Interceptor, const FName& MessageType )
 {
 	double Timestamp = FPlatformTime::Seconds();
 
 	Traces.Enqueue([=]() {
-		// create interceptor information
-		FMessageTracerInterceptorInfoPtr& InterceptorInfo = Interceptors.FindOrAdd(Interceptor->GetInterceptorId());
-
-		if (!InterceptorInfo.IsValid())
-		{
-			InterceptorInfo = MakeShareable(new FMessageTracerInterceptorInfo());
-		}
-
-		// initialize interceptor information
-		InterceptorInfo->Name = Interceptor->GetDebugName();
-		InterceptorInfo->TimeRegistered = Timestamp;
-		InterceptorInfo->TimeUnregistered = 0;
+		// @todo gmp: trace added message interceptors
 	});
 }
 
 
-void FMessageTracer::TraceAddedRecipient(const FMessageAddress& Address, const IReceiveMessagesRef& Recipient)
+void FMessageTracer::TraceAddedRecipient( const FMessageAddress& Address, const IReceiveMessagesRef& Recipient )
 {
 	double Timestamp = FPlatformTime::Seconds();
 
@@ -63,11 +52,9 @@ void FMessageTracer::TraceAddedRecipient(const FMessageAddress& Address, const I
 
 		// initialize endpoint information
 		FMessageTracerAddressInfoRef AddressInfo = MakeShareable(new FMessageTracerAddressInfo());
-		{
-			AddressInfo->Address = Address;
-			AddressInfo->TimeRegistered = Timestamp;
-			AddressInfo->TimeUnregistered = 0;
-		}
+		AddressInfo->Address = Address;
+		AddressInfo->TimeRegistered = Timestamp;
+		AddressInfo->TimeUnregistered = 0;
 
 		EndpointInfo->AddressInfos.Add(Address, AddressInfo);
 		EndpointInfo->Name = Recipient->GetDebugName();
@@ -79,7 +66,7 @@ void FMessageTracer::TraceAddedRecipient(const FMessageAddress& Address, const I
 }
 
 
-void FMessageTracer::TraceAddedSubscription(const IMessageSubscriptionRef& Subscription)
+void FMessageTracer::TraceAddedSubscription( const IMessageSubscriptionRef& Subscription )
 {
 	if (!Running)
 	{
@@ -94,7 +81,7 @@ void FMessageTracer::TraceAddedSubscription(const IMessageSubscriptionRef& Subsc
 }
 
 
-void FMessageTracer::TraceDispatchedMessage(const IMessageContextRef& Context, const IReceiveMessagesRef& Recipient, bool Async)
+void FMessageTracer::TraceDispatchedMessage( const IMessageContextRef& Context, const IReceiveMessagesRef& Recipient, bool Async )
 {
 	if (!Running)
 	{
@@ -121,14 +108,13 @@ void FMessageTracer::TraceDispatchedMessage(const IMessageContextRef& Context, c
 
 		// update message information
 		FMessageTracerDispatchStateRef DispatchState = MakeShareable(new FMessageTracerDispatchState());
-		{
-			DispatchState->DispatchLatency = Timestamp - MessageInfo->TimeSent;
-			DispatchState->DispatchType = Async ? EMessageTracerDispatchTypes::TaskGraph : EMessageTracerDispatchTypes::Direct;
-			DispatchState->EndpointInfo = EndpointInfo;
-			DispatchState->RecipientThread = Recipient->GetRecipientThread();
-			DispatchState->TimeDispatched = Timestamp;
-			DispatchState->TimeHandled = 0.0;
-		}
+
+		DispatchState->DispatchLatency = Timestamp - MessageInfo->TimeSent;
+		DispatchState->DispatchType = Async ? EMessageTracerDispatchTypes::TaskGraph : EMessageTracerDispatchTypes::Direct;
+		DispatchState->EndpointInfo = EndpointInfo;
+		DispatchState->RecipientThread = Recipient->GetRecipientThread();
+		DispatchState->TimeDispatched = Timestamp;
+		DispatchState->TimeHandled = 0.0;
 
 		MessageInfo->DispatchStates.Add(EndpointInfo, DispatchState);
 
@@ -138,7 +124,7 @@ void FMessageTracer::TraceDispatchedMessage(const IMessageContextRef& Context, c
 }
 
 
-void FMessageTracer::TraceHandledMessage(const IMessageContextRef& Context, const IReceiveMessagesRef& Recipient)
+void FMessageTracer::TraceHandledMessage( const IMessageContextRef& Context, const IReceiveMessagesRef& Recipient )
 {
 	if (!Running)
 	{
@@ -174,7 +160,7 @@ void FMessageTracer::TraceHandledMessage(const IMessageContextRef& Context, cons
 }
 
 
-void FMessageTracer::TraceInterceptedMessage(const IMessageContextRef& Context, const IMessageInterceptorRef& Interceptor)
+void FMessageTracer::TraceInterceptedMessage( const IMessageContextRef& Context, const IMessageInterceptorRef& Interceptor )
 {
 	if (!Running)
 	{
@@ -184,49 +170,33 @@ void FMessageTracer::TraceInterceptedMessage(const IMessageContextRef& Context, 
 	double Timestamp = FPlatformTime::Seconds();
 
 	Traces.Enqueue([=]() {
-		// look up message & interceptor info
-		FMessageTracerMessageInfoPtr MessageInfo = MessageInfos.FindRef(Context);
-
-		if (!MessageInfo.IsValid())
-		{
-			return;
-		}
-
-		MessageInfo->Intercepted = true;
-
-		FMessageTracerInterceptorInfoPtr InterceptorInfo = Interceptors.FindRef(Interceptor->GetInterceptorId());
-
-		if (!InterceptorInfo.IsValid())
-		{
-			return;
-		}
-
-		// update interceptor information
-		InterceptorInfo->InterceptedMessages.Add(MessageInfo);
+		// @todo gmp: trace intercepted messages
 	});		
 }
 
 
-void FMessageTracer::TraceRemovedInterceptor(const IMessageInterceptorRef& Interceptor, const FName& MessageType)
+void FMessageTracer::TraceRemovedInterceptor( const IMessageInterceptorRef& Interceptor, const FName& MessageType )
 {
+	if (!Running)
+	{
+		return;
+	}
+
 	double Timestamp = FPlatformTime::Seconds();
 
 	Traces.Enqueue([=]() {
-		FMessageTracerInterceptorInfoPtr InterceptorInfo = Interceptors.FindRef(Interceptor->GetInterceptorId());
-
-		if (!InterceptorInfo.IsValid())
-		{
-			return;
-		}
-
-		// update interceptor information
-		InterceptorInfo->TimeUnregistered = Timestamp;
+		// @todo gmp: trace removed message interceptors
 	});
 }
 
 
-void FMessageTracer::TraceRemovedRecipient(const FMessageAddress& Address)
+void FMessageTracer::TraceRemovedRecipient( const FMessageAddress& Address )
 {
+	if (!Running)
+	{
+		return;
+	}
+
 	double Timestamp = FPlatformTime::Seconds();
 
 	Traces.Enqueue([=]() {
@@ -248,7 +218,7 @@ void FMessageTracer::TraceRemovedRecipient(const FMessageAddress& Address)
 }
 
 
-void FMessageTracer::TraceRemovedSubscription(const IMessageSubscriptionRef& Subscription, const FName& MessageType)
+void FMessageTracer::TraceRemovedSubscription( const IMessageSubscriptionRef& Subscription, const FName& MessageType )
 {
 	if (!Running)
 	{
@@ -263,20 +233,20 @@ void FMessageTracer::TraceRemovedSubscription(const IMessageSubscriptionRef& Sub
 }
 
 
-void FMessageTracer::TraceRoutedMessage(const IMessageContextRef& Context)
+void FMessageTracer::TraceRoutedMessage( const IMessageContextRef& Context )
 {
 	if (!Running)
 	{
 		return;
 	}
 
+	double Timestamp = FPlatformTime::Seconds();
+
 	if (ShouldBreak(Context))
 	{
 		Breaking = true;
 		ContinueEvent->Wait();
 	}
-
-	double Timestamp = FPlatformTime::Seconds();
 
 	Traces.Enqueue([=]() {
 		// update message information
@@ -290,7 +260,7 @@ void FMessageTracer::TraceRoutedMessage(const IMessageContextRef& Context)
 }
 
 
-void FMessageTracer::TraceSentMessage(const IMessageContextRef& Context)
+void FMessageTracer::TraceSentMessage( const IMessageContextRef& Context )
 {
 	if (!Running)
 	{
@@ -310,14 +280,12 @@ void FMessageTracer::TraceSentMessage(const IMessageContextRef& Context)
 
 		// create message info
 		FMessageTracerMessageInfoRef MessageInfo = MakeShareable(new FMessageTracerMessageInfo());
-		{
-			MessageInfo->Context = Context;
-			MessageInfo->Intercepted = false;
-			MessageInfo->SenderInfo = EndpointInfo;
-			MessageInfo->TimeRouted = 0.0;
-			MessageInfo->TimeSent = Timestamp;
-			MessageInfos.Add(Context, MessageInfo);
-		}
+	
+		MessageInfo->Context = Context;
+		MessageInfo->SenderInfo = EndpointInfo;
+		MessageInfo->TimeRouted = 0.0;
+		MessageInfo->TimeSent = Timestamp;
+		MessageInfos.Add(Context, MessageInfo);
 
 		// add message type
 		FMessageTracerTypeInfoPtr& TypeInfo = MessageTypes.FindOrAdd(Context->GetMessageType());
@@ -344,7 +312,7 @@ void FMessageTracer::TraceSentMessage(const IMessageContextRef& Context)
 /* IMessageTracer interface
  *****************************************************************************/
 
-int32 FMessageTracer::GetEndpoints(TArray<FMessageTracerEndpointInfoPtr>& OutEndpoints) const
+int32 FMessageTracer::GetEndpoints( TArray<FMessageTracerEndpointInfoPtr>& OutEndpoints ) const
 {
 	RecipientsToEndpointInfos.GenerateValueArray(OutEndpoints);
 
@@ -352,7 +320,7 @@ int32 FMessageTracer::GetEndpoints(TArray<FMessageTracerEndpointInfoPtr>& OutEnd
 }
 
 
-int32 FMessageTracer::GetMessages(TArray<FMessageTracerMessageInfoPtr>& OutMessages) const
+int32 FMessageTracer::GetMessages( TArray<FMessageTracerMessageInfoPtr>& OutMessages ) const
 {
 	MessageInfos.GenerateValueArray(OutMessages);
 
@@ -360,7 +328,7 @@ int32 FMessageTracer::GetMessages(TArray<FMessageTracerMessageInfoPtr>& OutMessa
 }
 
 
-int32 FMessageTracer::GetMessageTypes(TArray<FMessageTracerTypeInfoPtr>& OutTypes) const
+int32 FMessageTracer::GetMessageTypes( TArray<FMessageTracerTypeInfoPtr>& OutTypes ) const
 {
 	MessageTypes.GenerateValueArray(OutTypes);
 
@@ -368,7 +336,7 @@ int32 FMessageTracer::GetMessageTypes(TArray<FMessageTracerTypeInfoPtr>& OutType
 }
 
 
-bool FMessageTracer::Tick(float DeltaTime)
+bool FMessageTracer::Tick( float DeltaTime )
 {
 	if (ResetPending)
 	{
@@ -399,28 +367,28 @@ void FMessageTracer::ResetMessages()
 	MessageInfos.Reset();
 	MessageTypes.Reset();
 
-	for (auto& EndpointInfoPair : AddressesToEndpointInfos)
+	for (TMap<FMessageAddress, FMessageTracerEndpointInfoPtr>::TIterator It(AddressesToEndpointInfos); It; ++It)
 	{
-		FMessageTracerEndpointInfoPtr& EndpointInfo = EndpointInfoPair.Value;
-		{
-			EndpointInfo->ReceivedMessages.Reset();
-			EndpointInfo->SentMessages.Reset();
-		}
+		FMessageTracerEndpointInfoPtr& EndpointInfo = It.Value();
+		EndpointInfo->ReceivedMessages.Reset();
+		EndpointInfo->SentMessages.Reset();
 	}
 
 	MessagesResetDelegate.Broadcast();
 }
 
 
-bool FMessageTracer::ShouldBreak(const IMessageContextRef& Context) const
+bool FMessageTracer::ShouldBreak( const IMessageContextRef& Context ) const
 {
 	if (Breaking)
 	{
 		return true;
 	}
 
-	for (const auto& Breakpoint : Breakpoints)
+	for (int32 BreakpointIndex = Breakpoints.Num() - 1; BreakpointIndex >= 0; --BreakpointIndex)
 	{
+		const IMessageTracerBreakpointPtr& Breakpoint = Breakpoints[BreakpointIndex];
+
 		if (Breakpoint->IsEnabled() && Breakpoint->ShouldBreak(Context))
 		{
 			return true;

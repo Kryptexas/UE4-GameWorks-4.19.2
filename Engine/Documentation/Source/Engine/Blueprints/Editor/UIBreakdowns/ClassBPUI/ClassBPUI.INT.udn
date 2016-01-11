@@ -2,7 +2,6 @@ Availability:Public
 Title:Blueprint Class UI
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
 Description:A breakdown of the UI elements of the Blueprint Editor when working on Blueprint Classes.
-version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -26,7 +25,7 @@ version: 4.9
 
 ![](ClassBlueprint.png)
 
-The **Blueprint Class Editor** contains several tabs by default:
+The **Blueprint Class** editor contains several tabs by default:
 
 
 |Default Visible UI Components| Available in the Window Menu|
@@ -37,12 +36,11 @@ The **Blueprint Class Editor** contains several tabs by default:
 
 <!----------
 [EXCERPT:Visible]
-1. [Menu](Engine/Blueprints/Editor\UIComponents\Menu)
+1. Menu
 1. [Toolbar](Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions)
 1. [Components](Engine/Blueprints/UserGuide/Components)
 1. [My Blueprint](Engine/Blueprints/Editor/UIComponents/MyBlueprint)
 1. [Graph Editor](Engine/Blueprints/Editor/UIComponents/GraphEditor)
-1. [Details panel](Engine/Blueprints/Editor/UIComponents/Details)
  
 [/EXCERPT:Visible]
 

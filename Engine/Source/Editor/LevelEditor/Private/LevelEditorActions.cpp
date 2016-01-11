@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "LevelEditor.h"
@@ -61,14 +61,9 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/Light.h"
 #include "Animation/SkeletalMeshActor.h"
-#include "Editor/UnrealEd/Public/Animation/AnimationRecorder.h"
+#include "Editor/Persona/Public/AnimationRecorder.h"
 #include "Editor/KismetWidgets/Public/CreateBlueprintFromActorDialog.h"
 #include "EditorProjectSettings.h"
-#include "HierarchicalLODUtilities.h"
-#include "Engine/LODActor.h"
-#include "AsyncResult.h"
-#include "IPortalApplicationWindow.h"
-#include "IPortalServiceLocator.h"
 #include "MaterialShaderQualitySettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LevelEditorActions, Log, All);
@@ -377,14 +372,7 @@ void FLevelEditorActionCallbacks::SaveAllLevels()
 
 void FLevelEditorActionCallbacks::Import_Clicked()
 {
-	const bool bImportScene = false;
-	FEditorFileUtils::Import(bImportScene);
-}
-
-void FLevelEditorActionCallbacks::ImportScene_Clicked()
-{
-	const bool bImportScene = true;
-	FEditorFileUtils::Import(bImportScene);
+	FEditorFileUtils::Import();
 }
 
 
@@ -548,7 +536,7 @@ void FLevelEditorActionCallbacks::Build_Execute()
 	ConfigureLightingBuildOptions( FLightingBuildOptions() );
 
 	// Build everything!
-	FEditorBuildUtils::EditorBuild( GetWorld(), FBuildOptions::BuildAll );
+	FEditorBuildUtils::EditorBuild( GetWorld(), EBuildOptions::BuildAll );
 }
 
 
@@ -566,7 +554,7 @@ void FLevelEditorActionCallbacks::BuildLightingOnly_Execute()
 
 	// Build lighting!
 	const bool bAllowLightingDialog = false;
-	FEditorBuildUtils::EditorBuild( GetWorld(), FBuildOptions::BuildLighting, bAllowLightingDialog );
+	FEditorBuildUtils::EditorBuild( GetWorld(), EBuildOptions::BuildLighting, bAllowLightingDialog );
 }
 
 bool FLevelEditorActionCallbacks::BuildLighting_CanExecute()
@@ -590,7 +578,7 @@ void FLevelEditorActionCallbacks::BuildLightingOnly_VisibilityOnly_Execute()
 
 	// Build lighting!
 	const bool bAllowLightingDialog = false;
-	FEditorBuildUtils::EditorBuild( GetWorld(), FBuildOptions::BuildLighting, bAllowLightingDialog );
+	FEditorBuildUtils::EditorBuild( GetWorld(), EBuildOptions::BuildLighting, bAllowLightingDialog );
 
 	// Reset build options
 	ConfigureLightingBuildOptions( FLightingBuildOptions() );
@@ -632,27 +620,33 @@ void FLevelEditorActionCallbacks::LightingBuildOptions_ShowLightingStats_Toggled
 void FLevelEditorActionCallbacks::BuildGeometryOnly_Execute()
 {
 	// Build geometry!
-	FEditorBuildUtils::EditorBuild( GetWorld(), FBuildOptions::BuildVisibleGeometry );
+	FEditorBuildUtils::EditorBuild( GetWorld(), EBuildOptions::BuildVisibleGeometry );
 }
 
 
 void FLevelEditorActionCallbacks::BuildGeometryOnly_OnlyCurrentLevel_Execute()
 {
 	// Build geometry (current level)!
-	FEditorBuildUtils::EditorBuild( GetWorld(), FBuildOptions::BuildGeometry );
+	FEditorBuildUtils::EditorBuild( GetWorld(), EBuildOptions::BuildGeometry );
 }
 
 
 void FLevelEditorActionCallbacks::BuildPathsOnly_Execute()
 {
 	// Build paths!
-	FEditorBuildUtils::EditorBuild( GetWorld(), FBuildOptions::BuildAIPaths );
+	FEditorBuildUtils::EditorBuild( GetWorld(), EBuildOptions::BuildAIPaths );
 }
 
 void FLevelEditorActionCallbacks::BuildLODsOnly_Execute()
 {
 	// Build HLOD
-	FEditorBuildUtils::EditorBuild(GetWorld(), FBuildOptions::BuildHierarchicalLOD);
+	FEditorBuildUtils::EditorBuild(GetWorld(), EBuildOptions::BuildHierarchicalLOD);
+}
+
+void FLevelEditorActionCallbacks::PreviewHLODClustersOnly_Execute()
+{
+	// Preview HLOD Clusters
+	FEditorBuildUtils::EditorBuild(GetWorld(), EBuildOptions::PreviewHierarchicalLOD);
 }
 
 bool FLevelEditorActionCallbacks::IsLightingQualityChecked( ELightingBuildQuality TestQuality )
@@ -1612,21 +1606,6 @@ void FLevelEditorActionCallbacks::OnSelectAllActorsControlledByMatinee()
 	GEditor->SelectAllActorsControlledByMatinee();
 }
 
-void FLevelEditorActionCallbacks::OnSelectOwningHLODCluster()
-{
-	if (GEditor->GetSelectedActorCount() > 0)
-	{
-		AActor* Actor = Cast<AActor>(GEditor->GetSelectedActors()->GetSelectedObject(0));
-		ALODActor* ParentActor = FHierarchicalLODUtilities::GetParentLODActor(Actor);
-		if (Actor && ParentActor)
-		{
-			GEditor->SelectNone(false, true);
-			GEditor->SelectActor(ParentActor, true, false);
-			GEditor->NoteSelectionChange();
-		}
-	}
-}
-
 void FLevelEditorActionCallbacks::OnSelectMatineeActor( AMatineeActor * ActorToSelect )
 {
 	GEditor->SelectNone( false, true );
@@ -1954,16 +1933,6 @@ void FLevelEditorActionCallbacks::OnMoveSelectedToCurrentLevel()
 	GEditor->MoveSelectedActorsToLevel( GetWorld()->GetCurrentLevel() );
 }
 
-void FLevelEditorActionCallbacks::OnFindActorLevelInContentBrowser()
-{
-	GEditor->SyncActorLevelsToContentBrowser();
-}
-
-bool FLevelEditorActionCallbacks::CanExecuteFindActorLevelInContentBrowser()
-{
-	return GEditor->CanSyncActorLevelsToContentBrowser();
-}
-
 void FLevelEditorActionCallbacks::OnFindLevelsInLevelBrowser()
 {
 	const bool bDeselectOthers = true;
@@ -2000,17 +1969,6 @@ void FLevelEditorActionCallbacks::OpenContentBrowser()
 
 void FLevelEditorActionCallbacks::OpenMarketplace()
 {
-	auto Service = GEditor->GetServiceLocator()->GetServiceRef<IPortalApplicationWindow>();
-	if (Service->IsAvailable())
-	{
-		TAsyncResult<bool> Result = Service->NavigateTo(TEXT("/ue/marketplace"));
-		if (FEngineAnalytics::IsAvailable())
-		{
-			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.OpenMarketplace"));
-		}
-	}
-	else
-	{
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 
 	if (DesktopPlatform != nullptr)
@@ -2046,7 +2004,6 @@ void FLevelEditorActionCallbacks::OpenMarketplace()
 			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.OpenMarketplace"), EventAttributes);
 		}
 	}
-}
 }
 
 bool FLevelEditorActionCallbacks::CanSelectGameModeBlueprint()
@@ -2846,7 +2803,6 @@ void FLevelEditorCommands::RegisterCommands()
 	}
 
 	UI_COMMAND( Import, "Import...", "Imports objects and actors from a T3D format into the current level", EUserInterfaceActionType::Button, FInputChord() );
-	UI_COMMAND( ImportScene, "Import Scene...", "Imports an entire scene from a FBX format into the current level", EUserInterfaceActionType::Button, FInputChord());
 	UI_COMMAND( ExportAll, "Export All...", "Exports the entire level to a file on disk (multiple formats are supported.)", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( ExportSelected, "Export Selected...", "Exports currently-selected objects to a file on disk (multiple formats are supported.)", EUserInterfaceActionType::Button, FInputChord() );
 
@@ -2861,7 +2817,7 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( BuildGeometryOnly_OnlyCurrentLevel, "Build Geometry (Current Level)", "Builds geometry, only for the current level", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( BuildPathsOnly, "Build Paths", "Only builds paths (all levels.)", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( BuildLODsOnly, "Build LODs", "Only builds LODs (all levels.)", EUserInterfaceActionType::Button, FInputChord() );
-	
+	UI_COMMAND( PreviewHLODClustersOnly, "Preview HLOD clusters", "Preview builds LODs and shows clusters (all levels.)", EUserInterfaceActionType::Button, FInputChord());
 	UI_COMMAND( LightingQuality_Production, "Production", "Sets precomputed lighting quality to highest possible quality (slowest computation time.)", EUserInterfaceActionType::RadioButton, FInputChord() );
 	UI_COMMAND( LightingQuality_High, "High", "Sets precomputed lighting quality to high quality", EUserInterfaceActionType::RadioButton, FInputChord() );
 	UI_COMMAND( LightingQuality_Medium, "Medium", "Sets precomputed lighting quality to medium quality", EUserInterfaceActionType::RadioButton, FInputChord() );
@@ -2980,7 +2936,6 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( SelectComponentOwnerActor, "Select Component Owner", "Select the actor that owns the currently selected component(s)", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( SelectRelevantLights, "Select Relevant Lights", "Select all lights relevant to the current selection", EUserInterfaceActionType::Button, FInputChord() ); 
 	UI_COMMAND( SelectStaticMeshesOfSameClass, "Select All Using Selected Static Meshes (Selected Actor Types)", "Selects all actors with the same static mesh and actor class as the selection", EUserInterfaceActionType::Button, FInputChord() ); 
-	UI_COMMAND( SelectOwningHierarchicalLODCluster, "Select Owning Hierarchical LOD cluster Using Selected Static Mesh (Selected Actor Types)", "Select Owning Hierarchical LOD cluster for the selected actor", EUserInterfaceActionType::Button, FInputChord());
 	UI_COMMAND( SelectStaticMeshesAllClasses, "Select All Using Selected Static Meshes (All Actor Types)", "Selects all actors with the same static mesh as the selection", EUserInterfaceActionType::Button, FInputChord( EModifierKey::Shift, EKeys::E ) ); 
 	UI_COMMAND( SelectSkeletalMeshesOfSameClass, "Select All Using Selected Skeletal Meshes (Selected Actor Types)", "Selects all actors with the same skeletal mesh and actor class as the selection", EUserInterfaceActionType::Button, FInputChord() ); 
 	UI_COMMAND( SelectSkeletalMeshesAllClasses, "Select All Using Selected Skeletal Meshes (All Actor Types)", "Selects all actors with the same skeletal mesh as the selection", EUserInterfaceActionType::Button, FInputChord() ); 
@@ -3023,16 +2978,15 @@ void FLevelEditorCommands::RegisterCommands()
 
 	UI_COMMAND( KeepSimulationChanges, "Keep Simulation Changes", "Saves the changes made to this actor in Simulate mode to the actor's default state.", EUserInterfaceActionType::Button, FInputChord( EKeys::K ) );
 
-	UI_COMMAND( MakeActorLevelCurrent, "Make Selected Actor's Level Current", "Makes the selected actor's level the current level", EUserInterfaceActionType::Button, FInputChord( EKeys::M ) );
+	UI_COMMAND( MakeActorLevelCurrent, "Make Selected Actor's Level Current", "Makes the selected actors level the current level", EUserInterfaceActionType::Button, FInputChord( EKeys::M ) );
 #if PLATFORM_MAC
 	UI_COMMAND( MoveSelectedToCurrentLevel, "Move Selection to Current Level", "Moves the selected actors to the current level", EUserInterfaceActionType::Button, FInputChord( EModifierKey::Command, EKeys::M ) );
 #else
 	UI_COMMAND( MoveSelectedToCurrentLevel, "Move Selection to Current Level", "Moves the selected actors to the current level", EUserInterfaceActionType::Button, FInputChord( EModifierKey::Control, EKeys::M ) );
 #endif
-	UI_COMMAND( FindActorLevelInContentBrowser, "Find Actor Level in Content Browser", "Finds the selected actors' level in the content browser", EUserInterfaceActionType::Button, FInputChord() );
-	UI_COMMAND( FindLevelsInLevelBrowser, "Find Levels in Level Browser", "Finds the selected actors' levels in the level browser", EUserInterfaceActionType::Button, FInputChord() );
-	UI_COMMAND( AddLevelsToSelection, "Add Levels to Selection", "Adds the selected actors' levels to the current level browser selection", EUserInterfaceActionType::Button, FInputChord() );
-	UI_COMMAND( RemoveLevelsFromSelection, "Remove Levels from Selection", "Removes the selected actors' levels from the current level browser selection", EUserInterfaceActionType::Button, FInputChord() );
+	UI_COMMAND( FindLevelsInLevelBrowser, "Find Levels in Level Browser", "Finds the selected actors level in the level browser", EUserInterfaceActionType::Button, FInputChord() );
+	UI_COMMAND( AddLevelsToSelection, "Add Levels to Selection", "Adds the selected actors levels  to the current level browser selection", EUserInterfaceActionType::Button, FInputChord() );
+	UI_COMMAND( RemoveLevelsFromSelection, "Remove Levels from Selection", "Removes the selected actors levels from the current level browser selection", EUserInterfaceActionType::Button, FInputChord() );
 
 	UI_COMMAND( FindActorInLevelScript, "Find in Level Blueprint", "Finds any references to the selected actor in its level's blueprint", EUserInterfaceActionType::Button, FInputChord() );
 

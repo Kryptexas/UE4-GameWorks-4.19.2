@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "FontEditorModule.h"
 #include "MouseDeltaTracker.h"
@@ -36,8 +36,6 @@ public:
 	const FColor& GetBackgroundColor() const;
 	void SetForegroundColor(const FColor& InForgroundColor);
 	const FColor& GetForegroundColor() const;
-	void SetDrawFontMetrics(const bool InDrawFontMetrics);
-	bool GetDrawFontMetrics() const;
 	
 	/** Returns the ratio of the size of the font texture to the size of the viewport */
 	float GetViewportVerticalScrollBarRatio() const;
@@ -67,9 +65,6 @@ private:
 	FColor BackgroundColor;
 	FColor ForegroundColor;
 
-	/** Should we draw the font metrics in the preview? */
-	bool bDrawFontMetrics;
-
 	/** The size of the gap between pages */
 	const int32 PageGap;
 };
@@ -82,13 +77,12 @@ FFontEditorViewportClient::FFontEditorViewportClient(TWeakPtr<SFontEditorViewpor
 	PreviewText = LOCTEXT("DefaultPreviewText", "The quick brown fox jumps over the lazy dog");
 	BackgroundColor = FColor::Black;
 	ForegroundColor = FColor::White;
-	bDrawFontMetrics = false;
 }
 
 void FFontEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 {
 	UFont* Font = FontEditorViewportPtr.Pin()->GetFontEditor().Pin()->GetFont();
-
+	
 	if (!FontEditorViewportPtr.Pin()->IsPreviewViewport())
 	{
 		FVector2D Ratio = FVector2D(GetViewportHorizontalScrollBarRatio(), GetViewportVerticalScrollBarRatio());
@@ -147,7 +141,7 @@ void FFontEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 							Canvas->SetHitProxy(new HObject(Texture));
 						
 							// Draw a simple tile
-							Canvas->DrawTile( XPos, YPos, Width, Height, 0.0f, 0.0f, 1.0f, 1.0f, FLinearColor::White, nullptr );
+							Canvas->DrawTile( XPos, YPos, Width, Height, 0.0f, 0.0f, 1.0f, 1.0f, FLinearColor::White, GEditor->BkgndHi->Resource);
 						
 							Canvas->SetHitProxy(NULL);
 						}
@@ -157,7 +151,7 @@ void FFontEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 							// Draw a selected background
 							if (Texture->IsSelected())
 							{
-								Canvas->DrawTile( XPos, YPos, Width, Height, 0.0f, 0.0f, 1.0f, 1.0f, FLinearColor(0.084f, .127f, 0.098f), nullptr );
+								Canvas->DrawTile( XPos, YPos, Width, Height, 0.0f, 0.0f, 1.0f, 1.0f, FLinearColor::White, GEditor->BkgndHi->Resource);
 							}
 							else
 							{
@@ -223,66 +217,6 @@ void FFontEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 
 				FCanvasTextItem TextItem(CurPos, PreviewText, FontInfo, FLinearColor(ForegroundColor));
 				Canvas->DrawItem(TextItem);
-
-				if (bDrawFontMetrics)
-				{
-					const FVector2D MeasuredText = FontMeasure->Measure(PreviewText, FontInfo, FontScale);
-
-					// Draw the bounding box for the actual characters
-					{
-						float LineX = 0.0f;
-						FCharacterEntry PreviousCharEntry;
-
-						for (const TCHAR Char : PreviewText.ToString())
-						{
-							const FCharacterEntry Entry = CharacterList.GetCharacter(FontInfo, Char);
-
-							const bool bIsWhitespace = FChar::IsWhitespace(Char);
-
-							int8 Kerning = 0;
-							if (!bIsWhitespace && PreviousCharEntry.IsCached())
-							{
-								Kerning = CharacterList.GetKerning(PreviousCharEntry, Entry);
-							}
-
-							LineX += Kerning;
-							PreviousCharEntry = Entry;
-
-							if (!bIsWhitespace)
-							{
-								const float X = CurPos.X + LineX + Entry.HorizontalOffset;
-								const float Y = CurPos.Y - Entry.VerticalOffset + Entry.GlobalDescender + MaxCharHeight;
-
-								FCanvasBoxItem BoundingBoxItem(FVector2D(X, Y), FVector2D(Entry.USize, Entry.VSize));
-								BoundingBoxItem.SetColor(FLinearColor::Yellow);
-								Canvas->DrawItem(BoundingBoxItem);
-
-								FCanvasLineItem BaseLineItem(FVector2D(CurPos.X, CurPos.Y + CharacterList.GetBaseline()), FVector2D(CurPos.X + MeasuredText.X, CurPos.Y + CharacterList.GetBaseline()));
-								BaseLineItem.SetColor(FLinearColor::Red);
-								Canvas->DrawItem(BaseLineItem);
-							}
-
-							LineX += Entry.XAdvance;
-						}
-					}
-
-					// Draw the baseline
-					{
-						const FCharacterEntry Entry = CharacterList.GetCharacter(FontInfo, 0);
-						const float Y = CurPos.Y /*- Entry.VerticalOffset*/ + Entry.GlobalDescender + MaxCharHeight;
-
-						FCanvasLineItem BaseLineItem(FVector2D(CurPos.X, Y), FVector2D(CurPos.X + MeasuredText.X, Y));
-						BaseLineItem.SetColor(FLinearColor::Red);
-						Canvas->DrawItem(BaseLineItem);
-					}
-
-					// Draw the bounding box for the line height
-					{
-						FCanvasBoxItem LineHeightBoxItem(CurPos, FVector2D(MeasuredText.X, MaxCharHeight));
-						LineHeightBoxItem.SetColor(FLinearColor::Green);
-						Canvas->DrawItem(LineHeightBoxItem);
-					}
-				}
 
 				CurPos.Y += MaxCharHeight;
 			}
@@ -419,16 +353,6 @@ void FFontEditorViewportClient::SetForegroundColor(const FColor& InForegroundCol
 const FColor& FFontEditorViewportClient::GetForegroundColor() const
 {
 	return ForegroundColor;
-}
-
-void FFontEditorViewportClient::SetDrawFontMetrics(const bool InDrawFontMetrics)
-{
-	bDrawFontMetrics = InDrawFontMetrics;
-}
-
-bool FFontEditorViewportClient::GetDrawFontMetrics() const
-{
-	return bDrawFontMetrics;
 }
 
 float FFontEditorViewportClient::GetViewportVerticalScrollBarRatio() const
@@ -714,26 +638,6 @@ const FColor& SFontEditorViewport::GetPreviewForegroundColor() const
 	}
 
 	return FColor::White;
-}
-
-void SFontEditorViewport::SetPreviewFontMetrics(const bool InDrawFontMetrics)
-{
-	if (ViewportClient.IsValid())
-	{
-		ViewportClient->SetDrawFontMetrics(InDrawFontMetrics);
-
-		RefreshViewport();
-	}
-}
-
-bool SFontEditorViewport::GetPreviewFontMetrics() const
-{
-	if (ViewportClient.IsValid())
-	{
-		return ViewportClient->GetDrawFontMetrics();
-	}
-
-	return false;
 }
 
 TWeakPtr<IFontEditor> SFontEditorViewport::GetFontEditor() const

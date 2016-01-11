@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 #include "SlateFontInfo.h"
@@ -16,11 +16,8 @@ UEditableText::UEditableText(const FObjectInitializer& ObjectInitializer)
 
 	ColorAndOpacity_DEPRECATED = FLinearColor::Black;
 
-	if (!UE_SERVER)
-	{
-		static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
-		Font_DEPRECATED = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Bold"));
-	}
+	static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
+	Font_DEPRECATED = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Bold"));
 
 	// Grab other defaults from slate arguments.
 	IsReadOnly = Defaults._IsReadOnly.Get();
@@ -31,7 +28,6 @@ UEditableText::UEditableText(const FObjectInitializer& ObjectInitializer)
 	RevertTextOnEscape = Defaults._RevertTextOnEscape.Get();
 	ClearKeyboardFocusOnCommit = Defaults._ClearKeyboardFocusOnCommit.Get();
 	SelectAllTextOnCommit = Defaults._SelectAllTextOnCommit.Get();
-	AllowContextMenu = Defaults._AllowContextMenu.Get();
 }
 
 void UEditableText::ReleaseSlateResources(bool bReleaseChildren)
@@ -43,17 +39,17 @@ void UEditableText::ReleaseSlateResources(bool bReleaseChildren)
 
 TSharedRef<SWidget> UEditableText::RebuildWidget()
 {
-	MyEditableText = SNew( SEditableText )
-		.Style( &WidgetStyle )
-		.MinDesiredWidth( MinimumDesiredWidth )
-		.IsCaretMovedWhenGainFocus( IsCaretMovedWhenGainFocus )
-		.SelectAllTextWhenFocused( SelectAllTextWhenFocused )
-		.RevertTextOnEscape( RevertTextOnEscape )
-		.ClearKeyboardFocusOnCommit( ClearKeyboardFocusOnCommit )
-		.SelectAllTextOnCommit( SelectAllTextOnCommit )
-		.OnTextChanged( BIND_UOBJECT_DELEGATE( FOnTextChanged, HandleOnTextChanged ) )
-		.OnTextCommitted( BIND_UOBJECT_DELEGATE( FOnTextCommitted, HandleOnTextCommitted ) )
-		.VirtualKeyboardType( EVirtualKeyboardType::AsKeyboardType( KeyboardType.GetValue() ) );
+	MyEditableText = SNew(SEditableText)
+	.Style(&WidgetStyle)
+	.MinDesiredWidth(MinimumDesiredWidth)
+	.IsCaretMovedWhenGainFocus(IsCaretMovedWhenGainFocus)
+	.SelectAllTextWhenFocused(SelectAllTextWhenFocused)
+	.RevertTextOnEscape(RevertTextOnEscape)
+	.ClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit)
+	.SelectAllTextOnCommit(SelectAllTextOnCommit)
+	.OnTextChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, HandleOnTextChanged))
+	.OnTextCommitted(BIND_UOBJECT_DELEGATE(FOnTextCommitted, HandleOnTextCommitted))
+	;
 	
 	return BuildDesignTimeWidget( MyEditableText.ToSharedRef() );
 }
@@ -69,7 +65,7 @@ void UEditableText::SynchronizeProperties()
 	MyEditableText->SetHintText(HintTextBinding);
 	MyEditableText->SetIsReadOnly(IsReadOnly);
 	MyEditableText->SetIsPassword(IsPassword);
-	MyEditableText->SetAllowContextMenu(AllowContextMenu);
+
 	// TODO UMG Complete making all properties settable on SEditableText
 }
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 #include "VoiceEngineImpl.h"
@@ -118,32 +118,36 @@ bool FVoiceEngineImpl::Init(int32 MaxLocalTalkers, int32 MaxRemoteTalkers)
 
 	if (!OnlineSubsystem->IsDedicated())
 	{
-		FVoiceModule& VoiceModule = FVoiceModule::Get();
-		if (VoiceModule.IsVoiceEnabled())
+		bool bHasVoiceEnabled = false;
+		if (GConfig->GetBool(TEXT("OnlineSubsystem"),TEXT("bHasVoiceEnabled"), bHasVoiceEnabled, GEngineIni) && bHasVoiceEnabled)
 		{
-			VoiceCapture = VoiceModule.CreateVoiceCapture();
-			VoiceEncoder = VoiceModule.CreateVoiceEncoder();
-
-			bSuccess = VoiceCapture.IsValid() && VoiceEncoder.IsValid();
-			if (bSuccess)
+			FVoiceModule& VoiceModule = FVoiceModule::Get();
+			if (VoiceModule.IsVoiceEnabled())
 			{
-				CompressedVoiceBuffer.Empty(MAX_COMPRESSED_VOICE_BUFFER_SIZE);
-				DecompressedVoiceBuffer.Empty(MAX_UNCOMPRESSED_VOICE_BUFFER_SIZE);
+				VoiceCapture = VoiceModule.CreateVoiceCapture();
+				VoiceEncoder = VoiceModule.CreateVoiceEncoder();
 
-				for (int32 TalkerIdx = 0; TalkerIdx < MaxLocalTalkers; TalkerIdx++)
+				bSuccess = VoiceCapture.IsValid() && VoiceEncoder.IsValid();
+				if (bSuccess)
 				{
-					PlayerVoiceData[TalkerIdx].VoiceRemainderSize = 0;
-					PlayerVoiceData[TalkerIdx].VoiceRemainder.Empty(MAX_VOICE_REMAINDER_SIZE);
+					CompressedVoiceBuffer.Empty(MAX_COMPRESSED_VOICE_BUFFER_SIZE);
+					DecompressedVoiceBuffer.Empty(MAX_UNCOMPRESSED_VOICE_BUFFER_SIZE);
+
+					for (int32 TalkerIdx=0; TalkerIdx < MaxLocalTalkers; TalkerIdx++)
+					{
+						PlayerVoiceData[TalkerIdx].VoiceRemainderSize = 0;
+						PlayerVoiceData[TalkerIdx].VoiceRemainder.Empty(MAX_VOICE_REMAINDER_SIZE);
+					}
 				}
-			}
-			else
-			{
-				UE_LOG(LogVoice, Warning, TEXT("Voice capture initialization failed!"));
+				else
+				{
+					UE_LOG(LogVoiceEncode, Warning, TEXT("Voice capture initialization failed!"));
+				}
 			}
 		}
 		else
 		{
-			UE_LOG(LogVoice, Log, TEXT("Voice module disabled by config [Voice].bEnabled"));
+			UE_LOG(LogVoiceEncode, Warning, TEXT("Voice interface disabled by config"));
 		}
 	}
 

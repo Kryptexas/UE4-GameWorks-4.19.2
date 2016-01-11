@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -239,6 +239,10 @@ private:
 	FRenderCommandFence ReleaseFence;
 
 public:
+	// Begin interface IBlendableInterface
+	virtual ENGINE_API void OverrideBlendableSettings(class FSceneView& View, float Weight) const override;
+	// End interface IBlendableInterface
+
 	// Begin UMaterialInterface interface.
 	virtual ENGINE_API UMaterial* GetMaterial() override;
 	virtual ENGINE_API const UMaterial* GetMaterial() const override;
@@ -294,9 +298,9 @@ public:
 	ENGINE_API virtual bool IsPropertyActive(EMaterialProperty InProperty) const override;
 	/** Allows material properties to be compiled with the option of being overridden by the material attributes input. */
 	ENGINE_API virtual int32 CompilePropertyEx(class FMaterialCompiler* Compiler, EMaterialProperty Property) override;
-	//~ End UMaterialInterface Interface.
+	// End UMaterialInterface interface.
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual ENGINE_API SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	virtual ENGINE_API void PostInitProperties() override;	
 #if WITH_EDITOR
@@ -322,7 +326,7 @@ public:
 
 #endif // WITH_EDITOR
 
-	//~ End UObject Interface.
+	// End UObject interface.
 
 	/**
 	 * Recompiles static permutations if necessary.
@@ -415,15 +419,13 @@ protected:
 	/** Caches shader maps for an array of material resources. */
 	void CacheShadersForResources(EShaderPlatform ShaderPlatform, const TArray<FMaterialResource*>& ResourcesToCache, bool bApplyCompletedShaderMapForRendering);
 
-	/** 
-	 * Copies over material instance parameters from the base material given a material interface.
-	 * This is a slow operation that is needed for the editor.
-	 * @param Source silently ignores the case if 0
-	 */
-	ENGINE_API void CopyMaterialInstanceParameters(UMaterialInterface* Source);
+	/** Copies over parameters given a material interface */
+	ENGINE_API void CopyMaterialInstanceParameters(UMaterialInterface* MaterialInterface);
 
 	// to share code between PostLoad() and PostEditChangeProperty()
 	void PropagateDataToMaterialProxy();
+
+	void SetTonemapperPostprocessMaterialSettings(class FSceneView& View, UMaterialInstanceDynamic& MID) const;
 
 	/** Allow resource to access private members. */
 	friend class FMaterialInstanceResource;

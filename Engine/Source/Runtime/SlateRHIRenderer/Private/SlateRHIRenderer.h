@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,8 +7,12 @@ class FSlateRHIRenderingPolicy;
 class FSlateElementBatcher;
 
 
+#define USE_MAX_DRAWBUFFERS 1
+
+#if USE_MAX_DRAWBUFFERS
 // Number of draw buffers that can be active at any given time
 const uint32 NumDrawBuffers = 3;
+#endif
 
 // Enable to visualize overdraw in Slate
 #define DEBUG_OVERDRAW 0
@@ -148,9 +152,8 @@ private:
 
 	private:		
 	};
-
 public:
-	FSlateRHIRenderer( TSharedRef<FSlateFontServices> InSlateFontServices, TSharedRef<FSlateRHIResourceManager> InResourceManager );
+	FSlateRHIRenderer( TSharedPtr<FSlateRHIResourceManager> InResourceManager, TSharedPtr<FSlateFontCache> InFontCache, TSharedPtr<FSlateFontMeasure> InFontMeasure );
 	~FSlateRHIRenderer();
 
 	/**
@@ -179,16 +182,12 @@ public:
 	virtual void RemoveDynamicBrushResource( TSharedPtr<FSlateDynamicImageBrush> BrushToRemove ) override;
 	virtual FIntPoint GenerateDynamicImageResource(const FName InTextureName) override;
 	virtual bool GenerateDynamicImageResource( FName ResourceName, uint32 Width, uint32 Height, const TArray< uint8 >& Bytes ) override;
-	virtual FSlateResourceHandle GetResourceHandle( const FSlateBrush& Brush ) override;
 	virtual void* GetViewportResource( const SWindow& Window ) override;
 	virtual void SetColorVisionDeficiencyType( uint32 Type ) override;
 	virtual FSlateUpdatableTexture* CreateUpdatableTexture(uint32 Width, uint32 Height) override;
 	virtual void ReleaseUpdatableTexture(FSlateUpdatableTexture* Texture) override;
 	virtual ISlateAtlasProvider* GetTextureAtlasProvider() override;
-	virtual void ReleaseAccessedResources(bool bImmediatelyFlush) override;
-	virtual TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> CacheElementRenderData(const ILayoutCache* Cacher, FSlateWindowElementList& ElementList) override;
-	virtual void ReleaseCachingResourcesFor(const ILayoutCache* Cacher) override;
-	virtual void ReleaseCachedRenderData(FSlateRenderDataHandle* RenderHandle) override;
+	virtual void ReleaseAccessedResources() override;
 
 	/** Draws windows from a FSlateDrawBuffer on the render thread */
 	void DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, const FSlateRHIRenderer::FViewportInfo& ViewportInfo, FSlateWindowElementList& WindowElementList, bool bLockToVsync, bool bClear);
@@ -212,7 +211,7 @@ public:
 	virtual void CopyWindowsToVirtualScreenBuffer(const TArray<FString>& KeypressBuffer) override;
 	
 	/** Allows and disallows access to the crash tracker buffer data on the CPU */
-	virtual void MapVirtualScreenBuffer(FMappedTextureBuffer* OutTextureData) override;
+	virtual void MapVirtualScreenBuffer(void** OutImageData) override;
 	virtual void UnmapVirtualScreenBuffer() override;
 
 	/**
@@ -220,7 +219,15 @@ public:
 	 */
 	virtual void ReloadTextureResources() override;
 
+
 	virtual void LoadStyleResources( const ISlateStyle& Style ) override;
+
+	/**
+	 * Returns the viewport RHI reference for the provided window
+	 *
+	 * @param Window	The window to get the RHI viewport from 
+	 */
+
 
 	/** Returns whether shaders that Slate depends on have been compiled. */
 	virtual bool AreShadersInitialized() const override;
@@ -267,11 +274,13 @@ private:
 	/** Keep a pointer around for when we have deferred drawing happening */
 	FSlateDrawBuffer* EnqueuedWindowDrawBuffer;
 
+#if USE_MAX_DRAWBUFFERS
 	/** Double buffered draw buffers so that the rendering thread can be rendering windows while the game thread is setting up for next frame */
 	FSlateDrawBuffer DrawBuffers[NumDrawBuffers];
 
 	/** The draw buffer which is currently free for use by the game thread */
 	uint8 FreeBufferIndex;
+#endif
 
 	/** Element batcher which renders draw elements */
 	TSharedPtr<FSlateElementBatcher> ElementBatcher;
@@ -290,16 +299,4 @@ private:
 	bool bTakingAScreenShot;
 	FIntRect ScreenshotRect;
 	TArray<FColor>* OutScreenshotData;
-};
-
-struct FSlateEndDrawingWindowsCommand : public FRHICommand < FSlateEndDrawingWindowsCommand >
-{
-	FSlateRHIRenderingPolicy& Policy;
-	FSlateDrawBuffer* DrawBuffer;
-
-	FSlateEndDrawingWindowsCommand(FSlateRHIRenderingPolicy& InPolicy, FSlateDrawBuffer* InDrawBuffer);
-
-	void Execute(FRHICommandListBase& CmdList);
-
-	static void EndDrawingWindows(FRHICommandListImmediate& RHICmdList, FSlateDrawBuffer* DrawBuffer, FSlateRHIRenderingPolicy& Policy);
 };

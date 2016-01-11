@@ -1,8 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
 #include "UObject/LinkerManager.h"
-#include "UObject/UObjectThreadContext.h"
 
 /*-----------------------------------------------------------------------------
 	UPackage.
@@ -39,9 +38,6 @@ void UPackage::PostInitProperties()
 #endif
 #if WITH_EDITORONLY_DATA
 	bIsCookedForEditor = false;
-	// Mark this package as editor-only by default. As soon as something in it is accessed through a non editor-only
-	// property the flag will be removed.
-	bLoadedByEditorPropertiesOnly = !HasAnyFlags(RF_ClassDefaultObject) && !HasAnyPackageFlags(PKG_CompiledIn);
 #endif
 }
 
@@ -188,16 +184,12 @@ bool UPackage::IsFullyLoaded()
 	// Newly created packages aren't loaded and therefore haven't been marked as being fully loaded. They are treated as fully
 	// loaded packages though in this case, which is why we are looking to see whether the package exists on disk and assume it
 	// has been fully loaded if it doesn't.
-	if( !bHasBeenFullyLoaded && !HasAnyInternalFlags(EInternalObjectFlags::AsyncLoading) )
+	if( !bHasBeenFullyLoaded && !HasAnyFlags(RF_AsyncLoading) )
 	{
 		FString DummyFilename;
 		// Try to find matching package in package file cache.
-		if (	!GetConvertedDynamicPackageNameToTypeName().Contains(GetFName()) &&
-				(
-					!FPackageName::DoesPackageExist( *GetName(), NULL, &DummyFilename ) || 
-					(GIsEditor && IFileManager::Get().FileSize(*DummyFilename) < 0) 
-				)
-			)
+		if( !FPackageName::DoesPackageExist( *GetName(), NULL, &DummyFilename ) 
+		||	(GIsEditor && IFileManager::Get().FileSize(*DummyFilename) < 0) )
 		{
 			// Package has NOT been found, so we assume it's a newly created one and therefore fully loaded.
 			bHasBeenFullyLoaded = true;
@@ -229,21 +221,6 @@ void UPackage::SetPackageFlagsTo( uint32 NewFlags )
 	ensure(((NewFlags & PKG_PlayInEditor) == 0) || (this != EditorPackage));
 }
 #endif
-
-#if WITH_EDITORONLY_DATA
-void FixupPackageEditorOnlyFlag(FName PackageThatGotEditorOnlyFlagCleared, bool bRecursive);
-
-void UPackage::SetLoadedByEditorPropertiesOnly(bool bIsEditorOnly, bool bRecursive /*= false*/)
-{
-	const bool bWasEditorOnly = bLoadedByEditorPropertiesOnly;
-	bLoadedByEditorPropertiesOnly = bIsEditorOnly;
-	if (bWasEditorOnly && !bIsEditorOnly)
-	{
-		FixupPackageEditorOnlyFlag(GetFName(), bRecursive);
-	}
-}
-#endif
-
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UPackage, UObject,
 	{

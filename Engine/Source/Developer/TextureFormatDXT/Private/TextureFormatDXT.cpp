@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Core.h"
 #include "ImageCore.h"
@@ -116,8 +116,8 @@ public:
 		bool bSRGB,
 		bool bIsNormalMap,
 		uint8* OutBuffer,
-		int32 BufferSize, 
-		bool bPreview = false)
+		int32 BufferSize
+		)
 		: OutputHandler(OutBuffer, BufferSize)
 	{
 		// CUDA acceleration currently disabled, needs more robust error handling
@@ -130,7 +130,7 @@ public:
 		const bool bSupportDXT1a = false;
 
 		// Quality level is hardcoded to production quality for now.
-		const nvtt::Quality QualityLevel = bPreview ? nvtt::Quality_Fastest : nvtt::Quality_Production;
+		const nvtt::Quality QualityLevel = nvtt::Quality_Production;
 
 		nvtt::Format TextureFormat = nvtt::Format_DXT1;
 		if (PixelFormat == PF_DXT1)
@@ -287,7 +287,6 @@ static bool CompressImageUsingNVTT(
 	int32 SizeY,
 	bool bSRGB,
 	bool bIsNormalMap,
-	bool bIsPreview,
 	TArray<uint8>& OutCompressedData
 	)
 {
@@ -322,8 +321,7 @@ static bool CompressImageUsingNVTT(
 				bSRGB,
 				bIsNormalMap,
 				OutCompressedData.GetData(),
-				OutCompressedData.Num(),
-				bIsPreview
+				OutCompressedData.Num()
 				);
 		}
 		bool bSuccess = Compressor->Compress();
@@ -369,11 +367,7 @@ static bool CompressImageUsingNVTT(
 		for (int32 BatchIndex = 0; BatchIndex < NumBatches; ++BatchIndex)
 		{
 			FAsyncNVTTTask* AsyncTask = new(AsyncTasks) FAsyncNVTTTask(&Compressors[BatchIndex]);
-#if WITH_EDITOR
-			AsyncTask->StartBackgroundTask(GLargeThreadPool);
-#else
 			AsyncTask->StartBackgroundTask();
-#endif
 		}
 		for (int32 BatchIndex = 0; BatchIndex < NumBatches; ++BatchIndex)
 		{
@@ -475,7 +469,6 @@ class FTextureFormatDXT : public ITextureFormat
 				Image.SizeY,
 				Image.IsGammaCorrected(),
 				bIsNormalMap,
-				false, // Daniel Lamb: Testing with this set to true didn't give large performance gain to lightmaps.  Encoding of 140 lightmaps was 19.2seconds with preview 20.1 without preview.  11/30/2015
 				CompressedSliceData
 				);
 			OutCompressedImage.RawData.Append(CompressedSliceData);

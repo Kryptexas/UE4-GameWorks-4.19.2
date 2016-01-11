@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RenderTargetPool.cpp: Scene render target pool manager.
@@ -159,52 +159,7 @@ static void LogVRamUsage(FPooledRenderTarget& Ref)
 	}
 }
 
-void FRenderTargetPool::TransitionTargetsWritable(FRHICommandListImmediate& RHICmdList)
-{
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderTargetPoolTransition);
-	check(IsInRenderingThread());
-	WaitForTransitionFence();
-	
-	TransitionTargets.Reset();	
-
-	for (int32 i = 0; i < PooledRenderTargets.Num(); ++i)
-	{
-		FPooledRenderTarget* PooledRT = PooledRenderTargets[i];
-		if (PooledRT && PooledRT->GetDesc().AutoWritable)
-		{
-			FTextureRHIParamRef RenderTarget = PooledRT->GetRenderTargetItem().TargetableTexture;
-			if (RenderTarget)
-			{				
-				TransitionTargets.Add(RenderTarget);
-			}
-		}
-	}
-
-	if (TransitionTargets.Num() > 0)
-	{
-		RHICmdList.TransitionResourceArrayNoCopy(EResourceTransitionAccess::EWritable, TransitionTargets);
-		if (GRHIThread)
-		{
-			TransitionFence = RHICmdList.RHIThreadFence(false);
-		}
-	}
-}
-
-void FRenderTargetPool::WaitForTransitionFence()
-{
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderTargetPoolTransitionWait);
-	check(IsInRenderingThread());
-	if (TransitionFence)
-	{		
-		check(IsInRenderingThread());		
-		FRHICommandListExecutor::WaitOnRHIThreadFence(TransitionFence);
-		TransitionFence = nullptr;		
-	}
-	TransitionTargets.Reset();
-	DeferredDeleteArray.Reset();
-}
-
-bool FRenderTargetPool::FindFreeElement(FRHICommandList& RHICmdList, const FPooledRenderTargetDesc& Desc, TRefCountPtr<IPooledRenderTarget> &Out, const TCHAR* InDebugName, bool bDoWritableBarrier)
+bool FRenderTargetPool::FindFreeElement(const FPooledRenderTargetDesc& Desc, TRefCountPtr<IPooledRenderTarget> &Out, const TCHAR* InDebugName)
 {
 	check(IsInRenderingThread());
 
@@ -238,27 +193,22 @@ bool FRenderTargetPool::FindFreeElement(FRHICommandList& RHICmdList, const FPool
 
 			if(Current->IsFree())
 			{
-				AllocationLevelInKB -= ComputeSizeInKB(*Current);
-
 				int32 Index = FindIndex(Current);
 
 				check(Index >= 0);
 
 				// we don't use Remove() to not shuffle around the elements for better transparency on RenderTargetPoolEvents
 				PooledRenderTargets[Index] = 0;
-
-				VerifyAllocationLevel();
 			}
 		}
 	}
 
 	FPooledRenderTarget* Found = 0;
 	uint32 FoundIndex = -1;
-	bool bReusingExistingTarget = false;
+
 	// try to find a suitable element in the pool
 	{
-		//don't spend time doing 2 passes if the platform doesn't support fastvram
-		uint32 PassCount = ((Desc.Flags & TexCreate_FastVRAM) && FPlatformProperties::SupportsFastVRAMMemory()) ? 2 : 1;			
+		uint32 PassCount = (Desc.Flags & TexCreate_FastVRAM) ? 2 : 1;
 
 		// first we try exact, if that fails we try without TexCreate_FastVRAM
 		// (easily we can run out of VRam, if this search becomes a performance problem we can optimize or we should use less TexCreate_FastVRAM)
@@ -275,15 +225,14 @@ bool FRenderTargetPool::FindFreeElement(FRHICommandList& RHICmdList, const FPool
 					check(!Element->IsSnapshot());
 					Found = Element;
 					FoundIndex = i;
-					bReusingExistingTarget = true;
 					break;
 				}
 			}
-		}		
+		}
 	}
 
 	if(!Found)
-	{		
+	{
 		UE_LOG(LogRenderTargetPool, Display, TEXT("%d MB, NewRT %s %s"), (AllocationLevelInKB + 1023) / 1024, *Desc.GenerateInfoString(), InDebugName);
 
 		// not found in the pool, create a new element
@@ -438,6 +387,8 @@ bool FRenderTargetPool::FindFreeElement(FRHICommandList& RHICmdList, const FPool
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	{
 		
+		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
+
 		if(CVarRenderTargetPoolTest.GetValueOnRenderThread())
 		{
 			if(Found->GetDesc().TargetableFlags & TexCreate_RenderTargetable)
@@ -473,10 +424,6 @@ bool FRenderTargetPool::FindFreeElement(FRHICommandList& RHICmdList, const FPool
 
 	check(!Found->IsFree());
 
-	if (bReusingExistingTarget && bDoWritableBarrier)
-	{
-		RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, Found->GetRenderTargetItem().TargetableTexture);
-	}
 	return false;
 }
 
@@ -533,8 +480,7 @@ void FRenderTargetPool::GetStats(uint32& OutWholeCount, uint32& OutWholePoolInKB
 		}
 	}
 
-	// if this triggers uncomment the code in VerifyAllocationLevel() and debug the issue, we might leak memory or not release when we could
-	ensure(AllocationLevelInKB == OutWholePoolInKB);
+	check(AllocationLevelInKB == OutWholePoolInKB);
 }
 
 void FRenderTargetPool::AddPhaseEvent(const TCHAR *InPhaseName)
@@ -1081,7 +1027,6 @@ void FRenderTargetPool::AddAllocEventsFromCurrentState()
 void FRenderTargetPool::TickPoolElements()
 {
 	check(IsInRenderingThread());
-	WaitForTransitionFence();
 
 	if(bStartEventRecordingNextTick)
 	{
@@ -1226,7 +1171,6 @@ void FRenderTargetPool::FreeUnusedResource(TRefCountPtr<IPooledRenderTarget>& In
 			AllocationLevelInKB -= ComputeSizeInKB(*Element);
 			// we assume because of reference counting the resource gets released when not needed any more
 			// we don't use Remove() to not shuffle around the elements for better transparency on RenderTargetPoolEvents
-			DeferredDeleteArray.Add(PooledRenderTargets[Index]);
 			PooledRenderTargets[Index] = 0;
 
 			In.SafeRelease();
@@ -1250,7 +1194,6 @@ void FRenderTargetPool::FreeUnusedResources()
 			AllocationLevelInKB -= ComputeSizeInKB(*Element);
 			// we assume because of reference counting the resource gets released when not needed any more
 			// we don't use Remove() to not shuffle around the elements for better transparency on RenderTargetPoolEvents
-			DeferredDeleteArray.Add(PooledRenderTargets[i]);
 			PooledRenderTargets[i] = 0;
 		}
 	}
@@ -1340,8 +1283,6 @@ const FPooledRenderTargetDesc& FPooledRenderTarget::GetDesc() const
 void FRenderTargetPool::ReleaseDynamicRHI()
 {
 	check(IsInRenderingThread());
-	WaitForTransitionFence();
-
 	PooledRenderTargets.Empty();
 	if (PooledRenderTargetSnapshots.Num())
 	{
@@ -1375,7 +1316,7 @@ FPooledRenderTarget* FRenderTargetPool::GetElementById(uint32 Id) const
 void FRenderTargetPool::VerifyAllocationLevel() const
 {
 /*
-	// uncomment to verify internal consistency
+	// to verify internal consistency
 	uint32 OutWholeCount;
 	uint32 OutWholePoolInKB;
 	uint32 OutUsedInKB;

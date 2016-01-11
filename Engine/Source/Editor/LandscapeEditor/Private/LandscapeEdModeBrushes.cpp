@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LandscapeEditorPrivatePCH.h"
 
@@ -193,22 +193,14 @@ public:
 			if (EdMode->CurrentToolTarget.TargetType == ELandscapeToolTargetType::Weightmap &&
 				EdMode->UISettings->PaintingRestriction != ELandscapeLayerPaintingRestriction::None)
 			{
-				if (EdMode->UISettings->PaintingRestriction == ELandscapeLayerPaintingRestriction::UseComponentWhitelist &&
-					!Component->LayerWhitelist.Contains(LayerInfo))
+				bool bExisting = Component->WeightmapLayerAllocations.ContainsByPredicate([LayerInfo](const FWeightmapLayerAllocationInfo& Allocation){ return Allocation.LayerInfo == LayerInfo; });
+				if (!bExisting)
 				{
-					bCanPaint = false;
-				}
-				else
-				{
-					bool bExisting = Component->WeightmapLayerAllocations.ContainsByPredicate([LayerInfo](const FWeightmapLayerAllocationInfo& Allocation) { return Allocation.LayerInfo == LayerInfo; });
-					if (!bExisting)
+					if (EdMode->UISettings->PaintingRestriction == ELandscapeLayerPaintingRestriction::ExistingOnly ||
+						(EdMode->UISettings->PaintingRestriction == ELandscapeLayerPaintingRestriction::UseMaxLayers &&
+						LandscapeProxy->MaxPaintedLayersPerComponent > 0 && Component->WeightmapLayerAllocations.Num() >= LandscapeProxy->MaxPaintedLayersPerComponent))
 					{
-						if (EdMode->UISettings->PaintingRestriction == ELandscapeLayerPaintingRestriction::ExistingOnly ||
-							(EdMode->UISettings->PaintingRestriction == ELandscapeLayerPaintingRestriction::UseMaxLayers &&
-							 LandscapeProxy->MaxPaintedLayersPerComponent > 0 && Component->WeightmapLayerAllocations.Num() >= LandscapeProxy->MaxPaintedLayersPerComponent))
-						{
-							bCanPaint = false;
-						}
+						bCanPaint = false;
 					}
 				}
 			}

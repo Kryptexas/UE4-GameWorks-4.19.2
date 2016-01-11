@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,7 +8,7 @@
  * Editable text box widget
  */
 UCLASS(meta=( DisplayName="Editable Text (Multi-Line)" ))
-class UMG_API UMultiLineEditableText : public UTextLayoutWidget
+class UMG_API UMultiLineEditableText : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 
@@ -22,26 +22,27 @@ public:
 	UPROPERTY(EditAnywhere, Category=Content, meta=(MultiLine="true"))
 	FText Text;
 
-	/** Hint text that appears when there is no text in the text box */
-	UPROPERTY(EditAnywhere, Category=Content, meta=(MultiLine="true"))
-	FText HintText;
-
-	/** A bindable delegate to allow logic to drive the hint text of the widget */
-	UPROPERTY()
-	FGetText HintTextDelegate;
 public:
 
 	/** The style */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
 	FTextBlockStyle WidgetStyle;
 
+	/** The justification of the text in the multilinebox */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Content)
+	TEnumAsByte<ETextJustify::Type> Justification;
+
+	/** Whether to wrap text automatically based on the widget's computed horizontal space.*/
+	UPROPERTY(EditAnywhere, Category=Content)
+	bool bAutoWrapText;
+
+	/** Whether text wraps onto a new line when it's length exceeds this width; if this value is zero or negative, no wrapping occurs. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Content)
+	float WrapTextAt;
+
 	/** Font color and opacity (overrides Style) */
 	UPROPERTY()
 	FSlateFontInfo Font_DEPRECATED;
-
-	/** Whether the context menu can be opened */
-	UPROPERTY(EditAnywhere, Category = Behavior, AdvancedDisplay)
-	bool AllowContextMenu;
 
 	/** Called whenever the text is changed interactively by the user */
 	UPROPERTY(BlueprintAssignable, Category="Widget Event", meta=(DisplayName="OnTextChanged (Multi-Line Editable Text)"))
@@ -61,17 +62,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Widget", meta=(DisplayName="SetText (Multi-Line Editable Text)"))
 	void SetText(FText InText);
 	
-	//~ Begin UWidget Interface
+	// UWidget interface
 	virtual void SynchronizeProperties() override;
-	//~ End UWidget Interface
+	// End of UWidget interface
 
-	//~ Begin UVisual Interface
+	// UVisual interface
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
-	//~ End UVisual Interface
+	// End of UVisual interface
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void PostLoad() override;
-	//~ End UObject Interface
+	// End of UObject interface
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
@@ -79,7 +80,7 @@ public:
 #endif
 
 protected:
-	//~ Begin UWidget Interface
+	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	// End of UWidget
 

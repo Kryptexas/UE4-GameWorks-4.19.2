@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 //
 // Base class of a network driver attached to an active or pending level.
@@ -17,26 +17,14 @@ class FObjectReplicator;
 //
 #define DO_ENABLE_NET_TEST !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
-
+#if DO_ENABLE_NET_TEST
 /** Holds the packet simulation settings in one place */
-USTRUCT()
-struct ENGINE_API FPacketSimulationSettings
+struct FPacketSimulationSettings
 {
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, Category="Simulation Settings")
 	int32	PktLoss;
-
-	UPROPERTY(EditAnywhere, Category="Simulation Settings")
 	int32	PktOrder;
-
-	UPROPERTY(EditAnywhere, Category="Simulation Settings")
 	int32	PktDup;
-	
-	UPROPERTY(EditAnywhere, Category="Simulation Settings")
 	int32	PktLag;
-	
-	UPROPERTY(EditAnywhere, Category="Simulation Settings")
 	int32	PktLagVariance;
 
 	/** Ctor. Zeroes the settings */
@@ -71,6 +59,7 @@ struct ENGINE_API FPacketSimulationSettings
 	 */
 	bool ParseSettings(const TCHAR* Stream);
 };
+#endif
 
 //
 // Priority sortable list.
@@ -154,23 +143,13 @@ public:
 	UPROPERTY(Config)
 	float KeepAliveTime;
 
-	/** Amount of time to wait for a new net connection to be established before destroying the connection */
+	/** @todo document */
 	UPROPERTY(Config)
 	float InitialConnectTimeout;
 
-	/** 
-	 * Amount of time to wait before considering an established connection timed out.  
-	 * Typically shorter than the time to wait on a new connection because this connection
-	 * should already have been setup and any interruption should be trapped quicker.
-	 */
+	/** @todo document */
 	UPROPERTY(Config)
 	float ConnectionTimeout;
-
-	/**
-	 * If true, ignore timeouts completely.  Should be used only in development
-	 */
-	UPROPERTY(Config)
-	bool bNoTimeouts;
 
 	/** Connection to the server (this net driver is a client) */
 	UPROPERTY()
@@ -211,11 +190,7 @@ public:
 	/** Accumulated time for the net driver, updated by Tick */
 	UPROPERTY()
 	float						Time;
-
-	/** Last realtime a tick dispatch occurred. Used currently to try and diagnose timeout issues */
-	double						LastTickDispatchRealtime;
-
-	/** If true then client connections are to other client peers */
+	/** If true then client connections are to other client peers */ 
 	bool						bIsPeer;
 	/** @todo document */
 	bool						ProfileStats;
@@ -338,22 +313,20 @@ public:
 
 #if DO_ENABLE_NET_TEST
 	FPacketSimulationSettings	PacketSimulationSettings;
-
-	ENGINE_API void SetPacketSimulationSettings(FPacketSimulationSettings NewSettings);
 #endif
 
 	// Constructors.
 	ENGINE_API UNetDriver(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	ENGINE_API virtual void PostInitProperties() override;
 	ENGINE_API virtual void FinishDestroy() override;
 	ENGINE_API virtual void Serialize( FArchive& Ar ) override;
 	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	//~ End UObject Interface.
+	// End UObject interface.
 
-	//~ Begin FExec Interface
+	// Begin FExec interface
 
 	/**
 	 * Handle exec commands
@@ -368,7 +341,7 @@ public:
 
 	ENGINE_API ENetMode	GetNetMode() const;
 
-	//~ End FExec Interface.
+	// End FExec interface.
 
 	/** 
 	 * Returns true if this net driver is valid for the current configuration.
@@ -570,12 +543,6 @@ public:
 	/** Returns true if actor channels with InGUID should queue up bunches, even if they wouldn't otherwise be queued. */
 	virtual bool ShouldQueueBunchesForActorGUID(FNetworkGUID InGUID) const { return false; }
 
-	/** Returns the existing FNetworkGUID of InActor, if it has one. */
-	virtual FNetworkGUID GetGUIDForActor(const AActor* InActor) const { return FNetworkGUID(); }
-
-	/** Returns the actor that corresponds to InGUID, if one can be found. */
-	virtual AActor* GetActorForGUID(FNetworkGUID InGUID) const { return nullptr; }
-
 protected:
 
 	/** Adds (fully initialized, ready to go) client connection to the ClientConnections list + any other game related setup */
@@ -586,5 +553,5 @@ protected:
 	/** Unregister all TickDispatch, TickFlush, PostTickFlush to tick in World */
 	ENGINE_API void UnregisterTickEvents(class UWorld* InWorld);
 	/** Returns true if this actor is considered to be in a loaded level */
-	ENGINE_API virtual bool IsLevelInitializedForActor( const AActor* InActor, const UNetConnection* InConnection ) const;
+	bool IsLevelInitializedForActor(const AActor* InActor, const UNetConnection* InConnection) const;
 };

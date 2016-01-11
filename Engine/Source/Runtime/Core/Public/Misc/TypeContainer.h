@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -22,7 +22,7 @@ enum class ETypeContainerScope
 
 
 /**
- * Template for type containers.
+ * Implements a type container.
  *
  * Type containers allow for configuring objects and their dependencies without actually
  * creating these objects. They fulfill a role similar to class factories, but without
@@ -46,16 +46,10 @@ enum class ETypeContainerScope
  * See the file TypeContainerTest.cpp for detailed examples on how to use each of these
  * type registration methods.
  *
- * In the interest of fast performance, the object pointers returned by type containers are
- * not thread-safe by default. If you intend to use the same type container and share its
- * objects from different threads, use TTypeContainer<ESPMode::ThreadSafe> instead, which
- * will then manage and return thread-safe versions of all object pointers.
- *
  * Note: Type containers depend on variadic templates and are therefore not available
  * on XboxOne at this time, which means they should only be used for desktop applications.
  */
-template<ESPMode Mode = ESPMode::Fast>
-class TTypeContainer
+class FTypeContainer
 {
 	/** Interface for object instance providers. */
 	class IInstanceProvider
@@ -68,9 +62,9 @@ class TTypeContainer
 		/**
 		 * Gets an instance of a class.
 		 *
-		 * @return Shared pointer to the instance (must be cast to TSharedPtr<R, Mode>).
+		 * @return Shared pointer to the instance (must be cast to TSharedPtr<R>).
 		 */
-		virtual TSharedPtr<void, Mode> GetInstance() = 0;
+		virtual TSharedPtr<void> GetInstance() = 0;
 	};
 
 	/** Implements an instance provider that forwards instance requests to a factory function. */
@@ -78,18 +72,18 @@ class TTypeContainer
 	struct TFunctionInstanceProvider
 		: public IInstanceProvider
 	{
-		TFunctionInstanceProvider(TFunction<TSharedPtr<void, Mode>()>&& InCreateFunc)
-			: CreateFunc(MoveTemp(InCreateFunc))
+		TFunctionInstanceProvider(TFunction<TSharedPtr<void>()> InCreateFunc)
+			: CreateFunc(InCreateFunc)
 		{ }
 
 		virtual ~TFunctionInstanceProvider() override { }
 
-		virtual TSharedPtr<void, Mode> GetInstance() override
+		virtual TSharedPtr<void> GetInstance() override
 		{
 			return CreateFunc();
 		}
 
-		TFunction<TSharedPtr<void, Mode>()> CreateFunc;
+		TFunction<TSharedPtr<void>()> CreateFunc;
 	};
 
 
@@ -98,18 +92,18 @@ class TTypeContainer
 	struct TSharedInstanceProvider
 		: public IInstanceProvider
 	{
-		TSharedInstanceProvider(const TSharedRef<T, Mode>& InInstance)
+		TSharedInstanceProvider(const TSharedRef<T>& InInstance)
 			: Instance(InInstance)
 		{ }
 
 		virtual ~TSharedInstanceProvider() { }
 
-		virtual TSharedPtr<void, Mode> GetInstance() override
+		virtual TSharedPtr<void> GetInstance() override
 		{
 			return Instance;
 		}
 
-		TSharedRef<T, Mode> Instance;
+		TSharedRef<T> Instance;
 	};
 
 
@@ -117,7 +111,7 @@ class TTypeContainer
 	struct FThreadInstanceProvider
 		: public IInstanceProvider
 	{
-		FThreadInstanceProvider(TFunction<TSharedPtr<void, Mode>()>&& InCreateFunc)
+		FThreadInstanceProvider(TFunction<TSharedPtr<void>()>&& InCreateFunc)
 			: CreateFunc(MoveTemp(InCreateFunc))
 			, TlsSlot(FPlatformTLS::AllocTlsSlot())
 		{ }
@@ -127,7 +121,7 @@ class TTypeContainer
 			FPlatformTLS::FreeTlsSlot(TlsSlot);
 		}
 
-		TFunction<TSharedPtr<void, Mode>()> CreateFunc;
+		TFunction<TSharedPtr<void>()> CreateFunc;
 		uint32 TlsSlot;
 	};
 
@@ -137,23 +131,23 @@ class TTypeContainer
 	struct TThreadInstanceProvider
 		: public FThreadInstanceProvider
 	{
-		typedef TTlsAutoCleanupValue<TSharedPtr<T, Mode>> TlsValueType;
+		typedef TTlsAutoCleanupValue<TSharedPtr<T>> TlsValueType;
 
-		TThreadInstanceProvider(TFunction<TSharedPtr<void, Mode>()>&& InCreateFunc)
+		TThreadInstanceProvider(TFunction<TSharedPtr<void>()>&& InCreateFunc)
 			: FThreadInstanceProvider(MoveTemp(InCreateFunc))
 		{ }
 
 		virtual ~TThreadInstanceProvider() override { }
 
-		virtual TSharedPtr<void, Mode> GetInstance() override
+		virtual TSharedPtr<void> GetInstance() override
 		{
-			auto TlsValue = (TlsValueType*)FPlatformTLS::GetTlsValue(this->TlsSlot);
+			auto TlsValue = (TlsValueType*)FPlatformTLS::GetTlsValue(TlsSlot);
 
 			if (TlsValue == nullptr)
 			{
-				TlsValue = new TlsValueType(StaticCastSharedPtr<T>(this->CreateFunc()));
+				TlsValue = new TlsValueType(StaticCastSharedPtr<T>(CreateFunc()));
 				TlsValue->Register();
-				FPlatformTLS::SetTlsValue(this->TlsSlot, TlsValue);
+				FPlatformTLS::SetTlsValue(TlsSlot, TlsValue);
 			}
 
 			return TlsValue->Get();
@@ -170,7 +164,7 @@ public:
 	 * @see RegisterClass, RegisterDelegate, RegisterFactory, RegisterInstance
 	 */
 	template<class R>
-	TSharedRef<R, Mode> GetInstance() const
+	TSharedRef<R> GetInstance() const
 	{
 		FScopeLock Lock(&CriticalSection);
 		{
@@ -192,7 +186,7 @@ public:
 	 * @see GetInstance, RegisterClass, RegisterInstance
 	 */
 	template<class R>
-	TSharedRef<R, Mode> GetInstanceRef() const
+	TSharedRef<R> GetInstanceRef() const
 	{
 		return GetInstance<R>().ToSharedRef();
 	}
@@ -233,7 +227,7 @@ public:
 		case ETypeContainerScope::Instance:
 			Provider = MakeShareable(
 				new TFunctionInstanceProvider<T>(
-					[this]() -> TSharedPtr<void, Mode> {
+					[this]() -> TSharedPtr<void> {
 						return MakeShareable(new T(GetInstance<P>()...));
 					}
 				)
@@ -243,7 +237,7 @@ public:
 		case ETypeContainerScope::Thread:
 			Provider = MakeShareable(
 				new TThreadInstanceProvider<T>(
-					[this]() -> TSharedPtr<void, Mode> {
+					[this]() -> TSharedPtr<void> {
 						return MakeShareable(new T(GetInstance<P>()...));
 					}
 				)
@@ -273,11 +267,11 @@ public:
 	template<class R, class D, typename... P>
 	void RegisterDelegate(D Delegate)
 	{
-		static_assert(TAreTypesEqual<TSharedRef<R, Mode>, typename D::RetValType>::Value, "Delegate return type must be TSharedPtr<R>");
+		static_assert(TAreTypesEqual<TSharedRef<R>, typename D::RetValType>::Value, "Delegate return type must be TSharedPtr<R>");
 
 		TSharedPtr<IInstanceProvider> Provider = MakeShareable(
 			new TFunctionInstanceProvider<R>(
-				[=]() -> TSharedPtr<void, Mode> {
+				[=]() -> TSharedPtr<void> {
 					return Delegate.Execute(GetInstance<P>()...);
 				}
 			)
@@ -295,11 +289,11 @@ public:
 	 * @see RegisterClass, RegisterInstance, Unregister
 	 */
 	template<class R>
-	void RegisterFactory(const TFunction<TSharedRef<R, Mode>()>& CreateFunc)
+	void RegisterFactory(const TFunction<TSharedRef<R>()>& CreateFunc)
 	{
 		TSharedPtr<IInstanceProvider> Provider = MakeShareable(
 			new TFunctionInstanceProvider<R>(
-				[=]() -> TSharedPtr<void, Mode> {
+				[=]() -> TSharedPtr<void> {
 					return CreateFunc();
 				}
 			)
@@ -318,11 +312,11 @@ public:
 	 * @see RegisterClass, RegisterInstance, Unregister
 	 */
 	template<class R, typename P0, typename... P>
-	void RegisterFactory(const TFunction<TSharedRef<R, Mode>(TSharedRef<P0, Mode>, TSharedRef<P, Mode>...)>& CreateFunc)
+	void RegisterFactory(const TFunction<TSharedRef<R>(TSharedRef<P0>, TSharedRef<P>...)>& CreateFunc)
 	{
 		TSharedPtr<IInstanceProvider> Provider = MakeShareable(
 			new TFunctionInstanceProvider<R>(
-				[=]() -> TSharedPtr<void, Mode> {
+				[=]() -> TSharedPtr<void> {
 					return CreateFunc(GetInstance<P0>(), GetInstance<P>()...);
 				}
 			)
@@ -343,11 +337,11 @@ public:
 	 * @see RegisterClass, RegisterInstance, Unregister
 	 */
 	template<class R, typename... P>
-	void RegisterFactory(TSharedRef<R, Mode> (*CreateFunc)(TSharedRef<P, Mode>...))
+	void RegisterFactory(TSharedRef<R> (*CreateFunc)(TSharedRef<P>...))
 	{
 		TSharedPtr<IInstanceProvider> Provider = MakeShareable(
 			new TFunctionInstanceProvider<R>(
-				[=]() -> TSharedPtr<void, Mode> {
+				[=]() -> TSharedPtr<void> {
 					return CreateFunc(GetInstance<P>()...);
 				}
 			)
@@ -366,7 +360,7 @@ public:
 	 * @see RegisterClass, RegisterDelegate, Unregister
 	 */
 	template<class R, class T>
-	void RegisterInstance(const TSharedRef<T, Mode>& Instance)
+	void RegisterInstance(const TSharedRef<T>& Instance)
 	{
 		static_assert(TPointerIsConvertibleFromTo<T, R>::Value, "T must implement R");
 
@@ -412,10 +406,6 @@ private:
 	/** Maps class names to instance providers. */
 	TMap<FString, TSharedPtr<IInstanceProvider>> Providers;
 };
-
-
-/** Thread-unsafe type container (for backwards compatibility). */
-class FTypeContainer : public TTypeContainer<ESPMode::Fast> { };
 
 
 #endif //PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES

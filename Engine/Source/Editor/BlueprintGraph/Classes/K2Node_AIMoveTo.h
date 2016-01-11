@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -11,12 +11,12 @@ class BLUEPRINTGRAPH_API UK2Node_AIMoveTo : public UK2Node_BaseAsyncTask
 {
 	GENERATED_UCLASS_BODY()
 
-	//~ Begin UEdGraphNode Interface
+	// Begin UEdGraphNode interface
 	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	//~ End UEdGraphNode Interface
+	// End UEdGraphNode interface
 
-	//~ Begin UK2Node Interface
+	// Begin UK2Node interface
 	virtual FText GetMenuCategory() const override;
-	//~ End UK2Node Interface
+	// End UK2Node interface
 };

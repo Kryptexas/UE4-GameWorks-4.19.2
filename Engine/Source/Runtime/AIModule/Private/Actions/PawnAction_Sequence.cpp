@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "Actions/PawnAction_Sequence.h"
@@ -73,10 +73,7 @@ void UPawnAction_Sequence::OnChildFinished(UPawnAction& Action, EPawnActionResul
 	{
 		if (WithResult == EPawnActionResult::Success || (WithResult == EPawnActionResult::Failed && ChildFailureHandlingMode == EPawnActionFailHandling::IgnoreFailure))
 		{
-			if (GetAbortState() == EPawnActionAbortState::NotBeingAborted)
-			{
-				PushNextActionCopy();
-			}
+			PushNextActionCopy();
 		}
 		else
 		{
@@ -96,7 +93,7 @@ bool UPawnAction_Sequence::PushNextActionCopy()
 	}
 
 	UPawnAction* ActionCopy = SubActionTriggeringPolicy == EPawnSubActionTriggeringPolicy::CopyBeforeTriggering
-		? Cast<UPawnAction>(StaticDuplicateObject(ActionSequence[CurrentActionIndex], this))
+		? Cast<UPawnAction>(StaticDuplicateObject(ActionSequence[CurrentActionIndex], this, NULL))
 		: ActionSequence[CurrentActionIndex];
 
 	UE_VLOG(GetPawn(), LogPawnAction, Log, TEXT("%s> pushing action %s")

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -53,7 +53,7 @@ class TRefCountPtr
 
 public:
 
-	FORCEINLINE TRefCountPtr():
+	TRefCountPtr():
 		Reference(nullptr)
 	{ }
 
@@ -73,12 +73,6 @@ public:
 		{
 			Reference->AddRef();
 		}
-	}
-
-	FORCEINLINE TRefCountPtr(TRefCountPtr&& Copy)
-	{
-		Reference = Copy.Reference;
-		Copy.Reference = nullptr;
 	}
 
 	~TRefCountPtr()
@@ -105,48 +99,33 @@ public:
 		return *this;
 	}
 
-	FORCEINLINE TRefCountPtr& operator=(const TRefCountPtr& InPtr)
+	TRefCountPtr& operator=(const TRefCountPtr& InPtr)
 	{
 		return *this = InPtr.Reference;
 	}
 
-	TRefCountPtr& operator=(TRefCountPtr&& InPtr)
-	{
-		if (this != &InPtr)
-		{
-			ReferencedType* OldReference = Reference;
-			Reference = InPtr.Reference;
-			InPtr.Reference = nullptr;
-			if(OldReference)
-			{
-				OldReference->Release();
-			}
-		}
-		return *this;
-	}
-
-	FORCEINLINE ReferencedType* operator->() const
+	ReferencedType* operator->() const
 	{
 		return Reference;
 	}
 
-	FORCEINLINE operator ReferenceType() const
+	operator ReferenceType() const
 	{
 		return Reference;
 	}
 
-	FORCEINLINE ReferencedType** GetInitReference()
+	ReferencedType** GetInitReference()
 	{
 		*this = nullptr;
 		return &Reference;
 	}
 
-	FORCEINLINE ReferencedType* GetReference() const
+	ReferencedType* GetReference() const
 	{
 		return Reference;
 	}
 
-	FORCEINLINE friend bool IsValidRef(const TRefCountPtr& InReference)
+	friend bool IsValidRef(const TRefCountPtr& InReference)
 	{
 		return InReference.Reference != nullptr;
 	}
@@ -156,23 +135,25 @@ public:
 		return Reference != nullptr;
 	}
 
-	FORCEINLINE void SafeRelease()
+	void SafeRelease()
 	{
 		*this = nullptr;
 	}
 
 	uint32 GetRefCount()
 	{
-		uint32 Result = 0;
-		if (Reference)
+		if(Reference)
 		{
-			Result = Reference->GetRefCount();
-			check(Result > 0); // you should never have a zero ref count if there is a live ref counted pointer (*this is live)
+			Reference->AddRef();
+			return Reference->Release();
 		}
-		return Result;
+		else
+		{
+			return 0;
+		}
 	}
 
-	FORCEINLINE void Swap(TRefCountPtr& InPtr) // this does not change the reference count, and so is faster
+	void Swap(TRefCountPtr& InPtr) // this does not change the reference count, and so is faster
 	{
 		ReferencedType* OldReference = Reference;
 		Reference = InPtr.Reference;

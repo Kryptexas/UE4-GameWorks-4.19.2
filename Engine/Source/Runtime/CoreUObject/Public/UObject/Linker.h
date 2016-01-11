@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -275,11 +275,6 @@ struct FObjectExport : public FObjectResource
 	*/
 	bool			bExportLoadFailed;
 
-	/**
-	* Export is a dynamic class.
-	*/
-	bool			bDynamicClass;
-
 	/** If this object is a top level package (which must have been forced into the export table via OBJECTMARK_ForceTagExp)
 	 * this is the GUID for the original package file
 	 * Serialized
@@ -348,7 +343,6 @@ struct FObjectImport : public FObjectResource
 	 */
 	COREUOBJECT_API FObjectImport();
 	FObjectImport( UObject* InObject );
-	FObjectImport( UObject* InObject, UClass* InClass );
 	
 	/** I/O function */
 	friend COREUOBJECT_API FArchive& operator<<( FArchive& Ar, FObjectImport& I );
@@ -878,6 +872,46 @@ public:
 		}
 		return NULL;
 	}
+
+	/** Gets the class name for the specified index in the export map. */
+	COREUOBJECT_API FName GetExportClassName( int32 ExportIdx );
+	/** Gets the class name for the specified index in the import map. */
+	FName GetExportClassName(FPackageIndex PackageIndex)
+	{
+		if (PackageIndex.IsExport())
+		{
+			return GetExportClassName(PackageIndex.ToExport());
+		}
+		return NAME_None;
+	}
+	/** Gets the class name for the specified index in the import map. */
+	FName GetImportClassName( int32 ImportIdx )
+	{
+		return ImportMap[ImportIdx].ClassName;
+	}
+	/** Gets the class name for the specified index in the import map. */
+	FName GetImportClassName(FPackageIndex PackageIndex)
+	{
+		if (PackageIndex.IsImport())
+		{
+			return GetImportClassName(PackageIndex.ToImport());
+		}
+		return NAME_None;
+	}
+	/** Gets the class name for the specified package index. */
+	FName GetClassName(FPackageIndex PackageIndex)
+	{
+		if (PackageIndex.IsImport())
+		{
+			return GetImportClassName(PackageIndex);
+		}
+		else if (PackageIndex.IsExport())
+		{
+			return GetExportClassName(PackageIndex);
+		}
+		return NAME_None;
+	}
+
 };
 
 
@@ -967,46 +1001,6 @@ public:
 	FLinker(ELinkerType::Type InType, UPackage* InRoot, const TCHAR* InFilename);
 
 	virtual ~FLinker();
-
-	/** Gets the class name for the specified index in the export map. */
-	COREUOBJECT_API FName GetExportClassName(int32 ExportIdx);
-	/** Gets the class name for the specified index in the import map. */
-	FName GetExportClassName(FPackageIndex PackageIndex)
-	{
-		if (PackageIndex.IsExport())
-		{
-			return GetExportClassName(PackageIndex.ToExport());
-		}
-		return NAME_None;
-	}
-	/** Gets the class name for the specified index in the import map. */
-	FName GetImportClassName(int32 ImportIdx)
-	{
-		return ImportMap[ImportIdx].ClassName;
-	}
-	/** Gets the class name for the specified index in the import map. */
-	FName GetImportClassName(FPackageIndex PackageIndex)
-	{
-		if (PackageIndex.IsImport())
-		{
-			return GetImportClassName(PackageIndex.ToImport());
-		}
-		return NAME_None;
-	}
-	/** Gets the class name for the specified package index. */
-	FName GetClassName(FPackageIndex PackageIndex)
-	{
-		if (PackageIndex.IsImport())
-		{
-			return GetImportClassName(PackageIndex);
-		}
-		else if (PackageIndex.IsExport())
-		{
-			return GetExportClassName(PackageIndex);
-		}
-		return NAME_None;
-	}
-
 
 	FORCEINLINE ELinkerType::Type GetType() const
 	{
@@ -1304,8 +1298,6 @@ public:
 	uint32					LoadFlags;
 	/** Indicates whether the imports for this loader have been verified													*/
 	bool					bHaveImportsBeenVerified;
-	/** Indicates that this linker was created for a dynamic class package and will not use Loader */
-	bool					bDynamicClassLinker;
 	/** Hash table for exports.																								*/
 	int32						ExportHash[256];
 #if WITH_EDITOR
@@ -1319,8 +1311,6 @@ public:
 
 	/** OldClassName to NewClassName for ImportMap */
 	static TMap<FName, FName> ObjectNameRedirects;
-	/** Additional info for some ObjectName redirects to also redirect the class and class package  */
-	static TMap<FName, TPair<FName, FName>> ObjectNameClassRedirects;
 	/** OldClassName to NewClassName for ExportMap */
 	static TMap<FName, FName> ObjectNameRedirectsInstanceOnly;
 	/** Object name to NewClassName for export map */
@@ -1333,8 +1323,6 @@ public:
 	static TMap<FName, FName> StructNameRedirects;
 	/** Old plugin name to new plugin name mapping */
 	static TMap<FString, FString> PluginNameRedirects;
-	/** Packages that are known to be missing when verifying imports that we don't want a message about */
-	COREUOBJECT_API static TSet<FName> KnownMissingPackages;
 
 	/** Object name to required class and new name for load-time remapping */
 	struct FSubobjectRedirect
@@ -1582,7 +1570,7 @@ public:
 	 * @param bForcePreload	Whether to explicitly call Preload (serialize) right away instead of being
 	 *						called from EndLoad()
 	 */
-	COREUOBJECT_API void LoadAllObjects(bool bForcePreload = false);
+	void LoadAllObjects( bool bForcePreload = false );
 
 	/**
 	 * Returns the ObjectName associated with the resource indicated.
@@ -1674,7 +1662,7 @@ public:
 	/**
 	 * Looks for an existing linker for the given package, without trying to make one if it doesn't exist
 	 */
-	COREUOBJECT_API static FLinkerLoad* FindExistingLinkerForPackage(const UPackage* Package);
+	COREUOBJECT_API static FLinkerLoad* FindExistingLinkerForPackage(UPackage* Package);
 
 	/**
 	 * Replaces OldObject's entry in its linker with NewObject, so that all subsequent loads of OldObject will return NewObject.
@@ -2105,14 +2093,6 @@ private:
 
 	bool HasPerformedFullExportResolvePass();
 
-	/** Finds import, tries to fall back to dynamic class if the object could not be found */
-	UObject* FindImport(UClass* ImportClass, UObject* ImportOuter, const TCHAR* Name);
-	/** Finds import, tries to fall back to dynamic class if the object could not be found */
-	UObject* FindImportFast(UClass* ImportClass, UObject* ImportOuter, FName Name);
-
-	/** Fills all necessary information for constructing dynamic type package linker */
-	void CreateDynamicTypeLoader();
-
 #if	USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 	/** 
 	 * For deferring dependency loads, we block CDO serialization until the 
@@ -2203,8 +2183,6 @@ public:
 	FLinkerSave(UPackage* InParent, const TCHAR* InFilename, bool bForceByteSwapping, bool bInSaveUnversioned = false );
 	/** Constructor for memory writer */
 	FLinkerSave(UPackage* InParent, bool bForceByteSwapping, bool bInSaveUnversioned = false );
-	/** Constructor for custom savers */
-	FLinkerSave(UPackage* InParent, FArchive *InSaver, bool bForceByteSwapping, bool bInSaveUnversioned = false);
 
 	/** Returns the appropriate name index for the source name, or 0 if not found in NameIndices */
 	int32 MapName(const FName& Name) const;
@@ -2217,15 +2195,6 @@ public:
 	FArchive& operator<<( UObject*& Obj );
 	FArchive& operator<<( FLazyObjectPtr& LazyObjectPtr );
 	FArchive& operator<<( FAssetPtr& AssetPtr );
-
-#if WITH_EDITOR
-	// proxy for debugdata
-	virtual void PushDebugDataString(const FName& DebugData) override { Saver->PushDebugDataString(DebugData); }
-	virtual void PopDebugDataString() override { Saver->PopDebugDataString(); }
-#endif
-
-
-	virtual FString GetArchiveName() const override;
 
 	/**
 	 * If this archive is a FLinkerLoad or FLinkerSave, returns a pointer to the FLinker portion.

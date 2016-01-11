@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -502,7 +502,7 @@ public:
 	}
 
 	// X2/Y2 Coordinates are "inclusive" max values
-	void SetCachedData(int32 X1, int32 Y1, int32 X2, int32 Y2, TArray<AccessorType>& Data, ELandscapeLayerPaintingRestriction PaintingRestriction = ELandscapeLayerPaintingRestriction::None)
+	void SetCachedData(int32 X1, int32 Y1, int32 X2, int32 Y2, TArray<AccessorType>& Data, ELandscapeLayerPaintingRestriction::Type PaintingRestriction = ELandscapeLayerPaintingRestriction::None)
 	{
 		checkSlow(Data.Num() == (1 + Y2 - Y1) * (1 + X2 - X1));
 
@@ -607,7 +607,7 @@ struct FHeightmapAccessor
 		LandscapeEdit->GetHeightDataFast(X1, Y1, X2, Y2, Data);
 	}
 
-	void SetData(int32 X1, int32 Y1, int32 X2, int32 Y2, const uint16* Data, ELandscapeLayerPaintingRestriction PaintingRestriction = ELandscapeLayerPaintingRestriction::None)
+	void SetData(int32 X1, int32 Y1, int32 X2, int32 Y2, const uint16* Data, ELandscapeLayerPaintingRestriction::Type PaintingRestriction = ELandscapeLayerPaintingRestriction::None)
 	{
 		TSet<ULandscapeComponent*> Components;
 		if (LandscapeInfo && LandscapeEdit->GetComponentsInRegion(X1, Y1, X2, Y2, &Components))
@@ -692,7 +692,7 @@ struct FHeightmapAccessor
 			if (CollisionComponent)
 			{
 				CollisionComponent->RecreateCollision();
-				UNavigationSystem::UpdateComponentInNavOctree(*CollisionComponent);
+				UNavigationSystem::UpdateNavOctree(CollisionComponent);
 			}
 		}
 	}
@@ -770,7 +770,7 @@ struct FXYOffsetmapAccessor
 		}
 	}
 
-	void SetData(int32 X1, int32 Y1, int32 X2, int32 Y2, const FVector* Data, ELandscapeLayerPaintingRestriction PaintingRestriction = ELandscapeLayerPaintingRestriction::None)
+	void SetData(int32 X1, int32 Y1, int32 X2, int32 Y2, const FVector* Data, ELandscapeLayerPaintingRestriction::Type PaintingRestriction = ELandscapeLayerPaintingRestriction::None)
 	{
 		TSet<ULandscapeComponent*> Components;
 		if (LandscapeInfo && LandscapeEdit->GetComponentsInRegion(X1, Y1, X2, Y2, &Components))
@@ -920,7 +920,7 @@ struct FAlphamapAccessor
 					UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Component);
 					if (NavSys)
 					{
-						NavSys->UpdateComponentInNavOctree(*CollisionComponent);
+						NavSys->UpdateNavOctree(CollisionComponent);
 					}
 				}
 			}
@@ -937,7 +937,7 @@ struct FAlphamapAccessor
 		LandscapeEdit.GetWeightDataFast(LayerInfo, X1, Y1, X2, Y2, Data);
 	}
 
-	void SetData(int32 X1, int32 Y1, int32 X2, int32 Y2, const uint8* Data, ELandscapeLayerPaintingRestriction PaintingRestriction)
+	void SetData(int32 X1, int32 Y1, int32 X2, int32 Y2, const uint8* Data, ELandscapeLayerPaintingRestriction::Type PaintingRestriction)
 	{
 		TSet<ULandscapeComponent*> Components;
 		if (LandscapeEdit.GetComponentsInRegion(X1, Y1, X2, Y2, &Components))
@@ -1025,7 +1025,7 @@ struct FFullWeightmapAccessor
 					UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Component);
 					if (NavSys)
 					{
-						NavSys->UpdateComponentInNavOctree(*CollisionComponent);
+						NavSys->UpdateNavOctree(CollisionComponent);
 					}
 				}
 			}
@@ -1044,7 +1044,7 @@ struct FFullWeightmapAccessor
 		LandscapeEdit.GetWeightDataFast(NULL, X1, Y1, X2, Y2, Data);
 	}
 
-	void SetData(int32 X1, int32 Y1, int32 X2, int32 Y2, const uint8* Data, ELandscapeLayerPaintingRestriction PaintingRestriction)
+	void SetData(int32 X1, int32 Y1, int32 X2, int32 Y2, const uint8* Data, ELandscapeLayerPaintingRestriction::Type PaintingRestriction)
 	{
 		TSet<ULandscapeComponent*> Components;
 		if (LandscapeEdit.GetComponentsInRegion(X1, Y1, X2, Y2, &Components))
@@ -1117,7 +1117,7 @@ struct FLandscapeFullWeightCache : public TLandscapeEditCache<FFullWeightmapAcce
 	}
 
 	// Only for all weight case... the accessor type should be TArray<uint8>
-	void SetCachedData(int32 X1, int32 Y1, int32 X2, int32 Y2, TArray<uint8>& Data, int32 ArraySize, ELandscapeLayerPaintingRestriction PaintingRestriction)
+	void SetCachedData(int32 X1, int32 Y1, int32 X2, int32 Y2, TArray<uint8>& Data, int32 ArraySize, ELandscapeLayerPaintingRestriction::Type PaintingRestriction)
 	{
 		// Update cache
 		for (int32 Y = Y1; Y <= Y2; Y++)
@@ -1172,7 +1172,7 @@ struct FDatamapAccessor
 		LandscapeEdit.GetSelectData(X1, Y1, X2, Y2, Data);
 	}
 
-	void SetData(int32 X1, int32 Y1, int32 X2, int32 Y2, const uint8* Data, ELandscapeLayerPaintingRestriction PaintingRestriction = ELandscapeLayerPaintingRestriction::None)
+	void SetData(int32 X1, int32 Y1, int32 X2, int32 Y2, const uint8* Data, ELandscapeLayerPaintingRestriction::Type PaintingRestriction = ELandscapeLayerPaintingRestriction::None)
 	{
 		if (LandscapeEdit.GetComponentsInRegion(X1, Y1, X2, Y2))
 		{
@@ -1259,7 +1259,7 @@ public:
 	enum { UseContinuousApply = false };
 
 	// This is also the expected signature of derived class constructor used by FLandscapeToolBase
-	FLandscapeToolStrokeBase(FEdModeLandscape* InEdMode, FEditorViewportClient* InViewportClient, const FLandscapeToolTarget& InTarget)
+	FLandscapeToolStrokeBase(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
 		: EdMode(InEdMode)
 		, Target(InTarget)
 		, LandscapeInfo(InTarget.LandscapeInfo.Get())
@@ -1304,7 +1304,7 @@ public:
 		}
 
 		bToolActive = true;
-		ToolStroke.Emplace(EdMode, ViewportClient, InTarget);
+		ToolStroke.Emplace(EdMode, InTarget);
 
 		EdMode->CurrentBrush->BeginStroke(InHitLocation.X, InHitLocation.Y, this);
 

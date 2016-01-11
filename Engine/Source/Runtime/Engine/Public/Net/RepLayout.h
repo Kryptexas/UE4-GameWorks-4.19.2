@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RepLayout.h:
@@ -31,12 +31,7 @@ public:
 class FRepChangedPropertyTracker : public IRepChangedPropertyTracker
 {
 public:
-	FRepChangedPropertyTracker(bool InForceAlwaysActive)
-		: LastReplicationGroupFrame( 0 )
-		, LastReplicationFrame( 0 )
-		, ActiveStatusChanged( false )
-		, UnconditionalPropChanged( false )
-		, ForceAlwaysActive( InForceAlwaysActive ) { }
+	FRepChangedPropertyTracker() : LastReplicationGroupFrame( 0 ), LastReplicationFrame( 0 ), ActiveStatusChanged( false ), UnconditionalPropChanged( false ) { }
 	virtual ~FRepChangedPropertyTracker() { }
 
 	virtual void SetCustomIsActiveOverride( const uint16 RepIndex, const bool bIsActive ) override
@@ -45,7 +40,7 @@ public:
 
 		checkSlow( Parent.IsConditional );
 
-		Parent.Active = (bIsActive || ForceAlwaysActive) ? 1 : 0;
+		Parent.Active = bIsActive ? 1 : 0;
 
 		if ( Parent.Active != Parent.OldActive )
 		{
@@ -63,7 +58,6 @@ public:
 
 	uint32						ActiveStatusChanged;
 	bool						UnconditionalPropChanged;
-	bool						ForceAlwaysActive;				// Used for client replay recording. The server has already evaluated any custom conditions, so the client doesn't need to.
 };
 
 class FRepLayout;

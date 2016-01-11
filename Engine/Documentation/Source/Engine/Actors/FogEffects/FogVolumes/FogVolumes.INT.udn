@@ -1,0 +1,237 @@
+Availability: Docs
+Title:Fog Volume User Guide
+Crumbs: %ROOT%, Engine, Engine/Actors, Engine/Actors/FogEffects
+Description:Guide to creating and using volumetric fog.
+
+[REGION:todo]
+	This page is converted from Unreal Engine 3 documentation and currently being reviewed. Information may be outdated.
+[/REGION]
+
+[TOC]
+
+
+
+## Versions
+
+Fog Volumes were introduced in QA_APPROVED_BUILD_MAR_2007.  Support for translucency fogged by fog volumes was added soon after and is in QA_APPROVED_BUILD_APRIL_2007.  Particle fogging was enabled in QA_APPROVED_BUILD_MAY_2007.  The constant height density function was also removed in this build, because the same functionality is available through a constant density function with a clipping mesh.  This reduces the number of compiled shaders and is actually more efficient.  The automatic setup method was added in QA_APPROVED_BUILD_FEB_2008, before that only the manual setup method was supported.  In QA_APPROVED_BUILD_APR_2008, shader complexity was extended to include fog volume cost.  In QA_APPROVED_BUILD_JUL_2008 a density setting of 0 is treated the same as bEnabled=False.
+
+
+
+## What are Fog Volumes?
+
+A Fog Volume essentially consists of 3 things: A density function which controls the falloff of the fog, a mesh that clips the density function, and a material that defines the color of the fog.  Fog Volumes are a superset of the functionality available in [HeightFog](Engine/Actors/FogEffects/HeightFog), because they can be bounded by a mesh, handle multiple density functions, and use a customizable material.  Fog Volumes seamlessly handle the camera going inside the volume and opaque objects intersecting the volume.
+
+
+
+## Setup methods
+
+There are two ways to associate a density function with the mesh that clips it, these are called the automatic and manual methods. 
+
+
+
+## Quick Automatic Setup
+
+
+* Place a FogVolumeConstantDensityInfo (Found under Generic Browser->Actor Classes->Info->FogVolumeDensityInfo)
+
+
+![AutomaticConstDensityFogVolume.jpg](AutomaticConstDensityFogVolume.jpg)
+_A constant density fog volume after being placed._
+
+
+
+## Automatic Setup Details
+
+The automatic setup is designed to require as few clicks as possible to give the most commonly used result.  When you place a new fog volume info Actor, a Static Mesh component is automatically added to it and used for rendering the fog volume. You can access this component via FogVolumeConstantDensityInfo->FogVolumeDensityInfo->AutomaticMeshComponent.  When you scale or rotate the fog volume info, the automatic mesh component will also be scaled or rotated to fit the fog volume.  This is important for good performance since the mesh is what gets shaded, it must bound the visible fog area tightly or there will be wasted shading calculations especially on the sphere density type.  Additional automatic setup details:
+
+
+* Changing DrawScale3d on the fog volume info away from 1.0 will cause the AutomaticMeshComponent to no longer match up with the size of the fog volume info.
+* When you place a new spherical fog volume info, DrawScale X, Y and Z are setup such that the AutomaticMeshComponent tightly bounds the fog volume info.
+* You can control the position and scaling of the AutomaticMeshComponent relative to the fog volume info by changing AutomaticMeshComponent->PrimitiveComponent->Scale, Translation, etc.
+* When you create a new fog volume info, a new material instance will be created in the level and automatically applied to the AutomaticMeshComponent.  This is set as FogMaterial.  If you have a material selected in the Generic Browser, that material will be used as the parent, otherwise EngineMaterials.FogVolumeMaterial will be the parent.  You can replace this new material instance with any fog volume compatible material of your choice, but be sure to change FogMaterial on the info Actor instead of changing the actual Materials array on the AutomaticMeshComponent.
+* The SimpleLightColor property of the fog volume info is a convenience property and will be set as the 'EmissiveColor' vector parameter of the AutomaticMeshComponent's material instance.  If you override the material instance and it does not use an 'EmissiveColor' vector parameter, SimpleLightColor will no longer function.
+* The AutomaticMeshComponent is not selectable in the editor unlike the meshes used with the manual method, you have to select the fog volume info Actor itself instead.
+* The AutomaticMeshComponent will have all collision, lighting and shadowing flags set appropriately.
+
+
+
+
+## Quick Manual Setup
+
+
+* Place a closed Static Mesh.
+* Place a FogVolumeConstantDensityInfo (Found under Generic Browser->Actor Classes->Info->FogVolumeDensityInfo).
+* Clear the newly placed fog info's AutomaticMeshComponent.
+* Add the Static Mesh to the info Actor's FogVolumeActors array.
+    * To do this, you first need to open the properties of the FogVolumeConstantDensityInfo you placed, expand DensityComponent.
+    * Click the lock at the top left of the property window.
+    * Select the Static Mesh in the viewport.
+    * The property window should still show the info Actor, since we locked it.  
+    * Click the + to add an entry to the FogVolumeActors array.
+    * Now click the 'use selected Actor' button on the new entry.
+
+
+![SetFogVolumeActors.jpg](SetFogVolumeActors.jpg)
+_Set the Static Mesh in the FogVolumeActors array._
+
+At this point the Static Mesh should be rendered as a fog volume.  
+
+
+
+## Manual Setup Details
+
+
+* When you add a new FogVolumeActors entry, it will get setup with default fog volume settings, which disable collision, lighting and shadowing.  The new FogVolumeActor's mesh component material will also be changed to use EngineMaterials.FogVolumeMaterial.  To override this, set the material on the target FogVolumeActor entry, FogMaterial is not used for the manual setup.  **Note: Due to a limitation of the property system, currently the defaults will be set for all entries in the FogVolumeActors array when you add a new entry!**  It is best to set all the entries in the FogVolumeActors array FIRST and then set their materials as you want.
+* Using the manual setup allows you to have multiple meshes associated with a single fog volume info, and it allows you to animate the info or meshes separately.  However, it can be tedious to setup and animate multiple parts, in which case an automatic setup would be easier.
+
+
+
+
+## Density Functions
+
+The Fog Density Function defines how thick the fog is in different parts of the world.  In UE4, these density functions are represented by FogVolumeDensityInfo Actors.  One of these must be placed and have Fog Volume Actors assigned to it.  Here are the different density functions, in order from least expensive to most.
+
+
+### FogVolumeConstantDensityInfo
+
+This is a density function that has the same density everywhere, which is set through the Density variable.
+
+![ConstantDensityCube.jpg](ConstantDensityCube.jpg)
+_A cube rendered with the constant density function.  The location of the fog info Actor is irrelevant because the density is constant everywhere._
+
+
+### FogVolumeLinearHalfspaceDensityInfo
+
+This density function is defined by a plane and a linear density coefficient.  The halfspace on one side of the plane will be in fog.  This plane can be rotated and placed arbitrarily by rotating and moving the info Actor.  The density in this function increases linearly with the distance from the plane, so the density is 0 on the plane and at a distance of 1 it becomes PlaneDistanceFactor.  The linear density ensures that the halfspace never forms a hard edge, even when the camera is in the plane.
+
+![LinearHalfspaceHeightfield.jpg](LinearHalfspaceHeightfield.jpg)
+_The linear halfspace density function bounded by a cube mesh.  Density starts at 0 at the plane and increases away from the plane, which is oriented in the xy plane in this example, but can be used in any orientation._
+
+
+### FogVolumeSphericalDensityInfo
+
+The spherical density function has a maximum density of MaxDensity at the center, and the density falls off quadratically to 0 at the radius of the sphere, giving it smooth edges.  The center of the sphere is defined by the info Actor's position, and scaling the info Actor will scale the radius.
+
+![SphericalDensitySphere.jpg](SphericalDensitySphere.jpg)<br />
+![SphericalDensitySphereClipped.jpg](SphericalDensitySphereClipped.jpg)
+_The Spherical density function, which has smooth edges.  It is bounded by a mesh which is not visible in the first picture because it does not clip the sphere.  In the second picture, the mesh clips the sphere.  A preview component shows the extent of the sphere density function in wireframe._
+
+
+### Additional Density Functions
+
+If these density functions are not sufficient to create the falloff effect you want, first try to manipulate the material.  For example, if you want softer edges, try using fresnel in the fog volume material on a sphere.   The catch is that only the backfaces of the fog volume are rendered, so instead of a traditional fresnel node you need to mirror the normal to face toward the viewer.  Additional density functions can also be added in code.
+
+
+
+## Additional Settings
+
+![FogVolumeInfoProperties.jpg](FogVolumeInfoProperties.jpg)
+_Properties of a FogVolumeSphericalDensityInfo._
+
+
+### bEnabled 
+
+Use this property to enable or disable the fog volume.
+
+
+### StartDistance
+
+Distance from the viewer at which fog should start, in world units.  This is currently unsupported with the linear halfspace density function.
+
+
+### Density, PlaneDistanceFactor, MaxDensity
+
+These control the fog volume density for each density type.  A value of 0 for any of these is functionally the same as bEnabled=False.
+
+
+
+## Fog Volume Actor
+
+The fog volume Actor is what is actually rendered, and it clips the density function to the interior of the mesh.  **Any CLOSED static or skeletal mesh will work.**  This means that any ray cast through the mesh must intersect the same number of frontfaces as backfaces.  On Xenon and the shader model 2 PC implementation, there is a limit on the number of frontfaces or backfaces that can overlap before artifacts appear.  Currently the limit is 4 backfaces overlapping or 4 frontfaces overlapping.
+
+
+
+## Fog Volume Material
+
+The material assigned to the fog volume Actor must have these settings:
+
+* Shading model is Unlit.
+* Blend mode is one of the translucent modes (Translucent, Additive or Modulative).
+* There must be an emissive input.
+* bUsedWithFogVolumes must be checked.  Note that this flag is exclusive with the other usage flags, once it is set you can only use the material on fog volumes.
+
+
+![MinimalMaterialSetup.jpg](MinimalMaterialSetup.jpg)
+_A minimal fog volume material setup.  Opacity defaults to 1 so it does not need to be specified._
+
+
+The emissive input of the material is the fog volume color, the opacity input scales the fog contribution, which is calculated from the distance through the fog volume.
+
+
+### Material limitations
+
+Only the backfaces of the fog volume Actor are drawn when applying the material, which is necessary so the fog volume will still be drawn when the camera is inside it.  This has implications for texturing: the texture will only be applied to the back of the fog volume mesh. This also affects other mesh attributes such as the normal, reflection vector, etc.  
+
+
+
+## Interaction with Height Fog
+
+Fog Volumes are not affected by height fog.  This may cause artifacts in high density height fog, but it is preferable to per-vertex height fogging on the fog volume which breaks down when using large fog volumes.  Intersecting fog volumes are not supported, they will be drawn as if they were completely in front or behind each other.
+
+
+
+## Transparency in Fog Volumes
+
+Fog Volumes are sorted with transparent objects, so they will draw correctly if they are completely in front or behind transparent objects.  However, transparent objects that intersect with fog volumes cannot be fogged correctly and efficiently on modern hardware, so they are approximated.
+
+**It is important that you set the FogVolumeDensityInfo's ApproxFogLightColor to approximate the material color!**  This is the color that the fog volume will apply to intersecting translucent objects.  
+
+![ApproxFogColor.jpg](ApproxFogColor.jpg)
+_Set the ApproxFogLightColor member so that transparent objects intersecting the fog volume will be fogged correctly._
+
+
+Fog on Transparent objects intersecting Fog Volumes has the following limitations:
+
+* Fog is calculated per-vertex.  To minimize the resulting artifacts, increase the tessellation of the transparent meshes and avoid large translucent meshes.
+* Fog transitions due to clipping from the fog volume mesh cannot be represented.  Instead, the axis aligned bounding box of the fog volume mesh is used to clip the fog.  Fog transitions from the fog function (ie the sphere edges in the Spherical Density Function) are calculated correctly.
+* The most fog interactions that can be approximated on a single transparent object is 4 height fog layers and one fog volume.  
+* Transparent materials using the modulative blend mode are not fogged at all, by either height fog or fog volumes.  
+* Transparent materials applied to skinned meshes (Skeletal meshes or Skeletal mesh decals) will not be fogged by fog volumes.
+
+
+You can override the automatic translucent fogging if desired.  To disable any translucent fogging from a fog volume, untick bAffectsTranslucency in the FogVolumeDensityInfo rollout.  To prevent a single material from being fogged, set bAllowFog=false on that material.
+
+
+
+## Performance Implications
+
+A fog volume is more expensive than a single layer of translucency in general, but a fog volume is much cheaper than 10's of layers of translucency with the same material and screen area.  When replacing particle effects with a fog volume, use the shader complexity viewmode to get an idea of the relative cost.  
+
+There is a some overhead involved for each fog volume that is rendered, even if it only covers a single pixel of the screen or is completely behind opaque objects.  For this reason it is better to have one large fog volume than many small ones, if they occupy the same volume.  Note that the fog volume mesh can be any closed mesh so it is often possible to use a single fog volume in a twisted tunnel while still having complete control over where the fog starts and stops.
+
+Fog Volumes use complex pixel shaders and several passes to get the final result, so they are completely pixel shader bound.  This means that on most platforms having very high poly fog volumes will not affect performance at all.  It also means that fog volumes with a lot of overdraw (overlapping frontfaces and backfaces) will have the worst performance.
+
+The simpler fog functions run faster than the most expensive ones, for example the constant density function is about 2 times faster than the spherical density function.  Try to use the simplest fog function possible.
+
+Every pixel in the fog volume Actor will have the same cost, regardless of how it ends up being fogged, so you should be careful to use the smallest mesh possible.  For example, with the spherical density function, no fog will be applied outside of the sphere, but if the mesh is larger than the sphere, those unfogged pixels will still cost as much as the fogged ones.  Resize the mesh to bound the sphere function as closely as possible.  With the automatic setup method, the sphere mesh will bound the sphere function automatically.
+
+Use a fog sheet instead of a fog volume if your use case meets all of these criteria:
+
+* The number of overlapping fog sheets is small.
+* The camera cannot ever go into the fog, or you do not mind the fog fading out when you would have been inside of it.
+* Translucency does not intersect the fog, or the artifacts are not noticeable.
+
+
+In this case, a fog sheet will be cheaper and provide more flexibility than a fog volume, since you can map any noise texture onto the fog sheet.
+
+
+
+## Best Practices
+
+Fog Volumes are best used for small to medium effects, since they can only approximate intersecting translucency and do not support nesting.  Use [HeightFog](Engine/Actors/FogEffects/HeightFog) layers or some other method for level-wide fogging, and Fog Volumes for volumetric effects around lights or contained to parts of the level.
+
+ 
+
+
+
+

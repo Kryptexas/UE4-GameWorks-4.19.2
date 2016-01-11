@@ -1,0 +1,73 @@
+Availability: Docs
+Title:Gameplay
+Crumbs:%ROOT%, Resources, Resources/SampleGames/SwingNinja
+Description:Documentation covering the gameplay setup for the Swing Ninja Game.
+
+[TOC(start:2 end:2)]
+
+[REGION:fullwidth]
+
+Swing Ninja is a side-scrolling physics-based game. As such, there were two key elements to making it work properly:
+
+* Side-scrolling game behavior
+* Physics setup for the grappling hook
+
+All of these aspects are set up in the Character Blueprint, named **MyCharacter_Test**.
+
+## Side-Scrolling
+
+To create the side-scrolling setup, we started with the basis for the side-scrolling Blueprint project. There are two primary aspects to the side-scrolling behavior, being movement and the setup for the camera. 
+
+### Movement
+
+The movement for the character is a modified setup of the Side-Scrolling Blueprint Template setup. In that setup, a basic MoveRight event was used as a basis to apply motion to the camera. In this setup, we do something very similar, but we branch whether we are actually using inputs based on whether we are currently swinging. Below is the network controlling movement. 
+
+[REGION:lightbox]
+[![](SwingMovement.png)](SwingMovement.png)
+[/REGION]
+[REGION:caption]
+Click to enlarge or **right-click** and Save As
+[/REGION]
+
+Notice that there is a collapsed network node controlling the swing. This takes in the grapple hook's location and uses it to establish a vector between itself and the character. A rotational force is then added causing the character to revolve around that point, accelerating as it moves around until it reaches a maximum rotational speed. **Double-clicking** this node will show that network:
+
+[REGION:lightbox]
+[![](SwingBehaviorNetwork.png)](SwingBehaviorNetwork.png)
+[/REGION]
+[REGION:caption]
+Click to enlarge or **right-click** and Save As
+[/REGION]
+
+
+
+### Camera
+
+The camera is set up in such a way that it maintains the side-scrolling behavior of the game, tracks the player's movement, and uses the overall velocity of the character to control zooming. In this way, the faster the player moves, the farther back the camera will zoom, thus giving the player a better view of any obstacles they might be racing toward.
+
+[REGION:lightbox]
+[![](CameraMovement.png)](CameraMovement.png)
+[/REGION]
+[REGION:caption]
+Click to enlarge or **right-click** and Save As
+[/REGION]
+
+
+
+
+## Grapple Hook
+
+The grapple hook setup is fairly simple and is based on enabling the physics simulation on the character capsule. Once this is done, we disable the Character Movement Component and establish a Physics Constraint to attach the character to the hook. The hook's location is established by a line trace from the character. The physics constraint is set to rotate only on one axis, thereby maintaining the side-scrolling behavior. 
+
+
+
+Because swinging on the grapple is set up as its own character state, that state can be used to branch incoming inputs. Basically, if the player is swinging, inputs are ignored and the swinging calculation is fed into the physics capsule. Otherwise, inputs are calculated normally and the player can run around.
+
+
+
+
+
+
+
+
+
+[/REGION]

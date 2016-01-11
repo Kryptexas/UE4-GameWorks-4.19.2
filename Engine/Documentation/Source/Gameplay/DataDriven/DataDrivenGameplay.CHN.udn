@@ -1,100 +1,113 @@
-﻿INTSourceChangelist:2711570
+﻿INTSourceChangelist:0
 Availability:Public
-Title: 数据驱动游戏性元素
+Title: Data Driven Gameplay Elements
 Crumbs:%ROOT%, Gameplay
-Description:使用外部存储数据驱动游戏性元素
+Description:Driving gameplay elements using externally stored data.
 
 [TOC(start:2)]
 
-对于延长寿命远远超出典型盒装游戏并 
-要求根据玩家反馈不断调整和平衡数据的游戏而言， 
-数据驱动游戏性有助于减轻所涉及的工作量和复杂性， 
-并能可视化和参数化数据创建与调度。此外，还能够将数据导出到 **Excel** 或其他可使用可靠工具进行维护的电子表格文档，然后再导入， 
-以便在游戏中自动生效。
+Data driven gameplay helps mitigate the amount of work and complexity involved, as well as providing 
+the ability to visualize and parameterize data creation and progression, for games that have an extended 
+lifetime well beyond that of a typical boxed game, and require constant tweaking and balancing of data 
+based on player feedback. The ability to move data out to **Excel** or other spreadsheet documents that can be 
+maintained using proven tools and then imported to automatically take effect in the game.
 
-通过 Excel 文档将数据导入 UE4 的新方法有两种：
+There are two new ways that data can be imported into UE4 through Excel documents:
 
-* 数据表
-* 曲线表
-
-
-这些 Excel 文档以“.xlsm”为扩展名（启用宏的 **Excel** 文档），并具有基于宏的导出按钮， 
-可轻松导出至中间数据格式，即逗号分隔的变量（“.csv”）。 
-这些文档都处于一个位置，有助于查找和修改数据。
-
-* [](Example.xlsm) （**right-click**和**Save as...**以下载）
+* DataTables
+* CurveTables
 
 
-## 数据表
+These Excel documents are `.xlsm` (macro enabled **Excel** documents) that have macro based export 
+buttons to enable easily exporting to the intermediate data format, comma separated variables (`.csv`). 
+These documents all reside in a single location to help make data easy to find and modify.
 
-顾名思义，数据表就是以有意义且有用的方式将各种相关的数据归类的表格， 
-其中，数据字段可以是任何有效的 UObject 属性，包括资产引用。在设计师将 
-CSV 文件导入数据表前，程序员必须创建行容器以指示引擎如何解释数据。 
-这些数据表包含了列名，这些列名和基于代码的UStruct结构以及它的（子）变量一一对应， 
-这个UStruct的结构必须继承自FTableRowBase才可以被导入器辨识。 
+* [](Example.xlsm) (**right-click** and **Save as...** to download)
 
-首列应命名为“Name”，并包含用于访问每行以供游戏使用的名称。随后的列 
-具有标题的变量名，而且同一列的下方为行/列交叉点的数据。鉴于此格式， 
-每一行将与继承自 FTableRowBase 的结构一一对应。
 
-### 示例
+## Data Tables
 
-例如，以下显示了升级经验数据的定义和向游戏提供数据的 CSV 文档：
+DataTables, as the name implies, is a table of miscellaneous but related data grouped in a meaningful 
+and useful way, where the data fields can be any valid UObject property, including asset references. Before a designer can import a 
+CSV file into a DataTable, a programmer has to create the row container telling the engine how to interpret the data. 
+These tables consist of column names that have a 1:1 mapping to a given code based UStruct and its variables, 
+which must inherit from FTableRowBase to be recognized by the importer. 
+
+The first column is expected to be named `Name` and contains the names by which each row is accessed for use in game. Subsequent columns 
+have a variable name for a heading and below, in the same column, the data for that row/column intersection. Given this 
+format, a single row maps 1:1 directly to the structure inherited from FTableRowBase.
+
+### Example
+
+As an example, here is a definition for level up experience data and the CSV document that supplies the data to the game:
 
 	/** Structure that defines a level up table entry */
 	USTRUCT(BlueprintType)
 	struct FLevelUpData : public FTableRowBase
 	{
-		GENERATED_USTRUCT_BODY()
+			GENERATED_USTRUCT_BODY()
 
 	public:
 
-		FLevelUpData()
-		: XPtoLvl(0)
-		, AdditionalHP(0)
-		{}
+			FLevelUpData()
+							: XPtoLvl(0)
+							, XP(0)
+			{}
 
-		/** The 'Name' column is the same as the XP Level */
+			/** The 'Name' column is the same as the XP Level */
 
-		/** XP to get to the given level from the previous level */
-		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LevelUp)
-		int32 XPtoLvl;
+			/** XP to get to the given level from the previous level */
+			UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LevelUp)
+			int32 XPtoLvl;
 
-		/** Extra HitPoints gained at this level */
-		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LevelUp)
-		int32 AdditionalHP;
+			/** This was the old property name (represented total XP) */
+			UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LevelUp)
+			int32 XP;
 
-		/** Icon to use for Achivement */
-		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LevelUp)
-		TAssetPtr<UTexture> AchievementIcon;
+			UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LevelUp)
+			TAssetPtr<UTexture> Asset;
 	};
+
 
 **CSV Document:**
 
-
-	Name,XPtoLvl,AdditionalHP,AchievementIcon
-	1,0,0,"Texture2d'/Game/Textures/AchievementIcon1'"
-	2,1000,9,"Texture2d'/Game/Textures/AchievementIcon2'"
-	3,1000,10,"Texture2D'/Game/Textures/AchievementIcon3'"
-	4,1500,12,"Texture2D'/Game/Textures/AchievementIcon4'"
-	5,2000,14,"Texture2D'/Game/Textures/AchievementIcon5'"
-
+	Name,XPtoLvl,XP,Asset
+	1,0,0,"Texture2d'/Game/UI/HUD/Actions/Barrel'"
+	2,1000,1000,"Texture2d'/Game/UI/HUD/Actions/Barrel'"
+	3,1000,2000,"Texture2d'/Game/UI/HUD/Actions/Barrel'"
+	4,1500,3500,"Texture2d'/Game/UI/HUD/Actions/Barrel'"
+	5,2000,5500,"Texture2d'/Game/UI/HUD/Actions/Barrel'"
+	6,2500,8000,"Texture2d'/Game/UI/HUD/Actions/Barrel'"
+	7,3000,11000,"Texture2d'/Game/UI/HUD/Actions/Barrel'"
+	8,3500,14500,"Texture2d'/Game/UI/HUD/Actions/Barrel'"
+	9,4000,18500,"Texture2d'/Game/UI/HUD/Actions/Barrel'"
+	10,4500,23000,"Texture2d'/Game/UI/HUD/Actions/Barrel'"
+	11,5000,28000,"Texture2d'/Game/UI/HUD/Actions/Barrel'"
+	12,5500,33500,"Texture2d'/Game/UI/HUD/Actions/Barrel'"
+	13,6000,39500,"Texture2d'/Game/UI/HUD/Actions/Barrel'"
+	14,6500,46000,"Texture2d'/Game/UI/HUD/Actions/Barrel'"
+	15,7000,53000,"Texture2d'/Game/UI/HUD/Actions/Barrel'"
+	16,7500,60500,"Texture2d'/Game/UI/HUD/Actions/Barrel'"
+	17,8000,68500,"Texture2d'/Game/UI/HUD/Actions/Barrel'"
+	18,8500,77000,"Texture2d'/Game/UI/HUD/Actions/Barrel'"
+	19,9000,86000,"Texture2d'/Game/UI/HUD/Actions/Barrel'"
+	20,9500,95500,"Texture2d'/Game/UI/HUD/Actions/Barrel'"
 
 [REGION:tip]
-资产类型前后的双引号对属性导入途径十分重要。若没有双引号，则文本将导入为 Texture2d'。 
+The double quotes around the asset type are important for the property importing pipeline. Without them, the text is imported as Texture2d'. 
 [/REGION]
 
-## 数据曲线
+## Data Curves
 
-数据曲线的工作方式与数据表相似， 
-但数据曲线仅支持浮点型数据。和数据表一样，首列命名为“Name”，并包含用于访问每行 
-以供游戏使用的名称。首列后的每个列标题存储 
-用于绘制曲线的 X 轴变量。该标题下的数据为给定行的 Y 轴值。鉴于此格式， 
-每一行将与一个代码可访问并沿其插入数据的曲线相应。
+Data curves work in a somewhat similar manner to DataTables, however they only support floating point 
+types. As with DataTables, the first column is named `Name` and contains the names by which each row 
+is accessed for use in game. Each column heading after the first stores the X-axis variable for a 
+curve to be plotted. The data under this heading is the Y-axis value for the given row. Given this 
+format, a single row corresponds to a curve that code can access and interpolate data along.
 
-### 示例
+### Example
 
-以下为伤害进程的示例表格：
+Here is an example table for damage progression:
 
 [REGION:simpletable]
 |                      | 0   | 1   | 2   | 3   |
@@ -105,48 +118,48 @@ CSV 文件导入数据表前，程序员必须创建行容器以指示引擎如�
 | Melee_StunTime       | 0   | 0   | 0   | 0   |
 [/REGION]
 
-## 导入过程
+## Importing Process
 
-导入 CSV 文件的过程非常简单：
+Importing a CSV file is a simple process:
 
-1.	从 Excel 或其他电子表格软件以“.csv”为扩展名保存文件。
-2.	打开虚幻编辑器，然后在**Content Browser**中点击**Import**。
-3.浏览并选择您要导入为数据表的 CSV 文件。
-4.最后，从下拉列表中选择行表示法，此例中即 LevelUpData。
+1.	Save your file out of Excel or another spreadsheet software with the `.csv` extension.
+2.	Open Unreal Editor, and click on **Import** in the **Content Browser**.
+3.  Navigate and select the CSV file you want to import as a DataTable.
+4.  Finally, choose the row representation from the drop down list, in this case, LevelUpData.
 
 	![](levelupdata_options.png)
 
-	该操作将在**Content Browser**的当前目录中创建数据表对象。
+	This creates a DataTable object in the current directory of the **Content Browser**.
 
 	![](datatableobject.png)
 
-	您可以通过**double-clicking**对象在编辑器中查看数据表的内容。您可以通过**right-clicking**对象并选择从菜单**Reimport**更新对象。 
-	请注意，重新导入对象时将使用原始文件路径。以下为完成导入后的数据视图：
+	You can view the contents of the DataTable in the editor by **double-clicking** on the object. You can update the object by **right-clicking** on the object and selecting **Reimport** from the menu. 
+	Note that the original file path is used when reimporting the object. Here is the view of the data just after importing:
 	
 	![](datatableview.jpg)
 
-## 数据连接
+## Data Hookup
 
-通过这些表格连接数据非常简单。从程序员的角度来看，必须执行的操作是 
-放置“FDataTableRowHandle”或“FCurveTableRowHandle”的蓝图公开变量， 
-具体取决于您想要数据表还是曲线表。从内容服务商的角度来看， 
-该操作将显示包含两个子字段的数据字段：
+Hooking up data from these tables is quite easy. From a programmer's perspective, all you must do is 
+place a Blueprint-exposed variable of either `FDataTableRowHandle` or `FCurveTableRowHandle`, 
+depending on if you want a DataTable or CurveTable, respectively. From a content provider's point of 
+view, this will expose a data field with two subfields:
 
-1.	数据表/曲线表 - 这是对包含数据的表格的内容引用。
-2.	行名称 - 这是您要从中获取数据的行的首列名称。
+1.	DataTable/CurveTable - this is the content reference to the table that holds the data.
+2.	RowName - this is the name in the first column of the row you wish to get data from.
 
 
-## 数据使用（仅限程序员）
+## Data Usage (Programmers Only)
 
-连接数据后，使用数据十分简单。句柄结构将提供 
-辅助函数（“FindRow()”和“GetCurve()”），以允许您检索填充了数据的结构或曲线。 
-针对“FCurveTableRowHandle”，返回值为一个“FRichCurve”指针。“FDataTableRowHandle”则 
-允许您在模板函数调用中指定结构。该结构可以是继承性分层中的 
-最终结构或任何父结构。
+Once you have the data hooked up, using the data is quite simple. The handle structures provide helper 
+functions (`FindRow()` and `GetCurve()`) that allow you to retrieve either a struct or curve filled with data. 
+In the case of a `FCurveTableRowHandle`, an `FRichCurve` pointer is returned. The `FDataTableRowHandle`, however, 
+allows you to specify a structure in the template function call. This structure can be the final structure 
+or any of its parents in the inheritance hierarchy.
 
-最后请注意，所有返回的结构和曲线不得在 
-超出函数的本地范围外缓存。其目的是确保若通过重新导入刷新表格， 
-数据更改将立即生效且无法访问无效的指针。
+One final note is that all structures and curves returned should not be cached further than the local scope 
+of a function. This is to ensure that if the table is refreshed via re-import, the data changes take effect 
+immediately and that no invalid pointers are accessed.
 
-在上述数据表示例中，引用的资产为延迟加载资产（TAssetPtr 处理此事项）。 
-如果资产字段类型设置为 UTexture，则将在加载数据表时加载所有资产。
+In the above DataTable example, the asset that is referenced is a lazy loaded asset (TAssetPtr handles this). 
+If the Asset field type was set to UTexture, all of the assets would be loaded whenever the DataTable was loaded.

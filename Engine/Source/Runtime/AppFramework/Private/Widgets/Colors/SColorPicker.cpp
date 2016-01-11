@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AppFrameworkPrivatePCH.h"
 #include "SComplexGradient.h"
@@ -319,7 +319,7 @@ void SColorPicker::GenerateDefaultColorPickerContent( bool bAdvancedSectionExpan
 				.OnCheckStateChanged(this, &SColorPicker::HandleSRGBCheckBoxCheckStateChanged)
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("SRGBCheckboxLabel", "sRGB Preview"))
+					.Text(LOCTEXT("SRGBCheckboxLabel", "sRGB"))
 				]
 			]
 
@@ -511,60 +511,32 @@ void SColorPicker::GenerateDefaultColorPickerContent( bool bAdvancedSectionExpan
 							MakeColorSpinBox(EColorPickerChannels::Value)
 						]
 
-						// Hex linear
+						// Hex
 						+ SVerticalBox::Slot()
-							.HAlign(HAlign_Right)
-							.VAlign(VAlign_Top)
-							.Padding(0.0f, 12.0f, 0.0f, 0.0f)
+						.HAlign(HAlign_Right)
+						.VAlign(VAlign_Top)
+						.Padding(0.0f, 8.0f, 0.0f, 0.0f)
+						[
+							SNew(SHorizontalBox)
+							.ToolTipText(LOCTEXT("HexSliderToolTip", "Hexadecimal Value"))
+
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							.Padding(0.0f, 0.0f, 4.0f, 0.0f)
+							.VAlign(VAlign_Center)
 							[
-								SNew(SHorizontalBox)
-								.ToolTipText(LOCTEXT("HexLinearSliderToolTip", "Hexadecimal Linear Value"))
+								SNew(STextBlock)
+								.Text(LOCTEXT("HexInputLabel", "Hex"))
+							]
 
-								+ SHorizontalBox::Slot()
-								.AutoWidth()
-								.Padding(0.0f, 0.0f, 4.0f, 0.0f)
-								.VAlign(VAlign_Center)
-								[
-									SNew(STextBlock)
-									.Text(LOCTEXT("HexLinearInputLabel", "Hex Linear"))
-								]
-
-								+ SHorizontalBox::Slot()
-									.AutoWidth()
-									[
-										SNew(SEditableTextBox)
-										.MinDesiredWidth(72.0f)
-										.Text(this, &SColorPicker::HandleHexLinearBoxText)
-										.OnTextCommitted(this, &SColorPicker::HandleHexLinearInputTextCommitted)
-									]
-						]
-
-						// Hex sRGB
-						+ SVerticalBox::Slot()
-							.HAlign(HAlign_Right)
-							.VAlign(VAlign_Top)
-							.Padding(0.0f, 8.0f, 0.0f, 0.0f)
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
 							[
-								SNew(SHorizontalBox)
-								.ToolTipText(LOCTEXT("HexSRGBSliderToolTip", "Hexadecimal sRGB Value"))
-
-								+ SHorizontalBox::Slot()
-								.AutoWidth()
-								.Padding(0.0f, 0.0f, 4.0f, 0.0f)
-								.VAlign(VAlign_Center)
-								[
-									SNew(STextBlock)
-									.Text(LOCTEXT("HexSRGBInputLabel", "Hex sRGB"))
-								]
-
-								+ SHorizontalBox::Slot()
-									.AutoWidth()
-									[
-										SNew(SEditableTextBox)
-										.MinDesiredWidth(72.0f)
-										.Text(this, &SColorPicker::HandleHexSRGBBoxText)
-										.OnTextCommitted(this, &SColorPicker::HandleHexSRGBInputTextCommitted)
-									]
+								SNew(SEditableTextBox)
+								.MinDesiredWidth(72.0f)
+								.Text(this, &SColorPicker::HandleHexBoxText)
+								.OnTextCommitted(this, &SColorPicker::HandleHexInputTextCommitted)
+							]
 						]
 					]
 				]
@@ -575,7 +547,6 @@ void SColorPicker::GenerateDefaultColorPickerContent( bool bAdvancedSectionExpan
 			.AutoHeight()
 			.HAlign(HAlign_Right)
 			.VAlign(VAlign_Center)
-			.Padding(0.0f, 12.0f, 0.0f, 0.0f)
 			[
 				SNew(SUniformGridPanel)
 					.MinDesiredSlotHeight(FCoreStyle::Get().GetFloat("StandardDialog.MinDesiredSlotHeight"))
@@ -607,6 +578,7 @@ void SColorPicker::GenerateDefaultColorPickerContent( bool bAdvancedSectionExpan
 	
 	HideSmallTrash();
 }
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 EActiveTimerReturnType SColorPicker::AnimatePostConstruct( double InCurrentTime, float InDeltaTime )
 {
@@ -1292,43 +1264,19 @@ void SColorPicker::HandleEyeDropperButtonComplete()
 }
 
 
-FText SColorPicker::HandleHexLinearBoxText() const
+FText SColorPicker::HandleHexBoxText() const
 {
 	return FText::FromString(CurrentColorRGB.ToFColor(false).ToHex());
 }
 
 
-FText SColorPicker::HandleHexSRGBBoxText() const
-{
-	return FText::FromString(CurrentColorRGB.ToFColor(true).ToHex());
-}
-
-
-void SColorPicker::HandleHexLinearInputTextCommitted(const FText& Text, ETextCommit::Type CommitType)
+void SColorPicker::HandleHexInputTextCommitted( const FText& Text, ETextCommit::Type CommitType )
 {
 	if (!Text.IsEmpty() && ((CommitType == ETextCommit::OnEnter) || (CommitType == ETextCommit::OnUserMovedFocus)))
 	{
 		FColor Color = FColor::FromHex(Text.ToString());
 		SetNewTargetColorRGB(FLinearColor(Color.R / 255.0f, Color.G / 255.0f, Color.B / 255.0f, Color.A / 255.0f), false);
 	}	
-}
-
-void SColorPicker::HandleHexSRGBInputTextCommitted(const FText& Text, ETextCommit::Type CommitType)
-{
-	if (!Text.IsEmpty() && ((CommitType == ETextCommit::OnEnter) || (CommitType == ETextCommit::OnUserMovedFocus)))
-	{
-		FColor Color = FColor::FromHex(Text.ToString());
-		float red = Color.R / 255.0f;
-		float green = Color.G / 255.0f;
-		float blue = Color.B / 255.0f;
-		float alpha = Color.A / 255.0f;
-
-		red = red <= 0.04045f ? red / 12.92f : FMath::Pow((red + 0.055f) / 1.055f, 2.4f);
-		green = green <= 0.04045f ? green / 12.92f : FMath::Pow((green + 0.055f) / 1.055f, 2.4f);
-		blue = blue <= 0.04045f ? blue / 12.92f : FMath::Pow((blue + 0.055f) / 1.055f, 2.4f);
-		
-		SetNewTargetColorRGB(FLinearColor(red, green, blue, alpha), false);
-	}
 }
 
 

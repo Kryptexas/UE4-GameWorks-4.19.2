@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "OnlineStoreInterface.h"
@@ -25,9 +25,9 @@ class UInAppPurchaseRestoreCallbackProxy : public UObject
 
 public:
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void BeginDestroy() override;
-	//~ End UObject Interface
+	// End UObject interface
 
 private:
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -51,12 +51,7 @@ public:
 	void OnFilterTextChanged( const FText& InFilterText );
 
 	/** Returns true if this TagNode has any children that match the current filter */
-	bool FilterChildrenCheck( TSharedPtr<FGameplayTagNode>  );
-
-	bool IsAddingNewTag() const
-	{
-		return bIsAddingNewTag;
-	}
+	bool FilterChildrenCheck( TSharedPtr<FGameplayTagNode>  );	
 
 private:
 
@@ -69,17 +64,11 @@ private:
 	/* Filter string used during search box */
 	FString FilterString;
 
-	/** root filter (passed in on creation) */
-	FString RootFilterString;
-
 	/* Flag to set if the list is read only*/
 	bool bReadOnly;
 
 	/* Flag to set if we can select multiple items form the list*/
 	bool bMultiSelect;
-
-	/* Flag set while we are in process of adding new tag */
-	bool bIsAddingNewTag;
 
 	/* Array of tags to be displayed in the TreeView*/
 	TArray< TSharedPtr<FGameplayTagNode> > TagItems;
@@ -90,10 +79,6 @@ private:
 	/** Tree widget showing the gameplay tag library */
 	TSharedPtr< STreeView< TSharedPtr<FGameplayTagNode> > > TagTreeWidget;
 
-	TSharedPtr<SEditableTextBox> NewTagTextBox;
-
-	TSharedPtr<SSearchBox> SearchTagBox;
-
 	/** Containers to modify */
 	TArray<FEditableGameplayTagContainerDatum> TagContainers;
 
@@ -101,12 +86,6 @@ private:
 	FOnTagChanged OnTagChanged;
 
 	TSharedPtr<IPropertyHandle> PropertyHandle;
-
-	void OnNewGameplayTagCommited(const FText& InText, ETextCommit::Type InCommitType);
-
-	FReply OnNewGameplayTagButtonPressed();
-
-	void CreateNewGameplayTag();
 
 	/**
 	 * Generate a row widget for the specified item node and table

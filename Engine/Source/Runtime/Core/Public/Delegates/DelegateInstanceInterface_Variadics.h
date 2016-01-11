@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,15 +10,15 @@ struct IBaseDelegateInstance;
 template <typename FuncType>
 struct IBaseDelegateInstanceCommon;
 
-class FDelegateBase;
-
 template <typename RetType, typename... Args>
 struct IBaseDelegateInstanceCommon<RetType(Args...)> : public IDelegateInstance
 {
 	/**
-	 * Emplaces a copy of the delegate instance into the FDelegateBase.
+	 * Creates a copy of the delegate instance
+	 *
+	 * @return	The newly created copy
 	 */
-	virtual void CreateCopy(FDelegateBase& Base) = 0;
+	virtual IBaseDelegateInstance<RetType(Args...)>* CreateCopy() = 0;
 
 	/**
 	 * Returns true if this delegate points to exactly the same object and method as the specified delegate,

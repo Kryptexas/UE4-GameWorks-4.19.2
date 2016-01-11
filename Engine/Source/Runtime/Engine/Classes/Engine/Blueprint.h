@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -64,14 +64,6 @@ namespace EKismetCompileType
 	};
 };
 
-/** Compile modes. */
-UENUM()
-enum class EBlueprintCompileMode : uint8
-{
-	Default UMETA(DisplayName="Use Default", ToolTip="Use the default setting."),
-	Development UMETA(ToolTip="Always compile in development mode (even when cooking)."),
-	FinalRelease UMETA(ToolTip="Always compile in final release mode.")
-};
 
 struct FKismetCompilerOptions
 {
@@ -88,11 +80,9 @@ public:
 	/** Whether or not this compile is for a duplicated blueprint */
 	bool bIsDuplicationInstigated;
 
-	/** Whether or not this compile should emit instrumentation events */
-	bool bAddInstrumentation;
-
 	TSharedPtr<FString> OutHeaderSourceCode;
 	TSharedPtr<FString> OutCppSourceCode;
+	FString NewCppClassName;
 
 	bool DoesRequireCppCodeGeneration() const
 	{
@@ -106,11 +96,6 @@ public:
 			|| (CompileType == EKismetCompileType::Cpp);
 	}
 
-	bool IsInstrumentationActive() const
-	{
-		return bAddInstrumentation && DoesRequireBytecodeGeneration();
-	}
-
 	/** Whether or not this compile type should operate on the generated class of the blueprint, as opposed to just the skeleton */
 	bool IsGeneratedClassCompileType() const
 	{
@@ -122,7 +107,6 @@ public:
 		, bSaveIntermediateProducts(false)
 		, bRegenerateSkelton(true)
 		, bIsDuplicationInstigated(false)
-		, bAddInstrumentation(false)
 	{
 	};
 };
@@ -348,10 +332,6 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	/** Deprecates the Blueprint, marking the generated class with the CLASS_Deprecated flag */
 	UPROPERTY(EditAnywhere, Category=ClassOptions, AdvancedDisplay)
 	bool bDeprecate;
-
-	/** The mode that will be used when compiling this class. */
-	UPROPERTY(EditAnywhere, Category=ClassOptions, AdvancedDisplay)
-	EBlueprintCompileMode CompileMode;
 #endif //WITH_EDITORONLY_DATA
 
 	/** 'Simple' construction script - graph of components to instance */
@@ -579,7 +559,7 @@ public:
 	/** Renames only the generated classes. Should only be used internally or when testing for rename. */
 	virtual bool RenameGeneratedClasses(const TCHAR* NewName = nullptr, UObject* NewOuter = nullptr, ERenameFlags Flags = REN_None);
 
-	//~ Begin UObject Interface (WITH_EDITOR)
+	// Begin UObject interface (WITH_EDITOR)
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	virtual bool Rename(const TCHAR* NewName = nullptr, UObject* NewOuter = nullptr, ERenameFlags Flags = REN_None) override;
 	virtual UClass* RegenerateClass(UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded) override;
@@ -587,7 +567,7 @@ public:
 	virtual void PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph ) override;
 	virtual bool Modify(bool bAlwaysMarkDirty = true) override;
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
-	//~ End UObject Interface
+	// End of UObject interface
 
 	/** Consigns the GeneratedClass and the SkeletonGeneratedClass to oblivion, and nulls their references */
 	void RemoveGeneratedClasses();
@@ -610,14 +590,14 @@ public:
 
 #endif	//#if WITH_EDITOR
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void Serialize(FArchive& Ar) override;
 	virtual FString GetDesc(void) override;
 	virtual void TagSubobjects(EObjectFlags NewFlags) override;
 	virtual bool NeedsLoadForClient() const override;
 	virtual bool NeedsLoadForServer() const override;
 	virtual bool NeedsLoadForEditorGame() const override;
-	//~ End UObject Interface
+	// End of UObject interface
 
 	/** Get the Blueprint object that generated the supplied class */
 	static UBlueprint* GetBlueprintFromClass(const UClass* InClass);

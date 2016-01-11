@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BasePassRendering.cpp: Base pass rendering implementation.
@@ -6,21 +6,6 @@
 
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
-
-// Changing this causes a full shader recompile
-static TAutoConsoleVariable<int32> CVarSelectiveBasePassOutputs(
-	TEXT("r.SelectiveBasePassOutputs"),
-	0,
-	TEXT("Enables shaders to only export to relevant rendertargets.\n") \
-	TEXT(" 0: Export in all rendertargets.\n") \
-	TEXT(" 1: Export only into relevant rendertarget.\n"),
-	ECVF_ReadOnly | ECVF_RenderThreadSafe);
-
-
-bool UseSelectiveBasePassOutputs()
-{
-	return CVarSelectiveBasePassOutputs.GetValueOnAnyThread() == 1;
-}
 
 /** Whether to replace lightmap textures with solid colors to visualize the mip-levels. */
 bool GVisualizeMipLevels = false;
@@ -52,16 +37,15 @@ bool GVisualizeMipLevels = false;
 
 // Implement shader types per lightmap policy
 // If renaming or refactoring these, remember to update FMaterialResource::GetRepresentativeInstructionCounts and FPreviewMaterial::ShouldCache().
+IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( FNoLightMapPolicy, FNoLightMapPolicy ); 
+IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TLightMapPolicy<HQ_LIGHTMAP>, TLightMapPolicyHQ ); 
+IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TLightMapPolicy<LQ_LIGHTMAP>, TLightMapPolicyLQ ); 
+IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TDistanceFieldShadowsAndLightMapPolicy<HQ_LIGHTMAP>, TDistanceFieldShadowsAndLightMapPolicyHQ );
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( FSelfShadowedTranslucencyPolicy, FSelfShadowedTranslucencyPolicy );
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( FSelfShadowedCachedPointIndirectLightingPolicy, FSelfShadowedCachedPointIndirectLightingPolicy );
-
-IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_NO_LIGHTMAP>, FNoLightMapPolicy );
-IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_CACHED_VOLUME_INDIRECT_LIGHTING>, FCachedVolumeIndirectLightingPolicy );
-IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_CACHED_POINT_INDIRECT_LIGHTING>, FCachedPointIndirectLightingPolicy );
-IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_SIMPLE_DYNAMIC_LIGHTING>, FSimpleDynamicLightingPolicy );
-IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_LQ_LIGHTMAP>, TLightMapPolicyLQ );
-IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_HQ_LIGHTMAP>, TLightMapPolicyHQ );
-IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_DISTANCE_FIELD_SHADOWS_AND_HQ_LIGHTMAP>, TDistanceFieldShadowsAndLightMapPolicyHQ  );
+IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( FCachedVolumeIndirectLightingPolicy, FCachedVolumeIndirectLightingPolicy );
+IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( FCachedPointIndirectLightingPolicy, FCachedPointIndirectLightingPolicy );
+IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( FSimpleDynamicLightingPolicy, FSimpleDynamicLightingPolicy );
 
 void FSkyLightReflectionParameters::GetSkyParametersFromScene(
 	const FScene* Scene, 
@@ -119,7 +103,37 @@ void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FShader* S
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	auto PixelShader = Shader->GetPixelShader();
 
-	TranslucentLightingVolumeParameters.Set(RHICmdList, PixelShader);
+	SetTextureParameter(
+		RHICmdList, 
+		PixelShader, 
+		TranslucencyLightingVolumeAmbientInner, 
+		TranslucencyLightingVolumeAmbientInnerSampler, 
+		TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
+		SceneContext.GetTranslucencyVolumeAmbient(TVC_Inner)->GetRenderTargetItem().ShaderResourceTexture);
+
+	SetTextureParameter(
+		RHICmdList, 
+		PixelShader, 
+		TranslucencyLightingVolumeAmbientOuter, 
+		TranslucencyLightingVolumeAmbientOuterSampler, 
+		TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
+		SceneContext.GetTranslucencyVolumeAmbient(TVC_Outer)->GetRenderTargetItem().ShaderResourceTexture);
+
+	SetTextureParameter(
+		RHICmdList, 
+		PixelShader, 
+		TranslucencyLightingVolumeDirectionalInner, 
+		TranslucencyLightingVolumeDirectionalInnerSampler, 
+		TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
+		SceneContext.GetTranslucencyVolumeDirectional(TVC_Inner)->GetRenderTargetItem().ShaderResourceTexture);
+
+	SetTextureParameter(
+		RHICmdList, 
+		PixelShader, 
+		TranslucencyLightingVolumeDirectionalOuter, 
+		TranslucencyLightingVolumeDirectionalOuterSampler, 
+		TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
+		SceneContext.GetTranslucencyVolumeDirectional(TVC_Outer)->GetRenderTargetItem().ShaderResourceTexture);
 
 	SkyLightReflectionParameters.SetParameters(RHICmdList, Shader->GetPixelShader(), (const FScene*)(View->Family->Scene), true);
 
@@ -161,25 +175,6 @@ void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FShader* S
 			);
 			
 		SetShaderValue(RHICmdList, PixelShader, HZBUvFactorAndInvFactor, HZBUvFactorAndInvFactorValue);
-	}
-	else
-	{
-		//set dummies for platforms that require bound resources.
-		SetTextureParameter(
-			RHICmdList,
-			PixelShader,
-			HZBTexture,
-			HZBSampler,
-			TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(),
-			GBlackTexture->TextureRHI);
-
-		SetTextureParameter(
-			RHICmdList,
-			PixelShader,
-			PrevSceneColor,
-			PrevSceneColorSampler,
-			TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(),
-			GBlackTexture->TextureRHI);
 	}
 }
 
@@ -271,11 +266,7 @@ public:
 				Parameters.BlendMode,
 				Parameters.TextureMode,
 				Parameters.ShadingModel != MSM_Unlit && Scene->SkyLight && Scene->SkyLight->bWantsStaticShadowing && !Scene->SkyLight->bHasStaticLighting,
-				IsTranslucentBlendMode(Parameters.BlendMode) && Scene->HasAtmosphericFog(),
-				/* bOverrideWithShaderComplexity = */ false,
-				/* bInAllowGlobalFog = */ false,
-				/* bInEnableEditorPrimitiveDepthTest = */ false,
-				/* bInEnableReceiveDecalOutput = */ true
+				IsTranslucentBlendMode(Parameters.BlendMode) && Scene->HasAtmosphericFog()
 				),
 				Scene->GetFeatureLevel()
 				);
@@ -317,7 +308,7 @@ public:
 
 	const FViewInfo& View;
 	bool bBackFace;
-	float DitheredLODTransitionAlpha;
+	float DitheredLODTransitionValue;
 	bool bPreFog;
 	FHitProxyId HitProxyId;
 
@@ -330,7 +321,7 @@ public:
 		)
 		: View(InView)
 		, bBackFace(bInBackFace)
-		, DitheredLODTransitionAlpha(InDitheredLODTransitionValue)
+		, DitheredLODTransitionValue(InDitheredLODTransitionValue)
 		, HitProxyId(InHitProxyId)
 	{}
 
@@ -369,11 +360,8 @@ public:
 		{
 			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_DepthNearOrEqual>::GetRHI());
 		}
-
-		const FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 #endif
 		const FScene* Scene = Parameters.PrimitiveSceneProxy ? Parameters.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->Scene : NULL;
-
 
 		TBasePassDrawingPolicy<LightMapPolicyType> DrawingPolicy(
 			Parameters.Mesh.VertexFactory,
@@ -387,30 +375,13 @@ public:
 			IsTranslucentBlendMode(Parameters.BlendMode) && (Scene && Scene->HasAtmosphericFog()) && View.Family->EngineShowFlags.AtmosphericFog,
 			View.Family->EngineShowFlags.ShaderComplexity,
 			false,
-			Parameters.bEditorCompositeDepthTest,
-			/* bInEnableReceiveDecalOutput = */ Scene != nullptr,
-			View.Family->GetQuadOverdrawMode()
+			Parameters.bEditorCompositeDepthTest
 			);
 		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
-		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType(Parameters.bIsInstancedStereo));
-		const FMeshDrawingRenderState DrawRenderState(DitheredLODTransitionAlpha);
+		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType());
 
 		for( int32 BatchElementIndex = 0, Num = Parameters.Mesh.Elements.Num(); BatchElementIndex < Num; BatchElementIndex++ )
 		{
-			// We draw instanced static meshes twice when rendering with instanced stereo. Once for each eye.
-			const bool bIsInstancedMesh = Parameters.Mesh.Elements[BatchElementIndex].bIsInstancedMesh;
-			const uint32 InstancedStereoDrawCount = (Parameters.bIsInstancedStereo && bIsInstancedMesh) ? 2 : 1;
-			for (uint32 DrawCountIter = 0; DrawCountIter < InstancedStereoDrawCount; ++DrawCountIter)
-			{
-				// Set the eye index explicitly
-				if (InstancedStereoDrawCount > 1)
-				{
-					DrawingPolicy.SetInstancedEyeIndex(RHICmdList, DrawCountIter);
-				}
-
-			TDrawEvent<FRHICommandList> MeshEvent;
-			BeginMeshDrawEvent(RHICmdList, Parameters.PrimitiveSceneProxy, Parameters.Mesh, MeshEvent);
-
 			DrawingPolicy.SetMeshRenderState(
 				RHICmdList, 
 				View,
@@ -418,12 +389,11 @@ public:
 				Parameters.Mesh,
 				BatchElementIndex,
 				bBackFace,
-				DrawRenderState,
+				DitheredLODTransitionValue,
 				typename TBasePassDrawingPolicy<LightMapPolicyType>::ElementDataType(LightMapElementData),
 				typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType()
 				);
-				DrawingPolicy.DrawMesh(RHICmdList, Parameters.Mesh, BatchElementIndex, Parameters.bIsInstancedStereo);
-			}
+			DrawingPolicy.DrawMesh(RHICmdList, Parameters.Mesh, BatchElementIndex);
 		}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -443,8 +413,7 @@ bool FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(
 	bool bBackFace,
 	bool bPreFog,
 	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
-	FHitProxyId HitProxyId, 
-	const bool bIsInstancedStereo
+	FHitProxyId HitProxyId
 	)
 {
 	// Determine the mesh's material and blend mode.
@@ -463,8 +432,7 @@ bool FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(
 				!bPreFog,
 				DrawingContext.bEditorCompositeDepthTest,
 				DrawingContext.TextureMode,
-				View.GetFeatureLevel(), 
-				bIsInstancedStereo
+				View.GetFeatureLevel()
 				),
 			FDrawBasePassDynamicMeshAction(
 				View,
@@ -478,6 +446,194 @@ bool FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(
 	else
 	{
 		return false;
+	}
+}
+
+void FCachedVolumeIndirectLightingPolicy::Set(
+	FRHICommandList& RHICmdList, 
+	const VertexParametersType* VertexShaderParameters,
+	const PixelParametersType* PixelShaderParameters,
+	FShader* VertexShader,
+	FShader* PixelShader,
+	const FVertexFactory* VertexFactory,
+	const FMaterialRenderProxy* MaterialRenderProxy,
+	const FSceneView* View
+	) const
+{
+	FNoLightMapPolicy::Set(RHICmdList, VertexShaderParameters, PixelShaderParameters, VertexShader, PixelShader, VertexFactory, MaterialRenderProxy, View);
+
+	if (PixelShaderParameters)
+	{
+		FTextureRHIParamRef Texture0 = GBlackVolumeTexture->TextureRHI;
+		FTextureRHIParamRef Texture1 = GBlackVolumeTexture->TextureRHI;
+		FTextureRHIParamRef Texture2 = GBlackVolumeTexture->TextureRHI;
+
+		FScene* Scene = (FScene*)View->Family->Scene;
+		FIndirectLightingCache& LightingCache = Scene->IndirectLightingCache;
+
+		// If we are using FCachedVolumeIndirectLightingPolicy then InitViews should have updated the lighting cache which would have initialized it
+		// However the conditions for updating the lighting cache are complex and fail very occasionally in non-reproducible ways
+		// Silently skipping setting the cache texture under failure for now
+		if (LightingCache.IsInitialized())
+		{
+			Texture0 = LightingCache.GetTexture0().ShaderResourceTexture;
+			Texture1 = LightingCache.GetTexture1().ShaderResourceTexture;
+			Texture2 = LightingCache.GetTexture2().ShaderResourceTexture;
+		}
+
+		const FPixelShaderRHIParamRef PixelShaderRHI = PixelShader->GetPixelShader();
+
+		SetTextureParameter(
+			RHICmdList, 
+			PixelShaderRHI,
+			PixelShaderParameters->IndirectLightingCacheTexture0,
+			PixelShaderParameters->IndirectLightingCacheSampler0,
+			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+			Texture0
+			);
+
+		SetTextureParameter(
+			RHICmdList, 
+			PixelShaderRHI,
+			PixelShaderParameters->IndirectLightingCacheTexture1,
+			PixelShaderParameters->IndirectLightingCacheSampler1,
+			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+			Texture1
+			);
+
+		SetTextureParameter(
+			RHICmdList, 
+			PixelShaderRHI,
+			PixelShaderParameters->IndirectLightingCacheTexture2,
+			PixelShaderParameters->IndirectLightingCacheSampler2,
+			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+			Texture2
+			);
+	}
+}
+
+void FCachedVolumeIndirectLightingPolicy::SetMesh(
+	FRHICommandList& RHICmdList, 
+	const FSceneView& View,
+	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
+	const VertexParametersType* VertexShaderParameters,
+	const PixelParametersType* PixelShaderParameters,
+	FShader* VertexShader,
+	FShader* PixelShader,
+	const FVertexFactory* VertexFactory,
+	const FMaterialRenderProxy* MaterialRenderProxy,
+	const ElementDataType& ElementData
+	) const
+{
+	if (PixelShaderParameters)
+	{
+		FVector AllocationAdd(0, 0, 0);
+		FVector AllocationScale(1, 1, 1);
+		FVector MinUV(0, 0, 0);
+		FVector MaxUV(1, 1, 1);
+		FVector4 SkyBentNormal(0, 0, 1, 1);
+
+		if (PrimitiveSceneProxy->GetPrimitiveSceneInfo()->IndirectLightingCacheAllocation
+			&& PrimitiveSceneProxy->GetPrimitiveSceneInfo()->IndirectLightingCacheAllocation->IsValid())
+		{
+			const FIndirectLightingCacheAllocation& LightingAllocation = *PrimitiveSceneProxy->GetPrimitiveSceneInfo()->IndirectLightingCacheAllocation;
+			
+			AllocationAdd = LightingAllocation.Add;
+			AllocationScale = LightingAllocation.Scale;
+			MinUV = LightingAllocation.MinUV;
+			MaxUV = LightingAllocation.MaxUV;
+			SkyBentNormal = LightingAllocation.CurrentSkyBentNormal;
+		}
+		
+		const FPixelShaderRHIParamRef PixelShaderRHI = PixelShader->GetPixelShader();
+		SetShaderValue(RHICmdList, PixelShaderRHI, PixelShaderParameters->IndirectlightingCachePrimitiveAdd, AllocationAdd);
+		SetShaderValue(RHICmdList, PixelShaderRHI, PixelShaderParameters->IndirectlightingCachePrimitiveScale, AllocationScale);
+		SetShaderValue(RHICmdList, PixelShaderRHI, PixelShaderParameters->IndirectlightingCacheMinUV, MinUV);
+		SetShaderValue(RHICmdList, PixelShaderRHI, PixelShaderParameters->IndirectlightingCacheMaxUV, MaxUV);
+		SetShaderValue(RHICmdList, PixelShaderRHI, PixelShaderParameters->PointSkyBentNormal, SkyBentNormal);
+	}
+}
+
+void FCachedPointIndirectLightingPolicy::SetMesh(
+	FRHICommandList& RHICmdList, 
+	const FSceneView& View,
+	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
+	const VertexParametersType* VertexShaderParameters,
+	const PixelParametersType* PixelShaderParameters,
+	FShader* VertexShader,
+	FShader* PixelShader,
+	const FVertexFactory* VertexFactory,
+	const FMaterialRenderProxy* MaterialRenderProxy,
+	const ElementDataType& ElementData
+	) const
+{
+	if (PixelShaderParameters)
+	{
+		if (PrimitiveSceneProxy->GetPrimitiveSceneInfo()->IndirectLightingCacheAllocation
+			&& PrimitiveSceneProxy->GetPrimitiveSceneInfo()->IndirectLightingCacheAllocation->IsValid()
+			&& View.Family->EngineShowFlags.GlobalIllumination)
+		{
+			const FIndirectLightingCacheAllocation& LightingAllocation = *PrimitiveSceneProxy->GetPrimitiveSceneInfo()->IndirectLightingCacheAllocation;
+
+			if (ElementData.bPackAmbientTermInFirstVector)
+			{
+				// So ambient term is contained in one shader constant
+				const FVector4 SwizzledAmbientTerm = 
+					FVector4(LightingAllocation.SingleSamplePacked[0].X, LightingAllocation.SingleSamplePacked[1].X, LightingAllocation.SingleSamplePacked[2].X)
+					//@todo - why is .5f needed to match directional?
+					* FSHVector2::ConstantBasisIntegral * .5f;
+
+				SetShaderValue(
+					RHICmdList, 
+					PixelShader->GetPixelShader(), 
+					PixelShaderParameters->IndirectLightingSHCoefficients, 
+					SwizzledAmbientTerm);
+			}
+			else
+			{
+				SetShaderValueArray(
+					RHICmdList, 
+					PixelShader->GetPixelShader(), 
+					PixelShaderParameters->IndirectLightingSHCoefficients, 
+					&LightingAllocation.SingleSamplePacked, 
+					ARRAY_COUNT(LightingAllocation.SingleSamplePacked));
+			}
+
+			SetShaderValue(
+				RHICmdList, 
+				PixelShader->GetPixelShader(), 
+				PixelShaderParameters->PointSkyBentNormal, 
+				LightingAllocation.CurrentSkyBentNormal);
+
+			SetShaderValue(
+				RHICmdList, 
+				PixelShader->GetPixelShader(), 
+				PixelShaderParameters->DirectionalLightShadowing, 
+				LightingAllocation.CurrentDirectionalShadowing);
+		}
+		else
+		{
+			const FVector4 ZeroArray[sizeof(FSHVectorRGB2) / sizeof(FVector4)] = {FVector4(0, 0, 0, 0), FVector4(0, 0, 0, 0), FVector4(0, 0, 0, 0)};
+
+			SetShaderValueArray(
+				RHICmdList, 
+				PixelShader->GetPixelShader(), 
+				PixelShaderParameters->IndirectLightingSHCoefficients, 
+				&ZeroArray, 
+				ARRAY_COUNT(ZeroArray));
+
+			SetShaderValue(
+				RHICmdList, 
+				PixelShader->GetPixelShader(), 
+				PixelShaderParameters->PointSkyBentNormal, 
+				FVector::ZeroVector);
+
+			SetShaderValue(
+				RHICmdList, 
+				PixelShader->GetPixelShader(), 
+				PixelShaderParameters->DirectionalLightShadowing, 
+				1);
+		}
 	}
 }
 
@@ -496,15 +652,41 @@ void FSelfShadowedCachedPointIndirectLightingPolicy::SetMesh(
 {
 	if (PixelShaderParameters)
 	{
-		FUniformBufferRHIParamRef PrecomputedLightingBuffer = GEmptyPrecomputedLightingUniformBuffer.GetUniformBufferRHI();;
-		if (View.Family->EngineShowFlags.GlobalIllumination && PrimitiveSceneProxy && PrimitiveSceneProxy->GetPrimitiveSceneInfo())
+		if (PrimitiveSceneProxy->GetPrimitiveSceneInfo()->IndirectLightingCacheAllocation
+			&& PrimitiveSceneProxy->GetPrimitiveSceneInfo()->IndirectLightingCacheAllocation->IsValid()
+			&& View.Family->EngineShowFlags.GlobalIllumination)
 		{
-			PrecomputedLightingBuffer = PrimitiveSceneProxy->GetPrimitiveSceneInfo()->IndirectLightingCacheUniformBuffer;
-		}
+			const FIndirectLightingCacheAllocation& LightingAllocation = *PrimitiveSceneProxy->GetPrimitiveSceneInfo()->IndirectLightingCacheAllocation;
 
-		if (PixelShaderParameters->BufferParameter.IsBound())
+			SetShaderValueArray(
+				RHICmdList, 
+				PixelShader->GetPixelShader(), 
+				PixelShaderParameters->IndirectLightingSHCoefficients, 
+				&LightingAllocation.SingleSamplePacked, 
+				ARRAY_COUNT(LightingAllocation.SingleSamplePacked));
+
+			SetShaderValue(
+				RHICmdList, 
+				PixelShader->GetPixelShader(), 
+				PixelShaderParameters->PointSkyBentNormal, 
+				LightingAllocation.CurrentSkyBentNormal);
+		}
+		else
 		{
-			SetUniformBufferParameter(RHICmdList, PixelShader->GetPixelShader(), PixelShaderParameters->BufferParameter, PrecomputedLightingBuffer);
+			const FVector4 ZeroArray[sizeof(FSHVectorRGB2) / sizeof(FVector4)] = {FVector4(0, 0, 0, 0), FVector4(0, 0, 0, 0), FVector4(0, 0, 0, 0)};
+
+			SetShaderValueArray(
+				RHICmdList, 
+				PixelShader->GetPixelShader(), 
+				PixelShaderParameters->IndirectLightingSHCoefficients, 
+				&ZeroArray, 
+				ARRAY_COUNT(ZeroArray));
+
+			SetShaderValue(
+				RHICmdList, 
+				PixelShader->GetPixelShader(), 
+				PixelShaderParameters->PointSkyBentNormal, 
+				FVector::ZeroVector);
 		}
 	}
 
@@ -519,86 +701,4 @@ void FSelfShadowedCachedPointIndirectLightingPolicy::SetMesh(
 		VertexFactory,
 		MaterialRenderProxy,
 		ElementData);
-}
-/**
- * Get shader templates allowing to redirect between compatible shaders.
- */
-
-template <ELightMapPolicyType Policy>
-void GetUniformBasePassShaders(
-	const FMaterial& Material, 
-	FVertexFactoryType* VertexFactoryType, 
-	bool bNeedsHSDS,
-	bool bEnableAtmosphericFog,
-	bool bEnableSkyLight,
-	FBaseHS*& HullShader,
-	FBaseDS*& DomainShader,
-	TBasePassVertexShaderPolicyParamType<FUniformLightMapPolicyShaderParametersType>*& VertexShader,
-	TBasePassPixelShaderPolicyParamType<FUniformLightMapPolicyShaderParametersType>*& PixelShader
-	)
-{
-	if (bNeedsHSDS)
-	{
-		HullShader = Material.GetShader<TBasePassHS<TUniformLightMapPolicy<Policy> > >(VertexFactoryType);
-		DomainShader = Material.GetShader<TBasePassDS<TUniformLightMapPolicy<Policy> > >(VertexFactoryType);
-	}
-
-	if (bEnableAtmosphericFog)
-	{
-		VertexShader = Material.GetShader<TBasePassVS<TUniformLightMapPolicy<Policy>, true> >(VertexFactoryType);
-	}
-	else
-	{
-		VertexShader = Material.GetShader<TBasePassVS<TUniformLightMapPolicy<Policy>, false> >(VertexFactoryType);
-	}
-	if (bEnableSkyLight)
-	{
-		PixelShader = Material.GetShader<TBasePassPS<TUniformLightMapPolicy<Policy>, true> >(VertexFactoryType);
-	}
-	else
-	{
-		PixelShader = Material.GetShader<TBasePassPS<TUniformLightMapPolicy<Policy>, false> >(VertexFactoryType);
-	}
-}
-
-template <>
-void GetBasePassShaders<FUniformLightMapPolicy>(
-	const FMaterial& Material, 
-	FVertexFactoryType* VertexFactoryType, 
-	FUniformLightMapPolicy LightMapPolicy, 
-	bool bNeedsHSDS,
-	bool bEnableAtmosphericFog,
-	bool bEnableSkyLight,
-	FBaseHS*& HullShader,
-	FBaseDS*& DomainShader,
-	TBasePassVertexShaderPolicyParamType<FUniformLightMapPolicyShaderParametersType>*& VertexShader,
-	TBasePassPixelShaderPolicyParamType<FUniformLightMapPolicyShaderParametersType>*& PixelShader
-	)
-{
-	switch (LightMapPolicy.GetIndirectPolicy())
-	{
-	case LMP_CACHED_VOLUME_INDIRECT_LIGHTING:
-		GetUniformBasePassShaders<LMP_CACHED_VOLUME_INDIRECT_LIGHTING>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
-		break;
-	case LMP_CACHED_POINT_INDIRECT_LIGHTING:
-		GetUniformBasePassShaders<LMP_CACHED_POINT_INDIRECT_LIGHTING>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
-		break;
-	case LMP_SIMPLE_DYNAMIC_LIGHTING:
-		GetUniformBasePassShaders<LMP_SIMPLE_DYNAMIC_LIGHTING>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
-		break;
-	case LMP_LQ_LIGHTMAP:
-		GetUniformBasePassShaders<LMP_LQ_LIGHTMAP>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
-		break;
-	case LMP_HQ_LIGHTMAP:
-		GetUniformBasePassShaders<LMP_HQ_LIGHTMAP>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
-		break;
-	case LMP_DISTANCE_FIELD_SHADOWS_AND_HQ_LIGHTMAP:
-		GetUniformBasePassShaders<LMP_DISTANCE_FIELD_SHADOWS_AND_HQ_LIGHTMAP>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
-		break;
-	default:										
-		check(false);
-	case LMP_NO_LIGHTMAP:
-		GetUniformBasePassShaders<LMP_NO_LIGHTMAP>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
-		break;
-	}
 }

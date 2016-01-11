@@ -1,28 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-template <typename T, T... Indices>
-struct TIntegerSequence
-{
-};
+template <uint32... Indices>
+struct TIntegerSequence;
 
 // Doxygen can't parse recursive template definitions; just skip it.
 #if !UE_BUILD_DOCS
 
-template <typename T, bool bTerminateRecursion, T ToAdd, T... Values>
-struct TMakeIntegerSequenceImpl
+template <uint32 ToAdd, uint32... Values>
+struct TMakeIntegerSequenceImpl : TMakeIntegerSequenceImpl<ToAdd - 1, Values..., sizeof...(Values)>
 {
-	typedef typename TMakeIntegerSequenceImpl<T, (ToAdd - 1 == (T)0), ToAdd - 1, Values..., sizeof...(Values)>::Type Type;
 };
 
-template <typename T, T ToAdd, T... Values>
-struct TMakeIntegerSequenceImpl<T, true, ToAdd, Values...>
+template <uint32... Values>
+struct TMakeIntegerSequenceImpl<0, Values...>
 {
-	typedef TIntegerSequence<T, Values...> Type;
+	typedef TIntegerSequence<Values...> Type;
 };
 
 #endif
 
-template <typename T, T ToAdd>
-using TMakeIntegerSequence = typename TMakeIntegerSequenceImpl<T, (ToAdd == (T)0), ToAdd>::Type;
+template <uint32 ToAdd>
+using TMakeIntegerSequence = typename TMakeIntegerSequenceImpl<ToAdd>::Type;

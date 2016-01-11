@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DestructibleComponent.cpp: UDestructibleComponent methods.
@@ -47,18 +47,18 @@ UDestructibleComponent::UDestructibleComponent(const FObjectInitializer& ObjectI
 	SetSpaceBaseDoubleBuffering(false);
 }
 
-#if WITH_EDITORONLY_DATA
 void UDestructibleComponent::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
+#if WITH_EDITORONLY_DATA
 	if(Ar.IsLoading())
 	{
 		// Copy our skeletal mesh value to our transient variable, so it appears in slate correctly.
 		this->DestructibleMesh = GetDestructibleMesh();
 	}
-}
 #endif // WITH_EDITORONLY_DATA
+}
 
 #if WITH_EDITOR
 void UDestructibleComponent::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent )
@@ -293,7 +293,7 @@ void UDestructibleComponent::CreatePhysicsState()
 
 	// Passing AssetInstanceID = 0 so we'll have self-collision
 	AActor* Owner = GetOwner();
-	CreateShapeFilterData(MoveChannel, FMaskFilter(0), GetUniqueID(), CollResponse, 0, 0, PQueryFilterData, PSimFilterData, BodyInstance.bUseCCD, bEnableImpactDamage, false, bEnableContactModification);
+	CreateShapeFilterData(MoveChannel, GetUniqueID(), CollResponse, 0, 0, PQueryFilterData, PSimFilterData, BodyInstance.bUseCCD, bEnableImpactDamage, false, bEnableContactModification);
 
 	// Build filterData variations for complex and simple
 	PSimFilterData.word3 |= EPDF_SimpleCollision | EPDF_ComplexCollision;
@@ -967,7 +967,7 @@ void UDestructibleComponent::UpdateDestructibleChunkTM(const TArray<const PxRigi
 			DestructibleComponent->SyncComponentToRBPhysics();
 		}
 
-		UNavigationSystem::UpdateComponentInNavOctree(*DestructibleComponent);
+		UNavigationSystem::UpdateNavOctree(DestructibleComponent);
 	}
 
 }
@@ -1344,7 +1344,6 @@ void UDestructibleComponent::SetSimulatePhysics(bool bSimulate)
 						ApexDestructibleActor->setChunkPhysXActorAwakeState(ChunkInfo->ChunkIndex, false);
 					}
 				}
-				ApexDestructibleActor->releasePhysXActorBuffer();
 			}
 		}
 		
@@ -1393,47 +1392,14 @@ bool UDestructibleComponent::IsAnySimulatingPhysics() const
 
 #if WITH_PHYSX
 
-bool UDestructibleComponent::IsChunkLarge(PxRigidActor* ChunkActor) const
+bool UDestructibleComponent::IsChunkLarge(int32 ChunkIdx) const
 {
 #if WITH_APEX
-	check(ChunkActor);
-	physx::PxBounds3 Bounds = ChunkActor->getWorldBounds();
+	check(ApexDestructibleActor);
+	physx::PxBounds3 Bounds = ApexDestructibleActor->getChunkBounds(ChunkIdx);
 	return Bounds.getExtents().maxElement() > LargeChunkThreshold;
 #else
 	return true;
-#endif // WITH_APEX
-}
-
-void UDestructibleComponent::SetCollisionEnabled(ECollisionEnabled::Type NewType)
-{
-#if WITH_APEX
-	ExecuteOnPhysicsReadWrite([&]
-	{
-		PxShape** ShapeBuffer;
-		PxU32 ShapeCount = 0;
-		
-		PxU32 NumChunks = GetDestructibleMesh()->GetApexDestructibleAsset()->getChunkCount();
-		
-		const bool bSetQuery = NewType == ECollisionEnabled::QueryAndPhysics || NewType == ECollisionEnabled::QueryOnly;
-		const bool bSetSim = NewType == ECollisionEnabled::PhysicsOnly || NewType == ECollisionEnabled::QueryAndPhysics;
-		
-		for(uint32 ChunkIdx = 0; ChunkIdx < NumChunks; ++ChunkIdx)
-		{
-			ShapeCount = ApexDestructibleActor->getChunkPhysXShapes(ShapeBuffer, ChunkIdx);
-			
-			for(uint32 ShapeIdx = 0; ShapeIdx < ShapeCount; ++ShapeIdx)
-			{
-				if(PxShape* Shape = ShapeBuffer[ShapeIdx])
-				{
-					Shape->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, bSetQuery);
-					Shape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, bSetSim);
-				}
-			}
-		}
-	});
-
-	EnsurePhysicsStateCreated();
-	OnComponentCollisionSettingsChanged();
 #endif // WITH_APEX
 }
 
@@ -1452,13 +1418,13 @@ void UDestructibleComponent::SetCollisionResponseForActor(PxRigidDynamic* Actor,
 	{
 		UDestructibleMesh* TheDestructibleMesh = GetDestructibleMesh();
 		AActor* Owner = GetOwner();
-		bool bLargeChunk = IsChunkLarge(Actor);
+		bool bLargeChunk = IsChunkLarge(ChunkIdx);
 		const FCollisionResponseContainer& UseResponse = ResponseOverride == NULL ? (bLargeChunk ? LargeChunkCollisionResponse.GetResponseContainer() : SmallChunkCollisionResponse.GetResponseContainer()) : *ResponseOverride;
 
 		physx::PxU32 SupportDepth = TheDestructibleMesh->ApexDestructibleAsset->getChunkDepth(ChunkIdx);
 
 		const bool bEnableImpactDamage = IsImpactDamageEnabled(TheDestructibleMesh, SupportDepth);
-		CreateShapeFilterData(MoveChannel, FMaskFilter(0), GetUniqueID(), UseResponse, 0, ChunkIdxToBoneIdx(ChunkIdx), PQueryFilterData, PSimFilterData, BodyInstance.bUseCCD, bEnableImpactDamage, false);
+		CreateShapeFilterData(MoveChannel, GetUniqueID(), UseResponse, 0, ChunkIdxToBoneIdx(ChunkIdx), PQueryFilterData, PSimFilterData, BodyInstance.bUseCCD, bEnableImpactDamage, false);
 		
 		PQueryFilterData.word3 |= EPDF_SimpleCollision | EPDF_ComplexCollision;
 
@@ -1483,6 +1449,51 @@ void UDestructibleComponent::SetCollisionResponseForActor(PxRigidDynamic* Actor,
 #endif
 }
 
+void UDestructibleComponent::SetCollisionResponseForAllActors(const FCollisionResponseContainer& ResponseOverride)
+{
+#if WITH_APEX
+	if (ApexDestructibleActor == NULL)
+	{
+		return;
+	}
+
+	PxRigidDynamic** PActorBuffer = NULL;
+	PxU32 PActorCount = 0;
+	if (ApexDestructibleActor->acquirePhysXActorBuffer(PActorBuffer, PActorCount))
+	{
+		PxScene* LockedScene = NULL;
+
+		while (PActorCount--)
+		{
+			PxRigidDynamic* PActor = *PActorBuffer++;
+			if (PActor != NULL)
+			{
+				FDestructibleChunkInfo* ChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(PActor->userData);
+				if (ChunkInfo != NULL)
+				{
+					if (!LockedScene)
+					{
+						LockedScene = PActor->getScene();
+						LockedScene->lockWrite();
+						LockedScene->lockRead();
+					}
+					SetCollisionResponseForActor(PActor, ChunkInfo->ChunkIndex, &ResponseOverride);	// ChunkIndex is the last chunk made visible.  But SetCollisionResponseForActor already doesn't respect per-chunk collision properties.
+				}
+			}
+		}
+
+		if (LockedScene)
+		{
+			LockedScene->unlockRead();
+			LockedScene->unlockWrite();
+			LockedScene = NULL;
+		}
+
+		ApexDestructibleActor->releasePhysXActorBuffer();
+	}
+#endif
+}
+
 void UDestructibleComponent::SetCollisionResponseForShape(PxShape* Shape, int32 ChunkIdx)
 {
 #if WITH_APEX
@@ -1498,10 +1509,10 @@ void UDestructibleComponent::SetCollisionResponseForShape(PxShape* Shape, int32 
 	if (IsCollisionEnabled())
 	{
 		AActor* Owner = GetOwner();
-		bool bLargeChunk = IsChunkLarge(Shape->getActor());
+		bool bLargeChunk = IsChunkLarge(ChunkIdx);
 		const FCollisionResponse& ColResponse = bLargeChunk ? LargeChunkCollisionResponse : SmallChunkCollisionResponse;
 		//TODO: we currently assume chunks will not have impact damage as it's very expensive. Should look into exposing this a bit more
-		CreateShapeFilterData(MoveChannel, FMaskFilter(0), (Owner ? Owner->GetUniqueID() : 0), ColResponse.GetResponseContainer(), 0, ChunkIdxToBoneIdx(ChunkIdx), PQueryFilterData, PSimFilterData, BodyInstance.bUseCCD, false, false);
+		CreateShapeFilterData(MoveChannel, (Owner ? Owner->GetUniqueID() : 0), ColResponse.GetResponseContainer(), 0, ChunkIdxToBoneIdx(ChunkIdx), PQueryFilterData, PSimFilterData, BodyInstance.bUseCCD, false, false);
 
 		PQueryFilterData.word3 |= EPDF_SimpleCollision | EPDF_ComplexCollision;
 

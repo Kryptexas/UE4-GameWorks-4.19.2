@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OutputLogPrivatePCH.h"
 #include "SOutputLog.h"
@@ -161,6 +161,8 @@ void SConsoleInputBox::Construct( const FArguments& InArgs )
 			)
 	];
 }
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
 void SConsoleInputBox::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	if (!GIntraFrameDebuggingGameThread && !IsEnabled())

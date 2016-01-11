@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Texture2D.cpp: Implementation of UTexture2D.
@@ -41,12 +41,6 @@ static TAutoConsoleVariable<int32> CVarVirtualTextureEnabled(
 	TEXT("r.VirtualTexture"),
 	1,
 	TEXT("If set to 1, textures will use virtual memory so they can be partially resident."),
-	ECVF_RenderThreadSafe);
-
-static TAutoConsoleVariable<int32> CVarFlushRHIThreadOnSTreamingTextureLocks(
-	TEXT("r.FlushRHIThreadOnSTreamingTextureLocks"),
-	0,
-	TEXT("If set to 0, we won't do any flushes for streaming textures. This is safe because the texture streamer deals with these hazards explicitly."),
 	ECVF_RenderThreadSafe);
 
 static bool CanCreateAsVirtualTexture(const UTexture2D* Texture, uint32 TexCreateFlags)
@@ -414,7 +408,7 @@ void UTexture2D::UpdateResource()
 void UTexture2D::PostLinkerChange()
 {
 	// Changing the linker requires re-creating the resource to make sure streaming behavior is right.
-	if( !HasAnyFlags( RF_BeginDestroyed | RF_NeedLoad | RF_NeedPostLoad ) && !IsUnreachable() )
+	if( !HasAnyFlags( RF_Unreachable | RF_BeginDestroyed | RF_NeedLoad | RF_NeedPostLoad ) )
 	{
 		// Update the resource.
 		UpdateResource();
@@ -576,7 +570,7 @@ bool UTexture2D::UpdateStreamingStatus( bool bWaitForMipFading /*= false*/ )
 				// We can't load the source art from a bulk data object if the texture itself is pending kill because the linker will have been detached.
 				// In this case we don't rebuild the data and instead let the streaming request be cancelled. This will let the garbage collector finish
 				// destroying the object.
-				if (!IsPendingKillOrUnreachable())
+				if (!HasAnyFlags(RF_PendingKill | RF_Unreachable))
 				{
 					ForceRebuildPlatformData();
 				}
@@ -997,21 +991,31 @@ int32 UTexture2D::Blueprint_GetSizeY() const
 	return GetSizeY();
 }
 
-void UTexture2D::UpdateTextureRegions(int32 MipIndex, uint32 NumRegions, const FUpdateTextureRegion2D* Regions, uint32 SrcPitch, uint32 SrcBpp, uint8* SrcData, TFunction<void(uint8* SrcData, const FUpdateTextureRegion2D* Regions)> DataCleanupFunc)
+#if WITH_EDITOR
+void UTexture2D::TemporarilyDisableStreaming()
 {
-	if (!bTemporarilyDisableStreaming && bIsStreamable)
+	if( !bTemporarilyDisableStreaming )
+	{
+		bTemporarilyDisableStreaming = true;
+		UpdateResource();
+	}
+}
+
+void UTexture2D::UpdateTextureRegions( int32 MipIndex, uint32 NumRegions, FUpdateTextureRegion2D* Regions, uint32 SrcPitch, uint32 SrcBpp, uint8* SrcData, bool bFreeData )
+{
+	if( !bTemporarilyDisableStreaming )
 	{
 		UE_LOG(LogTexture, Log, TEXT("UpdateTextureRegions called for %s without calling TemporarilyDisableStreaming"), *GetPathName());
 	}
 	else
-	if (Resource)
+	if( Resource )
 	{
 		struct FUpdateTextureRegionsData
 		{
 			FTexture2DResource* Texture2DResource;
 			int32 MipIndex;
 			uint32 NumRegions;
-			const FUpdateTextureRegion2D* Regions;
+			FUpdateTextureRegion2D* Regions;
 			uint32 SrcPitch;
 			uint32 SrcBpp;
 			uint8* SrcData;
@@ -1029,13 +1033,13 @@ void UTexture2D::UpdateTextureRegions(int32 MipIndex, uint32 NumRegions, const F
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 			UpdateTextureRegionsData,
-			FUpdateTextureRegionsData*, RegionData, RegionData,			
-			TFunction<void(uint8* SrcData, const FUpdateTextureRegion2D* Regions)>, DataCleanupFunc, DataCleanupFunc,
-			{
-			for (uint32 RegionIndex = 0; RegionIndex < RegionData->NumRegions; ++RegionIndex)
+			FUpdateTextureRegionsData*,RegionData,RegionData,
+			bool,bFreeData,bFreeData,
+		{
+			for(uint32 RegionIndex = 0;RegionIndex < RegionData->NumRegions;++RegionIndex)
 			{
 				int32 CurrentFirstMip = RegionData->Texture2DResource->GetCurrentFirstMip();
-				if (RegionData->MipIndex >= CurrentFirstMip)
+				if( RegionData->MipIndex >= CurrentFirstMip )
 				{
 					RHIUpdateTexture2D(
 						RegionData->Texture2DResource->GetTexture2DRHI(),
@@ -1043,24 +1047,18 @@ void UTexture2D::UpdateTextureRegions(int32 MipIndex, uint32 NumRegions, const F
 						RegionData->Regions[RegionIndex],
 						RegionData->SrcPitch,
 						RegionData->SrcData
-						+ RegionData->Regions[RegionIndex].SrcY * RegionData->SrcPitch
-						+ RegionData->Regions[RegionIndex].SrcX * RegionData->SrcBpp
+						  + RegionData->Regions[RegionIndex].SrcY * RegionData->SrcPitch
+						  + RegionData->Regions[RegionIndex].SrcX * RegionData->SrcBpp
 						);
 				}
 			}
-			DataCleanupFunc(RegionData->SrcData, RegionData->Regions);
+			if( bFreeData )
+			{
+				FMemory::Free(RegionData->Regions);
+				FMemory::Free(RegionData->SrcData);
+			}
 			delete RegionData;
 		});
-	}
-}
-
-#if WITH_EDITOR
-void UTexture2D::TemporarilyDisableStreaming()
-{
-	if( !bTemporarilyDisableStreaming )
-	{
-		bTemporarilyDisableStreaming = true;
-		UpdateResource();
 	}
 }
 
@@ -1463,7 +1461,14 @@ void FTexture2DResource::GetData( uint32 MipIndex, void* Dest, uint32 DestPitch 
 	}
 	
 	// Free data retrieved via GetCopy inside constructor.
+	bool bMipIsInDerivedDataCache = false;
+#if WITH_EDITORONLY_DATA
+	bMipIsInDerivedDataCache = MipMap.DerivedDataKey.IsEmpty() == false;
+#endif
+	if (bMipIsInDerivedDataCache || MipMap.BulkData.ShouldFreeOnEmpty())
+	{
 		FMemory::Free(MipData[MipIndex]);
+	}
 	MipData[MipIndex] = NULL;
 }
 
@@ -1863,7 +1868,7 @@ void FTexture2DResource::LoadMipData()
 			{
 				// Lock the new texture.
 				uint32 DestPitch;
-				MipData[ActualMipIndex] = RHILockTexture2D( IntermediateTextureRHI, MipIndex, RLM_WriteOnly, DestPitch, false, CVarFlushRHIThreadOnSTreamingTextureLocks.GetValueOnAnyThread() > 0 );
+				MipData[ActualMipIndex] = RHILockTexture2D( IntermediateTextureRHI, MipIndex, RLM_WriteOnly, DestPitch, false );
 			}
 
 			// Pass the request on to the async io manager after increasing the request count. The request count 
@@ -2025,7 +2030,7 @@ void FTexture2DResource::UploadMipData()
 			{
 				// Intermediate texture has RequestedMips miplevels, all of which have been locked.
 				// DEXTEX: Do not unload as we didn't locked the textures in the first place
-				RHIUnlockTexture2D( IntermediateTextureRHI, MipIndex, false, CVarFlushRHIThreadOnSTreamingTextureLocks.GetValueOnAnyThread() > 0 );
+				RHIUnlockTexture2D( IntermediateTextureRHI, MipIndex, false );
 				MipData[MipIndex + PendingFirstMip] = NULL;
 			}
 		}

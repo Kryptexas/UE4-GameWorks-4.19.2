@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "OnlineStoreInterface.h"
@@ -24,9 +24,9 @@ class UInAppPurchaseQueryCallbackProxy : public UObject
 	static UInAppPurchaseQueryCallbackProxy* CreateProxyObjectForInAppPurchaseQuery(class APlayerController* PlayerController, const TArray<FString>& ProductIdentifiers);
 
 public:
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void BeginDestroy() override;
-	//~ End UObject Interface
+	// End UObject interface
 
 private:
 	/** Called by the InAppPurchase system when the read is finished */

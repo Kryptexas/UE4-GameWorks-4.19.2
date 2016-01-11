@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphPrivatePCH.h"
 #include "AnimGraphNode_RotationOffsetBlendSpace.h"
@@ -6,7 +6,6 @@
 #include "CompilerResultsLog.h"
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
-#include "Animation/AnimationSettings.h"
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_RotationOffsetBlendSpace
@@ -140,14 +139,6 @@ void UAnimGraphNode_RotationOffsetBlendSpace::ValidateAnimNodeDuringCompilation(
 			MessageLog.Error(TEXT("@@ references blendspace that uses different skeleton @@"), this, BlendSpaceSkeleton);
 		}
 	}
-
-	if (UAnimationSettings::Get()->bEnablePerformanceLog)
-	{
-		if (Node.LODThreshold < 0)
-		{
-			MessageLog.Warning(TEXT("@@ contains no LOD Threshold."), this);
-		}
-	}
 }
 
 void UAnimGraphNode_RotationOffsetBlendSpace::GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const
@@ -175,5 +166,4 @@ void UAnimGraphNode_RotationOffsetBlendSpace::ReplaceReferredAnimations(const TM
 {
 	HandleAnimReferenceReplacement(Node.BlendSpace, ComplexAnimsMap, AnimSequenceMap);
 }
-
 #undef LOCTEXT_NAMESPACE

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "BlueprintUtilities.h"
@@ -104,11 +104,10 @@ public:
 	void RemoveOnGraphChangedHandler( FDelegateHandle Handle );
 
 #if WITH_EDITORONLY_DATA
-	//~ Begin UObject interface
-	virtual void Serialize( FArchive& Ar ) override;
+	// Begin UObject interface
 	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;
-	//~ End UObject Interface
+	// End UObject interface
 #endif
 
 public:
@@ -201,22 +200,11 @@ protected:
 	 * Creates an empty node in this graph. Use FGraphNodeCreator above
 	 *
 	 * @param NewNodeClass		The node class to create
-	 * @param bFromUI			Whether or not the node was created by the user via the UI
 	 * @param bSelectNewNode	Whether or not to select the new node being created
 	 *
 	 * @return A new graph node of the given type
 	 */
-	UEdGraphNode* CreateNode( TSubclassOf<UEdGraphNode> NewNodeClass, bool bFromUI, bool bSelectNewNode );
-
-	UEdGraphNode* CreateNode(TSubclassOf<UEdGraphNode> NewNodeClass, bool bSelectNewNode = true)
-	{
-		return CreateNode( NewNodeClass, false, bSelectNewNode );
-	}
-
-	UEdGraphNode* CreateUserInvokedNode(TSubclassOf<UEdGraphNode> NewNodeClass, bool bSelectNewNode = true)
-	{
-		return CreateNode(NewNodeClass, true, bSelectNewNode);
-	}
+	UEdGraphNode* CreateNode ( TSubclassOf<UEdGraphNode> NewNodeClass, bool bSelectNewNode = true );
 
 private:
 	/** A delegate that broadcasts a notification whenever the graph has changed. */
@@ -255,13 +243,6 @@ public:
 		Node = (NodeType*)Graph.CreateNode(NodeType::StaticClass(), bSelectNewNode);
 		return Node;
 	} 
-
-	/** Create an empty placeable graph node */
-	NodeType* CreateUserInvokedNode(bool bSelectNewNode = true)
-	{
-		Node = (NodeType*)Graph.CreateUserInvokedNode(NodeType::StaticClass(), bSelectNewNode);
-		return Node;
-	}
 
 	/** Call to finalize the node's construction */
 	void Finalize()

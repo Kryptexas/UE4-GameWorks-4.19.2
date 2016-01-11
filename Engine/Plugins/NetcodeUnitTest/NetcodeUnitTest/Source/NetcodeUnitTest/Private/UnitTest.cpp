@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "NetcodeUnitTestPCH.h"
 
@@ -175,13 +175,13 @@ void UUnitTest::CleanupUnitTest()
 	}
 }
 
-void UUnitTest::NotifyLocalLog(ELogType InLogType, const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category)
+void UUnitTest::NotifyLocalLog(ELogType LogType, const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category)
 {
 	if (LogWindow.IsValid())
 	{
 		TSharedPtr<SLogWidget>& LogWidget = LogWindow->LogWidget;
 
-		ELogType LogOrigin = (InLogType & ELogType::OriginMask);
+		ELogType LogOrigin = (LogType & ELogType::OriginMask);
 
 		if (LogWidget.IsValid() && LogOrigin != ELogType::None && !(LogOrigin & ELogType::OriginVoid))
 		{
@@ -224,50 +224,10 @@ void UUnitTest::NotifyLocalLog(ELogType InLogType, const TCHAR* Data, ELogVerbos
 
 				bool bRequestFocus = !!(LogOrigin & ELogType::FocusMask);
 
-				LogWidget->AddLine(InLogType, MakeShareable(new FString(LogLine)), CurLogColor, bRequestFocus);
+				LogWidget->AddLine(LogType, MakeShareable(new FString(LogLine)), CurLogColor, bRequestFocus);
 			}
 		}
 	}
-}
-
-void UUnitTest::NotifyDeveloperModeRequest(bool bInDeveloperMode)
-{
-	bDeveloperMode = bInDeveloperMode;
-}
-
-bool UUnitTest::NotifyConsoleCommandRequest(FString CommandContext, FString Command)
-{
-	bool bHandled = false;
-	static TArray<FString> BadCmds = TArrayBuilder<FString>()
-		.Add("exit");
-
-	// Don't execute commands that crash
-	if (BadCmds.Contains(Command))
-	{
-		bHandled = true;
-
-		UNIT_LOG(ELogType::OriginConsole,
-					TEXT("Can't execute command '%s', it's in the 'bad commands' list (i.e. probably crashes)"), *Command);
-	}
-
-	if (!bHandled)
-	{
-		if (CommandContext == TEXT("Global"))
-		{
-			UNIT_LOG_BEGIN(this, ELogType::OriginConsole);
-			bHandled = GEngine->Exec(NULL, *Command, *GLog);
-			UNIT_LOG_END();
-		}
-	}
-
-	return bHandled;
-}
-
-void UUnitTest::GetCommandContextList(TArray<TSharedPtr<FString>>& OutList, FString& OutDefaultContext)
-{
-	OutList.Add(MakeShareable(new FString(TEXT("Global"))));
-
-	OutDefaultContext = TEXT("Global");
 }
 
 void UUnitTest::PostUnitTick(float DeltaTime)
@@ -294,15 +254,6 @@ void UUnitTest::PostUnitTick(float DeltaTime)
 			VerificationState = EUnitTestVerification::VerifiedNeedsUpdate;
 		}
 	}
-}
-
-bool UUnitTest::IsTickable() const
-{
-	bool bReturnVal = Super::IsTickable();
-
-	bReturnVal = bReturnVal || UnitTestTimeout > 0;
-
-	return bReturnVal;
 }
 
 void UUnitTest::TickIsComplete(float DeltaTime)
@@ -343,4 +294,6 @@ void UUnitTest::TickIsComplete(float DeltaTime)
 		}
 	}
 }
+
+
 

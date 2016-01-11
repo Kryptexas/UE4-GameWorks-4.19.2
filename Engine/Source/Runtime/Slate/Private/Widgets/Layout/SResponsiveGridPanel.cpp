@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "SlatePrivatePCH.h"
 #include "SResponsiveGridPanel.h"
 #include "LayoutUtils.h"
@@ -61,8 +61,6 @@ int32 SResponsiveGridPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Al
 	// wants to an overlay for all of its contents.
 	int32 MaxLayerId = LayerId;
 
-	const FPaintArgs NewArgs = Args.WithNewParent(this);
-
 	// We need to iterate over slots, because slots know the GridLayers. This isn't available in the arranged children.
 	// Some slots do not show up (they are hidden/collapsed). We need a 2nd index to skip over them.
 	 
@@ -74,7 +72,7 @@ int32 SResponsiveGridPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Al
 			FSlateRect ChildClipRect = MyClippingRect.IntersectionWith( CurWidget.Geometry.GetClippingRect() );
 
 			const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint(
-				NewArgs,
+				Args.WithNewParent(this),
 				CurWidget.Geometry,
 				ChildClipRect,
 				OutDrawElements,

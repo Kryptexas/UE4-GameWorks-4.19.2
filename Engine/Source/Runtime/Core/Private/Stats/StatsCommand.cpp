@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "TaskGraphInterfaces.h"
@@ -16,9 +16,6 @@ DECLARE_CYCLE_STAT(TEXT("HUD Group"),STAT_HUDGroup,STATGROUP_StatSystem);
 DECLARE_CYCLE_STAT(TEXT("Accumulate"),STAT_Accumulate,STATGROUP_StatSystem);
 DECLARE_CYCLE_STAT(TEXT("GetFlatAggregates"),STAT_GetFlatAggregates,STATGROUP_StatSystem);
 
-static float DumpCull = 1.0f;
-
-
 void FromString( EStatCompareBy::Type& OutValue, const TCHAR* Buffer )
 {
 	OutValue = EStatCompareBy::Sum;
@@ -33,72 +30,17 @@ void FromString( EStatCompareBy::Type& OutValue, const TCHAR* Buffer )
 	}
 }
 
-struct FHUDGroupManager;
 struct FGroupFilter : public IItemFiler
 {
 	TSet<FName> const& EnabledItems;
-	FString RootFilter;
-	int32 RootValidCount;
-	FHUDGroupManager* HudGroupManager;
-
-	FGroupFilter(TSet<FName> const& InEnabledItems, FString InRootFilter, FHUDGroupManager* InHudGroupManager)
-		: EnabledItems(InEnabledItems)
-		, RootFilter(InRootFilter)
-		, HudGroupManager(InHudGroupManager)
-	{
-		RootValidCount = RootFilter.IsEmpty() ? 1 : 0;
-	}
-
+	FGroupFilter( TSet<FName> const& InEnabledItems )
+		: EnabledItems( InEnabledItems )
+	{}
 	virtual bool Keep( FStatMessage const& Item )
 	{
-		const FName MessageName = Item.NameAndInfo.GetRawName();
-
-		if (!RootFilter.IsEmpty())
-		{
-			EStatOperation::Type Op = Item.NameAndInfo.GetField<EStatOperation>();
-			if (Op == EStatOperation::ChildrenStart && IsRoot(MessageName))
-			{
-				RootValidCount++;
-			}
-			else if (Op == EStatOperation::ChildrenEnd && IsRoot(MessageName))
-			{
-				RootValidCount--;
-			}
-		}
-
-		return EnabledItems.Contains(MessageName) && RootValidCount;
-	}
-	
-	~FGroupFilter()
-	{
-		ensure(RootValidCount >= 0 || RootFilter.IsEmpty());
-	}
-
-	bool IsRoot(const FName& MessageName) const;
-};
-
-struct FBudgetData
-{
-	TArray<FString> Stats;
-	TSet<FName>	NonAccumulatingStats;
-	TMap<FName, float> ThreadBudgetMap;
-	
-	/** Builds any extra meta data from the stats provided **/
-	void Process()
-	{
-		FString ChildPrefix(TEXT("-"));
-		for (FString& Stat : Stats)
-		{
-			if (Stat.RemoveFromStart(ChildPrefix))
-			{
-				NonAccumulatingStats.Add(FName(*Stat));
-			}
-		}
+		return EnabledItems.Contains( Item.NameAndInfo.GetRawName() );
 	}
 };
-
-FCriticalSection BudgetStatMapCS;
-TMap<FString, FBudgetData> BudgetStatMapping;
 
 /** Holds parameters used by the 'stat hier' or 'stat group ##' command. */
 struct FStatParams
@@ -107,7 +49,6 @@ struct FStatParams
 	FStatParams( const TCHAR* Cmd = nullptr )
 		: Group( Cmd, TEXT("group="), NAME_None )
 		, SortBy( Cmd, TEXT("sortby="), EStatCompareBy::Sum )
-		, Root(Cmd, TEXT("root="), NAME_None)
 		, MaxHistoryFrames( Cmd, TEXT("maxhistoryframes="), 60 )
 		, MaxHierarchyDepth( Cmd, TEXT("maxdepth="), 4 )
 		, CullMs( Cmd, TEXT( "ms=" ), 0.2f )
@@ -128,11 +69,6 @@ struct FStatParams
 
 	/** -sortby=[name|callcount|sum]. */
 	TParsedValueWithDefault<EStatCompareBy::Type> SortBy;
-
-	/** -root=[name]. */
-	TParsedValueWithDefault<FName> Root;
-
-	FString BudgetSection;
 
 	/**
 	 *	Maximum number of frames to be included in the history. 
@@ -177,30 +113,30 @@ struct FStatSlowParams : public FStatParams
 	}
 };
 
-void DumpHistoryFrame(FStatsThreadState const& StatsData, int64 TargetFrame, float InDumpCull = 0.0f, int32 MaxDepth = MAX_int32, TCHAR const* Filter = NULL)
+void DumpHistoryFrame(FStatsThreadState const& StatsData, int64 TargetFrame, float DumpCull = 0.0f, int32 MaxDepth = MAX_int32, TCHAR const* Filter = NULL)
 {
 	UE_LOG(LogStats, Log, TEXT("Single Frame %lld ---------------------------------"), TargetFrame);
-	if (InDumpCull == 0.0f)
+	if (DumpCull == 0.0f)
 	{
 		UE_LOG(LogStats, Log, TEXT("Full data, use -ms=5, for example to show just the stack data with a 5ms threshhold."));
 	}
 	else
 	{
-		UE_LOG(LogStats, Log, TEXT("Culled to %fms, use -ms=0, for all data and aggregates."), InDumpCull);
+		UE_LOG(LogStats, Log, TEXT("Culled to %fms, use -ms=0, for all data and aggregates."), DumpCull);
 	}
 	{
 		UE_LOG(LogStats, Log, TEXT("Stack ---------------"));
 		FRawStatStackNode Stack;
 		StatsData.UncondenseStackStats(TargetFrame, Stack);
 		Stack.AddSelf();
-		if (InDumpCull != 0.0f)
+		if (DumpCull != 0.0f)
 		{
-			Stack.CullByCycles( int64( InDumpCull / FPlatformTime::ToMilliseconds( 1 ) ) );		
+			Stack.CullByCycles( int64( DumpCull / FPlatformTime::ToMilliseconds( 1 ) ) );		
 		}
 		Stack.CullByDepth( MaxDepth );
 		Stack.DebugPrint(Filter);
 	}
-	if (InDumpCull == 0.0f)
+	if (DumpCull == 0.0f)
 	{
 		UE_LOG(LogStats, Log, TEXT("Inclusive aggregate stack data---------------"));
 		TArray<FStatMessage> Stats;
@@ -232,22 +168,6 @@ void DumpHistoryFrame(FStatsThreadState const& StatsData, int64 TargetFrame, flo
 				UE_LOG(LogStats, Log, TEXT("%s"), *LastGroup.ToString());
 			}
 			UE_LOG(LogStats, Log, TEXT("  %s"), *FStatsUtils::DebugPrint(Meta));
-		}
-
-		UE_LOG(LogStats, Log, TEXT("Inclusive aggregate stack data with thread breakdown ---------------"));
-		Stats.Empty();
-		TMap<FName, TArray<FStatMessage>> ByThread;
-		StatsData.GetInclusiveAggregateStackStats(TargetFrame, Stats, nullptr, false, &ByThread);
-		for(TMap<FName, TArray<FStatMessage>>::TConstIterator It(ByThread); It; ++It)
-		{
-			const FName ShortThreadName = FStatNameAndInfo::GetShortNameFrom(It.Key());
-			UE_LOG(LogStats, Log, TEXT("  %s"), *ShortThreadName.ToString());
-
-			const TArray<FStatMessage>& StatMessages = It.Value();
-			for(const FStatMessage& Meta : Stats)
-			{
-				UE_LOG(LogStats, Log, TEXT("    %s"), *FStatsUtils::DebugPrint(Meta))
-			}
 		}
 	}
 }
@@ -589,9 +509,8 @@ static void DumpHitch(int64 Frame)
 
 	const float GameThreadTime = FPlatformTime::ToSeconds(Stats.GetFastThreadFrameTime(Frame, EThreadType::Game));
 	const float RenderThreadTime = FPlatformTime::ToSeconds(Stats.GetFastThreadFrameTime(Frame, EThreadType::Renderer));
-	const float HitchThresholdSecs = GHitchThresholdMS * 0.001f;
 
-	if ((GameThreadTime > HitchThresholdSecs) || (RenderThreadTime > HitchThresholdSecs))
+	if( GameThreadTime > GHitchThreshold || RenderThreadTime > GHitchThreshold )
 	{
 		HitchIndex++;
 		float ThisHitch = FMath::Max<float>(GameThreadTime, RenderThreadTime) * 1000.0f;
@@ -602,8 +521,7 @@ static void DumpHitch(int64 Frame)
 		Stack.AddNameHierarchy();
 		Stack.AddSelf();
 
-		const float MinTimeToReportInSecs = DumpCull / 1000.0f;
-		const int64 MinCycles = int64(MinTimeToReportInSecs / FPlatformTime::GetSecondsPerCycle());
+		int64 MinCycles = int64( FMath::Min<float>( FMath::Max<float>( GHitchThreshold - 33.3f / 1000.0f, 1.0f / 1000.0f ), 1.0f / 1000.0f ) / FPlatformTime::GetSecondsPerCycle() );
 		FRawStatStackNode* GameThread = NULL;
 		FRawStatStackNode* RenderThread = NULL;
 
@@ -705,24 +623,15 @@ FStatGroupGameThreadNotifier& FStatGroupGameThreadNotifier::Get()
 struct FInternalGroup
 {
 	/** Initialization constructor. */
-	FInternalGroup(const FName InGroupName, const FName InGroupCategory, const EStatDisplayMode::Type InDisplayMode, TSet<FName>& InEnabledItems, const FString& InGroupDescription, TMap<FName, float>* InThreadBudgetMap = nullptr, TSet<FName>* InBudgetIgnore = nullptr)
+	FInternalGroup(const FName InGroupName, const FName InGroupCategory, const EStatDisplayMode::Type InDisplayMode, TSet<FName>& InEnabledItems, const FString& InGroupDescription)
 		: GroupName( InGroupName )
 		, GroupCategory(InGroupCategory)
 		, GroupDescription( InGroupDescription )
-		, DisplayMode( InDisplayMode )	
+		, DisplayMode( InDisplayMode )
+		
 	{
 		// To avoid copy.
 		Exchange( EnabledItems, InEnabledItems );
-		
-		if(InThreadBudgetMap)
-		{
-			Exchange(ThreadBudgetMap, *InThreadBudgetMap);	//avoid copy
-		}
-
-		if (InBudgetIgnore)
-		{
-			Exchange(BudgetIgnoreStats, *InBudgetIgnore);	//avoid copy
-		}
 	}
 
 	/** Set of elements which should be included in this group stats. */
@@ -737,12 +646,6 @@ struct FInternalGroup
 	/** Description of this stat group. */
 	FString GroupDescription;
 
-	/** If budget mode is used, this is the expected cost of the stats in the group added up. */
-	TMap<FName, float> ThreadBudgetMap;
-
-	/** If budget mode is used, these are the stats that we display, but ignore during summation */
-	TSet<FName> BudgetIgnoreStats;
-
 	/** Display mode for this group. */
 	EStatDisplayMode::Type DisplayMode;
 };
@@ -754,7 +657,6 @@ struct FHudFrame
 	TArray<FStatMessage> ExclusiveAggregate;
 	TArray<FStatMessage> NonStackStats;
 	FRawStatStackNode HierarchyInclusive;
-	TMap<FName, TArray<FStatMessage>> InclusiveAggregateThreadBreakdown;
 };
 
 struct FHUDGroupManager 
@@ -765,21 +667,16 @@ struct FHUDGroupManager
 	/** Contains all history frames. */
 	TMap<int64,FHudFrame> History;
 
-	/** Cache for filters that rely on root substring */
-	TMap<FName, bool> RootFilterCache;
-
 	/** Root stat stack for all frames, it's accumulating all the time, but can be reset with a command 'stat hier -reset'. */
 	FRawStatStackNode TotalHierarchyInclusive;
 	
 	/** Flat array of messages, it's accumulating all the time, but can be reset with a command 'stat hier -reset'. */
 	TArray<FStatMessage> TotalAggregateInclusive;
 	TArray<FStatMessage> TotalNonStackStats;
-	TMap<FName, TArray<FStatMessage>> TotalAggregateInclusiveThreadBreakdown;
 
 	/** Root stat stack for history frames, by default it's for the last 20 frames. */
 	FComplexRawStatStackNode AggregatedHierarchyHistory;
 	TArray<FComplexStatMessage> AggregatedFlatHistory;
-	TMap<FName, TArray<FComplexStatMessage>> AggregatedFlatHistoryThreadBreakdown;
 	TArray<FComplexStatMessage> AggregatedNonStackStatsHistory;
 
 	/** Copy of the stat group command parameters. */
@@ -820,15 +717,8 @@ struct FHUDGroupManager
 			bResetData = true;
 		}
 
-		if (Params.BudgetSection != InParams.BudgetSection)
-		{
-			bResetData = true;
-		}
-
 		Params = InParams;
 		Params.bReset = bResetData;
-
-		RootFilterCache.Empty();
 
 		if( Params.ShouldReset() )
 		{
@@ -906,47 +796,6 @@ struct FHUDGroupManager
 					EnabledGroups.Add( MaybeGroupFName, FInternalGroup( MaybeGroupFName, NAME_None, EStatDisplayMode::Hierarchical, EmptySet, TEXT( "Hierarchy for game and render" ) ) );
 				}			
 			}
-			else if(!Params.BudgetSection.IsEmpty())
-			{
-				const bool bEnabledBudgetMode = EnabledGroups.Num() > 0;
-				if (bEnabledBudgetMode)
-				{
-					for (const auto& It : EnabledGroups)
-					{
-						HandleToggleCommandBroadcast(It.Key, bCurrentEnabled, bOthersEnabled);
-					}
-
-					EnabledGroups.Empty();
-					NumTotalStackFrames = 0;
-				}
-				else
-				{
-					TMap<FName, float> ThreadBudgetMap;
-					TArray<FName> StatShortNames;
-					TSet<FName> NonAccumulatingStats;
-					{
-						FScopeLock BudgetLock(&BudgetStatMapCS);
-						if(FBudgetData* BudgetData = BudgetStatMapping.Find(Params.BudgetSection))
-						{
-							for(const FString& StatEntry : BudgetData->Stats)
-							{
-								StatShortNames.Add(FName(*StatEntry));
-							}
-
-							NonAccumulatingStats = BudgetData->NonAccumulatingStats;
-							ThreadBudgetMap = BudgetData->ThreadBudgetMap;
-						}
-					}
-					
-					{
-						TSet<FName> StatSet;
-						GetStatsForNames(StatSet, StatShortNames);
-						FName BudgetGroupName(*Params.BudgetSection);
-						EnabledGroups.Add(BudgetGroupName, FInternalGroup(*Params.BudgetSection, NAME_None, EStatDisplayMode::Flat, StatSet, TEXT("Budget"), &ThreadBudgetMap, &NonAccumulatingStats));
-						HandleToggleCommandBroadcast( BudgetGroupName, bCurrentEnabled, bOthersEnabled );
-					}
-				}
-			}
 		}
 
 		if( EnabledGroups.Num() && !bEnabled )
@@ -1019,12 +868,7 @@ struct FHUDGroupManager
 		// Add a new frame to the history.
 		FHudFrame& NewFrame = History.FindOrAdd( TargetFrame );
 
-		FName RootName = Params.Root.Get();
-		FString RootString = RootName == NAME_None ? FString() : RootName.ToString();
-
 		const bool bUseSlowMode = Params.bSlowMode;
-		const bool bUseBudgetMode = !Params.BudgetSection.IsEmpty();
-
 		if (bUseSlowMode)
 		{
 			// Only for game thread and rendering thread.
@@ -1049,40 +893,21 @@ struct FHUDGroupManager
 		}
 		else
 		{
-			TSet<FName> HierEnabledItems;
-			for( auto It = EnabledGroups.CreateConstIterator(); It; ++It )
-			{
-				HierEnabledItems.Append( It.Value().EnabledItems );
-			}
-		
-			
-			FGroupFilter Filter(HierEnabledItems, RootString, this);
+		TSet<FName> HierEnabledItems;
+		for( auto It = EnabledGroups.CreateConstIterator(); It; ++It )
+		{
+			HierEnabledItems.Append( It.Value().EnabledItems );
+		}
+		FGroupFilter Filter(HierEnabledItems);
 
-			// Generate root stats stack for current frame.
-			Stats.UncondenseStackStats( TargetFrame, NewFrame.HierarchyInclusive, &Filter, &NewFrame.NonStackStats );
+		// Generate root stats stack for current frame.
+		Stats.UncondenseStackStats( TargetFrame, NewFrame.HierarchyInclusive, &Filter, &NewFrame.NonStackStats );
 
-			{
-				SCOPE_CYCLE_COUNTER(STAT_GetFlatAggregates);
-				Stats.GetInclusiveAggregateStackStats( TargetFrame, NewFrame.InclusiveAggregate, &Filter, false, &NewFrame.InclusiveAggregateThreadBreakdown );
-				Stats.GetExclusiveAggregateStackStats( TargetFrame, NewFrame.ExclusiveAggregate, &Filter, false );
-
-				//Merge all task graph stats into 1
-				TArray<FStatMessage> MergedTaskGraphThreads;
-				for(TMap<FName, TArray<FStatMessage>>::TIterator It(NewFrame.InclusiveAggregateThreadBreakdown); It; ++It)
-				{
-					const FName ThreadName = FStatNameAndInfo::GetShortNameFrom(It.Key());
-					if (ThreadName.ToString().Contains(TEXT("TaskGraphThread")))
-					{
-						FStatsUtils::AddMergeStatArray(MergedTaskGraphThreads, It.Value());
-						It.RemoveCurrent();
-					}
-				}
-				
-				if(MergedTaskGraphThreads.Num())
-				{
-					NewFrame.InclusiveAggregateThreadBreakdown.Add(FName(TEXT("MergedTaskGraphThreads")), MergedTaskGraphThreads);
-				}
-			}
+		{
+			SCOPE_CYCLE_COUNTER(STAT_GetFlatAggregates);
+			Stats.GetInclusiveAggregateStackStats( TargetFrame, NewFrame.InclusiveAggregate, &Filter, false );
+			Stats.GetExclusiveAggregateStackStats( TargetFrame, NewFrame.ExclusiveAggregate, &Filter, false );
+		}
 		}
 
 		NewFrame.HierarchyInclusive.AddSelf();
@@ -1104,15 +929,10 @@ struct FHUDGroupManager
 		if( NumTotalStackFrames == 0 )
 		{
 			TotalAggregateInclusive = NewFrame.InclusiveAggregate;
-			TotalAggregateInclusiveThreadBreakdown = NewFrame.InclusiveAggregateThreadBreakdown;
 		}
 		else
 		{
 			FStatsUtils::AddMergeStatArray( TotalAggregateInclusive, NewFrame.InclusiveAggregate );
-			for(TMap<FName, TArray<FStatMessage>>::TConstIterator It(NewFrame.InclusiveAggregateThreadBreakdown); It; ++It)
-			{
-				FStatsUtils::AddMergeStatArray(TotalAggregateInclusiveThreadBreakdown.FindOrAdd(It.Key()), It.Value());
-			}
 		}
 
 		// Aggregate non-stack stats.
@@ -1145,44 +965,27 @@ struct FHUDGroupManager
 				return ValueA == ValueB ? FStatNameComparer<FStatMessage>()(A,B) : ValueA > ValueB;
 			}
 		};
-		
-		if(!bUseBudgetMode)	//In budget mode we do not sort since we want to maintain hierarchy
-		{
-			// Sort total history stats by the specified item.
-			EStatCompareBy::Type StatCompare = Params.SortBy.Get();
-			if (StatCompare == EStatCompareBy::Sum)
-			{
-				TotalHierarchyInclusive.Sort(FStatDurationComparer<FRawStatStackNode>());
-				TotalAggregateInclusive.Sort(FStatDurationComparer<FStatMessage>());
-				for(TMap<FName, TArray<FStatMessage>>::TIterator It(TotalAggregateInclusiveThreadBreakdown); It; ++It)
-				{
-					It.Value().Sort(FStatDurationComparer<FStatMessage>());
-				}
-				
-				TotalNonStackStats.Sort(FStatValueComparer());
-			}
-			else if (StatCompare == EStatCompareBy::CallCount)
-			{
-				TotalHierarchyInclusive.Sort(FStatCallCountComparer<FRawStatStackNode>());
-				TotalAggregateInclusive.Sort(FStatCallCountComparer<FStatMessage>());
-				for (TMap<FName, TArray<FStatMessage>>::TIterator It(TotalAggregateInclusiveThreadBreakdown); It; ++It)
-				{
-					It.Value().Sort(FStatCallCountComparer<FStatMessage>());
-				}
-				TotalNonStackStats.Sort(FStatValueComparer());
-			}
-			else if (StatCompare == EStatCompareBy::Name)
-			{
-				TotalHierarchyInclusive.Sort(FStatNameComparer<FRawStatStackNode>());
-				TotalAggregateInclusive.Sort(FStatNameComparer<FStatMessage>());
-				for (TMap<FName, TArray<FStatMessage>>::TIterator It(TotalAggregateInclusiveThreadBreakdown); It; ++It)
-				{
-					It.Value().Sort(FStatNameComparer<FStatMessage>());
-				}
-				TotalNonStackStats.Sort(FStatNameComparer<FStatMessage>());
-			}
-		}
 			
+		// Sort total history stats by the specified item.
+		EStatCompareBy::Type StatCompare = Params.SortBy.Get();
+		if( StatCompare == EStatCompareBy::Sum )
+		{
+			TotalHierarchyInclusive.Sort( FStatDurationComparer<FRawStatStackNode>() );
+			TotalAggregateInclusive.Sort( FStatDurationComparer<FStatMessage>() );
+			TotalNonStackStats.Sort( FStatValueComparer() );
+		}
+		else if( StatCompare == EStatCompareBy::CallCount )
+		{
+			TotalHierarchyInclusive.Sort( FStatCallCountComparer<FRawStatStackNode>() );
+			TotalAggregateInclusive.Sort( FStatCallCountComparer<FStatMessage>() );
+			TotalNonStackStats.Sort( FStatValueComparer() );
+		}
+		else if( StatCompare == EStatCompareBy::Name )
+		{
+			TotalHierarchyInclusive.Sort( FStatNameComparer<FRawStatStackNode>() );
+			TotalAggregateInclusive.Sort( FStatNameComparer<FStatMessage>() );
+			TotalNonStackStats.Sort( FStatNameComparer<FStatMessage>() );
+		}		
 
 		// We want contiguous frames only.
 		if( TargetFrame - LatestFrame > 1 ) 
@@ -1197,7 +1000,6 @@ struct FHUDGroupManager
 		if( NumFrames > 0 )
 		{
 			FGameThreadHudData* ToGame = new FGameThreadHudData(false);
-			ToGame->RootFilter = RootString;
 
 			// Copy the total stats stack to the history stats stack and clear all nodes' data and set data type to none.
 			// Called to maintain the hierarchy.
@@ -1211,17 +1013,6 @@ struct FHUDGroupManager
 				new(AggregatedFlatHistory) FComplexStatMessage(StatMessage);
 			}
 
-			// Copy flat-stack stats by thread
-			AggregatedFlatHistoryThreadBreakdown.Reset();
-			for(TMap<FName, TArray<FStatMessage>>::TConstIterator It(TotalAggregateInclusiveThreadBreakdown); It; ++It)
-			{
-				TArray<FComplexStatMessage>& AggregatedFlatHistoryThreadBreakdownArray = AggregatedFlatHistoryThreadBreakdown.Add(It.Key());
-				for (const FStatMessage& StatMessage : It.Value())
-				{
-					new (AggregatedFlatHistoryThreadBreakdownArray)FComplexStatMessage(StatMessage);
-				}
-			}
-
 			// Copy non-stack stats
 			AggregatedNonStackStatsHistory.Reset( TotalNonStackStats.Num() );
 			for( int32 Index = 0; Index < TotalNonStackStats.Num(); ++Index )
@@ -1231,21 +1022,16 @@ struct FHUDGroupManager
 			}
 			
 			// Accumulate hierarchy, flat and non-stack stats.
-			for( auto FrameIt = History.CreateConstIterator(); FrameIt; ++FrameIt )
+			for( auto It = History.CreateConstIterator(); It; ++It )
 			{
 				SCOPE_CYCLE_COUNTER(STAT_Accumulate);
-				const FHudFrame& Frame = FrameIt.Value();
+				const FHudFrame& Frame = It.Value();
 
 				AggregatedHierarchyHistory.MergeAddAndMax( Frame.HierarchyInclusive );
 
 				FComplexStatUtils::MergeAddAndMaxArray( AggregatedFlatHistory, Frame.InclusiveAggregate, EComplexStatField::IncSum, EComplexStatField::IncMax );
-
-				for (TMap<FName, TArray<FStatMessage>>::TConstIterator It(Frame.InclusiveAggregateThreadBreakdown); It; ++It)
-				{
-					FComplexStatUtils::MergeAddAndMaxArray( AggregatedFlatHistoryThreadBreakdown.FindChecked(It.Key()), It.Value(), EComplexStatField::IncSum, EComplexStatField::IncMax );
-				}
-
 				FComplexStatUtils::MergeAddAndMaxArray( AggregatedFlatHistory, Frame.ExclusiveAggregate, EComplexStatField::ExcSum, EComplexStatField::ExcMax );
+
 				FComplexStatUtils::MergeAddAndMaxArray( AggregatedNonStackStatsHistory, Frame.NonStackStats, EComplexStatField::IncSum, EComplexStatField::IncMax );
 			}
 
@@ -1264,18 +1050,13 @@ struct FHUDGroupManager
 			FComplexStatUtils::DiviveStatArray( AggregatedFlatHistory, NumFrames, EComplexStatField::IncSum, EComplexStatField::IncAve );
 			FComplexStatUtils::DiviveStatArray( AggregatedFlatHistory, NumFrames, EComplexStatField::ExcSum, EComplexStatField::ExcAve );
 
-			for(TMap<FName, TArray<FComplexStatMessage>>::TIterator It(AggregatedFlatHistoryThreadBreakdown); It; ++It)
-			{
-				FComplexStatUtils::DiviveStatArray(It.Value(), NumFrames, EComplexStatField::IncSum, EComplexStatField::IncAve);
-			}
-
 			FComplexStatUtils::DiviveStatArray( AggregatedNonStackStatsHistory, NumFrames, EComplexStatField::IncSum, EComplexStatField::IncAve );
 	
 			// Iterate through all enabled groups.
-			for( auto GroupIt = EnabledGroups.CreateIterator(); GroupIt; ++GroupIt )
+			for( auto It = EnabledGroups.CreateIterator(); It; ++It )
 			{
-				const FName& GroupName = GroupIt.Key();
-				FInternalGroup& InternalGroup = GroupIt.Value();
+				const FName& GroupName = It.Key();
+				FInternalGroup& InternalGroup = It.Value();
 
 				// Create a new hud group.
 				new(ToGame->HudGroups) FHudGroup();
@@ -1283,8 +1064,6 @@ struct FHUDGroupManager
 
 				ToGame->GroupNames.Add( GroupName );
 				ToGame->GroupDescriptions.Add( InternalGroup.GroupDescription );
-				HudGroup.ThreadBudgetMap = InternalGroup.ThreadBudgetMap;
-				HudGroup.BudgetIgnoreStats = InternalGroup.BudgetIgnoreStats;
 
 				if (Params.bSlowMode)
 				{
@@ -1310,21 +1089,6 @@ struct FHUDGroupManager
 						if( bToBeAdded )
 						{
 							new(HudGroup.FlatAggregate) FComplexStatMessage( AggregatedStatMessage );
-						}
-					}
-
-					for(TMap<FName, TArray<FComplexStatMessage>>::TConstIterator It(AggregatedFlatHistoryThreadBreakdown); It; ++It)
-					{
-						const TArray<FComplexStatMessage>& SrcArray = It.Value();
-						
-						for(const FComplexStatMessage& AggregatedStatMessage : SrcArray)
-						{
-							const bool bToBeAdded = InternalGroup.EnabledItems.Contains(AggregatedStatMessage.NameAndInfo.GetRawName());
-							if(bToBeAdded)
-							{
-								TArray<FComplexStatMessage>& DestArray = HudGroup.FlatAggregateThreadBreakdown.FindOrAdd(It.Key());	
-								new(DestArray) FComplexStatMessage( AggregatedStatMessage );
-							}
 						}
 					}
 				}
@@ -1407,26 +1171,21 @@ struct FHUDGroupManager
 		check(History.Num() <= Params.MaxHistoryFrames.Get());
 	}
 
-	void GetStatsForNames(TSet<FName>& out_EnabledItems, const TArray<FName>& ShortNames)
-	{
-		for (const FName& ShortName : ShortNames)
-		{
-			out_EnabledItems.Add(ShortName);
-			if (FStatMessage const* LongName = Stats.ShortNameToLongName.Find(ShortName))
-			{
-				out_EnabledItems.Add(LongName->NameAndInfo.GetRawName()); // long name
-			}
-		}
-	}
-
 	void GetStatsForGroup( TSet<FName>& out_EnabledItems, const FName GroupName )
 	{
 		out_EnabledItems.Empty();
 	
 		TArray<FName> GroupItems;
 		Stats.Groups.MultiFind( GroupName, GroupItems );
-
-		GetStatsForNames(out_EnabledItems, GroupItems);
+		for (int32 Index = 0; Index < GroupItems.Num(); Index++)
+		{
+			out_EnabledItems.Add(GroupItems[Index]); // short name
+			FStatMessage const* LongName = Stats.ShortNameToLongName.Find(GroupItems[Index]);
+			if (LongName)
+			{
+				out_EnabledItems.Add(LongName->NameAndInfo.GetRawName()); // long name
+			}
+		}
 
 		out_EnabledItems.Add(NAME_Self);
 		out_EnabledItems.Add(NAME_OtherChildren);
@@ -1439,27 +1198,12 @@ struct FHUDGroupManager
 	}
 };
 
-bool FGroupFilter::IsRoot(const FName& MessageName) const
-{
-	bool bIsRoot = false;
-	if (bool* bResult = HudGroupManager->RootFilterCache.Find(MessageName))
-	{
-		bIsRoot = *bResult;
-	}
-	else
-	{
-		bIsRoot = MessageName.ToString().Contains(RootFilter);
-		HudGroupManager->RootFilterCache.Add(MessageName, bIsRoot);
-	}
-
-	return bIsRoot;
-}
-
 
 /*-----------------------------------------------------------------------------
 	Dump...
 -----------------------------------------------------------------------------*/
 
+static float DumpCull = 5.0f;
 static int32 MaxDepth = MAX_int32;
 static FString NameFilter;
 static FDelegateHandle DumpFrameDelegateHandle;
@@ -1572,87 +1316,28 @@ struct FDumpMultiple
 	}
 };
 
-static struct FDumpSpam* DumpSpam = nullptr;
-
-struct FDumpSpam
-{
-	FStatsThreadState& Stats;
-	TMap<FName, int32> Counts;
-	int32 TotalCount;
-	int32 NumPackets;
-	FDelegateHandle NewRawStatPacketDelegateHandle;
-
-	FDumpSpam()
-		: Stats(FStatsThreadState::GetLocalState())
-		, TotalCount(0)
-		, NumPackets(0)
-	{
-		FThreadStats::EnableRawStats();
-		StatsMasterEnableAdd();
-		NewRawStatPacketDelegateHandle = Stats.NewRawStatPacket.AddRaw(this, &FDumpSpam::NewFrame);
-	}
-
-	~FDumpSpam()
-	{
-		FThreadStats::DisableRawStats();
-		StatsMasterEnableSubtract();
-		UE_LOG(LogStats, Log, TEXT("------------------ %d packets, %d total messages ---------------"), NumPackets, TotalCount);
-
-		Counts.ValueSort(TGreater<int32>());
-
-		for (auto& Pair : Counts)
-		{
-			UE_LOG(LogStats, Log, TEXT("%10d	  %s"), Pair.Value, *Pair.Key.ToString());
-		}
-
-		Stats.NewRawStatPacket.Remove(NewRawStatPacketDelegateHandle);
-		DumpSpam = NULL;
-	}
-
-	void NewFrame(const FStatPacket* Packet)
-	{
-		NumPackets++;
-		int32 NumMessages = Packet->StatMessages.Num();
-		TotalCount += NumMessages;
-		for( int32 MessageIndex = 0; MessageIndex < NumMessages; ++MessageIndex )
-		{
-			const FStatMessage& Message = Packet->StatMessages[MessageIndex];
-			FName Name = Message.NameAndInfo.GetRawName();
-			int32* Existing = Counts.Find(Name);
-			if (Existing)
-			{
-				(*Existing)++;
-			}
-			else
-			{
-				Counts.Add(Name, 1);
-			}
-		}
-	}
-};
-
 /** Prints stats help to the specified output device. This is queued to be executed on the game thread. */
 static void PrintStatsHelpToOutputDevice( FOutputDevice& Ar )
 {
 	Ar.Log( TEXT("Empty stat command!"));
 	Ar.Log( TEXT("Here is the brief list of stats console commands"));
 	Ar.Log( TEXT("stat dumpframe [-ms=5.0] [-root=empty] [-depth=maxint] - dumps a frame of stats"));
-	Ar.Log( TEXT("	stat dumpframe -ms=.001 -root=initviews"));
-	Ar.Log( TEXT("	stat dumpframe -ms=.001 -root=shadow"));
+	Ar.Log( TEXT("    stat dumpframe -ms=.001 -root=initviews"));
+	Ar.Log( TEXT("    stat dumpframe -ms=.001 -root=shadow"));
 
 	Ar.Log( TEXT("stat dumpave|dumpmax|dumpsum  [-start | -stop | -num=30] [-ms=5.0] [-depth=maxint] - aggregate stats over multiple frames"));
 	Ar.Log( TEXT("stat dumphitches - toggles dumping hitches"));
-	Ar.Log( TEXT("stat dumpevents [-ms=0.2] [-all] - dumps events history for slow events, -all adds other threads besides game and render"));
+	Ar.Log( TEXT("stat dumpevents [-ms=0.2] [-all] - toggles dumping events history for slow events, -all adds other threads besides game and render"));
 	Ar.Log( TEXT("stat dumpnonframe - dumps non-frame stats, usually memory stats"));
 	Ar.Log( TEXT("stat dumpcpu - dumps cpu stats"));
 
 	Ar.Log( TEXT("stat groupname[+] - toggles displaying stats group, + enables hierarchical display"));
 	Ar.Log( TEXT("stat hier -group=groupname [-sortby=name] [-maxhistoryframes=60] [-reset] [-maxdepth=4]"));
-	Ar.Log( TEXT("	- groupname is a stat group like initviews or statsystem"));
-	Ar.Log( TEXT("	- sortby can be name (by stat FName), callcount (by number of calls, only for scoped cycle counters), num(by total inclusive time)"));
-	Ar.Log( TEXT("	- maxhistoryframes (default 60, number of frames used to generate the stats displayed on the hud)"));
-	Ar.Log( TEXT("	- reset (reset the accumulated history)"));
-	Ar.Log( TEXT("	- maxdepth (default 4, maximum depth for the hierarchy)"));
+	Ar.Log( TEXT("    - groupname is a stat group like initviews or statsystem"));
+	Ar.Log( TEXT("    - sortby can be name (by stat FName), callcount (by number of calls, only for scoped cycle counters), num(by total inclusive time)"));
+	Ar.Log( TEXT("    - maxhistoryframes (default 60, number of frames used to generate the stats displayed on the hud)"));
+	Ar.Log( TEXT("    - reset (reset the accumulated history)"));
+	Ar.Log( TEXT("    - maxdepth (default 4, maximum depth for the hierarchy)"));
 	Ar.Log( TEXT("stat none - disables drawing all stats groups"));
 
 	Ar.Log( TEXT("stat group list|listall|enable name|disable name|none|all|default - manages stats groups"));
@@ -1660,7 +1345,7 @@ static void PrintStatsHelpToOutputDevice( FOutputDevice& Ar )
 #if WITH_ENGINE
 	// Engine @see FStatCmdEngine
 	Ar.Log( TEXT( "stat display -font=small[tiny]" ) );
-	Ar.Log( TEXT( "	Changes stats rendering display options" ) );
+	Ar.Log( TEXT( "    Changes stats rendering display options" ) );
 #endif // WITH_ENGINE
 
 	Ar.Log( TEXT("stat startfile - starts dumping a capture"));
@@ -1712,264 +1397,233 @@ static void CommandTestFile()
 
 #endif
 
-/** bStatCommand indicates whether we are coming from a stat command or a budget command */
-static void StatCmd(FString InCmd, bool bStatCommand)
+static void StatCmd(FString InCmd)
 {
 	const TCHAR* Cmd = *InCmd;
-	if(bStatCommand)
+#if STATS
+	FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
+	DumpCull = 5.0f;
+	MaxDepth = MAX_int32;
+	NameFilter.Empty();
+
+	FParse::Value(Cmd, TEXT("ROOT="), NameFilter);
+	FParse::Value(Cmd, TEXT("MS="), DumpCull);
+	FParse::Value(Cmd, TEXT("DEPTH="), MaxDepth);
+	if( FParse::Command(&Cmd,TEXT("DUMPFRAME")) )
 	{
-#if STATS
-		FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
-		DumpCull = 1.0f;
-		MaxDepth = MAX_int32;
-		NameFilter.Empty();
-
-		FParse::Value(Cmd, TEXT("ROOT="), NameFilter);
-		FParse::Value(Cmd, TEXT("MS="), DumpCull);
-		FParse::Value(Cmd, TEXT("DEPTH="), MaxDepth);
-		if (FParse::Command(&Cmd, TEXT("DUMPFRAME")))
+		StatsMasterEnableAdd();
+		DumpFrameDelegateHandle = Stats.NewFrameDelegate.AddStatic(&DumpFrame);
+	} 
+	else if ( FParse::Command(&Cmd,TEXT("DUMPNONFRAME")) )
+	{
+		DumpNonFrame(Stats);
+	}
+	else if ( FParse::Command(&Cmd,TEXT("DUMPCPU")) )
+	{
+		StatsMasterEnableAdd();
+		DumpCPUDelegateHandle = Stats.NewFrameDelegate.AddStatic(&DumpCPU);
+	}
+	else if( FParse::Command(&Cmd,TEXT("STOP")) )
+	{
+		delete DumpMultiple;
+	}
+	else if( FParse::Command(&Cmd,TEXT("DUMPAVE")) )
+	{
+		bool bIsStart = FString(Cmd).Find(TEXT("-start")) != INDEX_NONE;
+		bool bIsStop = FString(Cmd).Find(TEXT("-stop")) != INDEX_NONE;
+		delete DumpMultiple;
+		if (!bIsStop)
 		{
-			StatsMasterEnableAdd();
-			DumpFrameDelegateHandle = Stats.NewFrameDelegate.AddStatic(&DumpFrame);
-		}
-		else if (FParse::Command(&Cmd, TEXT("DUMPNONFRAME")))
-		{
-			DumpNonFrame(Stats);
-		}
-		else if (FParse::Command(&Cmd, TEXT("DUMPCPU")))
-		{
-			StatsMasterEnableAdd();
-			DumpCPUDelegateHandle = Stats.NewFrameDelegate.AddStatic(&DumpCPU);
-		}
-		else if (FParse::Command(&Cmd, TEXT("STOP")))
-		{
-			delete DumpMultiple;
-		}
-		else if (FParse::Command(&Cmd, TEXT("DUMPAVE")))
-		{
-			bool bIsStart = FString(Cmd).Find(TEXT("-start")) != INDEX_NONE;
-			bool bIsStop = FString(Cmd).Find(TEXT("-stop")) != INDEX_NONE;
-			delete DumpMultiple;
-			if (!bIsStop)
-			{
-				DumpMultiple = new FDumpMultiple();
-				DumpMultiple->NumFramesToGo = bIsStart ? MAX_int32 : 30;
-				FParse::Value(Cmd, TEXT("NUM="), DumpMultiple->NumFramesToGo);
-				DumpMultiple->bAverage = true;
-				DumpMultiple->bSum = false;
-			}
-		}
-		else if (FParse::Command(&Cmd, TEXT("DUMPMAX")))
-		{
-			bool bIsStart = FString(Cmd).Find(TEXT("-start")) != INDEX_NONE;
-			bool bIsStop = FString(Cmd).Find(TEXT("-stop")) != INDEX_NONE;
-			delete DumpMultiple;
-			if (!bIsStop)
-			{
-				DumpMultiple = new FDumpMultiple();
-				DumpMultiple->NumFramesToGo = bIsStart ? MAX_int32 : 30;
-				FParse::Value(Cmd, TEXT("NUM="), DumpMultiple->NumFramesToGo);
-				DumpMultiple->bAverage = false;
-				DumpMultiple->bSum = false;
-			}
-		}
-		else if (FParse::Command(&Cmd, TEXT("DUMPSUM")))
-		{
-			bool bIsStart = FString(Cmd).Find(TEXT("-start")) != INDEX_NONE;
-			bool bIsStop = FString(Cmd).Find(TEXT("-stop")) != INDEX_NONE;
-			delete DumpMultiple;
-			if (!bIsStop)
-			{
-				DumpMultiple = new FDumpMultiple();
-				DumpMultiple->NumFramesToGo = bIsStart ? MAX_int32 : 30;
-				FParse::Value(Cmd, TEXT("NUM="), DumpMultiple->NumFramesToGo);
-				DumpMultiple->bAverage = false;
-				DumpMultiple->bSum = true;
-			}
-		}
-		else if (FParse::Command(&Cmd, TEXT("DUMPSPAM")))
-		{
-			bool bIsStart = FString(Cmd).Find(TEXT("-start")) != INDEX_NONE;
-			bool bIsStop = FString(Cmd).Find(TEXT("-stop")) != INDEX_NONE;
-			delete DumpSpam;
-			if (!bIsStop)
-			{
-				DumpSpam = new FDumpSpam();
-			}
-		}
-		else if (FParse::Command(&Cmd, TEXT("DUMPHITCHES")))
-		{
-			static bool bToggle = false;
-			static FDelegateHandle DumpHitchDelegateHandle;
-			bToggle = !bToggle;
-			if (bToggle)
-			{
-				StatsMasterEnableAdd();
-				HitchIndex = 0;
-				TotalHitchTime = 0.0f;
-				DumpHitchDelegateHandle = Stats.NewFrameDelegate.AddStatic(&DumpHitch);
-			}
-			else
-			{
-				StatsMasterEnableSubtract();
-				Stats.NewFrameDelegate.Remove(DumpHitchDelegateHandle);
-				UE_LOG(LogStats, Log, TEXT("**************************** %d hitches	%8.0fms total hitch time"), HitchIndex, TotalHitchTime);
-			}
-		}
-		else if (FParse::Command(&Cmd, TEXT("DumpEvents")))
-		{
-			float DumpEventsCullMS = 0.1f;
-			FParse::Value(Cmd, TEXT("MS="), DumpEventsCullMS);
-			const bool bDisplayAllThreads = FParse::Param(Cmd, TEXT("all"));
-
-			StatsMasterEnableAdd();
-			DumpEventsDelegateHandle = Stats.NewFrameDelegate.AddStatic(&DumpEventsOnce, DumpEventsCullMS, bDisplayAllThreads);
-		}
-		else if (FParse::Command(&Cmd, TEXT("STARTFILE")))
-		{
-			FString Filename;
-			FParse::Token(Cmd, Filename, false);
-			FCommandStatsFile::Get().Start(Filename);
-		}
-		else if (FParse::Command(&Cmd, TEXT("StartFileRaw")))
-		{
-			FThreadStats::EnableRawStats();
-			FString Filename;
-			FParse::Token(Cmd, Filename, false);
-			FCommandStatsFile::Get().StartRaw(Filename);
-		}
-		else if (FParse::Command(&Cmd, TEXT("STOPFILE"))
-			|| FParse::Command(&Cmd, TEXT("StopFileRaw")))
-		{
-			// Stop writing to a file.
-			FCommandStatsFile::Get().Stop();
-			FThreadStats::DisableRawStats();
-
-			if (FStatsMallocProfilerProxy::HasMemoryProfilerToken())
-			{
-				if (FStatsMallocProfilerProxy::Get()->GetState())
-				{
-					// Disable memory profiler and restore default stats groups.
-					FStatsMallocProfilerProxy::Get()->SetState(false);
-					IStatGroupEnableManager::Get().StatGroupEnableManagerCommand(TEXT("default"));
-				}
-			}
-
-			Stats.ResetStatsForRawStats();
-
-			// Disable displaying the raw stats memory overhead.
-			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
-				(
-				FSimpleDelegateGraphTask::FDelegate::CreateRaw(&FHUDGroupGameThreadRenderer::Get(), &FHUDGroupGameThreadRenderer::NewData, (FGameThreadHudData*)nullptr),
-				TStatId(), nullptr, ENamedThreads::GameThread
-				);
-		}
-		else if (FParse::Command(&Cmd, TEXT("TESTFILE")))
-		{
-			CommandTestFile();
-		}
-		else if (FParse::Command(&Cmd, TEXT("testdisable")))
-		{
-			FThreadStats::MasterDisableForever();
-		}
-		else if (FParse::Command(&Cmd, TEXT("none")))
-		{
-			FStatParams Params;
-			FHUDGroupManager::Get(Stats).HandleCommand(Params, false);
-		}
-		else if (FParse::Command(&Cmd, TEXT("group")))
-		{
-			IStatGroupEnableManager::Get().StatGroupEnableManagerCommand(Cmd);
-		}
-		else if (FParse::Command(&Cmd, TEXT("toggledebug")))
-		{
-			FStatsThreadState::GetLocalState().ToggleFindMemoryExtensiveStats();
-		}
-		else if (FParse::Command(&Cmd, TEXT("namedmarker")))
-		{
-			FString MarkerName;
-			FParse::Token(Cmd, MarkerName, false);
-
-			struct FLocal
-			{
-				static void OnGameThread(FString InMarkerName)
-				{
-					const FName NAME_Marker = FName(*InMarkerName);
-					STAT_ADD_CUSTOMMESSAGE_NAME(STAT_NamedMarker, NAME_Marker);
-					UE_LOG(LogStats, Log, TEXT("Added from console STAT_NamedMarker: %s"), *InMarkerName);
-				}
-			};
-
-			if (!MarkerName.IsEmpty())
-			{
-				// This will be executed on the game thread.
-				FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
-				(
-					FSimpleDelegateGraphTask::FDelegate::CreateStatic(&FLocal::OnGameThread, MarkerName),
-					TStatId(), nullptr, ENamedThreads::GameThread
-				);
-			}
-		}
-		// @see FStatHierParams
-		else if (FParse::Command(&Cmd, TEXT("hier")))
-		{
-			FStatParams Params(Cmd);
-			FHUDGroupManager::Get(Stats).HandleCommand(Params, true);
-		}
-		else if (FParse::Command(&Cmd, TEXT("slow")))
-		{
-			FStatSlowParams Params(Cmd);
-			FHUDGroupManager::Get(Stats).HandleCommand(Params, true);
-		}
-		else
-#endif
-		{
-			FString MaybeGroup;
-			FParse::Token(Cmd, MaybeGroup, false);
-
-			if (MaybeGroup.Len() > 0)
-			{
-				// If there is + at the end of the group name switch into hierarchical view mode.
-				const int32 PlusPos = MaybeGroup.Len() - 1;
-				const bool bHierarchy = MaybeGroup[MaybeGroup.Len() - 1] == TEXT('+');
-				if (bHierarchy)
-				{
-					MaybeGroup.RemoveAt(PlusPos, 1, false);
-				}
-
-				const FName MaybeGroupFName = FName(*MaybeGroup);
-#if STATS
-				// Try to parse.
-				FStatParams Params(Cmd);
-				Params.Group.Set(MaybeGroupFName);
-				FHUDGroupManager::Get(Stats).HandleCommand(Params, bHierarchy);
-#else
-				// If stats aren't enabled, broadcast so engine stats can still be triggered
-				bool bCurrentEnabled, bOthersEnabled;
-				HandleToggleCommandBroadcast(MaybeGroupFName, bCurrentEnabled, bOthersEnabled);
-#endif
-			}
-			else
-			{
-				// Display a help. Handled by DirectStatsCommand.
-			}
+			DumpMultiple = new FDumpMultiple();
+			DumpMultiple->NumFramesToGo = bIsStart ? MAX_int32 : 30;
+			FParse::Value(Cmd, TEXT("NUM="), DumpMultiple->NumFramesToGo);
+			DumpMultiple->bAverage = true;
+			DumpMultiple->bSum = false;
 		}
 	}
-	else
+	else if( FParse::Command(&Cmd,TEXT("DUMPMAX")) )
 	{
-		FString MaybeBudget;
-		FParse::Token(Cmd, MaybeBudget, false);
-
-		if (MaybeBudget.Len() > 0)
+		bool bIsStart = FString(Cmd).Find(TEXT("-start")) != INDEX_NONE;
+		bool bIsStop = FString(Cmd).Find(TEXT("-stop")) != INDEX_NONE;
+		delete DumpMultiple;
+		if (!bIsStop)
 		{
+			DumpMultiple = new FDumpMultiple();
+			DumpMultiple->NumFramesToGo = bIsStart ? MAX_int32 : 30;
+			FParse::Value(Cmd, TEXT("NUM="), DumpMultiple->NumFramesToGo);
+			DumpMultiple->bAverage = false;
+			DumpMultiple->bSum = false;
+		}
+	}
+	else if( FParse::Command(&Cmd,TEXT("DUMPSUM")) )
+	{
+		bool bIsStart = FString(Cmd).Find(TEXT("-start")) != INDEX_NONE;
+		bool bIsStop = FString(Cmd).Find(TEXT("-stop")) != INDEX_NONE;
+		delete DumpMultiple;
+		if (!bIsStop)
+		{
+			DumpMultiple = new FDumpMultiple();
+			DumpMultiple->NumFramesToGo = bIsStart ? MAX_int32 : 30;
+			FParse::Value(Cmd, TEXT("NUM="), DumpMultiple->NumFramesToGo);
+			DumpMultiple->bAverage = false;
+			DumpMultiple->bSum = true;
+		}
+	}
+	else if( FParse::Command(&Cmd,TEXT("DUMPHITCHES")) )
+	{
+		static bool bToggle = false;
+		static FDelegateHandle DumpHitchDelegateHandle;
+		bToggle = !bToggle;
+		if (bToggle)
+		{
+			StatsMasterEnableAdd();
+			HitchIndex = 0;
+			TotalHitchTime = 0.0f;
+			DumpHitchDelegateHandle = Stats.NewFrameDelegate.AddStatic(&DumpHitch);
+		}
+		else
+		{
+			StatsMasterEnableSubtract();
+			Stats.NewFrameDelegate.Remove(DumpHitchDelegateHandle);
+			UE_LOG(LogStats, Log, TEXT( "**************************** %d hitches    %8.0fms total hitch time" ), HitchIndex, TotalHitchTime);
+		}
+	}
+	else if (FParse::Command( &Cmd, TEXT( "DumpEvents" ) ))
+	{
+		float DumpEventsCullMS = 0.1f;
+		FParse::Value( Cmd, TEXT( "MS=" ), DumpEventsCullMS );
+		const bool bDisplayAllThreads = FParse::Param( Cmd, TEXT( "all" ) );
+
+		StatsMasterEnableAdd();
+		DumpEventsDelegateHandle = Stats.NewFrameDelegate.AddStatic( &DumpEventsOnce, DumpEventsCullMS, bDisplayAllThreads );
+	}
+	else if( FParse::Command( &Cmd, TEXT( "STARTFILE" ) ) )
+	{
+		FString Filename;
+		FParse::Token( Cmd, Filename, false );
+		FCommandStatsFile::Get().Start( Filename );
+	}
+	else if( FParse::Command( &Cmd, TEXT( "StartFileRaw" ) ) )
+	{
+		FThreadStats::EnableRawStats();
+		FString Filename;
+		FParse::Token( Cmd, Filename, false );
+		FCommandStatsFile::Get().StartRaw( Filename );
+	}
+	else if( FParse::Command( &Cmd, TEXT( "STOPFILE" ) ) 
+		|| FParse::Command( &Cmd, TEXT( "StopFileRaw" ) ) )
+	{
+		// Stop writing to a file.
+		FCommandStatsFile::Get().Stop();
+		FThreadStats::DisableRawStats();
+
+		if( FStatsMallocProfilerProxy::HasMemoryProfilerToken() )
+		{
+			if( FStatsMallocProfilerProxy::Get()->GetState() )
+			{
+				// Disable memory profiler and restore default stats groups.
+				FStatsMallocProfilerProxy::Get()->SetState( false );
+				IStatGroupEnableManager::Get().StatGroupEnableManagerCommand( TEXT( "default" ) );
+			}
+		}
+		
+		Stats.ResetStatsForRawStats();
+
+		// Disable displaying the raw stats memory overhead.
+		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
+		(
+			FSimpleDelegateGraphTask::FDelegate::CreateRaw(&FHUDGroupGameThreadRenderer::Get(), &FHUDGroupGameThreadRenderer::NewData, (FGameThreadHudData*)nullptr),
+			TStatId(), nullptr, ENamedThreads::GameThread
+		);
+	}
+	else if( FParse::Command( &Cmd, TEXT( "TESTFILE" ) ) )
+	{
+		CommandTestFile();
+	}
+	else if( FParse::Command( &Cmd, TEXT( "testdisable" ) ) )
+	{
+		FThreadStats::MasterDisableForever();
+	}
+	else if ( FParse::Command( &Cmd, TEXT( "none" ) ) )
+	{
+		FStatParams Params;
+		FHUDGroupManager::Get(Stats).HandleCommand(Params,false);
+	}
+	else if ( FParse::Command( &Cmd, TEXT( "group" ) ) )
+	{
+		IStatGroupEnableManager::Get().StatGroupEnableManagerCommand(Cmd);
+	}
+	else if ( FParse::Command( &Cmd, TEXT( "toggledebug" ) ) )
+	{
+		FStatsThreadState::GetLocalState().ToggleFindMemoryExtensiveStats();
+	}
+	else if ( FParse::Command( &Cmd, TEXT( "namedmarker" ) ) )
+	{
+		FString MarkerName;
+		FParse::Token( Cmd, MarkerName, false );
+		
+		struct FLocal
+		{
+			static void OnGameThread( FString InMarkerName )
+			{
+				const FName NAME_Marker = FName( *InMarkerName );
+				STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, NAME_Marker );
+				UE_LOG( LogStats, Log, TEXT( "Added from console STAT_NamedMarker: %s" ), *InMarkerName );
+			}
+		};
+
+		if (!MarkerName.IsEmpty())
+		{
+			// This will be executed on the game thread.
+			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
+			(
+				FSimpleDelegateGraphTask::FDelegate::CreateStatic( &FLocal::OnGameThread, MarkerName ),
+				TStatId(), nullptr, ENamedThreads::GameThread
+			);
+		}
+	}
+	// @see FStatHierParams
+	else if ( FParse::Command( &Cmd, TEXT( "hier" ) ) )
+	{
+		FStatParams Params( Cmd );
+		FHUDGroupManager::Get( Stats ).HandleCommand( Params, true );
+	}
+	else if (FParse::Command( &Cmd, TEXT( "slow" ) ))
+	{
+		FStatSlowParams Params( Cmd );
+		FHUDGroupManager::Get(Stats).HandleCommand(Params, true);
+	}
+	else
+#endif
+	{
+		FString MaybeGroup;
+		FParse::Token(Cmd, MaybeGroup, false);
+
+		if( MaybeGroup.Len() > 0 )
+		{
+			// If there is + at the end of the group name switch into hierarchical view mode.
+			const int32 PlusPos = MaybeGroup.Len()-1;
+			const bool bHierarchy = MaybeGroup[MaybeGroup.Len()-1] == TEXT('+');
+			if( bHierarchy )
+			{
+				MaybeGroup.RemoveAt(PlusPos,1,false);
+			}
+
+			const FName MaybeGroupFName = FName(*MaybeGroup);
 #if STATS
 			// Try to parse.
-			FStatParams Params(Cmd);
-			Params.BudgetSection = MaybeBudget;
-			Params.Group.Set(FName("Budget"));
-			FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
-			FHUDGroupManager::Get(Stats).HandleCommand(Params, false);
+			FStatParams Params( Cmd );
+			Params.Group.Set( MaybeGroupFName );
+			FHUDGroupManager::Get(Stats).HandleCommand(Params, bHierarchy);
+#else
+			// If stats aren't enabled, broadcast so engine stats can still be triggered
+			bool bCurrentEnabled, bOthersEnabled;
+			HandleToggleCommandBroadcast(MaybeGroupFName, bCurrentEnabled, bOthersEnabled);
 #endif
+		}
+		else
+		{
+			// Display a help. Handled by DirectStatsCommand.
 		}
 	}
 }
@@ -1987,14 +1641,10 @@ public:
 }
 StatCmdCoreExec;
 
-
 bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, FOutputDevice* Ar /*= nullptr*/)
 {
 	bool bResult = false;
-	const bool bStatCommand = FParse::Command(&Cmd,TEXT("stat"));
-	const bool bBudgetCommand = FParse::Command(&Cmd,TEXT("budget"));
-	
-	if(bStatCommand || bBudgetCommand)
+	if(FParse::Command(&Cmd,TEXT("stat")))
 	{
 		FString AddArgs;
 		const TCHAR* TempCmd = Cmd;
@@ -2003,139 +1653,99 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 		const bool bIsEmpty = ArgNoWhitespaces.IsEmpty();
 #if STATS
 		bResult = true;
-
-		if(bStatCommand)
+		if (bIsEmpty && Ar)
 		{
-			if (bIsEmpty && Ar)
-			{
-				PrintStatsHelpToOutputDevice(*Ar);
-			}
-			else if (FParse::Command(&TempCmd, TEXT("STARTFILE")))
-			{
-				AddArgs += TEXT(" ");
-				AddArgs += CreateProfileFilename(FStatConstants::StatsFileExtension, true);
-			}
-			else if (FParse::Command(&TempCmd, TEXT("StartFileRaw")))
-			{
-				AddArgs += TEXT(" ");
-				AddArgs += CreateProfileFilename(FStatConstants::StatsFileRawExtension, true);
-			}
-			else if (FParse::Command(&TempCmd, TEXT("DUMPFRAME")))
-			{
-			}
-			else if (FParse::Command(&TempCmd, TEXT("DUMPNONFRAME")))
-			{
-			}
-			else if (FParse::Command(&TempCmd, TEXT("DUMPCPU")))
-			{
-			}
-			else if (FParse::Command(&TempCmd, TEXT("STOP")))
-			{
-			}
-			else if (FParse::Command(&TempCmd, TEXT("DUMPAVE")))
-			{
-			}
-			else if (FParse::Command(&TempCmd, TEXT("DUMPMAX")))
-			{
-			}
-			else if (FParse::Command(&TempCmd, TEXT("DUMPSUM")))
-			{
-			}
-			else if (FParse::Command(&TempCmd, TEXT("DUMPSPAM")))
-			{
-			}
-			else if (FParse::Command(&TempCmd, TEXT("DUMPHITCHES")))
-			{
-			}
-			else if (FParse::Command(&TempCmd, TEXT("DumpEvents")))
-			{
-			}
-			else if (FParse::Command(&TempCmd, TEXT("STOPFILE")))
-			{
-			}
-			else if (FParse::Command(&TempCmd, TEXT("TESTFILE")))
-			{
-			}
-			else if (FParse::Command(&TempCmd, TEXT("testdisable")))
-			{
-			}
-			else if (FParse::Command(&TempCmd, TEXT("none")))
-			{
-			}
-			else if (FParse::Command(&TempCmd, TEXT("group")))
-			{
-			}
-			else if (FParse::Command(&TempCmd, TEXT("hier")))
-			{
-			}
-			else if (FParse::Command(&TempCmd, TEXT("net")))
-			{
-			}
-			else if (FParse::Command(&TempCmd, TEXT("toggledebug")))
-			{
-			}
-			else if (FParse::Command(&TempCmd, TEXT("memoryprofiler")))
-			{
-			}
-			else if (FParse::Command(&TempCmd, TEXT("slow")))
-			{
-			}
-			else if (FParse::Command(&TempCmd, TEXT("namedmarker")))
-			{
-			}
-			else
-			{
-				bResult = false;
-
-				FString MaybeGroup;
-				if (FParse::Token(TempCmd, MaybeGroup, false) && MaybeGroup.Len() > 0)
-				{
-					// If there is + at the end of the group name, remove it
-					const int32 PlusPos = MaybeGroup.Len() - 1;
-					const bool bHierarchy = MaybeGroup[MaybeGroup.Len() - 1] == TEXT('+');
-					if (bHierarchy)
-					{
-						MaybeGroup.RemoveAt(PlusPos, 1, false);
-					}
-
-					const FName MaybeGroupFName = FName(*(FString(TEXT("STATGROUP_")) + MaybeGroup));
-					bResult = FStatGroupGameThreadNotifier::Get().StatGroupNames.Contains(MaybeGroupFName);
-				}
-			}
+			PrintStatsHelpToOutputDevice( *Ar );
+		}
+		else if( FParse::Command( &TempCmd, TEXT( "STARTFILE" ) ) )
+		{
+			AddArgs += TEXT(" ");
+			AddArgs += CreateProfileFilename( FStatConstants::StatsFileExtension, true );
+		}
+		else if( FParse::Command( &TempCmd, TEXT( "StartFileRaw" ) ) )
+		{
+			AddArgs += TEXT( " " );
+			AddArgs += CreateProfileFilename( FStatConstants::StatsFileRawExtension, true );
+		}
+		else if( FParse::Command(&TempCmd,TEXT("DUMPFRAME")) )
+		{
+		}
+		else if ( FParse::Command(&TempCmd,TEXT("DUMPNONFRAME")) )
+		{
+		}
+		else if ( FParse::Command(&TempCmd,TEXT("DUMPCPU")) )
+		{
+		}
+		else if( FParse::Command(&TempCmd,TEXT("STOP")) )
+		{
+		}
+		else if( FParse::Command(&TempCmd,TEXT("DUMPAVE")) )
+		{
+		}
+		else if( FParse::Command(&TempCmd,TEXT("DUMPMAX")) )
+		{
+		}
+		else if( FParse::Command(&TempCmd,TEXT("DUMPSUM")) )
+		{
+		}
+		else if( FParse::Command(&TempCmd,TEXT("DUMPHITCHES")) )
+		{
+		}
+		else if (FParse::Command( &TempCmd, TEXT( "DumpEvents" ) ))
+		{
+		}
+		else if( FParse::Command( &TempCmd, TEXT( "STOPFILE" ) ) )
+		{
+		}
+		else if( FParse::Command( &TempCmd, TEXT( "TESTFILE" ) ) )
+		{
+		}
+		else if( FParse::Command( &TempCmd, TEXT( "testdisable" ) ) )
+		{
+		}
+		else if ( FParse::Command( &TempCmd, TEXT( "none" ) ) )
+		{
+		}
+		else if ( FParse::Command( &TempCmd, TEXT( "group" ) ) )
+		{
+		}
+		else if ( FParse::Command( &TempCmd, TEXT( "hier" ) ) )
+		{
+		}
+		else if ( FParse::Command( &TempCmd, TEXT( "net" ) ) )
+		{
+		}
+		else if ( FParse::Command( &TempCmd, TEXT( "toggledebug" ) ) )
+		{
+		}
+		else if ( FParse::Command( &TempCmd, TEXT( "memoryprofiler" ) ) )
+		{
+		}
+		else if( FParse::Command( &TempCmd, TEXT( "slow" ) ) )
+		{
+		}
+		else if (FParse::Command( &TempCmd, TEXT( "namedmarker" ) ))
+		{
 		}
 		else
 		{
-			FString BudgetSection;
-			const TCHAR* TmpCmd = Cmd;
-			if (FParse::Token(TmpCmd, BudgetSection, false) && BudgetSection.Len() > 0)
-			{
-				FScopeLock BudgetINILock(&BudgetStatMapCS);   //Make sure stats thread isn't currently reading from this data
-				{
-					FBudgetData& BudgetData = BudgetStatMapping.FindOrAdd(BudgetSection);
-					BudgetData = FBudgetData();
-					GConfig->GetArray(*BudgetSection, TEXT("Stats"), BudgetData.Stats, GEngineIni);
-					
-					TArray<FString> Lines;
-					GConfig->GetSection(*BudgetSection, Lines, GEngineIni);
-					for(const FString& Line : Lines)
-					{
-						if(!Line.Contains(TEXT("+Stats=")))	//ignore stats array
-						{
-							FString ThreadName;
-							Line.Split(FString(TEXT("=")), &ThreadName, nullptr);
-							float Budget = -1.f;
-							if(GConfig->GetFloat(*BudgetSection, *ThreadName, Budget, GEngineIni))
-							{
-								BudgetData.ThreadBudgetMap.FindOrAdd(FName(*ThreadName)) = Budget;
-							}
-						}
-					}
+			bResult = false;
 
-					BudgetData.Process();
+			FString MaybeGroup;
+			if (FParse::Token(TempCmd, MaybeGroup, false) && MaybeGroup.Len() > 0)
+			{
+				// If there is + at the end of the group name, remove it
+				const int32 PlusPos = MaybeGroup.Len() - 1;
+				const bool bHierarchy = MaybeGroup[MaybeGroup.Len() - 1] == TEXT('+');
+				if (bHierarchy)
+				{
+					MaybeGroup.RemoveAt(PlusPos, 1, false);
 				}
+
+				const FName MaybeGroupFName = FName(*(FString(TEXT("STATGROUP_")) + MaybeGroup));
+				bResult = FStatGroupGameThreadNotifier::Get().StatGroupNames.Contains(MaybeGroupFName);
 			}
 		}
-		
 #endif
 
 		check(IsInGameThread());
@@ -2158,7 +1768,7 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 				STATGROUP_TaskGraphTasks);
 
 			FGraphEventRef CompleteHandle = FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-				FSimpleDelegateGraphTask::FDelegate::CreateStatic(&StatCmd, FullCmd, bStatCommand),
+				FSimpleDelegateGraphTask::FDelegate::CreateStatic(&StatCmd, FullCmd),
 				GET_STATID(STAT_FSimpleDelegateGraphTask_StatCmd), NULL, ThreadType
 			);
 			if (bBlockForCompletion)
@@ -2168,7 +1778,7 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 			}
 #else
 			// If stats aren't enabled, broadcast so engine stats can still be triggered
-			StatCmd(FullCmd, bStatCommand);
+			StatCmd(FullCmd);
 #endif
 		}
 	}

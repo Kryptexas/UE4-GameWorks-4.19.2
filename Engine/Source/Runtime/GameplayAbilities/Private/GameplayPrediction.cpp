@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "GameplayAbility.h"
@@ -42,7 +42,7 @@ bool FPredictionKey::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bO
 		}
 		else
 		{
-			KeyType Payload = 0;
+			int16 Payload = 0;
 			Ar << Payload;
 		}
 	}
@@ -55,10 +55,6 @@ void FPredictionKey::GenerateNewPredictionKey()
 {
 	static KeyType GKey = 1;
 	Current = GKey++;
-	if (GKey < 0)
-	{
-		GKey = 1;
-	}
 	bIsStale = false;
 }
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,7 +7,7 @@
 #include "BoneIndices.h"
 #include "CustomBoneIndexArray.h"
 #include "AnimEncoding.h"
-#include "Animation/AnimStats.h"
+
 
 struct FCompactPose;
 
@@ -28,16 +28,6 @@ struct FBoneTransform
 		, Transform(InTransform)
 	{}
 };
-
-// Comparison Operator for Sorting.
-struct FCompareBoneTransformIndex
-{
-	FORCEINLINE bool operator()(const FBoneTransform& A, const FBoneTransform& B) const
-	{
-		return A.BoneIndex < B.BoneIndex;
-	}
-};
-
 
 template<class BoneIndexType>
 struct FBasePose
@@ -164,7 +154,7 @@ struct FCompactPoseBoneIndexReverseIterator
 	FCompactPoseBoneIndex operator*() const { return FCompactPoseBoneIndex(Index); }
 };
 
-struct ENGINE_API FCompactPose : FBasePose<FCompactPoseBoneIndex>
+struct FCompactPose : FBasePose<FCompactPoseBoneIndex>
 {
 public:
 	typedef FCompactPoseBoneIndex BoneIndexType;
@@ -238,7 +228,7 @@ public:
 	}
 
 	// Copy bone transform from SrcPose to this
-	void CopyBonesFrom(const FCompactPose& SrcPose)
+	void CopyBonesFrom(FCompactPose& SrcPose)
 	{
 		if (this != &SrcPose)
 		{
@@ -254,7 +244,7 @@ public:
 	}
 
 	// Sets this pose to the supplied BoneContainers ref pose
-	void ResetToRefPose(const FBoneContainer& RequiredBones);
+	ENGINE_API void ResetToRefPose(const FBoneContainer& RequiredBones);
 
 	// Sets every bone transform to Identity
 	void ResetToIdentity();
@@ -375,12 +365,6 @@ protected:
 
 	// Flags to track each bones current state (0 means local pose, 1 means component space pose)
 	TCustomBoneIndexArray<uint8, BoneIndexType> ComponentSpaceFlags;
-
-	// Cached bone mask array to avoid reallocations
-	TCustomBoneIndexArray<uint8, BoneIndexType> BoneMask;
-
-	// Cached conversion array for this pose, to save on allocations each frame
-	TArray<FCompactPoseBoneIndex> BonesToConvert;
 };
 
 template<class PoseType>
@@ -455,9 +439,9 @@ void FCSPose<PoseType>::CalculateComponentSpaceTransform(BoneIndexType BoneIndex
 	FTransform& ParentBone = Pose[ParentIndex];
 	check(!Pose[BoneIndex].ContainsNaN());
 	check(!Pose[ParentIndex].ContainsNaN());
-	FTransform ComponentTransform = Pose[BoneIndex] * Pose[ParentIndex];
-	check(!ComponentTransform.ContainsNaN());
-	Pose[BoneIndex] = ComponentTransform;
+	FTransform Suspect = Pose[BoneIndex] * Pose[ParentIndex];
+	check(!Suspect.ContainsNaN());
+	Pose[BoneIndex] = Pose[BoneIndex] * Pose[ParentIndex];
 	Pose[BoneIndex].NormalizeRotation();
 	check(!Pose[BoneIndex].ContainsNaN());
 	ComponentSpaceFlags[BoneIndex] = 1;
@@ -488,46 +472,53 @@ void FCSPose<PoseType>::SafeSetCSBoneTransforms(const TArray<struct FBoneTransfo
 {
 	checkSlow(Pose.IsValid());
 
-	BonesToConvert.Reset();
+	// Bone Mask to keep track of which bones have to be converted to local space.
+	// This is basically BoneTransforms's children.
+	TCustomBoneIndexArray<uint8, FCompactPoseBoneIndex> BoneMask;
+	BoneMask.AddZeroed(Pose.GetNumBones());
 
-	// Minimum bone index, we don't need to look at bones prior to this in the pose
-	const int32 MinIndex = BoneTransforms[0].BoneIndex.GetInt();
-
-	// Add BoneTransforms indices if they're in component space
-	for(const FBoneTransform& Transform : BoneTransforms)
+	// First build our BoneMask
+	for (const FBoneTransform& BoneTransform : BoneTransforms)
 	{
-		if(ComponentSpaceFlags[Transform.BoneIndex] == 1)
-		{
-			BonesToConvert.Add(Transform.BoneIndex);
-		}
+		// Mark those bones in Mesh Pose as being required to be in Local Space.
+		BoneMask[BoneTransform.BoneIndex] = 1;
 	}
 
-	// Store the beginning of the child transforms, below we don't need to convert any bone added
-	// from BoneTransforms because they're about to be overwritten
-	const int32 FirstChildTransform = BonesToConvert.Num();
 
-	FCompactPoseBoneIndexIterator Iter = FCompactPoseBoneIndexIterator(MinIndex);
-	FCompactPoseBoneIndexIterator EndIter = Pose.MakeEndIter();
-
-	// Add child bones if they're in component space
-	for(; Iter != EndIter; ++Iter)
+	//Flag children
+	for (const FCompactPoseBoneIndex BoneIndex : Pose.ForEachBoneIndex())
 	{
-		const FCompactPoseBoneIndex BoneIndex = *Iter;
 		const FCompactPoseBoneIndex ParentIndex = Pose.GetParentBoneIndex(BoneIndex);
-
-		if(ComponentSpaceFlags[BoneIndex] == 1 && BonesToConvert.Contains(ParentIndex))
+		// Propagate our BoneMask to children.
+		if (ParentIndex != INDEX_NONE)
 		{
-			BonesToConvert.AddUnique(BoneIndex);
+			BoneMask[BoneIndex] |= BoneMask[ParentIndex];
 		}
 	}
 
-	// Convert the bones, we walk backwards to process children first, the pose iteration above is sorted
-	// so we know we already have the right order. We also stop when we get to the bones contained in
-	// BoneTransforms because we're about to overwrite them anyway
-	const int32 NumToConvert = BonesToConvert.Num();
-	for(int32 Idx = NumToConvert - 1; Idx >= FirstChildTransform; --Idx)
+	// now iterate from children to parent to calculate back to local space
+	// Sadly this has to iterate from back because you'll need parent to be component space
+	// if you do this from parent to child, you'll see parent turned to local before children applies it
+	int32 BoneTransformIndex = BoneTransforms.Num() - 1;
+	for (FCompactPoseBoneIndex BoneIndex : Pose.ForEachBoneIndexReverse())
 	{
-		ConvertBoneToLocalSpace(BonesToConvert[Idx]);
+		// If this bone has to be converted to Local Space...
+		if (BoneMask[BoneIndex] != 0)
+		{
+			// If this is one of the original BoneTransforms list bones
+			// Then we don't actually want to convert this one to local space, since we're going to overwrite it.
+			// So skip it.
+			if (BoneTransformIndex >= 0 && BoneIndex == BoneTransforms[BoneTransformIndex].BoneIndex)
+			{
+				BoneTransformIndex--;
+			}
+			// If this is a children bone then we want it to be in local space!
+			else
+			{
+				// .. If it is not currently in Local Space, then convert it.
+				ConvertBoneToLocalSpace(BoneIndex);
+			}
+		}
 	}
 
 	// Finally copy our Component Space transforms
@@ -551,8 +542,6 @@ void FCSPose<PoseType>::SafeSetCSBoneTransforms(const TArray<struct FBoneTransfo
 template<class PoseType>
 void FCSPose<PoseType>::LocalBlendCSBoneTransforms(const TArray<struct FBoneTransform>& BoneTransforms, float Alpha)
 {
-	SCOPE_CYCLE_COUNTER(STAT_LocalBlendCSBoneTransforms);
-
 	// if Alpha is small enough, skip
 	if (Alpha < ZERO_ANIMWEIGHT_THRESH)
 	{
@@ -583,7 +572,7 @@ void FCSPose<PoseType>::LocalBlendCSBoneTransforms(const TArray<struct FBoneTran
 	{
 		// Bone Mask to keep track of which bones have to be converted to local space.
 		// This is basically BoneTransforms bones and their children.
-		BoneMask.Reset();
+		TCustomBoneIndexArray<uint8, BoneIndexType> BoneMask;
 		BoneMask.AddZeroed(Pose.GetNumBones());
 
 		TArray<struct FBoneTransform> LocalBoneTransforms;

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -31,7 +31,7 @@ public:
 
 	/** Default constructor. */
 	FUdpSerializedMessage()
-		: FMemoryWriter(DataArray, true)
+		: FMemoryWriter(Data, true)
 		, State(EUdpSerializedMessageState::Incomplete)
 	{ }
 
@@ -46,25 +46,14 @@ public:
 	 */
 	FArchive* CreateReader()
 	{
-		return new FMemoryReader(DataArray, true);
-	}
-
-	/**
-	 * Get the serialized message data.
-	 *
-	 * @return Byte array of message data.
-	 * @see GetState
-	 */
-	const TArray<uint8>& GetDataArray()
-	{
-		return DataArray;
+		return new FMemoryReader(Data, true);
 	}
 
 	/**
 	 * Gets the state of the message data.
 	 *
 	 * @return Message data state.
-	 * @see GetData, OnStateChanged, UpdateState
+	 * @see OnStateChanged
 	 */
 	EUdpSerializedMessageState GetState() const
 	{
@@ -75,7 +64,7 @@ public:
 	 * Returns a delegate that is executed when the message data's state changed.
 	 *
 	 * @return The delegate.
-	 * @see GetState, UpdateState
+	 * @see GetState
 	 */
 	FSimpleDelegate& OnStateChanged()
 	{
@@ -86,9 +75,8 @@ public:
 	 * Updates the state of this message data.
 	 *
 	 * @param InState The state to set.
-	 * @see GetState, OnStateChanged
 	 */
-	void UpdateState(EUdpSerializedMessageState InState)
+	void UpdateState( EUdpSerializedMessageState InState )
 	{
 		State = InState;
 		StateChangedDelegate.ExecuteIfBound();
@@ -96,8 +84,8 @@ public:
 
 private:
 
-	/** Holds the serialized data. */
-	TArray<uint8> DataArray;
+	/** Holds the data. */
+	TArray<uint8> Data;
 
 	/** Holds the message data state. */
 	EUdpSerializedMessageState State;

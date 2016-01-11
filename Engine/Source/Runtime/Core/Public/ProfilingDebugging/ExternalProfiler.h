@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -33,9 +33,6 @@ public:
 	 * Profiler interface.
 	 */
 
-	/** Mark where the profiler should consider the frame boundary to be. */
-	virtual void FrameSync() = 0;
-
 	/** Pauses profiling. */
 	virtual void ProfilerPauseFunction() = 0;
 
@@ -61,25 +58,12 @@ private:
 	friend class FScopedExternalProfilerBase;
 };
 
-class FActiveExternalProfilerBase
-{
-public:	
 
-	CORE_API static FExternalProfiler* GetActiveProfiler();
-
-
-private:
-	/** Static: True if we've tried to initialize a profiler already */
-	static bool bDidInitialize;
-
-	/** Static: Active profiler instance that we're using */
-	static FExternalProfiler* ActiveProfiler;
-};
 
 /**
  * Base class for FScoped*Timer and FScoped*Excluder
  */
-class FScopedExternalProfilerBase : public FActiveExternalProfilerBase
+class FScopedExternalProfilerBase
 {
 protected:
 	/**
@@ -96,6 +80,12 @@ protected:
 private:
 	/** Stores the previous 'Paused' state of VTune before this scope started */
 	bool bWasPaused;
+
+	/** Static: True if we've tried to initialize a profiler already */
+	static bool bDidInitialize;
+
+	/** Static: Active profiler instance that we're using */
+	static FExternalProfiler* ActiveProfiler;
 };
 
 
@@ -105,11 +95,11 @@ private:
  * Use this to include a body of code in profiler's captured session using 'Resume' and 'Pause' cues.  It
  * can safely be embedded within another 'timer' or 'excluder' scope.
  */
-class FExternalProfilerIncluder : public FScopedExternalProfilerBase
+class ExternalProfilerIncluder : public FScopedExternalProfilerBase
 {
 public:
 	/** Constructor */
-	FExternalProfilerIncluder()
+	ExternalProfilerIncluder()
 	{
 		// 'Timer' scopes will always 'resume' VTune
 		const bool bWantPause = false;
@@ -117,7 +107,7 @@ public:
 	}
 
 	/** Destructor */
-	~FExternalProfilerIncluder()
+	~ExternalProfilerIncluder()
 	{
 		StopScopedTimer();
 	}
@@ -149,5 +139,5 @@ public:
 
 };
 
-#define SCOPE_PROFILER_INCLUDER(X) FExternalProfilerIncluder ExternalProfilerIncluder_##X;
+#define SCOPE_PROFILER_INCLUDER(X) ExternalProfilerIncluder ExternalProfilerIncluder_##X;
 #define SCOPE_PROFILER_EXCLUDER(X) FExternalProfilerExcluder ExternalProfilerExcluder_##X;

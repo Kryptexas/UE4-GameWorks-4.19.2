@@ -1,0 +1,52 @@
+Availability: Docs
+Title: Delete Quarantined Content Commandlet
+Crumbs: %ROOT%, Engine, Engine/Commandlets
+Description:Commandlet that removes content marked as being quarantined  - i.e. old, invalid, or not to be used.
+
+[REGION:todo]
+	This page is converted from Unreal Engine 3 documentation and currently being reviewed. Information may be outdated.
+[/REGION]
+
+[TOC(start:2)]
+
+## Overview
+
+Quarantining content is a method of marking assets contained within packages that have been determined to be old, invalid, or otherwise not to be used. Using the **Content Browser**, assets can be marked with the **Quarantined** tag. Marking the assets does not remove them from the packages or prevent them from being used. They must be explicitly deleted which can be an extremely cumbersome and time-consuming process if the number of assets is large and they are contained in many independent packages. The Delete Quarantined Content commandlet simplifies this process by creating a list of quarantined assets and the packages containing them and then removes any of these assets that are not referenced by anything in a controlled and safe manner.
+
+For more information on quaratining assets and using **Quarantine Mode**, see the [Content Browser Reference](Engine/Content/Browser).
+
+
+
+## Running the Commandlet
+
+To run the Delete Quarantined Content commandlet, simply pass the name of the commandlet along with any of the [optional switches](#SwitchOptions) that determine how the commandlet functions to the executable for your game.
+
+For example:
+
+    UDK.exe DeleteQuarantinedContent [Optional Switches]
+    
+
+(#SwitchOptions)
+
+
+
+## Optional Switches
+
+$ **-SkipFails** : When present, this option causes the commandlet to continue execution if it encounters an error processing one of the packages. Without this option, execution will stop if an error occurs.
+$ **-SkipCheckout** : When present, this option prevents the commandlet from checking out packages from source control that are marked as read-only.
+$ **-SkipRefChecks** : When present, this option causes reference checking to be disabled during execution. This will speed up the process as reference checking takes additional time. Since referenced Objects cannot be safely deleted, the **`RF_Standalone`** flag will be cleared on the quarantined objects, but you will not be warned and the garbage collector will not remove them.
+$ **-ShowReferences** : When present, this option will cause Object references to be displayed for referenced Objects that cannot be deleted. This option is dependent on reference checking and will not work in conjunction with the **`-SkipRefChecks`**.
+
+
+
+## Example Use Case
+
+After weeks of reviewing game assets, art directors have quarantined a large number of content. It has been decided that this content is no longer needed and should be removed. Without the Delete Quarantined Content commandlet, someone would need to import each package that contains a quarantined asset. Then they would need to delete each tagged asset and then save the package.
+
+When the Delete Quarantined Content commandlet runs, it will do all this work and ensure the content you are trying to delete is not referenced by other content.
+
+ 
+
+
+
+

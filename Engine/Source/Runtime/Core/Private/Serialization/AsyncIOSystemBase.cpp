@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AsyncIOSystemBase.h: Base implementation of the async IO system
@@ -60,7 +60,7 @@ uint64 FAsyncIOSystemBase::QueueIORequest(
 	IORequest.RequestIndex				= RequestIndex++;
 	IORequest.FileSortKey				= INDEX_NONE;
 	IORequest.FileName					= FileName;
-	IORequest.FileNameHash				= FCrc::StrCrc32<TCHAR>(*FileName.ToLower());
+	IORequest.FileNameHash				= FCrc::StrCrc32<TCHAR>(FileName.ToLower().GetCharArray().GetData());
 	IORequest.Offset					= Offset;
 	IORequest.Size						= Size;
 	IORequest.UncompressedSize			= UncompressedSize;
@@ -103,7 +103,7 @@ uint64 FAsyncIOSystemBase::QueueDestroyHandleRequest(const FString& FileName)
 	FAsyncIORequest IORequest;
 	IORequest.RequestIndex				= RequestIndex++;
 	IORequest.FileName					= FileName;
-	IORequest.FileNameHash				= FCrc::StrCrc32<TCHAR>(*FileName.ToLower());
+	IORequest.FileNameHash				= FCrc::StrCrc32<TCHAR>(FileName.ToLower().GetCharArray().GetData());
 	IORequest.Priority					= AIOP_MIN;
 	IORequest.bIsDestroyHandleRequest	= true;
 
@@ -416,7 +416,7 @@ IFileHandle* FAsyncIOSystemBase::GetCachedFileHandle( const FString& FileName )
 		// Make sure it's valid before caching and using it.
 		if( FileHandle )
 		{
-			NameHashToHandleMap.Add(FCrc::StrCrc32<TCHAR>(*FileName.ToLower()), FileHandle);
+			NameHashToHandleMap.Add(FCrc::StrCrc32<TCHAR>(FileName.ToLower().GetCharArray().GetData()), FileHandle);
 		}
 	}
 
@@ -425,7 +425,7 @@ IFileHandle* FAsyncIOSystemBase::GetCachedFileHandle( const FString& FileName )
 
 IFileHandle* FAsyncIOSystemBase::FindCachedFileHandle( const FString& FileName )
 {
-	return FindCachedFileHandle(FCrc::StrCrc32<TCHAR>(*FileName.ToLower()));
+	return FindCachedFileHandle(FCrc::StrCrc32<TCHAR>(FileName.ToLower().GetCharArray().GetData()));
 }
 
 IFileHandle* FAsyncIOSystemBase::FindCachedFileHandle(const uint32 FileNameHash)

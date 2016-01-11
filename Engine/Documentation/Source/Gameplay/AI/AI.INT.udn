@@ -1,8 +1,7 @@
 Availability:Public
-Title: AI and Behavior Trees
+Title: AI & Behavior Trees
 Crumbs:%ROOT%, Engine, Gameplay
 Description:Information over Artificial Intelligence including the use of Behavior Trees and Navmesh.
-version: 4.9
 
 <!-- Q:\Daniel.Broder\BT Docs -->
 
@@ -36,7 +35,7 @@ version: 4.9
 	* [](Engine/AI/EnvironmentQuerySystem/UserGuide "%Engine/AI/EnvironmentQuerySystem/UserGuide:description%")
 	* [](Engine/AI/EnvironmentQuerySystem/EQSPawn "%Engine/AI/EnvironmentQuerySystem/EQSPawn:description%")
 	* [](Engine/AI/EnvironmentQuerySystem/NodeReference "%Engine/AI/EnvironmentQuerySystem/NodeReference:description%")
-	<!--* [](Engine/AI/EnvironmentQuerySystem/AskingSmartQuestions "%Engine/AI/EnvironmentQuerySystem/AskingSmartQuestions:description%")-->
+	* [](Engine/AI/EnvironmentQuerySystem/AskingSmartQuestions "%Engine/AI/EnvironmentQuerySystem/AskingSmartQuestions:description%")
 	[/PARAM]
 [/OBJECT]
 

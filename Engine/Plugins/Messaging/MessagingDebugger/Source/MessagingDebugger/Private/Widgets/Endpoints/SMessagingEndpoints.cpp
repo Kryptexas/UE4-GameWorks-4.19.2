@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MessagingDebuggerPrivatePCH.h"
 #include "SExpandableArea.h"
@@ -74,7 +74,7 @@ void SMessagingEndpoints::Construct( const FArguments& InArgs, const FMessagingD
 									.HeaderContent()
 									[
 										SNew(SImage)
-											.Image(InStyle->GetBrush("BreakColumn"))
+											.Image(InStyle->GetBrush("Break"))
 											.ToolTipText(LOCTEXT("EndpointListBreakpointsColumnTooltip", "Breakpoints"))
 									]
 

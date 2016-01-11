@@ -1,0 +1,28 @@
+﻿Availability: Docs
+Title:1.8 - 物理体积
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Volumes
+Description:体积示例关卡的概述,示例1.8: 物理体积
+
+[TOC(start:2 end:2)]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Volumes/1_8:title%](Resources\ContentExamples\Volumes\content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Volumes/1_8:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Volumes/1_8:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Volumes/1_8]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+让您可以覆盖世界的默认物理设置。

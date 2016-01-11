@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "EdGraph/EdGraph.h"
@@ -46,18 +46,7 @@ struct FMaterialInputInfo
 		}
 		else if( Material->IsUIMaterial() )
 		{
-			if( Property == MP_EmissiveColor || Property == MP_Opacity || Property == MP_OpacityMask || Property == MP_WorldPositionOffset )
-			{
-				return true;
-			}
-
-			if (Property >= MP_CustomizedUVs0 && Property <= MP_CustomizedUVs7)
-			{
-				return (Property - MP_CustomizedUVs0) < Material->NumCustomizedUVs;
-			}
-
-			return false;
-
+			return Property == MP_EmissiveColor || Property == MP_Opacity || Property == MP_OpacityMask;
 		}
 		else
 		{
@@ -138,12 +127,11 @@ public:
 	/**
 	 * Add a Comment to the Graph
 	 *
-	 * @param	Comment			Comment to add
-	 * @param	bIsUserInvoked	Whether the comment has just been created by the user via the UI
+	 * @param	Comment	Comment to add
 	 *
 	 * @return	UMaterialGraphNode_Comment*	Newly created Graph node to represent comment
 	 */
-	class UMaterialGraphNode_Comment*	AddComment(UMaterialExpressionComment* Comment, bool bIsUserInvoked = false);
+	class UMaterialGraphNode_Comment*	AddComment(UMaterialExpressionComment* Comment);
 
 	/** Link all of the Graph nodes using the Material's connections */
 	void LinkGraphNodesFromMaterial();
@@ -180,9 +168,4 @@ private:
 
 	FText GetEmissivePinName() const;
 	FText GetBaseColorPinName() const;
-	FText GetMetallicPinName() const;
-	FText GetNormalPinName() const;
-	FText GetWorldPositionOffsetPinName() const;
-	FText GetSubsurfacePinName() const;
-	FText GetCustomDataPinName( uint32 Index ) const;
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,9 +11,9 @@ class FLauncher
 {
 public:
 
-	//~ Begin ILauncher Interface
+	// Begin ILauncher interface
 
 	virtual ILauncherWorkerPtr Launch( const ITargetDeviceProxyManagerRef& DeviceProxyManager, const ILauncherProfileRef& Profile ) override;
 
-	//~ End ILauncher Interface
+	// End ILauncher interface
 };

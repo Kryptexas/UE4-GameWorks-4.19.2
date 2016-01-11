@@ -1,0 +1,234 @@
+﻿INTSourceChangelist:2609805
+Availability: Public
+Title:피지컬 머티리얼 참고서
+Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
+Description:물리 시뮬레이션이 적용되는 프리미티브에 바로, 또는 시뮬레이션에 쓰이는 물리 속성을 환경설정하고 제어하는 데 사용되는 머티리얼을 통해 적용되는 애셋입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Physics/PhysicalMaterials/PhysMatReference:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhysicalMaterials/PhysMatReference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhysicalMaterials/PhysMatReference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/PhysicalMaterials/PhysMatReference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhysicalMaterials/PhysMatReference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhysicalMaterials/PhysMatReference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/PhysicalMaterials/PhysMatReference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[INCLUDE:Shared/Glossary/P/#Glossary_Physical_Material]
+
+## 프로퍼티
+
+피지컬 머티리얼에 대한 프로퍼티를 대분류별로 나눠보면 다음과 같습니다.
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		physmat
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Physical Material
+	[/PARAM]
+	[PARAM:content]
+		%p1%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p1]
+
+이 카테고리에는 피지컬 머티리얼의 핵심 프로퍼티: 마찰, 복원력, 밀도가 들어있습니다.
+
+![](p1.png)
+
+[REGION:raw]
+| 프로퍼티 | %spacer% | 설명 |
+| -------- | --- | :---------- |
+| **Friction** || 마찰 - 표면의 마찰 값으로, 사물이 이 표면을 얼마나 쉽게 미끄러질 수 있는가를 조절합니다. |
+| **Friction Combine Mode** || 마찰 조합 모드 - [INCLUDE:#FcombineMode]  |
+| **Override Friction Combine Mode** || 마찰 조합 모드 덮어쓰기 - 기본적으로 마찰 조합 모드는 **평균** 으로 되어있으나, 이 옵션을 켬으로써 접한 피지컬 머티리얼 사이의 마찰 조합 방식을 변경할 수 있습니다. |
+| **Restitution** || 복원력 - 표면의 탄성, 즉 다른 표면과 충돌할 때 얼마만큼의 에너지를 보존하는가를 나타냅니다. |
+| **Restitution Combine Mode** || 복원력 조합 모드 - [INCLUDE:#RcombineMode] |
+| **Override Restitution Combine Mode** || 복원력 조합 모드 덮어쓰기 - 기본적으로 복원력 조합 모드는 **평균** 으로 되어있으나, 이 프로퍼티를 켬으로써 접하는 피지컬 머티리얼 사이에 복원력이 조합되는 방식을 변경할 수 있습니다. |
+| **Density** || 밀도 - 오브젝트의 셰이프와 함께 사용해서 그 질량을 계산하는 데 사용됩니다. 수치가 클 수록 오브젝트가 무거워집니다. 입방 **cm** 별 **g** 단위로 측정됩니다. |
+[/REGION]
+
+[/VAR]
+
+
+[OBJECT:modulesection]
+	[PARAMLITERAL:id]
+		adv
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Advanced
+	[/PARAM]
+	[PARAM:content]
+		%p2%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p2]
+
+이 카테고리에는 액터 및 거기 적용된 피지컬 머티리얼을 포함해서 질량에 영향을 끼치는 방식을 변경하는 프로퍼티가 들어있습니다.
+
+![](p2.png)
+
+[REGION:raw]
+| 프로퍼티 | %spacer% | 설명 |
+| -------- | --- | :---------- |
+| **Raise Mass To Power** || 질량 제곱 증가 - 오브젝트가 커져감에 따라 질량의 증가 방식을 조절하는 데 사용됩니다. "속이 꽉 찬" 오브젝트 기반으로 계산되는 질량에 적용됩니다. 현실에서도 사물이 커질 수록 속이 꽉 차기 보다는 "껍데기"가 되는 경향이 강합니다 (예로 차량은 속이 철로 꽉 찬 사물이 아닙니다). 이 값은 1 이하로 제한됩니다. |
+[/REGION]
+
+[/VAR]
+
+
+
+[OBJECT:modulesection]
+	[PARAMLITERAL:id]
+		dest
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Destruction
+	[/PARAM]
+	[PARAM:content]
+		%p3%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p3]
+
+언리얼 엔진 4 의 파괴 시스템에 해당되는 프로퍼티입니다.
+
+![](p3.png)
+
+[REGION:raw]
+| 프로퍼티 | %spacer% | 설명 |
+| -------- | :---: | :---------- |
+| **Destructible Damage Threshold Scale** || 디스트럭터블 대미지 한계치 스케일 - 이 피지컬 머티리얼이 적용되는 디스트럭터블의 대미지 한계치에 대한 스케일입니다. |
+[/REGION]
+
+[/VAR]
+
+
+
+[OBJECT:modulesection]
+	[PARAMLITERAL:id]
+		physpro
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Physical Properties
+	[/PARAM]
+	[PARAM:content]
+		%p4%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p4]
+
+피지컬 머티리얼에 대한 게임플레이 관련 프로퍼티입니다.
+
+![](p4.png)
+
+[REGION:raw]
+| 프로퍼티 | %spacer% | 설명 |
+| -------- | --- | :---------- |
+| **Surface Type** || 표면 유형 - [INCLUDE:#one]|
+[/REGION]
+
+[/VAR]
+
+
+
+[OBJECT:modulesection]
+	[PARAMLITERAL:id]
+		vehicles
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Vehicles
+	[/PARAM]
+	[PARAM:content]
+		%p5%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p5]
+
+언리얼 엔진 4 의 비히클 관련 프로퍼티입니다. 타이어 관련된 것이라 해도, 비히클에 적용될 때만 그렇습니다 (Tire Data Type 이든 Wheel Blueprint 든, 피지컬 머티리얼을 직접 레퍼런싱하지 않습니다).
+
+![](p5.png)
+
+[REGION:raw]
+| 프로퍼티 | %spacer% | 설명 |
+| -------- | :---: | :---------- |
+| **Tire Friction Scale** || 타이어 마찰 스케일 - 이 피지컬 머티리얼을 비히클에 적용할 때의 전체적인 타이어 마찰 스케일 지수입니다. 이 값을 비히클 휠의 Friction Scale 값에 곱합니다. |
+| **Tire Friction Scales** || 타이어 마찰 스케일 - 이 피지컬 머티리얼이 비히클에 적용될 때 해당 휠에 대한 타이어 마찰 스케일입니다. 이 값을 비히클 휠의 해당 Friction Scale 값에 곱합니다. |
+[/REGION]
+
+[/VAR]
+
+[VAR:spacer]![](spacer.png)(w:150 convert:false)[/VAR]
+
+<!--
+[EXCERPT:one]
+Surface Types (서피스 타입)은 프로젝트의 DefaultEngine.ini 에 설정됩니다. 캐릭터가 표면을 걸을 때 나는 소리에서부터 폭발시 표면 유형에 따라 어떤 데칼을 남길 것인지까지, 엔진에서 사용되는 여러가지 표면에 대한 열거형을 정의합니다.
+
+프로젝트 세팅 -> 피직스 -> Physical Surfaces 를 사용하면 됩니다.
+
+이 데이터는 코드나 블루프린트에서 끌어올 수 있습니다:
+
+![](SurfaceType.png)(w:600)
+
+기본적으로 소스 코드 수정 없이 서피스 타입은 30 개 까지로 제한되며, 라벨은 SurfaceType1 부터 SurfaceType30 까지입니다.
+
+[/EXCERPT:one]
+
+[EXCERPT:FcombineMode]
+이 프로퍼티로 피지컬 머티리얼 마찰 조합 방식을 조절할 수 있습니다. 기본적으로 평균 설정되어 있으나, **Override Friction Combine Mode** 프로퍼티를 사용해서 덮어쓸 수 있습니다.
+
+| --- | --- |
+| **Average** | 평균 - 접한 머티리얼의 평균값을 사용합니다: (a+b)/2 |
+| **Min** | 최소 - 접한 머티리얼의 작은 값을 사용합니다: min(a,b) |
+| **Multiply** | 곱 - 접한 머티리얼의 값을 곱합니다: a*b |
+| **Max** | 최대 - 접한 머티리얼의 큰 값을 사용합니다: max(a,b) |
+[/EXCERPT]
+
+[EXCERPT:RcombineMode]
+이 프로퍼티로 피지컬 머티리얼 복원력 조합 방식을 조절할 수 있습니다. 기본적으로 평균 설정되어 있으나, **Override Restitution Combine Mode** 프로퍼티로 덮어쓸 수 있습니다.
+
+| --- | --- |
+| **Average** | 평균 - 접한 머티리얼의 평균값을 사용합니다: (a+b)/2 |
+| **Min** | 최소 - 접한 머티리얼의 작은 값을 사용합니다: min(a,b) |
+| **Multiply** | 곱 - 접한 머티리얼의 값을 곱합니다: a*b |
+| **Max** | 최대 - 접한 머티리얼의 큰 값을 사용합니다: max(a,b) |
+[/EXCERPT]
+-->
+
+
+
+

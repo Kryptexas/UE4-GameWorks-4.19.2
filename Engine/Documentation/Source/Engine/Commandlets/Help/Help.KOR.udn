@@ -1,0 +1,116 @@
+INTSourceChangelist:2086995
+Availability: Docs
+Title: Help 커맨드렛
+Crumbs: %ROOT%, Engine, Engine/Commandlets
+Description:사용가능한 커맨드렛과 그 사용법 관련 정보를 표시하는 커맨드렛입니다.
+
+[REGION:todo]
+	언리얼 엔진 3 에서 이식해 온 문서로 현재 검토중에 있습니다. 정보가 맞지 않을 수 있습니다.
+[/REGION]
+
+[TOC(start:2)]
+
+## 개요
+
+`help` 커맨드렛은 실행 가능한 커맨드렛, 커맨드렛의 용도, 커맨드렛의 파라미터 요구 사항을 알아내기 위해 사용됩니다.
+
+
+
+## 운영
+
+이 커맨드렛을 실행하려면 명령 프롬프트 창에서 _UnrealEngine3\Binaries_ 디렉터리로 이동합니다.
+
+
+### 구문
+
+구문은 다음과 같습니다.
+
+    [GameName].exe help <list | commandletname | webhelp commandletname>
+    
+
+### 파라미터
+
+   **list** - 사용 가능한 모든 커맨드렛 목록 보기   
+   **commandlet name** - 특정 커맨드렛에 대한 도움말 정보 보기   
+   **webhelp** - 특정 커맨드렛에 대해 기술하고 있는 웹 페이지의 URL로 브라우저 시작하기   
+
+
+
+## 예제
+
+어떤 커맨드렛을 사용할 수 있는지 알아 보기 위해서 다음을 수행합니다.
+
+
+    
+    game.exe help list
+    
+
+
+
+다음은 출력의 예입니다.
+
+
+    
+    Core.Help                                - 이 커맨드렛은 다른 커맨드렛의 도움말 정보를 표시함.
+    Engine.SmokeTest                         - 이 커맨드렛은 빌드의 유효성을 검증하기 위해 일련의 테스트를 실행함.
+    Editor.CutDownContent                    - 패키지에서 사용되지 않은 콘텐츠를 삭제함.
+    Editor.Make                              - UnrealScript 패키지 재빌드 하기
+    Editor.PkgInfo                           - Unreal 패키지에 대한 정보를 표시함.
+    Editor.ScaleAudioVolume                  - 전 패키지의 오디오 데이터의 볼륨을 크기 조정.
+    Editor.StripSource                       - 컴파일된 스크립트 패키지에서 소스 코드를 제거함.
+    
+
+
+
+특정 커맨드렛에 대한 도움말 정보를 보려면 다음을 실행합니다.
+
+
+    
+    game.exe help <commandlet name>
+    
+
+
+
+도움말 커맨드렛의 결과는 다음과 같습니다.
+
+
+    
+    명칭:             Core.Help
+    설명:      이 커맨드렛은 다른 커맨드렛의 도움말 정보를 표기합니다.
+    용도:             gamename.exe help <list | 커맨드렛 이름 | webhelp 커맨드렛 이름>
+    옵션:
+       list                 - 사용 가능한 모든 커맨드렛 목록 보기
+       commandlet name      - 특정 커맨드렛에 대한 도움말 정보를 표기함.
+       webhelp              - 특정 커맨드렛에 대해 기술하고 있는 웹 페이지의 URL로 브라우저 시작하기.
+    
+
+
+
+커맨드렛에서 UDN 문서가 제공되는 경우 다음과 같은 webhelp 옵션을 사용하여 볼 수 있습니다.
+
+
+    
+    game.exe help webhelp help
+    
+
+
+
+위의 명령을 실행하면 본 페이지가 표시됩니다.
+
+
+[PUBLISH:Docs]
+## 다른 커맨드렛의 도움말
+
+자체 제작한 커맨드렛에 도움말 정보를 추가하려면 [](Programming/Development/Tools/Commandlets/MakingACommandlet) 문서를 참조해 주십시오.
+[/PUBLISH:Docs]
+
+
+## 커맨드렛 목록
+
+커맨드렛의 전체 목록은 [](Engine/Commandlets/CommandletList) 페이지를 참조해 주십시오.
+
+ 
+
+
+
+

@@ -1,0 +1,18 @@
+﻿INTSourceChangelist:2321424
+Availability:Docs
+Title:コードでカメラを使う方法
+Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\UsingCameras
+Description:コードでカメラを使用するための操作ガイド 
+
+[TOC (start:2 end:2)]
+
+## 概要
+
+## スタティック カメラの使用
+
+## 複数のカメラ間での切り替え
+
+## カメラ コンポーネントの使用
+
+## スプリング アーム コンポーネントの使用
+

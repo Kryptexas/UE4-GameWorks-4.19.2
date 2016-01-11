@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Blueprint/WidgetBlueprintGeneratedClass.h"
@@ -175,14 +175,13 @@ class UMGEDITOR_API UWidgetBlueprint : public UBlueprint
 
 public:
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual bool NeedsLoadForClient() const override;
 	virtual bool NeedsLoadForServer() const override;
-	//~ End UObject Interface
+	// End UObject interface
 
 public:
 
-#if WITH_EDITORONLY_DATA
 	/** A tree of the widget templates to be created */
 	UPROPERTY()
 	class UWidgetTree* WidgetTree;
@@ -203,7 +202,6 @@ public:
 	 */
 	UPROPERTY(AssetRegistrySearchable)
 	FString PaletteCategory;
-#endif
 
 public:
 
@@ -211,7 +209,7 @@ public:
 	virtual void PostLoad() override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	
-	//~ Begin UBlueprint Interface
+	// UBlueprint interface
 	virtual UClass* GetBlueprintClass() const override;
 
 	virtual bool AllowsDynamicBinding() const override;
@@ -225,7 +223,7 @@ public:
 
 	/** UWidget blueprints are never data only, should always compile on load (data only blueprints cannot declare new variables) */
 	virtual bool AlwaysCompileOnLoad() const override { return true; }
-	//~ End UBlueprint Interface
+	// End of UBlueprint interface
 
 	virtual void GatherDependencies(TSet<TWeakObjectPtr<UBlueprint>>& InDependencies) const override;
 

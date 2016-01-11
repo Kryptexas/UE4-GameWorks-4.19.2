@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -20,18 +20,16 @@ public:
 	 *
 	 * @param InPixelCenterOffset
 	 */
-	FSlateRenderingPolicy( const TSharedRef<class FSlateFontServices>& InFontServices, float InPixelCenterOffset )
-		: FontServices( InFontServices )
-		, PixelCenterOffset( InPixelCenterOffset )
+	FSlateRenderingPolicy( float InPixelCenterOffset )
+		: PixelCenterOffset( InPixelCenterOffset )
 	{ }
 
-	/** Virtual destructor. */
+	/** Virtual constructor. */
 	virtual ~FSlateRenderingPolicy( ) { }
 
-	TSharedRef<class FSlateFontCache> GetFontCache() const;
-	TSharedRef<class FSlateFontServices> GetFontServices() const;
+	virtual TSharedRef<class FSlateFontCache> GetFontCache() = 0;
 
-	virtual TSharedRef<class FSlateShaderResourceManager> GetResourceManager() const = 0;
+	virtual TSharedRef<class FSlateShaderResourceManager> GetResourceManager() = 0;
 
 	virtual bool IsVertexColorInLinearSpace() const = 0;
 
@@ -47,7 +45,6 @@ private:
 
 private:
 
-	TSharedRef<FSlateFontServices> FontServices;
 	float PixelCenterOffset;
 
 };

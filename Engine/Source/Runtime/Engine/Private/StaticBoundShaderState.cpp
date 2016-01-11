@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticBoundShaderState.cpp: Static bound shader state implementation.
@@ -25,14 +25,14 @@ FGlobalBoundShaderStateResource::FGlobalBoundShaderStateResource()
 	// Add this resource to the global list in the rendering thread.
 	if(IsInRenderingThread())
 	{
-		GlobalListLink.LinkHead(GetGlobalBoundShaderStateList());
+		GlobalListLink.Link(GetGlobalBoundShaderStateList());
 	}
 	else
 	{
 		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 			LinkGlobalBoundShaderStateResource,FGlobalBoundShaderStateResource*,Resource,this,
 			{
-				Resource->GlobalListLink.LinkHead(GetGlobalBoundShaderStateList());
+				Resource->GlobalListLink.Link(GetGlobalBoundShaderStateList());
 			});
 	}
 }
@@ -108,6 +108,12 @@ static FBoundShaderStateRHIParamRef GetGlobalBoundShaderState_Internal(FGlobalBo
 {
 	auto WorkArea = GlobalBoundShaderState.Get(InFeatureLevel);
 
+	// Check for unset uniform buffer parameters
+	// Technically you can set uniform buffer parameters after calling RHISetBoundShaderState, but this is the most global place to check for unset parameters
+	WorkArea->Args.VertexShader->VerifyBoundUniformBufferParameters();
+	WorkArea->Args.PixelShader->VerifyBoundUniformBufferParameters();
+	WorkArea->Args.GeometryShader->VerifyBoundUniformBufferParameters();
+
 	FGlobalBoundShaderState_Internal* BSS = WorkArea->BSS;
 	bool bNewBSS = false;
 	if (!BSS)
@@ -119,7 +125,7 @@ static FBoundShaderStateRHIParamRef GetGlobalBoundShaderState_Internal(FGlobalBo
 		WorkArea->Args.VertexDeclarationRHI,
 		GETSAFERHISHADER_VERTEX(WorkArea->Args.VertexShader),
 		GETSAFERHISHADER_PIXEL(WorkArea->Args.PixelShader),
-		GETSAFERHISHADER_GEOMETRY(WorkArea->Args.GeometryShader));
+		(FGeometryShaderRHIParamRef)GETSAFERHISHADER_GEOMETRY(WorkArea->Args.GeometryShader));
 	if (bNewBSS)
 	{
 		FPlatformMisc::MemoryBarrier();

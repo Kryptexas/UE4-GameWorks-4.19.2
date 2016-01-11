@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DecalComponent.cpp: Decal component implementation.
@@ -24,32 +24,20 @@ FDeferredDecalProxy::FDeferredDecalProxy(const UDecalComponent* InComponent)
 
 	Component = InComponent;
 	DecalMaterial = EffectiveMaterial;
-	SetTransformIncludingDecalSize(InComponent->GetTransformIncludingDecalSize());
+	ComponentTrans = InComponent->GetComponentToWorld();
 	DrawInGame = InComponent->ShouldRender();
 	bOwnerSelected = InComponent->IsOwnerSelected();
 	SortOrder = InComponent->SortOrder;
 }
 
-void FDeferredDecalProxy::SetTransformIncludingDecalSize(const FTransform& InComponentToWorldIncludingDecalSize)
+void FDeferredDecalProxy::SetTransform(const FTransform& InComponentToWorld)
 {
-	ComponentTrans = InComponentToWorldIncludingDecalSize;
+	ComponentTrans = InComponentToWorld;
 }
 
 UDecalComponent::UDecalComponent(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-	, FadeScreenSize(0.01)
-	, DecalSize(128.0f, 256.0f, 256.0f)
+: Super(ObjectInitializer), FadeScreenSize(0.01)
 {
-}
-
-void UDecalComponent::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-
-	if (Ar.UE4Ver() < VER_UE4_DECAL_SIZE)
-	{
-		DecalSize = FVector(1.0f, 1.0f, 1.0f);
-	}
 }
 
 void UDecalComponent::SetLifeSpan(const float LifeSpan)
@@ -116,7 +104,7 @@ FDeferredDecalProxy* UDecalComponent::CreateSceneProxy()
 
 FBoxSphereBounds UDecalComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
-	return FBoxSphereBounds(FVector(0, 0, 0), DecalSize, DecalSize.Size()).TransformBy(LocalToWorld);
+	return FBoxSphereBounds();
 }
 
 void UDecalComponent::CreateRenderState_Concurrent()

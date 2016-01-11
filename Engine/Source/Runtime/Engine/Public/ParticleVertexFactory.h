@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleVertexFactory.h: Particle vertex factory definitions.
@@ -105,17 +105,11 @@ public:
 
 	/** Default constructor. */
 	FParticleSpriteVertexFactory( EParticleVertexFactoryType InType, ERHIFeatureLevel::Type InFeatureLevel )
-		: FParticleVertexFactoryBase(InType, InFeatureLevel),
-		NumVertsInInstanceBuffer(0),
-		NumCutoutVerticesPerFrame(0),
-		CutoutGeometrySRV(nullptr)
+		: FParticleVertexFactoryBase(InType, InFeatureLevel)
 	{}
 
 	FParticleSpriteVertexFactory() 
-		: FParticleVertexFactoryBase(PVFT_MAX, ERHIFeatureLevel::Num),
-		NumVertsInInstanceBuffer(0),
-		NumCutoutVerticesPerFrame(0),
-		CutoutGeometrySRV(nullptr)
+		: FParticleVertexFactoryBase(PVFT_MAX, ERHIFeatureLevel::Num)
 	{}
 
 	// FRenderResource interface.
@@ -135,13 +129,6 @@ public:
 	 * Set the source vertex buffer that contains particle instance data.
 	 */
 	void SetInstanceBuffer(const FVertexBuffer* InInstanceBuffer, uint32 StreamOffset, uint32 Stride, bool bInstanced);
-
-	void SetTexCoordBuffer(const FVertexBuffer* InTexCoordBuffer);
-
-	inline void SetNumVertsInInstanceBuffer(int32 InNumVertsInInstanceBuffer)
-	{
-		NumVertsInInstanceBuffer = InNumVertsInInstanceBuffer;
-	}
 
 	/**
 	 * Set the source vertex buffer that contains particle dynamic parameter data.
@@ -164,15 +151,6 @@ public:
 		return SpriteUniformBuffer;
 	}
 
-	void SetCutoutParameters(int32 InNumCutoutVerticesPerFrame, FShaderResourceViewRHIParamRef InCutoutGeometrySRV)
-	{
-		NumCutoutVerticesPerFrame = InNumCutoutVerticesPerFrame;
-		CutoutGeometrySRV = InCutoutGeometrySRV;
-	}
-
-	inline int32 GetNumCutoutVerticesPerFrame() const { return NumCutoutVerticesPerFrame; }
-	inline FShaderResourceViewRHIParamRef GetCutoutGeometrySRV() const { return CutoutGeometrySRV; }
-
 	/**
 	 * Construct shader parameters for this type of vertex factory.
 	 */
@@ -184,11 +162,6 @@ protected:
 
 private:
 
-	int32 NumVertsInInstanceBuffer;
-
 	/** Uniform buffer with sprite paramters. */
 	FUniformBufferRHIParamRef SpriteUniformBuffer;
-
-	int32 NumCutoutVerticesPerFrame;
-	FShaderResourceViewRHIParamRef CutoutGeometrySRV;
 };

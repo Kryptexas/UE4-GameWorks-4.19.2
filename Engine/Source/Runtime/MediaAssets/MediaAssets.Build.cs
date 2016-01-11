@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 namespace UnrealBuildTool.Rules
 {
@@ -6,12 +6,17 @@ namespace UnrealBuildTool.Rules
 	{
 		public MediaAssets(TargetInfo Target)
 		{
+			DynamicallyLoadedModuleNames.AddRange(
+				new string[] {
+					"Media",
+				}
+			);
+
             PublicDependencyModuleNames.AddRange(
                 new string[] {
 					"Core",
 					"CoreUObject",
-					"Engine",
-                    "Media",
+					"Engine",                
                 }
             );
 
@@ -19,6 +24,12 @@ namespace UnrealBuildTool.Rules
 				new string[] {
                     "RenderCore",
                     "RHI",
+				}
+			);
+
+			PrivateIncludePathModuleNames.AddRange(
+				new string[] {
+					"Media",
 				}
 			);
 

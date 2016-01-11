@@ -1,17 +1,12 @@
-﻿INTSourceChangelist:2735872
-Availability:Public
+﻿Availability:Public
 Title:ブループリントのクイックスタートガイド
 Crumbs: %ROOT%, Engine, Engine/Blueprints
-version:4.9
-Description:ブループリントを作成して使ってみましょう
-parent:Engine/Blueprints
-order:1
-クイックスタート
+Description:初めてのブループリント作成
 
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Engine/Blueprints/QuickStart:title%](Engine/Blueprints/QuickStart/engine_qs_topic.png)
+		![](engine_qs_topic.jpg)
 	[/PARAM]
 	[PARAM:title]
 		%Engine/Blueprints/QuickStart:title%
@@ -20,7 +15,7 @@ order:1
 		[RELATIVE:Engine/Blueprints/QuickStart]
 	[/PARAM]
 	[PARAM:description]
-		%Engine/Blueprints/QuickStart:description%
+	%Engine/Blueprints/QuickStart:description%
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -28,7 +23,7 @@ order:1
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Engine/Blueprints/QuickStart:title%](Engine/Blueprints/QuickStart/engine_qs_topic.png)
+		![](engine_qs_topic.jpg)
 	[/PARAM]
 	[PARAM:title]
 		%Engine/Blueprints/QuickStart:title%
@@ -37,7 +32,7 @@ order:1
 		[RELATIVE:Engine/Blueprints/QuickStart]
 	[/PARAM]
 	[PARAM:description]
-		%Engine/Blueprints/QuickStart:description%
+	%Engine/Blueprints/QuickStart:description%
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -47,16 +42,35 @@ order:1
 	640
 	[/PARAMLITERAL]
 	[PARAMLITERAL:height]
-	390
+	360
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
 	Ax4Xgu2Zb4g
 	[/PARAMLITERAL]
 [/OBJECT]
 
-このクイックスタートガイドは、さまざまなコンポーネントでレベルにアクタを作成します。キャラクターがレベル内で飛行できるように、起動ビヘイビアを追加することができる Blueprint クラスへ変換する方法を説明します！
-Blueprint クラスへ変換すれば、**コンテンツブラウザ** からレベルへドラッグするだけでたくさんのジャンプ台 (Launchpad) の作成も可能になります。
+このクイックスタートガイドはさまざまなコンポーネントでレベルにアクタを作成します。キャラクターがレベル内で飛行できるように、起動ビヘイビアを追加することができる Blueprint クラスへ変換する方法を説明します！
+Blueprint クラスへの変換は、 **コンテンツブラウザ** からレベルへドラッグするだけでたくさんのジャンプ台（Launchpad）を作成できることも意味します。
 
-## ステップ
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		手順
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/Blueprints/QuickStart/1 "%Engine/Blueprints/QuickStart/1:description%")
+	* [](Engine/Blueprints/QuickStart/2 "%Engine/Blueprints/QuickStart/2:description%")
+	* [](Engine/Blueprints/QuickStart/3 "%Engine/Blueprints/QuickStart/3:description%")
+	* [](Engine/Blueprints/QuickStart/4 "%Engine/Blueprints/QuickStart/4:description%")
+	* [](Engine/Blueprints/QuickStart/5 "%Engine/Blueprints/QuickStart/5:description%")
+	* [](Engine/Blueprints/QuickStart/6 "%Engine/Blueprints/QuickStart/6:description%")
+	* [](Engine/Blueprints/QuickStart/7 "%Engine/Blueprints/QuickStart/7:description%")
+	[/PARAM]
+[/OBJECT]
 
-[DIR(end:"1" output:"listbutton" type:"multi-step" parent:"Engine/Blueprints/QuickStart" org:"hierarchy")]
+
+

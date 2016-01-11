@@ -1,0 +1,90 @@
+﻿INTSourceChangelist:2087000
+Availability:Docs
+Title:MineCookedPackages コマンドレット
+Crumbs: %ROOT%, Engine, Engine/Commandlets
+Description:クックしたパッケージとパッケージに含まれるアセットについての情報をデータベースに追加するコマンドレット
+
+[REGION:todo]
+	このページはアンリアル エンジン 3 のドキュメントから転載され現在見直しがされています。古い情報が含まれる場合もありますので予めご了承ください。
+[/REGION]
+
+[TOC(start:2)]
+
+## 概要
+
+minecookedpackages コマンドレットは、クックしたパッケージとそのエクスポートに関する情報をデータベースに追加することを目的とします。結果として、コードを修正したり、古いデータを手元に置くことなく、幅広いクエリを実行することができます。
+
+
+
+## 作業を開始する
+
+
+### セットアップ
+
+
+* Microsoft SQL Server または Microsoft SQL Server Express をインストールします。
+    * SQL Server Express には、VS.NET 2005/ 2008 が同梱されます。
+* Microsoft SQL Server Management Studio Express (SMS) をインストールします。
+    * 必要な作業のほとんどは、Visual Studio から行うことができます。ただし、SQL Server Management Studio の Express バージョンは無料なので、インストールして使用してもよいでしょう。
+* データベースを作成します。
+    * SMS 経由でデータベースに接続します。
+    * データベース上で右クリックして、[new] をクリックします。
+    * 名前を入力してください。例、CookedContent-1
+* テーブルを作成します。
+    * CookedContent-1 上で右クリックして、"new query" を選択します。
+        今後の計画では、各固有の実行からのデータを固有のID でタグ付けして、実行全体にわたりデータベースのトレンディングと共有ができるようにします。ただし、現時点では実行毎に新規データベースを作成する必要があります。
+    [MineCookedPackages.sql](MineCookedPackages.sql) の内容を、開いたばかりのテキスト ウィンドウに貼り付けて実行ボタンをクリックします。この操作により、すべての関連テーブルがデータベースに作成されます。
+
+
+
+
+## 操作
+
+このコマンドレットを実行するには、コマンド プロンプト ウィンドウから、「_UnrealEngine3\Binaries_ 」ディレクトリに進みます。
+
+
+### シンタックス
+
+シンタックスは次のようになります。
+
+    [Gamename].exe minecookedpackages ..\MyGame\CookedXenon\\*.xxx -DATABASE=machinename\sqlexpress -CATALOG=CookedContent-1
+    
+
+現時点では、完全に圧縮されたパッケージはスキップされます。我々の使用例では、スタートアップ パッケージのみが、これに該当します。
+
+
+### クエリ
+
+以下のクエリは、クラス毎にエクスポートをグルーピングし、その累積と平均のサイズを見つかったインスタンス数と共に累積サイズでソートしてリスト化します。
+
+
+    
+    SELECT ClassName, SUM(Size) / 1024 / 1024 AS SumSize, AVG(Size) / 1024 AS AvgSize, COUNT(ClassName) AS Count
+    FROM Exports
+    JOIN Objects ON Exports.ObjectID = Objects.ObjectID
+    JOIN Classes ON Objects.ClassID = Classes.ClassID
+    GROUP BY ClassName
+    ORDER BY SUM(SIZE) DESC
+    
+
+
+
+以下のクエリは、固有のオブジェクト毎にエクスポートをグルーピングし、その累積サイズとカウントを累積サイズでソートしてリスト化します。
+
+
+    
+    SELECT ClassName, ObjectName, SUM(Size) / 1024 AS Size, COUNT(ObjectName) AS Count
+    FROM Exports
+    JOIN Objects ON Exports.ObjectID = Objects.ObjectID
+    JOIN Classes ON Objects.ClassID = Classes.ClassID
+    GROUP BY ObjectName, ClassName
+    ORDER BY SUM(Size) DESC
+    
+
+
+
+ 
+
+
+
+

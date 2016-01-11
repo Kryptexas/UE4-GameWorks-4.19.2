@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -8,14 +8,14 @@ using System.IO;
 
 namespace UnrealBuildTool
 {
-	/// <summary>
-	/// Base class for platform-specific project generators
-	/// </summary>
+	/**
+	 *	Base class for platform-specific project generators 
+	 */
 	class MacProjectGenerator : UEPlatformProjectGenerator
 	{
-		/// <summary>
-		/// Register the platform with the UEPlatformProjectGenerator class
-		/// </summary>
+		/**
+		 *	Register the platform with the UEPlatformProjectGenerator class
+		 */
 		public override void RegisterPlatformProjectGenerator()
 		{
 			// Register this project generator for Mac
@@ -26,12 +26,14 @@ namespace UnrealBuildTool
 		///
 		///	VisualStudio project generation functions
 		///	
-		/// <summary>
-		/// Whether this build platform has native support for VisualStudio
-		/// </summary>
-		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
-		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
-		/// <returns>bool    true if native VisualStudio support (or custom VSI) is available</returns>
+		/**
+		 *	Whether this build platform has native support for VisualStudio
+		 *	
+		 *	@param	InPlatform			The UnrealTargetPlatform being built
+		 *	@param	InConfiguration		The UnrealTargetConfiguration being built
+		 *	
+		 *	@return	bool				true if native VisualStudio support (or custom VSI) is available
+		 */
 		public override bool HasVisualStudioSupport(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
 		{
 			// Mac is not supported in VisualStudio

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "SkeletalMeshComponentDetails.h"
@@ -120,7 +120,7 @@ void FSkeletalMeshComponentDetails::UpdateAnimationCategory( IDetailLayoutBuilde
 	AnimationModeHandle = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(USkeletalMeshComponent, AnimationMode));
 	check (AnimationModeHandle->IsValidHandle());
 
-	AnimationBlueprintHandle = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(USkeletalMeshComponent, AnimClass));
+	AnimationBlueprintHandle = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(USkeletalMeshComponent, AnimBlueprintGeneratedClass));
 	check(AnimationBlueprintHandle->IsValidHandle());
 
 	AnimationCategory.AddProperty(AnimationModeHandle);
@@ -135,8 +135,7 @@ void FSkeletalMeshComponentDetails::UpdateAnimationCategory( IDetailLayoutBuilde
 		[
 			AnimationBlueprintHandle->CreatePropertyNameWidget()
 		]
-		.ValueContent()
-		.MinDesiredWidth(250.f)
+	.ValueContent()
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
@@ -150,7 +149,6 @@ void FSkeletalMeshComponentDetails::UpdateAnimationCategory( IDetailLayoutBuilde
 					SNew(STextBlock)
 					.Font(IDetailLayoutBuilder::GetDetailFont())
 					.Text(this, &FSkeletalMeshComponentDetails::GetSelectedAnimBlueprintName)
-					.MinDesiredWidth(200.f)
 				]
 			]
 			+ SHorizontalBox::Slot()

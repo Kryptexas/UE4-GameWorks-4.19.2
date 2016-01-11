@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -48,6 +48,7 @@ public:
 		HighlightText = InArgs._HighlightText;
 
 		SelectedVariant = NAME_None;
+		bDeviceInGroup = false;
 
 		ILauncherDeviceGroupPtr ActiveGroup = DeviceGroup.Get();
 		if (ActiveGroup.IsValid() && DeviceProxy.IsValid())
@@ -59,6 +60,7 @@ public:
 				if (DeviceProxy->HasDeviceId(DeviceID))
 				{
 					SelectedVariant = DeviceProxy->GetTargetDeviceVariant(DeviceID);
+					bDeviceInGroup = true;
 					break;
 				}
 			}
@@ -81,7 +83,7 @@ public:
 	{
 		if (ColumnName == "CheckBox")
 		{
-			return SAssignNew(DeviceCheckbox, SCheckBox)
+			return SNew(SCheckBox)
 				.IsChecked(this, &SProjectLauncherDeployTargetListRow::HandleCheckBoxIsChecked)
 				.OnCheckStateChanged(this, &SProjectLauncherDeployTargetListRow::HandleCheckBoxStateChanged)
 				.ToolTipText(LOCTEXT("CheckBoxToolTip", "Check this box to include this device in the current device group"));
@@ -182,10 +184,12 @@ private:
 			if (NewState == ECheckBoxState::Checked)
 			{
 				ActiveGroup->AddDevice(DeviceID);
+				bDeviceInGroup = true;
 			}
 			else
 			{
 				ActiveGroup->RemoveDevice(DeviceID);
+				bDeviceInGroup = false;
 			}
 		}
 	}
@@ -195,13 +199,7 @@ private:
 	{
 		if (IsEnabled())
 		{
-			ILauncherDeviceGroupPtr ActiveGroup = DeviceGroup.Get();
-
-			if (ActiveGroup.IsValid() && DeviceProxy.IsValid() && DeviceProxy->HasVariant(SelectedVariant))
-			{
-				const FString& DeviceID = DeviceProxy->GetTargetDeviceId(SelectedVariant);
-				return ActiveGroup->GetDeviceIDs().Contains(DeviceID) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-			}
+			return bDeviceInGroup ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		}
 
 		return ECheckBoxState::Unchecked;
@@ -228,13 +226,11 @@ private:
 	{
 		if (DeviceProxy.IsValid() && DeviceProxy->HasVariant(SelectedVariant) && DeviceProxy->HasVariant(InVariant))
 		{
-			ILauncherDeviceGroupPtr ActiveGroup = DeviceGroup.Get();
-			const FString& DeviceID = DeviceProxy->GetTargetDeviceId(SelectedVariant);
-			if (ActiveGroup.IsValid() && ActiveGroup->GetDeviceIDs().Contains(DeviceID))
+			if (bDeviceInGroup)
 			{
 				const FString& OldDeviceID = DeviceProxy->GetTargetDeviceId(SelectedVariant);
 				const FString& NewDeviceID = DeviceProxy->GetTargetDeviceId(InVariant);
-				
+				ILauncherDeviceGroupPtr ActiveGroup = DeviceGroup.Get();
 				if (ActiveGroup.IsValid())
 				{
 					ActiveGroup->RemoveDevice(OldDeviceID);
@@ -309,10 +305,11 @@ private:
 	// Holds a reference to the device proxy that is displayed in this row.
 	ITargetDeviceProxyPtr DeviceProxy;
 
-	TSharedPtr<SCheckBox> DeviceCheckbox;
-
 	// Holds the name of the selected variant.
-	FName SelectedVariant;	
+	FName SelectedVariant;
+
+	// Whether this device is executed on.
+	bool bDeviceInGroup;
 
 	// Holds the highlight string for the log message.
 	TAttribute<FText> HighlightText;

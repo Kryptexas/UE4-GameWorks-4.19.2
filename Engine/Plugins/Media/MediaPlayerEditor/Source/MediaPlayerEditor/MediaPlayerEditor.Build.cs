@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -19,7 +19,6 @@ public class MediaPlayerEditor : ModuleRules
 			new string[] {
 				"MediaPlayerEditor/Private",
 				"MediaPlayerEditor/Private/AssetTools",
-                "MediaPlayerEditor/Private/Customizations",
 				"MediaPlayerEditor/Private/Factories",
 				"MediaPlayerEditor/Private/Models",
 				"MediaPlayerEditor/Private/Styles",
@@ -32,7 +31,6 @@ public class MediaPlayerEditor : ModuleRules
 				"ContentBrowser",
 				"Core",
 				"CoreUObject",
-                "DesktopWidgets",
 				"EditorStyle",
 				"Engine",
 				"InputCore",
@@ -44,7 +42,7 @@ public class MediaPlayerEditor : ModuleRules
 				"Slate",
 				"SlateCore",
 				"TextureEditor",
-				"UnrealEd",
+				"UnrealEd"
 			}
 		);
 

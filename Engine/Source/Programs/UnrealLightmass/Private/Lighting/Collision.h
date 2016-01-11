@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,8 +6,6 @@
 
 namespace Lightmass
 {	
-
-const float TRIANGLE_AREA_THRESHOLD =0.00001f;
 
 /** Flags set on a FLightRay that control how the ray is intersected with the scene. */
 enum ELightRayIntersectionFlags
@@ -119,13 +117,13 @@ public:
 	/** Initialization constructor. */
 	FStaticLightingAggregateMesh(const FScene& InScene);
 
-	virtual ~FStaticLightingAggregateMesh() {}
+	virtual ~FStaticLightingAggregateMesh();
 
 	/**
 	 * Merges a mesh into the shadow mesh.
 	 * @param Mesh - The mesh the triangle comes from.
 	 */
-	virtual void AddMesh(const FStaticLightingMesh* Mesh, const FStaticLightingMapping* Mapping) = 0;
+	void AddMesh(const FStaticLightingMesh* Mesh, const FStaticLightingMapping* Mapping);
 
 	/**
 	 * Pre-allocates memory ahead of time, before calling AddMesh() a bunch of times.
@@ -134,15 +132,19 @@ public:
 	 * @param NumVertices	- Expected number of vertices which will be added
 	 * @param NumTriangles	- Expected number of triangles which will be added
 	 */
-	virtual void ReserveMemory( int32 NumMeshes, int32 NumVertices, int32 NumTriangles ) = 0;
+	void ReserveMemory( int32 NumMeshes, int32 NumVertices, int32 NumTriangles );
 
 	/** Prepares the mesh for raytracing. */
-	virtual void PrepareForRaytracing() = 0;
+	void PrepareForRaytracing();
 
-	virtual void DumpStats() const = 0;
+	void DumpStats() const;
 
-	// Used to dump additional stats about intersect checks that where done
-	virtual void DumpCheckStats() const {}
+	FBox GetBounds() const;
+
+	/** The total surface area of everything in the aggregate mesh */
+	float GetSurfaceArea() const;
+	/** The total surface area of everything in the aggregate mesh within the importance volume, if there is one */
+	float GetSurfaceAreaWithinImportanceVolume() const;
 
 	/**
 	 * Checks a light ray for intersection with the shadow mesh.
@@ -157,73 +159,17 @@ public:
 	 * @param [out] Intersection - The intersection of between the light ray and the mesh.
 	 * @return true if there is an intersection, false otherwise
 	 */
-	virtual bool IntersectLightRay(
+	bool IntersectLightRay(
 		const FLightRay& LightRay,
 		bool bFindClosestIntersection,
 		bool bCalculateTransmission,
 		bool bDirectShadowingRay,
 		class FCoherentRayCache& CoherentRayCache,
-		FLightRayIntersection& Intersection) const = 0;
-
-	FBox GetBounds() const;
-
-	/** The total surface area of everything in the aggregate mesh */
-	float GetSurfaceArea() const { return SceneSurfaceArea; }
-	/** The total surface area of everything in the aggregate mesh within the importance volume, if there is one */
-	float GetSurfaceAreaWithinImportanceVolume() const { return SceneSurfaceAreaWithinImportanceVolume; }
-
-protected:
-
-	const FScene& Scene;
-
-	/** True if some mesh where added to the scene. */
-	bool bHasShadowCastingPrimitives;
-
-	/** The bounding box of everything in the aggregate mesh. */
-	FBox SceneBounds;
-
-	/** The total surface area of everything in the aggregate mesh */
-	float SceneSurfaceArea;
-	/** The total surface area of everything in the aggregate mesh within the importance volume, if there is one */
-	float SceneSurfaceAreaWithinImportanceVolume;
-};
-
-class FDefaultAggregateMesh final : public  FStaticLightingAggregateMesh 
-{
-public:
-
-	/** Initialization constructor. */
-	FDefaultAggregateMesh(const FScene& InScene) : FStaticLightingAggregateMesh(InScene) {}
-
-	virtual ~FDefaultAggregateMesh();
-
-	FORCEINLINE const FVector2D& GetUV(uint32 Index) const
-	{
-		return UVs[Index];
-	}
-
-	FORCEINLINE const FVector2D& GetLightmapUV(uint32 Index) const
-	{
-		return LightmapUVs[Index];
-	}
-
-	virtual void AddMesh(const FStaticLightingMesh* Mesh, const FStaticLightingMapping* Mapping) override;
-
-	virtual void ReserveMemory( int32 NumMeshes, int32 NumVertices, int32 NumTriangles ) override;
-
-	virtual void PrepareForRaytracing() override;
-
-	virtual void DumpStats() const override;
-
-	virtual bool IntersectLightRay(
-		const FLightRay& LightRay,
-		bool bFindClosestIntersection,
-		bool bCalculateTransmission,
-		bool bDirectShadowingRay,
-		class FCoherentRayCache& CoherentRayCache,
-		FLightRayIntersection& Intersection) const override;
+		FLightRayIntersection& Intersection) const;
 
 private:
+
+	const FScene& Scene;
 
 	friend class FStaticLightingAggregateMeshDataProvider;
 
@@ -251,8 +197,13 @@ private:
 	/** The lightmap coordinates used by the kDOP. */
 	TArray<FVector2D> LightmapUVs;
 
-	/** Needed to access properties modified by AddMesh. */
-	friend class FEmbreeVerifyAggregateMesh;
+	/** The bounding box of everything in the aggregate mesh. */
+	FBox SceneBounds;
+
+	/** The total surface area of everything in the aggregate mesh */
+	float SceneSurfaceArea;
+	/** The total surface area of everything in the aggregate mesh within the importance volume, if there is one */
+	float SceneSurfaceAreaWithinImportanceVolume;
 };
 
 /** Information which is cached while processing a group of coherent rays. */

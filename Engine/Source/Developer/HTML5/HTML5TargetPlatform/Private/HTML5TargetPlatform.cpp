@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HTML5TargetPlatform.cpp: Implements the FHTML5TargetPlatform class.
@@ -9,14 +9,6 @@
 #if WITH_ENGINE
 #include "DeviceProfiles/DeviceProfile.h"
 #endif 
-
-DEFINE_LOG_CATEGORY_STATIC(LogHTML5TargetPlatform, Log, All);
-
-
-/* Static initialization
- *****************************************************************************/
-
-FCriticalSection FHTML5TargetPlatform::DevicesCriticalSection;
 
  /* FHTML5TargetPlatform structors
  *****************************************************************************/
@@ -37,14 +29,8 @@ FHTML5TargetPlatform::FHTML5TargetPlatform( )
 
 void FHTML5TargetPlatform::GetAllDevices( TArray<ITargetDevicePtr>& OutDevices ) const
 {
-	FScopeLock Lock( &DevicesCriticalSection );
-
 	OutDevices.Reset();
-
-	for( auto Iter = Devices.CreateConstIterator(); Iter; ++Iter )
-	{
-		OutDevices.Add( Iter.Value() );
-	}
+	OutDevices.Append(LocalDevice);
 }
 
 
@@ -56,28 +42,21 @@ ECompressionFlags FHTML5TargetPlatform::GetBaseCompressionMethod( ) const
 
 ITargetDevicePtr FHTML5TargetPlatform::GetDefaultDevice( ) const
 {
-	FScopeLock Lock( &DevicesCriticalSection );
-
-	return Devices.FindRef( DefaultDeviceName );
+	if(LocalDevice.Num())
+		return LocalDevice[0];
+	else 
+		return NULL; 
 }
 
 
 ITargetDevicePtr FHTML5TargetPlatform::GetDevice( const FTargetDeviceId& DeviceId )
 {
-	if( DeviceId.GetPlatformName() == this->PlatformName() )
+	for ( auto Device : LocalDevice )
 	{
-		FScopeLock Lock( &DevicesCriticalSection );
-		for( auto MapIt = Devices.CreateIterator(); MapIt; ++MapIt )
-		{
-			FHTML5TargetDevicePtr& Device = MapIt->Value;
-			if( Device->GetName() == DeviceId.GetDeviceName() )
-	{
+		if ( Device.IsValid() && DeviceId == Device->GetId() )
 			return Device; 
 	}
-		}
-	}
-
-	return nullptr;
+	return NULL;
 }
 
 bool FHTML5TargetPlatform::IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const
@@ -257,62 +236,54 @@ void FHTML5TargetPlatform::RefreshHTML5Setup()
 		return;
 	}
 
-	// update available devices
-	TArray<FString> DeviceMaps;
-	GConfig->GetArray( TEXT("/Script/HTML5PlatformEditor.HTML5SDKSettings"), TEXT("DeviceMap"), DeviceMaps, GEngineIni );
-	if ( ! DeviceMaps.Num() )
+	//New style detection of devices
+	for (const auto& Device : LocalDevice)
 	{
-		// nuke everything
-		FScopeLock Lock( &DevicesCriticalSection );
-		for (auto Iter = Devices.CreateIterator(); Iter; ++Iter)
-		{
-//			UE_LOG(LogHTML5TargetPlatform, Log, TEXT("HTML5SDKSettings: count before NUKE %d"), Devices.Num());
-			FHTML5TargetDevicePtr Device = Iter->Value;
-			Iter.RemoveCurrent();
-			DeviceLostEvent.Broadcast(Device.ToSharedRef());
-		}
-		DefaultDeviceName.Empty();
+		DeviceLostEvent.Broadcast(Device.ToSharedRef());
 	}
-	else
-	{
-		// add or update
-//		UE_LOG(LogHTML5TargetPlatform, Log, TEXT("HTML5SDKSettings: count before ADD/UPDATNG %d"), Devices.Num());
-		for (auto It : DeviceMaps)
-		{
-//			UE_LOG(LogHTML5TargetPlatform, Log, TEXT("HTML5SDKSettings: parsing %s"),*It);
-			FString DeviceName = "";
-			if( FParse::Value( *It, TEXT( "DeviceName=" ), DeviceName ) )
-			{
-				FString DevicePath = "";
-				if( FParse::Value( *DeviceName, TEXT( "DevicePath=" ), DevicePath ) )
-				{
-					DevicePath.RemoveFromEnd(TEXT("))"));
-					FString FilePath = "";
-					if( FParse::Value( *DevicePath, TEXT( "FilePath=" ), FilePath ) )
-		{
-						if (FPlatformFileManager::Get().GetPlatformFile().FileExists(*DevicePath) ||
-						    FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*DevicePath))
-			{
-							FScopeLock Lock( &DevicesCriticalSection );
-							FHTML5TargetDevicePtr& Device = Devices.FindOrAdd( DeviceName );
+	LocalDevice.Reset();
 
-							if( Device.IsValid() )
+	auto* Config = GConfig->FindConfigFile(GEngineIni);
+	if (!Config)
+	{
+		Config = &HTML5EngineSettings;
+	}
+	TArray<FString> ValueArray;
+
+	if (Config->Find("/Script/HTML5PlatformEditor.HTML5SDKSettings"))
+	{
+		FConfigSection AvaliableDevicesNewSection = (*Config)["/Script/HTML5PlatformEditor.HTML5SDKSettings"];
+		for (auto It : AvaliableDevicesNewSection)
+		{
+			ValueArray.Reset();
+			if (It.Key == TEXT("DeviceMap"))
+			{
+				FString DeviceName;
+				FString DevicePath;
+				It.Value.RemoveFromStart(TEXT("("));
+				It.Value.RemoveFromEnd(TEXT(")"));
+				It.Value.ParseIntoArray(ValueArray, TEXT(","), 1);
+				for (auto& Value : ValueArray)
 				{
-//								UE_LOG(LogHTML5TargetPlatform, Log, TEXT("HTML5SDKSettings: UPDATING %s"),*It);
-								DeviceLostEvent.Broadcast(Device.ToSharedRef());
-							}
-							else
+					if (Value.StartsWith(TEXT("DeviceName=")))
 					{
-//								UE_LOG(LogHTML5TargetPlatform, Log, TEXT("HTML5SDKSettings: ADDING %s"),*It);
+						DeviceName = Value.RightChop(11).TrimQuotes();
 					}
-							Device = MakeShareable( new FHTML5TargetDevice( *this, DeviceName, DevicePath ) );
-							DeviceDiscoveredEvent.Broadcast( Device.ToSharedRef() );
-							if ( DefaultDeviceName.IsEmpty() )
+					else if (Value.StartsWith(TEXT("DevicePath=(FilePath=")))
 					{
-								DefaultDeviceName = DeviceName;
-							}
+						DevicePath = Value.RightChop(21);
+						DevicePath.RemoveFromEnd(TEXT(")"));
+						DevicePath = DevicePath.TrimQuotes();
 					}
 				}
+
+				if (!DeviceName.IsEmpty() && !DevicePath.IsEmpty() &&
+					(FPlatformFileManager::Get().GetPlatformFile().FileExists(*DevicePath) ||
+                     FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*DevicePath)))
+				{
+					ITargetDevicePtr Device = MakeShareable(new FHTML5TargetDevice(*this, DeviceName, DevicePath));
+					LocalDevice.Add(Device);
+					DeviceDiscoveredEvent.Broadcast(Device.ToSharedRef());
 				}
 			}
 		}
@@ -345,15 +316,9 @@ void FHTML5TargetPlatform::RefreshHTML5Setup()
 	{
 		if (FPlatformFileManager::Get().GetPlatformFile().FileExists(*Loc.Path) || FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*Loc.Path))
 		{
-			FScopeLock Lock( &DevicesCriticalSection );
-
-			FHTML5TargetDevicePtr& Device = Devices.FindOrAdd( *Loc.Name );
-
-			if( !Device.IsValid() )
-			{
-				Device = MakeShareable( new FHTML5TargetDevice( *this, *Loc.Name, *Loc.Path ) );
+			ITargetDevicePtr Device = MakeShareable(new FHTML5TargetDevice(*this, *Loc.Name, *Loc.Path));
+			LocalDevice.Add(Device);
 			DeviceDiscoveredEvent.Broadcast(Device.ToSharedRef());
-			}
 		}
 	}
 }

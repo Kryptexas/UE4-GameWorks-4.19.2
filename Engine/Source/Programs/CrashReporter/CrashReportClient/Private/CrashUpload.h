@@ -1,48 +1,65 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "Http.h"
 #include "PlatformErrorReport.h"
 
-class FCrashUploadBase
+/**
+ * Handles uploading files to the crash report server
+ */
+class FCrashUpload
 {
 public:
-	FCrashUploadBase();
-
-	virtual ~FCrashUploadBase();
+	/**
+	 * Constructor: pings server 
+	 * @param ServerAddress Host IP of the crash report server
+	 */
+	explicit FCrashUpload(const FString& ServerAddress);
 
 	/**
-	* Has BeginUpload been called?
-	*/
-	bool IsUploadCalled() const { return bUploadCalled; }
+	 * Destructor for logging
+	 */
+	~FCrashUpload();
 
 	/**
-	* Provide progress or error information for the UI
-	*/
-	const FText& GetStatusText() const { return UploadStateText; }
+	 * Commence upload when ready
+	 * @param PlatformErrorReport Error report to upload files from
+	 */
+	void BeginUpload(const FPlatformErrorReport& PlatformErrorReport);
+
+	/**
+	 * Provide progress or error information for the UI
+	 */
+	const FText& GetStatusText() const;
+
+	/**
+	 * Notification that diagnosis of the main report has finished
+	 * @param DiagnosticsFile Full path to the diagnostics file to upload on success, or an empty string
+	 */
+	void LocalDiagnosisComplete(const FString& DiagnosticsFile);
+
+	/**
+	 * Inform uploader that no local diagnosis is happening
+	 */
+	void LocalDiagnosisSkipped()
+	{
+		LocalDiagnosisComplete("");
+	}
 
 	/**
 	 * Determine whether the upload has finished (successfully or otherwise)
 	 * @return Whether the upload has finished
 	 */
-	bool IsFinished() const
-	{
-		return State >= EUploadState::FirstCompletedState;
-	}
+	bool IsFinished() const;
 
-	void Cancel()
-	{
-		SetCurrentState(EUploadState::Cancelled);
-	}
+	/**
+	 * Cancel the upload
+	 * @note Only valid to call this before the upload has begun
+	 */
+	void Cancel();
 
-	static bool IsInitialized() { return bInitialized; }
-
-	static void StaticInitialize(const FPlatformErrorReport& PlatformErrorReport);
-
-	static void StaticShutdown();
-
-protected:
+private:
 	/** State enum to keep track of what the uploader is doing */
 	struct EUploadState
 	{
@@ -67,84 +84,19 @@ protected:
 		};
 	};
 
-	static bool CompressData(const TArray<FString>& InPendingFiles, struct FCompressedData& OutCompressedData, TArray<uint8>& OutPostData, struct FCompressedHeader* OptionalHeader = nullptr);
-
 	/**
-	* Get a string representation of the state, for logging purposes
-	* @param State Value to stringize
-	* @return Literal string value
-	*/
+	 * Get a string representation of the state, for logging purposes
+	 * @param State Value to stringize
+	 * @return Literal string value
+	 */
 	static const TCHAR* ToString(EUploadState::Type InState);
 
 	/**
-	* Set the current state, also updating the status text where necessary
-	* @param State State the uploader is now in
-	*/
+	 * Set the current state, also updating the status text where necessary
+	 * @param State State the uploader is now in
+	 */
 	void SetCurrentState(EUploadState::Type InState);
 
-	/**
-	* When failed, add the report to a file list containing reports to upload next time
-	*/
-	void AddReportToFailedList() const;
-
-protected:
-	bool bUploadCalled;
-
-	/** What this class is currently doing */
-	EUploadState::Type State;
-
-	/** Status of upload to display */
-	FText UploadStateText;
-
-	/** State to pause at until confirmation has been received to continue */
-	EUploadState::Type PauseState;
-
-	/** Full paths of files still to be uploaded */
-	TArray<FString> PendingFiles;
-
-	/** Error report being processed */
-	FPlatformErrorReport ErrorReport;
-
-	/** Buffer to keep reusing for file content and other messages */
-	TArray<uint8> PostData;
-
-	int32 PendingReportDirectoryIndex;
-
-protected:
-	static bool bInitialized;
-
-	/** Full paths of reports from previous runs still to be uploaded */
-	static TArray<FString> PendingReportDirectories;
-
-	/** Full paths of reports from this run that did not upload */
-	static TArray<FString> FailedReportDirectories;
-};
-
-
-/**
- * Handles uploading files to the crash report server
- */
-class FCrashUploadToReceiver : public FCrashUploadBase
-{
-public:
-	/**
-	 * Constructor: pings server 
-	 * @param ServerAddress Host IP of the crash report server
-	 */
-	explicit FCrashUploadToReceiver(const FString& InReceiverAddress);
-
-	/**
-	 * Destructor for logging
-	 */
-	virtual ~FCrashUploadToReceiver();
-
-	/**
-	 * Commence upload when ready
-	 * @param PlatformErrorReport Error report to upload files from
-	 */
-	void BeginUpload(const FPlatformErrorReport& PlatformErrorReport);
-
-private:
 	/**
 	 * Send a request to see if the server will accept this report
 	 * @return Whether request was successfully sent
@@ -188,6 +140,11 @@ private:
 	bool PingTimeout(float DeltaTime);
 
 	/**
+	 * In case the server is not available, add the report to a file containing reports to upload next time
+	 */
+	void AddReportToPendingFile() const;
+
+	/**
 	 * If there a no pending files, look through pending reports for files to upload
 	 */
 	void CheckPendingReportsForFilesToUpload();
@@ -209,60 +166,32 @@ private:
 
 	/**
 	 * Parse an XML response from the server for the success field
-	 * @param Response			Response to get message to parse from
-	 * @param OutValidReport	Answer from the server on whether to continue with this report upload
-	 * @return					Whether a valid response was received from the server
+	 * @param Response Response to get message to parse from
+	 * @return Whether it's both a valid message and the code is success
 	 */
-	static bool ParseServerResponse(FHttpResponsePtr Response, bool& OutValidReport);
+	static bool ParseServerResponse(FHttpResponsePtr Response);
 
 	/** Host, port and common prefix of all requests to the server */
 	FString UrlPrefix;
-};
 
-/**
-* Handles uploading files to the data router
-*/
-class FCrashUploadToDataRouter : public FCrashUploadBase
-{
-public:
-	/**
-	 * Constructor: pings server
-	 * @param ServerAddress Host IP of the crash report server
-	 */
-	explicit FCrashUploadToDataRouter(const FString& InDataRouterUrl);
+	/** What this class is currently doing */
+	EUploadState::Type State;
 
-	/**
-	 * Destructor for logging
-	 */
-	virtual ~FCrashUploadToDataRouter();
+	/** Status of upload to display */
+	FText UploadStateText;
 
-	void BeginUpload(const FPlatformErrorReport& PlatformErrorReport);
+	/** State to pause at until confirmation has been received to continue */
+	EUploadState::Type PauseState;
 
-	/**
-	 * Compresses all crash report files and sends one compressed file.
-	 */
-	void CompressAndSendData();
+	/** Full paths of files still to be uploaded */
+	TArray<FString> PendingFiles;
 
-	/**
-	 * Create a request object and bind this class's response handler to it
-	 */
-	TSharedRef<IHttpRequest> CreateHttpRequest();
+	/** Error report being processed */
+	FPlatformErrorReport ErrorReport;
 
-	/**
-	 * Callback from HTTP library when a request has completed
-	 * @param HttpRequest The request object
-	 * @param HttpResponse The response from the server
-	 * @param bSucceeded Whether a response was successfully received
-	 */
-	void OnProcessRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded);
+	/** Full paths of reports from previous runs still to be uploaded */
+	TArray<FString> PendingReportDirectories;
 
-private:
-	/**
-	 * If there a no pending files, look through pending reports for files to upload
-	 */
-	void CheckPendingReportsForFilesToUpload();
-
-private:
-	/** Url for data router requests */
-	FString DataRouterUrl;
+	/** Buffer to keep reusing for file content and other messages */
+	TArray<uint8> PostData;
 };

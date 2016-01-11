@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DesktopPlatformPrivatePCH.h"
 #include "FeedbackContextMarkup.h"
@@ -171,9 +171,17 @@ bool FDesktopPlatformWindows::OpenLauncher(bool Install, FString LauncherRelativ
 			LauncherUriRequest = FString::Printf(TEXT("com.epicgames.launcher://%s"), *LauncherRelativeUrl);
 		}
 
-		if (FParse::Param(FCommandLine::Get(), TEXT("Dev")))
+		// We need to take the silent option and convert it to a uri query string option.
+		if ( CommandLineParams.Contains("-silent") )
 		{
-			CommandLineParams += TEXT(" -noselfupdate");
+			if ( LauncherUriRequest.Contains("?") )
+			{
+				LauncherUriRequest += TEXT("&silent=true");
+			}
+			else
+			{
+				LauncherUriRequest += TEXT("?silent=true");
+			}
 		}
 
 		FString Error;
@@ -527,10 +535,13 @@ bool FDesktopPlatformWindows::RunUnrealBuildTool(const FText& Description, const
 
 	// Pass through VS015 support
 	FString FinalArguments = Arguments;
-	if(_MSC_VER >= 1900)
-	{
-		FinalArguments.Append(TEXT(" -2015"));
-	}
+#if _MSC_VER >= 1900
+	FinalArguments.Append(TEXT(" -2015"));
+#elif _MSC_VER >= 1800
+	FinalArguments.Append(TEXT(" -2013"));
+#else
+	FinalArguments.Append(TEXT(" -2012"));
+#endif
 
 	// Write the output
 	Warn->Logf(TEXT("Running %s %s"), *UnrealBuildToolPath, *FinalArguments);

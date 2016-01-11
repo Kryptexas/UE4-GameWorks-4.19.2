@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -12,13 +12,6 @@ namespace AnalogCursorMode
 		Direct,
 	};
 }
-
-enum class EAnalogStick : uint8
-{
-	Left,
-	Right,
-	Max,
-};
 
 /**
  * A class that simulates a cursor driven by an analog stick.
@@ -37,7 +30,6 @@ public:
 	virtual bool HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent) override;
 	virtual bool HandleKeyUpEvent(FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent) override;
 	virtual bool HandleAnalogInputEvent(FSlateApplication& SlateApp, const FAnalogInputEvent& InAnalogInputEvent) override;
-	virtual bool HandleMouseMoveEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent) override;
 
 	void SetAcceleration(float NewAcceleration);
 	void SetMaxSpeed(float NewMaxSpeed);
@@ -48,9 +40,9 @@ public:
 protected:
 
 	/** Getter */
-	FORCEINLINE const FVector2D& GetAnalogValues( EAnalogStick Stick = EAnalogStick::Left ) const
+	FORCEINLINE FVector2D GetAnalogValues() const
 	{
-		return AnalogValues[ static_cast< uint8 >( Stick ) ];
+		return AnalogValues;
 	}
 
 	/** Handles updating the cursor position and processing a Mouse Move Event */
@@ -71,12 +63,7 @@ protected:
 
 private:
 
-	FORCEINLINE FVector2D& GetAnalogValue( EAnalogStick Stick )
-	{
-		return AnalogValues[ static_cast< uint8 >( Stick ) ];
-	}
-
 	/** Input from the gamepad */
-	FVector2D AnalogValues[ static_cast<uint8>( EAnalogStick::Max ) ];
+	FVector2D AnalogValues;
 };
 

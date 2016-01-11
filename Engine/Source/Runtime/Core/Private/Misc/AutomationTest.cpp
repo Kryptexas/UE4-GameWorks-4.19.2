@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "ModuleManager.h"
@@ -38,24 +38,7 @@ void FAutomationTestFramework::FAutomationTestFeedbackContext::Serialize( const 
 		// Log items
 		else
 		{
-			// IMPORTANT NOTE: This code will never be called in a build with NO_LOGGING defined, which means pretty much
-			// any Test or Shipping config build.  If you're trying to use the automation test framework for performance
-			// data capture in a Test config, you'll want to call the AddAnalyticsItemToCurrentTest() function instead of
-			// using this log interception stuff.
-
-			FString LogString = FString(V);
-			FString AnalyticsString = TEXT("AUTOMATIONANALYTICS");
-			if (LogString.StartsWith(*AnalyticsString))
-			{
-				//Remove "analytics" from the string
-				LogString = LogString.Right(LogString.Len() - (AnalyticsString.Len() + 1));
-
-				CurTest->AddAnalyticsItem(LogString);
-			}
-			else
-			{
-				CurTest->AddLogItem(LogString);
-			}
+			CurTest->AddLogItem( FString( V ) );
 		}
 	}
 }
@@ -92,8 +75,8 @@ bool FAutomationTestFramework::UnregisterAutomationTest( const FString& InTestNa
 
 void FAutomationTestFramework::EnqueueLatentCommand(TSharedPtr<IAutomationLatentCommand> NewCommand)
 {
-	//ensure latent commands are never used within smoke tests - will only catch when smokes are exclusively requested
-	check((RequestedTestFilter & EAutomationTestFlags::FilterMask) != EAutomationTestFlags::SmokeFilter);
+	//ensure latent commands are never used within smoke tests
+	check(!bRunningSmokeTests);
 
 	//ensure we are currently "running a test"
 	check(GIsAutomationTesting);
@@ -110,7 +93,7 @@ void FAutomationTestFramework::EnqueueLatentCommand(TSharedPtr<IAutomationLatent
 void FAutomationTestFramework::EnqueueNetworkCommand(TSharedPtr<IAutomationNetworkCommand> NewCommand)
 {
 	//ensure latent commands are never used within smoke tests
-	check((RequestedTestFilter & EAutomationTestFlags::FilterMask) != EAutomationTestFlags::SmokeFilter);
+	check(!bRunningSmokeTests);
 
 	//ensure we are currently "running a test"
 	check(GIsAutomationTesting);
@@ -129,15 +112,14 @@ bool FAutomationTestFramework::RunSmokeTests()
 {
 	bool bAllSuccessful = true;
 
-	uint32 PreviousRequestedTestFilter = RequestedTestFilter;
 	//so extra log spam isn't generated
-	RequestedTestFilter = EAutomationTestFlags::SmokeFilter;
+	bRunningSmokeTests = true;
 	
 	// Skip running on cooked platforms like mobile
 	//@todo - better determination of whether to run than requires cooked data
 	// Ensure there isn't another slow task in progress when trying to run unit tests
 	const bool bRequiresCookedData = FPlatformProperties::RequiresCookedData();
-	if ((!bRequiresCookedData && !GIsSlowTask && !GIsPlayInEditorWorld && !FPlatformProperties::IsProgram()) || bForceSmokeTests)
+	if ((!bRequiresCookedData && !GIsSlowTask && !GIsPlayInEditorWorld) || bForceSmokeTests)
 	{
 		TArray<FAutomationTestInfo> TestInfo;
 
@@ -156,7 +138,7 @@ bool FAutomationTestFramework::RunSmokeTests()
 			for ( int TestIndex = 0; TestIndex < TestInfo.Num(); ++TestIndex )
 			{
 				SlowTask.EnterProgressFrame(1);
-				if (TestInfo[TestIndex].GetTestFlags() & EAutomationTestFlags::SmokeFilter )
+				if (TestInfo[TestIndex].GetTestType() == EAutomationTestType::ATT_SmokeTest )
 				{
 					FString TestCommand = TestInfo[TestIndex].GetTestName();
 					FAutomationTestExecutionInfo& CurExecutionInfo = OutExecutionInfoMap.Add( TestCommand, FAutomationTestExecutionInfo() );
@@ -184,14 +166,14 @@ bool FAutomationTestFramework::RunSmokeTests()
 	{
 		UE_LOG( LogAutomationTest, Log, TEXT( "Skipping unit tests for the cooked build." ) );
 	}
-	else if (!FPlatformProperties::IsProgram())
+	else
 	{
 		UE_LOG(LogAutomationTest, Error, TEXT("Skipping unit tests.") );
 		bAllSuccessful = false;
 	}
 
 	//revert to allowing all logs
-	RequestedTestFilter = PreviousRequestedTestFilter;
+	bRunningSmokeTests = false;
 
 	return bAllSuccessful;
 }
@@ -324,7 +306,6 @@ void FAutomationTestFramework::LoadTestModules( )
 {
 	const bool bRunningEditor = GIsEditor && !IsRunningCommandlet();
 
-	bool bRunningSmokeTests = ((RequestedTestFilter & EAutomationTestFlags::FilterMask) == EAutomationTestFlags::SmokeFilter);
 	if( !bRunningSmokeTests )
 	{
 		TArray<FString> EngineTestModules;
@@ -383,19 +364,19 @@ void FAutomationTestFramework::GetValidTestNames( TArray<FAutomationTestInfo>& T
 	uint32 ApplicationSupportFlags = 0;
 	if ( bRunningEditor )
 	{
-		ApplicationSupportFlags |= EAutomationTestFlags::EditorContext;
+		ApplicationSupportFlags |= EAutomationTestFlags::ATF_Editor;
 	}
 	if ( bRunningGame )
 	{
-		ApplicationSupportFlags |= EAutomationTestFlags::ClientContext;
+		ApplicationSupportFlags |= EAutomationTestFlags::ATF_Game;
 	}
 	if ( bRunningCommandlet )
 	{
-		ApplicationSupportFlags |= EAutomationTestFlags::CommandletContext;
+		ApplicationSupportFlags |= EAutomationTestFlags::ATF_Commandlet;
 	}
 
 	//Feature support - assume valid RHI until told otherwise
-	uint32 FeatureSupportFlags = EAutomationTestFlags::FeatureMask;
+	uint32 FeatureSupportFlags = EAutomationTestFlags::ATF_FeatureMask;
 	// @todo: Handle this correctly. GIsUsingNullRHI is defined at Engine-level, so it can't be used directly here in Core.
 	// For now, assume Null RHI is only used for commandlets, servers, and when the command line specifies to use it.
 	if (FPlatformProperties::SupportsWindowedMode())
@@ -403,12 +384,19 @@ void FAutomationTestFramework::GetValidTestNames( TArray<FAutomationTestInfo>& T
 		bool bUsingNullRHI = FParse::Param( FCommandLine::Get(), TEXT("nullrhi") ) || IsRunningCommandlet() || IsRunningDedicatedServer();
 		if (bUsingNullRHI)
 		{
-			FeatureSupportFlags &= (~EAutomationTestFlags::NonNullRHI);
+			FeatureSupportFlags &= (~EAutomationTestFlags::ATF_NonNullRHI);
 		}
 	}
 	if (FApp::IsUnattended())
 	{
-		FeatureSupportFlags &= (~EAutomationTestFlags::RequiresUser);
+		FeatureSupportFlags &= (~EAutomationTestFlags::ATF_RequiresUser);
+	}
+
+	// test support flag, see what kind of test is required and allowed
+	uint32 ActionSupportFlags = 0;
+	if ( bVisualCommandletFilterOn )
+	{
+		ActionSupportFlags |= EAutomationTestFlags::ATF_VisualCommandlet;
 	}
 
 	for ( TMap<FString, FAutomationTestBase*>::TConstIterator TestIter( AutomationTestClassNameToInstanceMap ); TestIter; ++TestIter )
@@ -419,19 +407,21 @@ void FAutomationTestFramework::GetValidTestNames( TArray<FAutomationTestInfo>& T
 		uint32 CurTestFlags = CurTest->GetTestFlags();
 
 		//filter out full tests when running smoke tests
-		const bool bPassesFilterRequirement = ((CurTestFlags & RequestedTestFilter) != 0);
+		const bool bPassesSmokeTestRequirement = (!bRunningSmokeTests) || (CurTestFlags & EAutomationTestFlags::ATF_SmokeTest);
 
 		//Application Tests
-		uint32 CurTestApplicationFlags = (CurTestFlags & EAutomationTestFlags::ApplicationContextMask);
+		uint32 CurTestApplicationFlags = (CurTestFlags & EAutomationTestFlags::ATF_ApplicationMask);
 		const bool bPassesApplicationRequirements = (CurTestApplicationFlags == 0) || (CurTestApplicationFlags & ApplicationSupportFlags);
 		
 		//Feature Tests
-		uint32 CurTestFeatureFlags = (CurTestFlags & EAutomationTestFlags::FeatureMask);
+		uint32 CurTestFeatureFlags = (CurTestFlags & EAutomationTestFlags::ATF_FeatureMask);
 		const bool bPassesFeatureRequirements = (CurTestFeatureFlags == 0) || (CurTestFeatureFlags & FeatureSupportFlags);
 
-		const bool bEnabled = (CurTestFlags & EAutomationTestFlags::Disabled) == 0;
+		// Action flag Tests
+		uint32 CurTestActionFlags = (CurTestFlags & EAutomationTestFlags::ATF_ActionMask);
+		const bool bPassesActionRequirements = (CurTestActionFlags == ActionSupportFlags);
 
-		if (bEnabled && bPassesApplicationRequirements && bPassesFeatureRequirements && bPassesFilterRequirement)
+		if (bPassesApplicationRequirements && bPassesFeatureRequirements && bPassesActionRequirements && bPassesSmokeTestRequirement)
 		{
 			CurTest->GenerateTestNames(TestInfo);
 		}
@@ -462,7 +452,7 @@ bool FAutomationTestFramework::ShouldTestContent(const FString& Path) const
 	}
 
 	FString DevelopersPath = FPaths::GameDevelopersDir().LeftChop(1);
-	return bDeveloperDirectoryIncluded || !Path.StartsWith(DevelopersPath);
+	return bDeveloperDirectoryIncluded || bVisualCommandletFilterOn || !Path.StartsWith(DevelopersPath);
 }
 
 
@@ -472,9 +462,9 @@ void FAutomationTestFramework::SetDeveloperDirectoryIncluded(const bool bInDevel
 }
 
 
-void FAutomationTestFramework::SetRequestedTestFilter(const uint32 InRequestedTestFlags)
+void FAutomationTestFramework::SetVisualCommandletFilter(const bool bInVisualCommandletFilterOn)
 {
-	RequestedTestFilter = InRequestedTestFlags;
+	bVisualCommandletFilterOn = bInVisualCommandletFilterOn;
 }
 
 
@@ -609,9 +599,7 @@ void FAutomationTestFramework::InternalStartTest( const FString& InTestToRun )
 
 		StartTime = FPlatformTime::Seconds();
 
-		//if non-
-		uint32 NonSmokeTestFlags = (EAutomationTestFlags::FilterMask & (~EAutomationTestFlags::SmokeFilter));
-		if (RequestedTestFilter & NonSmokeTestFlags)
+		if (!bRunningSmokeTests)
 		{
 			UE_LOG(LogAutomationTest, Log, TEXT("%s %s is starting at %f"), *CurrentTest->GetBeautifiedTestName(), *Parameters, StartTime);
 		}
@@ -629,8 +617,7 @@ bool FAutomationTestFramework::InternalStopTest(FAutomationTestExecutionInfo& Ou
 
 	double EndTime = FPlatformTime::Seconds();
 	double TimeForTest = static_cast<float>(EndTime - StartTime);
-	uint32 NonSmokeTestFlags = (EAutomationTestFlags::FilterMask & (~EAutomationTestFlags::SmokeFilter));
-	if (RequestedTestFilter & NonSmokeTestFlags)
+	if (!bRunningSmokeTests)
 	{
 		UE_LOG(LogAutomationTest, Log, TEXT("%s %s ran in %f"), *CurrentTest->GetBeautifiedTestName(), *Parameters, TimeForTest);
 	}
@@ -659,26 +646,14 @@ bool FAutomationTestFramework::InternalStopTest(FAutomationTestExecutionInfo& Ou
 }
 
 
-void FAutomationTestFramework::AddAnalyticsItemToCurrentTest( const FString& AnalyticsItem )
-{
-	if( CurrentTest != nullptr )
-	{
-		CurrentTest->AddAnalyticsItem( AnalyticsItem );
-	}
-	else
-	{
-		UE_LOG( LogAutomationTest, Warning, TEXT( "AddAnalyticsItemToCurrentTest() called when no automation test was actively running!" ) );
-	}
-}
-
-
 FAutomationTestFramework::FAutomationTestFramework()
 :	CachedContext( NULL )
-,	RequestedTestFilter(EAutomationTestFlags::SmokeFilter)
+,	bRunningSmokeTests(false)
 ,	StartTime(0.0f)
 ,	bTestSuccessful(false)
 ,	CurrentTest(NULL)
 ,	bDeveloperDirectoryIncluded(false)
+,	bVisualCommandletFilterOn(false)
 ,	bScreenshotsEnabled(true)
 ,	bUseFullSizeScreenShots(true)
 ,	NetworkRoleIndex(0)
@@ -726,12 +701,6 @@ void FAutomationTestBase::AddLogItem( const FString& InLogItem )
 }
 
 
-void FAutomationTestBase::AddAnalyticsItem(const FString& InAnalyticsItem)
-{
-	ExecutionInfo.AnalyticsItems.Add(InAnalyticsItem);
-}
-
-
 bool FAutomationTestBase::HasAnyErrors() const
 {
 	return ExecutionInfo.Errors.Num() > 0;
@@ -769,8 +738,20 @@ void FAutomationTestBase::GenerateTestNames(TArray<FAutomationTestInfo>& TestInf
 			CompleteTestName = FString::Printf(TEXT("%s %s"), *TestName, *ParameterNames[ParameterIndex]);
 		}
 
+		// Set the test type
+		uint8 TestType = EAutomationTestType::ATT_NormalTest;
+
+		if (bComplexTask)
+		{
+			TestType = EAutomationTestType::ATT_StressTest;
+		}
+		else if(GetTestFlags() & EAutomationTestFlags::ATF_SmokeTest)
+		{
+			TestType = EAutomationTestType::ATT_SmokeTest;
+		}
+
 		// Add the test info to our collection
-		FAutomationTestInfo NewTestInfo( CompleteBeautifiedNames, CompleteTestName, GetTestFlags(), GetRequiredDeviceNum(), ParameterNames[ParameterIndex] );
+		FAutomationTestInfo NewTestInfo( CompleteBeautifiedNames, CompleteTestName, TestType, GetRequiredDeviceNum(), ParameterNames[ParameterIndex] );
 		
 		TestInfo.Add( NewTestInfo );
 	}

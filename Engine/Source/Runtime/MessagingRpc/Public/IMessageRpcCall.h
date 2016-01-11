@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -35,18 +35,11 @@ public:
 	virtual const FGuid& GetId() const = 0;
 
 	/**
-	 * Get the request message template.
-	 *
-	 * @return Pointer to the request message template.
-	 */
-	virtual void* GetMessageTemplate() const = 0;
-
-	/**
-	 * Constructs a new message based on the call message template. Ownership of the message belongs to the caller.
+	 * Get the request message.
 	 *
 	 * @return Pointer to the request message.
 	 */
-	virtual void* ConstructMessage() const = 0;
+	virtual void* GetMessage() const = 0;
 
 	/**
 	 * Get the time at which the request was last updated by the server.

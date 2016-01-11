@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -34,11 +34,10 @@
 
 // session browser
 #include "SessionBrowserOwnerFilter.h"
-#include "SessionBrowserTreeItems.h"
 
-#include "SSessionBrowserTreeGroupRow.h"
-#include "SSessionBrowserTreeInstanceRow.h"
-#include "SSessionBrowserTreeSessionRow.h"
+#include "SSessionBrowserInstanceListRow.h"
+#include "SSessionBrowserInstanceList.h"
+#include "SSessionBrowserSessionListRow.h"
 #include "SSessionBrowserCommandBar.h"
 #include "SSessionBrowser.h"
 

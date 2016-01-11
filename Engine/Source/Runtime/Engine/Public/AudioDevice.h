@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
 
@@ -212,8 +212,6 @@ public:
 	bool HandleEnableHRTFForAllCommand(const TCHAR* Cmd, FOutputDevice& Ar);
 	bool HandleSoloCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleClearSoloCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-	bool HandlePlayAllPIEAudioCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-	bool HandleAudio3dVisualizeCommand(const TCHAR* Cmd, FOutputDevice& Ar);
 #endif
 
 	/**
@@ -336,24 +334,9 @@ public:
 	void SetReverbSettings( class AAudioVolume* Volume, const FReverbSettings& ReverbSettings );
 
 	/**
-	 * Creates an audio component to handle playing a sound
+	 * Creates an audio component to handle playing a sound cue
 	 */
-	static class UAudioComponent* CreateComponent(class USoundBase* Sound, class UWorld* World, AActor*  AActor = nullptr, bool Play = true, bool bStopWhenOwnerDestroyed = false, const FVector* Location = nullptr, USoundAttenuation* AttenuationSettings = nullptr, USoundConcurrency* ConcurrencySettings = nullptr);
-
-	/** 
-	 * Plays a sound at the given location without creating an audio component.
-	 * @param   Sound				The USoundBase to play at the location.
-	 * @param   World				The world this sound is playing in.
-	 * @param   VolumeMultiplier	The volume multiplier to set on the sound.
-	 * @param   PitchMultiplier		The pitch multiplier to set on the sound.
-	 * @param	StartTime			The initial time offset for the sound.
-	 * @param	Location			The sound's position.
-	 * @param	Rotation			The sound's rotation.
-	 * @param	AttenuationSettings	The sound's attenuation settings to use (optional). Will default to the USoundBase's AttenuationSettings if not specified.
-	 * @param	USoundConcurrency	The sound's sound concurrency settings to use (optional). Will use the USoundBase's USoundConcurrency if not specified.
-	 * @param	Params				An optional list of audio component params to immediately apply to a sound.
-	 */
-	void PlaySoundAtLocation(class USoundBase* Sound, class UWorld* World, float VolumeMultiplier, float PitchMultiplier, float StartTime, const FVector& Location, const FRotator& Rotation, USoundAttenuation* AttenuationSettings = nullptr, USoundConcurrency* ConcurrencySettings = nullptr, const TArray<FAudioComponentParam>* Params = nullptr);
+	static class UAudioComponent* CreateComponent( class USoundBase* Sound, class UWorld* World, AActor*  AActor  = NULL, bool Play = true, bool bStopWhenOwnerDestroyed = false, const FVector* Location = NULL, USoundAttenuation* AttenuationSettings = NULL );
 
 	/**
 	 * Adds an active sound to the audio device
@@ -364,11 +347,6 @@ public:
 	 * Removes the active sound for the specified audio component
 	 */
 	void StopActiveSound( class UAudioComponent* AudioComponent );
-
-	/**
-	* Stops the active sound
-	*/
-	void StopActiveSound(FActiveSound* ActiveSound);
 
 	/**
 	 * Finds the active sound for the specified audio component
@@ -423,14 +401,9 @@ public:
 	FSoundClassProperties* GetSoundClassCurrentProperties(class USoundClass* InSoundClass);
 
 	/**
-	* Checks to see if a coordinate is within a distance of any listener
-	*/
-	bool LocationIsAudible(const FVector& Location, const float MaxDistance);
-
-	/**
-	* Checks to see if a coordinate is within a distance of the given listener
-	*/
-	bool LocationIsAudible(const FVector& Location, const FListener& Listener, const float MaxDistance);
+	 * Checks to see if a coordinate is within a distance of any listener
+	 */
+	bool LocationIsAudible( FVector Location, float MaxDistance );
 
 	/**
 	 * Sets the Sound Mix that should be active by default
@@ -541,8 +514,6 @@ public:
 	{
 		return bHRTFEnabledForAll && IsSpatializationPluginEnabled();
 	}
-
-	bool IsAudioDeviceMuted() const;
 
 protected:
 	friend class FSoundSource;
@@ -746,22 +717,6 @@ protected:
 		return bSpatializationExtensionEnabled;
 	}
 
-	void AddSoundToStop(struct FActiveSound* SoundToStop);
-
-	/** Updates the listener transform. */
-	void UpdateListenerTransform();
-
-	/**   
-	* Gets the direction of the given position vector transformed relative to listener.   
-	* @param Position				Input position vector to transform relative to listener
-	* @param OutDistance			Optional output of distance from position to listener
-	* @return The input position relative to the listener.
-	*/
-	FVector GetListenerTransformedDirection(const FVector& Position, float* OutDistance);
-
-	/** Processes the set of pending sounds that need to be stopped */ 
-	void ProcessingPendingActiveSoundStops();
-
 public:
 
 	/** The maximum number of concurrent audible sounds */
@@ -800,11 +755,8 @@ public:
 	/** transient master volume multiplier that can be modified at runtime without affecting user settings automatically reset to 1.0 on level change */
 	float TransientMasterVolume;
 
-	/** Global dynamic pitch scale parameter */
-	FDynamicParameter GlobalPitchScale;
-
 	/** Timestamp of the last update */
-	double LastUpdateTime;
+	float LastUpdateTime;
 
 	/** Next resource ID to assign out to a wave/buffer */
 	int32 NextResourceID;
@@ -865,18 +817,11 @@ public:
 private:
 
 	TArray<struct FActiveSound*> ActiveSounds;
-	TSet<struct FActiveSound*> PendingSoundsToStop;
 
 	TMap<UPTRINT, struct FActiveSound*> AudioComponentToActiveSoundMap;
 
 	/** List of passive SoundMixes active last frame */
 	TArray<class USoundMix*> PrevPassiveSoundMixModifiers;
-
-	friend class FSoundConcurrencyManager;
-	FSoundConcurrencyManager ConcurrencyManager;
-
-	/** Inverse listener transformation, used for spatialization */
-	FMatrix InverseListenerTransform;
 };
 
 

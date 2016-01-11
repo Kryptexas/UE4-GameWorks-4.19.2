@@ -2,7 +2,6 @@ Availability: Licensee
 Title:Using Perforce with Unreal Engine
 Crumbs:%ROOT%, Engine, Programming, Programming/Basics
 Description:Guide to using Perforce source control with Unreal Engine.
-version: 4.9
 
 [TOC(start:2)]
 

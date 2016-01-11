@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "BonePose.h"
@@ -57,9 +57,7 @@ bool FMeshPose::IsNormalized() const
 
 void FCompactPose::ResetToRefPose(const FBoneContainer& RequiredBones)
 {
-	const TArray<FTransform>& RefPoseCompactArray = RequiredBones.GetRefPoseCompactArray();
-	Bones.Reset();
-	Bones.Append(RefPoseCompactArray);
+	((TArray<FTransform>&)Bones) = RequiredBones.GetRefPoseCompactArray();
 
 	// If retargeting is disabled, copy ref pose from Skeleton, rather than mesh.
 	// this is only used in editor and for debugging.

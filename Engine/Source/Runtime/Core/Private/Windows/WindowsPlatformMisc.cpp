@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "ExceptionHandling.h"
@@ -29,7 +29,7 @@
 #include "VarargsHelper.h"
 
 #if !FORCE_ANSI_ALLOCATOR
-	#include "MallocBinned2.h"
+	#include "MallocBinned.h"
 	#include "AllowWindowsPlatformTypes.h"
 		#include <psapi.h>
 	#include "HideWindowsPlatformTypes.h"
@@ -703,7 +703,7 @@ void FWindowsPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorRe
 			TCHAR SystemTime[MAX_STRING_LEN];
 			FCString::Strncpy(SystemTime, *FDateTime::Now().ToString(), MAX_STRING_LEN);
 			TCHAR EngineVersionStr[MAX_STRING_LEN];
-			FCString::Strncpy(EngineVersionStr, *FEngineVersion::Current().ToString(), 256 );
+			FCString::Strncpy(EngineVersionStr, *GEngineVersion.ToString(), 256 );
 
 			TCHAR ChangelistVersionStr[MAX_STRING_LEN];
 			int32 ChangelistFromCommandLine = 0;
@@ -715,7 +715,7 @@ void FWindowsPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorRe
 			// we are not passing in the changelist to use so use the one that was stored in the ObjectVersion
 			else
 			{
-				FCString::Strncpy(ChangelistVersionStr, *FString::FromInt(FEngineVersion::Current().GetChangelist()), MAX_STRING_LEN);
+				FCString::Strncpy(ChangelistVersionStr, *FString::FromInt(GEngineVersion.GetChangelist()), MAX_STRING_LEN);
 			}
 
 			TCHAR CmdLine[2048];
@@ -1748,23 +1748,23 @@ bool FWindowsPlatformMisc::CommandLineCommands()
  */
 bool FWindowsPlatformMisc::Is64bitOperatingSystem()
 {
-#if PLATFORM_64BITS
+#if defined(PLATFORM_64BITS)
 	return true;
 #else
 	#pragma warning( push )
 	#pragma warning( disable: 4191 )	// unsafe conversion from 'type of expression' to 'type required'
-	typedef BOOL (WINAPI *LPFN_ISWOW64PROCESS)(HANDLE, PBOOL);
+	typedef bool (WINAPI *LPFN_ISWOW64PROCESS)(HANDLE, PBOOL);
 	LPFN_ISWOW64PROCESS fnIsWow64Process = (LPFN_ISWOW64PROCESS) GetProcAddress( GetModuleHandle(TEXT("kernel32")), "IsWow64Process" );
-	BOOL bIsWoW64Process = 0;
+	bool bIsWoW64Process = false;
 	if ( fnIsWow64Process != NULL )
 	{
-		if ( fnIsWow64Process(GetCurrentProcess(), &bIsWoW64Process) == 0 )
+		if ( fnIsWow64Process(GetCurrentProcess(), (PBOOL)&bIsWoW64Process) == 0 )
 		{
-			bIsWoW64Process = 0;
+			bIsWoW64Process = false;
 		}
 	}
 	#pragma warning( pop )
-	return bIsWoW64Process == 1;
+	return bIsWoW64Process;
 #endif
 }
 
@@ -2107,9 +2107,6 @@ void FWindowsPlatformMisc::PromptForRemoteDebugging(bool bIsEnsure)
 			return;
 		}
 
-		// Upload locally compiled files for remote debugging
-		FPlatformStackWalk::UploadLocalSymbols();
-
 		FCString::Sprintf(GErrorRemoteDebugPromptMessage, 
 			TEXT("Have a programmer remote debug this crash?\n")
 			TEXT("Hit NO to exit and submit error report as normal.\n")
@@ -2118,7 +2115,7 @@ void FWindowsPlatformMisc::PromptForRemoteDebugging(bool bIsEnsure)
 			TEXT("Once he confirms he is connected to the machine,\n")
 			TEXT("hit YES to allow him to debug the crash.\n")
 			TEXT("[Changelist = %d]"),
-			FEngineVersion::Current().GetChangelist());
+			GEngineVersion.GetChangelist());
 		if (MessageBox(0, GErrorRemoteDebugPromptMessage, TEXT("CRASHED"), MB_YESNO|MB_SYSTEMMODAL) == IDYES)
 		{
 			::DebugBreak();

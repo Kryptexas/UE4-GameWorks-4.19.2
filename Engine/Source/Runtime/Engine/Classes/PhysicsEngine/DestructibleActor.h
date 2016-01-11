@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,8 +11,8 @@ class UDestructibleComponent;
 /** Delegate for notification when fracture occurs */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FActorFractureSignature, const FVector &, HitPoint, const FVector &, HitDirection);
 
-UCLASS(hideCategories=(Input), showCategories=("Input|MouseInput", "Input|TouchInput"), ComponentWrapperClass)
-class ENGINE_API ADestructibleActor : public AActor
+UCLASS(MinimalAPI, hideCategories=(Input), showCategories=("Input|MouseInput", "Input|TouchInput"), ComponentWrapperClass)
+class ADestructibleActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
@@ -31,19 +31,19 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Components|Destructible")
 	FActorFractureSignature OnActorFracture;
 
-	//~ Begin AActor Interface.
+	// Begin AActor interface.
 #if WITH_EDITOR
-	virtual bool GetReferencedContentObjects( TArray<UObject*>& Objects ) const override;
+	ENGINE_API virtual bool GetReferencedContentObjects( TArray<UObject*>& Objects ) const override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	//~ End AActor Interface.
+	// End AActor interface.
 
 	virtual void PostLoad() override;
 
 
 public:
 	/** Returns DestructibleComponent subobject **/
-	UDestructibleComponent* GetDestructibleComponent() const;
+	ENGINE_API UDestructibleComponent* GetDestructibleComponent() const;
 };
 
 

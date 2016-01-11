@@ -1,12 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "ModuleManager.h"
 #include "GameplayTagsManager.h"
 
-
-class UGameplayTagsManager;
 
 /**
  * The public interface to this module
@@ -39,6 +37,8 @@ public:
 		return FModuleManager::Get().IsModuleLoaded(GameplayTagModuleName);
 	}
 
+	virtual UGameplayTagsManager& GetGameplayTagsManager() = 0;
+
 	/**
 	 * Helper function to request a gameplay tag by name
 	 * 
@@ -46,23 +46,10 @@ public:
 	 * 
 	 * @return Gameplay tag associated with the specified name. Will be marked invalid if tag not found
 	 */
-	FORCEINLINE_DEBUGGABLE static FGameplayTag RequestGameplayTag(FName InTagName, bool ErrorIfNotFound=true)
+	static FGameplayTag RequestGameplayTag(FName InTagName, bool ErrorIfNotFound=true)
 	{
 		IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
 		return GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTag(InTagName, ErrorIfNotFound);
 	}
-
-
-	// Gets the UGameplayTagsManager manager
-	FORCEINLINE_DEBUGGABLE static UGameplayTagsManager& GetGameplayTagsManager()
-	{
-		if (GGameplayTagsManager == nullptr)
-		{
-			IGameplayTagsModule::Get();
-		}
-		
-		return *GGameplayTagsManager;
-	}
-
 };
 

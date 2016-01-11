@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -30,7 +30,7 @@ public:
 
 public:
 
-	//~ Begin ILauncherDeviceGroup Interface
+	// Begin ILauncherDeviceGroup interface
 
 	virtual void AddDevice(const FString& DeviceID) override
 	{
@@ -76,23 +76,12 @@ public:
 		DeviceRemovedDelegate.Broadcast(AsShared(), DeviceID);
 	}
 
-	virtual void RemoveAllDevices() override
-	{
-		for (int32 i = Devices.Num() - 1; i >= 0; --i)
-		{
-			FString DeviceId = Devices[i];
-			Devices.RemoveAt(i, 1, false);
-
-			DeviceRemovedDelegate.Broadcast(AsShared(), DeviceId);
-		}
-	}
-
 	virtual void SetName(const FString& NewName) override
 	{
 		Name = NewName;
 	}
 
-	//~ End ILauncherDeviceGroup Interface
+	// End ILauncherDeviceGroup interface
 
 private:
 

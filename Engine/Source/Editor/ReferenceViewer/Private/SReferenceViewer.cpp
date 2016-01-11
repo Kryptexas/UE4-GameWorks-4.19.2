@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ReferenceViewerPrivatePCH.h"
 #include "GraphEditor.h"
@@ -112,13 +112,9 @@ void SReferenceViewer::Construct( const FArguments& InArgs )
 				SNew(SBorder)
 				.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
 				[
-					SNew(SEditableTextBox)
+					SNew(STextBlock)
 					.Text(this, &SReferenceViewer::GetAddressBarText)
-					.OnTextCommitted(this, &SReferenceViewer::OnAddressBarTextCommitted)
-					.OnTextChanged(this, &SReferenceViewer::OnAddressBarTextChanged)
-					.SelectAllTextWhenFocused(true)
-					.SelectAllTextOnCommit(true)
-					.Style(FEditorStyle::Get(), "ReferenceViewer.PathText")
+					.TextStyle(FEditorStyle::Get(), "ContentBrowser.PathText")
 				]
 			]
 		]
@@ -329,45 +325,18 @@ FText SReferenceViewer::GetAddressBarText() const
 {
 	if ( GraphObj )
 	{
-		if (TemporaryPathBeingEdited.IsEmpty())
+		const TArray<FName>& CurrentGraphRootPackageNames = GraphObj->GetCurrentGraphRootPackageNames();
+		if ( CurrentGraphRootPackageNames.Num() == 1 )
 		{
-			const TArray<FName>& CurrentGraphRootPackageNames = GraphObj->GetCurrentGraphRootPackageNames();
-			if (CurrentGraphRootPackageNames.Num() == 1)
-			{
-				return FText::FromName(CurrentGraphRootPackageNames[0]);
-			}
-			else if (CurrentGraphRootPackageNames.Num() > 1)
-			{
-				return FText::Format(LOCTEXT("AddressBarMultiplePackagesText", "{0} and {1} others"), FText::FromName(CurrentGraphRootPackageNames[0]), FText::AsNumber(CurrentGraphRootPackageNames.Num()));
-			}
+			return FText::FromName(CurrentGraphRootPackageNames[0]);
 		}
-		else
+		else if ( CurrentGraphRootPackageNames.Num() > 1 )
 		{
-			return TemporaryPathBeingEdited;
+			return FText::Format(LOCTEXT("AddressBarMultiplePackagesText", "{0} and {1} others"), FText::FromName(CurrentGraphRootPackageNames[0]), FText::AsNumber(CurrentGraphRootPackageNames.Num()));
 		}
 	}
 
 	return FText();
-}
-
-void SReferenceViewer::OnAddressBarTextCommitted(const FText& NewText, ETextCommit::Type CommitInfo)
-{
-	if (CommitInfo == ETextCommit::OnEnter)
-	{
-		const FName NewPath(*NewText.ToString());
-
-		TArray<FName> NewPaths;
-		NewPaths.Add(NewPath);
-
-		SetGraphRootPackageNames(NewPaths);
-	}
-
-	TemporaryPathBeingEdited = FText();
-}
-
-void SReferenceViewer::OnAddressBarTextChanged(const FText& NewText)
-{
-	TemporaryPathBeingEdited = NewText;
 }
 
 void SReferenceViewer::OnApplyHistoryData(const FReferenceViewerHistoryData& History)

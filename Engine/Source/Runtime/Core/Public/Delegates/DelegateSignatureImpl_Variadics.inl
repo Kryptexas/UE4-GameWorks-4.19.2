@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 // Only designed to be included directly by Delegate.h
 #if !defined( __Delegate_h__ ) || !defined( FUNC_INCLUDING_INLINE_IMPL )
@@ -16,7 +16,7 @@
  * of that class when you want to bind a function to the delegate.
  */
 template <typename WrappedRetValType, typename... ParamTypes>
-class TBaseDelegate : public FDelegateBase
+class TBaseDelegate : public FDelegateBase<>
 {
 public:
 	/** Type definition for return value type. */
@@ -94,13 +94,9 @@ public:
 	 * Static: Creates a raw C++ pointer global function delegate
 	 */
 	template <typename... VarTypes>
-	FUNCTION_CHECK_RETURN(
 	inline static TBaseDelegate<RetValType, ParamTypes...> CreateStatic(typename TIdentity<RetValType (*)(ParamTypes..., VarTypes...)>::Type InFunc, VarTypes... Vars)
-	)
 	{
-		TBaseDelegate<RetValType, ParamTypes...> Result;
-		TBaseStaticDelegateInstance<TFuncType, VarTypes...>::Create(Result, InFunc, Vars...);
-		return Result;
+		return TBaseStaticDelegateInstance<TFuncType, VarTypes...>::Create(InFunc, Vars...);
 	}
 
 	/**
@@ -108,13 +104,9 @@ public:
 	 * technically this works for any functor types, but lambdas are the primary use case
 	 */
 	template<typename FunctorType, typename... VarTypes>
-	FUNCTION_CHECK_RETURN(
 	inline static TBaseDelegate<RetValType, ParamTypes...> CreateLambda(FunctorType&& InFunctor, VarTypes... Vars)
-	)
 	{
-		TBaseDelegate<RetValType, ParamTypes...> Result;
-		TBaseFunctorDelegateInstance<TFuncType, typename TRemoveReference<FunctorType>::Type, VarTypes...>::Create(Result, Forward<FunctorType>(InFunctor), Vars...);
-		return Result;
+		return TBaseFunctorDelegateInstance<TFuncType, typename TRemoveReference<FunctorType>::Type, VarTypes...>::Create(Forward<FunctorType>(InFunctor), Vars...);
 	}
 
 	/**
@@ -124,22 +116,14 @@ public:
 	 * deleted out from underneath your delegate. Be careful when calling Execute()!
 	 */
 	template <typename UserClass, typename... VarTypes>
-	FUNCTION_CHECK_RETURN(
 	inline static TBaseDelegate<RetValType, ParamTypes...> CreateRaw(UserClass* InUserObject, typename TMemFunPtrType<false, UserClass, RetValType (ParamTypes..., VarTypes...)>::Type InFunc, VarTypes... Vars)
-	)
 	{
-		TBaseDelegate<RetValType, ParamTypes...> Result;
-		TBaseRawMethodDelegateInstance<false, UserClass, TFuncType, VarTypes...>::Create(Result, InUserObject, InFunc, Vars...);
-		return Result;
+		return TBaseRawMethodDelegateInstance<false, UserClass, TFuncType, VarTypes...>::Create(InUserObject, InFunc, Vars...);
 	}
 	template <typename UserClass, typename... VarTypes>
-	FUNCTION_CHECK_RETURN(
 	inline static TBaseDelegate<RetValType, ParamTypes...> CreateRaw(UserClass* InUserObject, typename TMemFunPtrType<true, UserClass, RetValType (ParamTypes..., VarTypes...)>::Type InFunc, VarTypes... Vars)
-	)
 	{
-		TBaseDelegate<RetValType, ParamTypes...> Result;
-		TBaseRawMethodDelegateInstance<true , UserClass, TFuncType, VarTypes...>::Create(Result, InUserObject, InFunc, Vars...);
-		return Result;
+		return TBaseRawMethodDelegateInstance<true , UserClass, TFuncType, VarTypes...>::Create( InUserObject, InFunc, Vars...);
 	}
 	
 	/**
@@ -149,22 +133,14 @@ public:
 	 * You can use ExecuteIfBound() to call them.
 	 */
 	template <typename UserClass, typename... VarTypes>
-	FUNCTION_CHECK_RETURN(
 	inline static TBaseDelegate<RetValType, ParamTypes...> CreateSP(const TSharedRef<UserClass, ESPMode::Fast>& InUserObjectRef, typename TMemFunPtrType<false, UserClass, RetValType (ParamTypes..., VarTypes...)>::Type InFunc, VarTypes... Vars)
-	)
 	{
-		TBaseDelegate<RetValType, ParamTypes...> Result;
-		TBaseSPMethodDelegateInstance<false, UserClass, ESPMode::Fast, TFuncType, VarTypes...>::Create(Result, InUserObjectRef, InFunc, Vars...);
-		return Result;
+		return TBaseSPMethodDelegateInstance<false, UserClass, ESPMode::Fast, TFuncType, VarTypes...>::Create(InUserObjectRef, InFunc, Vars...);
 	}
 	template <typename UserClass, typename... VarTypes>
-	FUNCTION_CHECK_RETURN(
 	inline static TBaseDelegate<RetValType, ParamTypes...> CreateSP(const TSharedRef<UserClass, ESPMode::Fast>& InUserObjectRef, typename TMemFunPtrType<true, UserClass, RetValType (ParamTypes..., VarTypes...)>::Type InFunc, VarTypes... Vars)
-	)
 	{
-		TBaseDelegate<RetValType, ParamTypes...> Result;
-		TBaseSPMethodDelegateInstance<true , UserClass, ESPMode::Fast, TFuncType, VarTypes...>::Create(Result, InUserObjectRef, InFunc, Vars...);
-		return Result;
+		return TBaseSPMethodDelegateInstance<true , UserClass, ESPMode::Fast, TFuncType, VarTypes...>::Create(InUserObjectRef, InFunc, Vars...);
 	}
 
 	/**
@@ -174,16 +150,12 @@ public:
 	 * You can use ExecuteIfBound() to call them.
 	 */
 	template <typename UserClass, typename... VarTypes>
-	FUNCTION_CHECK_RETURN(
 	inline static TBaseDelegate<RetValType, ParamTypes...> CreateSP(UserClass* InUserObject, typename TMemFunPtrType<false, UserClass, RetValType (ParamTypes..., VarTypes...)>::Type InFunc, VarTypes... Vars)
-	)
 	{
 		return CreateSP(StaticCastSharedRef<UserClass>(InUserObject->AsShared()), InFunc, Vars...);
 	}
 	template <typename UserClass, typename... VarTypes>
-	FUNCTION_CHECK_RETURN(
 	inline static TBaseDelegate<RetValType, ParamTypes...> CreateSP(UserClass* InUserObject, typename TMemFunPtrType<true, UserClass, RetValType (ParamTypes..., VarTypes...)>::Type InFunc, VarTypes... Vars)
-	)
 	{
 		return CreateSP(StaticCastSharedRef<UserClass>(InUserObject->AsShared()), InFunc, Vars...);
 	}
@@ -195,22 +167,14 @@ public:
 	 * You can use ExecuteIfBound() to call them.
 	 */
 	template <typename UserClass, typename... VarTypes>
-	FUNCTION_CHECK_RETURN(
 	inline static TBaseDelegate<RetValType, ParamTypes...> CreateThreadSafeSP(const TSharedRef<UserClass, ESPMode::ThreadSafe>& InUserObjectRef, typename TMemFunPtrType<false, UserClass, RetValType (ParamTypes..., VarTypes...)>::Type InFunc, VarTypes... Vars)
-	)
 	{
-		TBaseDelegate<RetValType, ParamTypes...> Result;
-		TBaseSPMethodDelegateInstance<false, UserClass, ESPMode::ThreadSafe, TFuncType, VarTypes...>::Create(Result, InUserObjectRef, InFunc, Vars...);
-		return Result;
+		return TBaseSPMethodDelegateInstance<false, UserClass, ESPMode::ThreadSafe, TFuncType, VarTypes...>::Create(InUserObjectRef, InFunc, Vars...);
 	}
 	template <typename UserClass, typename... VarTypes>
-	FUNCTION_CHECK_RETURN(
 	inline static TBaseDelegate<RetValType, ParamTypes...> CreateThreadSafeSP(const TSharedRef<UserClass, ESPMode::ThreadSafe>& InUserObjectRef, typename TMemFunPtrType<true, UserClass, RetValType (ParamTypes..., VarTypes...)>::Type InFunc, VarTypes... Vars)
-	)
 	{
-		TBaseDelegate<RetValType, ParamTypes...> Result;
-		TBaseSPMethodDelegateInstance<true , UserClass, ESPMode::ThreadSafe, TFuncType, VarTypes...>::Create(Result, InUserObjectRef, InFunc, Vars...);
-		return Result;
+		return TBaseSPMethodDelegateInstance<true , UserClass, ESPMode::ThreadSafe, TFuncType, VarTypes...>::Create(InUserObjectRef, InFunc, Vars...);
 	}
 
 	/**
@@ -220,16 +184,12 @@ public:
 	 * You can use ExecuteIfBound() to call them.
 	 */
 	template <typename UserClass, typename... VarTypes>
-	FUNCTION_CHECK_RETURN(
 	inline static TBaseDelegate<RetValType, ParamTypes...> CreateThreadSafeSP(UserClass* InUserObject, typename TMemFunPtrType<false, UserClass, RetValType (ParamTypes..., VarTypes...)>::Type InFunc, VarTypes... Vars)
-	)
 	{
 		return CreateThreadSafeSP(StaticCastSharedRef<UserClass>(InUserObject->AsShared()), InFunc, Vars...);
 	}
 	template <typename UserClass, typename... VarTypes>
-	FUNCTION_CHECK_RETURN(
 	inline static TBaseDelegate<RetValType, ParamTypes...> CreateThreadSafeSP(UserClass* InUserObject, typename TMemFunPtrType<true, UserClass, RetValType (ParamTypes..., VarTypes...)>::Type InFunc, VarTypes... Vars)
-	)
 	{
 		return CreateThreadSafeSP(StaticCastSharedRef<UserClass>(InUserObject->AsShared()), InFunc, Vars...);
 	}
@@ -241,13 +201,9 @@ public:
 	 * You can use ExecuteIfBound() to call them.
 	 */
 	template <typename UObjectTemplate, typename... VarTypes>
-	FUNCTION_CHECK_RETURN(
 	inline static TBaseDelegate<RetValType, ParamTypes...> CreateUFunction(UObjectTemplate* InUserObject, const FName& InFunctionName, VarTypes... Vars)
-	)
 	{
-		TBaseDelegate<RetValType, ParamTypes...> Result;
-		TBaseUFunctionDelegateInstance<UObjectTemplate, TFuncType, VarTypes...>::Create(Result, InUserObject, InFunctionName, Vars...);
-		return Result;
+		return TBaseUFunctionDelegateInstance<UObjectTemplate, TFuncType, VarTypes...>::Create(InUserObject, InFunctionName, Vars...);
 	}
 
 	/**
@@ -257,22 +213,14 @@ public:
 	 * You can use ExecuteIfBound() to call them.
 	 */
 	template <typename UserClass, typename... VarTypes>
-	FUNCTION_CHECK_RETURN(
 	inline static TBaseDelegate<RetValType, ParamTypes...> CreateUObject(UserClass* InUserObject, typename TMemFunPtrType<false, UserClass, RetValType (ParamTypes..., VarTypes...)>::Type InFunc, VarTypes... Vars)
-	)
 	{
-		TBaseDelegate<RetValType, ParamTypes...> Result;
-		TBaseUObjectMethodDelegateInstance<false, UserClass, TFuncType, VarTypes...>::Create(Result, InUserObject, InFunc, Vars...);
-		return Result;
+		return TBaseUObjectMethodDelegateInstance<false, UserClass, TFuncType, VarTypes...>::Create(InUserObject, InFunc, Vars...);
 	}
 	template <typename UserClass, typename... VarTypes>
-	FUNCTION_CHECK_RETURN(
 	inline static TBaseDelegate<RetValType, ParamTypes...> CreateUObject(UserClass* InUserObject, typename TMemFunPtrType<true, UserClass, RetValType (ParamTypes..., VarTypes...)>::Type InFunc, VarTypes... Vars)
-	)
 	{
-		TBaseDelegate<RetValType, ParamTypes...> Result;
-		TBaseUObjectMethodDelegateInstance<true , UserClass, TFuncType, VarTypes...>::Create(Result, InUserObject, InFunc, Vars...);
-		return Result;
+		return TBaseUObjectMethodDelegateInstance<true , UserClass, TFuncType, VarTypes...>::Create(InUserObject, InFunc, Vars...);
 	}
 
 public:
@@ -281,15 +229,8 @@ public:
 	 * Default constructor
 	 */
 	inline TBaseDelegate()
-	{
-	}
-
-	/**
-	 * 'Null' constructor
-	 */
-	inline TBaseDelegate(TYPE_OF_NULLPTR)
-	{
-	}
+		: FDelegateBase(nullptr)
+	{ }
 
 	/**
 	 * Destructor.
@@ -300,48 +241,26 @@ public:
 	}
 
 	/**
-	 * Move constructor.
+	 * Creates and initializes a new instance with the given delegate instance.
 	 *
-	 * @param Other The delegate object to move from.
+	 * The delegate will assume ownership of the incoming delegate instance!
+	 * IMPORTANT: This is a system-internal function and you should never be using this in regular C++ code
+	 *
+	 * @param InDelegateInstance The delegate instance to assign.
 	 */
-	inline TBaseDelegate(TBaseDelegate&& Other)
-	{
-		*this = MoveTemp(Other);
-	}
+	inline TBaseDelegate( TDelegateInstanceInterface* InDelegateInstance )
+		: FDelegateBase(InDelegateInstance)
+	{ }
 
 	/**
 	 * Creates and initializes a new instance from an existing delegate object.
 	 *
 	 * @param Other The delegate object to copy from.
 	 */
-	inline TBaseDelegate(const TBaseDelegate& Other)
+	inline TBaseDelegate( const TBaseDelegate& Other )
+		: FDelegateBase(nullptr)
 	{
 		*this = Other;
-	}
-
-	/**
-	 * Move assignment operator.
-	 *
-	 * @param	OtherDelegate	Delegate object to copy from
-	 */
-	inline TBaseDelegate& operator=(TBaseDelegate&& Other)
-	{
-		if (&Other != this)
-		{
-			// this down-cast is OK! allows for managing invocation list in the base class without requiring virtual functions
-			TDelegateInstanceInterface* OtherInstance = Other.GetDelegateInstanceProtected();
-
-			if (OtherInstance != nullptr)
-			{
-				OtherInstance->CreateCopy(*this);
-			}
-			else
-			{
-				Unbind();
-			}
-		}
-
-		return *this;
 	}
 
 	/**
@@ -349,20 +268,20 @@ public:
 	 *
 	 * @param	OtherDelegate	Delegate object to copy from
 	 */
-	inline TBaseDelegate& operator=(const TBaseDelegate& Other)
+	inline TBaseDelegate& operator=( const TBaseDelegate& Other )
 	{
 		if (&Other != this)
 		{
 			// this down-cast is OK! allows for managing invocation list in the base class without requiring virtual functions
-			TDelegateInstanceInterface* OtherInstance = Other.GetDelegateInstanceProtected();
+			TDelegateInstanceInterface* OtherInstance = (TDelegateInstanceInterface*)Other.GetDelegateInstance();
 
 			if (OtherInstance != nullptr)
 			{
-				OtherInstance->CreateCopy(*this);
+				SetDelegateInstance(OtherInstance->CreateCopy());
 			}
 			else
 			{
-				Unbind();
+				SetDelegateInstance(nullptr);
 			}
 		}
 
@@ -510,23 +429,15 @@ public:
 	 *
 	 * @see ExecuteIfBound
 	 */
-	FORCEINLINE RetValType Execute(ParamTypes... Params) const
+	inline RetValType Execute(ParamTypes... Params) const
 	{
-		TDelegateInstanceInterface* LocalDelegateInstance = GetDelegateInstanceProtected();
+		TDelegateInstanceInterface* LocalDelegateInstance = (TDelegateInstanceInterface*)GetDelegateInstance();
 
 		// If this assert goes off, Execute() was called before a function was bound to the delegate.
 		// Consider using ExecuteIfSafe() instead.
 		checkSlow(LocalDelegateInstance != nullptr);
 
 		return LocalDelegateInstance->Execute(Params...);
-	}
-
-	/**
-	 * Returns a pointer to the correctly-typed delegate instance.
-	 */
-	FORCEINLINE TDelegateInstanceInterface* GetDelegateInstanceProtected() const
-	{
-		return (TDelegateInstanceInterface*)FDelegateBase::GetDelegateInstanceProtected();
 	}
 };
 
@@ -546,53 +457,16 @@ public:
 	}
 
 	/**
-	 * 'Null' constructor
-	 */
-	FORCEINLINE TBaseDelegate(TYPE_OF_NULLPTR)
-		: Super(nullptr)
-	{
-	}
-
-	/**
-	 * Move constructor.
+	 * Creates and initializes a new instance with the given delegate instance.
 	 *
-	 * @param Other The delegate object to move from.
-	 */
-	FORCEINLINE TBaseDelegate(TBaseDelegate&& Other)
-		: Super(MoveTemp(Other))
-	{
-	}
-
-	/**
-	 * Creates and initializes a new instance from an existing delegate object.
+	 * The delegate will assume ownership of the incoming delegate instance!
+	 * IMPORTANT: This is a system-internal function and you should never be using this in regular C++ code
 	 *
-	 * @param Other The delegate object to copy from.
+	 * @param InDelegateInstance The delegate instance to assign.
 	 */
-	FORCEINLINE TBaseDelegate(const TBaseDelegate& Other)
-		: Super(Other)
+	TBaseDelegate(TDelegateInstanceInterface* InDelegateInstance)
+		: Super(InDelegateInstance)
 	{
-	}
-
-	/**
-	 * Move assignment operator.
-	 *
-	 * @param	OtherDelegate	Delegate object to copy from
-	 */
-	inline TBaseDelegate& operator=(TBaseDelegate&& Other)
-	{
-		(Super&)*this = MoveTemp((Super&)Other);
-		return *this;
-	}
-
-	/**
-	 * Assignment operator.
-	 *
-	 * @param	OtherDelegate	Delegate object to copy from
-	 */
-	inline TBaseDelegate& operator=(const TBaseDelegate& Other)
-	{
-		(Super&)*this = (Super&)Other;
-		return *this;
 	}
 
 	/**
@@ -605,7 +479,7 @@ public:
 	{
 		if (Super::IsBound())
 		{
-			return Super::GetDelegateInstanceProtected()->ExecuteIfSafe(Params...);
+			return ((TDelegateInstanceInterface*)Super::GetDelegateInstance())->ExecuteIfSafe(Params...);
 		}
 
 		return false;
@@ -627,10 +501,8 @@ template <typename RetValType, typename... ParamTypes>
 class TBaseMulticastDelegate;
 
 template <typename... ParamTypes>
-class TBaseMulticastDelegate<void, ParamTypes...> : public FMulticastDelegateBase<FWeakObjectPtr>
+class TBaseMulticastDelegate<void, ParamTypes...> : public FMulticastDelegateBase<>
 {
-	typedef FMulticastDelegateBase<FWeakObjectPtr> Super;
-
 public:
 	/** DEPRECATED: Type definition for unicast delegate classes whose delegate instances are compatible with this delegate. */
 	typedef TBaseDelegate< void, ParamTypes... > FDelegate;
@@ -641,18 +513,19 @@ public:
 public:
 
 	/**
-	 * DEPRECATED: Adds a delegate instance to this multicast delegate's invocation list.
+	 * Adds a delegate instance to this multicast delegate's invocation list.
 	 *
-	 * This method is retained for backwards compatibility.
+	 * This delegate will take over ownership of the given delegate instance.
 	 *
-	 * @param Delegate The delegate to add.
+	 * @param DelegateInstance The delegate instance to add.
 	 */
-	FDelegateHandle Add(FDelegate&& InNewDelegate)
+	FDelegateHandle Add( TDelegateInstanceInterface* DelegateInstance )
 	{
 		FDelegateHandle Result;
-		if (Super::GetDelegateInstanceProtectedHelper(InNewDelegate))
+
+		if (DelegateInstance != nullptr)
 		{
-			Result = AddDelegateInstance(MoveTemp(InNewDelegate));
+			Result = AddDelegateInstance(DelegateInstance);
 		}
 
 		return Result;
@@ -665,12 +538,14 @@ public:
 	 *
 	 * @param Delegate The delegate to add.
 	 */
-	FDelegateHandle Add(const FDelegate& InNewDelegate)
+	FDelegateHandle Add( const FDelegate& Delegate )
 	{
-		FDelegateHandle Result;
-		if (Super::GetDelegateInstanceProtectedHelper(InNewDelegate))
+		FDelegateHandle             Result;
+		TDelegateInstanceInterface* DelegateInstance = (TDelegateInstanceInterface*)Delegate.GetDelegateInstance();
+
+		if (DelegateInstance != nullptr)
 		{
-			Result = AddDelegateInstance(FDelegate(InNewDelegate));
+			Result = AddDelegateInstance(DelegateInstance->CreateCopy());
 		}
 
 		return Result;
@@ -869,14 +744,15 @@ protected:
 		{
 			Clear();
 
-			for (const FDelegateBase& OtherDelegateRef : Other.GetInvocationList())
+			for (IDelegateInstance* DelegateInstance : Other.GetInvocationList())
 			{
-				if (IDelegateInstance* OtherInstance = Super::GetDelegateInstanceProtectedHelper(OtherDelegateRef))
+				// this down-cast is OK! allows for managing invocation list in the base class without requiring virtual functions
+				TDelegateInstanceInterface* OtherInstance = (TDelegateInstanceInterface*)DelegateInstance;
+
+				if (OtherInstance != nullptr)
 				{
-					FDelegate Temp;
-					((TDelegateInstanceInterface*)OtherInstance)->CreateCopy(Temp);
-					AddInternal(MoveTemp(Temp));
-				}
+					AddInternal(OtherInstance->CreateCopy());
+				}			
 			}
 		}
 
@@ -892,9 +768,22 @@ protected:
 	 *
 	 * @param	InDelegate	Delegate to add
 	 */
-	FDelegateHandle AddDelegateInstance(FDelegate&& InNewDelegate)
+	FDelegateHandle AddDelegateInstance( TDelegateInstanceInterface* InDelegateInstance )
 	{
-		return AddInternal(MoveTemp(InNewDelegate));
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+		// verify that the same function isn't already bound
+		for (IDelegateInstance* DelegateInstance : GetInvocationList())
+		{
+			if (DelegateInstance != nullptr)
+			{
+				// this down-cast is OK! allows for managing invocation list in the base class without requiring virtual functions
+				TDelegateInstanceInterface* DelegateInstanceInterface = (TDelegateInstanceInterface*)DelegateInstance;
+				check(!DelegateInstanceInterface->IsSameFunction(*InDelegateInstance));
+			}
+		}
+#endif
+
+		return AddInternal(InDelegateInstance);
 	}
 
 public:
@@ -909,16 +798,15 @@ public:
 
 		LockInvocationList();
 		{
-			const TInvocationList& LocalInvocationList = GetInvocationList();
+			const TArray<IDelegateInstance*>& LocalInvocationList = GetInvocationList();
 
 			// call bound functions in reverse order, so we ignore any instances that may be added by callees
 			for (int32 InvocationListIndex = LocalInvocationList.Num() - 1; InvocationListIndex >= 0; --InvocationListIndex)
 			{
 				// this down-cast is OK! allows for managing invocation list in the base class without requiring virtual functions
-				const FDelegate& DelegateBase = (const FDelegate&)LocalInvocationList[InvocationListIndex];
+				TDelegateInstanceInterface* DelegateInstanceInterface = (TDelegateInstanceInterface*)LocalInvocationList[InvocationListIndex];
 
-				IDelegateInstance* DelegateInstanceInterface = Super::GetDelegateInstanceProtectedHelper(DelegateBase);
-				if (DelegateInstanceInterface == nullptr || !((TDelegateInstanceInterface*)DelegateInstanceInterface)->ExecuteIfSafe(Params...))
+				if ((DelegateInstanceInterface == nullptr) || !DelegateInstanceInterface->ExecuteIfSafe(Params...))
 				{
 					NeedsCompaction = true;
 				}
@@ -943,18 +831,18 @@ protected:
 	 */
 	void RemoveDelegateInstance( FDelegateHandle Handle )
 	{
-		const TInvocationList& LocalInvocationList = GetInvocationList();
+		const TArray<IDelegateInstance*>& LocalInvocationList = GetInvocationList();
 
 		for (int32 InvocationListIndex = 0; InvocationListIndex < LocalInvocationList.Num(); ++InvocationListIndex)
 		{
-			// InvocationList is const, so we const_cast to be able to unbind the entry
+			// InvocationList is const, so we const_cast to be able to null the entry
 			// TODO: This is horrible, can we get the base class to do it?
-			FDelegateBase& DelegateBase = const_cast<FDelegateBase&>(LocalInvocationList[InvocationListIndex]);
+			IDelegateInstance*& DelegateInstanceRef = const_cast<IDelegateInstance*&>(LocalInvocationList[InvocationListIndex]);
 
-			IDelegateInstance* DelegateInstanceInterface = Super::GetDelegateInstanceProtectedHelper(DelegateBase);
-			if ((DelegateInstanceInterface != nullptr) && DelegateInstanceInterface->GetHandle() == Handle)
+			if ((DelegateInstanceRef != nullptr) && DelegateInstanceRef->GetHandle() == Handle)
 			{
-				DelegateBase.Unbind();
+				delete DelegateInstanceRef;
+				DelegateInstanceRef = nullptr;
 
 				break; // each delegate binding has a unique handle, so once we find it, we can stop
 			}
@@ -1018,17 +906,17 @@ public:
 	/**
 	 * Binds a UObject instance and a UObject method address to this delegate.
 	 *
-	 * @param	InUserObject		UObject instance
-	 * @param	InMethodPtr			Member function address pointer
-	 * @param	InFunctionName		Name of member function, without class name
+	 * @param	InUserObject			UObject instance
+	 * @param	InMethodPtr				Member function address pointer
+	 * @param	InMacroFunctionName		Name of member function, including class name (generated by a macro)
 	 *
 	 * NOTE:  Do not call this function directly.  Instead, call BindDynamic() which is a macro proxy function that
 	 *        automatically sets the function name string for the caller.
 	 */
 	template< class UserClass >
-	void __Internal_BindDynamic( UserClass* InUserObject, typename TMethodPtrResolver< UserClass >::FMethodPtr InMethodPtr, FName InFunctionName )
+	void __Internal_BindDynamic( UserClass* InUserObject, typename TMethodPtrResolver< UserClass >::FMethodPtr InMethodPtr, const TCHAR* InMacroFunctionName )
 	{
-		check( InUserObject != nullptr && InMethodPtr != nullptr );
+		check( InUserObject != nullptr && InMethodPtr != nullptr && InMacroFunctionName[0] );
 
 		// NOTE: We're not actually storing the incoming method pointer or calling it.  We simply require it for type-safety reasons.
 
@@ -1037,9 +925,9 @@ public:
 		this->Object = InUserObject;
 
 		// Store the function name.  The incoming function name was generated by a macro and includes the method's class name.
-		this->FunctionName = InFunctionName;
+		this->FunctionName = UE4Delegates_Private::GetTrimmedMemberFunctionName( InMacroFunctionName );
 
-		ensureMsgf(this->IsBound(), TEXT("Unable to bind delegate to '%s' (function might not be marked as a UFUNCTION)"), *InFunctionName.ToString());
+		ensureMsgf(this->IsBound(), TEXT("Unable to bind delegate to '%s' (function might not be marked as a UFUNCTION)"), InMacroFunctionName);
 	}
 
 	friend uint32 GetTypeHash(const TBaseDynamicDelegate& Key)
@@ -1083,43 +971,44 @@ public:
 	/**
 	 * Tests if a UObject instance and a UObject method address pair are already bound to this multi-cast delegate.
 	 *
-	 * @param	InUserObject		UObject instance
-	 * @param	InMethodPtr			Member function address pointer
-	 * @param	InFunctionName		Name of member function, without class name
+	 * @param	InUserObject			UObject instance
+	 * @param	InMethodPtr				Member function address pointer
+	 * @param	InMacroFunctionName		Name of member function, including class name (generated by a macro)
 	 * @return	True if the instance/method is already bound.
 	 *
 	 * NOTE:  Do not call this function directly.  Instead, call IsAlreadyBound() which is a macro proxy function that
 	 *        automatically sets the function name string for the caller.
 	 */
 	template< class UserClass >
-	bool __Internal_IsAlreadyBound( UserClass* InUserObject, typename FDelegate::template TMethodPtrResolver< UserClass >::FMethodPtr InMethodPtr, FName InFunctionName ) const
+	bool __Internal_IsAlreadyBound( UserClass* InUserObject, typename FDelegate::template TMethodPtrResolver< UserClass >::FMethodPtr InMethodPtr, const TCHAR* InMacroFunctionName ) const
 	{
-		check( InUserObject != nullptr && InMethodPtr != nullptr );
+		check( InUserObject != nullptr && InMethodPtr != nullptr && InMacroFunctionName[0] );
 
 		// NOTE: We're not actually using the incoming method pointer or calling it.  We simply require it for type-safety reasons.
 
-		return this->Contains( InUserObject, InFunctionName );
+		FName TrimmedName = UE4Delegates_Private::GetTrimmedMemberFunctionName( InMacroFunctionName );
+		return this->Contains( InUserObject, TrimmedName );
 	}
 
 	/**
 	 * Binds a UObject instance and a UObject method address to this multi-cast delegate.
 	 *
-	 * @param	InUserObject		UObject instance
-	 * @param	InMethodPtr			Member function address pointer
-	 * @param	InFunctionName		Name of member function, without class name
+	 * @param	InUserObject			UObject instance
+	 * @param	InMethodPtr				Member function address pointer
+	 * @param	InMacroFunctionName		Name of member function, including class name (generated by a macro)
 	 *
 	 * NOTE:  Do not call this function directly.  Instead, call AddDynamic() which is a macro proxy function that
 	 *        automatically sets the function name string for the caller.
 	 */
 	template< class UserClass >
-	void __Internal_AddDynamic( UserClass* InUserObject, typename FDelegate::template TMethodPtrResolver< UserClass >::FMethodPtr InMethodPtr, FName InFunctionName )
+	void __Internal_AddDynamic( UserClass* InUserObject, typename FDelegate::template TMethodPtrResolver< UserClass >::FMethodPtr InMethodPtr, const TCHAR* InMacroFunctionName )
 	{
-		check( InUserObject != nullptr && InMethodPtr != nullptr );
+		check( InUserObject != nullptr && InMethodPtr != nullptr && InMacroFunctionName[0] );
 
 		// NOTE: We're not actually storing the incoming method pointer or calling it.  We simply require it for type-safety reasons.
 
 		FDelegate NewDelegate;
-		NewDelegate.__Internal_BindDynamic( InUserObject, InMethodPtr, InFunctionName );
+		NewDelegate.__Internal_BindDynamic( InUserObject, InMethodPtr, InMacroFunctionName );
 
 		this->Add( NewDelegate );
 	}
@@ -1127,22 +1016,22 @@ public:
 	/**
 	 * Binds a UObject instance and a UObject method address to this multi-cast delegate, but only if it hasn't been bound before.
 	 *
-	 * @param	InUserObject		UObject instance
-	 * @param	InMethodPtr			Member function address pointer
-	 * @param	InFunctionName		Name of member function, without class name
+	 * @param	InUserObject			UObject instance
+	 * @param	InMethodPtr				Member function address pointer
+	 * @param	InMacroFunctionName		Name of member function, including class name (generated by a macro)
 	 *
 	 * NOTE:  Do not call this function directly.  Instead, call AddUniqueDynamic() which is a macro proxy function that
 	 *        automatically sets the function name string for the caller.
 	 */
 	template< class UserClass >
-	void __Internal_AddUniqueDynamic( UserClass* InUserObject, typename FDelegate::template TMethodPtrResolver< UserClass >::FMethodPtr InMethodPtr, FName InFunctionName )
+	void __Internal_AddUniqueDynamic( UserClass* InUserObject, typename FDelegate::template TMethodPtrResolver< UserClass >::FMethodPtr InMethodPtr, const TCHAR* InMacroFunctionName )
 	{
-		check( InUserObject != nullptr && InMethodPtr != nullptr );
+		check( InUserObject != nullptr && InMethodPtr != nullptr && InMacroFunctionName[0] );
 
 		// NOTE: We're not actually storing the incoming method pointer or calling it.  We simply require it for type-safety reasons.
 
 		FDelegate NewDelegate;
-		NewDelegate.__Internal_BindDynamic( InUserObject, InMethodPtr, InFunctionName );
+		NewDelegate.__Internal_BindDynamic( InUserObject, InMethodPtr, InMacroFunctionName );
 
 		this->AddUnique( NewDelegate );
 	}
@@ -1150,21 +1039,22 @@ public:
 	/**
 	 * Unbinds a UObject instance and a UObject method address from this multi-cast delegate.
 	 *
-	 * @param	InUserObject		UObject instance
-	 * @param	InMethodPtr			Member function address pointer
-	 * @param	InFunctionName		Name of member function, without class name
+	 * @param	InUserObject			UObject instance
+	 * @param	InMethodPtr				Member function address pointer
+	 * @param	InMacroFunctionName		Name of member function, including class name (generated by a macro)
 	 *
 	 * NOTE:  Do not call this function directly.  Instead, call RemoveDynamic() which is a macro proxy function that
 	 *        automatically sets the function name string for the caller.
 	 */
 	template< class UserClass >
-	void __Internal_RemoveDynamic( UserClass* InUserObject, typename FDelegate::template TMethodPtrResolver< UserClass >::FMethodPtr InMethodPtr, FName InFunctionName )
+	void __Internal_RemoveDynamic( UserClass* InUserObject, typename FDelegate::template TMethodPtrResolver< UserClass >::FMethodPtr InMethodPtr, const TCHAR* InMacroFunctionName )
 	{
-		check( InUserObject != nullptr && InMethodPtr != nullptr );
+		check( InUserObject != nullptr && InMethodPtr != nullptr && InMacroFunctionName[0] );
 
 		// NOTE: We're not actually storing the incoming method pointer or calling it.  We simply require it for type-safety reasons.
 
-		this->Remove( InUserObject, InFunctionName );
+		FName TrimmedName = UE4Delegates_Private::GetTrimmedMemberFunctionName( InMacroFunctionName );
+		this->Remove( InUserObject, TrimmedName );
 	}
 
 	// NOTE:  Broadcast() method must be defined in derived classes

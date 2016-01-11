@@ -1,8 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 #include "UMGSequencePlayer.h"
 #include "MovieScene.h"
+#include "MovieSceneBinding.h"
+#include "MovieSceneTrack.h"
 #include "MovieSceneSequenceInstance.h"
 #include "MovieScene.h"
 #include "WidgetAnimation.h"
@@ -13,7 +15,6 @@ UUMGSequencePlayer::UUMGSequencePlayer(const FObjectInitializer& ObjectInitializ
 {
 	PlayerStatus = EMovieScenePlayerStatus::Stopped;
 	TimeCursorPosition = 0.0f;
-	AnimationStartOffset = 0;
 	Animation = nullptr;
 }
 
@@ -24,8 +25,20 @@ void UUMGSequencePlayer::InitSequencePlayer( const UWidgetAnimation& InAnimation
 	UMovieScene* MovieScene = Animation->GetMovieScene();
 
 	// Cache the time range of the sequence to determine when we stop
-	TimeRange = MovieScene->GetPlaybackRange();
-	AnimationStartOffset = TimeRange.GetLowerBoundValue();
+	// Get the range of all sections combined
+	TArray< TRange<float> > Bounds;
+
+	for (int32 TypeIndex = 0; TypeIndex < MovieScene->GetMasterTracks().Num(); ++TypeIndex)
+	{
+		Bounds.Add(MovieScene->GetMasterTracks()[TypeIndex]->GetSectionBoundaries());
+	}
+
+	for (int32 BindingIndex = 0; BindingIndex < MovieScene->GetBindings().Num(); ++BindingIndex)
+	{
+		Bounds.Add(MovieScene->GetBindings()[BindingIndex].GetTimeRange());
+	}
+
+	TimeRange = TRange<float>::Hull(Bounds);
 
 	UWidgetTree* WidgetTree = UserWidget.WidgetTree;
 
@@ -50,7 +63,7 @@ void UUMGSequencePlayer::Tick(float DeltaTime)
 
 		TimeCursorPosition += bIsPlayingForward ? DeltaTime : -DeltaTime;
 
-		float AnimationLength = TimeRange.Size<float>();
+		float AnimationLength = TimeRange.GetUpperBoundValue();
 		if ( TimeCursorPosition < 0 )
 		{
 			NumLoopsCompleted++;
@@ -59,7 +72,6 @@ void UUMGSequencePlayer::Tick(float DeltaTime)
 				TimeCursorPosition = 0;
 				PlayerStatus = EMovieScenePlayerStatus::Stopped;
 				OnSequenceFinishedPlayingEvent.Broadcast(*this);
-				Animation->OnAnimationFinished.Broadcast();
 			}
 			else
 			{
@@ -82,7 +94,6 @@ void UUMGSequencePlayer::Tick(float DeltaTime)
 				TimeCursorPosition = AnimationLength;
 				PlayerStatus = EMovieScenePlayerStatus::Stopped;
 				OnSequenceFinishedPlayingEvent.Broadcast(*this);
-				Animation->OnAnimationFinished.Broadcast();
 			}
 			else
 			{
@@ -100,7 +111,7 @@ void UUMGSequencePlayer::Tick(float DeltaTime)
 
 		if (RootMovieSceneInstance.IsValid())
 		{
-			RootMovieSceneInstance->Update(TimeCursorPosition + AnimationStartOffset, LastTimePosition + AnimationStartOffset, *this);
+			RootMovieSceneInstance->Update(TimeCursorPosition, LastTimePosition, *this);
 		}
 	}
 }
@@ -112,15 +123,13 @@ void UUMGSequencePlayer::Play(float StartAtTime, int32 InNumLoopsToPlay, EUMGSeq
 
 	PlayMode = InPlayMode;
 
-	float AnimationLength = TimeRange.Size<float>();
-
-	// Clamp the start time to be between 0 and the animation length
-	TimeCursorPosition = StaticCast<double>(FMath::Clamp(StartAtTime, 0.0f, AnimationLength));
+	// Clamp the start time to be between 0 and the upper time bound
+	TimeCursorPosition = StaticCast<double>(FMath::Clamp(StartAtTime, 0.0f, TimeRange.GetUpperBoundValue()));
 
 	if (PlayMode == EUMGSequencePlayMode::Reverse)
 	{
 		// When playing in reverse count substract the start time from the end.
-		TimeCursorPosition = AnimationLength - TimeCursorPosition;
+		TimeCursorPosition = TimeRange.GetUpperBoundValue() - TimeCursorPosition;
 	}
 
 	if ( PlayMode == EUMGSequencePlayMode::PingPong )
@@ -137,12 +146,10 @@ void UUMGSequencePlayer::Play(float StartAtTime, int32 InNumLoopsToPlay, EUMGSeq
 	bIsPlayingForward = InPlayMode != EUMGSequencePlayMode::Reverse;
 
 	PlayerStatus = EMovieScenePlayerStatus::Playing;
-	Animation->OnAnimationStarted.Broadcast();
 }
 
 void UUMGSequencePlayer::Pause()
 {
-	// Purposely don't trigger any OnFinished events
 	PlayerStatus = EMovieScenePlayerStatus::Stopped;
 }
 
@@ -151,24 +158,11 @@ void UUMGSequencePlayer::Stop()
 	PlayerStatus = EMovieScenePlayerStatus::Stopped;
 
 	OnSequenceFinishedPlayingEvent.Broadcast(*this);
-	Animation->OnAnimationFinished.Broadcast();
 
 	TimeCursorPosition = 0;
 }
 
-void UUMGSequencePlayer::SetNumLoopsToPlay(int32 InNumLoopsToPlay)
-{
-	if (PlayMode == EUMGSequencePlayMode::PingPong)
-	{
-		NumLoopsToPlay = (2 * InNumLoopsToPlay);
-	}
-	else
-	{
-		NumLoopsToPlay = InNumLoopsToPlay;
-	}
-}
-
-void UUMGSequencePlayer::GetRuntimeObjects(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray< UObject* >& OutObjects) const
+void UUMGSequencePlayer::GetRuntimeObjects( TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray< UObject* >& OutObjects ) const
 {
 	const TArray<UObject*>* FoundObjects = GuidToRuntimeObjectMap.Find( ObjectHandle );
 

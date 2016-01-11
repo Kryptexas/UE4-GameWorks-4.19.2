@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AndroidOpenGL.h: Public OpenGL ES definitions for Android-specific functionality
@@ -112,9 +112,6 @@ extern PFNGLOBJECTLABELKHRPROC			glObjectLabelKHR;
 extern PFNGLGETOBJECTLABELKHRPROC		glGetObjectLabelKHR;
 extern PFNGLOBJECTPTRLABELKHRPROC		glObjectPtrLabelKHR;
 extern PFNGLGETOBJECTPTRLABELKHRPROC	glGetObjectPtrLabelKHR;
-extern PFNGLDRAWELEMENTSINSTANCEDPROC	glDrawElementsInstanced;
-extern PFNGLDRAWARRAYSINSTANCEDPROC		glDrawArraysInstanced;
-extern PFNGLVERTEXATTRIBDIVISORPROC		glVertexAttribDivisor;
 
 #include "OpenGLES2.h"
 
@@ -229,34 +226,12 @@ struct FAndroidOpenGL : public FOpenGLES2
 		}
 	}
 
-	static FORCEINLINE void DrawArraysInstanced(GLenum Mode, GLint First, GLsizei Count, GLsizei InstanceCount)
-	{
-		check(SupportsInstancing());
-		glDrawArraysInstanced(Mode, First, Count, InstanceCount);
-	}
-
-	static FORCEINLINE void DrawElementsInstanced(GLenum Mode, GLsizei Count, GLenum Type, const GLvoid* Indices, GLsizei InstanceCount)
-	{
-		check(SupportsInstancing());
-		glDrawElementsInstanced(Mode, Count, Type, Indices, InstanceCount);
-	}
-
-	static FORCEINLINE void VertexAttribDivisor(GLuint Index, GLuint Divisor)
-	{
-		if (bES30Support)
-		{
-			glVertexAttribDivisor(Index, Divisor);
-		}
-	}
-	
 	// Adreno doesn't support HALF_FLOAT
 	static FORCEINLINE int32 GetReadHalfFloatPixelsEnum()				{ return GL_FLOAT; }
 
 	// Android ES2 shaders have code that allows compile selection of
 	// 32 bpp HDR encoding mode via 'intrinsic_GetHDR32bppEncodeModeES2()'.
 	static FORCEINLINE bool SupportsHDR32bppEncodeModeIntrinsic()		{ return true; }
-
-	static FORCEINLINE bool SupportsInstancing()						{ return bES30Support; }
 
 	static FORCEINLINE bool UseES30ShadingLanguage()
 	{
@@ -270,9 +245,6 @@ struct FAndroidOpenGL : public FOpenGLES2
 
 	// whether to use ES 3.0 shading language
 	static bool bUseES30ShadingLanguage;
-	
-	// whether device supports ES 3.0
-	static bool bES30Support;
 };
 
 typedef FAndroidOpenGL FOpenGL;

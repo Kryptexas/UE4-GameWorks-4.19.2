@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "EngineVersion.h"
@@ -27,48 +27,53 @@
 
 // static variables
 TArray<FString> FWindowsPlatformProcess::DllDirectoryStack;
-TArray<FString> FWindowsPlatformProcess::DllDirectories;
 
 
 void FWindowsPlatformProcess::AddDllDirectory(const TCHAR* Directory)
 {
+	// Normalize the input directory
 	FString NormalizedDirectory = Directory;
 	FPaths::NormalizeDirectoryName(NormalizedDirectory);
 	FPaths::MakePlatformFilename(NormalizedDirectory);
-	DllDirectories.AddUnique(NormalizedDirectory);
+
+	// Get the size of the PATH variable
+	TArray<TCHAR> PathVariable;
+	PathVariable.AddUninitialized(::GetEnvironmentVariable(TEXT("PATH"), NULL, 0));
+
+	// Get the actual value of variable.
+	if (::GetEnvironmentVariable(TEXT("PATH"), PathVariable.GetData(), PathVariable.Num()) == 0)
+	{
+		// Log a warning if reading value fails, but continue anyway.
+		UE_LOG(LogWindows, Warning, TEXT("Failed to load PATH environment variable. It either doesn't exist, or is too long."));
+		PathVariable.Add(TEXT(';'));
+	}
+
+	// Set the new path variable with the input directory at the start. Skip over any existing instances of the input directory.
+	FString NewPathVariable = NormalizedDirectory;
+	for(const TCHAR* PathPos = PathVariable.GetData(); PathPos < PathVariable.GetData() + PathVariable.Num(); )
+	{
+		// Scan to the end of this directory
+		const TCHAR* PathEnd = PathPos;
+		while(*PathEnd != ';' && *PathEnd != 0) PathEnd++;
+
+		// Add it to the new path variable if it doesn't match the input directory
+		if(PathEnd - PathPos != NormalizedDirectory.Len() || FCString::Strnicmp(*NormalizedDirectory, PathPos, PathEnd - PathPos) != 0)
+		{
+			NewPathVariable.AppendChar(TEXT(';'));
+			NewPathVariable.AppendChars(PathPos, PathEnd - PathPos);
+		}
+
+		// Move to the next string
+		PathPos = PathEnd + 1;
+	}
+	SetEnvironmentVariable(TEXT("PATH"), *NewPathVariable);
 }
 
 void* FWindowsPlatformProcess::GetDllHandle( const TCHAR* Filename )
 {
 	check(Filename);
-
-	// In order to load the DLL and resolve its imports correctly, we update the PATH environment variable before the load, and restore it when we're done.
-	TArray<TCHAR> InitialPathVariable;
-	InitialPathVariable.AddUninitialized(::GetEnvironmentVariable(TEXT("PATH"), NULL, 0));
-	if (::GetEnvironmentVariable(TEXT("PATH"), InitialPathVariable.GetData(), InitialPathVariable.Num()) == 0)
-	{
-		UE_LOG(LogWindows, Warning, TEXT("Failed to load PATH environment variable. It either doesn't exist, or is too long."));
-	}
-
-	// Set the new path variable with the input directory at the start. Skip over any existing instances of the input directory.
-	FString NewPathVariable;
-	for(const FString& DllDirectory: DllDirectories)
-	{
-		if(NewPathVariable.Len() > 0)
-		{
-			NewPathVariable.AppendChar(TEXT(';'));
-		}
-		NewPathVariable.Append(DllDirectory);
-	}
-	SetEnvironmentVariable(TEXT("PATH"), *NewPathVariable);
-
-	// Load the DLL
 	::SetErrorMode(SEM_NOOPENFILEERRORBOX);
-	void* Handle = ::LoadLibraryW(Filename);
-
-	// Restore the PATH variable back to normal
-	::SetEnvironmentVariable(TEXT("PATH"), InitialPathVariable.GetData());
-	return Handle;
+	return ::LoadLibraryW(Filename);
 }
 
 void FWindowsPlatformProcess::FreeDllHandle( void* DllHandle )
@@ -216,12 +221,7 @@ static void LaunchWebURL( const FString& URLParams, FString* Error )
 		// If anything failed to parse right, don't continue down this path, just use shell execute.
 		if (!ExePath.IsEmpty())
 		{
-			if (ExeArgs.ReplaceInline(TEXT("%1"), *URLParams) == 0)
-			{
-				// If we fail to detect the placement token we append the URL to the arguments.
-				// This is for robustness, and to fix a known error case when using Internet Explorer 8. 
-				ExeArgs.Append(TEXT(" \"") + URLParams + TEXT("\""));
-			}
+			ExeArgs = ExeArgs.Replace(TEXT("%1"), *URLParams);
 
 			// Now that we have the shell open command to use, run the shell command in the open process with any and all parameters.
 			if (FPlatformProcess::CreateProc(*ExePath, *ExeArgs, true, false, false, NULL, 0, NULL, NULL).IsValid())
@@ -285,7 +285,7 @@ void FWindowsPlatformProcess::LaunchURL( const TCHAR* URL, const TCHAR* Parms, F
 
 }
 
-FProcHandle FWindowsPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWriteChild, void * PipeReadChild)
+FProcHandle FWindowsPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWrite )
 {
 	//UE_LOG(LogWindows, Log,  TEXT("CreateProc %s %s"), URL, Parms );
 
@@ -324,7 +324,7 @@ FProcHandle FWindowsPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* 
 		ShowWindowFlags = SW_SHOWMINNOACTIVE;
 	}
 
-	if (PipeWriteChild != nullptr || PipeReadChild != nullptr)
+	if (PipeWrite != nullptr)
 	{
 		dwFlags |= STARTF_USESTDHANDLES;
 	}
@@ -341,9 +341,9 @@ FProcHandle FWindowsPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* 
 		(::DWORD)dwFlags,
 		ShowWindowFlags,
 		0, NULL,
-		HANDLE(PipeReadChild),
-		HANDLE(PipeWriteChild),
-		HANDLE(PipeWriteChild)
+		::GetStdHandle(ProcessConstants::WIN_STD_INPUT_HANDLE),
+		HANDLE(PipeWrite),
+		HANDLE(PipeWrite)
 	};
 
 	// create the child process
@@ -1156,22 +1156,20 @@ bool FWindowsPlatformProcess::WritePipe(void* WritePipe, const FString& Message,
 
 	// Convert input to UTF8CHAR
 	uint32 BytesAvailable = Message.Len();
-	UTF8CHAR * Buffer = new UTF8CHAR[BytesAvailable + 1];
-	for (uint32 i = 0; i < BytesAvailable; i++)
+	UTF8CHAR* Buffer = new UTF8CHAR[BytesAvailable + 1];
+
+	if (!FString::ToBlob(Message, Buffer, BytesAvailable))
 	{
-		Buffer[i] = Message[i];
+		return false;
 	}
-	Buffer[BytesAvailable] = '\n';
 
 	// Write to pipe
 	uint32 BytesWritten = 0;
 	bool bIsWritten = !!WriteFile(WritePipe, Buffer, BytesAvailable, (::DWORD*)&BytesWritten, nullptr);
 
-	// Get written message
 	if (OutWritten)
 	{
-		Buffer[BytesWritten] = '\0';
-		*OutWritten = FUTF8ToTCHAR((const ANSICHAR*)Buffer).Get();
+		OutWritten->FromBlob(Buffer, BytesWritten);
 	}
 
 	return bIsWritten;

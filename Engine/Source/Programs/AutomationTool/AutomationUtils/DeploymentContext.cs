@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -14,18 +14,12 @@ public enum StagedFileType
 	DebugNonUFS
 }
 
-public struct StageTarget
-{
-	public TargetReceipt Receipt;
-	public bool RequireFilesExist;
-}
-
 public class DeploymentContext //: ProjectParams
 {
 	/// <summary>
-	/// Full path to the .uproject file
+	/// Full path where the project exists (For uprojects this should include the uproj filename, otherwise just project folder)
 	/// </summary>
-	public FileReference RawProjectPath;
+	public string RawProjectPath;
 
 	/// <summary>
 	///  true if we should stage crash reporter
@@ -58,9 +52,9 @@ public class DeploymentContext //: ProjectParams
 	public List<UnrealTargetConfiguration> StageTargetConfigurations;
 
 	/// <summary>
-	/// Receipts for the build targets that should be staged.
+	/// Receipts for the build targets that should be staged
 	/// </summary>
-	public List<StageTarget> StageTargets;
+	public List<BuildReceipt> StageTargetReceipts;
 
 	/// <summary>
 	///  this is the root directory that contains the engine: d:\a\UE4\
@@ -151,12 +145,12 @@ public class DeploymentContext //: ProjectParams
 	///  After staging, this is a map from source file to relative file in the stage
 	/// These file are binaries, etc and can't go into a pak file
 	/// </summary>
-	public Dictionary<string, List<string>> NonUFSStagingFiles = new Dictionary<string, List<string>>();
+	public Dictionary<string, string> NonUFSStagingFiles = new Dictionary<string, string>();
 	/// <summary>
 	///  After staging, this is a map from source file to relative file in the stage
 	/// These file are debug, and can't go into a pak file
 	/// </summary>
-	public Dictionary<string, List<string>> NonUFSStagingFilesDebug = new Dictionary<string, List<string>>();
+	public Dictionary<string, string> NonUFSStagingFilesDebug = new Dictionary<string, string>();
 	/// <summary>
 	///  After staging, this is a map from source file to relative file in the stage
 	/// These file are content, and can go into a pak file
@@ -232,7 +226,7 @@ public class DeploymentContext //: ProjectParams
 	public bool bIsCombiningMultiplePlatforms = false;
 
 	public DeploymentContext(
-		FileReference RawProjectPathOrName,
+		string RawProjectPathOrName,
 		string InLocalRoot,
 		string BaseStageDirectory,
 		string BaseArchiveDirectory,
@@ -240,7 +234,7 @@ public class DeploymentContext //: ProjectParams
 		Platform InSourcePlatform,
         Platform InTargetPlatform,
 		List<UnrealTargetConfiguration> InTargetConfigurations,
-		IEnumerable<StageTarget> InStageTargets,
+		IEnumerable<BuildReceipt> InStageTargetReceipts,
 		List<String> InStageExecutables,
 		bool InServer,
 		bool InCooked,
@@ -260,7 +254,7 @@ public class DeploymentContext //: ProjectParams
         CookSourcePlatform = InSourcePlatform;
 		StageTargetPlatform = InTargetPlatform;
 		StageTargetConfigurations = new List<UnrealTargetConfiguration>(InTargetConfigurations);
-		StageTargets = new List<StageTarget>(InStageTargets);
+		StageTargetReceipts = new List<BuildReceipt>(InStageTargetReceipts);
 		StageExecutables = InStageExecutables;
         IsCodeBasedProject = ProjectUtils.IsCodeBasedUProjectFile(RawProjectPath);
 		ShortProjectName = ProjectUtils.GetShortProjectName(RawProjectPath);
@@ -299,12 +293,12 @@ public class DeploymentContext //: ProjectParams
         StageDirectory = CommandUtils.CombinePaths(BaseStageDirectory, FinalCookPlatform);
         ArchiveDirectory = CommandUtils.CombinePaths(BaseArchiveDirectory, FinalCookPlatform);
 
-		if (!CommandUtils.FileExists(RawProjectPath.FullName))
+		if (!CommandUtils.FileExists(RawProjectPath))
 		{
 			throw new AutomationException("Can't find uproject file {0}.", RawProjectPathOrName);
 		}
 
-		ProjectRoot = CommandUtils.CombinePaths(CommandUtils.GetDirectoryName(RawProjectPath.FullName));
+		ProjectRoot = CommandUtils.CombinePaths(CommandUtils.GetDirectoryName(Path.GetFullPath(RawProjectPath)));
 
 		if (!CommandUtils.DirectoryExists(ProjectRoot))
 		{
@@ -313,7 +307,7 @@ public class DeploymentContext //: ProjectParams
 
         RelativeProjectRootForStage = ShortProjectName;
 
-		ProjectArgForCommandLines = CommandUtils.MakePathSafeToUseWithCommandLine(RawProjectPath.FullName);
+		ProjectArgForCommandLines = CommandUtils.MakePathSafeToUseWithCommandLine(RawProjectPath);
 		CookSourceRuntimeRootDir = RuntimeRootDir = LocalRoot;
 		RuntimeProjectRootDir = ProjectRoot;
 
@@ -383,21 +377,21 @@ public class DeploymentContext //: ProjectParams
 		}
 		else if (FileType == StagedFileType.NonUFS)
 		{
-			AddStagingFile(NonUFSStagingFiles, InputPath, OutputPath);
+			AddUniqueStagingFile(NonUFSStagingFiles, InputPath, OutputPath);
 		}
 		else if (FileType == StagedFileType.DebugNonUFS)
 		{
-			AddStagingFile(NonUFSStagingFilesDebug, InputPath, OutputPath);
+			AddUniqueStagingFile(NonUFSStagingFilesDebug, InputPath, OutputPath);
 		}
 	}
 
-	public void StageBuildProductsFromReceipt(TargetReceipt Receipt, bool RequireDependenciesToExist)
+	public void StageBuildProductsFromReceipt(BuildReceipt Receipt)
 	{
 		// Stage all the build products needed at runtime
 		foreach(BuildProduct BuildProduct in Receipt.BuildProducts)
 		{
 			// allow missing files if needed
-			if (RequireDependenciesToExist == false && File.Exists(BuildProduct.Path) == false)
+			if (Receipt.bRequireDependenciesToExist == false && File.Exists(BuildProduct.Path) == false)
 			{
 				continue;
 			}
@@ -413,13 +407,13 @@ public class DeploymentContext //: ProjectParams
 		}
 	}
 
-	public void StageRuntimeDependenciesFromReceipt(TargetReceipt Receipt, bool RequireDependenciesToExist)
+	public void StageRuntimeDependenciesFromReceipt(BuildReceipt Receipt)
 	{
 		// Also stage any additional runtime dependencies, like ThirdParty DLLs
 		foreach(RuntimeDependency RuntimeDependency in Receipt.RuntimeDependencies)
 		{
 			// allow missing files if needed
-			if (RequireDependenciesToExist == false && File.Exists(RuntimeDependency.Path) == false)
+			if (Receipt.bRequireDependenciesToExist == false && File.Exists(RuntimeDependency.Path) == false)
 			{
 				continue;
 			}
@@ -582,11 +576,11 @@ public class DeploymentContext //: ProjectParams
 				}
 				else if (FileType == StagedFileType.NonUFS)
 				{
-					AddStagingFile(NonUFSStagingFiles, FileToCopy, Dest);
+					AddUniqueStagingFile(NonUFSStagingFiles, FileToCopy, Dest);
 				}
 				else if (FileType == StagedFileType.DebugNonUFS)
 				{
-					AddStagingFile(NonUFSStagingFilesDebug, FileToCopy, Dest);
+					AddUniqueStagingFile(NonUFSStagingFilesDebug, FileToCopy, Dest);
 				}
 				FilesAdded++;
 			}
@@ -594,7 +588,7 @@ public class DeploymentContext //: ProjectParams
 
 		if (FilesAdded == 0 && !bAllowNone && !bIsCombiningMultiplePlatforms)
 		{
-			throw new AutomationException(ExitCode.Error_StageMissingFile, "No files found to deploy for {0} with wildcard {1} and exclusions {2}", InPath, Wildcard, ExcludeWildcard);
+			throw new AutomationException(ErrorCodes.Error_StageMissingFile, "No files found to deploy for {0} with wildcard {1} and exclusions {2}", InPath, Wildcard, ExcludeWildcard);
 		}
 
 		return FilesAdded;
@@ -615,22 +609,6 @@ public class DeploymentContext //: ProjectParams
 		else
 		{
 			FilesToStage.Add(FileToCopy, Dest);
-		}
-	}
-
-	private void AddStagingFile(Dictionary<string, List<string>> FilesToStage, string FileToCopy, string Dest)
-	{
-		List<string> ExistingDest;
-		if (FilesToStage.TryGetValue(FileToCopy, out ExistingDest))
-		{
-			if (!FilesToStage[FileToCopy].Contains(Dest))
-			{
-				FilesToStage[FileToCopy].Add(Dest);
-			}
-		}
-		else
-		{
-			FilesToStage.Add(FileToCopy, new List<string>(){Dest});
 		}
 	}
 

@@ -1,0 +1,16 @@
+Availability:Public
+Title: Animation Programming
+Crumbs: %ROOT%, Engine, Engine/Animation
+Description:Information for programmers working with the Animation system.
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Essentials
+	[/PARAM]
+	[PARAM:links]
+		* [](Programming/Animation/AnimNodes "%Programming/Animation/AnimNodes:description%")
+	[/PARAM]
+[/OBJECT]

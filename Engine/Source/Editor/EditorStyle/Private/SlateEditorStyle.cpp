@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EditorStylePrivatePCH.h"
 
@@ -433,8 +433,6 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set("FontAwesome.11", TTF_FONT("Fonts/FontAwesome", 11));
 		Set("FontAwesome.12", TTF_FONT("Fonts/FontAwesome", 12));
 		Set("FontAwesome.14", TTF_FONT("Fonts/FontAwesome", 14));
-		Set("FontAwesome.16", TTF_FONT("Fonts/FontAwesome", 16));
-		Set("FontAwesome.18", TTF_FONT("Fonts/FontAwesome", 18));
 
 		/* Create a checkbox style for "ToggleButton" ... */
 		const FCheckBoxStyle ToggleButtonStyle = FCheckBoxStyle()
@@ -1054,11 +1052,6 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set("DebugTools.TabIcon", new IMAGE_BRUSH( "Icons/icon_tab_DebugTools_16x", Icon16x16 ) );
 	}
 
-	// Performance Analysis Tools Window
-	{
-		Set("PerfTools.TabIcon", new IMAGE_BRUSH( "Icons/icon_tab_PerfTools_16x", Icon16x16 ) );
-	}
-
 	// Modules Window
 	{
 		Set("Modules.TabIcon", new IMAGE_BRUSH( "Icons/icon_tab_Modules_16px", Icon16x16 ) );
@@ -1086,9 +1079,6 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 
 	// Session Browser tab
 	{
-		Set("SessionBrowser.SessionLocked", new IMAGE_BRUSH( "Icons/icon_levels_Locked_hi_16px", Icon16x16 ) );
-		Set("SessionBrowser.StatusRunning", new IMAGE_BRUSH( "Icons/icon_status_green_16x", Icon16x16 ) );
-		Set("SessionBrowser.StatusTimedOut", new IMAGE_BRUSH( "Icons/icon_status_grey_16x", Icon16x16 ) );
 		Set("SessionBrowser.Terminate", new IMAGE_BRUSH( "Icons/icon_DevicePowerOff_40x", Icon20x20 ) );
 
 		Set("SessionBrowser.Terminate.Font", FTextBlockStyle(NormalText)
@@ -1586,20 +1576,6 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 
 	// Sequencer
 	{
-		Set( "Sequencer.IconKeyAuto", new IMAGE_BRUSH( "Sequencer/IconKeyAuto", Icon12x12 ) );
-		Set( "Sequencer.IconKeyBreak", new IMAGE_BRUSH( "Sequencer/IconKeyBreak", Icon12x12 ) );
-		Set( "Sequencer.IconKeyConstant", new IMAGE_BRUSH( "Sequencer/IconKeyConstant", Icon12x12 ) );
-		Set( "Sequencer.IconKeyLinear", new IMAGE_BRUSH( "Sequencer/IconKeyLinear", Icon12x12 ) );
-		Set( "Sequencer.IconKeyUser", new IMAGE_BRUSH( "Sequencer/IconKeyUser", Icon12x12 ) );
-
-		Set( "Sequencer.KeyCircle", new IMAGE_BRUSH( "Sequencer/KeyCircle", Icon12x12 ) );
-		Set( "Sequencer.KeyDiamond", new IMAGE_BRUSH( "Sequencer/KeyDiamond", Icon12x12 ) );
-		Set( "Sequencer.KeySquare", new IMAGE_BRUSH( "Sequencer/KeySquare", Icon12x12 ) );
-		Set( "Sequencer.KeyTriangle", new IMAGE_BRUSH( "Sequencer/KeyTriangle", Icon12x12 ) );
-		Set( "Sequencer.KeyLeft", new IMAGE_BRUSH( "Common/KeyLeft", FVector2D( 7.0f, 12.0f ) ) );
-		Set( "Sequencer.KeyRight", new IMAGE_BRUSH( "Common/KeyRight", FVector2D( 7.0f, 12.0f ) ) );
-		Set( "Sequencer.PartialKey", new IMAGE_BRUSH( "Sequencer/PartialKey", FVector2D(11.f, 11.f) ) );
-
 		Set( "Sequencer.Timeline.ScrubHandleDown", new BOX_BRUSH( "Sequencer/ScrubHandleDown", FMargin( 6.f/13.f, 5/12.f, 6/13.f, 8/12.f ) ) );
 		Set( "Sequencer.Timeline.ScrubHandleUp", new BOX_BRUSH( "Sequencer/ScrubHandleUp", FMargin( 6.f/13.f, 8/12.f, 6/13.f, 5/12.f ) ) );
 		Set( "Sequencer.Timeline.ScrubHandleWhole", new BOX_BRUSH( "Sequencer/ScrubHandleWhole", FMargin( 6.f/13.f, 10/24.f, 6/13.f, 10/24.f  ) ) );
@@ -1607,34 +1583,25 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "Sequencer.Timeline.RangeHandleRight", new BOX_BRUSH( "Sequencer/SectionGripRight", FMargin(5.f/16.f) ) );
 		Set( "Sequencer.Timeline.RangeHandle", new BOX_BRUSH( "Sequencer/GenericSectionBackground", FMargin(5.f/16.f) ) );
 		Set( "Sequencer.Timeline.NotifyAlignmentMarker", new IMAGE_BRUSH( "Sequencer/NotifyAlignmentMarker", FVector2D(10,19) ) );
-		Set( "Sequencer.Timeline.PlayRange_Top_L", new BOX_BRUSH( "Sequencer/PlayRange_Top_L", FMargin(1.f, 0.5f, 0.f, 0.5f) ) );
-		Set( "Sequencer.Timeline.PlayRange_Top_R", new BOX_BRUSH( "Sequencer/PlayRange_Top_R", FMargin(0.f, 0.5f, 1.f, 0.5f) ) );
-		Set( "Sequencer.Timeline.PlayRange_L", new BOX_BRUSH( "Sequencer/PlayRange_L", FMargin(1.f, 0.5f, 0.f, 0.5f) ) );
-		Set( "Sequencer.Timeline.PlayRange_R", new BOX_BRUSH( "Sequencer/PlayRange_R", FMargin(0.f, 0.5f, 1.f, 0.5f) ) );
-		Set( "Sequencer.Timeline.PlayRange_Bottom_L", new BOX_BRUSH( "Sequencer/PlayRange_Bottom_L", FMargin(1.f, 0.5f, 0.f, 0.5f) ) );
-		Set( "Sequencer.Timeline.PlayRange_Bottom_R", new BOX_BRUSH( "Sequencer/PlayRange_Bottom_R", FMargin(0.f, 0.5f, 1.f, 0.5f) ) );
-
 		Set( "Sequencer.NotificationImage_AddedPlayMovieSceneEvent", new IMAGE_BRUSH( "Old/Checkbox_checked", Icon16x16 ) );
-
 		Set( "Sequencer.Save", new IMAGE_BRUSH( "Icons/SequencerIcons/icon_Sequencer_Save_24x", Icon40x40 ) );
 		Set( "Sequencer.Save.Small", new IMAGE_BRUSH( "Icons/SequencerIcons/icon_Sequencer_Save_24x", Icon20x20 ) );
+		Set( "Sequencer.Key", new IMAGE_BRUSH( "Common/Key", FVector2D(7.0f,12.0f) ) );
+		Set( "Sequencer.KeyLeft", new IMAGE_BRUSH( "Common/KeyLeft", FVector2D( 7.0f, 12.0f ) ) );
+		Set( "Sequencer.KeyRight", new IMAGE_BRUSH( "Common/KeyRight", FVector2D( 7.0f, 12.0f ) ) );
+		Set( "Sequencer.PartialKey", new IMAGE_BRUSH( "Sequencer/PartialKey", FVector2D(11.f, 11.f) ) );
 		Set( "Sequencer.GenericSection.Background", new BOX_BRUSH( "Sequencer/GenericSectionBackground", FMargin(5.f/16.f) ) );
 		Set( "Sequencer.DefaultSectionGripLeft", new BOX_BRUSH( "Sequencer/SectionGripLeft", FMargin(5.f/16.f) ) );
 		Set( "Sequencer.DefaultSectionGripRight", new BOX_BRUSH( "Sequencer/SectionGripRight", FMargin(5.f/16.f) ) );
 		Set( "Sequencer.SectionArea.Background", new FSlateColorBrush( FColor::White ) );
-		Set( "Sequencer.AnimationOutliner.SelectionBorder", new BOX_BRUSH( "Common/Selection_16x", 4.0f/16.0f, SelectionColor_Pressed ) );
-		Set( "Sequencer.AnimationOutliner.SelectionBorderHover", new BOX_BRUSH("Common/Selection_16x", 4.0f / 16.0f, FLinearColor(1.0f, 1.0f, 1.0f, 0.1f) ) );
-		Set( "Sequencer.AnimationOutliner.SelectionBorderInactive", new BOX_BRUSH("Common/Selection_16x", 4.0f / 16.0f, SelectionColor_Inactive));
+		Set( "Sequencer.AnimationOutliner.SelectionBorder", new BOX_BRUSH( "Common/RoundedSelection_16x", 4.0f/16.0f, SelectionColor_Pressed ) );
+		Set( "Sequencer.AnimationOutliner.SelectionBorderInactive", new BOX_BRUSH("Common/RoundedSelection_16x", 4.0f / 16.0f, SelectionColor_Inactive));
 		Set( "Sequencer.AnimationOutliner.BoldFont", TTF_CORE_FONT( "Fonts/Roboto-Bold", 11 ) );
 		Set( "Sequencer.AnimationOutliner.RegularFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 9 ) );
 		Set( "Sequencer.ShotFilter", new IMAGE_BRUSH( "Sequencer/FilteredArea", FVector2D(74,74), FLinearColor::White, ESlateBrushTileType::Both ) );
 		Set( "Sequencer.KeyMark", new IMAGE_BRUSH("Sequencer/KeyMark", FVector2D(3,21), FLinearColor::White, ESlateBrushTileType::NoTile ) );
-		Set( "Sequencer.SetAutoKeyModeAll", new IMAGE_BRUSH( "Icons/SequencerIcons/icon_Sequencer_AutoKeyAll_24x", Icon40x40 ) );
-		Set( "Sequencer.SetAutoKeyModeAll.Small", new IMAGE_BRUSH( "Icons/SequencerIcons/icon_Sequencer_AutoKeyAll_24x", Icon20x20 ) );
-		Set( "Sequencer.SetAutoKeyModeAnimated", new IMAGE_BRUSH("Icons/SequencerIcons/icon_Sequencer_AutoKey_24x", Icon40x40 ) );
-		Set( "Sequencer.SetAutoKeyModeAnimated.Small", new IMAGE_BRUSH("Icons/SequencerIcons/icon_Sequencer_AutoKey_24x", Icon20x20 ) );
-		Set( "Sequencer.SetAutoKeyModeNone", new IMAGE_BRUSH("Icons/SequencerIcons/icon_Sequencer_AutoKeyNone_24x", Icon40x40));
-		Set( "Sequencer.SetAutoKeyModeNone.Small", new IMAGE_BRUSH("Icons/SequencerIcons/icon_Sequencer_AutoKeyNone_24x", Icon20x20 ) );
+		Set( "Sequencer.ToggleAutoKeyEnabled", new IMAGE_BRUSH( "Icons/SequencerIcons/icon_Sequencer_AutoKey_24x", Icon40x40 ) );
+		Set( "Sequencer.ToggleAutoKeyEnabled.Small", new IMAGE_BRUSH( "Icons/SequencerIcons/icon_Sequencer_AutoKey_24x", Icon20x20 ) );
 		Set( "Sequencer.KeyAllEnabled", new IMAGE_BRUSH( "Icons/SequencerIcons/icon_Sequencer_WholeKeyframing_24x", Icon40x40 ) );
 		Set( "Sequencer.KeyAllEnabled.Small", new IMAGE_BRUSH( "Icons/SequencerIcons/icon_Sequencer_WholeKeyframing_24x", Icon20x20 ) );
 		Set( "Sequencer.KeyAllDisabled", new IMAGE_BRUSH( "Icons/SequencerIcons/icon_Sequencer_PartialKeyframing_24x", Icon40x40 ) );
@@ -1651,24 +1618,17 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "Sequencer.LockCamera", new IMAGE_BRUSH( "Icons/icon_ToggleActorPilotCameraView_16x", Icon16x16 ) );
 		Set( "Sequencer.UnlockCamera", new IMAGE_BRUSH( "Icons/icon_ToggleActorPilotCameraView_16x", Icon16x16, FLinearColor(1.f, 1.f, 1.f, 0.5f) ) );
 		Set( "Sequencer.Section.SelectionBorder", new BORDER_BRUSH( TEXT("Sequencer/SectionHighlight"), FMargin(7.f/16.f) ) );
-		Set( "Sequencer.Section.LockedBorder", new BORDER_BRUSH( TEXT("Sequencer/SectionLocked"), FMargin(7.f/16.f) ) );
 		Set( "Sequencer.ShotTrack.SectionHandle", new IMAGE_BRUSH( "Old/White", Icon16x16, FLinearColor::Black ) );
-
 		Set( "Sequencer.General", new IMAGE_BRUSH( "Icons/SequencerIcons/icon_Sequencer_View_24x", Icon24x24 ) );
 		Set( "Sequencer.General.Small", new IMAGE_BRUSH( "Icons/SequencerIcons/icon_Sequencer_View_24x", Icon20x20 ) );
 		Set( "Sequencer.Time", new IMAGE_BRUSH( "Icons/SequencerIcons/icon_Sequencer_Time_24x", Icon24x24 ) );
 		Set( "Sequencer.Time.Small", new IMAGE_BRUSH( "Icons/SequencerIcons/icon_Sequencer_Time_24x", Icon20x20 ) );
 		Set( "Sequencer.Value", new IMAGE_BRUSH( "Icons/SequencerIcons/icon_Sequencer_Value_24x", Icon24x24 ) );
 		Set( "Sequencer.Value.Small", new IMAGE_BRUSH( "Icons/SequencerIcons/icon_Sequencer_Value_24x", Icon20x20 ) );
-
-		Set( "Sequencer.TrackArea.LaneColor", FLinearColor(0.3f, 0.3f, 0.3f, 0.3f) );
-
-		Set( "Sequencer.Tracks.Audio", new IMAGE_BRUSH("Icons/AssetIcons/SoundCue_16x", Icon16x16));
 		Set( "Sequencer.Tracks.Event", new IMAGE_BRUSH("Icons/SequencerIcons/icon_Sequencer_Event_16x", Icon16x16));
-		Set( "Sequencer.Tracks.Fade", new IMAGE_BRUSH("Icons/SequencerIcons/icon_Sequencer_Fade_16x", Icon16x16));
 		Set( "Sequencer.Tracks.Shot", new IMAGE_BRUSH("Icons/SequencerIcons/icon_Sequencer_Shot_16x", Icon16x16));
 		Set( "Sequencer.Tracks.Slomo", new IMAGE_BRUSH("Icons/SequencerIcons/icon_Sequencer_Slomo_16x", Icon16x16));
-		Set( "Sequencer.Tracks.Sub", new IMAGE_BRUSH("Icons/SequencerIcons/icon_Sequencer_Sub_16x", Icon16x16));
+		Set( "Sequencer.Tracks.Fade", new IMAGE_BRUSH("Icons/SequencerIcons/icon_Sequencer_Fade_16x", Icon16x16));
 
 		Set( "Sequencer.CursorDecorator_Marquee", new IMAGE_BRUSH( "Sequencer/CursorDecorator_Marquee", Icon16x16));
 		Set( "Sequencer.CursorDecorator_MarqueeAdd", new IMAGE_BRUSH( "Sequencer/CursorDecorator_MarqueeAdd", Icon16x16));
@@ -3387,28 +3347,28 @@ void FSlateEditorStyle::FStyle::SetupProfilerStyle()
 			.SetFont( TTF_CORE_FONT( "Fonts/Roboto-Bold", 10 ) )
 			.SetColorAndOpacity( FLinearColor::White )
 			.SetShadowOffset( FVector2D(1.0f, 1.0f) )
-			.SetShadowColorAndOpacity( FLinearColor(0.f,0.f,0.f,0.8f) )
+			.SetShadowColorAndOpacity( FLinearColor(0.f,0.f,0.f,0.5f) )
 		);
 
 		Set( "Profiler.Caption", FTextBlockStyle(NormalText)
 			.SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 10 ) )
 			.SetColorAndOpacity( FLinearColor::White )
 			.SetShadowOffset( FVector2D(1.0f, 1.0f) )
-			.SetShadowColorAndOpacity( FLinearColor(0.f,0.f,0.f,0.8f) )
+			.SetShadowColorAndOpacity( FLinearColor(0.f,0.f,0.f,0.5f) )
 		);
 
 		Set( "Profiler.TooltipBold", FTextBlockStyle(NormalText)
 			.SetFont( TTF_CORE_FONT( "Fonts/Roboto-Bold", 8 ) )
 			.SetColorAndOpacity( FLinearColor(0.5f,0.5f,0.5f,1.0f) )
 			.SetShadowOffset( FVector2D(1.0f, 1.0f) )
-			.SetShadowColorAndOpacity( FLinearColor(0.f,0.f,0.f,0.8f) )
+			.SetShadowColorAndOpacity( FLinearColor(0.f,0.f,0.f,0.5f) )
 		);
 
 		Set( "Profiler.Tooltip", FTextBlockStyle(NormalText)
 			.SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 8 ) )
 			.SetColorAndOpacity( FLinearColor::White )
 			.SetShadowOffset( FVector2D(1.0f, 1.0f) )
-			.SetShadowColorAndOpacity( FLinearColor(0.f,0.f,0.f,0.8f) )
+			.SetShadowColorAndOpacity( FLinearColor(0.f,0.f,0.f,0.5f) )
 		);
 
 		// Event graph icons
@@ -3656,10 +3616,8 @@ void FSlateEditorStyle::FStyle::SetupGraphEditorStyles()
 				);
 			}
 
-			Set( "Persona.RetargetManager.BoldFont",							TTF_CORE_FONT( "Fonts/Roboto-Bold", 12 ) );
-			Set( "Persona.RetargetManager.SmallBoldFont",						TTF_CORE_FONT( "Fonts/Roboto-Bold", 10 ) );
+			Set( "Persona.RetargetManager.BoldFont",							TTF_CORE_FONT( "Fonts/Roboto-Bold", 10 ) );
 			Set( "Persona.RetargetManager.FilterFont",							TTF_CORE_FONT( "Fonts/Roboto-Regular", 10 ) );
-			Set( "Persona.RetargetManager.ItalicFont",							TTF_FONT( "Fonts/Roboto-Italic", 9 ) );
 
 			Set("Persona.RetargetManager.ImportantText", FTextBlockStyle(NormalText)
 				.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 11))
@@ -4300,7 +4258,6 @@ void FSlateEditorStyle::FStyle::SetupLevelEditorStyle()
 		Set( "EditorViewport.LightingOnlyMode", new IMAGE_BRUSH( "Icons/icon_ViewMode_LightingOnly_16px", Icon16x16 ) );
 		Set( "EditorViewport.LightComplexityMode", new IMAGE_BRUSH( "Icons/icon_ViewMode_LightComplexity_16px", Icon16x16 ) );
 		Set( "EditorViewport.ShaderComplexityMode", new IMAGE_BRUSH( "Icons/icon_ViewMode_Shadercomplexity_16px", Icon16x16 ) );
-		Set( "EditorViewport.QuadComplexityMode", new IMAGE_BRUSH( "Icons/icon_ViewMode_Quadcomplexity_16px", Icon16x16 ) );
 		Set( "EditorViewport.StationaryLightOverlapMode", new IMAGE_BRUSH( "Icons/icon_ViewMode_StationaryLightOverlap_16px", Icon16x16 ) );
 		Set( "EditorViewport.LightmapDensityMode", new IMAGE_BRUSH( "Icons/icon_ViewMode_LightmapDensity_16px", Icon16x16 ) );
 		Set( "EditorViewport.LODColorationMode", new IMAGE_BRUSH("Icons/icon_ViewMode_LODColoration_16px", Icon16x16) );
@@ -4335,7 +4292,6 @@ void FSlateEditorStyle::FStyle::SetupLevelEditorStyle()
 			Set( "LevelEditor.Tabs.StatsViewer", new IMAGE_BRUSH( "/Icons/icon_tab_Stats_16x", Icon16x16 ) );
 			Set( "LevelEditor.Tabs.Toolbar", new IMAGE_BRUSH( "/Icons/icon_tab_Toolbars_16x", Icon16x16 ) );
 			Set( "LevelEditor.Tabs.Viewports", new IMAGE_BRUSH( "/Icons/icon_tab_Viewports_16x", Icon16x16 ) );
-			Set( "LevelEditor.Tabs.HLOD", new IMAGE_BRUSH("/Icons/icon_tab_layers_16px", Icon16x16));
 		}
 #endif
 
@@ -4648,25 +4604,6 @@ void FSlateEditorStyle::FStyle::SetupLevelEditorStyle()
 	}
 #endif // WITH_EDITOR || IS_PROGRAM
 
-	// Blueprint Profiler
-#if WITH_EDITOR
-	{
-		// Profiler stat window
-		Set( "BlueprintProfiler.BPIcon_Normal", new IMAGE_BRUSH("Icons/AssetIcons/Blueprint_16x", Icon16x16, FLinearColor( 0.46f, 0.54f, 0.81f )));
-		Set( "BlueprintProfiler.BPIcon_Macro", new IMAGE_BRUSH("Icons/AssetIcons/BlueprintMacroLibrary_16x", Icon16x16, FLinearColor( 0.46f, 0.54f, 0.81f )));
-		Set( "BlueprintProfiler.BPIcon_Interface", new IMAGE_BRUSH("Icons/AssetIcons/BlueprintInterface_16x", Icon16x16, FLinearColor( 0.46f, 0.54f, 0.81f )));
-		Set( "BlueprintProfiler.BPIcon_FunctionLibrary", new IMAGE_BRUSH("Icons/AssetIcons/BlueprintFunctionLibrary_16x", Icon16x16, FLinearColor( 0.46f, 0.54f, 0.81f )));
-		Set( "BlueprintProfiler.Actor", new IMAGE_BRUSH("Icons/ActorIcons/Sphere_16px", Icon16x16));
-		Set( "BlueprintProfiler.BPEventNode", new IMAGE_BRUSH("Icons/icon_Blueprint_Event_16x", Icon16x16, FLinearColor( 0.91f, 0.16f, 0.16f )));
-		Set( "BlueprintProfiler.BPFunctionNode", new IMAGE_BRUSH("Icons/icon_Blueprint_NewFunction_16x", Icon16x16, FLinearColor( 0.46f, 0.54f, 0.81f )));
-		Set( "BlueprintProfiler.BPMacroNode", new IMAGE_BRUSH("Icons/icon_Blueprint_Macro_16x", Icon16x16, FLinearColor( 0.46f, 0.54f, 0.81f )));
-		Set( "BlueprintProfiler.BPBranchNode", new IMAGE_BRUSH("Icons/icon_Blueprint_Sequence_16x", Icon16x16, FLinearColor( 0.46f, 0.54f, 0.81f )));
-		Set( "BlueprintProfiler.BPPinConnected", new IMAGE_BRUSH( "Icons/BPProfiler_ExecPin_Connected", Icon12x16 ) );
-		Set( "BlueprintProfiler.BPPinDisconnected", new IMAGE_BRUSH( "Icons/BPProfiler_ExecPin_Disconnected", Icon12x16 ) );
-		Set( "BlueprintProfiler.BPNode", new IMAGE_BRUSH("Icons/Icon_Profiler_BPNode_16x", Icon16x16));
-	}
-#endif // WITH_EDITOR
-
 	// Mobility Icons
 	{
 		Set("Mobility.Movable", new IMAGE_BRUSH("/Icons/Mobility/Movable_16x", Icon16x16));
@@ -4924,7 +4861,6 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 		Set("Persona.ReimportAsset", new IMAGE_BRUSH("Icons/Reimport_12x", Icon12x12));
 		Set("SkeletonTree.SkeletonSocket", new IMAGE_BRUSH("Persona/SkeletonTree/icon_SocketG_16px", Icon16x16));
 		Set("SkeletonTree.MeshSocket", new IMAGE_BRUSH("Persona/SkeletonTree/icon_SocketC_16px", Icon16x16));
-		Set("SkeletonTree.LODBone", new IMAGE_BRUSH(TEXT("Persona/SkeletonTree/icon_LODBone_16x"), Icon16x16));
 
 		// Anim Slot Manager
 		Set("AnimSlotManager.SaveSkeleton", new IMAGE_BRUSH("Persona/AnimSlotManager/icon_SaveSkeleton_40x", Icon40x40));
@@ -5076,7 +5012,6 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 		Set( "BlueprintEditor.ShowFloor", new IMAGE_BRUSH( "Icons/icon_Show_Floor_40px", Icon16x16));
 		Set( "BlueprintEditor.ShowGrid", new IMAGE_BRUSH( "Icons/icon_ShowGrid_16x", Icon16x16 ) );
 		Set( "BlueprintEditor.EnableSimulation", new IMAGE_BRUSH( "Icons/icon_Enable_Simulation_40px", Icon40x40));
-		Set( "BlueprintEditor.EnableProfiling", new IMAGE_BRUSH("/Icons/icon_Enable_Profiling_40x", Icon40x40) );
 		Set( "BlueprintEditor.EnableSimulation.Small", new IMAGE_BRUSH( "Icons/icon_Enable_Simulation_40px", Icon20x20));
 		Set( "SCS.NativeComponent", new IMAGE_BRUSH( "Icons/NativeSCSComponent", Icon20x20 ));
 		Set( "SCS.Component", new IMAGE_BRUSH( "Icons/SCSComponent", Icon20x20 ));
@@ -5650,6 +5585,7 @@ void FSlateEditorStyle::FStyle::SetupContentBrowserStyle()
 
 		// Misc
 		Set( "ContentBrowser.ThumbnailShadow", new BOX_BRUSH( "ContentBrowser/ThumbnailShadow" , FMargin( 4.0f / 64.0f ) ) );
+		Set( "AssetDiscoveryIndicator.DiscovertingAssetsFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 12 ) );
 		Set( "ContentBrowser.ColumnViewAssetIcon", new IMAGE_BRUSH( "Icons/doc_16x", Icon16x16 ) );
 		Set( "ContentBrowser.ColumnViewFolderIcon", new IMAGE_BRUSH( "Icons/FolderClosed", FVector2D(18, 16) ) );
 		Set( "ContentBrowser.ColumnViewDeveloperFolderIcon", new IMAGE_BRUSH( "Icons/FolderDeveloper", FVector2D(18, 16) ) );
@@ -5667,10 +5603,6 @@ void FSlateEditorStyle::FStyle::SetupContentBrowserStyle()
 			.SetHighlightColor( FLinearColor( 1.0f, 1.0f, 1.0f ) )
 			.SetShadowOffset( FVector2D( 1,1 ) )
 			.SetShadowColorAndOpacity( FLinearColor(0,0,0,0.9f) ) );
-
-		Set("ReferenceViewer.PathText", FEditableTextBoxStyle(NormalEditableTextBoxStyle)
-			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 11)));
-
 		Set( "ContentBrowser.Sources", new IMAGE_BRUSH( "ContentBrowser/sources_16x", Icon16x16 ) );
 		Set( "ContentBrowser.PathDelimiter", new IMAGE_BRUSH( "Common/SmallArrowRight", Icon10x10 ) );
 		Set( "ContentBrowser.LockButton_Locked", new IMAGE_BRUSH( "Icons/padlock_locked_16x", Icon16x16 ) );
@@ -5706,9 +5638,6 @@ void FSlateEditorStyle::FStyle::SetupContentBrowserStyle()
 		Set( "ContentBrowser.Private.Small", new IMAGE_BRUSH( "ContentBrowser/Content_Private_16x", Icon16x16 ) );
 		Set( "ContentBrowser.Private.Large", new IMAGE_BRUSH( "ContentBrowser/Content_Private_64x", Icon64x64 ) );
 		Set( "ContentBrowser.CollectionStatus", new IMAGE_BRUSH( "/Icons/CollectionStatus_8x", Icon8x8 ) );
-
-		Set( "AssetDiscoveryIndicator.MainStatusFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 12 ) );
-		Set( "AssetDiscoveryIndicator.SubStatusFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 9 ) );
 	}
 #endif // #if WITH_EDITOR
 }
@@ -6376,7 +6305,6 @@ void FSlateEditorStyle::FStyle::SetupSourceControlStyles()
 		Set( "SourceControl.Actions.CheckOut", new IMAGE_BRUSH( "ContentBrowser/SCC_CheckedOut", Icon16x16 ) );
 		Set( "SourceControl.Actions.Add", new IMAGE_BRUSH( "ContentBrowser/SCC_ContentAdd", Icon16x16 ) );
 		Set( "SourceControl.Actions.Refresh", new IMAGE_BRUSH( "Icons/icon_Refresh_16x", Icon16x16 ) );
-		Set( "SourceControl.Actions.ChangeSettings", new IMAGE_BRUSH( "Icons/icon_SCC_Change_Source_Control_Settings_16x", Icon16x16 ) );
 	}
 #endif // WITH_EDITOR || IS_PROGRAM
 
@@ -6475,10 +6403,12 @@ void FSlateEditorStyle::FStyle::SetupAutomationStyles()
 		Set( "AutomationWindow.WarningFilter", new IMAGE_BRUSH( "Automation/WarningFilter", Icon40x40) );
 		Set( "AutomationWindow.SmokeTestFilter", new IMAGE_BRUSH( "Automation/SmokeTestFilter", Icon40x40) );
 		Set( "AutomationWindow.DeveloperDirectoryContent", new IMAGE_BRUSH( "Automation/DeveloperDirectoryContent", Icon40x40) );
+		Set( "AutomationWindow.VisualCommandlet", new IMAGE_BRUSH( "Automation/VisualCommandlet", Icon40x40) );
 		Set( "AutomationWindow.ErrorFilter.Small", new IMAGE_BRUSH( "Automation/ErrorFilter", Icon20x20) );
 		Set( "AutomationWindow.WarningFilter.Small", new IMAGE_BRUSH( "Automation/WarningFilter", Icon20x20) );
 		Set( "AutomationWindow.SmokeTestFilter.Small", new IMAGE_BRUSH( "Automation/SmokeTestFilter", Icon20x20) );
 		Set( "AutomationWindow.DeveloperDirectoryContent.Small", new IMAGE_BRUSH( "Automation/DeveloperDirectoryContent", Icon20x20) );
+		Set( "AutomationWindow.VisualCommandlet.Small", new IMAGE_BRUSH( "Automation/VisualCommandlet", Icon20x20) );
 		Set( "AutomationWindow.TrackHistory", new IMAGE_BRUSH( "Automation/TrackTestHistory", Icon40x40) );
 
 		//device group settings
@@ -6622,16 +6552,6 @@ void FSlateEditorStyle::FStyle::SetupAutomationStyles()
 		Set("FBXIcon.StaticMesh", new IMAGE_BRUSH("Icons/FBX/StaticMesh_16x", Icon16x16));
 		Set("FBXIcon.SkeletalMesh", new IMAGE_BRUSH("Icons/FBX/SkeletalMesh_16x", Icon16x16));
 		Set("FBXIcon.Animation", new IMAGE_BRUSH( "Icons/FBX/Animation_16px", Icon16x16 ) );
-		Set("FBXIcon.ImportOptionsOverride", new IMAGE_BRUSH("Icons/FBX/FbxImportOptionsOverride_7x16px", Icon7x16));
-		Set("FBXIcon.ImportOptionsDefault", new IMAGE_BRUSH("Icons/FBX/FbxImportOptionsDefault_7x16px", Icon7x16));
-
-		Set("FBXIcon.ReimportAdded", new IMAGE_BRUSH("Icons/FBX/FbxReimportAdded_16x16px", Icon16x16));
-		Set("FBXIcon.ReimportRemoved", new IMAGE_BRUSH("Icons/FBX/FbxReimportRemoved_16x16px", Icon16x16));
-		Set("FBXIcon.ReimportSame", new IMAGE_BRUSH("Icons/FBX/FbxReimportSame_16x16px", Icon16x16));
-		Set("FBXIcon.ReimportAddedContent", new IMAGE_BRUSH("Icons/FBX/FbxReimportAddedContent_16x16px", Icon16x16));
-		Set("FBXIcon.ReimportRemovedContent", new IMAGE_BRUSH("Icons/FBX/FbxReimportRemovedContent_16x16px", Icon16x16));
-		Set("FBXIcon.ReimportSameContent", new IMAGE_BRUSH("Icons/FBX/FbxReimportSameContent_16x16px", Icon16x16));
-		Set("FBXIcon.ReimportError", new IMAGE_BRUSH("Icons/FBX/FbxReimportError_16x16px", Icon16x16));
 
 		const FTextBlockStyle FBXLargeFont =
 			FTextBlockStyle(NormalText)
@@ -6765,8 +6685,6 @@ void FSlateEditorStyle::FStyle::SetupUMGEditorStyles()
 	Set("UMGEditor.AnchorGrid", new IMAGE_BRUSH("Icons/UMG/AnchorGrid", Icon10x10, FLinearColor::White, ESlateBrushTileType::Both ));
 
 	Set("UMGEditor.DPISettings", new IMAGE_BRUSH("Icons/UMG/SettingsButton", Icon16x16));
-
-	Set("UMGEditor.DesignerMessageBorder", new BOX_BRUSH("/UMG/MessageRoundedBorder", FMargin(18.0f / 64.0f)));
 }
 
 void FSlateEditorStyle::FStyle::SetupTranslationEditorStyles()

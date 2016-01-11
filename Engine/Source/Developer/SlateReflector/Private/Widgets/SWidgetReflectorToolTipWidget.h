@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -15,7 +15,7 @@ public:
 		: _WidgetInfoToVisualize()
 	{ }
 
-		SLATE_ARGUMENT(TSharedPtr<FWidgetReflectorNodeBase>, WidgetInfoToVisualize)
+		SLATE_ARGUMENT(UWidgetReflectorNodeBase*, WidgetInfoToVisualize)
 
 	SLATE_END_ARGS()
 
@@ -25,10 +25,7 @@ public:
 	void Construct( const FArguments& InArgs )
 	{
 		this->WidgetInfo = InArgs._WidgetInfoToVisualize;
-		check(WidgetInfo.IsValid());
-
-		const FGeometry Geom = FGeometry().MakeChild(WidgetInfo->GetLocalSize(), WidgetInfo->GetAccumulatedLayoutTransform(), WidgetInfo->GetAccumulatedRenderTransform(), FVector2D::ZeroVector);
-		SizeInfoText = FText::FromString(Geom.ToString());
+		check(WidgetInfo);
 
 		ChildSlot
 		[
@@ -106,12 +103,12 @@ private:
 
 	FText GetWidgetActualSize() const
 	{
-		return FText::FromString(WidgetInfo->GetLocalSize().ToString());
+		return FText::FromString(WidgetInfo->GetGeometry().Size.ToString());
 	}
 
 	FText GetSizeInfo() const
 	{
-		return SizeInfoText;
+		return FText::FromString(WidgetInfo->GetGeometry().ToString());
 	}
 
 	FText GetEnabled() const
@@ -124,10 +121,7 @@ private:
 private:
 
 	/** The info about the widget that we are visualizing. */
-	TSharedPtr<FWidgetReflectorNodeBase> WidgetInfo;
-
-	/** The size info text */
-	FText SizeInfoText;
+	UWidgetReflectorNodeBase* WidgetInfo;
 };
 
 

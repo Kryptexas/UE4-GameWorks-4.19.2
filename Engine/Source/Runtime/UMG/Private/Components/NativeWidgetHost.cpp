@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 
@@ -15,16 +15,13 @@ UNativeWidgetHost::UNativeWidgetHost(const FObjectInitializer& ObjectInitializer
 
 void UNativeWidgetHost::SetContent(TSharedRef<SWidget> InContent)
 {
-	if (NativeWidget != InContent)
-	{
-		NativeWidget = InContent;
+	NativeWidget = InContent;
 
-		TSharedPtr<SWidget> StableMyWidget = MyWidget.Pin();
-		if (StableMyWidget.IsValid())
-		{
-			TSharedPtr<SBox> MyBox = StaticCastSharedPtr<SBox>(StableMyWidget);
-			MyBox->SetContent(InContent);
-		}
+	TSharedPtr<SWidget> StableMyWidget = MyWidget.Pin();
+	if ( StableMyWidget.IsValid() )
+	{
+		TSharedPtr<SBox> MyBox = StaticCastSharedPtr<SBox>(StableMyWidget);
+		MyBox->SetContent(InContent);
 	}
 }
 

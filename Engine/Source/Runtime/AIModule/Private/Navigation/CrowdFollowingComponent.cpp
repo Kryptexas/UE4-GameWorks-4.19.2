@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "Navigation/CrowdFollowingComponent.h"
@@ -12,13 +12,11 @@ DEFINE_LOG_CATEGORY(LogCrowdFollowing);
 
 UCrowdFollowingComponent::UCrowdFollowingComponent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-	SimulationState = ECrowdSimulationState::Enabled;
-		
 	bAffectFallingVelocity = false;
 	bRotateToVelocity = true;
+	bEnableCrowdSimulation = true;
 	bSuspendCrowdSimulation = false;
 	bEnableSimulationReplanOnResume = true;
-	bRegisteredWithCrowdSimulation = false;
 
 	bEnableAnticipateTurns = false;
 	bEnableObstacleAvoidance = true;
@@ -194,19 +192,6 @@ void UCrowdFollowingComponent::SetCrowdAvoidanceQuality(ECrowdAvoidanceQuality::
 	}
 }
 
-void UCrowdFollowingComponent::SetCrowdAvoidanceRangeMultiplier(float Multiplier, bool bUpdateAgent)
-{
-	if (AvoidanceRangeMultiplier != Multiplier)
-	{
-		AvoidanceRangeMultiplier = Multiplier;
-
-		if (bUpdateAgent)
-		{
-			UpdateCrowdAgentParams();
-		}
-	}
-}
-
 void UCrowdFollowingComponent::SetCrowdPathOffset(bool bEnable, bool bUpdateAgent)
 {
 	if (bEnablePathOffset != bEnable)
@@ -228,45 +213,6 @@ void UCrowdFollowingComponent::SetCrowdAffectFallingVelocity(bool bEnable)
 void UCrowdFollowingComponent::SetCrowdRotateToVelocity(bool bEnable)
 {
 	bRotateToVelocity = bEnable;
-}
-
-void UCrowdFollowingComponent::SetAvoidanceGroup(int32 GroupFlags, bool bUpdateAgent)
-{
-	if (AvoidanceGroup.Packed != GroupFlags)
-	{
-		AvoidanceGroup.SetFlagsDirectly(GroupFlags);
-
-		if (bUpdateAgent)
-		{
-			UpdateCrowdAgentParams();
-		}
-	}
-}
-
-void UCrowdFollowingComponent::SetGroupsToAvoid(int32 GroupFlags, bool bUpdateAgent)
-{
-	if (GroupsToAvoid.Packed != GroupFlags)
-	{
-		GroupsToAvoid.SetFlagsDirectly(GroupFlags);
-
-		if (bUpdateAgent)
-		{
-			UpdateCrowdAgentParams();
-		}
-	}
-}
-
-void UCrowdFollowingComponent::SetGroupsToIgnore(int32 GroupFlags, bool bUpdateAgent)
-{
-	if (GroupsToIgnore.Packed != GroupFlags)
-	{
-		GroupsToIgnore.SetFlagsDirectly(GroupFlags);
-
-		if (bUpdateAgent)
-		{
-			UpdateCrowdAgentParams();
-		}
-	}
 }
 
 void UCrowdFollowingComponent::SuspendCrowdSteering(bool bSuspend)
@@ -305,23 +251,9 @@ void UCrowdFollowingComponent::UpdateCachedDirections(const FVector& NewVelocity
 	}
 }
 
-bool UCrowdFollowingComponent::UpdateCachedGoal(FVector& NewGoalPos)
-{
-	if (bFinalPathPart && !bUpdateDirectMoveVelocity &&
-		Path.IsValid() && !Path->IsPartial() && Path->GetGoalActor())
-	{
-		NewGoalPos = Path->GetGoalLocation();
-		CurrentDestination.Set(Path->GetBaseActor(), NewGoalPos);
-		return true;
-	}
-
-	return false;
-}
-
-
 void UCrowdFollowingComponent::ApplyCrowdAgentVelocity(const FVector& NewVelocity, const FVector& DestPathCorner, bool bTraversingLink)
 {
-	if (IsCrowdSimulationEnabled() && Status == EPathFollowingStatus::Moving)
+	if (bEnableCrowdSimulation && Status == EPathFollowingStatus::Moving)
 	{
 		if (bAffectFallingVelocity || CharacterMovement == NULL || CharacterMovement->MovementMode != MOVE_Falling)
 		{
@@ -339,12 +271,7 @@ void UCrowdFollowingComponent::ApplyCrowdAgentPosition(const FVector& NewPositio
 
 void UCrowdFollowingComponent::SetCrowdSimulation(bool bEnable)
 {
-	SetCrowdSimulationState(bEnable ? ECrowdSimulationState::Enabled : ECrowdSimulationState::ObstacleOnly);
-}
-
-void UCrowdFollowingComponent::SetCrowdSimulationState(ECrowdSimulationState NewState)
-{
-	if (NewState == SimulationState)
+	if (bEnableCrowdSimulation == bEnable)
 	{
 		return;
 	}
@@ -356,86 +283,53 @@ void UCrowdFollowingComponent::SetCrowdSimulationState(ECrowdSimulationState New
 	}
 
 	UCrowdManager* Manager = UCrowdManager::GetCurrent(GetWorld());
-	if (Manager == NULL && NewState != ECrowdSimulationState::Disabled)
+	if (Manager == NULL && bEnable)
 	{
 		UE_VLOG(GetOwner(), LogCrowdFollowing, Log, TEXT("Crowd manager can't be found, disabling simulation"));
-		NewState = ECrowdSimulationState::Disabled;
+		bEnable = false;
 	}
 
-	static FString CrowdSimulationDesc[] = { TEXT("Enabled"), TEXT("ObstacleOnly"), TEXT("Disabled") };
-	UE_VLOG(GetOwner(), LogCrowdFollowing, Log, TEXT("SetCrowdSimulation: %s"), *CrowdSimulationDesc[static_cast<uint8>(NewState)]);
-
-	const bool bNeedRegistration = (NewState != ECrowdSimulationState::Disabled);
-	if (bNeedRegistration != bRegisteredWithCrowdSimulation)
-	{
-		ICrowdAgentInterface* IAgent = Cast<ICrowdAgentInterface>(this);
-		if (bNeedRegistration)
-		{
-			Manager->RegisterAgent(IAgent);
-		}
-		else
-		{
-			Manager->UnregisterAgent(IAgent);
-		}
-
-		bRegisteredWithCrowdSimulation = bNeedRegistration;
-	}
+	UE_VLOG(GetOwner(), LogCrowdFollowing, Log, TEXT("SetCrowdSimulation: %s"), bEnable ? TEXT("enabled") : TEXT("disabled"));
+	bEnableCrowdSimulation = bEnable;
 }
 
 void UCrowdFollowingComponent::Initialize()
 {
 	Super::Initialize();
 
-	if (SimulationState != ECrowdSimulationState::Disabled)
+	UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());
+	if (CrowdManager)
 	{
-		RegisterCrowdAgent();
-
-		if (!bRegisteredWithCrowdSimulation)
-		{
-			// crowd manager might not be created yet if this component was spawned during level's begin play (possessing a pawn placed in level)
-			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
-			if (NavSys && !NavSys->IsInitialized())
-			{
-				NavSys->OnNavigationInitDone.AddUObject(this, &UCrowdFollowingComponent::OnPendingNavigationInit);
-			}
-			else
-			{
-				SimulationState = ECrowdSimulationState::Disabled;
-			}
-		}
+		RegisterWithCrowdManager(*CrowdManager);
 	}
+	else
+	{
+		bEnableCrowdSimulation = false;
+	}
+}
 
+void UCrowdFollowingComponent::RegisterWithCrowdManager(UCrowdManager& CrowdManager)
+{
+	bEnableCrowdSimulation = true;
+	ICrowdAgentInterface* IAgent = CastChecked<ICrowdAgentInterface>(this);
+	CrowdManager.RegisterAgent(IAgent);
 }
 
 void UCrowdFollowingComponent::Cleanup()
 {
 	Super::Cleanup();
 
-	if (bRegisteredWithCrowdSimulation)
+	UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());
+	if (CrowdManager)
 	{
-		UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());
-		if (CrowdManager)
-		{
-			const ICrowdAgentInterface* IAgent = Cast<ICrowdAgentInterface>(this);
-			CrowdManager->UnregisterAgent(IAgent);
-
-			SimulationState = ECrowdSimulationState::Disabled;
-			bRegisteredWithCrowdSimulation = false;
-		}
+		const ICrowdAgentInterface* IAgent = Cast<ICrowdAgentInterface>(this);
+		CrowdManager->UnregisterAgent(IAgent);
 	}
-}
-
-void UCrowdFollowingComponent::BeginDestroy()
-{
-	Super::BeginDestroy();
-
-	// make sure it's not registered
-	Cleanup();
 }
 
 void UCrowdFollowingComponent::AbortMove(const FString& Reason, FAIRequestID RequestID, bool bResetVelocity, bool bSilent, uint8 MessageFlags)
 {
-	if (IsCrowdSimulationEnabled() && (Status != EPathFollowingStatus::Idle) && RequestID.IsEquivalent(GetCurrentRequestId()))
+	if (bEnableCrowdSimulation && (Status != EPathFollowingStatus::Idle) && RequestID.IsEquivalent(GetCurrentRequestId()))
 	{
 		UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());
 		if (CrowdManager)
@@ -449,7 +343,7 @@ void UCrowdFollowingComponent::AbortMove(const FString& Reason, FAIRequestID Req
 
 void UCrowdFollowingComponent::PauseMove(FAIRequestID RequestID, bool bResetVelocity)
 {
-	if (IsCrowdSimulationEnabled() && (Status != EPathFollowingStatus::Paused) && RequestID.IsEquivalent(GetCurrentRequestId()))
+	if (bEnableCrowdSimulation && (Status != EPathFollowingStatus::Paused) && RequestID.IsEquivalent(GetCurrentRequestId()))
 	{
 		UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());
 		if (CrowdManager)
@@ -463,7 +357,7 @@ void UCrowdFollowingComponent::PauseMove(FAIRequestID RequestID, bool bResetVelo
 
 void UCrowdFollowingComponent::ResumeMove(FAIRequestID RequestID)
 {
-	if (IsCrowdSimulationEnabled() && (Status == EPathFollowingStatus::Paused) && RequestID.IsEquivalent(GetCurrentRequestId()))
+	if (bEnableCrowdSimulation && (Status == EPathFollowingStatus::Paused) && RequestID.IsEquivalent(GetCurrentRequestId()))
 	{
 		UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());
 		if (CrowdManager)
@@ -502,7 +396,7 @@ bool UCrowdFollowingComponent::UpdateMovementComponent(bool bForce)
 void UCrowdFollowingComponent::OnLanded()
 {
 	UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());
-	if (IsCrowdSimulationEnabled() && CrowdManager)
+	if (bEnableCrowdSimulation && CrowdManager)
 	{
 		const ICrowdAgentInterface* IAgent = Cast<ICrowdAgentInterface>(this);
 		CrowdManager->UpdateAgentState(IAgent);
@@ -514,7 +408,7 @@ void UCrowdFollowingComponent::FinishUsingCustomLink(INavLinkCustomInterface* Cu
 	const bool bPrevCustomLink = CurrentCustomLinkOb.IsValid();
 	Super::FinishUsingCustomLink(CustomNavLink);
 
-	if (IsCrowdSimulationEnabled())
+	if (bEnableCrowdSimulation)
 	{
 		const bool bCurrentCustomLink = CurrentCustomLinkOb.IsValid();
 		UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());
@@ -529,7 +423,7 @@ void UCrowdFollowingComponent::FinishUsingCustomLink(INavLinkCustomInterface* Cu
 void UCrowdFollowingComponent::OnPathFinished(EPathFollowingResult::Type Result)
 {
 	UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());
-	if (IsCrowdSimulationEnabled() && CrowdManager)
+	if (bEnableCrowdSimulation && CrowdManager)
 	{
 		CrowdManager->ClearAgentMoveTarget(this);
 	}
@@ -548,7 +442,7 @@ void UCrowdFollowingComponent::OnPathfindingQuery(FPathFindingQuery& Query)
 	// disable path post processing (string pulling), crowd simulation needs to handle 
 	// large paths by splitting into smaller parts and optimization gets in the way
 
-	if (IsCrowdSimulationEnabled())
+	if (bEnableCrowdSimulation)
 	{
 		Query.NavDataFlags |= ERecastPathFlags::SkipStringPulling;
 	}
@@ -556,7 +450,7 @@ void UCrowdFollowingComponent::OnPathfindingQuery(FPathFindingQuery& Query)
 
 bool UCrowdFollowingComponent::ShouldCheckPathOnResume() const
 {
-	if (IsCrowdSimulationEnabled())
+	if (bEnableCrowdSimulation)
 	{
 		// never call SetMoveSegment on resuming
 		return false;
@@ -572,7 +466,7 @@ bool UCrowdFollowingComponent::HasMovedDuringPause() const
 
 bool UCrowdFollowingComponent::IsOnPath() const
 {
-	if (IsCrowdSimulationEnabled())
+	if (bEnableCrowdSimulation)
 	{
 		// agent can move off path for steering/avoidance purposes
 		// just pretend it's always on path to avoid problems when movement is being resumed
@@ -586,7 +480,7 @@ int32 UCrowdFollowingComponent::DetermineStartingPathPoint(const FNavigationPath
 {
 	int32 StartIdx = 0;
 
-	if (IsCrowdSimulationEnabled())
+	if (bEnableCrowdSimulation)
 	{
 		StartIdx = PathStartIndex;
 
@@ -676,7 +570,7 @@ void LogPathPartHelper(AActor* LogOwner, FNavMeshPath* NavMeshPath, int32 StartI
 
 void UCrowdFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 {
-	if (!IsCrowdSimulationEnabled())
+	if (!bEnableCrowdSimulation)
 	{
 		Super::SetMoveSegment(SegmentStartIndex);
 		return;
@@ -693,7 +587,7 @@ void UCrowdFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 
 	FNavMeshPath* NavMeshPath = Path->CastPath<FNavMeshPath>();
 	FAbstractNavigationPath* DirectPath = Path->CastPath<FAbstractNavigationPath>();
-	if (NavMeshPath)
+	if (NavMeshPath && ensure(MyNavData))
 	{
 #if WITH_RECAST
 		if (NavMeshPath->PathCorridor.IsValidIndex(PathStartIndex) == false)
@@ -753,7 +647,7 @@ void UCrowdFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 		UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());
 		if (CrowdManager)
 		{
-			CrowdManager->SetAgentMovePath(this, NavMeshPath, PathStartIndex, PathPartEndIdx, CurrentTargetPt);
+			CrowdManager->SetAgentMovePath(this, NavMeshPath, PathStartIndex, PathPartEndIdx);
 		}
 #endif
 	}
@@ -788,7 +682,7 @@ void UCrowdFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 
 void UCrowdFollowingComponent::UpdatePathSegment()
 {
-	if (!IsCrowdSimulationEnabled())
+	if (!bEnableCrowdSimulation)
 	{
 		Super::UpdatePathSegment();
 		return;
@@ -863,7 +757,7 @@ void UCrowdFollowingComponent::UpdatePathSegment()
 
 void UCrowdFollowingComponent::FollowPathSegment(float DeltaTime)
 {
-	if (!IsCrowdSimulationEnabled())
+	if (!bEnableCrowdSimulation)
 	{
 		Super::FollowPathSegment(DeltaTime);
 		return;
@@ -897,7 +791,7 @@ FVector UCrowdFollowingComponent::GetMoveFocus(bool bAllowStrafe) const
 	// can't really use CurrentDestination here, as it's pointing at end of path part
 	// fallback to looking at point in front of agent
 
-	if (!bAllowStrafe && MovementComp && IsCrowdSimulationEnabled())
+	if (!bAllowStrafe && MovementComp && bEnableCrowdSimulation)
 	{
 		const FVector AgentLoc = MovementComp->GetActorLocation();
 
@@ -915,7 +809,7 @@ FVector UCrowdFollowingComponent::GetMoveFocus(bool bAllowStrafe) const
 
 void UCrowdFollowingComponent::OnNavNodeChanged(NavNodeRef NewPolyRef, NavNodeRef PrevPolyRef, int32 CorridorSize)
 {
-	if (IsCrowdSimulationEnabled() && Status != EPathFollowingStatus::Idle)
+	if (bEnableCrowdSimulation && Status != EPathFollowingStatus::Idle)
 	{
 		// update last visited path poly
 		FNavMeshPath* NavPath = Path.IsValid() ? Path->CastPath<FNavMeshPath>() : NULL;
@@ -952,37 +846,9 @@ void UCrowdFollowingComponent::SwitchToNextPathPart()
 	SetMoveSegment(NewPartStart);
 }
 
-void UCrowdFollowingComponent::RegisterCrowdAgent()
-{
-	UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());
-	if (CrowdManager)
-	{
-		ICrowdAgentInterface* IAgent = Cast<ICrowdAgentInterface>(this);
-		CrowdManager->RegisterAgent(IAgent);
-		bRegisteredWithCrowdSimulation = true;
-	}
-	else
-	{
-		bRegisteredWithCrowdSimulation = false;
-	}
-}
-
-void UCrowdFollowingComponent::OnPendingNavigationInit()
-{
-	RegisterCrowdAgent();
-	
-	if (!bRegisteredWithCrowdSimulation)
-	{
-		SimulationState = ECrowdSimulationState::Disabled;
-	}
-
-	// set movement component, it will cache MyNavData from its NavAgentProperties
-	SetMovementComponent(MovementComp);
-}
-
 void UCrowdFollowingComponent::GetDebugStringTokens(TArray<FString>& Tokens, TArray<EPathFollowingDebugTokens::Type>& Flags) const
 {
-	if (!IsCrowdSimulationEnabled())
+	if (!bEnableCrowdSimulation)
 	{
 		Super::GetDebugStringTokens(Tokens, Flags);
 		return;
@@ -1064,7 +930,7 @@ void UCrowdFollowingComponent::GetDebugStringTokens(TArray<FString>& Tokens, TAr
 
 void UCrowdFollowingComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 {
-	if (!IsCrowdSimulationEnabled())
+	if (!bEnableCrowdSimulation)
 	{
 		Super::DescribeSelfToVisLog(Snapshot);
 		return;

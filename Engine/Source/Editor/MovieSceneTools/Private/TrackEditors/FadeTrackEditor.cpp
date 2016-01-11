@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneToolsPrivatePCH.h"
 #include "MovieSceneFadeTrack.h"
@@ -33,7 +33,7 @@ void FFadeTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
 {
 	UMovieSceneSequence* RootMovieSceneSequence = GetSequencer()->GetRootMovieSceneSequence();
 
-	if ((RootMovieSceneSequence == nullptr) || (RootMovieSceneSequence->GetClass()->GetName() != TEXT("LevelSequence")))
+	if ((RootMovieSceneSequence == nullptr) || (RootMovieSceneSequence->GetClass()->GetName() != TEXT("LevelSequenceInstance")))
 	{
 		return;
 	}
@@ -60,31 +60,27 @@ bool FFadeTrackEditor::SupportsType(TSubclassOf<UMovieSceneTrack> Type) const
 
 void FFadeTrackEditor::HandleAddFadeTrackMenuEntryExecute()
 {
-	UMovieScene* MovieScene = GetFocusedMovieScene();
-
+	UMovieSceneSequence* FocusedSequence = GetSequencer()->GetFocusedMovieSceneSequence();
+	UMovieScene* MovieScene = FocusedSequence->GetMovieScene();
 	if (MovieScene == nullptr)
 	{
 		return;
 	}
 
-	UMovieSceneTrack* FadeTrack = MovieScene->FindMasterTrack<UMovieSceneFadeTrack>();
-
+	UMovieSceneTrack* FadeTrack = MovieScene->FindMasterTrack( UMovieSceneFadeTrack::StaticClass() );
 	if (FadeTrack != nullptr)
 	{
 		return;
 	}
 
-	const FScopedTransaction Transaction(LOCTEXT("AddFadeTrack_Transaction", "Add Fade Track"));
+	const FScopedTransaction Transaction(NSLOCTEXT("Sequencer", "AddFadeTrack_Transaction", "Add Fade Track"));
 
 	MovieScene->Modify();
-
-	FadeTrack = FindOrCreateMasterTrack<UMovieSceneFadeTrack>().Track;
+		
+	FadeTrack = GetMasterTrack( UMovieSceneFadeTrack::StaticClass() );
 	ensure(FadeTrack);
 
-	UMovieSceneSection* NewSection = FadeTrack->CreateNewSection();
-	ensure(NewSection);
-
-	FadeTrack->AddSection(*NewSection);
+	FadeTrack->AddSection(FadeTrack->CreateNewSection());
 
 	GetSequencer()->NotifyMovieSceneDataChanged();
 }

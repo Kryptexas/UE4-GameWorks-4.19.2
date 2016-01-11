@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
@@ -79,14 +79,6 @@ public:
 
 		if (BoundProperty != NULL)
 		{
-			if (BoundProperty->HasAnyPropertyFlags(CPF_Deprecated) && Net->LinkedTo.Num())
-			{
-				FText Message = FText::Format(LOCTEXT("BreakStruct_DeprecatedField_Warning", "@@ : Member '{0}' of struct '{1}' is deprecated.")
-					, BoundProperty->GetDisplayNameText()
-					, StructType->GetDisplayNameText());
-				CompilerContext.MessageLog.Warning(*Message.ToString(), Net->GetOuter());
-			}
-
 			FBPTerminal* Term = Context.CreateLocalTerminalFromPinAutoChooseScope(Net, Net->PinName);
 			Term->AssociatedVarProperty = BoundProperty;
 			Context.NetMap.Add(Net, Term);

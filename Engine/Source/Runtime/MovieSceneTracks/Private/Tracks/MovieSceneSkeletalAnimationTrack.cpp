@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneSkeletalAnimationSection.h"
@@ -10,45 +10,16 @@
 #define LOCTEXT_NAMESPACE "MovieSceneSkeletalAnimationTrack"
 
 
-/* UMovieSceneSkeletalAnimationTrack structors
- *****************************************************************************/
-
 UMovieSceneSkeletalAnimationTrack::UMovieSceneSkeletalAnimationTrack( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
 { }
 
 
-/* UMovieSceneSkeletalAnimationTrack interface
- *****************************************************************************/
-
-void UMovieSceneSkeletalAnimationTrack::AddNewAnimation(float KeyTime, UAnimSequence* AnimSequence)
+FName UMovieSceneSkeletalAnimationTrack::GetTrackName() const
 {
-	UMovieSceneSkeletalAnimationSection* NewSection = Cast<UMovieSceneSkeletalAnimationSection>(CreateNewSection());
-	{
-		NewSection->InitialPlacement(AnimationSections, KeyTime, KeyTime + AnimSequence->SequenceLength, SupportsMultipleRows());
-		NewSection->SetAnimSequence(AnimSequence);
-	}
-
-	AddSection(*NewSection);
+	return FName("Animation");
 }
 
-
-UMovieSceneSection* UMovieSceneSkeletalAnimationTrack::GetAnimSectionAtTime(float Time)
-{
-	for (auto Section : AnimationSections)
-	{
-		if (Section->IsTimeWithinSection(Time))
-		{
-			return Section;
-		}
-	}
-
-	return nullptr;
-}
-
-
-/* UMovieSceneTrack interface
- *****************************************************************************/
 
 TSharedPtr<IMovieSceneTrackInstance> UMovieSceneSkeletalAnimationTrack::CreateInstance()
 {
@@ -62,33 +33,27 @@ const TArray<UMovieSceneSection*>& UMovieSceneSkeletalAnimationTrack::GetAllSect
 }
 
 
-UMovieSceneSection* UMovieSceneSkeletalAnimationTrack::CreateNewSection()
-{
-	return NewObject<UMovieSceneSkeletalAnimationSection>( this );
-}
-
-
 void UMovieSceneSkeletalAnimationTrack::RemoveAllAnimationData()
 {
-	AnimationSections.Empty();
+	// do nothing
 }
 
 
-bool UMovieSceneSkeletalAnimationTrack::HasSection(const UMovieSceneSection& Section ) const
+bool UMovieSceneSkeletalAnimationTrack::HasSection( UMovieSceneSection* Section ) const
 {
-	return AnimationSections.Contains(&Section);
+	return AnimationSections.Find( Section ) != INDEX_NONE;
 }
 
 
-void UMovieSceneSkeletalAnimationTrack::AddSection(UMovieSceneSection& Section)
+void UMovieSceneSkeletalAnimationTrack::AddSection( UMovieSceneSection* Section)
 {
-	AnimationSections.Add(&Section);
+	AnimationSections.Add(Section);
 }
 
 
-void UMovieSceneSkeletalAnimationTrack::RemoveSection(UMovieSceneSection& Section)
+void UMovieSceneSkeletalAnimationTrack::RemoveSection( UMovieSceneSection* Section )
 {
-	AnimationSections.Remove(&Section);
+	AnimationSections.Remove( Section );
 }
 
 
@@ -100,25 +65,40 @@ bool UMovieSceneSkeletalAnimationTrack::IsEmpty() const
 
 TRange<float> UMovieSceneSkeletalAnimationTrack::GetSectionBoundaries() const
 {
-	TArray<TRange<float>> Bounds;
-
-	for (auto Section : AnimationSections)
+	TArray< TRange<float> > Bounds;
+	for (int32 i = 0; i < AnimationSections.Num(); ++i)
 	{
-		Bounds.Add(Section->GetRange());
+		Bounds.Add(AnimationSections[i]->GetRange());
 	}
-
 	return TRange<float>::Hull(Bounds);
 }
 
 
-#if WITH_EDITORONLY_DATA
-
-FText UMovieSceneSkeletalAnimationTrack::GetDisplayName() const
+void UMovieSceneSkeletalAnimationTrack::AddNewAnimation(float KeyTime, UAnimSequence* AnimSequence)
 {
-	return LOCTEXT("TrackName", "Animation");
+	// add the section
+	UMovieSceneSkeletalAnimationSection* NewSection = NewObject<UMovieSceneSkeletalAnimationSection>(this);
+	NewSection->InitialPlacement( AnimationSections, KeyTime, KeyTime + AnimSequence->SequenceLength, SupportsMultipleRows() );
+	NewSection->SetAnimationStartTime( KeyTime );
+	NewSection->SetAnimSequence(AnimSequence);
+
+	AddSection(NewSection);
 }
 
-#endif
+
+UMovieSceneSection* UMovieSceneSkeletalAnimationTrack::GetAnimSectionAtTime(float Time)
+{
+	for (int32 i = 0; i < AnimationSections.Num(); ++i)
+	{
+		UMovieSceneSection* Section = AnimationSections[i];
+		if( Section->IsTimeWithinSection( Time ) )
+		{
+			return Section;
+		}
+	}
+
+	return nullptr;
+}
 
 
 #undef LOCTEXT_NAMESPACE

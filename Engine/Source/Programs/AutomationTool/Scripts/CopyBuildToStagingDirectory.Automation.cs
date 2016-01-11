@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using AutomationTool;
 using System;
@@ -131,29 +131,29 @@ public partial class Project : CommandUtils
 
 	static public void LogDeploymentContext(DeploymentContext SC)
 	{
-		LogLog("Deployment Context **************");
-		LogLog("ArchiveDirectory = {0}", SC.ArchiveDirectory);
-		LogLog("RawProjectPath = {0}", SC.RawProjectPath);
-		LogLog("IsCodeBasedUprojectFile = {0}", SC.IsCodeBasedProject);
-		LogLog("DedicatedServer = {0}", SC.DedicatedServer);
-		LogLog("Stage = {0}", SC.Stage);
-		LogLog("StageTargetPlatform = {0}", SC.StageTargetPlatform.PlatformType.ToString());
-		LogLog("LocalRoot = {0}", SC.LocalRoot);
-		LogLog("ProjectRoot = {0}", SC.ProjectRoot);
-		LogLog("PlatformDir = {0}", SC.PlatformDir);
-		LogLog("StageProjectRoot = {0}", SC.StageProjectRoot);
-		LogLog("ShortProjectName = {0}", SC.ShortProjectName);
-		LogLog("StageDirectory = {0}", SC.StageDirectory);
-		LogLog("SourceRelativeProjectRoot = {0}", SC.SourceRelativeProjectRoot);
-		LogLog("RelativeProjectRootForStage = {0}", SC.RelativeProjectRootForStage);
-		LogLog("RelativeProjectRootForUnrealPak = {0}", SC.RelativeProjectRootForUnrealPak);
-		LogLog("ProjectArgForCommandLines = {0}", SC.ProjectArgForCommandLines);
-		LogLog("RuntimeRootDir = {0}", SC.RuntimeRootDir);
-		LogLog("RuntimeProjectRootDir = {0}", SC.RuntimeProjectRootDir);
-		LogLog("UProjectCommandLineArgInternalRoot = {0}", SC.UProjectCommandLineArgInternalRoot);
-		LogLog("PakFileInternalRoot = {0}", SC.PakFileInternalRoot);
-		LogLog("UnrealFileServerInternalRoot = {0}", SC.UnrealFileServerInternalRoot);
-		LogLog("End Deployment Context **************");
+		Log("Deployment Context **************");
+		Log("ArchiveDirectory = {0}", SC.ArchiveDirectory);
+		Log("RawProjectPath = {0}", SC.RawProjectPath);
+		Log("IsCodeBasedUprojectFile = {0}", SC.IsCodeBasedProject);
+		Log("DedicatedServer = {0}", SC.DedicatedServer);
+		Log("Stage = {0}", SC.Stage);
+		Log("StageTargetPlatform = {0}", SC.StageTargetPlatform.PlatformType.ToString());
+		Log("LocalRoot = {0}", SC.LocalRoot);
+		Log("ProjectRoot = {0}", SC.ProjectRoot);
+		Log("PlatformDir = {0}", SC.PlatformDir);
+		Log("StageProjectRoot = {0}", SC.StageProjectRoot);
+		Log("ShortProjectName = {0}", SC.ShortProjectName);
+		Log("StageDirectory = {0}", SC.StageDirectory);
+		Log("SourceRelativeProjectRoot = {0}", SC.SourceRelativeProjectRoot);
+		Log("RelativeProjectRootForStage = {0}", SC.RelativeProjectRootForStage);
+		Log("RelativeProjectRootForUnrealPak = {0}", SC.RelativeProjectRootForUnrealPak);
+		Log("ProjectArgForCommandLines = {0}", SC.ProjectArgForCommandLines);
+		Log("RuntimeRootDir = {0}", SC.RuntimeRootDir);
+		Log("RuntimeProjectRootDir = {0}", SC.RuntimeProjectRootDir);
+		Log("UProjectCommandLineArgInternalRoot = {0}", SC.UProjectCommandLineArgInternalRoot);
+		Log("PakFileInternalRoot = {0}", SC.PakFileInternalRoot);
+		Log("UnrealFileServerInternalRoot = {0}", SC.UnrealFileServerInternalRoot);
+		Log("End Deployment Context **************");
 	}
 
 	public static Dictionary<string, string> ConvertToLower(Dictionary<string, string> Mapping)
@@ -162,21 +162,6 @@ public partial class Project : CommandUtils
 		foreach (var Pair in Mapping)
 		{
 			Result.Add(Pair.Key, Pair.Value.ToLowerInvariant());
-		}
-		return Result;
-	}
-	
-	public static Dictionary<string, List<string>> ConvertToLower(Dictionary<string, List<string>> Mapping)
-	{
-		var Result = new Dictionary<string, List<string>>();
-		foreach (var Pair in Mapping)
-		{
-			List<string> NewList = new List<string>();
-			foreach(string s in Pair.Value)
-			{
-				NewList.Add(s.ToLowerInvariant());
-			}
-			Result.Add(Pair.Key, NewList);
 		}
 		return Result;
 	}
@@ -250,7 +235,6 @@ public partial class Project : CommandUtils
 		}
 		var ThisPlatform = SC.StageTargetPlatform;
 
-		Log("Creating Staging Manifest...");
 
         if (Params.HasDLCName)
         {
@@ -283,9 +267,9 @@ public partial class Project : CommandUtils
 
 
 		// Stage any extra runtime dependencies from the receipts
-		foreach(StageTarget Target in SC.StageTargets)
+		foreach(BuildReceipt Receipt in SC.StageTargetReceipts)
 		{
-			SC.StageRuntimeDependenciesFromReceipt(Target.Receipt, Target.RequireFilesExist);
+			SC.StageRuntimeDependenciesFromReceipt(Receipt);
 		}
 
 		// Get the build.properties file
@@ -296,7 +280,7 @@ public partial class Project : CommandUtils
 		{
 			BuildPropertiesPath = BuildPropertiesPath.ToLowerInvariant();
 		}
-		SC.StageFiles(StagedFileType.NonUFS, BuildPropertiesPath, "Build.version", false, null, null, true);
+		SC.StageFiles(StagedFileType.NonUFS, BuildPropertiesPath, "build.properties", false, null, null, true);
 
 		// move the UE4Commandline.txt file to the root of the stage
 		// this file needs to be treated as a UFS file for casing, but NonUFS for being put into the .pak file
@@ -308,7 +292,7 @@ public partial class Project : CommandUtils
 		}
 		SC.StageFiles(StagedFileType.NonUFS, GetIntermediateCommandlineDir(SC), CommandLineFile, false, null, "", true, false);
 
-        ConfigCacheIni PlatformGameConfig = ConfigCacheIni.CreateConfigCacheIni(SC.StageTargetPlatform.PlatformType, "Game", new DirectoryReference(CommandUtils.GetDirectoryName(Params.RawProjectPath.FullName)));
+        ConfigCacheIni PlatformGameConfig = new ConfigCacheIni(SC.StageTargetPlatform.PlatformType, "Game", CommandUtils.GetDirectoryName(Params.RawProjectPath));
         var ProjectContentRoot = CombinePaths(SC.ProjectRoot, "Content");
         var StageContentRoot = CombinePaths(SC.RelativeProjectRootForStage, "Content");
         
@@ -389,19 +373,22 @@ public partial class Project : CommandUtils
             }
 			
 			// Engine & Game Plugins. Push the Engine/Source working directory so UBT code has a correct RelativeEnginePath in ReadAvailablePlugins
-			ProjectDescriptor Project = ProjectDescriptor.FromFile(SC.RawProjectPath.FullName);
-			LogLog("Searching for plugins with CurrentWorkingDir: " + Directory.GetCurrentDirectory());
-			LogLog("Searching for plugins in: " + SC.RawProjectPath);
-			List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(new DirectoryReference(CombinePaths(SC.LocalRoot, "Engine")), SC.RawProjectPath);
+			PushDir(CombinePaths(SC.LocalRoot, "Engine", "Source"));
+			String OrigEngineRelativeDir = BuildConfiguration.RelativeEnginePath;
+			BuildConfiguration.RelativeEnginePath = "../../Engine/";
+
+			ProjectDescriptor Project = ProjectDescriptor.FromFile(SC.RawProjectPath);
+			List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(SC.RawProjectPath);
 			foreach (PluginInfo Plugin in AvailablePlugins)
 			{
-				LogLog("Considering Plugin for Stage: " + Plugin.File.FullName);
 				if (UProjectInfo.IsPluginEnabledForProject(Plugin, Project, SC.StageTargetPlatform.PlatformType))
 				{
-					LogLog("EnabledPlugin: " + Plugin.File.FullName);
-					SC.StageFiles(StagedFileType.UFS, Plugin.Directory.FullName, "*.uplugin", false, null, null, true, !Params.UsePak(SC.StageTargetPlatform), null, true, false);
+					SC.StageFiles(StagedFileType.UFS, Plugin.Directory, "*.uplugin", false, null, null, true, !Params.UsePak(SC.StageTargetPlatform), null, true, false);
 				}
 			}
+
+			BuildConfiguration.RelativeEnginePath = OrigEngineRelativeDir;
+			PopDir();
 
             // Game ufs (content)
 
@@ -462,17 +449,17 @@ public partial class Project : CommandUtils
                     // Each string has the format '(Path="TheDirToStage")'
                     foreach (var PathStr in ExtraNonUFSDirs)
                     {
-						var PathParts = PathStr.Split('"');
-						if (PathParts.Length == 3)
-						{
-							var RelativePath = PathParts[1];
-							SC.StageFiles(StagedFileType.NonUFS, CombinePaths(ProjectContentRoot, RelativePath), "*", true, null, CombinePaths(StageContentRoot, RelativePath), true, !Params.UsePak(SC.StageTargetPlatform));
-						}
-						else if (PathParts.Length == 1)
-						{
-							var RelativePath = PathParts[0];
-							SC.StageFiles(StagedFileType.NonUFS, CombinePaths(ProjectContentRoot, RelativePath), "*", true, null, CombinePaths(StageContentRoot, RelativePath), true, !Params.UsePak(SC.StageTargetPlatform));
-						}
+                        var PathParts = PathStr.Split('"');
+                        if (PathParts.Length == 3)
+                        {
+                            var RelativePath = PathParts[1];
+                            SC.StageFiles(StagedFileType.NonUFS, CombinePaths(ProjectContentRoot, RelativePath));
+                        }
+                        else if (PathParts.Length == 1)
+                        {
+                            var RelativePath = PathParts[0];
+                            SC.StageFiles(StagedFileType.UFS, CombinePaths(ProjectContentRoot, RelativePath), "*", true, null, CombinePaths(StageContentRoot, RelativePath), true, !Params.UsePak(SC.StageTargetPlatform));
+                        }
                     }
                 }
             }
@@ -495,7 +482,7 @@ public partial class Project : CommandUtils
 
             // CrashReportClient is a standalone slate app that does not look in the generated pak file, so it needs the Content/Slate and Shaders/StandaloneRenderer folders Non-UFS
             // @todo Make CrashReportClient more portable so we don't have to do this
-            if (SC.bStageCrashReporter && UnrealBuildTool.UnrealBuildTool.PlatformSupportsCrashReporter(SC.StageTargetPlatform.PlatformType))
+            if (SC.bStageCrashReporter && UnrealBuildTool.UnrealBuildTool.PlatformSupportsCrashReporter(SC.StageTargetPlatform.PlatformType) && !SC.DedicatedServer)
             {
                 //If the .dat file needs to be staged as NonUFS for non-Windows/Linux hosts we need to change the casing as we do with the build properties file above.
                 SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Content/Slate"));
@@ -517,10 +504,7 @@ public partial class Project : CommandUtils
                 {
                     SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/OpenSSL"));
                 }
-
-				// Add config files.
-				SC.StageFiles( StagedFileType.NonUFS, CombinePaths( SC.LocalRoot, "Engine/Programs/CrashReportClient/Config" ) );
-			}
+            }
         }
         else
         {
@@ -575,36 +559,8 @@ public partial class Project : CommandUtils
 		}
 	}
 
-	public static void DumpTargetManifest(Dictionary<string, List<string>> Mapping, string Filename, string StageDir, List<string> CRCFiles)
-	{
-		// const string Iso8601DateTimeFormat = "yyyy-MM-ddTHH:mm:ssZ"; // probably should work
-		// const string Iso8601DateTimeFormat = "o"; // predefined universal Iso standard format (has too many millisecond spaces for our read code in FDateTime.ParseISO8601
-		const string Iso8601DateTimeFormat = "yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'fffZ";
-
-		if (Mapping.Count > 0)
-		{
-			var Lines = new List<string>();
-			foreach (var Pair in Mapping)
-			{
-				foreach (var DestFile in Pair.Value)
-				{
-					string TimeStamp = File.GetLastWriteTimeUtc(Pair.Key).ToString(Iso8601DateTimeFormat);
-					if (CRCFiles.Contains(DestFile))
-					{
-						byte[] FileData = File.ReadAllBytes(StageDir + "/" + DestFile);
-						TimeStamp = BitConverter.ToString(System.Security.Cryptography.MD5.Create().ComputeHash(FileData)).Replace("-", string.Empty);
-					}
-					string DestData = DestFile + "\t" + TimeStamp;
-					Lines.Add(DestData);
-				}
-			}
-			WriteAllLines(Filename, Lines.ToArray());
-		}
-	}
-
 	public static void CopyManifestFilesToStageDir(Dictionary<string, string> Mapping, string StageDir, string ManifestName, List<string> CRCFiles)
 	{
-		Log("Copying {0} to staging directory: {1}", ManifestName, StageDir);
 		string ManifestPath = "";
 		string ManifestFile = "";
 		if (!String.IsNullOrEmpty(ManifestName))
@@ -633,40 +589,6 @@ public partial class Project : CommandUtils
 		}
 	}
 
-	public static void CopyManifestFilesToStageDir(Dictionary<string, List<string>> Mapping, string StageDir, string ManifestName, List<string> CRCFiles)
-	{
-		Log("Copying {0} to staging directory: {1}", ManifestName, StageDir);
-		string ManifestPath = "";
-		string ManifestFile = "";
-		if (!String.IsNullOrEmpty(ManifestName))
-		{
-			ManifestFile = "Manifest_" + ManifestName + ".txt";
-			ManifestPath = CombinePaths(StageDir, ManifestFile);
-			DeleteFile(ManifestPath);
-		}
-		foreach (var Pair in Mapping)
-		{
-			string Src = Pair.Key;
-			foreach (var DestPath in Pair.Value)
-			{
-				string DestFile = CombinePaths(StageDir, DestPath);
-				if (Src != DestFile)  // special case for things created in the staging directory, like the pak file
-				{
-					CopyFileIncremental(Src, DestFile, bFilterSpecialLinesFromIniFiles: true);
-				}
-			}
-		}
-		if (!String.IsNullOrEmpty(ManifestPath) && Mapping.Count > 0)
-		{
-			DumpTargetManifest(Mapping, ManifestPath, StageDir, CRCFiles);
-			if (!FileExists(ManifestPath))
-			{
-				throw new AutomationException("Failed to write manifest {0}", ManifestPath);
-			}
-			CopyFile(ManifestPath, CombinePaths(CmdEnv.LogFolder, ManifestFile));
-		}
-	}
-
 	public static void DumpManifest(Dictionary<string, string> Mapping, string Filename)
 	{
 		if (Mapping.Count > 0)
@@ -678,23 +600,6 @@ public partial class Project : CommandUtils
 				string Dest = Pair.Value;
 
 				Lines.Add("\"" + Src + "\" \"" + Dest + "\"");
-			}
-			WriteAllLines(Filename, Lines.ToArray());
-		}
-	}
-
-	public static void DumpManifest(Dictionary<string, List<string>> Mapping, string Filename)
-	{
-		if (Mapping.Count > 0)
-		{
-			var Lines = new List<string>();
-			foreach (var Pair in Mapping)
-			{
-				string Src = Pair.Key;
-				foreach (var DestPath in Pair.Value)
-				{
-					Lines.Add("\"" + Src + "\" \"" + DestPath + "\"");
-				}
 			}
 			WriteAllLines(Filename, Lines.ToArray());
 		}
@@ -806,7 +711,7 @@ public partial class Project : CommandUtils
 				string ConfigDirectory = "Config";
 				int ConfigRootIdx = SrcDirectoryPath.LastIndexOf(ConfigDirectory);
 				string SubpathUnderConfig = (ConfigRootIdx != -1) ? SrcDirectoryPath.Substring(ConfigRootIdx + ConfigDirectory.Length) : "Unknown";
-
+				
 				string NewIniFilename = CombinePaths(SC.ProjectRoot, "Saved", "Temp", SC.PlatformDir, SubpathUnderConfig, "DefaultEngine.ini");
 				InternalUtils.SafeCreateDirectory(Path.GetDirectoryName(NewIniFilename), true);
 				InternalUtils.SafeCopyFile(Src, NewIniFilename, bFilterSpecialLinesFromIniFiles:true);
@@ -827,14 +732,8 @@ public partial class Project : CommandUtils
 
     private static string GetReleasePakFilePath(DeploymentContext SC, ProjectParams Params, string PakName)
     {
-		if (Params.IsGeneratingPatch)
-		{
-			return CombinePaths(Params.GetBasedOnReleaseVersionPath(SC), PakName);
-		}
-		else
-		{
-			return CombinePaths(Params.GetCreateReleaseVersionPath(SC), PakName);
-		}        
+        string ReleaseVersionPath = CombinePaths(Params.GetBasedOnReleaseVersionPath(SC), PakName);
+        return ReleaseVersionPath;
     }
 
 
@@ -925,18 +824,7 @@ public partial class Project : CommandUtils
 
 		if (!bCopiedExistingPak)
 		{
-			if (File.Exists(OutputLocation))
-			{
-				string UnrealPakResponseFileName = CombinePaths(CmdEnv.LogFolder, "PakList_" + PakName + ".txt");
-				if (File.GetLastWriteTimeUtc(OutputLocation) > File.GetLastWriteTimeUtc(UnrealPakResponseFileName))
-				{
-					bCopiedExistingPak = true;
-				}
-			}
-			if (!bCopiedExistingPak)
-			{
-				RunUnrealPak(UnrealPakResponseFile, OutputLocation, Params.SignPak, PakOrderFileLocation, SC.StageTargetPlatform.GetPlatformPakCommandLine(), Params.Compressed, PatchSourceContentPath);
-			}
+			RunUnrealPak(UnrealPakResponseFile, OutputLocation, Params.SignPak, PakOrderFileLocation, SC.StageTargetPlatform.GetPlatformPakCommandLine(), Params.Compressed, PatchSourceContentPath );
 		}
 
 
@@ -1064,15 +952,15 @@ public partial class Project : CommandUtils
 			bool bAddedToChunk = false;
 			for (int ChunkIndex = 0; !bAddedToChunk && ChunkIndex < ChunkResponseFiles.Length; ++ChunkIndex)
 			{
-                		string OriginalFilename = StagingFile.Key;
-                		string NoExtension = CombinePaths(Path.GetDirectoryName(OriginalFilename), Path.GetFileNameWithoutExtension(OriginalFilename));
-                		string OriginalReplaceSlashes = OriginalFilename.Replace('/', '\\');
-                		string NoExtensionReplaceSlashes = NoExtension.Replace('/', '\\');
+                string OriginalFilename = StagingFile.Key;
+                string NoExtension = CombinePaths(Path.GetDirectoryName(OriginalFilename), Path.GetFileNameWithoutExtension(OriginalFilename));
+                string OriginalReplaceSlashes = OriginalFilename.Replace('/', '\\');
+                string NoExtensionReplaceSlashes = NoExtension.Replace('/', '\\');
 
 				if (ChunkResponseFiles[ChunkIndex].Contains(OriginalFilename) || 
-                		    ChunkResponseFiles[ChunkIndex].Contains(OriginalReplaceSlashes) ||
-		                    ChunkResponseFiles[ChunkIndex].Contains(NoExtension) ||
-		                    ChunkResponseFiles[ChunkIndex].Contains(NoExtensionReplaceSlashes))
+                    ChunkResponseFiles[ChunkIndex].Contains(OriginalReplaceSlashes) ||
+                    ChunkResponseFiles[ChunkIndex].Contains(NoExtension) ||
+                    ChunkResponseFiles[ChunkIndex].Contains(NoExtensionReplaceSlashes))
 				{
 					PakResponseFiles[ChunkIndex].Add(StagingFile.Key, StagingFile.Value);
 					bAddedToChunk = true;
@@ -1080,7 +968,6 @@ public partial class Project : CommandUtils
 			}
 			if (!bAddedToChunk)
 			{
-				Log("No chunk assigned found for {0}. Using default chunk.", StagingFile.Key);
 				PakResponseFiles[DefaultChunkIndex].Add(StagingFile.Key, StagingFile.Value);
 			}
 		}
@@ -1131,7 +1018,7 @@ public partial class Project : CommandUtils
 
 	private static string GetTmpPackagingPath(ProjectParams Params, DeploymentContext SC)
 	{
-		return CombinePaths(Path.GetDirectoryName(Params.RawProjectPath.FullName), "Saved", "TmpPackaging", SC.StageTargetPlatform.GetCookPlatform(SC.DedicatedServer, false, Params.CookFlavor));
+		return CombinePaths(Path.GetDirectoryName(Params.RawProjectPath), "Saved", "TmpPackaging", SC.StageTargetPlatform.GetCookPlatform(SC.DedicatedServer, false, Params.CookFlavor));
 	}
 
 	private static bool ShouldCreatePak(ProjectParams Params, DeploymentContext SC)
@@ -1184,10 +1071,9 @@ public partial class Project : CommandUtils
 		StagedFilesDir.GetFiles("*.pak", SearchOption.AllDirectories).ToList().ForEach(File => File.Delete());
 	}
 
-	public static void CleanStagingDirectory(ProjectParams Params, DeploymentContext SC)
+	public static void ApplyStagingManifest(ProjectParams Params, DeploymentContext SC)
 	{
 		MaybeConvertToLowerCase(Params, SC);
-		Log("Cleaning Stage Directory: {0}", SC.StageDirectory);
 		if (SC.Stage && !Params.NoCleanStage && !Params.SkipStage && !Params.IterativeDeploy)
 		{
             try
@@ -1197,7 +1083,7 @@ public partial class Project : CommandUtils
             catch (Exception Ex)
             {
                 // Delete cooked data (if any) as it may be incomplete / corrupted.
-                throw new AutomationException(ExitCode.Error_FailedToDeleteStagingDirectory, Ex, "Stage Failed. Failed to delete staging directory " + SC.StageDirectory);
+                throw new AutomationException(ErrorCodes.Error_FailedToDeleteStagingDirectory, Ex, "Stage Failed. Failed to delete staging directory " + SC.StageDirectory);
             }
 		}
 		else
@@ -1207,16 +1093,12 @@ public partial class Project : CommandUtils
 				// delete old pak files
 				DeletePakFiles(SC.StageDirectory);
 			}
-			catch (Exception Ex)
-			{
-				// Delete cooked data (if any) as it may be incomplete / corrupted.
-				throw new AutomationException(ExitCode.Error_FailedToDeleteStagingDirectory, Ex, "Stage Failed. Failed to delete pak files in " + SC.StageDirectory);
-			}
+            catch (Exception Ex)
+            {
+                // Delete cooked data (if any) as it may be incomplete / corrupted.
+                throw new AutomationException(ErrorCodes.Error_FailedToDeleteStagingDirectory, Ex, "Stage Failed. Failed to delete pak files in " + SC.StageDirectory);
+            }
 		}
-	}
-
-	public static void ApplyStagingManifest(ProjectParams Params, DeploymentContext SC)
-	{
 		if (ShouldCreatePak(Params, SC))
 		{
 			if (Params.Manifests && DoesChunkPakManifestExist(Params, SC))
@@ -1262,7 +1144,6 @@ public partial class Project : CommandUtils
 			return;
 		}
 
-		Log("Creating UE4CommandLine.txt");
 		if (!string.IsNullOrEmpty(Params.StageCommandline) || !string.IsNullOrEmpty(Params.RunCommandline))
 		{
 			string FileHostParams = " ";
@@ -1610,8 +1491,14 @@ public partial class Project : CommandUtils
 			PlatformsToStage = Params.ServerTargetPlatforms;
         }
 
- 		List<DeploymentContext> DeploymentContexts = new List<DeploymentContext>();
-			foreach (var StagePlatform in PlatformsToStage)
+        bool prefixArchiveDir = false;
+        if (PlatformsToStage.Contains(UnrealTargetPlatform.Win32) && PlatformsToStage.Contains(UnrealTargetPlatform.Win64))
+        {
+            prefixArchiveDir = true;
+        }
+
+		List<DeploymentContext> DeploymentContexts = new List<DeploymentContext>();
+		foreach (var StagePlatform in PlatformsToStage)
 		{
 			// Get the platform to get cooked data from, may differ from the stage platform
 			UnrealTargetPlatform CookedDataPlatform = Params.GetCookedDataPlatformForClientTarget(StagePlatform);
@@ -1638,16 +1525,28 @@ public partial class Project : CommandUtils
 				}
             }
 
-			string StageDirectory = ((ShouldCreatePak(Params) || (Params.Stage)) || !String.IsNullOrEmpty(Params.StageDirectoryParam)) ? Params.BaseStageDirectory : "";
+			string StageDirectory = ((ShouldCreatePak(Params) || (Params.Stage && !Params.SkipStage)) || !String.IsNullOrEmpty(Params.StageDirectoryParam)) ? Params.BaseStageDirectory : "";
             string ArchiveDirectory = (Params.Archive || !String.IsNullOrEmpty(Params.ArchiveDirectoryParam)) ? Params.BaseArchiveDirectory : "";
+            if (prefixArchiveDir && (StagePlatform == UnrealTargetPlatform.Win32 || StagePlatform == UnrealTargetPlatform.Win64))
+            {
+                if (Params.Stage)
+                {
+                    StageDirectory = CombinePaths(Params.BaseStageDirectory, StagePlatform.ToString());
+                }
+                if (Params.Archive)
+                {
+                    ArchiveDirectory = CombinePaths(Params.BaseArchiveDirectory, StagePlatform.ToString());
+                }
+            }
+
 			string EngineDir = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine");
 
-			List<StageTarget> TargetsToStage = new List<StageTarget>();
+			List<BuildReceipt> TargetsToStage = new List<BuildReceipt>();
 			foreach(string Target in ListToProcess)
 			{
 				foreach(UnrealTargetConfiguration Config in ConfigsToProcess)
 				{
-					string ReceiptBaseDir = Params.IsCodeBasedProject? Path.GetDirectoryName(Params.RawProjectPath.FullName) : EngineDir;
+					string ReceiptBaseDir = Params.IsCodeBasedProject? Path.GetDirectoryName(Params.RawProjectPath) : EngineDir;
 
 					Platform PlatformInstance = Platform.Platforms[StagePlatform];
 					UnrealTargetPlatform[] SubPlatformsToStage = PlatformInstance.GetStagePlatforms();
@@ -1664,16 +1563,16 @@ public partial class Project : CommandUtils
                             var BuildPlatform = UEBuildPlatform.GetBuildPlatform(ReceiptPlatform, true);
                             if (BuildPlatform != null)
                             {
-                                Architecture = BuildPlatform.CreateContext(Params.RawProjectPath).GetActiveArchitecture();
+                                Architecture = BuildPlatform.GetActiveArchitecture();
                             }
                         }
-						string ReceiptFileName = TargetReceipt.GetDefaultPath(ReceiptBaseDir, Target, ReceiptPlatform, Config, Architecture);
+						string ReceiptFileName = BuildReceipt.GetDefaultPath(ReceiptBaseDir, Target, ReceiptPlatform, Config, Architecture);
 						if(!File.Exists(ReceiptFileName))
 						{
 							if (bRequireStagedFilesToExist)
 							{
 								// if we aren't collecting multiple platforms, then it is expected to exist
-                                throw new AutomationException(ExitCode.Error_MissingExecutable, "Stage Failed. Missing receipt '{0}'. Check that this target has been built.", Path.GetFileName(ReceiptFileName));
+                                throw new AutomationException(ErrorCodes.Error_MissingExecutable, "Stage Failed. Missing receipt '{0}'. Check that this target has been built.", Path.GetFileName(ReceiptFileName));
 							}
 							else
 							{
@@ -1683,16 +1582,11 @@ public partial class Project : CommandUtils
 
 						}
 
-						// Read the receipt for this target
-						TargetReceipt Receipt;
-						if(!TargetReceipt.TryRead(ReceiptFileName, out Receipt))
-						{
-							throw new AutomationException("Missing or invalid target receipt ({0})", ReceiptFileName);
-						}
-
 						// Convert the paths to absolute
-						Receipt.ExpandPathVariables(new DirectoryReference(EngineDir), Params.RawProjectPath.Directory);
-						TargetsToStage.Add(new StageTarget{ Receipt = Receipt, RequireFilesExist = bRequireStagedFilesToExist });
+						BuildReceipt Receipt = BuildReceipt.Read(ReceiptFileName);
+						Receipt.ExpandPathVariables(EngineDir, Path.GetDirectoryName(Params.RawProjectPath));
+						Receipt.SetDependenciesToBeRequired(bRequireStagedFilesToExist);
+						TargetsToStage.Add(Receipt);
 					}
 				}
 			}
@@ -1745,17 +1639,11 @@ public partial class Project : CommandUtils
 			if (!Params.NoClient)
 			{
 				var DeployContextList = CreateDeploymentContext(Params, false, true);
-
-				// clean the staging directories first
 				foreach (var SC in DeployContextList)
 				{
 					// write out the commandline file now so it can go into the manifest
 					WriteStageCommandline(Params, SC);
 					CreateStagingManifest(Params, SC);
-					CleanStagingDirectory(Params, SC);
-				}
-				foreach (var SC in DeployContextList)
-				{
 					ApplyStagingManifest(Params, SC);
 
 					if (Params.Deploy)

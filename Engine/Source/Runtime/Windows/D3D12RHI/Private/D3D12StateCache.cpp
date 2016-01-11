@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 // Implementation of Device Context State Caching to improve draw
 //	thread performance by removing redundant device context calls.
@@ -1188,8 +1188,8 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 			}
 			else
 			{
-			NumUAVs = PipelineState.Common.CurrentNumberOfSimultaneousUAVs;
-		}
+				NumUAVs = PipelineState.Common.CurrentNumberOfSimultaneousUAVs;
+			}
 		}
 		for (uint32 Stage = StartStage; Stage < EndStage; ++Stage)
 		{
@@ -1202,10 +1202,10 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 				}
 				else
 				{
-				// Disable SRV slot optimization for now. This will causes us to use a lot more descriptor heap slots.
-				//NumSRVs[Stage] = PipelineState.Common.MaxBoundShaderResourcesIndex[Stage] + 1;
-				NumSRVs[Stage] = MAX_SRVS;
-			}
+					// Disable SRV slot optimization for now. This will causes us to use a lot more descriptor heap slots.
+					//NumSRVs[Stage] = PipelineState.Common.MaxBoundShaderResourcesIndex[Stage] + 1;
+					NumSRVs[Stage] = MAX_SRVS;
+				}
 			}
 			if ((bNeedSetConstantBuffers && (bNeedSetConstantBuffersPerShaderStage[Stage])) || bForceState)
 			{
@@ -1216,8 +1216,8 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 				}
 				else
 				{
-				NumCBs[Stage] = PipelineState.Common.CurrentShaderCBCounts[Stage];
-			}
+					NumCBs[Stage] = PipelineState.Common.CurrentShaderCBCounts[Stage];
+				}
 			}
 			NumSRVs[SF_NumFrequencies] += NumSRVs[Stage];
 			NumCBs[SF_NumFrequencies] += NumCBs[Stage];
@@ -1250,8 +1250,8 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 					}
 					else
 					{
-					NumSamplers[Stage] = PipelineState.Common.CurrentShaderSamplerCounts[Stage];
-				}
+						NumSamplers[Stage] = PipelineState.Common.CurrentShaderSamplerCounts[Stage];
+					}
 				}
 				NumSamplers[SF_NumFrequencies] += NumSamplers[Stage];
 			}

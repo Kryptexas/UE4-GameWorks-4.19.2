@@ -1,7 +1,6 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "EditorAnimUtils.h"
 
 /**
  * Remap Skeleton Asset Data
@@ -71,5 +70,5 @@ private: // Helper functions
 	void OnAssetCreated(TArray<UObject*> NewAssets) const;
 
 	/** Handler for retargeting */
-	void RetargetAnimationHandler(USkeleton* OldSkeleton, USkeleton* NewSkeleton, bool bRemapReferencedAssets, bool bAllowRemapToExisting, bool bConvertSpaces, const EditorAnimUtils::FNameDuplicationRule* NameRule);
+	void RetargetAnimationHandler(USkeleton* OldSkeleton, USkeleton* NewSkeleton, bool bRemapReferencedAssets, bool bConvertSpaces);
 };

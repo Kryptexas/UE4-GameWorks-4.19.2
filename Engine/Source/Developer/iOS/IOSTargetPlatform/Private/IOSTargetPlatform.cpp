@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IOSTargetPlatform.cpp: Implements the FIOSTargetPlatform class.
@@ -6,18 +6,12 @@
 
 #include "IOSTargetPlatformPrivatePCH.h"
 #include "IProjectManager.h"
-#include "InstalledPlatformInfo.h"
 
 /* FIOSTargetPlatform structors
  *****************************************************************************/
 
-FIOSTargetPlatform::FIOSTargetPlatform(bool bInIsTVOS)
-	: bIsTVOS(bInIsTVOS)
+FIOSTargetPlatform::FIOSTargetPlatform()
 {
-    if (bIsTVOS)
-    {
-        this->PlatformInfo = PlatformInfo::FindPlatformInfo("TVOS");
-    }
 #if WITH_ENGINE
 	FConfigCacheIni::LoadLocalIniFile(EngineSettings, TEXT("Engine"), true, *PlatformName());
 	TextureLODSettings = nullptr; // TextureLODSettings are registered by the device profile.
@@ -126,18 +120,15 @@ int32 FIOSTargetPlatform::CheckRequirements(const FString& ProjectPath, bool bPr
 	OutTutorialPath = FString("/Engine/Tutorial/Installation/InstallingXCodeTutorial.InstallingXCodeTutorial");
     // shell to certtool
 #else
-	if (!FInstalledPlatformInfo::Get().IsValidPlatform(GetPlatformInfo().BinaryFolderName, EProjectType::Code))
+	if (bProjectHasCode && FRocketSupport::IsRocket())
 	{
-		if (bProjectHasCode)
-		{
-			OutTutorialPath = FString("/Engine/Tutorial/Mobile/iOSonPCRestrictions.iOSonPCRestrictions");
-			bReadyToBuild |= ETargetPlatformReadyStatus::CodeUnsupported;
-		}
-		if (IProjectManager::Get().IsNonDefaultPluginEnabled())
-		{
-			OutTutorialPath = FString("/Engine/Tutorial/Mobile/iOSonPCValidPlugins.iOSonPCValidPlugins");
-			bReadyToBuild |= ETargetPlatformReadyStatus::PluginsUnsupported;
-		}
+		OutTutorialPath = FString("/Engine/Tutorial/Mobile/iOSonPCRestrictions.iOSonPCRestrictions");
+		bReadyToBuild |= ETargetPlatformReadyStatus::CodeUnsupported;
+	}
+	if (FRocketSupport::IsRocket() && IProjectManager::Get().IsNonDefaultPluginEnabled())
+	{
+		OutTutorialPath = FString("/Engine/Tutorial/Mobile/iOSonPCValidPlugins.iOSonPCValidPlugins");
+		bReadyToBuild |= ETargetPlatformReadyStatus::PluginsUnsupported;
 	}
 #endif
 
@@ -262,24 +253,17 @@ void FIOSTargetPlatform::HandleDeviceConnected(const FIOSLaunchDaemonPong& Messa
 	
 	if (!Device.IsValid())
 	{
-		if ((Message.DeviceType.Contains(TEXT("AppleTV")) && bIsTVOS) || (!Message.DeviceType.Contains(TEXT("AppleTV")) && !bIsTVOS))
-		{
-			Device = MakeShareable(new FIOSTargetDevice(*this));
-
-			Device->SetFeature(ETargetDeviceFeatures::Reboot, Message.bCanReboot);
-			Device->SetFeature(ETargetDeviceFeatures::PowerOn, Message.bCanPowerOn);
-			Device->SetFeature(ETargetDeviceFeatures::PowerOff, Message.bCanPowerOff);
-			Device->SetDeviceId(DeviceId);
-			Device->SetDeviceName(Message.DeviceName);
-			Device->SetDeviceType(Message.DeviceType);
-			Device->SetIsSimulated(Message.DeviceID.Contains(TEXT("Simulator")));
-
-			DeviceDiscoveredEvent.Broadcast(Device.ToSharedRef());
-		}
-		else
-		{
-			return;
-		}
+		Device = MakeShareable(new FIOSTargetDevice(*this));
+		
+		Device->SetFeature(ETargetDeviceFeatures::Reboot, Message.bCanReboot);
+		Device->SetFeature(ETargetDeviceFeatures::PowerOn, Message.bCanPowerOn);
+		Device->SetFeature(ETargetDeviceFeatures::PowerOff, Message.bCanPowerOff);
+		Device->SetDeviceId(DeviceId);
+		Device->SetDeviceName(Message.DeviceName);
+		Device->SetDeviceType(Message.DeviceType);
+		Device->SetIsSimulated(Message.DeviceID.Contains(TEXT("Simulator")));
+		
+		DeviceDiscoveredEvent.Broadcast(Device.ToSharedRef());
 	}
 	
 	// Add a very long time period to prevent the devices from getting disconnected due to a lack of pong messages
@@ -435,8 +419,8 @@ void FIOSTargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FNam
 
 	// perform any remapping away from defaults
 	bool bFoundRemap = false;
-	bool bIncludePVRTC = !bIsTVOS && CookPVRTC();
-	bool bIncludeASTC = bIsTVOS || CookASTC();
+	bool bIncludePVRTC = CookPVRTC();
+	bool bIncludeASTC = CookASTC();
 	for (int32 RemapIndex = 0; RemapIndex < ARRAY_COUNT(FormatRemap); RemapIndex += 3)
 	{
 		if (TextureFormatName == FormatRemap[RemapIndex])

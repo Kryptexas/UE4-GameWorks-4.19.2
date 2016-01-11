@@ -1,12 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneSlomoSection.h"
 #include "MovieSceneSlomoTrack.h"
 #include "MovieSceneSlomoTrackInstance.h"
-
-
-#define LOCTEXT_NAMESPACE "MovieSceneSlomoTrack"
 
 
 /* UMovieSceneEventTrack interface
@@ -24,14 +21,7 @@ UMovieSceneSection* UMovieSceneSlomoTrack::CreateNewSection()
 }
 
 
-#if WITH_EDITORONLY_DATA
-
-FText UMovieSceneSlomoTrack::GetDisplayName() const
+FName UMovieSceneSlomoTrack::GetTrackName() const
 {
-	return LOCTEXT("TrackName", "Play Rate");
+	return FName("Play Rate");
 }
-
-#endif
-
-
-#undef LOCTEXT_NAMESPACE

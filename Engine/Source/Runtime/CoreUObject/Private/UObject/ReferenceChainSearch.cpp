@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
 
@@ -148,12 +148,12 @@ void FReferenceChainSearch::PrintReferencers( FReferenceChain& Referencer )
 		}
 		
 		CA_SUPPRESS(6011)
-		if( RefInfo.ReferencedBy->IsNative() )
+		if( RefInfo.ReferencedBy->HasAnyFlags(RF_Native) )
 		{
 			ObjectReachability += TEXT("(native) ");
 		}
 		
-		if( RefInfo.ReferencedBy->IsPendingKill() )
+		if( RefInfo.ReferencedBy->HasAnyFlags(RF_PendingKill) )
 		{
 			ObjectReachability += TEXT("(PendingKill) ");
 		}
@@ -163,17 +163,7 @@ void FReferenceChainSearch::PrintReferencers( FReferenceChain& Referencer )
 			ObjectReachability += TEXT("(standalone) ");
 		}
 
-		if (RefInfo.ReferencedBy->HasAnyInternalFlags(EInternalObjectFlags::Async))
-		{
-			ObjectReachability += TEXT("(async) ");
-		}
-
-		if (RefInfo.ReferencedBy->HasAnyInternalFlags(EInternalObjectFlags::AsyncLoading))
-		{
-			ObjectReachability += TEXT("(asyncloading) ");
-		}
-
-		if (GUObjectArray.IsDisregardForGC(RefInfo.ReferencedBy))
+		if (GetUObjectArray().IsDisregardForGC(RefInfo.ReferencedBy))
 		{
 			ObjectReachability += TEXT("(NeverGCed) ");
 		}
@@ -252,7 +242,7 @@ void CreateReferenceChain(FRefGraphItem* Node, FReferenceChainSearch::FReference
 		ChainArray.Push(ThisChain);
 		return;
 	}
-	if (Node->Link.ReferencedObj->HasAnyFlags(GARBAGE_COLLECTION_KEEPFLAGS) || Node->Link.ReferencedObj->IsRooted())
+	if (Node->Link.ReferencedObj->HasAnyFlags(GARBAGE_COLLECTION_KEEPFLAGS | RF_RootSet))
 	{
 		return;
 	}
@@ -288,11 +278,9 @@ void FReferenceChainSearch::BuildRefGraph()
 	// Create the first graph-nodes referencing the target object
 	for (FRawObjectIterator It;It;++It)
 	{
-		FUObjectItem* ObjItem = *It;
-		checkSlow(ObjItem);
-		UObject* Object = static_cast<UObject*>(ObjItem->Object);
+		UObject* Obj = *It;
 
-		TArray<FReferenceChainLink>& RefList = ReferenceMap.FindChecked(Object);
+		TArray<FReferenceChainLink>& RefList = ReferenceMap.FindChecked(Obj);
 
 		for (int32 i=0; i < RefList.Num(); ++i)
 		{
@@ -319,15 +307,14 @@ void FReferenceChainSearch::BuildRefGraph()
 
 		for (FRawObjectIterator It;It;++It)
 		{
-			FUObjectItem* ObjItem = *It;
-			checkSlow(ObjItem->Object);
-			UObject* Object = (UObject*)ObjItem->Object;
-			TArray<FReferenceChainLink>& RefList = ReferenceMap.FindChecked(Object);
+			UObject* Obj = *It;
+
+			TArray<FReferenceChainLink>& RefList = ReferenceMap.FindChecked(Obj);
 
 			for (int32 i=0; i < RefList.Num(); ++i)
 			{
 				if (RefList[i].ReferenceType == EReferenceType::Invalid ||
-					RefList[i].ReferencedObj->HasAnyFlags(GARBAGE_COLLECTION_KEEPFLAGS) || RefList[i].ReferencedObj->IsRooted()) // references to rooted objects are not important
+					RefList[i].ReferencedObj->HasAnyFlags(GARBAGE_COLLECTION_KEEPFLAGS | RF_RootSet)) // references to rooted objects are not important
 				{ 
 					continue; 
 				}
@@ -378,7 +365,7 @@ void FReferenceChainSearch::BuildRefGraph()
 	{
 		FRefGraphItem* Node = It.Value();
 
-		if (Node->Link.ReferencedBy->HasAnyFlags(GARBAGE_COLLECTION_KEEPFLAGS) || Node->Link.ReferencedBy->IsRooted())
+		if (Node->Link.ReferencedBy->HasAnyFlags(GARBAGE_COLLECTION_KEEPFLAGS | RF_RootSet))
 		{
 			FReferenceChain CurChain;
 			CreateReferenceChain(Node, CurChain, Chains, ObjectToFind, Level);
@@ -397,9 +384,9 @@ void FReferenceChainSearch::PerformSearch()
 	
 	for (FRawObjectIterator It;It;++It)
 	{
-		FUObjectItem* CurrentObject = *It;
-		UObject* Object = static_cast<UObject*>(CurrentObject->Object);
-		ProcessObject(Object);
+		UObject* CurrentObject = *It;
+
+		ProcessObject(CurrentObject);
 	}
 
 	BuildRefGraph();
@@ -833,12 +820,12 @@ FString FReferenceChainSearch::FReferenceChainLink::ToString() const
 		ObjectReachability += TEXT("(root) ");
 	}
 		
-	if( ReferencedBy->IsNative() )
+	if( ReferencedBy->HasAnyFlags(RF_Native) )
 	{
 		ObjectReachability += TEXT("(native) ");
 	}
 
-	if( ReferencedBy->IsPendingKill() )
+	if( ReferencedBy->HasAnyFlags(RF_PendingKill) )
 	{
 		ObjectReachability += TEXT("(PendingKill) ");
 	}
@@ -848,7 +835,7 @@ FString FReferenceChainSearch::FReferenceChainLink::ToString() const
 		ObjectReachability += TEXT("(standalone) ");
 	}
 
-	if (GUObjectArray.IsDisregardForGC(ReferencedBy))
+	if (GetUObjectArray().IsDisregardForGC(ReferencedBy))
 	{
 		ObjectReachability += TEXT("(NeverGCed) ");
 	}

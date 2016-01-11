@@ -1,9 +1,7 @@
-﻿INTSourceChangelist:2374181
-Availability:Public
-Title:生成 Actors
+﻿Availability:Public
+Title:生成Actor
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture
-Description:在游戏代码中生成新的Actors替代物体的方法。
-Version: 4.5
+Description:在游戏代码中创建Actors (AActors)新实例的方式。
 
 [TOC(start:2 end:3)]
 
@@ -46,7 +44,7 @@ Version: 4.5
 |[REGION:tablesection]返回值[/REGION]||
 | 生成的 _Actor_ 是以 `AActor` 指针的形式呈现。返回值必须类型转换为 `Class` 参数指定的衍生类型。||
 
-### 用法
+### 应用
 
 	AKAsset* SpawnedActor1 = (AKAsset*) GetWorld()->SpawnActor(AKAsset::StaticClass(), NAME_None, &Location);
 
@@ -73,7 +71,7 @@ Version: 4.5
 		return (T*)(GetWorld()->SpawnActor(T::StaticClass(), NAME_None, NULL, NULL, NULL, bNoCollisionFail, false, Owner, Instigator));
 	}
 
-#### 用法
+#### 应用
 
 	MyHUD = SpawnActor<AHUD>(this, Instigator);
 
@@ -97,7 +95,7 @@ Version: 4.5
 		return (T*)(GetWorld()->SpawnActor(T::StaticClass(), NAME_None, &Location, &Rotation, NULL, bNoCollisionFail, false, Owner, Instigator));
 	}
 
-#### 用法
+#### 应用
 
 	Controller = SpawnActor<AController>(GetLocation(), GetRotation(), NULL, Instigator, true);
 
@@ -120,7 +118,7 @@ Version: 4.5
 	{
 		return (Class != NULL) ? Cast<T>(GetWorld()->SpawnActor(Class, NAME_None, NULL, NULL, NULL, bNoCollisionFail, false, Owner, Instigator)) : NULL;
 	}
-#### 用法
+#### 应用
 
 	MyHUD = SpawnActor<AHUD>(NewHUDClass, this, Instigator);
 
@@ -145,6 +143,6 @@ Version: 4.5
 		return (Class != NULL) ? Cast<T>(GetWorld()->SpawnActor(Class, NAME_None, &Location, &Rotation, NULL, bNoCollisionFail, false, Owner, Instigator)) : NULL;
 	}
 
-#### 用法
+#### 应用
 
 	APawn* ResultPawn = SpawnActor<APawn>(DefaultPawnClass, StartLocation, StartRotation, NULL, Instigator);

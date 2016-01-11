@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "PaperTileMapComponent.h"
@@ -44,7 +44,7 @@ FTileMapEditorViewportClient::FTileMapEditorViewportClient(TWeakPtr<FTileMapEdit
 	bShowPivot = false;
 
 	EngineShowFlags.DisableAdvancedFeatures();
-	EngineShowFlags.SetCompositeEditorPrimitives(true);
+	EngineShowFlags.CompositeEditorPrimitives = true;
 
 	// Create a render component for the tile map being edited
 	{
@@ -259,7 +259,7 @@ bool FTileMapEditorViewportClient::IsShowLayerGridChecked() const
 
 void FTileMapEditorViewportClient::ToggleShowMeshEdges()
 {
-	EngineShowFlags.SetMeshEdges(!EngineShowFlags.MeshEdges);
+	EngineShowFlags.MeshEdges = !EngineShowFlags.MeshEdges;
 	Invalidate();
 }
 

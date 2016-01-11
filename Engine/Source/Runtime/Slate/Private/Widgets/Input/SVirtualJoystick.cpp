@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "SVirtualJoystick.h"
@@ -292,7 +292,7 @@ bool SVirtualJoystick::HandleTouch(int32 ControlIndex, const FVector2D& LocalCoo
 	else
 	{
 		// clamp to the ellipse of the stick (snaps to the visual size, so, the art should go all the way to the edge of the texture)
-		float DistanceToTouchSqr = Offset.SizeSquared();
+		float DistanceToTouch = Offset.Size();
 		float Angle = FMath::Atan2(Offset.Y, Offset.X);
 
 		// length along line to ellipse: L = 1.0 / sqrt(((sin(T)/Rx)^2 + (cos(T)/Ry)^2))
@@ -303,7 +303,7 @@ bool SVirtualJoystick::HandleTouch(int32 ControlIndex, const FVector2D& LocalCoo
 		float DistanceToEdge = FMath::InvSqrt(XTerm * XTerm + YTerm * YTerm);
 
 		// only clamp 
-		if (DistanceToTouchSqr > FMath::Square(DistanceToEdge))
+		if (DistanceToTouch > DistanceToEdge)
 		{
 			Control.ThumbPosition = FVector2D(DistanceToEdge * CosAngle,  DistanceToEdge * SinAngle);
 		}

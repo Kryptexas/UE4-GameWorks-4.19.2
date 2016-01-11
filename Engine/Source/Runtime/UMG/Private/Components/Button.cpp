@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 
@@ -35,8 +35,6 @@ TSharedRef<SWidget> UButton::RebuildWidget()
 		.OnClicked(BIND_UOBJECT_DELEGATE(FOnClicked, SlateHandleClicked))
 		.OnPressed(BIND_UOBJECT_DELEGATE(FSimpleDelegate, SlateHandlePressed))
 		.OnReleased(BIND_UOBJECT_DELEGATE(FSimpleDelegate, SlateHandleReleased))
-		.OnHovered_UObject( this, &ThisClass::SlateHandleHovered )
-		.OnUnhovered_UObject( this, &ThisClass::SlateHandleUnhovered )
 		.ButtonStyle(&WidgetStyle)
 		.ClickMethod(ClickMethod)
 		.TouchMethod(TouchMethod)
@@ -82,30 +80,21 @@ void UButton::OnSlotRemoved(UPanelSlot* Slot)
 	}
 }
 
-void UButton::SetStyle(const FButtonStyle& InStyle)
+void UButton::SetColorAndOpacity(FLinearColor Color)
 {
-	WidgetStyle = InStyle;
+	ColorAndOpacity = Color;
 	if ( MyButton.IsValid() )
 	{
-		MyButton->SetButtonStyle(&WidgetStyle);
+		MyButton->SetColorAndOpacity(Color);
 	}
 }
 
-void UButton::SetColorAndOpacity(FLinearColor InColorAndOpacity)
+void UButton::SetBackgroundColor(FLinearColor Color)
 {
-	ColorAndOpacity = InColorAndOpacity;
+	BackgroundColor = Color;
 	if ( MyButton.IsValid() )
 	{
-		MyButton->SetColorAndOpacity(InColorAndOpacity);
-	}
-}
-
-void UButton::SetBackgroundColor(FLinearColor InBackgroundColor)
-{
-	BackgroundColor = InBackgroundColor;
-	if ( MyButton.IsValid() )
-	{
-		MyButton->SetBorderBackgroundColor(InBackgroundColor);
+		MyButton->SetBorderBackgroundColor(Color);
 	}
 }
 
@@ -166,16 +155,6 @@ void UButton::SlateHandlePressed()
 void UButton::SlateHandleReleased()
 {
 	OnReleased.Broadcast();
-}
-
-void UButton::SlateHandleHovered()
-{
-	OnHovered.Broadcast();
-}
-
-void UButton::SlateHandleUnhovered()
-{
-	OnUnhovered.Broadcast();
 }
 
 #if WITH_EDITOR

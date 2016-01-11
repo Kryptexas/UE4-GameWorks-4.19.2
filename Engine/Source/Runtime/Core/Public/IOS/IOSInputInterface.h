@@ -1,13 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "IInputInterface.h"
-#include "IForceFeedbackSystem.h"
-#if !PLATFORM_TVOS
 #import <CoreMotion/CoreMotion.h>
-#endif
-#import <GameController/GameController.h>
+
+#include "IInputInterface.h"
 
 enum TouchType
 {
@@ -27,12 +24,11 @@ struct TouchInput
 /**
  * Interface class for IOS input devices
  */
-class FIOSInputInterface : public IForceFeedbackSystem, FSelfRegisteringExec
+class FIOSInputInterface : private FSelfRegisteringExec, public IInputInterface
 {
 public:
 
 	static TSharedRef< FIOSInputInterface > Create(  const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler );
-	static TSharedPtr< FIOSInputInterface > Get();
 
 public:
 
@@ -50,26 +46,20 @@ public:
 
 	static void QueueTouchInput(TArray<TouchInput> InTouchEvents);
 
-	//~ Begin Exec Interface
+	// Begin Exec Interface
 	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
-	//~ End Exec Interface
+	// End Exec Interface
 
 	/**
-	 * IForceFeedbackSystem implementation
-	 */
-	virtual void SetForceFeedbackChannelValue(int32 ControllerId, FForceFeedbackChannelType ChannelType, float Value) override {}
-	virtual void SetForceFeedbackChannelValues(int32 ControllerId, const FForceFeedbackValues &values) override {}
+	* IForceFeedbackSystem implementation
+	*/
+	virtual void SetForceFeedbackChannelValue(int32 ControllerId, FForceFeedbackChannelType ChannelType, float Value) override;
+	virtual void SetForceFeedbackChannelValues(int32 ControllerId, const FForceFeedbackValues &values) override;
 	virtual void SetLightColor(int32 ControllerId, FColor Color) override {}
-
-	bool IsControllerAssignedToGamepad(int32 ControllerId);
 
 private:
 
 	FIOSInputInterface( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler );
-
-	// handle disconnect and connect events
-	void HandleConnection(GCController* Controller);
-	void HandleDisconnect(GCController* Controller);
 	
 	/**
 	 * Get the current Movement data from the device
@@ -84,11 +74,9 @@ private:
 	/**
 	 * Calibrate the devices motion
 	 */
-	void CalibrateMotion(uint32 PlayerIndex);
+	void CalibrateMotion();
 
 private:
-	void ProcessTouches(uint32 ControllerId);
-
 
 	static TArray<TouchInput> TouchInputStack;
 
@@ -98,44 +86,13 @@ private:
 	TSharedRef< FGenericApplicationMessageHandler > MessageHandler;
 
 
-	/** Game controller objects (per user)*/
-	struct FUserController
-	{
-		GCGamepadSnapshot* PreviousGamepad;
-		GCExtendedGamepadSnapshot* PreviousExtendedGamepad;
-#if PLATFORM_TVOS
-		GCMicroGamepadSnapshot* PreviousMicroGamepad;
-#endif
-		FQuat ReferenceAttitude;
-		bool bNeedsReferenceAttitude;
-		bool bHasReferenceAttitude;
-		bool bIsGamepadConnected;
-		bool bIsRemoteConnected;
-		bool bPauseWasPressed;
-	};
-	// there is a hardcoded limit of 4 controllers in the API
-	FUserController Controllers[4];
+private:
 
-	// can the remote be rotated to landscape
-	bool bAllowRemoteRotation;
-
-	// is the remote treated as a separate controller?
-	bool bTreatRemoteAsSeparateController;
-
-	// should the remote be used as virtual joystick vs touch events
-	bool bUseRemoteAsVirtualJoystick;
-
-	// should the tracking use the pad center as the virtual joystick center?
-	bool bUseRemoteAbsoluteDpadValues;
-	
-#if !PLATFORM_TVOS
 	/** Access to the ios devices motion */
 	CMMotionManager* MotionManager;
 
 	/** Access to the ios devices tilt information */
 	CMAttitude* ReferenceAttitude;
-#endif
-	
 
 	/** Last frames roll, for calculating rate */
 	float LastRoll;

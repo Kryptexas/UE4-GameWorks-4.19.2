@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneFloatSection.h"
@@ -45,23 +45,27 @@ void UMovieSceneFloatSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 }
 
 
-void UMovieSceneFloatSection::AddKey( float Time, const float& Value, EMovieSceneKeyInterpolation KeyInterpolation )
+void UMovieSceneFloatSection::AddKey( float Time, float Value, FKeyParams KeyParams )
 {
-	AddKeyToCurve( FloatCurve, Time, Value, KeyInterpolation );
+	Modify();
+
+	if (FloatCurve.GetNumKeys() == 0 && !KeyParams.bAddKeyEvenIfUnchanged)
+	{
+		FloatCurve.SetDefaultValue(Value);
+	}
+	else
+	{
+		FloatCurve.UpdateOrAddKey(Time, Value);
+	}
 }
 
 
-bool UMovieSceneFloatSection::NewKeyIsNewData(float Time, const float& Value) const
+bool UMovieSceneFloatSection::NewKeyIsNewData(float Time, float Value, FKeyParams KeyParams) const
 {
-	return FMath::IsNearlyEqual( FloatCurve.Eval( Time ), Value ) == false;
-}
+	if ( FloatCurve.GetNumKeys() == 0 || (KeyParams.bAutoKeying && Eval(Time) != Value) )
+	{
+		return true;
+	}
 
-bool UMovieSceneFloatSection::HasKeys( const float& Value ) const
-{
-	return FloatCurve.GetNumKeys() > 0;
-}
-
-void UMovieSceneFloatSection::SetDefault( const float& Value )
-{
-	SetCurveDefault( FloatCurve, Value );
+	return false;
 }

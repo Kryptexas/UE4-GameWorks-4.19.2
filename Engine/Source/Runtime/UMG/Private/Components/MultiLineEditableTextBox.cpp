@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 #include "SlateFontInfo.h"
@@ -15,18 +15,14 @@ UMultiLineEditableTextBox::UMultiLineEditableTextBox(const FObjectInitializer& O
 	BackgroundColor_DEPRECATED = FLinearColor::White;
 	ReadOnlyForegroundColor_DEPRECATED = FLinearColor::Black;
 
-	if (!UE_SERVER)
-	{
-		static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
-		Font_DEPRECATED = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Bold"));
-	}
+	static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
+	Font_DEPRECATED = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Bold"));
 
-	AutoWrapText = true;
+	bAutoWrapText = true;
 
 	SMultiLineEditableTextBox::FArguments Defaults;
 	WidgetStyle = *Defaults._Style;
 	TextStyle = *Defaults._TextStyle;
-	AllowContextMenu = Defaults._AllowContextMenu.Get();
 }
 
 void UMultiLineEditableTextBox::ReleaseSlateResources(bool bReleaseChildren)
@@ -41,7 +37,9 @@ TSharedRef<SWidget> UMultiLineEditableTextBox::RebuildWidget()
 	MyEditableTextBlock = SNew(SMultiLineEditableTextBox)
 		.Style(&WidgetStyle)
 		.TextStyle(&TextStyle)
-		.AllowContextMenu(AllowContextMenu)
+		.Justification(Justification)
+		.AutoWrapText( bAutoWrapText )
+		.WrapTextAt( WrapTextAt )
 //		.MinDesiredWidth(MinimumDesiredWidth)
 //		.Padding(Padding)
 //		.IsCaretMovedWhenGainFocus(IsCaretMovedWhenGainFocus)
@@ -60,20 +58,14 @@ void UMultiLineEditableTextBox::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
 
-	TAttribute<FText> HintTextBinding = OPTIONAL_BINDING(FText, HintText);
-
 	MyEditableTextBlock->SetStyle(&WidgetStyle);
 	MyEditableTextBlock->SetText(Text);
-	MyEditableTextBlock->SetHintText(HintTextBinding);
-	MyEditableTextBlock->SetAllowContextMenu(AllowContextMenu);
-
+//	MyEditableTextBlock->SetHintText(HintText);
 //	MyEditableTextBlock->SetIsReadOnly(IsReadOnly);
 //	MyEditableTextBlock->SetIsPassword(IsPassword);
 //	MyEditableTextBlock->SetColorAndOpacity(ColorAndOpacity);
 
 	// TODO UMG Complete making all properties settable on SMultiLineEditableTextBox
-
-	Super::SynchronizeTextLayoutProperties(*MyEditableTextBlock);
 }
 
 FText UMultiLineEditableTextBox::GetText() const

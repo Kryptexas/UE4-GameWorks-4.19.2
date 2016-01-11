@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalRender.cpp: Skeletal mesh skinning/rendering code.
@@ -7,7 +7,6 @@
 #include "EnginePrivate.h"
 #include "SkeletalRender.h"
 #include "SkeletalRenderPublic.h"
-#include "PhysicsEngine/PhysicsAsset.h"
 
 /*-----------------------------------------------------------------------------
 Globals
@@ -181,63 +180,6 @@ void FSkeletalMeshObject::InitLODInfos(const USkinnedMeshComponent* SkelComponen
 	}
 }
 
-const FQuat SphylBasis(FVector(1.0f / FMath::Sqrt(2.0f), 0.0f, 1.0f / FMath::Sqrt(2.0f)), PI);
-
-void FSkeletalMeshObject::UpdateShadowShapes(USkinnedMeshComponent* InMeshComponent)
-{
-	UPhysicsAsset* ShadowPhysicsAsset = InMeshComponent->SkeletalMesh->ShadowPhysicsAsset;
-
-	if (ShadowPhysicsAsset 
-		&& InMeshComponent->CastShadow
-		&& (InMeshComponent->bCastCapsuleDirectShadow || InMeshComponent->bCastCapsuleIndirectShadow))
-	{
-		//@todo - double buffer or temporary allocator
-		TArray<FCapsuleShape>* NewShadowCapsuleShapes = new TArray<FCapsuleShape>();
-
-		for (int32 BodyIndex = 0; BodyIndex < ShadowPhysicsAsset->BodySetup.Num(); BodyIndex++)
-		{
-			UBodySetup* BodySetup = ShadowPhysicsAsset->BodySetup[BodyIndex];
-			int32 BoneIndex = InMeshComponent->GetBoneIndex(BodySetup->BoneName);
-
-			if (BoneIndex != INDEX_NONE)
-			{
-				FTransform WorldBoneTransform = InMeshComponent->GetBoneTransform(BoneIndex, InMeshComponent->GetComponentTransform());
-				const float MaxScale = WorldBoneTransform.GetScale3D().GetMax();
-
-				for (int32 ShapeIndex = 0; ShapeIndex < BodySetup->AggGeom.SphereElems.Num(); ShapeIndex++)
-				{
-					const FKSphereElem& SphereShape = BodySetup->AggGeom.SphereElems[ShapeIndex];
-					NewShadowCapsuleShapes->Add(FCapsuleShape(
-						WorldBoneTransform.TransformPosition(SphereShape.Center), 
-						SphereShape.Radius * MaxScale,
-						FVector(0, 0, 1),
-						0));
-				}
-
-				for (int32 ShapeIndex = 0; ShapeIndex < BodySetup->AggGeom.SphylElems.Num(); ShapeIndex++)
-				{
-					const FKSphylElem& SphylShape = BodySetup->AggGeom.SphylElems[ShapeIndex];
-					NewShadowCapsuleShapes->Add(FCapsuleShape(
-						WorldBoneTransform.TransformPosition(SphylShape.Center), 
-						SphylShape.Radius * MaxScale,
-						WorldBoneTransform.TransformVector((SphylShape.Orientation * SphylBasis).Vector()),
-						SphylShape.Length * MaxScale));
-				}
-			}
-		}
-
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			ShadowShapesUpdateCommand,
-			FSkeletalMeshObject*, MeshObject, this,
-			TArray<FCapsuleShape>*, NewShadowCapsuleShapes, NewShadowCapsuleShapes,
-			{
-				MeshObject->ShadowCapsuleShapes = *NewShadowCapsuleShapes;
-				delete NewShadowCapsuleShapes;
-			}
-		);
-	}
-}
-
 /*-----------------------------------------------------------------------------
 Global functions
 -----------------------------------------------------------------------------*/
@@ -257,16 +199,14 @@ void UpdateRefToLocalMatrices( TArray<FMatrix>& ReferenceToLocal, const USkinned
 	const USkeletalMesh* const MasterCompMesh = MasterComp? MasterComp->SkeletalMesh : nullptr;
 	const FStaticLODModel& LOD = InSkeletalMeshResource->LODModels[LODIndex];
 
-	const TArray<int32>& MasterBoneMap = InMeshComponent->GetMasterBoneMap();
-
 	check( ThisMesh->RefBasesInvMatrix.Num() != 0 );
 	if(ReferenceToLocal.Num() != ThisMesh->RefBasesInvMatrix.Num())
 	{
-		ReferenceToLocal.Reset();
+		ReferenceToLocal.Empty(ThisMesh->RefBasesInvMatrix.Num());
 		ReferenceToLocal.AddUninitialized(ThisMesh->RefBasesInvMatrix.Num());
 	}
 
-	const bool bIsMasterCompValid = MasterComp && MasterBoneMap.Num() == ThisMesh->RefSkeleton.GetNum();
+	const bool bIsMasterCompValid = MasterComp && InMeshComponent->MasterBoneMap.Num() == ThisMesh->RefSkeleton.GetNum();
 
 	const TArray<FBoneIndexType>* RequiredBoneSets[3] = { &LOD.ActiveBoneIndices, ExtraRequiredBoneIndices, NULL };
 
@@ -290,7 +230,7 @@ void UpdateRefToLocalMatrices( TArray<FMatrix>& ReferenceToLocal, const USkinned
 				if( bIsMasterCompValid )
 				{
 					// If valid, use matrix from parent component.
-					const int32 MasterBoneIndex = MasterBoneMap[ThisBoneIndex];
+					const int32 MasterBoneIndex = InMeshComponent->MasterBoneMap[ThisBoneIndex];
 					if ( MasterComp->GetSpaceBases().IsValidIndex(MasterBoneIndex) )
 					{
 						const int32 ParentIndex = MasterCompMesh->RefSkeleton.GetParentIndex(MasterBoneIndex);
@@ -359,11 +299,10 @@ void UpdateCustomLeftRightVectors( TArray<FTwoVectors>& OutVectors, const USkinn
 	const USkinnedMeshComponent* const MasterComp = InMeshComponent->MasterPoseComponent.Get();
 	const FStaticLODModel& LOD = InSkeletalMeshResource->LODModels[LODIndex];
 	const FSkeletalMeshLODInfo& LODInfo = ThisMesh->LODInfo[LODIndex];
-	const TArray<int32>& MasterBoneMap = InMeshComponent->GetMasterBoneMap();
 
 	if(OutVectors.Num() != LODInfo.TriangleSortSettings.Num())
 	{
-		OutVectors.Reset();
+		OutVectors.Empty(LODInfo.TriangleSortSettings.Num());
 		OutVectors.AddUninitialized(LODInfo.TriangleSortSettings.Num());
 	}
 
@@ -385,10 +324,10 @@ void UpdateCustomLeftRightVectors( TArray<FTwoVectors>& OutVectors, const USkinn
 				const TArray<FTransform>* SpaceBases = &InMeshComponent->GetSpaceBases();
 				
 				// Handle case of using MasterPoseComponent for SpaceBases.
-				if( MasterComp && MasterBoneMap.Num() == ThisMesh->RefSkeleton.GetNum() && SpaceBasesBoneIndex != INDEX_NONE )
+				if( MasterComp && InMeshComponent->MasterBoneMap.Num() == ThisMesh->RefSkeleton.GetNum() && SpaceBasesBoneIndex != INDEX_NONE )
 				{
 					// If valid, use matrix from parent component.
-					SpaceBasesBoneIndex = MasterBoneMap[SpaceBasesBoneIndex];
+					SpaceBasesBoneIndex = InMeshComponent->MasterBoneMap[SpaceBasesBoneIndex];
 					SpaceBases = &MasterComp->GetSpaceBases();
 				}
 

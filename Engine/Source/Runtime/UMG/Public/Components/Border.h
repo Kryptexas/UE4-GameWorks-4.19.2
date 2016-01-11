@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,8 +10,8 @@ class USlateBrushAsset;
  * A border is a container widget that can contain one child widget, providing an opportunity 
  * to surround it with a background image and adjustable padding.
  *
- * * Single Child
- * * Image
+ * ● Single Child
+ * ● Image
  */
 UCLASS()
 class UMG_API UBorder : public UContentWidget
@@ -115,22 +115,22 @@ public:
 
 public:
 
-	//~ Begin UWidget Interface
+	// UWidget interface
 	virtual void SynchronizeProperties() override;
-	//~ End UWidget Interface
+	// End of UWidget interface
 
-	//~ Begin UVisual Interface
+	// UVisual interface
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
-	//~ End UVisual Interface
+	// End of UVisual interface
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void PostLoad() override;
-	//~ End UObject Interface
+	// End of UObject interface
 
 #if WITH_EDITOR
-	//~ Begin UObject Interface
+	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
-	//~ End UObject Interface
+	// End of UObject interface
 
 	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual const FText GetPaletteCategory() override;
@@ -148,9 +148,9 @@ protected:
 	TSharedPtr<SBorder> MyBorder;
 
 protected:
-	//~ Begin UWidget Interface
+	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
-	//~ End UWidget Interface
+	// End of UWidget interface
 
 	FReply HandleMouseButtonDown(const FGeometry& Geometry, const FPointerEvent& MouseEvent);
 	FReply HandleMouseButtonUp(const FGeometry& Geometry, const FPointerEvent& MouseEvent);

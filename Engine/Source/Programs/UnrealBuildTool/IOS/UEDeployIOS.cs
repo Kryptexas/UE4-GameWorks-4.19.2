@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -8,11 +8,20 @@ using System.Xml;
 using System.IO;
 using System.Diagnostics;
 
-namespace UnrealBuildTool
+namespace UnrealBuildTool.IOS
 {
 	public class UEDeployIOS : UEBuildDeploy
 	{
-		protected class VersionUtilities
+		/**
+		 *	Register the platform with the UEBuildDeploy class
+		 */
+		public override void RegisterBuildDeploy()
+		{
+			// TODO: print debug info and handle any cases that would keep this from registering
+			UEBuildDeploy.RegisterBuildDeploy(UnrealTargetPlatform.IOS, this);
+		}
+
+		class VersionUtilities
 		{
 			public static string BuildDirectory
 			{
@@ -150,19 +159,13 @@ namespace UnrealBuildTool
 			}
 		}
 
-		protected virtual string GetTargetPlatformName()
-		{
-			return "IOS";
-		}
-
-		public static bool GenerateIOSPList(string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory)
+		public static bool GeneratePList(string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory)
 		{
 			// generate the Info.plist for future use
 			string BuildDirectory = ProjectDirectory + "/Build/IOS";
 			bool bSkipDefaultPNGs = false;
 			string IntermediateDirectory = (bIsUE4Game ? InEngineDir : ProjectDirectory) + "/Intermediate/IOS";
 			string PListFile = IntermediateDirectory + "/" + GameName + "-Info.plist";
-			ProjectName = !String.IsNullOrEmpty(ProjectName) ? ProjectName : GameName;
 			VersionUtilities.BuildDirectory = BuildDirectory;
 			VersionUtilities.GameName = GameName;
 
@@ -178,7 +181,7 @@ namespace UnrealBuildTool
 
 			// get the settings from the ini file
 			// plist replacements
-			ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.IOS, "Engine", bIsUE4Game? null : new DirectoryReference(ProjectDirectory));
+			ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.IOS, "Engine", UnrealBuildTool.GetUProjectPath());
 
 			// orientations
 			string SupportedOrientations = "";
@@ -290,11 +293,11 @@ namespace UnrealBuildTool
 			Text.AppendLine("\t<key>CFBundleExecutable</key>");
 			Text.AppendLine(string.Format("\t<string>{0}</string>", bIsUE4Game ? "UE4Game" : GameName));
 			Text.AppendLine("\t<key>CFBundleIdentifier</key>");
-			Text.AppendLine(string.Format("\t<string>{0}</string>", BundleIdentifier.Replace("[PROJECT_NAME]", ProjectName).Replace("_", "")));
+			Text.AppendLine(string.Format("\t<string>{0}</string>", BundleIdentifier.Replace("[PROJECT_NAME]", ProjectName).Replace("_","")));
 			Text.AppendLine("\t<key>CFBundleInfoDictionaryVersion</key>");
 			Text.AppendLine("\t<string>6.0</string>");
 			Text.AppendLine("\t<key>CFBundleName</key>");
-			Text.AppendLine(string.Format("\t<string>{0}</string>", BundleName.Replace("[PROJECT_NAME]", ProjectName).Replace("_", "")));
+			Text.AppendLine(string.Format("\t<string>{0}</string>", BundleName.Replace("[PROJECT_NAME]", ProjectName).Replace("_","")));
 			Text.AppendLine("\t<key>CFBundlePackageType</key>");
 			Text.AppendLine("\t<string>APPL</string>");
 			Text.AppendLine("\t<key>CFBundleSignature</key>");
@@ -370,7 +373,7 @@ namespace UnrealBuildTool
 			Text.AppendLine("\t\t\t<true/>");
 			Text.AppendLine("\t\t</dict>");
 			Text.AppendLine("\t</dict>");
-			if (File.Exists(LaunchXib))
+ 			if (File.Exists(LaunchXib))
 			{
 				// TODO: compile the xib via remote tool
 				Text.AppendLine("\t<key>UILaunchStoryboardName</key>");
@@ -445,7 +448,7 @@ namespace UnrealBuildTool
 			{
 				Text.AppendLine("\t<key>FacebookAppID</key>");
 				Text.AppendLine(string.Format("\t<string>{0}</string>", FacebookAppID));
-
+				
 			}
 			if (!string.IsNullOrEmpty(ExtraData))
 			{
@@ -479,30 +482,22 @@ namespace UnrealBuildTool
 			return bSkipDefaultPNGs;
 		}
 
-		public virtual bool GeneratePList(string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory)
-		{
-			return GenerateIOSPList(ProjectDirectory, bIsUE4Game, GameName, ProjectName, InEngineDir, AppDirectory);
-		}
-
-		
-		public override bool PrepForUATPackageOrDeploy(FileReference ProjectFile, string InProjectName, string InProjectDirectory, string InExecutablePath, string InEngineDir, bool bForDistribution, string CookFlavor, bool bIsDataDeploy)
+		public override bool PrepForUATPackageOrDeploy(string InProjectName, string InProjectDirectory, string InExecutablePath, string InEngineDir, bool bForDistribution, string CookFlavor, bool bIsDataDeploy)
 		{
 			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 			{
 				throw new BuildException("UEDeployIOS.PrepForUATPackageOrDeploy only supports running on the Mac");
 			}
 
-			string SubDir = GetTargetPlatformName();
-
-			bool bIsUE4Game = InExecutablePath.Contains("UE4Game");
-			string BinaryPath = Path.GetDirectoryName(InExecutablePath);
-			string GameExeName = Path.GetFileName(InExecutablePath);
+			bool bIsUE4Game = InExecutablePath.Contains ("UE4Game");
+			string BinaryPath = Path.GetDirectoryName (InExecutablePath);
+			string GameExeName = Path.GetFileName (InExecutablePath);
 			string GameName = bIsUE4Game ? "UE4Game" : InProjectName;
-			string PayloadDirectory = BinaryPath + "/Payload";
+			string PayloadDirectory =  BinaryPath + "/Payload";
 			string AppDirectory = PayloadDirectory + "/" + GameName + ".app";
 			string CookedContentDirectory = AppDirectory + "/cookeddata";
-			string BuildDirectory = InProjectDirectory + "/Build/" + SubDir;
-			string IntermediateDirectory = (bIsUE4Game ? InEngineDir : InProjectDirectory) + "/Intermediate/" + SubDir;
+			string BuildDirectory = InProjectDirectory + "/Build/IOS";
+			string IntermediateDirectory = (bIsUE4Game ? InEngineDir : InProjectDirectory) + "/Intermediate/IOS";
 
 			Directory.CreateDirectory(BinaryPath);
 			Directory.CreateDirectory(PayloadDirectory);
@@ -510,7 +505,7 @@ namespace UnrealBuildTool
 			Directory.CreateDirectory(BuildDirectory);
 
 			// create the entitlements file
-			WriteEntitlementsFile(Path.Combine(IntermediateDirectory, GameName + ".entitlements"), ProjectFile);
+			WriteEntitlementsFile(Path.Combine(IntermediateDirectory, GameName + ".entitlements"));
 
 			// delete some old files if they exist
 			if (Directory.Exists(AppDirectory + "/_CodeSignature"))
@@ -532,7 +527,6 @@ namespace UnrealBuildTool
 
 			// install the provision
 			FileInfo DestFileInfo;
-			// always look for provisions in the IOS dir, even for TVOS
 			string ProvisionWithPrefix = InEngineDir + "/Build/IOS/UE4Game.mobileprovision";
 			if (File.Exists(BuildDirectory + "/" + InProjectName + ".mobileprovision"))
 			{
@@ -546,19 +540,19 @@ namespace UnrealBuildTool
 				}
 				else if (!File.Exists(ProvisionWithPrefix))
 				{
-					ProvisionWithPrefix = InEngineDir + "/Build/" + SubDir + "/NotForLicensees/UE4Game.mobileprovision";
+					ProvisionWithPrefix = InEngineDir + "/Build/IOS/NotForLicensees/UE4Game.mobileprovision";
 				}
 			}
-			if (File.Exists(ProvisionWithPrefix))
+			if (File.Exists (ProvisionWithPrefix))
 			{
-				Directory.CreateDirectory(Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/");
+				Directory.CreateDirectory (Environment.GetEnvironmentVariable ("HOME") + "/Library/MobileDevice/Provisioning Profiles/");
 				if (File.Exists(Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + InProjectName + ".mobileprovision"))
 				{
 					DestFileInfo = new FileInfo(Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + InProjectName + ".mobileprovision");
 					DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
 				}
-				File.Copy(ProvisionWithPrefix, Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + InProjectName + ".mobileprovision", true);
-				DestFileInfo = new FileInfo(Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + InProjectName + ".mobileprovision");
+				File.Copy (ProvisionWithPrefix, Environment.GetEnvironmentVariable ("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + InProjectName + ".mobileprovision", true);
+				DestFileInfo = new FileInfo (Environment.GetEnvironmentVariable ("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + InProjectName + ".mobileprovision");
 				DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
 			}
 			if (!File.Exists(ProvisionWithPrefix) || Environment.GetEnvironmentVariable("IsBuildMachine") == "1")
@@ -587,7 +581,6 @@ namespace UnrealBuildTool
 
 				// copy all of the provisions from the engine directory to the library
 				{
-					// always look for provisions in the IOS dir, even for TVOS
 					if (Directory.Exists(InEngineDir + "/Build/IOS"))
 					{
 						foreach (string Provision in Directory.EnumerateFiles(InEngineDir + "/Build/IOS", "*.mobileprovision", SearchOption.AllDirectories))
@@ -633,12 +626,11 @@ namespace UnrealBuildTool
 					DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
 				}
 				File.Copy(ProvisionWithPrefix, Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + InProjectName + "_Distro.mobileprovision", true);
-				DestFileInfo = new FileInfo(Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + InProjectName + "_Distro.mobileprovision");
+				DestFileInfo = new FileInfo (Environment.GetEnvironmentVariable ("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + InProjectName + "_Distro.mobileprovision");
 				DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
 			}
 
 			// compile the launch .xib
-			// @todo tvos: Is this needed for IOS, but not TVOS?
 //			string LaunchXib = InEngineDir + "/Build/IOS/Resources/Interface/LaunchScreen.xib";
 //			if (File.Exists(BuildDirectory + "/Resources/Interface/LaunchScreen.xib"))
 //			{
@@ -659,7 +651,7 @@ namespace UnrealBuildTool
 
 			if (!BuildConfiguration.bCreateStubIPA)
 			{
-				// copy engine assets in (IOS and TVOS shared in IOS)
+				// copy engine assets in
 				if (bSkipDefaultPNGs)
 				{
 					// we still want default icons
@@ -670,14 +662,12 @@ namespace UnrealBuildTool
 					CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "*.png", true);
 				}
 				// merge game assets on top
-				// @todo tvos: Do we want to copy IOS and TVOS both in? (Engine/IOS -> Game/IOS -> Game/TVOS)?
 				if (Directory.Exists(BuildDirectory + "/Resources/Graphics"))
 				{
 					CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "*.png", true);
 				}
 
 				// copy additional engine framework assets in
-				// @todo tvos: TVOS probably needs its own assets?
 				string FrameworkAssetsPath = InEngineDir + "/Intermediate/IOS/FrameworkAssets";
 
 				// Let project override assets if they exist
@@ -700,11 +690,9 @@ namespace UnrealBuildTool
 
 		public override bool PrepTargetForDeployment(UEBuildTarget InTarget)
 		{
-			string SubDir = GetTargetPlatformName();
-
 			string GameName = InTarget.TargetName;
-			string BuildPath = (GameName == "UE4Game" ? "../../Engine" : InTarget.ProjectDirectory.FullName) + "/Binaries/" + SubDir;
-			string ProjectDirectory = InTarget.ProjectDirectory.FullName;
+			string BuildPath = (GameName == "UE4Game" ? "../../Engine" : InTarget.ProjectDirectory) + "/Binaries/IOS";
+			string ProjectDirectory = InTarget.ProjectDirectory;
 			bool bIsUE4Game = GameName.Contains("UE4Game");
 
 			string DecoratedGameName;
@@ -719,22 +707,58 @@ namespace UnrealBuildTool
 
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac && Environment.GetEnvironmentVariable("UBT_NO_POST_DEPLOY") != "true")
 			{
-				return PrepForUATPackageOrDeploy(InTarget.ProjectFile, GameName, ProjectDirectory, BuildPath + "/" + DecoratedGameName, "../../Engine", false, "", false);
+				return PrepForUATPackageOrDeploy(GameName, ProjectDirectory, BuildPath + "/" + DecoratedGameName, "../../Engine", false, "", false);
 			}
 			else
 			{
-				// @todo tvos merge: This used to copy the bundle back - where did that code go? It needs to be fixed up for TVOS directories
-				GeneratePList(ProjectDirectory, bIsUE4Game, GameName, (InTarget.ProjectFile == null) ? "" : Path.GetFileNameWithoutExtension(InTarget.ProjectFile.FullName), "../../Engine", "");
+				// If it is requested, send the app bundle back to the platform executing these commands.
+				if (BuildConfiguration.bCopyAppBundleBackToDevice)
+				{
+					Log.TraceInformation("Copying binaries back to this device...");
+
+					IOSToolChain Toolchain = UEToolChain.GetPlatformToolChain(CPPTargetPlatform.IOS) as IOSToolChain;
+
+					try
+					{
+						string BinaryDir = Path.GetDirectoryName(InTarget.OutputPath) + "\\";
+						if (BinaryDir.EndsWith(InTarget.AppName + "\\Binaries\\IOS\\") && InTarget.TargetType != TargetRules.TargetType.Game)
+						{
+							BinaryDir = BinaryDir.Replace(InTarget.TargetType.ToString(), "Game");
+						}
+
+						// Get the app bundle's name
+						string AppFullName = InTarget.AppName;
+						if (InTarget.Configuration != UnrealTargetConfiguration.Development)
+						{
+							AppFullName += "-" + InTarget.Platform.ToString();
+							AppFullName += "-" + InTarget.Configuration.ToString();
+						}
+
+						foreach (string BinaryPath in Toolchain.BuiltBinaries)
+						{
+							if (!BinaryPath.Contains("Dummy"))
+							{
+								RPCUtilHelper.CopyFile(Toolchain.ConvertPath(BinaryPath), BinaryPath, false);
+							}
+						}
+						Log.TraceInformation("Copied binaries successfully.");
+					}
+					catch (Exception)
+					{
+						Log.TraceInformation("Copying binaries back to this device failed.");
+					}
+				}
+
+				GeneratePList(ProjectDirectory, bIsUE4Game, GameName, Path.GetFileNameWithoutExtension(UnrealBuildTool.GetUProjectFile()), "../../Engine", "");
 			}
 			return true;
 		}
 
-		private void WriteEntitlementsFile(string OutputFilename, FileReference ProjectFile)
+		private void WriteEntitlementsFile(string OutputFilename)
 		{
 			// get the settings from the ini file
 			// plist replacements
-			// @todo tvos: Separate TVOS version?
-			ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.IOS, "Engine", DirectoryReference.FromFile(ProjectFile));
+			ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.IOS, "Engine", UnrealBuildTool.GetUProjectPath());
 			bool bSupported = false;
 			Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bEnableCloudKitSupport", out bSupported);
 

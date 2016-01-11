@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -30,7 +30,7 @@ public:
 
 	void Construct(const FArguments& InArgs, UAIGraphNode* InNode);
 
-	//~ Begin SGraphNode Interface
+	// SGraphNode interface
 	virtual TSharedPtr<SToolTip> GetComplexTooltip() override;
 	virtual void OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
 	virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
@@ -39,7 +39,7 @@ public:
 	virtual FReply OnMouseMove(const FGeometry& SenderGeometry, const FPointerEvent& MouseEvent) override;
 	virtual void SetOwner(const TSharedRef<SGraphPanel>& OwnerPanel) override;
 	virtual void AddPin(const TSharedRef<SGraphPin>& PinToAdd) override;
-	//~ End SGraphNode Interface
+	// End of SGraphNode interface
 
 	/** handle mouse down on the node */
 	FReply OnMouseDown(const FGeometry& SenderGeometry, const FPointerEvent& MouseEvent);
@@ -76,10 +76,10 @@ public:
 
 	void Construct(const FArguments& InArgs, UEdGraphPin* InPin);
 protected:
-	//~ Begin SGraphPin Interface
+	// Begin SGraphPin interface
 	virtual FSlateColor GetPinColor() const override;
 	virtual TSharedRef<SWidget>	GetDefaultValueWidget() override;
-	//~ End SGraphPin Interface
+	// End SGraphPin interface
 
 	const FSlateBrush* GetPinBorder() const;
 };

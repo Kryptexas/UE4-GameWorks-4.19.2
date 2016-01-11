@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RHI.h: Render Hardware Interface definitions.
@@ -17,9 +17,6 @@ inline const bool IsValidFenceID( const uint64 FenceID )
 {
 	return ( ( FenceID & 0x8000000000000000ull ) == 0 );
 }
-
-// 0:faster rendering (CPU) / 1:allows to get a name for resource transitions
-#define SUPPORT_RESOURCE_NAME (!(UE_BUILD_SHIPPING || UE_BUILD_TEST))
 
 /** Uniform buffer structs must be aligned to 16-byte boundaries. */
 #define UNIFORM_BUFFER_STRUCT_ALIGNMENT 16
@@ -122,9 +119,6 @@ extern RHI_API bool GSupportsDepthBoundsTest;
 /** True if the RHI supports 'GetHDR32bppEncodeModeES2' shader intrinsic. */
 extern RHI_API bool GSupportsHDR32bppEncodeModeIntrinsic;
 
-/** True if the RHI supports getting the result of occlusion queries when on a thread other than the renderthread */
-extern RHI_API bool GSupportsParallelOcclusionQueries;
-
 /** The minimum Z value in clip space for the RHI. */
 extern RHI_API float GMinClipZ;
 
@@ -207,9 +201,6 @@ extern RHI_API int32 GNumPrimitivesDrawnRHI;
 /** Whether or not the RHI can handle a non-zero BaseVertexIndex - extra SetStreamSource calls will be needed if this is false */
 extern RHI_API bool GRHISupportsBaseVertexIndex;
 
-/** True if the RHI supports hardware instancing */
-extern RHI_API bool GRHISupportsInstancing;
-
 /** Whether or not the RHI can handle a non-zero FirstInstance - extra SetStreamSource calls will be needed if this is false */
 extern RHI_API bool GRHISupportsFirstInstance;
 
@@ -241,9 +232,6 @@ Requirements:
 * RHICreateBoundShaderState is threadsafe and GetCachedBoundShaderState must not be used. GetCachedBoundShaderState_Threadsafe has a slightly different protocol.
 ***/
 extern RHI_API bool GRHISupportsParallelRHIExecute;
-
-/** Whether or not the RHI can perform MSAA sample load. */
-extern RHI_API bool GRHISupportsMSAADepthSampleAccess;
 
 /** Called once per frame only from within an RHI. */
 extern RHI_API void RHIPrivateBeginFrame();
@@ -401,10 +389,6 @@ struct FVertexElement
 	TEnumAsByte<EVertexElementType> Type;
 	uint8 AttributeIndex;
 	uint16 Stride;
-	/**
-	 * Whether to use instance index or vertex index to consume the element.  
-	 * eg if bUseInstanceIndex is 0, the element will be repeated for every instance.
-	 */
 	uint16 bUseInstanceIndex;
 
 	FVertexElement() {}
@@ -839,8 +823,8 @@ struct FClearValueBinding
 			if (ColorBinding == EClearBinding::EDepthStencilBound)
 			{
 				return
-					Value.DSValue.Depth == Other.Value.DSValue.Depth &&
-					Value.DSValue.Stencil == Other.Value.DSValue.Stencil;
+					Value.DSValue.Depth == Value.DSValue.Depth &&
+					Value.DSValue.Stencil == Value.DSValue.Stencil;
 			}
 			return true;
 		}
@@ -978,30 +962,6 @@ struct FResolveParams
 		, SourceArrayIndex(Other.SourceArrayIndex)
 		, DestArrayIndex(Other.DestArrayIndex)
 	{}
-};
-
-enum class EResourceTransitionAccess
-{
-	EReadable, //transition from write-> read
-	EWritable, //transition from read -> write	
-	ERWBarrier, // Mostly for UAVs.  Transition to read/write state and always insert a resource barrier.
-	ERWNoBarrier, //Mostly UAVs.  Indicates we want R/W access and do not require synchronization for the duration of the RW state.  The initial transition from writable->RWNoBarrier and readable->RWNoBarrier still requires a sync
-	ERWSubResBarrier, //For special cases where read/write happens to different subresources of the same resource in the same call.  Inserts a barrier, but read validation will pass.  Temporary until we pass full subresource info to all transition calls.
-	EMaxAccess,
-};
-
-class RHI_API FResourceTransitionUtility
-{
-public:
-	static const FString ResourceTransitionAccessStrings[(int32)EResourceTransitionAccess::EMaxAccess + 1];
-};
-
-enum class EResourceTransitionPipeline
-{
-	EGfxToCompute,
-	EComputeToGfx,
-	EGfxToGfx,
-	EComputeToCompute,	
 };
 
 /** specifies an update region for a texture */
@@ -1219,10 +1179,10 @@ extern RHI_API void RHIExit();
 // the following helper macros allow to safely convert shader types without much code clutter
 #define GETSAFERHISHADER_PIXEL(Shader) (Shader ? Shader->GetPixelShader() : (FPixelShaderRHIParamRef)FPixelShaderRHIRef())
 #define GETSAFERHISHADER_VERTEX(Shader) (Shader ? Shader->GetVertexShader() : (FVertexShaderRHIParamRef)FVertexShaderRHIRef())
-#define GETSAFERHISHADER_HULL(Shader) (Shader ? Shader->GetHullShader() : (FHullShaderRHIParamRef)FHullShaderRHIRef())
-#define GETSAFERHISHADER_DOMAIN(Shader) (Shader ? Shader->GetDomainShader() : (FDomainShaderRHIParamRef)FDomainShaderRHIRef())
-#define GETSAFERHISHADER_GEOMETRY(Shader) (Shader ? Shader->GetGeometryShader() : (FGeometryShaderRHIParamRef)FGeometryShaderRHIRef())
-#define GETSAFERHISHADER_COMPUTE(Shader) (Shader ? Shader->GetComputeShader() : (FComputeShaderRHIParamRef)FComputeShaderRHIRef())
+#define GETSAFERHISHADER_HULL(Shader) (Shader ? Shader->GetHullShader() : FHullShaderRHIRef())
+#define GETSAFERHISHADER_DOMAIN(Shader) (Shader ? Shader->GetDomainShader() : FDomainShaderRHIRef())
+#define GETSAFERHISHADER_GEOMETRY(Shader) (Shader ? Shader->GetGeometryShader() : FGeometryShaderRHIRef())
+#define GETSAFERHISHADER_COMPUTE(Shader) (Shader ? Shader->GetComputeShader() : FComputeShaderRHIRef())
 
 // RHI utility functions that depend on the RHI definitions.
 #include "RHIUtilities.h"

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -30,11 +30,8 @@ class AIMODULE_API AEQSTestingPawn : public ACharacter, public IEQSQueryResultSo
 	UEnvQuery* QueryTemplate;
 
 	/** optional parameters for query */
-	UPROPERTY(Category=EQS, VisibleAnywhere, meta=(DisplayName="QueryParams_DEPRECATED"))
-	TArray<FEnvNamedValue> QueryParams;
-
 	UPROPERTY(Category=EQS, EditAnywhere)
-	TArray<FAIDynamicParam> QueryConfig;
+	TArray<FEnvNamedValue> QueryParams;
 
 	UPROPERTY(Category=EQS, EditAnywhere)
 	float TimeLimitPerStep;
@@ -56,9 +53,6 @@ class AIMODULE_API AEQSTestingPawn : public ACharacter, public IEQSQueryResultSo
 
 	UPROPERTY(Category=EQS, EditAnywhere)
 	uint32 bShouldBeVisibleInGame:1;
-
-	UPROPERTY(Category = EQS, EditAnywhere)
-	uint32 bTickDuringGame : 1;
 
 	UPROPERTY(Category=EQS, EditAnywhere)
 	TEnumAsByte<EEnvQueryRunMode::Type> QueryingMode;

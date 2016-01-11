@@ -1,32 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-/** Enum to describe type of the query */
-namespace ECAQueryType
-{
-	enum Type
-	{
-		Raycast,
-		GeomSweep,
-		GeomOverlap
-	};
-}
 
 /** Enum to describe shape of the query */
 namespace ECAQueryShape
 {
 	enum Type
 	{
-		Sphere,
-		Box,
-		Capsule,
-		Convex
+		Raycast,
+		SphereSweep,
+		CapsuleSweep,
+		BoxSweep,
+		ConvexSweep
 	};
 }
 
-/** Enum to describe the mode of query performed */
-namespace ECAQueryMode
+/** Enum to describe the type of query performed */
+namespace ECAQueryType
 {
 	enum Type
 	{
@@ -48,8 +38,7 @@ public:
 		const FVector& End, 
 		const FQuat& Rot, 
 		ECAQueryType::Type QueryType, 
-		ECAQueryShape::Type QueryShape,
-		ECAQueryMode::Type QueryMode,
+		ECAQueryShape::Type QueryShape, 
 		const FVector& Dims, 
 		ECollisionChannel TraceChannel, 
 		const struct FCollisionQueryParams& Params, 

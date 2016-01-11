@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -15,13 +15,7 @@
 #include "SGraphNode.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 
-#include "Classes/EdGraphSchema_EnvironmentQuery.h"
-#include "Classes/EnvironmentQueryGraph.h"
-#include "Classes/EnvironmentQueryGraphNode.h"
-#include "Classes/EnvironmentQueryGraphNode_Option.h"
-#include "Classes/EnvironmentQueryGraphNode_Root.h"
-#include "Classes/EnvironmentQueryGraphNode_Test.h"
-
+#include "EnvironmentQueryEditorClasses.h"
 #include "AssetTypeActions_EnvironmentQuery.h"
 
 #include "EnvironmentQueryEditorModule.h"

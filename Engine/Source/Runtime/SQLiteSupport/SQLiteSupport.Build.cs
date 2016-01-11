@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System.IO;
 
@@ -21,8 +21,7 @@ namespace UnrealBuildTool.Rules
 					break;
 			
 			    case UnrealTargetPlatform.IOS:
-				case UnrealTargetPlatform.TVOS:
-					PlatformName = "IOS/";
+                    PlatformName = "IOS/";
                     break;
                 case UnrealTargetPlatform.Mac:
                     PlatformName = "Mac/";

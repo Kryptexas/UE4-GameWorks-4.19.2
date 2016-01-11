@@ -1,57 +1,37 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieSceneNameableTrack.h"
+#include "MovieScene.h"
+#include "MovieSceneTrack.h"
 #include "MovieSceneParticleTrack.generated.h"
-
-
-class UMovieSceneSection;
-
 
 /**
  * Handles triggering of particle emitters
  */
-UCLASS(MinimalAPI)
-class UMovieSceneParticleTrack
-	: public UMovieSceneNameableTrack
+UCLASS( MinimalAPI )
+class UMovieSceneParticleTrack : public UMovieSceneTrack
 {
 	GENERATED_UCLASS_BODY()
 
 public:
-
-	/**
-	 * Get the track's particle sections.
-	 *
-	 * @return Particle sections collection.
-	 */
-	virtual TArray<UMovieSceneSection*> GetAllParticleSections() const
-	{
-		return ParticleSections;
-	}
-
-public:
-
-	// UMovieSceneTrack interface
-
+	/** UMovieSceneTrack interface */
+	virtual FName GetTrackName() const override;
 	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() override;
 	virtual void RemoveAllAnimationData() override;
-	virtual bool HasSection(const UMovieSceneSection& Section) const override;
-	virtual void AddSection(UMovieSceneSection& Section) override;
-	virtual void RemoveSection(UMovieSceneSection& Section) override;
+	virtual bool HasSection( UMovieSceneSection* Section ) const override;
+	virtual void AddSection( UMovieSceneSection* Section ) override;
+	virtual void RemoveSection( UMovieSceneSection* Section ) override;
 	virtual bool IsEmpty() const override;
 	virtual TRange<float> GetSectionBoundaries() const override;
 	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override;
-	virtual void AddNewSection(float SectionTime);
-	virtual UMovieSceneSection* CreateNewSection() override;
+	
+	virtual void AddNewKey( float KeyTime );
 
-#if WITH_EDITORONLY_DATA
-	virtual FText GetDisplayName() const override;
-#endif
+	virtual TArray<UMovieSceneSection*> GetAllParticleSections() const {return ParticleSections;}
 
 private:
-
-	/** List of all particle sections. */
+	/** List of all particle sections */
 	UPROPERTY()
 	TArray<UMovieSceneSection*> ParticleSections;
 };

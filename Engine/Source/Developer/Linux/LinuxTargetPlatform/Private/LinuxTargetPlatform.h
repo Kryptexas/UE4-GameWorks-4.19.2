@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LinuxTargetPlatform.h: Declares the FLinuxTargetPlatform class.
@@ -10,7 +10,6 @@
 #include "StaticMeshResources.h"
 #endif // WITH_ENGINE
 #include "IProjectManager.h"
-#include "InstalledPlatformInfo.h"
 
 #define LOCTEXT_NAMESPACE "TLinuxTargetPlatform"
 
@@ -63,7 +62,7 @@ public:
 
 public:
 
-	//~ Begin ITargetPlatform Interface
+	// Begin ITargetPlatform interface
 
 	virtual void EnableDeviceCheck(bool OnOff) override {}
 
@@ -185,8 +184,8 @@ public:
 	{
 		int32 ReadyToBuild = TSuper::CheckRequirements(ProjectPath, bProjectHasCode, OutDocumentationPath);
 
-		// do not support code/plugins in Installed builds if the required libs aren't bundled (on Windows/Mac)
-		if (!PLATFORM_LINUX && !FInstalledPlatformInfo::Get().IsValidPlatform(TSuper::GetPlatformInfo().BinaryFolderName, EProjectType::Code))
+		// do not support code/plugins in Rocket as the required libs aren't bundled (on Windows/Mac)
+		if (!PLATFORM_LINUX && FRocketSupport::IsRocket())
 		{
 			if (bProjectHasCode)
 			{
@@ -224,8 +223,6 @@ public:
 			OutFormats.AddUnique(FName(*ShaderFormat));
 		}
 	}
-	
-	virtual void GetAllCachedShaderFormats( TArray<FName>& OutFormats ) const override {}
 
 	virtual const class FStaticMeshLODSettings& GetStaticMeshLODSettings( ) const override
 	{
@@ -314,7 +311,7 @@ public:
 		return DeviceLostEvent;
 	}
 
-	//~ End ITargetPlatform Interface
+	// End ITargetPlatform interface
 
 private:
 

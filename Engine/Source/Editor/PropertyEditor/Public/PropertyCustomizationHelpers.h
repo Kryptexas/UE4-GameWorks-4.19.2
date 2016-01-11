@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -421,7 +421,7 @@ struct FMaterialListItem
 class FMaterialList : public IDetailCustomNodeBuilder, public TSharedFromThis<FMaterialList>
 {
 public:
-	PROPERTYEDITOR_API FMaterialList( IDetailLayoutBuilder& InDetailLayoutBuilder, FMaterialListDelegates& MaterialListDelegates, bool bInAllowCollapse = false);
+	PROPERTYEDITOR_API FMaterialList( IDetailLayoutBuilder& InDetailLayoutBuilder, FMaterialListDelegates& MaterialListDelegates );
 
 	/**
 	 * @return true if materials are being displayed                                                              
@@ -445,7 +445,7 @@ private:
 	virtual void GenerateHeaderRowContent( FDetailWidgetRow& NodeRow ) override;
 	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) override;
 	virtual FName GetName() const override { return NAME_None; }
-	virtual bool InitiallyCollapsed() const override { return bAllowCollpase; }
+	virtual bool InitiallyCollapsed() const override { return false; }
 
 	/**
 	 * Adds a new material item to the list
@@ -472,6 +472,4 @@ private:
 	TSet<uint32> ExpandedSlots;
 	/** Material list builder used to generate materials */
 	TSharedRef<class FMaterialListBuilder> MaterialListBuilder;
-	/** Allow Collapse of material header row. Right now if you allow collapse, it will initially collapse. */
-	bool bAllowCollpase;
 };

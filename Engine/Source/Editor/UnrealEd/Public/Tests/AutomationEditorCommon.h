@@ -1,11 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
 #include "AssetRegistryModule.h"
 #include "ModuleManager.h"
 #include "AutomationCommon.h"
 #include "Tests/AutomationTestSettings.h"
+
+//Includes needed for opening certain assets
+#include "Materials/MaterialFunction.h"
+#include "Slate/SlateBrushAsset.h"
 
 namespace AutomationEditorCommonUtils
 {
@@ -58,7 +61,7 @@ namespace AutomationEditorCommonUtils
 	*
 	* @param InObject - Object to null references to
 	*/
-	UNREALED_API void NullReferencesToObject(UObject* InObject);
+	void NullReferencesToObject(UObject* InObject);
 
 	/**
 	* gets a factory class based off an asset file extension
@@ -300,10 +303,15 @@ public:
 	static void CollectGameContentTestsByClass(UClass * Class, bool bRecursiveClass, TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands);
 		
 	/**
-	* Generates a list of assets from the GAME by a specific type.
+	* Generates a list of misc. assets from the GAME.
 	* This is to be used by the GetTest() function.
 	*/
-	static void CollectGameContentTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands);
+	static void CollectMiscGameContentTestsByClass(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands);
+	
+	/**
+	* Generates a list of assets from the GAME by a specific type.
+	*/
+	static void CollectGameContentByClass(const UClass * Class, bool bRecursiveClass, TArray<FString>& OutAssetList);
 };
 
 

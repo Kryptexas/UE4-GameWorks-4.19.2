@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -131,7 +131,7 @@ public:
 	 * @param InFunc The object's message handling function.
 	 */
 	FFunctionMessageCatchall( FuncType InFunc )
-		: Func(MoveTemp(InFunc))
+		: Func(InFunc)
 	{ }
 
 	/** Virtual destructor. */
@@ -175,7 +175,7 @@ public:
 	 * @param InHandlerFunc The object's message handling function.
 	 */
 	TFunctionMessageHandler( FuncType InFunc )
-		: Func(MoveTemp(InFunc))
+		: Func(InFunc)
 	{ }
 
 	/** Virtual destructor. */

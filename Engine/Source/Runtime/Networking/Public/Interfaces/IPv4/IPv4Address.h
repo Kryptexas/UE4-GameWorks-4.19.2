@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,7 +13,7 @@ public:
 	/**
 	 * Default constructor.
 	 */
-	FIPv4Address() { }
+	FIPv4Address( ) { }
 
 	/**
 	 * Creates and initializes a new IPv4 address with the specified components.
@@ -25,7 +25,7 @@ public:
 	 * @param C - The third component.
 	 * @param D - The fourth component.
 	 */
-	FIPv4Address(uint8 A, uint8 B, uint8 C, uint8 D)
+	FIPv4Address( uint8 A, uint8 B, uint8 C, uint8 D )
 	{
 		Bytes[0] = D;
 		Bytes[1] = C;
@@ -40,7 +40,7 @@ public:
 	 *
 	 * @param InValue - The address value.
 	 */
-	FIPv4Address(uint32 InValue)
+	FIPv4Address( uint32 InValue )
 		: Value(InValue)
 	{ }
 
@@ -54,7 +54,7 @@ public:
 	 *
 	 * @return true if the addresses are equal, false otherwise.
 	 */
-	bool operator==(const FIPv4Address& Other) const
+	bool operator==( const FIPv4Address& Other ) const
 	{
 		return (Value == Other.Value);
 	}
@@ -66,7 +66,7 @@ public:
 	 *
 	 * @return true if the addresses are not equal, false otherwise.
 	 */
-	bool operator!=(const FIPv4Address& Other) const
+	bool operator!=( const FIPv4Address& Other ) const
 	{
 		return (Value != Other.Value);
 	}
@@ -78,7 +78,7 @@ public:
 	 *
 	 * @return The masked IP address.
 	 */
-	FIPv4Address operator|(const FIPv4SubnetMask& SubnetMask) const
+	FIPv4Address operator|( const FIPv4SubnetMask& SubnetMask ) const
 	{
 		return FIPv4Address(Value | SubnetMask.GetValue());
 	}
@@ -90,7 +90,7 @@ public:
 	 *
 	 * @return The masked IP address.
 	 */
-	FIPv4Address operator&(const FIPv4SubnetMask& SubnetMask) const
+	FIPv4Address operator&( const FIPv4SubnetMask& SubnetMask ) const
 	{
 		return FIPv4Address(Value & SubnetMask.GetValue());
 	}
@@ -103,7 +103,7 @@ public:
 	 *
 	 * @return The archive.
 	 */
-	friend FArchive& operator<<(FArchive& Ar, FIPv4Address& IpAddress)
+	friend FArchive& operator<<( FArchive& Ar, FIPv4Address& IpAddress )
 	{
 		return Ar << IpAddress.Value;
 	}
@@ -126,7 +126,7 @@ public:
 	 *
 	 * @see GetValue
 	 */
-	uint8 GetByte(int32 Index) const
+	uint8 GetByte( int32 Index ) const
 	{
 		check((Index >= 0) && (Index <= 3));
 
@@ -142,7 +142,7 @@ public:
 	 *
 	 * @see GetByte
 	 */
-	uint32 GetValue() const
+	uint32 GetValue( ) const
 	{
 		return Value;
 	}
@@ -158,7 +158,7 @@ public:
 	 * @see IsOrganizationLocalMulticast
 	 * @see IsSiteLocalMulticast
 	 */
-	bool IsGlobalMulticast() const
+	bool IsGlobalMulticast( ) const
 	{
 		return (((Bytes[3] >= 224) && Bytes[3] <= 238) &&
 			!((Bytes[3] == 224) && (Bytes[2] == 0) && (Bytes[1] == 0)));
@@ -171,7 +171,7 @@ public:
 	 *
 	 * @return true if it is link local, false otherwise.
 	 */
-	bool IsLinkLocal() const
+	bool IsLinkLocal( ) const
 	{
 		return ((Bytes[3] == 169) && (Bytes[2] == 254));
 	}
@@ -187,7 +187,7 @@ public:
 	 * @see IsOrganizationLocalMulticast
 	 * @see IsSiteLocalMulticast
 	 */
-	bool IsLinkLocalMulticast() const
+	bool IsLinkLocalMulticast( ) const
 	{
 		return ((Bytes[3] >= 224) && (Bytes[2] == 0) && (Bytes[1] == 0));
 	}
@@ -201,7 +201,7 @@ public:
 	 *
 	 * @see IsMulticastAddress
 	 */
-	bool IsLoopbackAddress() const
+	bool IsLoopbackAddress( ) const
 	{
 		return (Bytes[3] == 127);
 	}
@@ -215,7 +215,7 @@ public:
 	 *
 	 * @see IsLoopbackAddress
 	 */
-	bool IsMulticastAddress() const
+	bool IsMulticastAddress( ) const
 	{
 		return ((Bytes[3] >= 224) && (Bytes[3] <= 239));
 	}
@@ -231,7 +231,7 @@ public:
 	 * @see IsLinkLocalMulticast
 	 * @see IsSiteLocalMulticast
 	 */
-	bool IsOrganizationLocalMulticast() const
+	bool IsOrganizationLocalMulticast( ) const
 	{
 		return ((Bytes[3] == 239) && (Bytes[2] >= 192) && (Bytes[2] <= 195));
 	}
@@ -246,7 +246,7 @@ public:
 	 *
 	 * @return true if it is a site local address, false otherwise.
 	 */
-	bool IsSiteLocalAddress() const
+	bool IsSiteLocalAddress( ) const
 	{
 		return ((Bytes[3] == 10) ||
 				((Bytes[3] == 172) && (Bytes[2] == 16)) ||
@@ -264,7 +264,7 @@ public:
 	 * @see IsLinkLocalMulticast
 	 * @see IsOrganizationLocalMulticast
 	 */
-	bool IsSiteLocalMulticast() const
+	bool IsSiteLocalMulticast( ) const
 	{
 		return ((Bytes[3] == 239) && (Bytes[2] == 255));
 	}
@@ -274,7 +274,7 @@ public:
 	 *
 	 * @return String representation.
 	 */
-	NETWORKING_API FText ToText() const;
+	NETWORKING_API FText ToText( ) const;
 
 
 public:
@@ -286,7 +286,7 @@ public:
 	 *
 	 * @return Hash value.
 	 */
-	friend uint32 GetTypeHash(const FIPv4Address& Address)
+	friend uint32 GetTypeHash( const FIPv4Address& Address )
 	{
 		return Address.Value;
 	}
@@ -302,7 +302,7 @@ public:
 	 *
 	 * @return true if the string was converted successfully, false otherwise.
 	 */
-	static NETWORKING_API bool Parse(const FString& AddressString, FIPv4Address& OutAddress);
+	static NETWORKING_API bool Parse( const FString& AddressString, FIPv4Address& OutAddress );
 
 	
 public:

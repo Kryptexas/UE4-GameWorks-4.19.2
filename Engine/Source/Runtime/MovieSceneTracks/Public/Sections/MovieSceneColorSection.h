@@ -1,38 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "MovieSceneColorSection.generated.h"
 
-enum class EKeyColorChannel
-{
-	Red,
-	Green,
-	Blue,
-	Alpha,
-};
-
-struct FColorKey
-{
-	FColorKey( EKeyColorChannel InChannel, float InChannelValue, bool InbIsSlateColor )
-	{
-		Channel = InChannel;
-		ChannelValue = InChannelValue;
-		bIsSlateColor = InbIsSlateColor;
-	}
-
-	EKeyColorChannel Channel;
-	float ChannelValue;
-	bool bIsSlateColor;
-};
+struct FColorKey;
 
 /**
  * A single floating point section
  */
 UCLASS( MinimalAPI )
-class UMovieSceneColorSection 
-	: public UMovieSceneSection
-	, public IKeyframeSection<FColorKey>
+class UMovieSceneColorSection : public UMovieSceneSection
 {
 	GENERATED_UCLASS_BODY()
 public:
@@ -48,11 +26,24 @@ public:
 	 */
 	virtual FLinearColor Eval( float Position, const FLinearColor& DefaultColor ) const;
 
-	// IKeyframeSection interface.
-	virtual void AddKey( float Time, const FColorKey& Key, EMovieSceneKeyInterpolation KeyInterpolation ) override;
-	virtual bool NewKeyIsNewData(float Time, const FColorKey& Key) const override;
-	virtual bool HasKeys(const FColorKey& Key) const override;
-	virtual void SetDefault(const FColorKey& Key ) override;
+	/** 
+	 * Adds a key to the section
+	 *
+	 * @param Time	The location in time where the key should be added
+	 * @param Value	The value of the key
+     * @param KeyParams The keying parameters
+	 */
+	void AddKey( float Time, const FColorKey& Key, FKeyParams KeyParams );
+	
+	/** 
+	 * Determines if a new key would be new data, or just a duplicate of existing data
+	 *
+	 * @param Time	The location in time where the key would be added
+	 * @param Value	The value of the new key
+     * @param KeyParams The keying parameters
+	 * @return True if the new key would be new data, false if duplicate
+	 */
+	bool NewKeyIsNewData(float Time, FLinearColor Value, FKeyParams KeyParams) const;
 
 	/**
 	 * Gets the red color curve
@@ -86,7 +77,6 @@ public:
 	const FRichCurve& GetAlphaCurve() const { return AlphaCurve; }
 
 private:
-
 	/** Red curve data */
 	UPROPERTY()
 	FRichCurve RedCurve;

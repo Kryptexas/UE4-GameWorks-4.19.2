@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateRHIRendererPrivatePCH.h"
 #include "ImageWrapper.h"
@@ -10,7 +10,6 @@
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Texture Atlases"), STAT_SlateNumTextureAtlases, STATGROUP_SlateMemory);
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Non-Atlased Textures"), STAT_SlateNumNonAtlasedTextures, STATGROUP_SlateMemory);
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Dynamic Textures"), STAT_SlateNumDynamicTextures, STATGROUP_SlateMemory);
-DECLARE_CYCLE_STAT(TEXT("GetResource Time"), STAT_SlateGetResourceTime, STATGROUP_SlateVerbose);
 
 FDynamicResourceMap::FDynamicResourceMap()
 	: TextureMemorySincePurge(0)
@@ -53,6 +52,7 @@ void FDynamicResourceMap::AddUTextureResource( UTexture* TextureObject, TSharedR
 		TextureMap.Add(TextureObject, InResource);
 
 		TextureMemorySincePurge += TextureObject->GetResourceSize(EResourceSizeMode::Inclusive);
+		RemoveExpiredTextureResources();
 	}
 }
 
@@ -60,6 +60,8 @@ void FDynamicResourceMap::AddMaterialResource( const UMaterialInterface* Materia
 {
 	check( Material == InMaterialResource->GetMaterialObject() );
 	MaterialMap.Add(Material, InMaterialResource);
+
+	RemoveExpiredMaterialResources();
 }
 
 void FDynamicResourceMap::RemoveDynamicTextureResource(FName ResourceName)
@@ -117,7 +119,7 @@ void FDynamicResourceMap::ReleaseResources()
 	}
 }
 
-void FDynamicResourceMap::RemoveExpiredTextureResources(TArray< TSharedPtr<FSlateUTextureResource> >& RemovedTextures)
+void FDynamicResourceMap::RemoveExpiredTextureResources()
 {
 	// We attempt to purge every 10Mb of accumulated textures.
 	static const uint64 PurgeAfterAddingNewBytes = 1024 * 1024 * 10; // 10Mb
@@ -126,11 +128,8 @@ void FDynamicResourceMap::RemoveExpiredTextureResources(TArray< TSharedPtr<FSlat
 	{
 		for ( TextureResourceMap::TIterator It(TextureMap); It; ++It )
 		{
-			TWeakObjectPtr<UTexture>& Key = It.Key();
-			if ( !Key.IsValid() )
+			if ( It.Key().IsStale() )
 			{
-				RemovedTextures.Push(It.Value());
-
 				It.RemoveCurrent();
 			}
 		}
@@ -139,19 +138,16 @@ void FDynamicResourceMap::RemoveExpiredTextureResources(TArray< TSharedPtr<FSlat
 	}
 }
 
-void FDynamicResourceMap::RemoveExpiredMaterialResources(TArray< TSharedPtr<FSlateMaterialResource> >& RemovedMaterials)
+void FDynamicResourceMap::RemoveExpiredMaterialResources()
 {
-	static const int32 CheckingIncrement = 20;
+	static const int32 CheckingIncrement = 10;
 
 	if ( MaterialMap.Num() > ( LastExpiredMaterialNumMarker + CheckingIncrement ) )
 	{
 		for ( MaterialResourceMap::TIterator It(MaterialMap); It; ++It )
 		{
-			TWeakObjectPtr<UMaterialInterface>& Key = It.Key();
-			if ( !Key.IsValid() )
+			if ( It.Key().IsStale() )
 			{
-				RemovedMaterials.Push(It.Value());
-
 				It.RemoveCurrent();
 			}
 		}
@@ -161,8 +157,7 @@ void FDynamicResourceMap::RemoveExpiredMaterialResources(TArray< TSharedPtr<FSla
 }
 
 FSlateRHIResourceManager::FSlateRHIResourceManager()
-	: CurrentAccessedUObject(nullptr)
-	, BadResourceTexture(nullptr)
+	: BadResourceTexture(nullptr)
 {
 	FCoreDelegates::OnPreExit.AddRaw( this, &FSlateRHIResourceManager::OnAppExit );
 
@@ -198,8 +193,6 @@ FSlateRHIResourceManager::~FSlateRHIResourceManager()
 
 	if ( GIsRHIInitialized )
 	{
-		FlushRenderingCommands();
-
 		DeleteResources();
 	}
 }
@@ -226,10 +219,8 @@ bool FSlateRHIResourceManager::IsAtlasPageResourceAlphaOnly() const
 
 void FSlateRHIResourceManager::AddReferencedObjects(FReferenceCollector& Collector)
 {
-	for ( TSet<UObject*>* AccessedUObjects : AllAccessedUObject )
-	{
-		Collector.AddReferencedObjects(*AccessedUObjects);
-	}
+	Collector.AddReferencedObjects(AccessedUTextures);
+	Collector.AddReferencedObjects(AccessedMaterials);
 }
 
 void FSlateRHIResourceManager::CreateTextures( const TArray< const FSlateBrush* >& Resources )
@@ -305,7 +296,7 @@ bool FSlateRHIResourceManager::LoadTexture( const FSlateBrush& InBrush, uint32& 
  */
 bool FSlateRHIResourceManager::LoadTexture( const FName& TextureName, const FString& ResourcePath, uint32& Width, uint32& Height, TArray<uint8>& DecodedImage )
 {
-	checkSlow( IsThreadSafeForSlateRendering() );
+	check( IsThreadSafeForSlateRendering() );
 
 	bool bSucceeded = true;
 	uint32 BytesPerPixel = 4;
@@ -439,9 +430,7 @@ static void LoadUObjectForBrush( const FSlateBrush& InBrush )
 
 FSlateShaderResourceProxy* FSlateRHIResourceManager::GetShaderResource( const FSlateBrush& InBrush )
 {
-	SCOPE_CYCLE_COUNTER( STAT_SlateGetResourceTime );
-
-	checkSlow( IsThreadSafeForSlateRendering() );
+	check( IsThreadSafeForSlateRendering() );
 
 	FSlateShaderResourceProxy* Texture = NULL;
 	if( !InBrush.IsDynamicallyLoaded() && !InBrush.HasUObject() )
@@ -557,6 +546,7 @@ TSharedPtr<FSlateUTextureResource> FSlateRHIResourceManager::MakeDynamicUTexture
 	
 	if( bSucceeded )
 	{
+
 		// Get a resource from the free list if possible
 		if (UTextureFreeList.Num() > 0)
 		{
@@ -567,11 +557,12 @@ TSharedPtr<FSlateUTextureResource> FSlateRHIResourceManager::MakeDynamicUTexture
 		{
 			// Free list is empty, we have to allocate a new resource
 			TextureResource = MakeShareable(new FSlateUTextureResource(InTextureObject));
+		
 		}
 
 		TextureResource->Proxy->ActualSize = FIntPoint(InTextureObject->GetSurfaceWidth(), InTextureObject->GetSurfaceHeight());
 
-		checkSlow(!GetAccessedUObjects().Contains(InTextureObject));
+		checkSlow(!AccessedUTextures.Contains(InTextureObject));
 	}
 	else
 	{
@@ -587,14 +578,14 @@ TSharedPtr<FSlateUTextureResource> FSlateRHIResourceManager::MakeDynamicUTexture
 
 FSlateShaderResourceProxy* FSlateRHIResourceManager::FindOrCreateDynamicTextureResource(const FSlateBrush& InBrush)
 {
-	checkSlow( IsThreadSafeForSlateRendering() );
+	check( IsThreadSafeForSlateRendering() );
 
 	const FName ResourceName = InBrush.GetResourceName();
 	if ( ResourceName.IsValid() && ResourceName != NAME_None )
 	{
 		if ( UObject* ResourceObject = InBrush.GetResourceObject() )
 		{
-			if ( !ResourceObject->IsA<UTexture>() )
+			if ( !(ResourceObject->IsA<UTexture2D>() || ResourceObject->IsA<UTexture2DDynamic>()) )
 			{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 				static TSet<UObject*> FailedTextures;
@@ -622,10 +613,29 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::FindOrCreateDynamicTextureR
 				}
 			}
 
-			if ( TextureResource.IsValid() && TextureResource->TextureObject && TextureResource->TextureObject->Resource )
+			if ( TextureResource.IsValid() )
 			{
-				TextureResource->UpdateRenderResource(TextureObject->Resource);
-				GetAccessedUObjects().Add(TextureResource->TextureObject);
+				UTexture* Texture2DObject = TextureResource->TextureObject;
+				if ( Texture2DObject && !AccessedUTextures.Contains(Texture2DObject) && Texture2DObject->Resource )
+				{
+					// Set the texture rendering resource that should be used.  The UTexture resource could change at any time so we must do this each frame
+					ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(UpdateSlateUTextureResource,
+						FSlateUTextureResource*, InUTextureResource, TextureResource.Get(),
+						{
+							FTexture* RenderTexture = InUTextureResource->TextureObject->Resource;
+
+							// Let the streaming manager know we are using this texture now
+							RenderTexture->LastRenderTime = FApp::GetCurrentTime();
+
+							// Refresh FTexture
+							InUTextureResource->UpdateRenderResource(RenderTexture);
+
+						});
+
+
+					AccessedUTextures.Add(Texture2DObject);
+				}
+
 				return TextureResource->Proxy;
 			}
 		}
@@ -660,7 +670,7 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::FindOrCreateDynamicTextureR
 
 FSlateMaterialResource* FSlateRHIResourceManager::GetMaterialResource(const UObject* InMaterial, FVector2D ImageSize, FSlateShaderResource* TextureMask )
 {
-	checkSlow(IsThreadSafeForSlateRendering());
+	check(IsThreadSafeForSlateRendering());
 
 	const UMaterialInterface* Material = CastChecked<UMaterialInterface>(InMaterial);
 
@@ -692,7 +702,7 @@ FSlateMaterialResource* FSlateRHIResourceManager::GetMaterialResource(const UObj
 		MaterialResource->SlateProxy->ActualSize = ImageSize.IntPoint();
 	}
 
-	GetAccessedUObjects().Add(const_cast<UMaterialInterface*>( Material ));
+	AccessedMaterials.Add(const_cast<UMaterialInterface*>( Material ));
 
 	return MaterialResource.Get();
 }
@@ -713,7 +723,7 @@ bool FSlateRHIResourceManager::ContainsTexture( const FName& ResourceName ) cons
 
 void FSlateRHIResourceManager::ReleaseDynamicResource( const FSlateBrush& InBrush )
 {
-	checkSlow( IsThreadSafeForSlateRendering() )
+	check( IsThreadSafeForSlateRendering() )
 
 	// Note: Only dynamically loaded or utexture brushes can be dynamically released
 	if( InBrush.HasUObject() || InBrush.IsDynamicallyLoaded() )
@@ -729,7 +739,7 @@ void FSlateRHIResourceManager::ReleaseDynamicResource( const FSlateBrush& InBrus
 			if(TextureResource.IsValid())
 			{
 				//remove it from the accessed textures
-				GetAccessedUObjects().Remove(TextureResource->TextureObject);
+				AccessedUTextures.Remove(TextureResource->TextureObject);
 				DynamicResourceMap.RemoveUTextureResource(TextureResource->TextureObject);
 
 				UTextureFreeList.Add(TextureResource);
@@ -749,6 +759,7 @@ void FSlateRHIResourceManager::ReleaseDynamicResource( const FSlateBrush& InBrus
 					MaterialResourceFreeList.Add( MaterialResource );
 				}
 			}
+		
 		}
 		else if( !ResourceObject )
 		{
@@ -767,6 +778,7 @@ void FSlateRHIResourceManager::ReleaseDynamicResource( const FSlateBrush& InBrus
 				DEC_DWORD_STAT_BY(STAT_SlateNumDynamicTextures, 1);
 			}
 		}
+		
 	}
 }
 
@@ -786,59 +798,10 @@ void FSlateRHIResourceManager::LoadStyleResources( const ISlateStyle& Style )
 	CreateTextures( Resources );
 }
 
-void FSlateRHIResourceManager::BeginReleasingAccessedResources(bool bImmediatelyFlush)
+void FSlateRHIResourceManager::ReleaseAccessedResources()
 {
-	// IsInGameThread returns true when you're in the slate loading thread
-	if ( IsInGameThread() && !IsInSlateThread() )
-	{
-		DynamicResourceMap.RemoveExpiredTextureResources(UTextureFreeList);
-		DynamicResourceMap.RemoveExpiredMaterialResources(MaterialResourceFreeList);
-
-		if ( CurrentAccessedUObject )
-		{
-			DirtyAccessedObjectSets.Enqueue(CurrentAccessedUObject);
-
-			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(UpdateSlateUTextureResource,
-				FSlateRHIResourceManager*, InManager, this,
-				{
-					TSet<UObject*>* Objects = nullptr;
-					InManager->DirtyAccessedObjectSets.Dequeue(Objects);
-					InManager->CleanAccessedObjectSets.Enqueue(Objects);
-				});
-
-			CurrentAccessedUObject = nullptr;
-		}
-
-		if ( bImmediatelyFlush )
-		{
-			// Release all accessed object sets, we only manipulate the set on the main
-			// thread, so this is fine.
-			for ( TSet<UObject*>* AccessedUObjects : AllAccessedUObject )
-			{
-				AccessedUObjects->Empty();
-			}
-		}
-	}
-}
-
-TSet<UObject*>& FSlateRHIResourceManager::GetAccessedUObjects()
-{
-	// If the current CurrentAccessedUObject is nullptr, that means we need a fresh
-	// one from the clean queue, or we need to create one.
-	if ( CurrentAccessedUObject == nullptr )
-	{
-		if ( CleanAccessedObjectSets.Dequeue(CurrentAccessedUObject) )
-		{
-			CurrentAccessedUObject->Empty();
-		}
-		else
-		{
-			AllAccessedUObject.Add(new TSet<UObject*>());
-			CurrentAccessedUObject = AllAccessedUObject.Last();
-		}
-	}
-
-	return *CurrentAccessedUObject;
+	AccessedUTextures.Reset();
+	AccessedMaterials.Reset();
 }
 
 void FSlateRHIResourceManager::UpdateTextureAtlases()
@@ -849,84 +812,9 @@ void FSlateRHIResourceManager::UpdateTextureAtlases()
 	}
 }
 
-FCachedRenderBuffers* FSlateRHIResourceManager::FindOrCreateCachedBuffersForHandle(const TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe>& RenderHandle)
-{
-	FCachedRenderBuffers* Buffers = CachedBuffers.FindRef(&RenderHandle.Get());
-	if ( Buffers == nullptr )
-	{
-		// Rather than having a global pool, we associate the pools with a particular layout cacher.
-		// If we don't do this, all buffers eventually become as larger as the largest buffer, and it
-		// would be much better to keep the pools coherent with the sizes typically associated with
-		// a particular caching panel.
-		const ILayoutCache* LayoutCacher = RenderHandle->GetCacher();
-		TArray< FCachedRenderBuffers* >& Pool = CachedBufferPool.FindOrAdd(LayoutCacher);
-
-		// If the cached buffer pool is empty, time to create a new one!
-		if ( Pool.Num() == 0 )
-		{
-			Buffers = new FCachedRenderBuffers();
-			Buffers->VertexBuffer.Init(200);
-			Buffers->IndexBuffer.Init(200);
-		}
-		else
-		{
-			// If we found one in the pool, lets use it!
-			Buffers = Pool[0];
-			Pool.RemoveAtSwap(0, 1, false);
-		}
-
-		CachedBuffers.Add(&RenderHandle.Get(), Buffers);
-	}
-
-	return Buffers;
-}
-
-void FSlateRHIResourceManager::ReleaseCachedRenderData(FSlateRenderDataHandle* InRenderHandle)
-{
-	// Should only be called by the rendering thread
-	check(IsInRenderingThread());
-	check(InRenderHandle);
-
-	FCachedRenderBuffers* PooledBuffer = CachedBuffers.FindRef(InRenderHandle);
-	if ( ensure(PooledBuffer != nullptr) )
-	{
-		const ILayoutCache* LayoutCacher = InRenderHandle->GetCacher();
-		TArray< FCachedRenderBuffers* >* Pool = CachedBufferPool.Find(LayoutCacher);
-		if ( Pool )
-		{
-			Pool->Add(PooledBuffer);
-		}
-		else
-		{
-			// The buffer pool may have already been released, so lets just delete this buffer.
-			PooledBuffer->VertexBuffer.Destroy();
-			PooledBuffer->IndexBuffer.Destroy();
-			delete PooledBuffer;
-		}
-
-		CachedBuffers.Remove(InRenderHandle);
-	}
-}
-
-void FSlateRHIResourceManager::ReleaseCachingResourcesFor(const ILayoutCache* Cacher)
-{
-	TArray< FCachedRenderBuffers* >* Pool = CachedBufferPool.Find(Cacher);
-	if ( Pool )
-	{
-		for ( FCachedRenderBuffers* PooledBuffer : *Pool )
-		{
-			PooledBuffer->VertexBuffer.Destroy();
-			PooledBuffer->IndexBuffer.Destroy();
-			delete PooledBuffer;
-		}
-
-		CachedBufferPool.Remove(Cacher);
-	}
-}
-
 void FSlateRHIResourceManager::ReleaseResources()
 {
-	checkSlow( IsThreadSafeForSlateRendering() );
+	check( IsThreadSafeForSlateRendering() );
 
 	for( int32 AtlasIndex = 0; AtlasIndex < TextureAtlases.Num(); ++AtlasIndex )
 	{
@@ -939,27 +827,6 @@ void FSlateRHIResourceManager::ReleaseResources()
 	}
 
 	DynamicResourceMap.ReleaseResources();
-
-	for ( TCachedBufferMap::TIterator BufferIt(CachedBuffers); BufferIt; ++BufferIt )
-	{
-		FSlateRenderDataHandle* Handle = BufferIt.Key();
-		FCachedRenderBuffers* Buffer = BufferIt.Value();
-
-		Handle->Disconnect();
-
-		Buffer->VertexBuffer.Destroy();
-		Buffer->IndexBuffer.Destroy();
-	}
-
-	for ( TCachedBufferPoolMap::TIterator BufferIt(CachedBufferPool); BufferIt; ++BufferIt )
-	{
-		TArray< FCachedRenderBuffers* >& Pool = BufferIt.Value();
-		for ( FCachedRenderBuffers* PooledBuffer : Pool )
-		{
-			PooledBuffer->VertexBuffer.Destroy();
-			PooledBuffer->IndexBuffer.Destroy();
-		}
-	}
 
 	// Note the base class has texture proxies only which do not need to be released
 }
@@ -975,28 +842,12 @@ void FSlateRHIResourceManager::DeleteResources()
 	{
 		delete NonAtlasedTextures[ResourceIndex];
 	}
-
 	SET_DWORD_STAT(STAT_SlateNumNonAtlasedTextures, 0);
 	SET_DWORD_STAT(STAT_SlateNumTextureAtlases, 0);
 	SET_DWORD_STAT(STAT_SlateNumDynamicTextures, 0);
 
-	// Verify rendering commands were flushed by ensuring there's nothing left to be processed
-	// in the dirty queue, they should all be in clean.
-	check(DirtyAccessedObjectSets.IsEmpty());
-
-	// Remove everything from the clean set.
-	TSet<UObject*>* DummyObjects;
-	while ( CleanAccessedObjectSets.Dequeue(DummyObjects) ) { }
-
-	// Release all accessed object sets.
-	for ( TSet<UObject*>* AccessedUObjects : AllAccessedUObject )
-	{
-		AccessedUObjects->Empty();
-		delete AccessedUObjects;
-	}
-
-	AllAccessedUObject.Empty();
-
+	AccessedUTextures.Empty();
+	AccessedMaterials.Empty();
 	DynamicResourceMap.Empty();
 	TextureAtlases.Empty();
 	NonAtlasedTextures.Empty();
@@ -1006,30 +857,11 @@ void FSlateRHIResourceManager::DeleteResources()
 
 	// Clean up mapping to texture
 	ClearTextureMap();
-
-	for ( TCachedBufferMap::TIterator BufferIt(CachedBuffers); BufferIt; ++BufferIt )
-	{
-		FCachedRenderBuffers* Buffer = BufferIt.Value();
-		delete Buffer;
-	}
-
-	CachedBuffers.Empty();
-
-	for ( TCachedBufferPoolMap::TIterator BufferIt(CachedBufferPool); BufferIt; ++BufferIt )
-	{
-		TArray< FCachedRenderBuffers* >& Pool = BufferIt.Value();
-		for ( FCachedRenderBuffers* PooledBuffer : Pool )
-		{
-			delete PooledBuffer;
-		}
-	}
-
-	CachedBufferPool.Empty();
 }
 
 void FSlateRHIResourceManager::ReloadTextures()
 {
-	checkSlow( IsThreadSafeForSlateRendering() );
+	check( IsThreadSafeForSlateRendering() );
 
 	// Release rendering resources
 	ReleaseResources();

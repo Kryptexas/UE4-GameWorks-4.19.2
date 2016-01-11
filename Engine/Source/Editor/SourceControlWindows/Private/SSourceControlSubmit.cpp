@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SourceControlWindowsPCH.h"
 #include "AssetToolsModule.h"
@@ -438,6 +438,8 @@ void FSourceControlWindows::ChoosePackagesToCheckInCompleted(const TArray<UPacka
 	}
 	ChoosePackagesToCheckInNotification.Reset();
 
+	check(PackageNames.Num() > 0 || ConfigFiles.Num() > 0);
+
 	// Prompt the user to ask if they would like to first save any dirty packages they are trying to check-in
 	const FEditorFileUtils::EPromptReturnCode UserResponse = FEditorFileUtils::PromptForCheckoutAndSave(LoadedPackages, true, true);
 
@@ -516,7 +518,16 @@ void FSourceControlWindows::ChoosePackagesToCheckInCallback(const FSourceControl
 			ConfigFilesToSubmit.Add(It.Key());
 		}
 
-		ChoosePackagesToCheckInCompleted(LoadedPackages, PackageNames, ConfigFilesToSubmit);
+		if (PackageNames.Num() > 0 || ConfigFilesToSubmit.Num() > 0)
+		{
+			ChoosePackagesToCheckInCompleted(LoadedPackages, PackageNames, ConfigFilesToSubmit);
+		}
+		else
+		{
+			FMessageLog EditorErrors("EditorErrors");
+			EditorErrors.Warning(LOCTEXT("NoAssetsToCheckIn", "No assets to check in!"));
+			EditorErrors.Notify();
+		}
 	}
 	else if (InResult == ECommandResult::Failed)
 	{
@@ -549,7 +560,7 @@ void FSourceControlWindows::ChoosePackagesToCheckIn()
 
 			ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
 			FSourceControlOperationRef Operation = ISourceControlOperation::Create<FUpdateStatus>();
-			StaticCastSharedRef<FUpdateStatus>(Operation)->SetCheckingAllFiles(false);
+			StaticCastSharedRef<FUpdateStatus>(Operation)->SetCheckingAllFiles(true);
 			SourceControlProvider.Execute(Operation, Filenames, EConcurrency::Asynchronous, FSourceControlOperationComplete::CreateStatic(&FSourceControlWindows::ChoosePackagesToCheckInCallback));
 
 			if (ChoosePackagesToCheckInNotification.IsValid())
@@ -722,12 +733,6 @@ bool FSourceControlWindows::PromptForCheckin(bool bUseSourceControlStateCache, c
 				}
 			}
 		}
-	}
-	else
-	{
-		FMessageLog EditorErrors("EditorErrors");
-		EditorErrors.Warning(LOCTEXT("NoAssetsToCheckIn", "No assets to check in!"));
-		EditorErrors.Notify();
 	}
 
 	return bCheckInSuccess;

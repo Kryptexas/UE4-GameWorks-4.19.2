@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "BlueprintUtilities.h"
@@ -21,7 +21,6 @@ UBlueprintGeneratedClass::UBlueprintGeneratedClass(const FObjectInitializer& Obj
 	: Super(ObjectInitializer)
 {
 	NumReplicatedProperties = 0;
-	bHasInstrumentation = false;
 }
 
 void UBlueprintGeneratedClass::PostInitProperties()
@@ -329,74 +328,44 @@ UObject* UBlueprintGeneratedClass::FindArchetype(UClass* ArchetypeClass, const F
 	return Archetype;
 }
 
-UDynamicBlueprintBinding* UBlueprintGeneratedClass::GetDynamicBindingObject(const UClass* ThisClass, UClass* BindingClass)
+UDynamicBlueprintBinding* UBlueprintGeneratedClass::GetDynamicBindingObject(UClass* Class) const
 {
-	check(ThisClass);
-	UDynamicBlueprintBinding* DynamicBlueprintBinding = nullptr;
-	if (auto BPGC = Cast<UBlueprintGeneratedClass>(ThisClass))
+	UDynamicBlueprintBinding* DynamicBindingObject = NULL;
+	for (int32 Index = 0; Index < DynamicBindingObjects.Num(); ++Index)
 	{
-		for (auto DynamicBindingObject : BPGC->DynamicBindingObjects)
+		if (DynamicBindingObjects[Index]->GetClass() == Class)
 		{
-			if (DynamicBindingObject && (DynamicBindingObject->GetClass() == BindingClass))
-			{
-				DynamicBlueprintBinding = DynamicBindingObject;
-				break;
-			}
+			DynamicBindingObject = DynamicBindingObjects[Index];
+			break;
 		}
 	}
-	else if (auto DynamicClass = Cast<UDynamicClass>(ThisClass))
-	{
-		for (auto MiscObj : DynamicClass->DynamicBindingObjects)
-		{
-			auto DynamicBindingObject = Cast<UDynamicBlueprintBinding>(MiscObj);
-			if (DynamicBindingObject && (DynamicBindingObject->GetClass() == BindingClass))
-			{
-				DynamicBlueprintBinding = DynamicBindingObject;
-				break;
-			}
-		}
-	}
-	return DynamicBlueprintBinding;
+	return DynamicBindingObject;
 }
 
-void UBlueprintGeneratedClass::BindDynamicDelegates(const UClass* ThisClass, UObject* InInstance)
+void UBlueprintGeneratedClass::BindDynamicDelegates(UObject* InInstance) const
 {
-	check(ThisClass && InInstance);
-	if (!InInstance->IsA(ThisClass))
+	if(!InInstance->IsA(this))
 	{
-		UE_LOG(LogBlueprint, Warning, TEXT("BindComponentDelegates: '%s' is not an instance of '%s'."), *InInstance->GetName(), *ThisClass->GetName());
+		UE_LOG(LogBlueprint, Warning, TEXT("BindComponentDelegates: '%s' is not an instance of '%s'."), *InInstance->GetName(), *GetName());
 		return;
 	}
 
-	if (auto BPGC = Cast<UBlueprintGeneratedClass>(ThisClass))
+	for (int32 Index = 0; Index < DynamicBindingObjects.Num(); ++Index)
 	{
-		for (auto DynamicBindingObject : BPGC->DynamicBindingObjects)
+		if ( ensure(DynamicBindingObjects[Index] != NULL) )
 		{
-			if (ensure(DynamicBindingObject))
-			{
-				DynamicBindingObject->BindDynamicDelegates(InInstance);
-			}
-		}
-	}
-	else if (auto DynamicClass = Cast<UDynamicClass>(ThisClass))
-	{
-		for (auto MiscObj : DynamicClass->DynamicBindingObjects)
-		{
-			auto DynamicBindingObject = Cast<UDynamicBlueprintBinding>(MiscObj);
-			if (DynamicBindingObject)
-			{
-				DynamicBindingObject->BindDynamicDelegates(InInstance);
-			}
+			DynamicBindingObjects[Index]->BindDynamicDelegates(InInstance);
 		}
 	}
 
-	if (auto TheSuperClass = ThisClass->GetSuperClass())
+	// call on super class, if it's a BlueprintGeneratedClass
+	UBlueprintGeneratedClass* BGClass = Cast<UBlueprintGeneratedClass>(GetSuperStruct());
+	if(BGClass != NULL)
 	{
-		BindDynamicDelegates(TheSuperClass, InInstance);
+		BGClass->BindDynamicDelegates(InInstance);
 	}
 }
 
-#if WITH_EDITOR
 void UBlueprintGeneratedClass::UnbindDynamicDelegatesForProperty(UObject* InInstance, const UObjectProperty* InObjectProperty)
 {
 	for (int32 Index = 0; Index < DynamicBindingObjects.Num(); ++Index)
@@ -407,7 +376,6 @@ void UBlueprintGeneratedClass::UnbindDynamicDelegatesForProperty(UObject* InInst
 		}
 	}
 }
-#endif
 
 bool UBlueprintGeneratedClass::GetGeneratedClassesHierarchy(const UClass* InClass, TArray<const UBlueprintGeneratedClass*>& OutBPGClasses)
 {
@@ -439,146 +407,122 @@ UActorComponent* UBlueprintGeneratedClass::FindComponentTemplateByName(const FNa
 	return NULL;
 }
 
-void UBlueprintGeneratedClass::CreateTimelineComponent(AActor* Actor, const UTimelineTemplate* TimelineTemplate)
+void UBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) const
 {
-	if (!Actor
-		|| !TimelineTemplate
-		|| !TimelineTemplate->bValidatedAsWired
-		|| Actor->IsTemplate()
-		|| Actor->IsPendingKill())
-	{
-		return;
-	}
-
-	FName NewName(*UTimelineTemplate::TimelineTemplateNameToVariableName(TimelineTemplate->GetFName()));
-	UTimelineComponent* NewTimeline = NewObject<UTimelineComponent>(Actor, NewName);
-	NewTimeline->CreationMethod = EComponentCreationMethod::UserConstructionScript; // Indicate it comes from a blueprint so it gets cleared when we rerun construction scripts
-	Actor->BlueprintCreatedComponents.Add(NewTimeline); // Add to array so it gets saved
-	NewTimeline->SetNetAddressable();	// This component has a stable name that can be referenced for replication
-
-	NewTimeline->SetPropertySetObject(Actor); // Set which object the timeline should drive properties on
-	NewTimeline->SetDirectionPropertyName(TimelineTemplate->GetDirectionPropertyName());
-
-	NewTimeline->SetTimelineLength(TimelineTemplate->TimelineLength); // copy length
-	NewTimeline->SetTimelineLengthMode(TimelineTemplate->LengthMode);
-
-	// Find property with the same name as the template and assign the new Timeline to it
-	UClass* ActorClass = Actor->GetClass();
-	UObjectPropertyBase* Prop = FindField<UObjectPropertyBase>(ActorClass, *UTimelineTemplate::TimelineTemplateNameToVariableName(TimelineTemplate->GetFName()));
-	if (Prop)
-	{
-		Prop->SetObjectPropertyValue_InContainer(Actor, NewTimeline);
-	}
-
-	// Event tracks
-	// In the template there is a track for each function, but in the runtime Timeline each key has its own delegate, so we fold them together
-	for (int32 TrackIdx = 0; TrackIdx < TimelineTemplate->EventTracks.Num(); TrackIdx++)
-	{
-		const FTTEventTrack* EventTrackTemplate = &TimelineTemplate->EventTracks[TrackIdx];
-		if (EventTrackTemplate->CurveKeys != NULL)
-		{
-			// Create delegate for all keys in this track
-			FScriptDelegate EventDelegate;
-			EventDelegate.BindUFunction(Actor, TimelineTemplate->GetEventTrackFunctionName(TrackIdx));
-
-			// Create an entry in Events for each key of this track
-			for (auto It(EventTrackTemplate->CurveKeys->FloatCurve.GetKeyIterator()); It; ++It)
-			{
-				NewTimeline->AddEvent(It->Time, FOnTimelineEvent(EventDelegate));
-			}
-		}
-	}
-
-	// Float tracks
-	for (int32 TrackIdx = 0; TrackIdx < TimelineTemplate->FloatTracks.Num(); TrackIdx++)
-	{
-		const FTTFloatTrack* FloatTrackTemplate = &TimelineTemplate->FloatTracks[TrackIdx];
-		if (FloatTrackTemplate->CurveFloat != NULL)
-		{
-			NewTimeline->AddInterpFloat(FloatTrackTemplate->CurveFloat, FOnTimelineFloat(), TimelineTemplate->GetTrackPropertyName(FloatTrackTemplate->TrackName));
-		}
-	}
-
-	// Vector tracks
-	for (int32 TrackIdx = 0; TrackIdx < TimelineTemplate->VectorTracks.Num(); TrackIdx++)
-	{
-		const FTTVectorTrack* VectorTrackTemplate = &TimelineTemplate->VectorTracks[TrackIdx];
-		if (VectorTrackTemplate->CurveVector != NULL)
-		{
-			NewTimeline->AddInterpVector(VectorTrackTemplate->CurveVector, FOnTimelineVector(), TimelineTemplate->GetTrackPropertyName(VectorTrackTemplate->TrackName));
-		}
-	}
-
-	// Linear color tracks
-	for (int32 TrackIdx = 0; TrackIdx < TimelineTemplate->LinearColorTracks.Num(); TrackIdx++)
-	{
-		const FTTLinearColorTrack* LinearColorTrackTemplate = &TimelineTemplate->LinearColorTracks[TrackIdx];
-		if (LinearColorTrackTemplate->CurveLinearColor != NULL)
-		{
-			NewTimeline->AddInterpLinearColor(LinearColorTrackTemplate->CurveLinearColor, FOnTimelineLinearColor(), TimelineTemplate->GetTrackPropertyName(LinearColorTrackTemplate->TrackName));
-		}
-	}
-
-	// Set up delegate that gets called after all properties are updated
-	FScriptDelegate UpdateDelegate;
-	UpdateDelegate.BindUFunction(Actor, TimelineTemplate->GetUpdateFunctionName());
-	NewTimeline->SetTimelinePostUpdateFunc(FOnTimelineEvent(UpdateDelegate));
-
-	// Set up finished delegate that gets called after all properties are updated
-	FScriptDelegate FinishedDelegate;
-	FinishedDelegate.BindUFunction(Actor, TimelineTemplate->GetFinishedFunctionName());
-	NewTimeline->SetTimelineFinishedFunc(FOnTimelineEvent(FinishedDelegate));
-
-	NewTimeline->RegisterComponent();
-
-	// Start playing now, if desired
-	if (TimelineTemplate->bAutoPlay)
-	{
-		// Needed for autoplay timelines in cooked builds, since they won't have Activate() called via the Play call below
-		NewTimeline->bAutoActivate = true;
-		NewTimeline->Play();
-	}
-
-	// Set to loop, if desired
-	if (TimelineTemplate->bLoop)
-	{
-		NewTimeline->SetLooping(true);
-	}
-
-	// Set replication, if desired
-	if (TimelineTemplate->bReplicated)
-	{
-		NewTimeline->SetIsReplicated(true);
-	}
-}
-
-void UBlueprintGeneratedClass::CreateComponentsForActor(const UClass* ThisClass, AActor* Actor)
-{
-	check(ThisClass && Actor);
+	check(Actor != NULL);
 	check(!Actor->IsTemplate());
 	check(!Actor->IsPendingKill());
 
-	if (auto BPGC = Cast<const UBlueprintGeneratedClass>(ThisClass))
+	// Iterate over each timeline template
+	for(int32 i=0; i<Timelines.Num(); i++)
 	{
-		for (auto TimelineTemplate : BPGC->Timelines)
+		const UTimelineTemplate* TimelineTemplate = Timelines[i];
+
+		// Not fatal if NULL, but shouldn't happen and ignored if not wired up in graph
+		if(!TimelineTemplate||!TimelineTemplate->bValidatedAsWired)
 		{
-			// Not fatal if NULL, but shouldn't happen and ignored if not wired up in graph
-			if (TimelineTemplate && TimelineTemplate->bValidatedAsWired)
+			continue;
+		}
+
+		FName NewName( *UTimelineTemplate::TimelineTemplateNameToVariableName( TimelineTemplate->GetFName() ));
+		UTimelineComponent* NewTimeline = NewObject<UTimelineComponent>(Actor, NewName);
+		NewTimeline->CreationMethod = EComponentCreationMethod::UserConstructionScript; // Indicate it comes from a blueprint so it gets cleared when we rerun construction scripts
+		Actor->BlueprintCreatedComponents.Add(NewTimeline); // Add to array so it gets saved
+		NewTimeline->SetNetAddressable();	// This component has a stable name that can be referenced for replication
+
+		NewTimeline->SetPropertySetObject(Actor); // Set which object the timeline should drive properties on
+		NewTimeline->SetDirectionPropertyName(TimelineTemplate->GetDirectionPropertyName());
+
+		NewTimeline->SetTimelineLength(TimelineTemplate->TimelineLength); // copy length
+		NewTimeline->SetTimelineLengthMode(TimelineTemplate->LengthMode);
+
+		// Find property with the same name as the template and assign the new Timeline to it
+		UClass* ActorClass = Actor->GetClass();
+		UObjectPropertyBase* Prop = FindField<UObjectPropertyBase>( ActorClass, *UTimelineTemplate::TimelineTemplateNameToVariableName(TimelineTemplate->GetFName()) );
+		if(Prop)
+		{
+			Prop->SetObjectPropertyValue_InContainer(Actor, NewTimeline);
+		}
+
+		// Event tracks
+		// In the template there is a track for each function, but in the runtime Timeline each key has its own delegate, so we fold them together
+		for(int32 TrackIdx=0; TrackIdx<TimelineTemplate->EventTracks.Num(); TrackIdx++)
+		{
+			const FTTEventTrack* EventTrackTemplate = &TimelineTemplate->EventTracks[TrackIdx];
+			if(EventTrackTemplate->CurveKeys != NULL)
 			{
-				CreateTimelineComponent(Actor, TimelineTemplate);
+				// Create delegate for all keys in this track
+				FScriptDelegate EventDelegate;
+				EventDelegate.BindUFunction(Actor, TimelineTemplate->GetEventTrackFunctionName(TrackIdx));
+
+				// Create an entry in Events for each key of this track
+				for (auto It(EventTrackTemplate->CurveKeys->FloatCurve.GetKeyIterator()); It; ++It)
+				{
+					NewTimeline->AddEvent(It->Time, FOnTimelineEvent(EventDelegate));
+				}
 			}
 		}
-	}
-	else if (auto DynamicClass = Cast<UDynamicClass>(ThisClass))
-	{
-		for (auto MiscObj : DynamicClass->Timelines)
+
+		// Float tracks
+		for(int32 TrackIdx=0; TrackIdx<TimelineTemplate->FloatTracks.Num(); TrackIdx++)
 		{
-			auto TimelineTemplate = Cast<const UTimelineTemplate>(MiscObj);
-			// Not fatal if NULL, but shouldn't happen and ignored if not wired up in graph
-			if (TimelineTemplate && TimelineTemplate->bValidatedAsWired)
+			const FTTFloatTrack* FloatTrackTemplate = &TimelineTemplate->FloatTracks[TrackIdx];
+			if(FloatTrackTemplate->CurveFloat != NULL)
 			{
-				CreateTimelineComponent(Actor, TimelineTemplate);
+				NewTimeline->AddInterpFloat(FloatTrackTemplate->CurveFloat, FOnTimelineFloat(), TimelineTemplate->GetTrackPropertyName(FloatTrackTemplate->TrackName));
 			}
+		}
+
+		// Vector tracks
+		for(int32 TrackIdx=0; TrackIdx<TimelineTemplate->VectorTracks.Num(); TrackIdx++)
+		{
+			const FTTVectorTrack* VectorTrackTemplate = &TimelineTemplate->VectorTracks[TrackIdx];
+			if(VectorTrackTemplate->CurveVector != NULL)
+			{
+				NewTimeline->AddInterpVector(VectorTrackTemplate->CurveVector, FOnTimelineVector(), TimelineTemplate->GetTrackPropertyName(VectorTrackTemplate->TrackName));
+			}
+		}
+
+		// Linear color tracks
+		for(int32 TrackIdx=0; TrackIdx<TimelineTemplate->LinearColorTracks.Num(); TrackIdx++)
+		{
+			const FTTLinearColorTrack* LinearColorTrackTemplate = &TimelineTemplate->LinearColorTracks[TrackIdx];
+			if(LinearColorTrackTemplate->CurveLinearColor != NULL)
+			{
+				NewTimeline->AddInterpLinearColor(LinearColorTrackTemplate->CurveLinearColor, FOnTimelineLinearColor(), TimelineTemplate->GetTrackPropertyName(LinearColorTrackTemplate->TrackName));
+			}
+		}
+
+		// Set up delegate that gets called after all properties are updated
+		FScriptDelegate UpdateDelegate;
+		UpdateDelegate.BindUFunction(Actor, TimelineTemplate->GetUpdateFunctionName());
+		NewTimeline->SetTimelinePostUpdateFunc(FOnTimelineEvent(UpdateDelegate));
+
+		// Set up finished delegate that gets called after all properties are updated
+		FScriptDelegate FinishedDelegate;
+		FinishedDelegate.BindUFunction(Actor, TimelineTemplate->GetFinishedFunctionName());
+		NewTimeline->SetTimelineFinishedFunc(FOnTimelineEvent(FinishedDelegate));
+
+		NewTimeline->RegisterComponent();
+
+		// Start playing now, if desired
+		if(TimelineTemplate->bAutoPlay)
+		{
+			// Needed for autoplay timelines in cooked builds, since they won't have Activate() called via the Play call below
+			NewTimeline->bAutoActivate = true;
+			NewTimeline->Play();
+		}
+
+		// Set to loop, if desired
+		if(TimelineTemplate->bLoop)
+		{
+			NewTimeline->SetLooping(true);
+		}
+
+		// Set replication, if desired
+		if(TimelineTemplate->bReplicated)
+		{
+			NewTimeline->SetIsReplicated(true);
 		}
 	}
 }
@@ -602,7 +546,7 @@ uint8* UBlueprintGeneratedClass::GetPersistentUberGraphFrame(UObject* Obj, UFunc
 
 void UBlueprintGeneratedClass::CreatePersistentUberGraphFrame(UObject* Obj, bool bCreateOnlyIfEmpty, bool bSkipSuperClass) const
 {
-	ensure(!UberGraphFramePointerProperty == !UberGraphFunction);
+	checkSlow(!UberGraphFramePointerProperty == !UberGraphFunction);
 	if (Obj && UsePersistentUberGraphFrame() && UberGraphFramePointerProperty && UberGraphFunction)
 	{
 		auto PointerToUberGraphFrame = UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(Obj);
@@ -643,7 +587,7 @@ void UBlueprintGeneratedClass::CreatePersistentUberGraphFrame(UObject* Obj, bool
 
 void UBlueprintGeneratedClass::DestroyPersistentUberGraphFrame(UObject* Obj, bool bSkipSuperClass) const
 {
-	ensure(!UberGraphFramePointerProperty == !UberGraphFunction);
+	checkSlow(!UberGraphFramePointerProperty == !UberGraphFunction);
 	if (Obj && UsePersistentUberGraphFrame() && UberGraphFramePointerProperty && UberGraphFunction)
 	{
 		auto PointerToUberGraphFrame = UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(Obj);
@@ -777,11 +721,11 @@ void UBlueprintGeneratedClass::AddReferencedObjectsInUbergraphFrame(UObject* InT
 		{
 			if (BPGC->UberGraphFramePointerProperty)
 			{
+				checkSlow(BPGC->UberGraphFunction);
 				auto PointerToUberGraphFrame = BPGC->UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(InThis);
 				checkSlow(PointerToUberGraphFrame)
 				if (PointerToUberGraphFrame->RawPointer)
 				{
-					checkSlow(BPGC->UberGraphFunction);
 					FPersistentFrameCollectorArchive ObjectReferenceCollector(InThis, Collector);
 					BPGC->UberGraphFunction->SerializeBin(ObjectReferenceCollector, PointerToUberGraphFrame->RawPointer);
 

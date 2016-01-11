@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Engine/SCS_Node.h"
@@ -63,6 +63,8 @@ void USimpleConstructionScript::Serialize(FArchive& Ar)
 
 	if(Ar.IsLoading())
 	{
+		int32 NodeIndex;
+
 		if(Ar.UE4Ver() < VER_UE4_REMOVE_NATIVE_COMPONENTS_FROM_BLUEPRINT_SCS)
 		{
 			// If we previously had a root node, we need to move it into the new RootNodes array. This is done in Serialize() in order to support SCS preloading (which relies on a valid RootNodes array).
@@ -83,8 +85,9 @@ void USimpleConstructionScript::Serialize(FArchive& Ar)
 				else
 				{
 					// For each child of the previously-native root node
-					for (USCS_Node* Node : RootNode_DEPRECATED->GetChildNodes())
+					for (NodeIndex=0; NodeIndex < RootNode_DEPRECATED->ChildNodes.Num(); ++NodeIndex)
 					{
+						USCS_Node* Node = RootNode_DEPRECATED->ChildNodes[NodeIndex];
 						if(Node != NULL)
 						{
 							// Ensure it's been loaded (may not have been yet if we're preloading the SCS)
@@ -112,8 +115,9 @@ void USimpleConstructionScript::Serialize(FArchive& Ar)
 			}
 
 			// Add any user-defined actor components to the root set
-			for (USCS_Node* Node : ActorComponentNodes_DEPRECATED)
+			for(NodeIndex = 0; NodeIndex < ActorComponentNodes_DEPRECATED.Num(); ++NodeIndex)
 			{
+				USCS_Node* Node = ActorComponentNodes_DEPRECATED[NodeIndex];
 				if(Node != NULL)
 				{
 					// Ensure it's been loaded (may not have been yet if we're preloading the SCS)
@@ -149,6 +153,9 @@ void USimpleConstructionScript::PostLoad()
 {
 	Super::PostLoad();
 
+	int32 NodeIndex;
+	TArray<USCS_Node*> Nodes = GetAllNodes();
+
 #if WITH_EDITOR
 	// Get the Blueprint that owns the SCS
 	UBlueprint* Blueprint = GetBlueprint();
@@ -159,8 +166,10 @@ void USimpleConstructionScript::PostLoad()
 		return;
 	}
 
-	for (USCS_Node* Node : GetAllNodes())
+	for (NodeIndex=0; NodeIndex < Nodes.Num(); ++NodeIndex)
 	{
+		USCS_Node* Node = Nodes[NodeIndex];
+
 		// Fix up any uninitialized category names
 		if(Node->CategoryName.IsEmpty())
 		{
@@ -190,7 +199,7 @@ void USimpleConstructionScript::PostLoad()
 					USCS_Node* ParentNode = FindParentNode(Node);
 					if(ParentNode != nullptr)
 					{
-						ParentNode->RemoveChildNode(Node);
+						ParentNode->ChildNodes.Remove(Node);
 					}
 
 					RootNodes.Add(Node);
@@ -202,14 +211,17 @@ void USimpleConstructionScript::PostLoad()
 					if(PromoteIndex != INDEX_NONE)
 					{
 						// Remove it as a child node
-						USCS_Node* ChildToPromote = Node->GetChildNodes()[PromoteIndex];
-						Node->RemoveChildNodeAt(PromoteIndex, false);
+						USCS_Node* ChildToPromote = Node->ChildNodes[PromoteIndex];
+						Node->ChildNodes.RemoveAt(PromoteIndex);
 
 						// Insert it as a root node just before its prior parent node; this way if it switches back to a scene type it won't supplant the new root we've just created
 						RootNodes.Insert(ChildToPromote, RootNodeIndex);
 
 						// Append previous root node's children to the new root
-						ChildToPromote->MoveChildNodes(Node);
+						ChildToPromote->ChildNodes.Append(Node->ChildNodes);
+
+						// Clear all child nodes from the old root (because it's now a non-scene type and no longer supports attached components)
+						Node->ChildNodes.Empty();
 
 						// Copy any previous external attachment info from the previous root node
 						ChildToPromote->bIsParentComponentNative = Node->bIsParentComponentNative;
@@ -255,8 +267,9 @@ void USimpleConstructionScript::PostLoad()
 				{
 					// If no native root component exists, find the first non-native, non-parented SCS node with a
 					// scene component template. This will be designated as the root component at construction time.
-					for (USCS_Node* Node : RootNodes)
+					for(NodeIndex = 0; NodeIndex < RootNodes.Num(); ++NodeIndex)
 					{
+						USCS_Node* Node = RootNodes[NodeIndex];
 						if(Node->ParentComponentOrVariableName == NAME_None)
 						{
 							// Note that we have to check for nullptr here, because it may be an ActorComponent type
@@ -272,22 +285,6 @@ void USimpleConstructionScript::PostLoad()
 							break;
 						}
 					}
-				}
-			}
-		}
-	}
-
-	if (GetLinkerUE4Version() < VER_UE4_SCS_STORES_ALLNODES_ARRAY)
-	{
-		// Fill out AllNodes if this is an older object
-		if (RootNodes.Num() > 0)
-		{
-			AllNodes.Reset();
-			for (USCS_Node* RootNode : RootNodes)
-			{
-				if (RootNode != nullptr)
-				{
-					AllNodes.Append(RootNode->GetAllNodes());
 				}
 			}
 		}
@@ -348,7 +345,7 @@ void USimpleConstructionScript::FixupSceneNodeHierarchy()
 		{
 			// Reparent to this BP's root node if it's still in the root set
 			RootNodes.Remove(Node);
-			SceneRootNode->AddChildNode(Node, false);
+			SceneRootNode->ChildNodes.Add(Node);
 		}
 		else
 		{
@@ -412,19 +409,17 @@ void USimpleConstructionScript::FixupRootNodeParentReferences()
 				// Find the parent Blueprint in the hierarchy
 				for(int32 StackIndex = ParentBPClassStack.Num() - 1; StackIndex > 0; --StackIndex)
 				{
-					const UBlueprintGeneratedClass* ParentClass = ParentBPClassStack[StackIndex];
+					auto ParentClass = ParentBPClassStack[StackIndex];
 					if( ParentClass != NULL
 						&& ParentClass->SimpleConstructionScript != NULL
 						&& ParentClass->GetFName() == RootNode->ParentComponentOwnerClassName)
 					{
 						// Attempt to locate a match by searching all the nodes that belong to the parent Blueprint's SCS
-						for (USCS_Node* ParentNode : ParentClass->SimpleConstructionScript->GetAllNodes())
+						TArray<USCS_Node*> ParentNodes = ParentClass->SimpleConstructionScript->GetAllNodes();
+						for (int32 ParentNodeIndex=0; ParentNodeIndex < ParentNodes.Num() && !bWasFound; ++ParentNodeIndex)
 						{
-							if (ParentNode != nullptr && ParentNode->VariableName == RootNode->ParentComponentOrVariableName)
-							{
-								bWasFound = true;
-								break;
-							}
+							USCS_Node* ParentNode = ParentNodes[ParentNodeIndex];
+							bWasFound = ParentNode != NULL && ParentNode->VariableName == RootNode->ParentComponentOrVariableName;
 						}
 
 						// We found a match; no need to continue searching the hierarchy
@@ -609,41 +604,27 @@ UClass* USimpleConstructionScript::GetOwnerClass() const
 	return NULL;
 }
 
-#if WITH_EDITOR
-const TArray<USCS_Node*>& USimpleConstructionScript::GetAllNodes() const
+TArray<USCS_Node*> USimpleConstructionScript::GetAllNodes() const
 {
-	// Fill out AllNodes if this is an older object (should be from PostLoad but FindArchetype can happen earlier)
-	if (RootNodes.Num() > 0 && AllNodes.Num() == 0)
+	TArray<USCS_Node*> AllNodes;
+	if(RootNodes.Num() > 0)
 	{
-		USimpleConstructionScript* MutableThis = const_cast<USimpleConstructionScript*>(this);
-		for (USCS_Node* RootNode : MutableThis->RootNodes)
+		for(auto NodeIt = RootNodes.CreateConstIterator(); NodeIt; ++NodeIt)
 		{
-			if (RootNode != nullptr)
+			USCS_Node* RootNode = *NodeIt;
+			if(RootNode != NULL)
 			{
-				MutableThis->AllNodes.Append(RootNode->GetAllNodes());
+				AllNodes.Append(RootNode->GetAllNodes());
 			}
 		}
 	}
 
 	return AllNodes;
 }
-#endif
 
 TArray<const USCS_Node*> USimpleConstructionScript::GetAllNodesConst() const
 {
 	return TArray<const USCS_Node*>(GetAllNodes());
-}
-
-void FSCSAllNodesHelper::Remove(USimpleConstructionScript* SCS, USCS_Node* SCSNode)
-{
-	SCS->Modify();
-	SCS->AllNodes.Remove(SCSNode);
-}
-
-void FSCSAllNodesHelper::Add(USimpleConstructionScript* SCS, USCS_Node* SCSNode)
-{
-	SCS->Modify();
-	SCS->AllNodes.Add(SCSNode);
 }
 
 void USimpleConstructionScript::AddNode(USCS_Node* Node)
@@ -653,7 +634,6 @@ void USimpleConstructionScript::AddNode(USCS_Node* Node)
 		Modify();
 
 		RootNodes.Add(Node);
-		AllNodes.Add(Node);
 
 		ValidateSceneRootNodes();
 	}
@@ -667,7 +647,6 @@ void USimpleConstructionScript::RemoveNode(USCS_Node* Node)
 		Modify();
 
 		RootNodes.Remove(Node);
-		AllNodes.Remove(Node);
 
 		Node->Modify();
 
@@ -683,7 +662,9 @@ void USimpleConstructionScript::RemoveNode(USCS_Node* Node)
 		USCS_Node* ParentNode = FindParentNode(Node);
 		if(ParentNode != NULL)
 		{
-			ParentNode->RemoveChildNode(Node);
+			ParentNode->Modify();
+
+			ParentNode->ChildNodes.Remove(Node);
 		}
 	}
 }
@@ -692,17 +673,17 @@ int32 USimpleConstructionScript::FindPromotableChildNodeIndex(USCS_Node* InParen
 {
 	int32 PromoteIndex = INDEX_NONE;
 
-	if (InParentNode->GetChildNodes().Num() > 0)
+	if (InParentNode->ChildNodes.Num() > 0)
 	{
 		PromoteIndex = 0;
-		USCS_Node* Child = InParentNode->GetChildNodes()[PromoteIndex];
+		USCS_Node* Child = InParentNode->ChildNodes[PromoteIndex];
 
 		// if this is an editor-only component, then it can't have any game-component children (better make sure that's the case)
 		if (Child->ComponentTemplate != NULL && Child->ComponentTemplate->IsEditorOnly())
 		{
-			for (int32 ChildIndex = 1; ChildIndex < InParentNode->GetChildNodes().Num(); ++ChildIndex)
+			for (int32 ChildIndex = 1; ChildIndex < InParentNode->ChildNodes.Num(); ++ChildIndex)
 			{
-				Child = InParentNode->GetChildNodes()[ChildIndex];
+				Child = InParentNode->ChildNodes[ChildIndex];
 				// we found a game-component sibling, better make it the child to promote
 				if (Child->ComponentTemplate != NULL && !Child->ComponentTemplate->IsEditorOnly())
 				{
@@ -726,8 +707,8 @@ void USimpleConstructionScript::RemoveNodeAndPromoteChildren(USCS_Node* Node)
 		int32 PromoteIndex = FindPromotableChildNodeIndex(Node);
 		if(PromoteIndex != INDEX_NONE)
 		{
-			ChildToPromote = Node->GetChildNodes()[PromoteIndex];
-			Node->RemoveChildNodeAt(PromoteIndex, false);
+			ChildToPromote = Node->ChildNodes[PromoteIndex];
+			Node->ChildNodes.RemoveAt(PromoteIndex);
 		}
 
 		Modify();
@@ -737,7 +718,7 @@ void USimpleConstructionScript::RemoveNodeAndPromoteChildren(USCS_Node* Node)
 			ChildToPromote->Modify();
 
 			RootNodes.Add(ChildToPromote);
-			ChildToPromote->MoveChildNodes(Node);
+			ChildToPromote->ChildNodes.Append(Node->ChildNodes);
 
 			ChildToPromote->bIsParentComponentNative = Node->bIsParentComponentNative;
 			ChildToPromote->ParentComponentOrVariableName = Node->ParentComponentOrVariableName;
@@ -745,7 +726,6 @@ void USimpleConstructionScript::RemoveNodeAndPromoteChildren(USCS_Node* Node)
 		}
 		
 		RootNodes.Remove(Node);
-		AllNodes.Remove(Node);
 
 		Node->bIsParentComponentNative = false;
 		Node->ParentComponentOrVariableName = NAME_None;
@@ -762,47 +742,61 @@ void USimpleConstructionScript::RemoveNodeAndPromoteChildren(USCS_Node* Node)
 		ParentNode->Modify();
 
 		// remove node and move children onto parent
-		const int32 Location = ParentNode->GetChildNodes().Find(Node);
-		ParentNode->RemoveChildNode(Node);
-		ParentNode->MoveChildNodes(Node, Location);
+		int32 Location = ParentNode->ChildNodes.Find(Node);
+		ParentNode->ChildNodes.Remove(Node);
+		ParentNode->ChildNodes.Insert(Node->ChildNodes, Location);
 	}
+
+	// Clear out references to previous children
+	Node->ChildNodes.Empty();
 }
 
 
 USCS_Node* USimpleConstructionScript::FindParentNode(USCS_Node* InNode) const
 {
-	for(USCS_Node* TestNode : GetAllNodes())
+	TArray<USCS_Node*> AllNodes = GetAllNodes();
+	for(int32 NodeIdx=0; NodeIdx<AllNodes.Num(); NodeIdx++)
 	{
-		if (TestNode && TestNode->GetChildNodes().Contains(InNode))
+		USCS_Node* TestNode = AllNodes[NodeIdx];
+		check(TestNode != NULL);
+		if(TestNode->ChildNodes.Contains(InNode))
 		{
 			return TestNode;
 		}
 	}
-	return nullptr;
+	return NULL;
 }
 
 USCS_Node* USimpleConstructionScript::FindSCSNode(const FName InName) const
 {
-	for( USCS_Node* SCSNode : GetAllNodes() )
+	TArray<USCS_Node*> AllNodes = GetAllNodes();
+	USCS_Node* ReturnSCSNode = nullptr;
+
+	for( USCS_Node* SCSNode : AllNodes )
 	{
-		if (SCSNode && (SCSNode->GetVariableName() == InName || (SCSNode->ComponentTemplate && SCSNode->ComponentTemplate->GetFName() == InName)))
+		if (SCSNode->GetVariableName() == InName || (SCSNode->ComponentTemplate && SCSNode->ComponentTemplate->GetFName() == InName))
 		{
-			return SCSNode;
+			ReturnSCSNode = SCSNode;
+			break;
 		}
 	}
-	return nullptr;
+	return ReturnSCSNode;
 }
 
 USCS_Node* USimpleConstructionScript::FindSCSNodeByGuid(const FGuid Guid) const
 {
-	for (USCS_Node* SCSNode : GetAllNodes())
+	TArray<USCS_Node*> AllNodes = GetAllNodes();
+	USCS_Node* ReturnSCSNode = nullptr;
+
+	for (USCS_Node* SCSNode : AllNodes)
 	{
-		if (SCSNode && (SCSNode->VariableGuid == Guid))
+		if (SCSNode->VariableGuid == Guid)
 		{
-			return SCSNode;
+			ReturnSCSNode = SCSNode;
+			break;
 		}
 	}
-	return nullptr;
+	return ReturnSCSNode;
 }
 
 #if WITH_EDITOR
@@ -928,7 +922,6 @@ void USimpleConstructionScript::ValidateSceneRootNodes()
 			&& !RootNodes.Contains(DefaultSceneRootNode))
 		{
 			RootNodes.Add(DefaultSceneRootNode);
-			AllNodes.Add(DefaultSceneRootNode);
 		}
 		else if(RootComponentTemplate != nullptr
 			&& RootNodes.Contains(DefaultSceneRootNode))
@@ -978,7 +971,7 @@ void USimpleConstructionScript::ValidateSceneRootNodes()
 				if(RootNode != nullptr)
 				{
 					// We have an existing root node within the current BP class.
-					RootNode->AddChildNode(ChildNode, false);
+					RootNode->AddChildNode(ChildNode);
 				}
 				else
 				{
@@ -992,7 +985,6 @@ void USimpleConstructionScript::ValidateSceneRootNodes()
 
 			// Remove the default scene root node from the current hierarchy.
 			RootNodes.Remove(DefaultSceneRootNode);
-			AllNodes.Remove(DefaultSceneRootNode);
 			DefaultSceneRootNode->ChildNodes.Empty();
 
 			// These shouldn't be set, but just in case...
@@ -1156,10 +1148,12 @@ void USimpleConstructionScript::ValidateNodeVariableNames(FCompilerResultsLog& M
 
 	TSharedPtr<FKismetNameValidator> CurrentBPNameValidator = MakeShareable(new FKismetNameValidator(Blueprint));
 
+	TArray<USCS_Node*> Nodes = GetAllNodes();
 	int32 Counter=0;
 
-	for (USCS_Node* Node : GetAllNodes())
+	for (int32 NodeIndex=0; NodeIndex < Nodes.Num(); ++NodeIndex)
 	{
+		USCS_Node* Node = Nodes[NodeIndex];
 		if( Node && Node->ComponentTemplate && Node != DefaultSceneRootNode )
 		{
 			// Replace missing or invalid component variable names
@@ -1195,10 +1189,13 @@ void USimpleConstructionScript::ValidateNodeVariableNames(FCompilerResultsLog& M
 
 void USimpleConstructionScript::ValidateNodeTemplates(FCompilerResultsLog& MessageLog)
 {
+	int32 NodeIndex;
 	TArray<USCS_Node*> Nodes = GetAllNodes();
 
-	for (USCS_Node* Node : Nodes)
+	for (NodeIndex = 0; NodeIndex < Nodes.Num(); ++NodeIndex)
 	{
+		USCS_Node* Node = Nodes[NodeIndex];
+
 		if (GetLinkerUE4Version() < VER_UE4_REMOVE_INPUT_COMPONENTS_FROM_BLUEPRINTS)
 		{
 			if (!Node->bIsNative_DEPRECATED && Node->ComponentTemplate && Node->ComponentTemplate->IsA<UInputComponent>())
@@ -1217,12 +1214,10 @@ void USimpleConstructionScript::ValidateNodeTemplates(FCompilerResultsLog& Messa
 
 void USimpleConstructionScript::ClearEditorComponentReferences()
 {
-	for (USCS_Node* Node : GetAllNodes())
+	TArray<USCS_Node*> Nodes = GetAllNodes();
+	for(int32 i = 0; i < Nodes.Num(); ++i)
 	{
-		if (Node)
-		{
-			Node->EditorComponentInstance = NULL;
-		}
+		Nodes[i]->EditorComponentInstance = NULL;
 	}
 }
 

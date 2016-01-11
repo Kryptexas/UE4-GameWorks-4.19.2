@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "AbilityTask.h"
 #include "Abilities/GameplayAbilityTypes.h"
@@ -20,7 +20,6 @@ class UAbilityTask_WaitGameplayEffectApplied : public UAbilityTask
 	FGameplayTagRequirements SourceTagRequirements;
 	FGameplayTagRequirements TargetTagRequirements;
 	bool TriggerOnce;
-	bool ListenForPeriodicEffects;
 
 	void SetExternalActor(AActor* InActor);
 
@@ -37,6 +36,5 @@ protected:
 	bool RegisteredCallback;
 	bool UseExternalOwner;
 
-	UPROPERTY()
-	UAbilitySystemComponent* ExternalOwner;
+	TWeakObjectPtr<UAbilitySystemComponent> ExternalOwner;
 };

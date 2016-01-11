@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -26,19 +26,6 @@ public:
 	static CORE_API const FRotator ZeroRotator;
 
 public:
-
-#if ENABLE_NAN_DIAGNOSTIC
-	FORCEINLINE void DiagnosticCheckNaN() const
-	{
-		if (ContainsNaN())
-		{
-			logOrEnsureNanError(TEXT("FRotator contains NaN: %s"), *ToString());
-			*const_cast<FRotator*>(this) = ZeroRotator;
-		}
-	}
-#else
-	FORCEINLINE void DiagnosticCheckNaN() const {}
-#endif
 
 	/**
 	 * Default constructor (no initialization).
@@ -124,11 +111,10 @@ public:
 	// Binary comparison operators.
 
 	/**
-	 * Checks whether two rotators are identical. This checks each component for exact equality.
+	 * Checks whether two rotators are identical.
 	 *
 	 * @param R The other rotator.
 	 * @return true if two rotators are identical, otherwise false.
-	 * @see Equals()
 	 */
 	bool operator==( const FRotator& R ) const;
 
@@ -163,8 +149,7 @@ public:
 	// Functions.
 
 	/**
-	 * Checks whether rotator is nearly zero within specified tolerance, when treated as an orientation.
-	 * This means that FRotator(0, 0, 360) is "zero", because it is the same final orientation as the zero rotator.
+	 * Checks whether rotator is nearly zero, within specified tolerance.
 	 *
 	 * @param Tolerance Error Tolerance.
 	 * @return true if rotator is nearly zero, within specified tolerance, otherwise false.
@@ -172,16 +157,14 @@ public:
 	bool IsNearlyZero( float Tolerance=KINDA_SMALL_NUMBER ) const;
 
 	/**
-	 * Checks whether this has exactly zero rotation, when treated as an orientation.
-	 * This means that FRotator(0, 0, 360) is "zero", because it is the same final orientation as the zero rotator.
+	 * Checks whether this has exactly zero rotation.
 	 *
 	 * @return true if this has exactly zero rotation, otherwise false.
 	 */
 	bool IsZero() const;
 
 	/**
-	 * Checks whether two rotators are equal within specified tolerance, when treated as an orientation.
-	 * This means that FRotator(0, 0, 360).Equals(FRotator(0,0,0)) is true, because they represent the same final orientation.
+	 * Checks whether two rotators are equal, within specified tolerance.
 	 *
 	 * @param R The other rotator.
 	 * @param Tolerance Error Tolerance.
@@ -213,9 +196,9 @@ public:
 	FRotator GridSnap( const FRotator& RotGrid ) const;
 
 	/**
-	 * Convert a rotation into a unit vector facing in its direction.
+	 * Convert a rotation into a vector facing in its direction.
 	 *
-	 * @return Rotation as a unit direction vector.
+	 * @return Rotation as a direction vector.
 	 */
 	CORE_API FVector Vector() const;
 
@@ -329,9 +312,9 @@ public:
 	CORE_API bool NetSerialize( FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess );
 
 public:
-	
+
 	/**
-	 * Clamps an angle to the range of [0, 360).
+	 * Clamps an angle to the range of [0, 360].
 	 *
 	 * @param Angle The angle to clamp.
 	 * @return The clamped angle.
@@ -339,7 +322,7 @@ public:
 	static float ClampAxis( float Angle );
 
 	/**
-	 * Clamps an angle to the range of (-180, 180].
+	 * Clamps an angle to the range of [-180, 180].
 	 *
 	 * @param Angle The Angle to clamp.
 	 * @return The clamped angle.
@@ -427,16 +410,12 @@ FORCEINLINE FRotator operator*( float Scale, const FRotator& R )
 
 FORCEINLINE FRotator::FRotator( float InF ) 
 	:	Pitch(InF), Yaw(InF), Roll(InF) 
-{
-	DiagnosticCheckNaN();
-}
+{}
 
 
 FORCEINLINE FRotator::FRotator( float InPitch, float InYaw, float InRoll )
 	:	Pitch(InPitch), Yaw(InYaw), Roll(InRoll) 
-{
-	DiagnosticCheckNaN();
-}
+{}
 
 
 FORCEINLINE FRotator::FRotator(EForceInit)
@@ -465,7 +444,6 @@ FORCEINLINE FRotator FRotator::operator*( float Scale ) const
 FORCEINLINE FRotator FRotator::operator*= (float Scale)
 {
 	Pitch = Pitch*Scale; Yaw = Yaw*Scale; Roll = Roll*Scale;
-	DiagnosticCheckNaN();
 	return *this;
 }
 
@@ -491,7 +469,6 @@ FORCEINLINE bool FRotator::operator!=( const FRotator& V ) const
 FORCEINLINE FRotator FRotator::operator+=( const FRotator& R )
 {
 	Pitch += R.Pitch; Yaw += R.Yaw; Roll += R.Roll;
-	DiagnosticCheckNaN();
 	return *this;
 }
 
@@ -499,7 +476,6 @@ FORCEINLINE FRotator FRotator::operator+=( const FRotator& R )
 FORCEINLINE FRotator FRotator::operator-=( const FRotator& R )
 {
 	Pitch -= R.Pitch; Yaw -= R.Yaw; Roll -= R.Roll;
-	DiagnosticCheckNaN();
 	return *this;
 }
 
@@ -547,7 +523,6 @@ FORCEINLINE FRotator FRotator::Add( float DeltaPitch, float DeltaYaw, float Delt
 	Yaw   += DeltaYaw;
 	Pitch += DeltaPitch;
 	Roll  += DeltaRoll;
-	DiagnosticCheckNaN();
 	return *this;
 }
 
@@ -656,7 +631,6 @@ FORCEINLINE void FRotator::Normalize()
 	Yaw = NormalizeAxis(Yaw);
 	Roll = NormalizeAxis(Roll);
 #endif
-	DiagnosticCheckNaN();
 }
 
 FORCEINLINE FString FRotator::ToString() const
@@ -708,7 +682,7 @@ FORCEINLINE bool FRotator::InitFromString( const FString& InSourceString )
 
 	// The initialization is only successful if the X, Y, and Z values can all be parsed from the string
 	const bool bSuccessful = FParse::Value( *InSourceString, TEXT("P=") , Pitch ) && FParse::Value( *InSourceString, TEXT("Y="), Yaw ) && FParse::Value( *InSourceString, TEXT("R="), Roll );
-	DiagnosticCheckNaN();
+
 	return bSuccessful;
 }
 

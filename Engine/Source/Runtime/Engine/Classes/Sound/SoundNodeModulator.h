@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
  
 #pragma once
@@ -30,9 +30,9 @@ class USoundNodeModulator : public USoundNode
 	float VolumeMax;
 
 public:
-	//~ Begin USoundNode Interface. 
+	// Begin USoundNode interface. 
 	virtual void ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) override;
-	//~ End USoundNode Interface. 
+	// End USoundNode interface. 
 };
 
 

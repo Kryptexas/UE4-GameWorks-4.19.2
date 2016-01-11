@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /**
  * MaterialParameterCollection.h - defines an asset that has a list of parameters, which can be referenced by any material and updated efficiently at runtime
@@ -66,32 +66,32 @@ class UMaterialParameterCollection : public UObject
 	UPROPERTY(EditAnywhere, Category=Material)
 	TArray<FCollectionVectorParameter> VectorParameters;
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 #if WITH_EDITOR
 	virtual void PreEditChange(class FEditPropertyChain& PropertyAboutToChange) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	virtual void PostLoad() override;
-	//~ End UObject Interface.
+	// End UObject interface.
 
 	/** Finds a parameter name given an Id, returns NAME_None if the parameter was not found. */
 	FName GetParameterName(const FGuid& Id) const;
 
 	/** Finds a parameter id given a name, returns the default guid if the parameter was not found. */
-	ENGINE_API FGuid GetParameterId(FName ParameterName) const;
+	FGuid GetParameterId(FName ParameterName) const;
 
 	/** Gets a vector and component index for the given parameter, used when compiling materials, to know where to access a certain parameter. */
-	ENGINE_API void GetParameterIndex(const FGuid& Id, int32& OutIndex, int32& OutComponentIndex) const;
+	void GetParameterIndex(const FGuid& Id, int32& OutIndex, int32& OutComponentIndex) const;
 
 	/** Populates an array with either scalar or vector parameter names. */
 	ENGINE_API void GetParameterNames(TArray<FName>& OutParameterNames, bool bVectorParameters) const;
 
 	/** Utility to find a scalar parameter struct given a parameter name.  Returns NULL if not found. */
-	ENGINE_API const FCollectionScalarParameter* GetScalarParameterByName(FName ParameterName) const;
+	const FCollectionScalarParameter* GetScalarParameterByName(FName ParameterName) const;
 
 	/** Utility to find a vector parameter struct given a parameter name.  Returns NULL if not found. */
-	ENGINE_API const FCollectionVectorParameter* GetVectorParameterByName(FName ParameterName) const;
+	const FCollectionVectorParameter* GetVectorParameterByName(FName ParameterName) const;
 
 	/** Accessor for the uniform buffer layout description. */
 	const FUniformBufferStruct& GetUniformBufferStruct() const

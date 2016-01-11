@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "MainFramePrivatePCH.h"
@@ -68,10 +68,10 @@ void FMainFrameCommands::RegisterCommands()
 	ActionList->MapAction( AddCodeToProject, FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::AddCodeToProject ));
 
 	UI_COMMAND( RefreshCodeProject, "Refresh code project", "Refreshes your C++ code project.", EUserInterfaceActionType::Button, FInputChord() );
-	ActionList->MapAction( RefreshCodeProject, FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::RefreshCodeProject ), FCanExecuteAction::CreateStatic( &FMainFrameActionCallbacks::IsCodeProject ) );
+	ActionList->MapAction( RefreshCodeProject, FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::RefreshCodeProject ), DefaultExecuteAction );
 
 	UI_COMMAND( OpenIDE, "Open IDE", "Opens your C++ code in an integrated development environment.", EUserInterfaceActionType::Button, FInputChord() );
-	ActionList->MapAction( OpenIDE, FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::OpenIDE ), FCanExecuteAction::CreateStatic( &FMainFrameActionCallbacks::IsCodeProject ) );
+	ActionList->MapAction( OpenIDE, FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::OpenIDE ), DefaultExecuteAction );
 
 	UI_COMMAND( ZipUpProject, "Zip Up Project", "Zips up the project into a zip file.", EUserInterfaceActionType::Button, FInputChord() );
 	ActionList->MapAction(ZipUpProject, FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::ZipUpProject ), DefaultExecuteAction);
@@ -288,7 +288,7 @@ const TCHAR* GetUATCompilationFlags()
 {
 	// We never want to compile editor targets when invoking UAT in this context.
 	// If we are rocket or don't have a compiler, we must assume we have a precompiled UAT.
-	return (FApp::GetEngineIsPromotedBuild() || FApp::IsEngineInstalled())
+	return FRocketSupport::IsRocket() || !FSourceCodeNavigation::IsCompilerAvailable()
 		? TEXT("-nocompile -nocompileeditor")
 		: TEXT("-nocompileeditor");
 }
@@ -307,10 +307,10 @@ FString GetCookingOptionalParams()
 		}
 	}
 
-	if (PackagingSettings->bSkipEditorContent)
+	/*if (PackagingSettings->bSkipEditorContent)
 	{
 		OptionalParams += TEXT(" -SKIPEDITORCONTENT");
-	}
+	}*/
 	return OptionalParams;
 }
 
@@ -356,7 +356,8 @@ void FMainFrameActionCallbacks::CookContent(const FName InPlatformInfoName)
 	}
 
 	FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
-	FString CommandLine = FString::Printf(TEXT("BuildCookRun %s%s -nop4 -project=\"%s\" -cook -ue4exe=%s %s"),
+	FString CommandLine = FString::Printf(TEXT("BuildCookRun %s%s%s -nop4 -project=\"%s\" -cook -ue4exe=%s %s"),
+		FRocketSupport::IsRocket() ? TEXT("-rocket ") : TEXT(""),
 		GetUATCompilationFlags(),
 		FApp::IsEngineInstalled() ? TEXT(" -installed") : TEXT(""),
 		*ProjectPath,
@@ -467,12 +468,12 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 
 			if ((Result & ETargetPlatformReadyStatus::CodeUnsupported) != 0)
 			{
-				FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("NotSupported_SelectedPlatform", "Sorry, packaging a code-based project for the selected platform is currently not supported. This feature may be available in a future release."));
+				FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("NotSupported", "Sorry, packaging a code-based project for the selected platform is currently not supported. This feature may be available in a future release."));
 				UnrecoverableError = true;
 			}
 			else if ((Result & ETargetPlatformReadyStatus::PluginsUnsupported) != 0)
 			{
-				FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("NotSupported_ThirdPartyPlugins", "Sorry, packaging a project with third-party plugins is currently not supported for the selected platform. This feature may be available in a future release."));
+				FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("NotSupported", "Sorry, packaging a project with third-party plugins is currently not supported for the selected platform. This feature may be available in a future release."));
 				UnrecoverableError = true;
 			}
 
@@ -552,15 +553,6 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		OptionalParams += TEXT(" -nodebuginfo");
 	}
 
-	if (PackagingSettings->bNativizeBlueprintAssets)
-	{
-		OptionalParams += TEXT(" -nativizeAssets");
-	}
-
-	if (PackagingSettings->bGenerateChunks)
-	{
-		OptionalParams += TEXT(" -manifests");
-	}
 
 	bool bTargetPlatformCanUseCrashReporter = true;
 	if (PlatformInfo->TargetPlatformName == FName("WindowsNoEditor") && PlatformInfo->PlatformFlavor == TEXT("Win32"))
@@ -587,7 +579,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 	}
 
 	// only build if the project has code that might need to be built
-	if (bProjectHasCode || (!FApp::GetEngineIsPromotedBuild() && !FApp::IsEngineInstalled()) || PackagingSettings->bNativizeBlueprintAssets)
+	if (bProjectHasCode && FSourceCodeNavigation::IsCompilerAvailable())
 	{
 		OptionalParams += TEXT(" -build");
 	}
@@ -603,11 +595,18 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		OptionalParams += FString::Printf(TEXT(" -manifests -createchunkinstall -chunkinstalldirectory=\"%s\" -chunkinstallversion=%s"), *(PackagingSettings->HttpChunkInstallDataDirectory.Path), *(PackagingSettings->HttpChunkInstallDataVersion));
 	}
 
-	int32 NumCookers = GetDefault<UEditorExperimentalSettings>()->MultiProcessCooking;
-	if (NumCookers > 0 )
+	FString ExecutableName = FPlatformProcess::ExecutableName(false);
+#if PLATFORM_WINDOWS
+	// turn UE4editor into UE4editor.cmd
+	if(ExecutableName.EndsWith(".exe", ESearchCase::IgnoreCase) && !FPaths::GetBaseFilename(ExecutableName).EndsWith("-cmd", ESearchCase::IgnoreCase))
 	{
-		OptionalParams += FString::Printf(TEXT(" -NumCookersToSpawn=%d"), NumCookers); 
+		FString NewExeName = ExecutableName.Left(ExecutableName.Len() - 4) + "-Cmd.exe";
+		if (FPaths::FileExists(NewExeName))
+	{
+			ExecutableName = NewExeName;
 	}
+	}
+#endif
 
 	const bool bRunningDebug = FParse::Param(FCommandLine::Get(), TEXT("debug"));
 
@@ -620,14 +619,14 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 	Configuration = Configuration.Replace(TEXT("PPBC_"), TEXT(""));
 
 	FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
-	FString CommandLine = FString::Printf(TEXT("-ScriptsForProject=\"%s\" BuildCookRun %s%s -nop4 -project=\"%s\" -cook -stage -archive -archivedirectory=\"%s\" -package -clientconfig=%s -ue4exe=%s %s -utf8output"),
-		*ProjectPath,
+	FString CommandLine = FString::Printf(TEXT("BuildCookRun %s%s%s -nop4 -project=\"%s\" -cook -stage -archive -archivedirectory=\"%s\" -package -clientconfig=%s -ue4exe=%s %s -utf8output"),
+		FRocketSupport::IsRocket() ? TEXT("-rocket ") : TEXT(""),
 		GetUATCompilationFlags(),
 		FApp::IsEngineInstalled() ? TEXT(" -installed") : TEXT(""),
 		*ProjectPath,
 		*PackagingSettings->StagingDirectory.Path,
 		*Configuration,
-		*FUnrealEdMisc::Get().GetExecutableForCommandlets(),
+		*ExecutableName,
 		*OptionalParams
 	);
 
@@ -652,13 +651,6 @@ void FMainFrameActionCallbacks::RefreshCodeProject()
 	{
 		SOutputLogDialog::Open(LOCTEXT("RefreshProject", "Refresh Project"), FailReason, FailLog, FText::GetEmpty());
 	}
-}
-
-bool FMainFrameActionCallbacks::IsCodeProject()
-{
-	// Not particularly rigorous, but assume it's a code project if it can find a Source directory
-	const bool bIsCodeProject = IFileManager::Get().DirectoryExists(*FPaths::GameSourceDir());
-	return bIsCodeProject;
 }
 
 void FMainFrameActionCallbacks::OpenIDE()
@@ -690,13 +682,13 @@ void FMainFrameActionCallbacks::OpenIDE()
 void FMainFrameActionCallbacks::ZipUpProject()
 {
 #if PLATFORM_WINDOWS
-	FText PlatformName = LOCTEXT("PlatformName_Windows", "Windows");
+	FText PlatformName = LOCTEXT("Platform Name", "Windows");
 #elif PLATFORM_MAC
-	FText PlatformName = LOCTEXT("PlatformName_Mac", "Mac");
+	FText PlatformName = LOCTEXT("Platform Name", "Mac");
 #elif PLATFORM_LINUX
-	FText PlatformName = LOCTEXT("PlatformName_Linux", "Linux");
+	FText PlatformName = LOCTEXT("Platform Name", "Linux");
 #else
-	FText PlatformName = LOCTEXT("PlatformName_Other", "Other OS");
+	FText PlatformName = LOCTEXT("Platform Name", "Other OS");
 #endif
 
 	bool bOpened = false;
@@ -706,7 +698,7 @@ void FMainFrameActionCallbacks::ZipUpProject()
 	{
 		bOpened = DesktopPlatform->SaveFileDialog(
 			NULL,
-			NSLOCTEXT("UnrealEd", "ZipUpProject", "Zip file location").ToString(),
+			NSLOCTEXT("UnrealEd", "InterpEd_ExportSoundCueInfoDialogTitle", "Zip file location").ToString(),
 			FPaths::GameDir(),
 			FApp::GetGameName(),
 			TEXT("Zip file|*.zip"),

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "MessageLog.h"
@@ -6,7 +6,6 @@
 #include "MapErrors.h"
 #include "Camera/CameraComponent.h"
 #include "Components/DrawFrustumComponent.h"
-#include "IHeadMountedDisplay.h"
 
 #define LOCTEXT_NAMESPACE "CameraComponent"
 
@@ -38,23 +37,12 @@ UCameraComponent::UCameraComponent(const FObjectInitializer& ObjectInitializer)
 	bUseControllerViewRotation_DEPRECATED = true; // the previous default value before bUsePawnControlRotation replaced this var.
 	bUsePawnControlRotation = false;
 	bAutoActivate = true;
-	bLockToHmd = true;
 
 	// Init deprecated var, for old code that may refer to it.
 	SetDeprecatedControllerViewRotation(*this, bUsePawnControlRotation);
 }
 
 #if WITH_EDITORONLY_DATA
-
-void UCameraComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
-{
-	UCameraComponent* This = CastChecked<UCameraComponent>(InThis);
-	Collector.AddReferencedObject(This->ProxyMeshComponent);
-	Collector.AddReferencedObject(This->DrawFrustum);
-
-	Super::AddReferencedObjects(InThis, Collector);
-}
-
 void UCameraComponent::OnComponentDestroyed()
 {
 	Super::OnComponentDestroyed();
@@ -73,32 +61,29 @@ void UCameraComponent::OnComponentDestroyed()
 void UCameraComponent::OnRegister()
 {
 #if WITH_EDITORONLY_DATA
-	if (AActor* MyOwner = GetOwner())
+	if (ProxyMeshComponent == NULL)
 	{
-		if (ProxyMeshComponent == nullptr)
-		{
-			ProxyMeshComponent = NewObject<UStaticMeshComponent>(MyOwner, NAME_None, RF_Transactional | RF_TextExportTransient);
-			ProxyMeshComponent->AttachTo(this);
-			ProxyMeshComponent->AlwaysLoadOnClient = false;
-			ProxyMeshComponent->AlwaysLoadOnServer = false;
-			ProxyMeshComponent->StaticMesh = CameraMesh;
-			ProxyMeshComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
-			ProxyMeshComponent->bHiddenInGame = true;
-			ProxyMeshComponent->CastShadow = false;
-			ProxyMeshComponent->PostPhysicsComponentTick.bCanEverTick = false;
-			ProxyMeshComponent->CreationMethod = CreationMethod;
-			ProxyMeshComponent->RegisterComponentWithWorld(GetWorld());
-		}
+		ProxyMeshComponent = NewObject<UStaticMeshComponent>(GetOuter(), NAME_None, RF_Transactional);
+		ProxyMeshComponent->AttachTo(this);
+		ProxyMeshComponent->AlwaysLoadOnClient = false;
+		ProxyMeshComponent->AlwaysLoadOnServer = false;
+		ProxyMeshComponent->StaticMesh = CameraMesh;
+		ProxyMeshComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+		ProxyMeshComponent->bHiddenInGame = true;
+		ProxyMeshComponent->CastShadow = false;
+		ProxyMeshComponent->PostPhysicsComponentTick.bCanEverTick = false;
+		ProxyMeshComponent->CreationMethod = CreationMethod;
+		ProxyMeshComponent->RegisterComponentWithWorld(GetWorld());
+	}
 
-		if (DrawFrustum == nullptr)
-		{
-			DrawFrustum = NewObject<UDrawFrustumComponent>(MyOwner, NAME_None, RF_Transactional | RF_TextExportTransient);
-			DrawFrustum->AttachTo(this);
-			DrawFrustum->AlwaysLoadOnClient = false;
-			DrawFrustum->AlwaysLoadOnServer = false;
-			DrawFrustum->CreationMethod = CreationMethod;
-			DrawFrustum->RegisterComponentWithWorld(GetWorld());
-		}
+	if (DrawFrustum == NULL)
+	{
+		DrawFrustum = NewObject<UDrawFrustumComponent>(GetOuter(), NAME_None, RF_Transactional);
+		DrawFrustum->AttachTo(this);
+		DrawFrustum->AlwaysLoadOnClient = false;
+		DrawFrustum->AlwaysLoadOnServer = false;
+		DrawFrustum->CreationMethod = CreationMethod;
+		DrawFrustum->RegisterComponentWithWorld(GetWorld());
 	}
 
 	RefreshVisualRepresentation();
@@ -109,6 +94,31 @@ void UCameraComponent::OnRegister()
 	// Init deprecated var, for old code that may refer to it.
 	SetDeprecatedControllerViewRotation(*this, bUsePawnControlRotation);
 }
+
+void UCameraComponent::OnUnregister()
+{
+	Super::OnUnregister();
+
+#if WITH_EDITORONLY_DATA
+	// have to removed the sub-components that we added in OnRegister (for 
+	// reinstancing, where we CopyPropertiesForUnrelatedObjects()... don't want
+	// these copied since we'll generate them on the next OnRegister)
+	if (ProxyMeshComponent != NULL)
+	{
+		ProxyMeshComponent->DetachFromParent();
+		ProxyMeshComponent->DestroyComponent();
+		ProxyMeshComponent = NULL;
+	}
+
+	if (DrawFrustum != NULL)
+	{
+		DrawFrustum->DetachFromParent();
+		DrawFrustum->DestroyComponent();
+		DrawFrustum = NULL;
+	}
+#endif
+}
+
 
 void UCameraComponent::PostLoad()
 {
@@ -141,7 +151,7 @@ void UCameraComponent::PostLoad()
  }
 void UCameraComponent::RefreshVisualRepresentation()
 {
-	if (DrawFrustum != nullptr)
+	if (DrawFrustum != NULL)
 	{
 		const float FrustumDrawDistance = 1000.0f;
 		if (ProjectionMode == ECameraProjectionMode::Perspective)
@@ -163,7 +173,7 @@ void UCameraComponent::RefreshVisualRepresentation()
 
 void UCameraComponent::OverrideFrustumColor(FColor OverrideColor)
 {
-	if (DrawFrustum != nullptr)
+	if (DrawFrustum != NULL)
 	{
 		DrawFrustum->FrustumColor = OverrideColor;
 	}
@@ -171,7 +181,7 @@ void UCameraComponent::OverrideFrustumColor(FColor OverrideColor)
 
 void UCameraComponent::RestoreFrustumColor()
 {
-	if (DrawFrustum != nullptr)
+	if (DrawFrustum != NULL)
 	{
 		//@TODO: 
 		const FColor DefaultFrustumColor(255, 0, 255, 255);
@@ -182,20 +192,22 @@ void UCameraComponent::RestoreFrustumColor()
 }
 #endif	// WITH_EDITORONLY_DATA
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 void UCameraComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
+#if WITH_EDITORONLY_DATA
 	RefreshVisualRepresentation();
-}
 #endif	// WITH_EDITORONLY_DATA
+}
+#endif	// WITH_EDITOR
 
 void UCameraComponent::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
-	if (Ar.IsLoading())
+	if(Ar.IsLoading())
 	{
 		PostProcessSettings.OnAfterLoad();
 	}
@@ -203,24 +215,6 @@ void UCameraComponent::Serialize(FArchive& Ar)
 
 void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredView)
 {
-	if (bLockToHmd)
-	{
-		if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
-		{
-			ResetRelativeTransform();
-			const FTransform ParentWorld = GetComponentToWorld();
-			GEngine->HMDDevice->SetupLateUpdate(ParentWorld, this);
-
-			FQuat Orientation;
-			FVector Position;
-			if (GEngine->HMDDevice->UpdatePlayerCamera(Orientation, Position))
-			{
-				FTransform Transform(Orientation, Position);
-				SetRelativeTransform(Transform);
-			}
-		}
-	}
-
 	if (bUsePawnControlRotation)
 	{
 		if (APawn* OwningPawn = Cast<APawn>(GetOwner()))

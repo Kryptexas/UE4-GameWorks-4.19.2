@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LandscapeEditorPrivatePCH.h"
 #include "ObjectTools.h"
@@ -26,8 +26,8 @@ class FLandscapeToolStrokeSelect : public FLandscapeToolStrokeBase
 	bool bComponentInvert;
 
 public:
-	FLandscapeToolStrokeSelect(FEdModeLandscape* InEdMode, FEditorViewportClient* InViewportClient, const FLandscapeToolTarget& InTarget)
-		: FLandscapeToolStrokeBase(InEdMode, InViewportClient, InTarget)
+	FLandscapeToolStrokeSelect(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
+		: FLandscapeToolStrokeBase(InEdMode, InTarget)
 		, bInitializedComponentInvert(false)
 		, Cache(InTarget)
 	{
@@ -211,8 +211,8 @@ public:
 class FLandscapeToolStrokeVisibility : public FLandscapeToolStrokeBase
 {
 public:
-	FLandscapeToolStrokeVisibility(FEdModeLandscape* InEdMode, FEditorViewportClient* InViewportClient, const FLandscapeToolTarget& InTarget)
-		: FLandscapeToolStrokeBase(InEdMode, InViewportClient, InTarget)
+	FLandscapeToolStrokeVisibility(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
+		: FLandscapeToolStrokeBase(InEdMode, InTarget)
 		, Cache(InTarget)
 	{
 	}
@@ -294,8 +294,8 @@ public:
 class FLandscapeToolStrokeMoveToLevel : public FLandscapeToolStrokeBase
 {
 public:
-	FLandscapeToolStrokeMoveToLevel(FEdModeLandscape* InEdMode, FEditorViewportClient* InViewportClient, const FLandscapeToolTarget& InTarget)
-		: FLandscapeToolStrokeBase(InEdMode, InViewportClient, InTarget)
+	FLandscapeToolStrokeMoveToLevel(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
+		: FLandscapeToolStrokeBase(InEdMode, InTarget)
 	{
 	}
 
@@ -740,8 +740,8 @@ public:
 class FLandscapeToolStrokeAddComponent : public FLandscapeToolStrokeBase
 {
 public:
-	FLandscapeToolStrokeAddComponent(FEdModeLandscape* InEdMode, FEditorViewportClient* InViewportClient, const FLandscapeToolTarget& InTarget)
-		: FLandscapeToolStrokeBase(InEdMode, InViewportClient, InTarget)
+	FLandscapeToolStrokeAddComponent(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
+		: FLandscapeToolStrokeBase(InEdMode, InTarget)
 		, HeightCache(InTarget)
 		, XYOffsetCache(InTarget)
 	{
@@ -949,8 +949,8 @@ public:
 class FLandscapeToolStrokeDeleteComponent : public FLandscapeToolStrokeBase
 {
 public:
-	FLandscapeToolStrokeDeleteComponent(FEdModeLandscape* InEdMode, FEditorViewportClient* InViewportClient, const FLandscapeToolTarget& InTarget)
-		: FLandscapeToolStrokeBase(InEdMode, InViewportClient, InTarget)
+	FLandscapeToolStrokeDeleteComponent(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
+		: FLandscapeToolStrokeBase(InEdMode, InTarget)
 	{
 	}
 
@@ -1141,8 +1141,8 @@ template<class ToolTarget>
 class FLandscapeToolStrokeCopy : public FLandscapeToolStrokeBase
 {
 public:
-	FLandscapeToolStrokeCopy(FEdModeLandscape* InEdMode, FEditorViewportClient* InViewportClient, const FLandscapeToolTarget& InTarget)
-		: FLandscapeToolStrokeBase(InEdMode, InViewportClient, InTarget)
+	FLandscapeToolStrokeCopy(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
+		: FLandscapeToolStrokeBase(InEdMode, InTarget)
 		, Cache(InTarget)
 		, HeightCache(InTarget)
 		, WeightCache(InTarget)
@@ -1496,8 +1496,8 @@ template<class ToolTarget>
 class FLandscapeToolStrokePaste : public FLandscapeToolStrokeBase
 {
 public:
-	FLandscapeToolStrokePaste(FEdModeLandscape* InEdMode, FEditorViewportClient* InViewportClient, const FLandscapeToolTarget& InTarget)
-		: FLandscapeToolStrokeBase(InEdMode, InViewportClient, InTarget)
+	FLandscapeToolStrokePaste(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
+		: FLandscapeToolStrokeBase(InEdMode, InTarget)
 		, Cache(InTarget)
 		, HeightCache(InTarget)
 		, WeightCache(InTarget)

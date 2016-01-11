@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -24,7 +24,6 @@
 #include "DetourCommon.h"
 #include "DetourAlloc.h"
 #include "DetourAssert.h"
-#include "DetourCrowd.h"
 #include <string.h>
 #include <math.h>
 #include <float.h>
@@ -274,7 +273,7 @@ void dtObstacleAvoidanceQuery::addCircle(const float* pos, const float rad,
 	dtVcopy(cir->dvel, dvel);
 }
 
-void dtObstacleAvoidanceQuery::addSegment(const float* p, const float* q, int flags)
+void dtObstacleAvoidanceQuery::addSegment(const float* p, const float* q)
 {
 	// [UE4] fixed condition below. Used to be strict > comparison
 	if (m_nsegments >= m_maxSegments)
@@ -283,7 +282,6 @@ void dtObstacleAvoidanceQuery::addSegment(const float* p, const float* q, int fl
 	dtObstacleSegment* seg = &m_segments[m_nsegments++];
 	dtVcopy(seg->p, p);
 	dtVcopy(seg->q, q);
-	seg->canIgnore = (flags & DT_CROWD_BOUNDARY_IGNORE) != 0;
 }
 
 void dtObstacleAvoidanceQuery::prepare(const float* pos, const float* dvel)
@@ -370,7 +368,6 @@ float dtObstacleAvoidanceQuery::processSample(const float* vcand, const float cs
 		}
 	}
 
-	const float TooCloseToSegmentDistPct = 0.1f;
 	for (int i = 0; i < m_nsegments; ++i)
 	{
 		const dtObstacleSegment* seg = &m_segments[i];
@@ -393,15 +390,10 @@ float dtObstacleAvoidanceQuery::processSample(const float* vcand, const float cs
 		{
 			if (!isectRaySeg(pos, vcand, seg->p, seg->q, htmin))
 				continue;
-
-			if (seg->canIgnore && htmin > TooCloseToSegmentDistPct)
-			{
-				htmin = 1.0f;
-			}
 		}
 		
 		// UE4: when sample is too close to segment (navmesh wall) - disable it completely
-		if (htmin < TooCloseToSegmentDistPct)
+		if (htmin < 0.1f)
 		{
 			return -1.0f;
 		}

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "SpriteEditorViewportClient.h"
@@ -91,7 +91,7 @@ FSpriteEditorViewportClient::FSpriteEditorViewportClient(TWeakPtr<FSpriteEditor>
 	DrawHelper.bDrawGrid = GetDefault<USpriteEditorSettings>()->bShowGridByDefault;
 
 	EngineShowFlags.DisableAdvancedFeatures();
-	EngineShowFlags.SetCompositeEditorPrimitives(true);
+	EngineShowFlags.CompositeEditorPrimitives = true;
 
 	// Create a render component for the sprite being edited
 	{
@@ -671,7 +671,7 @@ void FSpriteEditorViewportClient::ToggleShowSpriteNames()
 
 void FSpriteEditorViewportClient::ToggleShowMeshEdges()
 {
-	EngineShowFlags.SetMeshEdges(!EngineShowFlags.MeshEdges);
+	EngineShowFlags.MeshEdges = !EngineShowFlags.MeshEdges;
 	Invalidate(); 
 }
 

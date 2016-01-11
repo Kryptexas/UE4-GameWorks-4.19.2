@@ -1,11 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "OculusInputPrivatePCH.h"
 #include "OculusInputState.h"
 
-#if USE_OVR_MOTION_SDK
+#if OCULUS_TOUCH_SUPPORTED_PLATFORMS
 
 #if PLATFORM_SUPPORTS_PRAGMA_PACK
 	#pragma pack (push,8)
@@ -99,4 +99,4 @@ private:
 
 DEFINE_LOG_CATEGORY_STATIC(LogOcInput, Log, All);
 
-#endif	// USE_OVR_MOTION_SDK
+#endif //OCULUS_TOUCH_SUPPORTED_PLATFORMS

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -467,32 +467,12 @@ struct FTCharArrayTester
 	static_assert(IS_TCHAR_ARRAY(Format), "Formatting string must be a TCHAR array."); \
 	check(NetConnection != nullptr); \
 	FString SecurityPrint = FString::Printf(Format, ##__VA_ARGS__); \
+	if(Channels[0] == nullptr) \
+	{ \
+		Channels[0] = CreateChannel(EChannelType::CHTYPE_Control, false, 0); \
+	} \
 	UE_SECURITY_LOG(NetConnection, SecurityEventType, Format, ##__VA_ARGS__); \
 	UE_SECURITY_LOG(NetConnection, ESecurityEvent::Closed, TEXT("Connection closed")); \
+	NOTIFY_CLIENT_OF_SECURITY_EVENT_IF_NOT_SHIPPING(NetConnection, SecurityPrint); \
 	NetConnection->Close(); \
-	PerfCountersIncrement(TEXT("ClosedConnectionsDueToSecurityViolations")); \
 }
-
-extern CORE_API int32 GEnsureOnNANDiagnostic;
-
-// Macro to either log an error or ensure on a NaN error.
-#if DO_CHECK
-namespace UE4Asserts_Private
-{
-	CORE_API void VARARGS InternalLogNANDiagnosticMessage(const TCHAR* FormattedMsg, ...); // UE_LOG(LogCore, Error, _FormatString_, ##__VA_ARGS__);
-}
-#define logOrEnsureNanError(_FormatString_, ...) \
-	if (!GEnsureOnNANDiagnostic)\
-	{\
-		if (UE4Asserts_Private::TrueOnFirstCallOnly([]{}))\
-		{\
-			UE4Asserts_Private::InternalLogNANDiagnosticMessage(_FormatString_, ##__VA_ARGS__); \
-		}\
-	}\
-	else\
-	{\
-		ensureMsgf(!GEnsureOnNANDiagnostic, _FormatString_, ##__VA_ARGS__); \
-	}
-#else
-#define logOrEnsureNanError(_FormatString_, ...)
-#endif // DO_CHECK

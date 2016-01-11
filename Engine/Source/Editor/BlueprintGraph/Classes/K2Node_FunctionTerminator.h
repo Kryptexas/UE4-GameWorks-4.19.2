@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -22,22 +22,19 @@ class UK2Node_FunctionTerminator : public UK2Node_EditablePinBase
 	FName SignatureName;
 
 
-	//~ Begin UEdGraphNode Interface
+	// Begin UEdGraphNode interface
 	virtual bool CanDuplicateNode() const override { return false; }
 	virtual FLinearColor GetNodeTitleColor() const override;
 	virtual FString CreateUniquePinName(FString SourcePinName) const override;
-	//~ End UEdGraphNode Interface
+	// End UEdGraphNode interface
 
-	//~ Begin UK2Node Interface
+	// Begin UK2Node interface
 	virtual bool NodeCausesStructuralBlueprintChange() const override { return true; }
 	virtual bool HasExternalDependencies(TArray<class UStruct*>* OptionalOutput) const override;
-	//~ End UK2Node Interface
+	// End UK2Node interface
 
-	//~ Begin UK2Node_EditablePinBase Interface
+	// Begin UK2Node_EditablePinBase interface
 	virtual bool CanCreateUserDefinedPin(const FEdGraphPinType& InPinType, EEdGraphPinDirection InDesiredDirection, FText& OutErrorMessage) override;
-	//~ End UK2Node_EditablePinBase Interface
-
-	/** Promotes the node from being a part of an interface override to a full function that allows for parameter and result pin additions */
-	virtual void PromoteFromInterfaceOverride(bool bIsPrimaryTerminator = true);
+	// End UK2Node_EditablePinBase interface
 };
 

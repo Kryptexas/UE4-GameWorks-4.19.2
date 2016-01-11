@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -8,7 +8,7 @@ class FSlateOpenGLTextureCache;
 class FSlateOpenGLRenderingPolicy : public FSlateRenderingPolicy
 {
 public:
-	FSlateOpenGLRenderingPolicy( TSharedRef<FSlateFontServices> InSlateFontServices, TSharedRef<FSlateOpenGLTextureManager> InTextureManager );
+	FSlateOpenGLRenderingPolicy( TSharedPtr<FSlateFontCache>& InFontCache, TSharedPtr<FSlateOpenGLTextureManager>& InTextureManager );
 	~FSlateOpenGLRenderingPolicy();
 
 	/**
@@ -26,7 +26,12 @@ public:
 	 */
 	void DrawElements( const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches );
 
-	virtual TSharedRef<FSlateShaderResourceManager> GetResourceManager() const override;
+	virtual TSharedRef<FSlateShaderResourceManager> GetResourceManager() override;
+
+	/**
+	 * Returns the font cache used when the OpenGL rendering policy is active
+	 */
+	virtual TSharedRef<FSlateFontCache> GetFontCache() override { return FontCache.ToSharedRef(); }
 
 	virtual bool IsVertexColorInLinearSpace() const override { return false; }
 
@@ -52,6 +57,8 @@ private:
 	FSlateOpenGLIndexBuffer IndexBuffer;
 	/** A default white texture to use if no other texture can be found */
 	FSlateOpenGLTexture* WhiteTexture;
+	/** The font cache for accessing text rendering data */
+	TSharedPtr<FSlateFontCache> FontCache;
 	/** Texture manager for accessing OpenGL textures */
 	TSharedPtr<FSlateOpenGLTextureManager> TextureManager;
 	/** True if the rendering policy has been initialized */

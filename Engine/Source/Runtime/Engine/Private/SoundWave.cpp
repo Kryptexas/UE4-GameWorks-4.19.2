@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Sound/SoundWave.h"
@@ -143,6 +143,11 @@ void USoundWave::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 		OutTags.Add( FAssetRegistryTag(SourceFileTagName(), AssetImportData->GetSourceData().ToJson(), FAssetRegistryTag::TT_Hidden) );
 	}
 #endif
+	// GetCompressedDataSize could technically modify this->CompressedFormatData therefore it is not const, however this information
+	// is very useful in the asset registry so we will allow GetCompressedDataSize to be modified if the formats do not exist
+	USoundWave* MutableThis = const_cast<USoundWave*>(this);
+	const FString OggSize = FString::Printf(TEXT("%.2f"), MutableThis->GetCompressedDataSize("OGG") / 1024.0f );
+	OutTags.Add( FAssetRegistryTag("OggSize", OggSize, UObject::FAssetRegistryTag::TT_Numerical) );
 }
 
 void USoundWave::Serialize( FArchive& Ar )
@@ -500,10 +505,13 @@ void USoundWave::FreeResources()
 	DEC_DWORD_STAT_BY(STAT_AudioMemory, TrackedMemoryUsage);
 	TrackedMemoryUsage = 0;
 
+	SampleRate = 0;
+	Duration = 0.0f;
 	ResourceID = 0;
 	bDynamicResource = false;
 	DecompressionType = DTYPE_Setup;
 	bDecompressedFromOgg = 0;
+	RawPCMDataSize = 0;
 }
 
 FWaveInstance* USoundWave::HandleStart( FActiveSound& ActiveSound, const UPTRINT WaveInstanceHash )
@@ -568,7 +576,7 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 	{
 		if( !ActiveSound.bRadioFilterSelected )
 		{
-			ActiveSound.ApplyRadioFilter(ParseParams);
+			ActiveSound.ApplyRadioFilter( AudioDevice, ParseParams );
 		}
 
 		WaveInstance = HandleStart( ActiveSound, NodeWaveInstanceHash);
@@ -578,7 +586,7 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 	if (bLooping || ParseParams.bLooping)
 	{
 		WaveInstance->bIsFinished = false;
-#if !(NO_LOGGING || UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !NO_LOGGING
 		if (!ActiveSound.bWarnedAboutOrphanedLooping && ActiveSound.GetAudioComponent() == nullptr)
 		{
 			UE_LOG(LogAudio, Warning, TEXT("Detected orphaned looping sound '%s'."), *ActiveSound.Sound->GetName());
@@ -594,17 +602,12 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		WaveInstance->Volume = ParseParams.Volume * Volume;
 		WaveInstance->VolumeMultiplier = ParseParams.VolumeMultiplier;
 		WaveInstance->Pitch = ParseParams.Pitch * Pitch;
-		WaveInstance->bEnableLowPassFilter = ParseParams.bEnableLowPassFilter;
-		WaveInstance->bIsOccluded = ParseParams.bIsOccluded;
-		WaveInstance->LowPassFilterFrequency = ParseParams.LowPassFilterFrequency;
-		WaveInstance->OcclusionFilterFrequency = ParseParams.OcclusionFilterFrequency;
-		WaveInstance->AttenuationFilterFrequency = ParseParams.AttenuationFilterFrequency;
-		WaveInstance->AmbientZoneFilterFrequency = ParseParams.AmbientZoneFilterFrequency;
+		WaveInstance->HighFrequencyGain = ParseParams.HighFrequencyGain;
 		WaveInstance->bApplyRadioFilter = ActiveSound.bApplyRadioFilter;
 		WaveInstance->StartTime = ParseParams.StartTime;
 		WaveInstance->UserIndex = ActiveSound.UserIndex;
 		WaveInstance->OmniRadius = ParseParams.OmniRadius;
-		WaveInstance->StereoSpread = ParseParams.StereoSpread;
+
 		bool bAlwaysPlay = false;
 
 		// Properties from the sound class
@@ -649,16 +652,7 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 			bAlwaysPlay = ActiveSound.bAlwaysPlay;
 		}
 
-		// If set to bAlwaysPlay, increase the current sound's priority scale by 10x. This will still result in a possible 0-priority output if the sound has 0 actual volume
-		if (bAlwaysPlay)
-		{
-			WaveInstance->Priority = MAX_FLT;
-		}
-		else
-		{
-			WaveInstance->Priority = ParseParams.Priority;
-		}
-
+		WaveInstance->PlayPriority = WaveInstance->Volume + ( bAlwaysPlay ? 1.0f : 0.0f ) + WaveInstance->RadioFilterVolume;
 		WaveInstance->Location = ParseParams.Transform.GetTranslation();
 		WaveInstance->bIsStarted = true;
 		WaveInstance->bAlreadyNotifiedHook = false;
@@ -678,7 +672,7 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		}
 
 		// Don't add wave instances that are not going to be played at this point.
-		if( WaveInstance->Volume > KINDA_SMALL_NUMBER )
+		if( WaveInstance->PlayPriority > KINDA_SMALL_NUMBER )
 		{
 			WaveInstances.Add( WaveInstance );
 		}

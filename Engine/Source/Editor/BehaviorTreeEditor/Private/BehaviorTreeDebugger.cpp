@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BehaviorTreeEditorPrivatePCH.h"
 #include "BehaviorTree/BehaviorTree.h"
@@ -6,6 +6,8 @@
 #include "BehaviorTree/BTTaskNode.h"
 #include "BehaviorTree/BTAuxiliaryNode.h"
 #include "BehaviorTreeDelegates.h"
+#include "GameplayDebuggingReplicator.h"
+#include "GameplayDebuggingComponent.h"
 #include "Engine/Selection.h"
 #include "EngineUtils.h"
 
@@ -682,23 +684,23 @@ void FBehaviorTreeDebugger::FindLockedDebugActor(UWorld* World)
 	APlayerController* LocalPC = GEngine->GetFirstLocalPlayerController(World);
 	if (LocalPC && LocalPC->GetHUD() && LocalPC->GetPawnOrSpectator())
 	{
-		APawn* SelectedPawn = NULL;
-#if WITH_ENGINE
-		const UEditorEngine* EEngine = Cast<UEditorEngine>(GEngine);
-		for (FSelectionIterator It = EEngine->GetSelectedActorIterator(); It; ++It)
+		AGameplayDebuggingReplicator* DebuggingReplicator = NULL;
+		for (TActorIterator<AGameplayDebuggingReplicator> It(World); It; ++It)
 		{
-			SelectedPawn = Cast<APawn>(*It);
-			if (SelectedPawn)
+			AGameplayDebuggingReplicator* A = *It;
+			if (!A->IsPendingKill())
 			{
+				DebuggingReplicator = A;
 				break;
 			}
 		}
-#endif //WITH_ENGINE
 
-		UBehaviorTreeComponent* TestInstance = FindInstanceInActor((APawn*)SelectedPawn);
+		const APawn* LockedPawn = DebuggingReplicator != NULL ? Cast<APawn>(DebuggingReplicator->GetSelectedActorToDebug()) : NULL;
+		UBehaviorTreeComponent* TestInstance = FindInstanceInActor((APawn*)LockedPawn);
 		if (TestInstance)
 		{
 			TreeInstance = TestInstance;
+
 #if USE_BEHAVIORTREE_DEBUGGER
 			ActiveStepIndex = TestInstance->DebuggerSteps.Num() - 1;
 #endif
@@ -1038,14 +1040,7 @@ void FBehaviorTreeDebugger::UpdateDebuggerViewOnInstanceChange()
 
 	OnDebuggedBlackboardChangedEvent.Broadcast(BBAsset);
 
-	if (DebuggerInstanceIndex != INDEX_NONE)
-	{
-		Refresh();
-	}
-	else
-	{
-		ClearDebuggerState();
-	}
+	Refresh();
 #endif
 }
 
@@ -1141,9 +1136,9 @@ void FBehaviorTreeDebugger::OnInstanceSelectedInDropdown(UBehaviorTreeComponent*
 		AController* OldController = TreeInstance.IsValid() ? Cast<AController>(TreeInstance->GetOwner()) : NULL;
 		APawn* OldPawn = OldController != NULL ? OldController->GetPawn() : NULL;
 		USelection* SelectedActors = GEditor ? GEditor->GetSelectedActors() : NULL;
-		if (SelectedActors)
+		if (SelectedActors && OldPawn)
 		{
-			SelectedActors->DeselectAll();
+			SelectedActors->Deselect(OldPawn);
 		}
 
 		TreeInstance = SelectedInstance;
@@ -1154,7 +1149,9 @@ void FBehaviorTreeDebugger::OnInstanceSelectedInDropdown(UBehaviorTreeComponent*
 			APawn* Pawn = TestController != NULL ? TestController->GetPawn() : NULL;
 			if (Pawn)
 			{
+				SelectedActors = GEditor->GetSelectedActors();
 				SelectedActors->Select(Pawn);
+				AGameplayDebuggingReplicator::OnSelectionChangedDelegate.Broadcast(Pawn);
 			}
 		}
 

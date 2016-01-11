@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UObjectArray.h: Unreal object array
@@ -7,247 +7,11 @@
 #ifndef __UOBJECTARRAY_H__
 #define __UOBJECTARRAY_H__
 
-/**
-* Controls whether the number of available elements is being tracked in the ObjObjects array.
-* By default it is only tracked in WITH_EDITOR builds as it adds a small amount of tracking overhead
-*/
-#define UE_GC_TRACK_OBJ_AVAILABLE (WITH_EDITOR)
-
-/**
-* Single item in the UObject array.
-*/
-struct FUObjectItem
-{
-	// Pointer to the allocated object
-	class UObjectBase* Object;
-	// UObject internal flags
-	int32 ClusterAndFlags;
-	// Weak Object Pointer Serial number associated with the object
-	int32 SerialNumber;
-
-	FORCEINLINE void SetOwnerIndex(int32 OwnerIndex)
-	{
-		check(OwnerIndex >= 0 && (OwnerIndex & int32(EInternalObjectFlags::AllFlags)) == 0);
-		ClusterAndFlags &= int32(EInternalObjectFlags::AllFlags);
-		ClusterAndFlags |= OwnerIndex;
-	}
-
-	FORCEINLINE int32 GetOwnerIndex() const
-	{
-		return ClusterAndFlags & ~int32(EInternalObjectFlags::AllFlags);
-	}
-
-	FORCEINLINE int32 GetSerialNumber() const
-	{
-		return SerialNumber;
-	}
-
-	FORCEINLINE void SetFlags(EInternalObjectFlags FlagsToSet)
-	{
-		check((int32(FlagsToSet) & ~int32(EInternalObjectFlags::AllFlags)) == 0);
-		ClusterAndFlags |= int32(FlagsToSet);
-	}
-
-	FORCEINLINE EInternalObjectFlags GetFlags() const
-	{
-		return EInternalObjectFlags(ClusterAndFlags & int32(EInternalObjectFlags::AllFlags));
-	}
-
-	FORCEINLINE void ClearFlags(EInternalObjectFlags FlagsToClear)
-	{
-		check((int32(FlagsToClear) & ~int32(EInternalObjectFlags::AllFlags)) == 0);
-		ClusterAndFlags &= ~int32(FlagsToClear);
-	}
-
-	FORCEINLINE bool ThisThreadAtomicallyClearedFlag(EInternalObjectFlags FlagToClear)
-	{
-		static_assert(sizeof(int32) == sizeof(ClusterAndFlags), "Flags must be 32-bit for atomics.");
-		bool bIChangedIt = false;
-		while (1)
-		{
-			int32 StartValue = int32(ClusterAndFlags);
-			if (!(StartValue & int32(FlagToClear)))
-			{
-				break;
-			}
-			int32 OldValue = (int32)FPlatformAtomics::InterlockedCompareExchange((int32*)&ClusterAndFlags, StartValue & ~int32(FlagToClear), StartValue);
-			if (OldValue == StartValue)
-			{
-				bIChangedIt = true;
-				break;
-			}
-			// Remove later.
-			checkSlow(OldValue == (StartValue & ~int32(FlagToClear)));
-		}
-		return bIChangedIt;
-	}
-
-	FORCEINLINE bool HasAnyFlags(EInternalObjectFlags InFlags) const
-	{
-		return !!(ClusterAndFlags & int32(InFlags));
-	}
-
-	FORCEINLINE void SetUnreachable()
-	{
-		ClusterAndFlags |= int32(EInternalObjectFlags::Unreachable);
-	}
-	FORCEINLINE void ClearUnreachable()
-	{
-		ClusterAndFlags &= ~int32(EInternalObjectFlags::Unreachable);
-	}
-	FORCEINLINE bool IsUnreachable() const
-	{
-		return !!(ClusterAndFlags & int32(EInternalObjectFlags::Unreachable));
-	}
-	FORCEINLINE bool ThisThreadAtomicallyClearedRFUnreachable()
-	{
-		return ThisThreadAtomicallyClearedFlag(EInternalObjectFlags::Unreachable);
-	}
-
-	FORCEINLINE void SetPendingKill()
-	{
-		ClusterAndFlags |= int32(EInternalObjectFlags::PendingKill);
-	}
-	FORCEINLINE void ClearPendingKill()
-	{
-		ClusterAndFlags &= ~int32(EInternalObjectFlags::PendingKill);
-	}
-	FORCEINLINE bool IsPendingKill() const
-	{
-		return !!(ClusterAndFlags & int32(EInternalObjectFlags::PendingKill));
-	}
-
-	FORCEINLINE void SetRootSet()
-	{
-		ClusterAndFlags |= int32(EInternalObjectFlags::RootSet);
-	}
-	FORCEINLINE void ClearRootSet()
-	{
-		ClusterAndFlags &= ~int32(EInternalObjectFlags::RootSet);
-	}
-	FORCEINLINE bool IsRootSet() const
-	{
-		return !!(ClusterAndFlags & int32(EInternalObjectFlags::RootSet));
-	}
-
-	FORCEINLINE void SetNoStrongReference()
-	{
-		ClusterAndFlags |= int32(EInternalObjectFlags::NoStrongReference);
-	}
-	FORCEINLINE void ClearNoStrongReference()
-	{
-		ClusterAndFlags &= ~int32(EInternalObjectFlags::NoStrongReference);
-	}
-	FORCEINLINE bool IsNoStrongReference() const
-	{
-		return !!(ClusterAndFlags & int32(EInternalObjectFlags::NoStrongReference));
-	}
-	FORCEINLINE void ResetSerialNumberAndFlags()
-	{
-		ClusterAndFlags = 0;
-		SerialNumber = 0;
-	}
-};
-
-/**
-* Fixed size UObject array.
-*/
-class FFixedUObjectArray
-{
-	/** Static master table to chunks of pointers **/
-	FUObjectItem* Objects;
-	/** Number of elements we currently have **/
-	int32 MaxElements;
-	/** Current number of UObject slots */
-	int32 NumElements;
-
-public:
-
-	FFixedUObjectArray()
-		: Objects(nullptr)
-		, MaxElements(0)
-		, NumElements(0)
-	{
-	}
-
-	~FFixedUObjectArray()
-	{
-		FMemory::Free(Objects);
-	}
-
-	/**
-	* Expands the array so that Element[Index] is allocated. New pointers are all zero.
-	* @param Index The Index of an element we want to be sure is allocated
-	**/
-	void PreAllocate(int32 InMaxElements)
-	{
-		check(!Objects);
-		Objects = (FUObjectItem*)FMemory::Malloc(sizeof(FUObjectItem)* InMaxElements);
-		FMemory::Memzero(Objects, sizeof(FUObjectItem)* InMaxElements);
-		MaxElements = InMaxElements;
-	}
-
-	int32 AddSingle()
-	{
-		int32 Result = NumElements;
-		checkf(NumElements + 1 <= MaxElements, TEXT("Maximum number of Objects exceeded, make sure you update MaxObjectsInGame/MaxObjectsInEditor in project settings."));
-		check(Result == NumElements);
-		++NumElements;
-		FPlatformMisc::MemoryBarrier();
-		check(Objects[Result].Object == nullptr);
-		return Result;
-	}
-
-	FORCEINLINE FUObjectItem const* GetObjectPtr(int32 Index) const
-	{
-		check(Index >= 0 && Index < NumElements);
-		return &Objects[Index];
-	}
-
-	/**
-	* Return the number of elements in the array
-	* Thread safe, but you know, someone might have added more elements before this even returns
-	* @return	the number of elements in the array
-	**/
-	FORCEINLINE int32 Num() const
-	{
-		return NumElements;
-	}
-	/**
-	* Return if this index is valid
-	* Thread safe, if it is valid now, it is valid forever. Other threads might be adding during this call.
-	* @param	Index	Index to test
-	* @return	true, if this is a valid
-	**/
-	FORCEINLINE bool IsValidIndex(int32 Index) const
-	{
-		return Index < Num() && Index >= 0;
-	}
-	/**
-	* Return a reference to an element
-	* @param	Index	Index to return
-	* @return	a reference to the pointer to the element
-	* Thread safe, if it is valid now, it is valid forever. This might return nullptr, but by then, some other thread might have made it non-nullptr.
-	**/
-	FORCEINLINE FUObjectItem const& operator[](int32 Index) const
-	{
-		FUObjectItem const* ItemPtr = GetObjectPtr(Index);
-		check(ItemPtr);
-		return *ItemPtr;
-	}
-
-	/**
-	* Return a naked pointer to the fundamental data structure for debug visualizers.
-	**/
-	UObjectBase*** GetRootBlockForDebuggerVisualizers()
-	{
-		return nullptr;
-	}
-};
-
+/** Used to test for stale weak pointers in the debug visualizers **/
+extern COREUOBJECT_API int32** GSerialNumberBlocksForDebugVisualizersRoot;
 
 /***
-*
+* 
 * FUObjectArray replaces the functionality of GObjObjects and UObject::Index
 *
 * Note the layout of this data structure is mostly to emulate the old behavior and minimize code rework during code restructure.
@@ -256,14 +20,11 @@ public:
 * that non-GC objects come before GC ones during iteration.
 *
 **/
+
+
 class COREUOBJECT_API FUObjectArray
 {
 public:
-
-	enum ESerialNumberConstants
-	{
-		START_SERIAL_NUMBER = 1000,
-	};
 
 	/**
 	 * Base class for UObjectBase create class listeners
@@ -304,8 +65,7 @@ public:
 	FUObjectArray() :
 		ObjFirstGCIndex(0),
 		ObjLastNonGCIndex(INDEX_NONE),
-		OpenForDisregardForGC(true),
-		MasterSerialNumber(START_SERIAL_NUMBER)
+		OpenForDisregardForGC(true)
 	{
 		FCoreDelegates::GetObjectArrayForDebugVisualizersDelegate().BindStatic(GetObjectArrayForDebugVisualizers);
 	}
@@ -313,10 +73,16 @@ public:
 	/**
 	 * Allocates and initializes the permanent object pool
 	 *
-	 * @param MaxUObjects maximum number of UObjects that can ever exist in the array
 	 * @param MaxObjectsNotConsideredByGC number of objects in the permanent object pool
 	 */
-	void AllocateObjectPool(int32 MaxUObjects, int32 MaxObjectsNotConsideredByGC);
+	void AllocatePermanentObjectPool(int32 MaxObjectsNotConsideredByGC);
+
+	/**
+	* Reserves array memory to hold the specified number of objects
+	*
+	* @param MaxObjectsNotConsideredByGC number of objects in the permanent object pool
+	*/
+	void ReserveUObjectPool(int32 InNumObjects);
 
 	/**
 	 * Disables the disregard for GC optimization. Commandlets can't use it.
@@ -374,77 +140,46 @@ public:
 	 * @param Index index of object to return
 	 * @return Object at this index
 	 */
-	FORCEINLINE FUObjectItem* IndexToObject(int32 Index)
+	FORCEINLINE class UObjectBase* IndexToObject(int32 Index)
 	{
 		check(Index >= 0);
 		if (Index < ObjObjects.Num())
 		{
-			return const_cast<FUObjectItem*>(&ObjObjects[Index]);
+			return (UObjectBase*)ObjObjects[Index];
 		}
-		return nullptr;
+		return NULL;
 	}
 
-	FORCEINLINE FUObjectItem* IndexToObjectUnsafeForGC(int32 Index)
+	FORCEINLINE class UObjectBase* IndexToObject(int32 Index, bool bEvenIfPendingKill)
 	{
-		return const_cast<FUObjectItem*>(&ObjObjects[Index]);
-	}
-
-	FORCEINLINE FUObjectItem* IndexToObject(int32 Index, bool bEvenIfPendingKill)
-	{
-		FUObjectItem* ObjectItem = IndexToObject(Index);
-		if (ObjectItem && ObjectItem->Object)
+		UObjectBaseUtility* Object = static_cast<UObjectBaseUtility*>(IndexToObject(Index));
+		if (Object && !bEvenIfPendingKill && Object->IsPendingKill())
 		{
-			if (!bEvenIfPendingKill && ObjectItem->IsPendingKill())
-			{
-				ObjectItem = nullptr;;
-			}
+			Object = NULL;
 		}
-		return ObjectItem;
-	}
-
-	FORCEINLINE FUObjectItem* ObjectToObjectItem(UObjectBase* Object)
-	{
-		FUObjectItem* ObjectItem = IndexToObject(Object->InternalIndex);
-		return ObjectItem;
-	}
-
-	FORCEINLINE bool IsValid(FUObjectItem* ObjectItem, bool bEvenIfPendingKill)
-	{
-		if (ObjectItem)
-		{
-			return bEvenIfPendingKill ? !ObjectItem->IsUnreachable() : !(ObjectItem->IsUnreachable() || ObjectItem->IsPendingKill());
-		}
-		return false;
-	}
-
-	FORCEINLINE FUObjectItem* IndexToValidObject(int32 Index, bool bEvenIfPendingKill)
-	{
-		FUObjectItem* ObjectItem = IndexToObject(Index);
-		return IsValid(ObjectItem, bEvenIfPendingKill) ? ObjectItem : nullptr;
+		return Object;
 	}
 
 	FORCEINLINE bool IsValid(int32 Index, bool bEvenIfPendingKill)
 	{
 		// This method assumes Index points to a valid object.
-		FUObjectItem* ObjectItem = IndexToObject(Index);
-		return IsValid(ObjectItem, bEvenIfPendingKill);
-	}
-
-	FORCEINLINE bool IsStale(FUObjectItem* ObjectItem, bool bEvenIfPendingKill)
-	{
-		// This method assumes ObjectItem is valid.
-		return bEvenIfPendingKill ? (ObjectItem->IsPendingKill() || ObjectItem->IsUnreachable()) : (ObjectItem->IsUnreachable());
+		UObjectBaseUtility* Object = static_cast<UObjectBaseUtility*>(IndexToObject(Index));
+		if(Object == NULL)
+		{
+			return false;
+		}
+		return !Object->HasAnyFlags(RF_Unreachable) && (bEvenIfPendingKill || !Object->IsPendingKill());
 	}
 
 	FORCEINLINE bool IsStale(int32 Index, bool bEvenIfPendingKill)
 	{
 		// This method assumes Index points to a valid object.
-		FUObjectItem* ObjectItem = IndexToObject(Index);
-		if (ObjectItem)
+		UObjectBaseUtility* Object = static_cast<UObjectBaseUtility*>(IndexToObject(Index));
+		if(Object == NULL)
 		{
-			return IsStale(ObjectItem, bEvenIfPendingKill);
+			return true;
 		}
-		return true;
+		return Object->HasAnyFlags(RF_Unreachable) || (bEvenIfPendingKill && Object->IsPendingKill());
 	}
 
 	/**
@@ -529,7 +264,7 @@ public:
 		return ObjLastNonGCIndex + 1;
 	}
 
-#if UE_GC_TRACK_OBJ_AVAILABLE
+#if WITH_EDITOR
 	/**
 	 * Returns the number of actual object indices that are claimed (the total size of the global object array minus
 	 * the number of available object array elements
@@ -547,27 +282,9 @@ public:
 	 */
 	void ShutdownUObjectArray();
 
-	/**
-	* Given a UObject index return the serial number. If it doesn't have a serial number, give it one. Threadsafe.
-	* @param Index - UObject Index
-	* @return - the serial number for this UObject
-	*/
-	int32 AllocateSerialNumber(int32 Index);
 
 	/**
-	* Given a UObject index return the serial number. If it doesn't have a serial number, return 0. Threadsafe.
-	* @param Index - UObject Index
-	* @return - the serial number for this UObject
-	*/
-	FORCEINLINE int32 GetSerialNumber(int32 Index)
-	{
-		FUObjectItem* ObjectItem = IndexToObject(Index);
-		checkSlow(ObjectItem);
-		return ObjectItem->GetSerialNumber();
-	}
-
-	/**
-	 * Low level iterator.
+	 * Low level iterator
 	 */
 	class TIterator
 	{
@@ -585,8 +302,7 @@ public:
 		 */
 		TIterator( const FUObjectArray& InArray, bool bOnlyGCedObjects = false ) :	
 			Array(InArray),
-			Index(-1),
-			CurrentObject(nullptr)
+			Index(-1)
 		{
 			if (bOnlyGCedObjects)
 			{
@@ -621,17 +337,12 @@ public:
 		/** Conversion to "bool" returning true if the iterator is valid. */
 		FORCEINLINE_EXPLICIT_OPERATOR_BOOL() const
 		{ 
-			return !!CurrentObject;
+			return Array.ObjObjects.IsValidIndex(Index); 
 		}
 		/** inverse of the "bool" operator */
 		FORCEINLINE bool operator !() const 
 		{
 			return !(bool)*this;
-		}
-
-		FORCEINLINE int32 GetIndex() const
-		{
-			return Index;
 		}
 
 	protected:
@@ -641,9 +352,9 @@ public:
 		 *
 		 * @return	the UObject at the iterator
 		 */
-		FORCEINLINE FUObjectItem* GetObject() const
+		FORCEINLINE UObjectBase* GetObject() const 
 		{ 
-			return CurrentObject;
+			return (UObjectBase*)Array.ObjObjects[Index];
 		}
 		/**
 		 * Iterator advance with ordinary name for clarity in subclasses
@@ -652,37 +363,30 @@ public:
 		FORCEINLINE bool Advance()
 		{
 			//@todo UE4 check this for LHS on Index on consoles
-			FUObjectItem* NextObject = nullptr;
-			CurrentObject = nullptr;
 			while(++Index < Array.GetObjectArrayNum())
 			{
-				NextObject = const_cast<FUObjectItem*>(&Array.ObjObjects[Index]);
-				if (NextObject->Object)
+				if (GetObject())
 				{
-					CurrentObject = NextObject;
 					return true;
 				}
 			}
 			return false;
 		}
 	private:
-		/** the array that we are iterating on, probably always GUObjectArray */
+		/** the array that we are iterating on, probably always GetUObjectArray() */
 		const FUObjectArray& Array;
 		/** index of the current element in the object array */
 		int32 Index;
-		/** Current object */
-		mutable FUObjectItem* CurrentObject;
 	};
 
 private:
 
-	//typedef TStaticIndirectArrayThreadSafeRead<UObjectBase, 8 * 1024 * 1024 /* Max 8M UObjects */, 16384 /* allocated in 64K/128K chunks */ > TUObjectArray;
-	typedef FFixedUObjectArray TUObjectArray;
+	typedef TStaticIndirectArrayThreadSafeRead<UObjectBase, 8 * 1024 * 1024 /* Max 8M UObjects */, 16384 /* allocated in 64K/128K chunks */ > TUObjectArray;
 
 	/**
 	 * return the object array for use by debug visualizers
 	 */
-	static FFixedUObjectArray* GetObjectArrayForDebugVisualizers();
+	static UObjectBase*** GetObjectArrayForDebugVisualizers();
 
 	// note these variables are left with the Obj prefix so they can be related to the historical GObj versions
 
@@ -697,8 +401,8 @@ private:
 	/** Synchronization object for all live objects.											*/
 	FCriticalSection ObjObjectsCritical;
 	/** Available object indices.											*/
-	TLockFreePointerListUnordered<int32> ObjAvailableList;
-#if UE_GC_TRACK_OBJ_AVAILABLE
+	TLockFreePointerList<int32> ObjAvailableList;
+#if WITH_EDITOR
 	/** Available object index count.										*/
 	FThreadSafeCounter ObjAvailableCount;
 #endif
@@ -713,20 +417,10 @@ private:
 #if THREADSAFE_UOBJECTS
 	FCriticalSection UObjectDeleteListenersCritical;
 #endif
-
-	/** Current master serial number **/
-	FThreadSafeCounter	MasterSerialNumber;
-};
-
-struct FUObjectCluster
-{
-	TArray<int32> Objects;
-	TArray<int32> ReferencedClusters;
 };
 
 /** Global UObject allocator							*/
-extern COREUOBJECT_API FUObjectArray GUObjectArray;
-extern COREUOBJECT_API TMap<int32, FUObjectCluster* > GUObjectClusters;
+COREUOBJECT_API FUObjectArray& GetUObjectArray();
 
 /**
 	* Static version of IndexToObject for use with TWeakObjectPtr.
@@ -735,8 +429,7 @@ struct FIndexToObject
 {
 	static FORCEINLINE class UObjectBase* IndexToObject(int32 Index, bool bEvenIfPendingKill)
 	{
-		FUObjectItem* ObjectItem = GUObjectArray.IndexToObject(Index, bEvenIfPendingKill);
-		return ObjectItem ? ObjectItem->Object : nullptr;
+		return GetUObjectArray().IndexToObject(Index, bEvenIfPendingKill);
 	}
 };
 

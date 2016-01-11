@@ -1,16 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 class ISlate3DRenderer 
 {
 public:
-	virtual ~ISlate3DRenderer() {}
+	virtual ~ISlate3DRenderer() {};
 
 	/** @return The free buffer for drawing */
 	virtual FSlateDrawBuffer& GetDrawBuffer() = 0;
 
-	/** 
+ 	/** 
 	 * Batches the draw elements in the buffer to prepare it for rendering.
 	 * Call in the game thread before sending to the render thread.
 	 *
@@ -25,5 +25,5 @@ public:
 	 * @param RenderTarget The render target to render the contents of the draw buffer to
 	 * @param InDrawBuffer The draw buffer containing the batched elements to render
 	 */
-	virtual void DrawWindowToTarget_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRenderTarget2DResource* RenderTargetResource, FSlateDrawBuffer& InDrawBuffer) = 0;
+	virtual void DrawWindowToTarget_RenderThread( FRHICommandListImmediate& RHICmdList, UTextureRenderTarget2D* RenderTarget, FSlateDrawBuffer& InDrawBuffer ) = 0;
 };

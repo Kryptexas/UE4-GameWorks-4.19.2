@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BlendSpaceBase.cpp: Base class for blend space objects
@@ -8,84 +8,15 @@
 #include "AnimationRuntime.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/BlendSpaceBase.h"
-#include "AnimationUtils.h"
-
-DECLARE_CYCLE_STAT(TEXT("BlendSpace GetAnimPose"), STAT_BlendSpace_GetAnimPose, STATGROUP_Anim);
-
-struct FSyncPattern
-{
-	// The markers that make up this patter
-	TArray<FName> MarkerNames;
-
-	// Returns the index of the supplied name in the array of marker names
-	// Search starts at StartIndex
-	int32 IndexOf(FName Name, int32 StartIndex = 0) const
-	{
-		for (int Ind = StartIndex; Ind < MarkerNames.Num(); ++Ind)
-		{
-			if (MarkerNames[Ind] == Name)
-			{
-				return Ind;
-			}
-		}
-		return INDEX_NONE;
-	}
-
-	// Tests the supplied pattern against ours, starting at the supplied start index
-	bool DoOneMatch(const TArray<FName>& TestMarkerNames, int32 StartIndex)
-	{
-		int32 MyMarkerIndex = StartIndex;
-		int32 TestMarkerIndex = 0;
-
-		do
-		{
-			if (MarkerNames[MyMarkerIndex] != TestMarkerNames[TestMarkerIndex])
-			{
-				return false;
-			}
-			MyMarkerIndex = (MyMarkerIndex + 1) % MarkerNames.Num();
-			TestMarkerIndex = (TestMarkerIndex + 1) % TestMarkerNames.Num();
-		} while (MyMarkerIndex != StartIndex || TestMarkerIndex != 0); // Did we get back to the start without failing
-		return true;
-	}
-
-	// Testes the supplied pattern against ourselves. Is not a straight forward array match
-	// (for example a,b,c,a would match b,c,a,a)
-	bool DoesPatternMatch(const TArray<FName>& TestMarkerNames)
-	{
-		check(TestMarkerNames.Num() > 0 && MarkerNames.Num() > 0);
-
-		FName StartMarker = TestMarkerNames[0];
-
-		int32 StartIndex = IndexOf(StartMarker);
-		while (StartIndex != INDEX_NONE)
-		{
-			if (DoOneMatch(TestMarkerNames, StartIndex))
-			{
-				return true;
-			}
-			StartIndex = IndexOf(StartMarker, StartIndex + 1);
-		}
-		return false;
-	}
-};
 
 // global variable that's used in editor when you change the property only
 // I can't make this member since I  need to change this in const function
 bool bNeedReinitializeFilter = false;
 
-/** Scratch buffers for multithreaded usage */
-struct FBlendSpaceScratchData : public TThreadSingleton<FBlendSpaceScratchData>
-{
-	TArray<FBlendSampleData> OldSampleDataList;
-	TArray<FBlendSampleData> NewSampleDataList;
-	TArray<FGridBlendSample, TInlineAllocator<4> > RawGridSamples;
-};
-
 UBlendSpaceBase::UBlendSpaceBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	bAllSequencesHaveMatchingMarkers = false;
+	
 }
 
 void UBlendSpaceBase::PostLoad()
@@ -143,23 +74,7 @@ FVector UBlendSpaceBase::FilterInput(FBlendFilter * Filter, const FVector& Blend
 	return FilteredBlendInput;
 }
 
-int32 GetHighestWeightSample(TArray<FBlendSampleData> &SampleDataList)
-{
-	int32 HighestWeightIndex = 0;
-	float HighestWeight = SampleDataList[HighestWeightIndex].GetWeight();
-	for (int32 I = 1; I < SampleDataList.Num(); I++)
-	{
-		if (SampleDataList[I].GetWeight() > HighestWeight)
-		{
-			HighestWeightIndex = I;
-			HighestWeight = SampleDataList[I].GetWeight();
-		}
-	}
-	return HighestWeightIndex;
-}
-
-/////////////////////////////////////////////////////
-void UBlendSpaceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNotifyQueue& NotifyQueue, FAnimAssetTickContext& Context) const
+void UBlendSpaceBase::TickAssetPlayerInstance(const FAnimTickRecord& Instance, class UAnimInstance* InstanceOwner, FAnimAssetTickContext& Context) const
 {
 	const float DeltaTime = Context.GetDeltaTime();
 	float MoveDelta = Instance.PlayRateMultiplier * DeltaTime;
@@ -169,8 +84,7 @@ void UBlendSpaceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNot
 	// also now we don't have to worry about not following if DeltaTime = 0.f
 	{
 		// first filter input using blend filter
-		const FVector BlendSpacePosition(Instance.BlendSpace.BlendSpacePositionX, Instance.BlendSpace.BlendSpacePositionY, 0.f);
-		const FVector BlendInput = FilterInput(Instance.BlendSpace.BlendFilter, BlendSpacePosition, DeltaTime);
+		const FVector BlendInput = FilterInput(Instance.BlendFilter, Instance.BlendSpacePosition, DeltaTime);
 		EBlendSpaceAxis AxisToScale = GetAxisToScale();
 		if (AxisToScale != BSA_None)
 		{
@@ -178,21 +92,21 @@ void UBlendSpaceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNot
 			// first use multiplier using new blendinput
 			// new filtered input is going to be used for sampling animation
 			// so we'll need to change playrate if you'd like to not slide foot
-			if ( !BlendSpacePosition.Equals(BlendInput) )  
+			if ( !Instance.BlendSpacePosition.Equals(BlendInput) )  
 			{
 				// apply speed change if you want, 
 				if (AxisToScale == BSA_X)
 				{
 					if (BlendInput.X != 0.f)
 					{
-						FilterMultiplier = BlendSpacePosition.X / BlendInput.X;
+						FilterMultiplier = Instance.BlendSpacePosition.X / BlendInput.X;
 					}
 				}
 				else if (AxisToScale == BSA_Y)
 				{
 					if (BlendInput.Y != 0.f)
 					{
-						FilterMultiplier = BlendSpacePosition.Y / BlendInput.Y;
+						FilterMultiplier = Instance.BlendSpacePosition.Y / BlendInput.Y;
 					}
 				}
 			}
@@ -221,43 +135,39 @@ void UBlendSpaceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNot
 
 
 			MoveDelta *= FilterMultiplier;
-			UE_LOG(LogAnimation, Log, TEXT("BlendSpace(%s) - BlendInput(%s) : FilteredBlendInput(%s), FilterMultiplier(%0.2f)"), *GetName(), *BlendSpacePosition.ToString(), *BlendInput.ToString(), FilterMultiplier );
+			UE_LOG(LogAnimation, Log, TEXT("BlendSpace(%s) - BlendInput(%s) : FilteredBlendInput(%s), FilterMultiplier(%0.2f)"), *GetName(), *Instance.BlendSpacePosition.ToString(), *BlendInput.ToString(), FilterMultiplier );
 		}
 
-		check(Instance.BlendSpace.BlendSampleDataCache);
+		check (Instance.BlendSampleDataCache);
 
 		// For Target weight interpolation, we'll need to save old data, and interpolate to new data
-		TArray<FBlendSampleData>& OldSampleDataList = FBlendSpaceScratchData::Get().OldSampleDataList;
-		TArray<FBlendSampleData>& NewSampleDataList = FBlendSpaceScratchData::Get().NewSampleDataList;
-		check(!OldSampleDataList.Num() && !NewSampleDataList.Num()); // this must be called non-recursively
-
-		OldSampleDataList.Append(*Instance.BlendSpace.BlendSampleDataCache);
+		TArray<FBlendSampleData> OldSampleDataList, NewSampleDataList;
+		OldSampleDataList.Append(*Instance.BlendSampleDataCache);
 
 		// get sample data based on new input
 		// consolidate all samples and sort them, so that we can handle from biggest weight to smallest
-		Instance.BlendSpace.BlendSampleDataCache->Reset();
+		Instance.BlendSampleDataCache->Empty();
 		// new sample data that will be used for evaluation
-		TArray<FBlendSampleData> & SampleDataList = *Instance.BlendSpace.BlendSampleDataCache;
+		TArray<FBlendSampleData> & SampleDataList = *Instance.BlendSampleDataCache;
 
 		// get sample data from blendspace
 		if (GetSamplesFromBlendInput(BlendInput, NewSampleDataList))
 		{
-			float NewAnimLength=0.f;
-			float PreInterpAnimLength = 0.f;
+			float NewAnimLength=0;
 
 			// if target weight interpolation is set
 			if (TargetWeightInterpolationSpeedPerSec > 0.f)
 			{
 				UE_LOG(LogAnimation, Verbose, TEXT("Target Weight Interpolation: Target Samples "));
 				// recalculate AnimLength based on weight of target animations - this is used for scaling animation later (change speed)
-				PreInterpAnimLength = GetAnimationLengthFromSampleData(NewSampleDataList);
+				float PreInterpAnimLength = GetAnimationLengthFromSampleData(NewSampleDataList);
 				UE_LOG(LogAnimation, Verbose, TEXT("BlendSpace(%s) - BlendInput(%s) : PreAnimLength(%0.5f) "), *GetName(), *BlendInput.ToString(), PreInterpAnimLength);
 
 				// target weight interpolation
 				if (InterpolateWeightOfSampleData(DeltaTime, OldSampleDataList, NewSampleDataList, SampleDataList))
 				{
 					// now I need to normalize
-					FBlendSampleData::NormalizeDataWeight(SampleDataList);
+					NormalizeSampleDataWeight(SampleDataList);
 				}
 				else
 				{
@@ -267,141 +177,65 @@ void UBlendSpaceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNot
 
 				// recalculate AnimLength based on weight of animations
 				UE_LOG(LogAnimation, Verbose, TEXT("Target Weight Interpolation: Interp Samples "));
+				NewAnimLength = GetAnimationLengthFromSampleData(SampleDataList);
+				// now scale the animation
+				if (NewAnimLength > 0.f)
+				{
+					MoveDelta *= PreInterpAnimLength/NewAnimLength;
+				}
 			}
 			else
 			{
 				// when there is no target weight interpolation, just copy new to target
 				SampleDataList.Append(NewSampleDataList);
-			}
-
-			bool bCanDoMarkerSync = bAllSequencesHaveMatchingMarkers && (Context.IsSingleAnimationContext() || (Instance.bCanUseMarkerSync && Context.CanUseMarkerPosition()));
-
-			if (bCanDoMarkerSync)
-			{
-				//Copy previous frame marker data to current frame
-				for (FBlendSampleData& PrevBlendSampleItem : OldSampleDataList)
-				{
-					for (FBlendSampleData& CurrentBlendSampleItem : SampleDataList)
-					{
-						if (PrevBlendSampleItem.SampleDataIndex == CurrentBlendSampleItem.SampleDataIndex)
-						{
-							CurrentBlendSampleItem.Time = PrevBlendSampleItem.Time;
-							CurrentBlendSampleItem.MarkerTickRecord = PrevBlendSampleItem.MarkerTickRecord;
-						}
-					}
-				}
-			}
-
-			NewAnimLength = GetAnimationLengthFromSampleData(SampleDataList);
-
-			if (PreInterpAnimLength > 0.f && NewAnimLength > 0.f)
-			{
-				MoveDelta *= PreInterpAnimLength / NewAnimLength;
+				NewAnimLength = GetAnimationLengthFromSampleData(SampleDataList);
 			}
 
 			float& NormalizedCurrentTime = *(Instance.TimeAccumulator);
 			const float NormalizedPreviousTime = NormalizedCurrentTime;
 
-			// @note for sync group vs non sync group
-			// in blendspace, it will still sync even if only one node in sync group
-			// so you're never non-sync group unless you have situation where some markers are relevant to one sync group but not all the time
-			// here we save NormalizedCurrentTime as Highest weighted samples' position in sync group
-			// if you're not in sync group, NormalizedCurrentTime is based on normalized length by sample weights
-			// if you move between sync to non sync within blendspace, you're going to see pop because we'll have to jump
-			// for now, our rule is to keep normalized time as highest weighted sample position within its own length
-			// also MoveDelta doesn't work if you're in sync group. It will move according to sync group position
-			// @todo consider using MoveDelta when  this is leader, but that can be scary because it's not matching with DeltaTime any more. 
-			// if you have interpolation delay, that value can be applied, but the output might be unpredictable. 
-			// 
-			// to fix this better in the future, we should use marker sync position from last tick
-			// but that still doesn't fix if you just join sync group, you're going to see pop since your animation doesn't fix
-
 			if (Context.IsLeader())
 			{
 				// advance current time - blend spaces hold normalized time as when dealing with changing anim length it would be possible to go backwards
 				UE_LOG(LogAnimation, Verbose, TEXT("BlendSpace(%s) - BlendInput(%s) : AnimLength(%0.5f) "), *GetName(), *BlendInput.ToString(), NewAnimLength);
-				
-				if (bCanDoMarkerSync)
-				{
-					const int32 HighestWeightIndex = GetHighestWeightSample(SampleDataList);
-					FBlendSampleData& SampleDataItem = SampleDataList[HighestWeightIndex];
-					const FBlendSample& Sample = SampleData[SampleDataItem.SampleDataIndex];
 
-					bool bResetMarkerDataOnFollowers = false;
-					if (!Instance.MarkerTickRecord->IsValid())
-					{
-						SampleDataItem.MarkerTickRecord.Reset();
-						bResetMarkerDataOnFollowers = true;
-					}
-					else if (!SampleDataItem.MarkerTickRecord.IsValid() && Context.MarkerTickContext.GetMarkerSyncStartPosition().IsValid())
-					{
-						Sample.Animation->GetMarkerIndicesForPosition(Context.MarkerTickContext.GetMarkerSyncStartPosition(), true, SampleDataItem.MarkerTickRecord.PreviousMarker, SampleDataItem.MarkerTickRecord.NextMarker, SampleDataItem.Time);
-					}
+				// Advance time using current/new anim length
+				float CurrentTime = NormalizedCurrentTime * NewAnimLength;
+				FAnimationRuntime::AdvanceTime(Instance.bLooping, MoveDelta, /*inout*/ CurrentTime, NewAnimLength);
+				NormalizedCurrentTime = NewAnimLength ? (CurrentTime / NewAnimLength) : 0.0f;
 
-					const float NewDeltaTime = Context.GetDeltaTime() * Instance.PlayRateMultiplier;
-					if (!FMath::IsNearlyZero(NewDeltaTime))
-					{
-						Context.SetLeaderDelta(NewDeltaTime);
-						Sample.Animation->TickByMarkerAsLeader(SampleDataItem.MarkerTickRecord, Context.MarkerTickContext, SampleDataItem.Time, SampleDataItem.PreviousTime, NewDeltaTime, true);
-						TickFollowerSamples(SampleDataList, HighestWeightIndex, Context, bResetMarkerDataOnFollowers);
-					}
-					NormalizedCurrentTime = SampleDataItem.Time / Sample.Animation->SequenceLength;
-					*Instance.MarkerTickRecord = SampleDataItem.MarkerTickRecord;
-				}
-				else
-				{
-					// Advance time using current/new anim length
-					float CurrentTime = NormalizedCurrentTime * NewAnimLength;
-					FAnimationRuntime::AdvanceTime(Instance.bLooping, MoveDelta, /*inout*/ CurrentTime, NewAnimLength);
-					NormalizedCurrentTime = NewAnimLength ? (CurrentTime / NewAnimLength) : 0.0f;
-					UE_LOG(LogAnimMarkerSync, Log, TEXT("Leader (%s) (normal advance)  - PreviousTime (%0.2f), CurrentTime (%0.2f), MoveDelta (%0.2f) "), *GetName(), NormalizedPreviousTime, NormalizedCurrentTime, MoveDelta);
-				}
-
-				Context.SetAnimationPositionRatio(NormalizedCurrentTime);
+				Context.SetSyncPoint(NormalizedCurrentTime);
 			}
 			else
 			{
-				if(!Context.MarkerTickContext.IsMarkerSyncStartValid())
-				{
-					bCanDoMarkerSync = false;
-				}
-				if (bCanDoMarkerSync)
-				{
-					const int32 HighestWeightIndex = GetHighestWeightSample(SampleDataList);
-					FBlendSampleData& SampleDataItem = SampleDataList[HighestWeightIndex];
-					const FBlendSample& Sample = SampleData[SampleDataItem.SampleDataIndex];
-
-					if (Context.GetDeltaTime() != 0.f)
-					{
-						if(!Instance.MarkerTickRecord->IsValid())
-						{
-							SampleDataItem.Time = NormalizedCurrentTime * Sample.Animation->SequenceLength;
-						}
-
-						TickFollowerSamples(SampleDataList, -1, Context, false);
-					}
-					*Instance.MarkerTickRecord = SampleDataItem.MarkerTickRecord;
-					NormalizedCurrentTime =  SampleDataItem.Time / Sample.Animation->SequenceLength;
-				}
-				else
-				{
-					NormalizedCurrentTime =  Context.GetAnimationPositionRatio();
-					UE_LOG(LogAnimMarkerSync, Log, TEXT("Leader (%s) (normal advance)  - PreviousTime (%0.2f), CurrentTime (%0.2f), MoveDelta (%0.2f) "), *GetName(), NormalizedPreviousTime, NormalizedCurrentTime, MoveDelta);
-				}
+				NormalizedCurrentTime = Context.GetSyncPoint();
 			}
 
 			// generate notifies and sets time
 			{
 				TArray<const FAnimNotifyEvent*> Notifies;
 
+				// now calculate time for each samples
 				const float ClampedNormalizedPreviousTime = FMath::Clamp<float>(NormalizedPreviousTime, 0.f, 1.f);
 				const float ClampedNormalizedCurrentTime = FMath::Clamp<float>(NormalizedCurrentTime, 0.f, 1.f);
 				const bool bGenerateNotifies = Context.ShouldGenerateNotifies() && (NormalizedCurrentTime != NormalizedPreviousTime) && NotifyTriggerMode != ENotifyTriggerMode::None;
-				
-				// Get the index of the highest weight, assuming that the first is the highest until we find otherwise
-				const bool bTriggerNotifyHighestWeightedAnim = NotifyTriggerMode == ENotifyTriggerMode::HighestWeightedAnimation && SampleDataList.Num() > 0;
-				const int32 HighestWeightIndex = (bGenerateNotifies && bTriggerNotifyHighestWeightedAnim) ? GetHighestWeightSample(SampleDataList) : -1;
+				int32 HighestWeightIndex = 0;
 
+				// Get the index of the highest weight, assuming that the first is the highest until we find otherwise
+				bool bTriggerNotifyHighestWeightedAnim = NotifyTriggerMode == ENotifyTriggerMode::HighestWeightedAnimation && SampleDataList.Num() > 0;
+				if(bGenerateNotifies && bTriggerNotifyHighestWeightedAnim)
+				{
+					float HighestWeight = SampleDataList[HighestWeightIndex].GetWeight();
+					for(int32 I = 1 ; I < SampleDataList.Num(); I++)
+					{
+						if(SampleDataList[I].GetWeight() > HighestWeight)
+						{
+							HighestWeightIndex = I;
+							HighestWeight = SampleDataList[I].GetWeight();
+						}
+					}
+				}
+				
 				for (int32 I = 0; I < SampleDataList.Num(); ++I)
 				{
 					FBlendSampleData& SampleEntry = SampleDataList[I];
@@ -413,20 +247,12 @@ void UBlendSpaceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNot
 						const FBlendSample& Sample = SampleData[SampleDataIndex];
 						if( Sample.Animation )
 						{
-							float PrevSampleDataTime;
-							float& CurrentSampleDataTime = SampleEntry.Time;
+							const float SampleNormalizedPreviousTime = Sample.Animation->RateScale >= 0.f ? ClampedNormalizedPreviousTime : 1.f - ClampedNormalizedPreviousTime;
+							const float SampleNormalizedCurrentTime = Sample.Animation->RateScale >= 0.f ? ClampedNormalizedCurrentTime : 1.f - ClampedNormalizedCurrentTime;
 
-							if (!bCanDoMarkerSync) //Have already updated time if we are doing marker sync
-							{
-								const float SampleNormalizedPreviousTime = Sample.Animation->RateScale >= 0.f ? ClampedNormalizedPreviousTime : 1.f - ClampedNormalizedPreviousTime;
-								const float SampleNormalizedCurrentTime = Sample.Animation->RateScale >= 0.f ? ClampedNormalizedCurrentTime : 1.f - ClampedNormalizedCurrentTime;
-								PrevSampleDataTime = SampleNormalizedPreviousTime * Sample.Animation->SequenceLength;
-								CurrentSampleDataTime = SampleNormalizedCurrentTime * Sample.Animation->SequenceLength;
-							}
-							else
-							{
-								PrevSampleDataTime = SampleEntry.PreviousTime;
-							}
+							const float PrevSampleDataTime = SampleNormalizedPreviousTime * Sample.Animation->SequenceLength;
+							float& CurrentSampleDataTime = SampleEntry.Time;
+							CurrentSampleDataTime = SampleNormalizedCurrentTime * Sample.Animation->SequenceLength;
 
 							// Figure out delta time 
 							float DeltaTimePosition = CurrentSampleDataTime - PrevSampleDataTime;
@@ -457,23 +283,19 @@ void UBlendSpaceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNot
 
 				if (bGenerateNotifies && Notifies.Num() > 0)
 				{
-					NotifyQueue.AddAnimNotifies(Notifies, Instance.EffectiveBlendWeight);
+					InstanceOwner->AddAnimNotifies(Notifies, Instance.EffectiveBlendWeight);
 				}
 			}
 		}
-		OldSampleDataList.Reset();
-		NewSampleDataList.Reset();
 	}
 }
 
 bool UBlendSpaceBase::GetSamplesFromBlendInput(const FVector &BlendInput, TArray<FBlendSampleData> & OutSampleDataList) const
 {
-	TArray<FGridBlendSample, TInlineAllocator<4> >& RawGridSamples = FBlendSpaceScratchData::Get().RawGridSamples;
-	check(!RawGridSamples.Num()); // this must be called non-recursively
+	TArray<FGridBlendSample> RawGridSamples;
 	GetRawSamplesFromBlendInput(BlendInput, RawGridSamples);
 
-	OutSampleDataList.Reset();
-	OutSampleDataList.Reserve(RawGridSamples.Num() * FEditorElement::MAX_VERTICES);
+	OutSampleDataList.Empty();
 
 	// consolidate all samples
 	for (int32 SampleNum=0; SampleNum<RawGridSamples.Num(); ++SampleNum)
@@ -507,7 +329,7 @@ bool UBlendSpaceBase::GetSamplesFromBlendInput(const FVector &BlendInput, TArray
 		if (OutSampleDataList[I].TotalWeight < ZERO_ANIMWEIGHT_THRESH)
 		{
 			// cut anything in front of this 
-			OutSampleDataList.RemoveAt(I, TotalSample-I, false); // we won't shrink here, that might screw up alloc optimization at a higher level, if not this is temp anyway
+			OutSampleDataList.RemoveAt(I, TotalSample-I);
 			break;
 		}
 
@@ -519,7 +341,7 @@ bool UBlendSpaceBase::GetSamplesFromBlendInput(const FVector &BlendInput, TArray
 		// normalize to all weights
 		OutSampleDataList[I].TotalWeight /= TotalWeight;
 	}
-	RawGridSamples.Reset();
+
 	return (OutSampleDataList.Num()!=0);
 }
 
@@ -550,10 +372,11 @@ bool UBlendSpaceBase::InterpolateWeightOfSampleData(float DeltaTime, const TArra
 	{
 		// Now need to modify old sample, so copy it
 		FBlendSampleData OldSample = *OldIt;
-		bool bTargetSampleExists = false;
+		bool bNewTargetFound = false;
 
 		if (OldSample.PerBoneBlendData.Num()!=PerBoneBlend.Num())
 		{
+			OldSample.PerBoneBlendData.Empty(PerBoneBlend.Num());
 			OldSample.PerBoneBlendData.Init(OldSample.TotalWeight, PerBoneBlend.Num());
 		}
 
@@ -571,39 +394,25 @@ bool UBlendSpaceBase::InterpolateWeightOfSampleData(float DeltaTime, const TArra
 				// now interpolate the per bone weights
 				for (int32 Iter = 0; Iter<InterpData.PerBoneBlendData.Num(); ++Iter)
 				{
-					if (PerBoneBlend[Iter].InterpolationSpeedPerSec > 0.f)
-					{
-						InterpData.PerBoneBlendData[Iter] = FMath::FInterpConstantTo(OldSample.PerBoneBlendData[Iter], NewSample.TotalWeight, DeltaTime, PerBoneBlend[Iter].InterpolationSpeedPerSec);
-					}
-					else
-					{
-						InterpData.PerBoneBlendData[Iter] = NewSample.TotalWeight;
-					}
+					InterpData.PerBoneBlendData[Iter] = FMath::FInterpConstantTo(OldSample.PerBoneBlendData[Iter], NewSample.TotalWeight, DeltaTime, PerBoneBlend[Iter].InterpolationSpeedPerSec);
 				}
 
 				FinalSampleDataList.Add(InterpData);
 				TotalFinalWeight += InterpData.GetWeight();
-				bTargetSampleExists = true;
+				bNewTargetFound = true;
 				break;
 			}
 		}
 
 		// if new target isn't found, interpolate to 0.f, this is gone
-		if (bTargetSampleExists == false)
+		if (bNewTargetFound == false)
 		{
 			FBlendSampleData InterpData = OldSample;
 			InterpData.TotalWeight = FMath::FInterpConstantTo(OldSample.TotalWeight, 0.f, DeltaTime, TargetWeightInterpolationSpeedPerSec);
 			// now interpolate the per bone weights
 			for (int32 Iter = 0; Iter<InterpData.PerBoneBlendData.Num(); ++Iter)
 			{
-				if (PerBoneBlend[Iter].InterpolationSpeedPerSec > 0.f)
-				{
-					InterpData.PerBoneBlendData[Iter] = FMath::FInterpConstantTo(OldSample.PerBoneBlendData[Iter], 0.f, DeltaTime, PerBoneBlend[Iter].InterpolationSpeedPerSec);
-				}
-				else
-				{
-					InterpData.PerBoneBlendData[Iter] = 0.f;
-				}
+				InterpData.PerBoneBlendData[Iter] = FMath::FInterpConstantTo(OldSample.PerBoneBlendData[Iter], 0.f, DeltaTime, PerBoneBlend[Iter].InterpolationSpeedPerSec);
 			}
 
 			// add it if it's not zero
@@ -620,10 +429,11 @@ bool UBlendSpaceBase::InterpolateWeightOfSampleData(float DeltaTime, const TArra
 	{
 		// Now need to modify old sample, so copy it
 		FBlendSampleData OldSample = *OldIt;
-		bool bOldSampleExists = false;
+		bool bNewTargetFound = false;
 
 		if (OldSample.PerBoneBlendData.Num()!=PerBoneBlend.Num())
 		{
+			OldSample.PerBoneBlendData.Empty(PerBoneBlend.Num());
 			OldSample.PerBoneBlendData.Init(OldSample.TotalWeight, PerBoneBlend.Num());
 		}
 
@@ -632,27 +442,20 @@ bool UBlendSpaceBase::InterpolateWeightOfSampleData(float DeltaTime, const TArra
 			const FBlendSampleData& NewSample = *NewIt;
 			if (NewSample.SampleDataIndex == OldSample.SampleDataIndex)
 			{
-				bOldSampleExists = true;
+				bNewTargetFound = true;
 				break;
 			}
 		}
 
 		// add those new samples
-		if (bOldSampleExists == false)
+		if (bNewTargetFound == false)
 		{
 			FBlendSampleData InterpData = OldSample;
 			InterpData.TotalWeight = FMath::FInterpConstantTo(0.f, OldSample.TotalWeight, DeltaTime, TargetWeightInterpolationSpeedPerSec);
 			// now interpolate the per bone weights
 			for (int32 Iter = 0; Iter<InterpData.PerBoneBlendData.Num(); ++Iter)
 			{
-				if (PerBoneBlend[Iter].InterpolationSpeedPerSec > 0.f)
-				{
-					InterpData.PerBoneBlendData[Iter] = FMath::FInterpConstantTo(0.f, OldSample.PerBoneBlendData[Iter], DeltaTime, PerBoneBlend[Iter].InterpolationSpeedPerSec);
-				}
-				else
-				{
-					InterpData.PerBoneBlendData[Iter] = OldSample.PerBoneBlendData[Iter];
-				}
+				InterpData.PerBoneBlendData[Iter] = FMath::FInterpConstantTo(0.f, OldSample.PerBoneBlendData[Iter], DeltaTime, PerBoneBlend[Iter].InterpolationSpeedPerSec);
 			}
 			FinalSampleDataList.Add(InterpData);
 			TotalFinalWeight += InterpData.GetWeight();
@@ -845,29 +648,14 @@ bool UBlendSpaceBase::ValidateSampleInput(FBlendSample & BlendSample, int32 Orig
 	return true;
 }
 
-void PopulateMarkerNameArray(TArray<FName>& Pattern, TArray<FAnimSyncMarker>& AuthoredSyncMarkers)
-{
-	Pattern.Reserve(AuthoredSyncMarkers.Num());
-	for (FAnimSyncMarker& Marker : AuthoredSyncMarkers)
-	{
-		Pattern.Add(Marker.MarkerName);
-	}
-}
-
 void UBlendSpaceBase::ValidateSampleData()
 {
 	bool bSampleDataChanged=false;
 	AnimLength = 0.f;
 
-	bool bNoAnimationsHaveMarkers = true;
-	bool bAllMarkerPatternsMatch = true;
-	FSyncPattern BlendSpacePattern;
-
 	for (int32 I=0; I<SampleData.Num(); ++I)
 	{
-		FBlendSample& Sample = SampleData[I];
-
-		if (Sample.Animation == nullptr)
+		if ( SampleData[I].Animation == 0 )
 		{
 			SampleData.RemoveAt(I);
 			--I;
@@ -883,12 +671,12 @@ void UBlendSpaceBase::ValidateSampleData()
 		// otherwise, you have this grid area that doesn't have valid 
 		// sample points. Usually users will put it there
 		// if the value is around border, snap to border
-		SnapToBorder(Sample);
+		SnapToBorder(SampleData[I]);
 
 		// see if same data exists, by same, same values
 		for (int32 J=I+1; J<SampleData.Num(); ++J)
 		{
-			if (IsSameSamplePoint(Sample.SampleValue, SampleData[J].SampleValue))
+			if ( IsSameSamplePoint(SampleData[I].SampleValue, SampleData[J].SampleValue) )
 			{
 				SampleData.RemoveAt(J);
 				--J;
@@ -897,32 +685,12 @@ void UBlendSpaceBase::ValidateSampleData()
 			}
 		}
 
-		if (Sample.Animation->SequenceLength > AnimLength)
+		if (SampleData[I].Animation->SequenceLength > AnimLength)
 		{
 			// @todo : should apply scale? If so, we'll need to apply also when blend
-			AnimLength = Sample.Animation->SequenceLength;
-		}
-
-		if (Sample.Animation->AuthoredSyncMarkers.Num() > 0)
-		{
-			bNoAnimationsHaveMarkers = false;
-			if (BlendSpacePattern.MarkerNames.Num() == 0)
-			{
-				PopulateMarkerNameArray(BlendSpacePattern.MarkerNames, Sample.Animation->AuthoredSyncMarkers);
-			}
-			else
-			{
-				TArray<FName> ThisPattern;
-				PopulateMarkerNameArray(ThisPattern, Sample.Animation->AuthoredSyncMarkers);
-				if (!BlendSpacePattern.DoesPatternMatch(ThisPattern))
-				{
-					bAllMarkerPatternsMatch = false;
-				}
-			}
+			AnimLength = SampleData[I].Animation->SequenceLength;
 		}
 	}
-
-	bAllSequencesHaveMatchingMarkers = bAllMarkerPatternsMatch && !bNoAnimationsHaveMarkers;
 
 	if (bSampleDataChanged)
 	{
@@ -1168,9 +936,6 @@ void UBlendSpaceBase::FillupGridElements(const TArray<FVector> & PointList, cons
 
 void UBlendSpaceBase::GetAnimationPose(TArray<FBlendSampleData>& BlendSampleDataCache, /*out*/ FCompactPose& OutPose, /*out*/ FBlendedCurve& OutCurve)
 {
-	SCOPE_CYCLE_COUNTER(STAT_BlendSpace_GetAnimPose);
-	FScopeCycleCounterUObject BlendSpaceScope(this);
-
 	if(BlendSampleDataCache.Num() == 0)
 	{
 		OutPose.ResetToRefPose();
@@ -1179,13 +944,13 @@ void UBlendSpaceBase::GetAnimationPose(TArray<FBlendSampleData>& BlendSampleData
 
 	const int32 NumPoses = BlendSampleDataCache.Num();
 
-	TArray<FCompactPose, TInlineAllocator<8>> ChildrenPoses;
+	TArray<FCompactPose> ChildrenPoses;
 	ChildrenPoses.AddZeroed(NumPoses);
 
-	TArray<FBlendedCurve, TInlineAllocator<8>> ChildrenCurves;
+	TArray<FBlendedCurve> ChildrenCurves;
 	ChildrenCurves.AddZeroed(NumPoses);
 
-	TArray<float, TInlineAllocator<8>> ChildrenWeights;
+	TArray<float>	ChildrenWeights;
 	ChildrenWeights.AddZeroed(NumPoses);
 
 	for(int32 ChildrenIdx=0; ChildrenIdx<ChildrenPoses.Num(); ++ChildrenIdx)
@@ -1222,29 +987,27 @@ void UBlendSpaceBase::GetAnimationPose(TArray<FBlendSampleData>& BlendSampleData
 		}
 	}
 
-	TFixedSizeArrayView<FCompactPose> ChildrenPosesView(ChildrenPoses);
-
-	if (PerBoneBlend.Num() > 0)
+	if(PerBoneBlend.Num() > 0)
 	{
-		if (IsValidAdditive())
+		if(IsValidAdditive())
 		{
-			if (bRotationBlendInMeshSpace)
+			if(bRotationBlendInMeshSpace)
 			{
-				FAnimationRuntime::BlendPosesTogetherPerBoneInMeshSpace(ChildrenPosesView, ChildrenCurves, this, BlendSampleDataCache, OutPose, OutCurve);
+				FAnimationRuntime::BlendPosesTogetherPerBoneInMeshSpace(ChildrenPoses, ChildrenCurves, this, BlendSampleDataCache, OutPose, OutCurve);
 			}
 			else
 			{
-				FAnimationRuntime::BlendPosesTogetherPerBone(ChildrenPosesView, ChildrenCurves, this, BlendSampleDataCache, OutPose, OutCurve);
+				FAnimationRuntime::BlendPosesTogetherPerBone(ChildrenPoses, ChildrenCurves, this, BlendSampleDataCache, OutPose, OutCurve);
 			}
 		}
 		else
 		{
-			FAnimationRuntime::BlendPosesTogetherPerBone(ChildrenPosesView, ChildrenCurves, this, BlendSampleDataCache, OutPose, OutCurve);
+			FAnimationRuntime::BlendPosesTogetherPerBone(ChildrenPoses, ChildrenCurves, this, BlendSampleDataCache, OutPose, OutCurve);
 		}
 	}
 	else
 	{
-		FAnimationRuntime::BlendPosesTogether(ChildrenPosesView, ChildrenCurves, ChildrenWeights, OutPose, OutCurve);
+		FAnimationRuntime::BlendPosesTogether(ChildrenPoses, ChildrenCurves, ChildrenWeights, OutPose, OutCurve);
 	}
 
 	// Once all the accumulation and blending has been done, normalize rotations.
@@ -1265,7 +1028,7 @@ bool UBlendSpaceBase::GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& A
 		AnimationSequences.AddUnique(PreviewBasePose);
 	}
  
-	return (AnimationSequences.Num() > 0);
+ 	return (AnimationSequences.Num() > 0);
 }
 
 void UBlendSpaceBase::ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap)
@@ -1313,10 +1076,5 @@ void UBlendSpaceBase::PostEditChangeProperty( struct FPropertyChangedEvent& Prop
 	{
 		InitializePerBoneBlend();
 	}
-}
-
-int32 UBlendSpaceBase::GetMarkerUpdateCounter() const
-{ 
-	return MarkerDataUpdateCounter; 
 }
 #endif // WITH_EDITOR

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,10 +11,9 @@ public: \
 		DelegateName##Delegates.Add(Delegate); \
 		return Delegate.GetHandle(); \
 	} \
-	virtual void Clear##DelegateName##Delegate_Handle(FDelegateHandle& Handle) \
+	virtual void Clear##DelegateName##Delegate_Handle(FDelegateHandle Handle) \
 	{ \
 		DelegateName##Delegates.Remove(Handle); \
-		Handle.Reset(); \
 	}
 
 #define DEFINE_ONLINE_DELEGATE(DelegateName) \
@@ -87,12 +86,11 @@ public: \
 		} \
 		return Result; \
 	} \
-	virtual void Clear##DelegateName##Delegate_Handle(int32 LocalUserNum, FDelegateHandle& Handle) \
+	virtual void Clear##DelegateName##Delegate_Handle(int32 LocalUserNum, FDelegateHandle Handle) \
 	{ \
 		if (LocalUserNum >= 0 && LocalUserNum < MaxPlayers) \
 		{ \
 			DelegateName##Delegates[LocalUserNum].Remove(Handle); \
-			Handle.Reset(); \
 		} \
 	}
 

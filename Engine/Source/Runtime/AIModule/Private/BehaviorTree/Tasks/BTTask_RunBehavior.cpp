@@ -1,26 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Tasks/BTTask_RunBehavior.h"
 #include "BehaviorTree/BehaviorTreeManager.h"
-
-// Each injected decorator must be instanced before using in parent tree, because it's not part of it
-// This requires special memory handling for decorator which were not meant to be instanced
-// and need their memory block for storage.
-//
-// Memory allocated for BTTask_Behavior consist of header and N pairs for each injected decorator:
-//
-// ---- task memory start, address stored in Task.MemoryOffset
-// - FBTInstancedNodeMemory: task's header with index of first instanced decorator
-// ---- injected decorators memory start
-// - FBTInstancedNodeMemory: index of injected decorator 1 (special node memory)
-// - memory_required_by_decorator: memory block requested by decorator1, address stored in Decorator1.MemoryOffset, 
-// - (remaining pairs)
-//
-//
-// Each decorator must provide required memory size with instance index header.
-// Decorator memory will be accessible in continuous block, MemoryOffset points at data inside task's memory block
-// Decorators which should be instanced will access their own object through index in special node memory headers
 
 UBTTask_RunBehavior::UBTTask_RunBehavior(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -47,11 +29,8 @@ uint16 UBTTask_RunBehavior::GetInstanceMemorySize() const
 	int32 MemorySize = 0;
 	if (BehaviorAsset)
 	{
-		// all decorators need to return memory requirements as instanced nodes (include header sizes)
-
 		TArray<uint16> MemoryOffsets;
-		const bool bForceInstancing = true;
-		UBehaviorTreeManager::InitializeMemoryHelper(BehaviorAsset->RootDecorators, MemoryOffsets, MemorySize, bForceInstancing);
+		UBehaviorTreeManager::InitializeMemoryHelper(BehaviorAsset->RootDecorators, MemoryOffsets, MemorySize);
 	}
 
 	// memory block header: index of first node instance in owner's array
@@ -71,9 +50,7 @@ void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent& OwnerComp, uint8* 
 	FBTInstancedNodeMemory* NodeMemoryHeader = (FBTInstancedNodeMemory*)NodeMemory;
 	int32 FirstNodeIdx = NodeMemoryHeader->NodeIdx;
 
-	const uint16 HeaderSize = sizeof(FBTInstancedNodeMemory);
-	const uint16 InjectedMemoryOffset = GetMemoryOffset() + HeaderSize;
-	uint8* InjectedMemoryBase = NodeMemory + HeaderSize;
+	uint8* InjectedMemoryBase = NodeMemory + sizeof(FBTInstancedNodeMemory);
 
 	// initialize on first access
 	if (!OwnerComp.NodeInstances.IsValidIndex(InstancedIndex))
@@ -81,8 +58,13 @@ void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent& OwnerComp, uint8* 
 		TArray<uint16> MemoryOffsets;
 		int32 MemorySize = 0;
 
-		const bool bForceInstancing = true;
-		UBehaviorTreeManager::InitializeMemoryHelper(BehaviorAsset->RootDecorators, MemoryOffsets, MemorySize, bForceInstancing);
+		UBehaviorTreeManager::InitializeMemoryHelper(BehaviorAsset->RootDecorators, MemoryOffsets, MemorySize);
+		const int32 AlignedInstanceMemorySize = UBehaviorTreeManager::GetAlignedDataSize(sizeof(FBTInstancedNodeMemory));
+
+		// prepare dummy memory block for nodes that won't require instancing and offset it by special data size
+		// InitializeInSubtree will read it through GetSpecialNodeMemory function, which moves pointer back 
+		FBTInstancedNodeMemory DummyMemory;
+		uint8* RawDummyMemory = ((uint8*)&DummyMemory) + AlignedInstanceMemorySize;
 
 		// newly created nodes = full init
 		EBTMemoryInit::Type InitType = EBTMemoryInit::Initialize;
@@ -103,7 +85,7 @@ void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent& OwnerComp, uint8* 
 			else
 			{
 				DecoratorOb->ForceInstancing(true);
-				DecoratorOb->InitializeInSubtree(OwnerComp, InjectedMemoryBase + MemoryOffsets[Idx], InstancedIndex, InitType);
+				DecoratorOb->InitializeInSubtree(OwnerComp, RawDummyMemory, InstancedIndex, InitType);
 				DecoratorOb->ForceInstancing(false);
 
 				UBTDecorator* InstancedOb = Cast<UBTDecorator>(OwnerComp.NodeInstances.Last());
@@ -116,7 +98,7 @@ void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent& OwnerComp, uint8* 
 		for (int32 Idx = 0; Idx < NumInjectedDecorators; Idx++)
 		{
 			UBTDecorator* InstancedOb = Cast<UBTDecorator>(OwnerComp.NodeInstances[FirstNodeIdx + Idx]);
-			InstancedOb->InitializeNode(GetParentNode(), NewExecutionIdx, InjectedMemoryOffset + MemoryOffsets[Idx], GetTreeDepth() - 1);
+			InstancedOb->InitializeNode(GetParentNode(), NewExecutionIdx, GetMemoryOffset() + MemoryOffsets[Idx], GetTreeDepth() - 1);
 			InstancedOb->MarkInjectedNode();
 
 			NewExecutionIdx++;
@@ -140,7 +122,7 @@ void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent& OwnerComp, uint8* 
 			}
 			else
 			{
-				uint8* InjectedNodeMemory = NodeMemory + (InstancedOb->GetMemoryOffset() - GetMemoryOffset());
+				uint8* InjectedNodeMemory = InjectedMemoryBase + (InstancedOb->GetMemoryOffset() - GetMemoryOffset());
 				InstancedOb->InitializeMemory(OwnerComp, InjectedNodeMemory, InitType);
 			}
 		}
@@ -265,6 +247,7 @@ void UBTTask_RunBehavior::CleanupMemory(UBehaviorTreeComponent& OwnerComp, uint8
 	if (GetParentNode() && BehaviorAsset)
 	{
 		FBTInstancedNodeMemory* NodeMemoryHeader = (FBTInstancedNodeMemory*)NodeMemory;
+		uint8* InjectedMemoryBase = NodeMemory + sizeof(FBTInstancedNodeMemory);
 
 		const int32 NumInjectedDecorators = BehaviorAsset->RootDecorators.Num();
 		for (int32 Idx = 0; Idx < NumInjectedDecorators; Idx++)
@@ -275,7 +258,7 @@ void UBTTask_RunBehavior::CleanupMemory(UBehaviorTreeComponent& OwnerComp, uint8
 
 			if (InstancedOb)
 			{
-				uint8* InjectedNodeMemory = NodeMemory + (InstancedOb->GetMemoryOffset() - GetMemoryOffset());
+				uint8* InjectedNodeMemory = InjectedMemoryBase + (InstancedOb->GetMemoryOffset() - GetMemoryOffset());
 				InstancedOb->CleanupMemory(OwnerComp, InjectedNodeMemory, CleanupType);
 			}
 		}

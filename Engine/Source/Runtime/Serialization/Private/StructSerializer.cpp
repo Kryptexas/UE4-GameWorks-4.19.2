@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SerializationPrivatePCH.h"
 #include "IStructSerializerBackend.h"
@@ -11,6 +11,25 @@
 namespace StructSerializer
 {
 	/**
+	 * Structure for the write state stack.
+	 */
+	struct FWriteState
+	{
+		/** Holds a pointer to the property's data. */
+		const void* Data;
+
+		/** Holds a flag indicating whether the property has been processed. */
+		bool HasBeenProcessed;
+
+		/** Holds the property's meta data. */
+		UProperty* Property;
+
+		/** Holds a pointer to the UStruct describing the data. */
+		UStruct* TypeInfo;
+	};
+
+
+	/**
 	 * Gets the value from the given property.
 	 *
 	 * @param PropertyType The type name of the property.
@@ -19,16 +38,16 @@ namespace StructSerializer
 	 * @return A pointer to the property's value, or nullptr if it couldn't be found.
 	 */
 	template<typename UPropertyType, typename PropertyType>
-	PropertyType* GetPropertyValue( const FStructSerializerState& State, UProperty* Property )
+	PropertyType* GetPropertyValue( const FWriteState& State, UProperty* Property )
 	{
 		PropertyType* ValuePtr = nullptr;
-		UArrayProperty* ArrayProperty = Cast<UArrayProperty>(State.ValueProperty);
+		UArrayProperty* ArrayProperty = Cast<UArrayProperty>(State.Property);
 
 		if (ArrayProperty)
 		{
 			check(ArrayProperty->Inner == Property);
 
-			FScriptArrayHelper ArrayHelper(ArrayProperty, ArrayProperty->template ContainerPtrToValuePtr<void>(State.ValueData));
+			FScriptArrayHelper ArrayHelper(ArrayProperty, ArrayProperty->template ContainerPtrToValuePtr<void>(State.Data));
 			int32 Index = ArrayHelper.AddValue();
 		
 			ValuePtr = (PropertyType*)ArrayHelper.GetRawPtr( Index );
@@ -38,7 +57,7 @@ namespace StructSerializer
 			UPropertyType* TypedProperty = Cast<UPropertyType>(Property);
 			check(TypedProperty != nullptr);
 
-			ValuePtr = TypedProperty->template ContainerPtrToValuePtr<PropertyType>(State.ValueData);
+			ValuePtr = TypedProperty->template ContainerPtrToValuePtr<PropertyType>(State.Data);
 		}
 
 		return ValuePtr;
@@ -56,17 +75,14 @@ void FStructSerializer::Serialize( const void* Struct, UStruct& TypeInfo, IStruc
 	check(Struct != nullptr);
 
 	// initialize serialization
-	TArray<FStructSerializerState> StateStack;
+	TArray<FWriteState> StateStack;
 	{
-		FStructSerializerState NewState;
-		{
-			NewState.HasBeenProcessed = false;
-			NewState.KeyData = nullptr;
-			NewState.KeyProperty = nullptr;
-			NewState.ValueData = Struct;
-			NewState.ValueProperty = nullptr;
-			NewState.ValueType = &TypeInfo;
-		}
+		FWriteState NewState;
+
+		NewState.Data = Struct;
+		NewState.Property = nullptr;
+		NewState.TypeInfo = &TypeInfo;
+		NewState.HasBeenProcessed = false;
 
 		StateStack.Push(NewState);
 	}
@@ -74,70 +90,65 @@ void FStructSerializer::Serialize( const void* Struct, UStruct& TypeInfo, IStruc
 	// process state stack
 	while (StateStack.Num() > 0)
 	{
-		FStructSerializerState CurrentState = StateStack.Pop(/*bAllowShrinking=*/ false);
+		FWriteState CurrentState = StateStack.Pop(/*bAllowShrinking=*/ false);
 
 		// structures
-		if ((CurrentState.ValueProperty == nullptr) || (CurrentState.ValueType == UStructProperty::StaticClass()))
+		if ((CurrentState.Property == nullptr) || (CurrentState.TypeInfo == UStructProperty::StaticClass()))
 		{
 			if (!CurrentState.HasBeenProcessed)
 			{
-				const void* ValueData = CurrentState.ValueData;
+				const void* NewData = CurrentState.Data;
 
 				// write object start
-				if (CurrentState.ValueProperty != nullptr)
+				if (CurrentState.Property == nullptr)
 				{
-					UObject* Outer = CurrentState.ValueProperty->GetOuter();
+					Backend.BeginStructure(CurrentState.TypeInfo);
+				}
+				else
+				{
+					UObject* Outer = CurrentState.Property->GetOuter();
 
 					if ((Outer == nullptr) || (Outer->GetClass() != UArrayProperty::StaticClass()))
 					{
-						ValueData = CurrentState.ValueProperty->ContainerPtrToValuePtr<void>(CurrentState.ValueData);
+						NewData = CurrentState.Property->ContainerPtrToValuePtr<void>(CurrentState.Data);
 					}
-				}
 
-				Backend.BeginStructure(CurrentState);
+					Backend.BeginStructure(CurrentState.Property);
+				}
 
 				CurrentState.HasBeenProcessed = true;
 				StateStack.Push(CurrentState);
 
 				// serialize fields
-				if (CurrentState.ValueProperty != nullptr)
+				if (CurrentState.Property != nullptr)
 				{
-					UStructProperty* StructProperty = Cast<UStructProperty>(CurrentState.ValueProperty);
+					UStructProperty* StructProperty = Cast<UStructProperty>(CurrentState.Property);
 
 					if (StructProperty != nullptr)
 					{
-						CurrentState.ValueType = StructProperty->Struct;
+						CurrentState.TypeInfo = StructProperty->Struct;
 					}
 					else
 					{
-						UObjectPropertyBase* ObjectProperty = Cast<UObjectPropertyBase>(CurrentState.ValueProperty);
+						UObjectPropertyBase* ObjectProperty = Cast<UObjectPropertyBase>(CurrentState.Property);
 
 						if (ObjectProperty != nullptr)
 						{
-							CurrentState.ValueType = ObjectProperty->PropertyClass;
+							CurrentState.TypeInfo = ObjectProperty->PropertyClass;
 						}
 					}
 				}
 
-				TArray<FStructSerializerState> NewStates;
+				TArray<FWriteState> NewStates;
 
-				for (TFieldIterator<UProperty> It(CurrentState.ValueType, EFieldIteratorFlags::IncludeSuper); It; ++It)
+				for (TFieldIterator<UProperty> It(CurrentState.TypeInfo, EFieldIteratorFlags::IncludeSuper); It; ++It)
 				{
-					// Skip property if the filter function is set and rejects it.
-					if (Policies.PropertyFilter && !Policies.PropertyFilter(*It, CurrentState.ValueProperty))
-					{
-						continue;
-					}
+					FWriteState NewState;
 
-					FStructSerializerState NewState;
-					{
-						NewState.HasBeenProcessed = false;
-						NewState.KeyData = nullptr;
-						NewState.KeyProperty = nullptr;
-						NewState.ValueData = ValueData;
-						NewState.ValueProperty = *It;
-						NewState.ValueType = It->GetClass();
-					}
+					NewState.Data = NewData;
+					NewState.Property = *It;
+					NewState.TypeInfo = It->GetClass();
+					NewState.HasBeenProcessed = false;
 
 					NewStates.Add(NewState);
 				}
@@ -150,101 +161,60 @@ void FStructSerializer::Serialize( const void* Struct, UStruct& TypeInfo, IStruc
 			}
 			else
 			{
-				Backend.EndStructure(CurrentState);
+				Backend.EndStructure();
 			}
 		}
 
 		// dynamic arrays
-		else if (CurrentState.ValueType == UArrayProperty::StaticClass())
+		else if (CurrentState.TypeInfo == UArrayProperty::StaticClass())
 		{
 			if (!CurrentState.HasBeenProcessed)
 			{
-				Backend.BeginArray(CurrentState);
+				Backend.BeginArray(CurrentState.Property);
 
 				CurrentState.HasBeenProcessed = true;
 				StateStack.Push(CurrentState);
 
-				UArrayProperty* ArrayProperty = Cast<UArrayProperty>(CurrentState.ValueProperty);
-				FScriptArrayHelper ArrayHelper(ArrayProperty, ArrayProperty->ContainerPtrToValuePtr<void>(CurrentState.ValueData));
-				UProperty* ValueProperty = ArrayProperty->Inner;
+				UArrayProperty* ArrayProperty = Cast<UArrayProperty>(CurrentState.Property);
+				FScriptArrayHelper ArrayHelper(ArrayProperty, ArrayProperty->ContainerPtrToValuePtr<void>(CurrentState.Data));
+				UProperty* Inner = ArrayProperty->Inner;
 
 				// push elements on stack (in reverse order)
 				for (int Index = ArrayHelper.Num() - 1; Index >= 0; --Index)
 				{
-					FStructSerializerState NewState;
-					{
-						NewState.HasBeenProcessed = false;
-						NewState.KeyData = nullptr;
-						NewState.KeyProperty = nullptr;
-						NewState.ValueData = ArrayHelper.GetRawPtr(Index);
-						NewState.ValueProperty = ValueProperty;
-						NewState.ValueType = ValueProperty->GetClass();
-					}
+					FWriteState NewState;
+
+					NewState.Data = ArrayHelper.GetRawPtr(Index);
+					NewState.Property = Inner;
+					NewState.TypeInfo = Inner->GetClass();
+					NewState.HasBeenProcessed = false;
 
 					StateStack.Push(NewState);
 				}
 			}
 			else
 			{
-				Backend.EndArray(CurrentState);
-			}
-		}
-
-		// maps
-		else if (CurrentState.ValueType == UMapProperty::StaticClass())
-		{
-			if (!CurrentState.HasBeenProcessed)
-			{
-				Backend.BeginStructure(CurrentState);
-
-				CurrentState.HasBeenProcessed = true;
-				StateStack.Push(CurrentState);
-
-				UMapProperty* MapProperty = Cast<UMapProperty>(CurrentState.ValueProperty);
-				FScriptMapHelper MapHelper(MapProperty, MapProperty->ContainerPtrToValuePtr<void>(CurrentState.ValueData));
-				UProperty* ValueProperty = MapProperty->ValueProp;
-				
-				// push key-value pairs on stack (in reverse order)
-				for (int Index = MapHelper.Num() - 1; Index >= 0; --Index)
-				{
-					uint8* PairPtr = MapHelper.GetPairPtr(Index);
-
-					FStructSerializerState NewState;
-					{
-						NewState.HasBeenProcessed = false;
-						NewState.KeyData = PairPtr + MapProperty->MapLayout.KeyOffset;
-						NewState.KeyProperty = MapProperty->KeyProp;
-						NewState.ValueData = PairPtr;
-						NewState.ValueProperty = ValueProperty;
-						NewState.ValueType = ValueProperty->GetClass();
-					}
-
-					StateStack.Push(NewState);
-				}
-			}
-			else
-			{
-				Backend.EndStructure(CurrentState);
+				Backend.EndArray(CurrentState.Property);
 			}
 		}
 
 		// static arrays
-		else if (CurrentState.ValueProperty->ArrayDim > 1)
+		else if (CurrentState.Property->ArrayDim > 1)
 		{
-			Backend.BeginArray(CurrentState);
+			Backend.BeginArray(CurrentState.Property);
 
-			for (int32 ArrayIndex = 0; ArrayIndex < CurrentState.ValueProperty->ArrayDim; ++ArrayIndex)
+			for (int32 ArrayIndex = 0; ArrayIndex < CurrentState.Property->ArrayDim; ++ArrayIndex)
 			{
-				Backend.WriteProperty(CurrentState, ArrayIndex);
+				Backend.WriteProperty(CurrentState.Property, CurrentState.Data, CurrentState.TypeInfo, ArrayIndex);
 			}
 
-			Backend.EndArray(CurrentState);
+			Backend.EndArray(CurrentState.Property);
 		}
 
 		// all other properties
 		else
 		{
-			Backend.WriteProperty(CurrentState);
+			Backend.WriteProperty(CurrentState.Property, CurrentState.Data, CurrentState.TypeInfo);
 		}
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "HotReloadPrivatePCH.h"
 #include "HotReloadClassReinstancer.h"
@@ -169,16 +169,7 @@ void FHotReloadClassReinstancer::SerializeCDOProperties(UObject* InObject, FHotR
 		virtual FArchive& operator<<(FStringAssetReference& Value) override
 		{
 			FArchive& Ar = *this;
-
-			FString Path = Value.ToString();
-
-			Ar << Path;
-
-			if (IsLoading())
-			{
-				Value.SetPath(MoveTemp(Path));
-			}
-
+			Ar << Value.AssetLongPathname;
 			return Ar;
 		}
 		/** Archive name, for debugging */
@@ -200,7 +191,7 @@ void FHotReloadClassReinstancer::ReconstructClassDefaultObject(UClass* InClass, 
 	}
 
 	// Re-create
-	InClass->ClassDefaultObject = StaticAllocateObject(InClass, InOuter, InName, InFlags, EInternalObjectFlags::None, false);
+	InClass->ClassDefaultObject = StaticAllocateObject(InClass, InOuter, InName, InFlags, false);
 	check(InClass->ClassDefaultObject);
 	const bool bShouldInitilizeProperties = false;
 	const bool bCopyTransientsFromClassDefaults = false;
@@ -404,16 +395,7 @@ void FHotReloadClassReinstancer::UpdateDefaultProperties()
 		virtual FArchive& operator<<(FStringAssetReference& Value) override
 		{
 			FArchive& Ar = *this;
-
-			FString Path = Value.ToString();
-
-			Ar << Path;
-
-			if (IsLoading())
-			{
-				Value.SetPath(MoveTemp(Path));
-			}
-
+			Ar << Value.AssetLongPathname;
 			return Ar;
 		}
 	};
@@ -522,9 +504,7 @@ void FHotReloadClassReinstancer::ReinstanceObjectsAndUpdateDefaults()
 void FHotReloadClassReinstancer::AddReferencedObjects(FReferenceCollector& Collector)
 {
 	FBlueprintCompileReinstancer::AddReferencedObjects(Collector);
-	Collector.AllowEliminatingReferences(false);
 	Collector.AddReferencedObject(CopyOfPreviousCDO);
-	Collector.AllowEliminatingReferences(true);
 }
 
 void FHotReloadClassReinstancer::EnlistDependentBlueprintToRecompile(UBlueprint* BP, bool bBytecodeOnly)

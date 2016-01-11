@@ -1,8 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "AnimGraphNode_Base.h"
-#include "AnimNodes/AnimNode_TwoWayBlend.h"
+#include "Animation/AnimNode_TwoWayBlend.h"
 #include "AnimGraphNode_TwoWayBlend.generated.h"
 
 UCLASS(MinimalAPI)
@@ -13,13 +13,13 @@ class UAnimGraphNode_TwoWayBlend : public UAnimGraphNode_Base
 	UPROPERTY(EditAnywhere, Category=Settings)
 	FAnimationNode_TwoWayBlend BlendNode;
 
-	//~ Begin UEdGraphNode Interface.
+	// Begin UEdGraphNode interface.
 	virtual FLinearColor GetNodeTitleColor() const override;
 	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	//~ End UEdGraphNode Interface.
+	// End UEdGraphNode interface.
 
-	//~ Begin UAnimGraphNode_Base Interface
+	// UAnimGraphNode_Base interface
 	virtual FString GetNodeCategory() const override;
-	//~ End UAnimGraphNode_Base Interface
+	// End of UAnimGraphNode_Base interface
 };

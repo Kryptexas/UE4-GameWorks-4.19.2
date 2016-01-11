@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
 #include "PropertyHelper.h"
@@ -33,6 +33,7 @@ namespace UE4MapProperty_Private
 			}
 
 			++Index;
+			--Num;
 		}
 
 		return false;
@@ -451,12 +452,6 @@ FString UMapProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
 
 void UMapProperty::ExportTextItem(FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const
 {
-	if (0 != (PortFlags & PPF_ExportCpp))
-	{
-		ValueStr += TEXT("{}");
-		return;
-	}
-
 	checkSlow(KeyProp);
 	checkSlow(ValueProp);
 
@@ -464,7 +459,6 @@ void UMapProperty::ExportTextItem(FString& ValueStr, const void* PropertyValue, 
 
 	if (MapHelper.Num() == 0)
 	{
-		ValueStr += TEXT("()");
 		return;
 	}
 

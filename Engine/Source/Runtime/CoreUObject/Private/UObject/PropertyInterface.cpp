@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
 #include "LinkerPlaceholderClass.h"
@@ -54,15 +54,12 @@ FString UInterfaceProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint
 	if ( ExtendedTypeText != NULL )
 	{
 		UClass* ExportClass = InterfaceClass;
-		if (0 == (CPPF_BlueprintCppBackend & CPPExportFlags))
+		while ( ExportClass && !ExportClass->HasAnyClassFlags(CLASS_Native) )
 		{
-			while (ExportClass && !ExportClass->HasAnyClassFlags(CLASS_Native))
-			{
-				ExportClass = ExportClass->GetSuperClass();
-			}
+			ExportClass = ExportClass->GetSuperClass();
 		}
 		check(ExportClass);
-		check(ExportClass->HasAnyClassFlags(CLASS_Interface) || 0 != (CPPF_BlueprintCppBackend & CPPExportFlags));
+		check(ExportClass->HasAnyClassFlags(CLASS_Interface));
 
 		*ExtendedTypeText = FString::Printf(TEXT("<I%s>"), *ExportClass->GetName());
 	}
@@ -133,18 +130,6 @@ void UInterfaceProperty::ExportTextItem( FString& ValueStr, const void* Property
 	FScriptInterface* InterfaceValue = (FScriptInterface*)PropertyValue;
 
 	UObject* Temp = InterfaceValue->GetObject();
-
-	if (0 != (PortFlags & PPF_ExportCpp))
-	{
-		const FString GetObjectStr = Temp
-			? FString::Printf(TEXT("LoadObject<UObject>(nullptr, TEXT(\"%s\"))"), *Temp->GetPathName().ReplaceCharWithEscapedChar())
-			: TEXT("");
-		ValueStr += FString::Printf(TEXT("TScriptInterface<I%s>(%s)")
-			, (InterfaceClass ? *InterfaceClass->GetName() : TEXT("Interface"))
-			, *GetObjectStr);
-		return;
-	}
-
 	if( Temp != NULL )
 	{
 		bool bExportFullyQualified = true;

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraEditorPrivatePCH.h"
 #include "SNiagaraEffectEditorWidget.h"
@@ -17,13 +17,17 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SNiagaraEffectEditorWidget::Construct(const FArguments& InArgs)
 {
 	EffectObj = InArgs._EffectObj;
-	EffectInstance = InArgs._EffectInstance;
+	if (InArgs._EffectInstance)
+	{
+		EffectInstance = InArgs._EffectInstance;
+	}
+	else
+	{
+		EffectInstance = new FNiagaraEffectInstance(EffectObj);
+	}
+
 	EffectEditor = InArgs._EffectEditor;
 	bForDev = InArgs._bForDev;
-
-	check(EffectObj);
-	check(EffectInstance);
-	check(EffectEditor);
 	
 	if (bForDev)
 	{
@@ -132,99 +136,97 @@ void SEmitterWidgetDev::BuildContents()
 	//Register details customization.	
 	if (UNiagaraEmitterProperties* PinnedProps = Emitter->GetProperties().Get())
 	{
-		if (!Details.IsValid())
-		{
-			FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
-			FDetailsViewArgs DetailsViewArgs(false, false, true, FDetailsViewArgs::HideNameArea, true, this);
-			Details = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
-			FOnGetDetailCustomizationInstance LayoutEmitterDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FNiagaraEmitterPropertiesDetails::MakeInstance, Emitter->GetProperties());
-			Details->RegisterInstancedCustomPropertyLayout(UNiagaraEmitterProperties::StaticClass(), LayoutEmitterDetails);
+		FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		FDetailsViewArgs DetailsViewArgs(false, false, true, FDetailsViewArgs::HideNameArea, true, this);
+		Details = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
+		FOnGetDetailCustomizationInstance LayoutEmitterDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FNiagaraEmitterPropertiesDetails::MakeInstance, Emitter->GetProperties());
+		Details->RegisterInstancedCustomPropertyLayout(UNiagaraEmitterProperties::StaticClass(), LayoutEmitterDetails);
 
-			ChildSlot
-				.Padding(4)
+		Details->SetObject(PinnedProps);
+
+		ChildSlot
+			.Padding(4)
+			[
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(0)
 				[
-					SNew(SVerticalBox)
-					+ SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(0)
+					NGED_SECTION_BORDER
 					[
-						NGED_SECTION_BORDER
+						SNew(SVerticalBox)
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						.HAlign(HAlign_Fill)
 						[
-							SNew(SVerticalBox)
-							+ SVerticalBox::Slot()
-							.AutoHeight()
-							.HAlign(HAlign_Fill)
-							[
-								// name and status line
-								SNew(SHorizontalBox)
-								+ SHorizontalBox::Slot()
-								.HAlign(HAlign_Left)
-								.AutoWidth()
-								.Padding(2)
-								[
-									SNew(SCheckBox)
-									.OnCheckStateChanged(this, &SEmitterWidgetBase::OnEmitterEnabledChanged)
-									.IsChecked(this, &SEmitterWidgetBase::IsEmitterEnabled)
-									.ToolTipText(FText::FromString("Toggles whether this emitter is enabled. Disabled emitters don't simulate or render."))
-								]
-								+ SHorizontalBox::Slot()
-									.AutoWidth()
-									.Padding(2)
-									.HAlign(HAlign_Left)
-									[
-										SNew(SEditableText).Text(this, &SEmitterWidgetBase::GetEmitterName)
-										.MinDesiredWidth(200)
-										.Font(FEditorStyle::GetFontStyle("ContentBrowser.AssetListViewNameFontDirty"))
-										.OnTextChanged(this, &SEmitterWidgetBase::OnEmitterNameChanged)
-									]
-								+ SHorizontalBox::Slot()
-									.HAlign(HAlign_Right)
-									.AutoWidth()
-									[
-										SNew(SButton)
-										.VAlign(VAlign_Center)
-										.HAlign(HAlign_Right)
-										.Text(LOCTEXT("DeleteEmitter", "Delete"))
-										.ToolTipText(LOCTEXT("DeleteEmitter_Tooltip", "Deletes this emitter from the effect."))
-										.OnClicked(EffectEditor, &FNiagaraEffectEditor::OnDeleteEmitterClicked, Emitter)
-									]
-								+ SHorizontalBox::Slot()
-									.HAlign(HAlign_Right)
-									.AutoWidth()
-									[
-										SNew(SButton)
-										.VAlign(VAlign_Center)
-										.HAlign(HAlign_Right)
-										.Text(LOCTEXT("DuplicateEmitter", "Duplicate"))
-										.ToolTipText(LOCTEXT("DuplicateEmitter_Tooltip", "Duplicate this emitter."))
-										.OnClicked(EffectEditor, &FNiagaraEffectEditor::OnDuplicateEmitterClicked, Emitter)
-									]
-							]
-							+ SVerticalBox::Slot()
-								.AutoHeight()
-								.HAlign(HAlign_Fill)
-								.Padding(2)
-								[
-									SNew(STextBlock).Text(this, &SEmitterWidgetBase::GetStatsText)
-								]
-						]
-					]
-					+ SVerticalBox::Slot()
-						.VAlign(VAlign_Fill)
-						.Padding(0)
-						[
+							// name and status line
 							SNew(SHorizontalBox)
 							+ SHorizontalBox::Slot()
-							.MaxWidth(400)
+							.HAlign(HAlign_Left)
+							.AutoWidth()
+							.Padding(2)
 							[
-								Details.ToSharedRef()
+								SNew(SCheckBox)
+								.OnCheckStateChanged(this, &SEmitterWidgetBase::OnEmitterEnabledChanged)
+								.IsChecked(this, &SEmitterWidgetBase::IsEmitterEnabled)
+								.ToolTipText(FText::FromString("Toggles whether this emitter is enabled. Disabled emitters don't simulate or render."))
 							]
+							+ SHorizontalBox::Slot()
+								.AutoWidth()
+								.Padding(2)
+								.HAlign(HAlign_Left)
+								[
+									SNew(SEditableText).Text(this, &SEmitterWidgetBase::GetEmitterName)
+									.MinDesiredWidth(200)
+									.Font(FEditorStyle::GetFontStyle("ContentBrowser.AssetListViewNameFontDirty"))
+									.OnTextChanged(this, &SEmitterWidgetBase::OnEmitterNameChanged)
+								]
+							+ SHorizontalBox::Slot()
+								.HAlign(HAlign_Right)
+								.AutoWidth()
+								[
+									SNew(SButton)
+									.VAlign(VAlign_Center)
+									.HAlign(HAlign_Right)
+									.Text(LOCTEXT("DeleteEmitter", "Delete"))
+									.ToolTipText(LOCTEXT("DeleteEmitter_Tooltip", "Deletes this emitter from the effect."))
+									.OnClicked(EffectEditor, &FNiagaraEffectEditor::OnDeleteEmitterClicked, Emitter)
+								]
+							+ SHorizontalBox::Slot()
+								.HAlign(HAlign_Right)
+								.AutoWidth()
+								[
+									SNew(SButton)
+									.VAlign(VAlign_Center)
+									.HAlign(HAlign_Right)
+									.Text(LOCTEXT("DuplicateEmitter", "Duplicate"))
+									.ToolTipText(LOCTEXT("DuplicateEmitter_Tooltip", "Duplicate this emitter."))
+									.OnClicked(EffectEditor, &FNiagaraEffectEditor::OnDuplicateEmitterClicked, Emitter)
+								]
 						]
-				];
-		}
-
-		Details->SetObject(PinnedProps, true);
+						+ SVerticalBox::Slot()
+							.AutoHeight()
+							.HAlign(HAlign_Fill)
+							.Padding(2)
+							[
+								SNew(STextBlock).Text(this, &SEmitterWidgetBase::GetStatsText)
+							]
+					]
+				]
+				+ SVerticalBox::Slot()
+					.VAlign(VAlign_Fill)
+					.Padding(0)
+					[
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()						
+						.MaxWidth(400)
+						[
+							Details.ToSharedRef()
+						]
+					]
+			];
 	}
+
 }
 
 void SEmitterWidgetDev::NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged)
@@ -234,11 +236,12 @@ void SEmitterWidgetDev::NotifyPostChange(const FPropertyChangedEvent& PropertyCh
 	{
 		Emitter->GetProperties()->Init();
 
+		ChildSlot.DetachWidget();
 		BuildContents();
 	}
 
-	//Always refresh the emitter on a property change.
-	Emitter->GetParentEffectInstance()->ReInit();
+	//Always refresh the emitter on a propety change.
+	Emitter->Init();
 }
 
 void SEmitterWidget::Construct(const FArguments& InArgs)
@@ -415,7 +418,7 @@ void SEmitterWidget::Construct(const FArguments& InArgs)
 										.BodyContent()
 										[
 											SAssignNew(UpdateScriptConstantList, SListView<TSharedPtr<EditorExposedVectorConstant>>)
-											.ItemHeight(20).ListItemsSource(EditorExposedConstants).OnGenerateRow(this, &SEmitterWidget::OnGenerateUpdateConstantListRow)
+											.ItemHeight(20).ListItemsSource(EditorExposedConstants).OnGenerateRow(this, &SEmitterWidget::OnGenerateConstantListRow)
 											.SelectionMode(ESelectionMode::None)
 										]
 									]
@@ -429,7 +432,7 @@ void SEmitterWidget::Construct(const FArguments& InArgs)
 											.BodyContent()
 											[
 												SNew(SListView<TSharedPtr<EditorExposedVectorCurveConstant>>)
-												.ItemHeight(20).ListItemsSource(EditorExposedCurveConstants).OnGenerateRow(this, &SEmitterWidget::OnGenerateUpdateCurveConstantListRow)
+												.ItemHeight(20).ListItemsSource(EditorExposedCurveConstants).OnGenerateRow(this, &SEmitterWidget::OnGenerateCurveConstantListRow)
 												.SelectionMode(ESelectionMode::None)
 											]
 										]
@@ -479,7 +482,7 @@ void SEmitterWidget::Construct(const FArguments& InArgs)
 											.BodyContent()
 											[
 												SAssignNew(SpawnScriptConstantList, SListView<TSharedPtr<EditorExposedVectorConstant>>)
-												.ItemHeight(20).ListItemsSource(EditorExposedSpawnConstants).OnGenerateRow(this, &SEmitterWidget::OnGenerateSpawnConstantListRow)
+												.ItemHeight(20).ListItemsSource(EditorExposedSpawnConstants).OnGenerateRow(this, &SEmitterWidget::OnGenerateConstantListRow)
 												.SelectionMode(ESelectionMode::None)
 											]
 										]
@@ -672,12 +675,8 @@ void SEmitterWidget::OnRenderModuleChanged(TSharedPtr<FString> ModName, ESelectI
 		InEmitter->GetProperties()->RenderModuleType = InType;
 		InEffect->RenderModuleupdate();
 	});
-	FlushRenderingCommands();
-
-	UMaterial *Material = UMaterial::GetDefaultMaterial(MD_Surface);
-	Emitter->GetEffectRenderer()->SetMaterial(Material, EffectInstance->GetComponent()->GetWorld()->FeatureLevel);
-
 	TComponentReregisterContext<UNiagaraComponent> ComponentReregisterContext;
+
 	UObject *Props = Emitter->GetProperties()->RendererProperties;
 	RendererPropertiesView->SetObject(Props);
 }
@@ -706,7 +705,7 @@ void SEmitterWidget::OnUpdateScriptSelectedFromPicker(UObject *Asset)
 				.BodyContent()
 				[
 					SAssignNew(UpdateScriptConstantList, SListView<TSharedPtr<EditorExposedVectorConstant>>)
-					.ItemHeight(20).ListItemsSource(&CurUpdateScript->Source->ExposedVectorConstants).OnGenerateRow(this, &SEmitterWidget::OnGenerateUpdateConstantListRow)
+					.ItemHeight(20).ListItemsSource(&CurUpdateScript->Source->ExposedVectorConstants).OnGenerateRow(this, &SEmitterWidget::OnGenerateConstantListRow)
 				]
 			];
 	}
@@ -734,7 +733,7 @@ void SEmitterWidget::OnSpawnScriptSelectedFromPicker(UObject *Asset)
 				.BodyContent()
 				[
 					SAssignNew(SpawnScriptConstantList, SListView<TSharedPtr<EditorExposedVectorConstant>>)
-					.ItemHeight(20).ListItemsSource(&CurSpawnScript->Source->ExposedVectorConstants).OnGenerateRow(this, &SEmitterWidget::OnGenerateSpawnConstantListRow)
+					.ItemHeight(20).ListItemsSource(&CurSpawnScript->Source->ExposedVectorConstants).OnGenerateRow(this, &SEmitterWidget::OnGenerateConstantListRow)
 				]
 			];
 	}

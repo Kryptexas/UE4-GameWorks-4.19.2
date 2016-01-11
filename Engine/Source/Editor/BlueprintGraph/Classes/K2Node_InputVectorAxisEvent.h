@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "K2Node_InputAxisKeyEvent.h"
@@ -9,14 +9,14 @@ class UK2Node_InputVectorAxisEvent : public UK2Node_InputAxisKeyEvent
 {
 	GENERATED_UCLASS_BODY()
 
-	//~ Begin UObject Interface
+	// UObject interface
 	virtual void Serialize(FArchive& Ar) override;
-	//~ End UObject Interface
+	// End of UObject interface
 
-	//~ Begin UK2Node Interface
+	// Begin UK2Node interface
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
 	virtual UClass* GetDynamicBindingClass() const override;
 	virtual void RegisterDynamicBinding(UDynamicBlueprintBinding* BindingObject) const override;
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
-	//~ End UK2Node Interface
+	// End UK2Node interface
 };

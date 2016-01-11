@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "ComponentInstanceDataCache.h"
@@ -76,7 +76,7 @@ FActorComponentInstanceData::FActorComponentInstanceData(const UActorComponent* 
 	}
 }
 
-bool FActorComponentInstanceData::MatchesComponent(const UActorComponent* Component, const UObject* ComponentTemplate, const TMap<UActorComponent*, const UObject*>& ComponentToArchetypeMap) const
+bool FActorComponentInstanceData::MatchesComponent(const UActorComponent* Component, const UObject* ComponentTemplate) const
 {
 	bool bMatches = false;
 	if (   Component
@@ -95,10 +95,11 @@ bool FActorComponentInstanceData::MatchesComponent(const UActorComponent* Compon
 			{
 				for (const UActorComponent* BlueprintCreatedComponent : ComponentOwner->BlueprintCreatedComponents)
 				{
-					if (BlueprintCreatedComponent != nullptr && BlueprintCreatedComponent->CreationMethod == SourceComponentCreationMethod)
+					if (BlueprintCreatedComponent != nullptr)
 					{
-						const UObject* BlueprintComponentTemplate = ComponentToArchetypeMap.FindChecked(BlueprintCreatedComponent);
+						const UObject* BlueprintComponentTemplate = BlueprintCreatedComponent->GetArchetype();
 						if (   (BlueprintComponentTemplate == SourceComponentTemplate || (GIsReinstancing && BlueprintComponentTemplate->GetFName() == SourceComponentTemplate->GetFName()))
+							&& (BlueprintCreatedComponent->CreationMethod == SourceComponentCreationMethod)
 							&& (++FoundSerializedComponentsOfType == SourceComponentTypeSerializedIndex))
 						{
 							bMatches = (BlueprintCreatedComponent == Component);
@@ -155,10 +156,8 @@ void FActorComponentInstanceData::AddReferencedObjects(FReferenceCollector& Coll
 
 FComponentInstanceDataCache::FComponentInstanceDataCache(const AActor* Actor)
 {
-	if (Actor != nullptr)
+	if(Actor != NULL)
 	{
-		const bool bIsChildActor = Actor->ParentComponentActor.IsValid();
-
 		TInlineComponentArray<UActorComponent*> Components(Actor);
 
 		ComponentsInstanceData.Reserve(Components.Num());
@@ -166,7 +165,7 @@ FComponentInstanceDataCache::FComponentInstanceDataCache(const AActor* Actor)
 		// Grab per-instance data we want to persist
 		for (UActorComponent* Component : Components)
 		{
-			if (bIsChildActor || Component->IsCreatedByConstructionScript()) // Only cache data from 'created by construction script' components
+			if (Component->IsCreatedByConstructionScript()) // Only cache data from 'created by construction script' components
 			{
 				FActorComponentInstanceData* ComponentInstanceData = Component->GetComponentInstanceData();
 				if (ComponentInstanceData)
@@ -199,40 +198,28 @@ FComponentInstanceDataCache::~FComponentInstanceDataCache()
 
 void FComponentInstanceDataCache::ApplyToActor(AActor* Actor, const ECacheApplyPhase CacheApplyPhase) const
 {
-	if (Actor != nullptr)
+	if(Actor != NULL)
 	{
-		const bool bIsChildActor = Actor->ParentComponentActor.IsValid();
-
-		TInlineComponentArray<UActorComponent*> Components(Actor);
-
-		// Cache all archetype objects
-		TMap<UActorComponent*, const UObject*> ComponentToArchetypeMap;
-		ComponentToArchetypeMap.Reserve(Components.Num());
-
-		for (UActorComponent* ComponentInstance : Components)
-		{
-			if (ComponentInstance && (bIsChildActor || ComponentInstance->IsCreatedByConstructionScript()))
-			{
-				ComponentToArchetypeMap.Add(ComponentInstance, ComponentInstance->GetArchetype());
-			}
-		}
+		TInlineComponentArray<UActorComponent*> Components;
+		Actor->GetComponents(Components);
 
 		// Apply per-instance data.
 		for (UActorComponent* ComponentInstance : Components)
 		{
-			if (ComponentInstance && (bIsChildActor || ComponentInstance->IsCreatedByConstructionScript())) // Only try and apply data to 'created by construction script' components
+			if(ComponentInstance && ComponentInstance->IsCreatedByConstructionScript()) // Only try and apply data to 'created by construction script' components
 			{
 				// Cache template here to avoid redundant calls in the loop below
-				const UObject* ComponentTemplate = ComponentToArchetypeMap.FindChecked(ComponentInstance);
-
-				for (FActorComponentInstanceData* ComponentInstanceData : ComponentsInstanceData)
+				if (const UObject* ComponentTemplate = ComponentInstance->GetArchetype())
 				{
-					if (	ComponentInstanceData
-						&&	ComponentInstanceData->GetComponentClass() == ComponentTemplate->GetClass() // filter on class early to avoid unnecessary virtual and expensive tests
-						&&	ComponentInstanceData->MatchesComponent(ComponentInstance, ComponentTemplate, ComponentToArchetypeMap))
+					for (FActorComponentInstanceData* ComponentInstanceData : ComponentsInstanceData)
 					{
-						ComponentInstanceData->ApplyToComponent(ComponentInstance, CacheApplyPhase);
-						break;
+						if (	ComponentInstanceData
+							&&	ComponentInstanceData->GetComponentClass() == ComponentTemplate->GetClass() // filter on class early to avoid unnecessary virtual and expensive tests
+							&&	ComponentInstanceData->MatchesComponent(ComponentInstance, ComponentTemplate))
+						{
+							ComponentInstanceData->ApplyToComponent(ComponentInstance, CacheApplyPhase);
+							break;
+						}
 					}
 				}
 			}

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -64,15 +64,13 @@ class UMaterialExpressionLandscapeLayerBlend : public UMaterialExpression
 	FGuid ExpressionGUID;
 
 
-	//~ Begin UObject Interface
+	// Begin UObject Interface
 	void Serialize(FArchive& Ar) override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-	//~ End UObject Interface
+	// End UObject Interface
 
-	//~ Begin UMaterialExpression Interface
-	virtual uint32 GetInputType(int32 InputIndex) override { return MCT_Unknown; }
-	virtual uint32 GetOutputType(int32 InputIndex) override { return MCT_Unknown; }
+	// Begin UMaterialExpression Interface
 #endif
 	virtual bool IsResultMaterialAttributes(int32 OutputIndex) override;
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
@@ -81,7 +79,7 @@ class UMaterialExpressionLandscapeLayerBlend : public UMaterialExpression
 	virtual FExpressionInput* GetInput(int32 InputIndex) override;
 	virtual FString GetInputName(int32 InputIndex) const override;
 	virtual UTexture* GetReferencedTexture() override;
-	//~ End UMaterialExpression Interface
+	// End UMaterialExpression Interface
 
 	LANDSCAPE_API virtual FGuid& GetParameterExpressionId() override;
 

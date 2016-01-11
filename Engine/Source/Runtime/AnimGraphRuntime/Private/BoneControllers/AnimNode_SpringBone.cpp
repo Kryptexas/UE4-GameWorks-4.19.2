@@ -1,8 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphRuntimePrivatePCH.h"
 #include "BoneControllers/AnimNode_SpringBone.h"
-#include "Animation/AnimInstanceProxy.h"
 
 /////////////////////////////////////////////////////
 // FAnimNode_SpringBone
@@ -39,14 +38,17 @@ void FAnimNode_SpringBone::CacheBones(const FAnimationCacheBonesContext& Context
 	FAnimNode_SkeletalControlBase::CacheBones(Context);
 }
 
-void FAnimNode_SpringBone::UpdateInternal(const FAnimationUpdateContext& Context)
+void FAnimNode_SpringBone::Update(const FAnimationUpdateContext& Context)
 {
-	FAnimNode_SkeletalControlBase::UpdateInternal(Context);
+	FAnimNode_SkeletalControlBase::Update(Context);
 
 	RemainingTime += Context.GetDeltaTime();
 
+	const USkeletalMeshComponent* SkelComp = Context.AnimInstance->GetSkelMeshComponent();
+	const UWorld* World = SkelComp->GetWorld();
+	check(World->GetWorldSettings());
 	// Fixed step simulation at 120hz
-	FixedTimeStep = (1.f / 120.f) * TimeDilation;
+	FixedTimeStep = (1.f / 120.f) * World->GetWorldSettings()->GetEffectiveTimeDilation();
 }
 
 void FAnimNode_SpringBone::GatherDebugData(FNodeDebugData& DebugData)
@@ -164,7 +166,7 @@ void FAnimNode_SpringBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCo
 		{
 			FVector CurrentDisp = BoneLocation - TargetPos;
 			// Too far away - project back onto sphere around target.
-			if (CurrentDisp.SizeSquared() > FMath::Square(MaxDisplacement))
+			if (CurrentDisp.Size() > MaxDisplacement)
 			{
 				FVector DispDir = CurrentDisp.GetSafeNormal();
 				BoneLocation = TargetPos + (MaxDisplacement * DispDir);
@@ -193,7 +195,7 @@ void FAnimNode_SpringBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCo
 		FVector ParentToTarget = (TargetPos - ParentSpaceBase.GetLocation()).GetSafeNormal();
 		FVector ParentToCurrent = (BoneLocation - ParentSpaceBase.GetLocation()).GetSafeNormal();
 
-		FQuat AdditionalRotation = FQuat::FindBetweenNormals(ParentToTarget, ParentToCurrent);
+		FQuat AdditionalRotation = FQuat::FindBetween(ParentToTarget, ParentToCurrent);
 
 		// Filter rotation based on our filter properties
 		FVector EularRot = AdditionalRotation.Euler();
@@ -215,12 +217,4 @@ bool FAnimNode_SpringBone::IsValidToEvaluate(const USkeleton* Skeleton, const FB
 void FAnimNode_SpringBone::InitializeBoneReferences(const FBoneContainer& RequiredBones) 
 {
 	SpringBone.Initialize(RequiredBones);
-}
-
-void FAnimNode_SpringBone::PreUpdate(const UAnimInstance* InAnimInstance)
-{
-	const USkeletalMeshComponent* SkelComp = InAnimInstance->GetSkelMeshComponent();
-	const UWorld* World = SkelComp->GetWorld();
-	check(World->GetWorldSettings());
-	TimeDilation = World->GetWorldSettings()->GetEffectiveTimeDilation();
 }

@@ -1,33 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ContainerAllocationPolicies.h"
-
-#if !defined(_WIN32) || defined(_WIN64)
-	// Let delegates store up to 32 bytes which are 16-byte aligned before we heap allocate
-	typedef TAlignedBytes<16, 16> AlignedInlineDelegateType;
-	typedef TInlineAllocator<2> DelegateAllocatorType;
-#else
-	// ... except on Win32, because we can't pass 16-byte aligned types by value, as some delegates are
-	// so we'll just keep it heap-allocated, which are always sufficiently aligned.
-	typedef TAlignedBytes<16, 8> AlignedInlineDelegateType;
-	typedef FHeapAllocator DelegateAllocatorType;
-#endif
-
-
-struct FWeakObjectPtr;
-
-template <typename ObjectPtrType>
-class FMulticastDelegateBase;
 
 /**
  * Base class for unicast delegates.
  */
+template<typename ObjectPtrType = FWeakObjectPtr>
 class FDelegateBase
 {
-	friend class FMulticastDelegateBase<FWeakObjectPtr>;
-
 public:
 
 	/**
@@ -35,54 +16,9 @@ public:
 	 *
 	 * @param InDelegateInstance The delegate instance to assign.
 	 */
-	explicit FDelegateBase()
-		: DelegateSize(0)
-	{
-	}
-
-	/**
-	 * Move constructor.
-	 */
-	FDelegateBase(FDelegateBase&& Other)
-	{
-		DelegateAllocator.MoveToEmpty(Other.DelegateAllocator);
-		DelegateSize = Other.DelegateSize;
-		Other.DelegateSize = 0;
-	}
-
-	/**
-	 * Move assignment.
-	 */
-	FDelegateBase& operator=(FDelegateBase&& Other)
-	{
-		Unbind();
-		DelegateAllocator.MoveToEmpty(Other.DelegateAllocator);
-		DelegateSize = Other.DelegateSize;
-		Other.DelegateSize = 0;
-		return *this;
-	}
-
-#if USE_DELEGATE_TRYGETBOUNDFUNCTIONNAME
-
-	/**
-	 * Tries to return the name of a bound function.  Returns NAME_None if the delegate is unbound or
-	 * a binding name is unavailable.
-	 *
-	 * Note: Only intended to be used to aid debugging of delegates.
-	 *
-	 * @return The name of the bound function, NAME_None if no name was available.
-	 */
-	FName TryGetBoundFunctionName() const
-	{
-		if (IDelegateInstance* Ptr = GetDelegateInstanceProtected())
-		{
-			return Ptr->TryGetBoundFunctionName();
-		}
-
-		return NAME_None;
-	}
-
-#endif
+	FDelegateBase( IDelegateInstance* InDelegateInstance )
+		: DelegateInstance(InDelegateInstance)
+	{ }
 
 	/**
 	 * If this is a UFunction or UObject delegate, return the UObject.
@@ -91,9 +27,13 @@ public:
 	 */
 	inline class UObject* GetUObject( ) const
 	{
-		if (IDelegateInstance* Ptr = GetDelegateInstanceProtected())
+		if (DelegateInstance != nullptr)
 		{
-			return Ptr->GetUObject();
+			if ((DelegateInstance->GetType() == EDelegateInstanceType::UFunction) ||
+				(DelegateInstance->GetType() == EDelegateInstanceType::UObjectMethod))
+			{
+				return (class UObject*)DelegateInstance->GetRawUserObject();
+			}
 		}
 
 		return nullptr;
@@ -106,9 +46,7 @@ public:
 	 */
 	inline bool IsBound( ) const
 	{
-		IDelegateInstance* Ptr = GetDelegateInstanceProtected();
-
-		return Ptr && Ptr->IsSafeToExecute();
+		return (DelegateInstance != nullptr) && (DelegateInstance->IsSafeToExecute());
 	}
 
 	/** 
@@ -118,14 +56,7 @@ public:
 	 */
 	inline bool IsBoundToObject( void const* InUserObject ) const
 	{
-		if (!InUserObject)
-		{
-			return false;
-		}
-
-		IDelegateInstance* Ptr = GetDelegateInstanceProtected();
-
-		return Ptr && Ptr->HasSameObject(InUserObject);
+		return (InUserObject != nullptr) && (DelegateInstance != nullptr) && DelegateInstance->HasSameObject(InUserObject);
 	}
 
 	/**
@@ -133,11 +64,10 @@ public:
 	 */
 	inline void Unbind( )
 	{
-		if (IDelegateInstance* Ptr = GetDelegateInstanceProtected())
+		if (DelegateInstance != nullptr)
 		{
-			Ptr->~IDelegateInstance();
-			DelegateAllocator.ResizeAllocation(0, 0, sizeof(AlignedInlineDelegateType));
-			DelegateSize = 0;
+			delete DelegateInstance;
+			DelegateInstance = nullptr;
 		}
 	}
 
@@ -147,10 +77,21 @@ public:
 	 * @return The delegate instance.
 	 * @see SetDelegateInstance
 	 */
-	DEPRECATED(4.11, "GetDelegateInstance has been deprecated - calls to IDelegateInstance::GetUObject() and IDelegateInstance::GetHandle() should call the same functions on the delegate.  Other calls should be reconsidered.")
-	FORCEINLINE IDelegateInstance* GetDelegateInstance( ) const
+	IDelegateInstance* GetDelegateInstance( ) const
 	{
-		return GetDelegateInstanceProtected();
+		return DelegateInstance;
+	}
+
+	/**
+	 * Sets the delegate instance.
+	 *
+	 * @param InDelegateInstance The delegate instance to set.
+	 * @see GetDelegateInstance.
+	 */
+	inline void SetDelegateInstance( IDelegateInstance* InDelegateInstance )
+	{
+		Unbind();
+		DelegateInstance = InDelegateInstance;
 	}
 
 	/**
@@ -161,52 +102,16 @@ public:
 	inline FDelegateHandle GetHandle() const
 	{
 		FDelegateHandle Result;
-		if (IDelegateInstance* Ptr = GetDelegateInstanceProtected())
+		if (DelegateInstance)
 		{
-			Result = Ptr->GetHandle();
+			Result = DelegateInstance->GetHandle();
 		}
 
 		return Result;
 	}
 
-protected:
-	/**
-	 * Gets the delegate instance.  Not intended for use by user code.
-	 *
-	 * @return The delegate instance.
-	 * @see SetDelegateInstance
-	 */
-	FORCEINLINE IDelegateInstance* GetDelegateInstanceProtected( ) const
-	{
-		return DelegateSize ? (IDelegateInstance*)DelegateAllocator.GetAllocation() : nullptr;
-	}
-
 private:
-	friend void* operator new(size_t Size, FDelegateBase& Base);
 
-	void* Allocate(int32 Size)
-	{
-		if (IDelegateInstance* CurrentInstance = GetDelegateInstanceProtected())
-		{
-			CurrentInstance->~IDelegateInstance();
-		}
-
-		int32 NewDelegateSize = FMath::DivideAndRoundUp(Size, (int32)sizeof(AlignedInlineDelegateType));
-		if (DelegateSize != NewDelegateSize)
-		{
-			DelegateAllocator.ResizeAllocation(0, NewDelegateSize, sizeof(AlignedInlineDelegateType));
-			DelegateSize = NewDelegateSize;
-		}
-
-		return DelegateAllocator.GetAllocation();
-	}
-
-private:
-	DelegateAllocatorType::ForElementType<AlignedInlineDelegateType> DelegateAllocator;
-	int32 DelegateSize;
+	// Holds the delegate instance
+	IDelegateInstance* DelegateInstance;
 };
-
-inline void* operator new(size_t Size, FDelegateBase& Base)
-{
-	return Base.Allocate(Size);
-}

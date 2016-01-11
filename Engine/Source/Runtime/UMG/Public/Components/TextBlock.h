@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,11 +7,11 @@
 /**
  * A simple static text widget.
  *
- * * No Children
- * * Text
+ * ● No Children
+ * ● Text
  */
 UCLASS(meta=(DisplayName="Text"))
-class UMG_API UTextBlock : public UTextLayoutWidget
+class UMG_API UTextBlock : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 
@@ -56,7 +56,6 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Appearance")
 	void SetFont(FSlateFontInfo InFontInfo);
-
 	/**
 	 *  Set the text justification for this text block
 	 *
@@ -66,6 +65,9 @@ public:
 	void SetJustification( ETextJustify::Type InJustification );
 
 public:
+	UPROPERTY()
+	USlateWidgetStyleAsset* Style_DEPRECATED;
+
 	/** The text to display */
 	UPROPERTY(EditAnywhere, Category=Content, meta=( MultiLine="true" ))
 	FText Text;
@@ -98,13 +100,29 @@ public:
 	UPROPERTY()
 	FGetLinearColor ShadowColorAndOpacityDelegate;
 
+	/** How the text should be aligned with the margin. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
+	TEnumAsByte<ETextJustify::Type> Justification;
+
+	/** True if we're wrapping text automatically based on the computed horizontal space for this widget */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
+	bool AutoWrapText;
+
+	/** Whether text wraps onto a new line when it's length exceeds this width; if this value is zero or negative, no wrapping occurs. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance, AdvancedDisplay)
+	float WrapTextAt;
+
 	/** The minimum desired size for the text */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance, AdvancedDisplay)
 	float MinDesiredWidth;
 
-	/** If true, it will automatically wrap this text widget with an invalidation panel */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Performance, AdvancedDisplay)
-	bool bWrapWithInvalidationPanel;
+	/** The amount of blank space left around the edges of text area. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance, AdvancedDisplay)
+	FMargin Margin;
+
+	/** The amount to scale each lines height by. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance, AdvancedDisplay)
+	float LineHeightPercentage;
 
 	///** Called when this text is double clicked */
 	//SLATE_EVENT(FOnClicked, OnDoubleClicked)
@@ -124,20 +142,24 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Widget", meta=(DisplayName="SetText (Text)"))
 	void SetText(FText InText);
 
-	//~ Begin UWidget Interface
+	// UWidget interface
 	virtual void SynchronizeProperties() override;
-	//~ End UWidget Interface
+	// End of UWidget interface
 
-	//~ Begin UVisual Interface
+	// UVisual interface
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
-	//~ End UVisual Interface
+	// End of UVisual interface
+
+	// Begin UObject interface
+	virtual void PostLoad() override;
+	// End of UObject interface
 
 #if WITH_EDITOR
-	//~ Begin UWidget Interface
+	// UWidget interface
 	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual const FText GetPaletteCategory() override;
 	virtual void OnCreationFromPalette() override;
-	//~ End UWidget Interface
+	// End UWidget interface
 
 	virtual FString GetLabelMetadata() const override;
 
@@ -145,10 +167,10 @@ public:
 #endif
 
 protected:
-	//~ Begin UWidget Interface
+	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	virtual void OnBindingChanged(const FName& Property) override;
-	//~ End UWidget Interface
+	// End of UWidget interface
 
 protected:
 

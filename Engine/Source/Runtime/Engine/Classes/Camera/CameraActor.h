@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -27,8 +27,6 @@ private_subobject:
 	UPROPERTY(Category = CameraActor, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* CameraComponent;
 
-	UPROPERTY(Category = CameraActor, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	class USceneComponent* SceneComponent;
 public:
 
 	/** If this CameraActor is being used to preview a CameraAnim in the editor, this is the anim being previewed. */
@@ -56,20 +54,18 @@ private:
 	struct FPostProcessSettings PostProcessSettings_DEPRECATED;
 
 public:
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) override;
 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-
-	virtual class USceneComponent* GetDefaultAttachComponent() const override;
 #endif
-	//~ End UObject Interface
+	// End UObject interface
 	
-	//~ Begin AActor Interface
+	// Begin AActor interface
 	virtual void BeginPlay() override;
-	//~ End AActor Interface
+	// End AActor interface
 
 	/** Returns CameraComponent subobject **/
 	class UCameraComponent* GetCameraComponent() const;

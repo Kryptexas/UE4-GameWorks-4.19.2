@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ProfilerPrivatePCH.h"
 #include "DiagnosticTable.h"
@@ -192,6 +192,7 @@ void FNodeAllocationInfo::PrepareCallstackData( const TArray<FName>& InDecodedCa
 FRawStatsMemoryProfiler::FRawStatsMemoryProfiler( const TCHAR* InFilename )
 	: FStatsReadFile( InFilename, true )
 	, NumDuplicatedMemoryOperations( 0 )
+	, NumFWAMemoryOperations( 0 )
 	, NumMemoryOperations( 0 )
 	, LastSequenceTagForNamedMarker( 0 )
 {}
@@ -256,13 +257,12 @@ void FRawStatsMemoryProfiler::DumpDebugAllocations()
 	}
 
 	UE_LOG( LogStats, Warning, TEXT( "Dumping duplicated alloc map" ) );
-	UE_LOG( LogStats, Warning, TEXT( "TotalDuplicatedMemory: %llu bytes (%.2f MB)" ), TotalDuplicatedMemory, TotalDuplicatedMemory / 1024.0f / 1024.0f );
-	const float MaxPctDisplayed = 0.9f;
+	const float MaxPctDisplayed = 0.80f;
 	uint64 DisplayedSoFar = 0;
 	for (const auto& It : DuplicatedAllocMap)
 	{
 		const FAllocationInfo& Alloc = It.Value;
-		const FString& AllocCallstack = It.Key;
+		const FString AllocCallstack = FStatsCallstack::GetHumanReadable( Alloc.EncodedCallstack );
 		UE_LOG( LogStats, Log, TEXT( "%lli (%.2f MB) %s" ), Alloc.Size, Alloc.Size / 1024.0f / 1024.0f, *AllocCallstack );
 
 		DisplayedSoFar += Alloc.Size;
@@ -279,8 +279,8 @@ void FRawStatsMemoryProfiler::DumpDebugAllocations()
 
 void FRawStatsMemoryProfiler::FreeDebugInformation()
 {
+	FreeWithoutAllocMap.Empty();
 	DuplicatedAllocMap.Empty();
-	ZeroAllocMap.Empty();
 }
 
 void FRawStatsMemoryProfiler::GenerateAllocationMap()
@@ -322,32 +322,107 @@ void FRawStatsMemoryProfiler::GenerateAllocationMap()
 
 		if (Alloc.Op == EMemoryOperation::Alloc)
 		{
-			ProcessAlloc( Alloc, AllocationMap );
+			if (Alloc.Size == 0)
+			{
+				NumZeroAllocs++;
+			}
+
+			const FAllocationInfo* Found = AllocationMap.Find( Alloc.Ptr );
+
+			if (!Found)
+			{
+				AllocationMap.Add( Alloc.Ptr, Alloc );
+			}
+			else
+			{
+#if	UE_BUILD_DEBUG
+				const FAllocationInfo* FoundAndFreed = FreeWithoutAllocMap.Find( Found->Ptr );
+				const FAllocationInfo* FoundAndAllocated = FreeWithoutAllocMap.Find( Alloc.Ptr );
+
+				if (FoundAndFreed)
+				{
+					const FString FoundAndFreedCallstack = FStatsCallstack::GetHumanReadable( FoundAndFreed->EncodedCallstack );
+				}
+
+				if (FoundAndAllocated)
+				{
+					const FString FoundAndAllocatedCallstack = FStatsCallstack::GetHumanReadable( FoundAndAllocated->EncodedCallstack );
+				}
+
+				NumDuplicatedMemoryOperations++;
+
+
+				const FString FoundCallstack = FStatsCallstack::GetHumanReadable( Found->EncodedCallstack );
+				const FString AllocCallstack = FStatsCallstack::GetHumanReadable( Alloc.EncodedCallstack );
+				UE_LOG( LogStats, Warning, TEXT( "DuplicateAlloc: %s Size: %i/%i Ptr: %i/%i Tag: %i/%i" ), *AllocCallstack, Found->Size, Alloc.Size, Found->Ptr, Alloc.Ptr, Found->SequenceTag, Alloc.SequenceTag );
+#endif // UE_BUILD_DEBUG
+
+				// Replace pointer.
+				AllocationMap.Add( Alloc.Ptr, Alloc );
+				// Store the old pointer.
+				DuplicatedAllocMap.Add( Alloc.Ptr, *Found );
+			}
 		}
 		else if (Alloc.Op == EMemoryOperation::Realloc)
 		{
-			// Previous Alloc or Realloc
-			if (Alloc.OldPtr != 0)
+			if (Alloc.Size == 0)
 			{
-				ProcessFree( Alloc, AllocationMap, true );
+				NumZeroAllocs++;
 			}
+
+			// Previous Alloc or Realloc
+			const FAllocationInfo* FoundOld = AllocationMap.Find( Alloc.OldPtr );
+
+			if (FoundOld)
+			{
+				const bool bIsValid = Alloc.SequenceTag > FoundOld->SequenceTag;
+				if (!bIsValid)
+				{
+					UE_LOG( LogStats, Warning, TEXT( "InvalidRealloc Ptr: %llu, Seq: %i/%i" ), Alloc.Ptr, Alloc.SequenceTag, FoundOld->SequenceTag );
+				}
+				// Remove the old allocation.
+				AllocationMap.Remove( Alloc.OldPtr );
+				AllocationMap.Add( Alloc.Ptr, Alloc );
+			}
+			// If we have situation where the old pointer is the same as the new pointer
+			// There is high change that the original call looked like this 
+			// Ptr = Malloc( 40 ); Ptr = Realloc( Ptr, 40 );
+			else if (Alloc.OldPtr != Alloc.Ptr)
+			{
+				// No OldPtr, should not happen as it means realloc without initial alloc.
+				// Or Realloc after Malloc(0)
 
 #if	UE_BUILD_DEBUG
-			if (Alloc.OldPtr == 0 && Alloc.Size == 0)
-			{
 				const FString ReallocCallstack = FStatsCallstack::GetHumanReadable( Alloc.EncodedCallstack );
-				UE_LOG( LogStats, VeryVerbose, TEXT( "ReallocZero: %s %i %i/%i [%i]" ), *ReallocCallstack, Alloc.Size, Alloc.OldPtr, Alloc.Ptr, Alloc.SequenceTag );
-			}
+				UE_LOG( LogStats, VeryVerbose, TEXT( "ReallocWithoutAlloc: %s %i %i/%i [%i]" ), *ReallocCallstack, Alloc.Size, Alloc.OldPtr, Alloc.Ptr, Alloc.SequenceTag );
 #endif // UE_BUILD_DEBUG
 
-			if (Alloc.Ptr != 0)
-			{
-				ProcessAlloc( Alloc, AllocationMap );
-			}			
+				AllocationMap.Add( Alloc.Ptr, Alloc );
+			}
+
 		}
 		else if (Alloc.Op == EMemoryOperation::Free)
 		{
-			ProcessFree( Alloc, AllocationMap, false );
+			const FAllocationInfo* Found = AllocationMap.Find( Alloc.Ptr );
+			if (Found)
+			{
+				const bool bIsValid = Alloc.SequenceTag > Found->SequenceTag;
+				if (!bIsValid)
+				{
+					UE_LOG( LogStats, Warning, TEXT( "InvalidFree Ptr: %llu, Seq: %i/%i" ), Alloc.Ptr, Alloc.SequenceTag, Found->SequenceTag );
+				}
+				AllocationMap.Remove( Alloc.Ptr );
+			}
+			else
+			{
+				FreeWithoutAllocMap.Add( Alloc.Ptr, Alloc );
+				NumFWAMemoryOperations++;
+
+#if	UE_BUILD_DEBUG
+				const FString FWACallstack = FStatsCallstack::GetHumanReadable( Alloc.EncodedCallstack );
+				UE_LOG( LogStats, VeryVerbose, TEXT( "FreeWithoutAllocCallstack: %s %i" ), *FWACallstack, Alloc.Ptr );
+#endif // UE_BUILD_DEBUG
+			}
 		}
 	}
 
@@ -361,64 +436,8 @@ void FRawStatsMemoryProfiler::GenerateAllocationMap()
 	SnapshotNamesArray = SnapshotNamesSet.Array();
 
 	UE_LOG( LogStats, Verbose, TEXT( "NumDuplicatedMemoryOperations: %i" ), NumDuplicatedMemoryOperations );
+	UE_LOG( LogStats, Verbose, TEXT( "NumFWAMemoryOperations:        %i" ), NumFWAMemoryOperations );
 	UE_LOG( LogStats, Verbose, TEXT( "NumZeroAllocs:                 %i" ), NumZeroAllocs );
-}
-
-void FRawStatsMemoryProfiler::ProcessAlloc( const FAllocationInfo& AllocInfo, TMap<uint64, FAllocationInfo>& AllocationMap )
-{
-	if( AllocInfo.Size == 0 )
-	{
-		NumZeroAllocs++;
-		ZeroAllocMap.Add( FStatsCallstack::GetHumanReadable( AllocInfo.EncodedCallstack ), AllocInfo );
-	}
-
-	const FAllocationInfo* Found = AllocationMap.Find( AllocInfo.Ptr );
-	if (!Found)
-	{
-		AllocationMap.Add( AllocInfo.Ptr, AllocInfo );
-	}
-	else
-	{
-		NumDuplicatedMemoryOperations++;
-
-#if	UE_BUILD_DEBUG
-		const FString FoundCallstack = FStatsCallstack::GetHumanReadable( Found->EncodedCallstack );
-		const FString AllocCallstack = FStatsCallstack::GetHumanReadable( AllocInfo.EncodedCallstack );
-		UE_LOG( LogStats, VeryVerbose, TEXT( "DuplicatedAlloc" ) );
-		UE_LOG( LogStats, VeryVerbose, TEXT( "FoundCallstack: %s [%s]" ), *FoundCallstack, Found->Op==EMemoryOperation::Alloc ? TEXT("Alloc") : TEXT("Realloc") );
-		UE_LOG( LogStats, VeryVerbose, TEXT( "AllocCallstack: %s [%s]" ), *AllocCallstack, AllocInfo.Op==EMemoryOperation::Alloc ? TEXT("Alloc") : TEXT("Realloc") );
-		UE_LOG( LogStats, VeryVerbose, TEXT( "Size: %i/%i Ptr: %llu/%llu Tag: %i/%i" ), Found->Size, AllocInfo.Size, Found->Ptr, AllocInfo.Ptr, Found->SequenceTag, AllocInfo.SequenceTag );
-
-		// Store the old pointer.
-		DuplicatedAllocMap.Add( FoundCallstack, *Found );
-#endif // UE_BUILD_DEBUG
-
-		// Replace pointer.
-		AllocationMap.Add( AllocInfo.Ptr, AllocInfo );
-	}
-}
-
-void FRawStatsMemoryProfiler::ProcessFree( const FAllocationInfo& FreeInfo, TMap<uint64, FAllocationInfo>& AllocationMap, const bool bReallocFree )
-{
-	// bReallocFree is not needed here, but it's easier to read the code.
-	const uint64 PtrToBeFreed = bReallocFree ? FreeInfo.OldPtr : FreeInfo.Ptr;
-	const FAllocationInfo* Found = AllocationMap.Find( PtrToBeFreed );
-	if (Found)
-	{
-		const bool bIsValid = FreeInfo.SequenceTag > Found->SequenceTag;
-		if (!bIsValid)
-		{
-			UE_LOG( LogStats, Warning, TEXT( "InvalidFree Ptr: %llu, Seq: %i/%i" ), PtrToBeFreed, FreeInfo.SequenceTag, Found->SequenceTag );
-		}
-		AllocationMap.Remove( PtrToBeFreed );
-	}
-	else
-	{
-#if	UE_BUILD_DEBUG
-		const FString FWACallstack = FStatsCallstack::GetHumanReadable( FreeInfo.EncodedCallstack );
-		UE_LOG( LogStats, VeryVerbose, TEXT( "FreeWithoutAlloc: %s, %llu" ), *FWACallstack, PtrToBeFreed );
-#endif // UE_BUILD_DEBUG
-	}
 }
 
 void FRawStatsMemoryProfiler::UpdateGenerateMemoryMapProgress( const int32 AllocationIndex )
@@ -442,7 +461,7 @@ void FRawStatsMemoryProfiler::UpdateGenerateMemoryMapProgress( const int32 Alloc
 void FRawStatsMemoryProfiler::ProcessSpecialMessageMarkerOperation( const FStatMessage& Message, const FStackState& StackState )
 {
 	const FName RawName = Message.NameAndInfo.GetRawName();
-	if (RawName == FStatConstants::RAW_NamedMarker)
+	if (RawName == FStatConstants::NAME_NamedMarker)
 	{
 		const FName NamedMarker = Message.GetValue_FName();
 		Snapshots.Add( TPairInitializer<uint32, FName>( LastSequenceTagForNamedMarker, NamedMarker ) );

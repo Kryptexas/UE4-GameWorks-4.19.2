@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -246,10 +246,6 @@
 	#define PLATFORM_USES_ES2					0
 #endif
 
-#ifndef PLATFORM_BUILTIN_VERTEX_HALF_FLOAT
-	#define PLATFORM_BUILTIN_VERTEX_HALF_FLOAT	1
-#endif
-
 #ifndef PLATFORM_SUPPORTS_TBB
 	#define PLATFORM_SUPPORTS_TBB 0
 #endif
@@ -276,10 +272,6 @@
 
 #ifndef PLATFORM_HAS_TOUCH_MAIN_SCREEN
 	#define PLATFORM_HAS_TOUCH_MAIN_SCREEN		0
-#endif
-
-#ifndef PLATFORM_SUPPORTS_STACK_SYMBOLS
-	#define PLATFORM_SUPPORTS_STACK_SYMBOLS 0
 #endif
 
 #ifndef PLATFORM_HAS_128BIT_ATOMICS
@@ -317,46 +309,26 @@
 #define PLATFORM_VTABLE_AT_END_OF_CLASS 0 
 
 #ifndef VARARGS
-	#define VARARGS									/* Functions with variable arguments */
+	#define VARARGS					/* Functions with variable arguments */
 #endif
 #ifndef CDECL
-	#define CDECL	    							/* Standard C function */
+	#define CDECL	    			/* Standard C function */
 #endif
 #ifndef STDCALL
-	#define STDCALL									/* Standard calling convention */
+	#define STDCALL					/* Standard calling convention */
 #endif
 #ifndef FORCEINLINE
-	#define FORCEINLINE 							/* Force code to be inline */
+	#define FORCEINLINE 			/* Force code to be inline */
 #endif
 #ifndef FORCENOINLINE
-	#define FORCENOINLINE 							/* Force code to NOT be inline */
+	#define FORCENOINLINE 			/* Force code to NOT be inline */
 #endif
 #ifndef RESTRICT
-	#define RESTRICT __restrict						/* no alias hint */
-#endif
-#ifndef FUNCTION_CHECK_RETURN
-	#define FUNCTION_CHECK_RETURN(...) __VA_ARGS__	/* Wrap a function signature in this to warn that callers should not ignore the return value */
+	#define RESTRICT __restrict		/* no alias hint */
 #endif
 
-#ifndef ASSUME										/* Hints compiler that expression is true; generally restricted to comparisons against constants */
+#ifndef ASSUME						/* Hints compiler that expression is true; generally restricted to comparisons against constants */
 	#define ASSUME(...) 
-#endif
-
-/** Branch prediction hints */
-#ifndef LIKELY						/* Hints compiler that expression is likely to be true, much softer than ASSUME - allows (penalized by worse performance) expression to be false */
-	#if defined(__clang__) || defined(__GNUC__)
-		#define LIKELY(x)			__builtin_expect((x), 1)
-	#else
-		#define LIKELY(x)			(x)
-	#endif
-#endif
-
-#ifndef UNLIKELY					/* Hints compiler that expression is unlikely to be true, allows (penalized by worse performance) expression to be true */
-	#if defined(__clang__) || defined(__GNUC__)
-		#define UNLIKELY(x)			__builtin_expect((x), 0)
-	#else
-		#define UNLIKELY(x)			(x)
-	#endif
 #endif
 
 // Optimization macros (uses __pragma to enable inside a #define).
@@ -440,8 +412,8 @@
 #endif
 
 // Prefetch
-#ifndef PLATFORM_CACHE_LINE_SIZE
-	#define PLATFORM_CACHE_LINE_SIZE	128
+#ifndef CACHE_LINE_SIZE
+	#define CACHE_LINE_SIZE	128
 #endif
 
 // These have to be forced inline on some OSes so the dynamic loader will not 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
 
@@ -325,9 +325,8 @@ private:
 
 		UWidgetAnimation* NewAnimation = NewObject<UWidgetAnimation>(WidgetBlueprint, MakeUniqueObjectName(WidgetBlueprint, UWidgetAnimation::StaticClass(), "NewAnimation"), RF_Transactional);
 		NewAnimation->MovieScene = NewObject<UMovieScene>(NewAnimation, NewAnimation->GetFName(), RF_Transactional);
-
-		NewAnimation->MovieScene->SetPlaybackRange(InTime, OutTime);
-		NewAnimation->MovieScene->GetEditorData().WorkingRange = TRange<float>(InTime, OutTime);
+		NewAnimation->MovieScene->StartTime = InTime;
+		NewAnimation->MovieScene->EndTime = OutTime;
 
 		bool bRequestRename = true;
 		bool bNewAnimation = true;
@@ -462,7 +461,7 @@ private:
 			(
 				SelectedAnimation->Animation,
 				WidgetBlueprint, 
-				MakeUniqueObjectName( WidgetBlueprint, UWidgetAnimation::StaticClass(), SelectedAnimation->Animation->GetFName() )
+				*MakeUniqueObjectName( WidgetBlueprint, UWidgetAnimation::StaticClass(), SelectedAnimation->Animation->GetFName() ).ToString()
 			);
 	
 		NewAnimation->MovieScene->Rename(*NewAnimation->GetName(), nullptr, REN_DontCreateRedirectors | REN_ForceNoResetLoaders);

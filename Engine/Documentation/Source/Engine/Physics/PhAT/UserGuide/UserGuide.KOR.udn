@@ -1,0 +1,336 @@
+﻿INTSourceChangelist:2618089
+Availability: Public
+Title:피직스 애셋 툴 사용 안내서
+Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhAT
+Description:피직스 애셋 툴을 사용하여 스켈레탈 메시에 대한 피직스 애셋을 생성하는 방법입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Physics/PhAT/UserGuide:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhAT/UserGuide:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhAT/UserGuide:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/Phat/UserGuide]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Physics/PhAT/UserGuide:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhAT/UserGuide:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhAT/UserGuide:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/Phat/UserGuide]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+
+**피직스 애셋 툴** 은 **스켈레탈 메시** 에 사용할 **피직스 애셋** 을 만드는 데 사용됩니다. 무에서 시작해서 완전한 래그돌 셋업을 만들 수도 있고, 자동화 툴을 사용해서 
+기본적인 피직스 바디와 피직스 컨스트레인트 세트를 만들 수도 있습니다.
+
+이 글에서는 피직스 애셋 툴에서 가장 자주 하게되는 작업을 단계별로 다뤄보도록 하겠습니다.
+
+## 새 피직스 애셋
+
+스켈레탈 메시를 임포트하면, 임포트된 그대로에 대해 피직스 애셋을 생성하는 옵션이 있습니다. 임포트된 파일이 처리되면 
+"새 애셋" 대화창이 뜹니다:
+
+[REGION:raw]
+![](PhATUG_ImportPA.png)
+[/REGION]
+
+그러나 스켈레탈 메시에 대한 피직스 애셋 생성을 나중에 하려는 경우, 다음과 같이 하면 됩니다:
+
+1. 콘텐츠 브라우저에서 피직스 애셋을 추가하고자 하는 스켈레탈 메시 애셋을 
+찾습니다.
+1. 콘텐츠 브라우저에서 스켈레탈 메시에 우클릭하여 맥락 메뉴를 띄우고 **피직스 애셋 생성** 을 선택합니다.
+1. 원하는 대로 세팅을 조절합니다.
+
+	![](Shared\PhAT\PhAT_restetDefault.png)
+
+1. **Ok** 를 클릭합니다.
+
+## 피직스 애셋 편집하기
+
+1. 콘텐츠 브라우저에서 피직스 애셋을 찾습니다.
+
+	![](Engine/Physics\PhysicalMaterials\PhysMatUserGuide\PhysMat_PhAT_02.png)
+
+1. 더블클릭하여 피직스 애셋 툴 (PhAT) 에서 엽니다.
+
+	![](PhATUG_FullWindow.png)(w:900)
+
+
+## 피직스 바디
+
+### 피직스 바디 편집하기
+
+1. 바디 편집 모드를 ![](Shared\Icons\icon_PHatMode_Body_40x.png) 켭니다.
+1. 뷰포트나 계층구조 패널에서 피직스 바디를 선택합니다.
+	* 원하는 피직스 바디 확인이 어려운 경우, **뷰포트** -> **모드** -> **메시 렌더 모드** -> **와이어프레임/없음** 을 선택하여 스켈레탈 메시의 
+	표시여부를 조정합니다.
+1. 스켈레탈 메시와 스켈레탈 조인트에 꼭 맞도록 피직스 바디를 이동/회전/스케일 조절합니다.
+1. 디테일 패널에서 피직스 바디의 프로퍼티를 편집합니다.
+1. _콜리전 켬_ 또는 _콜리전 끔_ 툴을 사용해서 피직스 애셋 내 현재 피직스 바디와 다른 것 사이의 콜리전을 켜거나 
+	끕니다. 현재 선택된 피직스 바디와 충돌 가능한 피직스 바디는 파란색이고, 충돌 불가능한 바디는 회색입니다.
+1. 손목을 이루는 관절처럼 바디 시리즈를 한 번에 움직여야 하는 경우, _결합_ (Weld) 툴을 사용하여 원하지 않는 물리 시뮬레이션 동작을 방지합니다. 
+결합된 피직스 바디는 노랑색입니다.
+1. 자주 저장 ![](Shared\Icons\icon_SaveAsset_40x.png) 합니다.
+
+피직스 애셋 툴에서 사용가능한 각 버튼 및 프로퍼티에 대한 상세 정보는 [](Engine/Physics\PhAT\Reference), [](Engine/Physics\PhAT\Properties) 문서를 
+참고하시기 바랍니다.
+
+[PUBLISH:licensee]
+[REGION:note]
+체인지리스트# 1977557 부로 피직스 바디와 피직스 컨스트레인트에 대한 다중 선택이 가능해져, 한 번에 여러개의 바디나 컨스트레인트를 편집할 수 있습니다.
+[/REGION]
+[/PUBLISH]
+
+### 피직스 바디 삭제하기
+
+1. 바디 편집 모드를 ![](Shared\Icons\icon_PHatMode_Body_40x.png) 켭니다.
+1. 삭제하고자 하는 피직스 바디를 선택합니다.
+	* 원하는 피직스 바디 확인이 어려운 경우, **뷰포트** -> **모드** -> **메시 렌더 모드** -> **와이어프레임/없음** 을 선택하여 스켈레탈 메시의 표시여부를 조정합니다.
+1. Delete 키를 누릅니다.
+
+	![](Shared\PhAT\PhAT_DelBone.png)
+
+### 새 피직스 바디 생성하기
+
+![](PhATUG_addBody.png)(w:900)
+
+1. 계층구조 패널에서 기존의 피직스 바디나 본에 우클릭합니다.
+1. 뜨는 맥락메뉴에서 추가하고자 하는 피직스 바디 유형을 선택합니다.
+
+	계층구조 패널의 본에 이미 피직스 바디가 없는 경우, 우클릭 맥락 메뉴에는 "바디 추가" 옵션만 나타납니다.
+
+	마지막으로, 계층구조 패널에서 피직스 바디가 없는 본에 그냥 더블클릭하면 "바디 추가" 가 가능합니다.
+
+
+### 피직스 바디 사이의 콜리전 켜고 끄기
+
+[REGION:simpletable]
+| --- | --- |
+|[INCLUDE:#ImgColOn]| [INCLUDE:#ColOn] |
+|[INCLUDE:#ImgColOff]| [INCLUDE:#ColOff] |
+[/REGION]
+
+<!--
+
+[EXCERPT:ImgColOn]
+[REGION:lightbox]
+[![](Shared\PhAT\PhAT_collisionOn.png)(w:350)](Shared\PhAT\PhAT_collisionOn.png)
+[/REGION]
+[/EXCERPT:ImgColOn]
+
+[EXCERPT:ImgColOff]
+[REGION:lightbox]
+[![](Shared\PhAT\PhAT_collisionOff.png)(w:350)](Shared\PhAT\PhAT_collisionOff.png)
+[/REGION]
+[/EXCERPT:ImgColOff]
+
+[EXCERPT:ColOn]
+[REGION:raw]
+**콜리전 켜기**
+
+1. Ctrl + 클릭으로 둘 이상의 피직스 바디를 선택합니다.
+1. "콜리전 켬" ![](Shared\Icons\icon_PhAT_EnableCollision_40x.png) 버튼을 클릭합니다.
+
+
+[/REGION]
+[/EXCERPT:ColOn]
+
+[EXCERPT:ColOff]
+**콜리전 끄기** 
+
+1. Ctrl + 클릭으로 둘 이상의 피직스 바디를 선택합니다.
+1. "콜리전 끔" ![](Shared\Icons\icon_PhAT_DisableCollision_40x.png) button.
+
+[/EXCERPT:ColOff]
+
+-->
+
+
+### 결합하기
+
+피직스 바디 결합(Weld)은 다수의 바디를 하나인 것처럼 움직이게 만드는 것은 물론, 상호 연결된 스켈레탈 메시 조인트를 고정시키기도 합니다. 하나의 피직스 바디를 다른 것에 결합시키려면:
+
+1. Ctrl + 클릭으로 둘 이상의 피직스 바디를 선택합니다.
+1. "결합" ![](Shared\Icons\icon_PhAT_Weld_40x.png) 버튼을 클릭합니다.
+
+
+현재 선택된 피직스 바디에 결합된 피직스 바디는 노랗게 표시됩니다.
+
+
+### 피지컬 머티리얼
+
+피직스 애셋의 각 피직스 바디에는 피지컬 머티리얼을 할당할 수 있습니다. 하나의 피직스 바디에 피직스 머티리얼을 적용하려면:
+
+1. 바디 편집 모드를 ![](Shared\Icons\icon_PHatMode_Body_40x.png) 켭니다.
+1. 뷰포트나 계층구조 패널에서 피직스 바디를 선택합니다.
+	* 원하는 피직스 바디 확인이 어려운 경우, **뷰포트** -> **모드** -> **메시 렌더 모드** -> **와이어프레임/없음** 을 선택하여 스켈레탈 메시의 표시여부를 
+	조정합니다.
+1. 디테일 패널에서 Simple Collision Physical Material 프로퍼티를 찾아 피지컬 머티리얼을 할당합니다.
+
+[REGION:raw]
+![](Engine/Physics\PhysicalMaterials\PhysMatUserGuide\PhysMat_PhAT_04.png)(w:920)
+[/REGION]
+
+
+## 컨스트레인트
+
+[REGION:note]
+피직스 컨스트레인트 사용법은 [](Engine/Physics\Constraints\ConstraintsUserGuide), 그 프로퍼티에 대해서는 [](Engine/Physics\Constraints\ConstraintsReference) 문서를 참고해 주세요. 여기서는 피직스 애셋 관련 또는 규범에서 크게 벗어난 작업방식에 대해서만 다루겠습니다.
+[/REGION]
+
+### 피직스 컨스트레인트 편집하기
+
+1. 컨스트레인트 편집 모드를 ![](Shared\Icons\icon_PHatMode_Joint_40x.png) 켭니다.
+1. 뷰포트나 계층구조 패널에서 피직스 컨스트레인트를 선택합니다.
+1. 피직스 컨스트레인트를 이동 및 회전시켜 피직스 컨스트레인트가 이루게 될 "조인트" 의 회전점을 만듭니다.
+1. 디테일 패널에서 피직스 컨스트레인트의 프로퍼티를 편집합니다.
+
+	[REGION:tip]
+	Swing1, Swing2, Twist 의 Limited 에서 Locked 로의 빠른 전환은 각각 "**1**", "**2**", "**3**" 키로 가능합니다. "**4**" 키를 사용해서 하나는 Limited 로 
+	나머지 둘은 Locked 로 순환 전환 가능합니다.
+	[/REGION]
+
+1. 자주 저장 ![](Shared\Icons\icon_SaveAsset_40x.png) 합니다.
+
+
+
+피직스 애셋 툴에서 사용할 수 있는 각 버튼과 프로퍼티에 대한 상세 정보는 [](Engine/Physics\PhAT\Reference), [](Engine/Physics\PhAT\Properties) 
+문서를 참고하세요.
+
+
+
+
+### 피직스 컨스트레인트 정렬하기
+
+피직스 컨스트레인트의 Linear / Angular 제한을 사용하면 그 정렬 상태를 확인할 수 있습니다:
+
+![](PhATUG_Limits.png)(w:300 convert:false)
+
+여기서 피직스 컨스트레인트를 이동 및 회전시켜 제한을 원하는 결과대로 정렬시킬 수 있습니다. 가장 기본적인 용어로, 피직스 컨스트레인트가 제한되면, 
+녹색 원호 또는 원뿔형 구조에 정착된 노란 선을 볼 수 있습니다. 그 선이 이 원호 내지 원뿔 안에 "constrained", 제약된 것입니다.
+
+피직스 컨스트레인트와 그 프로퍼티 관련 상세 정보는 [](Engine/Physics\Constraints\ConstraintsUserGuide) 문서를 참고하세요..
+
+
+### 피직스 컨스트레인트 삭제하기
+
+[REGION:note]
+삭제된 피직스 컨스트레인트는 쉽게 재생성할 수 있는 방법이 없으니, 삭제할 때는 이 점 염두에 두시기 바랍니다.
+[/REGION]
+
+1. 컨스트레인트 편집 모드를 ![](Shared\Icons\icon_PHatMode_Joint_40x.png) 켭니다.
+1. 삭제하고자 하는 피직스 컨스트레인트를 선택합니다.
+1. Delete 키를 누릅니다.
+
+
+### 피직스 컨스트레인트 재생성하기
+
+[REGION:note]
+삭제된 피직스 컨스트레인트는 쉽게 재생성할 수 있는 방법이 없으니, 삭제할 때는 이 점 염두에 두시기 바랍니다.
+[/REGION]
+
+피직스 컨스트레인트는 피직스 바디 생성시에만 생성되며, 상향식으로만 생성됩니다. 즉 어깨에서부터 피직스 컨스트레인트를 제거한다면, 
+상박 피직스 바디를 제거(하면 팔꿈치 피직스 컨스트레인트도 제거)한 다음 상박 피직스 바디를 재생성해 줘야 할 것입니다. 그러면 어깨 피직스 컨스트레인트는 생성되지만, 
+팔꿈치 피직스 컨스트레인트는 생성되지 않으므로, 팔까지 이 작업을 해 줘야 합니다.
+
+
+### 컨스트레인트 스냅
+
+피직스 컨스트레인트에 대한 스냅은, 피직스 컨스트레인트의 파랑 로케이터 위치와 방향을 빨강 로케이터의 위치와 방향으로 끌어붙이는 식으로 이루어집니다.
+
+컨스트레인트 스냅 ![](Shared\Icons\icon_PhAT_SnapConstraint_40x.png) 버튼을 사용하여 현재 선택된 피직스 컨스트레인트를 스냅시킬 수 있습니다.
+
+
+## 피직스 바디와 피직스 컨스트레인트 둘 다
+
+### 바디와 컨스트레인트 복사하기
+
+어느 모드에 있든, 피직스 바디 또는 컨스트레인트의 프로퍼티를 다른 피직스 바디나 컨스트레인트에 복사할 수 있습니다:
+
+1. 데이터를 복사하고자 하는 피직스 바디 또는 컨스트레인트를 선택합니다.
+1. Ctrl + C 를 누릅니다.
+1. 데이터를 적용하고자 하는 피직스 바디 또는 컨스트레인트를 선택합니다.
+1. Ctrl + V 를 누릅니다.
+
+
+피직스 바디의 모양은 덮어쓰지 않습니다.
+
+
+## 테스트하기
+
+**시뮬레이션** ![](Shared\Icons\icon_PhAT_PlaySim_40x.png) 버튼을 누르면 피직스 애셋을 테스트해 볼 수 있습니다.
+
+![](Shared\PhAT\PhAT_Sim.png)
+
+**시뮬레이션** 버튼 옆의 아래 삼각형을 누르면 **실제 시뮬레이션** 또는 **무중력 시뮬레이션** 중에서 선택할 수 있습니다:
+
+* **Real Simulation** - 실제 시뮬레이션은 전체 피직스 애셋에 중력 포함 시뮬레이션을 적용합니다.
+* **No Gravity** - 무중력 시뮬레이션은 전체 피직스 애셋에 시뮬레이션을 적용하되 중력은 적용하지 않아, Ctrl+클릭으로 무중력 상태에서 피직스 바디를 찔러볼 수 있습니다.
+
+	상호관통된 피직스 바디나 제한된 피직스 컨스트레인트가 이미 그 한계를 벗어난 부분이 있는지 찾아내기에 좋습니다.
+
+**Selected Simulation** (선택된 시뮬레이션) ![](selectedToggle_button.png) 버튼을 켜고 **시뮬레이션** ![](Shared\Icons\icon_PhAT_PlaySim_40x.png) 버튼을 클릭하는 것으로도 조인트 체인 시뮬레이션이 가능합니다.
+
+* **Selected Simulation** - 선택 시뮬레이션은 말 그대로, (Ctrl + 클릭으로 다중) 선택된 피직스 바디 **그리고** 계층구조상 
+그 선택된 바디에 딸려있는 것들에 대해서만 시뮬레이션을 적용합니다. 즉 어깨를 선택했다면, 전체 팔도 시뮬레이션이 적용됩니다.
+
+
+
+## 폭발 (Exploding)
+
+서로 관통되는 두 개의 피직스 바디가 있을 때, 피직스 시스템이 보정하는 과정에서 피직스 바디를 서로 밀어내기 위해 엄청난 양의 힘을 가할 때 발생하는 현상입니다. 
+피직스 컨스트레인트가 피직스 바디에 계속해서 걸리적거리는 경우, 피직스 시스템은 지속적으로 그 사이를 벌리기 위해 힘을 가하게 되어, 매우 엉뚱하고 심각한 동작이 발생합니다.
+
+![](brokenPhAT.png)
+
+이는 보통 걸리적거리는 두 피직스 바디 사이의 콜리전을 끄거나, 상호관통하지 않도록 그 위치 및/또는 스케일을 조절하는 것으로 해결합니다. 
+또한, 결합된 피직스 바디는 상호관통 여부와는 관계없이 하나인 것처럼 작동합니다.
+
+## 떨림 (Jitter)
+
+피직스 애셋이 거의 "무너졌으나"(collapse) 바닥에서 계속 떨림이나 경련은 있되 크게 튕기지는 않는 경우, 멈추어 잠들 수 있도록 조정할 수 있는 값이 
+몇 가지 있습니다.
+
+다른 작업을 하기 전, **무중력 시뮬레이션** 을 해 보면, 피직스 컨스트레인트 정렬이 잘못된 부분이 표시되어 피직스 애셋이 바닥헤 닿기도 전 
+교정할 수 있습니다.
+
+종종 모든 피직스 애셋의 피직스 바디에 **Linear** / **Angular Damping** (선형 / 각형 제동) 값을 조금 주는 것으로 애셋의 떨림은 막을 수 있습니다. 
+그러나 **Linear Damping** 에 큰 값을 주면, 중력 때문에라도 피직스 바디의 운동 속도를 늦추게 될 수 있습니다. 여기서 구현된 **Damping** (제동)은 "drag"(항력)이라 볼 수는 없으며, 
+점성이 있는 물질속을 이동하는 것에 가깝습니다.
+
+지터링이 계속 문제가 되는 경우, 정말 작은 피직스 바디가 여러개 있기 때문일 수 있습니다. [](Engine/Physics/Substepping) 문서에서 피직스 시뮬레이션의 
+중간 솔루션 계산 관련 정보를 참고하시기 바랍니다.
+
+피직스 컨스트레인트의 프로퍼티 관련 상세 정보는 [](Engine/Physics/PhAT/Reference), [](Engine/Physics/Constraints/ConstraintsReference) 문서를 참고하세요.
+
+
+
+
+
+

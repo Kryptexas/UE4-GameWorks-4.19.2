@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "CookingStatsPCH.h"
 #include "ModuleManager.h"
 
 DEFINE_LOG_CATEGORY(LogCookingStats);
+
+#define ENABLE_COOKINGSTATS 0
 
 FCookingStats::FCookingStats()
 {
@@ -27,6 +29,7 @@ void FCookingStats::AddTag(const FName& Key, const FName& Tag)
 
 void FCookingStats::AddTagValue(const FName& Key, const FName& Tag, const FString& TagValue)
 {
+#if ENABLE_COOKINGSTATS
 	FScopeLock ScopeLock(&SyncObject);
 	auto Value = KeyTags.Find(Key);
 
@@ -35,51 +38,14 @@ void FCookingStats::AddTagValue(const FName& Key, const FName& Tag, const FStrin
 		Value = &KeyTags.Add(Key);
 	}
 
-	Value->Add(Tag, FTag(TagValue));
+	Value->Add(Tag, TagValue);
+#endif
 }
 
-void FCookingStats::AddTagValue(const FName& Key, const FName& Tag, const float TagValue)
-{
-	FScopeLock ScopeLock(&SyncObject);
-	auto Value = KeyTags.Find(Key);
-
-	if (Value == nullptr)
-	{
-		Value = &KeyTags.Add(Key);
-	}
-
-	Value->Add(Tag, FTag(TagValue));
-}
-
-
-void FCookingStats::AddTagValue(const FName& Key, const FName& Tag, const int32 TagValue)
-{
-	FScopeLock ScopeLock(&SyncObject);
-	auto Value = KeyTags.Find(Key);
-
-	if (Value == nullptr)
-	{
-		Value = &KeyTags.Add(Key);
-	}
-
-	Value->Add(Tag, FTag(TagValue));
-}
-
-void FCookingStats::AddTagValue(const FName& Key, const FName& Tag, const bool TagValue)
-{
-	FScopeLock ScopeLock(&SyncObject);
-	auto Value = KeyTags.Find(Key);
-
-	if (Value == nullptr)
-	{
-		Value = &KeyTags.Add(Key);
-	}
-
-	Value->Add(Tag, FTag(TagValue));
-}
 
 bool FCookingStats::GetTagValue(const FName& Key, const FName& TagName, FString& OutValue) const
 {
+#if ENABLE_COOKINGSTATS
 	FScopeLock ScopeLock(&SyncObject);
 	auto Tags = KeyTags.Find(Key);
 
@@ -94,12 +60,16 @@ bool FCookingStats::GetTagValue(const FName& Key, const FName& TagName, FString&
 	{
 		return false;
 	}
-	OutValue = Value->ToString();
+	OutValue = *Value;
 	return true;
+#else
+	return false;
+#endif
 }
 
-bool FCookingStats::SaveStatsAsCSV(const FString& Filename) const
+bool FCookingStats::SaveStatsAsCSV(const FString& Filename)
 {
+#if ENABLE_COOKINGSTATS
 	FString Output;
 	FScopeLock ScopeLock(&SyncObject);
 
@@ -114,9 +84,9 @@ bool FCookingStats::SaveStatsAsCSV(const FString& Filename) const
 			if (Tag.Value.IsEmpty() == false)
 			{
 				Output += TEXT("=");
-				Output += Tag.Value.ToString();
+				Output += Tag.Value;
 			}
-
+			
 		}
 
 		for (const auto& Tag : GlobalTags)
@@ -134,6 +104,7 @@ bool FCookingStats::SaveStatsAsCSV(const FString& Filename) const
 	}
 
 	FFileHelper::SaveStringToFile(Output, *Filename);
+#endif
 	return true;
 }
 

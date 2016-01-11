@@ -1,7 +1,6 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CrashReportClientApp.h"
-#include "CrashDebugHelperModule.h"
 #include "GenericErrorReport.h"
 #include "XmlFile.h"
 #include "CrashReportUtil.h"
@@ -31,7 +30,6 @@ namespace
 
 FGenericErrorReport::FGenericErrorReport(const FString& Directory)
 	: ReportDirectory(Directory)
-	, bValidCallstack(true)
 {
 	auto FilenamesVisitor = MakeDirectoryVisitor([this](const TCHAR* FilenameOrDirectory, bool bIsDirectory) {
 		if (!bIsDirectory)
@@ -43,30 +41,53 @@ FGenericErrorReport::FGenericErrorReport(const FString& Directory)
 	FPlatformFileManager::Get().GetPlatformFile().IterateDirectory(*ReportDirectory, FilenamesVisitor);
 }
 
-bool FGenericErrorReport::SetUserComment(const FText& UserComment)
+bool FGenericErrorReport::SetUserComment(const FText& UserComment, bool bAllowToBeContacted)
 {
-	const bool bAllowToBeContacted = FCrashReportClientConfig::Get().GetAllowToBeContacted();
-
 	const FString UserName1 = FPlatformProcess::UserName( false );
 	const FString UserName2 = FPlatformProcess::UserName( true );
 	const TCHAR* Anonymous = TEXT( "Anonymous" );
-
-	FPrimaryCrashProperties::Get()->UserDescription = UserComment.ToString();
 
 	// Load the file and remove all PII if bAllowToBeContacted is set to false.
 	const bool bRemovePersonalData = !bAllowToBeContacted;
 	if( bRemovePersonalData )
 	{
-		FPrimaryCrashProperties::Get()->UserName = TEXT( "" );
-		FPrimaryCrashProperties::Get()->EpicAccountId = TEXT( "" );
-		// For now remove the command line completely, to hide the potential personal data. Need to revisit it later.
-		FPrimaryCrashProperties::Get()->CommandLine = TEXT( "CommandLineRemoved" );
+		FString CrashContextFilename;
+		const bool bFound = FindFirstReportFileWithExtension( CrashContextFilename, TEXT( ".runtime-xml" ) );
+		if (bFound)
+		{
+			const FString CrashContextPath = GetReportDirectory() / CrashContextFilename;
+
+			// Cannot use FXMLFile because runtime-xml may contain multi line elements.
+			FString CrashContextString;
+			FFileHelper::LoadFileToString( CrashContextString, *CrashContextPath );
+
+			// Remove UserName and EpicAccountId;
+			TArray<FString> Lines;
+			CrashContextString.ParseIntoArrayLines( Lines, true );
+
+			for( auto& It : Lines )
+			{
+				// Replace user name in assert message, command line etc.
+				It = It.Replace( *UserName1, Anonymous );
+				It = It.Replace( *UserName2, Anonymous );
+
+				if (It.Contains( TEXT( "<UserName>" ) ))
+				{
+					It = TEXT( "<UserName></UserName>" );
+				}
+				else if (It.Contains( TEXT( "<EpicAccountId>" ) ))
+				{
+					It = TEXT( "<EpicAccountId></EpicAccountId>" );
+				}
+			}
+
+			const FString FixedCrashContextString = FString::Join( Lines, TEXT( "\n" ) );
+			FFileHelper::SaveStringToFile( FixedCrashContextString, *CrashContextPath );
+		}
+
+		// #YRX_Crash: 2015-07-01 Move to FGenericCrashContext
 	}
 
-	// Save updated properties, including removed all PII if bAllowToBeContacted is set to false.
-	FPrimaryCrashProperties::Get()->Save();
-
-	// Remove it later, in the next iteration.
 	// Find .xml file
 	FString XmlFilename;
 	if (!FindFirstReportFileWithExtension(XmlFilename, TEXT(".xml")))
@@ -133,9 +154,13 @@ bool FGenericErrorReport::SetUserComment(const FText& UserComment)
 	{
 		DynamicSignaturesNode->AppendChildNode(TEXT("Parameter3"), UserComment.ToString());
 	}
+	
+
+	// Set global user name ID: will be added to the report
+	extern FCrashDescription& GetCrashDescription();
 
 	// @see FCrashDescription::UpdateIDs
-	const FString EpicMachineAndUserNameIDs = FString::Printf( TEXT( "!MachineId:%s!EpicAccountId:%s!Name:%s" ), *FPrimaryCrashProperties::Get()->MachineId.AsString(), *FPrimaryCrashProperties::Get()->EpicAccountId.AsString(), *FPrimaryCrashProperties::Get()->UserName.AsString() );
+	const FString EpicMachineAndUserNameIDs = FString::Printf( TEXT( "!MachineId:%s!EpicAccountId:%s!Name:%s" ), *GetCrashDescription().MachineId, *GetCrashDescription().EpicAccountId, *GetCrashDescription().UserName );
 
 	// Add or update a user ID.
 	FXmlNode* Parameter4Node = DynamicSignaturesNode->FindChildNode(TEXT("Parameter4"));
@@ -164,26 +189,6 @@ bool FGenericErrorReport::SetUserComment(const FText& UserComment)
 	return XmlFile.Save(XmlFilePath);
 }
 
-void FGenericErrorReport::SetPrimaryCrashProperties( FPrimaryCrashProperties& out_PrimaryCrashProperties )
-{
-	FCrashDebugHelperModule& CrashHelperModule = FModuleManager::LoadModuleChecked<FCrashDebugHelperModule>( FName( "CrashDebugHelper" ) );
-	ICrashDebugHelper* Helper = CrashHelperModule.Get();
-	if (Helper && bValidCallstack)
-	{
-		out_PrimaryCrashProperties.CallStack = Helper->CrashInfo.Exception.CallStackString;
-		out_PrimaryCrashProperties.Modules = Helper->CrashInfo.ModuleNames;
-		out_PrimaryCrashProperties.SourceContext = Helper->CrashInfo.SourceContext;
-
-		// If error message is empty, it means general crash like accessing invalid memory ptr.
-		if (out_PrimaryCrashProperties.ErrorMessage.AsString().Len() == 0)
-		{
-			out_PrimaryCrashProperties.ErrorMessage = Helper->CrashInfo.Exception.ExceptionString;
-		}
-
-		out_PrimaryCrashProperties.Save();
-	}
-}
-
 TArray<FString> FGenericErrorReport::GetFilesToUpload() const
 {
 	TArray<FString> FilesToUpload;
@@ -207,7 +212,7 @@ bool FGenericErrorReport::LoadWindowsReportXmlFile( FString& OutString ) const
 	return FFileHelper::LoadFileToString( OutString, *(ReportDirectory / XmlFilename) );
 }
 
-bool FGenericErrorReport::TryReadDiagnosticsFile()
+bool FGenericErrorReport::TryReadDiagnosticsFile(FText& OutReportDescription)
 {
 	FString FileContent;
 	if (!FFileHelper::LoadFileToString(FileContent, *(ReportDirectory / FCrashReportClientConfig::Get().GetDiagnosticsFilename())))
@@ -231,6 +236,8 @@ bool FGenericErrorReport::TryReadDiagnosticsFile()
 	{
 		switch (ReportSection)
 		{
+		default:
+			CRASHREPORTCLIENT_CHECK(false);
 
 		case EReportSection::CallStack:
 			if (Line.StartsWith(CallStackEndKey))
@@ -269,19 +276,11 @@ bool FGenericErrorReport::TryReadDiagnosticsFile()
 			break;
 		}
 	}
-
-	// Update properties for the crash.
-	FPrimaryCrashProperties::Get()->CallStack = Callstack;
-	// If error message is empty, it means general crash like accessing invalid memory ptr.
-	if (FPrimaryCrashProperties::Get()->ErrorMessage.AsString().Len() == 0)
-	{
-		FPrimaryCrashProperties::Get()->ErrorMessage = Exception;
-	}
-
+	OutReportDescription = FCrashReportUtil::FormatReportDescription( Exception, TEXT( "" ), Callstack );
 	return true;
 }
 
-bool FGenericErrorReport::FindFirstReportFileWithExtension( FString& OutFilename, const TCHAR* Extension ) const
+bool FGenericErrorReport::FindFirstReportFileWithExtension(FString& OutFilename, const TCHAR* Extension) const
 {
 	for (const auto& Filename: ReportFilenames)
 	{

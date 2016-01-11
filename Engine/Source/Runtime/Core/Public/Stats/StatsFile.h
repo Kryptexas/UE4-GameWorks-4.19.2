@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -281,10 +281,6 @@ struct FStatsStreamHeader
 	}
 };
 
-/*-----------------------------------------------------------------------------
-	FStatsFrameInfo
------------------------------------------------------------------------------*/
-
 /**
  * Contains basic information about one frame of the stats.
  * This data is used to generate ultra-fast preview of the stats history without the requirement of reading the whole file.
@@ -321,19 +317,96 @@ struct FStatsFrameInfo
 	TMap<uint32, int64> ThreadCycles;
 };
 
-/*-----------------------------------------------------------------------------
-	FStatsWriteStream
------------------------------------------------------------------------------*/
-
-/** Struct used to send a stream of stat messages. */
-struct CORE_API FStatsWriteStream
+/** Interface for writing stats data. Can be only used in the stats thread. */
+struct CORE_API IStatsWriteFile
 {
+	friend class FAsyncStatsWrite;
+
+protected:
+	/** Stats file archive. */
+	FArchive* File;
+
+	/** Filename of the archive that we are writing to. */
+	FString ArchiveFilename;
+
+	/** Stats stream header. */
+	FStatsStreamHeader Header;
+
+	/** Set of names already sent. */
+	TSet<int32> FNamesSent;
+
+	/** Async task used to offload saving the capture data. */
+	FAsyncTask<FAsyncStatsWrite>* AsyncTask;
+
+	/** Data to write through the async task. **/
+	TArray<uint8> OutData;
+
+	/** Buffer to store the compressed data, used by the FAsyncStatsWrite. */
+	TArray<uint8> CompressedData;
+
+	/**
+	 *  Array of stats frames info already captured.
+	 *  !!CAUTION!!
+	 *  Only modified in the async write thread through FinalizeSavingData method.
+	 */
+	TArray<FStatsFrameInfo> FramesInfo;
+
+protected:
+	/** Default constructor. */
+	IStatsWriteFile();
+
+public:
+	/** Destructor. */
+	virtual ~IStatsWriteFile()
+	{}
+
+protected:
+	/** NewFrame delegate handle  */
+	FDelegateHandle DataDelegateHandle;
+
+public:
+	/** Creates a file writer and registers for the data delegate. */
+	void Start( const FString& InFilename );
+
+	/** Finalizes writing the stats data and unregisters the data delegate. */
+	void Stop();
+
+protected:
+	/** Sets the data delegate used to receive a stats data. */
+	virtual void SetDataDelegate( bool bSet ) = 0;
+
+	/** Finalization code called after the compressed data has been saved. */
+	virtual void FinalizeSavingData( int64 FrameFileOffset )
+	{};
+
+	bool IsValid() const
+	{
+		return !!File;
+	}
+
+public:
+	const TArray<uint8>& GetOutData() const
+	{
+		return OutData;
+	}
+
+	void ResetData()
+	{
+		OutData.Reset();
+	}
+
+	/** Writes magic value, dummy header and initial metadata. */
+	void WriteHeader();
+
 protected:
 	/** Writes metadata messages into the stream. */
 	void WriteMetadata( FArchive& Ar );
 
-	/** Writes condensed messages into the stream. */
-	void WriteCondensedMessages( FArchive& Ar, int64 TargetFrame );
+	/**	Finalizes writing to the file. */
+	void Finalize();
+
+	/** Sends the data to the file via async task. */
+	void SendTask();
 
 	/** Sends an FName, and the string it represents if we have not sent that string before. **/
 	FORCEINLINE_STATS void WriteFName( FArchive& Ar, FStatNameAndInfo NameAndInfo )
@@ -343,13 +416,13 @@ protected:
 		int32 Index = RawName.GetComparisonIndex();
 		Ar << Index;
 		int32 Number = NameAndInfo.GetRawNumber();
-		if (bSendFName)
+		if( bSendFName )
 		{
 			FNamesSent.Add( RawName.GetComparisonIndex() );
 			Number |= EStatMetaFlags::SendingFName << (EStatMetaFlags::Shift + EStatAllFields::StartShift);
 		}
 		Ar << Number;
-		if (bSendFName)
+		if( bSendFName )
 		{
 			FString Name = RawName.ToString();
 			Ar << Name;
@@ -360,7 +433,7 @@ protected:
 	FORCEINLINE_STATS void WriteMessage( FArchive& Ar, FStatMessage const& Item )
 	{
 		WriteFName( Ar, Item.NameAndInfo );
-		switch (Item.NameAndInfo.GetField<EStatDataType>())
+		switch( Item.NameAndInfo.GetField<EStatDataType>() )
 		{
 			case EStatDataType::ST_int64:
 			{
@@ -368,7 +441,7 @@ protected:
 				Ar << Payload;
 				break;
 			}
-
+				
 			case EStatDataType::ST_double:
 			{
 				double Payload = Item.GetValue_double();
@@ -390,97 +463,6 @@ protected:
 			}
 		}
 	}
-
-	/** Set of names already sent. */
-	TSet<int32> FNamesSent;
-
-	/** Data to write. */
-	TArray<uint8> OutData;
-};
-
-/*-----------------------------------------------------------------------------
-	IStatsWriteFile
------------------------------------------------------------------------------*/
-
-/** Interface for writing stats data. Can be only used in the stats thread. */
-struct CORE_API IStatsWriteFile : public FStatsWriteStream
-{
-	friend class FAsyncStatsWrite;
-
-protected:
-	/** Stats file archive. */
-	FArchive* File;
-
-	/** Filename of the archive that we are writing to. */
-	FString ArchiveFilename;
-
-	/** Stats stream header. */
-	FStatsStreamHeader Header;
-
-	/** Async task used to offload saving the capture data. */
-	FAsyncTask<FAsyncStatsWrite>* AsyncTask;
-
-	/** Buffer to store the compressed data, used by the FAsyncStatsWrite. */
-	TArray<uint8> CompressedData;
-
-	/**
-	 *  Array of stats frames info already captured.
-	 *  !!CAUTION!!
-	 *  Only modified in the async write thread through FinalizeSavingData method.
-	 */
-	TArray<FStatsFrameInfo> FramesInfo;
-
-	/** NewFrame delegate handle  */
-	FDelegateHandle DataDelegateHandle;
-
-	/** The size of the stats file, sets by the async writing thread. */
-	int64 FileSize;
-
-	/** Start time of the 'stat startfile', in seconds. */
-	double StartTime;
-
-protected:
-	/** Default constructor. */
-	IStatsWriteFile();
-
-public:
-	/** Destructor. */
-	virtual ~IStatsWriteFile()
-	{}
-
-	/** Creates a file writer and registers for the data delegate. */
-	void Start( const FString& InFilename );
-
-	/** Finalizes writing the stats data and unregisters the data delegate. */
-	void Stop();
-
-	/**
-	 * @return the stats file metadata description like the current size and the duration of the stats session.
-	 */
-	FText GetFileMetaDesc() const;
-
-protected:
-	/** Sets the data delegate used to receive a stats data. */
-	virtual void SetDataDelegate( bool bSet ) = 0;
-
-	/** Finalization code called after the compressed data has been saved. */
-	virtual void FinalizeSavingData( int64 FrameFileOffset )
-	{};
-
-	bool IsValid() const
-	{
-		return !!File;
-	}
-
-	/** Writes magic value, dummy header and initial metadata. */
-	void WriteHeader();
-
-protected:
-	/**	Finalizes writing to the file. */
-	void Finalize();
-
-	/** Sends the data to the file via async task. */
-	void SendTask();
 };
 
 /** Helper struct used to write regular stats to the file. */
@@ -504,11 +486,23 @@ protected:
 
 	virtual void FinalizeSavingData( int64 FrameFileOffset ) override;
 
+public:
+	/**
+	 *	Grabs a frame from the local FStatsThreadState and writes it to the array.
+	 *	Only used by the ProfilerServiceManager.
+	 */
+	void WriteFrame( int64 TargetFrame, bool bNeedFullMetadata );
+
+protected:
 	/**
 	 *	Grabs a frame from the local FStatsThreadState and adds it to the output.
 	 *	Called from the stats thread, but the data is saved using the the FAsyncStatsWrite. 
 	 */
-	void WriteFrame( int64 TargetFrame );
+	void WriteFrame( int64 TargetFrame )
+	{
+		WriteFrame( TargetFrame, false );
+		SendTask();
+	}
 };
 
 /** Helper struct used to write raw stats to the file. */
@@ -805,16 +799,16 @@ enum class EStatsProcessingStage : int32
 struct FStatsReadFile;
 
 /**
- *	Helper class used to read and process stats file on the async task.
+ *	Helper class used to read and process raw stats file on the async task.
  */
-class FAsyncStatsFile
+class FAsyncRawStatsFile
 {
 	/** Pointer to FStatsReadFile to call for async work. */
 	FStatsReadFile* Owner;
 
 public:
 	/** Initialization constructor. */
-	FAsyncStatsFile( FStatsReadFile* InOwner );
+	FAsyncRawStatsFile( FStatsReadFile* InOwner );
 
 	/** Call DoWork on the parent */
 	void DoWork();
@@ -861,10 +855,10 @@ struct FStackState
 -----------------------------------------------------------------------------*/
 
 template<typename T>
-struct FStatsReader
+struct FCreateStatsReader
 {
-	/** Creates a new reader for raw/regular stats file based on the T. Will be nullptr for invalid files. */	
-	static T* Create( const TCHAR* Filename )
+	/** Creates a new reader for raw stats file. Will be nullptr for invalid files. */	
+	static T* ForRawStats( const TCHAR* Filename )
 	{
 		T* StatsReadFile = new T( Filename );
 		const bool bValid = StatsReadFile->PrepareLoading();
@@ -879,11 +873,13 @@ struct FStatsReader
 /** Struct used to read from ue4stats/ue4statsraw files, initializes all metadata and starts a process of reading the file asynchronously. */
 struct CORE_API FStatsReadFile
 {
-	friend class FAsyncStatsFile;
-	friend struct FStatsReader<FStatsReadFile>;
+	friend class FAsyncRawStatsFile;
 
 	/** Number of seconds between updating the current stage. */
 	static const double NumSecondsBetweenUpdates;
+
+	/** Creates a new reader for regular stats file. Will be nullptr for invalid files. */
+	static FStatsReadFile* CreateReaderForRegularStats( const TCHAR* Filename );
 
 public:
 	/** Reads and processes the file on the current thread. This is a blocking operation. */
@@ -891,19 +887,6 @@ public:
 
 	/** Reads and processes the file using the async tasks on the pool thread. The read data is sent to the game thread using the task graph. This is a non-blocking operation. */
 	void ReadAndProcessAsynchronously();
-
-	/** Sets the number of frame to be stored for future use. */
-	void SetHistoryFrames( int32 InHistoryFrames );
-
-	/**
-	 * @return number of frames in the file.
-	 * For regular stat file valid after creating a reader.
-	 * For raw stat file reading whole file.
-	 */
-	int32 GetNumFrames() const
-	{
-		return NumFrames;
-	}
 
 protected:
 	/** Initialization constructor. */
@@ -920,24 +903,14 @@ protected:
 	 */
 	bool PrepareLoading();
 
-	/** Reads stats from the file. */
+	/** Reads stats from the file into combined history. */
 	void ReadStats();
 
-	/** Reads raw stats. */
-	void ReadRawStats();
-
-	/** Reads regular stats. */
-	void ReadRegularStats();
-
-	/** Called before started processing. */
+	/** Called before started processing combined history. */
 	virtual void PreProcessStats();
 
 	/** Processes combined history using the internal functionality and provided overloaded Process*Operation methods. */
 	void ProcessStats();
-
-	/** Called every each frame has been read from the file. */
-	virtual void ReadStatsFrame( const TArray<FStatMessage>& CondensedMessages, const int64 Frame )
-	{}
 
 	/** Called after finished processing combined history. */
 	virtual void PostProcessStats();
@@ -1103,7 +1076,7 @@ protected:
 	FArchive* Reader;
 
 	/** Async task. */
-	FAsyncTask<FAsyncStatsFile>* AsyncWork;
+	FAsyncTask<FAsyncRawStatsFile>* AsyncWork;
 
 	/** Basic information about the stats file. */
 	FRawStatsFileInfo FileInfo;
@@ -1131,9 +1104,6 @@ protected:
 
 	/** Filename. */
 	const FString Filename;
-
-	/** Number of frames. */
-	int32 NumFrames;
 
 	/** Whether this stats file uses raw data. */
 	const bool bRawStatsFile;
@@ -1164,24 +1134,9 @@ struct FCommandStatsFile
 	/** Stat StopFile. */
 	void Stop();
 
-	/**
-	 * @return true, if any stats write command is active.
-	 */
-	bool IsStatFileActive() const
+	bool IsStatFileActive()
 	{
 		return StatFileActiveCounter.GetValue() > 0;
-	}
-
-	/**
-	* @return the stats file metadata description like the current size and the duration of the stats session.
-	*/
-	FText GetFileMetaDesc() const
-	{
-		if (IsStatFileActive() && CurrentStatsFile != nullptr)
-		{
-			return CurrentStatsFile->GetFileMetaDesc();
-		}
-		return FText();
 	}
 
 	/** Filename of the last saved stats file. */

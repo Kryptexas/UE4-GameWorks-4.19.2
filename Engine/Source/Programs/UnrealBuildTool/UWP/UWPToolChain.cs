@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -13,16 +13,21 @@ namespace UnrealBuildTool
 {
 	public class UWPToolChain : UEToolChain
 	{
-		public UWPToolChain() 
-			: base(CPPTargetPlatform.UWP)
+		public override void RegisterToolChain()
 		{
+			if( UWPPlatform.bEnableUWPSupport )
+			{ 
+				// Register this tool chain for UWP
+				Log.TraceVerbose("        Registered for {0}", CPPTargetPlatform.UWP.ToString());
+				UEToolChain.RegisterPlatformToolChain(CPPTargetPlatform.UWP, this);
+			}
 		}
 
 		static void AppendCLArguments_Global(CPPEnvironment CompileEnvironment, VCEnvironment EnvVars, StringBuilder Arguments)
 		{
 			//Arguments.Append(" /showIncludes");
 
-			if (BuildConfiguration.bEnableCodeAnalysis)
+			if( BuildConfiguration.bEnableCodeAnalysis )
 			{
 				Arguments.Append(" /analyze");
 
@@ -55,8 +60,11 @@ namespace UnrealBuildTool
 			// Compile into an .obj file, and skip linking.
 			Arguments.Append(" /c");
 
-			// Allow 800% of the default memory allocation limit.
-			Arguments.Append(" /Zm800");
+			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2012 || WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
+			{
+				// Allow 800% of the default memory allocation limit when compiling with old compilers
+				Arguments.Append(" /Zm800");
+			}
 
 			// Allow large object files to avoid hitting the 2^16 section limit when running with -StressTestUnity.
 			Arguments.Append(" /bigobj");
@@ -73,7 +81,7 @@ namespace UnrealBuildTool
 				Arguments.Append(" /D_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS");
 			}
 
-			if (BuildConfiguration.bUseSharedPCHs)
+			if ( BuildConfiguration.bUseSharedPCHs )
 			{
 				// @todo SharedPCH: Disable warning about PCH defines not matching .cpp defines.  We "cheat" these defines a little
 				// bit to make shared PCHs work.  But it's totally safe.  Trust us.
@@ -112,7 +120,7 @@ namespace UnrealBuildTool
 				Arguments.Append(" /Os");
 
 				// Allow inline method expansion unless E&C support is requested
-				if (!BuildConfiguration.bSupportEditAndContinue)
+				if( !BuildConfiguration.bSupportEditAndContinue )
 				{
 					// @todo UWP: No inlining in Debug builds except in the editor where DLL exports/imports aren't handled properly in module _API macros.
 					if (UEBuildConfiguration.bBuildEditor)
@@ -146,7 +154,7 @@ namespace UnrealBuildTool
 				Arguments.Append(" /Ot");
 
 				// Only omit frame pointers on the PC (which is implied by /Ox) if wanted.
-				if (BuildConfiguration.bOmitFramePointers == false
+				if ( BuildConfiguration.bOmitFramePointers == false
 				&& (CompileEnvironment.Config.Target.Platform == CPPTargetPlatform.UWP))
 				{
 					Arguments.Append(" /Oy-");
@@ -160,7 +168,7 @@ namespace UnrealBuildTool
 				//
 				if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
 				{
-					if (BuildConfiguration.bAllowLTCG)
+					if( BuildConfiguration.bAllowLTCG )
 					{
 						// Enable link-time code generation.
 						Arguments.Append(" /GL");
@@ -185,7 +193,7 @@ namespace UnrealBuildTool
 				if (BuildConfiguration.bUsePDBFiles)
 				{
 					// Create debug info suitable for E&C if wanted.
-					if (BuildConfiguration.bSupportEditAndContinue &&
+					if ( BuildConfiguration.bSupportEditAndContinue &&
 						// We only need to do this in debug as that's the only configuration that supports E&C.
 						CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
 					{
@@ -257,7 +265,7 @@ namespace UnrealBuildTool
 				Arguments.Append(" /ZW");
 				Arguments.Append(" /DUSE_WINRT_MAIN=1");
 				// TODO - richiem - this will have to be updated when final layout SDKs are available
-				if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 &&
+				if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 && 
 					Directory.Exists(Path.Combine(EnvVars.WindowsSDKExtensionDir, "UnionMetadata")))
 				{
 					Arguments.AppendFormat(@" /AI""{0}\UnionMetadata""", EnvVars.WindowsSDKExtensionDir);
@@ -269,7 +277,7 @@ namespace UnrealBuildTool
 
 		}
 
-		static void AppendCLArguments_CPP(CPPEnvironment CompileEnvironment, StringBuilder Arguments)
+		static void AppendCLArguments_CPP( CPPEnvironment CompileEnvironment, StringBuilder Arguments)
 		{
 			// Explicitly compile the file as C++.
 			Arguments.Append(" /TP");
@@ -300,12 +308,12 @@ namespace UnrealBuildTool
 			// Level 4 warnings.
 			Arguments.Append(" /W3");
 		}
-
+		
 		static void AppendCLArguments_C(StringBuilder Arguments)
 		{
 			// Explicitly compile the file as C.
 			Arguments.Append(" /TC");
-
+		
 			// Level 0 warnings.  Needed for external C projects that produce warnings at higher warning levels.
 			Arguments.Append(" /W0");
 		}
@@ -322,12 +330,6 @@ namespace UnrealBuildTool
 			{
 				// Output debug info for the linked executable.
 				Arguments.Append(" /DEBUG");
-
-				// Allow partial PDBs for faster linking
-				if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 && BuildConfiguration.bUseFastPDBLinking)
-				{
-					Arguments.Append(":FASTLINK");
-				}
 			}
 
 			// Prompt the user before reporting internal errors to Microsoft.
@@ -354,7 +356,7 @@ namespace UnrealBuildTool
 				Arguments.Append(" /SUBSYSTEM:WINDOWS");
 			}
 
-			if (LinkEnvironment.Config.bIsBuildingConsoleApplication && !LinkEnvironment.Config.bIsBuildingDLL && !String.IsNullOrEmpty(LinkEnvironment.Config.WindowsEntryPointOverride))
+			if (LinkEnvironment.Config.bIsBuildingConsoleApplication && !LinkEnvironment.Config.bIsBuildingDLL && !String.IsNullOrEmpty( LinkEnvironment.Config.WindowsEntryPointOverride ) )
 			{
 				// Use overridden entry point
 				Arguments.Append(" /ENTRY:" + LinkEnvironment.Config.WindowsEntryPointOverride);
@@ -395,7 +397,7 @@ namespace UnrealBuildTool
 			//
 			//	Shipping & LTCG
 			//
-			if (BuildConfiguration.bAllowLTCG &&
+			if( BuildConfiguration.bAllowLTCG &&
 				LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
 			{
 				// Use link-time code generation.
@@ -491,7 +493,7 @@ namespace UnrealBuildTool
 
 		public override CPPOutput CompileCPPFiles(UEBuildTarget Target, CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
 		{
-			var EnvVars = VCEnvironment.SetEnvironment(CompileEnvironment.Config.Target.Platform, false);
+			var EnvVars = VCEnvironment.SetEnvironment(CompileEnvironment.Config.Target.Platform);
 
 			StringBuilder Arguments = new StringBuilder();
 			AppendCLArguments_Global(CompileEnvironment, EnvVars, Arguments);
@@ -522,13 +524,13 @@ namespace UnrealBuildTool
 				// Add explicit .NET framework assembly references				
 				foreach (string AssemblyName in CompileEnvironment.Config.FrameworkAssemblyDependencies)
 				{
-					Arguments.AppendFormat(" /FU \"{0}\"", AssemblyName);
+					Arguments.AppendFormat( " /FU \"{0}\"", AssemblyName );
 				}
 
 				// Add private assembly references				
-				foreach (PrivateAssemblyInfo CurAssemblyInfo in CompileEnvironment.PrivateAssemblyDependencies)
+				foreach( PrivateAssemblyInfo CurAssemblyInfo in CompileEnvironment.PrivateAssemblyDependencies )
 				{
-					Arguments.AppendFormat(" /FU \"{0}\"", CurAssemblyInfo.FileItem.AbsolutePath);
+					Arguments.AppendFormat( " /FU \"{0}\"", CurAssemblyInfo.FileItem.AbsolutePath );
 				}
 			}
 
@@ -559,9 +561,9 @@ namespace UnrealBuildTool
 				// If this is a CLR file then make sure our dependent assemblies are added as prerequisites
 				if (CompileEnvironment.Config.CLRMode == CPPCLRMode.CLREnabled)
 				{
-					foreach (PrivateAssemblyInfo CurPrivateAssemblyDependency in CompileEnvironment.PrivateAssemblyDependencies)
+					foreach( PrivateAssemblyInfo CurPrivateAssemblyDependency in CompileEnvironment.PrivateAssemblyDependencies )
 					{
-						CompileAction.PrerequisiteItems.Add(CurPrivateAssemblyDependency.FileItem);
+						CompileAction.PrerequisiteItems.Add( CurPrivateAssemblyDependency.FileItem );
 					}
 				}
 
@@ -569,8 +571,8 @@ namespace UnrealBuildTool
 				if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
 				{
 					// Generate a CPP File that just includes the precompiled header.
-					string PCHCPPFilename = "PCH." + ModuleName + "." + CompileEnvironment.Config.PrecompiledHeaderIncludeFilename.GetFileName() + ".cpp";
-					FileReference PCHCPPPath = FileReference.Combine(CompileEnvironment.Config.OutputDirectory, PCHCPPFilename);
+					string PCHCPPFilename = "PCH." + ModuleName + "." + Path.GetFileName(CompileEnvironment.Config.PrecompiledHeaderIncludeFilename) + ".cpp";
+					string PCHCPPPath = Path.Combine(CompileEnvironment.Config.OutputDirectory, PCHCPPFilename);
 					FileItem PCHCPPFile = FileItem.CreateIntermediateTextFile(
 						PCHCPPPath,
 						string.Format("#include \"{0}\"\r\n", CompileEnvironment.Config.PrecompiledHeaderIncludeFilename)
@@ -578,15 +580,15 @@ namespace UnrealBuildTool
 
 					// Make sure the original source directory the PCH header file existed in is added as an include
 					// path -- it might be a private PCH header and we need to make sure that its found!
-					string OriginalPCHHeaderDirectory = Path.GetDirectoryName(SourceFile.AbsolutePath);
+					string OriginalPCHHeaderDirectory = Path.GetDirectoryName( SourceFile.AbsolutePath );
 					FileArguments.AppendFormat(" /I \"{0}\"", OriginalPCHHeaderDirectory);
 
-					var PrecompiledFileExtension = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.UWP).GetBinaryExtension(UEBuildBinaryType.PrecompiledHeader);
+					var PrecompiledFileExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.UWP].GetBinaryExtension(UEBuildBinaryType.PrecompiledHeader);
 					// Add the precompiled header file to the produced items list.
-					FileItem PrecompiledHeaderFile = FileItem.GetItemByFileReference(
-						FileReference.Combine(
+					FileItem PrecompiledHeaderFile = FileItem.GetItemByPath(
+						Path.Combine(
 							CompileEnvironment.Config.OutputDirectory,
-							Path.GetFileName(SourceFile.AbsolutePath) + PrecompiledFileExtension
+						Path.GetFileName(SourceFile.AbsolutePath) + PrecompiledFileExtension
 							)
 						);
 					CompileAction.ProducedItems.Add(PrecompiledHeaderFile);
@@ -604,7 +606,7 @@ namespace UnrealBuildTool
 					{
 						// NOTE: The symbol name we use here is arbitrary, and all that matters is that it is
 						// unique per PCH module used in our library
-						string FakeUniquePCHSymbolName = CompileEnvironment.Config.PrecompiledHeaderIncludeFilename.GetFileNameWithoutExtension();
+						string FakeUniquePCHSymbolName = Path.GetFileNameWithoutExtension(CompileEnvironment.Config.PrecompiledHeaderIncludeFilename);
 						FileArguments.AppendFormat(" /Yl{0}", FakeUniquePCHSymbolName);
 					}
 
@@ -630,22 +632,22 @@ namespace UnrealBuildTool
 							// Force include the precompiled header file.  This is needed because we may have selected a
 							// precompiled header that is different than the first direct include in the C++ source file, but
 							// we still need to make sure that our precompiled header is the first thing included!
-							FileArguments.AppendFormat(" /FI\"{0}\"", CompileEnvironment.Config.PCHHeaderNameInCode);
+							FileArguments.AppendFormat( " /FI\"{0}\"", CompileEnvironment.Config.PCHHeaderNameInCode);
 						}
 					}
 
 					// Add the source file path to the command-line.
 					FileArguments.AppendFormat(" \"{0}\"", SourceFile.AbsolutePath);
 
-					CompileAction.StatusDescription = Path.GetFileName(SourceFile.AbsolutePath);
+					CompileAction.StatusDescription = Path.GetFileName( SourceFile.AbsolutePath );
 				}
 
-				if (bEmitsObjectFile)
+				if( bEmitsObjectFile )
 				{
-					var ObjectFileExtension = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.UWP).GetBinaryExtension(UEBuildBinaryType.Object);
+					var ObjectFileExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.UWP].GetBinaryExtension(UEBuildBinaryType.Object);
 					// Add the object file to the produced item list.
-					FileItem ObjectFile = FileItem.GetItemByFileReference(
-						FileReference.Combine(
+					FileItem ObjectFile = FileItem.GetItemByPath(
+						Path.Combine(
 							CompileEnvironment.Config.OutputDirectory,
 							Path.GetFileName(SourceFile.AbsolutePath) + ObjectFileExtension
 							)
@@ -669,18 +671,18 @@ namespace UnrealBuildTool
 					// All files using the same PCH are required to share the same PDB that was used when compiling the PCH
 					if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Include)
 					{
-						PDBFileName = "PCH." + ModuleName + "." + CompileEnvironment.Config.PrecompiledHeaderIncludeFilename.GetFileName();
+						PDBFileName = "PCH." + ModuleName + "." + Path.GetFileName(CompileEnvironment.Config.PrecompiledHeaderIncludeFilename);
 					}
 					// Files creating a PCH use a PDB per file.
 					else if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
 					{
-						PDBFileName = "PCH." + ModuleName + "." + CompileEnvironment.Config.PrecompiledHeaderIncludeFilename.GetFileName();
+						PDBFileName = "PCH." + ModuleName + "." + Path.GetFileName(CompileEnvironment.Config.PrecompiledHeaderIncludeFilename);
 						bActionProducesPDB = true;
 					}
 					// Ungrouped C++ files use a PDB per file.
-					else if (!bIsPlainCFile)
+					else if( !bIsPlainCFile )
 					{
-						PDBFileName = Path.GetFileName(SourceFile.AbsolutePath);
+						PDBFileName = Path.GetFileName( SourceFile.AbsolutePath );
 						bActionProducesPDB = true;
 					}
 					// Group all plain C files that doesn't use PCH into the same PDB
@@ -690,8 +692,8 @@ namespace UnrealBuildTool
 					}
 
 					// Specify the PDB file that the compiler should write to.
-					FileItem PDBFile = FileItem.GetItemByFileReference(
-							FileReference.Combine(
+					FileItem PDBFile = FileItem.GetItemByPath(
+							Path.Combine(
 								CompileEnvironment.Config.OutputDirectory,
 								PDBFileName + ".pdb"
 								)
@@ -702,7 +704,7 @@ namespace UnrealBuildTool
 					// the one that produces the PDB (as opposed to no debug info, where the above code
 					// is needed, but not the output PDB, or when multiple files share a single PDB, so
 					// only the action that generates it should count it as output directly)
-					if (BuildConfiguration.bUsePDBFiles && bActionProducesPDB)
+					if( BuildConfiguration.bUsePDBFiles && bActionProducesPDB )
 					{
 						CompileAction.ProducedItems.Add(PDBFile);
 						Result.DebugDataFiles.Add(PDBFile);
@@ -719,11 +721,11 @@ namespace UnrealBuildTool
 					AppendCLArguments_CPP(CompileEnvironment, FileArguments);
 				}
 
-				CompileAction.WorkingDirectory = UnrealBuildTool.EngineSourceDirectory.FullName;
-				CompileAction.CommandPath = EnvVars.CompilerPath;
+				CompileAction.WorkingDirectory = Path.GetFullPath(".");
+				CompileAction.CommandPath      = EnvVars.CompilerPath;
 				CompileAction.CommandArguments = Arguments.ToString() + FileArguments.ToString() + CompileEnvironment.Config.AdditionalArguments;
 
-				if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
+				if( CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create )
 				{
 					Log.TraceVerbose("Creating PCH: " + CompileEnvironment.Config.PrecompiledHeaderIncludeFilename);
 					Log.TraceVerbose("     Command: " + CompileAction.CommandArguments);
@@ -754,7 +756,7 @@ namespace UnrealBuildTool
 
 		public override CPPOutput CompileRCFiles(UEBuildTarget Target, CPPEnvironment Environment, List<FileItem> RCFiles)
 		{
-			var EnvVars = VCEnvironment.SetEnvironment(Environment.Config.Target.Platform, false);
+			var EnvVars = VCEnvironment.SetEnvironment(Environment.Config.Target.Platform);
 
 			CPPOutput Result = new CPPOutput();
 
@@ -764,7 +766,7 @@ namespace UnrealBuildTool
 			{
 				Action CompileAction = new Action(ActionType.Compile);
 				CompileAction.CommandDescription = "Resource";
-				CompileAction.WorkingDirectory = UnrealBuildTool.EngineSourceDirectory.FullName;
+				CompileAction.WorkingDirectory = Path.GetFullPath(".");
 				CompileAction.CommandPath = EnvVars.ResourceCompilerPath;
 				CompileAction.StatusDescription = Path.GetFileName(RCFile.AbsolutePath);
 
@@ -781,13 +783,13 @@ namespace UnrealBuildTool
 				// Include paths.
 				foreach (string IncludePath in Environment.Config.CPPIncludeInfo.IncludePaths)
 				{
-					CompileAction.CommandArguments += string.Format(" /i \"{0}\"", IncludePath);
+					CompileAction.CommandArguments += string.Format( " /i \"{0}\"", IncludePath );
 				}
 
 				// System include paths.
-				foreach (var SystemIncludePath in Environment.Config.CPPIncludeInfo.SystemIncludePaths)
+				foreach( var SystemIncludePath in Environment.Config.CPPIncludeInfo.SystemIncludePaths)
 				{
-					CompileAction.CommandArguments += string.Format(" /i \"{0}\"", SystemIncludePath);
+					CompileAction.CommandArguments += string.Format( " /i \"{0}\"", SystemIncludePath );
 				}
 
 				// Preprocessor definitions.
@@ -797,8 +799,8 @@ namespace UnrealBuildTool
 				}
 
 				// Add the RES file to the produced item list.
-				FileItem CompiledResourceFile = FileItem.GetItemByFileReference(
-					FileReference.Combine(
+				FileItem CompiledResourceFile = FileItem.GetItemByPath(
+					Path.Combine(
 						Environment.Config.OutputDirectory,
 						Path.GetFileName(RCFile.AbsolutePath) + ".res"
 						)
@@ -819,11 +821,11 @@ namespace UnrealBuildTool
 
 		public override FileItem LinkFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly)
 		{
-			var EnvVars = VCEnvironment.SetEnvironment(LinkEnvironment.Config.Target.Platform, false);
+			var EnvVars = VCEnvironment.SetEnvironment(LinkEnvironment.Config.Target.Platform);
 
 			if (LinkEnvironment.Config.bIsBuildingDotNetAssembly)
 			{
-				return FileItem.GetItemByFileReference(LinkEnvironment.Config.OutputFilePath);
+				return FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePath);
 			}
 
 			bool bIsBuildingLibrary = LinkEnvironment.Config.bIsBuildingLibrary || bBuildImportLibraryOnly;
@@ -849,7 +851,7 @@ namespace UnrealBuildTool
 				Arguments.Append(" /DEF");
 
 				// Ensure that the import library references the correct filename for the linked binary.
-				Arguments.AppendFormat(" /NAME:\"{0}\"", LinkEnvironment.Config.OutputFilePath.GetFileName());
+				Arguments.AppendFormat(" /NAME:\"{0}\"", Path.GetFileName(LinkEnvironment.Config.OutputFilePath));
 			}
 
 
@@ -884,8 +886,8 @@ namespace UnrealBuildTool
 			// file is not needed for our builds, but there is no way to prevent MSVC from generating it when
 			// linking targets that have exports.  We don't want this to clobber our LIB file and invalidate the
 			// existing timstamp, so instead we simply emit it with a different name
-			FileReference ImportLibraryFilePath = FileReference.Combine(LinkEnvironment.Config.IntermediateDirectory,
-														 LinkEnvironment.Config.OutputFilePath.GetFileNameWithoutExtension() + ".lib");
+			string ImportLibraryFilePath = Path.Combine( LinkEnvironment.Config.IntermediateDirectory, 
+														 Path.GetFileNameWithoutExtension(LinkEnvironment.Config.OutputFilePath) + ".lib" );
 
 			if (LinkEnvironment.Config.bIsCrossReferenced && !bBuildImportLibraryOnly)
 			{
@@ -895,11 +897,11 @@ namespace UnrealBuildTool
 			FileItem OutputFile;
 			if (bBuildImportLibraryOnly)
 			{
-				OutputFile = FileItem.GetItemByFileReference(ImportLibraryFilePath);
+				OutputFile = FileItem.GetItemByPath(ImportLibraryFilePath);
 			}
 			else
 			{
-				OutputFile = FileItem.GetItemByFileReference(LinkEnvironment.Config.OutputFilePath);
+				OutputFile = FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePath);
 				OutputFile.bNeedsHotReloadNumbersDLLCleanUp = LinkEnvironment.Config.bIsBuildingDLL;
 			}
 
@@ -943,12 +945,12 @@ namespace UnrealBuildTool
 			}
 
 			// Create a response file for the linker
-			FileReference ResponseFileName = GetResponseFileName(LinkEnvironment, OutputFile);
+			string ResponseFileName = GetResponseFileName( LinkEnvironment, OutputFile );
 
 			// Never create response files when we are only generating IntelliSense data
-			if (!ProjectFileGenerator.bGenerateProjectFiles)
+			if( !ProjectFileGenerator.bGenerateProjectFiles )
 			{
-				ResponseFile.Create(ResponseFileName, InputFileNames);
+				ResponseFile.Create( ResponseFileName, InputFileNames );
 			}
 			Arguments.AppendFormat(" @\"{0}\"", ResponseFileName);
 
@@ -958,8 +960,8 @@ namespace UnrealBuildTool
 			if (bBuildImportLibraryOnly || (LinkEnvironment.Config.bHasExports && !bIsBuildingLibrary))
 			{
 				// An export file is written to the output directory implicitly; add it to the produced items list.
-				FileReference ExportFilePath = ImportLibraryFilePath.ChangeExtension(".exp");
-				FileItem ExportFile = FileItem.GetItemByFileReference(ExportFilePath);
+				string ExportFilePath = Path.ChangeExtension(ImportLibraryFilePath, ".exp");
+				FileItem ExportFile = FileItem.GetItemByPath(ExportFilePath);
 				ProducedItems.Add(ExportFile);
 			}
 
@@ -970,7 +972,7 @@ namespace UnrealBuildTool
 					(LinkEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Shipping))
 				{
 					// Write the import library to the output directory for nFringe support.
-					FileItem ImportLibraryFile = FileItem.GetItemByFileReference(ImportLibraryFilePath);
+					FileItem ImportLibraryFile = FileItem.GetItemByPath(ImportLibraryFilePath);
 					Arguments.AppendFormat(" /IMPLIB:\"{0}\"", ImportLibraryFilePath);
 					ProducedItems.Add(ImportLibraryFile);
 				}
@@ -978,8 +980,8 @@ namespace UnrealBuildTool
 				if (LinkEnvironment.Config.bCreateDebugInfo)
 				{
 					// Write the PDB file to the output directory.			
-					FileReference PDBFilePath = FileReference.Combine(LinkEnvironment.Config.OutputDirectory, Path.GetFileNameWithoutExtension(OutputFile.AbsolutePath) + ".pdb");
-					FileItem PDBFile = FileItem.GetItemByFileReference(PDBFilePath);
+					string PDBFilePath = Path.Combine(LinkEnvironment.Config.OutputDirectory, Path.GetFileNameWithoutExtension(OutputFile.AbsolutePath) + ".pdb");
+					FileItem PDBFile = FileItem.GetItemByPath(PDBFilePath);
 					Arguments.AppendFormat(" /PDB:\"{0}\"", PDBFilePath);
 					ProducedItems.Add(PDBFile);
 
@@ -988,7 +990,7 @@ namespace UnrealBuildTool
 					if (true)
 					{
 						string MAPFilePath = Path.Combine(LinkEnvironment.Config.OutputDirectory, Path.GetFileNameWithoutExtension(OutputFile.AbsolutePath) + ".map");
-						FileItem MAPFile = FileItem.GetItemByFileReference(MAPFilePath);
+						FileItem MAPFile = FileItem.GetItemByPath(MAPFilePath);
 						LinkAction.CommandArguments += string.Format(" /MAP:\"{0}\"", MAPFilePath);
 						LinkAction.ProducedItems.Add(MAPFile);
 					}
@@ -1002,10 +1004,10 @@ namespace UnrealBuildTool
 			// Create an action that invokes the linker.
 			Action LinkAction = new Action(ActionType.Link);
 			LinkAction.CommandDescription = "Link";
-			LinkAction.WorkingDirectory = UnrealBuildTool.EngineSourceDirectory.FullName;
-			LinkAction.CommandPath = bIsBuildingLibrary ? EnvVars.LibraryLinkerPath : EnvVars.LinkerPath;
-			LinkAction.CommandArguments = Arguments.ToString();
-			LinkAction.ProducedItems.AddRange(ProducedItems);
+			LinkAction.WorkingDirectory   = Path.GetFullPath(".");
+			LinkAction.CommandPath        = bIsBuildingLibrary ? EnvVars.LibraryLinkerPath : EnvVars.LinkerPath;
+			LinkAction.CommandArguments   = Arguments.ToString();
+			LinkAction.ProducedItems    .AddRange(ProducedItems);
 			LinkAction.PrerequisiteItems.AddRange(PrerequisiteItems);
 			LinkAction.StatusDescription = Path.GetFileName(OutputFile.AbsolutePath);
 
@@ -1022,16 +1024,14 @@ namespace UnrealBuildTool
 			return OutputFile;
 		}
 
-
-		/// <summary>
-		/// Gets the default include paths for the given platform.
-		/// </summary>
+  
+		/** Gets the default include paths for the given platform. */
 		public static string GetVCIncludePaths(CPPTargetPlatform Platform)
 		{
 			Debug.Assert(Platform == CPPTargetPlatform.UWP);
 
 			// Make sure we've got the environment variables set up for this target
-			VCEnvironment.SetEnvironment(Platform, false);
+			VCEnvironment.SetEnvironment(Platform);
 
 			// Also add any include paths from the INCLUDE environment variable.  MSVC is not necessarily running with an environment that
 			// matches what UBT extracted from the vcvars*.bat using SetEnvironmentVariablesFromBatchFile().  We'll use the variables we
@@ -1042,7 +1042,7 @@ namespace UnrealBuildTool
 			{
 				IncludePaths += ";";
 			}
-
+			
 			return IncludePaths;
 		}
 	};

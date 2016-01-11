@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "Abilities/Tasks/AbilityTask_WaitConfirm.h"
@@ -11,7 +11,6 @@ UAbilityTask_WaitConfirm::UAbilityTask_WaitConfirm(const FObjectInitializer& Obj
 
 void UAbilityTask_WaitConfirm::OnConfirmCallback(UGameplayAbility* InAbility)
 {
-	ABILITYTASK_MSG("OnConfirmCallback");
 	OnConfirm.Broadcast();
 
 	// We are done. Kill us so we don't keep getting broadcast messages
@@ -25,7 +24,7 @@ UAbilityTask_WaitConfirm* UAbilityTask_WaitConfirm::WaitConfirm(class UObject* W
 
 void UAbilityTask_WaitConfirm::Activate()
 {
-	if (Ability)
+	if (Ability.IsValid())
 	{
 		if (Ability->GetCurrentActivationInfo().ActivationMode == EGameplayAbilityActivationMode::Predicting)
 		{
@@ -37,14 +36,14 @@ void UAbilityTask_WaitConfirm::Activate()
 		else
 		{
 			// We have already been confirmed, just call the OnConfirm callback
-			OnConfirmCallback(Ability);
+			OnConfirmCallback(Ability.Get());
 		}
 	}
 }
 
 void UAbilityTask_WaitConfirm::OnDestroy(bool AbilityEnded)
 {
-	if (RegisteredCallback && Ability)
+	if (RegisteredCallback && Ability.IsValid())
 	{
 		Ability->OnConfirmDelegate.Remove(OnConfirmCallbackDelegateHandle);
 	}

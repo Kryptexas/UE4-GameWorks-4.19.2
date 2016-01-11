@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "EnvironmentQuery/Contexts/EnvQueryContext_Querier.h"
@@ -19,20 +19,15 @@ UEnvQueryGenerator_ActorsOfClass::UEnvQueryGenerator_ActorsOfClass(const FObject
 
 void UEnvQueryGenerator_ActorsOfClass::GenerateItems(FEnvQueryInstance& QueryInstance) const
 {
-	UObject* QueryOwner = QueryInstance.Owner.Get();
-	if (QueryOwner == nullptr)
-	{
-		return;
-	}
-	
-	UWorld* World = GEngine->GetWorldFromContextObject(QueryOwner);
-	if (World == nullptr || SearchedActorClass == nullptr)
+	SearchRadius.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
+	float RadiusValue = SearchRadius.GetValue();
+
+	UWorld* World = GEngine->GetWorldFromContextObject(QueryInstance.Owner.Get());
+	if (World == NULL || SearchedActorClass == NULL)
 	{
 		return;
 	}
 
-	SearchRadius.BindData(QueryOwner, QueryInstance.QueryID);
-	const float RadiusValue = SearchRadius.GetValue();
 	const float RadiusSq = FMath::Square(RadiusValue);
 
 	TArray<FVector> ContextLocations;

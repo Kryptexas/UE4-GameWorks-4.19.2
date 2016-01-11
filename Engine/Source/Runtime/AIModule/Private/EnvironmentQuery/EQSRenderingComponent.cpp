@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "Engine/Canvas.h"
@@ -16,7 +16,7 @@ namespace FEQSRenderingHelper
 		if (Items.IsValidIndex(Index) &&
 			ItemType->IsChildOf(UEnvQueryItemType_VectorBase::StaticClass()))
 		{
-			UEnvQueryItemType_VectorBase* DefTypeOb = ItemType->GetDefaultObject<UEnvQueryItemType_VectorBase>();
+			UEnvQueryItemType_VectorBase* DefTypeOb = (UEnvQueryItemType_VectorBase*)ItemType->GetDefaultObject();
 			return DefTypeOb->GetItemLocation(RawData.GetData() + Items[Index].DataOffset);
 		}
 		return FVector::ZeroVector;
@@ -37,7 +37,6 @@ FEQSSceneProxy::FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FSt
 	TextWithoutShadowDistance = 1500;
 	ViewFlagIndex = uint32(FEngineShowFlags::FindIndexByName(*InViewFlagName));
 	ViewFlagName = InViewFlagName;
-	bWantsSelectionOutline = false;
 
 	if (InComponent == NULL)
 	{
@@ -74,7 +73,6 @@ FEQSSceneProxy::FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FSt
 	TextWithoutShadowDistance = 1500;
 	ViewFlagIndex = uint32(FEngineShowFlags::FindIndexByName(*InViewFlagName));
 	ViewFlagName = InViewFlagName;
-	bWantsSelectionOutline = false;
 
 	Spheres = InSpheres;
 	Texts = InTexts;
@@ -294,7 +292,7 @@ bool FEQSSceneProxy::SafeIsActorSelected() const
 	return false;
 }
 
-FPrimitiveViewRelevance FEQSSceneProxy::GetViewRelevance(const FSceneView* View) const
+FPrimitiveViewRelevance FEQSSceneProxy::GetViewRelevance(const FSceneView* View)
 {
 	FPrimitiveViewRelevance Result;
 	Result.bDrawRelevance = View->Family->EngineShowFlags.GetSingleFlag(ViewFlagIndex) && IsShown(View) 

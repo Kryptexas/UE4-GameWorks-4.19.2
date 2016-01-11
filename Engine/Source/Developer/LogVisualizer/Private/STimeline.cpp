@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LogVisualizer.h"
 #include "STimeline.h"
@@ -32,6 +32,12 @@ FReply STimelineLabelAnchor::OnMouseButtonDown(const FGeometry& MyGeometry, cons
 	return FReply::Unhandled();
 }
 
+
+STimeline::~STimeline()
+{
+	ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->OnSettingChanged().RemoveAll(this);
+}
+
 FReply STimeline::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	Owner->ChangeSelection(SharedThis(this), MouseEvent);
@@ -39,49 +45,56 @@ FReply STimeline::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerE
 	return FReply::Unhandled();
 }
 
-FReply STimeline::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
+FReply STimeline::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	FReply ReturnValue = FReply::Unhandled();
-	if (IsSelected() == false)
-	{
-		return ReturnValue;
-	}
-
-	return FLogVisualizer::Get().GetEvents().OnKeyboardEvent.Execute(MyGeometry, InKeyEvent);
+	return FReply::Unhandled();
 }
 
 bool STimeline::IsSelected() const
 {
 	// Ask the tree if we are selected
-	return FVisualLoggerDatabase::Get().IsRowSelected(GetName());
+	return Owner->IsNodeSelected(SharedThis(const_cast<STimeline*>(this)));
+}
+
+void STimeline::OnSelect()
+{
+	if (TimelineBar.IsValid())
+	{
+		TimelineBar->OnSelect();
+	}
+}
+
+void STimeline::OnDeselect()
+{
+	if (TimelineBar.IsValid())
+	{
+		TimelineBar->OnDeselect();
+	}
 }
 
 void STimeline::UpdateVisibility()
 {
 	ULogVisualizerSettings* Settings = ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>();
+	const bool bJustIgnore = Settings->bIgnoreTrivialLogs && Entries.Num() <= Settings->TrivialLogsThreshold;
+	const bool bVisibleByOwnerClasses = FCategoryFiltersManager::Get().MatchObjectName(OwnerClassName.ToString());
+	const bool bIsCollapsed = bJustIgnore || HiddenEntries.Num() == Entries.Num() || (SearchFilter.Len() > 0 && Name.ToString().Find(SearchFilter) == INDEX_NONE);
 
-	if (FVisualLoggerDatabase::Get().ContainsRowByName(GetName()))
-	{
-		FVisualLoggerDBRow& DataRow = FVisualLoggerDatabase::Get().GetRowByName(GetName());
-		const TArray<FVisualLogDevice::FVisualLogEntryItem>& Entries = DataRow.GetItems();
-
-		const bool bJustIgnore = Settings->bIgnoreTrivialLogs && Entries.Num() <= Settings->TrivialLogsThreshold;
-		const bool bVisibleByOwnerClasses = FVisualLoggerFilters::Get().MatchObjectName(OwnerClassName.ToString());
-		const bool bIsCollapsed = bJustIgnore || DataRow.GetNumberOfHiddenItems() == Entries.Num() || (SearchFilter.Len() > 0 && OwnerName.ToString().Find(SearchFilter) == INDEX_NONE);
-
-		const bool bIsHidden = bIsCollapsed || !bVisibleByOwnerClasses;
-		SetVisibility(bIsHidden ? EVisibility::Collapsed : EVisibility::Visible);
-		if (bIsCollapsed)
-		{
-			Owner->SetSelectionState(SharedThis(this), false, false);
-		}
-
-		FVisualLoggerDatabase::Get().SetRowVisibility(GetName(), !bIsHidden);
-	}
-	else
+	SetVisibility(bIsCollapsed || !bVisibleByOwnerClasses ? EVisibility::Collapsed : EVisibility::Visible);
+	if (bIsCollapsed)
 	{
 		Owner->SetSelectionState(SharedThis(this), false, false);
-		FVisualLoggerDatabase::Get().SetRowVisibility(GetName(), false);
+	}
+}
+
+void STimeline::UpdateVisibilityForItems()
+{
+	HiddenEntries.Reset();
+	ULogVisualizerSettings* Settings = ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>();
+	const FString QuickSearchStrng = FCategoryFiltersManager::Get().GetSearchString(); 
+
+	for (auto& CurrentEntry : Entries)
+	{
+		UpdateVisibilityForEntry(CurrentEntry, QuickSearchStrng, Settings->bSearchInsideLogs);
 	}
 }
 
@@ -92,6 +105,7 @@ void STimeline::OnFiltersSearchChanged(const FText& Filter)
 
 void STimeline::OnFiltersChanged()
 {
+	UpdateVisibilityForItems();
 	UpdateVisibility();
 }
 
@@ -101,38 +115,89 @@ void STimeline::OnSearchChanged(const FText& Filter)
 	UpdateVisibility();
 }
 
+bool STimeline::IsEntryHidden(const FVisualLogDevice::FVisualLogEntryItem& EntryItem) const
+{
+	return HiddenEntries.Contains(&EntryItem);
+}
+
 void STimeline::HandleLogVisualizerSettingChanged(FName InName)
 {
 	UpdateVisibility();
 }
 
-const TArray<FVisualLogDevice::FVisualLogEntryItem>& STimeline::GetEntries()
+void STimeline::UpdateVisibilityForEntry(FVisualLogDevice::FVisualLogEntryItem& CurrentEntry, const FString& SearchString, bool bSearchInsideLogs)
 {
-	FVisualLoggerDBRow& DataRow = FVisualLoggerDatabase::Get().GetRowByName(GetName());
-	return DataRow.GetItems();
+	TArray<FVisualLoggerCategoryVerbosityPair> OutCategories;
+	FVisualLoggerHelpers::GetCategories(CurrentEntry.Entry, OutCategories);
+	bool bHasValidCategories = false;
+	for (FVisualLoggerCategoryVerbosityPair& Categoryair : OutCategories)
+	{
+		bHasValidCategories = bHasValidCategories || FCategoryFiltersManager::Get().MatchCategoryFilters(Categoryair.CategoryName.ToString(), Categoryair.Verbosity);
+	}
+
+	if (bSearchInsideLogs && bHasValidCategories && SearchString.Len() > 0)
+	{
+		bool bMatchSearchString = false;
+		for (const FVisualLogLine& CurrentLine : CurrentEntry.Entry.LogLines)
+		{
+			if (CurrentLine.Line.Find(SearchString) != INDEX_NONE || CurrentLine.Category.ToString().Find(SearchString) != INDEX_NONE)
+			{
+				bMatchSearchString = true;
+				break;
+			}
+		}
+		if (!bMatchSearchString)
+		{
+			for (const FVisualLogEvent& CurrentEvent : CurrentEntry.Entry.Events)
+			{
+				if (CurrentEvent.Name.Find(SearchString) != INDEX_NONE)
+				{
+					bMatchSearchString = true;
+					break;
+				}
+			}
+		}
+
+		if (!bMatchSearchString)
+		{
+			HiddenEntries.AddUnique(&CurrentEntry);
+		}
+	}
+	else
+	{
+		if (bHasValidCategories == false)
+		{
+			HiddenEntries.AddUnique(&CurrentEntry);
+		}
+	}
 }
 
 void STimeline::AddEntry(const FVisualLogDevice::FVisualLogEntryItem& Entry) 
 { 
-	//Entries.Add(Entry); 
+	Entries.Add(Entry); 
 
 	ULogVisualizerSettings* Settings = ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>();
 	
-	FVisualLoggerDBRow& DataRow = FVisualLoggerDatabase::Get().GetRowByName(GetName());
-	const TArray<FVisualLogDevice::FVisualLogEntryItem>& Entries = DataRow.GetItems();
-
+	UpdateVisibilityForEntry(Entries[Entries.Num() - 1], FCategoryFiltersManager::Get().GetSearchString(), Settings->bSearchInsideLogs);
 	UpdateVisibility();
 
+	if (Settings->bStickToRecentData && IsSelected())
+	{
+		TimelineBar->SnapScrubPosition(Entry.Entry.TimeStamp);
+	}
 }
 
-void STimeline::Construct(const FArguments& InArgs, TSharedPtr<FVisualLoggerTimeSliderController> TimeSliderController, TSharedPtr<STimelinesContainer> InContainer, FName InName, FName InOwnerClassName)
+void STimeline::Construct(const FArguments& InArgs, TSharedPtr<SVisualLoggerView> VisualLoggerView, TSharedPtr<FVisualLoggerTimeSliderController> TimeSliderController, TSharedPtr<STimelinesContainer> InContainer, const FVisualLogDevice::FVisualLogEntryItem& Entry)
 {
 	OnGetMenuContent = InArgs._OnGetMenuContent;
 
 	Owner = InContainer;
-	OwnerName = InName;
-	OwnerClassName = InOwnerClassName;
+	Name = Entry.OwnerName;
+	OwnerClassName = Entry.OwnerClassName;
 	
+	ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->OnSettingChanged().AddRaw(this, &STimeline::HandleLogVisualizerSettingChanged);
+
+
 	ChildSlot
 		[
 			SNew(SHorizontalBox)
@@ -140,7 +205,7 @@ void STimeline::Construct(const FArguments& InArgs, TSharedPtr<FVisualLoggerTime
 			.Padding(FMargin(0, 4, 0, 0))
 			.HAlign(HAlign_Fill)
 			.VAlign(VAlign_Fill)
-			.FillWidth(TAttribute<float>::Create(TAttribute<float>::FGetter::CreateLambda([=] { return FLogVisualizer::Get().GetAnimationOutlinerFillPercentage(); })))
+			.FillWidth(TAttribute<float>(VisualLoggerView.Get(), &SVisualLoggerView::GetAnimationOutlinerFillPercentage))
 			[
 				SAssignNew(PopupAnchor, STimelineLabelAnchor, SharedThis(this))
 				.OnGetMenuContent(OnGetMenuContent)
@@ -163,7 +228,7 @@ void STimeline::Construct(const FArguments& InArgs, TSharedPtr<FVisualLoggerTime
 							.VAlign(VAlign_Fill)
 							[
 								SNew(STextBlock)
-								.Text(FText::FromName(OwnerName))
+								.Text( FText::FromName(Name) )
 								.ShadowOffset(FVector2D(1.f, 1.f))
 							]
 							+ SVerticalBox::Slot()
@@ -193,33 +258,7 @@ void STimeline::Construct(const FArguments& InArgs, TSharedPtr<FVisualLoggerTime
 			]
 		];
 
-	ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->OnSettingChanged().AddRaw(this, &STimeline::HandleLogVisualizerSettingChanged);
-	FVisualLoggerDatabase::Get().GetEvents().OnNewItem.AddRaw(this, &STimeline::OnNewItemHandler);
-	FVisualLoggerDatabase::Get().GetEvents().OnRowSelectionChanged.AddRaw(this, &STimeline::OnRowSelectionChanged);
-}
-
-STimeline::~STimeline()
-{
-	ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->OnSettingChanged().RemoveAll(this);
-	FVisualLoggerDatabase::Get().GetEvents().OnNewItem.RemoveAll(this);
-	FVisualLoggerDatabase::Get().GetEvents().OnRowSelectionChanged.RemoveAll(this);
-}
-
-void STimeline::OnRowSelectionChanged(const TArray<FName>& RowNames)
-{
-	if (RowNames.Num() > 0)
-	{
-		const FName RowName = RowNames[RowNames.Num() - 1];
-	}
-}
-
-void STimeline::OnNewItemHandler(const FVisualLoggerDBRow& BDRow, int32 ItemIndex)
-{
-	const FVisualLogDevice::FVisualLogEntryItem& Entry = BDRow.GetItems()[ItemIndex];
-	if (GetName() == Entry.OwnerName)
-	{
-		AddEntry(Entry);
-	}
+	AddEntry(Entry);
 }
 
 const FSlateBrush* STimeline::GetBorder() const
@@ -236,28 +275,34 @@ const FSlateBrush* STimeline::GetBorder() const
 
 void STimeline::Goto(float ScrubPosition) 
 { 
-
+	TimelineBar->SnapScrubPosition(ScrubPosition); 
 }
 
 void STimeline::GotoNextItem() 
 { 
-	FLogVisualizer::Get().GotoNextItem(GetName());
+	TimelineBar->GotoNextItem(); 
 }
 
 void STimeline::GotoPreviousItem() 
 { 
-	FLogVisualizer::Get().GotoPreviousItem(GetName());
+	TimelineBar->GotoPreviousItem(); 
 }
 
 void STimeline::MoveCursorByDistance(int32 Distance)
 {
 	if (Distance > 0)
 	{
-		FLogVisualizer::Get().GotoNextItem(GetName(), FMath::Abs(Distance));
+		TimelineBar->GotoNextItem(FMath::Abs(Distance));
 	}
 	else
 	{
-		FLogVisualizer::Get().GotoPreviousItem(GetName(), FMath::Abs(Distance));
+		TimelineBar->GotoPreviousItem(FMath::Abs(Distance));
 	}
 	
+}
+
+
+void STimeline::UpdateCameraPosition()
+{
+	TimelineBar->UpdateCameraPosition();
 }

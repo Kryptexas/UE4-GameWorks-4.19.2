@@ -3,8 +3,6 @@ Title: Persona: Skeletal Mesh Animation
 Crumbs: %ROOT%, Engine
 Description:System for deforming skeletal meshes based on keyframed animation data and morph targets.
 Navigation:topic
-parent:Engine
-order:3
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -106,7 +104,6 @@ order:3
 		* [](Engine/Animation/PhysicallyDrivenAnimation "%Engine/Animation/PhysicallyDrivenAnimation:description%")
 		* [](Engine/Animation/RootMotion "%Engine/Animation/RootMotion:description%")
 		* [](Engine/Animation/NonUniformScale "%Engine/Animation/NonUniformScale:description%")
-		* [](Engine\Animation\NonLinearBlends "%Engine\Animation\NonLinearBlends:description%")
 	[/PARAM]
 [/OBJECT]
 
@@ -135,7 +132,7 @@ order:3
 		* [](Engine/Content/FBX/Animations "%Engine/Content/FBX/Animations:description%")
 		* [](Engine/Content/FBX/MorphTargets "%Engine/Content/FBX/MorphTargets:description%")
 		* **Programming**		
-			* [](Programming/Animation/AnimNodes "%Programming/Animation/AnimNodes:description%")
+			* [](Programming/Animation "%Programming/Animation:description%")
 		* **Tutorials**		
 			* [](Engine/Animation/CharacterSetupOverview "%Engine/Animation/CharacterSetupOverview:description%")
 			* [](Engine/Animation/IKSetups "%Engine/Animation/IKSetups:description%")

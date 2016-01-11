@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "EngineUtils.h"
@@ -12,7 +12,6 @@
 #include "BehaviorTree/BlackboardData.h"
 #include "AISystem.h"
 
-DEFINE_STAT(STAT_AI_Overall);
 
 UAISystem::UAISystem(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -116,9 +115,9 @@ void UAISystem::AIIgnorePlayers()
 void UAISystem::AILoggingVerbose()
 {
 	UWorld* OuterWorld = GetOuterWorld();
-	if (OuterWorld && OuterWorld->GetGameInstance())
+	if (OuterWorld)
 	{
-		APlayerController* PC = OuterWorld->GetGameInstance()->GetFirstLocalPlayerController();
+		APlayerController* PC = OuterWorld->GetFirstPlayerController();
 		if (PC)
 		{
 			PC->ConsoleCommand(TEXT("log lognavigation verbose | log logpathfollowing verbose | log LogCharacter verbose | log LogBehaviorTree verbose | log LogPawnAction verbose|"));
@@ -130,12 +129,12 @@ void UAISystem::RunEQS(const FString& QueryName, UObject* Target)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	UWorld* OuterWorld = GetOuterWorld();
-	if (OuterWorld == NULL || OuterWorld->GetGameInstance() == NULL)
+	if (OuterWorld == NULL)
 	{
 		return;
 	}
 
-	APlayerController* MyPC = OuterWorld->GetGameInstance()->GetFirstLocalPlayerController();
+	APlayerController* MyPC = OuterWorld->GetFirstPlayerController();
 	UEnvQueryManager* EQS = GetEnvironmentQueryManager();
 
 	if (Target && MyPC && EQS)

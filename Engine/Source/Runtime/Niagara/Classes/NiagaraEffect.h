@@ -1,8 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "NiagaraSimulation.h"
-#include "NiagaraEmitterProperties.h"
 #include "Engine/NiagaraEffectRenderer.h"
 #include "List.h"
 #include "Runtime/VectorVM/Public/VectorVMDataObject.h"
@@ -45,7 +44,7 @@ public:
 	void CreateEffectRendererProps(TSharedPtr<FNiagaraSimulation> Sim);
 
 	//Begin UObject Interface
-	virtual void PostLoad()override;
+	virtual void Serialize(FArchive& Ar);
 	//End UObject Interface
 private:
 	UPROPERTY()
@@ -66,7 +65,7 @@ public:
 		Component = InComponent;
 		for (int32 i = 0; i < InAsset->GetNumEmitters(); i++)
 		{
-			FNiagaraSimulation *Sim = new FNiagaraSimulation(InAsset->GetEmitterProperties(i), this, Component->GetWorld()->FeatureLevel);
+			FNiagaraSimulation *Sim = new FNiagaraSimulation(InAsset->GetEmitterProperties(i), InAsset, Component->GetWorld()->FeatureLevel);
 			Emitters.Add(MakeShareable(Sim));
 		}
 		InitRenderModules(Component->GetWorld()->FeatureLevel);
@@ -82,7 +81,6 @@ public:
 	}
 
 	NIAGARA_API void InitEmitters(UNiagaraEffect *InAsset);
-	NIAGARA_API void ReInitEmitters();
 	void InitRenderModules(ERHIFeatureLevel::Type InFeatureLevel)
 	{
 		for (TSharedPtr<FNiagaraSimulation> Sim : Emitters)
@@ -106,17 +104,6 @@ public:
 		InitRenderModules(Component->GetWorld()->FeatureLevel);
 		RenderModuleupdate();
 
-		Age = 0.0f;
-	}
-
-	void ReInit()
-	{
-		if (Component)
-		{
-			ReInitEmitters();
-			InitRenderModules(Component->GetWorld()->FeatureLevel);
-			RenderModuleupdate();
-		}
 		Age = 0.0f;
 	}
 
@@ -152,17 +139,12 @@ public:
 		return Emitters[idx].Get();
 	}
 
-	FNiagaraSimulation* GetEmitter(FString Name);
 
 	UNiagaraComponent *GetComponent() { return Component; }
 
 	TArray< TSharedPtr<FNiagaraSimulation> > &GetEmitters()	{ return Emitters; }
 
 	FBox GetEffectBounds()	{ return EffectBounds;  }
-
-	/** Gets a data set either from another emitter or one owned by the effect itself. */
-	FNiagaraDataSet* GetDataSet(FNiagaraDataSetID SetID, FName EmitterName=NAME_None);
-	
 private:
 	UNiagaraComponent *Component;
 	UNiagaraEffect *Effect;
@@ -171,8 +153,6 @@ private:
 
 	/** Local constant table. */
 	FNiagaraConstantMap Constants;
-	
-	TMap<FNiagaraDataSetID, FNiagaraDataSet> ExternalEvents;
 
 	TArray< TSharedPtr<FNiagaraSimulation> > Emitters;
 

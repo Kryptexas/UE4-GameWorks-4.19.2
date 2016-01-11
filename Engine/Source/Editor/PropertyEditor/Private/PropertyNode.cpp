@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PropertyEditorPrivatePCH.h"
@@ -2017,7 +2017,7 @@ void FPropertyNode::NotifyPostChange( FPropertyChangedEvent& InPropertyChangedEv
 	}
 
 	// Broadcast the change to any listeners
-	BroadcastPropertyChangedDelegates();
+	BroadcastPropertyValueChanged();
 
 	// Call through to the property window's notify hook.
 	if( InNotifyHook )
@@ -2060,23 +2060,9 @@ void FPropertyNode::NotifyPostChange( FPropertyChangedEvent& InPropertyChangedEv
 	ClearCachedReadAddresses(true);
 }
 
-
-void FPropertyNode::BroadcastPropertyChangedDelegates()
+void FPropertyNode::BroadcastPropertyValueChanged() const
 {
 	PropertyValueChangedEvent.Broadcast();
-
-	// Walk through the parents and broadcast
-	FPropertyNode* LocalParentNode = GetParentNode();
-	while( LocalParentNode )
-	{
-		if( LocalParentNode->OnChildPropertyValueChanged().IsBound() )
-		{
-			LocalParentNode->OnChildPropertyValueChanged().Broadcast();
-		}
-
-		LocalParentNode = LocalParentNode->GetParentNode();
-	}
-
 }
 
 void FPropertyNode::SetOnRebuildChildren( FSimpleDelegate InOnRebuildChildren )

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System.Web.Mvc;
 using System.Text;
@@ -37,14 +37,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Views.Helpers
 														UsernameQuery = Model.UsernameQuery,
 														EpicIdOrMachineQuery = Model.EpicIdOrMachineQuery,
 														MessageQuery = Model.MessageQuery,
-														BuggId = Model.BuggId,
-														BuiltFromCL = Model.BuiltFromCL,
 														JiraQuery = Model.JiraQuery,
 														DateFrom = Model.DateFrom,
 														DateTo = Model.DateTo,
 														BranchName = Model.BranchName,
 														VersionName = Model.VersionName,
-														PlatformName = Model.PlatformName,
 														GameName = Model.GameName
 													} );
 
@@ -94,14 +91,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Views.Helpers
 														UsernameQuery = Model.UsernameQuery,
 														EpicIdOrMachineQuery = Model.EpicIdOrMachineQuery,
 														MessageQuery = Model.MessageQuery,
-														BuggId = Model.BuggId,
-														BuiltFromCL = Model.BuiltFromCL,
 														JiraQuery = Model.JiraQuery,
 														DateFrom = Model.DateFrom,
 														DateTo = Model.DateTo,
 														BranchName = Model.BranchName,
 														VersionName = Model.VersionName,
-														PlatformName = Model.PlatformName,
 														GameName = Model.GameName
 													} );
 
@@ -134,14 +128,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Views.Helpers
 														UsernameQuery = Model.UsernameQuery,
 														EpicIdOrMachineQuery = Model.EpicIdOrMachineQuery,
 														MessageQuery = Model.MessageQuery,
-														BuggId = Model.BuggId,
-														BuiltFromCL = Model.BuiltFromCL,
 														JiraQuery = Model.JiraQuery,
 														DateFrom = Model.DateFrom,
 														DateTo = Model.DateTo,
 														BranchName = Model.BranchName,
 														VersionName = Model.VersionName,
-														PlatformName = Model.PlatformName,
 														GameName = Model.GameName
 													} );
 

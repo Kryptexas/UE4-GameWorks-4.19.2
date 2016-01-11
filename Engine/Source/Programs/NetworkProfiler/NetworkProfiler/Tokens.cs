@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 using System;
@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO;
-using System.Windows.Forms;
 
 namespace NetworkProfiler
 {
@@ -29,7 +28,6 @@ namespace NetworkProfiler
 		BeginContentBlock,			// Content block headers
 		EndContentBlock,			// Content block footers
 		WritePropertyHandle,		// Property handles
-		ConnectionChange,			// Connection changed
 		MaxAndInvalid,				// Invalid token, also used as the max token index
 	}
 
@@ -47,16 +45,13 @@ namespace NetworkProfiler
 	/**
 	 * Base class of network token/ events
 	 */
-	public class TokenBase
+	class TokenBase
 	{
 		/** Type of token. */
 		public ETokenTypes TokenType = ETokenTypes.MaxAndInvalid;
 
 		/** Network stream this token belongs to. */
 		protected NetworkStream NetworkStream = null;
-
-		/** Connection this token belongs to */
-		public int ConnectionIndex = 0;
 
 		/** Stats about token types being serialized. */
 		public static int[] TokenTypeStats = Enumerable.Repeat(0, (int)ETokenTypes.MaxAndInvalid).ToArray();
@@ -124,9 +119,6 @@ namespace NetworkProfiler
 				case ETokenTypes.WritePropertyHandle:
 					SerializedToken = new TokenWritePropertyHandle( BinaryStream );
 					break;
-				case ETokenTypes.ConnectionChange:
-					SerializedToken = new TokenConnectionChanged( BinaryStream );
-					break;
 				default:
 					throw new InvalidDataException();
 			}
@@ -134,14 +126,15 @@ namespace NetworkProfiler
 			TokenTypeStats[(int)TokenType]++;
 			SerializedToken.NetworkStream = InNetworkStream;
 			SerializedToken.TokenType = TokenType;
-
-			SerializedToken.ConnectionIndex = InNetworkStream.CurrentConnectionIndex;
 			return SerializedToken;
 		}
 
-		public virtual void ToDetailedTreeView( TreeNodeCollection List, FilterValues InFilterValues )
+		/**
+		 * Converts the token into a multi-string description.
+		 */
+		public virtual List<string> ToDetailedStringList( string ActorFilter, string PropertyFilter, string RPCFilter )
 		{
-
+			return new List<string>();
 		}
 
 		/**
@@ -151,14 +144,9 @@ namespace NetworkProfiler
 		 * @param	PropertyFilter	Property filter to match against
 		 * @param	RPCFilter		RPC filter to match against
 		 */
-		public virtual bool MatchesFilters( FilterValues InFilterValues )
+		public virtual bool MatchesFilters( string ActorFilter, string PropertyFilter, string RPCFilter )
 		{
-			if ( TokenType == ETokenTypes.FrameMarker || TokenType == ETokenTypes.EndOfStreamMarker )
-			{
-				return true;
-			}
-
-			return InFilterValues.ConnectionMask == null || InFilterValues.ConnectionMask.Contains( ConnectionIndex );
+			return true;
 		}
 	}
 
@@ -183,11 +171,16 @@ namespace NetworkProfiler
 			RelativeTime = BinaryStream.ReadSingle();
 		}
 
-		public override void ToDetailedTreeView( TreeNodeCollection Tree, FilterValues InFilterValues )
+		/**
+		 * Converts the token into a multi-string description.
+		 * 
+		 */
+		public override List<string> ToDetailedStringList( string ActorFilter, string PropertyFilter, string RPCFilter )
 		{
-			TreeNode Child = TokenHelper.AddNode( Tree, "Frame Markers" );
-
-			Child.Nodes.Add( "Absolute time : " + RelativeTime );
+			var ReturnList = new List<string>();
+			ReturnList.Add( "FRAME MARKER" );
+			ReturnList.Add( "   Absolute time : " + RelativeTime );
+			return ReturnList;
 		}
 	}
 
@@ -196,6 +189,8 @@ namespace NetworkProfiler
 	 */ 
 	class TokenSocketSendTo : TokenBase
 	{
+		/** Thread ID of thread this token was emitted from. */
+		public UInt32 ThreadId;
 		/** Socket debug description name index. "Unreal" is special name for game traffic. */
 		public int SocketNameIndex;
 		/** Bytes actually sent by low level code. */
@@ -208,36 +203,39 @@ namespace NetworkProfiler
 		public UInt16 NumAckBits;
 		/** Number of bits used for padding */
 		public UInt16 NumPaddingBits;
+		/** IP in network byte order. */
+		public UInt32 NetworkByteOrderIP;
 
 		/** Constructor, serializing members from passed in stream. */
 		public TokenSocketSendTo(BinaryReader BinaryStream)
 		{
-			SocketNameIndex = TokenHelper.LoadPackedInt( BinaryStream );
+			ThreadId = BinaryStream.ReadUInt32();
+			SocketNameIndex = BinaryStream.ReadInt32();
 			BytesSent = BinaryStream.ReadUInt16();
 			NumPacketIdBits = BinaryStream.ReadUInt16();
 			NumBunchBits = BinaryStream.ReadUInt16();
 			NumAckBits = BinaryStream.ReadUInt16();
 			NumPaddingBits = BinaryStream.ReadUInt16();
+			NetworkByteOrderIP = BinaryStream.ReadUInt32();
 		}
 
-		public override void ToDetailedTreeView( TreeNodeCollection Tree, FilterValues InFilterValues )
+		/**
+		 * Converts the token into a multi-string description.
+		 */
+		public override List<string> ToDetailedStringList( string ActorFilter, string PropertyFilter, string RPCFilter )
 		{
-			TreeNode Child = TokenHelper.AddNode( Tree, "Socket SendTo" );
-
-			Child = Child.Nodes.Add( "Destination : " + NetworkStream.GetIpString( ConnectionIndex ) );
-
-			Child.Nodes.Add( "SocketName          : " + NetworkStream.GetName( SocketNameIndex ) );
-			Child.Nodes.Add( "DesiredBytesSent    : " + ( NumPacketIdBits + NumBunchBits + NumAckBits + NumPaddingBits ) / 8.0f );
-			Child.Nodes.Add( "   NumPacketIdBits  : " + NumPacketIdBits );
-			Child.Nodes.Add( "   NumBunchBits     : " + NumBunchBits );
-			Child.Nodes.Add( "   NumAckBits       : " + NumAckBits );
-			Child.Nodes.Add( "   NumPaddingBits   : " + NumPaddingBits );
-			Child.Nodes.Add( "BytesSent           : " + BytesSent );
-		}
-
-		public override bool MatchesFilters( FilterValues InFilterValues )
-		{
-			return base.MatchesFilters( InFilterValues );
+			var ReturnList = new List<string>();
+			ReturnList.Add( "SOCKET SEND TO" );
+			ReturnList.Add( "   ThreadId      : " + ThreadId );
+			ReturnList.Add( "   SocketName    : " + NetworkStream.GetName(SocketNameIndex) );
+			ReturnList.Add( "   DesiredBytesSent : " + (NumPacketIdBits + NumBunchBits + NumAckBits + NumPaddingBits) / 8.0f );
+			ReturnList.Add( "      NumPacketIdBits  : " + NumPacketIdBits );
+			ReturnList.Add( "      NumBunchBits     : " + NumBunchBits );
+			ReturnList.Add( "      NumAckBits       : " + NumAckBits );
+			ReturnList.Add( "      NumPaddingBits   : " + NumPaddingBits );
+			ReturnList.Add( "   BytesSent     : " + BytesSent );
+			ReturnList.Add( "   Destination   : " + NetworkByteOrderIP );
+			return ReturnList;
 		}
 	}
 
@@ -272,16 +270,20 @@ namespace NetworkProfiler
 			return NumHeaderBits + NumPayloadBits;
 		}
 
-		public override void ToDetailedTreeView( TreeNodeCollection Tree, FilterValues InFilterValues )
+		/**
+		 * Converts the token into a multi-string description.
+		 */
+		public override List<string> ToDetailedStringList( string ActorFilter, string PropertyFilter, string RPCFilter )
 		{
-			TreeNode Child = TokenHelper.AddNode( Tree, "Send Bunch" );
-
-			Child = Child.Nodes.Add( "Channel Type  : " + ChannelType );
-			Child.Nodes.Add( "Channel Index    : " + ChannelIndex );
-			Child.Nodes.Add( "NumTotalBits     : " + GetNumTotalBits() );
-			Child.Nodes.Add( "   NumHeaderBits : " + NumHeaderBits );
-			Child.Nodes.Add( "   NumPayloadBits: " + NumPayloadBits );
-			Child.Nodes.Add( "NumTotalBytes    : " + GetNumTotalBits() / 8.0f );
+			var ReturnList = new List<string>();
+			ReturnList.Add( "SEND BUNCH" );
+			ReturnList.Add( "   Channel Index : " + ChannelIndex );
+			ReturnList.Add( "   Channel Type  : " + ChannelType );
+			ReturnList.Add( "   NumTotalBits  : " + GetNumTotalBits() );
+			ReturnList.Add( "      NumHeaderBits : " + NumHeaderBits );
+			ReturnList.Add( "      NumPayloadBits: " + NumPayloadBits );
+			ReturnList.Add( "   NumTotalBytes : " + GetNumTotalBits() / 8.0f );
+			return ReturnList;
 		}
 	}
 
@@ -304,8 +306,8 @@ namespace NetworkProfiler
 		/** Constructor, serializing members from passed in stream. */
 		public TokenSendRPC( BinaryReader BinaryStream )
 		{
-			ActorNameIndex = TokenHelper.LoadPackedInt( BinaryStream );
-			FunctionNameIndex = TokenHelper.LoadPackedInt( BinaryStream );
+			ActorNameIndex = BinaryStream.ReadInt32();
+			FunctionNameIndex = BinaryStream.ReadInt32();
 			NumHeaderBits = BinaryStream.ReadUInt16(); 					
 			NumParameterBits = BinaryStream.ReadUInt16();
 			NumFooterBits = BinaryStream.ReadUInt16();
@@ -319,18 +321,21 @@ namespace NetworkProfiler
 			return NumHeaderBits + NumParameterBits + NumFooterBits;
 		}
 
-		public override void ToDetailedTreeView( TreeNodeCollection Tree, FilterValues InFilterValues )
+		/**
+		 * Converts the token into a multi-string description.
+		 */
+		public override List<string> ToDetailedStringList( string ActorFilter, string PropertyFilter, string RPCFilter )
 		{
-			TreeNode Child = TokenHelper.AddNode( Tree, "RPCs" );
-
-			Child = Child.Nodes.Add( NetworkStream.GetName( FunctionNameIndex ) );
-
-			Child.Nodes.Add( "Actor               : " + NetworkStream.GetName( ActorNameIndex ) );
-			Child.Nodes.Add( "NumTotalBits        : " + GetNumTotalBits() );
-			Child.Nodes.Add( "   NumHeaderBits    : " + NumHeaderBits );
-			Child.Nodes.Add( "   NumParameterBits : " + NumParameterBits );
-			Child.Nodes.Add( "   NumFooterBits    : " + NumFooterBits );
-			Child.Nodes.Add( "NumTotalBytes       : " + GetNumTotalBits() / 8.0f );
+			var ReturnList = new List<string>();
+			ReturnList.Add( "SEND RPC" );
+			ReturnList.Add( "   Actor         : " + NetworkStream.GetName(ActorNameIndex) );
+			ReturnList.Add( "   Function      : " + NetworkStream.GetName(FunctionNameIndex) );
+			ReturnList.Add( "   NumTotalBits  : " + GetNumTotalBits() );
+			ReturnList.Add( "      NumHeaderBits    : " + NumHeaderBits );
+			ReturnList.Add( "      NumParameterBits : " + NumParameterBits );
+			ReturnList.Add( "      NumFooterBits    : " + NumFooterBits );
+			ReturnList.Add( "   NumTotalBytes : " + GetNumTotalBits() / 8.0f );
+			return ReturnList;
 		}
 
 		/**
@@ -342,10 +347,10 @@ namespace NetworkProfiler
 		 * 
 		 * @return true if it matches, false otherwise
 		 */
-		public override bool MatchesFilters( FilterValues InFilterValues )
+		public override bool MatchesFilters( string ActorFilter, string PropertyFilter, string RPCFilter )
 		{
-			return base.MatchesFilters( InFilterValues ) && ( InFilterValues.ActorFilter.Length == 0 || NetworkStream.GetName( ActorNameIndex ).ToUpperInvariant().Contains( InFilterValues.ActorFilter.ToUpperInvariant() ) )
-			&& ( InFilterValues.RPCFilter.Length == 0 || NetworkStream.GetName( FunctionNameIndex ).ToUpperInvariant().Contains( InFilterValues.RPCFilter.ToUpperInvariant() ) );
+			return	( ActorFilter.Length == 0 || NetworkStream.GetName(ActorNameIndex).ToUpperInvariant().Contains( ActorFilter.ToUpperInvariant() ) )
+			&&		( RPCFilter.Length == 0 || NetworkStream.GetName(FunctionNameIndex).ToUpperInvariant().Contains( RPCFilter.ToUpperInvariant() ));
 		}
 	}
 
@@ -380,7 +385,7 @@ namespace NetworkProfiler
 			bNetDirty = (NetFlags & 1) == 1;
 			bNetInitial = (NetFlags & 2) == 2;
 			bNetOwner = (NetFlags & 4) == 4;
-			ActorNameIndex = TokenHelper.LoadPackedInt( BinaryStream );
+			ActorNameIndex = BinaryStream.ReadInt32();
             TimeInMS = BinaryStream.ReadSingle();
 			Properties = new List<TokenReplicateProperty>();
 			PropertyHeaders = new List<TokenWritePropertyHeader>();
@@ -393,12 +398,12 @@ namespace NetworkProfiler
 		 * @param	PropertyFilter	Filter for property name
 		 * @param	RPCFilter		Unused
 		 */
-		public int GetNumReplicatedBits( FilterValues InFilterValues )
+		public int GetNumReplicatedBits( string ActorFilter, string PropertyFilter, string RPCFilter )
 		{
 			int NumReplicatedBits = 0;
 			foreach( var Property in Properties )
 			{
-				if( Property.MatchesFilters( InFilterValues ) )
+				if( Property.MatchesFilters( ActorFilter, PropertyFilter, RPCFilter ) )
 				{
 					NumReplicatedBits += Property.NumBits;
 				}
@@ -406,7 +411,7 @@ namespace NetworkProfiler
 
 			foreach( var PropertyHeader in PropertyHeaders )
 			{
-				if( PropertyHeader.MatchesFilters( InFilterValues ) )
+				if( PropertyHeader.MatchesFilters( ActorFilter, PropertyFilter, RPCFilter ) )
 				{
 					NumReplicatedBits += PropertyHeader.NumBits;
 				}
@@ -416,47 +421,53 @@ namespace NetworkProfiler
 		}
 	 
 		/**
-		 * Fills tree view with description of this token
+		 * Converts the token into a multi-string description.
 		 * 
-		 * @param	Tree			Tree to fill in 
 		 * @param	ActorFilter		Filter for actor name
 		 * @param	PropertyFilter	Filter for property name
 		 * @param	RPCFilter		Unused
 		 */
-		public override void ToDetailedTreeView( TreeNodeCollection Tree, FilterValues InFilterValues )
+		public override List<string> ToDetailedStringList( string ActorFilter, string PropertyFilter, string RPCFilter )
 		{
-			TreeNode Child = TokenHelper.AddNode( Tree, "Replicated Actors" );
+			int NumReplicatedBits = GetNumReplicatedBits( ActorFilter, PropertyFilter, RPCFilter );
 
-			int NumReplicatedBits = GetNumReplicatedBits( InFilterValues );
-
-			string Flags = ( bNetDirty ? "bNetDirty " : "" ) + ( bNetInitial ? "bNetInitial" : "" ) + ( bNetOwner ? "bNetOwner" : "" );
-			Child = Child.Nodes.Add( string.Format( "{0,-32} : {1:0.00} ({2:000}) ", NetworkStream.GetName( ActorNameIndex ), TimeInMS, NumReplicatedBits / 8 ) + Flags );
-
-			if ( Properties.Count > 0 )
+			var ReturnList = new List<string>();
+			ReturnList.Add( "REPLICATE ACTOR" );
+			ReturnList.Add( "   Actor         : " + NetworkStream.GetName(ActorNameIndex) );
+			ReturnList.Add( "   Flags         : " + (bNetDirty ? "bNetDirty " : "") + (bNetInitial ? "bNetInitial" : "") + (bNetOwner ? "bNetOwner" : "") );
+			ReturnList.Add( "   NumBits       : " + NumReplicatedBits );
+			ReturnList.Add( "   NumBytes      : " + NumReplicatedBits / 8.0f );
+			
+			if( Properties.Count > 0 )
 			{
-				TreeNode NewChild = Child.Nodes.Add( "Properties" );
-				foreach ( var Property in Properties )
+				ReturnList.Add( "   PROPERTIES" );
+				foreach( var Property in  Properties )
 				{
-					if ( Property.MatchesFilters( InFilterValues ) )
+					if( Property.MatchesFilters( ActorFilter, PropertyFilter, RPCFilter ) )
 					{
-						NewChild.Nodes.Add( string.Format( "{0,-25} : {1:000}", NetworkStream.GetName( Property.PropertyNameIndex ), Property.NumBits / 8.0f ) );
+						ReturnList.Add( "      Property      : " + NetworkStream.GetName(Property.PropertyNameIndex) );
+						ReturnList.Add( "      NumBits       : " + Property.NumBits );
+						ReturnList.Add( "      NumBytes      : " + Property.NumBits / 8.0f);
 					}
 				}
 			}
 
-			if ( PropertyHeaders.Count > 0 )
+			if( PropertyHeaders.Count > 0 )
 			{
-				TreeNode NewChild = Child.Nodes.Add( "Property Headers" );
-				foreach ( var PropertyHeader in PropertyHeaders )
+				ReturnList.Add( "   PROPERTY HEADERS" );
+				foreach( var PropertyHeader in  PropertyHeaders )
 				{
-					if ( PropertyHeader.MatchesFilters( InFilterValues ) )
+					if( PropertyHeader.MatchesFilters( ActorFilter, PropertyFilter, RPCFilter ) )
 					{
-						NewChild.Nodes.Add( string.Format( "{0,-25} : {1:000}", NetworkStream.GetName( PropertyHeader.PropertyNameIndex ), PropertyHeader.NumBits / 8.0f ) );
+						ReturnList.Add( "      Property      : " + NetworkStream.GetName(PropertyHeader.PropertyNameIndex) );
+						ReturnList.Add( "      NumBits       : " + PropertyHeader.NumBits );
+						ReturnList.Add( "      NumBytes      : " + PropertyHeader.NumBits / 8.0f);
 					}
 				}
 			}
+			return ReturnList;
 		}
-
+	
 		/**
 		 * Returns whether the token matches/ passes based on the passed in filters.
 		 * 
@@ -466,24 +477,19 @@ namespace NetworkProfiler
 		 * 
 		 * @return true if it matches, false otherwise
 		 */
-		public override bool MatchesFilters( FilterValues InFilterValues )
+		public override bool MatchesFilters( string ActorFilter, string PropertyFilter, string RPCFilter )
 		{
-			bool ContainsMatchingProperty = false || ( Properties.Count == 0 && InFilterValues.PropertyFilter.Length == 0 );
+			bool ContainsMatchingProperty = false || Properties.Count == 0;		// NOTE - Show actors with 0 properties
 			foreach( var Property in Properties )
 			{
-				if( Property.MatchesFilters( InFilterValues ) )
+				if( Property.MatchesFilters( ActorFilter, PropertyFilter, RPCFilter ) )
 				{
 					ContainsMatchingProperty = true;
 					break;
 				}
 			}
-			return base.MatchesFilters( InFilterValues ) && ( InFilterValues.ActorFilter.Length == 0 || NetworkStream.GetName( ActorNameIndex ).ToUpperInvariant().Contains( InFilterValues.ActorFilter.ToUpperInvariant() ) ) && ContainsMatchingProperty;
+			return (ActorFilter.Length == 0 || NetworkStream.GetName(ActorNameIndex).ToUpperInvariant().Contains( ActorFilter.ToUpperInvariant() )) && ContainsMatchingProperty;
 		}
-
-		public int GetClassNameIndex()
-		{
-			return NetworkStream.GetClassNameIndex( ActorNameIndex );
-		}	
 	}
 
 	/**
@@ -499,7 +505,7 @@ namespace NetworkProfiler
 		/** Constructor, serializing members from passed in stream. */
 		public TokenReplicateProperty(BinaryReader BinaryStream)
 		{
-			PropertyNameIndex = TokenHelper.LoadPackedInt( BinaryStream );
+            PropertyNameIndex = BinaryStream.ReadInt32();
 			NumBits = BinaryStream.ReadUInt16();
 		}
 
@@ -512,9 +518,9 @@ namespace NetworkProfiler
 		 * 
 		 * @return true if it matches, false otherwise
 		 */
-		public override bool MatchesFilters( FilterValues InFilterValues )
+		public override bool MatchesFilters( string ActorFilter, string PropertyFilter, string RPCFilter )
 		{
-			return base.MatchesFilters( InFilterValues ) && ( InFilterValues.PropertyFilter.Length == 0 || NetworkStream.GetName( PropertyNameIndex ).ToUpperInvariant().Contains( InFilterValues.PropertyFilter.ToUpperInvariant() ) );
+			return PropertyFilter.Length == 0 || NetworkStream.GetName(PropertyNameIndex).ToUpperInvariant().Contains( PropertyFilter.ToUpperInvariant() );
 		}
 	}			
 
@@ -531,7 +537,7 @@ namespace NetworkProfiler
 		/** Constructor, serializing members from passed in stream. */
 		public TokenWritePropertyHeader(BinaryReader BinaryStream)
 		{
-			PropertyNameIndex = TokenHelper.LoadPackedInt( BinaryStream );
+            PropertyNameIndex = BinaryStream.ReadInt32();
 			NumBits = BinaryStream.ReadUInt16();
 		}
 
@@ -544,9 +550,9 @@ namespace NetworkProfiler
 		 * 
 		 * @return true if it matches, false otherwise
 		 */
-		public override bool MatchesFilters( FilterValues InFilterValues )
+		public override bool MatchesFilters( string ActorFilter, string PropertyFilter, string RPCFilter )
 		{
-			return base.MatchesFilters( InFilterValues ) && ( InFilterValues.PropertyFilter.Length == 0 || NetworkStream.GetName( PropertyNameIndex ).ToUpperInvariant().Contains( InFilterValues.PropertyFilter.ToUpperInvariant() ) );
+			return PropertyFilter.Length == 0 || NetworkStream.GetName(PropertyNameIndex).ToUpperInvariant().Contains( PropertyFilter.ToUpperInvariant() );
 		}
 	}
 
@@ -564,11 +570,16 @@ namespace NetworkProfiler
 			NumBits = BinaryStream.ReadUInt16();
 		}
 
-		public override void ToDetailedTreeView( TreeNodeCollection Tree, FilterValues InFilterValues )
+		/**
+		 * Converts the token into a multi-string description.
+		 */
+		public override List<string> ToDetailedStringList( string ActorFilter, string PropertyFilter, string RPCFilter )
 		{
-			TreeNode Child = TokenHelper.AddNode( Tree, "GUID's" );
-
-			Child.Nodes.Add( "NumBytes         : " + NumBits / 8.0f );
+			var ReturnList = new List<string>();
+			ReturnList.Add( "EXPORTED GUIDS" );
+			ReturnList.Add( "   NumBits          : " + NumBits );
+			ReturnList.Add( "   NumBytes         : " + NumBits / 8.0f);
+			return ReturnList;
 		}
 	}
 
@@ -590,12 +601,17 @@ namespace NetworkProfiler
 			NumBits = BinaryStream.ReadUInt16();
 		}
 
-		public override void ToDetailedTreeView( TreeNodeCollection Tree, FilterValues InFilterValues )
+		/**
+		 * Converts the token into a multi-string description.
+		 */
+		public override List<string> ToDetailedStringList( string ActorFilter, string PropertyFilter, string RPCFilter )
 		{
-			TreeNode Child = TokenHelper.AddNode( Tree, "Must Be Mapped GUID's" );
-
-			Child.Nodes.Add( "NumGuids         : " + NumGuids );
-			Child.Nodes.Add( "NumBytes         : " + NumBits / 8.0f );
+			var ReturnList = new List<string>();
+			ReturnList.Add( "MUST BE MAPPED GUIDS" );
+			ReturnList.Add( "   NumGuids         : " + NumGuids );
+			ReturnList.Add( "   NumBits          : " + NumBits );
+			ReturnList.Add( "   NumBytes         : " + NumBits / 8.0f);
+			return ReturnList;
 		}
 	}
 
@@ -612,7 +628,7 @@ namespace NetworkProfiler
 		/** Constructor, serializing members from passed in stream. */
 		public TokenBeginContentBlock(BinaryReader BinaryStream)
 		{
-			ObjectNameIndex = TokenHelper.LoadPackedInt( BinaryStream );
+            ObjectNameIndex = BinaryStream.ReadInt32();
 			NumBits = BinaryStream.ReadUInt16();
 		}
 
@@ -625,9 +641,9 @@ namespace NetworkProfiler
 		 * 
 		 * @return true if it matches, false otherwise
 		 */
-		public override bool MatchesFilters( FilterValues InFilterValues )
+		public override bool MatchesFilters( string ActorFilter, string PropertyFilter, string RPCFilter )
 		{
-			return base.MatchesFilters( InFilterValues ) && ( InFilterValues.ActorFilter.Length == 0 || NetworkStream.GetName( ObjectNameIndex ).ToUpperInvariant().Contains( InFilterValues.ActorFilter.ToUpperInvariant() ) );
+			return ActorFilter.Length == 0 || NetworkStream.GetName(ObjectNameIndex).ToUpperInvariant().Contains( ActorFilter.ToUpperInvariant() );
 		}
 	}
 
@@ -644,7 +660,7 @@ namespace NetworkProfiler
 		/** Constructor, serializing members from passed in stream. */
 		public TokenEndContentBlock(BinaryReader BinaryStream)
 		{
-			ObjectNameIndex = TokenHelper.LoadPackedInt( BinaryStream );
+            ObjectNameIndex = BinaryStream.ReadInt32();
 			NumBits = BinaryStream.ReadUInt16();
 		}
 
@@ -657,14 +673,14 @@ namespace NetworkProfiler
 		 * 
 		 * @return true if it matches, false otherwise
 		 */
-		public override bool MatchesFilters( FilterValues InFilterValues )
+		public override bool MatchesFilters( string ActorFilter, string PropertyFilter, string RPCFilter )
 		{
-			return base.MatchesFilters( InFilterValues ) && ( InFilterValues.ActorFilter.Length == 0 || NetworkStream.GetName( ObjectNameIndex ).ToUpperInvariant().Contains( InFilterValues.ActorFilter.ToUpperInvariant() ) );
+			return ActorFilter.Length == 0 || NetworkStream.GetName(ObjectNameIndex).ToUpperInvariant().Contains( ActorFilter.ToUpperInvariant() );
 		}
 	}
 
 	/**
-	 * Token for property handle replication. Context determines which actor this belongs to.
+	 * Token for property hgandle replication. Context determines which actor this belongs to.
 	 */
 	class TokenWritePropertyHandle : TokenBase
 	{
@@ -675,21 +691,6 @@ namespace NetworkProfiler
 		public TokenWritePropertyHandle(BinaryReader BinaryStream)
 		{
 			NumBits = BinaryStream.ReadUInt16();
-		}
-	}
-
-	/**
-	 * Token for connection change event
-	 */
-	class TokenConnectionChanged : TokenBase
-	{
-		/** Number of bits serialized/ sent. */
-		public Int32 AddressIndex;
-
-		/** Constructor, serializing members from passed in stream. */
-		public TokenConnectionChanged( BinaryReader BinaryStream )
-		{
-			AddressIndex = TokenHelper.LoadPackedInt( BinaryStream );
 		}
 	}
 
@@ -706,24 +707,20 @@ namespace NetworkProfiler
 		/** Constructor, serializing members from passedin stream. */
 		public TokenEvent(BinaryReader BinaryStream)
 		{
-			EventNameNameIndex = TokenHelper.LoadPackedInt( BinaryStream );
-			EventDescriptionNameIndex = TokenHelper.LoadPackedInt( BinaryStream );
+			EventNameNameIndex = BinaryStream.ReadInt32();
+			EventDescriptionNameIndex = BinaryStream.ReadInt32();
 		}
 
 		/**
-		 * Fills tree view with description of this token
-		 * 
-		 * @param	Tree			Tree to fill in 
-		 * @param	ActorFilter		Filter for actor name
-		 * @param	PropertyFilter	Filter for property name
-		 * @param	RPCFilter		Unused
+		 * Converts the token into a multi-string description.
 		 */
-		public override void ToDetailedTreeView( TreeNodeCollection Tree, FilterValues InFilterValues )
+		public override List<string> ToDetailedStringList( string ActorFilter, string PropertyFilter, string RPCFilter )
 		{
-			TreeNode Child = TokenHelper.AddNode( Tree, "Events" );
-
-			Child.Nodes.Add( "Type          : " + NetworkStream.GetName( EventNameNameIndex ) );
-			Child.Nodes.Add( "Description   : " + NetworkStream.GetName( EventDescriptionNameIndex ) );
+			var ReturnList = new List<string>();
+			ReturnList.Add( "EVENT" );
+			ReturnList.Add( "   Type          : " + NetworkStream.GetName(EventNameNameIndex) );
+			ReturnList.Add( "   Description   : " + NetworkStream.GetName(EventDescriptionNameIndex) );
+			return ReturnList;
 		}
 	}
 
@@ -757,50 +754,16 @@ namespace NetworkProfiler
 			NumBits = BinaryStream.ReadUInt16();
 		}
 
-		public override void ToDetailedTreeView( TreeNodeCollection Tree, FilterValues InFilterValues )
+		/**
+		 * Converts the token into a multi-string description.
+		 */
+		public override List<string> ToDetailedStringList( string ActorFilter, string PropertyFilter, string RPCFilter )
 		{
-			TreeNode Child = TokenHelper.AddNode( Tree, "Send Acks" );
-
-			Child.Nodes.Add( "NumBytes : " + NumBits / 8.0f );
-		}
-	}
-
-	public class TokenHelper
-	{
-		static public TreeNode AddNode( TreeNodeCollection Tree, string Text )
-		{
-			TreeNode[] Childs = Tree.Find( Text, false );
-
-			TreeNode Child = null;
-
-			if ( Childs == null || Childs.Length == 0 )
-			{
-				Child = Tree.Add( Text );
-				Child.Name = Text;
-			}
-			else
-			{
-				Child = Childs[0];
-			}
-
-			return Child;
-		}
-
-		public static int LoadPackedInt( BinaryReader BinaryStream )
-		{
-			UInt32 Value = 0;
-			byte cnt = 0;
-			bool more = true;
-			while ( more )
-			{
-				UInt32 NextByte = BinaryStream.ReadByte();
-
-				more = ( NextByte & 1 ) != 0;		// Check 1 bit to see if theres more after this
-				NextByte = NextByte >> 1;			// Shift to get actual 7 bit value
-				Value += NextByte << ( 7 * cnt++ );	// Add to total value
-			}
-
-			return (int)Value;
+			var ReturnList = new List<string>();
+			ReturnList.Add( "SEND ACK" );
+			ReturnList.Add( "   NumBits  : " + NumBits );
+			ReturnList.Add( "   NumBytes : " + NumBits / 8.0f );
+			return ReturnList;
 		}
 	}
 }

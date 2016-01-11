@@ -1,10 +1,8 @@
-﻿INTSourceChangelist:2713167
+﻿INTSourceChangelist:2608426
 Availability: Public
 Title:PhysX 컨스트레인트 사용 안내서
 Crumbs: %ROOT%, Engine, Engine/Physics
 Description:피직스 컨스트레인트는, 리짓 바디 시뮬레이션이 적용되는 오브젝트끼리 연결시키는 데 사용되는 물리적 관절입니다.
-SkillLevel: Beginner
-Version:  4.9
 
 [REGION:fullwidth raw]
 ![](Engine/Physics\physics_banner.png)
@@ -26,7 +24,7 @@ Version:  4.9
 
 1. **피직스 컨스트레인트 액터** 는 **모드** 패널의 **배치** 모드 중 **모든 클래스** 섹션에서 찾을 수 있습니다:
 	[REGION:raw]
-	![](PhysConMode.png)
+	![](PhysCon_ContentBrowser.png)(convert:false)
 	[/REGION]
 1. 여기서 다른 액터와 마찬가지로 클릭하여 뷰포트에 끌어놓는 것으로 레벨에 배치할 수 있습니다.
 
@@ -61,7 +59,7 @@ Version:  4.9
 	* **Swing 1Limit Angle** 과 **Swing 2Limit Angle** 를 25 도로 설정.
 	* **Swing Limit Soft** 는 껐습니다.
 	
-	![](AngularLimits1.png)(h:279 convert:false) ![](PhysCon_AngularCone_3.png)(convert:false)
+	![](PhysCon_SettingsForThisDoc.png)(h:279 convert:false) ![](PhysCon_AngularCone_3.png)(convert:false)
 
 	피직스 컨스트레인트의 프로퍼티에 어떠한 효과가 있는지 확인하려면, [%Engine/Physics\Constraints\ConstraintsReference:title%](Engine/Physics\Constraints\ConstraintsReference) 문서를 참고하세요.
 
@@ -69,7 +67,7 @@ Version:  4.9
 
 	제약된 액터를 어떻게 배치했는가에 따라 힘을 가할 수 있는 방법이 필요한데, 그러기 위한 방법이 모든 프로젝트 템플릿에 있지는 않습니다. **RadialForceActor** 를 사용하면 되는데, 피직스 컨스트레인트 액터와 마찬가지로 **모든 클래스** 섹션에서 찾아 배치하면 됩니다.
 	[REGION:raw]
-	![](Arrows.png)(w:880)
+	![](PhysCon_Force2.png)(w:880)
 	[/REGION]
 	_이 문서에 사용된 박스의 경우, 50000 의 힘을 가하니 밀렸습니다. RadialForceActor 의 반경은 그림에 맞도록 줄였습니다._
 

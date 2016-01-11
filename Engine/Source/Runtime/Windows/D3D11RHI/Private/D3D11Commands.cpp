@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D11Commands.cpp: D3D RHI commands implementation.
@@ -61,23 +61,11 @@ DECLARE_ISBOUNDSHADER(ComputeShader)
 #define VALIDATE_BOUND_SHADER(s)
 #endif
 
-int32 GEnableDX11TransitionChecks = 0;
-static FAutoConsoleVariableRef CVarDX11TransitionChecks(
-	TEXT("r.TransitionChecksEnableDX11"),
-	GEnableDX11TransitionChecks,
-	TEXT("Enables transition checks in the DX11 RHI."),
-	ECVF_Default
-	);
-
-void FD3D11BaseShaderResource::SetDirty(bool bInDirty, uint32 CurrentFrame)
-{
-	bDirty = bInDirty;
-	if (bDirty)
-	{
-		LastFrameWritten = CurrentFrame;
-	}
-	ensureMsgf((GEnableDX11TransitionChecks == 0) || !(CurrentGPUAccess == EResourceTransitionAccess::EReadable && bDirty), TEXT("ShaderResource is dirty, but set to Readable."));
-}
+#define WITH_GPA (1)
+#if WITH_GPA
+	#define GPA_WINDOWS 1
+	#include <GPUPerfAPI/Gpa.h>
+#endif
 
 void FD3D11DynamicRHI::RHIBeginAsyncComputeJob_DrawThread(EAsyncComputePriority Priority) 
 {  
@@ -90,6 +78,26 @@ void FD3D11DynamicRHI::RHIEndAsyncComputeJob_DrawThread(uint32 FenceIndex)
 void FD3D11DynamicRHI::RHIGraphicsWaitOnAsyncComputeJob( uint32 FenceIndex )
 { 
 }
+
+void FD3D11DynamicRHI::RHIGpuTimeBegin(uint32 Hash, bool bCompute)
+{
+	#if WITH_GPA
+		char Str[256];
+		if(GpaBegin(Str, Hash, bCompute, (void*)Direct3DDevice))
+		{
+			OutputDebugStringA(Str);
+		}
+	#endif
+}
+
+void FD3D11DynamicRHI::RHIGpuTimeEnd(uint32 Hash, bool bCompute)
+{
+	#if WITH_GPA
+		GpaEnd(Hash, bCompute);
+	#endif
+}
+
+
 
 // Vertex state.
 void FD3D11DynamicRHI::RHISetStreamSource(uint32 StreamIndex,FVertexBufferRHIParamRef VertexBufferRHI,uint32 Stride,uint32 Offset)
@@ -244,17 +252,6 @@ void FD3D11DynamicRHI::RHISetBoundShaderState( FBoundShaderStateRHIParamRef Boun
 	DirtyUniformBuffers[SF_Hull] = 0xffff;
 	DirtyUniformBuffers[SF_Domain] = 0xffff;
 	DirtyUniformBuffers[SF_Geometry] = 0xffff;
-
-	// Shader changed.  All UB's must be reset by high level code to match other platforms anway.
-	// Clear to catch those bugs, and bugs with stale UB's causing layout mismatches.
-	// Release references to bound uniform buffers.
-	for (int32 Frequency = 0; Frequency < SF_NumFrequencies; ++Frequency)
-	{
-		for (int32 BindIndex = 0; BindIndex < MAX_UNIFORM_BUFFERS_PER_SHADER_STAGE; ++BindIndex)
-		{
-			BoundUniformBuffers[Frequency][BindIndex].SafeRelease();
-		}
-	}
 }
 
 void FD3D11DynamicRHI::RHISetShaderTexture(FVertexShaderRHIParamRef VertexShaderRHI,uint32 TextureIndex,FTextureRHIParamRef NewTextureRHI)
@@ -264,14 +261,10 @@ void FD3D11DynamicRHI::RHISetShaderTexture(FVertexShaderRHIParamRef VertexShader
 	FD3D11TextureBase* NewTexture = GetD3D11TextureFromRHITexture(NewTextureRHI);
 	ID3D11ShaderResourceView* ShaderResourceView = NewTexture ? NewTexture->GetShaderResourceView() : NULL;
 
-	if ((NewTexture == NULL) || (NewTexture->GetRenderTargetView(0, 0) != NULL) || (NewTexture->HasDepthStencilView()))
-	{
-		SetShaderResourceView<SF_Vertex>(NewTexture, ShaderResourceView, TextureIndex, NewTextureRHI ? NewTextureRHI->GetName() : NAME_None, FD3D11StateCache::SRV_Dynamic);
-	}
+	if (  ( NewTexture == NULL) || ( NewTexture->GetRenderTargetView( 0, 0 ) !=NULL) || ( NewTexture->HasDepthStencilView()) )
+		SetShaderResourceView<SF_Vertex>(NewTexture, ShaderResourceView, TextureIndex, FD3D11StateCache::SRV_Dynamic);
 	else
-	{
-		SetShaderResourceView<SF_Vertex>(NewTexture, ShaderResourceView, TextureIndex, NewTextureRHI->GetName(), FD3D11StateCache::SRV_Static);
-	}
+		SetShaderResourceView<SF_Vertex>(NewTexture, ShaderResourceView, TextureIndex, FD3D11StateCache::SRV_Static);
 }
 
 void FD3D11DynamicRHI::RHISetShaderTexture(FHullShaderRHIParamRef HullShaderRHI,uint32 TextureIndex,FTextureRHIParamRef NewTextureRHI)
@@ -281,14 +274,10 @@ void FD3D11DynamicRHI::RHISetShaderTexture(FHullShaderRHIParamRef HullShaderRHI,
 	FD3D11TextureBase* NewTexture = GetD3D11TextureFromRHITexture(NewTextureRHI);
 	ID3D11ShaderResourceView* ShaderResourceView = NewTexture ? NewTexture->GetShaderResourceView() : NULL;
 
-	if ((NewTexture == NULL) || (NewTexture->GetRenderTargetView(0, 0) != NULL) || (NewTexture->HasDepthStencilView()))
-	{
-		SetShaderResourceView<SF_Hull>(NewTexture, ShaderResourceView, TextureIndex, NewTextureRHI ? NewTextureRHI->GetName() : NAME_None, FD3D11StateCache::SRV_Dynamic);
-	}
+	if (  ( NewTexture == NULL) || ( NewTexture->GetRenderTargetView( 0, 0 ) !=NULL) || ( NewTexture->HasDepthStencilView()) )
+		SetShaderResourceView<SF_Hull>(NewTexture, ShaderResourceView, TextureIndex, FD3D11StateCache::SRV_Dynamic);
 	else
-	{
-		SetShaderResourceView<SF_Hull>(NewTexture, ShaderResourceView, TextureIndex, NewTextureRHI->GetName(), FD3D11StateCache::SRV_Static);
-	}
+		SetShaderResourceView<SF_Hull>(NewTexture, ShaderResourceView, TextureIndex, FD3D11StateCache::SRV_Static);
 }
 
 void FD3D11DynamicRHI::RHISetShaderTexture(FDomainShaderRHIParamRef DomainShaderRHI,uint32 TextureIndex,FTextureRHIParamRef NewTextureRHI)
@@ -298,14 +287,10 @@ void FD3D11DynamicRHI::RHISetShaderTexture(FDomainShaderRHIParamRef DomainShader
 	FD3D11TextureBase* NewTexture = GetD3D11TextureFromRHITexture(NewTextureRHI);
 	ID3D11ShaderResourceView* ShaderResourceView = NewTexture ? NewTexture->GetShaderResourceView() : NULL;
 
-	if ((NewTexture == NULL) || (NewTexture->GetRenderTargetView(0, 0) != NULL) || (NewTexture->HasDepthStencilView()))
-	{
-		SetShaderResourceView<SF_Domain>(NewTexture, ShaderResourceView, TextureIndex, NewTextureRHI ? NewTextureRHI->GetName() : NAME_None, FD3D11StateCache::SRV_Dynamic);
-	}
+	if (  ( NewTexture == NULL) || ( NewTexture->GetRenderTargetView( 0, 0 ) !=NULL) || ( NewTexture->HasDepthStencilView()) )
+		SetShaderResourceView<SF_Domain>(NewTexture, ShaderResourceView, TextureIndex, FD3D11StateCache::SRV_Dynamic);
 	else
-	{
-		SetShaderResourceView<SF_Domain>(NewTexture, ShaderResourceView, TextureIndex, NewTextureRHI->GetName(), FD3D11StateCache::SRV_Static);
-	}
+		SetShaderResourceView<SF_Domain>(NewTexture, ShaderResourceView, TextureIndex, FD3D11StateCache::SRV_Static);
 }
 
 void FD3D11DynamicRHI::RHISetShaderTexture(FGeometryShaderRHIParamRef GeometryShaderRHI,uint32 TextureIndex,FTextureRHIParamRef NewTextureRHI)
@@ -315,14 +300,10 @@ void FD3D11DynamicRHI::RHISetShaderTexture(FGeometryShaderRHIParamRef GeometrySh
 	FD3D11TextureBase* NewTexture = GetD3D11TextureFromRHITexture(NewTextureRHI);
 	ID3D11ShaderResourceView* ShaderResourceView = NewTexture ? NewTexture->GetShaderResourceView() : NULL;
 
-	if ((NewTexture == NULL) || (NewTexture->GetRenderTargetView(0, 0) != NULL) || (NewTexture->HasDepthStencilView()))
-	{
-		SetShaderResourceView<SF_Geometry>(NewTexture, ShaderResourceView, TextureIndex, NewTextureRHI ? NewTextureRHI->GetName() : NAME_None, FD3D11StateCache::SRV_Dynamic);
-	}
+	if (  ( NewTexture == NULL) || ( NewTexture->GetRenderTargetView( 0, 0 ) !=NULL) || ( NewTexture->HasDepthStencilView()) )
+		SetShaderResourceView<SF_Geometry>(NewTexture, ShaderResourceView, TextureIndex, FD3D11StateCache::SRV_Dynamic);
 	else
-	{
-		SetShaderResourceView<SF_Geometry>(NewTexture, ShaderResourceView, TextureIndex, NewTextureRHI->GetName(), FD3D11StateCache::SRV_Static);
-	}
+		SetShaderResourceView<SF_Geometry>(NewTexture, ShaderResourceView, TextureIndex, FD3D11StateCache::SRV_Static);
 }
 
 void FD3D11DynamicRHI::RHISetShaderTexture(FPixelShaderRHIParamRef PixelShaderRHI,uint32 TextureIndex,FTextureRHIParamRef NewTextureRHI)
@@ -332,14 +313,10 @@ void FD3D11DynamicRHI::RHISetShaderTexture(FPixelShaderRHIParamRef PixelShaderRH
 
 	FD3D11TextureBase* NewTexture = GetD3D11TextureFromRHITexture(NewTextureRHI);
 	ID3D11ShaderResourceView* ShaderResourceView = NewTexture ? NewTexture->GetShaderResourceView() : NULL;
-	if ((NewTexture == NULL) || (NewTexture->GetRenderTargetView(0, 0) != NULL) || (NewTexture->HasDepthStencilView()))
-	{
-		SetShaderResourceView<SF_Pixel>(NewTexture, ShaderResourceView, TextureIndex, NewTextureRHI ? NewTextureRHI->GetName() : NAME_None, FD3D11StateCache::SRV_Dynamic);
-	}
+	if ( ( NewTexture == NULL) ||  ( NewTexture->GetRenderTargetView( 0, 0 ) !=NULL) || ( NewTexture->HasDepthStencilView()) )
+		SetShaderResourceView<SF_Pixel>(NewTexture, ShaderResourceView, TextureIndex, FD3D11StateCache::SRV_Dynamic);
 	else
-	{
-		SetShaderResourceView<SF_Pixel>(NewTexture, ShaderResourceView, TextureIndex, NewTextureRHI->GetName(), FD3D11StateCache::SRV_Static);
-	}
+		SetShaderResourceView<SF_Pixel>(NewTexture, ShaderResourceView, TextureIndex, FD3D11StateCache::SRV_Static);
 }
 
 void FD3D11DynamicRHI::RHISetShaderTexture(FComputeShaderRHIParamRef ComputeShaderRHI,uint32 TextureIndex,FTextureRHIParamRef NewTextureRHI)
@@ -349,14 +326,10 @@ void FD3D11DynamicRHI::RHISetShaderTexture(FComputeShaderRHIParamRef ComputeShad
 	FD3D11TextureBase* NewTexture = GetD3D11TextureFromRHITexture(NewTextureRHI);
 	ID3D11ShaderResourceView* ShaderResourceView = NewTexture ? NewTexture->GetShaderResourceView() : NULL;
 
-	if ((NewTexture == NULL) || (NewTexture->GetRenderTargetView(0, 0) != NULL) || (NewTexture->HasDepthStencilView()))
-	{
-		SetShaderResourceView<SF_Compute>(NewTexture, ShaderResourceView, TextureIndex, NewTextureRHI ? NewTextureRHI->GetName() : NAME_None, FD3D11StateCache::SRV_Dynamic);
-	}
+	if ( ( NewTexture == NULL) || ( NewTexture->GetRenderTargetView( 0, 0 ) !=NULL) || ( NewTexture->HasDepthStencilView()) )
+		SetShaderResourceView<SF_Compute>(NewTexture, ShaderResourceView, TextureIndex, FD3D11StateCache::SRV_Dynamic);
 	else
-	{
-		SetShaderResourceView<SF_Compute>(NewTexture, ShaderResourceView, TextureIndex, NewTextureRHI->GetName(), FD3D11StateCache::SRV_Static);
-	}
+		SetShaderResourceView<SF_Compute>(NewTexture, ShaderResourceView, TextureIndex, FD3D11StateCache::SRV_Static);
 }
 
 void FD3D11DynamicRHI::RHISetUAVParameter(FComputeShaderRHIParamRef ComputeShaderRHI,uint32 UAVIndex,FUnorderedAccessViewRHIParamRef UAVRHI)
@@ -367,15 +340,7 @@ void FD3D11DynamicRHI::RHISetUAVParameter(FComputeShaderRHIParamRef ComputeShade
 
 	if(UAV)
 	{
-		ConditionalClearShaderResource(UAV->Resource);		
-
-		//check it's safe for r/w for this UAV
-		const EResourceTransitionAccess CurrentUAVAccess = UAV->Resource->GetCurrentGPUAccess();
-		const bool UAVDirty = UAV->Resource->IsDirty();
-		ensureMsgf((GEnableDX11TransitionChecks == 0) || !UAVDirty || (CurrentUAVAccess == EResourceTransitionAccess::ERWNoBarrier), TEXT("UAV: %i is in unsafe state for GPU R/W: %s, Dirty: %i"), UAVIndex, *FResourceTransitionUtility::ResourceTransitionAccessStrings[(int32)CurrentUAVAccess], (int32)UAVDirty);
-
-		//UAVs always dirty themselves. If a shader wanted to just read, it should use an SRV.
-		UAV->Resource->SetDirty(true, PresentCounter);
+		ConditionalClearShaderResource(UAV->Resource);
 	}
 
 	ID3D11UnorderedAccessView* D3D11UAV = UAV ? UAV->View : NULL;
@@ -393,14 +358,6 @@ void FD3D11DynamicRHI::RHISetUAVParameter(FComputeShaderRHIParamRef ComputeShade
 	if(UAV)
 	{
 		ConditionalClearShaderResource(UAV->Resource);
-
-		//check it's safe for r/w for this UAV
-		const EResourceTransitionAccess CurrentUAVAccess = UAV->Resource->GetCurrentGPUAccess();
-		const bool UAVDirty = UAV->Resource->IsDirty();
-		ensureMsgf((GEnableDX11TransitionChecks == 0) || !UAVDirty || (CurrentUAVAccess == EResourceTransitionAccess::ERWNoBarrier), TEXT("UAV: %i is in unsafe state for GPU R/W: %s, Dirty: %i"), UAVIndex, *FResourceTransitionUtility::ResourceTransitionAccessStrings[(int32)CurrentUAVAccess], (int32)UAVDirty);
-
-		//UAVs always dirty themselves. If a shader wanted to just read, it should use an SRV.
-		UAV->Resource->SetDirty(true, PresentCounter);
 	}
 
 	ID3D11UnorderedAccessView* D3D11UAV = UAV ? UAV->View : NULL;
@@ -422,7 +379,7 @@ void FD3D11DynamicRHI::RHISetShaderResourceViewParameter(FPixelShaderRHIParamRef
 		D3D11SRV = SRV->View;
 	}
 
-	SetShaderResourceView<SF_Pixel>(Resource, D3D11SRV, TextureIndex, NAME_None);
+	SetShaderResourceView<SF_Pixel>(Resource, D3D11SRV, TextureIndex);
 }
 
 void FD3D11DynamicRHI::RHISetShaderResourceViewParameter(FVertexShaderRHIParamRef VertexShaderRHI,uint32 TextureIndex,FShaderResourceViewRHIParamRef SRVRHI)
@@ -440,7 +397,7 @@ void FD3D11DynamicRHI::RHISetShaderResourceViewParameter(FVertexShaderRHIParamRe
 		D3D11SRV = SRV->View;
 	}
 
-	SetShaderResourceView<SF_Vertex>(Resource, D3D11SRV, TextureIndex, NAME_None);
+	SetShaderResourceView<SF_Vertex>(Resource, D3D11SRV, TextureIndex);
 }
 
 void FD3D11DynamicRHI::RHISetShaderResourceViewParameter(FComputeShaderRHIParamRef ComputeShaderRHI,uint32 TextureIndex,FShaderResourceViewRHIParamRef SRVRHI)
@@ -458,7 +415,7 @@ void FD3D11DynamicRHI::RHISetShaderResourceViewParameter(FComputeShaderRHIParamR
 		D3D11SRV = SRV->View;
 	}
 
-	SetShaderResourceView<SF_Compute>(Resource, D3D11SRV, TextureIndex, NAME_None);
+	SetShaderResourceView<SF_Compute>(Resource, D3D11SRV, TextureIndex);
 }
 
 void FD3D11DynamicRHI::RHISetShaderResourceViewParameter(FHullShaderRHIParamRef HullShaderRHI,uint32 TextureIndex,FShaderResourceViewRHIParamRef SRVRHI)
@@ -476,7 +433,7 @@ void FD3D11DynamicRHI::RHISetShaderResourceViewParameter(FHullShaderRHIParamRef 
 		D3D11SRV = SRV->View;
 	}
 
-	SetShaderResourceView<SF_Hull>(Resource, D3D11SRV, TextureIndex, NAME_None);
+	SetShaderResourceView<SF_Hull>(Resource, D3D11SRV, TextureIndex);
 }
 
 void FD3D11DynamicRHI::RHISetShaderResourceViewParameter(FDomainShaderRHIParamRef DomainShaderRHI,uint32 TextureIndex,FShaderResourceViewRHIParamRef SRVRHI)
@@ -494,7 +451,7 @@ void FD3D11DynamicRHI::RHISetShaderResourceViewParameter(FDomainShaderRHIParamRe
 		D3D11SRV = SRV->View;
 	}
 
-	SetShaderResourceView<SF_Domain>(Resource, D3D11SRV, TextureIndex, NAME_None);
+	SetShaderResourceView<SF_Domain>(Resource, D3D11SRV, TextureIndex);
 }
 
 void FD3D11DynamicRHI::RHISetShaderResourceViewParameter(FGeometryShaderRHIParamRef GeometryShaderRHI,uint32 TextureIndex,FShaderResourceViewRHIParamRef SRVRHI)
@@ -512,7 +469,7 @@ void FD3D11DynamicRHI::RHISetShaderResourceViewParameter(FGeometryShaderRHIParam
 		D3D11SRV = SRV->View;
 	}
 
-	SetShaderResourceView<SF_Geometry>(Resource, D3D11SRV, TextureIndex, NAME_None);
+	SetShaderResourceView<SF_Geometry>(Resource, D3D11SRV, TextureIndex);
 }
 
 void FD3D11DynamicRHI::RHISetShaderSampler(FVertexShaderRHIParamRef VertexShaderRHI,uint32 SamplerIndex,FSamplerStateRHIParamRef NewStateRHI)
@@ -849,9 +806,7 @@ void FD3D11DynamicRHI::RHISetRenderTargets(
 	// if the depth buffer is writable then it counts as unresolved.
 	if (NewDepthStencilTargetRHI && NewDepthStencilTargetRHI->GetDepthStencilAccess() == FExclusiveDepthStencil::DepthWrite_StencilWrite && NewDepthStencilTarget)
 	{		
-		check(UnresolvedTargetsConcurrencyGuard.Increment() == 1);
 		UnresolvedTargets.Add(NewDepthStencilTarget->GetResource(), FUnresolvedRTInfo(NewDepthStencilTargetRHI->Texture->GetName(), 0, 1, -1, 1));
-		check(UnresolvedTargetsConcurrencyGuard.Decrement() == 0);
 	}
 #endif
 
@@ -878,32 +833,6 @@ void FD3D11DynamicRHI::RHISetRenderTargets(
 		bTargetChanged = true;
 	}
 
-	if (NewDepthStencilTarget)
-	{
-		uint32 CurrentFrame = PresentCounter;
-		const EResourceTransitionAccess CurrentAccess = NewDepthStencilTarget->GetCurrentGPUAccess();
-		const uint32 LastFrameWritten = NewDepthStencilTarget->GetLastFrameWritten();
-		const bool bReadable = CurrentAccess == EResourceTransitionAccess::EReadable;
-		const bool bDepthWrite = NewDepthStencilTargetRHI->GetDepthStencilAccess().IsDepthWrite();
-		const bool bAccessValid =	!bReadable ||
-									LastFrameWritten != CurrentFrame || 
-									!bDepthWrite;
-
-		ensureMsgf((GEnableDX11TransitionChecks == 0) || bAccessValid, TEXT("DepthTarget '%s' is not GPU writable."), *NewDepthStencilTargetRHI->Texture->GetName().ToString());
-
-		//switch to writable state if this is the first render of the frame.  Don't switch if it's a later render and this is a depth test only situation
-		if (!bAccessValid || (bReadable && bDepthWrite))
-		{
-			DUMP_TRANSITION(NewDepthStencilTargetRHI->Texture->GetName(), EResourceTransitionAccess::EWritable);
-			NewDepthStencilTarget->SetCurrentGPUAccess(EResourceTransitionAccess::EWritable);
-		}
-
-		if (bDepthWrite)
-		{
-			NewDepthStencilTarget->SetDirty(true, CurrentFrame);
-		}
-	}
-
 	// Gather the render target views for the new render targets.
 	ID3D11RenderTargetView* NewRenderTargetViews[MaxSimultaneousRenderTargets];
 	for(uint32 RenderTargetIndex = 0;RenderTargetIndex < MaxSimultaneousRenderTargets;++RenderTargetIndex)
@@ -916,23 +845,6 @@ void FD3D11DynamicRHI::RHISetRenderTargets(
 			FD3D11TextureBase* NewRenderTarget = GetD3D11TextureFromRHITexture(NewRenderTargetsRHI[RenderTargetIndex].Texture);
 			RenderTargetView = NewRenderTarget->GetRenderTargetView(RTMipIndex, RTSliceIndex);
 
-			if (NewRenderTarget)
-			{
-				uint32 CurrentFrame = PresentCounter;
-				const EResourceTransitionAccess CurrentAccess = NewRenderTarget->GetCurrentGPUAccess();
-				const uint32 LastFrameWritten = NewRenderTarget->GetLastFrameWritten();
-				const bool bReadable = CurrentAccess == EResourceTransitionAccess::EReadable;
-				const bool bAccessValid = !bReadable || LastFrameWritten != CurrentFrame;
-				ensureMsgf((GEnableDX11TransitionChecks == 0) || bAccessValid, TEXT("RenderTarget '%s' is not GPU writable."), *NewRenderTargetsRHI[RenderTargetIndex].Texture->GetName().ToString());
-								
-				if (!bAccessValid || bReadable)
-				{
-					DUMP_TRANSITION(NewRenderTargetsRHI[RenderTargetIndex].Texture->GetName(), EResourceTransitionAccess::EWritable);
-					NewRenderTarget->SetCurrentGPUAccess(EResourceTransitionAccess::EWritable);
-				}
-				NewRenderTarget->SetDirty(true, CurrentFrame);
-			}
-
 			ensureMsgf(RenderTargetView, TEXT("Texture being set as render target has no RTV"));
 #if CHECK_SRV_TRANSITIONS			
 			if (RenderTargetView)
@@ -940,9 +852,7 @@ void FD3D11DynamicRHI::RHISetRenderTargets(
 				// remember this target as having been bound for write.
 				ID3D11Resource* RTVResource;
 				RenderTargetView->GetResource(&RTVResource);
-				check(UnresolvedTargetsConcurrencyGuard.Increment() == 1);
 				UnresolvedTargets.Add(RTVResource, FUnresolvedRTInfo(NewRenderTargetsRHI[RenderTargetIndex].Texture->GetName(), RTMipIndex, 1, RTSliceIndex, 1));
-				check(UnresolvedTargetsConcurrencyGuard.Decrement() == 0);
 				RTVResource->Release();
 			}
 #endif
@@ -1001,18 +911,6 @@ void FD3D11DynamicRHI::RHISetRenderTargets(
 			FD3D11UnorderedAccessView* RHIUAV = (FD3D11UnorderedAccessView*)UAVs[UAVIndex];
 			UAV = RHIUAV->View;
 
-			if (UAV)
-			{
-				//check it's safe for r/w for this UAV
-				const EResourceTransitionAccess CurrentUAVAccess = RHIUAV->Resource->GetCurrentGPUAccess();
-				const bool UAVDirty = RHIUAV->Resource->IsDirty();
-				const bool bAccessPass = (CurrentUAVAccess == EResourceTransitionAccess::ERWBarrier && !UAVDirty) || (CurrentUAVAccess == EResourceTransitionAccess::ERWNoBarrier);
-				ensureMsgf((GEnableDX11TransitionChecks == 0) || bAccessPass, TEXT("UAV: %i is in unsafe state for GPU R/W: %s"), UAVIndex, *FResourceTransitionUtility::ResourceTransitionAccessStrings[(int32)CurrentUAVAccess]);
-
-				//UAVs get set to dirty.  If the shader just wanted to read it should have used an SRV.
-				RHIUAV->Resource->SetDirty(true, PresentCounter);
-			}
-
 			// Unbind any shader views of the UAV's resource.
 			ConditionalClearShaderResource(RHIUAV->Resource);
 		}
@@ -1061,19 +959,11 @@ void FD3D11DynamicRHI::RHIDiscardRenderTargets(bool Depth, bool Stencil, uint32 
 
 void FD3D11DynamicRHI::RHISetRenderTargetsAndClear(const FRHISetRenderTargetsInfo& RenderTargetsInfo)
 {
-	// Here convert to FUnorderedAccessViewRHIParamRef* in order to call RHISetRenderTargets
-	FUnorderedAccessViewRHIParamRef UAVs[MaxSimultaneousUAVs] = {};
-	for (int32 UAVIndex = 0; UAVIndex < RenderTargetsInfo.NumUAVs; ++UAVIndex)
-	{
-		UAVs[UAVIndex] = RenderTargetsInfo.UnorderedAccessView[UAVIndex].GetReference();
-	}
-
 	this->RHISetRenderTargets(RenderTargetsInfo.NumColorRenderTargets,
 		RenderTargetsInfo.ColorRenderTarget,
 		&RenderTargetsInfo.DepthStencilRenderTarget,
-		RenderTargetsInfo.NumUAVs,
-		UAVs);
-
+		0,
+		nullptr);
 	if (RenderTargetsInfo.bClearColor || RenderTargetsInfo.bClearStencil || RenderTargetsInfo.bClearDepth)
 	{
 		FLinearColor ClearColors[MaxSimultaneousRenderTargets];
@@ -1258,15 +1148,15 @@ void FD3D11DynamicRHI::CommitComputeShaderConstants()
 }
 
 template <EShaderFrequency Frequency>
-FORCEINLINE void SetResource(FD3D11DynamicRHI* RESTRICT D3D11RHI, FD3D11StateCache* RESTRICT StateCache, uint32 BindIndex, FD3D11BaseShaderResource* RESTRICT ShaderResource, ID3D11ShaderResourceView* RESTRICT SRV, FName ResourceName)
+FORCEINLINE void SetResource(FD3D11DynamicRHI* RESTRICT D3D11RHI, FD3D11StateCache* RESTRICT StateCache, uint32 BindIndex, FD3D11BaseShaderResource* RESTRICT ShaderResource, ID3D11ShaderResourceView* RESTRICT SRV)
 {
 	// We set the resource through the RHI to track state for the purposes of unbinding SRVs when a UAV or RTV is bound.
 	// todo: need to support SRV_Static for faster calls when possible
-	D3D11RHI->SetShaderResourceView<Frequency>(ShaderResource, SRV, BindIndex, ResourceName,FD3D11StateCache::SRV_Unknown);
+	D3D11RHI->SetShaderResourceView<Frequency>(ShaderResource,SRV,BindIndex,FD3D11StateCache::SRV_Unknown);
 }
 
 template <EShaderFrequency Frequency>
-FORCEINLINE void SetResource(FD3D11DynamicRHI* RESTRICT D3D11RHI, FD3D11StateCache* RESTRICT StateCache, uint32 BindIndex, FD3D11BaseShaderResource* RESTRICT ShaderResource, ID3D11SamplerState* RESTRICT SamplerState, FName ResourceName)
+FORCEINLINE void SetResource(FD3D11DynamicRHI* RESTRICT D3D11RHI, FD3D11StateCache* RESTRICT StateCache, uint32 BindIndex, FD3D11BaseShaderResource* RESTRICT ShaderResource, ID3D11SamplerState* RESTRICT SamplerState)
 {
 	StateCache->SetSamplerState<Frequency>(SamplerState,BindIndex);
 }
@@ -1290,7 +1180,7 @@ inline int32 SetShaderResourcesFromBuffer(FD3D11DynamicRHI* RESTRICT D3D11RHI, F
 			FD3D11UniformBuffer::FResourcePair* RESTRICT ResourcePair = &Buffer->RawResourceTable[ResourceIndex];
 			FD3D11BaseShaderResource* ShaderResource = ResourcePair->ShaderResource;
 			D3DResourceType* D3D11Resource = (D3DResourceType*)ResourcePair->D3D11Resource;
-			SetResource<ShaderFrequency>(D3D11RHI, StateCache, BindIndex, ShaderResource, D3D11Resource, ResourcePair->GetResourceName());
+			SetResource<ShaderFrequency>(D3D11RHI, StateCache, BindIndex, ShaderResource, D3D11Resource);
 			NumSetCalls++;
 			ResourceInfo = *ResourceInfos++;
 		} while (FRHIResourceTableEntry::GetUniformBufferIndex(ResourceInfo) == BufferIndex);
@@ -1314,35 +1204,7 @@ void FD3D11DynamicRHI::SetResourcesFromTables(const ShaderType* RESTRICT Shader)
 		FD3D11UniformBuffer* Buffer = (FD3D11UniformBuffer*)BoundUniformBuffers[ShaderType::StaticFrequency][BufferIndex].GetReference();
 		check(Buffer);
 		check(BufferIndex < Shader->ShaderResourceTable.ResourceTableLayoutHashes.Num());
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		// to track down OR-7159 CRASH: Client crashed at start of match in D3D11Commands.cpp
-		{
-			if (Buffer->GetLayout().GetHash() != Shader->ShaderResourceTable.ResourceTableLayoutHashes[BufferIndex])
-			{
-				auto& BufferLayout = Buffer->GetLayout();
-				FString DebugName = BufferLayout.GetDebugName().GetPlainNameString();
-				const FString& ShaderName = Shader->ShaderName;
-				
-				FString ShaderUB;
-				if (BufferIndex < Shader->UniformBuffers.Num())
-				{
-					ShaderUB = FString::Printf(TEXT("expecting UB '%s'"), *Shader->UniformBuffers[BufferIndex].GetPlainNameString());
-				}
-				UE_LOG(LogD3D11RHI, Error, TEXT("SetResourcesFromTables upcoming check(%08x != %08x); Bound Layout='%s' Shader='%s' %s"), BufferLayout.GetHash(), Shader->ShaderResourceTable.ResourceTableLayoutHashes[BufferIndex], *DebugName, *ShaderName, *ShaderUB);
-				FString ResourcesString;
-				for (int32 Index = 0; Index < BufferLayout.Resources.Num(); ++Index)
-				{
-					ResourcesString += FString::Printf(TEXT("%d "), BufferLayout.Resources[Index]);
-				}
-				UE_LOG(LogD3D11RHI, Error, TEXT("Layout CB Size %d Res Offs %d; %d Resources: %s"), BufferLayout.ConstantBufferSize, BufferLayout.ResourceOffset, BufferLayout.Resources.Num(), *ResourcesString);
-
-				// this might mean you are accessing a data you haven't bound e.g. GBuffer
-				check(BufferLayout.GetHash() == Shader->ShaderResourceTable.ResourceTableLayoutHashes[BufferIndex]);
-			}
-		}
-#endif
-
+		check(Buffer->GetLayout().GetHash() == Shader->ShaderResourceTable.ResourceTableLayoutHashes[BufferIndex]);
 		Buffer->CacheResources(ResourceTableFrameCounter);
 
 		// todo: could make this two pass: gather then set
@@ -2079,6 +1941,25 @@ void FD3D11DynamicRHI::RHIBindClearMRTValues(bool bClearColor, bool bClearDepth,
 	// Not necessary for d3d.
 }
 
+
+// Functions to yield and regain rendering control from D3D
+
+void FD3D11DynamicRHI::RHISuspendRendering()
+{
+	// Not supported
+}
+
+void FD3D11DynamicRHI::RHIResumeRendering()
+{
+	// Not supported
+}
+
+bool FD3D11DynamicRHI::RHIIsRenderingSuspended()
+{
+	// Not supported
+	return false;
+}
+
 // Blocks the CPU until the GPU catches up and goes idle.
 void FD3D11DynamicRHI::RHIBlockUntilGPUIdle()
 {
@@ -2148,62 +2029,3 @@ IRHICommandContextContainer* FD3D11DynamicRHI::RHIGetCommandContextContainer()
 	return nullptr;
 }
 
-void FD3D11DynamicRHI::RHITransitionResources(EResourceTransitionAccess TransitionType, FTextureRHIParamRef* InTextures, int32 NumTextures)
-{
-	static IConsoleVariable* CVarShowTransitions = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ProfileGPU.ShowTransitions"));
-	bool bShowTransitionEvents = CVarShowTransitions->GetInt() != 0;
-
-	SCOPED_RHI_CONDITIONAL_DRAW_EVENTF(*this, RHITransitionResources, bShowTransitionEvents, TEXT("TransitionTo: %s: %i Textures"), *FResourceTransitionUtility::ResourceTransitionAccessStrings[(int32)TransitionType], NumTextures);
-	for (int32 i = 0; i < NumTextures; ++i)
-	{				
-		FTextureRHIParamRef RenderTarget = InTextures[i];
-		SCOPED_RHI_CONDITIONAL_DRAW_EVENTF(*this, RHITransitionResourcesLoop, bShowTransitionEvents, TEXT("To:%i - %s"), i, *RenderTarget->GetName().ToString());
-
-		if (RenderTarget)
-		{
-
-			FD3D11BaseShaderResource* Resource = nullptr;
-			FD3D11Texture2D* SourceTexture2D = static_cast<FD3D11Texture2D*>(RenderTarget->GetTexture2D());
-			if (SourceTexture2D)
-			{
-				Resource = SourceTexture2D;
-			}
-			FD3D11TextureCube* SourceTextureCube = static_cast<FD3D11TextureCube*>(RenderTarget->GetTextureCube());
-			if (SourceTextureCube)
-			{
-				Resource = SourceTextureCube;
-			}
-			FD3D11Texture3D* SourceTexture3D = static_cast<FD3D11Texture3D*>(RenderTarget->GetTexture3D());
-			if (SourceTexture3D)
-			{
-				Resource = SourceTexture3D;
-			}
-			DUMP_TRANSITION(RenderTarget->GetName(), TransitionType);
-			Resource->SetCurrentGPUAccess(TransitionType);
-		}
-	}
-}
-
-void FD3D11DynamicRHI::RHITransitionResources(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 NumUAVs, FComputeFenceRHIParamRef WriteFence)
-{
-	for (int32 i = 0; i < NumUAVs; ++i)
-	{
-		if (InUAVs[i])
-		{
-			FD3D11UnorderedAccessView* UAV = ResourceCast(InUAVs[i]);
-			if (UAV && UAV->Resource)
-			{
-				UAV->Resource->SetCurrentGPUAccess(TransitionType);
-				if (TransitionType != EResourceTransitionAccess::ERWNoBarrier)
-				{
-					UAV->Resource->SetDirty(false, PresentCounter);
-				}
-			}
-		}
-	}
-
-	if (WriteFence)
-	{
-		WriteFence->WriteFence();
-	}
-}

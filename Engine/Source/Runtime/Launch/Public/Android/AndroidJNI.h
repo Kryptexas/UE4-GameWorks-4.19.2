@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -34,11 +34,7 @@ public:
 	static jmethodID AndroidThunkJava_SetVolume;
 	static jmethodID AndroidThunkJava_AdjustVolume;
 	static jmethodID AndroidThunkJava_GetInputDeviceInfo;
-	static jmethodID AndroidThunkJava_HasMetaDataKey;
-	static jmethodID AndroidThunkJava_GetMetaDataBoolean;
-	static jmethodID AndroidThunkJava_GetMetaDataInt;
-	static jmethodID AndroidThunkJava_GetMetaDataString;
-
+	
 	// InputDeviceInfo member field ids
 	static jclass InputDeviceInfoClass;
 	static jfieldID InputDeviceInfo_VendorId;
@@ -61,11 +57,6 @@ public:
 	static jmethodID AndroidThunkJava_IapQueryInAppPurchases;
 	static jmethodID AndroidThunkJava_IapBeginPurchase;
 	static jmethodID AndroidThunkJava_IapIsAllowedToMakePurchases;
-	static jmethodID AndroidThunkJava_IapRestorePurchases;
-
-	// SurfaceView functionality for view scaling on some devices
-	static jmethodID AndroidThunkJava_UseSurfaceViewWorkaround;
-	static jmethodID AndroidThunkJava_SetDesiredViewSize;
 
 	/**
 	 * Find all known classes and methods

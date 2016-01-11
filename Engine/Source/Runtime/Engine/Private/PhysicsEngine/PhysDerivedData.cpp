@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "EnginePrivate.h"
 #include "PhysDerivedData.h"
 #include "TargetPlatform.h"
@@ -123,8 +123,7 @@ int32 FDerivedDataPhysXCooker::BuildConvex( TArray<uint8>& OutData, bool InMirro
 
 		// Cook and store Result at ResultInfoOffset
 		UE_LOG(LogPhysics, Log, TEXT("Cook Convex: %s %d (FlipX:%d)"), *BodySetup->GetOuter()->GetPathName(), ElementIndex, InMirrored);		
-		const bool bDeformableMesh = CollisionDataProvider->IsA(USplineMeshComponent::StaticClass());
-		const bool Result = Cooker->CookConvex(Format, *MeshVertices, OutData, bDeformableMesh);
+		bool Result = Cooker->CookConvex( Format, *MeshVertices, OutData );
 		if( !Result )
 		{
 			UE_LOG(LogPhysics, Warning, TEXT("Failed to cook convex: %s %d (FlipX:%d). The remaining elements will not get cooked."), *BodySetup->GetOuter()->GetPathName(), ElementIndex, InMirrored);
@@ -170,13 +169,13 @@ int32 FDerivedDataPhysXCooker::BuildTriMesh( TArray<uint8>& OutData, bool InUseA
 		MeshVertices = &TriangleMeshDesc.Vertices;
 		
 		UE_LOG(LogPhysics, Log, TEXT("Cook TriMesh: %s"), *CollisionDataProvider->GetPathName());
-		bool bDeformableMesh = CollisionDataProvider->IsA(USplineMeshComponent::StaticClass());
+		bool bPerPolySkeletalMesh = false;
 		if (USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(CollisionDataProvider))
 		{
 			ensure(SkeletalMesh->bEnablePerPolyCollision);
-			bDeformableMesh = true;
+			bPerPolySkeletalMesh = true;
 		}
-		bResult = Cooker->CookTriMesh( Format, *MeshVertices, TriangleMeshDesc.Indices, TriangleMeshDesc.MaterialIndices, TriangleMeshDesc.bFlipNormals, OutData, bDeformableMesh );
+		bResult = Cooker->CookTriMesh( Format, *MeshVertices, TriangleMeshDesc.Indices, TriangleMeshDesc.MaterialIndices, TriangleMeshDesc.bFlipNormals, OutData, bPerPolySkeletalMesh );
 		if( !bResult )
 		{
 			UE_LOG(LogPhysics, Warning, TEXT("Failed to cook TriMesh: %s."), *CollisionDataProvider->GetPathName());

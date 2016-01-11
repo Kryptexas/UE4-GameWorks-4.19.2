@@ -284,9 +284,7 @@ typedef long            expr_t;
 #define PRESTD_RESCAN_LIMIT 0x100
 #endif
 #ifndef NBUFF
-// EPIC BEGIN
-#define NBUFF               0x20000     /* Must be NWORK <= NBUFF   */
-// EPIC END
+#define NBUFF               0x10000     /* Must be NWORK <= NBUFF   */
 #endif
 #ifndef NWORK
 #define NWORK               NBUFF       /* 0x1000, 0x4000, 0x10000, ..  */

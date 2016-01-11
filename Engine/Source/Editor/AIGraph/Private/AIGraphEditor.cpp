@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIGraphPrivatePCH.h"
 #include "GraphEditorActions.h"
@@ -235,8 +235,7 @@ void FAIGraphEditor::CopySelectedNodes()
 	int32 CopySubNodeIndex = 0;
 	for (FGraphPanelSelectionSet::TIterator SelectedIter(SelectedNodes); SelectedIter; ++SelectedIter)
 	{
-		UEdGraphNode* Node = Cast<UEdGraphNode>(*SelectedIter);
-		UAIGraphNode* AINode = Cast<UAIGraphNode>(Node);
+		UAIGraphNode* Node = Cast<UAIGraphNode>(*SelectedIter);
 		if (Node == nullptr)
 		{
 			SelectedIter.RemoveCurrent();
@@ -244,20 +243,16 @@ void FAIGraphEditor::CopySelectedNodes()
 		}
 
 		Node->PrepareForCopying();
+		Node->CopySubNodeIndex = CopySubNodeIndex;
 
-		if (AINode)
+		// append all subnodes for selection
+		for (int32 Idx = 0; Idx < Node->SubNodes.Num(); Idx++)
 		{
-			AINode->CopySubNodeIndex = CopySubNodeIndex;
-
-			// append all subnodes for selection
-			for (int32 Idx = 0; Idx < AINode->SubNodes.Num(); Idx++)
-			{
-				AINode->SubNodes[Idx]->CopySubNodeIndex = CopySubNodeIndex;
-				SubNodes.Add(AINode->SubNodes[Idx]);
-			}
-
-			CopySubNodeIndex++;
+			Node->SubNodes[Idx]->CopySubNodeIndex = CopySubNodeIndex;
+			SubNodes.Add(Node->SubNodes[Idx]);
 		}
+
+		CopySubNodeIndex++;
 	}
 
 	for (int32 Idx = 0; Idx < SubNodes.Num(); Idx++)
@@ -314,14 +309,9 @@ void FAIGraphEditor::PasteNodesHere(const FVector2D& Location)
 
 	// Undo/Redo support
 	const FScopedTransaction Transaction(FGenericCommands::Get().Paste->GetDescription());
-	UEdGraph* EdGraph = CurrentGraphEditor->GetCurrentGraph();
-	UAIGraph* AIGraph = Cast<UAIGraph>(EdGraph);
-
+	UAIGraph* EdGraph = Cast<UAIGraph>(CurrentGraphEditor->GetCurrentGraph());
 	EdGraph->Modify();
-	if (AIGraph)
-	{
-		AIGraph->LockUpdates();
-	}
+	EdGraph->LockUpdates();
 
 	UAIGraphNode* SelectedParent = NULL;
 	bool bHasMultipleNodesSelected = false;
@@ -365,12 +355,11 @@ void FAIGraphEditor::PasteNodesHere(const FVector2D& Location)
 
 	for (TSet<UEdGraphNode*>::TIterator It(PastedNodes); It; ++It)
 	{
-		UEdGraphNode* EdNode = *It;
-		UAIGraphNode* AINode = Cast<UAIGraphNode>(EdNode);
-		if (EdNode && (AINode == nullptr || !AINode->IsSubNode()))
+		UAIGraphNode* Node = Cast<UAIGraphNode>(*It);
+		if (Node && !Node->IsSubNode())
 		{
-			AvgNodePosition.X += EdNode->NodePosX;
-			AvgNodePosition.Y += EdNode->NodePosY;
+			AvgNodePosition.X += Node->NodePosX;
+			AvgNodePosition.Y += Node->NodePosY;
 		}
 	}
 
@@ -386,10 +375,8 @@ void FAIGraphEditor::PasteNodesHere(const FVector2D& Location)
 	TMap<int32, UAIGraphNode*> ParentMap;
 	for (TSet<UEdGraphNode*>::TIterator It(PastedNodes); It; ++It)
 	{
-		UEdGraphNode* PasteNode = *It;
-		UAIGraphNode* PasteAINode = Cast<UAIGraphNode>(PasteNode);
-
-		if (PasteNode && (PasteAINode == nullptr || !PasteAINode->IsSubNode()))
+		UAIGraphNode* PasteNode = Cast<UAIGraphNode>(*It);
+		if (PasteNode && !PasteNode->IsSubNode())
 		{
 			bPastedParentNode = true;
 
@@ -404,11 +391,8 @@ void FAIGraphEditor::PasteNodesHere(const FVector2D& Location)
 			// Give new node a different Guid from the old one
 			PasteNode->CreateNewGuid();
 
-			if (PasteAINode)
-			{
-				PasteAINode->RemoveAllSubNodes();
-				ParentMap.Add(PasteAINode->CopySubNodeIndex, PasteAINode);
-			}
+			PasteNode->RemoveAllSubNodes();
+			ParentMap.Add(PasteNode->CopySubNodeIndex, PasteNode);
 		}
 	}
 
@@ -436,13 +420,10 @@ void FAIGraphEditor::PasteNodesHere(const FVector2D& Location)
 		}
 	}
 
-	if (AIGraph)
-	{
-		AIGraph->UpdateClassData();
-		AIGraph->UnlockUpdates();
-	}
+	EdGraph->UpdateClassData();
 
 	// Update UI
+	EdGraph->UnlockUpdates();
 	CurrentGraphEditor->NotifyGraphChanged();
 
 	UObject* GraphOwner = EdGraph->GetOuter();

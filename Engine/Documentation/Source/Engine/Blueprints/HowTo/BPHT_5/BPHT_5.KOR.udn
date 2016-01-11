@@ -1,9 +1,8 @@
-﻿INTSourceChangelist:2686179
+﻿INTSourceChangelist:2599038
 Availability: Public
 Title:5. 바위 파괴하기
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
 Description:이번 섹션에서는 Bind Event 를 사용하여 OnHit 에 바인딩, 바위가 총에 맞으면 파괴되도록 하겠습니다.
-version: 4.9
 
 
 [VAR:Steps]
@@ -68,7 +67,7 @@ version: 4.9
 
 	**Spawn Actor** 노드의 **Return Value** 를 끌어 **Destroy Actor** 노드의 **Target** 에 물려줍니다.
 
-1. **Destroy Actor** 뒤에 **Set IsActive** 변수 노드를 추가하고 체크해제 상태로 놔둡니다.
+1. **Destroy Actor** 뒤에 **Set isActive** 변수 노드를 추가하고 체크해제 상태로 놔둡니다.
 
 	![](SetIsActive.png)
 

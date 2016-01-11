@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 // Module includes
 #include "OnlineSubsystemIOSPrivatePCH.h"
@@ -66,17 +66,12 @@ bool FOnlineExternalUIIOS::ShowLeaderboardUI( const FString& LeaderboardName )
 	return true;
 }
 
-bool FOnlineExternalUIIOS::ShowWebURL(const FString& Url, const FShowWebUrlParams& ShowParams, const FOnShowWebUrlClosedDelegate& Delegate)
+bool FOnlineExternalUIIOS::ShowWebURL(const FString& WebURL) 
 {
 	return false;
 }
 
-bool FOnlineExternalUIIOS::CloseWebURL()
-{
-	return false;
-}
-
-bool FOnlineExternalUIIOS::ShowProfileUI(const FUniqueNetId& Requestor, const FUniqueNetId& Requestee, const FOnProfileUIClosedDelegate& Delegate)
+bool FOnlineExternalUIIOS::ShowProfileUI( const FUniqueNetId& Requestor, const FUniqueNetId& Requestee, const FOnProfileUIClosedDelegate& Delegate )
 {
 	return false;
 }

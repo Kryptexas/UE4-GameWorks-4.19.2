@@ -1,11 +1,10 @@
-﻿INTSourceChangelist:2713052
+﻿INTSourceChangelist:2410153
 Availability:Public
 Title:デカール
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
-Description:デカールのサンプル レベルの概要
-Version:4.9
-Related:Engine/Actors/DecalActor
-<!---[TOC(start:2 end:2)]--->
+Description:デカールの事例概要
+
+[TOC(start:2 end:2)]
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -39,29 +38,25 @@ Related:Engine/Actors/DecalActor
 [/VAR]
 
 
-
+## 概要
 
 [REGION:fullwidth]
 
 [/REGION]
 
-**デカール** サンプル レベルへようこそ! レベルでのデカールの使用方法について説明します。 
+**デカール** 事例レベルへようこそ!ここではレベルでのデカールの使用方法について説明します。 
 
-Deferred Decal アクタを作成するには、**[Modes (モード)]**パネルから Deferred Decal アクタをドラッグ & ドロップします。
+デカール アクタを作成するには、**[クラス ビューア]**パネルからデカール アクタをドラッグ & ドロップします。
 
 ![](DecalActorList.png)
 
-[REGION:note]
-これは、[Placement (配置)] モードで**[Modes (モード)]** パネルからのみアクセスすることが可能です。
-[/REGION]
-
-この後、デカール マテリアルを適用するだけです。デカール マテリアルは通常のマテリアルであり、その **[Material Domain (マテリアル ドメイン)]** プロパティは、マテリアルの [Details (詳細)] パネルで、**[Deferred Decal (ディファード デカール)]** に設定されています。
+この後、デカール マテリアルを適用するだけです。デカール マテリアルは通常のマテリアルであり、その**Material Domain** プロパティは _Deferred Decal_ に設定されています。
 
 ![](DeferredDecalSetting.png)
 
 [INCLUDE:Resources\ContentExamples\ExampleLevelOverview#ExampleLevel]
 
-## サンプル
+## 例
 
 [REGION:topics third]
 %Resources/ContentExamples/Decals/1_1:TopicCompact%
@@ -73,8 +68,7 @@ Deferred Decal アクタを作成するには、**[Modes (モード)]**パネル
 %Resources/ContentExamples/Decals/1_7:TopicCompact%
 [/REGION]
 
-<!---
+
 ## 関連トピックと参考文献
 
-* [デカール](Engine/Actors/DecalActor)
---->
+* [Decals](Engine/Actors/DecalActor)

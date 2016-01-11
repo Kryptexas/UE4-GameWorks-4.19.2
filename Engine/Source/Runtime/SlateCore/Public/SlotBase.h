@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -12,22 +12,16 @@ public:
 
 	FSlotBase( const TSharedRef<SWidget>& InWidget );
 
-	virtual ~FSlotBase();
+	void AttachWidget( const TSharedRef<SWidget>& InWidget );
 
-	FORCEINLINE_DEBUGGABLE void AttachWidget( const TSharedRef<SWidget>& InWidget )
-	{
-		Widget = InWidget;
-	}
+	virtual ~FSlotBase();
 
 	/**
 	 * Access the widget in the current slot.
 	 * There will always be a widget in the slot; sometimes it is
 	 * the SNullWidget instance.
 	 */
-	FORCEINLINE_DEBUGGABLE const TSharedRef<SWidget>& GetWidget() const
-	{
-		return Widget;
-	}
+	const TSharedRef<SWidget>& GetWidget() const;
 
 	/**
 	 * Remove the widget from its current slot.

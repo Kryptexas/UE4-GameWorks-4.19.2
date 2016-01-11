@@ -1,0 +1,28 @@
+﻿Availability: Docs
+Title:1.4 - Lightmass重要体积
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Volumes
+Description:体积示例关卡的概述,示例1.4: Lightmass重要体积
+
+[TOC(start:2 end:2)]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Volumes/1_4:title%](Resources\ContentExamples\Volumes\content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Volumes/1_4:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Volumes/1_4:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Volumes/1_4]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+本文主要使用Lightmass来重建光照。 每个其中的内容都将获得完全质量的间接反射光照。 同时还会对动态对象创建样本。 体积外的动态对象不拥有间接光照。 体积外的静态几何体将仅仅具有1个间接光照反射。

@@ -1,7 +1,8 @@
-﻿Availability: Public
-Title:虚幻引擎4术语
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Unreal Engine 4 Terminology
 Crumbs: %ROOT%, Gameplay, GettingStarted
-Description: 介绍了应用虚幻引擎4时用到的常用术语。
+Description: Covers the most commonly used terms when working with Unreal Engine 4. 
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -37,7 +38,7 @@ Description: 介绍了应用虚幻引擎4时用到的常用术语。
 [/OBJECT]
 [/VAR]
 
-本页面的目的是介绍当应用 **虚幻引擎4** 时遇到的常用术语。比如，如果您发现自己会问像 “什么是Actor”、“什么是 **组件**”、“什么是Pawn”这样的问题，那么本页面便突出介绍了并提供了关于这些类型问题的描述。一旦您理解了每个术语的意思，下面的链接提供了更多文档及如何使用它们的指南。
+This page is dedicated to describing the commonly used terms when working with **Unreal Engine 4**. For example, if you find yourself asking questions like "What is an **Actor**", "What is a **Component**", or "What is a **Pawn**", this page will highlight and provide descriptions for those types of questions and more. Once you have an understanding of what each term means, links are provided for more documentation and guidance on working with them. 
 
 | ------- | ------------ |
 |![](NewProject.png)(w:300 h:140)|[INCLUDE:GettingStarted\Terminology#projects]| 
@@ -59,21 +60,21 @@ Description: 介绍了应用虚幻引擎4时用到的常用术语。
 
 <!---
 [EXCERPT:projects]
-**项目**
+**Projects**
 
 [INCLUDE:Shared\Glossary\P#glossary_project]
 
-要了解更多信息，请参阅： [](Engine/Basics/Projects)
+For more information, see: [](Engine/Basics/Projects)
 [/EXCERPT:projects]
 
 
 
 [EXCERPT:world]
-**世界**
+**World**
 
 [INCLUDE:Shared\Glossary\W#glossary_world]
 
-要了解更多信息，请参阅： [](Engine/LevelStreaming/WorldBrowser)
+For more information, see: [](Engine/LevelStreaming/WorldBrowser)
 [/EXCERPT:world]
 
 
@@ -81,21 +82,21 @@ Description: 介绍了应用虚幻引擎4时用到的常用术语。
 [INCLUDE:Shared\Glossary\P#glossary_playercontroller]
 
 [EXCERPT:playercontroller]
-**PlayerController(玩家控制器)**
+**PlayerController**
 
 [INCLUDE:Shared\Glossary\P#glossary_playercontroller]
 
-要了解更多信息，请参阅： [](Gameplay/Framework/Controller/PlayerController)
+For more information, see: [](Gameplay/Framework/Controller/PlayerController)
 [/EXCERPT:playercontroller]
 
 
 
 [EXCERPT:aicontroller]
-**AIController（人工智能控制器）**
+**AIController**
 
 [INCLUDE:Shared\Glossary\A#glossary_aicontroller]
 
-要了解更多信息，请参阅： [](Gameplay/Framework/Controller/AIController)
+For more information, see: [](Gameplay/Framework/Controller/AIController)
 [/EXCERPT:aicontroller]
 
 
@@ -103,83 +104,83 @@ Description: 介绍了应用虚幻引擎4时用到的常用术语。
 [EXCERPT:actors]
 **Actors**
 [INCLUDE:Shared\Glossary\A#glossary_actor]
-要了解更多信息，请参阅： [](Engine/Actors)
+For more information, see: [](Engine/Actors)
 [/EXCERPT:actors]
 
 
 [EXCERPT:classes]
-** Class（类）**
+**Classes**
 [INCLUDE:Shared\Glossary\C#glossary_class]
-要了解更多信息，请参阅： [](Engine/Blueprints/UserGuide/Types/ClassBlueprint), [](Programming/UnrealArchitecture/Reference/Classes), [](Gameplay/ClassCreation)
+For more information, see: [](Engine/Blueprints/UserGuide/Types/ClassBlueprint), [](Programming/UnrealArchitecture/Reference/Classes), [](Gameplay/ClassCreation)
 [/EXCERPT:classes]
 
 
 [EXCERPT:components]
-**组件**
+**Components**
 [INCLUDE:Shared\Glossary\C#glossary_component]
-要了解更多信息，请参阅： [组件](Engine\Components), [组件窗口](Engine/Blueprints/UserGuide/Components), [代码中的组件](Programming/UnrealArchitecture/Actors/Components)。
+For more information, see: [Components](Engine\Components), [Components Window](Engine/Blueprints/UserGuide/Components), [Components in Code](Programming/UnrealArchitecture/Actors/Components)
 [/EXCERPT:components]
 
 
 [EXCERPT:objects]
-**对象**
+**Objects**
 [INCLUDE:Shared\Glossary\O#glossary_object]
-要了解更多信息，请参阅： [](Gameplay/UnrealTerminology), [](Programming/UnrealArchitecture)
+For more information, see: [](Gameplay/UnrealTerminology), [](Programming/UnrealArchitecture)
 [/EXCERPT:objects]
 
 
 [EXCERPT:characters]
-**角色**
+**Characters**
 [INCLUDE:Shared\Glossary\C#glossary_character]
-要了解更多信息，请参阅： [](Gameplay/Framework/Pawn/Character), [角色设置](Engine/Animation/CharacterSetupOverview), [指南 - 角色运动](Gameplay/HowTo/CharacterMovement/Blueprints)
+For more information, see: [](Gameplay/Framework/Pawn/Character), [Character Setup](Engine/Animation/CharacterSetupOverview), [How To - Character Movement](Gameplay/HowTo/CharacterMovement/Blueprints)
 [/EXCERPT:characters]
 
 
 [EXCERPT:pawn]
 **Pawns**
 [INCLUDE:Shared\Glossary\P#glossary_pawn] 
-要了解更多信息，请参阅： [](Gameplay/Framework/Pawn), [](Gameplay/HowTo/PossessPawns)
+For more information, see: [](Gameplay/Framework/Pawn), [](Gameplay/HowTo/PossessPawns)
 [/EXCERPT:pawn]
 
 [EXCERPT:controller]
-**Controllers（控制器）**
+**Controllers**
 [INCLUDE:Shared\Glossary\C#glossary_controller_class] 
-要了解更多信息，请参阅： [](Gameplay/Framework/Controller), [](Gameplay/Framework/Controller/PlayerController), [](Gameplay/Framework/Controller/AIController)
+For more information, see: [](Gameplay/Framework/Controller), [](Gameplay/Framework/Controller/PlayerController), [](Gameplay/Framework/Controller/AIController)
 [/EXCERPT:controller]
 
 
 [EXCERPT:brush]
-**画刷**
+**Brushes**
 [INCLUDE:Shared\Glossary\B#glossary_brush] 
-要了解更多信息，请参阅： [](Engine/Actors/Brushes), [](Resources/ContentExamples/Brushes)
+For more information, see: [](Engine/Actors/Brushes), [](Resources/ContentExamples/Brushes)
 [/EXCERPT:brush]
 
 
 [EXCERPT:level]
-**关卡**
+**Levels**
 [INCLUDE:Shared\Glossary\L#glossary_level]
-关于更多信息，请参阅: [](Engine/Levels), [](Engine/UI/LevelEditor), [](Resources/ContentExamples/LevelDesign)
+For more information, see: [](Engine/Levels), [](Engine/UI/LevelEditor), [](Resources/ContentExamples/LevelDesign)
 [/EXCERPT:level]
 
 
 [EXCERPT:gamemode]
-**GameModes（游戏模式）**
+**GameModes**
 [INCLUDE:Shared\Glossary\G#glossary_gamemode] 
-关于更多信息，请参阅: [](Gameplay/Framework/GameMode), [](Gameplay/HowTo/SettingUpAGameMode/Blueprints) 
+For more information, see: [](Gameplay/Framework/GameMode), [](Gameplay/HowTo/SettingUpAGameMode/Blueprints) 
 [/EXCERPT:gamemode]
 
 
 [EXCERPT:gamestate]
-**GameStates（游戏状态）**
+**GameStates**
 [INCLUDE:Shared\Glossary\G#glossary_gamestate] 
-关于更多信息，请参阅: [](Gameplay/Framework/GameState)
+For more information, see: [](Gameplay/Framework/GameState)
 [/EXCERPT:gamestate]
 
 
 [EXCERPT:playerstate]
-**PlayerStates（玩家状态）**
+**PlayerStates**
 [INCLUDE:Shared\Glossary\P#glossary_playerstate] 
-关于更多信息，请参阅: [](Gameplay/Framework/QuickReference)
+For more information, see: [](Gameplay/Framework/QuickReference)
 [/EXCERPT:playerstate]
 
 --->	

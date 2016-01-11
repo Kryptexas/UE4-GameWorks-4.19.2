@@ -1,9 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CrashReportClientApp.h"
+
 #include "WindowsErrorReport.h"
+#include "XmlFile.h"
 #include "CrashDebugHelperModule.h"
-#include "CrashReportUtil.h"
+#include "../CrashReportUtil.h"
 
 #include "AllowWindowsPlatformTypes.h"
 #include <ShlObj.h>
@@ -72,9 +74,6 @@ FString FWindowsErrorReport::FindCrashedAppPath() const
 
 FText FWindowsErrorReport::DiagnoseReport() const
 {
-	// Mark the callstack as invalid.
-	bValidCallstack = false;
-
 	// Should check if there are local PDBs before doing anything
 	auto CrashDebugHelper = CrashHelperModule ? CrashHelperModule->Get() : nullptr;
 	if (!CrashDebugHelper)
@@ -97,9 +96,13 @@ FText FWindowsErrorReport::DiagnoseReport() const
 		return LOCTEXT("NoDebuggingSymbols", "You do not have any debugging symbols required to display the callstack for this crash.");
 	}
 
-	// No longer required, only for backward compatibility, mark the callstack as valid.
-	bValidCallstack = true;
-	return FText();
+	// There's a callstack, so write it out to save the server trying to do it
+	CrashDebugHelper->CrashInfo.GenerateReport(ReportDirectory / FCrashReportClientConfig::Get().GetDiagnosticsFilename());
+
+	const auto& Exception = CrashDebugHelper->CrashInfo.Exception;
+	const FString Assertion = FWindowsReportParser::Find( ReportDirectory, TEXT( "AssertLog=" ) );
+
+	return FCrashReportUtil::FormatReportDescription( Exception.ExceptionString, Assertion, Exception.CallStackString );
 }
 
 static bool TryGetDirectoryCreationTime(const FString& InDirectoryName, FDateTime& OutCreationTime)

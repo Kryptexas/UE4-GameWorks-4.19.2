@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "GameplayAbilityTargetActor.h"
@@ -32,11 +32,11 @@ UAbilityTask_WaitTargetData* UAbilityTask_WaitTargetData::WaitTargetDataUsingAct
 void UAbilityTask_WaitTargetData::Activate()
 {
 	// Need to handle case where target actor was passed into task
-	if (Ability && (TargetClass == nullptr))
+	if (Ability.IsValid() && (TargetClass == nullptr))
 	{
-		if (TargetActor)
+		if (TargetActor.IsValid())
 		{
-			AGameplayAbilityTargetActor* SpawnedActor = TargetActor;
+			AGameplayAbilityTargetActor* SpawnedActor = TargetActor.Get();
 			TargetClass = SpawnedActor->GetClass();
 
 			RegisterTargetDataCallbacks();
@@ -74,7 +74,7 @@ bool UAbilityTask_WaitTargetData::BeginSpawningActor(UObject* WorldContextObject
 {
 	SpawnedActor = nullptr;
 
-	if (Ability)
+	if (Ability.IsValid())
 	{
 		if (ShouldSpawnTargetActor())
 		{
@@ -115,7 +115,7 @@ void UAbilityTask_WaitTargetData::FinishSpawningActor(UObject* WorldContextObjec
 bool UAbilityTask_WaitTargetData::ShouldSpawnTargetActor() const
 {
 	check(TargetClass);
-	check(Ability);
+	check(Ability.IsValid());
 
 	// Spawn the actor if this is a locally controlled ability (always) or if this is a replicating targeting mode.
 	// (E.g., server will spawn this target actor to replicate to all non owning clients)
@@ -132,7 +132,7 @@ bool UAbilityTask_WaitTargetData::ShouldSpawnTargetActor() const
 void UAbilityTask_WaitTargetData::InitializeTargetActor(AGameplayAbilityTargetActor* SpawnedActor) const
 {
 	check(SpawnedActor);
-	check(Ability);
+	check(Ability.IsValid());
 
 	SpawnedActor->MasterPC = Ability->GetCurrentActorInfo()->PlayerController.Get();
 
@@ -144,12 +144,12 @@ void UAbilityTask_WaitTargetData::InitializeTargetActor(AGameplayAbilityTargetAc
 void UAbilityTask_WaitTargetData::FinalizeTargetActor(AGameplayAbilityTargetActor* SpawnedActor) const
 {
 	check(SpawnedActor);
-	check(Ability);
+	check(Ability.IsValid());
 
 	// User ability activation is inhibited while this is active
 	AbilitySystemComponent->SpawnedTargetActors.Push(SpawnedActor);
 
-	SpawnedActor->StartTargeting(Ability);
+	SpawnedActor->StartTargeting(Ability.Get());
 
 	if (SpawnedActor->ShouldProduceTargetData())
 	{
@@ -176,7 +176,7 @@ void UAbilityTask_WaitTargetData::RegisterTargetDataCallbacks()
 	}
 
 	check(TargetClass);
-	check(Ability);
+	check(Ability.IsValid());
 
 	const AGameplayAbilityTargetActor* CDO = CastChecked<AGameplayAbilityTargetActor>(TargetClass->GetDefaultObject());
 
@@ -198,8 +198,6 @@ void UAbilityTask_WaitTargetData::RegisterTargetDataCallbacks()
 			AbilitySystemComponent->AbilityTargetDataCancelledDelegate(SpecHandle, ActivationPredictionKey ).AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback);
 
 			AbilitySystemComponent->CallReplicatedTargetDataDelegatesIfSet(SpecHandle, ActivationPredictionKey );
-
-			SetWaitingOnRemotePlayerData();
 		}
 	}
 }
@@ -207,7 +205,7 @@ void UAbilityTask_WaitTargetData::RegisterTargetDataCallbacks()
 /** Valid TargetData was replicated to use (we are server, was sent from client) */
 void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback(FGameplayAbilityTargetDataHandle Data, FGameplayTag ActivationTag)
 {
-	check(AbilitySystemComponent);
+	check(AbilitySystemComponent.IsValid());
 
 	AbilitySystemComponent->ConsumeClientReplicatedTargetData(GetAbilitySpecHandle(), GetActivationPredictionKey());
 
@@ -220,7 +218,7 @@ void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback(FGameplayAbilit
 	 *	explicitly, the client is basically just sending a 'confirm' and the server is now going to do the work
 	 *	in OnReplicatedTargetDataReceived.
 	 */
-	if (TargetActor && !TargetActor->OnReplicatedTargetDataReceived(Data))
+	if (TargetActor.IsValid() && !TargetActor->OnReplicatedTargetDataReceived(Data))
 	{
 		Cancelled.Broadcast(Data);
 	}
@@ -238,7 +236,7 @@ void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback(FGameplayAbilit
 /** Client canceled this Targeting Task (we are the server) */
 void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback()
 {
-	check(AbilitySystemComponent);
+	check(AbilitySystemComponent.IsValid());
 	Cancelled.Broadcast(FGameplayAbilityTargetDataHandle());
 	EndTask();
 }
@@ -246,13 +244,9 @@ void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback()
 /** The TargetActor we spawned locally has called back with valid target data */
 void UAbilityTask_WaitTargetData::OnTargetDataReadyCallback(FGameplayAbilityTargetDataHandle Data)
 {
-	check(AbilitySystemComponent);
-	if (!Ability)
-	{
-		return;
-	}
+	check(AbilitySystemComponent.IsValid());
 
-	FScopedPredictionWindow	ScopedPrediction(AbilitySystemComponent, ShouldReplicateDataToServer());
+	FScopedPredictionWindow	ScopedPrediction(AbilitySystemComponent.Get(), ShouldReplicateDataToServer());
 	
 	const FGameplayAbilityActorInfo* Info = Ability->GetCurrentActorInfo();
 	if (IsPredictingClient())
@@ -280,7 +274,7 @@ void UAbilityTask_WaitTargetData::OnTargetDataReadyCallback(FGameplayAbilityTarg
 /** The TargetActor we spawned locally has called back with a cancel event (they still include the 'last/best' targetdata but the consumer of this may want to discard it) */
 void UAbilityTask_WaitTargetData::OnTargetDataCancelledCallback(FGameplayAbilityTargetDataHandle Data)
 {
-	check(AbilitySystemComponent);
+	check(AbilitySystemComponent.IsValid());
 
 	if (IsPredictingClient())
 	{
@@ -301,12 +295,13 @@ void UAbilityTask_WaitTargetData::OnTargetDataCancelledCallback(FGameplayAbility
 /** Called when the ability is asked to confirm from an outside node. What this means depends on the individual task. By default, this does nothing other than ending if bEndTask is true. */
 void UAbilityTask_WaitTargetData::ExternalConfirm(bool bEndTask)
 {
-	check(AbilitySystemComponent);
-	if (TargetActor)
+	check(AbilitySystemComponent.IsValid());
+	if (TargetActor.IsValid())
 	{
-		if (TargetActor->ShouldProduceTargetData())
+		AGameplayAbilityTargetActor* CachedTargetActor = TargetActor.Get();
+		if (CachedTargetActor->ShouldProduceTargetData())
 		{
-			TargetActor->ConfirmTargetingAndContinue();
+			CachedTargetActor->ConfirmTargetingAndContinue();
 		}
 	}
 	Super::ExternalConfirm(bEndTask);
@@ -315,14 +310,14 @@ void UAbilityTask_WaitTargetData::ExternalConfirm(bool bEndTask)
 /** Called when the ability is asked to confirm from an outside node. What this means depends on the individual task. By default, this does nothing other than ending if bEndTask is true. */
 void UAbilityTask_WaitTargetData::ExternalCancel()
 {
-	check(AbilitySystemComponent);
+	check(AbilitySystemComponent.IsValid());
 	Cancelled.Broadcast(FGameplayAbilityTargetDataHandle());
 	Super::ExternalCancel();
 }
 
 void UAbilityTask_WaitTargetData::OnDestroy(bool AbilityEnded)
 {
-	if (TargetActor)
+	if (TargetActor.IsValid())
 	{
 		TargetActor->Destroy();
 	}
@@ -332,10 +327,8 @@ void UAbilityTask_WaitTargetData::OnDestroy(bool AbilityEnded)
 
 bool UAbilityTask_WaitTargetData::ShouldReplicateDataToServer() const
 {
-	if (!Ability || !TargetActor)
-	{
-		return false;
-	}
+	check(Ability.IsValid());
+	check(TargetActor.IsValid()); // Target actor should always be valid on client
 
 	// Send TargetData to the server IFF we are the client and this isn't a GameplayTargetActor that can produce data on the server	
 	const FGameplayAbilityActorInfo* Info = Ability->GetCurrentActorInfo();

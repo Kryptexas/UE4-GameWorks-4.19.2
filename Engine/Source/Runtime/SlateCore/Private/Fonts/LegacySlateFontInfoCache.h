@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -27,12 +27,12 @@ public:
 	/**
 	 * Get (or create) the culture specific fallback font
 	 */
-	const FFontData& GetLocalizedFallbackFontData();
+	TSharedPtr<const FCompositeFont> GetFallbackFont();
 
 	/**
-	 * Get (or create) the last resort fallback font
+	 * Get (or create) the culture specific fallback font
 	 */
-	TSharedPtr<const FCompositeFont> GetLastResortFont();
+	const FFontData& GetFallbackFontData();
 
 	/**
 	 * Get (or create) the last resort fallback font
@@ -81,16 +81,16 @@ private:
 
 	TMap<FLegacyFontKey, TSharedPtr<const FCompositeFont>> LegacyFontNameToCompositeFont;
 	TSharedPtr<const FCompositeFont> SystemFont;
-	TSharedPtr<const FCompositeFont> LastResortFont;
+	TSharedPtr<const FCompositeFont> FallbackFont;
 	
-	TSharedPtr<const FFontData> LocalizedFallbackFontData;
+	TSharedPtr<const FFontData> FallbackFontData;
 	TSharedPtr<const FFontData> LastResortFontData;
 
-	TMap<FString, TSharedPtr<const FFontData>> AllLocalizedFallbackFontData;
-	int32 LocalizedFallbackFontDataHistoryVersion;
+	int32 FallbackFontHistoryVersion;
+	int32 FallbackFontDataHistoryVersion;
 
-	FCriticalSection LocalizedFallbackFontDataCS;
-	FCriticalSection LastResortFontCS;
+	FCriticalSection FallbackFontCS;
+	FCriticalSection FallbackFontDataCS;
 	FCriticalSection LastResortFontDataCS;
 
 	static TSharedPtr<FLegacySlateFontInfoCache> Singleton;

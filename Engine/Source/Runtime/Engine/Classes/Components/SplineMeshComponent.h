@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,7 +7,7 @@
 
 #include "SplineMeshComponent.generated.h"
 
-UENUM(BlueprintType)
+UENUM()
 namespace ESplineMeshAxis
 {
 	enum Type
@@ -134,18 +134,14 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 	uint32 bSelected:1;
 #endif
 
-	// Indicates that the mesh needs updating
-	UPROPERTY(transient)
-	uint32 bMeshDirty:1;
-
 	//Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
 	virtual bool Modify(bool bAlwaysMarkDirty = true) override;
 	//End UObject Interface
 
-	//~ Begin UActorComponent Interface.
+	// Begin UActorComponent interface.
 	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
-	//~ End UActorComponent Interface.
+	// End UActorComponent interface.
 
 	void ApplyComponentInstanceData(class FSplineMeshInstanceData* ComponentInstanceData);
 
@@ -170,22 +166,15 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 	virtual class FStaticMeshStaticLightingMesh* AllocateStaticLightingMesh(int32 LODIndex, const TArray<ULightComponent*>& InRelevantLights) override;
 	//End UStaticMeshComponent Interface
 
-	//~ Begin Interface_CollisionDataProvider Interface
+	// Begin Interface_CollisionDataProvider Interface
 	virtual bool GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool InUseAllTriData) override;
 	virtual bool ContainsPhysicsTriMeshData(bool InUseAllTriData) const override;
 	virtual bool WantsNegXTriMesh() override { return false; }
 	virtual void GetMeshId(FString& OutMeshId) override;
-	//~ End Interface_CollisionDataProvider Interface
+	// End Interface_CollisionDataProvider Interface
 
-	/** Called to notify render thread and possibly collision of a change in spline params or mesh */
-	void UpdateRenderStateAndCollision();
-
-	DEPRECATED(4.11, "This method has been renamed to UpdateRenderStateAndCollision, but use of UpdateMesh is preferred")
-	void MarkSplineParamsDirty() { UpdateRenderStateAndCollision(); }
-
-	/** Update the collision and render state on the spline mesh following changes to its geometry */
-	UFUNCTION(BlueprintCallable, Category = SplineMesh)
-	void UpdateMesh();
+	/** Called when spline params are changed, to notify render thread and possibly collision */
+	void MarkSplineParamsDirty();
 
 	/** Get the start position of spline in local space */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
@@ -193,7 +182,7 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 
 	/** Set the start position of spline in local space */
 	UFUNCTION(BlueprintCallable, Category=SplineMesh)
-	void SetStartPosition(FVector StartPos, bool bUpdateMesh = true);
+	void SetStartPosition(FVector StartPos);
 
 	/** Get the start tangent vector of spline in local space */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
@@ -201,7 +190,7 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 
 	/** Set the start tangent vector of spline in local space */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
-	void SetStartTangent(FVector StartTangent, bool bUpdateMesh = true);
+	void SetStartTangent(FVector StartTangent);
 
 	/** Get the end position of spline in local space */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
@@ -209,7 +198,7 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 
 	/** Set the end position of spline in local space */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
-	void SetEndPosition(FVector EndPos, bool bUpdateMesh = true);
+	void SetEndPosition(FVector EndPos);
 
 	/** Get the end tangent vector of spline in local space */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
@@ -217,11 +206,11 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 
 	/** Set the end tangent vector of spline in local space */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
-	void SetEndTangent(FVector EndTangent, bool bUpdateMesh = true);
+	void SetEndTangent(FVector EndTangent);
 
 	/** Set the start and end, position and tangent, all in local space */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
-	void SetStartAndEnd(FVector StartPos, FVector StartTangent, FVector EndPos, FVector EndTangent, bool bUpdateMesh = true);
+	void SetStartAndEnd(FVector StartPos, FVector StartTangent, FVector EndPos, FVector EndTangent);
 
 	/** Get the start scaling */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
@@ -229,7 +218,7 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 
 	/** Set the start scaling */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
-	void SetStartScale(FVector2D StartScale = FVector2D(1,1), bool bUpdateMesh = true);
+	void SetStartScale(FVector2D StartScale = FVector2D(1,1));
 
 	/** Get the start roll */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
@@ -237,7 +226,7 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 
 	/** Set the start roll */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
-	void SetStartRoll(float StartRoll, bool bUpdateMesh = true);
+	void SetStartRoll(float StartRoll);
 
 	/** Get the start offset */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
@@ -245,7 +234,7 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 
 	/** Set the start offset */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
-	void SetStartOffset(FVector2D StartOffset, bool bUpdateMesh = true);
+	void SetStartOffset(FVector2D StartOffset);
 
 	/** Get the end scaling */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
@@ -253,7 +242,7 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 
 	/** Set the end scaling */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
-	void SetEndScale(FVector2D EndScale = FVector2D(1,1), bool bUpdateMesh = true);
+	void SetEndScale(FVector2D EndScale = FVector2D(1,1));
 
 	/** Get the end roll */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
@@ -261,7 +250,7 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 
 	/** Set the end roll */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
-	void SetEndRoll(float EndRoll, bool bUpdateMesh = true);
+	void SetEndRoll(float EndRoll);
 
 	/** Get the end offset */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
@@ -269,7 +258,7 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 
 	/** Set the end offset */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
-	void SetEndOffset(FVector2D EndOffset, bool bUpdateMesh = true);
+	void SetEndOffset(FVector2D EndOffset);
 
 	/** Get the forward axis */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
@@ -277,7 +266,7 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 
 	/** Set the forward axis */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
-	void SetForwardAxis(ESplineMeshAxis::Type InForwardAxis, bool bUpdateMesh = true);
+	void SetForwardAxis(ESplineMeshAxis::Type InForwardAxis);
 
 	/** Get the spline up direction */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
@@ -285,7 +274,7 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 
 	/** Set the spline up direction */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
-	void SetSplineUpDir(const FVector& InSplineUpDir, bool bUpdateMesh = true);
+	void SetSplineUpDir(const FVector& InSplineUpDir);
 
 	/** Get the boundary min */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
@@ -293,7 +282,7 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 
 	/** Set the boundary min */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
-	void SetBoundaryMin(float InBoundaryMin, bool bUpdateMesh = true);
+	void SetBoundaryMin(float InBoundaryMin);
 
 	/** Get the boundary max */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
@@ -301,7 +290,7 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 
 	/** Set the boundary max */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
-	void SetBoundaryMax(float InBoundaryMax, bool bUpdateMesh = true);
+	void SetBoundaryMax(float InBoundaryMax);
 
 	// Destroys the body setup, used to clear collision if the mesh goes missing
 	void DestroyBodySetup();

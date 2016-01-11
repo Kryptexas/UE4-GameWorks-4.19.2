@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -47,24 +47,7 @@ public:
 	 * @param InSize                   The size of this geometry.
 	 * @param InScale                  The scale of this geometry with respect to Normal Slate Coordinates.
 	 */
-	FGeometry( const FVector2D& OffsetFromParent, const FVector2D& ParentAbsolutePosition, const FVector2D& InLocalSize, float InScale )
-		: Size(InLocalSize)
-		, Scale(1.0f)
-		, AbsolutePosition(0.0f, 0.0f)
-	{
-		// Since OffsetFromParent is given as a LocalSpaceOffset, we MUST convert this offset into the space of the parent to construct a valid layout transform.
-		// The extra TransformPoint below does this by converting the local offset to an offset in parent space.
-		FVector2D LayoutOffset = TransformPoint(InScale, OffsetFromParent);
-
-		FSlateLayoutTransform ParentAccumulatedLayoutTransform(InScale, ParentAbsolutePosition);
-		FSlateLayoutTransform LocalLayoutTransform(LayoutOffset);
-		FSlateLayoutTransform AccumulatedLayoutTransform = Concatenate(LocalLayoutTransform, ParentAccumulatedLayoutTransform);
-		AccumulatedRenderTransform = TransformCast<FSlateRenderTransform>(AccumulatedLayoutTransform);
-		// HACK to allow us to make FGeometry public members immutable to catch misuse.
-		const_cast<FVector2D&>( AbsolutePosition ) = AccumulatedLayoutTransform.GetTranslation();
-		const_cast<float&>( Scale ) = AccumulatedLayoutTransform.GetScale();
-		const_cast<FVector2D&>( Position ) = LocalLayoutTransform.GetTranslation();
-	}
+	FGeometry( const FVector2D& OffsetFromParent, const FVector2D& ParentAbsolutePosition, const FVector2D& InLocalSize, float InScale );
 
 private:
 	/**
@@ -83,29 +66,7 @@ private:
 		const FSlateRenderTransform& InLocalRenderTransform, 
 		const FVector2D& InLocalRenderTransformPivot, 
 		const FSlateLayoutTransform& ParentAccumulatedLayoutTransform, 
-		const FSlateRenderTransform& ParentAccumulatedRenderTransform)
-		: Size(InLocalSize)
-		, Scale(1.0f)
-		, AbsolutePosition(0.0f, 0.0f)
-		, AccumulatedRenderTransform(
-		Concatenate(
-		// convert the pivot to local space and make it the origin
-		Inverse(TransformPoint(FScale2D(InLocalSize), InLocalRenderTransformPivot)),
-		// apply the render transform in local space centered around the pivot
-		InLocalRenderTransform,
-		// translate the pivot point back.
-		TransformPoint(FScale2D(InLocalSize), InLocalRenderTransformPivot),
-		// apply the layout transform next.
-		InLocalLayoutTransform,
-		// finally apply the parent accumulated transform, which takes us to the root.
-		ParentAccumulatedRenderTransform))
-	{
-		FSlateLayoutTransform AccumulatedLayoutTransform = Concatenate(InLocalLayoutTransform, ParentAccumulatedLayoutTransform);
-		// HACK to allow us to make FGeometry public members immutable to catch misuse.
-		const_cast<FVector2D&>( AbsolutePosition ) = AccumulatedLayoutTransform.GetTranslation();
-		const_cast<float&>( Scale ) = AccumulatedLayoutTransform.GetScale();
-		const_cast<FVector2D&>( Position ) = InLocalLayoutTransform.GetTranslation();
-	}
+		const FSlateRenderTransform& ParentAccumulatedRenderTransform);
 
 	/**
 	 * Construct a new geometry with a given size in LocalSpace (and identity render transform) that is attached to a parent geometry with the given layout and render transform. 
@@ -115,22 +76,11 @@ private:
 	 * @param ParentAccumulatedLayoutTransform	The accumulated layout transform of the parent widget. AccumulatedLayoutTransform = Concat(LocalLayoutTransform, ParentAccumulatedLayoutTransform).
 	 * @param ParentAccumulatedRenderTransform	The accumulated render transform of the parent widget. AccumulatedRenderTransform = Concat(LocalRenderTransform, LocalLayoutTransform, ParentAccumulatedRenderTransform).
 	 */
-	FGeometry(
-		const FVector2D& InLocalSize,
-		const FSlateLayoutTransform& InLocalLayoutTransform,
-		const FSlateLayoutTransform& ParentAccumulatedLayoutTransform,
-		const FSlateRenderTransform& ParentAccumulatedRenderTransform)
-		: Size(InLocalSize)
-		, Scale(1.0f)
-		, AbsolutePosition(0.0f, 0.0f)
-		, AccumulatedRenderTransform(Concatenate(InLocalLayoutTransform, ParentAccumulatedRenderTransform))
-	{
-		FSlateLayoutTransform AccumulatedLayoutTransform = Concatenate(InLocalLayoutTransform, ParentAccumulatedLayoutTransform);
-		// HACK to allow us to make FGeometry public members immutable to catch misuse.
-		const_cast<FVector2D&>( AbsolutePosition ) = AccumulatedLayoutTransform.GetTranslation();
-		const_cast<float&>( Scale ) = AccumulatedLayoutTransform.GetScale();
-		const_cast<FVector2D&>( Position ) = InLocalLayoutTransform.GetTranslation();
-	}
+	FGeometry( 
+		const FVector2D& InLocalSize, 
+		const FSlateLayoutTransform& InLocalLayoutTransform, 
+		const FSlateLayoutTransform& ParentAccumulatedLayoutTransform, 
+		const FSlateRenderTransform& ParentAccumulatedRenderTransform);
 
 public:
 
@@ -169,10 +119,7 @@ public:
 	 * @param LayoutTransform	Layout transform of the geometry.
 	 * @return					The new root geometry
 	 */
-	FORCEINLINE_DEBUGGABLE static FGeometry MakeRoot(const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform)
-	{
-		return FGeometry(LocalSize, LayoutTransform, FSlateLayoutTransform(), FSlateRenderTransform());
-	}
+	static FGeometry MakeRoot( const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform );
 
 	/**
 	 * Create a child geometry relative to this one with a given local space size, layout transform, and render transform.
@@ -186,10 +133,7 @@ public:
 	 *
 	 * @return					The new child geometry.
 	 */
-	FORCEINLINE_DEBUGGABLE FGeometry MakeChild(const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform, const FSlateRenderTransform& RenderTransform, const FVector2D& RenderTransformPivot) const
-	{
-		return FGeometry(LocalSize, LayoutTransform, RenderTransform, RenderTransformPivot, GetAccumulatedLayoutTransform(), GetAccumulatedRenderTransform());
-	}
+	FGeometry MakeChild( const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform, const FSlateRenderTransform& RenderTransform, const FVector2D& RenderTransformPivot ) const;
 
 	/**
 	 * Create a child geometry relative to this one with a given local space size, layout transform, and identity render transform.
@@ -201,10 +145,7 @@ public:
 	 *
 	 * @return					The new child geometry.
 	 */
-	FORCEINLINE_DEBUGGABLE FGeometry MakeChild(const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform) const
-	{
-		return FGeometry(LocalSize, LayoutTransform, GetAccumulatedLayoutTransform(), GetAccumulatedRenderTransform());
-	}
+	FGeometry MakeChild( const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform ) const;
 
 	/**
 	 * Create a child geometry+widget relative to this one using the given LayoutGeometry.
@@ -214,7 +155,7 @@ public:
 	 *
 	 * @return					The new child geometry.
 	 */
-	FArrangedWidget MakeChild(const TSharedRef<SWidget>& ChildWidget, const FLayoutGeometry& LayoutGeometry) const;
+	FArrangedWidget MakeChild( const TSharedRef<SWidget>& ChildWidget, const FLayoutGeometry& LayoutGeometry ) const;
 
 	/**
 	 * Create a child geometry+widget relative to this one with a given local space size and layout transform.
@@ -228,7 +169,7 @@ public:
 	 *
 	 * @return					The new child geometry+widget.
 	 */
-	FArrangedWidget MakeChild(const TSharedRef<SWidget>& ChildWidget, const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform) const;
+	FArrangedWidget MakeChild( const TSharedRef<SWidget>& ChildWidget, const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform ) const;
 
 	/**
 	 * !!! DEPRECATED FUNCTION !!! Use MakeChild taking a layout transform instead!
@@ -240,12 +181,7 @@ public:
 	 *
 	 * @return				The new child geometry.
 	 */
-	FORCEINLINE_DEBUGGABLE FGeometry MakeChild(const FVector2D& ChildOffset, const FVector2D& LocalSize, float ChildScale = 1.0f) const
-	{
-		// Since ChildOffset is given as a LocalSpaceOffset, we MUST convert this offset into the space of the parent to construct a valid layout transform.
-		// The extra TransformPoint below does this by converting the local offset to an offset in parent space.
-		return FGeometry(LocalSize, FSlateLayoutTransform(ChildScale, TransformPoint(ChildScale, ChildOffset)), GetAccumulatedLayoutTransform(), GetAccumulatedRenderTransform());
-	}
+	FGeometry MakeChild( const FVector2D& ChildOffset, const FVector2D& LocalSize, float ChildScale = 1.0f ) const;
 
 	/**
 	 * !!! DEPRECATED FUNCTION !!! Use MakeChild taking a layout transform instead!
@@ -259,17 +195,14 @@ public:
 	 *
 	 * @return				The new child geometry+widget.
 	 */
-	FArrangedWidget MakeChild(const TSharedRef<SWidget>& ChildWidget, const FVector2D& ChildOffset, const FVector2D& LocalSize, float ChildScale = 1.0f) const;
+	FArrangedWidget MakeChild( const TSharedRef<SWidget>& ChildWidget, const FVector2D& ChildOffset, const FVector2D& LocalSize, float ChildScale = 1.0f) const;
 
 	/**
 	 * Create a paint geometry that represents this geometry.
 	 * 
 	 * @return	The new paint geometry.
 	 */
-	FORCEINLINE_DEBUGGABLE FPaintGeometry ToPaintGeometry() const
-	{
-		return FPaintGeometry(GetAccumulatedLayoutTransform(), GetAccumulatedRenderTransform(), Size);
-	}
+	FPaintGeometry ToPaintGeometry() const;
 
 	/**
 	 * Create a paint geometry relative to this one with a given local space size and layout transform.
@@ -280,11 +213,7 @@ public:
 	 *
 	 * @return					The new paint geometry derived from this one.
 	 */
-	FORCEINLINE_DEBUGGABLE FPaintGeometry ToPaintGeometry(const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform) const
-	{
-		FSlateLayoutTransform NewAccumulatedLayoutTransform = Concatenate(LayoutTransform, GetAccumulatedLayoutTransform());
-		return FPaintGeometry(NewAccumulatedLayoutTransform, Concatenate(LayoutTransform, GetAccumulatedRenderTransform()), LocalSize);
-	}
+	FPaintGeometry ToPaintGeometry( const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform) const;
 
 	/**
 	 * Create a paint geometry with the same size as this geometry with a given layout transform.
@@ -294,10 +223,7 @@ public:
 	 * 
 	 * @return					The new paint geometry derived from this one.
 	 */
-	FORCEINLINE_DEBUGGABLE FPaintGeometry ToPaintGeometry(const FSlateLayoutTransform& LayoutTransform) const
-	{
-		return ToPaintGeometry(Size, LayoutTransform);
-	}
+	FPaintGeometry ToPaintGeometry( const FSlateLayoutTransform& LayoutTransform) const;
 
 	/**
 	 * !!! DEPRECATED FUNCTION !!! Use ToPaintGeometry taking a layout transform instead!
@@ -310,12 +236,7 @@ public:
 	 * 
 	 * @return				The new paint geometry derived from this one.
 	 */
-	FORCEINLINE_DEBUGGABLE FPaintGeometry ToPaintGeometry(const FVector2D& LocalOffset, const FVector2D& LocalSize, float LocalScale = 1.0f) const
-	{
-		// Since ChildOffset is given as a LocalSpaceOffset, we MUST convert this offset into the space of the parent to construct a valid layout transform.
-		// The extra TransformPoint below does this by converting the local offset to an offset in parent space.
-		return ToPaintGeometry(LocalSize, FSlateLayoutTransform(LocalScale, TransformPoint(LocalScale, LocalOffset)));
-	}
+	FPaintGeometry ToPaintGeometry( const FVector2D& LocalOffset, const FVector2D& LocalSize, float LocalScale = 1.0f ) const;
 
 	/**
 	 * !!! DEPRECATED FUNCTION !!! Use ToPaintGeometry taking a layout transform instead!
@@ -326,10 +247,7 @@ public:
 	 * 
 	 * @return				The new paint geometry derived from this one.
 	 */
-	FORCEINLINE_DEBUGGABLE FPaintGeometry ToOffsetPaintGeometry(const FVector2D& LocalOffset) const
-	{
-		return ToPaintGeometry(FSlateLayoutTransform(LocalOffset));
-	}
+	FPaintGeometry ToOffsetPaintGeometry( const FVector2D& LocalOffset ) const;
 
 	/**
 	 * Create a paint geometry relative to this one that whose local space is "inflated" by the specified amount in each direction.
@@ -339,35 +257,21 @@ public:
 	 * 
 	 * @return				The new paint geometry derived from this one.
 	 */
-	FORCEINLINE_DEBUGGABLE FPaintGeometry ToInflatedPaintGeometry(const FVector2D& InflateAmount) const
-	{
-		// This essentially adds (or subtracts) a border around the widget. We scale the size then offset by the border amount.
-		// Note this is not scaling child widgets, so the scale is not changing.
-		FVector2D NewSize = Size + InflateAmount * 2;
-		return ToPaintGeometry(NewSize, FSlateLayoutTransform(-InflateAmount));
-	}
+	FPaintGeometry ToInflatedPaintGeometry( const FVector2D& InflateAmount ) const;
 
 	/** 
 	 * Absolute coordinates could be either desktop or window space depending on what space the root of the widget hierarchy is in.
 	 * 
 	 * @return true if the provided location in absolute coordinates is within the bounds of this geometry. 
 	 */
-	FORCEINLINE_DEBUGGABLE bool IsUnderLocation(const FVector2D& AbsoluteCoordinate) const
-	{
-		// this render transform invert is a little expensive. We might consider caching it.
-		return FSlateRect(FVector2D(0.0f, 0.0f), Size).ContainsPoint(TransformPoint(Inverse(GetAccumulatedRenderTransform()), AbsoluteCoordinate));
-	}
+	bool IsUnderLocation( const FVector2D& AbsoluteCoordinate ) const;
 
 	/** 
 	 * Absolute coordinates could be either desktop or window space depending on what space the root of the widget hierarchy is in.
 	 * 
 	 * @return Transforms AbsoluteCoordinate into the local space of this Geometry. 
 	 */
-	FORCEINLINE_DEBUGGABLE FVector2D AbsoluteToLocal(FVector2D AbsoluteCoordinate) const
-	{
-		// this render transform invert is a little expensive. We might consider caching it.
-		return TransformPoint(Inverse(GetAccumulatedRenderTransform()), AbsoluteCoordinate);
-	}
+	FVector2D AbsoluteToLocal( FVector2D AbsoluteCoordinate ) const;
 
 	/**
 	 * Translates local coordinates into absolute coordinates
@@ -376,10 +280,7 @@ public:
 	 * 
 	 * @return  Absolute coordinates
 	 */
-	FORCEINLINE_DEBUGGABLE FVector2D LocalToAbsolute(FVector2D LocalCoordinate) const
-	{
-		return TransformPoint(GetAccumulatedRenderTransform(), LocalCoordinate);
-	}
+	FVector2D LocalToAbsolute( FVector2D LocalCoordinate ) const;
 
 	/**
 	 * Translates the local coordinates into local coordinates that after being transformed into absolute space will be rounded
@@ -387,13 +288,7 @@ public:
 	 * and not have the window start on a half pixel, which can cause the contents to jitter in relation to eachother as the tooltip 
 	 * or popup moves around.
 	 */
-	FORCEINLINE_DEBUGGABLE FVector2D LocalToRoundedLocal(FVector2D LocalCoordinate) const
-	{
-		const FVector2D AbsoluteCoordinate = LocalToAbsolute(LocalCoordinate);
-		const FVector2D AbsoluteCoordinateRounded = FVector2D(FMath::RoundToInt(AbsoluteCoordinate.X), FMath::RoundToInt(AbsoluteCoordinate.Y));
-
-		return AbsoluteToLocal(AbsoluteCoordinateRounded);
-	}
+	FVector2D LocalToRoundedLocal( FVector2D LocalCoordinate ) const;
 	
 	/**
 	 * !!! DEPRECATED !!! This legacy function does not account for render transforms.
@@ -406,13 +301,10 @@ public:
 	 *
 	 * @return  Allotted geometry rectangle in absolute coordinates.
 	 */
-	FORCEINLINE_DEBUGGABLE FSlateRect GetClippingRect() const
-	{
-		return TransformRect(GetAccumulatedLayoutTransform(), FSlateRect(FVector2D(0.0f, 0.0f), Size));
-	}
+	FSlateRect GetClippingRect( ) const;
 	
 	/** @return A String representation of this Geometry */
-	FString ToString() const;
+	FString ToString( ) const;
 
 	/** 
 	 * !!! DEPRECATED !!! This legacy function does not account for render transforms.
@@ -420,22 +312,16 @@ public:
 	 * Absolute coordinates could be either desktop or window space depending on what space the root of the widget hierarchy is in.
 	 *
 	 * @return the size of the geometry in absolute space */
-	FORCEINLINE_DEBUGGABLE FVector2D GetDrawSize() const
-	{
-		return TransformVector(GetAccumulatedLayoutTransform(), Size);
-	}
+	FVector2D GetDrawSize() const;
 
 	/** @return the size of the geometry in local space. */
-	FORCEINLINE const FVector2D& GetLocalSize() const { return Size; }
+	const FVector2D& GetLocalSize() const { return Size; }
 
 	/** @return the accumulated render transform. Shouldn't be needed in general. */
-	FORCEINLINE const FSlateRenderTransform& GetAccumulatedRenderTransform() const { return AccumulatedRenderTransform; }
+	const FSlateRenderTransform& GetAccumulatedRenderTransform() const { return AccumulatedRenderTransform; }
 
 	/** @return the accumulated layout transform. Shouldn't be needed in general. */
-	FORCEINLINE FSlateLayoutTransform GetAccumulatedLayoutTransform() const
-	{
-		return FSlateLayoutTransform(Scale, AbsolutePosition);
-	}
+	FSlateLayoutTransform GetAccumulatedLayoutTransform() const { return FSlateLayoutTransform(Scale, AbsolutePosition); }
 
 	/**
 	 * Special case method to append a layout transform to a geometry.
@@ -445,14 +331,7 @@ public:
 	 * 
 	 * @param LayoutTransform	An additional layout transform to append to this geoemtry.
 	 */
-	FORCEINLINE_DEBUGGABLE void AppendTransform(const FSlateLayoutTransform& LayoutTransform)
-	{
-		FSlateLayoutTransform AccumulatedLayoutTransform = ::Concatenate(GetAccumulatedLayoutTransform(), LayoutTransform);
-		AccumulatedRenderTransform = ::Concatenate(AccumulatedRenderTransform, LayoutTransform);
-		const_cast<FVector2D&>( AbsolutePosition ) = AccumulatedLayoutTransform.GetTranslation();
-		const_cast<float&>( Scale ) = AccumulatedLayoutTransform.GetScale();
-	}
-
+	void AppendTransform(const FSlateLayoutTransform& LayoutTransform);
 public:
 	/** 
 	 * 

@@ -1,11 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-
-class ISequencer;
-class ISequencerEditToolDragOperation;
-
+#include "ISequencerEditTool.h"
 
 enum class ESequencerHotspot
 {
@@ -15,13 +12,10 @@ enum class ESequencerHotspot
 	SectionResize_R,
 };
 
-
 /** A sequencer hotspot is used to identify specific areas on the sequencer track area */ 
 struct ISequencerHotspot
 {
 	virtual ~ISequencerHotspot() { }
 	virtual ESequencerHotspot GetType() const = 0;
-	virtual TSharedPtr<ISequencerEditToolDragOperation> InitiateDrag(ISequencer&) = 0;
-	virtual void PopulateContextMenu(FMenuBuilder& MenuBuilder, ISequencer& Sequencer, float MouseDownTime){}
-	virtual FCursorReply GetCursor() const { return FCursorReply::Unhandled(); }
+	virtual TSharedPtr<IEditToolDragOperation> InitiateDrag(ISequencer&) { return nullptr; }
 };

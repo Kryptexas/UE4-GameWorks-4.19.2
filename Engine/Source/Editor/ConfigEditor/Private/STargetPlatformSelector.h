@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,9 +14,9 @@ public:
 		SLATE_EVENT(FSimpleDelegate, OnTargetPlatformChanged)
 	SLATE_END_ARGS()
 
-	//~ Begin SCompoundWidget|SWidget Interface
+	// Begin SCompoundWidget|SWidget interface
 	void Construct(const FArguments& InArgs);
-	//~ End SCompoundWidget|SWidget Interface
+	// End SCompoundWidget|SWidget interface
 
 	/**
 	 * Access to the selected target platform in this widget.
@@ -52,4 +52,4 @@ private:
 	FSimpleDelegate OnTargetPlatformChanged;
 };
 
-#undef LOCTEXT_NAMESPACE
+#undef LOCTEXT_NAMESPACE // "ConfigEditor"

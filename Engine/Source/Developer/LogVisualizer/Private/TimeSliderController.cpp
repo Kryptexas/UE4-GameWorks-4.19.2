@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LogVisualizer.h"
 #include "TimeSliderController.h"
@@ -310,7 +310,7 @@ int32 FVisualLoggerTimeSliderController::OnPaintTimeSlider( bool bMirrorLabels, 
 	return LayerId;
 }
 
-FReply FVisualLoggerTimeSliderController::OnMouseButtonDown( SWidget& WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+FReply FVisualLoggerTimeSliderController::OnMouseButtonDown( TSharedRef<SWidget> WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	bool bHandleLeftMouseButton = MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton;
 	bool bHandleRightMouseButton = MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && TimeSliderArgs.AllowZoom;
@@ -325,20 +325,20 @@ FReply FVisualLoggerTimeSliderController::OnMouseButtonDown( SWidget& WidgetOwne
 		float NewValue = RangeToScreen.LocalXToInput(CursorPos.X);
 
 		CommitScrubPosition(NewValue, /*bIsScrubbing=*/false);
-		return FReply::Handled().CaptureMouse( WidgetOwner.AsShared() ).PreventThrottling();
+		return FReply::Handled().CaptureMouse( WidgetOwner ).PreventThrottling();
 	}
 	else if ( bHandleRightMouseButton )
 	{
-		return FReply::Handled().CaptureMouse(WidgetOwner.AsShared());
+		return FReply::Handled().CaptureMouse(WidgetOwner);
 	}
 
 	return FReply::Unhandled();
 }
 
-FReply FVisualLoggerTimeSliderController::OnMouseButtonUp( SWidget& WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+FReply FVisualLoggerTimeSliderController::OnMouseButtonUp( TSharedRef<SWidget> WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	bool bHandleLeftMouseButton = MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && WidgetOwner.HasMouseCapture();
-	bool bHandleRightMouseButton = MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && WidgetOwner.HasMouseCapture() && TimeSliderArgs.AllowZoom ;
+	bool bHandleLeftMouseButton = MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && WidgetOwner->HasMouseCapture();
+	bool bHandleRightMouseButton = MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && WidgetOwner->HasMouseCapture() && TimeSliderArgs.AllowZoom ;
 	
 	if ( bHandleRightMouseButton )
 	{
@@ -349,7 +349,7 @@ FReply FVisualLoggerTimeSliderController::OnMouseButtonUp( SWidget& WidgetOwner,
 		}
 		
 		bPanning = false;
-		FReply::Handled().CaptureMouse(WidgetOwner.AsShared()).UseHighPrecisionMouseMovement(WidgetOwner.AsShared());
+		FReply::Handled().CaptureMouse(WidgetOwner).UseHighPrecisionMouseMovement(WidgetOwner);
 
 		return FReply::Handled().ReleaseMouseCapture();
 	}
@@ -376,9 +376,9 @@ FReply FVisualLoggerTimeSliderController::OnMouseButtonUp( SWidget& WidgetOwner,
 	return FReply::Unhandled();
 }
 
-FReply FVisualLoggerTimeSliderController::OnMouseMove( SWidget& WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+FReply FVisualLoggerTimeSliderController::OnMouseMove( TSharedRef<SWidget> WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	if ( WidgetOwner.HasMouseCapture() )
+	if ( WidgetOwner->HasMouseCapture() )
 	{
 		if (MouseEvent.IsMouseButtonDown(EKeys::RightMouseButton))
 		{
@@ -387,7 +387,7 @@ FReply FVisualLoggerTimeSliderController::OnMouseMove( SWidget& WidgetOwner, con
 				DistanceDragged += FMath::Abs( MouseEvent.GetCursorDelta().X );
 				if ( DistanceDragged > FSlateApplication::Get().GetDragTriggerDistance() )
 				{
-					FReply::Handled().CaptureMouse(WidgetOwner.AsShared()).UseHighPrecisionMouseMovement(WidgetOwner.AsShared());
+					FReply::Handled().CaptureMouse(WidgetOwner).UseHighPrecisionMouseMovement(WidgetOwner);
 					SoftwareCursorPosition = MyGeometry.AbsoluteToLocal(MouseEvent.GetLastScreenSpacePosition());
 					bPanning = true;
 				}
@@ -422,7 +422,7 @@ FReply FVisualLoggerTimeSliderController::OnMouseMove( SWidget& WidgetOwner, con
 					NewViewOutputMax = LocalClampMax;
 				}
 
-				TimeSliderArgs.OnViewRangeChanged.ExecuteIfBound(TRange<float>(NewViewOutputMin, NewViewOutputMax), EViewRangeInterpolation::Immediate);
+				TimeSliderArgs.OnViewRangeChanged.ExecuteIfBound(TRange<float>(NewViewOutputMin, NewViewOutputMax), EViewRangeInterpolation::Immediate, false);
 				if (Scrollbar.IsValid())
 				{
 					float InOffsetFraction = (NewViewOutputMin - LocalClampMin) / (LocalClampMax - LocalClampMin);
@@ -559,7 +559,7 @@ void FVisualLoggerTimeSliderController::SetClampRange(float MinValue, float MaxV
 	SetTimeRange(ZoomDelta >= 1 ? MinValue : LocalViewRangeMin, ZoomDelta >= 1 ? MaxValue : LocalViewRangeMax);
 }
 
-FReply FVisualLoggerTimeSliderController::OnMouseWheel( SWidget& WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+FReply FVisualLoggerTimeSliderController::OnMouseWheel( TSharedRef<SWidget> WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	FReply ReturnValue = FReply::Unhandled();;
 
@@ -600,7 +600,7 @@ FReply FVisualLoggerTimeSliderController::OnMouseWheel( SWidget& WidgetOwner, co
 					NewViewOutputMax = LocalClampMax;
 				}
 
-				TimeSliderArgs.OnViewRangeChanged.ExecuteIfBound(TRange<float>(NewViewOutputMin, NewViewOutputMax), EViewRangeInterpolation::Immediate);
+				TimeSliderArgs.OnViewRangeChanged.ExecuteIfBound(TRange<float>(NewViewOutputMin, NewViewOutputMax), EViewRangeInterpolation::Immediate, false);
 				if (Scrollbar.IsValid())
 				{
 					float InOffsetFraction = (NewViewOutputMin - LocalClampMin) / (LocalClampMax - LocalClampMin);

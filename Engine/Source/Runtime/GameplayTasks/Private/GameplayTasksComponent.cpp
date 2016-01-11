@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayTasksPrivatePCH.h"
 #include "GameplayTasksComponent.h"
@@ -6,17 +6,6 @@
 #include "MessageLog.h"
 
 #define LOCTEXT_NAMESPACE "GameplayTasksComponent"
-
-namespace
-{
-	FORCEINLINE const TCHAR* GetGameplayTaskEventName(EGameplayTaskEvent Event)
-	{
-		/*static const UEnum* GameplayTaskEventEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameplayTaskEvent"));
-		return GameplayTaskEventEnum->GetEnumText(static_cast<int32>(Event)).ToString();*/
-
-		return Event == EGameplayTaskEvent::Add ? TEXT("Add") : TEXT("Remove");
-	}
-}
 
 UGameplayTasksComponent::UGameplayTasksComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -74,7 +63,8 @@ void UGameplayTasksComponent::OnTaskDeactivated(UGameplayTask& Task)
 void UGameplayTasksComponent::OnTaskEnded(UGameplayTask& Task)
 {
 	ensure(Task.RequiresPriorityOrResourceManagement() == true);
-	RemoveResourceConsumingTask(Task);
+
+	RemoveTaskFromPriorityQueue(Task);
 }
 
 void UGameplayTasksComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const
@@ -91,7 +81,7 @@ bool UGameplayTasksComponent::ReplicateSubobjects(UActorChannel* Channel, class 
 	{
 		for (UGameplayTask* SimulatedTask : SimulatedTasks)
 		{
-			if (SimulatedTask && !SimulatedTask->IsPendingKill())
+			if (SimulatedTask && !SimulatedTask->HasAnyFlags(RF_PendingKill))
 			{
 				WroteSomething |= Channel->ReplicateSubobject(SimulatedTask, *Bunch, *RepFlags);
 			}
@@ -137,7 +127,7 @@ void UGameplayTasksComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 	case 0:
 		break;
 	case 1:
-		if (TickingTasks[0])
+		if (TickingTasks[0].IsValid())
 		{
 			TickingTasks[0]->TickTask(DeltaTime);
 			NumActuallyTicked++;
@@ -145,13 +135,10 @@ void UGameplayTasksComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 		break;
 	default:
 	{
-
-		static TArray<UGameplayTask*> LocalTickingTasks;
-		LocalTickingTasks.Reset();
-		LocalTickingTasks.Append(TickingTasks);
-		for (UGameplayTask* TickingTask : LocalTickingTasks)
+		TArray<TWeakObjectPtr<UGameplayTask> > LocalTickingTasks = TickingTasks;
+		for (TWeakObjectPtr<UGameplayTask>& TickingTask : LocalTickingTasks)
 		{
-			if (TickingTask)
+			if (TickingTask.IsValid())
 			{
 				TickingTask->TickTask(DeltaTime);
 				NumActuallyTicked++;
@@ -201,7 +188,7 @@ AActor* UGameplayTasksComponent::GetAvatarActor(const UGameplayTask* Task) const
 //----------------------------------------------------------------------//
 void UGameplayTasksComponent::AddTaskReadyForActivation(UGameplayTask& NewTask)
 {
-	UE_VLOG(this, LogGameplayTasks, Log, TEXT("AddTaskReadyForActivation %s"), *NewTask.GetName());
+	UE_VLOG(this, LogGameplayTasks, Log, TEXT("RemoveResourceConsumingTask %s"), *NewTask.GetName());
 
 	ensure(NewTask.RequiresPriorityOrResourceManagement() == true);
 	
@@ -252,12 +239,8 @@ void UGameplayTasksComponent::ProcessTaskEvents()
 	// TaskEvents array that the main loop is iterating over. It's a feature
 	for (int32 EventIndex = 0; EventIndex < TaskEvents.Num(); ++EventIndex)
 	{
-		UE_VLOG(this, LogGameplayTasks, Verbose, TEXT("UGameplayTasksComponent::ProcessTaskEvents: %s event %s")
-			, *TaskEvents[EventIndex].RelatedTask.GetName(), GetGameplayTaskEventName(TaskEvents[EventIndex].Event));
-
 		if (TaskEvents[EventIndex].RelatedTask.IsPendingKill())
 		{
-			UE_VLOG(this, LogGameplayTasks, Verbose, TEXT("%s is PendingKill"), *TaskEvents[EventIndex].RelatedTask.GetName());
 			// we should ignore it, but just in case run the removal code.
 			RemoveTaskFromPriorityQueue(TaskEvents[EventIndex].RelatedTask);
 			continue;
@@ -266,14 +249,7 @@ void UGameplayTasksComponent::ProcessTaskEvents()
 		switch (TaskEvents[EventIndex].Event)
 		{
 		case EGameplayTaskEvent::Add:
-			if (TaskEvents[EventIndex].RelatedTask.TaskState != EGameplayTaskState::Finished)
-			{
-				AddTaskToPriorityQueue(TaskEvents[EventIndex].RelatedTask);
-			}
-			else
-			{
-				UE_VLOG(this, LogGameplayTasks, Error, TEXT("UGameplayTasksComponent::ProcessTaskEvents trying to add a finished task to priority queue!"));
-			}
+			AddTaskToPriorityQueue(TaskEvents[EventIndex].RelatedTask);
 			break;
 		case EGameplayTaskEvent::Remove:
 			RemoveTaskFromPriorityQueue(TaskEvents[EventIndex].RelatedTask);
@@ -452,13 +428,13 @@ void UGameplayTasksComponent::SetCurrentlyClaimedResources(FGameplayResourceSet 
 //----------------------------------------------------------------------//
 // debugging
 //----------------------------------------------------------------------//
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && ENABLE_VISUAL_LOG
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 FString UGameplayTasksComponent::GetTickingTasksDescription() const
 {
 	FString TasksDescription;
 	for (auto& Task : TickingTasks)
 	{
-		if (Task)
+		if (Task.IsValid())
 		{
 			TasksDescription += FString::Printf(TEXT("\n%s %s"), *GetTaskStateName(Task->GetState()), *Task->GetDebugDescription());
 		}

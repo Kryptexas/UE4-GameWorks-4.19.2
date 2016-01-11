@@ -37,17 +37,7 @@ Description:Overviews and examples AI
 [/OBJECT]
 [/VAR]
 
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-1td5wSD3PPU
-[/PARAMLITERAL]
-[/OBJECT]
+![](Engine\AI\BehaviorTrees\QuickStart\14\BTFinal.gif)(convert:false)
 
 The Behavior Tree Quick Start Guide walks you through the process of creating a NavMesh, creating an AI Controller, creating a Character that will be controlled by that AI Controller, and creating all the parts necessary for a simple Behavior Tree.
 

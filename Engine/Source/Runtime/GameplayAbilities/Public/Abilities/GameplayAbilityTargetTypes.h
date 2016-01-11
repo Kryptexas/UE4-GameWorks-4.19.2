@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -65,11 +65,9 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData
 
 	TArray<FActiveGameplayEffectHandle> ApplyGameplayEffect(const UGameplayEffect* GameplayEffect, const FGameplayEffectContextHandle& InEffectContext, float Level, FPredictionKey PredictionKey = FPredictionKey());
 
-	virtual TArray<FActiveGameplayEffectHandle> ApplyGameplayEffectSpec(FGameplayEffectSpec& Spec, FPredictionKey PredictionKey = FPredictionKey());
+	TArray<FActiveGameplayEffectHandle> ApplyGameplayEffectSpec(const FGameplayEffectSpec& Spec, FPredictionKey PredictionKey = FPredictionKey());
 
 	virtual void AddTargetDataToContext(FGameplayEffectContextHandle& Context, bool bIncludeActorArray);
-
-	virtual void AddTargetDataToGameplayCueParameters(FGameplayCueParameters& Parameters);
 
 	virtual TArray<TWeakObjectPtr<AActor> >	GetActors() const
 	{
@@ -175,7 +173,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetDataHandle
 		Data.Add(TSharedPtr<FGameplayAbilityTargetData>(DataPtr));
 	}
 
-	TArray<TSharedPtr<FGameplayAbilityTargetData>, TInlineAllocator<1> >	Data;
+	TArray<TSharedPtr<FGameplayAbilityTargetData> >	Data;
 
 	void Clear()
 	{
@@ -637,12 +635,9 @@ namespace EAbilityGenericReplicatedEvent
 
 struct FAbilityReplicatedData
 {
-	FAbilityReplicatedData() : bTriggered(false), VectorPayload(ForceInitToZero) {}
+	FAbilityReplicatedData() : bTriggered(false) {}
 	/** Event has triggered */
 	bool bTriggered;
-
-	/** Optional Vector payload for event */
-	FVector_NetQuantize100 VectorPayload;
 
 	FSimpleMulticastDelegate Delegate;
 };
@@ -682,7 +677,6 @@ struct FAbilityReplicatedDataCache
 		for (int32 i=0; i < (int32) EAbilityGenericReplicatedEvent::MAX; ++i)
 		{
 			GenericEvents[i].bTriggered = false;
-			GenericEvents[i].VectorPayload = FVector::ZeroVector;
 		}
 
 	}

@@ -1,0 +1,83 @@
+Availability: Docs
+Title:Lighting with Post Process Effects
+Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
+Description:How lights interact with the Post Process Chain.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/LightsAndPostProcess:title%](LO_VFX_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/LightsAndPostProcess:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/LightsAndPostProcess:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/LightsAndPostProcess]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/LightsAndPostProcess:title%](LO_VFX_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/LightsAndPostProcess:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/LightsAndPostProcess:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/LightsAndPostProcess]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth raw]
+![](Engine/Rendering/LightingAndShadows/lighting_overview_banner_001.png)(convert:false)
+[/REGION]
+
+[TOC(start:2 end:2)]
+
+
+
+The post process pipeline takes the lighting in the scene and uses it in various ways, from simulating an organic eye adapting to changes in light or a camera's numerous refracting lenses. While the lighting of a scene may be the first step, the post process steps really drive many effects.
+
+Refer to the [Post Process Effects](Engine/Rendering/PostProcessEffects) page for more information on how to use post processing effects. 
+
+## Light Adaptation
+
+Used for simulating a camera or human eye's adapting to changing lighting conditions such as walking into a bright sunlit day from a dark room.
+
+[REGION:lightbox]
+[![](LO_Adapt_003.png)(w:302)](LO_Adapt_003.png) [![](LO_Adapt_001.png)(w:302)](LO_Adapt_001.png) [![](LO_Adapt_002.png)(w:302)](LO_Adapt_002.png) 
+[/REGION]
+
+## Bloom
+
+[EXCERPT:LightingAndPostProcess_Bloom]
+Bloom simulates the effect of light halos. More information about bloom settings can be found in the [Bloom section of the Post Process Effects documentation](Engine/Rendering\PostProcessEffects\Bloom).
+[/EXCERPT:LightingAndPostProcess_Bloom]
+
+[REGION:lightbox]
+[![](LO_Bloom_001.png)(w:450)](LO_Bloom_001.png) [![](LO_Bloom_002.png)(w:450)](LO_Bloom_002.png)
+[/REGION]
+
+## Lens Flare
+
+Lens Flare are those "Visible artifacts, usually in the shape of the lens iris, and are formed when light follows a pathway through the lens that contains one or more reflections from the lens surfaces." A flare can occur from any significantly bright surface or effect.
+
+![](LI_LFnBloom.png)
+
+
+
+

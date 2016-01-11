@@ -1,12 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 // Only designed to be included directly by Delegate.h
 #if !defined( __Delegate_h__ ) || !defined( FUNC_INCLUDING_INLINE_IMPL )
 	#error "This inline header must only be included by Delegate.h"
 #endif
 
-
-class FDelegateBase;
 
 // NOTE: This file in re-included for EVERY delegate signature that we support.  That is, every combination
 //		 of parameter count, return value presence or other function modifier will include this file to
@@ -35,9 +33,11 @@ class DELEGATE_INSTANCE_INTERFACE_CLASS
 public:
 
 	/**
-	 * Emplaces a copy of the delegate instance into the FDelegateBase.
+	 * Creates a copy of the delegate instance
+	 *
+	 * @return	The newly created copy
 	 */
-	virtual void CreateCopy(FDelegateBase& Base) = 0;
+	virtual DELEGATE_INSTANCE_INTERFACE_CLASS* CreateCopy() = 0;
 
 	/**
 	 * Returns true if this delegate points to exactly the same object and method as the specified delegate,

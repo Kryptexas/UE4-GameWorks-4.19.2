@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Json.h"
@@ -8,12 +8,19 @@
  * Macros used to generate a serialization function for a class derived from FJsonSerializable
  */
 #define BEGIN_ONLINE_JSON_SERIALIZER \
-	virtual void Serialize(FOnlineJsonSerializerBase& Serializer, bool bFlatObject) override \
+	virtual void Serialize(FOnlineJsonSerializerBase& Serializer) override \
 	{ \
-		if (!bFlatObject) { Serializer.StartObject(); }
+		Serializer.StartObject();
 
 #define END_ONLINE_JSON_SERIALIZER \
-		if (!bFlatObject) { Serializer.EndObject(); } \
+		Serializer.EndObject(); \
+	}
+
+#define BEGIN_ONLINE_JSON_SERIALIZER_FLAT \
+	virtual void Serialize(FOnlineJsonSerializerBase& Serializer) override \
+	{
+
+#define END_ONLINE_JSON_SERIALIZER_FLAT \
 	}
 
 #define ONLINE_JSON_SERIALIZE(JsonName, JsonValue) \
@@ -26,7 +33,7 @@
 		Serializer.SerializeMap(TEXT(JsonName), JsonMap)
 
 #define ONLINE_JSON_SERIALIZE_SERIALIZABLE(JsonName, JsonValue) \
-		JsonValue.Serialize(Serializer, false)
+		JsonValue.Serialize(Serializer)
 
 #define ONLINE_JSON_SERIALIZE_ARRAY_SERIALIZABLE(JsonName, JsonArray, ElementType) \
 		if (Serializer.IsLoading()) \
@@ -45,7 +52,7 @@
 			Serializer.StartArray(JsonName); \
 			for (auto It = JsonArray.CreateIterator(); It; ++It) \
 			{ \
-				It->Serialize(Serializer, false); \
+				It->Serialize(Serializer); \
 			} \
 			Serializer.EndArray(); \
 		}
@@ -70,7 +77,7 @@
 			for (auto It = JsonMap.CreateIterator(); It; ++It) \
 			{ \
 				Serializer.StartObject(It.Key()); \
-				It.Value().Serialize(Serializer, true); \
+				It.Value().Serialize(Serializer); \
 				Serializer.EndObject(); \
 			} \
 			Serializer.EndObject(); \
@@ -94,7 +101,7 @@
 		{ \
 			/* Write the value to the Name field */ \
 			Serializer.WriteIdentifierPrefix(TEXT(JsonName)); \
-			JsonSerializableObject.Serialize(Serializer, true); \
+			JsonSerializableObject.Serialize(Serializer); \
 		}
 
 /** Array of string data */
@@ -620,27 +627,18 @@ struct FOnlineJsonSerializable
 		{
 			TSharedRef<TJsonWriter<> > JsonWriter = TJsonWriterFactory<>::Create(&JsonStr);
 			FOnlineJsonSerializerWriter<> Serializer(JsonWriter);
-			Serialize(Serializer, false);
+			Serialize(Serializer);
 			JsonWriter->Close();
 		}
 		else
 		{
 			TSharedRef< TJsonWriter< TCHAR, TCondensedJsonPrintPolicy< TCHAR > > > JsonWriter = TJsonWriterFactory< TCHAR, TCondensedJsonPrintPolicy< TCHAR > >::Create( &JsonStr );
 			FOnlineJsonSerializerWriter<TCHAR, TCondensedJsonPrintPolicy< TCHAR >> Serializer(JsonWriter);
-			Serialize(Serializer, false);
+			Serialize(Serializer);
 			JsonWriter->Close();
 		}
 		return JsonStr;
-	}
-	virtual void ToJson(TSharedRef<TJsonWriter<> >& JsonWriter, bool bFlatObject) const
-	{
-		FOnlineJsonSerializerWriter<> Serializer(JsonWriter);
-		((FOnlineJsonSerializable*)this)->Serialize(Serializer, bFlatObject);
-	}
-	virtual void ToJson(TSharedRef< TJsonWriter< TCHAR, TCondensedJsonPrintPolicy< TCHAR > > >& JsonWriter, bool bFlatObject) const
-	{
-		FOnlineJsonSerializerWriter<TCHAR, TCondensedJsonPrintPolicy< TCHAR >> Serializer(JsonWriter);
-		((FOnlineJsonSerializable*)this)->Serialize(Serializer, bFlatObject);
+
 	}
 	/**
 	 * Serializes the contents of a JSON string into this object
@@ -655,7 +653,7 @@ struct FOnlineJsonSerializable
 			JsonObject.IsValid())
 		{
 			FOnlineJsonSerializerReader Serializer(JsonObject);
-			Serialize(Serializer, false);
+			Serialize(Serializer);
 			return true;
 		}
 		return false;
@@ -665,7 +663,7 @@ struct FOnlineJsonSerializable
 		if (JsonObject.IsValid())
 		{
 			FOnlineJsonSerializerReader Serializer(JsonObject);
-			Serialize(Serializer, false);
+			Serialize(Serializer);
 			return true;
 		}
 		return false;
@@ -675,7 +673,6 @@ struct FOnlineJsonSerializable
 	 * Abstract method that needs to be supplied using the macros
 	 *
 	 * @param Serializer the object that will perform serialization in/out of JSON
-	 * @param bFlatObject if true then no object wrapper is used
 	 */
-	virtual void Serialize(FOnlineJsonSerializerBase& Serializer, bool bFlatObject) = 0;
+	virtual void Serialize(FOnlineJsonSerializerBase& Serializer) = 0;
 };

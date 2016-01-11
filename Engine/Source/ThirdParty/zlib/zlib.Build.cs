@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 using UnrealBuildTool;
 
 public class zlib : ModuleRules
@@ -22,8 +22,7 @@ public class zlib : ModuleRules
 			PublicAdditionalLibraries.Add("zlib.lib");
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac ||
-			Target.Platform == UnrealTargetPlatform.IOS ||
-			Target.Platform == UnrealTargetPlatform.TVOS)
+				 Target.Platform == UnrealTargetPlatform.IOS)
 		{
 			PublicAdditionalLibraries.Add("z");
 		}

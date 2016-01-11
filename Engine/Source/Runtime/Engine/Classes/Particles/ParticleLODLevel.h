@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /**
  *	ParticleLODLevel
@@ -6,7 +6,6 @@
  */
 
 #pragma once
-#include "Particles/Orientation/ParticleModuleOrientationAxisLock.h"
 #include "ParticleLODLevel.generated.h"
 
 class UInterpCurveEdSetup;
@@ -34,7 +33,7 @@ class UParticleLODLevel : public UObject
 
 	// Module<SINGULAR> used for emitter type "extension".
 	UPROPERTY(export)
-	class UParticleModuleTypeDataBase* TypeDataModule;
+	class UParticleModule* TypeDataModule;
 
 	/** The SpawnRate/Burst module - required by all emitters. */
 	UPROPERTY(export)
@@ -73,9 +72,9 @@ class UParticleLODLevel : public UObject
 	int32 PeakActiveParticles;
 
 
-	//~ Begin UObject Interface
+	// Begin UObject Interface
 	virtual void	PostLoad() override;
-	//~ End UObject Interface
+	// End UObject Interface
 
 	// @todo document
 	virtual void	UpdateModuleLists();

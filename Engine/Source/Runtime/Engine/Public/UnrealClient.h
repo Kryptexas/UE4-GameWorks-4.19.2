@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnrealClient.h: Interface definition for platform specific client code.
@@ -10,14 +10,16 @@
 #include "HitProxies.h"
 #include "InputCoreTypes.h"
 #include "Engine/EngineBaseTypes.h"
-#include "PopupMethodReply.h"
+#include "Runtime/MovieSceneCapture/Public/MovieSceneCaptureHandle.h"
 	
 class FCanvas;
 class FViewportClient;
+class IMovieSceneCaptureInterface;
 
 class SWidget;
 class FCursorReply;
 
+enum class EPopupMethod : uint8;
 enum class EFocusCause : uint8;
 
 /**
@@ -249,7 +251,7 @@ public:
 	// Destructor
 	ENGINE_API virtual ~FViewport();
 
-	//~ Begin FViewport Interface.
+	// FViewport interface.
 	virtual void* GetWindow() = 0;
 	virtual void MoveWindow(int32 NewPosX, int32 NewPosY, int32 NewSizeX, int32 NewSizeY) = 0;
 
@@ -419,7 +421,7 @@ public:
 	 **/
 	ENGINE_API virtual void SetViewportClient( FViewportClient* InViewportClient );
 
-	//~ Begin FRenderTarget Interface.
+	// FRenderTarget interface.
 	virtual FIntPoint GetSizeXY() const override { return FIntPoint(SizeX, SizeY); }
 
 	// Accessors.
@@ -545,10 +547,10 @@ protected:
 		/** Invalidates the cached hit proxy map. */
 		void Invalidate();
 
-		//~ Begin FHitProxyConsumer Interface.
+		// FHitProxyConsumer interface.
 		virtual void AddHitProxy(HHitProxy* HitProxy) override;
 
-		//~ Begin FRenderTarget Interface.
+		// FRenderTarget interface.
 		virtual FIntPoint GetSizeXY() const override { return FIntPoint(SizeX, SizeY); }
 
 		/** FGCObject interface */
@@ -616,11 +618,28 @@ protected:
 
 	/** Triggers the taking of a high res screen shot for this viewport. */
 	bool bTakeHighResScreenShot;
-	//~ Begin FRenderResource Interface.
+	// FRenderResource interface.
 	ENGINE_API virtual void InitDynamicRHI() override;
 	ENGINE_API virtual void ReleaseDynamicRHI() override;
 	ENGINE_API virtual void InitRHI() override;
 	ENGINE_API virtual void ReleaseRHI() override;
+
+public:
+
+	/** Check if this viewport has a movie scene capture implementation or not */
+	bool HasMovieSceneCapture() const { return MovieSceneCaptureHandle.IsValid(); }
+
+	/** Access the current movie scene capture interface, if set. */
+	ENGINE_API IMovieSceneCaptureInterface* GetMovieSceneCapture() const;
+
+	/** Set this viewport's capture implementation */
+	void SetMovieSceneCapture(FMovieSceneCaptureHandle Handle) { MovieSceneCaptureHandle = Handle; }
+
+protected:
+
+	/** Movie scene capture implementation handle. */
+	FMovieSceneCaptureHandle MovieSceneCaptureHandle;
+
 };
 
 // Shortcuts for checking the state of both left&right variations of control keys.
@@ -908,7 +927,7 @@ public:
 	virtual bool HideCursorDuringCapture() { return false; }
 
 	/** Should we make new windows for popups or create an overlay in the current window. */
-	virtual FPopupMethodReply OnQueryPopupMethod() const { return FPopupMethodReply::Unhandled(); }
+	virtual TOptional<EPopupMethod> OnQueryPopupMethod() const { return TOptional<EPopupMethod>(); }
 };
 
 /** Tracks the viewport client that should process the stat command, can be NULL */
@@ -945,7 +964,7 @@ public:
 
 	virtual ~FDummyViewport();
 
-	//~ Begin FViewport Interface
+	// Begin FViewport interface
 	virtual void BeginRenderFrame(FRHICommandListImmediate& RHICmdList) override
 	{
 		check( IsInRenderingThread() );
@@ -973,9 +992,9 @@ public:
 	virtual void DeferInvalidateHitProxy() override { }
 	virtual FViewportFrame* GetViewportFrame() override { return 0; }
 	virtual FCanvas* GetDebugCanvas() override { return DebugCanvas; }
-	//~ End FViewport Interface
+	// End FViewport interface
 
-	//~ Begin FRenderResource Interface
+	// Begin FRenderResource interface
 	virtual void InitDynamicRHI() override
 	{
 		FTexture2DRHIRef ShaderResourceTextureRHI;
@@ -990,7 +1009,7 @@ public:
 	virtual void InitResource() override{ FViewport::InitResource(); }
 	virtual void ReleaseResource() override { FViewport::ReleaseResource(); }
 	virtual FString GetFriendlyName() const override { return FString(TEXT("FDummyViewport"));}
-	//~ End FRenderResource Interface
+	// End FRenderResource interface
 private:
 	FCanvas* DebugCanvas;
 };

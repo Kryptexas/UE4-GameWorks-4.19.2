@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UniformBuffer.h: Uniform buffer declarations.
@@ -28,44 +28,28 @@ public:
 
 	TUniformBuffer()
 		: BufferUsage(UniformBuffer_MultiFrame)
-		, Contents(nullptr)
 	{
+		Contents = (uint8*)FMemory::Malloc(sizeof(TBufferStruct),UNIFORM_BUFFER_STRUCT_ALIGNMENT);
 	}
 
 	~TUniformBuffer()
 	{
-		if (Contents)
-		{
-			FMemory::Free(Contents);
-		}
+		FMemory::Free(Contents);
 	}
 
 	/** Sets the contents of the uniform buffer. */
 	void SetContents(const TBufferStruct& NewContents)
 	{
-		SetContentsNoUpdate(NewContents);
+		check(IsInRenderingThread());
+		FMemory::Memcpy(Contents,&NewContents,sizeof(TBufferStruct));
 		UpdateRHI();
 	}
-	/** Sets the contents of the uniform buffer to all zeros. */
-	void SetContentsToZero()
-	{
-		if (!Contents)
-		{
-			Contents = (uint8*)FMemory::Malloc(sizeof(TBufferStruct), UNIFORM_BUFFER_STRUCT_ALIGNMENT);
-		}
-		FMemory::Memzero(Contents, sizeof(TBufferStruct));
-		UpdateRHI();
-	}
-
+	
 	// FRenderResource interface.
 	virtual void InitDynamicRHI() override
 	{
 		check(IsInRenderingThread());
-		UniformBufferRHI.SafeRelease();
-		if (Contents)
-		{
-			UniformBufferRHI = RHICreateUniformBuffer(Contents,TBufferStruct::StaticStruct.GetLayout(),BufferUsage);
-		}
+		UniformBufferRHI = RHICreateUniformBuffer(Contents,TBufferStruct::StaticStruct.GetLayout(),BufferUsage);
 	}
 	virtual void ReleaseDynamicRHI() override
 	{
@@ -73,27 +57,9 @@ public:
 	}
 
 	// Accessors.
-	FUniformBufferRHIParamRef GetUniformBufferRHI() const 
-	{ 
-		check(UniformBufferRHI.GetReference()); // you are trying to use a UB that was never filled with anything
-		return UniformBufferRHI; 
-	}
+	FUniformBufferRHIParamRef GetUniformBufferRHI() const { return UniformBufferRHI; }
 
 	EUniformBufferUsage BufferUsage;
-
-protected:
-
-	/** Sets the contents of the uniform buffer. Used within calls to InitDynamicRHI */
-	void SetContentsNoUpdate(const TBufferStruct& NewContents)
-	{
-		check(IsInRenderingThread());
-		if (!Contents)
-		{
-			Contents = (uint8*)FMemory::Malloc(sizeof(TBufferStruct),UNIFORM_BUFFER_STRUCT_ALIGNMENT);
-		}
-		FMemory::Memcpy(Contents,&NewContents,sizeof(TBufferStruct));
-	}
-
 private:
 
 	FUniformBufferRHIRef UniformBufferRHI;
@@ -226,12 +192,11 @@ public:
 	typedef class FShaderUniformBufferParameter* (*ConstructUniformBufferParameterType)();
 
 	/** Initialization constructor. */
-	FUniformBufferStruct(const FName& InLayoutName, const TCHAR* InStructTypeName, const TCHAR* InShaderVariableName, ConstructUniformBufferParameterType InConstructRef, uint32 InSize, const TArray<FMember>& InMembers, bool bRegisterForAutoBinding)
+	FUniformBufferStruct(const TCHAR* InStructTypeName, const TCHAR* InShaderVariableName, ConstructUniformBufferParameterType InConstructRef, uint32 InSize, const TArray<FMember>& InMembers, bool bRegisterForAutoBinding)
 	:	StructTypeName(InStructTypeName)
 	,	ShaderVariableName(InShaderVariableName)
 	,	ConstructUniformBufferParameterRef(InConstructRef)
 	,	Size(InSize)
-	,	Layout(InLayoutName)
 	,	Members(InMembers)
 	,	GlobalListLink(this)
 	{
@@ -256,7 +221,7 @@ public:
 
 		if (bRegisterForAutoBinding)
 		{
-			GlobalListLink.LinkHead(GetStructList());
+			GlobalListLink.Link(GetStructList());
 			FName StrutTypeFName(StructTypeName);
 			// Verify that during FName creation there's no case conversion
 			checkSlow(FCString::Strcmp(StructTypeName, *StrutTypeFName.GetPlainNameString()) == 0);
@@ -616,7 +581,6 @@ private:
 
 #define IMPLEMENT_UNIFORM_BUFFER_STRUCT(StructTypeName,ShaderVariableName) \
 	FUniformBufferStruct StructTypeName::StaticStruct( \
-	FName(TEXT(#StructTypeName)), \
 	TEXT(#StructTypeName), \
 	ShaderVariableName, \
 	StructTypeName::ConstructUniformBufferParameter, \

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,25 +11,20 @@ struct FPortalRpcLocateServer
 	GENERATED_USTRUCT_BODY()
 
 	/** The product's unique identifier. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FGuid ProductId;
 
 	/** The product's version string. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString ProductVersion;
-
-	/** The product's version string. */
-	UPROPERTY(EditAnywhere, Category = "Message")
-	FString HostMacAddress;
 
 	/** Default constructor. */
 	FPortalRpcLocateServer() { }
 
 	/** Create and initialize a new instance. */
-	FPortalRpcLocateServer(const FGuid& InProductId, const FString& InProductVersion, const FString& InHostMacAddress)
+	FPortalRpcLocateServer(const FGuid& InProductId, const FString& InProductVersion)
 		: ProductId(InProductId)
 		, ProductVersion(InProductVersion)
-		, HostMacAddress(InHostMacAddress)
 	{ }
 };
 
@@ -40,7 +35,7 @@ struct FPortalRpcServer
 	GENERATED_USTRUCT_BODY()
 
 	/** The RPC server's message address as a string. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString ServerAddress;
 
 	/** Default constructor. */

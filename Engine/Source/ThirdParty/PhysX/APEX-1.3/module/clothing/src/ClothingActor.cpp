@@ -2738,11 +2738,8 @@ void ClothingActor::destroy()
 
 
 
-void ClothingActor::initBeforeTickTasks(PxF32 deltaTime, PxF32 substepSize, PxU32 numSubSteps, PxTaskManager* taskManager, PxTaskID before, PxTaskID after)
+void ClothingActor::initBeforeTickTasks(PxF32 deltaTime, PxF32 substepSize, PxU32 numSubSteps)
 {
-	PX_UNUSED(before);
-	PX_UNUSED(after);
-	PX_UNUSED(taskManager);
 	mBeforeTickTask.setDeltaTime(deltaTime, substepSize, numSubSteps);
 }
 
@@ -2776,15 +2773,47 @@ PxTaskID ClothingActor::setTaskDependenciesDuring(PxTaskID before, PxTaskID afte
 	return mDuringTickTask.getTaskID();
 }
 
+
+
+void ClothingActor::setFetchContinuation()
+{
+	PxTaskManager* taskManager = mClothingScene->getApexScene()->getTaskManager();
+	taskManager->submitUnnamedTask(mWaitForFetchTask);
+
+#ifdef PX_PS3
+	if (mActorDesc->useHardwareCloth && !mData.bMeshMeshSkinningOnPPU)
+	{
+		if (mData.bAllGraphicalSubmeshesFitOnSpu)
+		{
+			mFetchResultsTaskSimpleSpu.setContinuation(&mWaitForFetchTask);
+			mFetchResultsTaskSimpleSpu.setArgs(0, (uint32_t)&mData, 0);
+		}
+		else
+		{
+			mFetchResultsTaskSpu.setContinuation(&mWaitForFetchTask);
+			mFetchResultsTaskSpu.setArgs(0, (uint32_t)&mData, 0);
+		}
+	}
+	else
+#endif
+	{
+		mFetchResultsTask.setContinuation(&mWaitForFetchTask);
+	}
+
+	// reduce refcount to 1
+	mWaitForFetchTask.removeReference();
+}
+
+
+
 void ClothingActor::startFetchTasks()
 {
 	mFetchResultsRunningMutex.lock();
 	mFetchResultsRunning = true;
-	mFetchResultsSync.reset();
+	mWaitForFetchTask.mWaiting.reset();
 	mFetchResultsRunningMutex.unlock();
 
-	PxTaskManager* taskManager = mClothingScene->getApexScene()->getTaskManager();
-	taskManager->submitUnnamedTask(mFetchResultsTask);
+	setFetchContinuation();
 
 #ifdef PX_PS3
 	if (mActorDesc->useHardwareCloth && !mData.bMeshMeshSkinningOnPPU)
@@ -2818,7 +2847,7 @@ void ClothingActor::waitForFetchResults()
 	{
 		PX_PROFILER_PERF_SCOPE("ClothingActor::waitForFetchResults");
 
-		mFetchResultsSync.wait();
+		mWaitForFetchTask.mWaiting.wait();
 		syncActorData();
 		mFetchResultsRunning = false;
 
@@ -2828,6 +2857,31 @@ void ClothingActor::waitForFetchResults()
 	}
 	mFetchResultsRunningMutex.unlock();
 }
+
+
+
+void ClothingWaitForFetchTask::run()
+{
+}
+
+
+
+void ClothingWaitForFetchTask::release()
+{
+	PxTask::release();
+
+	mWaiting.set();
+}
+
+
+
+const char* ClothingWaitForFetchTask::getName() const
+{
+	return "ClothingWaitForFetchTask";
+}
+
+
+
 
 void ClothingActor::applyTeleport(bool skinningReady, PxU32 substepNumber)
 {
@@ -5148,28 +5202,6 @@ void ClothingActor::releaseCollision(ClothingCollision& collision)
 	collision.destroy();
 }
 
-void ClothingActor::simulate(PxF32 dt)
-{
-	// before tick task
-	tickSynchBeforeSimulate_LocksPhysX(dt, dt, 0, 1);
-
-	if(mClothingSimulation != NULL)
-		mClothingSimulation->simulate(dt);
-
-	// during tick task
-	tickAsynch_NoPhysX(); // this is a no-op
-
-	// start fetch result task
-	mFetchResultsRunningMutex.lock();
-	mFetchResultsRunning = true;
-	mFetchResultsSync.reset();
-	mFetchResultsRunningMutex.unlock();
-
-	// fetch result task
-	fetchResults();
-	getActorData().tickSynchAfterFetchResults_LocksPhysXSimple(); // this is a no-op
-	setFetchResultsSync();
-}
 
 }
 } // namespace apex

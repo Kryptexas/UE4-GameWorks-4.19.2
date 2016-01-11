@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -320,7 +320,7 @@ protected:
 public:
 
 
-	TSharedRef<ITableRow> OnGenerateUpdateConstantListRow(TSharedPtr<EditorExposedVectorConstant> InItem, const TSharedRef< STableViewBase >& OwnerTable)
+	TSharedRef<ITableRow> OnGenerateConstantListRow(TSharedPtr<EditorExposedVectorConstant> InItem, const TSharedRef< STableViewBase >& OwnerTable)
 	{
 		return SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
 		.Content()
@@ -330,7 +330,7 @@ public:
 	}
 
 
-	TSharedRef<ITableRow> OnGenerateUpdateCurveConstantListRow(TSharedPtr<EditorExposedVectorCurveConstant> InItem, const TSharedRef< STableViewBase >& OwnerTable)
+	TSharedRef<ITableRow> OnGenerateCurveConstantListRow(TSharedPtr<EditorExposedVectorCurveConstant> InItem, const TSharedRef< STableViewBase >& OwnerTable)
 	{
 		return SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
 			.Content()
@@ -338,28 +338,6 @@ public:
 				SNew(SCurveConstantWidget).ConstantName(InItem->ConstName).ScriptProps(&Emitter->GetProperties()->UpdateScriptProps).EmitterProps(Emitter->GetProperties())
 			];
 	}
-
-
-	TSharedRef<ITableRow> OnGenerateSpawnConstantListRow(TSharedPtr<EditorExposedVectorConstant> InItem, const TSharedRef< STableViewBase >& OwnerTable)
-	{
-		return SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
-			.Content()
-			[
-				SNew(SVectorConstantWidget).ConstantName(InItem->ConstName).ScriptProps(&Emitter->GetProperties()->SpawnScriptProps)
-			];
-	}
-
-
-	TSharedRef<ITableRow> OnGenerateSpawnCurveConstantListRow(TSharedPtr<EditorExposedVectorCurveConstant> InItem, const TSharedRef< STableViewBase >& OwnerTable)
-	{
-		return SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
-			.Content()
-			[
-				SNew(SCurveConstantWidget).ConstantName(InItem->ConstName).ScriptProps(&Emitter->GetProperties()->SpawnScriptProps).EmitterProps(Emitter->GetProperties())
-			];
-	}
-
-
 
 
 	void OnEmitterNameChanged(const FText &InText)

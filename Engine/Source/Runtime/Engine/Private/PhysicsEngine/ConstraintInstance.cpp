@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
@@ -274,7 +274,7 @@ FConstraintInstance::FConstraintInstance()
 	AngularBreakThreshold = 500.0f;
 
 	ProjectionLinearTolerance = 5.f; // Linear projection when error > 5 cm
-	ProjectionAngularTolerance = 180.f; // Angular projection when error > 180 degrees
+	ProjectionAngularTolerance = 180.f;// Angular projection when error > 10 degrees
 }
 
 void FConstraintInstance::SetDisableCollision(bool InDisableCollision)

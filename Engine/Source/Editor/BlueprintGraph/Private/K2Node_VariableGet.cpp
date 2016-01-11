@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintGraphPrivatePCH.h"
@@ -230,7 +230,7 @@ FText UK2Node_VariableGet::GetBlueprintVarTooltip(FBPVariableDescription const& 
 		Args.Add(TEXT("VarName"), FText::FromName(VarDesc.VarName));
 		Args.Add(TEXT("UserTooltip"), FText::FromString(UserTooltipData));
 
-		return FText::Format(LOCTEXT("GetBlueprintVariable_Tooltip", "Read the value of variable {VarName}\n{UserTooltip}"), Args);
+		return FText::Format(LOCTEXT("GetVariableProperty_Tooltip", "Read the value of variable {VarName}\n{UserTooltip}"), Args);
 	}
 	return K2Node_VariableGetImpl::GetBaseTooltip(VarDesc.VarName);
 }
@@ -462,22 +462,19 @@ void UK2Node_VariableGet::ExpandNode(class FKismetCompilerContext& CompilerConte
 void UK2Node_VariableGet::Serialize(FArchive& Ar)
 {
 	// The following code is to attempt to log info related to UE-19729
-	if (Ar.IsSaving() && Ar.IsPersistent())
+	if (Ar.IsSaving() && !Ar.IsTransacting())
 	{
-		uint32 PortFlagsToSkip = PPF_Duplicate | PPF_DuplicateForPIE;
-		if (!(Ar.GetPortFlags() & PortFlagsToSkip))
+		if (UEdGraph* Graph = Cast<UEdGraph>(GetOuter()))
 		{
-			if (UEdGraph* Graph = Cast<UEdGraph>(GetOuter()))
+			if (UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(Graph))
 			{
-				if (UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(Graph))
+				if (!Blueprint->bBeingCompiled)
 				{
-					if (!Blueprint->bBeingCompiled)
-					{
-						// The following line may spur the crash noted in UE-19729 and will confirm that the crash happens before the FiB gather.
-						GetNodeTitle(ENodeTitleType::ListView);
-					}
+					// The following line may spur the crash noted in UE-19729 and will confirm that the crash happens before the FiB gather.
+					GetNodeTitle(ENodeTitleType::ListView);
 				}
 			}
+			
 		}
 	}
 	Super::Serialize(Ar);

@@ -1,0 +1,41 @@
+﻿INTSourceChangelist:2092049
+Availability: Docs
+Title:1.4 - 파괴 심도
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Destructables
+Description:Destructibility 예제 레벨에 대한 개요로, 예제 1.4: Destruction Depth 입니다.
+
+
+[VAR:Topic]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Destructables/1_4:title%](Resources/ContentExamples/Destructables/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Destructables/1_4:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Destructables/1_4:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Destructables/1_4]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth raw]
+![](Resources/ContentExamples/Destructables/physics_banner.png)
+[/REGION]
+
+메시가 파괴되면 파티클 이펙트를 스폰합니다.
+
+[REGION:todo]
+어디에 이미터를 스폰시킬 것인지에 대한 규칙 정도면 좋겠습니다. 콘텐츠 예제에는 이 부분에 대한 파티클 이펙트가 없습니다.
+[/REGION]
+
+[REGION:lightbox]
+[![](1_4_solid.png)(w:300)](1_4_solid.png) [![](1_4_fractured.png)(w:300)](1_4_fractured.png) [![](1_4_blown.png)(w:300)](1_4_blown.png)
+[/REGION]

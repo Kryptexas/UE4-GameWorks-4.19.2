@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -207,24 +207,9 @@ public:
 	/**
 	 * A list of classes that you want members for. If an action would produce
 	 * a node with a TargetPin, and that pin is incompatible with one of these
-	 * classes, then the action is filtered out. Extra data is cached in 
-	 * FTargetClassFilterData so that it can be reused by filters efficiently.
+	 * classes, then the action is filtered out.
 	 */
-	struct FTargetClassFilterData
-	{
-		UClass* TargetClass;
-		TArray<FString> HiddenCategories;
-	};
-	TArray<FTargetClassFilterData> TargetClasses;
-
-	/** Helper to add a class to the TargetClasses, TargetClass may already be in the array */
-	static void AddUnique(TArray<FTargetClassFilterData>& ToArray, UClass* TargetClass);
-
-	/** Helper to add a class to the TargetClasses, fills out FTargetClassFilterData */
-	static void Add(TArray<FTargetClassFilterData>& ToArray, UClass* TargetClass);
-
-	/** Cached reference to the BluprintGraphModule, which has extra rejection tests: */
-	class FBlueprintGraphModule* BluprintGraphModule;
+	TArray<UClass*> TargetClasses;
 
 	/**
 	 * Users can extend the filter and add their own rejection tests with this

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "InputCorePrivatePCH.h"
 #include "PropertyTag.h"
@@ -634,7 +634,7 @@ void EKeys::Initialize()
 	AddKey(FKeyDetails(EKeys::MotionController_Left_TriggerAxis, LOCTEXT("MotionController_Left_TriggerAxis", "MotionController (L) TriggerAxis"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
 	AddKey(FKeyDetails(EKeys::MotionController_Left_Grip1Axis, LOCTEXT("MotionController_Left_Grip1Axis", "MotionController (L) Grip1 Axis"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
 	AddKey(FKeyDetails(EKeys::MotionController_Left_Grip2Axis, LOCTEXT("MotionController_Left_Grip2Axis", "MotionController (L) Grip2 Axis"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
-
+	
 	//	Right Controller
 	AddKey(FKeyDetails(EKeys::MotionController_Right_Thumbstick_X, LOCTEXT("MotionController_Right_Thumbstick_X", "MotionController (R) Thumbstick X"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
 	AddKey(FKeyDetails(EKeys::MotionController_Right_Thumbstick_Y, LOCTEXT("MotionController_Right_Thumbstick_Y", "MotionController (R) Thumbstick Y"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
@@ -1028,12 +1028,6 @@ bool FKey::SerializeFromMismatchedTag(struct FPropertyTag const& Tag, FArchive& 
 
 bool FKey::ExportTextItem(FString& ValueStr, FKey const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const
 {
-	if (0 != (PortFlags & EPropertyPortFlags::PPF_ExportCpp))
-	{
-		ValueStr += FString::Printf(TEXT("FKey(TEXT(\"%s\"))"), *KeyName.ToString());
-		return true;
-	}
-
 	ValueStr += KeyName.ToString();
 	return true;
 }

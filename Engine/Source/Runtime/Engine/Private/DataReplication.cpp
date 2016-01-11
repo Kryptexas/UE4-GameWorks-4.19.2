@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DataChannel.cpp: Unreal datachannel implementation.
@@ -693,14 +693,11 @@ bool FObjectReplicator::ReceivedBunch( FInBunch& Bunch, const FReplicationFlags&
 			{
 				UE_LOG(LogRep, Verbose, TEXT("Rejected unwanted function %s in %s"), *Message.ToString(), *Object->GetFullName());
 
-#if 0
-				// FIXME: This may cause false positives, need to think of a better way to handle this, removing it for now
 				if ( !OwningChannel->Connection->TrackLogsPerSecond() )	// This will disconnect the client if we get here too often
 				{
 					UE_LOG(LogRep, Error, TEXT("Rejected too many unwanted functions %s in %s"), *Message.ToString(), *Object->GetFullName());
 					return false;
 				}
-#endif
 			}
 
 			// Destroy the parameters.
@@ -765,11 +762,6 @@ void FObjectReplicator::PostReceivedBunch()
 
 	// Call RepNotifies
 	CallRepNotifies(true);
-
-	if (!Object->IsPendingKill())
-	{
-		Object->PostRepNotifies();
-	}
 }
 
 static FORCEINLINE FPropertyRetirement ** UpdateAckedRetirements( FPropertyRetirement &	Retire, int32 OutAckPacketId )
@@ -900,7 +892,7 @@ void FObjectReplicator::ReplicateCustomDeltaProperties( FOutBunch & Bunch, FRepl
 		// Send property.
 		Bunch.SerializeBits( TempBitWriter.GetData(), TempBitWriter.GetNumBits() );
 
-		NETWORK_PROFILER(GNetworkProfiler.TrackReplicateProperty(It, Bunch.GetNumBits() - NumStartingBits, Connection));
+		NETWORK_PROFILER(GNetworkProfiler.TrackReplicateProperty(It, Bunch.GetNumBits() - NumStartingBits));
 	}
 }
 
@@ -1058,7 +1050,7 @@ void FObjectReplicator::QueueRemoteFunctionBunch( UFunction* Func, FOutBunch &Bu
 	
 	if (++RemoteFuncInfo[InfoIdx].Calls > CVarMaxRPCPerNetUpdate.GetValueOnGameThread())
 	{
-		UE_LOG(LogRep, Verbose, TEXT("Too many calls to RPC %s within a single netupdate. Skipping. %s.  LastCallTime: %.2f. CurrentTime: %.2f. LastRelevantTime: %.2f. LastUpdateTime: %.2f "), 
+		UE_LOG(LogRep, Log, TEXT("Too many calls to RPC %s within a single netupdate. Skipping. %s.  LastCallTime: %.2f. CurrentTime: %.2f. LastRelevantTime: %.2f. LastUpdateTime: %.2f "), 
 			*Func->GetName(), *GetObject()->GetName(), RemoteFuncInfo[InfoIdx].LastCallTime, OwningChannel->Connection->Driver->Time, OwningChannel->RelevantTime, OwningChannel->LastUpdateTime );
 		return;
 	}

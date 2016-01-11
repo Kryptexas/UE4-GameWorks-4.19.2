@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SessionServicesPrivatePCH.h"
 
@@ -6,7 +6,7 @@
 /* FSessionManager structors
  *****************************************************************************/
 
-FSessionManager::FSessionManager(const IMessageBusRef& InMessageBus)
+FSessionManager::FSessionManager( const IMessageBusRef& InMessageBus )
 	: MessageBusPtr(InMessageBus)
 {
 	// fill in the owner array
@@ -49,15 +49,26 @@ FSessionManager::~FSessionManager()
 /* ISessionManager interface
  *****************************************************************************/
 
-void FSessionManager::AddOwner(const FString& InOwner)
+void FSessionManager::AddOwner( const FString& InOwner )
 {
 	FilteredOwners.Add(InOwner);
 }
 
 
-const TArray<ISessionInstanceInfoPtr>& FSessionManager::GetSelectedInstances() const
+void FSessionManager::GetSelectedInstances( TArray<ISessionInstanceInfoPtr>& OutInstances) const
 {
-	return SelectedInstances;
+	if (SelectedSession.IsValid())
+	{
+		SelectedSession->GetInstances(OutInstances);
+
+		for (int32 Index = OutInstances.Num() - 1; Index >= 0 ; --Index)
+		{
+			if (DeselectedInstances.Contains(OutInstances[Index]))
+			{
+				OutInstances.RemoveAtSwap(Index);
+			}
+		}
+	}
 }
 
 
@@ -67,7 +78,7 @@ const ISessionInfoPtr& FSessionManager::GetSelectedSession() const
 }
 
 
-void FSessionManager::GetSessions(TArray<ISessionInfoPtr>& OutSessions) const
+void FSessionManager::GetSessions( TArray<ISessionInfoPtr>& OutSessions ) const
 {
 	OutSessions.Empty(Sessions.Num());
 
@@ -78,9 +89,9 @@ void FSessionManager::GetSessions(TArray<ISessionInfoPtr>& OutSessions) const
 }
 
 
-bool FSessionManager::IsInstanceSelected(const TSharedRef<ISessionInstanceInfo>& Instance) const
+bool FSessionManager::IsInstanceSelected( const TSharedRef<ISessionInstanceInfo>& Instance ) const
 {
-	return ((Instance->GetOwnerSession() == SelectedSession) && SelectedInstances.Contains(Instance));
+	return ((Instance->GetOwnerSession() == SelectedSession) && !DeselectedInstances.Contains(Instance));
 }
 
 
@@ -96,76 +107,71 @@ FSimpleMulticastDelegate& FSessionManager::OnSessionInstanceUpdated()
 }
 
 
-void FSessionManager::RemoveOwner(const FString& InOwner)
+void FSessionManager::RemoveOwner( const FString& InOwner )
 {
 	FilteredOwners.Remove(InOwner);
 	RefreshSessions();
 }
 
 
-bool FSessionManager::SelectSession(const ISessionInfoPtr& Session)
+bool FSessionManager::SelectSession( const ISessionInfoPtr& Session )
 {
-	// already selected?
-	if (Session == SelectedSession)
+	if (Session != SelectedSession)
 	{
-		return true;
+		if (!Session.IsValid() || Sessions.Contains(Session->GetSessionId()))
+		{
+			bool CanSelect = true;
+
+			CanSelectSessionDelegate.Broadcast(Session, CanSelect);
+
+			if (CanSelect)
+			{
+				SelectedSession = Session;
+
+				SelectedSessionChangedEvent.Broadcast(Session);
+			}
+			else
+			{
+				return false;
+			}
+		}
 	}
-
-	// do we own the session?
-	if (Session.IsValid() && !Sessions.Contains(Session->GetSessionId()))
-	{
-		return false;
-	}
-
-	// allowed to de/select?
-	bool CanSelect = true;
-	CanSelectSessionDelegate.Broadcast(Session, CanSelect);
-
-	if (!CanSelect)
-	{
-		return false;
-	}
-
-	// set selection
-	SelectedInstances.Empty();
-	SelectedSession = Session;
-	SelectedSessionChangedEvent.Broadcast(Session);
 
 	return true;
 }
 
 
-bool FSessionManager::SetInstanceSelected(const ISessionInstanceInfoRef& Instance, bool Selected)
+bool FSessionManager::SetInstanceSelected( const ISessionInstanceInfoPtr& Instance, bool Selected )
 {
-	if (Instance->GetOwnerSession() != SelectedSession)
+	if (Instance->GetOwnerSession() == SelectedSession)
 	{
-		return false;
+		if (Selected)
+		{
+			if (DeselectedInstances.Remove(Instance) > 0)
+			{
+				InstanceSelectionChangedDelegate.Broadcast();
+			}
+		}
+		else
+		{
+			if (!DeselectedInstances.Contains(Instance))
+			{
+				DeselectedInstances.Add(Instance);
+				InstanceSelectionChangedDelegate.Broadcast();
+			}
+		}
+
+		return true;
 	}
 
-	if (Selected)
-	{
-		if (!SelectedInstances.Contains(Instance))
-		{
-			SelectedInstances.Add(Instance);
-			InstanceSelectionChangedDelegate.Broadcast(Instance, true);
-		}
-	}
-	else
-	{
-		if (SelectedInstances.Remove(Instance) > 0)
-		{
-			InstanceSelectionChangedDelegate.Broadcast(Instance, false);
-		}
-	}
-
-	return true;
+	return false;
 }
 
 
 /* FSessionManager implementation
  *****************************************************************************/
 
-void FSessionManager::FindExpiredSessions(const FDateTime& Now)
+void FSessionManager::FindExpiredSessions( const FDateTime& Now )
 {
 	bool Dirty = false;
 
@@ -185,18 +191,20 @@ void FSessionManager::FindExpiredSessions(const FDateTime& Now)
 }
 
 
-bool FSessionManager::IsValidOwner(const FString& Owner)
+bool FSessionManager::IsValidOwner( const FString& Owner )
 {
-	if (Owner == FPlatformProcess::UserName(false))
+	if (Owner == FPlatformProcess::UserName(true))
 	{
 		return true;
 	}
-
-	for (const auto& FilteredOwner : FilteredOwners)
+	else 
 	{
-		if (FilteredOwner == Owner)
+		for (int32 Index = 0; Index < FilteredOwners.Num(); ++Index)
 		{
-			return true;
+			if (FilteredOwners[Index] == Owner)
+			{
+				return true;
+			}
 		}
 	}
 
@@ -213,6 +221,7 @@ void FSessionManager::RefreshSessions()
 		if (!IsValidOwner(It.Value()->GetSessionOwner()))
 		{
 			It.RemoveCurrent();
+
 			Dirty = true;
 		}
 	}
@@ -229,7 +238,7 @@ void FSessionManager::SendPing()
 	if (MessageEndpoint.IsValid())
 	{
 		MessageEndpoint->Publish(new FEngineServicePing(), EMessageScope::Network);
-		MessageEndpoint->Publish(new FSessionServicePing(FPlatformProcess::UserName(false)), EMessageScope::Network);
+		MessageEndpoint->Publish(new FSessionServicePing(), EMessageScope::Network);
 	}
 
 	LastPingTime = FDateTime::UtcNow();
@@ -239,7 +248,7 @@ void FSessionManager::SendPing()
 /* FSessionManager callbacks
  *****************************************************************************/
 
-void FSessionManager::HandleEnginePongMessage(const FEngineServicePong& Message, const IMessageContextRef& Context)
+void FSessionManager::HandleEnginePongMessage( const FEngineServicePong& Message, const IMessageContextRef& Context )
 {
 	if (!Message.SessionId.IsValid())
 	{
@@ -257,7 +266,16 @@ void FSessionManager::HandleEnginePongMessage(const FEngineServicePong& Message,
 }
 
 
-void FSessionManager::HandleLogReceived(const ISessionInfoRef& Session, const ISessionInstanceInfoRef& Instance, const FSessionLogMessageRef& Message)
+void FSessionManager::HandleInstanceDiscovered( const ISessionInfoRef& Session, const ISessionInstanceInfoRef& Instance )
+{
+	if (Session == SelectedSession)
+	{
+		InstanceSelectionChangedDelegate.Broadcast();
+	}	
+}
+
+
+void FSessionManager::HandleLogReceived( const ISessionInfoRef& Session, const ISessionInstanceInfoRef& Instance, const FSessionLogMessageRef& Message )
 {
 	if (Session == SelectedSession)
 	{
@@ -266,14 +284,14 @@ void FSessionManager::HandleLogReceived(const ISessionInfoRef& Session, const IS
 }
 
 
-void FSessionManager::HandleSessionPongMessage(const FSessionServicePong& Message, const IMessageContextRef& Context)
+void FSessionManager::HandleSessionPongMessage( const FSessionServicePong& Message, const IMessageContextRef& Context )
 {
 	if (!Message.SessionId.IsValid())
 	{
 		return;
 	}
 
-	if (!Message.Standalone && !IsValidOwner(Message.SessionOwner))
+	if (Message.Standalone && !IsValidOwner(Message.SessionOwner))
 	{
 		return;
 	}
@@ -290,19 +308,12 @@ void FSessionManager::HandleSessionPongMessage(const FSessionServicePong& Messag
 
 	if (Session.IsValid())
 	{
-		if (Session->GetSessionOwner() != Message.SessionOwner)
-		{
-			Session->UpdateFromMessage(Message, Context);
-			SessionsUpdatedDelegate.Broadcast();
-		}
-		else
-		{
-			Session->UpdateFromMessage(Message, Context);
-		}
+		Session->UpdateFromMessage(Message, Context);
 	}
 	else
 	{
 		Session = MakeShareable(new FSessionInfo(Message.SessionId, MessageBus.ToSharedRef()));
+		Session->OnInstanceDiscovered().AddSP(this, &FSessionManager::HandleInstanceDiscovered);
 		Session->OnLogReceived().AddSP(this, &FSessionManager::HandleLogReceived);
 		Session->UpdateFromMessage(Message, Context);
 
@@ -311,7 +322,7 @@ void FSessionManager::HandleSessionPongMessage(const FSessionServicePong& Messag
 }
 
 
-bool FSessionManager::HandleTicker(float DeltaTime)
+bool FSessionManager::HandleTicker( float DeltaTime )
 {
 	FDateTime Now = FDateTime::UtcNow();
 

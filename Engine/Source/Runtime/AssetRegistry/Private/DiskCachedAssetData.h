@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 class FDiskCachedAssetData
 {
 public:
+	FName PackageName;
 	FDateTime Timestamp;
 	TArray<FAssetData> AssetDataList;
 	FPackageDependencyData DependencyData;
@@ -12,13 +13,19 @@ public:
 	FDiskCachedAssetData()
 	{}
 
-	FDiskCachedAssetData(const FDateTime& InTimestamp)
-		: Timestamp(InTimestamp)
+	FDiskCachedAssetData(FName InPackageName, const FDateTime& InTimestamp)
+		: PackageName(InPackageName), Timestamp(InTimestamp)
 	{}
 
 	/** Operator for serialization */
 	friend FArchive& operator<<(FArchive& Ar, FDiskCachedAssetData& DiskCachedAssetData)
 	{
+		Ar << DiskCachedAssetData.PackageName;
+		if (Ar.IsError())
+		{
+			return Ar;
+		}
+
 		Ar << DiskCachedAssetData.Timestamp;
 		if (Ar.IsError())
 		{

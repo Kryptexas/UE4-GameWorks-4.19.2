@@ -1,9 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
 
 #include "SlateViewerApp.h"
-#include "LinuxCommonStartup.h"
 
-int main(int argc, char *argv[])
+static FString GSavedCommandLine;
+
+/**
+ * WinMain, called when the application is started
+ */
+int main( int argc, char** argv )
 {
-	return CommonLinuxMain(argc, argv, &RunSlateViewer);
+	FPlatformMisc::SetGracefulTerminationHandler();
+
+	for (int32 Option = 1; Option < argc; Option++)
+	{
+		GSavedCommandLine += TEXT(" ");
+		GSavedCommandLine += UTF8_TO_TCHAR(argv[Option]);	// note: technically it depends on locale
+	}
+
+	// do the slate viewer thing
+	RunSlateViewer(*GSavedCommandLine);
+
+	return 0;
 }

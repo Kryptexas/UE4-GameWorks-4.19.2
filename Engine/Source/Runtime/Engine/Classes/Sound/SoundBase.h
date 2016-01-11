@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,19 +6,27 @@
  * The base class for a playable sound object 
  */
 
-#include "Sound/SoundConcurrency.h"
 #include "SoundBase.generated.h"
-
 
 struct FActiveSound;
 struct FSoundParseParameters;
 struct FWaveInstance;
 struct FAttenuationSettings; 
-struct FSoundConcurrencySettings;
-
 class USoundClass;
 class USoundAttenuation;
-class USoundConcurrency;
+
+
+UENUM()
+namespace EMaxConcurrentResolutionRule
+{
+	enum Type
+	{
+		PreventNew					UMETA(ToolTip = "When Max Concurrent sounds are active do not start a new sound."),
+		StopOldest					UMETA(ToolTip = "When Max Concurrent sounds are active stop the oldest and start a new one."),
+		StopFarthestThenPreventNew	UMETA(ToolTip = "When Max Concurrent sounds are active stop the furthest sound.  If all sounds are the same distance then do not start a new sound."),
+		StopFarthestThenOldest		UMETA(ToolTip = "When Max Concurrent sounds are active stop the furthest sound.  If all sounds are the same distance then stop the oldest.")
+	};
+}
 
 UCLASS(config=Engine, hidecategories=Object, abstract, editinlinenew, BlueprintType)
 class ENGINE_API USoundBase : public UObject
@@ -32,29 +40,16 @@ protected:
 
 public:
 	/** When "stat sounds -debug" has been specified, draw this sound's attenuation shape when the sound is audible. For debugging purpose only. */
-	UPROPERTY(EditAnywhere, Category = Debug)
+	UPROPERTY(EditAnywhere, Category=Playback)
 	uint32 bDebug:1;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Concurrency)
-	uint32 bOverrideConcurrency:1;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Attenuation)
-	uint32 bIgnoreFocus:1;
-
-	/** If bOverridePlayback is false, the sound concurrency settings to use for this sound. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Concurrency, meta = (EditCondition = "!bOverrideConcurrency"))
-	class USoundConcurrency* SoundConcurrencySettings;
-
-	/** If bOverridePlayback is true, concurrency settings to use. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Concurrency, meta = (EditCondition = "bOverrideConcurrency"))
-	struct FSoundConcurrencySettings ConcurrencyOverrides;
-
-	UPROPERTY()
-	TEnumAsByte<enum EMaxConcurrentResolutionRule::Type> MaxConcurrentResolutionRule_DEPRECATED;
+	/** If we try to play a new version of this sound when at the max concurrent count how should it be resolved. */
+	UPROPERTY(EditAnywhere, Category=Playback)
+	TEnumAsByte<EMaxConcurrentResolutionRule::Type> MaxConcurrentResolutionRule;
 
 	/** Maximum number of times this sound can be played concurrently. */
-	UPROPERTY()
-	int32 MaxConcurrentPlayCount_DEPRECATED;
+	UPROPERTY(EditAnywhere, Category=Playback)
+	int32 MaxConcurrentPlayCount;
 
 	/** Duration of sound in seconds. */
 	UPROPERTY(Category=Info, AssetRegistrySearchable, VisibleAnywhere, BlueprintReadOnly)
@@ -64,18 +59,13 @@ public:
 	UPROPERTY(EditAnywhere, Category=Attenuation)
 	USoundAttenuation* AttenuationSettings;
 
-	/** Sound priority (higher value is higher priority) used for concurrency resolution. This priority value is weighted against the final volume of the sound. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Concurrency)
-	float Priority;
-
 public:	
 	/** Number of times this cue is currently being played. */
 	int32 CurrentPlayCount;
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual void PostInitProperties() override;
-	virtual void PostLoad() override;
-	//~ End UObject interface.
+	// End UObject interface.
 	
 	/** Returns whether the sound base is set up in a playable manner */
 	virtual bool IsPlayable() const;
@@ -118,15 +108,5 @@ public:
 	 * Returns the SoundClass used for this sound
 	 */
 	virtual USoundClass* GetSoundClass() const;
-
-	/** Returns the FSoundConcurrencySettings struct to use */
-	const FSoundConcurrencySettings* GetSoundConcurrencySettingsToApply();
-
-	/** Returns the priority to use when evaluating concurrency */
-	float GetPriority() const;
-
-	/** Returns the sound concurrency object ID if it exists. If it doesn't exist, returns 0. */
-	uint32 GetSoundConcurrencyObjectID() const;
-
 };
 

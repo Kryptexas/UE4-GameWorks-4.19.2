@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Tasks/BTTask_BlackboardBase.h"
@@ -13,10 +13,5 @@ UBTTask_BlackboardBase::UBTTask_BlackboardBase(const FObjectInitializer& ObjectI
 void UBTTask_BlackboardBase::InitializeFromAsset(UBehaviorTree& Asset)
 {
 	Super::InitializeFromAsset(Asset);
-
-	UBlackboardData* BBAsset = GetBlackboardAsset();
-	if (ensure(BBAsset))
-	{
-		BlackboardKey.ResolveSelectedKey(*BBAsset);
-	}
+	BlackboardKey.CacheSelectedKey(GetBlackboardAsset());
 }

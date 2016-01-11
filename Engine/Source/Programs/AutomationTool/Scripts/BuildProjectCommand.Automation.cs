@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,21 +7,6 @@ using System.Reflection;
 using System.Linq;
 using AutomationTool;
 using UnrealBuildTool;
-
-[Flags]
-public enum ProjectBuildTargets
-{
-	None = 0,
-	Editor = 1 << 0,
-	ClientCooked = 1 << 1,
-	ServerCooked = 1 << 2,
-	Bootstrap = 1 << 3,
-	CrashReporter = 1 << 4,
-	Programs = 1 << 5,
-
-	// All targets
-	All = Editor | ClientCooked | ServerCooked | Bootstrap | CrashReporter | Programs,
-}
 
 /// <summary>
 /// Helper command used for compiling.
@@ -37,8 +22,9 @@ public partial class Project : CommandUtils
 {
 	#region Build Command
 
-    public static void Build(BuildCommand Command, ProjectParams Params, int WorkingCL = -1, ProjectBuildTargets TargetMask = ProjectBuildTargets.All)
+	public static void Build(BuildCommand Command, ProjectParams Params, int WorkingCL = -1)
 	{
+
 		Params.ValidateAndLog();
 
 		if (!Params.Build)
@@ -53,14 +39,14 @@ public partial class Project : CommandUtils
 		var CrashReportPlatforms = new HashSet<UnrealTargetPlatform>();
 
 		// Setup editor targets
-		if (Params.HasEditorTargets && !Params.Rocket && (TargetMask & ProjectBuildTargets.Editor) == ProjectBuildTargets.Editor)
+		if (Params.HasEditorTargets && !Params.Rocket)
 		{
 			// @todo Mac: proper platform detection
 			UnrealTargetPlatform EditorPlatform = HostPlatform.Current.HostEditorPlatform;
 			const UnrealTargetConfiguration EditorConfiguration = UnrealTargetConfiguration.Development;
 
 			CrashReportPlatforms.Add(EditorPlatform);
-            Agenda.AddTargets(Params.EditorTargets.ToArray(), EditorPlatform, EditorConfiguration, Params.CodeBasedUprojectPath);
+			Agenda.AddTargets(Params.EditorTargets.ToArray(), EditorPlatform, EditorConfiguration, Params.CodeBasedUprojectPath);
 			if (Params.EditorTargets.Contains("UnrealHeaderTool") == false)
 			{
 				Agenda.AddTargets(new string[] { "UnrealHeaderTool" }, EditorPlatform, EditorConfiguration);
@@ -79,59 +65,41 @@ public partial class Project : CommandUtils
 			}
 		}
 
-        string ScriptPluginArgs = "";
-        // if we're utilizing an auto-generated code plugin/module (a product of 
-        // the cook process), make sure to compile it along with the targets here
-        if (Params.UseNativizedScriptPlugin())
-        {
-            ScriptPluginArgs = "-PLUGIN \"" + Params.NativizedScriptPlugin + "\"";
-        }
-
 		// Setup cooked targets
-		if (Params.HasClientCookedTargets && (TargetMask & ProjectBuildTargets.ClientCooked) == ProjectBuildTargets.ClientCooked)
+		if (Params.HasClientCookedTargets)
 		{
 			foreach (var BuildConfig in Params.ClientConfigsToBuild)
 			{
 				foreach (var ClientPlatform in Params.ClientTargetPlatforms)
 				{
 					CrashReportPlatforms.Add(ClientPlatform);
-					Agenda.AddTargets(Params.ClientCookedTargets.ToArray(), ClientPlatform, BuildConfig, Params.CodeBasedUprojectPath, InAddArgs: ScriptPluginArgs + " -remoteini=\"" + Params.RawProjectPath.Directory.FullName + "\"");
+					Agenda.AddTargets(Params.ClientCookedTargets.ToArray(), ClientPlatform, BuildConfig, Params.CodeBasedUprojectPath, InAddArgs: " -remoteini=\""+Path.GetDirectoryName(Params.RawProjectPath)+"\"");
 				}
 			}
 		}
-		if (Params.HasServerCookedTargets && (TargetMask & ProjectBuildTargets.ServerCooked) == ProjectBuildTargets.ServerCooked)
+		if (Params.HasServerCookedTargets)
 		{
 			foreach (var BuildConfig in Params.ServerConfigsToBuild)
 			{
 				foreach (var ServerPlatform in Params.ServerTargetPlatforms)
 				{
 					CrashReportPlatforms.Add(ServerPlatform);
-					Agenda.AddTargets(Params.ServerCookedTargets.ToArray(), ServerPlatform, BuildConfig, Params.CodeBasedUprojectPath, InAddArgs: ScriptPluginArgs + " -remoteini=\"" + Params.RawProjectPath.Directory.FullName + "\"");
+					Agenda.AddTargets(Params.ServerCookedTargets.ToArray(), ServerPlatform, BuildConfig, Params.CodeBasedUprojectPath, InAddArgs: " -remoteini=\""+Path.GetDirectoryName(Params.RawProjectPath)+"\"");
 				}
 			}
 		}
-		if (!Params.NoBootstrapExe && !Params.Rocket && (TargetMask & ProjectBuildTargets.Bootstrap) == ProjectBuildTargets.Bootstrap)
+		if (Params.CrashReporter && !Params.Rocket)
 		{
-			UnrealBuildTool.UnrealTargetPlatform[] BootstrapPackagedGamePlatforms = { UnrealBuildTool.UnrealTargetPlatform.Win32, UnrealBuildTool.UnrealTargetPlatform.Win64 };
-			foreach(UnrealBuildTool.UnrealTargetPlatform BootstrapPackagedGamePlatform in BootstrapPackagedGamePlatforms)
-			{
-				if(Params.ClientTargetPlatforms.Contains(BootstrapPackagedGamePlatform))
-				{
-					Agenda.AddTarget("BootstrapPackagedGame", BootstrapPackagedGamePlatform, UnrealBuildTool.UnrealTargetConfiguration.Shipping);
-				}
-			}
-		}
-		if (Params.CrashReporter && !Params.Rocket && (TargetMask & ProjectBuildTargets.CrashReporter) == ProjectBuildTargets.CrashReporter)
-		{
+			var CrashReportClientTarget = new[] { "CrashReportClient" };
 			foreach (var CrashReportPlatform in CrashReportPlatforms)
 			{
 				if (UnrealBuildTool.UnrealBuildTool.PlatformSupportsCrashReporter(CrashReportPlatform))
 				{
-					Agenda.AddTarget("CrashReportClient", CrashReportPlatform, UnrealTargetConfiguration.Shipping);
+					Agenda.AddTargets(CrashReportClientTarget, CrashReportPlatform, UnrealTargetConfiguration.Development);
 				}
 			}
 		}
-		if (Params.HasProgramTargets && !Params.Rocket && (TargetMask & ProjectBuildTargets.Programs) == ProjectBuildTargets.Programs)
+		if (Params.HasProgramTargets && !Params.Rocket)
 		{
 			foreach (var BuildConfig in Params.ClientConfigsToBuild)
 			{

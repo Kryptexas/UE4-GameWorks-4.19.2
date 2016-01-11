@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Animation/SmartName.h"
@@ -124,7 +124,7 @@ void FSmartNameMapping::Serialize(FArchive& Ar)
 	}
 }
 
-int32 FSmartNameMapping::GetNumNames() const
+int32 FSmartNameMapping::GetNumNames()
 {
 	return UidMap.Num();
 }
@@ -139,17 +139,17 @@ void FSmartNameMapping::FillNameArray(TArray<FName>& Array) const
 	UidMap.GenerateValueArray(Array);
 }
 
-bool FSmartNameMapping::Exists(const UID& Uid) const
+bool FSmartNameMapping::Exists(const UID& Uid)
 {
 	return UidMap.Find(Uid) != nullptr;
 }
 
-bool FSmartNameMapping::Exists(const FName& Name) const
+bool FSmartNameMapping::Exists(const FName& Name)
 {
 	return UidMap.FindKey(Name) != nullptr;
 }
 
-const FSmartNameMapping::UID* FSmartNameMapping::FindUID(const FName& Name) const
+const FSmartNameMapping::UID* FSmartNameMapping::FindUID(const FName& Name)
 {
 	return UidMap.FindKey(Name);
 }
@@ -169,6 +169,11 @@ void FSmartNameContainer::AddContainer(FName NewContainerName)
 	}
 }
 
+FSmartNameMapping* FSmartNameContainer::GetContainer(FName ContainerName)
+{
+	return NameMappings.Find(ContainerName);
+}
+
 const FSmartNameMapping* FSmartNameContainer::GetContainer(FName ContainerName) const
 {
 	return NameMappings.Find(ContainerName);
@@ -177,9 +182,4 @@ const FSmartNameMapping* FSmartNameContainer::GetContainer(FName ContainerName) 
 void FSmartNameContainer::Serialize(FArchive& Ar)
 {
 	Ar << NameMappings;
-}
-
-FSmartNameMapping* FSmartNameContainer::GetContainerInternal(FName ContainerName)
-{
-	return NameMappings.Find(ContainerName);
 }

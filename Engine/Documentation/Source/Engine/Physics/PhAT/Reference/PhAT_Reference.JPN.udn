@@ -1,0 +1,225 @@
+﻿INTSourceChangelist:2325839
+Availability:Public
+Title:Physics Asset Tool（PhAT）リファレンス
+Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhAT
+Description:スケルタル メッシュの物理シミュレーションやコリジョンに使用する物理ボディとジョイントを設定するツール
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Physics/PhAT/Reference:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhAT/Reference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhAT/Reference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/Phat/Reference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Physics/PhAT/Reference:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhAT/Reference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhAT/Reference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/Phat/Reference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+
+## 概要
+
+このドキュメントには、**Physics Asset Tool** (**PhAT**) 内のインターフェースエレメント全ての説明が含まれています。
+
+
+##PhAT を開く
+
+PhAT 物理エディタは、いずれかの物理アセットを **ダブルクリック**、もしくは **コンテンツ ブラウザ** 内の物理アセットのコンテクストメニューを **右クリック** して開きます。どちらかの操作で、特定の物理アセットを編集するために PhAT 物理エディタを開きます。
+
+
+
+
+## PhAT インターフェース
+
+PhAT 物理エディタは、以下の領域に分けられます。
+
+![](PhAT_EditingPhysicsAsset_update.png)(w:940)
+
+
+1. [メニューバー](#メニューバー)
+1. [ツールバー](#ツールバー)
+1. [ビューポートペイン](#ビューポートペイン)
+1. [詳細ペイン](#詳細ペイン)
+1. [階層ペイン](#階層ペイン)
+
+
+
+##メニューバー
+
+### ファイル
+
+* **Save** - 現在の物理アセットを保存します。
+* **Save All** - 変更したファイルを全て保存します。
+* **Choose Files to Save...** - [Save Content] ダイアログを開きます。
+* **Submit to Source Control...** - ソースコントロールへ変更および追加ファイルのサブミットを有効にする [Submit] ダイアログを開きます。
+
+
+### 編集
+
+* **Undo** - Undo スタックに格納されている最新のアクションを元に戻します。 
+* **Redo** - Undo スタックに格納されている直前に Undo されたアクションを元に戻します。
+* **Editor Preferences** - [Editor Preferences] を開きます。
+* **Project Settings** - [Project Settings] を開きます。
+
+
+### アセット
+
+* **Find in Content Browser...** - **[コンテンツ ブラウザ]**で現在開かれている物理アセットを検索します。
+
+
+### ウィンドウ
+
+* **ビューポート** - 閉じている場合は **[ビューポート]** ペインを表示します。
+* **詳細** - 閉じている場合は **[詳細]** ペインを表示します。
+* **階層** - 閉じている場合、**[階層]** ペインを表示します。
+* **ツールバー** - 閉じている場合**[ツールバー]** を表示します。 
+* **コンテンツ ブラウザ>** - 4 つあるコンテンツブラウザのうち 1 つのタブを開くか表示します。
+* **Developer Tools>** - **[Developer Tools]** タブを開きます。 
+* **ブループリント デバッガ** - **[ブループリント デバッガ]** を開きます。
+* **クラスビューア** - **[クラスビューア]** を開きます。
+* **メッセージログ** - **[メッセージログ]** を開くか表示します。
+* **出力ログ** - **[出力ログ]** を開きます。
+* **プラグイン** - **[プラグイン]** インターフェースを開きます。
+* **デバイスマネージャ** - **[デバイス マネージャー]** を開きます。
+* **Session Frontend** - **[Session Frontend]** を表示します。
+* **Save Layout** - このエディタに備え付けのペインの位置を全て保存します。
+* **Enable Fullscreen** - アンリアルエディタのメインウィンドウの [Fullscreen] を有効にします。 
+
+
+### ヘルプ
+
+* **Browse PhAT Documentation...** - PhAT ドキュメントを開きます。
+* **Ask a Question...** - ウェブブラウザを起動して UDN (Unreal Developer Network) の「Ask a Question（質問をする）」ページを開きます。
+* **Search for Answers...** - ウェブブラウザを起動して UDN (Unreal Developer Network) の「Search（検索）」ページを開きます。
+* **Unreal Engine Support Website...** - ウェブブラウザを起動してUDN (Unreal Developer Network) を開きます。
+* **Visit EpicGames.com...** - ウェブブラウザを起動して「www.EpicGames.com」へ移動します。
+* **About Unreal Editor...** - 「About Unreal Editor」ウィンドウを開きます。
+
+
+## ツールバー
+
+以下は、ツールバーのボタンについての説明です。ツールバーの左から右の順に解説していきます。
+
+### 主なツールバー
+
+| **アイコン** | **説明** | 
+| --- | --- |
+| ![](icon_SaveAsset_40x.png) | **Save** - 現在 PhAT で開いている物理アセットを保存します。|
+| ![](icon_toolbar_genericfinder_40px.png) | **Find in Content Browser** - **コンテンツ ブラウザ** で現在の物理アセットを選択します。 |
+| ![](icon_Enable_Simulation_40px.png) | **Simulation** - 物理アセットをシミュレートします。Poke や Drag をシミュレートする間、物理アセット シミュレーションと相互作用する関数を利用出来ます。さらに、**Physics Blend** が値1.0以下に設定された場合、アニメーションセレクターと **[Play]** ボタンを使用してアニメーションを選択および再生することができます。 |
+| ![](Engine\Physics\PhAT\UserGuide\selectedToggle_button.png) | **Selected Simulation** - この機能をトグルすると、物理アセットツールは選択した物理ボディとその子のみをシミュレーションします。例えば、人間の肩を選択すると、肩から指までをシミュレーションします。
+| ![](icon_PhAT_modeSelector.png) | **Mode Selector** - クリックすると **Bodies Mode** と **Constraints Mode** の間をトグルします。|
+| ![](icon_translate_40x.png) | **Translation** -  [Translation] ツールは、現在選択中の物理ボディや物理コンストレイントの移動を有効にします。 |
+| ![](icon_rotate_40x.png) | **回転** - [回転] ツールは、現在選択中の物理ボディや物理コンストレイントの回転を有効にします。 |
+| ![](icon_scale_40x.png) | **Scale** - [Scale] ツールは、現在選択中の物理ボディのスケーリングを有効にします。|
+| ![](icon_PhAT_Play_40x.png) | **Play** - 現在、選択中のアニメーションを再生します。エフェクトを表示するには、**[Physics Blend]** が値 1.0 以下でなくてはいけません。 |
+|[REGION:tablesection]アニメーション[/REGION]||
+![](PhAT_Animation.png) **Animation** - シミュレーションの実行中に、ここでアニメーションを選択してスケルタルメッシュで再生できます。
+
+### [Bodies] モードのツールバー
+
+[Bodies] モード中は、以下のボタンが **[Constraints Mode]** ボタンの右に表示されます。
+
+| **アイコン** | **説明** | 
+| --- | --- |
+| ![](icon_PhAT_EnableCollision_40x.png) | **Collision On** - 現在選択している物理ボディと次に選択された物理ボディのコリジョンを有効にします。 |
+| ![](icon_PhAT_DisableCollision_40x.png) | **Collision Off** - 現在選択している物理ボディと次に選択された物理ボディのコリジョンを無効にします。 |
+| ![](icon_PhAT_Weld_40x.png) | **Weld** - 現在選択している物理ボディと次に選択された物理ボディを結合します。 |
+
+
+### [Constraint] モードのツールバー
+
+[Bodies] モード中は、以下のボタンが **[Constraints Mode]** ボタンの右に表示されます。
+
+| **アイコン** | **説明** | 
+| --- | --- |
+| ![](icon_PhAT_Ball_40x.png) | **To Ball and Socket** - 現在選択しているコンストレイントを Ball と Socket プリセットに設定します。|
+| ![](icon_PhAT_Hinge_40x.png) | **To Hinge** - 現在選択しているコンストレイントを Hinge プリセットに設定します。 |
+| ![](icon_PhAT_Prismatic_40x.png) | **To Prismatic** - 現在選択しているコンストレイントを Prismatic プリセットに設定します。 |
+| ![](icon_PhAT_Skeletal_40x.png) | **To Skeletal** - 現在選択しているコンストレイントを Skeletal Joint プリセットに設定します。 |
+| ![](icon_PhAT_SnapConstraint_40x.png) | **Snap** - コンストレイントをボーンにスナップさせます。|
+
+
+
+
+##ビューポートペイン
+
+**[ビューポート]** ペインは、物理アセットと関連づいているデフォルトのスケルタル メッシュ アセットがレンダリングされたビューを表示します。また、スケルトンのデフォルトメッシュの物理ボディと関連づいている物理ボディ、これらのボディ間のコンストレイント、これらのボディとコンストレイントを操作するビジュアル ツール、これらのボディとコンストレイントに関する情報も表示します。メッシュ、ボディ、コンストレイントに対するレンダリングモードは、現在取り掛かっている作業を正しくプレビューするために個々に調整することができます。おそらく最も大切なことは、ボディとコンストレイントの物理シミュレーションはビューポートで直接プレビューすることができて、特定の動作に対する反応を確認するためにメッシュを操作 (メッシュを少しずつ移動、つかんだり、移動させるなど）が可能なことです。
+
+
+##詳細ペイン
+
+**[詳細]** ペインは、何も選択されていない場合は基本的なエディタ プロパティ一式、または **[階層]** ペインで現在選択されているボディやコンストレイントのプロパティのいずれかを、エディタのモードによって表示する標準アンリアルのプロパティ ウィンドウです。
+
+
+## 階層ペイン
+
+**階層** ペインは、スケルタルメッシュのボーンの階層ビューを表示します。エディタの現在のモードによって、リストからジョイント名を選択すると Body または Constraint のどちらかを選択します。ボディやコンストレイントが直接ボーンに関連づいている場合、ボーンは区別するために太字で表示されます。**階層** ペインでボーンが選択すると、対応するボディ、またはコンストレイントが選択されます（有効なモードに依存）。
+
+
+## 制御
+
+
+### マウスの操作
+
+| --- | --- |
+| **左クリック** | Limb (リム) /Joint (ジョイント) またはウィジェットの軸を選択します |
+| **SHIFT + 左クリック** | 可能な場合、不均等な (1つの軸方向へスケーリング) を実行します|
+| **X** | 選択項目をロックします |
+| **CTRL + 左クリック** | 物理ボディと物理コンストレイントを複数選択します。 |
+| **CTRL + 左クリック** | 物理アセットをポーク (突っつく) します (ライブシミュレーションのみ)  |
+| **CTRL + 右クリック + Drag** | 物理アセットの上をつかみます (ライブシミュレーションのみ) |
+
+
+### キーボードの操作
+
+| --- | --- |
+| **W** | Translation モード |
+| **E** | Rotate モード |
+| **R** | Scale モード |
+| **スペース バー** | ウィジェット モードをサイクル切り替え |
+| **C** | プロパティのコピー |
+| **DEL** | コンストレイント / ボディを削除する |
+| **F** | 選択したボディ / コンストレイントを画面中央に配置する |
+| **L + 左クリックしてドラッグ** | 平行ライトを周回させる |
+| **[** | 選択したボディと別のボディ間の衝突を有効にする |
+| **]** | 選択したボディと別のボディ間の衝突を無効にする |
+| [REGION:tablesection]**コンストレイント モード**[/REGION] ||
+| **Q** | コンストレイントを X -> Y -> Z にサイクル切り替え |
+| **1** | 選択した **物理コンストレイント** の **Angular Swing 1** を、**Limited** と **Locked** の間で切り替えます |
+| **2** | 選択した **物理コンストレイント** の **Angular Swing 2** を、**Limited** と **Locked** の間で切り替えます |
+| **3** | 選択した **物理コンストレイント** の **Angular Swing 3** を、**Limited** と **Locked** の間で切り替えます |
+| **4** | 選択した **物理コンストレイント** の 2 つをロックし、 3 番めを制限し、角度モーションをサイクルします。 |
+
+[REGION:note]
+バージョン 4.5 時点では、PhAT はあるボーンから別のボーンに左/右の命名規則に基づき **物理ボディ** をコピーできます。`_L` `_R` の命名規則をジョイントに使用する場合、**M** キーを押すと **物理ボディ** を同じ名前を持つが接尾辞が反対のボーンにコピーします。しかし、これは物理ボディのみをコピーするものであり、現時点ではコンストレイントはコピーしません。また、現時点ではミラー回転しないことにも注意してください。
+[/REGION:note]

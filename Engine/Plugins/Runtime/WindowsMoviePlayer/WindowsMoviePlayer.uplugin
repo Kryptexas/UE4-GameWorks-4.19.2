@@ -1,30 +1,23 @@
 {
 	"FileVersion" : 3,
+	
+	"FriendlyName" : "Windows Movie Player",
 	"Version" : 1,
 	"VersionName" : "1.0",
-	"FriendlyName" : "Windows Movie Player",
-	"Description" : "Windows Specific Movie Player using Media Foundation",
-	"Category" : "Movie Players",
 	"CreatedBy" : "Epic Games, Inc.",
 	"CreatedByURL" : "http://epicgames.com",
-	"DocsURL" : "",
-	"MarketplaceURL" : "",
-	"SupportURL" : "",
+	"EngineVersion" : "4.2.0",
+	"Description" : "Windows Specific Movie Player using Media Foundation",
+	"Category" : "Media Players",
 	"EnabledByDefault" : true,
-	"CanContainContent" : false,
-	"IsBetaVersion" : false,
-	"Installed" : false,
+	
 	"Modules" :
 	[
 		{
 			"Name" : "WindowsMoviePlayer",
 			"Type" : "RuntimeNoCommandlet",
 			"LoadingPhase" : "PreLoadingScreen",
-			"WhitelistPlatforms" :
-			[
-				"Win64",
-				"Win32"
-			]
+			"WhitelistPlatforms" : [ "Win64", "Win32" ]
 		}
 	]
 }

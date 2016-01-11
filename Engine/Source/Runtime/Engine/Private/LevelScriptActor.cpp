@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EnginePrivate.h"
@@ -54,14 +54,16 @@ void ALevelScriptActor::BeginDestroy()
 
 void ALevelScriptActor::PreInitializeComponents()
 {
-	if (UInputDelegateBinding::SupportsInputDelegate(GetClass()))
+	UBlueprintGeneratedClass* BGClass = Cast<UBlueprintGeneratedClass>(GetClass());
+	if(BGClass != NULL)
 	{
 		// create an InputComponent object so that the level script actor can bind key events
 		InputComponent = NewObject<UInputComponent>(this);
 		InputComponent->RegisterComponent();
 
-		UInputDelegateBinding::BindInputDelegates(GetClass(), InputComponent);
+		UInputDelegateBinding::BindInputDelegates(BGClass, InputComponent);
 	}
+
 	Super::PreInitializeComponents();
 }
 
@@ -73,7 +75,7 @@ bool ALevelScriptActor::RemoteEvent(FName EventName)
 	for( TArray<ULevel*>::TConstIterator it = GetWorld()->GetLevels().CreateConstIterator(); it; ++it )
 	{
 		ULevel* CurLevel = *it;
-		if( CurLevel && CurLevel->bIsVisible )
+		if( CurLevel )
 		{
 			ALevelScriptActor* LSA = CurLevel->GetLevelScriptActor();
 			if( LSA )

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessBokehDOF.cpp: Post processing lens blur implementation.
@@ -16,9 +16,19 @@
 
 
 /**
+ * Indexing style for DOF
+ */
+enum EBokehIndexStyle
+{
+	BIS_Fast = 0, /* Default fast, packed indexing mode */
+	BIS_Slow = 1 /* Slower, unwound indexing mode, used to avoid driver bugs on OSX/NV */
+};
+
+/**
  * Index buffer for drawing an individual sprite.
  */
-class FBokehIndexBuffer : public FIndexBuffer
+template<EBokehIndexStyle DOFIndexStyle>
+class TBokehIndexBuffer : public FIndexBuffer
 {
 public:
 	virtual void InitRHI() override
@@ -29,21 +39,37 @@ public:
 		void* Buffer = nullptr;
 		IndexBufferRHI = RHICreateAndLockIndexBuffer(Stride, Size, BUF_Static, CreateInfo, Buffer);
 		uint16* Indices = (uint16*)Buffer;
-		for (uint32 SpriteIndex = 0; SpriteIndex < 8; ++SpriteIndex)
+		if(DOFIndexStyle == BIS_Fast)
 		{
-			Indices[SpriteIndex*6 + 0] = SpriteIndex*4 + 0;
-			Indices[SpriteIndex*6 + 1] = SpriteIndex*4 + 3;
-			Indices[SpriteIndex*6 + 2] = SpriteIndex*4 + 2;
-			Indices[SpriteIndex*6 + 3] = SpriteIndex*4 + 0;
-			Indices[SpriteIndex*6 + 4] = SpriteIndex*4 + 1;
-			Indices[SpriteIndex*6 + 5] = SpriteIndex*4 + 3;
+			for (uint32 SpriteIndex = 0; SpriteIndex < 8; ++SpriteIndex)
+			{
+				Indices[SpriteIndex*6 + 0] = SpriteIndex*4 + 0;
+				Indices[SpriteIndex*6 + 1] = SpriteIndex*4 + 3;
+				Indices[SpriteIndex*6 + 2] = SpriteIndex*4 + 2;
+				Indices[SpriteIndex*6 + 3] = SpriteIndex*4 + 0;
+				Indices[SpriteIndex*6 + 4] = SpriteIndex*4 + 1;
+				Indices[SpriteIndex*6 + 5] = SpriteIndex*4 + 3;
+			}
+		}
+		else
+		{
+			for (uint32 SpriteIndex = 0; SpriteIndex < 8; ++SpriteIndex)
+			{
+				Indices[SpriteIndex*6 + 0] = SpriteIndex*6 + 0;
+				Indices[SpriteIndex*6 + 1] = SpriteIndex*6 + 1;
+				Indices[SpriteIndex*6 + 2] = SpriteIndex*6 + 2;
+				Indices[SpriteIndex*6 + 3] = SpriteIndex*6 + 3;
+				Indices[SpriteIndex*6 + 4] = SpriteIndex*6 + 4;
+				Indices[SpriteIndex*6 + 5] = SpriteIndex*6 + 5;
+			}
 		}
 		RHIUnlockIndexBuffer( IndexBufferRHI );
 	}
 };
 
 /** Global Bokeh index buffer. */
-TGlobalResource< FBokehIndexBuffer > GBokehIndexBuffer;
+TGlobalResource< TBokehIndexBuffer<BIS_Fast> > GBokehIndexBuffer;
+TGlobalResource< TBokehIndexBuffer<BIS_Slow> > GBokehSlowIndexBuffer;
 
 /** Encapsulates the post processing depth of field setup pixel shader. */
 class PostProcessVisualizeDOFPS : public FGlobalShader
@@ -70,6 +96,7 @@ public:
 	FShaderParameter VisualizeColors;
 	FShaderParameter CursorPos;
 	FShaderResourceParameter MiniFontTexture;
+	FShaderParameter CircleDofParams;
 	
 	/** Initialization constructor. */
 	PostProcessVisualizeDOFPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -81,13 +108,14 @@ public:
 		MiniFontTexture.Bind(Initializer.ParameterMap, TEXT("MiniFontTexture"));
 		VisualizeColors.Bind(Initializer.ParameterMap, TEXT("VisualizeColors"));
 		CursorPos.Bind(Initializer.ParameterMap, TEXT("CursorPos"));
+		CircleDofParams.Bind(Initializer.ParameterMap,TEXT("CircleDofParams"));
 	}
 
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << DeferredParameters << MiniFontTexture << DepthOfFieldParams << VisualizeColors << CursorPos;
+		Ar << PostprocessParameter << DeferredParameters << MiniFontTexture << DepthOfFieldParams << VisualizeColors << CursorPos << CircleDofParams;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -140,6 +168,8 @@ public:
 
 			SetShaderValueArray(Context.RHICmdList, ShaderRHI, VisualizeColors, Colors, 2);
 		}
+
+		SetShaderValue(Context.RHICmdList, ShaderRHI, CircleDofParams, CircleDofCoc(Context.View));
 	}
 
 	static const TCHAR* GetSourceFilename()
@@ -306,8 +336,6 @@ void FRCPassPostProcessVisualizeDOF::Process(FRenderingCompositePassContext& Con
 			Line = FString::Printf(TEXT("Occlusion: %.2f"), View.FinalPostProcessSettings.DepthOfFieldOcclusion);
 			Canvas.DrawShadowedString(X, Y += YStep, *Line, GetStatsFont(), FLinearColor(1, 1, 1));
 			Line = FString::Printf(TEXT("SkyFocusDistance: %.2f"), View.FinalPostProcessSettings.DepthOfFieldSkyFocusDistance);
-			Canvas.DrawShadowedString(X, Y += YStep, *Line, GetStatsFont(), FLinearColor(1, 1, 1));
-			Line = FString::Printf(TEXT("VignetteRadius: %.2f"), View.FinalPostProcessSettings.DepthOfFieldVignetteSize);
 			Canvas.DrawShadowedString(X, Y += YStep, *Line, GetStatsFont(), FLinearColor(1, 1, 1));
 			Y += YStep;
 			Line = FString::Printf(TEXT("Near:%d Far:%d"), DepthOfFieldStats.bNear ? 1 : 0, DepthOfFieldStats.bFar ? 1 : 0);
@@ -522,7 +550,7 @@ FPooledRenderTargetDesc FRCPassPostProcessBokehDOFSetup::ComputeOutputDesc(EPass
 }
 
 /** Encapsulates the post processing vertex shader. */
-template <uint32 DOFMethod>
+template <uint32 DOFMethod, uint32 DOFIndexStyle>
 class FPostProcessBokehDOFVS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessBokehDOFVS,Global);
@@ -536,6 +564,7 @@ class FPostProcessBokehDOFVS : public FGlobalShader
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("DOF_METHOD"), DOFMethod);
+		OutEnvironment.SetDefine(TEXT("DOF_INDEX_STYLE"), DOFIndexStyle);
 	}
 
 	/** Default constructor. */
@@ -684,16 +713,17 @@ public:
 IMPLEMENT_SHADER_TYPE(,FPostProcessBokehDOFPS,TEXT("PostProcessBokehDOF"),TEXT("MainPS"),SF_Pixel);
 
 // #define avoids a lot of code duplication
-#define VARIATION1(A) typedef FPostProcessBokehDOFVS<A> FPostProcessBokehDOFVS##A; \
-	IMPLEMENT_SHADER_TYPE2(FPostProcessBokehDOFVS##A, SF_Vertex);
+#define VARIATION1(A, B) typedef FPostProcessBokehDOFVS<A, B> FPostProcessBokehDOFVS##A##B; \
+	IMPLEMENT_SHADER_TYPE2(FPostProcessBokehDOFVS##A##B, SF_Vertex);
 
-VARIATION1(0)			VARIATION1(1)			VARIATION1(2)
+VARIATION1(0,0)			VARIATION1(1,0)			VARIATION1(2,0)
+VARIATION1(0,1)			VARIATION1(1,1)			VARIATION1(2,1)
 #undef VARIATION1
 
-template <uint32 DOFMethod>
+template <uint32 DOFMethod, uint32 DOFIndexStyle>
 void FRCPassPostProcessBokehDOF::SetShaderTempl(const FRenderingCompositePassContext& Context, FIntPoint LeftTop, FIntPoint TileCount, uint32 TileSize, float PixelKernelSize)
 {
-	TShaderMapRef<FPostProcessBokehDOFVS<DOFMethod> > VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessBokehDOFVS<DOFMethod, DOFIndexStyle> > VertexShader(Context.GetShaderMap());
 	TShaderMapRef<FPostProcessBokehDOFPS> PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
@@ -712,19 +742,11 @@ void FRCPassPostProcessBokehDOF::ComputeDepthOfFieldParams(const FRenderingCompo
 	uint32 BokehLayerSizeY = HalfRes * 2 + SafetyBorder;
 
 	float SkyFocusDistance = Context.View.FinalPostProcessSettings.DepthOfFieldSkyFocusDistance;
-	
-	// *2 to go to account for Radius/Diameter, 100 for percent
-	float DepthOfFieldVignetteSize = FMath::Max(0.0f, Context.View.FinalPostProcessSettings.DepthOfFieldVignetteSize / 100.0f * 2);
-	// doesn't make much sense to expose this property as the effect is very non linear and it would cost some performance to fix that
-	float DepthOfFieldVignetteFeather = 10.0f / 100.0f;
-
-	float DepthOfFieldVignetteMul = 1.0f / DepthOfFieldVignetteFeather;
-	float DepthOfFieldVignetteAdd = (0.5f - DepthOfFieldVignetteSize) * DepthOfFieldVignetteMul;
 
 	Out[0] = FVector4(
 		(SkyFocusDistance > 0) ? SkyFocusDistance : 100000000.0f,			// very large if <0 to not mask out skybox, can be optimized to disable feature completely
-		DepthOfFieldVignetteMul,
-		DepthOfFieldVignetteAdd,
+		0,
+		0,
 		Context.View.FinalPostProcessSettings.DepthOfFieldOcclusion);
 
 	FIntPoint ViewSize = Context.View.ViewRect.Size();
@@ -738,6 +760,19 @@ void FRCPassPostProcessBokehDOF::ComputeDepthOfFieldParams(const FRenderingCompo
 
 	Out[1] = FVector4(MaxBokehSizeInPixel, YOffsetInUV, UsedYDivTextureY, YOffsetInPixel);
 }
+
+
+static TAutoConsoleVariable<int32> CVarBokehDOFIndexStyle(
+	TEXT("r.BokehDOFIndexStyle"),
+#if PLATFORM_MAC // Avoid a driver bug on OSX/NV cards that causes driver to generate an unwound index buffer
+	1,
+#else
+	0,
+#endif
+	TEXT("Controls whether to use a packed or unwound index buffer for Bokeh DOF.\n")
+	TEXT("0: Use packed index buffer (faster) (default)\n")
+	TEXT("1: Use unwound index buffer (slower)"),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe);
 
 
 void FRCPassPostProcessBokehDOF::Process(FRenderingCompositePassContext& Context)
@@ -804,31 +839,61 @@ void FRCPassPostProcessBokehDOF::Process(FRenderingCompositePassContext& Context
 	float PixelKernelSize = Context.View.FinalPostProcessSettings.DepthOfFieldMaxBokehSize / 100.0f * LocalViewSize.X;
 
 	FIntPoint LeftTop = LocalViewRect.Min;
+
+	static EBokehIndexStyle IndexStyle = (EBokehIndexStyle)CVarBokehDOFIndexStyle.GetValueOnRenderThread();
 	
 	if(bHighQuality)
 	{
 		if(View.Family->EngineShowFlags.VisualizeAdaptiveDOF)
 		{
 			// high quality, visualize in red and green where we spend more performance
-			SetShaderTempl<2>(Context, LeftTop, TileCount, TileSize, PixelKernelSize);
+			if(IndexStyle == BIS_Fast)
+			{
+				SetShaderTempl<2, 0>(Context, LeftTop, TileCount, TileSize, PixelKernelSize);
+			}
+			else
+			{
+				SetShaderTempl<2, 1>(Context, LeftTop, TileCount, TileSize, PixelKernelSize);
+			}
 		}
 		else
 		{
 			// high quality
-			SetShaderTempl<1>(Context, LeftTop, TileCount, TileSize, PixelKernelSize);
+			if(IndexStyle == BIS_Fast)
+			{
+				SetShaderTempl<1, 0>(Context, LeftTop, TileCount, TileSize, PixelKernelSize);
+			}
+			else
+			{
+				SetShaderTempl<1, 1>(Context, LeftTop, TileCount, TileSize, PixelKernelSize);
+			}
 		}
 	}
 	else
 	{
 		// low quality
-		SetShaderTempl<0>(Context, LeftTop, TileCount, TileSize, PixelKernelSize);
+		if(IndexStyle == BIS_Fast)
+		{
+			SetShaderTempl<0, 0>(Context, LeftTop, TileCount, TileSize, PixelKernelSize);
+		}
+		else
+		{
+			SetShaderTempl<0, 1>(Context, LeftTop, TileCount, TileSize, PixelKernelSize);
+		}
 	}
 
 	// needs to be the same on shader side (faster on NVIDIA and AMD)
 	int32 QuadsPerInstance = 8;
 
 	Context.RHICmdList.SetStreamSource(0, NULL, 0, 0);
-	Context.RHICmdList.DrawIndexedPrimitive(GBokehIndexBuffer.IndexBufferRHI, PT_TriangleList, 0, 0, 32, 0, 2 * QuadsPerInstance, FMath::DivideAndRoundUp(TileCount.X * TileCount.Y, QuadsPerInstance));
+	if(IndexStyle == BIS_Fast)
+	{
+		Context.RHICmdList.DrawIndexedPrimitive(GBokehIndexBuffer.IndexBufferRHI, PT_TriangleList, 0, 0, 32, 0, 2 * QuadsPerInstance, FMath::DivideAndRoundUp(TileCount.X * TileCount.Y, QuadsPerInstance));
+	}
+	else
+	{
+		Context.RHICmdList.DrawIndexedPrimitive(GBokehSlowIndexBuffer.IndexBufferRHI, PT_TriangleList, 0, 0, 32, 0, 2 * QuadsPerInstance, FMath::DivideAndRoundUp(TileCount.X * TileCount.Y, QuadsPerInstance));
+	}
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }

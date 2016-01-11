@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AndroidTargetPlatform.h: Declares the FAndroidTargetPlatform class.
@@ -84,7 +84,7 @@ public:
 
 public:
 
-	//~ Begin ITargetPlatform Interface
+	// Begin ITargetPlatform interface
 
 	virtual void EnableDeviceCheck(bool OnOff) override {}
 
@@ -135,8 +135,6 @@ public:
 	virtual void GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const override;
 
 	virtual void GetAllTargetedShaderFormats(TArray<FName>& OutFormats) const override;
-	
-	virtual void GetAllCachedShaderFormats( TArray<FName>& OutFormats ) const override {}
 
 	virtual const class FStaticMeshLODSettings& GetStaticMeshLODSettings() const override;
 
@@ -175,7 +173,7 @@ public:
 		return DeviceLostEvent;
 	}
 
-	//~ End ITargetPlatform Interface
+	// End ITargetPlatform interface
 
 protected:
 

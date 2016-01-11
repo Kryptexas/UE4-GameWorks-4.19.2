@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EnginePrivate.h"
@@ -17,30 +17,19 @@ USoundNode::USoundNode(const FObjectInitializer& ObjectInitializer)
 {
 }
 
-
+#if WITH_EDITOR
 void USoundNode::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
-	if (Ar.UE4Ver() >= VER_UE4_COOKED_ASSETS_IN_EDITOR_SUPPORT)
+	if (!Ar.IsFilterEditorOnly())
 	{
-		FStripDataFlags StripFlags(Ar);
 #if WITH_EDITORONLY_DATA
-		if (!StripFlags.IsEditorDataStripped())
-		{
-			Ar << GraphNode;
-		}
-#endif
-	}
-#if WITH_EDITOR
-	else
-	{
 		Ar << GraphNode;
-	}
 #endif
+	}
 }
 
-#if WITH_EDITOR
 void USoundNode::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	USoundNode* This = CastChecked<USoundNode>(InThis);

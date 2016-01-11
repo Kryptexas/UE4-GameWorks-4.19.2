@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -52,10 +52,22 @@ public:
 	virtual bool SetLooping(bool Looping) override;
 	virtual bool SetRate(float Rate) override;
 
-	DECLARE_DERIVED_EVENT(FWmfMediaPlayer, IMediaPlayer::FOnMediaEvent, FOnMediaEvent);
-	virtual FOnMediaEvent& OnMediaEvent() override
+	DECLARE_DERIVED_EVENT(FWmfMediaPlayer, IMediaPlayer::FOnMediaClosed, FOnMediaClosed);
+	virtual FOnMediaClosed& OnClosed() override
 	{
-		return MediaEvent;
+		return ClosedEvent;
+	}
+
+	DECLARE_DERIVED_EVENT(FWmfMediaPlayer, IMediaPlayer::FOnMediaOpened, FOnMediaOpened);
+	virtual FOnMediaOpened& OnOpened() override
+	{
+		return OpenedEvent;
+	}
+
+	DECLARE_DERIVED_EVENT(FWmfMediaPlayer, IMediaPlayer::FOnTracksChanged, FOnTracksChanged);
+	virtual FOnTracksChanged& OnTracksChanged() override
+	{
+		return TracksChangedEvent;
 	}
 
 protected:
@@ -85,9 +97,6 @@ private:
 	/** Handles session errors. */
 	void HandleSessionError(HRESULT Error);
 
-	/** Handles session events. */
-	void HandleSessionEvent(MediaEventType EventType);
-
 private:
 
 	/** The available audio tracks. */
@@ -99,9 +108,6 @@ private:
 	/** The duration of the currently loaded media. */
 	FTimespan Duration;
 
-	/** Holds an event delegate that is invoked when a media event occurred. */
-	FOnMediaEvent MediaEvent;
-
 	/** Holds the asynchronous callback object for the media stream. */
 	TComPtr<FWmfMediaSession> MediaSession;
 
@@ -111,11 +117,19 @@ private:
 	/** The URL of the currently opened media. */
 	FString MediaUrl;
 
-	/** The media source resolver. */
-	TComPtr<FWmfMediaResolver> Resolver;
-
 	/** The available video tracks. */
 	TArray<IMediaVideoTrackRef> VideoTracks;
+
+private:
+
+	/** Holds an event delegate that is invoked when media has been closed. */
+	FOnMediaClosed ClosedEvent;
+
+	/** Holds an event delegate that is invoked when media has been opened. */
+	FOnMediaOpened OpenedEvent;
+
+	/** Holds an event delegate that is invoked when the media tracks have changed. */
+	FOnTracksChanged TracksChangedEvent;
 };
 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #if !PLATFORM_ANDROIDGL4 && !PLATFORM_ANDROIDES31
 
@@ -53,10 +53,6 @@ PFNGLOBJECTLABELKHRPROC					glObjectLabelKHR = NULL;
 PFNGLGETOBJECTLABELKHRPROC				glGetObjectLabelKHR = NULL;
 PFNGLOBJECTPTRLABELKHRPROC				glObjectPtrLabelKHR = NULL;
 PFNGLGETOBJECTPTRLABELKHRPROC			glGetObjectPtrLabelKHR = NULL;
-
-PFNGLDRAWELEMENTSINSTANCEDPROC			glDrawElementsInstanced = NULL;
-PFNGLDRAWARRAYSINSTANCEDPROC			glDrawArraysInstanced = NULL;
-PFNGLVERTEXATTRIBDIVISORPROC			glVertexAttribDivisor = NULL;
 
 struct FPlatformOpenGLDevice
 {
@@ -200,13 +196,6 @@ void FPlatformOpenGLDevice::LoadEXT()
 	eglClientWaitSyncKHR = (PFNEGLCLIENTWAITSYNCKHRPROC)((void*)eglGetProcAddress("eglClientWaitSyncKHR"));
 
 	glDebugMessageControlKHR = (PFNGLDEBUGMESSAGECONTROLKHRPROC)((void*)eglGetProcAddress("glDebugMessageControlKHR"));
-
-	// Some PowerVR drivers (Rogue Han and Intel-based devices) are crashing using glDebugMessageControlKHR (causes signal 11 crash)
-	if (glDebugMessageControlKHR != NULL && FAndroidMisc::GetGPUFamily().Contains(TEXT("PowerVR")))
-	{
-		glDebugMessageControlKHR = NULL;
-	}
-
 	glDebugMessageInsertKHR = (PFNGLDEBUGMESSAGEINSERTKHRPROC)((void*)eglGetProcAddress("glDebugMessageInsertKHR"));
 	glDebugMessageCallbackKHR = (PFNGLDEBUGMESSAGECALLBACKKHRPROC)((void*)eglGetProcAddress("glDebugMessageCallbackKHR"));
 	glDebugMessageLogKHR = (PFNGLGETDEBUGMESSAGELOGKHRPROC)((void*)eglGetProcAddress("glDebugMessageLogKHR"));
@@ -316,13 +305,12 @@ void PlatformReleaseRenderQuery( GLuint Query, uint64 QueryContext )
 
 bool FAndroidOpenGL::bUseHalfFloatTexStorage = false;
 bool FAndroidOpenGL::bUseES30ShadingLanguage = false;
-bool FAndroidOpenGL::bES30Support = false;
 
 void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 {
 	FOpenGLES2::ProcessExtensions(ExtensionsString);
 
-	bES30Support = FString(ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_VERSION))).Contains(TEXT("OpenGL ES 3."));
+	const bool bES30Support = FString(ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_VERSION))).Contains(TEXT("OpenGL ES 3."));
 
 	// Get procedures
 	if (bSupportsOcclusionQueries || bSupportsDisjointTimeQueries)
@@ -382,13 +370,6 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 			UE_LOG(LogRHI, Warning, TEXT("Disabling support for GL_OES_packed_depth_stencil on Adreno 2xx"));
 			bSupportsPackedDepthStencil = false;
 		}
-	}
-
-	if (bES30Support)
-	{
-		glDrawElementsInstanced = (PFNGLDRAWELEMENTSINSTANCEDPROC)((void*)eglGetProcAddress("glDrawElementsInstanced"));
-		glDrawArraysInstanced = (PFNGLDRAWARRAYSINSTANCEDPROC)((void*)eglGetProcAddress("glDrawArraysInstanced"));
-		glVertexAttribDivisor = (PFNGLVERTEXATTRIBDIVISORPROC)((void*)eglGetProcAddress("glVertexAttribDivisor"));
 	}
 
 	if (bES30Support || bIsAdrenoBased)

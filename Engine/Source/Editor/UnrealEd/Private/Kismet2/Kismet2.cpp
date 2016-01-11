@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "UnrealEd.h"
@@ -41,7 +41,6 @@
 #include "Engine/SimpleConstructionScript.h"
 #include "Engine/SCS_Node.h"
 #include "GeneralProjectSettings.h"
-#include "Developer/BlueprintProfiler/Public/BlueprintProfilerModule.h"
 
 DECLARE_CYCLE_STAT(TEXT("Compile Blueprint"), EKismetCompilerStats_CompileBlueprint, STATGROUP_KismetCompiler);
 DECLARE_CYCLE_STAT(TEXT("Broadcast Precompile"), EKismetCompilerStats_BroadcastPrecompile, STATGROUP_KismetCompiler);
@@ -246,7 +245,7 @@ void FBlueprintUnloader::UnloadBlueprint(const bool bResetPackage)
 
 		// make sure the blueprint is properly trashed (remove it from the package)
 		UnloadingBp->SetFlags(RF_Transient);
-		UnloadingBp->ClearFlags(RF_Standalone | RF_Transactional);
+		UnloadingBp->ClearFlags(RF_Standalone | RF_RootSet | RF_Transactional);
 		UnloadingBp->RemoveFromRoot();
 		UnloadingBp->MarkPendingKill();
 		// if it's in the undo buffer, then we have to clear that...
@@ -585,7 +584,7 @@ UK2Node_Event* FKismetEditorUtilities::AddDefaultEventNode(UBlueprint* InBluepri
 		NewEventNode->PostPlacedNewNode();
 		NewEventNode->SetFlags(RF_Transactional);
 		NewEventNode->AllocateDefaultPins();
-		NewEventNode->DisableNode();
+		NewEventNode->bIsNodeEnabled = false;
 		NewEventNode->NodeComment = LOCTEXT("DisabledNodeComment", "This node is disabled and will not be called.\nDrag off pins to build functionality.").ToString();
 		NewEventNode->bCommentBubblePinned = true;
 		NewEventNode->bCommentBubbleVisible = true;
@@ -612,10 +611,10 @@ UK2Node_Event* FKismetEditorUtilities::AddDefaultEventNode(UBlueprint* InBluepri
 			UEdGraphSchema_K2::SetNodeMetaData(ParentFunctionNode, FNodeMetadata::DefaultGraphNode);
 			FunctionNodeCreator.Finalize();
 
-			ParentFunctionNode->DisableNode();
+			ParentFunctionNode->bIsNodeEnabled = false;
 
 			// Adding the call to parent and connecting it will reset this value
-			NewEventNode->DisableNode();
+			NewEventNode->bIsNodeEnabled = false;
 			NewEventNode->NodeComment = LOCTEXT("DisabledNodeComment", "This node is disabled and will not be called.\nDrag off pins to build functionality.").ToString();
 		}
 	}
@@ -631,7 +630,7 @@ UBlueprint* FKismetEditorUtilities::ReloadBlueprint(UBlueprint* StaleBlueprint)
 	FBlueprintUnloader Unloader(StaleBlueprint);
 	Unloader.UnloadBlueprint(/*bResetPackage =*/true);
 
-	UBlueprint* ReloadedBlueprint = Cast<UBlueprint>(StaticLoadObject(UBlueprint::StaticClass(), /*Outer =*/nullptr, *BlueprintAssetRef.ToString()));
+	UBlueprint* ReloadedBlueprint = Cast<UBlueprint>(StaticLoadObject(UBlueprint::StaticClass(), /*Outer =*/nullptr, *BlueprintAssetRef.AssetLongPathname));
 
 	Unloader.ReplaceStaleRefs(ReloadedBlueprint);
 	return ReloadedBlueprint;
@@ -646,11 +645,12 @@ UBlueprint* FKismetEditorUtilities::ReplaceBlueprint(UBlueprint* Target, UBluepr
 
 	UPackage* BlueprintPackage = Target->GetOutermost();
 	check(BlueprintPackage != GetTransientPackage());
+	const FString BlueprintName = Target->GetName();
 
 	FBlueprintUnloader Unloader(Target);
 	Unloader.UnloadBlueprint(/*bResetPackage =*/false);
 
-	UBlueprint* Replacement = Cast<UBlueprint>(StaticDuplicateObject(ReplacementArchetype, BlueprintPackage, Target->GetFName()));
+	UBlueprint* Replacement = Cast<UBlueprint>(StaticDuplicateObject(ReplacementArchetype, BlueprintPackage, *BlueprintName));
 	
 	Unloader.ReplaceStaleRefs(Replacement);
 	return Replacement;
@@ -660,12 +660,12 @@ bool FKismetEditorUtilities::IsReferencedByUndoBuffer(UBlueprint* Blueprint)
 {
 	UObject* BlueprintObj = Blueprint;
 	FReferencerInformationList ReferencesIncludingUndo;
-	IsReferenced(BlueprintObj, GARBAGE_COLLECTION_KEEPFLAGS, EInternalObjectFlags::GarbageCollectionKeepFlags, /*bCheckSubObjects =*/true, &ReferencesIncludingUndo);
+	IsReferenced(BlueprintObj, GARBAGE_COLLECTION_KEEPFLAGS, /*bCheckSubObjects =*/true, &ReferencesIncludingUndo);
 
 	FReferencerInformationList ReferencesExcludingUndo;
 	// Determine the in-memory references, *excluding* the undo buffer
 	GEditor->Trans->DisableObjectSerialization();
-	IsReferenced(BlueprintObj, GARBAGE_COLLECTION_KEEPFLAGS, EInternalObjectFlags::GarbageCollectionKeepFlags, /*bCheckSubObjects =*/true, &ReferencesExcludingUndo);
+	IsReferenced(BlueprintObj, GARBAGE_COLLECTION_KEEPFLAGS, /*bCheckSubObjects =*/true, &ReferencesExcludingUndo);
 	GEditor->Trans->EnableObjectSerialization();
 
 	// see if this object is the transaction buffer - set a flag so we know we need to clear the undo stack
@@ -738,18 +738,12 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 	}
 	auto ReinstanceHelper = FBlueprintCompileReinstancer::Create(OldClass);
 
-	// If enabled, suppress errors/warnings in the log if we're recompiling on load on a build machine
-	static const FBoolConfigValueHelper IgnoreCompileOnLoadErrorsOnBuildMachine(TEXT("Kismet"), TEXT("bIgnoreCompileOnLoadErrorsOnBuildMachine"), GEngineIni);
-	Results.bLogInfoOnly = BlueprintObj->bIsRegeneratingOnLoad && GIsBuildMachine && IgnoreCompileOnLoadErrorsOnBuildMachine;
-
-	// Determine if we want profiling data
-	IBlueprintProfilerInterface* ProfilerInterface = FModuleManager::GetModulePtr<IBlueprintProfilerInterface>("BlueprintProfiler");
-	const bool bProfilerActive = ProfilerInterface && ProfilerInterface->IsProfilerEnabled() && GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools;
+	// Suppress errors/warnings in the log if we're recompiling on load on a build machine
+	Results.bLogInfoOnly = BlueprintObj->bIsRegeneratingOnLoad && GIsBuildMachine;
 
 	FKismetCompilerOptions CompileOptions;
 	CompileOptions.bSaveIntermediateProducts = bSaveIntermediateProducts;
 	CompileOptions.bRegenerateSkelton = !bSkeletonUpToDate;
-	CompileOptions.bAddInstrumentation = bProfilerActive;
 	Compiler.CompileBlueprint(BlueprintObj, CompileOptions, Results, ReinstanceHelper);
 
 	FBlueprintEditorUtils::UpdateDelegatesInBlueprint(BlueprintObj);
@@ -943,6 +937,40 @@ void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj
 	}
 }
 
+/** Recompiles the bytecode of a blueprint only.  Should only be run for recompiling dependencies during compile on load */
+void FKismetEditorUtilities::GenerateCppCode(UBlueprint* InBlueprintObj, TSharedPtr<FString> OutHeaderSource, TSharedPtr<FString> OutCppSource, const FString& OptionalClassName)
+{
+	check(InBlueprintObj);
+	check(InBlueprintObj->GetOutermost() != GetTransientPackage());
+	checkf(InBlueprintObj->GeneratedClass, TEXT("Invalid generated class for %s"), *InBlueprintObj->GetName());
+	check(OutHeaderSource.IsValid());
+	check(OutCppSource.IsValid());
+
+	//TGuardValue<bool> DuplicatingReadOnly(InBlueprintObj->bDuplicatingReadOnly, true);
+	{
+		auto BlueprintObj = DuplicateObject<UBlueprint>(InBlueprintObj, GetTransientPackage(), *InBlueprintObj->GetName());
+		{
+			auto Reinstancer = FBlueprintCompileReinstancer::Create(BlueprintObj->GeneratedClass);
+
+			IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);
+
+			TGuardValue<bool> GuardTemplateNameFlag(GCompilingBlueprint, true);
+			FCompilerResultsLog Results;
+
+			FKismetCompilerOptions CompileOptions;
+			CompileOptions.CompileType = EKismetCompileType::Cpp;
+			CompileOptions.OutCppSourceCode = OutCppSource;
+			CompileOptions.OutHeaderSourceCode = OutHeaderSource;
+			CompileOptions.NewCppClassName = OptionalClassName;
+			Compiler.CompileBlueprint(BlueprintObj, CompileOptions, Results);
+		}
+		BlueprintObj->RemoveGeneratedClasses();
+		BlueprintObj->ClearFlags(RF_Standalone);
+		BlueprintObj->MarkPendingKill();
+	}
+}
+
+
 namespace ConformComponentsUtils
 {
 	static void ConformRemovedNativeComponents(UObject* BpCdo);
@@ -964,9 +992,9 @@ static void ConformComponentsUtils::ConformRemovedNativeComponents(UObject* BpCd
 	const AActor* NativeCDO = GetDefault<AActor>(NativeSuperClass);
 
 	TInlineComponentArray<UActorComponent*> OldNativeComponents;
-	TInlineComponentArray<UActorComponent*> NewNativeComponents;
 	ActorCDO->GetComponents(OldNativeComponents);
-	USceneComponent* OldNativeRootComponent = ActorCDO->GetRootComponent();
+	TInlineComponentArray<UActorComponent*> NewNativeComponents;
+	NativeCDO->GetComponents(NewNativeComponents);
 
 	TSet<UObject*> DestroyedComponents;
 	for (UActorComponent* Component : OldNativeComponents)
@@ -974,22 +1002,12 @@ static void ConformComponentsUtils::ConformRemovedNativeComponents(UObject* BpCd
 		UObject* NativeArchetype = FindNativeArchetype(Component);
 		if ((NativeArchetype == nullptr) || !NativeArchetype->HasAnyFlags(RF_ClassDefaultObject))
 		{
-			// Keep track of components inherited from the native super class that are still valid.
-			NewNativeComponents.Add(Component);
-
 			continue;
 		}
 		// else, the component has been removed from our native super class
 
 		Component->DestroyComponent(/*bPromoteChildren =*/false);
 		DestroyedComponents.Add(Component);
-
-		// The DestroyComponent() call above will clear the RootComponent value in this case.
-		if(Component == OldNativeRootComponent)
-		{
-			// Restore it here so that it will be reassigned to match the native CDO's value below.
-			ActorCDO->SetRootComponent(OldNativeRootComponent);
-		}
 
 		UClass* ComponentClass = Component->GetClass();
 		for (TFieldIterator<UArrayProperty> ArrayPropIt(NativeSuperClass); ArrayPropIt; ++ArrayPropIt)
@@ -1023,14 +1041,6 @@ static void ConformComponentsUtils::ConformRemovedNativeComponents(UObject* BpCd
 		// @TODO: have to also remove from map properties now that they're available
 	}
 
-	auto FindComponentTemplateByNameInActorCDO = [&NewNativeComponents](FName ToFind) -> UActorComponent**
-	{
-		return NewNativeComponents.FindByPredicate([ToFind](const UActorComponent* ActorComponent) -> bool
-		{
-			return ActorComponent && ActorComponent->GetFName() == ToFind;
-		});
-	};
-
 	// 
 	for (TFieldIterator<UObjectProperty> ObjPropIt(NativeSuperClass); ObjPropIt; ++ObjPropIt)
 	{
@@ -1039,45 +1049,8 @@ static void ConformComponentsUtils::ConformRemovedNativeComponents(UObject* BpCd
 
 		if (DestroyedComponents.Contains(PropObjValue))
 		{
-			// Get the "new" value that's currently set on the native parent CDO. We need the Blueprint CDO to reflect this update in property value.
 			UObject* SuperObjValue = ObjectProp->GetObjectPropertyValue_InContainer(NativeCDO);
-			if (SuperObjValue && SuperObjValue->IsA<UActorComponent>())
-			{
-				// For components, make sure we use the instance that's owned by the Blueprint CDO and not the native parent CDO's instance.
-				if (UActorComponent** ComponentTemplatePtr = FindComponentTemplateByNameInActorCDO(SuperObjValue->GetFName()))
-				{
-					SuperObjValue = Cast<UObject>(*ComponentTemplatePtr);
-				}
-			}
-			
-			// Update the Blueprint CDO to match the native parent CDO.
 			ObjectProp->SetObjectPropertyValue_InContainer(ActorCDO, SuperObjValue);
-		}
-	}
-
-	// Fix up the attachment hierarchy for inherited scene components that are still valid.
-	for (UActorComponent* Component : NewNativeComponents)
-	{
-		if (USceneComponent* SceneComponent = Cast<USceneComponent>(Component))
-		{
-			// If the component in the Blueprint CDO was attached to a component that's been removed, update the Blueprint's component instance to match the archetype in the native parent CDO.
-			if (DestroyedComponents.Contains(SceneComponent->AttachParent))
-			{
-				if (USceneComponent* NativeArchetype = Cast<USceneComponent>(FindNativeArchetype(SceneComponent)))
-				{
-					USceneComponent* NewAttachParent = NativeArchetype->AttachParent;
-					if (NewAttachParent)
-					{
-						// Make sure we use the instance that's owned by the Blueprint CDO and not the native parent CDO's instance.
-						if (UActorComponent** ComponentTemplatePtr = FindComponentTemplateByNameInActorCDO(NewAttachParent->GetFName()))
-						{
-							NewAttachParent = CastChecked<USceneComponent>(*ComponentTemplatePtr);
-						}
-					}
-
-					SceneComponent->AttachParent = NewAttachParent;
-				}
-			}
 		}
 	}
 }
@@ -1486,7 +1459,7 @@ public:
 			{
 				if (USceneComponent* TestRoot = Cast<USceneComponent>(TopLevelNode->ComponentTemplate))
 				{
-					for (USCS_Node* ChildNode : TopLevelNode->GetChildNodes())
+					for (USCS_Node* ChildNode : TopLevelNode->ChildNodes)
 					{
 						if (USceneComponent* ChildComponent = Cast<USceneComponent>(ChildNode->ComponentTemplate))
 						{

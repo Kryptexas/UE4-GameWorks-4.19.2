@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "SeparableSSS.h"
@@ -27,6 +27,13 @@ FSubsurfaceProfileTexture::FSubsurfaceProfileTexture()
 
 FSubsurfaceProfileTexture::~FSubsurfaceProfileTexture()
 {
+	check(IsInGameThread());
+
+	// we assume all ~USubsurfaceProfile() have been called already
+	for (int32 i = 0; i < SubsurfaceProfileEntries.Num(); ++i)
+	{
+		check(SubsurfaceProfileEntries[i].Profile == 0);
+	}
 }
 
 int32 FSubsurfaceProfileTexture::AddProfile(const FSubsurfaceProfileStruct Settings, const USubsurfaceProfile* InProfile)
@@ -40,9 +47,7 @@ int32 FSubsurfaceProfileTexture::AddProfile(const FSubsurfaceProfileStruct Setti
 		{
 			if (SubsurfaceProfileEntries[i].Profile == 0)
 			{
-				RetAllocationId = i;
-				SubsurfaceProfileEntries[RetAllocationId].Profile = InProfile;
-				break;
+				RetAllocationId = i; break;
 			}
 		}
 
@@ -142,7 +147,7 @@ void FSubsurfaceProfileTexture::CreateTexture(FRHICommandListImmediate& RHICmdLi
 		Desc.Format = PF_A16B16G16R16;
 	}
 
-	GetRendererModule().RenderTargetPoolFindFreeElement(RHICmdList, Desc, GSSProfiles, TEXT("SSProfiles"));
+	GetRendererModule().RenderTargetPoolFindFreeElement(Desc, GSSProfiles, TEXT("SSProfiles"));
 
 	// Write the contents of the texture.
 	uint32 DestStride;
@@ -153,8 +158,7 @@ void FSubsurfaceProfileTexture::CreateTexture(FRHICommandListImmediate& RHICmdLi
 	const uint32 KernelSize1 = 9; 
 	const uint32 KernelSize2 = 6;
 
-	// index 0 is used for the SubsurfaceColor
-	const uint32 KernelTotalSize = 1 + KernelSize0 + KernelSize1 + KernelSize2;
+	const uint32 KernelTotalSize = KernelSize0 + KernelSize1 + KernelSize2;
 	check(KernelTotalSize < Width);
 
 	FLinearColor kernel[Width];
@@ -171,17 +175,12 @@ void FSubsurfaceProfileTexture::CreateTexture(FRHICommandListImmediate& RHICmdLi
 		// 0.0001f turned out to be too small to fix the issue (for a small KernelSize)
 		const float Bias = 0.009f;
 
-		Data.SubsurfaceColor = Data.SubsurfaceColor.GetClamped();
+		Data.SubsurfaceColor = Data.SubsurfaceColor.GetClamped(Bias);
 		Data.FalloffColor = Data.FalloffColor.GetClamped(Bias);
 
-		// to allow blending of the Subsurface with fullres in the shader
-		kernel[0] = Data.SubsurfaceColor;
-		// unused
-		kernel[0].A = 0;
-
-		ComputeMirroredSSSKernel(&kernel[1], KernelSize0, Data.SubsurfaceColor, Data.FalloffColor);
-		ComputeMirroredSSSKernel(&kernel[1 + KernelSize0], KernelSize1, Data.SubsurfaceColor, Data.FalloffColor);
-		ComputeMirroredSSSKernel(&kernel[1 + KernelSize0 + KernelSize1], KernelSize2, Data.SubsurfaceColor, Data.FalloffColor);
+		ComputeMirroredSSSKernel(&kernel[0], KernelSize0, Data.SubsurfaceColor, Data.FalloffColor);
+		ComputeMirroredSSSKernel(&kernel[KernelSize0], KernelSize1, Data.SubsurfaceColor, Data.FalloffColor);
+		ComputeMirroredSSSKernel(&kernel[KernelSize0 + KernelSize1], KernelSize2, Data.SubsurfaceColor, Data.FalloffColor);
 
 		// could be lower than 1 (but higher than 0) to range compress for better quality (for 8 bit)
 		const float TableMaxRGB = 1.0f;
@@ -193,7 +192,7 @@ void FSubsurfaceProfileTexture::CreateTexture(FRHICommandListImmediate& RHICmdLi
 			FVector4 C = kernel[Pos] * FLinearColor(1.0f / TableMaxRGB, 1.0f / TableMaxRGB, 1.0f / TableMaxRGB, 1.0f / TableMaxA);
 
 			// requires 16bit (could be made with 8 bit e.g. using sample0.w as 8bit scale applied to all samples (more multiplications in the shader))
-			C.W *= Data.ScatterRadius / SUBSURFACE_RADIUS_SCALE;
+			C.W *= Data.ScatterRadius / 1024.0f;
 
 			if (b16Bit)
 			{

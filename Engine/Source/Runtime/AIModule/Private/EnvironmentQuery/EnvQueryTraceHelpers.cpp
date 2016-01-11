@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "EnvQueryTraceHelpers.h"
@@ -87,7 +87,6 @@ void FEQSHelpers::FBatchTrace::DoProject<EEnvTraceShape::Line>(TArray<FNavLocati
 	for (int32 Idx = Points.Num() - 1; Idx >= 0; Idx--)
 	{
 		const bool bHit = RunLineTrace(Points[Idx].Location + FVector(0, 0, StartOffsetZ), Points[Idx].Location + FVector(0, 0, EndOffsetZ), HitPos);
-
 		if (bHit)
 		{
 			Points[Idx] = FNavLocation(HitPos + FVector(0, 0, HitOffsetZ));
@@ -95,11 +94,6 @@ void FEQSHelpers::FBatchTrace::DoProject<EEnvTraceShape::Line>(TArray<FNavLocati
 		else if (TraceMode == ETraceMode::Discard)
 		{
 			Points.RemoveAt(Idx, 1, false);
-		}
-
-		if (TraceHits.IsValidIndex(Idx))
-		{
-			TraceHits[Idx] = bHit ? 1 : 0;
 		}
 	}
 }
@@ -120,11 +114,6 @@ void FEQSHelpers::FBatchTrace::DoProject<EEnvTraceShape::Box>(TArray<FNavLocatio
 		{
 			Points.RemoveAt(Idx, 1, false);
 		}
-
-		if (TraceHits.IsValidIndex(Idx))
-		{
-			TraceHits[Idx] = bHit ? 1 : 0;
-		}
 	}
 }
 
@@ -143,11 +132,6 @@ void FEQSHelpers::FBatchTrace::DoProject<EEnvTraceShape::Sphere>(TArray<FNavLoca
 		else if (TraceMode == ETraceMode::Discard)
 		{
 			Points.RemoveAt(Idx, 1, false);
-		}
-
-		if (TraceHits.IsValidIndex(Idx))
-		{
-			TraceHits[Idx] = bHit ? 1 : 0;
 		}
 	}
 }
@@ -168,18 +152,13 @@ void FEQSHelpers::FBatchTrace::DoProject<EEnvTraceShape::Capsule>(TArray<FNavLoc
 		{
 			Points.RemoveAt(Idx, 1, false);
 		}
-
-		if (TraceHits.IsValidIndex(Idx))
-		{
-			TraceHits[Idx] = bHit ? 1 : 0;
-		}
 	}
 }
 
 
 void FEQSHelpers::RunNavRaycasts(const ANavigationData& NavData, const FEnvTraceData& TraceData, const FVector& SourcePt, TArray<FNavLocation>& Points, ETraceMode TraceMode /*= ETraceMode::Keep*/)
 {
-	FSharedConstNavQueryFilter NavigationFilter = UNavigationQueryFilter::GetQueryFilter(NavData, TraceData.NavigationFilter);
+	TSharedPtr<const FNavigationQueryFilter> NavigationFilter = UNavigationQueryFilter::GetQueryFilter(NavData, TraceData.NavigationFilter);
 
 	TArray<FNavigationRaycastWork> RaycastWorkload;
 	RaycastWorkload.Reserve(Points.Num());
@@ -211,7 +190,7 @@ void FEQSHelpers::RunNavRaycasts(const ANavigationData& NavData, const FEnvTrace
 
 void FEQSHelpers::RunNavProjection(const ANavigationData& NavData, const FEnvTraceData& TraceData, TArray<FNavLocation>& Points, ETraceMode TraceMode /*= ETraceMode::Discard*/)
 {
-	FSharedConstNavQueryFilter NavigationFilter = UNavigationQueryFilter::GetQueryFilter(NavData, TraceData.NavigationFilter);
+	TSharedPtr<const FNavigationQueryFilter> NavigationFilter = UNavigationQueryFilter::GetQueryFilter(NavData, TraceData.NavigationFilter);
 	TArray<FNavigationProjectionWork> Workload;
 	Workload.Reserve(Points.Num());
 
@@ -249,14 +228,13 @@ void FEQSHelpers::RunNavProjection(const ANavigationData& NavData, const FEnvTra
 }
 
 
-void FEQSHelpers::RunPhysRaycasts(UWorld* World, const FEnvTraceData& TraceData, const FVector& SourcePt, TArray<FNavLocation>& Points, const TArray<AActor*>& IgnoredActors, ETraceMode TraceMode)
+void FEQSHelpers::RunPhysRaycasts(UWorld* World, const FEnvTraceData& TraceData, const FVector& SourcePt, TArray<FNavLocation>& Points, ETraceMode TraceMode)
 {
 	ECollisionChannel TraceCollisionChannel = UEngineTypes::ConvertToCollisionChannel(TraceData.TraceChannel);
 	FVector TraceExtent(TraceData.ExtentX, TraceData.ExtentY, TraceData.ExtentZ);
 
 	FCollisionQueryParams TraceParams(TEXT("EnvQueryTrace"), TraceData.bTraceComplex);
 	TraceParams.bTraceAsyncScene = true;
-	TraceParams.AddIgnoredActors(IgnoredActors);
 
 	FBatchTrace BatchOb(World, TraceCollisionChannel, TraceParams, TraceExtent, TraceMode);
 
@@ -315,40 +293,4 @@ void FEQSHelpers::RunPhysProjection(UWorld* World, const FEnvTraceData& TraceDat
 	default:
 		break;
 	}
-}
-
-void FEQSHelpers::RunPhysProjection(UWorld* World, const FEnvTraceData& TraceData, TArray<FNavLocation>& Points, TArray<uint8>& TraceHits)
-{
-	ECollisionChannel TraceCollisionChannel = UEngineTypes::ConvertToCollisionChannel(TraceData.TraceChannel);
-	FVector TraceExtent(TraceData.ExtentX, TraceData.ExtentY, TraceData.ExtentZ);
-
-	FCollisionQueryParams TraceParams(TEXT("EnvQueryTrace"), TraceData.bTraceComplex);
-	TraceParams.bTraceAsyncScene = true;
-
-	FBatchTrace BatchOb(World, TraceCollisionChannel, TraceParams, TraceExtent, ETraceMode::Keep);
-	BatchOb.TraceHits.AddZeroed(Points.Num());
-
-	switch (TraceData.TraceShape)
-	{
-	case EEnvTraceShape::Line:
-		BatchOb.DoProject<EEnvTraceShape::Line>(Points, TraceData.ProjectUp, -TraceData.ProjectDown, TraceData.PostProjectionVerticalOffset);
-		break;
-
-	case EEnvTraceShape::Sphere:
-		BatchOb.DoProject<EEnvTraceShape::Sphere>(Points, TraceData.ProjectUp, -TraceData.ProjectDown, TraceData.PostProjectionVerticalOffset);
-		break;
-
-	case EEnvTraceShape::Capsule:
-		BatchOb.DoProject<EEnvTraceShape::Capsule>(Points, TraceData.ProjectUp, -TraceData.ProjectDown, TraceData.PostProjectionVerticalOffset);
-		break;
-
-	case EEnvTraceShape::Box:
-		BatchOb.DoProject<EEnvTraceShape::Box>(Points, TraceData.ProjectUp, -TraceData.ProjectDown, TraceData.PostProjectionVerticalOffset);
-		break;
-
-	default:
-		break;
-	}
-
-	TraceHits.Append(BatchOb.TraceHits);
 }

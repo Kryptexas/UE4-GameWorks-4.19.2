@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -57,7 +57,7 @@ public:
 
 public:
 
-	//~ Begin ITargetPlatform Interface
+	// Begin ITargetPlatform interface
 
 	virtual void EnableDeviceCheck(bool OnOff) override {}
 
@@ -140,8 +140,6 @@ public:
 			OutFormats.AddUnique(FName(*ShaderFormat));
 		}
 	}
-	
-	virtual void GetAllCachedShaderFormats( TArray<FName>& OutFormats ) const override {}
 
 	virtual const class FStaticMeshLODSettings& GetStaticMeshLODSettings( ) const override
 	{
@@ -229,7 +227,23 @@ public:
 		return DeviceLostEvent;
 	}
 
-	//~ End ITargetPlatform Interface
+	// End ITargetPlatform interface
+
+protected:
+
+	/**
+	 * Temporary helper until we refactor Windows build targets.
+	 * Basically maps WindowsNoEditor to Win32 and Windows to Win64.
+	 */
+	FString GetBinariesSubDir( ) const
+	{
+		if (HAS_EDITOR_DATA)
+		{
+			return TEXT("Win64");
+		}
+
+		return TEXT("Win32");
+	}
 
 private:
 

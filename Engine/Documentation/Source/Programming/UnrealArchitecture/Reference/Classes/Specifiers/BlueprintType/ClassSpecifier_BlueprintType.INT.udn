@@ -4,4 +4,4 @@ Description:
 Availability:Public
 Version: 4.9
 
-Exposes this class as a type that can be used for variables in Blueprints.
+Exposes this class as a type that can be used for variables in blueprints.

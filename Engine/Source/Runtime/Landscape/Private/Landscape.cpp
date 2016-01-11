@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 Landscape.cpp: Terrain rendering
@@ -1429,7 +1429,6 @@ void ALandscapeProxy::GetSharedProperties(ALandscapeProxy* Landscape)
 		LODDistanceFactor = Landscape->LODDistanceFactor;
 		LODFalloff = Landscape->LODFalloff;
 		CollisionMipLevel = Landscape->CollisionMipLevel;
-		bBakeMaterialPositionOffsetIntoCollision = Landscape->bBakeMaterialPositionOffsetIntoCollision;
 		if (!LandscapeMaterial)
 		{
 			LandscapeMaterial = Landscape->LandscapeMaterial;
@@ -1926,8 +1925,9 @@ void ULandscapeInfo::FixupProxiesWeightmaps()
 	if (LandscapeActor.IsValid())
 	{
 		LandscapeActor->WeightmapUsageMap.Empty();
-		for (ULandscapeComponent* Comp : LandscapeActor->LandscapeComponents)
+		for (int32 CompIdx = 0; CompIdx < LandscapeActor->LandscapeComponents.Num(); ++CompIdx)
 		{
+			ULandscapeComponent* Comp = LandscapeActor->LandscapeComponents[CompIdx];
 			if (Comp)
 			{
 				Comp->FixupWeightmaps();
@@ -1935,34 +1935,17 @@ void ULandscapeInfo::FixupProxiesWeightmaps()
 		}
 	}
 
-	for (ALandscapeProxy* Proxy : Proxies)
+	for (auto It = Proxies.CreateConstIterator(); It; ++It)
 	{
+		ALandscapeProxy* Proxy = (*It);
 		Proxy->WeightmapUsageMap.Empty();
-		for (ULandscapeComponent* Comp : Proxy->LandscapeComponents)
+		for (int32 CompIdx = 0; CompIdx < Proxy->LandscapeComponents.Num(); ++CompIdx)
 		{
+			ULandscapeComponent* Comp = Proxy->LandscapeComponents[CompIdx];
 			if (Comp)
 			{
 				Comp->FixupWeightmaps();
 			}
-		}
-	}
-}
-
-void ULandscapeInfo::UpdateComponentLayerWhitelist()
-{
-	if (LandscapeActor.IsValid())
-	{
-		for (ULandscapeComponent* Comp : LandscapeActor->LandscapeComponents)
-		{
-			Comp->UpdateLayerWhitelistFromPaintedLayers();
-		}
-	}
-
-	for (ALandscapeProxy* Proxy : Proxies)
-	{
-		for (ULandscapeComponent* Comp : Proxy->LandscapeComponents)
-		{
-			Comp->UpdateLayerWhitelistFromPaintedLayers();
 		}
 	}
 }
@@ -2289,8 +2272,7 @@ bool LandscapeMaterialsParameterSetUpdater(FStaticParameterSet &StaticParameterS
 
 void ALandscapeProxy::Tick(float DeltaSeconds)
 {
-	if (!IsPendingKillPending() && !HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects | RF_ClassDefaultObject) && 
-		!HasAnyInternalFlags(EInternalObjectFlags::PendingKill | EInternalObjectFlags::AsyncLoading | EInternalObjectFlags::Unreachable))
+	if (!IsPendingKillPending() && !HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects | RF_Unreachable | RF_PendingKill | RF_ClassDefaultObject | RF_AsyncLoading))
 	{
 		// this is NOT an actor tick, it is a FTickableGameObject tick
 		// the super tick is for an actor tick...

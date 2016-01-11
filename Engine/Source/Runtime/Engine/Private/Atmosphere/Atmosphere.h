@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Atmosphere/AtmosphericFogComponent.h"
@@ -150,7 +150,6 @@ public:
 						/*NumSamples=*/ 1,
 						/*Flags=*/ TexCreate_ShaderResource,
 						/*BulkData=*/ CreateInfo );
-					RHIBindDebugLabelName(TextureRHI, TEXT("E_Transmittance"));
 				}
 				break;
 			case E_Irradiance:
@@ -163,8 +162,7 @@ public:
 						/*NumMips=*/ 1,
 						/*NumSamples=*/ 1,
 						/*Flags=*/ TexCreate_ShaderResource,
-													/*BulkData=*/ CreateInfo );
-					RHIBindDebugLabelName(TextureRHI, TEXT("E_Irradiance"));
+						/*BulkData=*/ CreateInfo );
 				}
 				break;
 			case E_Inscatter:
@@ -176,8 +174,7 @@ public:
 						SizeX, SizeY, SizeZ, PF_FloatRGBA,
 						/*NumMips=*/ 1,
 						/*Flags=*/ TexCreate_ShaderResource,
-													/*BulkData=*/ CreateInfo );
-					RHIBindDebugLabelName(TextureRHI, TEXT("E_Inscatter"));
+						/*BulkData=*/ CreateInfo );
 				}
 				break;
 			}

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PlayerInput.cpp: Unreal input system.
@@ -122,70 +122,7 @@ void UPlayerInput::FlushPressedKeys()
 	}
 }
 
-void UPlayerInput::FlushPressedActionBindingKeys(FName ActionName)
-{
-	//need an action name and a local player to move forward
-	APlayerController* PlayerController = (ActionName != NAME_None) ? GetOuterAPlayerController() : nullptr;
-	ULocalPlayer* LocalPlayer = PlayerController ? Cast<ULocalPlayer>(PlayerController->Player) : nullptr;
-	if (!LocalPlayer)
-	{
-		return;
-	}
-
-	//there can't be more than 32 keys...
-	TArray<FKey, TInlineAllocator<32>> AssociatedPressedKeys;
-
-	//grab the action key details
-	if (const FActionKeyDetails* KeyDetails = ActionKeyMap.Find(ActionName))
-	{
-		//go through the details
-		for (const FInputActionKeyMapping& KeyMapping : KeyDetails->Actions)
-		{
-			//grab out key state
-			if (const FKeyState* KeyState = KeyStateMap.Find(KeyMapping.Key))
-			{
-				//if the key is down, add it to the associated keys array
-				if (KeyState->bDown)
-				{
-					AssociatedPressedKeys.AddUnique(KeyMapping.Key);
-				}
-			}
-		}
-	}
-
-	//if there are no keys, nothing to do here
-	if (AssociatedPressedKeys.Num() > 0)
-	{
-		// we may have gotten here as a result of executing an input bind.  in order to ensure that the simulated IE_Released events
-		// we're about to fire are actually propagated to the game, we need to clear the bExecutingBindCommand flag
-		bExecutingBindCommand = false;
-
-		//go through all the keys, releasing them
-		for (const FKey& Key : AssociatedPressedKeys)
-		{
-			InputKey(Key, IE_Released, 0, Key.IsGamepadKey());
-		}
-
-		UWorld* World = GetWorld();
-		check(World);
-		float TimeSeconds = World->GetRealTimeSeconds();
-
-		//go through the details
-		for (const FKey& Key : AssociatedPressedKeys)
-		{
-			//grab out key state
-			if (FKeyState* KeyState = KeyStateMap.Find(Key))
-			{
-				KeyState->RawValue = FVector(0.f, 0.f, 0.f);
-				KeyState->bDown = false;
-				KeyState->bDownPrevious = false;
-				KeyState->LastUpDownTransitionTime = TimeSeconds;
-			}
-		}
-	}
-}
-
-bool UPlayerInput::InputKey(FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad)
+bool UPlayerInput::InputKey( FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad )
 {
 	// first event associated with this key, add it to the map
 	FKeyState& KeyState = KeyStateMap.FindOrAdd(Key);
@@ -386,7 +323,7 @@ void UPlayerInput::SetAxisProperties(const FKey AxisKey, const FInputAxisPropert
 		}
 	}
 
-	AxisProperties.Reset();
+	AxisProperties.Empty(AxisProperties.Num());
 }
 
 float UPlayerInput::GetMouseSensitivity()
@@ -487,13 +424,14 @@ void UPlayerInput::InvertAxis(const FName AxisName)
 
 bool UPlayerInput::GetInvertAxisKey(const FKey AxisKey)
 {
-	bool bAxisInverted = false;
-	FInputAxisProperties AxisKeyProperties;
-	if (GetAxisProperties(AxisKey, AxisKeyProperties))
-	{
-		bAxisInverted = AxisKeyProperties.bInvert;
-	}
+	ConditionalInitAxisProperties();
 
+	bool bAxisInverted = false;
+	FInputAxisProperties* const AxisProps = AxisProperties.Find(AxisKey);
+	if (AxisProps)
+	{
+		bAxisInverted = AxisProps->bInvert;
+	}
 	return bAxisInverted;
 }
 
@@ -501,11 +439,11 @@ void UPlayerInput::InvertAxisKey(const FKey AxisKey)
 {
 	ConditionalInitAxisProperties();
 
-	FInputAxisProperties AxisKeyProperties;
-	if (GetAxisProperties(AxisKey, AxisKeyProperties))
+	FInputAxisProperties* AxisProps = AxisProperties.Find(AxisKey);
+	if (AxisProps)
 	{
-		AxisKeyProperties.bInvert = !AxisKeyProperties.bInvert;
-		SetAxisProperties(AxisKey, AxisKeyProperties);
+		AxisProps->bInvert = !AxisProps->bInvert;
+		SaveConfig();
 	}
 }
 
@@ -533,7 +471,7 @@ struct FAxisDelegate
 void UPlayerInput::AddActionMapping(const FInputActionKeyMapping& KeyMapping)
 {
 	ActionMappings.AddUnique(KeyMapping);
-	ActionKeyMap.Reset();
+	ActionKeyMap.Empty(ActionKeyMap.Num());
 }
 
 void UPlayerInput::RemoveActionMapping(const FInputActionKeyMapping& KeyMapping)
@@ -543,7 +481,7 @@ void UPlayerInput::RemoveActionMapping(const FInputActionKeyMapping& KeyMapping)
 		if (ActionMappings[ActionIndex] == KeyMapping)
 		{
 			ActionMappings.RemoveAtSwap(ActionIndex);
-			ActionKeyMap.Reset();
+			ActionKeyMap.Empty(ActionKeyMap.Num());
 			// we don't break because the mapping may have been in the array twice
 		}
 	}
@@ -552,7 +490,7 @@ void UPlayerInput::RemoveActionMapping(const FInputActionKeyMapping& KeyMapping)
 void UPlayerInput::AddAxisMapping(const FInputAxisKeyMapping& KeyMapping)
 {
 	AxisMappings.AddUnique(KeyMapping);
-	AxisKeyMap.Reset();
+	AxisKeyMap.Empty(AxisKeyMap.Num());
 }
 
 void UPlayerInput::RemoveAxisMapping(const FInputAxisKeyMapping& InKeyMapping)
@@ -564,7 +502,7 @@ void UPlayerInput::RemoveAxisMapping(const FInputAxisKeyMapping& InKeyMapping)
 			&& KeyMapping.Key == InKeyMapping.Key)
 		{
 			AxisMappings.RemoveAtSwap(AxisIndex);
-			AxisKeyMap.Reset();
+			AxisKeyMap.Empty(AxisKeyMap.Num());
 			// we don't break because the mapping may have been in the array twice
 		}
 	}
@@ -575,7 +513,7 @@ void UPlayerInput::AddEngineDefinedActionMapping(const FInputActionKeyMapping& A
 	EngineDefinedActionMappings.AddUnique(ActionMapping);
 	for (TObjectIterator<UPlayerInput> It; It; ++It)
 	{
-		It->ActionKeyMap.Reset();
+		It->ActionKeyMap.Empty(It->ActionKeyMap.Num());
 	}
 }
 
@@ -584,7 +522,7 @@ void UPlayerInput::AddEngineDefinedAxisMapping(const FInputAxisKeyMapping& AxisM
 	EngineDefinedAxisMappings.AddUnique(AxisMapping);
 	for (TObjectIterator<UPlayerInput> It; It; ++It)
 	{
-		It->AxisKeyMap.Reset();
+		It->AxisKeyMap.Empty(It->AxisKeyMap.Num());
 	}
 }
 
@@ -597,9 +535,9 @@ void UPlayerInput::ForceRebuildingKeyMaps(const bool bRestoreDefaults)
 		ActionMappings = GetDefault<UInputSettings>()->ActionMappings;
 	}
 
-	ActionKeyMap.Reset();
-	AxisKeyMap.Reset();
-	AxisProperties.Reset();
+	ActionKeyMap.Empty(ActionKeyMap.Num());
+	AxisKeyMap.Empty(AxisKeyMap.Num());
+	AxisProperties.Empty(AxisProperties.Num());
 }
 
 void UPlayerInput::ConditionalBuildKeyMappings()
@@ -895,8 +833,7 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 
 		for (uint8 EventIndex = 0; EventIndex < IE_MAX; ++EventIndex)
 		{
-			KeyState->EventCounts[EventIndex].Reset();
-			Exchange(KeyState->EventCounts[EventIndex], KeyState->EventAccumulator[EventIndex]);
+			KeyState->EventCounts[EventIndex] = MoveTemp(KeyState->EventAccumulator[EventIndex]);
 		}
 
 		if ( (KeyState->SampleCountAccumulator > 0) || Key.ShouldUpdateAxisWithoutSamples() )
@@ -956,16 +893,9 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 		{
 		}
 	};
-	static TArray<FAxisDelegateDetails> AxisDelegates;
-	static TArray<FVectorAxisDelegateDetails> VectorAxisDelegates;
-	static TArray<FDelegateDispatchDetails> NonAxisDelegates;
-	static TArray<FKey> KeysToConsume;
-	static TArray<FDelegateDispatchDetails> FoundChords;
-
-
-	// must be called non-recursively and on the game thread
-	check(IsInGameThread() && !AxisDelegates.Num() && !VectorAxisDelegates.Num() && !NonAxisDelegates.Num() && !KeysToConsume.Num() && !FoundChords.Num());
-
+	TArray<FAxisDelegateDetails> AxisDelegates;
+	TArray<FVectorAxisDelegateDetails> VectorAxisDelegates;
+	TArray<FDelegateDispatchDetails> NonAxisDelegates;
 	struct FDelegateDispatchDetailsSorter
 	{
 		bool operator()( const FDelegateDispatchDetails& A, const FDelegateDispatchDetails& B ) const
@@ -982,7 +912,8 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 		UInputComponent* const IC = InputComponentStack[StackIndex];
 		if (IC)
 		{
-			check(!KeysToConsume.Num() && !FoundChords.Num())
+			TArray<FKey> KeysToConsume;
+			TArray<FDelegateDispatchDetails> FoundChords;
 
 			for (int32 ActionIndex=0; ActionIndex<IC->GetNumActionBindings(); ++ActionIndex)
 			{
@@ -1042,14 +973,12 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 						if (TB.bExecuteWhenPaused || !bGamePaused)
 						{
 							check(EventIndices.Num() > 0);
-							FVector *TouchedLocation = TouchEventLocations.Find(EventIndices[0]);
-							FDelegateDispatchDetails TouchInfo(EventIndices[0], NonAxisDelegates.Num(), TB.TouchDelegate, TouchedLocation != nullptr ? *TouchedLocation : FVector(-1.0f, -1.0f, 0.0f), TouchIndex);
+							FDelegateDispatchDetails TouchInfo(EventIndices[0], NonAxisDelegates.Num(), TB.TouchDelegate, TouchEventLocations[EventIndices[0]], TouchIndex);
 							NonAxisDelegates.Add(TouchInfo);
 							for (int32 EventsIndex = 1; EventsIndex < EventIndices.Num(); ++EventsIndex)
 							{
 								TouchInfo.EventIndex = EventIndices[EventsIndex];
-								TouchedLocation = TouchEventLocations.Find(TouchInfo.EventIndex);
-								TouchInfo.TouchLocation = TouchedLocation != nullptr ? *TouchedLocation : FVector(-1.0f, -1.0f, 0.0f);
+								TouchInfo.TouchLocation = TouchEventLocations[TouchInfo.EventIndex];
 								NonAxisDelegates.Add(TouchInfo);
 							}
 						}
@@ -1146,18 +1075,16 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 			{
 				// stop traversing the stack, all input has been consumed by this InputComponent
 				--StackIndex;
-				KeysToConsume.Reset();
-				FoundChords.Reset();
 				break;
 			}
-
-			// we do this after finishing the whole component, so we don't consume a key while there might be more bindings to it
-			for (int32 KeyIndex=0; KeyIndex<KeysToConsume.Num(); ++KeyIndex)
+			else
 			{
-				ConsumeKey(KeysToConsume[KeyIndex]);
-			}
-			KeysToConsume.Reset();
-			FoundChords.Reset();
+				// we do this after finishing the whole component, so we don't consume a key while there might be more bindings to it
+				for (int32 KeyIndex=0; KeyIndex<KeysToConsume.Num(); ++KeyIndex)
+				{
+					ConsumeKey(KeysToConsume[KeyIndex]);
+				}
+			}		
 		}
 	}
 
@@ -1217,9 +1144,6 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 	PlayerController->PostProcessInput(DeltaTime, bGamePaused);
 
 	FinishProcessingPlayerInput();
-	AxisDelegates.Reset();
-	VectorAxisDelegates.Reset();
-	NonAxisDelegates.Reset();
 	TouchEventLocations.Reset();
 }
 
@@ -1331,9 +1255,10 @@ void UPlayerInput::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& 
 {
 	if (Canvas)
 	{
-		FDisplayDebugManager& DisplayDebugManager = Canvas->DisplayDebugManager;
-		DisplayDebugManager.SetDrawColor(FColor::Red);
-		DisplayDebugManager.DrawString(FString::Printf(TEXT("INPUT %s"), *GetName()));
+		Canvas->SetDrawColor(255,0,0);
+		UFont* RenderFont = GEngine->GetSmallFont();
+		YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT("INPUT %s"), *GetName()), 4.0f, YPos );
+		YPos += YL;
 
 		UWorld* World = GetWorld();
 		check(World);
@@ -1352,22 +1277,26 @@ void UPlayerInput::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& 
 				{
 					Str += FString::Printf(TEXT(" time: %.2f"), WorldRealTimeSeconds - KeyState->LastUpDownTransitionTime);
 				}
-				DisplayDebugManager.SetDrawColor(FColor(180, 255, 180));
-				DisplayDebugManager.DrawString(Str);
+				Canvas->SetDrawColor(180,255,180);
+				YL = Canvas->DrawText(RenderFont, Str,4.0f, YPos);
 			}
 			else
 			{
-				DisplayDebugManager.SetDrawColor(FColor(180, 180, 180));
-				DisplayDebugManager.DrawString(Str);
+				Canvas->SetDrawColor(180,180,180);
+				YL = Canvas->DrawText(RenderFont, Str,4.0f, YPos);
 			}
+			YPos += YL;
 		}
 
 		float const DetectedMouseSampleHz = MouseSamples / MouseSamplingTotal;
 
-		DisplayDebugManager.SetDrawColor(FColor::White);
-		DisplayDebugManager.DrawString(FString::Printf(TEXT("MouseSampleRate: %.2f"), DetectedMouseSampleHz));
-		DisplayDebugManager.DrawString(FString::Printf(TEXT("MouseX ZeroTime: %.2f, Smoothed: %.2f"), ZeroTime[0], SmoothedMouse[0]));
-		DisplayDebugManager.DrawString(FString::Printf(TEXT("MouseY ZeroTime: %.2f, Smoothed: %.2f"), ZeroTime[1], SmoothedMouse[1]));
+		Canvas->SetDrawColor(FColor::White);
+		YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT("MouseSampleRate: %.2f"), DetectedMouseSampleHz),4.0f, YPos);
+		YPos += YL;
+		YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT("MouseX ZeroTime: %.2f, Smoothed: %.2f"), ZeroTime[0], SmoothedMouse[0]),4.0f, YPos);
+		YPos += YL;
+		YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT("MouseY ZeroTime: %.2f, Smoothed: %.2f"), ZeroTime[1], SmoothedMouse[1]),4.0f, YPos);
+		YPos += YL;
 
 		if ( (ZeroTime[0] > 2.f && ZeroTime[1] > 2.f) && GetDefault<UInputSettings>()->bEnableMouseSmoothing )
 		{

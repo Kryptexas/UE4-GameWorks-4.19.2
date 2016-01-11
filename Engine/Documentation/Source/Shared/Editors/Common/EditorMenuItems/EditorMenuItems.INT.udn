@@ -5,82 +5,67 @@ Crumbs:
 
 
 
-[VAR:MenuFileSave]
+[EXCERPT:MenuFileSave]
 * **Save** - Saves the asset you are currently working on.
-[/VAR]
+[/EXCERPT:MenuFileSave]
 
-[VAR:MenuFileSaveOptions]
+[EXCERPT:MenuFileSaveOptions]
 * **Open Asset** - Opens the **Global Asset Picker** to quickly find an asset and open the appropriate editor.
 * **Save All** - Saves all unsaved levels and assets for your project.
 * **Choose Files to Save** - Brings up a dialog box that allows you to choose which levels and assets you want to save for your project.
 * **Connect To Source Control** - Brings up a dialog box that allows you to choose or interact with a source-control system that the Unreal Editor can integrate with.
-[/VAR]
+[/EXCERPT:MenuFileSaveOptions]
 
 
 
-[VAR:MenuEditUndo]
+[EXCERPT:MenuEditUndo]
 * **Undo** - Undoes the most recent action.
 * **Redo** - Redoes the most recent Undo, if it was the last action taken.
-[/VAR]
+[/EXCERPT:MenuEditUndo]
 
-[VAR:MenuEditSettings]
+[EXCERPT:MenuEditSettings]
 * **Editor Preferences** - Gives you a list of options, any of which open that part of the **Editor Preferences** window, where you can modify your Unreal Editor preferences.
 * **Project Settings** - Gives you a list of options, any of which open that part of the **Project Settings** window, where you can modify various settings for your Unreal Engine project.
-[/VAR]
+[/EXCERPT:MenuEditSettings]
 
 
 
 
 
-[VAR:MenuAssetContentBrowser]
+[EXCERPT:MenuAssetContentBrowser]
 * **Find in Content Browser** - Locates and selects the current asset in the **Content Browser**.
-[/VAR]
+[/EXCERPT:MenuAssetContentBrowser]
 
-[VAR:MenuAssetViewReference]
+[EXCERPT:MenuAssetViewReference]
 * **View Reference** - Launches the reference viewer showing the selected assets' references. 
-[/VAR]
+[/EXCERPT:MenuAssetViewReference]
 
-[VAR:MenuAssetSizeMap]
-* **Size Map** - Displays an interactive map showing the approximate size of this asset and everything it references. 
-[/VAR]
-
-[VAR:MenuAssetReimport]
+[EXCERPT:MenuAssetReimport]
 * **Reimport _filename_** - Reimports the current asset from its original location on disk.
-[/VAR]
+[/EXCERPT:MenuAssetReimport]
 
 
 
 
 
-[VAR:MenuWindowToolbar]
+[EXCERPT:MenuWindowToolbar]
 * **Toolbar** - Toggles the display of the Toolbar.
-[/VAR]
+[/EXCERPT:MenuWindowToolbar]
 
-[VAR:MenuWindowViewport]
+[EXCERPT:MenuWindowViewport]
 * **Viewport** - Toggles the display of the **Viewport** panel.
-[/VAR]
+[/EXCERPT:MenuWindowViewport]
 
-[VAR:MenuWindowPreview]
+[EXCERPT:MenuWindowPreview]
 * **Preview** - Toggles the display of the **Preview** panel.
-[/VAR]
+[/EXCERPT:MenuWindowPreview]
 
-[VAR:MenuWindowDetails]
+[EXCERPT:MenuWindowDetails]
 * **Details** - Toggles the display of the **Details** panel.
-[/VAR]
+[/EXCERPT:MenuWindowDetails]
 
-[VAR:MenuWindowDestructibleSettings]
-* **Destructible Settings** - Toggles the display of the **Destructible Settings** panel.
-[/VAR]
 
-[VAR:MenuWindowFractureSettings]
-* **Fracture Settings** - Toggles the display of the **Fracture Settings** panel.
-[/VAR]
-
-[VAR:MenuWindowChunkParameters]
-* **Chunk Parameters** - Toggles the display of the **Chunk Parameters** panel.
-[/VAR]
-
-[VAR:MenuWindow]
+[EXCERPT:MenuWindow]
 * **Content Browser** - Brings up the **Content Browser** in a separate window.
 * **Developer Tools** - Brings up the selected **Developer Tool** in a separate window (Camera Debugger, Collision Analyzer, Debug Tools, Modules, Widget Reflector).
 	* **Blueprint Debugger** - Brings up the **Blueprint Debugger** in a separate window.
@@ -100,12 +85,12 @@ Crumbs:
 * **Reset Layout** - Resets your layout to a default arrangement. Requires the editor to restart after saving your changes and creating a backup of your settings. 
 * **Save Layout** - Saves the current layout of the panels as the new default layout.
 * **Enable Fullscreen** - Enables fullscreen mode for the application, expanding across the entire monitor.
-[/VAR]
+[/EXCERPT:MenuWindow]
 
 
 
 
-[VAR:MenuHelp]
+[EXCERPT:MenuHelp]
 [PUBLISH:Rocket]
 * **Browse Documentation** - Opens a browser window and navigates to the documentation about this tool.
 * **Forums** - Opens a browser window to the Unreal Engine Forums where you can discuss the Unreal Engine with other users.
@@ -122,13 +107,13 @@ Crumbs:
 * **Visit EpicGames.com** - Opens EpicGames.com in a browser window.
 * **About Unreal Editor** - Displays application credits, copyright information, and build information.
 [/PUBLISH:Licensee]
-[/VAR]
+[/EXCERPT:MenuHelp]
 
 
 
 
 [EXCERPT:UITabTips]
 [REGION:tip]
-You can close any panel by clicking the small "X" in the upper-right corner of the tab. You can also hide any panel by **Right-clicking** on the tab, and then clicking **Hide Tab** on the context menu that appears. To once again display a panel that you have closed, click that panel's name on the **Window** menu.
+You can close any panel by clicking the small "X" in the upper-right corner of the tab. You can also hide any panel by **right-clicking** on the tab, and then clicking **Hide Tab** on the context menu that appears. To once again display a panel that you have closed, click that panel's name on the **Window** menu.
 [/REGION]
 [/EXCERPT:UITabTips]

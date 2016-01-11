@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12Resources.h: D3D resource RHI definitions.
@@ -931,13 +931,17 @@ public:
 
 	FD3D12ShaderResourceTable ShaderResourceTable;
 
-	/** The vertex shader's bytecode, with custom data attached. */
+	/** The vertex shader's bytecode, with custom data in the last byte. */
 	TArray<uint8> Code;
 
 	// TEMP remove with removal of bound shader state
 	int32 Offset;
 
-	FShaderCodePackedResourceCounts ResourceCounts;
+	bool bShaderNeedsGlobalConstantBuffer;
+	uint32 SRVCount;
+	uint32 CBCount;
+	uint32 SamplerCount;
+	uint32 UAVCount;
 };
 
 class FD3D12GeometryShader : public FRHIGeometryShader
@@ -950,7 +954,7 @@ public:
 
 	FD3D12ShaderResourceTable ShaderResourceTable;
 
-	/** The shader's bytecode, with custom data attached. */
+	/** The shader's bytecode, with custom data in the last byte. */
 	TArray<uint8> Code;
 
 	/** The shader's stream output description. */
@@ -958,8 +962,12 @@ public:
 	D3D12_SO_DECLARATION_ENTRY* pStreamOutEntries;
 	uint32* pStreamOutStrides;
 
-	FShaderCodePackedResourceCounts ResourceCounts;
+	bool bShaderNeedsGlobalConstantBuffer;
 	bool bShaderNeedsStreamOutput;
+	uint32 SRVCount;
+	uint32 CBCount;
+	uint32 SamplerCount;
+	uint32 UAVCount;
 
 	FD3D12GeometryShader()
 		: bShaderNeedsStreamOutput(false)
@@ -995,10 +1003,14 @@ public:
 
 	FD3D12ShaderResourceTable ShaderResourceTable;
 
-	/** The shader's bytecode, with custom data attached. */
+	/** The shader's bytecode, with custom data in the last byte. */
 	TArray<uint8> Code;
 
-	FShaderCodePackedResourceCounts ResourceCounts;
+	bool bShaderNeedsGlobalConstantBuffer;
+	uint32 SRVCount;
+	uint32 CBCount;
+	uint32 SamplerCount;
+	uint32 UAVCount;
 };
 
 class FD3D12DomainShader : public FRHIDomainShader
@@ -1011,10 +1023,14 @@ public:
 
 	FD3D12ShaderResourceTable ShaderResourceTable;
 
-	/** The shader's bytecode, with custom data attached. */
+	/** The shader's bytecode, with custom data in the last byte. */
 	TArray<uint8> Code;
 
-	FShaderCodePackedResourceCounts ResourceCounts;
+	bool bShaderNeedsGlobalConstantBuffer;
+	uint32 SRVCount;
+	uint32 CBCount;
+	uint32 SamplerCount;
+	uint32 UAVCount;
 };
 
 class FD3D12PixelShader : public FRHIPixelShader
@@ -1025,12 +1041,16 @@ public:
 	/** The shader's bytecode. */
 	FD3D12ShaderBytecode ShaderBytecode;
 
-	/** The shader's bytecode, with custom data attached. */
+	/** The shader's bytecode, with custom data in the last byte. */
 	TArray<uint8> Code;
 
 	FD3D12ShaderResourceTable ShaderResourceTable;
 
-	FShaderCodePackedResourceCounts ResourceCounts;
+	bool bShaderNeedsGlobalConstantBuffer;
+	uint32 SRVCount;
+	uint32 CBCount;
+	uint32 SamplerCount;
+	uint32 UAVCount;
 };
 
 class FD3D12ComputeShader : public FRHIComputeShader
@@ -1041,12 +1061,16 @@ public:
 	/** The shader's bytecode. */
 	FD3D12ShaderBytecode ShaderBytecode;
 
-	/** The shader's bytecode, with custom data attached. */
+	/** The shader's bytecode, with custom data in the last byte. */
 	TArray<uint8> Code;
 
 	FD3D12ShaderResourceTable ShaderResourceTable;
 
-	FShaderCodePackedResourceCounts ResourceCounts;
+	bool bShaderNeedsGlobalConstantBuffer;
+	uint32 SRVCount;
+	uint32 CBCount;
+	uint32 SamplerCount;
+	uint32 UAVCount;
 };
 
 /**

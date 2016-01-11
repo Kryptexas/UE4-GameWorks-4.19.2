@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -12,7 +12,7 @@
 UENUM()
 enum TextureCompressionSettings
 {
-	TC_Default					UMETA(DisplayName="Default (DXT1/5, BC1/3 on DX11)"),
+	TC_Default					UMETA(DisplayName="Default (DXT1/5, BC1/5 on DX11)"),
 	TC_Normalmap				UMETA(DisplayName="Normalmap (DXT5, BC5 on DX11)"),
 	TC_Masks					UMETA(DisplayName="Masks (no sRGB)"),
 	TC_Grayscale				UMETA(DisplayName="Grayscale (R8, RGB8 sRGB)"),
@@ -614,11 +614,8 @@ public:
 #if WITH_EDITOR
 	/**
 	 * Caches platform data for the texture.
-	 * 
-	 * @param bAsyncCache spawn a thread to cache the platform data 
-	 * @param bAllowAsyncBuild allow the building of the texture to happen on another thread !!!load BulkData and cache the Source mip data on the main thread before checking DDC!!!
 	 */
-	void CachePlatformData(bool bAsyncCache = false, bool bAllowAsyncBuild = false);
+	void CachePlatformData(bool bAsyncCache = false);
 
 	/**
 	 * Begins caching platform data in the background for the platform requested
@@ -685,7 +682,7 @@ public:
 	/** @return the height of the surface represented by the texture. */
 	virtual float GetSurfaceHeight() const PURE_VIRTUAL(UTexture::GetSurfaceHeight,return 0;);
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 #if WITH_EDITOR
 	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
@@ -700,7 +697,7 @@ public:
 	ENGINE_API virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 #endif
 	ENGINE_API virtual bool IsPostLoadThreadSafe() const override{ return false; }
-	//~ End UObject Interface.
+	// End UObject interface.
 
 	/**
 	 *	Gets the average brightness of the texture (in linear space)

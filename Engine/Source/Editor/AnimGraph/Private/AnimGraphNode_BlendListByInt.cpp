@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "AnimGraphPrivatePCH.h"
@@ -31,8 +31,6 @@ void UAnimGraphNode_BlendListByInt::PostPlacedNewNode()
 {
 	// Make sure we start out with a pin
 	Node.AddPose();
-	Node.AddPose();
-	ReconstructNode();
 }
 
 void UAnimGraphNode_BlendListByInt::AddPinToBlendList()

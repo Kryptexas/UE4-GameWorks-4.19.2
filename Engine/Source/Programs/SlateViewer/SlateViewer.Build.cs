@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -15,21 +15,10 @@ public class SlateViewer : ModuleRules
 				"Projects",
 				"Slate",
 				"SlateCore",
+				"SlateReflector",
 				"StandaloneRenderer",
 				"SourceCodeAccess",
 				"WebBrowser",
-			}
-		);
-
-		PrivateIncludePathModuleNames.AddRange(
-			new string[] {
-				"SlateReflector",
-			}
-		);
-
-		DynamicallyLoadedModuleNames.AddRange(
-			new string[] {
-				"SlateReflector",
 			}
 		);
 
@@ -45,7 +34,7 @@ public class SlateViewer : ModuleRules
 
 		PrivateIncludePaths.Add("Runtime/Launch/Private");		// For LaunchEngineLoop.cpp include
 
-		if (Target.Platform == UnrealTargetPlatform.IOS || Target.Platform == UnrealTargetPlatform.TVOS)
+		if (Target.Platform == UnrealTargetPlatform.IOS)
 		{
 			PrivateDependencyModuleNames.AddRange(
                 new string [] {
@@ -53,15 +42,6 @@ public class SlateViewer : ModuleRules
                     "StreamingFile"
                 }
             );
-		}
-
-		if (Target.Platform == UnrealTargetPlatform.Linux)
-		{
-			PrivateDependencyModuleNames.AddRange(
-				new string[] {
-					"LinuxCommonStartup"
-				}
-			);
 		}
 	}
 }

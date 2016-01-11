@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PLUGIN_NAMEPrivatePCH.h"
 #include "PLUGIN_NAMEStyle.h"
@@ -57,10 +57,7 @@ TSharedRef< FSlateStyleSet > FPLUGIN_NAMEStyle::Create()
 
 void FPLUGIN_NAMEStyle::ReloadTextures()
 {
-	if (FSlateApplication::IsInitialized())
-	{
-		FSlateApplication::Get().GetRenderer()->ReloadTextureResources();
-	}
+	FSlateApplication::Get().GetRenderer()->ReloadTextureResources();
 }
 
 const ISlateStyle& FPLUGIN_NAMEStyle::Get()

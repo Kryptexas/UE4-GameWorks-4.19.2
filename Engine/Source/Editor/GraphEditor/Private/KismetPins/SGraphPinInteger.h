@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,7 +11,7 @@ public:
 	void Construct(const FArguments& InArgs, UEdGraphPin* InGraphPinObj);
 
 protected:
-	//~ Begin SGraphPinString Interface
+	// Begin SGraphPinString interface
 	virtual void SetTypeInValue(const FText& NewTypeInValue, ETextCommit::Type CommitInfo) override;
-	//~ End SGraphPinString Interface
+	// End of SGraphPinString interface
 };

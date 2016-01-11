@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
 #include "EditToolDragOperations.h"
@@ -14,16 +14,16 @@
 
 struct FDefaultKeySnappingCandidates : ISequencerSnapCandidate
 {
-	FDefaultKeySnappingCandidates(const TSet<FSequencerSelectedKey>& InKeysToExclude)
+	FDefaultKeySnappingCandidates(const TSet<FSelectedKey>& InKeysToExclude)
 		: KeysToExclude(InKeysToExclude)
 	{}
 
 	virtual bool IsKeyApplicable(FKeyHandle KeyHandle, const TSharedPtr<IKeyArea>& KeyArea, UMovieSceneSection* Section) override
 	{
-		return !KeysToExclude.Contains(FSequencerSelectedKey(*Section, KeyArea, KeyHandle));
+		return !KeysToExclude.Contains(FSelectedKey(*Section, KeyArea, KeyHandle));
 	}
 
-	const TSet<FSequencerSelectedKey>& KeysToExclude;
+	const TSet<FSelectedKey>& KeysToExclude;
 };
 
 struct FDefaultSectionSnappingCandidates : ISequencerSnapCandidate
@@ -69,7 +69,7 @@ TOptional<FSequencerSnapField::FSnapResult> SnapToInterval(const TArray<float>& 
 /** How many pixels near the mouse has to be before snapping occurs */
 const float PixelSnapWidth = 10.f;
 
-TRange<float> GetSectionBoundaries(UMovieSceneSection* Section, TSharedPtr<FSequencerTrackNode> SequencerNode)
+TRange<float> GetSectionBoundaries(UMovieSceneSection* Section, TSharedPtr<FTrackNode> SequencerNode)
 {
 	// Find the borders of where you can drag to
 	float LowerBound = -FLT_MAX, UpperBound = FLT_MAX;
@@ -101,35 +101,18 @@ FEditToolDragOperation::FEditToolDragOperation( FSequencer& InSequencer )
 	Settings = Sequencer.GetSettings();
 }
 
-FCursorReply FEditToolDragOperation::GetCursor() const
-{
-	return FCursorReply::Cursor( EMouseCursor::Default );
-}
-
-int32 FEditToolDragOperation::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
-{
-	return LayerId;
-}
-
-void FEditToolDragOperation::BeginTransaction( TArray< FSectionHandle >& Sections, const FText& TransactionDesc )
+void FEditToolDragOperation::BeginTransaction( const TArray< FSectionHandle >& Sections, const FText& TransactionDesc )
 {
 	// Begin an editor transaction and mark the section as transactional so it's state will be saved
 	Transaction.Reset( new FScopedTransaction(TransactionDesc) );
 
-	for (int32 SectionIndex = 0; SectionIndex < Sections.Num(); )
+	for (auto& Handle : Sections)
 	{
-		UMovieSceneSection* SectionObj = Sections[SectionIndex].GetSectionObject();
+		UMovieSceneSection* SectionObj = Handle.GetSectionObject();
 
 		SectionObj->SetFlags( RF_Transactional );
 		// Save the current state of the section
-		if (SectionObj->TryModify())
-		{
-			++SectionIndex;
-		}
-		else
-		{
-			Sections.RemoveAt(SectionIndex);
-		}
+		SectionObj->Modify();
 	}
 }
 
@@ -137,7 +120,6 @@ void FEditToolDragOperation::EndTransaction()
 {
 	Transaction.Reset();
 	Sequencer.UpdateRuntimeInstances();
-	Sequencer.UpdatePlaybackRange();
 }
 
 FResizeSection::FResizeSection( FSequencer& InSequencer, TArray<FSectionHandle> InSections, bool bInDraggingByEnd )
@@ -205,7 +187,7 @@ void FResizeSection::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMous
 
 		if (!SnappedTime.IsSet() && Settings->GetSnapSectionTimesToInterval())
 		{
-			SnappedTime = SnapToInterval(SectionTimes, Settings->GetTimeSnapInterval()/2.f, *Settings);
+			SnappedTime = SnapToInterval(SectionTimes, SnapThresold, *Settings);
 		}
 
 		if (SnappedTime.IsSet())
@@ -344,7 +326,7 @@ void FMoveSection::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMouseP
 
 		if (!SnappedTime.IsSet() && Settings->GetSnapSectionTimesToInterval())
 		{
-			SnappedTime = SnapToInterval(SectionTimes, Settings->GetTimeSnapInterval()/2.f, *Settings);
+			SnappedTime = SnapToInterval(SectionTimes, SnapThresold, *Settings);
 		}
 
 		if (SnappedTime.IsSet())
@@ -452,18 +434,18 @@ void FMoveKeys::OnBeginDrag(const FPointerEvent& MouseEvent, FVector2D LocalMous
 {
 	check( SelectedKeys.Num() > 0 )
 
-	FSequencerDisplayNode::DisableKeyGoupingRegeneration();
+	SSection::DisableLayoutRegeneration();
 
 	FDefaultKeySnappingCandidates SnapCandidates(SelectedKeys);
 	SnapField = FSequencerSnapField(Sequencer, SnapCandidates);
 
 	// Begin an editor transaction and mark the section as transactional so it's state will be saved
-	TArray<FSectionHandle> DummySections;
-	BeginTransaction( DummySections, NSLOCTEXT("Sequencer", "MoveKeysTransaction", "Move Keys") );
+	BeginTransaction( TArray< FSectionHandle >(), NSLOCTEXT("Sequencer", "MoveKeysTransaction", "Move Keys") );
 
 	const float MouseTime = VirtualTrackArea.PixelToTime(LocalMousePos.X);
 
-	for( FSequencerSelectedKey SelectedKey : SelectedKeys )
+	TSet<UMovieSceneSection*> ModifiedSections;
+	for( FSelectedKey SelectedKey : SelectedKeys )
 	{
 		UMovieSceneSection* OwningSection = SelectedKey.Section;
 
@@ -475,11 +457,10 @@ void FMoveKeys::OnBeginDrag(const FPointerEvent& MouseEvent, FVector2D LocalMous
 			OwningSection->SetFlags( RF_Transactional );
 
 			// Save the current state of the section
-			if (OwningSection->TryModify())
-			{
-				// Section has been modified
-				ModifiedSections.Add( OwningSection );
-			}
+			OwningSection->Modify();
+
+			// Section has been modified
+			ModifiedSections.Add( OwningSection );
 		}
 	}
 }
@@ -498,7 +479,7 @@ void FMoveKeys::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos,
 	if ( Settings->GetIsSnapEnabled() )
 	{
 		TArray<float> KeyTimes;
-		for( FSequencerSelectedKey SelectedKey : SelectedKeys )
+		for( FSelectedKey SelectedKey : SelectedKeys )
 		{
 			KeyTimes.Add(MouseTime + RelativeOffsets.FindRef(SelectedKey));
 		}
@@ -514,7 +495,7 @@ void FMoveKeys::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos,
 
 		if (!SnappedTime.IsSet() && Settings->GetSnapKeyTimesToInterval())
 		{
-			SnappedTime = SnapToInterval(KeyTimes, Settings->GetTimeSnapInterval()/2.f, *Settings);
+			SnappedTime = SnapToInterval(KeyTimes, SnapThresold, *Settings);
 		}
 
 		if (SnappedTime.IsSet())
@@ -525,14 +506,9 @@ void FMoveKeys::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos,
 
 	float PrevNewKeyTime = FLT_MAX;
 
-	for( FSequencerSelectedKey SelectedKey : SelectedKeys )
+	for( FSelectedKey SelectedKey : SelectedKeys )
 	{
 		UMovieSceneSection* Section = SelectedKey.Section;
-
-		if (!ModifiedSections.Contains(Section))
-		{
-			continue;
-		}
 
 		TSharedPtr<IKeyArea>& KeyArea = SelectedKey.KeyArea;
 
@@ -574,56 +550,6 @@ void FMoveKeys::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos,
 
 void FMoveKeys::OnEndDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea)
 {
-	ModifiedSections.Empty();
 	EndTransaction();
-	FSequencerDisplayNode::EnableKeyGoupingRegeneration();
-}
-
-void FDuplicateKeys::OnBeginDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea)
-{
-	// Duplicate and select all the keys
-	TSet<FSequencerSelectedKey> OldSelection = SelectedKeys;
-
-	// Begin an editor transaction and mark the section as transactional so it's state will be saved
-	TArray<FSectionHandle> DummySections;
-	BeginTransaction( DummySections, NSLOCTEXT("Sequencer", "DuplicateKeysTransaction", "Duplicate Keys") );
-
-	// Modify all the sections first
-	for (const FSequencerSelectedKey& SelectedKey : SelectedKeys)
-	{
-		UMovieSceneSection* OwningSection = SelectedKey.Section;
-
-		// Only modify sections once
-		if (!ModifiedSections.Contains(OwningSection ))
-		{
-			OwningSection->SetFlags(RF_Transactional);
-			// Save the current state of the section
-			if (OwningSection->TryModify())
-			{
-				// Section has been modified
-				ModifiedSections.Add( OwningSection );
-			}
-		}
-	}
-
-	// Then duplicate the keys
-
-	// @todo sequencer: selection in transactions
-	Sequencer.GetSelection().EmptySelectedKeys();
-	for (const FSequencerSelectedKey& SelectedKey : OldSelection)
-	{
-		FSequencerSelectedKey NewKey = SelectedKey;
-		NewKey.KeyHandle = SelectedKey.KeyArea->DuplicateKey(SelectedKey.KeyHandle.GetValue());
-		Sequencer.GetSelection().AddToSelection(NewKey);
-	}
-
-	// Now start the move drag
-	FMoveKeys::OnBeginDrag(MouseEvent, LocalMousePos, VirtualTrackArea);
-}
-
-void FDuplicateKeys::OnEndDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea)
-{
-	FMoveKeys::OnEndDrag(MouseEvent, LocalMousePos, VirtualTrackArea);
-
-	EndTransaction();
+	SSection::EnableLayoutRegeneration();
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -216,11 +216,6 @@ public:
 	 */
 	void UnloadOrAbandonModuleWithCallback( const FName InModuleName, FOutputDevice &Ar, bool bAbandonOnly = false);
 
-	/** Delegate that's used by the module manager to find all the valid modules in a directory matching a pattern */
-	typedef TMap<FString, FString> FModuleNamesMap;
-	DECLARE_DELEGATE_ThreeParams( FQueryModulesDelegate, const FString&, bool, FModuleNamesMap& );
-	FQueryModulesDelegate QueryModulesDelegate;
-
 public:
 
 	/**
@@ -258,7 +253,7 @@ public:
 			return nullptr;
 		}
 
-		return static_cast<TModuleInterface*>(ModuleManager.GetModule(ModuleName).Get());
+		return (TModuleInterface*)(ModuleManager.GetModule(ModuleName).Get());
 	}
 
 	/**

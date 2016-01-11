@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HlslAST.h - Abstract Syntax Tree interfaces for HLSL.
@@ -12,106 +12,14 @@ namespace CrossCompiler
 {
 	namespace AST
 	{
-		struct FCBufferDeclaration;
-		struct FDeclaratorList;
-		struct FDeclaration;
-		struct FFunctionDefinition;
-		struct FParameterDeclarator;
-		struct FUnaryExpression;
-		struct FAttribute;
-		struct FJumpStatement;
-
-		struct FASTWriter
-		{
-			FString& Output;
-			int32 Indent;
-			int32 ExpressionScope;
-
-			FASTWriter(FString& FinalOutput) :
-				Output(FinalOutput),
-				Indent(0),
-				ExpressionScope(0)
-			{
-			}
-
-			// Construct from another to go back to unindented writing
-			FASTWriter(FASTWriter& IndentedWriter) :
-				Output(IndentedWriter.Output),
-				Indent(0)
-			{
-			}
-
-			void DoIndent();
-
-			inline FASTWriter& operator << (const TCHAR* String)
-			{
-				if (String)
-				{
-					Output += String;
-				}
-
-				return *this;
-			}
-
-			inline FASTWriter& operator << (const TCHAR Char)
-			{
-				if (Char != 0)
-				{
-					Output += Char;
-				}
-
-				return *this;
-			}
-
-			inline FASTWriter& operator << (uint32 N)
-			{
-				(*this) << *FString::Printf(TEXT("%u"), N);
-				return *this;
-			}
-
-			inline FASTWriter& operator << (float F)
-			{
-				(*this) << *FString::Printf(TEXT("%g"), F);
-				return *this;
-			}
-		};
-
-		struct FASTWriterIncrementScope
-		{
-			FASTWriter& Writer;
-
-			FASTWriterIncrementScope(FASTWriter& InWriter) :
-				Writer(InWriter)
-			{
-				++Writer.Indent;
-			}
-
-			~FASTWriterIncrementScope()
-			{
-				--Writer.Indent;
-			}
-		};
-
 		class FNode
 		{
 		public:
 			FSourceInfo SourceInfo;
 
-			TLinearArray<FAttribute*> Attributes;
+			TLinearArray<struct FAttribute*> Attributes;
 
-			virtual void Write(FASTWriter& Writer) const = 0;
-
-			// RTTI
-			virtual FCBufferDeclaration* AsCBufferDeclaration() { return nullptr; }
-			virtual FDeclaratorList* AsDeclaratorList() { return nullptr; }
-			virtual FDeclaration* AsDeclaration() { return nullptr; }
-			virtual FFunctionDefinition* AsFunctionDefinition() { return nullptr; }
-			virtual FParameterDeclarator* AsParameterDeclarator() { return nullptr; }
-			virtual FUnaryExpression* AsUnaryExpression() { return nullptr; }
-			virtual FJumpStatement* AsJumpStatement() { return nullptr; }
-
-			// Returns true if the expression can be evaluated to a constant int
-			virtual bool GetConstantIntValue(int32& OutValue) const { return false; }
+			virtual void Dump(int32 Indent) const = 0;
 
 			/* Callers of this ralloc-based new need not call delete. It's
 			* easier to just ralloc_free 'ctx' (or any of its ancestors). */
@@ -142,7 +50,9 @@ namespace CrossCompiler
 			//FNode();
 			FNode(FLinearAllocator* Allocator, const FSourceInfo& InInfo);
 
-			void WriteAttributes(FASTWriter& Writer) const;
+			static void DumpIndent(int32 Indent);
+
+			void DumpAttributes() const;
 		};
 
 		/**
@@ -152,7 +62,7 @@ namespace CrossCompiler
 		{
 			Assign,
 			Plus,        /**< Unary + operator. */
-			Minus,
+			Neg,
 			Add,
 			Sub,
 			Mul,
@@ -169,11 +79,11 @@ namespace CrossCompiler
 			BitAnd,
 			BitXor,
 			BitOr,
-			BitNeg,		// ~
+			BitNot,
 			LogicAnd,
 			LogicXor,
 			LogicOr,
-			LogicNot,	// !
+			LogicNot,
 
 			MulAssign,
 			DivAssign,
@@ -311,15 +221,6 @@ namespace CrossCompiler
 			return AST::EOperators::Plus;
 		}
 
-		struct FPragma : public FNode
-		{
-			FPragma(FLinearAllocator* InAllocator, const TCHAR* InPragma, const FSourceInfo& InInfo);
-
-			virtual void Write(FASTWriter& Writer) const override;
-
-			const TCHAR* Pragma;
-		};
-
 		struct FExpression : public FNode
 		{
 			FExpression(FLinearAllocator* InAllocator, EOperators InOperator, FExpression* E0, FExpression* E1, FExpression* E2, const FSourceInfo& InInfo);
@@ -339,74 +240,36 @@ namespace CrossCompiler
 
 			TLinearArray<FExpression*> Expressions;
 
-			void WriteOperator(FASTWriter& Writer) const;
-			virtual void Write(FASTWriter& Writer) const override;
+			void DumpOperator() const;
+			virtual void Dump(int32 Indent) const;
 		};
 
 		struct FUnaryExpression : public FExpression
 		{
 			FUnaryExpression(FLinearAllocator* InAllocator, EOperators InOperator, FExpression* Expr, const FSourceInfo& InInfo);
 
-			virtual void Write(FASTWriter& Writer) const override;
-			virtual FUnaryExpression* AsUnaryExpression() override { return this; }
-			virtual bool GetConstantIntValue(int32& OutValue) const override;
-
-			bool IsConstant() const
-			{
-				switch (Operator)
-				{
-				case EOperators::UintConstant:
-				case EOperators::FloatConstant:
-				case EOperators::BoolConstant:
-					return true;
-
-				default:
-					break;
-				}
-				return false;
-			}
-
-			uint32 GetUintConstantValue() const
-			{
-				switch (Operator)
-				{
-				case EOperators::UintConstant:
-					return UintConstant;
-
-				case EOperators::FloatConstant:
-					return (uint32)FloatConstant;
-
-				case EOperators::BoolConstant:
-					return (uint32)BoolConstant;
-
-				default:
-					break;
-				}
-
-				return 0;
-			}
+			virtual void Dump(int32 Indent) const;
 		};
 
 		struct FBinaryExpression : public FExpression
 		{
 			FBinaryExpression(FLinearAllocator* InAllocator, EOperators InOperator, FExpression* E0, FExpression* E1, const FSourceInfo& InInfo);
 
-			virtual void Write(FASTWriter& Writer) const override;
-			virtual bool GetConstantIntValue(int32& OutValue) const override;
+			virtual void Dump(int32 Indent) const;
 		};
 
 		struct FFunctionExpression : public FExpression
 		{
 			FFunctionExpression(FLinearAllocator* InAllocator, const FSourceInfo& InInfo, FExpression* Callee);
 
-			virtual void Write(FASTWriter& Writer) const override;
+			virtual void Dump(int32 Indent) const;
 		};
 
 		struct FInitializerListExpression : public FExpression
 		{
 			FInitializerListExpression(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
 
-			virtual void Write(FASTWriter& Writer) const override;
+			virtual void Dump(int32 Indent) const;
 		};
 
 		struct FCompoundStatement : public FNode
@@ -416,7 +279,7 @@ namespace CrossCompiler
 
 			TLinearArray<FNode*> Statements;
 
-			virtual void Write(FASTWriter& Writer) const override;
+			virtual void Dump(int32 Indent) const;
 		};
 
 		struct FDeclaration : public FNode
@@ -424,8 +287,7 @@ namespace CrossCompiler
 			FDeclaration(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
 			~FDeclaration();
 
-			virtual void Write(FASTWriter& Writer) const override;
-			virtual FDeclaration* AsDeclaration() override { return this; }
+			virtual void Dump(int32 Indent) const;
 
 			const TCHAR* Identifier;
 
@@ -465,7 +327,7 @@ namespace CrossCompiler
 
 			FTypeQualifier();
 
-			void Write(FASTWriter& Writer) const;
+			void Dump() const;
 		};
 
 		struct FStructSpecifier : public FNode
@@ -473,10 +335,10 @@ namespace CrossCompiler
 			FStructSpecifier(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
 			~FStructSpecifier();
 
-			virtual void Write(FASTWriter& Writer) const override;
+			virtual void Dump(int32 Indent) const;
 
-			const TCHAR* Name;
-			const TCHAR* ParentName;
+			TCHAR* Name;
+			TCHAR* ParentName;
 			TLinearArray<FNode*> Declarations;
 		};
 
@@ -485,8 +347,7 @@ namespace CrossCompiler
 			FCBufferDeclaration(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
 			~FCBufferDeclaration();
 
-			virtual void Write(FASTWriter& Writer) const override;
-			virtual FCBufferDeclaration* AsCBufferDeclaration() override { return this; }
+			virtual void Dump(int32 Indent) const;
 
 			const TCHAR* Name;
 			TLinearArray<FNode*> Declarations;
@@ -497,7 +358,7 @@ namespace CrossCompiler
 			FTypeSpecifier(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
 			~FTypeSpecifier();
 
-			virtual void Write(FASTWriter& Writer) const override;
+			virtual void Dump(int32 Indent) const;
 
 			const TCHAR* TypeName;
 			const TCHAR* InnerType;
@@ -518,7 +379,7 @@ namespace CrossCompiler
 			FFullySpecifiedType(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
 			~FFullySpecifiedType();
 
-			virtual void Write(FASTWriter& Writer) const override;
+			virtual void Dump(int32 Indent) const;
 
 			FTypeQualifier Qualifier;
 			FTypeSpecifier* Specifier;
@@ -529,8 +390,7 @@ namespace CrossCompiler
 			FDeclaratorList(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
 			~FDeclaratorList();
 
-			virtual void Write(FASTWriter& Writer) const override;
-			virtual FDeclaratorList* AsDeclaratorList() override { return this; }
+			virtual void Dump(int32 Indent) const;
 
 			FFullySpecifiedType* Type;
 			TLinearArray<FNode*> Declarations;
@@ -543,8 +403,7 @@ namespace CrossCompiler
 
 			static FParameterDeclarator* CreateFromDeclaratorList(FDeclaratorList* List, FLinearAllocator* Allocator);
 
-			virtual void Write(FASTWriter& Writer) const override;
-			virtual FParameterDeclarator* AsParameterDeclarator() override { return this; }
+			virtual void Dump(int32 Indent) const;
 
 			FFullySpecifiedType* Type;
 			const TCHAR* Identifier;
@@ -560,7 +419,7 @@ namespace CrossCompiler
 			FFunction(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
 			~FFunction();
 
-			virtual void Write(FASTWriter& Writer) const override;
+			virtual void Dump(int32 Indent) const;
 
 			FFullySpecifiedType* ReturnType;
 			const TCHAR* Identifier;
@@ -580,7 +439,7 @@ namespace CrossCompiler
 
 			FExpression* Expression;
 
-			virtual void Write(FASTWriter& Writer) const override;
+			virtual void Dump(int32 Indent) const;
 		};
 
 		struct FCaseLabel : public FNode
@@ -588,7 +447,7 @@ namespace CrossCompiler
 			FCaseLabel(FLinearAllocator* InAllocator, const FSourceInfo& InInfo, AST::FExpression* InExpression);
 			~FCaseLabel();
 
-			virtual void Write(FASTWriter& Writer) const override;
+			virtual void Dump(int32 Indent) const;
 
 			FExpression* TestExpression;
 		};
@@ -598,7 +457,7 @@ namespace CrossCompiler
 			FCaseLabelList(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
 			~FCaseLabelList();
 
-			virtual void Write(FASTWriter& Writer) const override;
+			virtual void Dump(int32 Indent) const;
 
 			TLinearArray<FCaseLabel*> Labels;
 		};
@@ -608,7 +467,7 @@ namespace CrossCompiler
 			FCaseStatement(FLinearAllocator* InAllocator, const FSourceInfo& InInfo, FCaseLabelList* InLabels);
 			~FCaseStatement();
 
-			virtual void Write(FASTWriter& Writer) const override;
+			virtual void Dump(int32 Indent) const;
 
 			FCaseLabelList* Labels;
 			TLinearArray<FNode*> Statements;
@@ -619,7 +478,7 @@ namespace CrossCompiler
 			FCaseStatementList(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
 			~FCaseStatementList();
 
-			virtual void Write(FASTWriter& Writer) const override;
+			virtual void Dump(int32 Indent) const;
 
 			TLinearArray<FCaseStatement*> Cases;
 		};
@@ -629,7 +488,7 @@ namespace CrossCompiler
 			FSwitchBody(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
 			~FSwitchBody();
 
-			virtual void Write(FASTWriter& Writer) const override;
+			virtual void Dump(int32 Indent) const;
 
 			FCaseStatementList* CaseList;
 		};
@@ -639,7 +498,7 @@ namespace CrossCompiler
 			FSelectionStatement(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
 			~FSelectionStatement();
 
-			virtual void Write(FASTWriter& Writer) const override;
+			virtual void Dump(int32 Indent) const;
 
 			FExpression* Condition;
 
@@ -652,7 +511,7 @@ namespace CrossCompiler
 			FSwitchStatement(FLinearAllocator* InAllocator, const FSourceInfo& InInfo, FExpression* InCondition, FSwitchBody* InBody);
 			~FSwitchStatement();
 
-			virtual void Write(FASTWriter& Writer) const override;
+			virtual void Dump(int32 Indent) const;
 
 			FExpression* Condition;
 			FSwitchBody* Body;
@@ -670,7 +529,7 @@ namespace CrossCompiler
 			FIterationStatement(FLinearAllocator* InAllocator, const FSourceInfo& InInfo, EIterationType InType);
 			~FIterationStatement();
 
-			virtual void Write(FASTWriter& Writer) const override;
+			virtual void Dump(int32 Indent) const;
 
 			EIterationType Type;
 
@@ -697,8 +556,7 @@ namespace CrossCompiler
 			EJumpType Type;
 			FExpression* OptionalExpression;
 
-			virtual void Write(FASTWriter& Writer) const override;
-			virtual FJumpStatement* AsJumpStatement() override { return this; }
+			virtual void Dump(int32 Indent) const;
 		};
 
 		struct FFunctionDefinition : public FNode
@@ -709,8 +567,7 @@ namespace CrossCompiler
 			FFunction* Prototype;
 			FCompoundStatement* Body;
 
-			virtual void Write(FASTWriter& Writer) const override;
-			virtual FFunctionDefinition* AsFunctionDefinition() override { return this; }
+			virtual void Dump(int32 Indent) const;
 		};
 
 		struct FAttributeArgument : public FNode
@@ -718,7 +575,7 @@ namespace CrossCompiler
 			FAttributeArgument(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
 			~FAttributeArgument();
 
-			virtual void Write(FASTWriter& Writer) const override;
+			virtual void Dump(int32 Indent) const;
 
 			const TCHAR* StringArgument;
 			FExpression* ExpressionArgument;
@@ -729,7 +586,7 @@ namespace CrossCompiler
 			FAttribute(FLinearAllocator* Allocator, const FSourceInfo& InInfo, const TCHAR* InName);
 			~FAttribute();
 
-			virtual void Write(FASTWriter& Writer) const override;
+			virtual void Dump(int32 Indent) const;
 
 			const TCHAR* Name;
 			TLinearArray<FAttributeArgument*> Arguments;

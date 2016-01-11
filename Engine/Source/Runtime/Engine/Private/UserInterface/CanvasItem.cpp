@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Canvas.cpp: Unreal canvas rendering.
@@ -830,7 +830,7 @@ void FCanvasTextItem::Draw( class FCanvas* InCanvas )
 	}
 
 	bool bHasShadow = FontRenderInfo.bEnableShadow;
-	if( bHasShadow && ShadowOffset.SizeSquared() == 0.0f )
+	if( bHasShadow && ShadowOffset.Size() == 0.0f )
 	{
 		// EnableShadow will set a default ShadowOffset value
 		EnableShadow( FLinearColor::Black );
@@ -914,17 +914,6 @@ void FCanvasTextItem::Draw( class FCanvas* InCanvas )
 	
 	FLinearColor DrawColor;
 	BatchedElements = nullptr;
-
-	// If we have a shadow - draw it now
-	if (bHasShadow)
-	{
-		DrawColor = ShadowColor;
-		// Copy the Alpha from the shadow otherwise if we fade the text the shadow wont fade - which is almost certainly not what we will want.
-		DrawColor.A = Color.A;
-		DrawColor.A *= InCanvas->AlphaModulate;
-		DrawStringInternal(InCanvas, DrawPos + ShadowOffset, DrawColor);
-	}
-
 	if( bOutlined )
 	{
 		DrawColor = OutlineColor;
@@ -934,7 +923,15 @@ void FCanvasTextItem::Draw( class FCanvas* InCanvas )
 		DrawStringInternal( InCanvas, DrawPos + FVector2D( 1.0f, 1.0f ), DrawColor );
 		DrawStringInternal( InCanvas, DrawPos + FVector2D( 1.0f, -1.0f ), DrawColor );
 	}
-
+	// If we have a shadow - draw it now
+	if( bHasShadow )
+	{
+		DrawColor = ShadowColor;
+		// Copy the Alpha from the shadow otherwise if we fade the text the shadow wont fade - which is almost certainly not what we will want.
+		DrawColor.A = Color.A;
+		DrawColor.A *= InCanvas->AlphaModulate;
+		DrawStringInternal( InCanvas, DrawPos + ShadowOffset, DrawColor );
+	}
 	DrawColor = Color;
 	DrawColor.A *= InCanvas->AlphaModulate;	
 	DrawStringInternal( InCanvas, DrawPos, DrawColor );
@@ -1158,7 +1155,7 @@ void FCanvasTextItem::DrawStringInternal_RuntimeCache( FCanvas* InCanvas, const 
 		}
 		else
 		{
-			const FCharacterEntry& Entry = CharacterList.GetCharacter(LegacyFontInfo, CurrentChar);
+			const FCharacterEntry& Entry = CharacterList[ CurrentChar ];
 
 			if( FontTexture == nullptr || Entry.TextureIndex != FontTextureIndex )
 			{
@@ -1177,7 +1174,7 @@ void FCanvasTextItem::DrawStringInternal_RuntimeCache( FCanvas* InCanvas, const 
 
 			const bool bIsWhitespace = FChar::IsWhitespace(CurrentChar);
 
-			if( !bIsWhitespace && PreviousCharEntry.IsCached() )
+			if( !bIsWhitespace && PreviousCharEntry.IsValidEntry() )
 			{
 				Kerning = CharacterList.GetKerning( PreviousCharEntry, Entry ) * Scale.X;
 			}

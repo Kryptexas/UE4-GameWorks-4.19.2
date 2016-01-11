@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "PlatformMallocCrash.h"
@@ -32,7 +32,7 @@ static int32 ReportCrashCallCount = 0;
  */
 
 // @TODO yrx 2014-10-08 Move to FWindowsPlatformCrashContext
-bool WriteMinidump( const TCHAR* Path, LPEXCEPTION_POINTERS ExceptionInfo, bool bIsEnsure )
+bool WriteMinidump(const TCHAR* Path, LPEXCEPTION_POINTERS ExceptionInfo)
 {
 	// Try to create file for minidump.
 	HANDLE FileHandle = CreateFileW(Path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -63,11 +63,7 @@ bool WriteMinidump( const TCHAR* Path, LPEXCEPTION_POINTERS ExceptionInfo, bool 
 	CrashContextStreamInformation.UserStreamArray = &CrashContextStream;
 
 	MINIDUMP_TYPE MinidumpType = MiniDumpNormal;//(MINIDUMP_TYPE)(MiniDumpWithPrivateReadWriteMemory|MiniDumpWithDataSegs|MiniDumpWithHandleData|MiniDumpWithFullMemoryInfo|MiniDumpWithThreadInfo|MiniDumpWithUnloadedModules);
-
-	// For ensures by default we use minidump to avoid severe hitches when writing 3GB+ files.
-	// However the crash dump mode will remain the same.
-	bool bShouldBeFullCrashDump = bIsEnsure ? CrashContext.IsFullCrashDumpOnEnsure() : CrashContext.IsFullCrashDump();
-	if (bShouldBeFullCrashDump)
+	if (CrashContext.IsFullCrashDump())
 	{
 		MinidumpType = (MINIDUMP_TYPE)(MiniDumpWithFullMemory|MiniDumpWithFullMemoryInfo|MiniDumpWithHandleData|MiniDumpWithThreadInfo|MiniDumpWithUnloadedModules);
 	}
@@ -199,7 +195,7 @@ void SetReportParameters( HREPORT ReportHandle, EXCEPTION_POINTERS* ExceptionInf
 	StringCchPrintf( StringBuffer, MAX_SPRINTF, TEXT( "!%s!AssertLog=\"%s\"" ), FCommandLine::GetOriginal(), LocalBuffer );
 	Result = WerReportSetParameter( ReportHandle, WER_P8, TEXT( "Commandline" ), StringBuffer );
 
-	StringCchPrintf( StringBuffer, MAX_SPRINTF, TEXT( "%s!%s!%s!%d" ), *FApp::GetBranchName(), FPlatformProcess::BaseDir(), FPlatformMisc::GetEngineMode(), FEngineVersion::Current().GetChangelist() );
+	StringCchPrintf( StringBuffer, MAX_SPRINTF, TEXT( "%s!%s!%s!%d" ), *FApp::GetBranchName(), FPlatformProcess::BaseDir(), FPlatformMisc::GetEngineMode(), GEngineVersion.GetChangelist() );
 	Result = WerReportSetParameter( ReportHandle, WER_P9, TEXT( "BranchBaseDir" ), StringBuffer );
 }
 
@@ -262,7 +258,7 @@ private:
  * Create a Windows Error Report, add the user log and video, and add it to the WER queue
  * Launch CrashReportClient.exe to intercept the report and upload to our local site
  */
-int32 ReportCrashUsingCrashReportClient(EXCEPTION_POINTERS* ExceptionInfo, const TCHAR* ErrorMessage, EErrorReportUI ReportUI, bool bIsEnsure)
+int32 ReportCrashUsingCrashReportClient(EXCEPTION_POINTERS* ExceptionInfo, const TCHAR* ErrorMessage, EErrorReportUI ReportUI)
 {
 	// Flush out the log
 	GLog->Flush();
@@ -299,14 +295,14 @@ int32 ReportCrashUsingCrashReportClient(EXCEPTION_POINTERS* ExceptionInfo, const
 			{
 				// No super safe due to dynamic memory allocations, but at least enables new functionality.
 				// Introduces a new runtime crash context. Will replace all Windows related crash reporting.
-				FWindowsPlatformCrashContext CrashContext;
+				FPlatformCrashContext CrashContext;
 
 				const FString CrashContextXMLPath = FPaths::Combine( *FPaths::GameLogDir(), *CrashContext.GetUniqueCrashName(), FPlatformCrashContext::CrashContextRuntimeXMLNameW );
 				CrashContext.SerializeAsXML( *CrashContextXMLPath );
 				WerReportAddFile( ReportHandle, *CrashContextXMLPath, WerFileTypeOther, WER_FILE_ANONYMOUS_DATA );
 
-				const FString MinidumpFileName = FPaths::Combine( *FPaths::GameLogDir(), *CrashContext.GetUniqueCrashName(), *FGenericCrashContext::UE4MinidumpName );
-				if (WriteMinidump( *MinidumpFileName, ExceptionInfo, bIsEnsure ))
+				const FString MinidumpFileName = FPaths::Combine( *FPaths::GameLogDir(), *CrashContext.GetUniqueCrashName(), TEXT("UE4Minidump.dmp") );
+				if( WriteMinidump( *MinidumpFileName, ExceptionInfo ) )
 				{
 					WerReportAddFile( ReportHandle, *MinidumpFileName, WerFileTypeMinidump, WER_FILE_ANONYMOUS_DATA );
 				}
@@ -336,19 +332,13 @@ int32 ReportCrashUsingCrashReportClient(EXCEPTION_POINTERS* ExceptionInfo, const
 		FString CrashReportClientArguments;
 
 		// Suppress the user input dialog if we're running in unattended mode
-		bool bNoDialog = FApp::IsUnattended() || ReportUI == EErrorReportUI::ReportInUnattendedMode || IsRunningDedicatedServer();
+		bool bNoDialog = FApp::IsUnattended() || ReportUI == EErrorReportUI::ReportInUnattendedMode;
 		if( bNoDialog )
 		{
 			CrashReportClientArguments += TEXT( " -Unattended" );
 		}
 
 		CrashReportClientArguments += FString( TEXT( " -AppName=" ) ) + ReportInformation.wzApplicationName;
-
-		const FString DownstreamStorage = FWindowsPlatformStackWalk::GetDownstreamStorage();
-		if (!DownstreamStorage.IsEmpty())
-		{
-			CrashReportClientArguments += FString(TEXT(" -DebugSymbols=")) + DownstreamStorage;
-		}
 
 		static const TCHAR CrashReportClientExeName[] = TEXT( "CrashReportClient.exe" );
 		FString CrashClientPath = FString( TEXT( "..\\..\\..\\Engine\\Binaries" ) ) / FPlatformProcess::GetBinariesSubdirectory() / CrashReportClientExeName;
@@ -404,7 +394,7 @@ void NewReportEnsure( const TCHAR* ErrorMessage )
 		FPlatformMisc::RaiseException( 1 );
 	}
 #if !PLATFORM_SEH_EXCEPTIONS_DISABLED
-	__except(ReportCrashUsingCrashReportClient(GetExceptionInformation(), ErrorMessage, EErrorReportUI::ReportInUnattendedMode, true))
+	__except(ReportCrashUsingCrashReportClient(GetExceptionInformation(), ErrorMessage, EErrorReportUI::ReportInUnattendedMode))
 	CA_SUPPRESS(6322)
 	{
 	}
@@ -487,12 +477,12 @@ int32 ReportCrash( LPEXCEPTION_POINTERS ExceptionInfo )
 #if WINVER > 0x502	// Windows Error Reporting is not supported on Windows XP
 	if (GUseCrashReportClient)
 	{
-		ReportCrashUsingCrashReportClient( ExceptionInfo, GErrorMessage, EErrorReportUI::ShowDialog, false );
+		ReportCrashUsingCrashReportClient( ExceptionInfo, GErrorMessage, EErrorReportUI::ShowDialog );
 	}
 	else
 #endif		// WINVER
 	{
-		WriteMinidump( MiniDumpFilenameW, ExceptionInfo, false );
+		WriteMinidump( MiniDumpFilenameW, ExceptionInfo );
 
 #if UE_BUILD_SHIPPING && WITH_EDITOR
 		uint32 dwOpt = 0;
@@ -503,7 +493,7 @@ int32 ReportCrash( LPEXCEPTION_POINTERS ExceptionInfo )
 	// Then try run time crash processing and broadcast information about a crash.
 	FCoreDelegates::OnHandleSystemError.Broadcast();
 
-	const bool bGenerateRuntimeCallstack = FParse::Param(FCommandLine::Get(), TEXT("ForceLogCallstacks")) || FEngineBuildSettings::IsInternalBuild() || FEngineBuildSettings::IsPerforceBuild() || FEngineBuildSettings::IsSourceDistribution();
+	const bool bGenerateRuntimeCallstack = FEngineBuildSettings::IsInternalBuild() || FEngineBuildSettings::IsPerforceBuild() || FEngineBuildSettings::IsSourceDistribution();
 	if (bGenerateRuntimeCallstack)
 	{
 		const SIZE_T StackTraceSize = 65535;
@@ -523,10 +513,6 @@ int32 ReportCrash( LPEXCEPTION_POINTERS ExceptionInfo )
 
 		GMalloc->Free( StackTrace );
 	}
-
-#if !UE_BUILD_SHIPPING
-	FPlatformStackWalk::UploadLocalSymbols();
-#endif
 
 	return EXCEPTION_EXECUTE_HANDLER;
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -33,7 +33,6 @@ class FWebBrowserHandler
 	, public CefRenderHandler
 	, public CefRequestHandler
 	, public CefKeyboardHandler
-	, public CefJSDialogHandler
 {
 public:
 
@@ -65,6 +64,13 @@ public:
 	{
 		BrowserPopupFeatures = InPopupFeatures;
 	}
+
+	/** Sets whether to show messages on loading errors. */
+	void SetShowErrorMessage(bool InShowErrorMessage)
+	{
+		ShowErrorMessage = InShowErrorMessage;
+	}
+
 
 public:
 
@@ -100,11 +106,6 @@ public:
 		return this;
 	}
 
-	virtual CefRefPtr<CefJSDialogHandler> GetJSDialogHandler() override
-	{
-		return this;
-	}
-
 	virtual bool OnProcessMessageReceived(CefRefPtr<CefBrowser> Browser,
 		CefProcessId SourceProcess,
 		CefRefPtr<CefProcessMessage> Message) override;
@@ -125,23 +126,7 @@ public:
 	virtual void OnAfterCreated(CefRefPtr<CefBrowser> Browser) override;
 	virtual bool DoClose(CefRefPtr<CefBrowser> Browser) override;
 	virtual void OnBeforeClose(CefRefPtr<CefBrowser> Browser) override;
-
-	virtual bool OnBeforePopup(CefRefPtr<CefBrowser> Browser,
-		CefRefPtr<CefFrame> Frame,
-		const CefString& Target_Url,
-		const CefString& Target_Frame_Name,
-		CefLifeSpanHandler::WindowOpenDisposition /* Target_Disposition */,
-		bool /* User_Gesture */,
-		const CefPopupFeatures& PopupFeatures,
-		CefWindowInfo& WindowInfo,
-		CefRefPtr<CefClient>& Client,
-		CefBrowserSettings& Settings,
-		bool* no_javascript_access) override 
-	{
-		return OnBeforePopup(Browser, Frame, Target_Url, Target_Frame_Name, PopupFeatures, WindowInfo, Client, Settings, no_javascript_access);
-	}
-
-	virtual bool OnBeforePopup(CefRefPtr<CefBrowser> Browser,
+	virtual bool OnBeforePopup(CefRefPtr<CefBrowser> Browser, 
 		CefRefPtr<CefFrame> Frame, 
 		const CefString& Target_Url, 
 		const CefString& Target_Frame_Name,
@@ -149,7 +134,7 @@ public:
 		CefWindowInfo& WindowInfo,
 		CefRefPtr<CefClient>& Client, 
 		CefBrowserSettings& Settings,
-		bool* no_javascript_access) ;
+		bool* no_javascript_access)  override;
 
 public:
 
@@ -173,7 +158,7 @@ public:
 public:
 
 	// CefRenderHandler Interface
-	virtual bool GetRootScreenRect(CefRefPtr<CefBrowser> Browser, CefRect& Rect) override;
+
 	virtual bool GetViewRect(CefRefPtr<CefBrowser> Browser, CefRect& Rect) override;
 	virtual void OnPaint(CefRefPtr<CefBrowser> Browser,
 		PaintElementType Type,
@@ -191,26 +176,15 @@ public:
 
 	// CefRequestHandler Interface
 
-	virtual ReturnValue OnBeforeResourceLoad(
-		CefRefPtr<CefBrowser> Browser,
+	virtual bool OnBeforeResourceLoad(CefRefPtr<CefBrowser> Browser,
 		CefRefPtr<CefFrame> Frame,
-		CefRefPtr<CefRequest> Request,
-		CefRefPtr<CefRequestCallback> Callback) override;
+		CefRefPtr<CefRequest> Request) override;
 	virtual void OnRenderProcessTerminated(CefRefPtr<CefBrowser> Browser, TerminationStatus Status) override;
 	virtual bool OnBeforeBrowse(CefRefPtr<CefBrowser> Browser,
 		CefRefPtr<CefFrame> Frame,
 		CefRefPtr<CefRequest> Request,
 		bool IsRedirect) override;
-	virtual CefRefPtr<CefResourceHandler> GetResourceHandler(
-		CefRefPtr<CefBrowser> Browser,
-		CefRefPtr<CefFrame> Frame,
-		CefRefPtr<CefRequest> Request ) override;
-	virtual bool OnCertificateError(
-		CefRefPtr<CefBrowser> Browser,
-		cef_errorcode_t CertError,
-		const CefString& RequestUrl,
-		CefRefPtr<CefSSLInfo> SslInfo,
-		CefRefPtr<CefRequestCallback> Callback ) override;
+	virtual CefRefPtr<CefResourceHandler> GetResourceHandler( CefRefPtr<CefBrowser> Browser, CefRefPtr< CefFrame > Frame, CefRefPtr<CefRequest> Request ) override;
 
 public:
 	// CefKeyboardHandler interface
@@ -218,20 +192,11 @@ public:
 		const CefKeyEvent& Event,
 		CefEventHandle OsEvent) override;
 
-public:
-	// CefJSDialogHandler interface
-
-	virtual bool OnJSDialog(CefRefPtr<CefBrowser> Browser, const CefString& OriginUrl, const CefString& AcceptLang, JSDialogType DialogType, const CefString& MessageText, const CefString& DefaultPromptText, CefRefPtr<CefJSDialogCallback> Callback, bool& OutSuppressMessage) override;
-
-	virtual bool OnBeforeUnloadDialog(CefRefPtr<CefBrowser> Browser, const CefString& MessageText, bool IsReload, CefRefPtr<CefJSDialogCallback> Callback) override;
-
-	virtual void OnResetDialogState(CefRefPtr<CefBrowser> Browser) override;
-
 private:
 
 	bool ShowDevTools(const CefRefPtr<CefBrowser>& Browser);
 
-	/** Weak Pointer to our Web Browser window so that events can be passed on while it's valid.*/
+	/** Weak Pointer to our Web Browser window so that events can be passed on while it's valid*/
 	TWeakPtr<FWebBrowserWindow> BrowserWindowPtr;
 	
 	/** Weak Pointer to the parent web browser window */
@@ -239,6 +204,15 @@ private:
 
 	/** Stores popup window features and settings */
 	TSharedPtr<FWebBrowserPopupFeatures> BrowserPopupFeatures;
+
+	/** Whether to show an error message in case of loading errors. */
+	bool ShowErrorMessage;
+
+	/** Size and position of the popup widget. */
+	CefRect PopupRect;
+
+	/** Set to true to show the popup widget on next popup size change. */
+	bool bShowPopupRequested;
 
 	// Include the default reference counting implementation.
 	IMPLEMENT_REFCOUNTING(FWebBrowserHandler);

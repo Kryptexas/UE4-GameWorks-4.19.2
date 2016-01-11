@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessSubsurface.h: Screenspace subsurface scattering implementation
@@ -15,8 +15,20 @@
 class FRCPassPostProcessSubsurfaceVisualize : public TRenderingCompositePassBase<1, 1>
 {
 public:
-	FRCPassPostProcessSubsurfaceVisualize(FRHICommandList& RHICmdList);
+	FRCPassPostProcessSubsurfaceVisualize();
 
+	// interface FRenderingCompositePass ---------
+	virtual void Process(FRenderingCompositePassContext& Context) override;
+	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
+	virtual void Release() override { delete this; }
+};
+
+// ePId_Input0: SceneColor
+// derives from TRenderingCompositePassBase<InputCount, OutputCount> 
+// uses some GBuffer attributes
+class FRCPassPostProcessSubsurfaceExtractSpecular : public TRenderingCompositePassBase<1, 1>
+{
+public:
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context) override;
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
@@ -31,7 +43,7 @@ class FRCPassPostProcessSubsurfaceSetup : public TRenderingCompositePassBase<1, 
 {
 public:
 	// constructor
-	FRCPassPostProcessSubsurfaceSetup(FViewInfo& View, bool bInHalfRes);
+	FRCPassPostProcessSubsurfaceSetup(FViewInfo& View);
 
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context) override;
@@ -39,20 +51,18 @@ public:
 	virtual void Release() override { delete this; }
 
 	FIntRect ViewRect;
-	bool bHalfRes;
 };
 
 
 // derives from TRenderingCompositePassBase<InputCount, OutputCount>
 // ePId_Input0: SceneColor (horizontal blur) or the pass before (vertical blur)
-// ePId_Input1: optional Setup pass (only for InDirection==1)
 // modifies SceneColor, uses some GBuffer attributes
-class FRCPassPostProcessSubsurface : public TRenderingCompositePassBase<2, 1>
+class FRCPassPostProcessSubsurface : public TRenderingCompositePassBase<1, 1>
 {
 public:
 	// constructor
 	// @param InDirection 0:horizontal/1:vertical
-	FRCPassPostProcessSubsurface(uint32 InDirection, bool bInHalfRes);
+	FRCPassPostProcessSubsurface(uint32 InDirection);
 
 	// interface FRenderingCompositePass ---------
 
@@ -63,27 +73,19 @@ public:
 private:
 	// 0:horizontal/1:vertical
 	uint32 Direction;
-	bool bHalfRes;
 };
 
 
 // derives from TRenderingCompositePassBase<InputCount, OutputCount>
-// ePId_Input0: SceneColor before Screen Space Subsurface input
-// ePId_Input1: optional output from FRCPassPostProcessSubsurface (if not present we do cheap reconstruction for Scalability)
-// ePId_Input2: optional SubsurfaceSetup, can be half res
+// ePId_Input0: output from FRCPassPostProcessSubsurface
+// ePId_Input1: SceneColor before Screen Space Subsurface input
 // modifies SceneColor, uses some GBuffer attributes
-class FRCPassPostProcessSubsurfaceRecombine : public TRenderingCompositePassBase<3, 1>
+class FRCPassPostProcessSubsurfaceRecombine : public TRenderingCompositePassBase<2, 1>
 {
 public:
-	// constructor
-	FRCPassPostProcessSubsurfaceRecombine(bool bInHalfRes, bool bInSingleViewportMode);
-
 	// interface FRenderingCompositePass ---------
 
 	virtual void Process(FRenderingCompositePassContext& Context) override;
 	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
-
-	bool bHalfRes;
-	bool bSingleViewportMode;
 };

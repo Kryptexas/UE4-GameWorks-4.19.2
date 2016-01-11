@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -40,42 +40,13 @@ struct FRIENDSANDCHAT_API FFriendsMarkupStyle
 	static const FFriendsMarkupStyle& GetDefault();
 
 	/** Markup Button style */
-	UPROPERTY(EditAnywhere, Category = Appearance)
+	UPROPERTY()
 	FButtonStyle MarkupButtonStyle;
 	FFriendsMarkupStyle& SetMarkupButtonStyle(const FButtonStyle& ButtonStyle);
 
-	UPROPERTY(EditAnywhere, Category = Appearance)
+	UPROPERTY()
 	FTextBlockStyle MarkupTextStyle;
 	FFriendsMarkupStyle& SetMarkupTextStyle(const FTextBlockStyle& InTextStyle);
-
-	UPROPERTY(EditAnywhere, Category = Appearance)
-	FSlateBrush MarkupBackground;
-	FFriendsMarkupStyle& SetTipBackgroundBrush(const FSlateBrush& InChatBackgroundBrush);
-
-	UPROPERTY(EditAnywhere, Category = Appearance)
-	FSlateColor ButtonColor;
-	FFriendsMarkupStyle& SetButtonColor(const FSlateColor& InColor);
-
-	UPROPERTY(EditAnywhere, Category = Appearance)
-	FSlateColor ButtonHoverColor;
-	FFriendsMarkupStyle& SetButtonHoverColor(const FSlateColor& InColor);
-
-	UPROPERTY(EditAnywhere, Category = Appearance)
-	FSlateColor TipColor;
-	FFriendsMarkupStyle& SetTipColor(const FSlateColor& InColor);
-
-	UPROPERTY(EditAnywhere, Category = Appearance)
-	FSlateBrush SeperatorBrush;
-	FFriendsMarkupStyle& SetSeperatorBrush(const FSlateBrush& Brush);
-
-	UPROPERTY(EditAnywhere, Category = Appearance)
-	float SeperatorThickness;
-
-	UPROPERTY(EditAnywhere, Category = Appearance)
-	FMargin MarkupPadding;
-
-	UPROPERTY(EditAnywhere, Category = Appearance)
-	FMargin ButtonPadding;
 
 };
 

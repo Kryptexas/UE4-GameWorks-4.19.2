@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,8 +11,8 @@ public:
 	void Construct(const FArguments& InArgs, UEdGraphPin* InGraphPinObj);
 
 protected:
-	//~ Begin SGraphPin Interface
+	// Begin SGraphPin interface
 	virtual FSlateColor GetPinColor() const override;
-	//~ End SGraphPin Interface
+	// End SGraphPin interface
 
 };

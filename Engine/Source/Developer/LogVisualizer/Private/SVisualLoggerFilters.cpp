@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LogVisualizer.h"
 #include "SFilterWidget.h"
@@ -37,6 +37,7 @@ void SVisualLoggerFilters::Construct(const FArguments& InArgs, const TSharedRef<
 			.Text(LOCTEXT("GraphFilters", "Graph Filters"))
 		];
 
+	GraphsFilterCombo->SetVisibility(GraphFilters.Num() > 0 ? EVisibility::Visible : EVisibility::Collapsed);
 
 	FilterBox->AddSlot()
 		.Padding(3, 3)
@@ -49,7 +50,7 @@ void SVisualLoggerFilters::Construct(const FArguments& InArgs, const TSharedRef<
 			.VAlign(VAlign_Center)
 			[
 				SNew(SImage)
-				.Visibility_Lambda([this]()->EVisibility{ return this->GraphsSearchString.Len() > 0 ? EVisibility::Visible : EVisibility::Hidden; })
+				.Visibility_Lambda([this]()->EVisibility{ return this->GraphsFilter.Len() > 0 ? EVisibility::Visible : EVisibility::Hidden; })
 				.Image(FLogVisualizerStyle::Get().GetBrush("Filters.FilterIcon"))
 			]
 			+ SHorizontalBox::Slot()
@@ -58,58 +59,21 @@ void SVisualLoggerFilters::Construct(const FArguments& InArgs, const TSharedRef<
 				GraphsFilterCombo.ToSharedRef()
 			]
 		];
-
-	for (auto& CurrentCategory : FVisualLoggerFilters::Get().Categories)
-	{
-		AddFilterCategory(CurrentCategory.CategoryName, (ELogVerbosity::Type)CurrentCategory.LogVerbosity, false);
-	}
-
-	GraphsFilterCombo->SetVisibility(CachedDatasPerGraph.Num() ? EVisibility::Visible : EVisibility::Collapsed);
-
-	FVisualLoggerFilters::Get().OnFilterCategoryAdded.AddRaw(this, &SVisualLoggerFilters::OnFilterCategoryAdded);
-	FVisualLoggerFilters::Get().OnFilterCategoryRemoved.AddRaw(this, &SVisualLoggerFilters::OnFilterCategoryRemoved);
-	FVisualLoggerDatabase::Get().GetEvents().OnItemSelectionChanged.AddRaw(this, &SVisualLoggerFilters::OnItemsSelectionChanged);
-
-	FVisualLoggerDatabase::Get().GetEvents().OnGraphAddedEvent.AddRaw(this, &SVisualLoggerFilters::OnGraphAddedEvent);
-	FVisualLoggerDatabase::Get().GetEvents().OnGraphDataNameAddedEvent.AddRaw(this, &SVisualLoggerFilters::OnGraphDataNameAddedEvent);
-}
-
-SVisualLoggerFilters::~SVisualLoggerFilters()
-{
-	FVisualLoggerFilters::Get().OnFilterCategoryAdded.RemoveAll(this);
-	FVisualLoggerFilters::Get().OnFilterCategoryRemoved.RemoveAll(this);
-	FVisualLoggerDatabase::Get().GetEvents().OnItemSelectionChanged.RemoveAll(this);
-
-	FVisualLoggerDatabase::Get().GetEvents().OnGraphAddedEvent.RemoveAll(this);
-	FVisualLoggerDatabase::Get().GetEvents().OnGraphDataNameAddedEvent.RemoveAll(this);
-}
-
-void SVisualLoggerFilters::ResetData()
-{
-	for (auto& CurrentFilter : Filters)
-	{
-		FilterBox->RemoveSlot(CurrentFilter);
-	}
-	Filters.Reset();
-	CachedDatasPerGraph.Reset();
-
-	GraphsSearchString.Reset();
-	CachedGraphFilters.Reset();
 }
 
 bool SVisualLoggerFilters::GraphSubmenuVisibility(const FName MenuName)
 {
-	if (GraphsSearchString.Len() == 0)
+	if (GraphsFilter.Len() == 0)
 	{
 		return true;
 	}
 
-	if (CachedDatasPerGraph.Contains(MenuName))
+	if (GraphFilters.Find(MenuName) != NULL)
 	{
-		const TArray<FName>& DataNames = CachedDatasPerGraph[MenuName];
-		for (const FName& CurrentData : DataNames)
+		const TArray<FString> DataNames = *GraphFilters.Find(MenuName);
+		for (const auto& CurrentData : DataNames)
 		{
-			if (CurrentData.ToString().Find(GraphsSearchString) != INDEX_NONE)
+			if (CurrentData.Find(GraphsFilter) != INDEX_NONE)
 			{
 				return true;
 			}
@@ -119,16 +83,6 @@ bool SVisualLoggerFilters::GraphSubmenuVisibility(const FName MenuName)
 	return false;
 }
 
-void SVisualLoggerFilters::OnGraphAddedEvent(const FName& OwnerName, const FName& GraphName)
-{
-	CachedDatasPerGraph.FindOrAdd(GraphName);
-}
-
-void SVisualLoggerFilters::OnGraphDataNameAddedEvent(const FName& OwnerName, const FName& GraphName, const FName& DataName)
-{
-	CachedDatasPerGraph.FindOrAdd(GraphName).AddUnique(DataName);
-}
-
 TSharedRef<SWidget> SVisualLoggerFilters::MakeGraphsFilterMenu()
 {
 	FMenuBuilder MenuBuilder(true, NULL);
@@ -136,51 +90,31 @@ TSharedRef<SWidget> SVisualLoggerFilters::MakeGraphsFilterMenu()
 	MenuBuilder.BeginSection(TEXT("Graphs"));
 	{
 		TSharedRef<SSearchBox> FiltersSearchBox = SNew(SSearchBox)
-			.InitialText(FText::FromString(GraphsSearchString))
-			.HintText(LOCTEXT("GraphsFilterSearchHint", "Quick find"))
+			.InitialText(FText::FromString(GraphsFilter))
+			.HintText(LOCTEXT("GraphsFilterSearchHint", "Quick filter"))
 			.OnTextChanged(this, &SVisualLoggerFilters::OnSearchChanged);
 
 		MenuBuilder.AddWidget(FiltersSearchBox, LOCTEXT("FiltersSearchMenuWidget", ""));
 
-		if (CachedDatasPerGraph.Num() > 0)
+		for (auto Iter = GraphFilters.CreateIterator(); Iter; ++Iter)
 		{
-			for (auto Iter(CachedDatasPerGraph.CreateConstIterator()); Iter; ++Iter)
-			{
-				if (Iter.Value().Num() == 0)
-				{
-					continue;
-				}
-				const FName GraphName = Iter.Key();
-
-				bool bHighlightName = false;
-				const TArray<FName> SelectedOwners = FVisualLoggerDatabase::Get().GetSelectedRows();
-				for (FName CurrentOwner : SelectedOwners)
-				{
-					bHighlightName |= FVisualLoggerGraphsDatabase::Get().ContainsGraphByName(CurrentOwner, GraphName);
-					if (bHighlightName)
-					{
-						break;
-					}
-				}
-
-				const FText& LabelText = bHighlightName ? FText::FromString(FString::Printf(TEXT("* %s"), *GraphName.ToString())) : FText::FromString(FString::Printf(TEXT("  %s"), *GraphName.ToString()));
-				MenuBuilder.AddSubMenu(
-					LabelText,
-					FText::Format(LOCTEXT("FilterByTooltipPrefix", "Filter by {0}"), LabelText),
-					FNewMenuDelegate::CreateSP(this, &SVisualLoggerFilters::CreateFiltersMenuCategoryForGraph, GraphName),
-					FUIAction(
-					FExecuteAction::CreateSP(this, &SVisualLoggerFilters::GraphFilterCategoryClicked, GraphName),
-					FCanExecuteAction(),
-					FIsActionChecked::CreateSP(this, &SVisualLoggerFilters::IsGraphFilterCategoryInUse, GraphName),
-					FIsActionButtonVisible::CreateLambda([this, GraphName]()->bool{return GraphSubmenuVisibility(GraphName); })
-					),
-					NAME_None,
-					EUserInterfaceActionType::ToggleButton
-					);
-			}
+			const FText& LabelText = FText::FromString(Iter->Key.ToString());
+			MenuBuilder.AddSubMenu(
+				LabelText,
+				FText::Format(LOCTEXT("FilterByTooltipPrefix", "Filter by {0}"), LabelText),
+				FNewMenuDelegate::CreateSP(this, &SVisualLoggerFilters::CreateFiltersMenuCategoryForGraph, Iter->Key),
+				FUIAction(
+				FExecuteAction::CreateSP(this, &SVisualLoggerFilters::GraphFilterCategoryClicked, Iter->Key),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP(this, &SVisualLoggerFilters::IsGraphFilterCategoryInUse, Iter->Key),
+				FIsActionButtonVisible::CreateLambda([this, LabelText]()->bool{return GraphSubmenuVisibility(*LabelText.ToString()); })
+				),
+				NAME_None,
+				EUserInterfaceActionType::ToggleButton
+				);
 		}
 	}
-	MenuBuilder.EndSection();
+	MenuBuilder.EndSection(); //ContentBrowserFilterBasicAsset
 
 
 	FDisplayMetrics DisplayMetrics;
@@ -200,71 +134,111 @@ TSharedRef<SWidget> SVisualLoggerFilters::MakeGraphsFilterMenu()
 		];
 }
 
-void SVisualLoggerFilters::GraphFilterCategoryClicked(FName GraphName)
+void SVisualLoggerFilters::GraphFilterCategoryClicked(FName MenuCategory)
 {
-	const bool bNewSet = !IsGraphFilterCategoryInUse(GraphName);
+	const bool bNewSet = !IsGraphFilterCategoryInUse(MenuCategory);
 
-	for (auto Iter(CachedDatasPerGraph[GraphName].CreateConstIterator()); Iter; ++Iter)
+	if (GraphFilters.Contains(MenuCategory))
 	{
-		const FName& DataName = *Iter;
-		FVisualLoggerFilters::Get().DisableGraphData(GraphName, DataName, !bNewSet);
-	}
+		bool bChanged = false;
+		for (const FString &Filter : GraphFilters[MenuCategory])
+		{
+			const FString GraphFilterName = MenuCategory.ToString() + TEXT("$") + Filter;
+			FCategoryFiltersManager::Get().GetCategory(GraphFilterName).Enabled = bNewSet;
+			bChanged = true;
+		}
 
-	FLogVisualizer::Get().GetEvents().OnFiltersChanged.Broadcast();
-	InvalidateCanvas();
+		if (bChanged)
+		{
+			FLogVisualizer::Get().GetVisualLoggerEvents().OnFiltersChanged.ExecuteIfBound();
+			InvalidateCanvas();
+		}
+	}
 }
 
-bool SVisualLoggerFilters::IsGraphFilterCategoryInUse(FName GraphName) const
+bool SVisualLoggerFilters::IsGraphFilterCategoryInUse(FName MenuCategory) const
 {
 	bool bInUse = false;
-
-	for (auto Iter(CachedDatasPerGraph[GraphName].CreateConstIterator()); Iter; ++Iter)
+	if (GraphFilters.Contains(MenuCategory))
 	{
-		const FName& DataName = *Iter;
-		bInUse |= FVisualLoggerFilters::Get().IsGraphDataDisabled(GraphName, DataName) == false;
+		for (const FString& Filter : GraphFilters[MenuCategory])
+		{
+			const FString GraphFilterName = MenuCategory.ToString() + TEXT("$") + Filter;
+			bInUse |= FCategoryFiltersManager::Get().GetCategory(GraphFilterName).Enabled;
+		}
 	}
 
 	return bInUse;
 }
 
 
-void SVisualLoggerFilters::CreateFiltersMenuCategoryForGraph(FMenuBuilder& MenuBuilder, FName GraphName) const
-{	
-	for (auto Iter(CachedDatasPerGraph[GraphName].CreateConstIterator()); Iter; ++Iter)
+void SVisualLoggerFilters::CreateFiltersMenuCategoryForGraph(FMenuBuilder& MenuBuilder, FName MenuCategory) const
+{
+	auto FiltersFromGraph = GraphFilters[MenuCategory];
+	for (auto Iter = FiltersFromGraph.CreateIterator(); Iter; ++Iter)
 	{
-		const FName& DataName = *Iter;
-		const FText& LabelText = FText::FromString(DataName.ToString());
+		FName Name = **Iter;
+		const FText& LabelText = FText::FromString(Name.ToString());
 		MenuBuilder.AddMenuEntry(
 			LabelText,
 			FText::Format(LOCTEXT("FilterByTooltipPrefix", "Filter by {0}"), LabelText),
 			FSlateIcon(),
 			FUIAction(
-			FExecuteAction::CreateSP(this, &SVisualLoggerFilters::FilterByTypeClicked, GraphName, DataName),
+			FExecuteAction::CreateSP(this, &SVisualLoggerFilters::FilterByTypeClicked, MenuCategory, Name),
 			FCanExecuteAction(),
-			FIsActionChecked::CreateSP(this, &SVisualLoggerFilters::IsAssetTypeActionsInUse, GraphName, DataName),
-			FIsActionButtonVisible::CreateLambda([this, LabelText]()->bool{return this->GraphsSearchString.Len() == 0 || LabelText.ToString().Find(this->GraphsSearchString) != INDEX_NONE; })),
+			FIsActionChecked::CreateSP(this, &SVisualLoggerFilters::IsAssetTypeActionsInUse, MenuCategory, Name),
+			FIsActionButtonVisible::CreateLambda([this, LabelText]()->bool{return this->GraphsFilter.Len() == 0 || LabelText.ToString().Find(this->GraphsFilter) != INDEX_NONE; })),
 			NAME_None,
 			EUserInterfaceActionType::ToggleButton
 			);
 	}
 }
 
-void SVisualLoggerFilters::FilterByTypeClicked(FName GraphName, FName DataName)
+void SVisualLoggerFilters::FilterByTypeClicked(FName InGraphName, FName InDataName)
 {
-	const bool bIsGraphDataDisabled = FVisualLoggerFilters::Get().IsGraphDataDisabled(GraphName, DataName);
-	FVisualLoggerFilters::Get().DisableGraphData(GraphName, DataName, !bIsGraphDataDisabled);
-	FLogVisualizer::Get().GetEvents().OnFiltersChanged.Broadcast();
-	InvalidateCanvas();
+	if (GraphFilters.Contains(InGraphName))
+	{
+		bool bChanged = false;
+		for (const FString& Filter : GraphFilters[InGraphName])
+		{
+			if (Filter == InDataName.ToString())
+			{
+				const FString GraphFilterName = InGraphName.ToString() + TEXT("$") + Filter;
+				FCategoryFilter& CategoryFilter = FCategoryFiltersManager::Get().GetCategory(GraphFilterName);
+				CategoryFilter.Enabled = !CategoryFilter.Enabled;
+				bChanged = true;
+			}
+		}
+
+		if (bChanged)
+		{
+			FLogVisualizer::Get().GetVisualLoggerEvents().OnFiltersChanged.ExecuteIfBound();
+			InvalidateCanvas();
+		}
+	}
 }
 
-bool SVisualLoggerFilters::IsAssetTypeActionsInUse(FName GraphName, FName DataName) const
+bool SVisualLoggerFilters::IsAssetTypeActionsInUse(FName InGraphName, FName InDataName) const
 {
-	return FVisualLoggerFilters::Get().IsGraphDataDisabled(GraphName, DataName) == false;
+	if (GraphFilters.Contains(InGraphName))
+	{
+		for (const FString& Filter : GraphFilters[InGraphName])
+		{
+			if (Filter == InDataName.ToString())
+			{
+				const FString GraphFilterName = InGraphName.ToString() + TEXT("$") + Filter;
+				return FCategoryFiltersManager::Get().GetCategory(GraphFilterName).Enabled;
+			}
+		}
+	}
+
+	return false;
 }
 
 void SVisualLoggerFilters::OnSearchChanged(const FText& Filter)
 {
-	GraphsSearchString = Filter.ToString();
+	GraphsFilter = Filter.ToString();
+
 	InvalidateCanvas();
 }
 
@@ -301,85 +275,54 @@ uint32 SVisualLoggerFilters::GetCategoryIndex(const FString& InFilterName) const
 	return INDEX_NONE;
 }
 
-void SVisualLoggerFilters::AddFilterCategory(FString InName, ELogVerbosity::Type InVerbosity, bool bMarkAsInUse)
+void SVisualLoggerFilters::AddFilter(const FString& InFilterName)
 {
-	int32 CharIndex = INDEX_NONE;
-	if (InName.FindChar('$', CharIndex) == true)
+	for (auto& CurrentFilter : Filters)
 	{
-		TArray<FString> GroupAndName;
-		InName.ParseIntoArray(GroupAndName, TEXT("$"), true);
-		if (ensure(GroupAndName.Num() == 2))
+		if (CurrentFilter->GetFilterNameAsString() == InFilterName)
 		{
-			CachedGraphFilters.FindOrAdd(*GroupAndName[0]).AddUnique(GroupAndName[1]);
-			CachedDatasPerGraph.FindOrAdd(*GroupAndName[0]).AddUnique(*GroupAndName[1]);
+			return;
 		}
 	}
-	else
+
+	const FLinearColor Color = FLogVisualizer::Get().GetColorForCategory(InFilterName);
+	TSharedRef<SFilterWidget> NewFilter =
+		SNew(SFilterWidget)
+		.FilterName(*InFilterName)
+		.ColorCategory(Color)
+		.OnFilterChanged(SFilterWidget::FOnSimpleRequest::CreateRaw(this, &SVisualLoggerFilters::OnFiltersChanged))
+		//.OnRequestRemove(this, &SLogFilterList::RemoveFilter)
+		//.OnRequestDisableAll(this, &SLogFilterList::DisableAllFilters)
+		//.OnRequestRemoveAll(this, &SLogFilterList::RemoveAllFilters);
+		;
+
+	bool bIsSet = true;
+
+	if (FCategoryFiltersManager::Get().IsValidCategory(InFilterName))
 	{
-		for (TSharedRef<SFilterWidget>& CurrentFilter : Filters)
-		{
-			if (CurrentFilter->GetFilterNameAsString() == InName)
-			{
-				return;
-			}
-		}
-
-		const FLinearColor Color = FLogVisualizer::Get().GetColorForCategory(InName);
-		TSharedRef<SFilterWidget> NewFilter =
-			SNew(SFilterWidget)
-			.FilterName(*InName)
-			.ColorCategory(Color)
-			.OnFilterChanged(SFilterWidget::FOnSimpleRequest::CreateRaw(this, &SVisualLoggerFilters::OnFiltersChanged));
-
-		Filters.Add(NewFilter);
-		FilterBox->AddSlot()
-			.Padding(2, 2)
-			[
-				NewFilter
-			];
+		bIsSet = FCategoryFiltersManager::Get().GetCategory(InFilterName).Enabled;
 	}
+	FCategoryFiltersManager::Get().AddCategory(InFilterName, ELogVerbosity::All);
+	Filters.Add(NewFilter);
 
-	if (bMarkAsInUse)
-	{
-		FVisualLoggerFilters& PresistentFilters = FVisualLoggerFilters::Get();
-		for (int32 Index = PresistentFilters.Categories.Num() - 1; Index >= 0; --Index)
-		{
-			FCategoryFilter& Category = PresistentFilters.Categories[Index];
-			if (Category.CategoryName == InName)
-			{
-				Category.bIsInUse = true;
-			}
-		}
-	}
+	FilterBox->AddSlot()
+		.Padding(2, 2)
+		[
+			NewFilter
+		];
+
+	GraphsFilterCombo->SetVisibility(GraphFilters.Num() > 0 ? EVisibility::Visible : EVisibility::Collapsed);
 }
 
-void SVisualLoggerFilters::OnFilterCategoryAdded(FString InName, ELogVerbosity::Type InVerbosity)
+void SVisualLoggerFilters::ResetData()
 {
-	AddFilterCategory(InName, InVerbosity, false);
-	GraphsFilterCombo->SetVisibility(CachedGraphFilters.Num() > 0 ? EVisibility::Visible : EVisibility::Collapsed);
+	for (auto& CurrentFilter : Filters)
+	{
+		FilterBox->RemoveSlot(CurrentFilter);
+	}
+	Filters.Reset();
 }
 
-void SVisualLoggerFilters::OnFilterCategoryRemoved(FString InName)
-{
-	int32 CharIndex = INDEX_NONE;
-	if (InName.FindChar('$', CharIndex) == true)
-	{
-		//FIXME: Removing filter not implemented yet
-		ensureMsgf(0, TEXT("Removing filter not implemented yet"));
-	}
-	else
-	{
-		for (TSharedRef<SFilterWidget> CurrentFilter : Filters)
-		{
-			if (CurrentFilter->GetFilterNameAsString() == InName)
-			{
-				FilterBox->RemoveSlot(CurrentFilter);
-				Filters.Remove(CurrentFilter);
-				break;
-			}
-		}
-	}
-}
 
 void SVisualLoggerFilters::OnFiltersChanged()
 {
@@ -392,7 +335,15 @@ void SVisualLoggerFilters::OnFiltersChanged()
 		}
 	}
 
-	FLogVisualizer::Get().GetEvents().OnFiltersChanged.Broadcast();
+	FLogVisualizer::Get().GetVisualLoggerEvents().OnFiltersChanged.ExecuteIfBound();
+}
+
+void SVisualLoggerFilters::AddFilter(const FString& GraphName, const FString& DataName)
+{
+	GraphFilters.FindOrAdd(*GraphName).AddUnique(DataName);
+
+	FString GraphFilterName = GraphName + TEXT("$") + DataName;
+	FCategoryFiltersManager::Get().AddCategory(GraphFilterName, ELogVerbosity::All);
 }
 
 void SVisualLoggerFilters::OnFiltersSearchChanged(const FText& Filter)
@@ -400,19 +351,10 @@ void SVisualLoggerFilters::OnFiltersSearchChanged(const FText& Filter)
 
 }
 
-void SVisualLoggerFilters::OnItemsSelectionChanged(const FVisualLoggerDBRow& ChangedRow, int32 SelectedItemIndex)
+void SVisualLoggerFilters::OnItemSelectionChanged(const struct FVisualLogEntry& EntryItem)
 {
 	TArray<FVisualLoggerCategoryVerbosityPair> Categories;
-	const TArray<FName>& SelectedRows = FVisualLoggerDatabase::Get().GetSelectedRows();
-	for (auto& RowName : SelectedRows)
-	{
-		FVisualLoggerDBRow& DBRow = FVisualLoggerDatabase::Get().GetRowByName(RowName);
-		if (DBRow.GetCurrentItemIndex() != INDEX_NONE)
-		{
-			FVisualLoggerHelpers::GetCategories(DBRow.GetCurrentItem().Entry, Categories);
-		}
-	}
-
+	FVisualLoggerHelpers::GetCategories(EntryItem, Categories);
 	for (int32 Index = 0; Index < Filters.Num(); ++Index)
 	{
 		SFilterWidget& Filter = Filters[Index].Get();

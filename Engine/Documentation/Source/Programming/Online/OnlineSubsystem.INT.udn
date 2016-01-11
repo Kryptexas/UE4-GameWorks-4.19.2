@@ -119,13 +119,13 @@ Provides the interface for accessing online leaderboards.
 
 #### Voice
 
-Provides the interface for voice communication over network while in the game.
+Provides the interface for voice communication over network while in the game (NOT IMPLEMENTED YET).
 
 <!--Details can be found on the [](Programming/Online/Interfaces/Voice) page.-->
 
 #### Achievements
 
-Provides the interface for reading/writing/unlocking achievements.
+Provides the interface for reading/writing/unlocking achievements (NOT IMPLEMENTED YET).
 
 <!--Details can be found on the [](Programming/Online/Interfaces/Achievements) page.-->
 

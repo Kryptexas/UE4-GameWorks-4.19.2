@@ -1,10 +1,8 @@
-﻿INTSourceChangelist:2683782
+﻿INTSourceChangelist:2441509
 Availability: Public
 Title:라이팅 퀵스타트 가이드
 Crumbs:%ROOT%, GettingStarted
 Description:이 가이드에서는 다양한 라이팅 기법을 사용하여 작은 아파트에 조명 설치 작업을 해 보겠습니다.
-SkillLevel: Beginner
-Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -65,6 +63,7 @@ Version: 4.9
 	* [](Engine\Rendering\LightingAndShadows\QuickStart\5 "%Engine\Rendering\LightingAndShadows\QuickStart\5:description%")
 	* [](Engine\Rendering\LightingAndShadows\QuickStart\6 "%Engine\Rendering\LightingAndShadows\QuickStart\6:description%")
 	* [](Engine\Rendering\LightingAndShadows\QuickStart\7 "%Engine\Rendering\LightingAndShadows\QuickStart\7:description%")
+	* [](Engine\Rendering\LightingAndShadows\QuickStart\8 "%Engine\Rendering\LightingAndShadows\QuickStart\8:description%")
 	[/PARAM]
 [/OBJECT]
 

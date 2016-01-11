@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,8 +7,8 @@
 /**
  * Allows the user to type in custom text.  Only permits a single line of text to be entered.
  * 
- * * No Children
- * * Text Entry
+ * ● No Children
+ * ● Text Entry
  */
 UCLASS(meta=(DisplayName="Text Box"))
 class UMG_API UEditableTextBox : public UWidget
@@ -99,14 +99,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Behavior, AdvancedDisplay)
 	bool SelectAllTextOnCommit;
 
-	/** Whether the context menu can be opened */
-	UPROPERTY(EditAnywhere, Category = Behavior, AdvancedDisplay)
-	bool AllowContextMenu;
-
-	/** If we're on a platform that requires a virtual keyboard, what kind of keyboard should this widget use? */
-	UPROPERTY(EditAnywhere, Category = Behavior, AdvancedDisplay)
-	TEnumAsByte< EVirtualKeyboardType::Type > KeyboardType;
-
 public:
 
 	/** Called whenever the text is changed interactively by the user */
@@ -136,17 +128,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void ClearError();
 
-	//~ Begin UWidget Interface
+	// UWidget interface
 	virtual void SynchronizeProperties() override;
-	//~ End UWidget Interface
+	// End of UWidget interface
 
-	//~ Begin UVisual Interface
+	// UVisual interface
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
-	//~ End UVisual Interface
+	// End of UVisual interface
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void PostLoad() override;
-	//~ End UObject Interface
+	// End of UObject interface
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
@@ -154,7 +146,7 @@ public:
 #endif
 
 protected:
-	//~ Begin UWidget Interface
+	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	// End of UWidget
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -35,15 +35,12 @@ public:
 
 	// @param InWeight 0..1, excluding 0 as this is used to disable entries
 	// @param InData is copied with a memcpy
-	// @return pointer to the newly added entry
 	template <class T>
-	T* PushBlendableData(float InWeight, const T& InData)
+	void PushBlendableData(float InWeight, const T& InData)
 	{
 		FName BlendableType = T::GetFName();
 
-		FBlendableEntry* Ret = PushBlendableDataPtr(InWeight, BlendableType, (const uint8*)&InData, sizeof(T));
-
-		return (T*)Ret;
+		PushBlendableDataPtr(InWeight, BlendableType, (const uint8*)&InData, sizeof(T));
 	}
 
 	// used to blend multiple blendables of the given type with lerp into one final one
@@ -139,14 +136,13 @@ private:
 	// @param InWeight 0..1, excluding 0 as this is used to disable entries
 	// @param InData is copied
 	// @param InDataSize >0
-	// @return pointer to the newly added entry
-	FBlendableEntry* PushBlendableDataPtr(float InWeight, FName InBlendableType, const uint8* InData, uint32 InDataSize)
+	void PushBlendableDataPtr(float InWeight, FName InBlendableType, const uint8* InData, uint32 InDataSize)
 	{
 		check(InWeight > 0.0f && InWeight <= 1.0f);
 		check(InData);
 		check(InDataSize);
 
-		uint32 OldSize = Scratch.AddUninitialized(sizeof(FBlendableEntry) + InDataSize);
+		uint32 OldSize = Scratch.AddUninitialized(sizeof(FBlendableEntry)+InDataSize);
 
 		FBlendableEntry* Dst = (FBlendableEntry*)&Scratch[OldSize];
 
@@ -154,7 +150,5 @@ private:
 		Dst->BlendableType = InBlendableType;
 		Dst->DataSize = InDataSize;
 		memcpy(Dst->GetDataPtr(), InData, InDataSize);
-
-		return (FBlendableEntry*)Dst->GetDataPtr();
 	}
 };

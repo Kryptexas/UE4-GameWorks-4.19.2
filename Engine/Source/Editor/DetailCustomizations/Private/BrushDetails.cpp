@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "BrushDetails.h"
@@ -36,24 +36,26 @@ void FBrushDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 	// See if we have a volume. If we do - we hide the BSP stuff (solidity, order)
 	bool bHaveAVolume = false;
 	TArray< TWeakObjectPtr<UObject> > SelectedObjects = DetailLayout.GetDetailsView().GetSelectedObjects();
-	for (int32 ObjIdx = 0; ObjIdx < SelectedObjects.Num(); ObjIdx++)
+	for(int32 ObjIdx=0; ObjIdx<SelectedObjects.Num(); ObjIdx++)
 	{
-		if (ABrush* Brush = Cast<ABrush>(SelectedObjects[ObjIdx].Get()))
-		{
-			if (AVolume* Volume = Cast<AVolume>(Brush))
-			{
-				bHaveAVolume = true;
-			}
+		AVolume* Volume = Cast<AVolume>( SelectedObjects[ObjIdx].Get() );
 
-			if (!FActorEditorUtils::IsABuilderBrush(Brush))
+		if (Volume != NULL)
+		{
+			bHaveAVolume = true;
+		}
+		else
+		{
+			// Since the brush is not a volume, it is valid for the SelectedBSPBrushes list.
+			ABrush* Brush = Cast<ABrush>( SelectedObjects[ObjIdx].Get() );
+			if(!FActorEditorUtils::IsABuilderBrush(Brush))
 			{
 				// Store the selected actors for use later. Its fine to do this when CustomizeDetails is called because if the selected actors changes, CustomizeDetails will be called again on a new instance
 				// and our current resource would be destroyed.
-				SelectedBrushes.Add(Brush);
+				SelectedBSPBrushes.Add( Brush );
 			}
 		}
 	}
-
 	FMenuBuilder PolygonsMenuBuilder( true, CommandBindings );
 	{
 		PolygonsMenuBuilder.BeginSection("BrushDetailsPolygons");
@@ -295,12 +297,12 @@ void FBrushDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 		]
 	];
 
-	if (SelectedBrushes.Num() > 0)
+	if(SelectedBSPBrushes.Num())
 	{
 		BrushHorizontalBox->AddSlot()
 		[
 			SNew( SButton )
-			.ToolTipText( LOCTEXT("CreateStaticMeshActor_Tooltip", "Creates a static mesh from selected brushes or volumes and replaces them in the scene with the new static mesh") )
+			.ToolTipText( LOCTEXT("CreateStaticMeshActor_Tooltip", "Creates a static mesh from selected brushes and replaces the affected brushes in the scene with the new static mesh") )
 			.OnClicked( this, &FBrushDetails::OnCreateStaticMesh )
 			.HAlign( HAlign_Center )
 			[
@@ -315,10 +317,22 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 FReply FBrushDetails::OnCreateStaticMesh()
 {
-	TArray<AActor*> ValidSelectedBrushes;
-	CopyFromWeakArray(ValidSelectedBrushes, SelectedBrushes);
+	// Raw list of brushes to be sent to be converted.
+	TArray<AActor*> RawSelectedBrushes;
+	
+	TWeakObjectPtr<ABrush> Brush;
+	for(int32 BrushIdx = 0; BrushIdx < SelectedBSPBrushes.Num(); ++BrushIdx )
+	{
+		Brush = SelectedBSPBrushes[BrushIdx];
 
-	GEditor->ConvertActors(ValidSelectedBrushes, AStaticMeshActor::StaticClass(), TSet<FString>(), true);
+		// Make sure the brush is still valid.
+		if(Brush.IsValid())
+		{
+			RawSelectedBrushes.Add(Brush.Get());
+		}
+	}
+
+	GEditor->ConvertActors(RawSelectedBrushes, AStaticMeshActor::StaticClass(), TSet<FString>(), true);
 
 	return FReply::Handled();
 }

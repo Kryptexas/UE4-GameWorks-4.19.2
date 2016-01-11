@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 ConsoleManager.cpp: console command handling
@@ -121,24 +121,12 @@ public:
 		{
 			FConsoleManager& ConsoleManager = (FConsoleManager&)IConsoleManager::Get();
 			FString CVarName = ConsoleManager.FindConsoleObjectName(this);
-
-			const FString Message = FString::Printf(TEXT("Setting the console variable '%s' with 'SetBy%s' was ignored as it is lower priority than the previous 'SetBy%s'"),
+			UE_LOG(LogConsoleManager, Warning,
+				TEXT("Console variable '%s' wasn't set ('%s' has a lower priority than '%s')"),
 				CVarName.IsEmpty() ? TEXT("unknown?") : *CVarName,
 				GetSetByTCHAR((EConsoleVariableFlags)NewPri),
 				GetSetByTCHAR((EConsoleVariableFlags)OldPri)
 				);
-
-			// If it was set by an ini that has to be hand edited, it is not an issue if a lower priority system tried and failed to set it afterwards
-			const bool bIntentionallyIgnored = (OldPri == EConsoleVariableFlags::ECVF_SetBySystemSettingsIni);
-
-			if (bIntentionallyIgnored)
-			{
-				UE_LOG(LogConsoleManager, Display, TEXT("%s"), *Message);
-			}
-			else
-			{
-				UE_LOG(LogConsoleManager, Warning, TEXT("%s"), *Message);
-			}
 		}
 
 		return bRet;
@@ -1523,9 +1511,7 @@ void CreateConsoleVariables()
 // i.      Input e.g. mouse/keyboard
 // p.      Physics
 // t.      Timer
-// log.	   Logging system
-// con.	   Console (in game  or editor) 
-// g.      Game specific
+// g.      Game
 // Compat.
 // FX.     Particle effects
 // sg.     scalability group (used by scalability system, ini load/save or using SCALABILITY console command)
@@ -1736,8 +1722,7 @@ static TAutoConsoleVariable<int32> CVarDepthOfFieldQuality(
 	TEXT("Allows to adjust the depth of field quality. Currently only fully affects BokehDOF. GaussianDOF is either 0 for off, otherwise on.\n")
 	TEXT(" 0: Off\n")
 	TEXT(" 1: Low\n")
-	TEXT(" 2: high quality (default, adaptive, can be 4x slower)\n")
-	TEXT(" 3: Special mode only affecting CircleDOF for very high quality but slow rendering"),
+	TEXT(" 2: high quality (default, adaptive, can be 4x slower)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<float> CVarScreenPercentage(
@@ -1748,21 +1733,6 @@ static TAutoConsoleVariable<float> CVarScreenPercentage(
 	TEXT("in percent, >0 and <=100, larger numbers are possible (supersampling) but the downsampling quality is improvable.")
 	TEXT("<0 is treated like 100."),
 	ECVF_Scalability | ECVF_Default);
-
-static TAutoConsoleVariable<float> CVarSeparateTranslucencyScreenPercentage(
-	TEXT("r.SeparateTranslucencyScreenPercentage"),
-	100.0f,
-	TEXT("Render separate translucency at this percentage of the full resolution.\n")
-	TEXT("in percent, >0 and <=100, larger numbers are possible (supersampling).")
-	TEXT("<0 is treated like 100."),
-	ECVF_Scalability | ECVF_Default);
-
-static TAutoConsoleVariable<int32> CVarHighResScreenshotDelay(
-	TEXT("r.HighResScreenshotDelay"),
-	4,
-	TEXT("When high-res screenshots are requested there is a small delay to allow temporal effects to converge.\n")
-	TEXT("Default: 4."),
-	ECVF_Default);
 
 static TAutoConsoleVariable<int32> CVarMaterialQualityLevel(
 	TEXT("r.MaterialQualityLevel"),
@@ -1849,19 +1819,6 @@ static TAutoConsoleVariable<int32> CVarMSAACompositingSampleCount(
 	TEXT(" 8: 8x MSAA, very high quality (insane GPU memory consumption)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
-
-static TAutoConsoleVariable<float> CVarNetPackageMapLongLoadThreshhold(
-	TEXT("net.PackageMap.LongLoadThreshhold"),
-	0.02f,
-	TEXT("Threshhold time in seconds for printing long load warnings in object serialization"),
-	ECVF_Default);
-
-static TAutoConsoleVariable<int32> CVarNetPackageMapDebugAllObjects(
-	TEXT("net.PackageMap.DebugAll"),
-	0,
-	TEXT("Debugs PackageMap serialization of all objects"),	
-	ECVF_Default);
-
 static TAutoConsoleVariable<FString> CVarNetPackageMapDebugObject(
 	TEXT("net.PackageMap.DebugObject"),
 	TEXT(""),
@@ -1920,7 +1877,7 @@ static TAutoConsoleVariable<int32> CVarFinishCurrentFrame(
 static TAutoConsoleVariable<int32> CVarMaxAnistropy(
 	TEXT("r.MaxAnisotropy"),
 	4,
-	TEXT("MaxAnisotropy should range from 1 to 16. Higher values mean better texure quality when using anisotropic filtering but at a cost to performance. Default is 4."),
+	TEXT("MaxAnisotropy should range from 1 to 16. Higher values mean better texure quality when using anisotropic filtering but at a cost to performance."),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarShadowMaxResolution(
@@ -2033,8 +1990,8 @@ static TAutoConsoleVariable<int32> CVarFreeSkeletalMeshBuffers(
 	TEXT("1: Free buffers"),
 	ECVF_RenderThreadSafe);
 
-static TAutoConsoleVariable<int32> CVarTonemapperGrainQuantization(
-	TEXT("r.Tonemapper.GrainQuantization"),
+static TAutoConsoleVariable<int32> CVarTonemapperQuality(
+	TEXT("r.TonemapperQuality"),
 	1,
 	TEXT("0: low (minor performance benefit)\n")
 	TEXT("1: high (default, with high frequency pixel pattern to fight 8 bit color quantization)"),
@@ -2081,7 +2038,7 @@ static TAutoConsoleVariable<int32> CVarDBuffer(
 	TEXT("At the moment only can be ensures by full enablng this pass: r.EarlyZPassMovable=1 r.EarlyZPass=2\n")
 	TEXT(" 0: off\n")
 	TEXT(" 1: on (needs early pass rendering on all decal receivers and base pass lookups into the DBuffer, costs GPU memory, allows GBuffer compression)"),
-	ECVF_RenderThreadSafe | ECVF_ReadOnly);
+	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<float> CVarSkeletalMeshLODRadiusScale(
 	TEXT("r.SkeletalMeshLODRadiusScale"),
@@ -2146,10 +2103,4 @@ static TAutoConsoleVariable<int32> CVarCheckSRVTransitions(
 	TEXT("r.CheckSRVTransitions"),
 	0,
 	TEXT("Tests that render targets are properly transitioned to SRV when SRVs are set."),
-	ECVF_RenderThreadSafe);  
-
-static TAutoConsoleVariable<int32> CVarHLODSystemEnabled(
-	TEXT("r.HLODEnabled"), 
-	1,
-	TEXT("Toggles whether or not the Hierarchical LOD system is enabled."),
-	ECVF_Scalability | ECVF_RenderThreadSafe);
+	ECVF_RenderThreadSafe);

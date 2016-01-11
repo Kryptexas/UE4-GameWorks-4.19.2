@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -14,10 +14,8 @@ public class LevelEditor : ModuleRules
                 "PlacementMode",
 				"ReferenceViewer",
 				"SizeMap",
-				"SlateReflector",
                 "IntroTutorials",
-                "AppFramework",
-                "PortalServices"
+                "AppFramework"
 			}
 		);
 
@@ -39,6 +37,7 @@ public class LevelEditor : ModuleRules
                 "InputCore",
 				"Slate",
 				"SlateCore",
+				"SlateReflector",
                 "EditorStyle",
 				"Engine",
 				"MessageLog",
@@ -63,9 +62,7 @@ public class LevelEditor : ModuleRules
 				"KismetWidgets",
 				"Sequencer",
                 "Foliage",
-                "HierarchicalLODOutliner",
-                "HierarchicalLODUtilities",
-				"MaterialShaderQualitySettings",
+				"MaterialShaderQualitySettings"
 			}
 		);
 
@@ -76,7 +73,6 @@ public class LevelEditor : ModuleRules
 				"DeviceManager",
 				"SettingsEditor",
 				"SessionFrontend",
-				"SlateReflector",
 				"AutomationWindow",
 				"Layers",
                 "WorldBrowser",

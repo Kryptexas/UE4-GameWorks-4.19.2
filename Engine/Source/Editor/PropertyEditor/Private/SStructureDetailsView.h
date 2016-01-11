@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "SDetailsViewBase.h"
@@ -13,18 +13,17 @@ public:
 
 	SLATE_BEGIN_ARGS(SStructureDetailsView)
 		: _DetailsViewArgs()
-	{ }
-		/** User defined arguments for the details view */
+		{}
+		/** The user defined args for the details view */
 		SLATE_ARGUMENT(FDetailsViewArgs, DetailsViewArgs)
-
-		/** Custom name for the root property node. */
 		SLATE_ARGUMENT(FText, CustomName)
 	SLATE_END_ARGS()
 
-	/** Destructor. */
 	~SStructureDetailsView();
 
-	/** Constructs the property view widgets. */
+	/**
+	 * Constructs the property view widgets                   
+	 */
 	void Construct(const FArguments& InArgs);
 
 	UStruct* GetBaseScriptStruct() const;
@@ -36,31 +35,18 @@ public:
 		return true;
 	}
 
-public:
-
-	// IStructureDetailsView interface
-
-	virtual IDetailsView& GetDetailsView() override
-	{
-		return *this;
-	}
-
+	/** IStructureDetailsView interface */
 	virtual TSharedPtr<SWidget> GetWidget() override
 	{
 		return AsShared();
 	}
 
 	virtual void SetStructureData(TSharedPtr<FStructOnScope> InStructData) override;
-
 	virtual FOnFinishedChangingProperties& GetOnFinishedChangingPropertiesDelegate() override
 	{
 		return OnFinishedChangingProperties();
 	}
-
-public:
-
-	// IDetailsViewPrivate interface
-
+	/** IDetailsViewPrivate interface */
 	virtual const UClass* GetBaseClass() const override
 	{
 		return NULL;
@@ -79,19 +65,14 @@ public:
 	virtual void ForceRefresh() override;
 	virtual void AddExternalRootPropertyNode(TSharedRef<FPropertyNode> ExternalRootNode) override {}
 
-public:
-
-	// IDetailsView interface
-
+	/** IDetailsView interface */
 	virtual UStruct* GetBaseStruct() const override
 	{
 		return GetBaseScriptStruct();
 	}
-
 	virtual const TArray< TWeakObjectPtr<UObject> >& GetSelectedObjects() const override;
 	virtual const TArray< TWeakObjectPtr<AActor> >& GetSelectedActors() const override;
 	virtual const struct FSelectedActorInfo& GetSelectedActorInfo() const override;
-
 	virtual bool HasClassDefaultObject() const override
 	{
 		return false;
@@ -106,8 +87,7 @@ public:
 	virtual void RemoveInvalidObjects() override {}
 
 	virtual TSharedPtr<class FComplexPropertyNode> GetRootNode() override;
-
 protected:
-
 	virtual void CustomUpdatePropertyMap() override;
 };
+

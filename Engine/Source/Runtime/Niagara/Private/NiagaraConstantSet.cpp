@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraPrivate.h"
 #include "NiagaraConstantSet.h"
@@ -258,8 +258,7 @@ void FNiagaraConstants::Init(UNiagaraEmitterProperties* EmitterProps, FNiagaraEm
 		else
 		{
 			//Otherwise, duplicate the data from the script.
-			if (ScriptConst.Value)
-				DataObjectConstants[AddIndex].Value = CastChecked<UNiagaraDataObject>(StaticDuplicateObject(ScriptConst.Value, EmitterProps));
+			DataObjectConstants[AddIndex].Value = CastChecked<UNiagaraDataObject>(StaticDuplicateObject(ScriptConst.Value, EmitterProps, NULL));
 		}
 	}
 }
@@ -300,9 +299,12 @@ void FNiagaraConstants::AppendToConstantsTable(TArray<FVector4>& ConstantsTable)
 	ConstantsTable.AddUninitialized(ScalarTableSize() + VectorTableSize() + MatrixTableSize());
 	for (const FNiagaraConstants_Float& Sc : ScalarConstants)
 	{
-		ConstantsTable[Idx++] = FVector4(Sc.Value, Sc.Value, Sc.Value, Sc.Value);
+		ConstantsTable[Idx + (NewIdx / 4)][NewIdx % 4] = Sc.Value;
+		++NewIdx;
+		Idx = NewIdx % 4 == 0 ? Idx + 1 : Idx;
 	}
 
+	Idx += FMath::Min(1, NewIdx % 4);//Move to the next table entry if needed.
 	for (const FNiagaraConstants_Vector& Vc : VectorConstants)
 	{
 		ConstantsTable[Idx++] = Vc.Value;
@@ -329,14 +331,18 @@ void FNiagaraConstants::AppendBufferConstants(TArray<class UNiagaraDataObject*> 
 void FNiagaraConstants::AppendToConstantsTable(TArray<FVector4>& ConstantsTable, const FNiagaraConstantMap& Externals)const
 {
 	int32 Idx = ConstantsTable.Num();
+	int32 NewIdx = 0;
 	ConstantsTable.AddUninitialized(ScalarTableSize() + VectorTableSize() + MatrixTableSize());
 	for (int32 i = 0; i < ScalarConstants.Num(); ++i)
 	{
 		const float* Scalar = Externals.FindScalar(ScalarConstants[i].Name);
-		float Value = Scalar ? *Scalar : ScalarConstants[i].Value;
-		ConstantsTable[Idx++] = FVector4(Value, Value, Value, Value);
+		ConstantsTable[Idx + (NewIdx / 4)][NewIdx % 4] = Scalar ? *Scalar : ScalarConstants[i].Value;
+		++NewIdx;
+		Idx = NewIdx % 4 == 0 ? Idx + 1 : Idx;
 	}
-	
+
+	Idx += FMath::Min(1, NewIdx % 4);//Move to the next table entry if needed.
+
 	for (int32 i = 0; i < VectorConstants.Num(); ++i)
 	{
 		const FVector4* Vector = Externals.FindVector(VectorConstants[i].Name);

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintGraphPrivatePCH.h"
@@ -42,7 +42,7 @@ void UK2Node_FormatText::AllocateDefaultPins()
 
 	for(auto It = PinNames.CreateConstIterator(); It; ++It)
 	{
-		CreatePin(EGPD_Input, K2Schema->PC_Text, TEXT(""), NULL, false, false, *It);
+		CreatePin(EGPD_Input, K2Schema->PC_Text, TEXT(""), NULL, false, false, It->ToString());
 	}
 }
 
@@ -56,19 +56,30 @@ FText UK2Node_FormatText::GetPinDisplayName(const UEdGraphPin* Pin) const
 	return FText::FromString(Pin->PinName);
 }
 
-FString UK2Node_FormatText::GetUniquePinName()
+FText UK2Node_FormatText::GetUniquePinName()
 {
-	FString NewPinName;
+	FText NewPinName;
 	int32 i = 0;
 	while (true)
 	{
-		NewPinName = FString::FromInt(i++);
-		if (!FindPin(NewPinName))
+		NewPinName = FText::AsCultureInvariant(FString::FromInt(i++));
+		if (!FindPin(NewPinName.ToString()))
 		{
 			break;
 		}
 	}
 	return NewPinName;
+}
+
+void UK2Node_FormatText::PostLoad()
+{
+	// Pin Names must not be localized - they are provided to the format message as is.
+	for(FText& PinName : PinNames)
+	{
+		PinName = FText::AsCultureInvariant(PinName);
+	}
+
+	Super::PostLoad();
 }
 
 void UK2Node_FormatText::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
@@ -123,11 +134,11 @@ void UK2Node_FormatText::PinDefaultValueChanged(UEdGraphPin* Pin)
 
 		for(auto It = ArgumentParams.CreateConstIterator(); It; ++It)
 		{
-			if(!FindArgumentPin(*It))
+			if(!FindArgumentPin(FText::FromString(*It)))
 			{
 				CreatePin(EGPD_Input, K2Schema->PC_Text, TEXT(""), NULL, false, false, *It);
 			}
-			PinNames.Add(*It);
+			PinNames.Add(FText::AsCultureInvariant(*It));
 		}
 
 		for(auto It = Pins.CreateConstIterator(); It; ++It)
@@ -206,18 +217,16 @@ void UK2Node_FormatText::ExpandNode(class FKismetCompilerContext& CompilerContex
 	{
 		UEdGraphPin* ArgumentPin = FindArgumentPin(PinNames[ArgIdx]);
 
-		static UScriptStruct* FormatArgumentDataStruct = FindObjectChecked<UScriptStruct>(FindObjectChecked<UPackage>(nullptr, TEXT("/Script/Engine")), TEXT("FormatArgumentData"));
-
 		// Spawn a "Make Struct" node to create the struct needed for formatting the text.
 		UK2Node_MakeStruct* PinMakeStruct = CompilerContext.SpawnIntermediateNode<UK2Node_MakeStruct>(this, SourceGraph);
-		PinMakeStruct->StructType = FormatArgumentDataStruct;
+		PinMakeStruct->StructType = FFormatTextArgument::StaticStruct();
 		PinMakeStruct->AllocateDefaultPins();
 
 		// Set the struct's "ArgumentName" pin literal to be the argument pin's name.
-		PinMakeStruct->GetSchema()->TrySetDefaultValue(*PinMakeStruct->FindPin("ArgumentName"), ArgumentPin->PinName);
+		PinMakeStruct->GetSchema()->TrySetDefaultText(*PinMakeStruct->FindPin("ArgumentName"), FText::AsCultureInvariant(ArgumentPin->PinName));
 
-		// Move the connection of the argument pin to the struct's "ArgumentValue" pin, this will move the literal value if present.
-		CompilerContext.MovePinLinksToIntermediate(*ArgumentPin, *PinMakeStruct->FindPin("ArgumentValue"));
+		// Move the connection of the argument pin to the struct's "TextValue" pin, this will move the literal value if present.
+		CompilerContext.MovePinLinksToIntermediate(*ArgumentPin, *PinMakeStruct->FindPin("TextValue"));
 
 		// The "Make Array" node already has one pin available, so don't create one for ArgIdx == 0
 		if(ArgIdx > 0)
@@ -242,12 +251,13 @@ void UK2Node_FormatText::ExpandNode(class FKismetCompilerContext& CompilerContex
 	BreakAllNodeLinks();
 }
 
-UEdGraphPin* UK2Node_FormatText::FindArgumentPin(const FString& InPinName) const
+UEdGraphPin* UK2Node_FormatText::FindArgumentPin(const FText& InPinName) const
 {
 	const auto FormatPin = GetFormatPin();
+	FString PinNameAsString = InPinName.ToString();
 	for(int32 PinIdx=0; PinIdx<Pins.Num(); PinIdx++)
 	{
-		if( Pins[PinIdx] != FormatPin && Pins[PinIdx]->Direction != EGPD_Output && Pins[PinIdx]->PinName.Equals(InPinName) )
+		if( Pins[PinIdx] != FormatPin && Pins[PinIdx]->Direction != EGPD_Output && Pins[PinIdx]->PinName.Equals(PinNameAsString) )
 		{
 			return Pins[PinIdx];
 		}
@@ -305,7 +315,7 @@ FText UK2Node_FormatText::GetArgumentName(int32 InIndex) const
 {
 	if(InIndex < PinNames.Num())
 	{
-		return FText::FromString(PinNames[InIndex]);
+		return PinNames[InIndex];
 	}
 	return FText::GetEmpty();
 }
@@ -316,8 +326,8 @@ void UK2Node_FormatText::AddArgumentPin()
 	Modify();
 
 	const UEdGraphSchema_K2* K2Schema = Cast<const UEdGraphSchema_K2>(GetSchema());
-	FString PinName = GetUniquePinName();
-	CreatePin(EGPD_Input, K2Schema->PC_Text, TEXT(""), NULL, false, false, PinName);
+	FText PinName = GetUniquePinName();
+	CreatePin(EGPD_Input, K2Schema->PC_Text, TEXT(""), NULL, false, false, PinName.ToString());
 	PinNames.Add(PinName);
 
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprint());
@@ -336,7 +346,7 @@ void UK2Node_FormatText::RemoveArgument(int32 InIndex)
 	GetGraph()->NotifyGraphChanged();
 }
 
-void UK2Node_FormatText::SetArgumentName(int32 InIndex, FString InName)
+void UK2Node_FormatText::SetArgumentName(int32 InIndex, FText InName)
 {
 	PinNames[InIndex] = InName;
 

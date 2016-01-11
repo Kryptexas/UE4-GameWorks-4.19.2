@@ -1,4 +1,4 @@
-ï»¿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+ï»¿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -116,19 +116,14 @@ namespace AutomationTool
 		public static CommandLineArg Help = new CommandLineArg("-Help");
 		public static CommandLineArg List = new CommandLineArg("-List");
 		public static CommandLineArg Rocket = new CommandLineArg("-Rocket");
+		public static CommandLineArg VS2012 = new CommandLineArg("-2012");
+		public static CommandLineArg VS2013 = new CommandLineArg("-2013");
 		public static CommandLineArg VS2015 = new CommandLineArg("-2015");
 		public static CommandLineArg NoKill = new CommandLineArg("-NoKill");
 		public static CommandLineArg Installed = new CommandLineArg("-Installed");
 		public static CommandLineArg UTF8Output = new CommandLineArg("-UTF8Output");
 		public static CommandLineArg NoAutoSDK = new CommandLineArg("-NoAutoSDK");
 		public static CommandLineArg IgnoreJunk = new CommandLineArg("-ignorejunk");
-        /// <summary>
-        /// Allows you to use local storage for your root build storage dir (default of P:\Builds (on PC) is changed to Engine\Saved\LocalBuilds). Used for local testing.
-        /// </summary>
-        public static CommandLineArg UseLocalBuildStorage = new CommandLineArg("-UseLocalBuildStorage");
-		public static CommandLineArg InstalledEngine = new CommandLineArg("-InstalledEngine");
-		public static CommandLineArg NotInstalledEngine = new CommandLineArg("-NotInstalledEngine");
-
 		/// <summary>
 		/// Force initialize static members by calling this.
 		/// </summary>
@@ -157,8 +152,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 	[Help("nosubmit", "Prevents any submit attempts")]
 	[Help("nokill", "Does not kill any spawned processes on exit")]
 	[Help("ignorejunk", "Prevents UBT from cleaning junk files")]
-    [Help("UseLocalBuildStorage", @"Allows you to use local storage for your root build storage dir (default of P:\Builds (on PC) is changed to Engine\Saved\LocalBuilds). Used for local testing.")]
-    public static class Automation
+	public static class Automation
 	{
 		#region Command line parsing
 
@@ -168,15 +162,14 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 		/// <param name="ParamIndex">Parameter index</param>
 		/// <param name="CommandLine">Command line</param>
 		/// <param name="CurrentCommand">Recently parsed command</param>
-		/// <param name="OutScriptsForProjectFileName">The only project to build scripts for</param>
 		/// <param name="OutAdditionalScriptsFolders">Additional script locations</param>
 		/// <returns>True if the parameter has been successfully parsed.</returns>
-		private static void ParseParam(string CurrentParam, CommandInfo CurrentCommand, ref string OutScriptsForProjectFileName, List<string> OutAdditionalScriptsFolders)
+		private static void ParseParam(string CurrentParam, CommandInfo CurrentCommand, List<string> OutAdditionalScriptsFolders)
 		{
 			bool bGlobalParam = false;
 			foreach (var RegisteredParam in GlobalCommandLine.RegisteredArgs)
 			{
-				if (String.Compare(CurrentParam, RegisteredParam.Key, StringComparison.InvariantCultureIgnoreCase) == 0)
+				if (String.Compare(CurrentParam, RegisteredParam.Key, true) == 0)
 				{
 					// Register and exit, we're done here.
 					RegisteredParam.Value.Set();
@@ -186,20 +179,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			}
 
 			// The parameter was not found in the list of global parameters, continue looking...
-			if (CurrentParam.StartsWith("-ScriptsForProject=", StringComparison.InvariantCultureIgnoreCase))
-			{
-				if(OutScriptsForProjectFileName != null)
-				{
-					throw new AutomationException("The -ProjectScripts argument may only be specified once");
-				}
-				var ProjectFileName = CurrentParam.Substring(CurrentParam.IndexOf('=') + 1).Replace("\"", "");
-				if(!File.Exists(ProjectFileName))
-				{
-					throw new AutomationException("Project '{0}' does not exist", ProjectFileName);
-				}
-				OutScriptsForProjectFileName = Path.GetFullPath(ProjectFileName);
-			}
-			else if (CurrentParam.StartsWith("-ScriptDir=", StringComparison.InvariantCultureIgnoreCase))
+			if (CurrentParam.StartsWith("-ScriptDir=", StringComparison.InvariantCultureIgnoreCase))
 			{
 				var ScriptDir = CurrentParam.Substring(CurrentParam.IndexOf('=') + 1);
 				if (Directory.Exists(ScriptDir))
@@ -237,149 +217,18 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			}
 		}
 
-		private static string ParseString(string Key, string Value)
-		{
-			if (!String.IsNullOrEmpty(Key))
-			{
-				if (Value == "true" || Value == "false")
-				{
-					return "-" + Key;
-				}
-				else
-				{
-					string param = "-" + Key + "=";
-					if (Value.Contains(" "))
-					{
-						param += "\"" + Value + "\"";
-					}
-					else
-					{
-						param += Value;
-					}
-					return param;
-				}
-			}
-			else
-			{
-				return Value;
-			}
-		}
-
-
-		private static string ParseList(string Key, List<object> Value)
-		{
-			string param = "-" + Key + "=";
-			bool bStart = true;
-			foreach (var Val in Value)
-			{
-				if (!bStart)
-				{
-					param += "+";
-				}
-				param += Val as string;
-				bStart = false;
-			}
-			return param;
-		}
-
-		private static void ParseDictionary(Dictionary<string, object> Value, List<string> Arguments)
-		{
-			foreach (var Pair in Value)
-			{
-				if ((Pair.Value as string) != null && !string.IsNullOrEmpty(Pair.Value as string))
-				{
-					Arguments.Add(ParseString(Pair.Key, Pair.Value as string));
-				}
-				else if (Pair.Value.GetType() == typeof(bool))
-				{
-					if ((bool)Pair.Value)
-					{
-						Arguments.Add("-" + Pair.Key);
-					}
-				}
-				else if ((Pair.Value as List<object>) != null)
-				{
-					Arguments.Add(ParseList(Pair.Key, Pair.Value as List<object>));
-				}
-				else if ((Pair.Value as Dictionary<string, object>) != null)
-				{
-					string param = "-" + Pair.Key + "=\"";
-					List<string> Args = new List<string>();
-					ParseDictionary(Pair.Value as Dictionary<string, object>, Args);
-					bool bStart = true;
-					foreach (var Arg in Args)
-					{
-						if (!bStart)
-						{
-							param += " ";
-						}
-						Arg.Replace("\"", "\'");
-						param += Arg;
-						bStart = false;
-					}
-					param += "\"";
-					Arguments.Add(param);
-				}
-			}
-		}
-
-		private static void ParseProfile(ref string[] CommandLine)
-		{
-			// find if there is a profile file to read
-			string Profile = "";
-			List<string> Arguments = new List<string>();
-			for (int Index = 0; Index < CommandLine.Length; ++Index)
-			{
-				if (CommandLine[Index].StartsWith("-profile="))
-				{
-					Profile = CommandLine[Index].Substring(CommandLine[Index].IndexOf('=') + 1);
-				}
-				else
-				{
-					Arguments.Add(CommandLine[Index]);
-				}
-			}
-
-			if (!string.IsNullOrEmpty(Profile))
-			{
-				if (File.Exists(Profile))
-				{
-					// find if the command has been specified
-					var text = File.ReadAllText(Profile);
-					var RawObject = fastJSON.JSON.Instance.Parse(text) as Dictionary<string, object>;
-					var Params = RawObject["scripts"] as List<object>;
-					foreach (var Script in Params)
-					{
-						string ScriptName = (Script as Dictionary<string, object>)["script"] as string;
-						if (!string.IsNullOrEmpty(ScriptName) && !Arguments.Contains(ScriptName))
-						{
-							Arguments.Add(ScriptName);
-						}
-						(Script as Dictionary<string, object>).Remove("script");
-						ParseDictionary((Script as Dictionary<string, object>), Arguments);
-					}
-				}
-			}
-
-			CommandLine = Arguments.ToArray();
-		}
-
 		/// <summary>
 		/// Parse the command line and create a list of commands to execute.
 		/// </summary>
 		/// <param name="CommandLine">Command line</param>
 		/// <param name="OutCommandsToExecute">List containing the names of commands to execute</param>
 		/// <param name="OutAdditionalScriptsFolders">Optional list of additional paths to look for scripts in</param>
-		private static void ParseCommandLine(string[] CommandLine, List<CommandInfo> OutCommandsToExecute, out string OutScriptsForProjectFileName, List<string> OutAdditionalScriptsFolders)
+		private static void ParseCommandLine(string[] CommandLine, List<CommandInfo> OutCommandsToExecute, List<string> OutAdditionalScriptsFolders)
 		{
 			// Initialize global command line parameters
 			GlobalCommandLine.Init();
 
-			ParseProfile(ref CommandLine);
-
 			Log.TraceInformation("Parsing command line: {0}", String.Join(" ", CommandLine));
-
-			OutScriptsForProjectFileName = null;
 
 			CommandInfo CurrentCommand = null;
 			for (int Index = 0; Index < CommandLine.Length; ++Index)
@@ -387,7 +236,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 				var Param = CommandLine[Index];
 				if (Param.StartsWith("-") || Param.Contains("="))
 				{
-					ParseParam(CommandLine[Index], CurrentCommand, ref OutScriptsForProjectFileName, OutAdditionalScriptsFolders);
+					ParseParam(CommandLine[Index], CurrentCommand, OutAdditionalScriptsFolders);
 				}
 				else
 				{
@@ -419,6 +268,11 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			{
 				throw new AutomationException("{0} and {1} can't be set simultaneously.", GlobalCommandLine.NoSubmit.Name, GlobalCommandLine.Submit.Name);
 			}
+
+			if (GlobalCommandLine.Rocket)
+			{
+				UnrealBuildTool.UnrealBuildTool.bRunningRocket = true;
+			}
 		}
 
 		#endregion
@@ -429,7 +283,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 		/// Main method.
 		/// </summary>
 		/// <param name="CommandLine">Command line</param>
-		public static ExitCode Process(string[] CommandLine)
+		public static void Process(string[] CommandLine)
 		{
 			// Initial check for local or build machine runs BEFORE we parse the command line (We need this value set
 			// in case something throws the exception while parsing the command line)
@@ -437,29 +291,28 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 
 			// Scan the command line for commands to execute.
 			var CommandsToExecute = new List<CommandInfo>();
-			string OutScriptsForProjectFileName;
 			var AdditionalScriptsFolders = new List<string>();
-			ParseCommandLine(CommandLine, CommandsToExecute, out OutScriptsForProjectFileName, AdditionalScriptsFolders);
+			ParseCommandLine(CommandLine, CommandsToExecute, AdditionalScriptsFolders);
 
 			// Check for build machine override (force local)
 			IsBuildMachine = GlobalCommandLine.ForceLocal ? false : IsBuildMachine;
-			Log.TraceVerbose("IsBuildMachine={0}", IsBuildMachine);
+			Log.TraceInformation("IsBuildMachine={0}", IsBuildMachine);
 			Environment.SetEnvironmentVariable("IsBuildMachine", IsBuildMachine ? "1" : "0");
 
 			// should we kill processes on exit
 			ShouldKillProcesses = !GlobalCommandLine.NoKill;
-			Log.TraceVerbose("ShouldKillProcesses={0}", ShouldKillProcesses);
+			Log.TraceInformation("ShouldKillProcesses={0}", ShouldKillProcesses);
 
 			if (CommandsToExecute.Count == 0 && GlobalCommandLine.Help)
 			{
 				DisplayHelp();
-				return ExitCode.Success;
+				return;
 			}
 
 			// Disable AutoSDKs if specified on the command line
 			if (GlobalCommandLine.NoAutoSDK)
 			{
-				UEBuildPlatformSDK.bAllowAutoSDKSwitching = false;
+				UEBuildPlatform.bAllowAutoSDKSwitching = false;
 			}
 
 			// Setup environment
@@ -478,27 +331,27 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			// Compile scripts.
 			Log.TraceInformation("Compiling scripts.");
 			ScriptCompiler Compiler = new ScriptCompiler();
-			using(TelemetryStopwatch ScriptCompileStopwatch = new TelemetryStopwatch("ScriptCompile"))
+			using(CommandUtils.TelemetryStopwatch ScriptCompileStopwatch = new CommandUtils.TelemetryStopwatch("ScriptCompile"))
 			{
-				Compiler.FindAndCompileAllScripts(OutScriptsForProjectFileName, AdditionalScriptsFolders);
+				Compiler.FindAndCompileAllScripts(AdditionalScriptsFolders: AdditionalScriptsFolders);
 			}
 
 			if (GlobalCommandLine.CompileOnly)
 			{
 				Log.TraceInformation("Compilation successful, exiting (CompileOnly)");
-				return ExitCode.Success;
+				return;
 			}
 
 			if (GlobalCommandLine.List)
 			{
 				ListAvailableCommands(Compiler.Commands);
-				return ExitCode.Success;
+				return;
 			}
 
 			if (GlobalCommandLine.Help)
 			{
 				DisplayHelp(CommandsToExecute, Compiler.Commands);
-				return ExitCode.Success;
+				return;
 			}
 
 			// Enable or disable P4 support
@@ -511,7 +364,9 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			}
 
 			// Find and execute commands.
-			return Execute(CommandsToExecute, Compiler.Commands);
+			Execute(CommandsToExecute, Compiler.Commands);
+
+			return;
 		}
 
 		/// <summary>
@@ -519,7 +374,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 		/// </summary>
 		/// <param name="CommandsToExecute"></param>
 		/// <param name="Commands"></param>
-		private static ExitCode Execute(List<CommandInfo> CommandsToExecute, CaselessDictionary<Type> Commands)
+		private static void Execute(List<CommandInfo> CommandsToExecute, CaselessDictionary<Type> Commands)
 		{
 			for (int CommandIndex = 0; CommandIndex < CommandsToExecute.Count; ++CommandIndex)
 			{
@@ -530,32 +385,26 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 				{
 					throw new AutomationException("Failed to find command {0}", CommandInfo.CommandName);
 				}
-
-				BuildCommand Command = (BuildCommand)Activator.CreateInstance(CommandType);
-				Command.Params = CommandInfo.Arguments.ToArray();
-				try
+				else
 				{
-					ExitCode Result = Command.Execute();
-					if(Result != ExitCode.Success)
-					{
-						return Result;
-					}
-					CommandUtils.Log("BUILD SUCCESSFUL");
-				}
-				finally
-				{
+					BuildCommand Command = (BuildCommand)Activator.CreateInstance(CommandType);
+					Command.Params = CommandInfo.Arguments.ToArray();
+					Command.Execute();
 					// dispose of the class if necessary
-					var CommandDisposable = Command as IDisposable;
-					if (CommandDisposable != null)
 					{
-						CommandDisposable.Dispose();
+						var CommandDisposable = Command as IDisposable;
+						if (CommandDisposable != null)
+						{
+							CommandDisposable.Dispose();
+						}
 					}
-				}
 
-				// Make sure there's no directories on the stack.
-				CommandUtils.ClearDirStack();
+					// Make sure there's no directories on the stack.
+					CommandUtils.ClearDirStack();
+				}
 			}
-			return ExitCode.Success;
+
+			Log.TraceInformation("Script execution successful, exiting.");
 		}
 
 		#endregion
@@ -606,48 +455,6 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			}
 			CommandUtils.Log(Message);
 		}
-
-		#endregion
-
-		#region HelperFunctions
-
-		/// <summary>
-		/// Returns true if Automation tool is running with Rocket mode enabled
-		/// </summary>
-		/// <returns>True if running in Rocket mode</returns>
-		static public bool RunningRocket()
-		{
-			if (!bRunningRocket.HasValue)
-			{
-				if (GlobalCommandLine.Rocket)
-				{
-					Log.TraceWarning("Use of -rocket argument on command-line to test Rocket behavior is deprecated, please ensure that you've built a true Rocket build.");
-				}
-				bRunningRocket = GlobalCommandLine.Rocket;
-				string RocketFile = Path.Combine(CommandUtils.CmdEnv.LocalRoot, "Engine", "Build", "Rocket.txt");
-				bRunningRocket |= File.Exists(RocketFile);
-			}
-
-			return bRunningRocket.Value;
-		}
-		static private bool? bRunningRocket;
-
-		/// <summary>
-		/// Returns true if AutomationTool is running using installed Engine components
-		/// </summary>
-		/// <returns>True if running using installed Engine components</returns>
-		static public bool IsEngineInstalled()
-		{
-			if (!bIsEngineInstalled.HasValue)
-			{
-				bIsEngineInstalled = GlobalCommandLine.Installed || (Automation.RunningRocket() ? !GlobalCommandLine.NotInstalledEngine : GlobalCommandLine.InstalledEngine);
-				string InstalledBuildFile = Path.Combine(CommandUtils.CmdEnv.LocalRoot, "Engine", "Build", "InstalledBuild.txt");
-				bIsEngineInstalled |= File.Exists(InstalledBuildFile);
-			}
-
-			return bIsEngineInstalled.Value;
-		}
-		static private bool? bIsEngineInstalled;
 
 		#endregion
 

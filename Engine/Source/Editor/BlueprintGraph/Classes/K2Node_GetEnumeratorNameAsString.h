@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "K2Node_GetEnumeratorName.h"
@@ -9,17 +9,17 @@ class UK2Node_GetEnumeratorNameAsString : public UK2Node_GetEnumeratorName
 {
 	GENERATED_UCLASS_BODY()
 
-	//~ Begin UEdGraphNode Interface
+	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override{ return TEXT("GraphEditor.Enum_16x"); }
-	//~ End UEdGraphNode Interface
+	// End UEdGraphNode interface
 
-	//~ Begin UK2Node Interface
+	// UK2Node interface
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual FText GetMenuCategory() const override;
-	//~ End UK2Node Interface
+	// End UK2Node interface
 
 	virtual FName GetFunctionName() const override;
 };

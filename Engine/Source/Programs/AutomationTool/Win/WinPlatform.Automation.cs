@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,20 +36,41 @@ public abstract class BaseWinPlatform : Platform
 		}
 
 		// Stage all the build products
-		foreach(StageTarget Target in SC.StageTargets)
+		foreach(BuildReceipt Receipt in SC.StageTargetReceipts)
 		{
-			SC.StageBuildProductsFromReceipt(Target.Receipt, Target.RequireFilesExist);
+			SC.StageBuildProductsFromReceipt(Receipt);
 		}
 
 		// Copy the splash screen, windows specific
 		SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Content/Splash"), "Splash.bmp", false, null, null, true);
 
+
+        /*foreach (string StageExePath in GetExecutableNames(SC))
+        {
+            // set the icon on the original exe this will be used in the task bar when the bootstrap exe runs
+            if (InternalUtils.SafeFileExists(CombinePaths(SC.ProjectRoot, "Build/Windows/Application.ico")))
+            {
+                GroupIconResource GroupIcon = null;
+                GroupIcon = GroupIconResource.FromIco(CombinePaths(SC.ProjectRoot, "Build/Windows/Application.ico"));
+
+                // Update the icon on the original exe because this will be used when the game is running in the task bar
+                using (ModuleResourceUpdate Update = new ModuleResourceUpdate(StageExePath, false))
+                {
+                    const int IconResourceId = 101;
+                    if (GroupIcon != null)
+                    {
+                        Update.SetIcons(IconResourceId, GroupIcon);
+                    }
+                }
+            }
+        }*/
+
 		// Stage the bootstrap executable
 		if(!Params.NoBootstrapExe)
 		{
-			foreach(StageTarget Target in SC.StageTargets)
+			foreach(BuildReceipt Receipt in SC.StageTargetReceipts)
 			{
-				BuildProduct Executable = Target.Receipt.BuildProducts.FirstOrDefault(x => x.Type == BuildProductType.Executable);
+				BuildProduct Executable = Receipt.BuildProducts.FirstOrDefault(x => x.Type == BuildProductType.Executable);
 				if(Executable != null)
 				{
 					// only create bootstraps for executables
@@ -68,17 +89,14 @@ public abstract class BaseWinPlatform : Platform
 						}
 						else if(Params.IsCodeBasedProject)
 						{
-							BootstrapExeName = Target.Receipt.TargetName + ".exe";
+							BootstrapExeName = Receipt.GetProperty("TargetName", SC.ShortProjectName) + ".exe";
 						}
 						else
 						{
 							BootstrapExeName = SC.ShortProjectName + ".exe";
 						}
 
-						foreach (string StagePath in SC.NonUFSStagingFiles[Executable.Path])
-						{
-							StageBootstrapExecutable(SC, BootstrapExeName, Executable.Path, StagePath, BootstrapArguments);
-						}
+						StageBootstrapExecutable(SC, BootstrapExeName, Executable.Path, SC.NonUFSStagingFiles[Executable.Path], BootstrapArguments);
 					}
 				}
 			}
@@ -95,8 +113,7 @@ public abstract class BaseWinPlatform : Platform
 			InternalUtils.SafeCreateDirectory(IntermediateDir);
 
 			string IntermediateFile = CombinePaths(IntermediateDir, ExeName);
-			CommandUtils.CopyFile(InputFile, IntermediateFile);
-			CommandUtils.SetFileAttributes(IntermediateFile, ReadOnly: false);
+			File.Copy(InputFile, IntermediateFile, true);
 	
 			// currently the icon updating doesn't run under mono
 			if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win64 ||
@@ -159,16 +176,6 @@ public abstract class BaseWinPlatform : Platform
 
 	public override void Package(ProjectParams Params, DeploymentContext SC, int WorkingCL)
 	{
-        // package up the program, potentially with an installer for Windows
-        BaseWindowsDeploy Deploy = new BaseWindowsDeploy();
-        string CookFlavor = SC.FinalCookPlatform.IndexOf("_") > 0 ? SC.FinalCookPlatform.Substring(SC.FinalCookPlatform.IndexOf("_")) : "";
-
-        List<string> ExeNames = GetExecutableNames(SC);
-
-        foreach (string ExeName in ExeNames)
-        {
-            Deploy.PrepForUATPackageOrDeploy(Params.RawProjectPath, Params.ShortProjectName, SC.ProjectRoot, ExeName, SC.LocalRoot + "/Engine", Params.Distribution, CookFlavor, false);
-        }
 		// package up the program, potentially with an installer for Windows
 		PrintRunTime();
 	}

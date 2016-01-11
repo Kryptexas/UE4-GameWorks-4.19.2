@@ -1,7 +1,6 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
 
 /** Stores information about one collision query */
 struct FCAQuery
@@ -11,7 +10,6 @@ struct FCAQuery
 	FQuat						Rot;
 	ECAQueryType::Type			Type;
 	ECAQueryShape::Type			Shape;
-	ECAQueryMode::Type			Mode;
 	FVector						Dims;
 	ECollisionChannel			Channel;
 	FCollisionQueryParams		Params;
@@ -22,22 +20,19 @@ struct FCAQuery
 	int32						FrameNum;
 	float						CPUTime; /** In ms */
 	int32						ID;
-
-	friend FArchive& operator << ( FArchive& Ar, FCAQuery& Query );
 };
 
 /** Actual implementation of CollisionAnalyzer, private inside module */
 class FCollisionAnalyzer : public ICollisionAnalyzer
 {
 public:
-	//~ Begin ICollisionAnalyzer Interface
+	// Begin ICollisionAnalyzer interface
 	virtual void CaptureQuery(
 		const FVector& Start, 
 		const FVector& End, 
 		const FQuat& Rot, 
 		ECAQueryType::Type QueryType, 
-		ECAQueryShape::Type QueryShape,
-		ECAQueryMode::Type QueryMode,
+		ECAQueryShape::Type QueryShape, 
 		const FVector& Dims, 
 		ECollisionChannel TraceChannel, 
 		const struct FCollisionQueryParams& Params, 
@@ -52,7 +47,7 @@ public:
 
 	virtual void TickAnalyzer(UWorld* InWorld) override;
 	virtual bool IsRecording() override;
-	//~ End ICollisionAnalyzer Interface
+	// End ICollisionAnalyzer interface
 
 	/** Change the current recording state */
 	void SetIsRecording(bool bNewRecording);
@@ -80,11 +75,6 @@ public:
 	DECLARE_EVENT( FCollisionAnalyzer, FQueriesChangedEvent );
 	FQueriesChangedEvent& OnQueriesChanged() { return QueriesChangedEvent; }
 	FQueriesChangedEvent& OnQueryAdded() { return QueryAddedEvent; }
-
-	/** Save current data to a file */
-	void SaveCollisionProfileData(FString ProfileFileName);
-	/** Load data from file */
-	void LoadCollisionProfileData(FString ProfileFileName);
 
 private:
 	/** The current frame number we are on while recording */

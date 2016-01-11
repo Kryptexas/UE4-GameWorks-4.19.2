@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticMesh.cpp: Static mesh class implementation.
@@ -292,10 +292,6 @@ void FStaticMeshLODResources::Serialize(FArchive& Ar, UObject* Owner, int32 Inde
 	bool bNeedsCPUAccess = !FPlatformProperties::RequiresCookedData();
 
 	bHasAdjacencyInfo = false;
-	bHasDepthOnlyIndices = false;
-	bHasReversedIndices = false;
-	bHasReversedDepthOnlyIndices = false;
-	DepthOnlyNumTriangles = 0;
 
     // Defined class flags for possible stripping
 	const uint8 AdjacencyDataStripFlag = 1;
@@ -315,9 +311,7 @@ void FStaticMeshLODResources::Serialize(FArchive& Ar, UObject* Owner, int32 Inde
 		VertexBuffer.Serialize( Ar, bNeedsCPUAccess );
 		ColorVertexBuffer.Serialize( Ar, bNeedsCPUAccess );
 		IndexBuffer.Serialize( Ar, bNeedsCPUAccess );
-		ReversedIndexBuffer.Serialize( Ar, bNeedsCPUAccess );
 		DepthOnlyIndexBuffer.Serialize(Ar, bNeedsCPUAccess);
-		ReversedDepthOnlyIndexBuffer.Serialize( Ar, bNeedsCPUAccess );
 
 		if( !StripFlags.IsEditorDataStripped() )
 		{
@@ -329,12 +323,6 @@ void FStaticMeshLODResources::Serialize(FArchive& Ar, UObject* Owner, int32 Inde
 			AdjacencyIndexBuffer.Serialize( Ar, bNeedsCPUAccess );
 			bHasAdjacencyInfo = AdjacencyIndexBuffer.GetNumIndices() != 0;
 		}
-
-		// Needs to be done now because on cooked platform, indices are discarded after RHIInit.
-		bHasDepthOnlyIndices = DepthOnlyIndexBuffer.GetNumIndices() != 0;
-		bHasReversedIndices = ReversedIndexBuffer.GetNumIndices() != 0;
-		bHasReversedDepthOnlyIndices = ReversedDepthOnlyIndexBuffer.GetNumIndices() != 0;
-		DepthOnlyNumTriangles = DepthOnlyIndexBuffer.GetNumIndices() / 3;
 	}
 }
 
@@ -361,7 +349,7 @@ int32 FStaticMeshLODResources::GetNumTexCoords() const
 void FStaticMeshLODResources::InitVertexFactory(
 	FLocalVertexFactory& InOutVertexFactory,
 	UStaticMesh* InParentMesh,
-	bool bInOverrideColorVertexBuffer
+	FColorVertexBuffer* InOverrideColorVertexBuffer
 	)
 {
 	check( InParentMesh != NULL );
@@ -370,13 +358,13 @@ void FStaticMeshLODResources::InitVertexFactory(
 	{
 		FLocalVertexFactory* VertexFactory;
 		FStaticMeshLODResources* LODResources;
-		bool bOverrideColorVertexBuffer;
+		FColorVertexBuffer* OverrideColorVertexBuffer;
 		UStaticMesh* Parent;
 	} Params;
 
 	Params.VertexFactory = &InOutVertexFactory;
 	Params.LODResources = this;
-	Params.bOverrideColorVertexBuffer = bInOverrideColorVertexBuffer;
+	Params.OverrideColorVertexBuffer = InOverrideColorVertexBuffer;
 	Params.Parent = InParentMesh;
 
 	// Initialize the static mesh's vertex factory.
@@ -406,29 +394,19 @@ void FStaticMeshLODResources::InitVertexFactory(
 
 			// Use the "override" color vertex buffer if one was supplied.  Otherwise, the color vertex stream
 			// associated with the static mesh is used.
-			if (Params.bOverrideColorVertexBuffer)
+			FColorVertexBuffer* LODColorVertexBuffer = &Params.LODResources->ColorVertexBuffer;
+			if( Params.OverrideColorVertexBuffer != NULL )
+			{
+				LODColorVertexBuffer = Params.OverrideColorVertexBuffer;
+			}
+			if( LODColorVertexBuffer->GetNumVertices() > 0 )
 			{
 				Data.ColorComponent = FVertexStreamComponent(
-					&GNullColorVertexBuffer,
+					LODColorVertexBuffer,
 					0,	// Struct offset to color
-					sizeof(FColor), //asserted elsewhere
-					VET_Color,
-					false, // not instanced
-					true // set in SetMesh
+					LODColorVertexBuffer->GetStride(),
+					VET_Color
 					);
-			}
-			else 
-			{
-				FColorVertexBuffer* LODColorVertexBuffer = &Params.LODResources->ColorVertexBuffer;
-				if (LODColorVertexBuffer->GetNumVertices() > 0)
-				{
-					Data.ColorComponent = FVertexStreamComponent(
-						LODColorVertexBuffer,
-						0,	// Struct offset to color
-						LODColorVertexBuffer->GetStride(),
-						VET_Color
-						);
-				}
 			}
 
 			Data.TextureCoordinates.Empty();
@@ -508,10 +486,6 @@ FStaticMeshLODResources::FStaticMeshLODResources()
 	: DistanceFieldData(NULL)
 	, MaxDeviation(0.0f)
 	, bHasAdjacencyInfo(false)
-	, bHasDepthOnlyIndices(false)
-	, bHasReversedIndices(false)
-	, bHasReversedDepthOnlyIndices(false)
-	, DepthOnlyNumTriangles(0)
 {
 }
 
@@ -548,19 +522,9 @@ void FStaticMeshLODResources::InitResources(UStaticMesh* Parent)
 		BeginInitResource(&ColorVertexBuffer);
 	}
 
-	if (ReversedIndexBuffer.GetNumIndices() > 0)
-	{
-		BeginInitResource(&ReversedIndexBuffer);
-	}
-
 	if (DepthOnlyIndexBuffer.GetNumIndices() > 0)
 	{
 		BeginInitResource(&DepthOnlyIndexBuffer);
-	}
-
-	if (ReversedDepthOnlyIndexBuffer.GetNumIndices() > 0)
-	{
-		BeginInitResource(&ReversedDepthOnlyIndexBuffer);
 	}
 
 	if (RHISupportsTessellation(MaxShaderPlatform))
@@ -568,11 +532,8 @@ void FStaticMeshLODResources::InitResources(UStaticMesh* Parent)
 		BeginInitResource(&AdjacencyIndexBuffer);
 	}
 
-	InitVertexFactory(VertexFactory, Parent, false);
+	InitVertexFactory(VertexFactory, Parent, NULL);
 	BeginInitResource(&VertexFactory);
-
-	InitVertexFactory(VertexFactoryOverrideColorVertexBuffer, Parent, true);
-	BeginInitResource(&VertexFactoryOverrideColorVertexBuffer);
 
 	if (DistanceFieldData)
 	{
@@ -624,13 +585,10 @@ void FStaticMeshLODResources::ReleaseResources()
 	BeginReleaseResource(&VertexBuffer);
 	BeginReleaseResource(&PositionVertexBuffer);
 	BeginReleaseResource(&ColorVertexBuffer);
-	BeginReleaseResource(&ReversedIndexBuffer);
 	BeginReleaseResource(&DepthOnlyIndexBuffer);
-	BeginReleaseResource(&ReversedDepthOnlyIndexBuffer);
 
 	// Release the vertex factories.
 	BeginReleaseResource(&VertexFactory);
-	BeginReleaseResource(&VertexFactoryOverrideColorVertexBuffer);
 
 	if (DistanceFieldData)
 	{
@@ -805,13 +763,13 @@ void FStaticMeshRenderData::ResolveSectionInfo(UStaticMesh* Owner)
 			Section.bCastShadow = Info.bCastShadow;
 		}
 
-		if (Owner->bAutoComputeLODScreenSize)
+		if (LODIndex == 0)
 		{
-			if (LODIndex == 0)
-			{
-				ScreenSize[LODIndex] = 1.0f;
-			}
-			else if(LOD.MaxDeviation <= 0.0f)
+			ScreenSize[LODIndex] = 1.0f;
+		}
+		else if (Owner->bAutoComputeLODScreenSize)
+		{
+			if(LOD.MaxDeviation <= 0.0f)
 			{
 				ScreenSize[LODIndex] = 1.0f / (MaxLODs * LODIndex);
 			}
@@ -1068,7 +1026,6 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 	Ar << BuildSettings.bUseMikkTSpace;
 	Ar << BuildSettings.bRemoveDegenerates;
 	Ar << BuildSettings.bBuildAdjacencyBuffer;
-	Ar << BuildSettings.bBuildReversedIndexBuffer;
 	Ar << BuildSettings.bUseFullPrecisionUVs;
 	Ar << BuildSettings.bGenerateLightmapUVs;
 
@@ -1103,7 +1060,7 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 // differences, etc.) replace the version GUID below with a new one.
 // In case of merge conflicts with DDC versions, you MUST generate a new GUID
 // and set this new GUID as the version.
-#define STATICMESH_DERIVEDDATA_VER TEXT("37403C6FB9441A6992E4CB614156E6A")
+#define STATICMESH_DERIVEDDATA_VER TEXT("46A8778361B442A9523C54440EA1E9D")
 
 static const FString& GetStaticMeshDerivedDataVersion()
 {
@@ -1240,7 +1197,7 @@ void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettin
 		GetDerivedDataCacheRef().Put(*DerivedDataKey, DerivedData);
 
 		int32 T1 = FPlatformTime::Cycles();
-		UE_LOG(LogStaticMesh,Log,TEXT("Built static mesh [%.2fs] %s"),
+		UE_LOG(LogStaticMesh,Log,TEXT("Built static mesh [%f.2s] %s"),
 			FPlatformTime::ToMilliseconds(T1-T0) / 1000.0f,
 			*Owner->GetPathName()
 			);

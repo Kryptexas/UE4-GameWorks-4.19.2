@@ -1,10 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 
 /**
- * A breadcrumb trail. Allows the user to see their currently selected path and navigate upwards.
+ * A breadcrumb trail. Allows the user to see his currently selected path and navigate upwards.
  */
 template <typename ItemType>
 class SBreadcrumbTrail : public SCompoundWidget
@@ -43,8 +43,6 @@ public:
 	/** Callback for getting the menu content to be displayed when clicking on a crumb's delimiter arrow */
 	DECLARE_DELEGATE_RetVal_OneParam( TSharedPtr< SWidget >, FGetCrumbMenuContent, const ItemType& /*CrumbData*/ );
 
-	DECLARE_DELEGATE_RetVal_TwoParams( FSlateColor, FOnGetCrumbColor, int32 /*CrumbId*/, bool /*bInvert*/ );
-
 
 	SLATE_BEGIN_ARGS( SBreadcrumbTrail )
 		: _InvertTextColorOnHover(true)
@@ -55,8 +53,7 @@ public:
 		, _ShowLeadingDelimiter(false)
 		, _PersistentBreadcrumbs(false)
 		, _GetCrumbMenuContent()
-		, _OnGetCrumbColor()
-	    {}
+	{}
 
 		/** When true, will invert the button text color when a crumb button is hovered */
 		SLATE_ARGUMENT( bool, InvertTextColorOnHover )
@@ -90,8 +87,6 @@ public:
 
 		SLATE_EVENT( FGetCrumbMenuContent, GetCrumbMenuContent )
 
-		SLATE_EVENT( FOnGetCrumbColor, OnGetCrumbColor )
-
 	SLATE_END_ARGS()
 
 	/** Constructs this widget with InArgs */
@@ -108,8 +103,6 @@ public:
 		OnCrumbClicked = InArgs._OnCrumbClicked;
 		bHasStaticBreadcrumbs = InArgs._PersistentBreadcrumbs;
 		GetCrumbMenuContentCallback = InArgs._GetCrumbMenuContent;
-		OnGetCrumbColor = InArgs._OnGetCrumbColor;
-
 
 		NextValidCrumbID = 0;
 
@@ -213,8 +206,7 @@ public:
 		check(HasCrumbs());
 
 		// Remove from the crumb list and box
-		const FCrumbItem& LastCrumbItem = CrumbList.Pop();
-
+		FCrumbItem LastCrumbItem = CrumbList.Pop();
 		CrumbBox->RemoveSlot(LastCrumbItem.ButtonBox);
 		CrumbBox->RemoveSlot(LastCrumbItem.DelimiterBox);
 
@@ -341,46 +333,27 @@ private:
 	/** Handler to determine the text color of crumb buttons. Will invert the text color if allowed. */
 	FSlateColor GetButtonForegroundColor(int32 CrumbID) const
 	{
-		TSharedPtr< SButton > CrumbButton;
-
-		if ( !OnGetCrumbColor.IsBound() )
+		if ( bInvertTextColorOnHover )
 		{
-			if ( bInvertTextColorOnHover )
-			{
-				for ( int32 CrumbListIdx = 0; CrumbListIdx < NumCrumbs(); ++CrumbListIdx )
-				{
-					if ( CrumbList[ CrumbListIdx ].CrumbID == CrumbID )
-					{
-						CrumbButton = CrumbList[ CrumbListIdx ].Button;
-						break;
-					}
-				}
+			TSharedPtr<SButton> CrumbButton;
 
-				if ( CrumbButton.IsValid() && CrumbButton->IsHovered() )
+			for (int32 CrumbListIdx = 0; CrumbListIdx < NumCrumbs(); ++CrumbListIdx)
+			{
+				if (CrumbList[CrumbListIdx].CrumbID == CrumbID)
 				{
-					static const FName InvertedForegroundName( "InvertedForeground" );
-					return FCoreStyle::Get().GetSlateColor( InvertedForegroundName );
+					CrumbButton = CrumbList[CrumbListIdx].Button;
 				}
 			}
 
-			static const FName DefaultForegroundName;
-			return FCoreStyle::Get().GetSlateColor( DefaultForegroundName );
-		}
-		else
-		{
-			int32 CrumbPosition = INDEX_NONE;
-			for ( int32 CrumbListIdx = 0; CrumbListIdx < NumCrumbs(); ++CrumbListIdx )
+			if ( CrumbButton.IsValid() && CrumbButton->IsHovered() )
 			{
-				if ( CrumbList[ CrumbListIdx ].CrumbID == CrumbID )
-				{
-					CrumbButton = CrumbList[ CrumbListIdx ].Button;
-					CrumbPosition = CrumbListIdx;
-					break;
-				}
+				static const FName InvertedForegroundName("InvertedForeground");
+				return FCoreStyle::Get().GetSlateColor(InvertedForegroundName);
 			}
-
-			return OnGetCrumbColor.Execute( CrumbPosition, ( CrumbButton.IsValid() && CrumbButton->IsHovered() ) );
 		}
+
+		static const FName DefaultForegroundName;
+		return FCoreStyle::Get().GetSlateColor(DefaultForegroundName);
 	}
 
 	/** Handler for when a crumb is clicked. Will pop crumbs down to the selected one. */
@@ -406,7 +379,6 @@ private:
 				if (CrumbList[CrumbListIdx].CrumbID == CrumbID)
 				{
 					CrumbIdx = CrumbListIdx;
-					break;
 				}
 			}
 
@@ -478,6 +450,4 @@ private:
 
 	/** If true, don't dynamically remove items when clicking */
 	bool bHasStaticBreadcrumbs;
-
-	FOnGetCrumbColor OnGetCrumbColor;
 };

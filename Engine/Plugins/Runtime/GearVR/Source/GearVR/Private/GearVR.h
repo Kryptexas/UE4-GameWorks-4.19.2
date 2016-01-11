@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "HeadMountedDisplay.h"
@@ -345,7 +345,7 @@ public:
 		current position as 0 point. */
 	virtual void ResetOrientationAndPosition(float yaw = 0.f) override;
 
-	void RebaseObjectOrientationAndPosition(FVector& OutPosition, FQuat& OutOrientation) const override;
+	void RebaseObjectOrientationAndPosition(FVector& OutPosition, FQuat& OutOrientation) const;
 
 	virtual FString GetVersionString() const override;
 
@@ -431,8 +431,6 @@ protected:
 		check(pGearVRBridge);
 		return pGearVRBridge->GetMobileSynced();
 	}
-	// Can be called on GameThread to figure out if OvrMobile obj is valid.
-	bool HasValidOvrMobile() const;
 private: // data
 
 	FRotator			DeltaControlRotation;    // same as DeltaControlOrientation but as rotator

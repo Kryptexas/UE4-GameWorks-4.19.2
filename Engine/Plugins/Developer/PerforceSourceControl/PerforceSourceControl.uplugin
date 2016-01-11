@@ -1,25 +1,21 @@
 {
 	"FileVersion" : 3,
+	
+	"FriendlyName" : "Perforce",
 	"Version" : 1,
 	"VersionName" : "1.0",
-	"FriendlyName" : "Perforce",
-	"Description" : "Perforce source control management",
-	"Category" : "Source Control",
 	"CreatedBy" : "Epic Games, Inc.",
 	"CreatedByURL" : "http://epicgames.com",
-	"DocsURL" : "",
-	"MarketplaceURL" : "",
-	"SupportURL" : "",
+	"EngineVersion" : "4.2.0",
+	"Description" : "Perforce source control management",
+	"Category" : "Source Control",
 	"EnabledByDefault" : true,
-	"CanContainContent" : false,
-	"IsBetaVersion" : false,
-	"Installed" : false,
+	
 	"Modules" :
 	[
 		{
 			"Name" : "PerforceSourceControl",
-			"Type" : "Developer",
-			"LoadingPhase" : "Default"
+			"Type" : "Developer"
 		}
 	]
 }

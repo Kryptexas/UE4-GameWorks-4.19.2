@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputPress.h"
@@ -15,7 +15,7 @@ void UAbilityTask_WaitInputPress::OnPressCallback()
 {
 	float ElapsedTime = GetWorld()->GetTimeSeconds() - StartTime;
 
-	if (!Ability || !AbilitySystemComponent)
+	if (!Ability.IsValid() || !AbilitySystemComponent.IsValid())
 	{
 		return;
 	}
@@ -47,7 +47,7 @@ UAbilityTask_WaitInputPress* UAbilityTask_WaitInputPress::WaitInputPress(class U
 void UAbilityTask_WaitInputPress::Activate()
 {
 	StartTime = GetWorld()->GetTimeSeconds();
-	if (Ability)
+	if (Ability.IsValid())
 	{
 		if (bTestInitialState && IsLocallyControlled())
 		{
@@ -62,10 +62,7 @@ void UAbilityTask_WaitInputPress::Activate()
 		DelegateHandle = AbilitySystemComponent->AbilityReplicatedEventDelegate(EAbilityGenericReplicatedEvent::InputPressed, GetAbilitySpecHandle(), GetActivationPredictionKey()).AddUObject(this, &UAbilityTask_WaitInputPress::OnPressCallback);
 		if (IsForRemoteClient())
 		{
-			if (!AbilitySystemComponent->CallReplicatedEventDelegateIfSet(EAbilityGenericReplicatedEvent::InputPressed, GetAbilitySpecHandle(), GetActivationPredictionKey()))
-			{
-				SetWaitingOnRemotePlayerData();
-			}
+			AbilitySystemComponent->CallReplicatedEventDelegateIfSet(EAbilityGenericReplicatedEvent::InputPressed, GetAbilitySpecHandle(), GetActivationPredictionKey());
 		}
 	}
 }

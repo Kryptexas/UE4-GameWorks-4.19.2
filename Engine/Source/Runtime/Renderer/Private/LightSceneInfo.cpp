@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightSceneInfo.cpp: Light scene info implementation.
@@ -178,9 +178,7 @@ bool FLightSceneInfo::ShouldRenderLight(const FViewInfo& View) const
 
 	return bLocalVisible
 		// Only render lights with static shadowing for reflection captures, since they are only captured at edit time
-		&& (!View.bStaticSceneOnly || Proxy->HasStaticShadowing())
-		// Only render lights in the default channel, or if there are any primitives outside the default channel
-		&& (Proxy->GetLightingChannelMask() & GetDefaultLightingChannelMask() || View.bUsesLightingChannels);
+		&& (!View.bStaticSceneOnly || Proxy->HasStaticShadowing());
 }
 
 bool FLightSceneInfo::IsPrecomputedLightingValid() const
@@ -209,9 +207,6 @@ void FLightSceneInfo::ReleaseRHI()
 	{
 		TileIntersectionResources->Release();
 	}
-
-	ShadowCapsuleShapesVertexBuffer.SafeRelease();
-	ShadowCapsuleShapesSRV.SafeRelease();
 }
 
 /** Determines whether two bounding spheres intersect. */
@@ -257,11 +252,6 @@ bool FLightSceneInfoCompact::AffectsPrimitive(const FPrimitiveSceneInfoCompact& 
 	}
 
 	if (LightSceneInfo->Proxy->CastsShadowsFromCinematicObjectsOnly() && !CompactPrimitiveSceneInfo.Proxy->CastsCinematicShadow())
-	{
-		return false;
-	}
-
-	if (!(LightSceneInfo->Proxy->GetLightingChannelMask() & CompactPrimitiveSceneInfo.Proxy->GetLightingChannelMask()))
 	{
 		return false;
 	}

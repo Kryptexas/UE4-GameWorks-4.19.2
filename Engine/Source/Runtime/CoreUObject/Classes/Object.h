@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 
@@ -115,7 +115,7 @@ enum EPixelFormat
 	PF_R16F,
 	PF_R16F_FILTER,
 	PF_BC5,
-	/** SNORM red, green (-1..1). Not supported on all RHI e.g. Metal */
+	/** SNORM red, green (-1..1). */
 	PF_V8U8,
 	PF_A1,
 	/** A low precision floating point format. */
@@ -269,10 +269,6 @@ enum class EUnit
 	/** Time units */
 	
 	Milliseconds, Seconds, Minutes, Hours, Days, Months, Years,
-
-	/** Arbitrary multiplier */
-	
-	Multiplier,
 
 
 	/** Symbolic entry, not specifiable on meta data. */
@@ -549,7 +545,7 @@ struct FBox2D
 	FVector2D Max;
 
 	UPROPERTY()
-	bool bIsValid;
+	uint8 IsValid;
 
 };
 
@@ -900,7 +896,7 @@ struct FTimespan
 
 // A string asset reference
 
-USTRUCT(noexport, meta=(HasNativeMake="Engine.BlueprintFunctionLibrary.MakeStringAssetReference"))
+USTRUCT(noexport)
 struct FStringAssetReference
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=StringAssetReference)

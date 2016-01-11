@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Sound/SoundBase.h"
@@ -7,10 +7,8 @@
 
 USoundBase::USoundBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, bIgnoreFocus(false)
-	, Priority(1.0f)
 {
-	MaxConcurrentPlayCount_DEPRECATED = 16;
+	MaxConcurrentPlayCount = 16;
 }
 
 void USoundBase::PostInitProperties()
@@ -59,7 +57,6 @@ bool USoundBase::IsAudibleSimple(class FAudioDevice* AudioDevice, const FVector 
 
 	// Is this SourceActor within the MaxAudibleDistance of any of the listeners?
 	float MaxAudibleDistance = InAttenuationSettings != nullptr ? InAttenuationSettings->Attenuation.GetMaxDimension() : GetMaxAudibleDistance();
-
 	return AudioDevice->LocationIsAudible(Location, MaxAudibleDistance);
 }
 
@@ -71,8 +68,7 @@ bool USoundBase::IsAudible( const FVector &SourceLocation, const FVector &Listen
 	// Account for any portals
 	const FVector ModifiedSourceLocation = SourceLocation;
 
-	float MaxDist = GetMaxAudibleDistance();
-
+	const float MaxDist = GetMaxAudibleDistance();
 	if( MaxDist * MaxDist >= ( ListenerLocation - ModifiedSourceLocation ).SizeSquared() )
 	{
 		// Can't line check through portals
@@ -110,47 +106,3 @@ USoundClass* USoundBase::GetSoundClass() const
 {
 	return SoundClassObject;
 }
-
-const FSoundConcurrencySettings* USoundBase::GetSoundConcurrencySettingsToApply()
-{
-	if (bOverrideConcurrency)
-	{
-		return &ConcurrencyOverrides;
-	}
-	else if (SoundConcurrencySettings)
-	{
-		return &SoundConcurrencySettings->Concurrency;
-	}
-	return nullptr;
-}
-
-float USoundBase::GetPriority() const
-{
-	return Priority;
-}
-
-uint32 USoundBase::GetSoundConcurrencyObjectID() const
-{
-	if (SoundConcurrencySettings != nullptr && !bOverrideConcurrency)
-	{
-		return SoundConcurrencySettings->GetUniqueID();
-	}
-	return 0;
-}
-
-void USoundBase::PostLoad()
-{
-	Super::PostLoad();
-
-	const int32 LinkerUE4Version = GetLinkerUE4Version();
-
-	if (LinkerUE4Version < VER_UE4_SOUND_CONCURRENCY_PACKAGE)
-	{
-		bOverrideConcurrency = true;
-		ConcurrencyOverrides.bLimitToOwner = false;
-		ConcurrencyOverrides.MaxCount = MaxConcurrentPlayCount_DEPRECATED;
-		ConcurrencyOverrides.ResolutionRule = MaxConcurrentResolutionRule_DEPRECATED;
-		ConcurrencyOverrides.VolumeScale = 1.0f;
-	}
-}
-

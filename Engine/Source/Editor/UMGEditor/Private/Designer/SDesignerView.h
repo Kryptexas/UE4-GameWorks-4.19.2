@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,6 +9,15 @@
 #include "IUMGDesigner.h"
 
 #include "SPaintSurface.h"
+
+namespace EDesignerMessage
+{
+	enum Type
+	{
+		None,
+		MoveFromParent,
+	};
+}
 
 class FDesignerExtension;
 class UPanelWidget;
@@ -62,8 +71,6 @@ public:
 	virtual bool GetWidgetParentGeometry(const FWidgetReference& Widget, FGeometry& Geometry) const override;
 	virtual FGeometry MakeGeometryWindowLocal(const FGeometry& WidgetGeometry) const override;
 	virtual void MarkDesignModifed(bool bRequiresRecompile) override;
-	virtual void PushDesignerMessage(const FText& Message) override;
-	virtual void PopDesignerMessage() override;
 	// End of IUMGDesigner interface
 
 	// FGCObject interface
@@ -159,9 +166,7 @@ private:
 	bool GetIsScreenFillRuleSelected(EDesignPreviewSizeMode SizeMode) const;
 	void OnScreenFillRuleSelected(EDesignPreviewSizeMode SizeMode);
 
-	EVisibility GetDesignerOutlineVisibility() const;
-	FSlateColor GetDesignerOutlineColor() const;
-	FText GetDesignerOutlineText() const;
+	EVisibility PIENotification() const;
 
 	// Handles drawing selection and other effects a SPaintSurface widget injected into the hierarchy.
 	int32 HandleEffectsPainting(const FOnPaintHandlerParams& PaintArgs);
@@ -297,11 +302,11 @@ private:
 	TSharedPtr<SRuler> SideRuler;
 
 	/** */
+	EDesignerMessage::Type DesignerMessage;
+
+	/** */
 	ETransformMode::Type TransformMode;
 
 	/**  */
 	TMap<TSharedRef<SWidget>, FArrangedWidget> CachedWidgetGeometry;
-
-	/** The message stack to display the last item to the user in a non-modal fashion. */
-	TArray<FText> DesignerMessageStack;
 };

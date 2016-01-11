@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "OnlineSubsystemPackage.h"
@@ -51,36 +51,6 @@ inline void GenerateNonce(uint8* Nonce, uint32 Length)
 	for (uint32 NonceIndex = 0; NonceIndex < Length; NonceIndex++)
 	{
 		Nonce[NonceIndex] = (uint8)(FMath::Rand() & 255);
-	}
-}
-
-/**
- * Environment for the current online platform
- */
-namespace EOnlineEnvironment
-{
-	enum Type
-	{
-		/** Dev environment */
-		Development,
-		/** Cert environment */
-		Certification,
-		/** Prod environment */
-		Production,
-		/** Not determined yet */
-		Unknown
-	};
-
-	/** @return the stringified version of the enum passed in */
-	inline const TCHAR* ToString(EOnlineEnvironment::Type EnvironmentType)
-	{
-		switch (EnvironmentType)
-		{
-			case Development: return TEXT("Development");
-			case Certification: return TEXT("Certification");
-			case Production: return TEXT("Production");
-			case Unknown: default: return TEXT("Unknown");
-		};
 	}
 }
 
@@ -584,9 +554,7 @@ namespace EOnlineComparisonOp
 		GreaterThanEquals,
 		LessThan,
 		LessThanEquals,
-		Near,
-		In,
-		NotIn
+		Near
 	};
 
 	/** @return the stringified version of the enum passed in */
@@ -621,14 +589,6 @@ namespace EOnlineComparisonOp
 		case Near:
 			{
 				return TEXT("Near");
-			}
-		case In:
-			{
-				return TEXT("In");
-			}
-		case NotIn:
-			{
-				return TEXT("NotIn");
 			}
 		}
 		return TEXT("");
@@ -1027,16 +987,12 @@ struct FCloudFileHeader
 {	
 	/** Hash value, if applicable, of the given file contents */
     FString Hash;
-	/** The hash algorithm used to sign this file */
-	FName HashType;
 	/** Filename as downloaded */
     FString DLName;
 	/** Logical filename, maps to the downloaded filename */
     FString FileName;
 	/** File size */
     int32 FileSize;
-	/** The full URL to download the file if it is stored in a CDN or separate host site */
-	FString URL;
 
     /** Constructors */
     FCloudFileHeader() :
@@ -1048,21 +1004,6 @@ struct FCloudFileHeader
 		FileName(InFileName),
 		FileSize(InFileSize)
 	{}
-
-	bool operator==(const FCloudFileHeader& Other) const
-	{
-		return FileSize == Other.FileSize &&
-			Hash == Other.Hash &&
-			HashType == Other.HashType &&
-			DLName == Other.DLName &&
-			FileName == Other.FileName &&
-			URL == Other.URL;
-	}
-
-	bool operator<(const FCloudFileHeader& Other) const
-	{
-		return FileName.Compare(Other.FileName, ESearchCase::IgnoreCase) < 0;
-	}
 };
 
 /** Holds the data used in downloading a file asynchronously from the online service */
@@ -1133,10 +1074,6 @@ public:
 	 * @return Any additional auth data associated with a registered user
 	 */
 	virtual bool GetAuthAttribute(const FString& AttrName, FString& OutAttrValue) const = 0;
-	/** 
-	 * @return True, if the data has been changed
-	 */
-	virtual bool SetUserAttribute(const FString& AttrName, const FString& AttrValue) = 0;
 };
 
 /** 
@@ -1153,9 +1090,7 @@ namespace EInviteStatus
 		/** Friend has sent player an invite, but it has not been accepted/rejected */
 		PendingInbound,
 		/** Player has sent friend an invite, but it has not been accepted/rejected */
-		PendingOutbound,
-		/** Player has been blocked */
-		Blocked,
+		PendingOutbound
 	};
 
 	/** 
@@ -1180,10 +1115,6 @@ namespace EInviteStatus
 			case PendingOutbound:
 			{
 				return TEXT("PendingOutbound");
-			}
-			case Blocked:
-			{
-				return TEXT("Blocked");
 			}
 		}
 		return TEXT("");
@@ -1219,13 +1150,6 @@ public:
 	 * @return last time the player was seen by the current user
 	 */
 	virtual FDateTime GetLastSeen() const = 0;
-};
-
-/**
- * Blocked user info returned via IOnlineFriends interface
- */
-class FOnlineBlockedPlayer : public FOnlineUser
-{
 };
 
 /** The possible permission categories we can choose from to read from the server */
@@ -1373,53 +1297,4 @@ typedef FString FNotificationTransportId;
 /**
 * Id of a party instance
 */
-class FOnlinePartyId : public IOnlinePlatformData, public TSharedFromThis<FOnlinePartyId>
-{
-protected:
-	/** Hidden on purpose */
-	FOnlinePartyId()
-	{
-	}
-
-	/** Hidden on purpose */
-	FOnlinePartyId(const FOnlinePartyId& Src)
-	{
-	}
-
-	/** Hidden on purpose */
-	FOnlinePartyId& operator=(const FOnlinePartyId& Src)
-	{
-		return *this;
-	}
-
-public:
-	virtual ~FOnlinePartyId() {}
-};
-
-/**
-* Id of a party's type
-*/
-class FOnlinePartyTypeId
-{
-public:
-	typedef uint32 TInternalType;
-	explicit FOnlinePartyTypeId(const TInternalType InValue = 0) : Value(InValue) {}
-	FOnlinePartyTypeId(const FOnlinePartyTypeId& Other) : Value(Other.Value) {}
-
-	bool operator==(const FOnlinePartyTypeId Rhs) const { return Value == Rhs.Value; }
-	bool operator!=(const FOnlinePartyTypeId Rhs) const { return Value != Rhs.Value; }
-
-	TInternalType GetValue() const { return Value; }
-
-	friend bool IsValid(const FOnlinePartyTypeId Value);
-
-protected:
-	TInternalType Value;
-};
-
-inline bool IsValid(const FOnlinePartyTypeId Id) { return Id.GetValue() != 0; }
-
-inline uint32 GetTypeHash(const FOnlinePartyTypeId Id)
-{
-	return Id.GetValue();
-}
+typedef FUniqueNetId FOnlinePartyId;

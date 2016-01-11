@@ -1,11 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "EnumOnlyHeader.h"
 #include "TestObject.generated.h"
-
-PRAGMA_DISABLE_DEPRECATION_WARNINGS
 
 UCLASS()
 class UTestObject : public UObject
@@ -33,25 +31,7 @@ public:
 	TArray<UClass*> ReturnArrayOfUClassPtrs();
 
 	UFUNCTION()
-	inline int32 InlineFunc1()
-	{
-		return FString("Hello").Len();
-	}
-
-	UFUNCTION()
-	FORCEINLINE int32 InlineFunc2()
-	{
-		return FString("Hello").Len();
-	}
-
-	UFUNCTION()
-	FORCEINLINE_WHATEVER int32 InlineFunc3()
-	{
-		return FString("Hello").Len();
-	}
-
-	UFUNCTION()
-	FORCENOINLINE int32 NoInlineFunc()
+	int32 InlineFunc()
 	{
 		return FString("Hello").Len();
 	}
@@ -120,5 +100,3 @@ public:
 	UFUNCTION() int x;
 #endif
 };
-
-PRAGMA_ENABLE_DEPRECATION_WARNINGS

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 #include "OnlineSubsystem.h"
@@ -44,46 +44,31 @@ bool FOnlineVoiceImpl::Init()
 		UE_LOG(LogVoice, Warning, TEXT("Missing VoiceNotificationDelta key in OnlineSubsystem of DefaultEngine.ini"));
 	}
 
-	bool bHasVoiceEnabled = false;
-	if (GConfig->GetBool(TEXT("OnlineSubsystem"), TEXT("bHasVoiceEnabled"), bHasVoiceEnabled, GEngineIni) && bHasVoiceEnabled)
+	if (OnlineSubsystem)
 	{
-		if (OnlineSubsystem)
-		{
-			SessionInt = OnlineSubsystem->GetSessionInterface().Get();
-			IdentityInt = OnlineSubsystem->GetIdentityInterface().Get();
-			bSuccess = SessionInt && IdentityInt;
-		}
+		SessionInt = OnlineSubsystem->GetSessionInterface().Get();
+		IdentityInt = OnlineSubsystem->GetIdentityInterface().Get();
 
-		if (bSuccess)
-		{
-			const bool bVoiceEngineForceDisable = OnlineSubsystem->IsDedicated() || GIsBuildMachine;
-			if (!bVoiceEngineForceDisable)
-			{
-				VoiceEngine = MakeShareable(new FVoiceEngineImpl(OnlineSubsystem));
-				bSuccess = VoiceEngine->Init(MaxLocalTalkers, MaxRemoteTalkers);
-			}
-			else
-			{
-				MaxLocalTalkers = 0;
-				MaxRemoteTalkers = 0;
-			}
-		}
-
-		LocalTalkers.Init(FLocalTalker(), MaxLocalTalkers);
-		RemoteTalkers.Empty(MaxRemoteTalkers);
-
-		if (!bSuccess)
-		{
-			UE_LOG(LogVoice, Warning, TEXT("Failed to initialize voice interface"));
-
-			LocalTalkers.Empty();
-			RemoteTalkers.Empty();
-			VoiceEngine = nullptr;
-		}
+		bSuccess = SessionInt && IdentityInt;
 	}
-	else
+
+	const bool bIntentionallyDisabled = OnlineSubsystem->IsDedicated() || GIsBuildMachine;
+	if (bSuccess && !bIntentionallyDisabled)
 	{
-		UE_LOG(LogVoice, Log, TEXT("Voice interface disabled by config [OnlineSubsystem].bHasVoiceEnabled"));
+		VoiceEngine = MakeShareable(new FVoiceEngineImpl(OnlineSubsystem));
+		bSuccess = VoiceEngine->Init(MaxLocalTalkers, MaxRemoteTalkers);
+	}
+
+	LocalTalkers.Init(FLocalTalker(), MaxLocalTalkers);
+	RemoteTalkers.Empty(MaxRemoteTalkers);
+
+	if (!bSuccess)
+	{
+		UE_LOG(LogVoice, Warning, TEXT("Failed to initialize voice interface"));
+
+		LocalTalkers.Empty();
+		RemoteTalkers.Empty();
+		VoiceEngine = NULL;
 	}
 
 	return bSuccess;
@@ -116,25 +101,22 @@ void FOnlineVoiceImpl::ClearVoicePackets()
 
 void FOnlineVoiceImpl::Tick(float DeltaTime) 
 {
-	if (!OnlineSubsystem->IsDedicated())
+	SCOPE_CYCLE_COUNTER(STAT_Voice_Interface);
+
+	// If we aren't in a networked match, no need to update networked voice
+	if (SessionInt && SessionInt->GetNumSessions() > 0)
 	{
-		SCOPE_CYCLE_COUNTER(STAT_Voice_Interface);
-
-		// If we aren't in a networked match, no need to update networked voice
-		if (SessionInt && SessionInt->GetNumSessions() > 0)
+		// Processing voice data only valid with a voice engine to capture/play
+		if (VoiceEngine.IsValid())
 		{
-			// Processing voice data only valid with a voice engine to capture/play
-			if (VoiceEngine.IsValid())
-			{
-				VoiceEngine->Tick(DeltaTime);
+			VoiceEngine->Tick(DeltaTime);
 
-				// Queue local packets for sending via the network
-				ProcessLocalVoicePackets();
-				// Submit queued packets to audio system
-				ProcessRemoteVoicePackets();
-				// Fire off any talking notifications for hud display
-				ProcessTalkingDelegates(DeltaTime);
-			}
+			// Queue local packets for sending via the network
+			ProcessLocalVoicePackets();
+			// Submit queued packets to audio system
+			ProcessRemoteVoicePackets();
+			// Fire off any talking notifications for hud display
+			ProcessTalkingDelegates(DeltaTime);
 		}
 	}
 }
@@ -370,7 +352,7 @@ bool FOnlineVoiceImpl::UnregisterRemoteTalker(const FUniqueNetId& UniqueId)
 			}
 			else
 			{
-				UE_LOG(LogVoice, Verbose, TEXT("Unknown remote talker (%s) specified to UnregisterRemoteTalker()"), *UniqueId.ToDebugString());
+				UE_LOG(LogVoice, Log, TEXT("Unknown remote talker (%s) specified to UnregisterRemoteTalker()"), *UniqueId.ToDebugString());
 			}
 		}
 	}
@@ -474,7 +456,7 @@ bool FOnlineVoiceImpl::MuteRemoteTalker(uint8 LocalUserNum, const FUniqueNetId& 
 				}
 				else
 				{
-					UE_LOG(LogVoice, Verbose, TEXT("Unknown remote talker (%s) specified to MuteRemoteTalker()"), *PlayerId.ToDebugString());
+					UE_LOG(LogVoice, Warning, TEXT("Unknown remote talker (%s) specified to MuteRemoteTalker()"), *PlayerId.ToDebugString());
 				}
 			}
 		}
@@ -520,7 +502,7 @@ bool FOnlineVoiceImpl::UnmuteRemoteTalker(uint8 LocalUserNum, const FUniqueNetId
 				}
 				else
 				{
-					UE_LOG(LogVoice, Verbose, TEXT("Unknown remote talker (%s) specified to UnmuteRemoteTalker()"), *PlayerId.ToDebugString());
+					UE_LOG(LogVoice, Warning, TEXT("Unknown remote talker (%s) specified to UnmuteRemoteTalker()"), *PlayerId.ToDebugString());
 				}
 			}
 		}

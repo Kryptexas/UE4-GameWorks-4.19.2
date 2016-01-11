@@ -1,8 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Text;
-using UnrealBuildTool;
 
 namespace AutomationTool
 {
@@ -28,9 +27,21 @@ namespace AutomationTool
 				throw new AutomationException("Unable to find UBT executable: " + UBTExecutable);
 			}
 
+			if (GlobalCommandLine.Rocket)
+			{
+				CommandLine += " -rocket";
+			}
 			if (GlobalCommandLine.VS2015)
 			{
 				CommandLine += " -2015";
+			}
+			if (GlobalCommandLine.VS2013)
+			{
+				CommandLine += " -2013";
+			}
+			if (GlobalCommandLine.VS2012)
+			{
+				CommandLine += " -2012";
 			}
 			if (!IsBuildMachine && UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealBuildTool.UnrealTargetPlatform.Mac)
 			{
@@ -59,16 +70,16 @@ namespace AutomationTool
 		/// <param name="Platform">Platform to build for.</param>
 		/// <param name="Config">Configuration to build.</param>
 		/// <param name="AdditionalArgs">Additional arguments to pass on to UBT.</param>
-		public static string UBTCommandline(FileReference Project, string Target, string Platform, string Config, string AdditionalArgs = "")
+		public static string UBTCommandline(string Project, string Target, string Platform, string Config, string AdditionalArgs = "")
 		{
 			string CmdLine;
-			if (Project == null)
+			if (String.IsNullOrEmpty(Project))
 			{
 				CmdLine = String.Format("{0} {1} {2} {3}", Target, Platform, Config, AdditionalArgs);
 			}
 			else
 			{
-				CmdLine = String.Format("{0} {1} {2} -Project={3} {4}", Target, Platform, Config, CommandUtils.MakePathSafeToUseWithCommandLine(Project.FullName), AdditionalArgs);
+				CmdLine = String.Format("{0} {1} {2} -Project={3} {4}", Target, Platform, Config, CommandUtils.MakePathSafeToUseWithCommandLine(Project), AdditionalArgs);
 			}
 			return CmdLine;
 		}
@@ -84,7 +95,7 @@ namespace AutomationTool
 		/// <param name="Config">Configuration to build.</param>
 		/// <param name="AdditionalArgs">Additional arguments to pass on to UBT.</param>
 		/// <param name="LogName">Optional logifle name.</param>
-		public static void RunUBT(CommandEnvironment Env, string UBTExecutable, FileReference Project, string Target, string Platform, string Config, string AdditionalArgs = "", string LogName = null, Dictionary<string, string> EnvVars = null)
+		public static void RunUBT(CommandEnvironment Env, string UBTExecutable, string Project, string Target, string Platform, string Config, string AdditionalArgs = "", string LogName = null, Dictionary<string, string> EnvVars = null)
 		{
 			RunUBT(Env, UBTExecutable, UBTCommandline(Project, Target, Platform, Config, AdditionalArgs), LogName, EnvVars);
 		}

@@ -1,18 +1,18 @@
-﻿INTSourceChangelist:2612378
+﻿INTSourceChangelist:0
 Availability: Public
-Title:9.动画蓝图 - 俯卧状态
+Title:9. Animation Blueprint - Prone State
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
-Description:最后为我们的人物设置的状态是俯卧状态，这将完成我们的人物。 
+Description:The final state to set up for our character is the Prone State which will complete our character. 
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[上一步] (Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jump "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jump:title%")
+		[Previous Step](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jump "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jump:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[人物动作概述](Gameplay\HowTo\CharacterMovement\Blueprints)
+		[Character Movement Overview](Gameplay\HowTo\CharacterMovement\Blueprints)
 	[/PARAM]
 	[PARAM:next]
 	[/PARAM]
@@ -21,93 +21,93 @@ Description:最后为我们的人物设置的状态是俯卧状态，这将完�
 
 %Steps%
 
-在这个最后一节中，我们通过添加**Prone**状态以及到/从它的过渡，完成**State Machine**。 
+In this final section, we finish our **State Machine** by adding a **Prone** state along with the transition to/from it. 
 
-1.	在状态机图形中，从**Asset Browser**拖入**Stand_To_Prone**动画。 
+1.	In the State Machine graph, drag in the **Stand_To_Prone** animation from the **Asset Browser**. 
 
 	![](AnimBP_StandToProne1.png)
 
-1.	创建从**Idle_Rifle_Hip**到**Stand_To_Prone**的**Transition**，然后单击**Transition Rule**。 
+1.	Create a **Transition** from **Idle_Rifle_Hip** to **Stand_To_Prone** and click on the **Transition Rule**. 
 
 	![](AnimBP_StandToProne2.png)
 
-1.	打开从**Idle_Rifle_Hip**到**Stand_To_Prone**的**Transition Rule**，并重建以下图形。 
+1.	Open the **Transition Rule** for **Idle_Rifle_Hip** to **Stand_To_Prone** and recreate the graph below. 
 
 	![](AnimBP_StandToProne3.png)
 
-1.	返回状态机图形，然后从**Asset Browser**拖入**Prone_Idle**动画。 
+1.	Return to the State Machine graph, then drag in the **Prone_Idle** animation from the **Asset Browser**. 
 
 	![](AnimBP_ProneIdle1.png)
 
-1.	创建从**Stand_To_Prone**到**Prone_Idle**的**Transition**。
+1.	Create a **Transition** from **Stand_To_Prone** to **Prone_Idle**.
 
-1.	从**Asset Browser**拖入**Prone_To_Stand**动画，并创建从**Prone_Idle**到**Prone_To_Stand**的**Transition**。 
+1.	Drag in the **Prone_To_Stand** animation from the **Asset Browser** and create a **Transition** from **Prone_Idle** to **Prone_To_Stand**. 
 
-1.	创建从**Prone_To_Stand**到**Idle_Rifle_Hip**的**Transition**。 
+1.	Create a **Transition** from **Prone_To_Stand** to **Idle_Rifle_Hip**. 
 
-1.	单击从**Stand_To_Prone**到**Prone_Idle**的**Transition Rule**。 
+1.	Click on the **Transition Rule** for **Stand_To_Prone** to **Prone_Idle**. 
 
 	![](AnimBP_ProneIdle2.png)
 
-1.	在**Transition Rule**的**Details**面板中，将**BlendSetting**下的**Duration**设置为**0.0**。 
+1.	In the **Details** panel for the **Transition Rule**, set the **Duration** under **BlendSetting** to **0.0**. 
 
 	![](AnimBP_StandToProne1b.png)
 
-1.	打开从**Stand_To_Prone**到**Prone_Idle**的**Transition Rule**。 
+1.	Open the **Transition Rule** for the **Stand_To_Prone** to **Prone_Idle**. 
 
-1.	在**Transition Rule**内重建以下图形。 
+1.	Inside the **Transition Rule**, recreate the graph below. 
 
 	![](AnimBP_ProneIdle3.png)
 
-	我们将检查俯卧是否为_true_，以及在进入闲置俯卧状态前，进入俯卧的动画是否已结束。 
+	We are checking if prone is still _true_ and if the animation of entering prone is over before entering an idle prone state. 
 
-1.	返回状态机图形，并打开从**Prone_Idle**到**Prone_To_Stand**的**Transition Rule**。 
+1.	Return to the State Machine graph and open the **Transition Rule** for **Prone_Idle** to **Prone_To_Stand**. 
 
 	![](AnimBP_ProneIdle4.png)
 
-1.	在**Transition Rule**内重建以下图形。 
+1.	Inside the **Transition Rule**, recreate the graph below. 
 
 	![](AnimBP_ProneIdle5.png)
 
-	如果俯卧不再为_true_，我们将开始返回站立姿势的序列。 
+	If prone is no longer _true_, we are starting the sequence of returning to the standing position. 
 
-1.	点击从**Prone_To_Stand**到**Idle_Rifle_Hip**的**Transition Rule**。 
+1.	Click on the **Transition Rule** for **Prone_To_Stand** to **Idle_Rifle_Hip**. 
 
 	![](AnimBP_ProneToStand1.png)
 
-1.	在**Transition Rule**的**Details**面板中，将**BlendSetting**下的**Duration**设置为**0.0**。 
+1.	In the **Details** panel for the **Transition Rule**, set the **Duration** under **BlendSetting** to **0.0**. 
 
 	![](AnimBP_ProneToStand1b.png)
 
-1.	打开从**Prone_To_Stand**到**Idle_Rifle_Hip**的**Transition Rule**，并创建以下图形。 
+1.	Open the **Transition Rule** for **Prone_To_Stand** to **Idle_Rifle_Hip** and create the graph below. 
 
 	![](AnimBP_ProneToStand2.png)
 
-1.	你的全状态机图形应类似于以下（节点的排列可能与你的设置不同）。 
+1.	Your full State Machine graph should look similar to below (arrangement of nodes may differ from your setup). 
 
 	[REGION:lightbox]
 	[![](AnimBP_StateMachineFull.png)(w:720)](AnimBP_StateMachineFull.png)
 	[/REGION]
 
-	_单击图像可查看全图。_
+	_Click image for full view._
 
-1.	**Compile**并**Save**动画蓝图。 
+1.	**Compile** and **Save** the Animation Blueprint. 
 
-1.	返回**Content Browser**和**AnimStarterPack**文件夹，然后打开**Prone_To_Stand**动画。 
+1.	Return to the **Content Browser** and the **AnimStarterPack** folder, then open the **Prone_To_Stand** animation. 
 
-1.	在**Anim Asset Details**窗口内，在**Animation**部分下将**Rate Scale**值设置为**1.4**。 
+1.	Inside the **Anim Asset Details** window, set the **Rate Scale** value to **1.4** under the **Animation** section. 
 
 	![](ProneToStand_Rate.png)
 
-	这将略微提升动画的播放速度，并改善从俯卧到站立时的外观。 
+	This will increase the playback rate of the animation slightly and improve the look when going from prone to standing. 
 
-1.	单击**Content Browser**中的**Save**按钮和主工具栏，以保存你的资源和关卡。 
+1.	Click the **Save** button in the **Content Browser** and Main Toolbar to save your assets and the level. 
 
-1.	单击**Play**按钮，以在编辑器中播放。 
+1.	Click the **Play** button to play in the editor. 
 
-你现在应该拥有一个能以许多不同方式在你的等级内移动的完全有生气的人物。你应该能行走、蹲走、慢跑，跳跃（从静止或活动姿势），或从站立或慢跑状态俯卧。 
+You should now have a fully animated character that can move around your level in a number of different ways. You should be able to Walk, Crouch Walk, Jog, Jump (from a stationary or moving position), or go Prone from a Standing or Jogging state. 
 
-还有几种可以添加到该状态机的其它状态（死亡、刷新等），或者你可以将现有动作换成自己的动作。不论是哪个情况，你现在应该了解如何在**Blueprints**中设置人物动作，用**Animation Blueprint**定义动画状态，以及如何通过**Blend Spaces**混合动画。 
+There are several other states that can be added to this State Machine (Death, Reload, etc.) or you could swap out the existing motions with your own. In either case, you should now have an understanding of how to set up Character Movement in **Blueprints**, define animation states with an **Animation Blueprint**, and how to blend animations through **Blend Spaces**. 
 
 %Steps%
 

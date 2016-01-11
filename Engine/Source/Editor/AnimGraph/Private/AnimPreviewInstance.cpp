@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "AnimGraphPrivatePCH.h"
@@ -10,20 +10,37 @@
 
 #define LOCTEXT_NAMESPACE "AnimPreviewInstance"
 
-void FAnimPreviewInstanceProxy::Initialize(UAnimInstance* InAnimInstance)
+UAnimPreviewInstance::UAnimPreviewInstance(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, SkeletalControlAlpha(1.0f)
+#if WITH_EDITORONLY_DATA
+	, bForceRetargetBasePose(false)
+#endif
+	, bSetKey(false)
 {
-	FAnimSingleNodeInstanceProxy::Initialize(InAnimInstance);
-
-	bSetKey = false;
+	RootMotionMode = ERootMotionMode::RootMotionFromEverything;
+	bEnableControllers = true;
 }
 
-void FAnimPreviewInstanceProxy::ResetModifiedBone(bool bCurveController)
+void UAnimPreviewInstance::NativeInitializeAnimation()
+{
+	// Cache our play state from the previous animation otherwise set to play
+	bool bCachedIsPlaying = (CurrentAsset != NULL) ? bPlaying : true;
+	bSetKey = false;
+	Super::NativeInitializeAnimation();
+
+	SetPlaying(bCachedIsPlaying);
+
+	RefreshCurveBoneControllers();
+}
+
+void UAnimPreviewInstance::ResetModifiedBone(bool bCurveController/*=false*/)
 {
 	TArray<FAnimNode_ModifyBone>& Controllers = (bCurveController)?CurveBoneControllers : BoneControllers;
 	Controllers.Empty();
 }
 
-FAnimNode_ModifyBone* FAnimPreviewInstanceProxy::FindModifiedBone(const FName& InBoneName, bool bCurveController)
+FAnimNode_ModifyBone* UAnimPreviewInstance::FindModifiedBone(const FName& InBoneName, bool bCurveController/*=false*/)
 {
 	TArray<FAnimNode_ModifyBone>& Controllers = (bCurveController)?CurveBoneControllers : BoneControllers;
 
@@ -35,7 +52,7 @@ FAnimNode_ModifyBone* FAnimPreviewInstanceProxy::FindModifiedBone(const FName& I
 	);
 }
 
-FAnimNode_ModifyBone& FAnimPreviewInstanceProxy::ModifyBone(const FName& InBoneName, bool bCurveController)
+FAnimNode_ModifyBone& UAnimPreviewInstance::ModifyBone(const FName& InBoneName, bool bCurveController/*=false*/)
 {
 	FAnimNode_ModifyBone* SingleBoneController = FindModifiedBone(InBoneName, bCurveController);
 	TArray<FAnimNode_ModifyBone>& Controllers = (bCurveController)?CurveBoneControllers : BoneControllers;
@@ -74,7 +91,7 @@ FAnimNode_ModifyBone& FAnimPreviewInstanceProxy::ModifyBone(const FName& InBoneN
 	return *SingleBoneController;
 }
 
-void FAnimPreviewInstanceProxy::RemoveBoneModification(const FName& InBoneName, bool bCurveController)
+void UAnimPreviewInstance::RemoveBoneModification(const FName& InBoneName, bool bCurveController/*=false*/)
 {
 	TArray<FAnimNode_ModifyBone>& Controllers = (bCurveController)?CurveBoneControllers : BoneControllers;
 	Controllers.RemoveAll(
@@ -85,11 +102,8 @@ void FAnimPreviewInstanceProxy::RemoveBoneModification(const FName& InBoneName, 
 	);
 }
 
-void FAnimPreviewInstanceProxy::Update(float DeltaSeconds)
+void UAnimPreviewInstance::NativeUpdateAnimation(float DeltaTimeX)
 {
-	// we cant update on a worker thread here because of the key delegate needing to be fired
-	check(IsInGameThread());
-
 #if WITH_EDITORONLY_DATA
 	if(bForceRetargetBasePose)
 	{
@@ -98,18 +112,15 @@ void FAnimPreviewInstanceProxy::Update(float DeltaSeconds)
 	}
 #endif // #if WITH_EDITORONLY_DATA
 
-	FAnimSingleNodeInstanceProxy::Update(DeltaSeconds);
+	Super::NativeUpdateAnimation(DeltaTimeX);
 }
 
-bool FAnimPreviewInstanceProxy::Evaluate(FPoseContext& Output)
+bool UAnimPreviewInstance::NativeEvaluateAnimation(FPoseContext& Output)
 {
-	// we cant evaluate on a worker thread here because of the key delegate needing to be fired
-	check(IsInGameThread());
-
 #if WITH_EDITORONLY_DATA
 	if(bForceRetargetBasePose)
 	{
-		USkeletalMeshComponent* MeshComponent = Output.AnimInstanceProxy->GetSkelMeshComponent();
+		USkeletalMeshComponent* MeshComponent = GetSkelMeshComponent();
 		if(MeshComponent && MeshComponent->SkeletalMesh)
 		{
 			FAnimationRuntime::FillWithRetargetBaseRefPose(Output.Pose, GetSkelMeshComponent()->SkeletalMesh);
@@ -123,14 +134,14 @@ bool FAnimPreviewInstanceProxy::Evaluate(FPoseContext& Output)
 	else
 #endif // #if WITH_EDITORONLY_DATA
 	{
-		FAnimSingleNodeInstanceProxy::Evaluate(Output);
+		Super::NativeEvaluateAnimation(Output);
 	}
 
 	if (bEnableControllers)
 	{
 		UDebugSkelMeshComponent* Component = Cast<UDebugSkelMeshComponent>(GetSkelMeshComponent());
 
-		if(Component && GetSkeleton())
+		if(Component && CurrentSkeleton)
 		{
 			// update curve controllers
 			UpdateCurveController();
@@ -187,11 +198,108 @@ bool FAnimPreviewInstanceProxy::Evaluate(FPoseContext& Output)
 	return true;
 }
 
-void FAnimPreviewInstanceProxy::RefreshCurveBoneControllers()
+void UAnimPreviewInstance::ApplyBoneControllers(USkeletalMeshComponent* Component, TArray<FAnimNode_ModifyBone> &InBoneControllers, FCSPose<FCompactPose>& OutMeshPose)
+{
+	for(auto& SingleBoneController : InBoneControllers)
+	{
+		SingleBoneController.BoneToModify.BoneIndex = RequiredBones.GetPoseBoneIndexForBoneName(SingleBoneController.BoneToModify.BoneName);
+		if(SingleBoneController.BoneToModify.BoneIndex != INDEX_NONE)
+		{
+			TArray<FBoneTransform> BoneTransforms;
+			SingleBoneController.EvaluateBoneTransforms(Component, OutMeshPose, BoneTransforms);
+			if(BoneTransforms.Num() > 0)
+			{
+				OutMeshPose.LocalBlendCSBoneTransforms(BoneTransforms, 1.0f);
+			}
+		}
+	}
+}
+
+void UAnimPreviewInstance::SetKeyImplementation(const FCompactPose& PreControllerInLocalSpace, const FCompactPose& PostControllerInLocalSpace)
+{
+#if WITH_EDITOR
+	// evaluate the curve data first
+	UAnimSequence* CurrentSequence = Cast<UAnimSequence>(CurrentAsset);
+	UDebugSkelMeshComponent* Component = Cast<UDebugSkelMeshComponent> (GetSkelMeshComponent());
+
+	if(CurrentSequence && CurrentSkeleton && Component && Component->SkeletalMesh)
+	{
+		FScopedTransaction ScopedTransaction(LOCTEXT("SetKey", "Set Key"));
+		CurrentSequence->Modify(true);
+		Modify();
+
+		TArray<FName> BonesToModify;
+		// need to get component transform first. Depending on when this gets called, the transform is not up-to-date. 
+		// first look at the bonecontrollers, and convert each bone controller to transform curve key
+		// and add new curvebonecontrollers with additive data type
+		// clear bone controller data
+		for(auto& SingleBoneController : BoneControllers)
+		{
+			// find bone name, and just get transform of the bone in local space
+			// and get the additive data
+			// find if this already exists, then just add curve data only
+			FName BoneName = SingleBoneController.BoneToModify.BoneName;
+			// now convert data
+			const FMeshPoseBoneIndex MeshBoneIndex(Component->GetBoneIndex(BoneName));
+			const FCompactPoseBoneIndex BoneIndex = RequiredBones.MakeCompactPoseIndex(MeshBoneIndex);
+			FTransform  LocalTransform = PostControllerInLocalSpace[BoneIndex];
+
+			// now we have LocalTransform and get additive data
+			FTransform AdditiveTransform = LocalTransform.GetRelativeTransform(PreControllerInLocalSpace[BoneIndex]);
+			AddKeyToSequence(CurrentSequence, CurrentTime, BoneName, AdditiveTransform);
+
+			BonesToModify.Add(BoneName);
+		}
+
+		// see if the bone is selected right now and if that is added - if bone is selected, we should add identity key to it. 
+		if ( Component->BonesOfInterest.Num() > 0 )
+		{
+			// if they're selected, we should add to the modifyBone list even if they're not modified, so that they can key that point. 
+			// first make sure those are added 
+			// if not added, make sure to set the key for them
+			for (const auto& BoneIndex : Component->BonesOfInterest)
+			{
+				FName BoneName = Component->GetBoneName(BoneIndex);
+				// if it's not on BonesToModify, add identity here. 
+				if (!BonesToModify.Contains(BoneName))
+				{
+					AddKeyToSequence(CurrentSequence, CurrentTime, BoneName, FTransform::Identity);
+				}
+			}
+		}
+
+		ResetModifiedBone(false);
+
+		OnSetKeyCompleteDelegate.ExecuteIfBound();
+	}
+#endif
+}
+
+void UAnimPreviewInstance::AddKeyToSequence(UAnimSequence* Sequence, float Time, const FName& BoneName, const FTransform& AdditiveTransform) 
+{
+	Sequence->AddKeyToSequence(Time, BoneName, AdditiveTransform);
+
+	// now add to the controller
+	// find if it exists in CurveBoneController
+	// make sure you add it there
+	ModifyBone(BoneName, true);
+
+	RequiredBones.SetUseSourceData(true);
+}
+
+void UAnimPreviewInstance::SetKey(FSimpleDelegate InOnSetKeyCompleteDelegate)
+{
+#if WITH_EDITOR
+	bSetKey = true;
+	OnSetKeyCompleteDelegate = InOnSetKeyCompleteDelegate;
+#endif
+}
+
+void UAnimPreviewInstance::RefreshCurveBoneControllers()
 {
 	// go through all curves and see if it has Transform Curve
 	// if so, find what bone that belong to and create BoneMOdifier for them
-	UAnimSequence* CurrentSequence = Cast<UAnimSequence>(GetCurrentAsset());
+	UAnimSequence* CurrentSequence = Cast<UAnimSequence>(CurrentAsset);
 
 	CurveBoneControllers.Empty();
 
@@ -204,10 +312,10 @@ void FAnimPreviewInstanceProxy::RefreshCurveBoneControllers()
 			return;
 		}
 
-		GetRequiredBones().SetUseSourceData(true);
+		RequiredBones.SetUseSourceData(true);
 
 		TArray<FTransformCurve>& Curves = CurrentSequence->RawCurveData.TransformCurves;
-		const FSmartNameMapping* NameMapping = GetSkeleton()->GetSmartNameContainer(USkeleton::AnimTrackCurveMappingName);
+		FSmartNameMapping* NameMapping = CurrentSkeleton->SmartNames.GetContainer(USkeleton::AnimTrackCurveMappingName);
 
 		for (auto& Curve : Curves)
 		{
@@ -225,14 +333,14 @@ void FAnimPreviewInstanceProxy::RefreshCurveBoneControllers()
  			if (CurveName == NAME_None)
  			{
 				FSmartNameMapping::UID NewUID;
-				GetSkeleton()->AddSmartNameAndModify(USkeleton::AnimTrackCurveMappingName, Curve.LastObservedName, NewUID);
+ 				NameMapping->AddOrFindName(Curve.LastObservedName, NewUID);
 				Curve.CurveUid = NewUID;
 
 				CurveName = Curve.LastObservedName;
  			}
 
 			FName BoneName = CurveName;
-			if (BoneName != NAME_None && GetSkeleton()->GetReferenceSkeleton().FindBoneIndex(BoneName) != INDEX_NONE)
+			if (BoneName != NAME_None && CurrentSkeleton->GetReferenceSkeleton().FindBoneIndex(BoneName) != INDEX_NONE)
 			{
 				ModifyBone(BoneName, true);
 			}
@@ -240,15 +348,15 @@ void FAnimPreviewInstanceProxy::RefreshCurveBoneControllers()
 	}
 }
 
-void FAnimPreviewInstanceProxy::UpdateCurveController()
+void UAnimPreviewInstance::UpdateCurveController()
 {
 	// evaluate the curve data first
-	UAnimSequenceBase* CurrentSequence = Cast<UAnimSequenceBase>(GetCurrentAsset());
+	UAnimSequenceBase* CurrentSequence = Cast<UAnimSequenceBase>(CurrentAsset);
 
-	if (CurrentSequence && GetSkeleton())
+	if (CurrentSequence && CurrentSkeleton)
 	{
 		TMap<FName, FTransform> ActiveCurves;
-		CurrentSequence->RawCurveData.EvaluateTransformCurveData(GetSkeleton(), ActiveCurves, GetCurrentTime(), 1.f);
+		CurrentSequence->RawCurveData.EvaluateTransformCurveData(CurrentSkeleton, ActiveCurves, CurrentTime, 1.f);
 
 		// make sure those curves exists in the bone controller, otherwise problem
 		if ( ActiveCurves.Num() > 0 )
@@ -281,223 +389,57 @@ void FAnimPreviewInstanceProxy::UpdateCurveController()
 	}
 }
 
-void FAnimPreviewInstanceProxy::ApplyBoneControllers(USkeletalMeshComponent* Component, TArray<FAnimNode_ModifyBone> &InBoneControllers, FCSPose<FCompactPose>& OutMeshPose)
-{
-	for(auto& SingleBoneController : InBoneControllers)
-	{
-		SingleBoneController.BoneToModify.BoneIndex = GetRequiredBones().GetPoseBoneIndexForBoneName(SingleBoneController.BoneToModify.BoneName);
-		if(SingleBoneController.BoneToModify.BoneIndex != INDEX_NONE)
-		{
-			TArray<FBoneTransform> BoneTransforms;
-			SingleBoneController.EvaluateBoneTransforms(Component, OutMeshPose, BoneTransforms);
-			if(BoneTransforms.Num() > 0)
-			{
-				OutMeshPose.LocalBlendCSBoneTransforms(BoneTransforms, 1.0f);
-			}
-		}
-	}
-}
-
-void FAnimPreviewInstanceProxy::SetKeyImplementation(const FCompactPose& PreControllerInLocalSpace, const FCompactPose& PostControllerInLocalSpace)
-{
-#if WITH_EDITOR
-	// evaluate the curve data first
-	UAnimSequence* CurrentSequence = Cast<UAnimSequence>(GetCurrentAsset());
-	UDebugSkelMeshComponent* Component = Cast<UDebugSkelMeshComponent> (GetSkelMeshComponent());
-
-	if(CurrentSequence && GetSkeleton() && Component && Component->SkeletalMesh)
-	{
-		FScopedTransaction ScopedTransaction(LOCTEXT("SetKey", "Set Key"));
-		CurrentSequence->Modify(true);
-		GetAnimInstanceObject()->Modify();
-
-		TArray<FName> BonesToModify;
-		// need to get component transform first. Depending on when this gets called, the transform is not up-to-date. 
-		// first look at the bonecontrollers, and convert each bone controller to transform curve key
-		// and add new curvebonecontrollers with additive data type
-		// clear bone controller data
-		for(auto& SingleBoneController : BoneControllers)
-		{
-			// find bone name, and just get transform of the bone in local space
-			// and get the additive data
-			// find if this already exists, then just add curve data only
-			FName BoneName = SingleBoneController.BoneToModify.BoneName;
-			// now convert data
-			const FMeshPoseBoneIndex MeshBoneIndex(Component->GetBoneIndex(BoneName));
-			const FCompactPoseBoneIndex BoneIndex = GetRequiredBones().MakeCompactPoseIndex(MeshBoneIndex);
-			FTransform  LocalTransform = PostControllerInLocalSpace[BoneIndex];
-
-			// now we have LocalTransform and get additive data
-			FTransform AdditiveTransform = LocalTransform.GetRelativeTransform(PreControllerInLocalSpace[BoneIndex]);
-			AddKeyToSequence(CurrentSequence, GetCurrentTime(), BoneName, AdditiveTransform);
-
-			BonesToModify.Add(BoneName);
-		}
-
-		// see if the bone is selected right now and if that is added - if bone is selected, we should add identity key to it. 
-		if ( Component->BonesOfInterest.Num() > 0 )
-		{
-			// if they're selected, we should add to the modifyBone list even if they're not modified, so that they can key that point. 
-			// first make sure those are added 
-			// if not added, make sure to set the key for them
-			for (const auto& BoneIndex : Component->BonesOfInterest)
-			{
-				FName BoneName = Component->GetBoneName(BoneIndex);
-				// if it's not on BonesToModify, add identity here. 
-				if (!BonesToModify.Contains(BoneName))
-				{
-					AddKeyToSequence(CurrentSequence, GetCurrentTime(), BoneName, FTransform::Identity);
-				}
-			}
-		}
-
-		ResetModifiedBone(false);
-
-		OnSetKeyCompleteDelegate.ExecuteIfBound();
-	}
-#endif
-}
-
-void FAnimPreviewInstanceProxy::AddKeyToSequence(UAnimSequence* Sequence, float Time, const FName& BoneName, const FTransform& AdditiveTransform) 
-{
-	Sequence->AddKeyToSequence(Time, BoneName, AdditiveTransform);
-
-	// now add to the controller
-	// find if it exists in CurveBoneController
-	// make sure you add it there
-	ModifyBone(BoneName, true);
-
-	GetRequiredBones().SetUseSourceData(true);
-}
-
-UAnimPreviewInstance::UAnimPreviewInstance(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-{
-	RootMotionMode = ERootMotionMode::RootMotionFromEverything;
-	bCanUseParallelUpdateAnimation = false;
-}
-
-static FArchive& operator<<(FArchive& Ar, FAnimNode_ModifyBone& ModifyBone)
-{
-	FAnimNode_ModifyBone::StaticStruct()->SerializeItem(Ar, &ModifyBone, nullptr);
-	return Ar;
-}
-
-void UAnimPreviewInstance::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-
-	if(Ar.IsTransacting())
-	{
-		FAnimPreviewInstanceProxy& Proxy = GetProxyOnGameThread<FAnimPreviewInstanceProxy>();		
-		Ar << Proxy.GetBoneControllers();
-		Ar << Proxy.GetCurveBoneControllers();
-	}
-}
-
-void UAnimPreviewInstance::NativeInitializeAnimation()
-{
-	FAnimPreviewInstanceProxy& Proxy = GetProxyOnGameThread<FAnimPreviewInstanceProxy>();
-
-	// Cache our play state from the previous animation otherwise set to play
-	bool bCachedIsPlaying = (Proxy.GetCurrentAsset() != NULL) ? Proxy.IsPlaying() : true;
-
-	Super::NativeInitializeAnimation();
-
-	Proxy.SetPlaying(bCachedIsPlaying);
-
-	Proxy.RefreshCurveBoneControllers();
-}
-
-FAnimNode_ModifyBone* UAnimPreviewInstance::FindModifiedBone(const FName& InBoneName, bool bCurveController/*=false*/)
-{
-	return GetProxyOnGameThread<FAnimPreviewInstanceProxy>().FindModifiedBone(InBoneName, bCurveController);
-}
-
-FAnimNode_ModifyBone& UAnimPreviewInstance::ModifyBone(const FName& InBoneName, bool bCurveController/*=false*/)
-{
-	return GetProxyOnGameThread<FAnimPreviewInstanceProxy>().ModifyBone(InBoneName, bCurveController);
-}
-
-void UAnimPreviewInstance::RemoveBoneModification(const FName& InBoneName, bool bCurveController/*=false*/)
-{
-	GetProxyOnGameThread<FAnimPreviewInstanceProxy>().RemoveBoneModification(InBoneName, bCurveController);
-}
-
-void UAnimPreviewInstance::ResetModifiedBone(bool bCurveController/*=false*/)
-{
-	GetProxyOnGameThread<FAnimPreviewInstanceProxy>().ResetModifiedBone(bCurveController);
-}
-
-void UAnimPreviewInstance::SetKey(FSimpleDelegate InOnSetKeyCompleteDelegate)
-{
-	GetProxyOnGameThread<FAnimPreviewInstanceProxy>().SetKey(InOnSetKeyCompleteDelegate);
-}
-
-void UAnimPreviewInstance::RefreshCurveBoneControllers()
-{
-	GetProxyOnGameThread<FAnimPreviewInstanceProxy>().RefreshCurveBoneControllers();
-}
-
 /** Set SkeletalControl Alpha**/
 void UAnimPreviewInstance::SetSkeletalControlAlpha(float InSkeletalControlAlpha)
 {
-	GetProxyOnGameThread<FAnimPreviewInstanceProxy>().SetSkeletalControlAlpha(InSkeletalControlAlpha);
+	SkeletalControlAlpha = FMath::Clamp<float>(InSkeletalControlAlpha, 0.f, 1.f);
 }
 
 UAnimSequence* UAnimPreviewInstance::GetAnimSequence()
 {
-	return Cast<UAnimSequence>(GetCurrentAsset());
+	return Cast<UAnimSequence>(CurrentAsset);
 }
 
 void UAnimPreviewInstance::RestartMontage(UAnimMontage* Montage, FName FromSection)
 {
-	FAnimPreviewInstanceProxy& Proxy = GetProxyOnGameThread<FAnimPreviewInstanceProxy>();
-
-	if (Montage == Proxy.GetCurrentAsset())
+	if (Montage == CurrentAsset)
 	{
 		MontagePreviewType = EMPT_Normal;
-		// since this is preview, we would like not to blend in
-		// just hard stop here
-		Montage_Stop(0.0f, Montage);
-		Montage_Play(Montage, Proxy.GetPlayRate());
+		Montage_Play(Montage, PlayRate);
 		if (FromSection != NAME_None)
 		{
 			Montage_JumpToSection(FromSection);
 		}
-		MontagePreview_SetLoopNormal(Proxy.IsLooping(), Montage->GetSectionIndex(FromSection));
+		MontagePreview_SetLoopNormal(bLooping, Montage->GetSectionIndex(FromSection));
 	}
 }
 
 void UAnimPreviewInstance::SetAnimationAsset(UAnimationAsset* NewAsset, bool bIsLooping, float InPlayRate)
 {
-	FAnimPreviewInstanceProxy& Proxy = GetProxyOnGameThread<FAnimPreviewInstanceProxy>();
-
 	// make sure to turn that off before setting new asset
-	Proxy.GetRequiredBones().SetUseSourceData(false);
+	RequiredBones.SetUseSourceData(false);
 
 	Super::SetAnimationAsset(NewAsset, bIsLooping, InPlayRate);
-	RootMotionMode = Cast<UAnimMontage>(Proxy.GetCurrentAsset()) != NULL ? ERootMotionMode::RootMotionFromMontagesOnly : ERootMotionMode::RootMotionFromEverything;
+	RootMotionMode = Cast<UAnimMontage>(CurrentAsset) != NULL ? ERootMotionMode::RootMotionFromMontagesOnly : ERootMotionMode::RootMotionFromEverything;
 
 	// should re sync up curve bone controllers from new asset
-	Proxy.RefreshCurveBoneControllers();
+	RefreshCurveBoneControllers();
 }
 
 void UAnimPreviewInstance::MontagePreview_SetLooping(bool bIsLooping)
 {
-	FAnimPreviewInstanceProxy& Proxy = GetProxyOnGameThread<FAnimPreviewInstanceProxy>();
-	Proxy.SetLooping(bIsLooping);
+	bLooping = bIsLooping;
 
-	if (UAnimMontage* Montage = Cast<UAnimMontage>(Proxy.GetCurrentAsset()))
+	if (UAnimMontage* Montage = Cast<UAnimMontage>(CurrentAsset))
 	{
 		switch (MontagePreviewType)
 		{
 		case EMPT_AllSections:
-			MontagePreview_SetLoopAllSections(Proxy.IsLooping());
+			MontagePreview_SetLoopAllSections(bLooping);
 			break;
 		case EMPT_Normal:
 		default:
-			MontagePreview_SetLoopNormal(Proxy.IsLooping());
+			MontagePreview_SetLoopNormal(bLooping);
 			break;
 		}
 	}
@@ -505,16 +447,15 @@ void UAnimPreviewInstance::MontagePreview_SetLooping(bool bIsLooping)
 
 void UAnimPreviewInstance::MontagePreview_SetPlaying(bool bIsPlaying)
 {
-	FAnimPreviewInstanceProxy& Proxy = GetProxyOnGameThread<FAnimPreviewInstanceProxy>();
-	Proxy.SetPlaying(bIsPlaying);
+	bPlaying = bIsPlaying;
 
 	if (FAnimMontageInstance* CurMontageInstance = GetActiveMontageInstance())
 	{
-		CurMontageInstance->bPlaying = Proxy.IsPlaying();
+		CurMontageInstance->bPlaying = bIsPlaying;
 	}
-	else if (Proxy.IsPlaying())
+	else if (bPlaying)
 	{
-		UAnimMontage* Montage = Cast<UAnimMontage>(Proxy.GetCurrentAsset());
+		UAnimMontage* Montage = Cast<UAnimMontage>(CurrentAsset);
 		if (Montage)
 		{
 			switch (MontagePreviewType)
@@ -533,20 +474,18 @@ void UAnimPreviewInstance::MontagePreview_SetPlaying(bool bIsPlaying)
 
 void UAnimPreviewInstance::MontagePreview_SetReverse(bool bInReverse)
 {
-	FAnimPreviewInstanceProxy& Proxy = GetProxyOnGameThread<FAnimPreviewInstanceProxy>();
 	Super::SetReverse(bInReverse);
 
 	if (FAnimMontageInstance* CurMontageInstance = GetActiveMontageInstance())
 	{
 		// copy the current playrate
-		CurMontageInstance->SetPlayRate(Proxy.GetPlayRate());
+		CurMontageInstance->SetPlayRate(PlayRate);
 	}
 }
 
 void UAnimPreviewInstance::MontagePreview_Restart()
 {
-	FAnimPreviewInstanceProxy& Proxy = GetProxyOnGameThread<FAnimPreviewInstanceProxy>();
-	if (UAnimMontage* Montage = Cast<UAnimMontage>(Proxy.GetCurrentAsset()))
+	if (UAnimMontage* Montage = Cast<UAnimMontage>(CurrentAsset))
 	{
 		switch (MontagePreviewType)
 		{
@@ -563,17 +502,15 @@ void UAnimPreviewInstance::MontagePreview_Restart()
 
 void UAnimPreviewInstance::MontagePreview_StepForward()
 {
-	FAnimPreviewInstanceProxy& Proxy = GetProxyOnGameThread<FAnimPreviewInstanceProxy>();
-
-	if (UAnimMontage* Montage = Cast<UAnimMontage>(Proxy.GetCurrentAsset()))
+	if (UAnimMontage* Montage = Cast<UAnimMontage>(CurrentAsset))
 	{
-		bool bWasPlaying = IsPlayingMontage() && (Proxy.IsLooping() || Proxy.IsPlaying()); // we need to handle non-looped case separately, even if paused during playthrough
+		bool bWasPlaying = IsPlayingMontage() && (bLooping || bPlaying); // we need to handle non-looped case separately, even if paused during playthrough
 		MontagePreview_SetReverse(false);
 		if (! bWasPlaying)
 		{
-			if (! Proxy.IsLooping())
+			if (! bLooping)
 			{
-				float StoppedAt = Proxy.GetCurrentTime();
+				float StoppedAt = CurrentTime;
 				if (! bWasPlaying)
 				{
 					// play montage but at last known location
@@ -581,7 +518,7 @@ void UAnimPreviewInstance::MontagePreview_StepForward()
 					SetPosition(StoppedAt, false);
 				}
 				int32 LastPreviewSectionIdx = MontagePreview_FindLastSection(MontagePreviewStartSectionIdx);
-				if (FMath::Abs(Proxy.GetCurrentTime() - (Montage->CompositeSections[LastPreviewSectionIdx].GetTime() + Montage->GetSectionLength(LastPreviewSectionIdx))) <= MontagePreview_CalculateStepLength())
+				if (FMath::Abs(CurrentTime - (Montage->CompositeSections[LastPreviewSectionIdx].GetTime() + Montage->GetSectionLength(LastPreviewSectionIdx))) <= MontagePreview_CalculateStepLength())
 				{
 					// we're at the end, jump right to the end
 					Montage_JumpToSectionsEnd(Montage->GetSectionName(LastPreviewSectionIdx));
@@ -602,12 +539,12 @@ void UAnimPreviewInstance::MontagePreview_StepForward()
 		// Advance a single frame, leaving it paused afterwards
 		int32 NumFrames = Montage->GetNumberOfFrames();
 		// Add DELTA to prefer next frame when we're close to the boundary
-		float CurrentFraction = Proxy.GetCurrentTime() / Montage->SequenceLength + DELTA;
+		float CurrentFraction = CurrentTime / Montage->SequenceLength + DELTA;
 		float NextFrame = FMath::Clamp<float>(FMath::FloorToFloat(CurrentFraction * NumFrames) + 1.0f, 0, NumFrames);
 		float NewTime = Montage->SequenceLength * (NextFrame / NumFrames);
 
 		GetSkelMeshComponent()->GlobalAnimRateScale = 1.0f;
-		GetSkelMeshComponent()->TickAnimation(NewTime - Proxy.GetCurrentTime(), false);
+		GetSkelMeshComponent()->TickAnimation(NewTime - CurrentTime);
 
 		MontagePreview_SetPlaying(false);
 	}
@@ -615,17 +552,15 @@ void UAnimPreviewInstance::MontagePreview_StepForward()
 
 void UAnimPreviewInstance::MontagePreview_StepBackward()
 {
-	FAnimPreviewInstanceProxy& Proxy = GetProxyOnGameThread<FAnimPreviewInstanceProxy>();
-
-	if (UAnimMontage* Montage = Cast<UAnimMontage>(Proxy.GetCurrentAsset()))
+	if (UAnimMontage* Montage = Cast<UAnimMontage>(CurrentAsset))
 	{
-		bool bWasPlaying = IsPlayingMontage() && (Proxy.IsLooping() || Proxy.IsPlaying()); // we need to handle non-looped case separately, even if paused during playthrough
+		bool bWasPlaying = IsPlayingMontage() && (bLooping || bPlaying); // we need to handle non-looped case separately, even if paused during playthrough
 		MontagePreview_SetReverse(true);
 		if (! bWasPlaying)
 		{
-			if (! Proxy.IsLooping())
+			if (! bLooping)
 			{
-				float StoppedAt = Proxy.GetCurrentTime();
+				float StoppedAt = CurrentTime;
 				if (! bWasPlaying)
 				{
 					// play montage but at last known location
@@ -633,12 +568,12 @@ void UAnimPreviewInstance::MontagePreview_StepBackward()
 					SetPosition(StoppedAt, false);
 				}
 				int32 LastPreviewSectionIdx = MontagePreview_FindLastSection(MontagePreviewStartSectionIdx);
-				if (FMath::Abs(Proxy.GetCurrentTime() - (Montage->CompositeSections[LastPreviewSectionIdx].GetTime() + Montage->GetSectionLength(LastPreviewSectionIdx))) <= MontagePreview_CalculateStepLength())
+				if (FMath::Abs(CurrentTime - (Montage->CompositeSections[LastPreviewSectionIdx].GetTime() + Montage->GetSectionLength(LastPreviewSectionIdx))) <= MontagePreview_CalculateStepLength())
 				{
 					// special case as we could stop at the end of our last section which is also beginning of following section - we don't want to get stuck there, but be inside of our starting section
 					Montage_JumpToSection(Montage->GetSectionName(LastPreviewSectionIdx));
 				}
-				else if (FMath::Abs(Proxy.GetCurrentTime() - Montage->CompositeSections[MontagePreviewStartSectionIdx].GetTime()) <= MontagePreview_CalculateStepLength())
+				else if (FMath::Abs(CurrentTime - Montage->CompositeSections[MontagePreviewStartSectionIdx].GetTime()) <= MontagePreview_CalculateStepLength())
 				{
 					// we're at the end of playing backward, jump right to the end
 					Montage_JumpToSectionsEnd(Montage->GetSectionName(MontagePreviewStartSectionIdx));
@@ -659,12 +594,12 @@ void UAnimPreviewInstance::MontagePreview_StepBackward()
 		// Advance a single frame, leaving it paused afterwards
 		int32 NumFrames = Montage->GetNumberOfFrames();
 		// Add DELTA to prefer next frame when we're close to the boundary
-		float CurrentFraction = Proxy.GetCurrentTime() / Montage->SequenceLength + DELTA;
+		float CurrentFraction = CurrentTime / Montage->SequenceLength + DELTA;
 		float NextFrame = FMath::Clamp<float>(FMath::FloorToFloat(CurrentFraction * NumFrames) - 1.0f, 0, NumFrames);
 		float NewTime = Montage->SequenceLength * (NextFrame / NumFrames);
 
 		GetSkelMeshComponent()->GlobalAnimRateScale = 1.0f;
-		GetSkelMeshComponent()->TickAnimation(FMath::Abs(NewTime - Proxy.GetCurrentTime()), false);
+		GetSkelMeshComponent()->TickAnimation(FMath::Abs(NewTime - CurrentTime));
 
 		MontagePreview_SetPlaying(false);
 	}
@@ -677,8 +612,7 @@ float UAnimPreviewInstance::MontagePreview_CalculateStepLength()
 
 void UAnimPreviewInstance::MontagePreview_JumpToStart()
 {
-	FAnimPreviewInstanceProxy& Proxy = GetProxyOnGameThread<FAnimPreviewInstanceProxy>();
-	if (UAnimMontage* Montage = Cast<UAnimMontage>(Proxy.GetCurrentAsset()))
+	if (UAnimMontage* Montage = Cast<UAnimMontage>(CurrentAsset))
 	{
 		int32 SectionIdx = 0;
 		if (MontagePreviewType == EMPT_Normal)
@@ -691,7 +625,7 @@ void UAnimPreviewInstance::MontagePreview_JumpToStart()
 		{
 			MontagePreview_Restart();
 		}
-		if (Proxy.GetPlayRate() < 0.f)
+		if (PlayRate < 0.f)
 		{
 			Montage_JumpToSectionsEnd(Montage->GetSectionName(SectionIdx));
 		}
@@ -708,8 +642,7 @@ void UAnimPreviewInstance::MontagePreview_JumpToStart()
 
 void UAnimPreviewInstance::MontagePreview_JumpToEnd()
 {
-	FAnimPreviewInstanceProxy& Proxy = GetProxyOnGameThread<FAnimPreviewInstanceProxy>();
-	if (UAnimMontage* Montage = Cast<UAnimMontage>(Proxy.GetCurrentAsset()))
+	if (UAnimMontage* Montage = Cast<UAnimMontage>(CurrentAsset))
 	{
 		int32 SectionIdx = 0;
 		if (MontagePreviewType == EMPT_Normal)
@@ -722,7 +655,7 @@ void UAnimPreviewInstance::MontagePreview_JumpToEnd()
 		{
 			MontagePreview_Restart();
 		}
-		if (Proxy.GetPlayRate() < 0.f)
+		if (PlayRate < 0.f)
 		{
 			Montage_JumpToSection(Montage->GetSectionName(MontagePreview_FindLastSection(SectionIdx)));
 		}
@@ -739,9 +672,7 @@ void UAnimPreviewInstance::MontagePreview_JumpToEnd()
 
 void UAnimPreviewInstance::MontagePreview_JumpToPreviewStart()
 {
-	FAnimPreviewInstanceProxy& Proxy = GetProxyOnGameThread<FAnimPreviewInstanceProxy>();
-
-	if (UAnimMontage* Montage = Cast<UAnimMontage>(Proxy.GetCurrentAsset()))
+	if (UAnimMontage* Montage = Cast<UAnimMontage>(CurrentAsset))
 	{
 		int32 SectionIdx = 0;
 		if (MontagePreviewType == EMPT_Normal)
@@ -754,7 +685,7 @@ void UAnimPreviewInstance::MontagePreview_JumpToPreviewStart()
 		{
 			MontagePreview_Restart();
 		}
-		Montage_JumpToSection(Montage->GetSectionName(Proxy.GetPlayRate() > 0.f? SectionIdx : MontagePreview_FindLastSection(SectionIdx)));
+		Montage_JumpToSection(Montage->GetSectionName(PlayRate > 0.f? SectionIdx : MontagePreview_FindLastSection(SectionIdx)));
 		if (! bWasPlaying)
 		{
 			MontagePreview_SetPlaying(false);
@@ -764,10 +695,8 @@ void UAnimPreviewInstance::MontagePreview_JumpToPreviewStart()
 
 void UAnimPreviewInstance::MontagePreview_JumpToPosition(float NewPosition)
 {
-	FAnimPreviewInstanceProxy& Proxy = GetProxyOnGameThread<FAnimPreviewInstanceProxy>();
-
 	SetPosition(NewPosition, false);
-	if (UAnimMontage* Montage = Cast<UAnimMontage>(Proxy.GetCurrentAsset()))
+	if (UAnimMontage* Montage = Cast<UAnimMontage>(CurrentAsset))
 	{
 		// this section will be first
 		int32 NewMontagePreviewStartSectionIdx = MontagePreview_FindFirstSectionAsInMontage(Montage->GetSectionIndexFromPosition(NewPosition));
@@ -777,7 +706,7 @@ void UAnimPreviewInstance::MontagePreview_JumpToPosition(float NewPosition)
 			MontagePreviewStartSectionIdx = NewMontagePreviewStartSectionIdx;
 		}
 		// setup looping to match normal playback
-		MontagePreview_SetLooping(Proxy.IsLooping());
+		MontagePreview_SetLooping(bLooping);
 	}
 }
 
@@ -791,9 +720,7 @@ void UAnimPreviewInstance::MontagePreview_RemoveBlendOut()
 
 void UAnimPreviewInstance::MontagePreview_PreviewNormal(int32 FromSectionIdx)
 {
-	FAnimPreviewInstanceProxy& Proxy = GetProxyOnGameThread<FAnimPreviewInstanceProxy>();
-
-	if (UAnimMontage* Montage = Cast<UAnimMontage>(Proxy.GetCurrentAsset()))
+	if (UAnimMontage* Montage = Cast<UAnimMontage>(CurrentAsset))
 	{
 		int32 PreviewFromSection = FromSectionIdx;
 		if (FromSectionIdx != INDEX_NONE)
@@ -806,47 +733,37 @@ void UAnimPreviewInstance::MontagePreview_PreviewNormal(int32 FromSectionIdx)
 			PreviewFromSection = MontagePreviewStartSectionIdx;
 		}
 		MontagePreviewType = EMPT_Normal;
-		// since this is preview, we would like not to blend in
-		// just hard stop here
-		Montage_Stop(0.0f, Montage);
-		Montage_Play(Montage, Proxy.GetPlayRate());
-		MontagePreview_SetLoopNormal(Proxy.IsLooping(), FromSectionIdx);
+		Montage_Play(Montage, PlayRate);
+		MontagePreview_SetLoopNormal(bLooping, FromSectionIdx);
 		Montage_JumpToSection(Montage->GetSectionName(PreviewFromSection));
 		MontagePreview_RemoveBlendOut();
-		Proxy.SetPlaying(true);
+		bPlaying = true;
 	}
 }
 
 void UAnimPreviewInstance::MontagePreview_PreviewAllSections()
 {
-	FAnimPreviewInstanceProxy& Proxy = GetProxyOnGameThread<FAnimPreviewInstanceProxy>();
-
-	UAnimMontage* Montage = Cast<UAnimMontage>(Proxy.GetCurrentAsset());
+	UAnimMontage* Montage = Cast<UAnimMontage>(CurrentAsset);
 	if (Montage && Montage->SequenceLength > 0.f)
 	{
 		MontagePreviewType = EMPT_AllSections;
-		// since this is preview, we would like not to blend in
-		// just hard stop here
-		Montage_Stop(0.0f, Montage);
-		Montage_Play(Montage, Proxy.GetPlayRate());
-		MontagePreview_SetLoopAllSections(Proxy.IsLooping());
+		Montage_Play(Montage, PlayRate);
+		MontagePreview_SetLoopAllSections(bLooping);
 		MontagePreview_JumpToPreviewStart();
 		MontagePreview_RemoveBlendOut();
-		Proxy.SetPlaying(true);
+		bPlaying = true;
 	}
 }
 
 void UAnimPreviewInstance::MontagePreview_SetLoopNormal(bool bIsLooping, int32 PreferSectionIdx)
 {
-	FAnimPreviewInstanceProxy& Proxy = GetProxyOnGameThread<FAnimPreviewInstanceProxy>();
-
-	if (UAnimMontage* Montage = Cast<UAnimMontage>(Proxy.GetCurrentAsset()))
+	if (UAnimMontage* Montage = Cast<UAnimMontage>(CurrentAsset))
 	{
 		MontagePreview_ResetSectionsOrder();
 
 		if (PreferSectionIdx == INDEX_NONE)
 		{
-			PreferSectionIdx = Montage->GetSectionIndexFromPosition(Proxy.GetCurrentTime());
+			PreferSectionIdx = Montage->GetSectionIndexFromPosition(CurrentTime);
 		}
 		int32 TotalSection = Montage->CompositeSections.Num();
 		if (TotalSection > 0)
@@ -892,11 +809,11 @@ void UAnimPreviewInstance::MontagePreview_SetLoopNormal(bool bIsLooping, int32 P
 					++ InChain;
 				}
 				// loop this section
-				SetMontageLoop(Montage, Proxy.IsLooping(), Montage->CompositeSections[NotUsedIdx].SectionName);
+				SetMontageLoop(Montage, bIsLooping, Montage->CompositeSections[NotUsedIdx].SectionName);
 			}
 			if (Montage->CompositeSections.IsValidIndex(PreferSectionIdx))
 			{
-				SetMontageLoop(Montage, Proxy.IsLooping(), Montage->CompositeSections[PreferSectionIdx].SectionName);
+				SetMontageLoop(Montage, bIsLooping, Montage->CompositeSections[PreferSectionIdx].SectionName);
 			}
 		}
 	}
@@ -904,9 +821,7 @@ void UAnimPreviewInstance::MontagePreview_SetLoopNormal(bool bIsLooping, int32 P
 
 void UAnimPreviewInstance::MontagePreview_SetLoopAllSetupSections(bool bIsLooping)
 {
-	FAnimPreviewInstanceProxy& Proxy = GetProxyOnGameThread<FAnimPreviewInstanceProxy>();
-
-	if (UAnimMontage* Montage = Cast<UAnimMontage>(Proxy.GetCurrentAsset()))
+	if (UAnimMontage* Montage = Cast<UAnimMontage>(CurrentAsset))
 	{
 		MontagePreview_ResetSectionsOrder();
 
@@ -950,7 +865,7 @@ void UAnimPreviewInstance::MontagePreview_SetLoopAllSetupSections(bool bIsLoopin
 					}
 				}
 			}
-			if (Proxy.IsLooping())
+			if (bIsLooping)
 			{
 				// and loop all
 				Montage_SetNextSection(PreviousSection, FirstSection);
@@ -961,14 +876,12 @@ void UAnimPreviewInstance::MontagePreview_SetLoopAllSetupSections(bool bIsLoopin
 
 void UAnimPreviewInstance::MontagePreview_SetLoopAllSections(bool bIsLooping)
 {
-	FAnimPreviewInstanceProxy& Proxy = GetProxyOnGameThread<FAnimPreviewInstanceProxy>();
-
-	if (UAnimMontage* Montage = Cast<UAnimMontage>(Proxy.GetCurrentAsset()))
+	if (UAnimMontage* Montage = Cast<UAnimMontage>(CurrentAsset))
 	{
 		int32 TotalSection = Montage->CompositeSections.Num();
 		if (TotalSection > 0)
 		{
-			if (Proxy.IsLooping())
+			if (bIsLooping)
 			{
 				for (int i = 0; i < TotalSection; ++ i)
 				{
@@ -989,8 +902,7 @@ void UAnimPreviewInstance::MontagePreview_SetLoopAllSections(bool bIsLooping)
 
 void UAnimPreviewInstance::MontagePreview_ResetSectionsOrder()
 {
-	FAnimPreviewInstanceProxy& Proxy = GetProxyOnGameThread<FAnimPreviewInstanceProxy>();
-	if (UAnimMontage* Montage = Cast<UAnimMontage>(Proxy.GetCurrentAsset()))
+	if (UAnimMontage* Montage = Cast<UAnimMontage>(CurrentAsset))
 	{
 		int32 TotalSection = Montage->CompositeSections.Num();
 		// restore to default
@@ -1003,10 +915,9 @@ void UAnimPreviewInstance::MontagePreview_ResetSectionsOrder()
 
 int32 UAnimPreviewInstance::MontagePreview_FindFirstSectionAsInMontage(int32 ForSectionIdx)
 {
-	FAnimPreviewInstanceProxy& Proxy = GetProxyOnGameThread<FAnimPreviewInstanceProxy>();
 	int32 ResultIdx = ForSectionIdx;
 	// Montage does not have looping set up, so it should be valid and it gets
-	if (UAnimMontage* Montage = Cast<UAnimMontage>(Proxy.GetCurrentAsset()))
+	if (UAnimMontage* Montage = Cast<UAnimMontage>(CurrentAsset))
 	{
 		TArray<bool> AlreadyVisited;
 		AlreadyVisited.AddZeroed(Montage->CompositeSections.Num());
@@ -1047,9 +958,8 @@ int32 UAnimPreviewInstance::MontagePreview_FindFirstSectionAsInMontage(int32 For
 
 int32 UAnimPreviewInstance::MontagePreview_FindLastSection(int32 StartSectionIdx)
 {
-	FAnimPreviewInstanceProxy& Proxy = GetProxyOnGameThread<FAnimPreviewInstanceProxy>();
 	int32 ResultIdx = StartSectionIdx;
-	if (UAnimMontage* Montage = Cast<UAnimMontage>(Proxy.GetCurrentAsset()))
+	if (UAnimMontage* Montage = Cast<UAnimMontage>(CurrentAsset))
 	{
 		if (FAnimMontageInstance* CurMontageInstance = GetActiveMontageInstance())
 		{
@@ -1063,7 +973,10 @@ int32 UAnimPreviewInstance::MontagePreview_FindLastSection(int32 StartSectionIdx
 				{
 					AlreadyVisited[CurrentSectionIdx] = true;
 					ResultIdx = CurrentSectionIdx;
-					CurrentSectionIdx = CurMontageInstance->GetNextSectionID(CurrentSectionIdx);
+					if (CurMontageInstance->NextSections.IsValidIndex(CurrentSectionIdx))
+					{
+						CurrentSectionIdx = CurMontageInstance->NextSections[CurrentSectionIdx];
+					}
 				}
 			}
 		}
@@ -1073,8 +986,7 @@ int32 UAnimPreviewInstance::MontagePreview_FindLastSection(int32 StartSectionIdx
 
 void UAnimPreviewInstance::BakeAnimation()
 {
-	FAnimPreviewInstanceProxy& Proxy = GetProxyOnGameThread<FAnimPreviewInstanceProxy>();
-	if (UAnimSequence* Sequence = Cast<UAnimSequence>(Proxy.GetCurrentAsset()))
+	if (UAnimSequence* Sequence = Cast<UAnimSequence>(CurrentAsset))
 	{
 		FScopedTransaction ScopedTransaction(LOCTEXT("BakeAnimation", "Bake Animation"));
 		Sequence->Modify(true);
@@ -1084,22 +996,6 @@ void UAnimPreviewInstance::BakeAnimation()
 
 void UAnimPreviewInstance::EnableControllers(bool bEnable)
 {
-	GetProxyOnGameThread<FAnimPreviewInstanceProxy>().EnableControllers(bEnable);
+	bEnableControllers = bEnable;
 }
-
-void UAnimPreviewInstance::SetForceRetargetBasePose(bool bInForceRetargetBasePose)
-{
-	GetProxyOnGameThread<FAnimPreviewInstanceProxy>().SetForceRetargetBasePose(bInForceRetargetBasePose);
-}
-
-bool UAnimPreviewInstance::GetForceRetargetBasePose() const
-{
-	return GetProxyOnGameThread<FAnimPreviewInstanceProxy>().GetForceRetargetBasePose();
-}
-
-FAnimInstanceProxy* UAnimPreviewInstance::CreateAnimInstanceProxy()
-{
-	return new FAnimPreviewInstanceProxy(this);
-}
-
 #undef LOCTEXT_NAMESPACE

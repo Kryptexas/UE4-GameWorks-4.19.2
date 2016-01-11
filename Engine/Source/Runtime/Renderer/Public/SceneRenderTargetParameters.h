@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneRenderTargetParameters.h: Shader base classes
@@ -24,9 +24,9 @@ public:
 	void Bind(const FShaderParameterMap& ParameterMap);
 
 	/** Sets the scene texture parameters for the given view. */
-	template< typename ShaderRHIParamRef, typename TRHICmdList >
+	template< typename ShaderRHIParamRef >
 	void Set(
-		TRHICmdList& RHICmdList,
+		FRHICommandList& RHICmdList,
 		const ShaderRHIParamRef& ShaderRHI,
 		const FSceneView& View,
 		ESceneRenderTargetsMode::Type TextureMode = ESceneRenderTargetsMode::SetTextures,
@@ -63,9 +63,9 @@ class FDeferredPixelShaderParameters
 public:
 	void Bind(const FShaderParameterMap& ParameterMap);
 
-	template< typename ShaderRHIParamRef, typename TRHICmdList >
+	template< typename ShaderRHIParamRef >
 	void Set(
-		TRHICmdList& RHICmdList,
+		FRHICommandList& RHICmdList,
 		const ShaderRHIParamRef ShaderRHI,
 		const FSceneView& View,
 		ESceneRenderTargetsMode::Type TextureMode = ESceneRenderTargetsMode::SetTextures

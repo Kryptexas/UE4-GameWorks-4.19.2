@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Containers/StringConv.h"
@@ -59,9 +59,6 @@ typedef int32 NAME_INDEX;
 
 /** These characters cannot be used in long package names */
 #define INVALID_LONGPACKAGE_CHARACTERS	TEXT("\\:*?\"<>|' ,.&!\n\r\t@#")
-
-/** These characters can be used in relative directory names (lowercase versions as well) */
-#define VALID_SAVEDDIRSUFFIX_CHARACTERS	TEXT("_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
 
 enum class ENameCase : uint8
 {
@@ -307,7 +304,7 @@ class TStaticIndirectArrayThreadSafeRead
 	 * Return a pointer to the pointer to a given element
 	 * @param Index The Index of an element we want to retrieve the pointer-to-pointer for
 	 **/
-	FORCEINLINE_DEBUGGABLE ElementType const* const* GetItemPtr(int32 Index) const
+	ElementType const* const* GetItemPtr(int32 Index) const
 	{
 		int32 ChunkIndex = Index / ElementsPerChunk;
 		int32 WithinChunkIndex = Index % ElementsPerChunk;
@@ -330,7 +327,7 @@ public:
 	 * Thread safe, but you know, someone might have added more elements before this even returns
 	 * @return	the number of elements in the array
 	**/
-	FORCEINLINE int32 Num() const
+	int32 Num() const
 	{
 		return NumElements;
 	}
@@ -340,7 +337,7 @@ public:
 	 * @param	Index	Index to test
 	 * @return	true, if this is a valid
 	**/
-	FORCEINLINE bool IsValidIndex(int32 Index) const
+	bool IsValidIndex(int32 Index) const
 	{
 		return Index < Num() && Index >= 0;
 	}
@@ -350,7 +347,7 @@ public:
 	 * @return	a reference to the pointer to the element
 	 * Thread safe, if it is valid now, it is valid forever. This might return nullptr, but by then, some other thread might have made it non-nullptr.
 	**/
-	FORCEINLINE ElementType const* const& operator[](int32 Index) const
+	ElementType const* const& operator[](int32 Index) const
 	{
 		ElementType const* const* ItemPtr = GetItemPtr(Index);
 		check(ItemPtr);
@@ -565,16 +562,11 @@ public:
 
 	FORCEINLINE bool operator==(const FName& Other) const
 	{
-		#if WITH_CASE_PRESERVING_NAME
-			return GetComparisonIndexFast() == Other.GetComparisonIndexFast() && GetNumber() == Other.GetNumber();
-		#else
-			static_assert(sizeof(CompositeComparisonValue) == sizeof(*this), "ComparisonValue does not cover the entire FName state");
-			return CompositeComparisonValue == Other.CompositeComparisonValue;
-		#endif
+		return IsEqual(Other, ENameCase::IgnoreCase);
 	}
 	FORCEINLINE bool operator!=(const FName& Other) const
 	{
-		return !(*this == Other);
+		return !IsEqual(Other, ENameCase::IgnoreCase);
 	}
 
 	/**
@@ -946,25 +938,14 @@ public:
 
 private:
 
-	union
-	{
-		struct
-		{
-			/** Index into the Names array (used to find String portion of the string/number pair used for comparison) */
-			NAME_INDEX		ComparisonIndex;
-		#if WITH_CASE_PRESERVING_NAME
-			/** Index into the Names array (used to find String portion of the string/number pair used for display) */
-			NAME_INDEX		DisplayIndex;
-		#endif
-			/** Number portion of the string/number pair (stored internally as 1 more than actual, so zero'd memory will be the default, no-instance case) */
-			uint32			Number;
-		};
-
-		// Used to perform a single comparison in FName::operator==
-		#if !WITH_CASE_PRESERVING_NAME
-			uint64 CompositeComparisonValue;
-		#endif
-	};
+	/** Index into the Names array (used to find String portion of the string/number pair used for comparison) */
+	NAME_INDEX		ComparisonIndex;
+#if WITH_CASE_PRESERVING_NAME
+	/** Index into the Names array (used to find String portion of the string/number pair used for display) */
+	NAME_INDEX		DisplayIndex;
+#endif
+	/** Number portion of the string/number pair (stored internally as 1 more than actual, so zero'd memory will be the default, no-instance case) */
+	uint32			Number;
 
 	/** Name hash.												*/
 	static FNameEntry*						NameHash[ FNameDefs::NameHashBucketCount ];
@@ -1047,7 +1028,7 @@ Expose_TNameOf(FName)
 
 inline uint32 GetTypeHash( const FName N )
 {
-	return N.GetComparisonIndex() + N.GetNumber();
+	return N.GetComparisonIndex();
 }
 
 

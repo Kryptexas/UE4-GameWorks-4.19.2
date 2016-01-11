@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Engine/World.h"
@@ -20,12 +20,6 @@ struct ENGINE_API FStreamableTextureInstance
 
 	/** Bounding sphere/ box of object */
 	FSphere BoundingSphere;
-
-	/** Min distance from view where this instance is usable */
-	float MinDistance;
-	/** Max distance from view where this instance is usable */
-	float MaxDistance;
-
 	/** Object (and bounding sphere) specific texel scale factor  */
 	float	TexelFactor;
 
@@ -250,12 +244,8 @@ struct ENGINE_API FLevelSimplificationDetails
 	float DetailsPercentage;
 
 	/** Static mesh material simplification */
-	UPROPERTY()
-	FMaterialSimplificationSettings StaticMeshMaterial_DEPRECATED;
-
-	/** Landscape material simplification */
-	UPROPERTY(Category = Landscape, EditAnywhere)
-	FMaterialProxySettings StaticMeshMaterialSettings;
+	UPROPERTY(Category=StaticMesh, EditAnywhere)
+	FMaterialSimplificationSettings StaticMeshMaterial;
 
 	UPROPERTY()
 	bool bOverrideLandscapeExportLOD;
@@ -265,12 +255,8 @@ struct ENGINE_API FLevelSimplificationDetails
 	int32 LandscapeExportLOD;
 
 	/** Landscape material simplification */
-	UPROPERTY()
-	FMaterialSimplificationSettings LandscapeMaterial_DEPRECATED;
-
-	/** Landscape material simplification */
-	UPROPERTY(Category = Landscape, EditAnywhere)
-	FMaterialProxySettings LandscapeMaterialSettings;
+	UPROPERTY(Category=Landscape, EditAnywhere)
+	FMaterialSimplificationSettings LandscapeMaterial;
 
 	/** Whether to bake foliage into landscape static mesh texture */
 	UPROPERTY(Category=Landscape, EditAnywhere)
@@ -482,13 +468,6 @@ public:
 	/** Level simplification settings for each LOD */
 	UPROPERTY()
 	FLevelSimplificationDetails LevelSimplification[WORLDTILE_LOD_MAX_INDEX];
-
-	/** 
-	 * The level color used for visualization. (Show -> Advanced -> Level Coloration)
-	 * Used only in world composition mode
-	 */
-	UPROPERTY()
-	FLinearColor LevelColor;
 #endif //WITH_EDITORONLY_DATA
 
 	/** Actor which defines level logical bounding box				*/
@@ -519,9 +498,6 @@ private:
 	// Actors awaiting input to be enabled once the appropriate PlayerController has been created
 	TArray<FPendingAutoReceiveInputActor> PendingAutoReceiveInputActors;
 
-	// Used internally to determine which actors should go on the world's NetworkActor list
-	static bool IsNetActor(const AActor* Actor);
-
 public:
 	/** Called when a level package has been dirtied. */
 	ENGINE_API static FSimpleMulticastDelegate LevelDirtiedEvent;
@@ -540,7 +516,7 @@ public:
 
 	~ULevel();
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void BeginDestroy() override;
 	virtual bool IsReadyForFinishDestroy() override;
@@ -555,7 +531,7 @@ public:
 	virtual void PreSave() override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	//~ End UObject Interface.
+	// End UObject Interface.
 
 	/**
 	 * Clears all components of actors associated with this level (aka in Actors array) and 
@@ -582,11 +558,8 @@ public:
 	 * Invalidates the cached data used to render the level's UModel.
 	 */
 	void InvalidateModelGeometry();
-	
-#if WITH_EDITOR
-	/** Marks all level components render state as dirty */
-	ENGINE_API void MarkLevelComponentsRenderStateDirty();
 
+#if WITH_EDITOR
 	/** Called to create ModelComponents for BSP rendering */
 	void CreateModelComponents();
 #endif // WITH_EDITOR
@@ -750,11 +723,11 @@ public:
 	/** Push any pending auto receive input actor's input components on to the player controller's input stack */
 	void PushPendingAutoReceiveInput(APlayerController* PC);
 	
-	//~ Begin IInterface_AssetUserData Interface
+	// Begin IInterface_AssetUserData Interface
 	virtual void AddAssetUserData(UAssetUserData* InUserData) override;
 	virtual void RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
 	virtual UAssetUserData* GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
-	//~ End IInterface_AssetUserData Interface
+	// End IInterface_AssetUserData Interface
 
 #if WITH_EDITOR
 	/** meant to be called only from editor, calculating and storing static geometry to be used with off-line and/or on-line navigation building */

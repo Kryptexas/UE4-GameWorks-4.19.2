@@ -1,12 +1,11 @@
-﻿INTSourceChangelist:2690319
+﻿INTSourceChangelist:2598861
 Availability: Public
 Title:머티리얼 함수 개요
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:머티리얼 함수 사용에 있어서의 핵심 개념에 대한 개요입니다.
-Version: 4.9
 
 [REGION:banner]
-![](matfunc_overview_banner_NEW.jpg)
+![Material Function](matfunc_overview_banner.png)
 [/REGION]
 
 [TOC(start:2)]
@@ -62,6 +61,12 @@ Version: 4.9
 ## 입력과 출력
 
 머티리얼 함수는 노드 네트워크를 캡슐화시킨 것이기에, 데이터가 드나들 수 있도록 하는 것은 사용자의 몫입니다. 그 처리는 *FunctionInput* 과 *FunctionOutput* 노드를 통해 이루어 집니다. 머티리얼 함수 사용에 있어서는 이 노드에 대한 이해가 필수적입니다.
+
+[EXCERPT:FunctionParameters]
+[REGION:warning]
+_스칼라_ 나 _벡터 파라미터_ 같은 _머티리얼 파라미터_ 는 함수 안에 있을 수가 없습니다. 하나의 머티리얼 안에 다수의 함수 인스턴스가 사용될 때 발생할 수 있는 혼선을 방지하기 위해서입니다. 파라미터에서 함수 안으로 데이터를 전송하려면 함수 안에서 FunctionInput 노드를 사용한 다음 외부, 즉 머티리얼 자체에서 안쪽으로 파라미터를 연결해 줘야 합니다.
+[/REGION] 
+[/EXCERPT:FunctionParameters]
 
 함수 자체 내에서 FunctionInput 와 FunctionOutput 노드는 다음과 같이 나타납니다:
 
@@ -174,8 +179,7 @@ FunctionOutput 노드의 프로퍼티는 다음과 같습니다:
 
 ## 파라미터
 
-함수는 이제 파라미터 노드 유형을 포함할 수 있습니다. 이 파라미터는 아무 머티리얼에 직접 전달하여 사용할 수 있습니다.
-
+함수가 파라미터 노드 유형을 포함하게 되면 같은 이름으로 선언된 다른 함수와의 이름 충돌 문제가 생기기 때문에 허용되지 않지만, 입력을 통해 값을 전달하는 것으로 파라미터를 사용할 수는 있습니다. 함수에 벡터나 스칼라 파라미터 값을 사용하려면, 함수 입력 벡터 유형으로 전해주기만 하면 됩니다.
 
 함수에 텍스처 파라미터를 사용하려면, 텍스처 입력을 만들어 텍스처 샘플 노드의 텍스처 오브젝트 덮어쓰기에 연결합니다:
 
@@ -185,7 +189,7 @@ FunctionOutput 노드의 프로퍼티는 다음과 같습니다:
 
 ![TextureParameterMaterial.png](TextureParameterMaterial.png)(w:720)
 
-스태틱 스위치 파라미터와 비슷하게, Static Bool 입력을 만든 다음 StaticSwitch 노드에 연결합니다:
+스태틱 스위치 파라미터와 비슷하게, 스태틱 불 입력을 만든 다음 StaticSwitch 노드에 연결합니다:
 
 ![StaticSwitchFunction.png](StaticSwitchFunction.png)(w:720)
 

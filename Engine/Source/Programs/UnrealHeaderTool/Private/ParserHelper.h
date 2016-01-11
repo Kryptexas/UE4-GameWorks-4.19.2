@@ -1,8 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "ClassMaps.h"
-#include "UniqueObj.h"
 
 extern class FCompilerMetadataManager GScriptHelper;
 
@@ -66,14 +65,13 @@ struct ERefQualifier
 /**
  * Basic information describing a type.
  */
-class FPropertyBase : public TSharedFromThis<FPropertyBase>
+class FPropertyBase
 {
 public:
 	// Variables.
 	EPropertyType       Type;
 	EArrayType::Type    ArrayType;
 	uint64              PropertyFlags;
-	uint64              ImpliedPropertyFlags;
 	ERefQualifier::Type RefQualifier; // This is needed because of legacy stuff - FString mangles the flags for reasons that have become lost in time but we need this info for testing for invalid replicated function signatures.
 
 	TSharedPtr<FPropertyBase> MapKeyProp;
@@ -111,47 +109,44 @@ public:
 	/** @name Constructors */
 	//@{
 	explicit FPropertyBase(EPropertyType InType)
-	: Type                (InType)
-	, ArrayType           (EArrayType::None)
-	, PropertyFlags       (0)
-	, ImpliedPropertyFlags(0)
-	, RefQualifier        (ERefQualifier::None)
-	, PropertyExportFlags (PROPEXPORT_Public)
-	, StringSize          (0)
-	, MetaClass           (NULL)
-	, DelegateName        (NAME_None)
-	, RepNotifyName       (NAME_None)
-	, PointerType         (EPointerType::None)
+	: Type               (InType)
+	, ArrayType          (EArrayType::None)
+	, PropertyFlags      (0)
+	, RefQualifier       (ERefQualifier::None)
+	, PropertyExportFlags(PROPEXPORT_Public)
+	, StringSize         (0)
+	, MetaClass          (NULL)
+	, DelegateName       (NAME_None)
+	, RepNotifyName      (NAME_None)
+	, PointerType        (EPointerType::None)
 	{
 	}
 
 	explicit FPropertyBase(UEnum* InEnum, EPropertyType InType)
-	: Type                (InType)
-	, ArrayType           (EArrayType::None)
-	, PropertyFlags       (0)
-	, ImpliedPropertyFlags(0)
-	, RefQualifier        (ERefQualifier::None)
-	, PropertyExportFlags (PROPEXPORT_Public)
-	, Enum                (InEnum)
-	, MetaClass           (NULL)
-	, DelegateName        (NAME_None)
-	, RepNotifyName       (NAME_None)
-	, PointerType         (EPointerType::None)
+	: Type               (InType)
+	, ArrayType          (EArrayType::None)
+	, PropertyFlags      (0)
+	, RefQualifier       (ERefQualifier::None)
+	, PropertyExportFlags(PROPEXPORT_Public)
+	, Enum               (InEnum)
+	, MetaClass          (NULL)
+	, DelegateName       (NAME_None)
+	, RepNotifyName      (NAME_None)
+	, PointerType        (EPointerType::None)
 	{
 	}
 
 	explicit FPropertyBase(UClass* InClass, UClass* InMetaClass=NULL, bool bAllowWeak = false, bool bIsWeak = false, bool bWeakIsAuto = false, bool bIsLazy = false, bool bIsAsset = false)
-	: Type                (CPT_ObjectReference)
-	, ArrayType           (EArrayType::None)
-	, PropertyFlags       (0)
-	, ImpliedPropertyFlags(0)
-	, RefQualifier        (ERefQualifier::None)
-	, PropertyExportFlags (PROPEXPORT_Public)
-	, PropertyClass       (InClass)
-	, MetaClass           (InMetaClass)
-	, DelegateName        (NAME_None)
-	, RepNotifyName       (NAME_None)
-	, PointerType         (EPointerType::None)
+	: Type               (CPT_ObjectReference)
+	, ArrayType          (EArrayType::None)
+	, PropertyFlags      (0)
+	, RefQualifier       (ERefQualifier::None)
+	, PropertyExportFlags(PROPEXPORT_Public)
+	, PropertyClass      (InClass)
+	, MetaClass          (InMetaClass)
+	, DelegateName       (NAME_None)
+	, RepNotifyName      (NAME_None)
+	, PointerType        (EPointerType::None)
 	{
 		// if this is an interface class, we use the UInterfaceProperty class instead of UObjectProperty
 		if ( InClass->HasAnyClassFlags(CLASS_Interface) )
@@ -199,17 +194,16 @@ public:
 	}
 
 	explicit FPropertyBase(UScriptStruct* InStruct)
-	: Type                (CPT_Struct)
-	, ArrayType           (EArrayType::None)
-	, PropertyFlags       (0)
-	, ImpliedPropertyFlags(0)
-	, RefQualifier        (ERefQualifier::None)
-	, PropertyExportFlags (PROPEXPORT_Public)
-	, Struct              (InStruct)
-	, MetaClass           (NULL)
-	, DelegateName        (NAME_None)
-	, RepNotifyName       (NAME_None)
-	, PointerType         (EPointerType::None)
+	: Type               (CPT_Struct)
+	, ArrayType          (EArrayType::None)
+	, PropertyFlags      (0)
+	, RefQualifier       (ERefQualifier::None)
+	, PropertyExportFlags(PROPEXPORT_Public)
+	, Struct             (InStruct)
+	, MetaClass          (NULL)
+	, DelegateName       (NAME_None)
+	, RepNotifyName      (NAME_None)
+	, PointerType        (EPointerType::None)
 	{
 	}
 
@@ -371,11 +365,10 @@ public:
 		{
 			UE_LOG(LogCompile, Fatal, TEXT("Unknown property type '%s'"), *Property->GetFullName() );
 		}
-		ArrayType            = ArrType;
-		PropertyFlags        = Property->PropertyFlags | PropagateFlags;
-		ImpliedPropertyFlags = 0;
-		RefQualifier         = ERefQualifier::None;
-		PointerType          = EPointerType::None;
+		ArrayType     = ArrType;
+		PropertyFlags = Property->PropertyFlags | PropagateFlags;
+		RefQualifier  = ERefQualifier::None;
+		PointerType   = EPointerType::None;
 	}
 	//@}
 
@@ -581,8 +574,8 @@ public:
 	FString Describe()
 	{
 		return FString::Printf(
-			TEXT("Type:%s  Flags:%lli  ImpliedFlags:%lli  Enum:%s  PropertyClass:%s  Struct:%s  Function:%s  MetaClass:%s"),
-			GetPropertyTypeText(Type), PropertyFlags, ImpliedPropertyFlags,
+			TEXT("Type:%s  Flags:%lli  Enum:%s  PropertyClass:%s  Struct:%s  Function:%s  MetaClass:%s"),
+			GetPropertyTypeText(Type), PropertyFlags,
 			Enum!=NULL?*Enum->GetName():TEXT(""),
 			PropertyClass!=NULL?*PropertyClass->GetName():TEXT("NULL"),
 			Struct!=NULL?*Struct->GetName():TEXT("NULL"),
@@ -593,8 +586,6 @@ public:
 	//@}
 
 	static const TCHAR* GetPropertyTypeText( EPropertyType Type );
-
-	friend struct FPropertyBaseArchiveProxy;
 };
 
 //
@@ -741,7 +732,7 @@ public:
 		StartPos		= 0;
 		StartLine		= 0;
 		*Identifier		= 0;
-		FMemory::Memzero(String);
+		FMemory::Memzero(String, sizeof(Identifier));
 	}
 	bool Matches( const TCHAR* Str, ESearchCase::Type SearchCase = ESearchCase::IgnoreCase ) const
 	{
@@ -842,16 +833,13 @@ public:
 	FString Describe()
 	{
 		return FString::Printf(
-			TEXT("Property:%s  Type:%s  TokenName:%s  ConstValue:%s  Struct:%s  Flags:%lli  Implied:%lli"),
+			TEXT("Property:%s  Type:%s  TokenName:%s  ConstValue:%s  Struct:%s  Flags:%lli"),
 			TokenProperty!=NULL?*TokenProperty->GetName():TEXT("NULL"),
 			GetPropertyTypeText(Type), *TokenName.ToString(), *GetConstantValue(),
 			Struct!=NULL?*Struct->GetName():TEXT("NULL"),
-			PropertyFlags,
-			ImpliedPropertyFlags
+			PropertyFlags
 			);
 	}
-
-	friend struct FTokenArchiveProxy;
 };
 
 /**
@@ -1040,9 +1028,9 @@ struct FTokenData
  * Class for storing data about a list of properties.  Though FToken contains a reference to its
  * associated UProperty, it's faster lookup to use the UProperty as the key in a TMap.
  */
-class FPropertyData : public TMap< UProperty*, TSharedPtr<FTokenData> >
+class FPropertyData : public TMap< UProperty*, TScopedPointer<FTokenData> >
 {
-	typedef TMap<UProperty*, TSharedPtr<FTokenData> >	Super;
+	typedef TMap<UProperty*, TScopedPointer<FTokenData> >	Super;
 
 public:
 	/**
@@ -1055,10 +1043,10 @@ public:
 	{
 		FTokenData* Result = NULL;
 
-		TSharedPtr<FTokenData>* pResult = Super::Find(Key);
+		TScopedPointer<FTokenData>* pResult = Super::Find(Key);
 		if ( pResult != NULL )
 		{
-			Result = pResult->Get();
+			Result = pResult->GetOwnedPointer();
 		}
 		return Result;
 	}
@@ -1066,10 +1054,10 @@ public:
 	{
 		const FTokenData* Result = NULL;
 
-		const TSharedPtr<FTokenData>* pResult = Super::Find(Key);
+		const TScopedPointer<FTokenData>* pResult = Super::Find(Key);
 		if ( pResult != NULL )
 		{
-			Result = pResult->Get();
+			Result = pResult->GetOwnedPointer();
 		}
 		return Result;
 	}
@@ -1083,7 +1071,24 @@ public:
 	 *
 	 * @return	a pointer to token data created associated with the property
 	 */
-	FTokenData* Set(UProperty* InKey, const FTokenData& InValue, FUHTMakefile& UHTMakefile, FUnrealSourceFile* UnrealSourceFile);
+	FTokenData* Set(UProperty* InKey, const FTokenData& InValue)
+	{
+		FTokenData* Result = NULL;
+
+		TScopedPointer<FTokenData>* pResult = Super::Find(InKey);
+		if ( pResult != NULL )
+		{
+			Result = pResult->GetOwnedPointer();
+			*Result = FTokenData(InValue);
+		}
+		else
+		{
+			pResult = &Super::Emplace(InKey, new FTokenData(InValue));
+			Result = *pResult;
+		}
+
+		return Result;
+	}
 
 	/**
 	 * (debug) Dumps the values of this FPropertyData to the log file
@@ -1092,10 +1097,10 @@ public:
 	 */	
 	void Dump( int32 Indent )
 	{
-		for (auto& Kvp : *this)
+		for ( TMap<UProperty*, TScopedPointer<FTokenData> >::TIterator It(*this); It; ++It )
 		{
-			TSharedPtr<FTokenData>& PointerVal = Kvp.Value;
-			FToken& Token = PointerVal->Token;
+			TScopedPointer<FTokenData>& PointerVal = It.Value();
+			FToken& Token = PointerVal.GetOwnedPointer()->Token;
 			if ( Token.Type != CPT_None )
 			{
 				UE_LOG(LogCompile, Log, TEXT("%s%s"), FCString::Spc(Indent), *Token.Describe());
@@ -1123,10 +1128,10 @@ public:
 	 * 
 	 * @param	PropertyToken	token that should be added to the list
 	 */
-	void AddStructProperty(const FTokenData& PropertyToken, FUHTMakefile& UHTMakefile, FUnrealSourceFile* UnrealSourceFile)
+	void AddStructProperty( const FToken& PropertyToken )
 	{
-		check(PropertyToken.Token.TokenProperty);
-		StructPropertyData.Set(PropertyToken.Token.TokenProperty, PropertyToken, UHTMakefile, UnrealSourceFile);
+		check(PropertyToken.TokenProperty);
+		StructPropertyData.Set(PropertyToken.TokenProperty, PropertyToken);
 	}
 
 	FPropertyData& GetStructPropertyData()
@@ -1153,8 +1158,6 @@ public:
 
 	/** Constructor */
 	FStructData( const FToken& StructToken ) : StructData(StructToken) {}
-
-	friend struct FStructDataArchiveProxy;
 };
 
 /**
@@ -1176,10 +1179,10 @@ class FFunctionData
 	 * 
 	 * @param	PropertyToken	token that should be added to the list
 	 */
-	void AddParameter(const FToken& PropertyToken, FUHTMakefile& UHTMakefile, FUnrealSourceFile* UnrealSourceFile)
+	void AddParameter( const FToken& PropertyToken )
 	{
 		check(PropertyToken.TokenProperty);
-		ParameterData.Set(PropertyToken.TokenProperty, PropertyToken, UHTMakefile, UnrealSourceFile);
+		ParameterData.Set(PropertyToken.TokenProperty, PropertyToken);
 	}
 
 	/**
@@ -1236,7 +1239,7 @@ public:
 	 * 
 	 * @param	PropertyToken	the property to add
 	 */
-	void AddProperty(const FToken& PropertyToken, FUHTMakefile& UHTMakefile, FUnrealSourceFile* UnrealSourceFile)
+	void AddProperty( const FToken& PropertyToken )
 	{
 		const UProperty* Prop = PropertyToken.TokenProperty;
 		check(Prop);
@@ -1248,7 +1251,7 @@ public:
 		}
 		else
 		{
-			AddParameter(PropertyToken, UHTMakefile, UnrealSourceFile);
+			AddParameter(PropertyToken);
 		}
 	}
 
@@ -1306,7 +1309,7 @@ public:
 	static bool TryFindForFunction(UFunction* Function, FFunctionData*& OutData);
 
 private:
-	static TMap<UFunction*, TUniqueObj<FFunctionData> > FunctionDataMap;
+	static TMap<UFunction*, TSharedRef<FFunctionData> > FunctionDataMap;
 };
 
 /**
@@ -1347,8 +1350,11 @@ class FClassMetaData
 	/** member properties for this class */
 	FPropertyData											GlobalPropertyData;
 
+	/** structs declared in this class */
+	TMap< UScriptStruct*, TScopedPointer<FStructData> >		StructData;
+
 	/** base classes to multiply inherit from (other than the main base class */
-	TArray<FMultipleInheritanceBaseClass*>					MultipleInheritanceParents;
+	TArray<FMultipleInheritanceBaseClass>					MultipleInheritanceParents;
 
 	/** whether this class declares delegate functions or properties */
 	bool													bContainsDelegates;
@@ -1442,12 +1448,40 @@ public:
 	}
 
 	/**
+	 * Adds a new struct to be tracked
+	 * 
+	 * @param	StructToken		the token for the struct to add
+	 *
+	 * @return	a pointer to the newly added FStructData
+	 */
+	FStructData* AddStruct( const FToken& StructToken )
+	{
+		check(StructToken.Struct != NULL);
+
+		FStructData* Result = NULL;
+
+		TScopedPointer<FStructData>* pStructData = StructData.Find(StructToken.Struct);
+		if ( pStructData != NULL )
+		{
+			Result = pStructData->GetOwnedPointer();
+			*Result = FStructData(StructToken);
+		}
+		else
+		{
+			pStructData = &StructData.Emplace(StructToken.Struct, new FStructData(StructToken));
+			Result = pStructData->GetOwnedPointer();
+		}
+
+		return Result;
+	}
+
+	/**
 	 * Adds a new property to be tracked.  Determines the correct list for the property based on
 	 * its owner (function, struct, etc).
 	 * 
 	 * @param	PropertyToken	the property to add
 	 */
-	void AddProperty(const FToken& PropertyToken, FUHTMakefile& UHTMakefile, FUnrealSourceFile* UnrealSourceFile)
+	void AddProperty( const FToken& PropertyToken )
 	{
 		UProperty* Prop = PropertyToken.TokenProperty;
 		check(Prop);
@@ -1457,7 +1491,7 @@ public:
 		if ( OuterClass != NULL )
 		{
 			// global property
-			GlobalPropertyData.Set(Prop, PropertyToken, UHTMakefile, UnrealSourceFile);
+			GlobalPropertyData.Set(Prop,PropertyToken);
 		}
 		else
 		{
@@ -1466,7 +1500,19 @@ public:
 			if ( OuterFunction != NULL )
 			{
 				// function parameter, return, or local property
-				FFunctionData::FindForFunction(OuterFunction)->AddProperty(PropertyToken, UHTMakefile, UnrealSourceFile);
+				FFunctionData::FindForFunction(OuterFunction)->AddProperty(PropertyToken);
+			}
+			else
+			{
+				// struct property
+				UScriptStruct* OuterStruct = Cast<UScriptStruct>(Outer);
+				if (OuterStruct != NULL)
+				{
+					TScopedPointer<FStructData>* StructInfo = StructData.Find(OuterStruct);
+					check(StructInfo!=NULL);
+
+					(*StructInfo)->AddStructProperty(PropertyToken);
+				}
 			}
 		}
 
@@ -1527,6 +1573,18 @@ public:
 	FFunctionData* FindFunctionData( UFunction* Func );
 
 	/**
+	 * Finds the metadata for the struct specified
+	 * 
+	 * @param	Struct	the struct to search for
+	 *
+	 * @return	pointer to the metadata for the struct specified, or NULL
+	 *			if the struct doesn't exist in the list (for example, if it
+	 *			is declared in a package that is already compiled and has had its
+	 *			source stripped)
+	 */
+	FStructData* FindStructData( UScriptStruct* Struct );
+
+	/**
 	 * Finds the metadata for the property specified
 	 * 
 	 * @param	Prop	the property to search for
@@ -1548,25 +1606,27 @@ public:
 	/**
 	 * Add a string to the list of inheritance parents for this class.
 	 *
-	 * @param Inparent The C++ class name to add to the multiple inheritance list
-	 * @param UHTMakefile Makefile to save parsing data to.
-	 * @param UnrealSourceFile Currently parsed source file.
+	 * @param Inparent	The C++ class name to add to the multiple inheritance list
 	 */
-	void AddInheritanceParent(const FString& InParent, FUHTMakefile& UHTMakefile, FUnrealSourceFile* UnrealSourceFile);
+	void AddInheritanceParent(const FString& InParent)
+	{
+		new(MultipleInheritanceParents) FMultipleInheritanceBaseClass(InParent);
+	}
 
 	/**
 	 * Add a string to the list of inheritance parents for this class.
 	 *
 	 * @param Inparent	The C++ class name to add to the multiple inheritance list
-	 * @param UHTMakefile Makefile to save parsing data to.
-	 * @param UnrealSourceFile Currently parsed source file.
 	 */
-	void AddInheritanceParent(UClass* ImplementedInterfaceClass, FUHTMakefile& UHTMakefile, FUnrealSourceFile* UnrealSourceFile);
+	void AddInheritanceParent(UClass* ImplementedInterfaceClass)
+	{
+		new(MultipleInheritanceParents) FMultipleInheritanceBaseClass(ImplementedInterfaceClass);
+	}
 
 	/**
 	 * Return the list of inheritance parents
 	 */
-	const TArray<FMultipleInheritanceBaseClass*>& GetInheritanceParents() const
+	const TArray<FMultipleInheritanceBaseClass>& GetInheritanceParents() const
 	{
 		return MultipleInheritanceParents;
 	}
@@ -1585,6 +1645,7 @@ public:
 	void Shrink()
 	{
 		GlobalPropertyData.Shrink();
+		StructData.Shrink();
 		MultipleInheritanceParents.Shrink();
 	}
 
@@ -1604,8 +1665,6 @@ public:
 
 	// GENERATED_BODY access specifier to preserve.
 	EAccessSpecifier GeneratedBodyMacroAccessSpecifier;
-
-	friend struct FClassMetaDataArchiveProxy;
 };
 
 /**
@@ -1623,7 +1682,16 @@ public:
 	 *
 	 * @return	a pointer to the newly added metadata for the class specified
 	 */
-	FClassMetaData* AddClassData(UStruct* Struct, FUHTMakefile& UHTMakefile, FUnrealSourceFile* UnrealSourceFile);
+	FClassMetaData* AddClassData(UStruct* Struct)
+	{
+		TScopedPointer<FClassMetaData>* pClassData = Find(Struct);
+		if (pClassData == NULL)
+		{
+			pClassData = &Emplace(Struct, new FClassMetaData());
+		}
+
+		return *pClassData;
+	}
 
 	/**
 	 * Find the metadata associated with the class specified
@@ -1657,8 +1725,6 @@ public:
 			MetaData->Shrink();
 		}
 	}
-
-	friend struct FCompilerMetadataManagerArchiveProxy;
 };
 
 /*-----------------------------------------------------------------------------
@@ -1724,24 +1790,38 @@ struct FNameLookupCPP
 	 * @param	Struct	UStruct to obtain C++ name for
 	 * @return	Name used for C++ declaration
 	 */
-	const TCHAR* GetNameCPP( UStruct* Struct, bool bForceInterface = false );
-
-	void SetUHTMakefile(FUHTMakefile* InUHTMakefile)
+	const TCHAR* GetNameCPP( UStruct* Struct, bool bForceInterface = false )
+	{
+		TCHAR* NameCPP = StructNameMap.FindRef( Struct );
+		if (NameCPP && !bForceInterface)
 		{
-		UHTMakefile = InUHTMakefile;
+			return NameCPP;
 		}
-	void SetCurrentSourceFile(FUnrealSourceFile* InUnrealSourceFile)
+
+		FString DesiredStructName = Struct->GetName();
+		FString	TempName = FString(bForceInterface ? TEXT("I") : Struct->GetPrefixCPP()) + DesiredStructName;
+		int32 StringLength = TempName.Len();
+
+		NameCPP = new TCHAR[StringLength + 1];
+		FCString::Strcpy( NameCPP, StringLength + 1, *TempName );
+		NameCPP[StringLength] = 0;
+
+		if (bForceInterface)
 		{
-		UnrealSourceFile = InUnrealSourceFile;
+			InterfaceAllocations.Add(NameCPP);
+		}
+		else
+		{
+			StructNameMap.Add( Struct, NameCPP );
+		}
+			
+		return NameCPP;
 	}
+
 private:
 	/** Map of UStruct pointers to C++ names */
 	TMap<UStruct*,TCHAR*> StructNameMap;
 	TArray<TCHAR*> InterfaceAllocations;
-
-	friend class FUHTMakefile;
-	FUHTMakefile* UHTMakefile;
-	FUnrealSourceFile* UnrealSourceFile;
 };
 
 extern FNameLookupCPP NameLookupCPP;

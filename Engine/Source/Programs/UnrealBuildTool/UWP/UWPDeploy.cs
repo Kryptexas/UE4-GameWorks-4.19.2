@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -15,9 +15,19 @@ namespace UnrealBuildTool
 	/// </summary>
 	class UWPDeploy : UEBuildDeploy
 	{
-		/// <summary>
-		/// Utility function to delete a file
-		/// </summary>
+		/**
+		 *	Register the platform with the UEBuildDeploy class
+		 */
+		public override void RegisterBuildDeploy()
+		{
+			// Register this deployment handle for UWP
+			Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.UWP.ToString());
+			UEBuildDeploy.RegisterBuildDeploy(UnrealTargetPlatform.UWP, this);
+		}
+
+		/**
+		 *  Utility function to delete a file
+		 */
 		void DeployHelper_DeleteFile(string InFileToDelete)
 		{
 			Log.TraceInformation("UWPDeploy.DeployHelper_DeleteFile({0})", InFileToDelete);
@@ -33,9 +43,10 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/// <summary>
-		/// Copy the contents of the given source directory to the given destination directory
-		/// </summary>
+		/**
+		 *	Copy the contents of the given source directory to the given destination directory
+		 *	
+		 */
 		bool CopySourceToDestDir(string InSourceDirectory, string InDestinationDirectory, string InWildCard,
 			bool bInIncludeSubDirectories, bool bInRemoveDestinationOrphans)
 		{
@@ -116,9 +127,9 @@ namespace UnrealBuildTool
 		}
 
 
-		/// <summary>
-		/// Helper function for copying files
-		/// </summary>
+		/**
+		 *	Helper function for copying files
+		 */
 		void CopyFile(string InSource, string InDest, bool bForce)
 		{
 			Log.TraceInformation("UWPDeploy.CopyFile({0}, {1}, {2},...)", InSource, InDest, bForce);
@@ -139,9 +150,9 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/// <summary>
-		/// Helper function for copying a tree files
-		/// </summary>
+		/**
+		 *	Helper function for copying a tree files
+		 */
 		//void CopyDirectory(string InSource, string InDest, bool bForce, bool bRecurse)
 		//{
 		//    if (Directory.Exists(InSource))
@@ -209,14 +220,14 @@ namespace UnrealBuildTool
 			Log.TraceInformation("Prepping {0} for deployment to {1}", InAppName, InTarget.Platform.ToString());
 			System.DateTime PrepDeployStartTime = DateTime.UtcNow;
 
-			string TargetFilename = InTarget.RulesAssembly.GetTargetFileName(InAppName).FullName;
+			string TargetFilename = RulesCompiler.GetTargetFilename(InAppName);
 			string ProjectSourceFolder = new FileInfo(TargetFilename).DirectoryName + "/";
 
 			string RelativeTargetDirectory;
 			string EngineSourceRelativeBinaryPath;
-			UWPProjectGenerator.GetTargetUWPPaths(InTarget.RulesAssembly, InAppName, InTarget.Rules, out EngineSourceRelativeBinaryPath, out RelativeTargetDirectory);
+			UWPProjectGenerator.GetTargetUWPPaths(InAppName, InTarget.Rules, out EngineSourceRelativeBinaryPath, out RelativeTargetDirectory);
 
-			PrepForUATPackageOrDeploy(InAppName, InTarget.ProjectDirectory.FullName, InTarget.OutputPath.FullName, BuildConfiguration.RelativeEnginePath, false, "");
+			PrepForUATPackageOrDeploy(InAppName, InTarget.ProjectDirectory, InTarget.OutputPath, BuildConfiguration.RelativeEnginePath, false, "");
 
 			// TODO - richiem - restore this if we find that it's needed.
 			//Log.TraceInformation("...copying the CELL dll...");

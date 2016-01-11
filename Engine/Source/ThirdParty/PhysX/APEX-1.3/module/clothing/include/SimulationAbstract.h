@@ -31,8 +31,6 @@ class NxScene;
 namespace physx
 {
 
-class PxBaseTask;
-
 #if NX_SDK_VERSION_MAJOR == 3
 class PxScene;
 #endif
@@ -240,8 +238,6 @@ public:
 	{
 		return mClothingScene;
 	}
-
-	virtual void simulate(float) {}
 
 	PxU32 physicalMeshId;
 	PxU32 submeshId;

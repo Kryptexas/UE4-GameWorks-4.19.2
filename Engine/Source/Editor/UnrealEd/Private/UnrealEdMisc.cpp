@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "EditorSupportDelegates.h"
@@ -414,12 +414,6 @@ void FUnrealEdMisc::OnInit()
 	{
 		FMessageLogInitializationOptions InitOptions;
 		InitOptions.bShowFilters = true;
-		MessageLogModule.RegisterLogListing("AssetCheck", LOCTEXT("AssetCheckLog", "Asset Check"), InitOptions);
-	}
-
-	{
-		FMessageLogInitializationOptions InitOptions;
-		InitOptions.bShowFilters = true;
 		MessageLogModule.RegisterLogListing("SlateStyleLog", LOCTEXT("SlateStyleLog", "Slate Style Log"), InitOptions );
 	}
 	FCompilerResultsLog::Register();
@@ -593,12 +587,13 @@ void FUnrealEdMisc::TickAssetAnalytics()
 
 			TArray< FAnalyticsEventAttribute > AssetAttributes;
 			int32 NumMapFiles = 0;
-			TSet< FName > PackageNames;
-			TMap< FName, int32 > ClassInstanceCounts;
+			TArray< FName > PackageNames;
+			TArray< FName > ClassInstances;
+			TArray< int32 > ClassInstanceCount;
 
 			for( auto AssetIter = AssetData.CreateConstIterator(); AssetIter; ++AssetIter )
 			{
-				PackageNames.Add( AssetIter->PackageName );
+				PackageNames.AddUnique( AssetIter->PackageName );
 				if( AssetIter->AssetClass == UWorld::StaticClass()->GetFName()  )
 				{
 					NumMapFiles++;
@@ -606,14 +601,14 @@ void FUnrealEdMisc::TickAssetAnalytics()
 
 				if( AssetIter->AssetClass != NAME_None )
 				{
-					int32* ExistingClassCount = ClassInstanceCounts.Find( AssetIter->AssetClass );
-					if( ExistingClassCount )
+					int32 ClassIndex = ClassInstances.AddUnique( AssetIter->AssetClass );
+					if( ClassInstanceCount.Num() < ClassInstances.Num() )
 					{
-						++(*ExistingClassCount);
+						ClassInstanceCount.Add( 1 );
 					}
 					else
 					{
-						ClassInstanceCounts.Add( AssetIter->AssetClass, 1 );
+						ClassInstanceCount[ ClassIndex ] += 1;
 					}
 				}
 			}
@@ -626,9 +621,12 @@ void FUnrealEdMisc::TickAssetAnalytics()
 
 			TArray< FAnalyticsEventAttribute > AssetInstances;
 			AssetInstances.Add( FAnalyticsEventAttribute( FString( "ProjectId" ), *ProjectSettings.ProjectID.ToString() ));
-			for( auto ClassIter = ClassInstanceCounts.CreateIterator(); ClassIter; ++ClassIter )
+			for( auto ClassIter = ClassInstances.CreateIterator(); ClassIter; ++ClassIter )
 			{
-				AssetInstances.Add( FAnalyticsEventAttribute( ClassIter.Key().ToString(), ClassIter.Value() ) );
+				if( ClassInstanceCount[ ClassIter.GetIndex() ] > 0 )
+				{
+					AssetInstances.Add( FAnalyticsEventAttribute( ClassIter->ToString(), ClassInstanceCount[ ClassIter.GetIndex() ] ));
+				}
 			}
 			// Send class instance analytics
 			FEngineAnalytics::GetProvider().RecordEvent( FString( "Editor.Usage.AssetClasses" ), AssetInstances );
@@ -1103,22 +1101,22 @@ void FUnrealEdMisc::OnMessageTokenActivated(const TSharedRef<IMessageToken>& Tok
 	}
 }
 
-FText FUnrealEdMisc::OnGetDisplayName(const UObject* InObject, const bool bFullPath)
+FText FUnrealEdMisc::OnGetDisplayName(UObject* InObject, bool bFullPath)
 {
 	FText Name = LOCTEXT("DisplayNone", "<None>");
 
-	if (InObject != nullptr)
+	if(InObject != NULL)
 	{
 		// Is this an object held by an actor?
-		const AActor* Actor = nullptr;
-		const UActorComponent* Component = Cast<UActorComponent>(InObject);
+		AActor* Actor = NULL;
+		UActorComponent* Component = Cast<UActorComponent>(InObject);
  
-		if (Component != nullptr)
+		if (Component != NULL)
 		{
 			Actor = Cast<AActor>(Component->GetOuter());
 		}
  
-		if (Actor != nullptr)
+		if (Actor != NULL)
 		{
 			Name = FText::FromString( bFullPath ? Actor->GetPathName() : Actor->GetName() );
 		}
@@ -1700,4 +1698,3 @@ void FUnrealEdMisc::MountTemplateSharedPaths()
 }
 
 #undef LOCTEXT_NAMESPACE
-

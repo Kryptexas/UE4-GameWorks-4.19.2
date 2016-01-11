@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "StaticMeshResources.h"
@@ -24,7 +24,6 @@
 #define LOCTEXT_NAMESPACE "StaticMeshComponent"
 
 DECLARE_MEMORY_STAT( TEXT( "StaticMesh VxColor Inst Mem" ), STAT_InstVertexColorMemory, STATGROUP_MemoryStaticMesh );
-DECLARE_MEMORY_STAT( TEXT( "StaticMesh PreCulled Index Memory" ), STAT_StaticMeshPreCulledIndexMemory, STATGROUP_MemoryStaticMesh );
 
 class FStaticMeshComponentInstanceData : public FSceneComponentInstanceData
 {
@@ -39,10 +38,7 @@ public:
 	virtual void ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase) override
 	{
 		FSceneComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
-		if (CacheApplyPhase == ECacheApplyPhase::PostUserConstructionScript)
-		{
-			CastChecked<UStaticMeshComponent>(Component)->ApplyComponentInstanceData(this);
-		}
+		CastChecked<UStaticMeshComponent>(Component)->ApplyComponentInstanceData(this);
 	}
 
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
@@ -182,15 +178,11 @@ UStaticMeshComponent::UStaticMeshComponent(const FObjectInitializer& ObjectIniti
 	StreamingDistanceMultiplier = 1.0f;
 	bBoundsChangeTriggersStreamingDataRebuild = true;
 	bHasCustomNavigableGeometry = EHasCustomNavigableGeometry::Yes;
-	bOverrideNavigationExport = false;
-	bForceNavigationObstacle = true;
-	bDisallowMeshPaintPerInstance = false;
 
 	GetBodyInstance()->bAutoWeld = true;	//static mesh by default has auto welding
 
 #if WITH_EDITORONLY_DATA
 	SelectedEditorSection = INDEX_NONE;
-	SectionIndexPreview = INDEX_NONE;
 #endif
 }
 
@@ -371,7 +363,7 @@ void UStaticMeshComponent::CheckForErrors()
 			Arguments.Add(TEXT("MeshName"), FText::FromString(StaticMesh->GetName()));
 			FMessageLog("MapCheck").Warning()
 				->AddToken(FUObjectToken::Create(Owner))
-				->AddToken(FTextToken::Create(FText::Format(LOCTEXT( "MapCheck_Message_MoreMaterialsThanReferenced", "More overridden materials ({OverridenCount}) on static mesh component than are referenced ({ReferencedCount}) in source mesh '{MeshName}'" ), Arguments ) ))
+				->AddToken(FTextToken::Create(FText::Format(LOCTEXT( "MapCheck_Message_MoreMaterialsThanReferenced", "More overriden materials ({OverridenCount}) on static mesh component than are referenced ({ReferencedCount}) in source mesh '{MeshName}'" ), Arguments ) ))
 				->AddToken(FMapErrorToken::Create(FMapErrors::MoreMaterialsThanReferenced));
 		}
 		if (ZeroTriangleElements > 0)
@@ -728,18 +720,6 @@ bool UStaticMeshComponent::RequiresOverrideVertexColorsFixup( TArray<int32>& Out
 	return bFixupRequired;
 }
 
-void UStaticMeshComponent::SetSectionPreview(int32 InSectionIndexPreview)
-{
-#if WITH_EDITORONLY_DATA
-	if (SectionIndexPreview != InSectionIndexPreview)
-	{
-		SectionIndexPreview = InSectionIndexPreview;
-		MarkRenderStateDirty();
-	}
-#endif
-}
-
-
 void UStaticMeshComponent::RemoveInstanceVertexColorsFromLOD( int32 LODToRemoveColorsFrom )
 {
 #if WITH_EDITORONLY_DATA
@@ -871,17 +851,8 @@ void UStaticMeshComponent::CachePaintedDataIfNecessary()
 					}
 				}
 				else
-				{					
-					// At this point we can't resolve the colors, so just discard any isolated data we still have
-					if (CurCompLODInfo.OverrideVertexColors && CurCompLODInfo.OverrideVertexColors->GetNumVertices() > 0)
-					{
-						UE_LOG(LogStaticMesh, Warning, TEXT("Level requires re-saving! Outdated vertex color overrides have been discarded for %s %s LOD%d. "), *GetFullName(), *StaticMesh->GetFullName(), LODIter.GetIndex());
-						CurCompLODInfo.ReleaseOverrideVertexColorsAndBlock();
-					}
-					else
-					{
-						UE_LOG(LogStaticMesh, Warning, TEXT("Unable to cache painted data for mesh component. Vertex color overrides will be lost if the mesh is modified. %s %s LOD%d."), *GetFullName(), *StaticMesh->GetFullName(), LODIter.GetIndex() );
-					}
+				{
+					UE_LOG(LogStaticMesh, Warning, TEXT("Unable to cache painted data for mesh component. Vertex color overrides will be lost if the mesh is modified. %s %s LOD%d."), *GetFullName(), *StaticMesh->GetFullName(), LODIter.GetIndex() );
 				}
 			}
 		}
@@ -964,71 +935,13 @@ void UStaticMeshComponent::InitResources()
 	}
 }
 
-float GKeepPreCulledIndicesThreshold = .95f;
 
-FAutoConsoleVariableRef CKeepPreCulledIndicesThreshold(
-	TEXT("r.KeepPreCulledIndicesThreshold"),
-	GKeepPreCulledIndicesThreshold,
-	TEXT(""),
-	ECVF_Scalability | ECVF_RenderThreadSafe
-	);
-
-void UStaticMeshComponent::UpdatePreCulledData(int32 LODIndex, const TArray<uint32>& PreCulledData, const TArray<int32>& NumTrianglesPerSection)
-{
-	const FStaticMeshLODResources& StaticMeshLODResources = StaticMesh->RenderData->LODResources[LODIndex];
-
-	int32 NumOriginalTriangles = 0;
-	int32 NumVisibleTriangles = 0;
-
-	for (int32 SectionIndex = 0; SectionIndex < StaticMeshLODResources.Sections.Num(); SectionIndex++)
-	{
-		const FStaticMeshSection& Section = StaticMeshLODResources.Sections[SectionIndex];
-		NumOriginalTriangles += Section.NumTriangles;
-		NumVisibleTriangles += NumTrianglesPerSection[SectionIndex];
-	}
-
-	if (NumVisibleTriangles / (float)NumOriginalTriangles < GKeepPreCulledIndicesThreshold)
-	{
-		SetLODDataCount(LODIndex + 1, LODData.Num());
-
-		DEC_DWORD_STAT_BY(STAT_StaticMeshPreCulledIndexMemory, LODData[LODIndex].PreCulledIndexBuffer.GetAllocatedSize());
-		//@todo - game thread
-		check(IsInRenderingThread());
-		LODData[LODIndex].PreCulledIndexBuffer.ReleaseResource();
-		LODData[LODIndex].PreCulledIndexBuffer.SetIndices(PreCulledData, EIndexBufferStride::AutoDetect);
-		LODData[LODIndex].PreCulledIndexBuffer.InitResource();
-
-		INC_DWORD_STAT_BY(STAT_StaticMeshPreCulledIndexMemory, LODData[LODIndex].PreCulledIndexBuffer.GetAllocatedSize());
-		LODData[LODIndex].PreCulledSections.Empty(StaticMeshLODResources.Sections.Num());
-
-		int32 FirstIndex = 0;
-
-		for (int32 SectionIndex = 0; SectionIndex < StaticMeshLODResources.Sections.Num(); SectionIndex++)
-		{
-			const FStaticMeshSection& Section = StaticMeshLODResources.Sections[SectionIndex];
-			FPreCulledStaticMeshSection PreCulledSection;
-			PreCulledSection.FirstIndex = FirstIndex;
-			PreCulledSection.NumTriangles = NumTrianglesPerSection[SectionIndex];
-			FirstIndex += PreCulledSection.NumTriangles * 3;
-			LODData[LODIndex].PreCulledSections.Add(PreCulledSection);
-		}
-	}
-	else if (LODIndex < LODData.Num())
-	{
-		LODData[LODIndex].PreCulledIndexBuffer.ReleaseResource();
-		TArray<uint32> EmptyIndices;
-		LODData[LODIndex].PreCulledIndexBuffer.SetIndices(EmptyIndices, EIndexBufferStride::AutoDetect);
-		LODData[LODIndex].PreCulledSections.Empty(StaticMeshLODResources.Sections.Num());
-	}
-}
 
 void UStaticMeshComponent::ReleaseResources()
 {
 	for(int32 LODIndex = 0;LODIndex < LODData.Num();LODIndex++)
 	{
 		LODData[LODIndex].BeginReleaseOverrideVertexColors();
-		DEC_DWORD_STAT_BY(STAT_StaticMeshPreCulledIndexMemory, LODData[LODIndex].PreCulledIndexBuffer.GetAllocatedSize());
-		BeginReleaseResource(&LODData[LODIndex].PreCulledIndexBuffer);
 	}
 
 	DetachFence.BeginFence();
@@ -1215,10 +1128,9 @@ void UStaticMeshComponent::PostLoad()
 #if WITH_EDITORONLY_DATA
 			FFormatNamedArguments Arguments;
 			Arguments.Add(TEXT("MeshName"), FText::FromString(GetName()));
-			Arguments.Add(TEXT("LevelName"), FText::FromString(GetOutermost()->GetName()));
 			FMessageLog("MapCheck").Info()
 				->AddToken(FUObjectToken::Create(GetOuter()))
-				->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Message_RepairedPaintedVertexColors", "{MeshName} : Repaired painted vertex colors (slow loading, can be fixed by saving {LevelName})" ), Arguments ) ))
+				->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Message_RepairedPaintedVertexColors", "{MeshName} : Repaired painted vertex colors (slow loading, can be fixed by saving asset)" ), Arguments ) ))
 				->AddToken(FMapErrorToken::Create(FMapErrors::RepairedPaintedVertexColors));
 #endif
 		}
@@ -1298,10 +1210,6 @@ bool UStaticMeshComponent::SetStaticMesh(UStaticMesh* NewMesh)
 
 	// Since we have new mesh, we need to update bounds
 	UpdateBounds();
-
-	// Mark cached material parameter names dirty
-	MarkCachedMaterialParameterNameIndicesDirty();
-
 	return true;
 }
 
@@ -1355,7 +1263,7 @@ bool UStaticMeshComponent::GetLightMapResolution( int32& Width, int32& Height ) 
 	bool bPadded = false;
 	if( StaticMesh )
 	{
-		// Use overridden per component lightmap resolution.
+		// Use overriden per component lightmap resolution.
 		if( bOverrideLightMapRes )
 		{
 			Width	= OverriddenLightMapRes;
@@ -1388,7 +1296,7 @@ void UStaticMeshComponent::GetEstimatedLightMapResolution(int32& Width, int32& H
 
 		bool bUseSourceMesh = false;
 
-		// Use overridden per component lightmap resolution.
+		// Use overriden per component lightmap resolution.
 		// If the overridden LM res is > 0, then this is what would be used...
 		if (bOverrideLightMapRes == true)
 		{
@@ -1554,7 +1462,7 @@ bool UStaticMeshComponent::GetEstimatedLightAndShadowMapMemoryUsage(
 int32 UStaticMeshComponent::GetNumMaterials() const
 {
 	// @note : you don't have to consider Materials.Num()
-	// that only counts if overridden and it can't be more than StaticMesh->Materials. 
+	// that only counts if overriden and it can't be more than StaticMesh->Materials. 
 	if(StaticMesh)
 	{
 		return StaticMesh->Materials.Num();
@@ -1708,14 +1616,13 @@ void UStaticMeshComponent::ApplyComponentInstanceData(FStaticMeshComponentInstan
 		}
 		else
 		{
-			UE_LOG(LogStaticMesh, Warning, TEXT("Cached component instance data transform did not match!  Discarding cached lighting data which will cause lighting to be unbuilt.\n%s\nCurrent: %s Cached: %s"), 
+			UE_LOG(LogStaticMesh, Warning, TEXT("Cached component instance data transform did not match!  Discarding cached lighting data which will cause lighting to be unbuilt.\n%s\nCurrent X=%f Y=%f Z=%f Cached X=%f Y=%f Z=%f"), 
 				*GetPathName(),
-				*ComponentToWorld.ToString(),
-				*StaticMeshInstanceData->CachedStaticLighting.Transform.ToString());
+				ComponentToWorld.GetLocation().X, ComponentToWorld.GetLocation().Y, ComponentToWorld.GetLocation().Z,
+				StaticMeshInstanceData->CachedStaticLighting.Transform.GetLocation().X, StaticMeshInstanceData->CachedStaticLighting.Transform.GetLocation().Y, StaticMeshInstanceData->CachedStaticLighting.Transform.GetLocation().Z);
 		}
 	}
 
-	if (!bDisallowMeshPaintPerInstance)
 	{
 		FComponentReregisterContext ReregisterStaticMesh(this);
 		StaticMeshInstanceData->ApplyVertexColorData(this);
@@ -1728,9 +1635,7 @@ bool UStaticMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExp
 	if (StaticMesh != NULL && StaticMesh->NavCollision != NULL)
 	{
 		UNavCollision* NavCollision = StaticMesh->NavCollision;
-		const bool bExportAsObstacle = bOverrideNavigationExport ? bForceNavigationObstacle : NavCollision->bIsDynamicObstacle;
-
-		if (bExportAsObstacle)
+		if (NavCollision->bIsDynamicObstacle)
 		{
 			return false;
 		}
@@ -1768,9 +1673,7 @@ void UStaticMeshComponent::GetNavigationData(FNavigationRelevantData& Data) cons
 	if (StaticMesh && StaticMesh->NavCollision)	
 	{
 		UNavCollision* NavCollision = StaticMesh->NavCollision;
-		const bool bExportAsObstacle = bOverrideNavigationExport ? bForceNavigationObstacle : NavCollision->bIsDynamicObstacle;
-
-		if (bExportAsObstacle)
+		if (NavCollision->bIsDynamicObstacle)
 		{
 			NavCollision->GetNavigationModifier(Data.Modifiers, ComponentToWorld);
 		}

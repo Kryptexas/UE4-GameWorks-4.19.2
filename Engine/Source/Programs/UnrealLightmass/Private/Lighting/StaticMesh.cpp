@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "stdafx.h"
 #include "Importer.h"
@@ -258,8 +258,7 @@ void FStaticMeshStaticLightingMesh::Import( FLightmassImporter& Importer )
 //	Importer.ImportData( (FStaticMeshStaticLightingMeshData*) this );
 	FStaticMeshStaticLightingMeshData TempSMSLMD;
 	Importer.ImportData(&TempSMSLMD);
-	EncodedLODIndices = TempSMSLMD.EncodedLODIndices;
-	EncodedHLODRange = TempSMSLMD.EncodedHLODRange;
+	EncodedLODIndex = TempSMSLMD.EncodedLODIndex;
 	LocalToWorld = TempSMSLMD.LocalToWorld;
 	bReverseWinding = TempSMSLMD.bReverseWinding;
 	bShouldSelfShadow = TempSMSLMD.bShouldSelfShadow;

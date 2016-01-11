@@ -51,6 +51,7 @@
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="WinPlatform.Automation.cs" />
+    <Compile Include="WinPlatformResources.Automation.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\UnrealBuildTool\UnrealBuildTool.csproj">

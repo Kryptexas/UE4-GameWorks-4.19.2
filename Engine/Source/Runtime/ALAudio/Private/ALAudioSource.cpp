@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*------------------------------------------------------------------------------------
 	FALSoundSource.
@@ -109,7 +109,8 @@ void FALSoundSource::Update( void )
 	// Set whether to apply reverb
 	SetReverbApplied( true );
 
-	SetFilterFrequency();
+	// Set the HighFrequencyGain value
+	SetHighFrequencyGain();
 
 	FVector Location;
 	FVector	Velocity;

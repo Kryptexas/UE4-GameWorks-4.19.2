@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Components/InterpToMovementComponent.h"
@@ -414,24 +414,17 @@ float UInterpToMovementComponent::GetSimulationTimeStep(float RemainingTime, int
 
 void UInterpToMovementComponent::BeginPlay()
 {
-	FinaliseControlPoints();
-}
-
-void UInterpToMovementComponent::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
-{
-	Super::ApplyWorldOffset(InOffset, bWorldShift);
- 
- 	// Need to adjust the cached starting location... (StartLocation is always absolute)
- 	StartLocation += InOffset;
- 
- 	// ...and all the stored control point positions if the control point positions are absolute.
- 	for (auto& CtrlPoint : ControlPoints)
- 	{
- 		if (!CtrlPoint.bPositionIsRelative)
- 		{
- 			CtrlPoint.PositionControlPoint += InOffset;
- 		}
- 	}
+	StartLocation = UpdatedComponent->GetComponentLocation();
+	TimeMultiplier = 1.0f / Duration;
+	if( ControlPoints.Num() != 0 )
+	{
+		UpdateControlPoints(true);
+		// Update the component location to match first control point
+		FVector MoveDelta = ComputeMoveDelta(0.0f);
+		FRotator CurrentRotation = UpdatedComponent->GetComponentRotation();
+		FHitResult Hit(1.f);
+		UpdatedComponent->MoveComponent(MoveDelta, CurrentRotation, false, &Hit);
+	}	
 }
 
 void UInterpToMovementComponent::UpdateControlPoints(bool InForceUpdate)
@@ -492,33 +485,10 @@ float UInterpToMovementComponent::ReverseDirection(const FHitResult& Hit, float 
 }
 
 
-void UInterpToMovementComponent::AddControlPointPosition(FVector Pos,bool bPositionIsRelative)
+void UInterpToMovementComponent::AddControlPointPosition(FVector Pos)
 {
 	UE_LOG(LogInterpToMovementComponent, Warning, TEXT("Pos:%s"),*Pos.ToString());
-	ControlPoints.Add( FInterpControlPoint(Pos,bPositionIsRelative));
-}
-
-void UInterpToMovementComponent::FinaliseControlPoints()
-{
-	StartLocation = UpdatedComponent->GetComponentLocation();
-	TimeMultiplier = 1.0f / Duration;
-	if (ControlPoints.Num() != 0)
-	{
-		UpdateControlPoints(true);
-		// Update the component location to match first control point
-		FVector MoveDelta = ComputeMoveDelta(0.0f);
-		FRotator CurrentRotation = UpdatedComponent->GetComponentRotation();
-		FHitResult Hit(1.f);
-		UpdatedComponent->MoveComponent(MoveDelta, CurrentRotation, false, &Hit);
-	} 
-}
-
-void UInterpToMovementComponent::RestartMovement(float InitialDirection)
-{	
-	CurrentDirection = InitialDirection;
-	CurrentTime = 0.0f;
-	bIsWaiting = false;
-	bStopped = false;
+	ControlPoints.Add( FInterpControlPoint(Pos));
 }
 
 #if WITH_EDITOR
@@ -531,6 +501,4 @@ void UInterpToMovementComponent::PostEditChangeProperty(FPropertyChangedEvent& P
 		UpdateControlPoints(true);
 	}
 }
-
-
 #endif // WITH_EDITOR

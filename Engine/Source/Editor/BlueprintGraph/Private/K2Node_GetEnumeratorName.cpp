@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintGraphPrivatePCH.h"
@@ -103,9 +103,8 @@ void UK2Node_GetEnumeratorName::UpdatePinType()
 
 void UK2Node_GetEnumeratorName::PostReconstructNode()
 {
-	UpdatePinType();
-
 	Super::PostReconstructNode();
+	UpdatePinType();
 }
 
 void UK2Node_GetEnumeratorName::NotifyPinConnectionListChanged(UEdGraphPin* Pin)

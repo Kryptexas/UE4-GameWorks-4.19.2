@@ -1,0 +1,49 @@
+﻿INTSourceChangelist:2590930
+Availability:Docs
+Title:カスタム ツール
+Crumbs:%ROOT%, Resources, Resources/SampleGames/SwingNinja
+Description: Swing Ninja Game 用に作成されたツールに関するドキュメント
+
+
+[REGION:banner]
+![](CustomToolsBanner.png)
+[/REGION]
+
+
+[TOC(start:2 end:3)]
+[REGION:fullwidth]
+## 概要
+
+ブループリントのビジュアル スクリプティング システムで最も役立つ機能のひとつとして、それを使用してレベル デザイナーがカスタマイズ ツールを構築できるということにあります。カスタマイズ ツールによって必要なデザイン作業をより迅速に行うことができるようになります。Swing Ninja の制作効率を高めるために、ブループリントを使用して一部のデザイン ツールが構築されました。以下で各ツール、制作理由、構築方法の概要について説明します。
+
+
+## コイン配置システム
+
+レベル周囲のコインのトレイルの配置を支援するために、特殊なブループリントが作成されました。このブループリントによって、ラインに沿ったプロシージャルなコイン配置が可能になりました。このブループリントは、その位置を開始点として使用し、終了点はカスタム指定可能であり、道が真っ直ぐか、カーブであるかのオプションを与えることで機能し、その長さに沿って配置されるコインの数を制御します。
+
+
+### コンストラクションスクリプト
+
+[REGION:lightbox]
+[![](Coins_CS.png)](Coins_CS.png)
+[/REGION]
+[REGION:caption]
+フルサイズ表示するには、**右クリック** または [Save As] （名前を付けて保存）を選択します。
+[/REGION]
+
+
+
+### イベントグラフ
+
+
+[REGION:lightbox]
+[![](Coins_EG.png)](Coins_EG.png)
+[/REGION]
+[REGION:caption]
+フルサイズ表示するには、**右クリック** または [Save As] （名前を付けて保存）を選択します。
+[/REGION]
+
+
+[/REGION]
+
+

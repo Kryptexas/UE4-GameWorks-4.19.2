@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PhATModule.h"
 #include "PhATEdSkeletalMeshComponent.h"
@@ -52,8 +52,7 @@ FPhATEdPreviewViewportClient::FPhATEdPreviewViewportClient(TWeakPtr<FPhAT> InPhA
 	check(PhATFont);
 
 	EngineShowFlags.DisableAdvancedFeatures();
-	EngineShowFlags.SetSeparateTranslucency(true);
-	EngineShowFlags.SetCompositeEditorPrimitives(true);
+	EngineShowFlags.CompositeEditorPrimitives = true;
 
 	// Get actors asset collision bounding box, and move actor so its not intersection the floor plane at Z = 0.
 	FBox CollBox = SharedData->PhysicsAsset->CalcAABB(SharedData->EditorSkelComp, SharedData->EditorSkelComp->ComponentToWorld);	
@@ -833,7 +832,7 @@ void FPhATEdPreviewViewportClient::SimMousePress(FViewport* Viewport, bool bCons
 #endif
 	SharedData->LastClickPos = Click.GetClickPos();
 	FHitResult Result(1.f);
-	bool bHit = SharedData->EditorSkelComp->LineTraceComponent(Result, Click.GetOrigin() - Click.GetDirection() * SimGrabCheckDistance, Click.GetOrigin() + Click.GetDirection() * SimGrabCheckDistance, FCollisionQueryParams(NAME_None,true));
+	bool bHit = SharedData->EditorSkelComp->LineTraceComponent(Result, Click.GetOrigin() - Click.GetDirection() * SimGrabCheckDistance, Click.GetOrigin() + Click.GetDirection() * SimGrabCheckDistance, FCollisionQueryParams(true));
 
 	if (bHit)
 	{

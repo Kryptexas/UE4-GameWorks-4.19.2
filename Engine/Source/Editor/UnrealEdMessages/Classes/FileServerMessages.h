@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,19 +13,28 @@ struct FFileServerReady
 {
 	GENERATED_USTRUCT_BODY()
 	
-	/** Holds the list of IP addresses that the file server is listening on. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	/**
+	 * Holds the list of IP addresses that the file server is listening on.
+	 */
+	UPROPERTY()
 	TArray<FString> AddressList;
 	
-	/** Holds the file server's application identifier. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	/**
+	 * Holds the file server's application identifier.
+	 */
+	UPROPERTY()
 	FGuid InstanceId;
 
-	/** Default constructor. */
-	FFileServerReady() { }
 
-	/** Creates and initializes a new instance. */
-	FFileServerReady(const TArray<FString>& InAddressList, const FGuid& InInstanceId)
+	/**
+	 * Default constructor.
+	 */
+	FFileServerReady( ) { }
+
+	/**
+	 * Creates and initializes a new instance.
+	 */
+	FFileServerReady( const TArray<FString>& InAddressList, const FGuid& InInstanceId )
 		: AddressList(InAddressList)
 		, InstanceId(InInstanceId)
 	{ }

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
 #include "Sequencer.h"
@@ -359,53 +359,53 @@ bool ShouldExpand(const T& InContainer, ETreeRecursion Recursion)
 	return !bAllExpanded;
 }
 
-void SSequencerTreeView::ToggleExpandCollapseNodes(ETreeRecursion Recursion, bool bExpandAll)
-{
-	bool bExpand = false;
-	if (bExpandAll)
-	{
-		bExpand = ShouldExpand(SequencerNodeTree->GetRootNodes(), Recursion);
-	}
-	else
-	{
-		FSequencer& Sequencer = SequencerNodeTree->GetSequencer();
-
-		const TSet< FDisplayNodeRef >& SelectedNodes = Sequencer.GetSelection().GetSelectedOutlinerNodes();
-
-		bExpand = ShouldExpand(SelectedNodes, Recursion);
-	}
-
-	ExpandOrCollapseNodes(Recursion, bExpandAll, bExpand);
-}
-
-void SSequencerTreeView::ExpandNodes(ETreeRecursion Recursion, bool bExpandAll)
-{
-	const bool bExpand = true;
-	ExpandOrCollapseNodes(Recursion, bExpandAll, bExpand);
-}
-
-void SSequencerTreeView::CollapseNodes(ETreeRecursion Recursion, bool bExpandAll)
-{
-	const bool bExpand = false;
-	ExpandOrCollapseNodes(Recursion, bExpandAll, bExpand);
-}
-
-void SSequencerTreeView::ExpandOrCollapseNodes(ETreeRecursion Recursion, bool bExpandAll, bool bExpand)
+void SSequencerTreeView::ToggleExpandCollapseNodes(ETreeRecursion Recursion)
 {
 	FSequencer& Sequencer = SequencerNodeTree->GetSequencer();
 
-	if (bExpandAll)
+	const TSet< FDisplayNodeRef >& SelectedNodes = Sequencer.GetSelection().GetSelectedOutlinerNodes();
+
+	bool bExpand = false;
+	if (SelectedNodes.Num() != 0)
 	{
-		for (auto& Item : SequencerNodeTree->GetRootNodes())
-		{
-			ExpandCollapseNode(Item, bExpand, Recursion);
-		}	
+		bExpand = ShouldExpand(SelectedNodes, Recursion);
 	}
 	else
 	{
-		const TSet< FDisplayNodeRef >& SelectedNodes = Sequencer.GetSelection().GetSelectedOutlinerNodes();
+		bExpand = ShouldExpand(SequencerNodeTree->GetRootNodes(), Recursion);
+	}
 
+	ExpandOrCollapseNodes(Recursion, bExpand);
+}
+
+void SSequencerTreeView::ExpandNodes(ETreeRecursion Recursion)
+{
+	const bool bExpand = true;
+	ExpandOrCollapseNodes(Recursion, bExpand);
+}
+
+void SSequencerTreeView::CollapseNodes(ETreeRecursion Recursion)
+{
+	const bool bExpand = false;
+	ExpandOrCollapseNodes(Recursion, bExpand);
+}
+
+void SSequencerTreeView::ExpandOrCollapseNodes(ETreeRecursion Recursion, bool bExpand)
+{
+	FSequencer& Sequencer = SequencerNodeTree->GetSequencer();
+
+	const TSet< FDisplayNodeRef >& SelectedNodes = Sequencer.GetSelection().GetSelectedOutlinerNodes();
+
+	if (SelectedNodes.Num() != 0)
+	{
 		for (auto& Item : SelectedNodes)
+		{
+			ExpandCollapseNode(Item, bExpand, Recursion);
+		}
+	}
+	else
+	{
+		for (auto& Item : SequencerNodeTree->GetRootNodes())
 		{
 			ExpandCollapseNode(Item, bExpand, Recursion);
 		}

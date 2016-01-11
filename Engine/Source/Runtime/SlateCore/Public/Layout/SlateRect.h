@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -53,20 +53,18 @@ public:
 	
 public:
 
-	/**
-	 * Determines if the rectangle has positive dimensions.
-	 */
-	FORCEINLINE bool IsValid() const
+	bool IsValid() const
 	{
 		return !(Left == -1 && Right == -1 && Bottom == -1 && Top == -1) && Right >= Left && Bottom >= Top;
 	}
 
+
 	/**
-	 * @return true, if the rectangle has a size of 0.
+	 * @return true, if the rectangle is empty. Should be used in conjunction with IntersectionWith.
 	 */
-	FORCEINLINE bool IsEmpty() const
+	bool IsEmpty() const
 	{
-		return GetSize().SizeSquared() == 0.0f;
+		return GetSize().Size() == 0.0f;
 	}
 
 	/**
@@ -74,7 +72,7 @@ public:
 	 *
 	 * @return The size as a vector.
 	 */
-	FORCEINLINE FVector2D GetSize() const
+	FVector2D GetSize() const
 	{
 		return FVector2D( Right - Left, Bottom - Top );
 	}
@@ -84,7 +82,7 @@ public:
 	 * 
 	 * @return The center point.
 	 */
-	FORCEINLINE FVector2D GetCenter() const
+	FVector2D GetCenter() const
 	{
 		return FVector2D( Left, Top ) + GetSize() * 0.5f;
 	}
@@ -94,7 +92,7 @@ public:
 	 * 
 	 * @return The top-left position.
 	 */
-	FORCEINLINE FVector2D GetTopLeft() const
+	FVector2D GetTopLeft() const
 	{
 		return FVector2D( Left, Top );
 	}
@@ -104,7 +102,7 @@ public:
 	 *
 	 * @return The top-right position.
 	 */
-	FORCEINLINE FVector2D GetTopRight() const
+	FVector2D GetTopRight() const
 	{
 		return FVector2D(Right, Top);
 	}
@@ -114,7 +112,7 @@ public:
 	 * 
 	 * @return The bottom-right position.
 	 */
-	FORCEINLINE FVector2D GetBottomRight() const
+	FVector2D GetBottomRight() const
 	{
 		return FVector2D( Right, Bottom );
 	}
@@ -124,7 +122,7 @@ public:
 	 * 
 	 * @return The bottom-left position.
 	 */
-	FORCEINLINE FVector2D GetBottomLeft() const
+	FVector2D GetBottomLeft() const
 	{
 		return FVector2D( Left, Bottom );
 	}

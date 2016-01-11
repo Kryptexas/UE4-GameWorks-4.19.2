@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyEditorPrivatePCH.h"
 #include "SPropertyEditorAsset.h"
@@ -676,11 +676,11 @@ void SPropertyEditorAsset::OnBrowse()
 		// This code only works on loaded objects
 		FPropertyEditor::SyncToObjectsInNode(PropertyEditor->GetPropertyNode());		
 	}
-	else
+	else if (auto* Asset = Value.AssetData.GetAsset())
 	{
-		TArray<FAssetData> AssetDataList;
-		AssetDataList.Add( Value.AssetData );
-		GEditor->SyncBrowserToObjects( AssetDataList );
+		TArray< UObject* > Objects;
+		Objects.Add( Asset );
+		GEditor->SyncBrowserToObjects( Objects );
 	}
 }
 

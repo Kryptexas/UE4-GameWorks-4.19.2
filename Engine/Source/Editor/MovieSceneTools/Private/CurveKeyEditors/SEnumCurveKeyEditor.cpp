@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneToolsPrivatePCH.h"
 #include "SEnumCurveKeyEditor.h"
@@ -11,7 +11,6 @@ void SEnumCurveKeyEditor::Construct(const FArguments& InArgs)
 	OwningSection = InArgs._OwningSection;
 	Curve = InArgs._Curve;
 	Enum = InArgs._Enum;
-	IntermediateValue = InArgs._IntermediateValue;
 
 	for (int32 i = 0; i < InArgs._Enum->NumEnums() - 1; i++)
 	{
@@ -41,12 +40,6 @@ void SEnumCurveKeyEditor::Construct(const FArguments& InArgs)
 
 FText SEnumCurveKeyEditor::GetCurrentValue() const
 {
-	if ( IntermediateValue.IsSet() && IntermediateValue.Get().IsSet() )
-	{
-		int32 IntermediateNameIndex = Enum->GetIndexByValue( IntermediateValue.Get().GetValue() );
-		return Enum->GetDisplayNameText( IntermediateNameIndex );
-	}
-
 	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
 	int32 CurrentNameIndex = Enum->GetIndexByValue(Curve->Evaluate(CurrentTime));
 	return Enum->GetDisplayNameText(CurrentNameIndex);
@@ -64,34 +57,33 @@ void SEnumCurveKeyEditor::OnComboSelectionChanged(TSharedPtr<int32> InSelectedIt
 	{
 		FScopedTransaction Transaction(LOCTEXT("SetEnumKey", "Set Enum Key Value"));
 		OwningSection->SetFlags(RF_Transactional);
-		if (OwningSection->TryModify())
+		OwningSection->Modify();
+
+		float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+
+		bool bKeyWillBeAdded = Curve->IsKeyHandleValid(Curve->FindKey(CurrentTime)) == false;
+		if (bKeyWillBeAdded)
 		{
-			float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
-
-			bool bKeyWillBeAdded = Curve->IsKeyHandleValid(Curve->FindKey(CurrentTime)) == false;
-			if (bKeyWillBeAdded)
+			if (OwningSection->GetStartTime() > CurrentTime)
 			{
-				if (OwningSection->GetStartTime() > CurrentTime)
-				{
-					OwningSection->SetStartTime(CurrentTime);
-				}
-				if (OwningSection->GetEndTime() < CurrentTime)
-				{
-					OwningSection->SetEndTime(CurrentTime);
-				}
+				OwningSection->SetStartTime(CurrentTime);
 			}
-
-			int32 SelectedValue = Enum->GetValueByIndex(*InSelectedItem);
-			if (Curve->GetNumKeys() == 0)
+			if (OwningSection->GetEndTime() < CurrentTime)
 			{
-				Curve->SetDefaultValue(SelectedValue);
+				OwningSection->SetEndTime(CurrentTime);
 			}
-			else
-			{
-				Curve->UpdateOrAddKey(CurrentTime, SelectedValue);
-			}
-			Sequencer->UpdateRuntimeInstances();
 		}
+
+		int32 SelectedValue = Enum->GetValueByIndex(*InSelectedItem);
+		if (Curve->GetNumKeys() == 0)
+		{
+			Curve->SetDefaultValue(SelectedValue);
+		}
+		else
+		{
+			Curve->UpdateOrAddKey(CurrentTime, SelectedValue);
+		}
+		Sequencer->UpdateRuntimeInstances();
 	}
 }
 

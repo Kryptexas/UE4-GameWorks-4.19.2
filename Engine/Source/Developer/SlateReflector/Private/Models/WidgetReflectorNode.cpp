@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateReflectorPrivatePCH.h"
 #include "WidgetReflectorNode.h"
@@ -8,63 +8,91 @@
 
 /**
  * -----------------------------------------------------------------------------
- * FWidgetReflectorNodeBase
+ * UWidgetReflectorNodeBase
  * -----------------------------------------------------------------------------
  */
-FWidgetReflectorNodeBase::FWidgetReflectorNodeBase()
-	: Tint(FLinearColor::White)
+void UWidgetReflectorNodeBase::Initialize(const FArrangedWidget& InWidgetGeometry)
 {
-	HitTestInfo.IsHitTestVisible = false;
-	HitTestInfo.AreChildrenHitTestVisible = false;
+	Geometry = InWidgetGeometry.Geometry;
+	Tint = FLinearColor(1.0f, 1.0f, 1.0f);
 }
 
-FWidgetReflectorNodeBase::FWidgetReflectorNodeBase(const FArrangedWidget& InWidgetGeometry)
-	: AccumulatedLayoutTransform(InWidgetGeometry.Geometry.GetAccumulatedLayoutTransform())
-	, AccumulatedRenderTransform(InWidgetGeometry.Geometry.GetAccumulatedRenderTransform())
-	, LocalSize(InWidgetGeometry.Geometry.GetLocalSize())
-	, Tint(FLinearColor::White)
+TSharedPtr<SWidget> UWidgetReflectorNodeBase::GetLiveWidget() const
 {
-	const EVisibility WidgetVisibility = InWidgetGeometry.Widget->GetVisibility();
-	HitTestInfo.IsHitTestVisible = WidgetVisibility.IsHitTestVisible();
-	HitTestInfo.AreChildrenHitTestVisible = WidgetVisibility.AreChildrenHitTestVisible();
+	return nullptr;
 }
 
-const FSlateLayoutTransform& FWidgetReflectorNodeBase::GetAccumulatedLayoutTransform() const
+FText UWidgetReflectorNodeBase::GetWidgetType() const
 {
-	return AccumulatedLayoutTransform;
+	return FText::GetEmpty();
 }
 
-const FSlateRenderTransform& FWidgetReflectorNodeBase::GetAccumulatedRenderTransform() const
+FText UWidgetReflectorNodeBase::GetWidgetVisibilityText() const
 {
-	return AccumulatedRenderTransform;
+	return FText::GetEmpty();
 }
 
-const FVector2D& FWidgetReflectorNodeBase::GetLocalSize() const
+FText UWidgetReflectorNodeBase::GetWidgetReadableLocation() const
 {
-	return LocalSize;
+	return FText::GetEmpty();
 }
 
-const FWidgetHitTestInfo& FWidgetReflectorNodeBase::GetHitTestInfo() const
+FString UWidgetReflectorNodeBase::GetWidgetFile() const
 {
-	return HitTestInfo;
+	return FString();
 }
 
-const FLinearColor& FWidgetReflectorNodeBase::GetTint() const
+int32 UWidgetReflectorNodeBase::GetWidgetLineNumber() const
+{
+	return 0;
+}
+
+FName UWidgetReflectorNodeBase::GetWidgetAssetName() const
+{
+	return NAME_None;
+}
+
+FVector2D UWidgetReflectorNodeBase::GetWidgetDesiredSize() const
+{
+	return FVector2D::ZeroVector;
+}
+
+FSlateColor UWidgetReflectorNodeBase::GetWidgetForegroundColor() const
+{
+	return FSlateColor::UseForeground();
+}
+
+FString UWidgetReflectorNodeBase::GetWidgetAddress() const
+{
+	return FString::Printf(TEXT("0x%p"), static_cast<const void*>(nullptr));
+}
+
+bool UWidgetReflectorNodeBase::GetWidgetEnabled() const
+{
+	return false;
+}
+
+const FGeometry& UWidgetReflectorNodeBase::GetGeometry() const
+{
+	return Geometry;
+}
+
+const FLinearColor& UWidgetReflectorNodeBase::GetTint() const
 {
 	return Tint;
 }
 
-void FWidgetReflectorNodeBase::SetTint(const FLinearColor& InTint)
+void UWidgetReflectorNodeBase::SetTint(const FLinearColor& InTint)
 {
 	Tint = InTint;
 }
 
-void FWidgetReflectorNodeBase::AddChildNode(TSharedRef<FWidgetReflectorNodeBase> InChildNode)
+void UWidgetReflectorNodeBase::AddChildNode(UWidgetReflectorNodeBase* InChildNode)
 {
-	ChildNodes.Add(MoveTemp(InChildNode));
+	ChildNodes.Add(InChildNode);
 }
 
-const TArray<TSharedRef<FWidgetReflectorNodeBase>>& FWidgetReflectorNodeBase::GetChildNodes() const
+const TArray<UWidgetReflectorNodeBase*>& UWidgetReflectorNodeBase::GetChildNodes() const
 {
 	return ChildNodes;
 }
@@ -72,76 +100,67 @@ const TArray<TSharedRef<FWidgetReflectorNodeBase>>& FWidgetReflectorNodeBase::Ge
 
 /**
  * -----------------------------------------------------------------------------
- * FLiveWidgetReflectorNode
+ * ULiveWidgetReflectorNode
  * -----------------------------------------------------------------------------
  */
-TSharedRef<FLiveWidgetReflectorNode> FLiveWidgetReflectorNode::Create(const FArrangedWidget& InWidgetGeometry)
+void ULiveWidgetReflectorNode::Initialize(const FArrangedWidget& InWidgetGeometry)
 {
-	return MakeShareable(new FLiveWidgetReflectorNode(InWidgetGeometry));
+	Super::Initialize(InWidgetGeometry);
+
+	Widget = InWidgetGeometry.Widget;
 }
 
-FLiveWidgetReflectorNode::FLiveWidgetReflectorNode(const FArrangedWidget& InWidgetGeometry)
-	: FWidgetReflectorNodeBase(InWidgetGeometry)
-	, Widget(InWidgetGeometry.Widget)
-{
-}
-
-EWidgetReflectorNodeType FLiveWidgetReflectorNode::GetNodeType() const
-{
-	return EWidgetReflectorNodeType::Live;
-}
-
-TSharedPtr<SWidget> FLiveWidgetReflectorNode::GetLiveWidget() const
+TSharedPtr<SWidget> ULiveWidgetReflectorNode::GetLiveWidget() const
 {
 	return Widget.Pin();
 }
 
-FText FLiveWidgetReflectorNode::GetWidgetType() const
+FText ULiveWidgetReflectorNode::GetWidgetType() const
 {
 	return FWidgetReflectorNodeUtils::GetWidgetType(Widget.Pin());
 }
 
-FText FLiveWidgetReflectorNode::GetWidgetVisibilityText() const
+FText ULiveWidgetReflectorNode::GetWidgetVisibilityText() const
 {
 	return FWidgetReflectorNodeUtils::GetWidgetVisibilityText(Widget.Pin());
 }
 
-FText FLiveWidgetReflectorNode::GetWidgetReadableLocation() const
+FText ULiveWidgetReflectorNode::GetWidgetReadableLocation() const
 {
 	return FWidgetReflectorNodeUtils::GetWidgetReadableLocation(Widget.Pin());
 }
 
-FString FLiveWidgetReflectorNode::GetWidgetFile() const
+FString ULiveWidgetReflectorNode::GetWidgetFile() const
 {
 	return FWidgetReflectorNodeUtils::GetWidgetFile(Widget.Pin());
 }
 
-int32 FLiveWidgetReflectorNode::GetWidgetLineNumber() const
+int32 ULiveWidgetReflectorNode::GetWidgetLineNumber() const
 {
 	return FWidgetReflectorNodeUtils::GetWidgetLineNumber(Widget.Pin());
 }
 
-FName FLiveWidgetReflectorNode::GetWidgetAssetName() const
+FName ULiveWidgetReflectorNode::GetWidgetAssetName() const
 {
 	return FWidgetReflectorNodeUtils::GetWidgetAssetName(Widget.Pin());
 }
 
-FVector2D FLiveWidgetReflectorNode::GetWidgetDesiredSize() const
+FVector2D ULiveWidgetReflectorNode::GetWidgetDesiredSize() const
 {
 	return FWidgetReflectorNodeUtils::GetWidgetDesiredSize(Widget.Pin());
 }
 
-FSlateColor FLiveWidgetReflectorNode::GetWidgetForegroundColor() const
+FSlateColor ULiveWidgetReflectorNode::GetWidgetForegroundColor() const
 {
 	return FWidgetReflectorNodeUtils::GetWidgetForegroundColor(Widget.Pin());
 }
 
-FString FLiveWidgetReflectorNode::GetWidgetAddress() const
+FString ULiveWidgetReflectorNode::GetWidgetAddress() const
 {
 	return FWidgetReflectorNodeUtils::GetWidgetAddress(Widget.Pin());
 }
 
-bool FLiveWidgetReflectorNode::GetWidgetEnabled() const
+bool ULiveWidgetReflectorNode::GetWidgetEnabled() const
 {
 	return FWidgetReflectorNodeUtils::GetWidgetEnabled(Widget.Pin());
 }
@@ -149,369 +168,111 @@ bool FLiveWidgetReflectorNode::GetWidgetEnabled() const
 
 /**
  * -----------------------------------------------------------------------------
- * FSnapshotWidgetReflectorNode
+ * USnapshotWidgetReflectorNode
  * -----------------------------------------------------------------------------
  */
-TSharedRef<FSnapshotWidgetReflectorNode> FSnapshotWidgetReflectorNode::Create()
+void USnapshotWidgetReflectorNode::Initialize(const FArrangedWidget& InWidgetGeometry)
 {
-	return MakeShareable(new FSnapshotWidgetReflectorNode());
+	Super::Initialize(InWidgetGeometry);
+
+	CachedWidgetType = FWidgetReflectorNodeUtils::GetWidgetType(InWidgetGeometry.Widget);
+	CachedWidgetVisibilityText = FWidgetReflectorNodeUtils::GetWidgetVisibilityText(InWidgetGeometry.Widget);
+	CachedWidgetReadableLocation = FWidgetReflectorNodeUtils::GetWidgetReadableLocation(InWidgetGeometry.Widget);
+	CachedWidgetFile = FWidgetReflectorNodeUtils::GetWidgetFile(InWidgetGeometry.Widget);
+	CachedWidgetLineNumber = FWidgetReflectorNodeUtils::GetWidgetLineNumber(InWidgetGeometry.Widget);
+	CachedWidgetAssetName = FWidgetReflectorNodeUtils::GetWidgetAssetName(InWidgetGeometry.Widget);
+	CachedWidgetDesiredSize = FWidgetReflectorNodeUtils::GetWidgetDesiredSize(InWidgetGeometry.Widget);
+	CachedWidgetForegroundColor = FWidgetReflectorNodeUtils::GetWidgetForegroundColor(InWidgetGeometry.Widget);
+	CachedWidgetAddress = FWidgetReflectorNodeUtils::GetWidgetAddress(InWidgetGeometry.Widget);
+	CachedWidgetEnabled = FWidgetReflectorNodeUtils::GetWidgetEnabled(InWidgetGeometry.Widget);
 }
 
-TSharedRef<FSnapshotWidgetReflectorNode> FSnapshotWidgetReflectorNode::Create(const FArrangedWidget& InWidgetGeometry)
-{
-	return MakeShareable(new FSnapshotWidgetReflectorNode(InWidgetGeometry));
-}
-
-FSnapshotWidgetReflectorNode::FSnapshotWidgetReflectorNode()
-	: CachedWidgetLineNumber(0)
-	, CachedWidgetEnabled(false)
-{
-}
-
-FSnapshotWidgetReflectorNode::FSnapshotWidgetReflectorNode(const FArrangedWidget& InWidgetGeometry)
-	: FWidgetReflectorNodeBase(InWidgetGeometry)
-	, CachedWidgetType(FWidgetReflectorNodeUtils::GetWidgetType(InWidgetGeometry.Widget))
-	, CachedWidgetVisibilityText(FWidgetReflectorNodeUtils::GetWidgetVisibilityText(InWidgetGeometry.Widget))
-	, CachedWidgetReadableLocation(FWidgetReflectorNodeUtils::GetWidgetReadableLocation(InWidgetGeometry.Widget))
-	, CachedWidgetFile(FWidgetReflectorNodeUtils::GetWidgetFile(InWidgetGeometry.Widget))
-	, CachedWidgetLineNumber(FWidgetReflectorNodeUtils::GetWidgetLineNumber(InWidgetGeometry.Widget))
-	, CachedWidgetAssetName(FWidgetReflectorNodeUtils::GetWidgetAssetName(InWidgetGeometry.Widget))
-	, CachedWidgetDesiredSize(FWidgetReflectorNodeUtils::GetWidgetDesiredSize(InWidgetGeometry.Widget))
-	, CachedWidgetForegroundColor(FWidgetReflectorNodeUtils::GetWidgetForegroundColor(InWidgetGeometry.Widget))
-	, CachedWidgetAddress(FWidgetReflectorNodeUtils::GetWidgetAddress(InWidgetGeometry.Widget))
-	, CachedWidgetEnabled(FWidgetReflectorNodeUtils::GetWidgetEnabled(InWidgetGeometry.Widget))
-{
-}
-
-EWidgetReflectorNodeType FSnapshotWidgetReflectorNode::GetNodeType() const
-{
-	return EWidgetReflectorNodeType::Snapshot;
-}
-
-TSharedPtr<SWidget> FSnapshotWidgetReflectorNode::GetLiveWidget() const
-{
-	return nullptr;
-}
-
-FText FSnapshotWidgetReflectorNode::GetWidgetType() const
+FText USnapshotWidgetReflectorNode::GetWidgetType() const
 {
 	return CachedWidgetType;
 }
 
-FText FSnapshotWidgetReflectorNode::GetWidgetVisibilityText() const
+FText USnapshotWidgetReflectorNode::GetWidgetVisibilityText() const
 {
 	return CachedWidgetVisibilityText;
 }
 
-FText FSnapshotWidgetReflectorNode::GetWidgetReadableLocation() const
+FText USnapshotWidgetReflectorNode::GetWidgetReadableLocation() const
 {
 	return CachedWidgetReadableLocation;
 }
 
-FString FSnapshotWidgetReflectorNode::GetWidgetFile() const
+FString USnapshotWidgetReflectorNode::GetWidgetFile() const
 {
 	return CachedWidgetFile;
 }
 
-int32 FSnapshotWidgetReflectorNode::GetWidgetLineNumber() const
+int32 USnapshotWidgetReflectorNode::GetWidgetLineNumber() const
 {
 	return CachedWidgetLineNumber;
 }
 
-FName FSnapshotWidgetReflectorNode::GetWidgetAssetName() const
+FName USnapshotWidgetReflectorNode::GetWidgetAssetName() const
 {
 	return CachedWidgetAssetName;
 }
 
-FVector2D FSnapshotWidgetReflectorNode::GetWidgetDesiredSize() const
+FVector2D USnapshotWidgetReflectorNode::GetWidgetDesiredSize() const
 {
 	return CachedWidgetDesiredSize;
 }
 
-FSlateColor FSnapshotWidgetReflectorNode::GetWidgetForegroundColor() const
+FSlateColor USnapshotWidgetReflectorNode::GetWidgetForegroundColor() const
 {
 	return CachedWidgetForegroundColor;
 }
 
-FString FSnapshotWidgetReflectorNode::GetWidgetAddress() const
+FString USnapshotWidgetReflectorNode::GetWidgetAddress() const
 {
 	return CachedWidgetAddress;
 }
 
-bool FSnapshotWidgetReflectorNode::GetWidgetEnabled() const
+bool USnapshotWidgetReflectorNode::GetWidgetEnabled() const
 {
 	return CachedWidgetEnabled;
 }
 
-TSharedRef<FJsonValue> FSnapshotWidgetReflectorNode::ToJson(const TSharedRef<FSnapshotWidgetReflectorNode>& RootSnapshotNode)
-{
-	struct Internal
-	{
-		static TSharedRef<FJsonValue> CreateVector2DJsonValue(const FVector2D& InVec2D)
-		{
-			TArray<TSharedPtr<FJsonValue>> StructJsonArray;
-			StructJsonArray.Add(MakeShareable(new FJsonValueNumber(InVec2D.X)));
-			StructJsonArray.Add(MakeShareable(new FJsonValueNumber(InVec2D.Y)));
-			return MakeShareable(new FJsonValueArray(StructJsonArray));
-		}
-
-		static TSharedRef<FJsonValue> CreateMatrix2x2JsonValue(const FMatrix2x2& InMatrix)
-		{
-			float m00, m01, m10, m11;
-			InMatrix.GetMatrix(m00, m01, m10, m11);
-
-			TArray<TSharedPtr<FJsonValue>> StructJsonArray;
-			StructJsonArray.Add(MakeShareable(new FJsonValueNumber(m00)));
-			StructJsonArray.Add(MakeShareable(new FJsonValueNumber(m01)));
-			StructJsonArray.Add(MakeShareable(new FJsonValueNumber(m10)));
-			StructJsonArray.Add(MakeShareable(new FJsonValueNumber(m11)));
-			return MakeShareable(new FJsonValueArray(StructJsonArray));
-		}
-
-		static TSharedRef<FJsonValue> CreateSlateLayoutTransformJsonValue(const FSlateLayoutTransform& InLayoutTransform)
-		{
-			TSharedRef<FJsonObject> StructJsonObject = MakeShareable(new FJsonObject());
-			StructJsonObject->SetNumberField(TEXT("Scale"), InLayoutTransform.GetScale());
-			StructJsonObject->SetField(TEXT("Translation"), CreateVector2DJsonValue(InLayoutTransform.GetTranslation()));
-			return MakeShareable(new FJsonValueObject(StructJsonObject));
-		}
-
-		static TSharedRef<FJsonValue> CreateSlateRenderTransformJsonValue(const FSlateRenderTransform& InRenderTransform)
-		{
-			TSharedRef<FJsonObject> StructJsonObject = MakeShareable(new FJsonObject());
-			StructJsonObject->SetField(TEXT("Matrix"), CreateMatrix2x2JsonValue(InRenderTransform.GetMatrix()));
-			StructJsonObject->SetField(TEXT("Translation"), CreateVector2DJsonValue(InRenderTransform.GetTranslation()));
-			return MakeShareable(new FJsonValueObject(StructJsonObject));
-		}
-
-		static TSharedRef<FJsonValue> CreateLinearColorJsonValue(const FLinearColor& InColor)
-		{
-			TArray<TSharedPtr<FJsonValue>> StructJsonArray;
-			StructJsonArray.Add(MakeShareable(new FJsonValueNumber(InColor.R)));
-			StructJsonArray.Add(MakeShareable(new FJsonValueNumber(InColor.G)));
-			StructJsonArray.Add(MakeShareable(new FJsonValueNumber(InColor.B)));
-			StructJsonArray.Add(MakeShareable(new FJsonValueNumber(InColor.A)));
-			return MakeShareable(new FJsonValueArray(StructJsonArray));
-		}
-
-		static TSharedRef<FJsonValue> CreateSlateColorJsonValue(const FSlateColor& InColor)
-		{
-			const bool bIsColorSpecified = InColor.IsColorSpecified();
-			const FLinearColor ColorToUse = (bIsColorSpecified) ? InColor.GetSpecifiedColor() : FLinearColor::White;
-
-			TSharedRef<FJsonObject> StructJsonObject = MakeShareable(new FJsonObject());
-			StructJsonObject->SetBoolField(TEXT("IsColorSpecified"), bIsColorSpecified);
-			StructJsonObject->SetField(TEXT("Color"), CreateLinearColorJsonValue(ColorToUse));
-			return MakeShareable(new FJsonValueObject(StructJsonObject));
-		}
-
-		static TSharedRef<FJsonValue> CreateWidgetHitTestInfoJsonValue(const FWidgetHitTestInfo& InHitTestInfo)
-		{
-			TSharedRef<FJsonObject> StructJsonObject = MakeShareable(new FJsonObject());
-			StructJsonObject->SetBoolField(TEXT("IsHitTestVisible"), InHitTestInfo.IsHitTestVisible);
-			StructJsonObject->SetBoolField(TEXT("AreChildrenHitTestVisible"), InHitTestInfo.AreChildrenHitTestVisible);
-			return MakeShareable(new FJsonValueObject(StructJsonObject));
-		}
-	};
-
-	TSharedRef<FJsonObject> RootJsonObject = MakeShareable(new FJsonObject());
-
-	RootJsonObject->SetField(TEXT("AccumulatedLayoutTransform"), Internal::CreateSlateLayoutTransformJsonValue(RootSnapshotNode->AccumulatedLayoutTransform));
-	RootJsonObject->SetField(TEXT("AccumulatedRenderTransform"), Internal::CreateSlateRenderTransformJsonValue(RootSnapshotNode->AccumulatedRenderTransform));
-	RootJsonObject->SetField(TEXT("LocalSize"), Internal::CreateVector2DJsonValue(RootSnapshotNode->LocalSize));
-	RootJsonObject->SetField(TEXT("HitTestInfo"), Internal::CreateWidgetHitTestInfoJsonValue(RootSnapshotNode->HitTestInfo));
-	RootJsonObject->SetStringField(TEXT("WidgetType"), RootSnapshotNode->CachedWidgetType.ToString());
-	RootJsonObject->SetStringField(TEXT("WidgetVisibilityText"), RootSnapshotNode->CachedWidgetVisibilityText.ToString());
-	RootJsonObject->SetStringField(TEXT("WidgetReadableLocation"), RootSnapshotNode->CachedWidgetReadableLocation.ToString());
-	RootJsonObject->SetStringField(TEXT("WidgetFile"), RootSnapshotNode->CachedWidgetFile);
-	RootJsonObject->SetNumberField(TEXT("WidgetLineNumber"), RootSnapshotNode->CachedWidgetLineNumber);
-	RootJsonObject->SetStringField(TEXT("WidgetAssetName"), RootSnapshotNode->CachedWidgetAssetName.ToString());
-	RootJsonObject->SetField(TEXT("WidgetDesiredSize"), Internal::CreateVector2DJsonValue(RootSnapshotNode->CachedWidgetDesiredSize));
-	RootJsonObject->SetField(TEXT("WidgetForegroundColor"), Internal::CreateSlateColorJsonValue(RootSnapshotNode->CachedWidgetForegroundColor));
-	RootJsonObject->SetStringField(TEXT("WidgetAddress"), RootSnapshotNode->CachedWidgetAddress);
-	RootJsonObject->SetBoolField(TEXT("WidgetEnabled"), RootSnapshotNode->CachedWidgetEnabled);
-
-	TArray<TSharedPtr<FJsonValue>> ChildNodesJsonArray;
-	for (const auto& ChildReflectorNode : RootSnapshotNode->ChildNodes)
-	{
-		check(ChildReflectorNode->GetNodeType() == EWidgetReflectorNodeType::Snapshot);
-		ChildNodesJsonArray.Add(FSnapshotWidgetReflectorNode::ToJson(StaticCastSharedRef<FSnapshotWidgetReflectorNode>(ChildReflectorNode)));
-	}
-	RootJsonObject->SetArrayField(TEXT("ChildNodes"), ChildNodesJsonArray);
-
-	return MakeShareable(new FJsonValueObject(RootJsonObject));
-}
-
-TSharedRef<FSnapshotWidgetReflectorNode> FSnapshotWidgetReflectorNode::FromJson(const TSharedRef<FJsonValue>& RootJsonValue)
-{
-	struct Internal
-	{
-		static FVector2D ParseVector2DJsonValue(const TSharedPtr<FJsonValue>& InJsonValue)
-		{
-			check(InJsonValue.IsValid());
-			const TArray<TSharedPtr<FJsonValue>>& StructJsonArray = InJsonValue->AsArray();
-			check(StructJsonArray.Num() == 2);
-
-			return FVector2D(
-				StructJsonArray[0]->AsNumber(), 
-				StructJsonArray[1]->AsNumber()
-				);
-		}
-
-		static FMatrix2x2 ParseMatrix2x2JsonValue(const TSharedPtr<FJsonValue>& InJsonValue)
-		{
-			check(InJsonValue.IsValid());
-			const TArray<TSharedPtr<FJsonValue>>& StructJsonArray = InJsonValue->AsArray();
-			check(StructJsonArray.Num() == 4);
-
-			return FMatrix2x2(
-				StructJsonArray[0]->AsNumber(), 
-				StructJsonArray[1]->AsNumber(), 
-				StructJsonArray[2]->AsNumber(), 
-				StructJsonArray[3]->AsNumber()
-				);
-		}
-
-		static FSlateLayoutTransform ParseSlateLayoutTransformJsonValue(const TSharedPtr<FJsonValue>& InJsonValue)
-		{
-			check(InJsonValue.IsValid());
-			const TSharedPtr<FJsonObject>& StructJsonObject = InJsonValue->AsObject();
-			check(StructJsonObject.IsValid());
-
-			return FSlateLayoutTransform(
-				StructJsonObject->GetNumberField(TEXT("Scale")),
-				ParseVector2DJsonValue(StructJsonObject->GetField<EJson::None>(TEXT("Translation")))
-				);
-		}
-
-		static FSlateRenderTransform ParseSlateRenderTransformJsonValue(const TSharedPtr<FJsonValue>& InJsonValue)
-		{
-			check(InJsonValue.IsValid());
-			const TSharedPtr<FJsonObject>& StructJsonObject = InJsonValue->AsObject();
-			check(StructJsonObject.IsValid());
-
-			return FSlateRenderTransform(
-				ParseMatrix2x2JsonValue(StructJsonObject->GetField<EJson::None>(TEXT("Matrix"))),
-				ParseVector2DJsonValue(StructJsonObject->GetField<EJson::None>(TEXT("Translation")))
-				);
-		}
-
-		static FLinearColor ParseLinearColorJsonValue(const TSharedPtr<FJsonValue>& InJsonValue)
-		{
-			check(InJsonValue.IsValid());
-			const TArray<TSharedPtr<FJsonValue>>& StructJsonArray = InJsonValue->AsArray();
-			check(StructJsonArray.Num() == 4);
-
-			return FLinearColor(
-				StructJsonArray[0]->AsNumber(), 
-				StructJsonArray[1]->AsNumber(), 
-				StructJsonArray[2]->AsNumber(), 
-				StructJsonArray[3]->AsNumber()
-				);
-		}
-
-		static FSlateColor ParseSlateColorJsonValue(const TSharedPtr<FJsonValue>& InJsonValue)
-		{
-			check(InJsonValue.IsValid());
-			const TSharedPtr<FJsonObject>& StructJsonObject = InJsonValue->AsObject();
-			check(StructJsonObject.IsValid());
-
-			const bool bIsColorSpecified = StructJsonObject->GetBoolField(TEXT("IsColorSpecified"));
-			if (bIsColorSpecified)
-			{
-				return FSlateColor(ParseLinearColorJsonValue(StructJsonObject->GetField<EJson::None>(TEXT("Color"))));
-			}
-			else
-			{
-				return FSlateColor::UseForeground();
-			}
-		}
-
-		static FWidgetHitTestInfo ParseWidgetHitTestInfoJsonValue(const TSharedPtr<FJsonValue>& InJsonValue)
-		{
-			check(InJsonValue.IsValid());
-			const TSharedPtr<FJsonObject>& StructJsonObject = InJsonValue->AsObject();
-			check(StructJsonObject.IsValid());
-
-			FWidgetHitTestInfo HitTestInfo;
-			HitTestInfo.IsHitTestVisible = StructJsonObject->GetBoolField(TEXT("IsHitTestVisible"));
-			HitTestInfo.AreChildrenHitTestVisible = StructJsonObject->GetBoolField(TEXT("AreChildrenHitTestVisible"));
-			return HitTestInfo;
-		}
-	};
-
-	const TSharedPtr<FJsonObject>& RootJsonObject = RootJsonValue->AsObject();
-	check(RootJsonObject.IsValid());
-
-	auto RootSnapshotNode = FSnapshotWidgetReflectorNode::Create();
-
-	RootSnapshotNode->AccumulatedLayoutTransform = Internal::ParseSlateLayoutTransformJsonValue(RootJsonObject->GetField<EJson::None>(TEXT("AccumulatedLayoutTransform")));
-	RootSnapshotNode->AccumulatedRenderTransform = Internal::ParseSlateRenderTransformJsonValue(RootJsonObject->GetField<EJson::None>(TEXT("AccumulatedRenderTransform")));
-	RootSnapshotNode->LocalSize = Internal::ParseVector2DJsonValue(RootJsonObject->GetField<EJson::None>(TEXT("LocalSize")));
-	RootSnapshotNode->HitTestInfo = Internal::ParseWidgetHitTestInfoJsonValue(RootJsonObject->GetField<EJson::None>(TEXT("HitTestInfo")));
-	RootSnapshotNode->CachedWidgetType = FText::FromString(RootJsonObject->GetStringField(TEXT("WidgetType")));
-	RootSnapshotNode->CachedWidgetVisibilityText = FText::FromString(RootJsonObject->GetStringField(TEXT("WidgetVisibilityText")));
-	RootSnapshotNode->CachedWidgetReadableLocation = FText::FromString(RootJsonObject->GetStringField(TEXT("WidgetReadableLocation")));
-	RootSnapshotNode->CachedWidgetFile = RootJsonObject->GetStringField(TEXT("WidgetFile"));
-	RootSnapshotNode->CachedWidgetLineNumber = RootJsonObject->GetIntegerField(TEXT("WidgetLineNumber"));
-	RootSnapshotNode->CachedWidgetAssetName = FName(*RootJsonObject->GetStringField(TEXT("WidgetAssetName")));
-	RootSnapshotNode->CachedWidgetDesiredSize = Internal::ParseVector2DJsonValue(RootJsonObject->GetField<EJson::None>(TEXT("WidgetDesiredSize")));
-	RootSnapshotNode->CachedWidgetForegroundColor = Internal::ParseSlateColorJsonValue(RootJsonObject->GetField<EJson::None>(TEXT("WidgetForegroundColor")));
-	RootSnapshotNode->CachedWidgetAddress = RootJsonObject->GetStringField(TEXT("WidgetAddress"));
-	RootSnapshotNode->CachedWidgetEnabled = RootJsonObject->GetBoolField(TEXT("WidgetEnabled"));
-
-	const TArray<TSharedPtr<FJsonValue>>& ChildNodesJsonArray = RootJsonObject->GetArrayField(TEXT("ChildNodes"));
-	for (const TSharedPtr<FJsonValue>& ChildNodeJsonValue : ChildNodesJsonArray)
-	{
-		RootSnapshotNode->AddChildNode(FSnapshotWidgetReflectorNode::FromJson(ChildNodeJsonValue.ToSharedRef()));
-	}
-
-	return RootSnapshotNode;
-}
 
 /**
  * -----------------------------------------------------------------------------
  * FWidgetReflectorNodeUtils
  * -----------------------------------------------------------------------------
  */
-TSharedRef<FLiveWidgetReflectorNode> FWidgetReflectorNodeUtils::NewLiveNode(const FArrangedWidget& InWidgetGeometry)
+ULiveWidgetReflectorNode* FWidgetReflectorNodeUtils::NewLiveNode(const FArrangedWidget& InWidgetGeometry)
 {
-	return StaticCastSharedRef<FLiveWidgetReflectorNode>(NewNode(EWidgetReflectorNodeType::Live, InWidgetGeometry));
+	return Cast<ULiveWidgetReflectorNode>(NewNode(ULiveWidgetReflectorNode::StaticClass(), InWidgetGeometry));
 }
 
-TSharedRef<FLiveWidgetReflectorNode> FWidgetReflectorNodeUtils::NewLiveNodeTreeFrom(const FArrangedWidget& InWidgetGeometry)
+ULiveWidgetReflectorNode* FWidgetReflectorNodeUtils::NewLiveNodeTreeFrom(const FArrangedWidget& InWidgetGeometry)
 {
-	return StaticCastSharedRef<FLiveWidgetReflectorNode>(NewNodeTreeFrom(EWidgetReflectorNodeType::Live, InWidgetGeometry));
+	return Cast<ULiveWidgetReflectorNode>(NewNodeTreeFrom(ULiveWidgetReflectorNode::StaticClass(), InWidgetGeometry));
 }
 
-TSharedRef<FSnapshotWidgetReflectorNode> FWidgetReflectorNodeUtils::NewSnapshotNode(const FArrangedWidget& InWidgetGeometry)
+USnapshotWidgetReflectorNode* FWidgetReflectorNodeUtils::NewSnapshotNode(const FArrangedWidget& InWidgetGeometry)
 {
-	return StaticCastSharedRef<FSnapshotWidgetReflectorNode>(NewNode(EWidgetReflectorNodeType::Snapshot, InWidgetGeometry));
+	return Cast<USnapshotWidgetReflectorNode>(NewNode(USnapshotWidgetReflectorNode::StaticClass(), InWidgetGeometry));
 }
 
-TSharedRef<FSnapshotWidgetReflectorNode> FWidgetReflectorNodeUtils::NewSnapshotNodeTreeFrom(const FArrangedWidget& InWidgetGeometry)
+USnapshotWidgetReflectorNode* FWidgetReflectorNodeUtils::NewSnapshotNodeTreeFrom(const FArrangedWidget& InWidgetGeometry)
 {
-	return StaticCastSharedRef<FSnapshotWidgetReflectorNode>(NewNodeTreeFrom(EWidgetReflectorNodeType::Snapshot, InWidgetGeometry));
+	return Cast<USnapshotWidgetReflectorNode>(NewNodeTreeFrom(USnapshotWidgetReflectorNode::StaticClass(), InWidgetGeometry));
 }
 
-TSharedRef<FWidgetReflectorNodeBase> FWidgetReflectorNodeUtils::NewNode(const EWidgetReflectorNodeType InNodeType, const FArrangedWidget& InWidgetGeometry)
+UWidgetReflectorNodeBase* FWidgetReflectorNodeUtils::NewNode(const TSubclassOf<UWidgetReflectorNodeBase>& InNodeClass, const FArrangedWidget& InWidgetGeometry)
 {
-	switch (InNodeType)
-	{
-	case EWidgetReflectorNodeType::Live:
-		return FLiveWidgetReflectorNode::Create(InWidgetGeometry);
-	case EWidgetReflectorNodeType::Snapshot:
-		return FSnapshotWidgetReflectorNode::Create(InWidgetGeometry);
-	default:
-		// Should never reach this point, but we have to return something!
-		check(false);
-		return FLiveWidgetReflectorNode::Create(InWidgetGeometry);
-	}
+	UWidgetReflectorNodeBase* NewNodeInstance = NewObject<UWidgetReflectorNodeBase>(GetTransientPackage(), *InNodeClass);
+	NewNodeInstance->Initialize(InWidgetGeometry);
+	return NewNodeInstance;
 }
 
-TSharedRef<FWidgetReflectorNodeBase> FWidgetReflectorNodeUtils::NewNodeTreeFrom(const EWidgetReflectorNodeType InNodeType, const FArrangedWidget& InWidgetGeometry)
+UWidgetReflectorNodeBase* FWidgetReflectorNodeUtils::NewNodeTreeFrom(const TSubclassOf<UWidgetReflectorNodeBase>& InNodeClass, const FArrangedWidget& InWidgetGeometry)
 {
-	TSharedRef<FWidgetReflectorNodeBase> NewNodeInstance = NewNode(InNodeType, InWidgetGeometry);
+	UWidgetReflectorNodeBase* NewNodeInstance = NewNode(InNodeClass, InWidgetGeometry);
 
 	FArrangedChildren ArrangedChildren(EVisibility::All);
 	InWidgetGeometry.Widget->ArrangeChildren(InWidgetGeometry.Geometry, ArrangedChildren);
@@ -519,13 +280,13 @@ TSharedRef<FWidgetReflectorNodeBase> FWidgetReflectorNodeUtils::NewNodeTreeFrom(
 	for (int32 WidgetIndex = 0; WidgetIndex < ArrangedChildren.Num(); ++WidgetIndex)
 	{
 		// Note that we include both visible and invisible children!
-		NewNodeInstance->AddChildNode(NewNodeTreeFrom(InNodeType, ArrangedChildren[WidgetIndex]));
+		NewNodeInstance->AddChildNode(NewNodeTreeFrom(InNodeClass, ArrangedChildren[WidgetIndex]));
 	}
 
 	return NewNodeInstance;
 }
 
-void FWidgetReflectorNodeUtils::FindLiveWidgetPath(const TArray<TSharedRef<FWidgetReflectorNodeBase>>& CandidateNodes, const FWidgetPath& WidgetPathToFind, TArray<TSharedRef<FWidgetReflectorNodeBase>>& SearchResult, int32 NodeIndexToFind)
+void FWidgetReflectorNodeUtils::FindLiveWidgetPath(const TArray<UWidgetReflectorNodeBase*>& CandidateNodes, const FWidgetPath& WidgetPathToFind, TArray<UWidgetReflectorNodeBase*>& SearchResult, int32 NodeIndexToFind)
 {
 	if (NodeIndexToFind < WidgetPathToFind.Widgets.Num())
 	{

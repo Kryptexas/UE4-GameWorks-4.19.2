@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -25,25 +25,25 @@ enum
  */
 struct FRawMesh
 {
-	/** Material index. Array[FaceId] = int32 */
+	/** Material index. */
 	TArray<int32> FaceMaterialIndices;
-	/** Smoothing mask. Array[FaceId] = uint32 */
+	/** Smoothing mask. */
 	TArray<uint32> FaceSmoothingMasks;
 
-	/** Position in local space. Array[VertexId] = float3(x,y,z) */
+	/** Position in local space. */
 	TArray<FVector> VertexPositions;
 
-	/** Index of the vertex at this wedge. Array[WedgeId] = VertexId */
+	/** Index of the vertex at this wedge. */
 	TArray<uint32> WedgeIndices;
-	/** Tangent, U direction. Array[WedgeId] = float3(x,y,z) */
+	/** Tangent, U direction. */
 	TArray<FVector>	WedgeTangentX;
-	/** Tangent, V direction. Array[WedgeId] = float3(x,y,z) */
+	/** Tangent, V direction. */
 	TArray<FVector>	WedgeTangentY;
-	/** Normal. Array[WedgeId] = float3(x,y,z) */
+	/** Normal. */
 	TArray<FVector>	WedgeTangentZ;
-	/** Texture coordinates. Array[UVId][WedgeId]=float2(u,v) */
+	/** Texture coordinates. */
 	TArray<FVector2D> WedgeTexCoords[MAX_MESH_TEXTURE_COORDS];
-	/** Color. Array[WedgeId]=float3(r,g,b,a) */
+	/** Color. */
 	TArray<FColor> WedgeColors;
 
 	/**

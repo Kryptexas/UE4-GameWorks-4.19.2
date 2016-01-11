@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Components/LineBatchComponent.h"
@@ -7,11 +7,6 @@
 //////////////// PRIMITIVECOMPONENT ///////////////
 
 #define LOCTEXT_NAMESPACE "PrimitiveComponent"
-
-DECLARE_CYCLE_STAT(TEXT("WeldPhysics"), STAT_WeldPhysics, STATGROUP_Physics);
-DECLARE_CYCLE_STAT(TEXT("UnweldPhysics"), STAT_UnweldPhysics, STATGROUP_Physics);
-DECLARE_CYCLE_STAT(TEXT("PrimComp SetCollisionProfileName"), STAT_PrimComp_SetCollisionProfileName, STATGROUP_Physics);
-
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	#define WarnInvalidPhysicsOperations(Text, BodyInstance)  { static const FText _WarnText(Text); WarnInvalidPhysicsOperations_Internal(_WarnText, BodyInstance); }
@@ -175,11 +170,11 @@ void UPrimitiveComponent::WarnInvalidPhysicsOperations_Internal(const FText& Act
 
 			if(BI->bSimulatePhysics == false)	//some require to be simulating too
 			{
-				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidPhysicsOperationSimulatePhysics", "{0} has to have 'Simulate Physics' enabled if you'd like to {1}. "), FText::FromString(GetReadableName()), ActionText));
+				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidPhysicsOperation", "{0} has to have 'Simulate Physics' enabled if you'd like to {1}. "), FText::FromString(GetReadableName()), ActionText));
 			}
 			else if (CollisionEnabled == ECollisionEnabled::NoCollision || CollisionEnabled == ECollisionEnabled::QueryOnly)	//shapes need to be simulating
 			{
-				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidPhysicsOperationCollisionDisabled", "{0} has to have 'CollisionEnabled' set to 'Query and Physics' or 'Physics only' if you'd like to {1}. "), FText::FromString(GetReadableName()), ActionText));
+				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidPhysicsOperation", "{0} has to have 'CollisionEnabled' set to 'Query and Physics' or 'Physics only' if you'd like to {1}. "), FText::FromString(GetReadableName()), ActionText));
 			}
 		}
 	}
@@ -705,8 +700,6 @@ void UPrimitiveComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodi
 
 bool UPrimitiveComponent::WeldToImplementation(USceneComponent * InParent, FName ParentSocketName /* = Name_None */, bool bWeldSimulatedChild /* = false */)
 {
-	SCOPE_CYCLE_COUNTER(STAT_WeldPhysics);
-
 	//WeldToInternal assumes attachment is already done
 	if (AttachParent != InParent || AttachSocketName != ParentSocketName)
 	{
@@ -784,8 +777,6 @@ void UPrimitiveComponent::WeldTo(USceneComponent* InParent, FName InSocketName /
 
 void UPrimitiveComponent::UnWeldFromParent()
 {
-	SCOPE_CYCLE_COUNTER(STAT_UnweldPhysics);
-
 	FBodyInstance* NewRootBI = GetBodyInstance(NAME_None, false);
 	UWorld* CurrentWorld = GetWorld();
 	if (NewRootBI == NULL || NewRootBI->bWelded == false || CurrentWorld == nullptr || IsPendingKill())
@@ -800,7 +791,7 @@ void UPrimitiveComponent::UnWeldFromParent()
 	{
 		if (FBodyInstance* RootBI = RootComponent->GetBodyInstance(SocketName, false))
 		{
-			bool bRootIsBeingDeleted = RootComponent->IsPendingKillOrUnreachable();
+			bool bRootIsBeingDeleted = RootComponent->HasAnyFlags(RF_PendingKill) || RootComponent->HasAnyFlags(RF_Unreachable);
 			if (!bRootIsBeingDeleted)
 			{
 				//create new root
@@ -971,8 +962,6 @@ void UPrimitiveComponent::SetCollisionEnabled(ECollisionEnabled::Type NewType)
 // @todo : implement skeletalmeshcomponent version
 void UPrimitiveComponent::SetCollisionProfileName(FName InCollisionProfileName)
 {
-	SCOPE_CYCLE_COUNTER(STAT_PrimComp_SetCollisionProfileName);
-
 	ECollisionEnabled::Type OldCollisionEnabled = BodyInstance.GetCollisionEnabled();
 	BodyInstance.SetCollisionProfileName(InCollisionProfileName);
 	OnComponentCollisionSettingsChanged();
@@ -1008,7 +997,7 @@ void UPrimitiveComponent::OnComponentCollisionSettingsChanged()
 		if (bNavigationRelevant != bNewNavRelevant)
 		{
 			bNavigationRelevant = bNewNavRelevant;
-			UNavigationSystem::UpdateComponentInNavOctree(*this);
+			UNavigationSystem::UpdateNavOctree(this);
 		}
 	}
 }

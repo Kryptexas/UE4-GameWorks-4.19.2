@@ -1,17 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "STooltipPresenter.h"
 
 void STooltipPresenter::Construct(const FArguments& InArgs)
 {
-	this->ChildSlot.AttachWidget(InArgs._Content.Widget);
+	this->ChildSlot
+	[
+		InArgs._Content.Widget
+	];
 	LocalCursorPosition = FVector2D::ZeroVector;
 }
 
 void STooltipPresenter::SetContent(const TSharedRef<SWidget>& InWidget)
 {
-	ChildSlot.AttachWidget(InWidget);
+	ChildSlot
+	[
+		InWidget
+	];
 }
 
 void STooltipPresenter::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)

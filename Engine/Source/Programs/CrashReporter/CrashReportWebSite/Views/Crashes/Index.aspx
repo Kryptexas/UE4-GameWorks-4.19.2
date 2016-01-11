@@ -1,4 +1,4 @@
-﻿<%-- // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved. --%>
+﻿<%-- // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved. --%>
 
 <%@ Page Title="" Language="C#" MasterPageFile="~/Views/Shared/Site.Master" Inherits="System.Web.Mvc.ViewPage<CrashesViewModel>" %>
 
@@ -107,7 +107,7 @@
 			<div id="Container">
 				<table>
 					<tr>
-						<td rowspan="4">
+						<td rowspan="3">
 							<div id="CrashTypeList">
 								<p class="SearchTextTitle" title="Press to hide">Show crashes of type</p>
 								<ul>
@@ -202,30 +202,6 @@
 							<%=Html.DropDownListFor( m=>m.VersionName, Model.VersionNames )%>
 						</td>
 					</tr>
-
-					<tr>
-						<td>
-							<p class="SearchTextTitle">Bugg Id</p>
-						</td>
-						<td>
-							<input name="BuggId" type="text" value="<%=Model.BuggId%>" title="" />
-						</td>
-
-						<td>
-							<p class="SearchTextTitle">Built From CL</p>
-						</td>
-						<td>
-							<input name="BuiltFromCL" type="text" value="<%=Model.BuiltFromCL %>" title="" />
-						</td>
-
-						<td>
-							<p class="SearchTextTitle">Filter by Platform</p>
-						</td>
-						<td>
-							<%=Html.DropDownListFor( m=>m.PlatformName, Model.PlatformNames )%>
-						</td>
-					</tr>
-
 					<tr>
 						<td colspan="7" >
 							<input type="submit" value="Search" class='SearchButton' />
@@ -272,14 +248,11 @@
 						UsernameQuery = Model.UsernameQuery,
 						EpicIdOrMachineQuery = Model.EpicIdOrMachineQuery,
 						MessageQuery = Model.MessageQuery,
-						BuggId = Model.BuggId,
-						BuiltFromCL = Model.BuiltFromCL,
 						JiraQuery = Model.JiraQuery,
 						DateFrom = Model.DateFrom,
 						DateTo = Model.DateTo,
 						BranchName = Model.BranchName,
 						VersionName = Model.VersionName,
-						PlatformName = Model.PlatformName,
 						GameName = Model.GameName,
 						RealUserName = Model.RealUserName
 					}
@@ -298,14 +271,11 @@
 						UsernameQuery = Model.UsernameQuery,
 						EpicIdOrMachineQuery = Model.EpicIdOrMachineQuery,
 						MessageQuery = Model.MessageQuery,
-						BuggId = Model.BuggId,
-						BuiltFromCL = Model.BuiltFromCL,
 						JiraQuery = Model.JiraQuery,
 						DateFrom = Model.DateFrom,
 						DateTo = Model.DateTo,
 						BranchName = Model.BranchName,
 						VersionName = Model.VersionName,
-						PlatformName = Model.PlatformName,
 						GameName = Model.GameName,
 						RealUserName = Model.RealUserName
 					}
@@ -330,14 +300,11 @@
 			UsernameQuery = Model.UsernameQuery,
 			EpicIdOrMachineQuery = Model.EpicIdOrMachineQuery,
 			MessageQuery = Model.MessageQuery,
-			BuggId = Model.BuggId,
-			BuiltFromCL = Model.BuiltFromCL,
 			JiraQuery = Model.JiraQuery,
 			DateFrom = Model.DateFrom,
 			DateTo = Model.DateTo,
 			BranchName = Model.BranchName,
 			VersionName = Model.VersionName,
-			PlatformName = Model.PlatformName,
 			GameName = Model.GameName,
 			RealUserName = Model.RealUserName
 		} 

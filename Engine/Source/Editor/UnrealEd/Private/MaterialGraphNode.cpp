@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MaterialGraphNode.cpp
@@ -20,15 +20,12 @@
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionStaticBool.h"
 #include "Materials/MaterialExpressionStaticBoolParameter.h"
-#include "Materials/MaterialExpressionTangentOutput.h"
 #include "Materials/MaterialExpressionTextureBase.h"
 #include "Materials/MaterialExpressionTextureCoordinate.h"
 #include "Materials/MaterialExpressionTextureSample.h"
 #include "Materials/MaterialExpressionTextureSampleParameter.h"
 #include "Materials/MaterialExpressionTextureObject.h"
-#include "Materials/MaterialExpressionTextureProperty.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
-#include "Materials/MaterialExpressionViewProperty.h"
 #include "Materials/MaterialFunction.h"
 
 #include "MaterialEditorUtilities.h"
@@ -179,18 +176,7 @@ FText UMaterialGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 		if ( MaterialExpression->bShaderInputData && (MaterialExpression->bHidePreviewWindow || MaterialExpression->bCollapsed))
 		{
-			if (MaterialExpression->IsA<UMaterialExpressionTextureProperty>())
-			{
-				NodeTitle.AppendLine(LOCTEXT("TextureProperty", "Texture Property"));
-			}
-			else if (MaterialExpression->IsA<UMaterialExpressionViewProperty>())
-			{
-				NodeTitle.AppendLine(LOCTEXT("ViewProperty", "View Property"));
-			}
-			else
-			{
-				NodeTitle.AppendLine(LOCTEXT("InputData", "Input Data"));
-			}
+			NodeTitle.AppendLine(LOCTEXT("InputData", "Input Data"));
 		}
 
 		if (bIsPreviewExpression)
@@ -241,11 +227,6 @@ FLinearColor UMaterialGraphNode::GetNodeTitleColor() const
 		return Settings->FunctionCallNodeTitleColor;
 	}
 	else if (MaterialExpression->IsA(UMaterialExpressionFunctionOutput::StaticClass()))
-	{
-		// Previously FColor(255, 155, 0);
-		return Settings->ResultNodeTitleColor;
-	}
-	else if (MaterialExpression->IsA(UMaterialExpressionCustomOutput::StaticClass()))
 	{
 		// Previously FColor(255, 155, 0);
 		return Settings->ResultNodeTitleColor;

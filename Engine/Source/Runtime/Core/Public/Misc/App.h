@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -15,11 +15,31 @@ class CORE_API FApp
 public:
 
 	/**
+	 * Checks whether this application can render anything.
+	 *
+	 * @return true if the application can render, false otherwise.
+	 */
+	FORCEINLINE static bool CanEverRender()
+	{
+		return (!IsRunningCommandlet() || IsAllowCommandletRendering()) && !IsRunningDedicatedServer();
+	}
+
+	/**
 	 * Gets the name of the version control branch that this application was built from.
 	 *
 	 * @return The branch name.
 	 */
 	static FString GetBranchName();
+
+	/**
+	 * Gets the value of ENGINE_IS_PROMOTED_BUILD.
+	 */
+	static int32 GetEngineIsPromotedBuild();
+
+	/**
+	 * Gets the identifier for the unreal engine
+	 */
+	static FString GetEpicProductIdentifier();
 
 	/**
 	 * Gets the application's build configuration, i.e. Debug or Shipping.
@@ -36,16 +56,6 @@ public:
 	static FString GetBuildDate();
 
 	/**
-	 * Gets the value of ENGINE_IS_PROMOTED_BUILD.
-	 */
-	static int32 GetEngineIsPromotedBuild();
-
-	/**
-	 * Gets the identifier for the unreal engine
-	 */
-	static FString GetEpicProductIdentifier();
-
-	/**
 	 * Gets the name of the currently running game.
 	 *
 	 * @return The game name.
@@ -53,69 +63,6 @@ public:
 	FORCEINLINE static const TCHAR* GetGameName()
 	{
 		return GInternalGameName;
-	}
-
-	/**
-	 * Gets the name of the application, i.e. "UE4" or "Rocket".
-	 *
-	 * @todo need better application name discovery. this is quite horrible and may not work on future platforms.
-	 * @return Application name string.
-	 */
-	static FString GetName()
-	{
-		FString ExecutableName = FPlatformProcess::ExecutableName();
-
-		int32 ChopIndex = ExecutableName.Find(TEXT("-"));
-
-		if (ExecutableName.FindChar(TCHAR('-'), ChopIndex))
-		{
-			return ExecutableName.Left(ChopIndex);
-		}
-
-		if (ExecutableName.FindChar(TCHAR('.'), ChopIndex))
-		{
-			return ExecutableName.Left(ChopIndex);
-		}
-
-		return ExecutableName;
-	}
-
-	/**
-	 * Reports if the game name has been set
-	 *
-	 * @return true if the game name has been set
-	 */
-	FORCEINLINE static bool HasGameName()
-	{
-		return (IsGameNameEmpty() == false) && (FCString::Stricmp(GInternalGameName, TEXT("None")) != 0);
-	}
-
-	/**
-	 * Checks whether this application is a game.
-	 *
-	 * Returns true if a normal or PIE game is active (basically !GIsEdit or || GIsPlayInEditorWorld)
-	 * This must NOT be accessed on threads other than the game thread!
-	 * Use View->Family->EnginShowFlags.Game on the rendering thread.
-	 *
-	 * @return true if the application is a game, false otherwise.
-	 */
-	FORCEINLINE static bool IsGame()
-	{
-#if WITH_EDITOR
-		return !GIsEditor || GIsPlayInEditorWorld || IsRunningGame();
-#else
-		return true;
-#endif
-	}
-
-	/**
-	 * Reports if the game name is empty
-	 *
-	 * @return true if the game name is empty
-	 */
-	FORCEINLINE static bool IsGameNameEmpty()
-	{
-		return (GInternalGameName[0] == 0);
 	}
 
 	/**
@@ -129,40 +76,6 @@ public:
 		FCString::Strncpy(GInternalGameName, InGameName, ARRAY_COUNT(GInternalGameName));
 		// And make sure the GameName string is null terminated.
 		GInternalGameName[ARRAY_COUNT(GInternalGameName) - 1] = 0;
-	}
-
-public:
-
-	/**
-	 * Add the specified user to the list of authorized session users.
-	 *
-	 * @param UserName The name of the user to add.
-	 * @see DenyUser, DenyAllUsers, IsAuthorizedUser
-	 */
-	FORCEINLINE static void AuthorizeUser(const FString& UserName)
-	{
-		SessionUsers.AddUnique(UserName);
-	}
-
-	/**
-	 * Removes all authorized users.
-	 *
-	 * @see AuthorizeUser, DenyUser, IsAuthorizedUser
-	 */
-	FORCEINLINE static void DenyAllUsers()
-	{
-		SessionUsers.Empty();
-	}
-
-	/**
-	 * Remove the specified user from the list of authorized session users.
-	 *
-	 * @param UserName The name of the user to remove.
-	 * @see AuthorizeUser, DenyAllUsers, IsAuthorizedUser
-	 */
-	FORCEINLINE static void DenyUser(const FString& UserName)
-	{
-		SessionUsers.Remove(UserName);
 	}
 
 	/**
@@ -189,6 +102,31 @@ public:
 	static FString GetInstanceName()
 	{
 		return FString::Printf(TEXT("%s-%i"), FPlatformProcess::ComputerName(), FPlatformProcess::GetCurrentProcessId());
+	}
+
+	/**
+	 * Gets the name of the application, i.e. "UE4" or "Rocket".
+	 *
+	 * @todo need better application name discovery. this is quite horrible and may not work on future platforms.
+	 * @return Application name string.
+	 */
+	static FString GetName()
+	{
+		FString ExecutableName = FPlatformProcess::ExecutableName();
+
+		int32 ChopIndex = ExecutableName.Find(TEXT("-"));
+
+		if (ExecutableName.FindChar(TCHAR('-'), ChopIndex))
+		{
+			return ExecutableName.Left(ChopIndex);
+		}
+
+		if (ExecutableName.FindChar(TCHAR('.'), ChopIndex))
+		{
+			return ExecutableName.Left(ChopIndex);
+		}
+
+		return ExecutableName;
 	}
 
 	/**
@@ -233,78 +171,46 @@ public:
 	}
 
 	/**
+	* Reports if the game name is empty
+	*
+	* @return true if the game name is empty
+	*/
+	FORCEINLINE static bool IsGameNameEmpty()
+	{
+		return (GInternalGameName[0] == 0);
+	}
+
+	/**
+	 * Reports if the game name has been set
+	 *
+	 * @return true if the game name has been set
+	 */
+	FORCEINLINE static bool HasGameName()
+	{
+		return (IsGameNameEmpty() == false) && (FCString::Stricmp(GInternalGameName, TEXT("None")) != 0);
+	}
+
+	/**
 	 * Initializes the application session.
 	 */
 	static void InitializeSession();
 
 	/**
-	 * Check whether the specified user is authorized to interact with this session.
+	 * Checks whether this application is a game.
 	 *
-	 * @param UserName The name of the user to check.
-	 * @return true if the user is authorized, false otherwise.
-	 * @see AuthorizeUser, DenyUser, DenyAllUsers
+	 * Returns true if a normal or PIE game is active (basically !GIsEdit or || GIsPlayInEditorWorld)
+	 * This must NOT be accessed on threads other than the game thread!
+	 * Use View->Family->EnginShowFlags.Game on the rendering thread.
+	 *
+	 * @return true if the application is a game, false otherwise.
 	 */
-	FORCEINLINE static bool IsAuthorizedUser(const FString& UserName)
+	FORCEINLINE static bool IsGame()
 	{
-		return ((FPlatformProcess::UserName(false) == UserName) || SessionUsers.Contains(UserName));
-	}
-
-	/**
-	 * Checks whether this is a standalone application.
-	 *
-	 * An application is standalone if it has not been launched as part of a session from UFE.
-	 * If an application was launched from UFE, it is part of a session and not considered standalone.
-	 *
-	 * @return true if this application is standalone, false otherwise.
-	 */
-	FORCEINLINE static bool IsStandalone()
-	{
-		return Standalone;
-	}
-
-	/**
-	 * Check whether the given instance ID identifies this instance.
-	 *
-	 * @param InInstanceId The instance ID to check.
-	 * @return true if the ID identifies this instance, false otherwise.
-	 */
-	FORCEINLINE static bool IsThisInstance(const FGuid& InInstanceId)
-	{
-		return (InInstanceId == InstanceId);
-	};
-
-	/**
-	 * Set a new session name.
-	 *
-	 * @param NewName The new session name.
-	 * @see SetSessionOwner
-	 */
-	FORCEINLINE static void SetSessionName(const FString& NewName)
-	{
-		SessionName = NewName;
-	}
-
-	/**
-	 * Set a new session owner.
-	 *
-	 * @param NewOwner The name of the new owner.
-	 * @see SetSessionName
-	 */
-	FORCEINLINE static void SetSessionOwner(const FString& NewOwner)
-	{
-		SessionOwner = NewOwner;
-	}
-
-public:
-
-	/**
-	 * Checks whether this application can render anything.
-	 *
-	 * @return true if the application can render, false otherwise.
-	 */
-	FORCEINLINE static bool CanEverRender()
-	{
-		return (!IsRunningCommandlet() || IsAllowCommandletRendering()) && !IsRunningDedicatedServer();
+#if WITH_EDITOR
+		return !GIsEditor || GIsPlayInEditorWorld || IsRunningGame();
+#else
+		return true;
+#endif
 	}
 
 	/**
@@ -334,6 +240,19 @@ public:
 	 * @return true if the engine is installed, false otherwise.
 	 */
 	static bool IsEngineInstalled();
+
+	/**
+	 * Checks whether this is a standalone application.
+	 *
+	 * An application is standalone if it has not been launched as part of a session from UFE.
+	 * If an application was launched from UFE, it is part of a session and not considered standalone.
+	 *
+	 * @return true if this application is standalone, false otherwise.
+	 */
+	FORCEINLINE static bool IsStandalone()
+	{
+		return Standalone;
+	}
 
 	/**
 	 * Checks whether this application runs unattended.
@@ -515,11 +434,6 @@ public:
 	 */
 	static float GetUnfocusedVolumeMultiplier();
 
-	/**
-	* Sets the Unfocused Volume Multiplier
-	*/
-	static void SetUnfocusedVolumeMultiplier(float InVolumeMultiplier);
-
 private:
 
 	/** Holds the instance identifier. */
@@ -533,9 +447,6 @@ private:
 
 	/** Holds the name of the user that launched session. */
 	static FString SessionOwner;
-
-	/** List of authorized session users. */
-	static TArray<FString> SessionUsers;
 
 	/** Holds a flag indicating whether this is a standalone session. */
 	static bool Standalone;

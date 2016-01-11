@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	VectorField.cpp: Implementation of vector fields.
@@ -440,7 +440,7 @@ public:
 	/**
 	 * Computes view relevance for this scene proxy.
 	 */
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
 	{
 		FPrimitiveViewRelevance Result;
 		Result.bDrawRelevance = IsShown(View); 
@@ -877,7 +877,6 @@ public:
 				NoiseVolumeTextureRHI = AnimatedVectorField->NoiseField->Resource->VolumeTextureRHI;
 			}
 
-			RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, VolumeTextureUAV);
 			RHICmdList.SetComputeShader(CompositeCS->GetComputeShader());
 			CompositeCS->SetOutput(RHICmdList, VolumeTextureUAV);
 			/// ?
@@ -893,7 +892,6 @@ public:
 				SizeY / THREADS_PER_AXIS,
 				SizeZ / THREADS_PER_AXIS );
 			CompositeCS->UnbindBuffers(RHICmdList);
-			RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, VolumeTextureUAV);
 		}
 	}
 

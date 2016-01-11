@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "WindowsApplication.h"
@@ -770,27 +770,13 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 		case WM_NCMOUSEMOVE:
 		case WM_MOUSEMOVE:
 		case WM_MOUSEWHEEL:
+		case WM_SETCURSOR:
 			{
 				DeferMessage( CurrentNativeEventWindowPtr, hwnd, msg, wParam, lParam );
 				// Handled
 				return 0;
 			}
 			break;
-
-		case WM_SETCURSOR:
-		{
-			DeferMessage(CurrentNativeEventWindowPtr, hwnd, msg, wParam, lParam);
-
-			// If we're rendering our own window border, we'll "handle" this event so that Windows doesn't try to manage the cursor
-			// appearance for us in the non-client area.  However, for OS window borders we need to fall through to DefWindowProc to
-			// allow Windows to draw the resize cursor
-			if (!CurrentNativeEventWindow->GetDefinition().HasOSWindowBorder)
-			{
-				// Handled
-				return 0;
-			}
-		}
-		break;
 
 		// Mouse Movement
 		case WM_INPUT:
@@ -1494,7 +1480,7 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 			// Mouse Cursor
 		case WM_SETCURSOR:
 			{
-				return MessageHandler->OnCursorSet() ? 0 : 1;
+				return MessageHandler->OnCursorSet() ? 1 : 0;
 			}
 			break;
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UdpMessagingPrivatePCH.h"
 #include "UdpSerializeMessageTask.h"
@@ -7,7 +7,7 @@
 /* FUdpMessageTransport structors
  *****************************************************************************/
 
-FUdpMessageTransport::FUdpMessageTransport(const FIPv4Endpoint& InLocalEndpoint, const FIPv4Endpoint& InMulticastEndpoint, uint8 InMulticastTtl)
+FUdpMessageTransport::FUdpMessageTransport( const FIPv4Endpoint& InLocalEndpoint, const FIPv4Endpoint& InMulticastEndpoint, uint8 InMulticastTtl )
 	: LocalEndpoint(InLocalEndpoint)
 	, MessageProcessor(nullptr)
 	, MessageProcessorThread(nullptr)
@@ -41,7 +41,7 @@ bool FUdpMessageTransport::StartTransport()
 
 	if (UnicastSocket == nullptr)
 	{
-		UE_LOG(LogUdpMessaging, Error, TEXT("StartTransport failed to create unicast socket on %s"), *LocalEndpoint.ToText().ToString());
+		GLog->Logf(TEXT("UdpMessageTransport.StartTransport: Failed to create unicast socket on %s"), *LocalEndpoint.ToText().ToString());
 
 		return false;
 	}
@@ -59,18 +59,16 @@ bool FUdpMessageTransport::StartTransport()
 
 	if (MulticastSocket == nullptr)
 	{
-		UE_LOG(LogUdpMessaging, Error, TEXT("StartTransport failed to create multicast socket on %s, joined to %s with TTL %i"), *LocalEndpoint.ToText().ToString(), *MulticastEndpoint.ToText().ToString(), MulticastTtl);
+		GLog->Logf(TEXT("UdpMessageTransport.StartTransport: Failed to create multicast socket on %s, joined to %s with TTL %i"), *LocalEndpoint.ToText().ToString(), *MulticastEndpoint.ToText().ToString(), MulticastTtl);
 	}
 
 	// initialize threads
 	FTimespan ThreadWaitTime = FTimespan::FromMilliseconds(100);
 
 	MessageProcessor = new FUdpMessageProcessor(UnicastSocket, FGuid::NewGuid(), MulticastEndpoint);
-	{
-		MessageProcessor->OnMessageReassembled().BindRaw(this, &FUdpMessageTransport::HandleProcessorMessageReassembled);
-		MessageProcessor->OnNodeDiscovered().BindRaw(this, &FUdpMessageTransport::HandleProcessorNodeDiscovered);
-		MessageProcessor->OnNodeLost().BindRaw(this, &FUdpMessageTransport::HandleProcessorNodeLost);
-	}
+	MessageProcessor->OnMessageReassembled().BindRaw(this, &FUdpMessageTransport::HandleProcessorMessageReassembled);
+	MessageProcessor->OnNodeDiscovered().BindRaw(this, &FUdpMessageTransport::HandleProcessorNodeDiscovered);
+	MessageProcessor->OnNodeLost().BindRaw(this, &FUdpMessageTransport::HandleProcessorNodeLost);
 
 	if (MulticastSocket != nullptr)
 	{
@@ -79,9 +77,7 @@ bool FUdpMessageTransport::StartTransport()
 	}
 
 	UnicastReceiver = new FUdpSocketReceiver(UnicastSocket, ThreadWaitTime, TEXT("UdpMessageUnicastReceiver"));
-	{
-		UnicastReceiver->OnDataReceived().BindRaw(this, &FUdpMessageTransport::HandleSocketDataReceived);
-	}
+	UnicastReceiver->OnDataReceived().BindRaw(this, &FUdpMessageTransport::HandleSocketDataReceived);
 
 	return true;
 }
@@ -114,7 +110,7 @@ void FUdpMessageTransport::StopTransport()
 }
 
 
-bool FUdpMessageTransport::TransportMessage(const IMessageContextRef& Context, const TArray<FGuid>& Recipients)
+bool FUdpMessageTransport::TransportMessage( const IMessageContextRef& Context, const TArray<FGuid>& Recipients )
 {
 	if (MessageProcessor == nullptr)
 	{
@@ -127,22 +123,22 @@ bool FUdpMessageTransport::TransportMessage(const IMessageContextRef& Context, c
 	}
 
 	FUdpSerializedMessageRef SerializedMessage = MakeShareable(new FUdpSerializedMessage());
+	TGraphTask<FUdpSerializeMessageTask>::CreateTask().ConstructAndDispatchWhenReady(Context, SerializedMessage);
 
+	// publish the message
 	if (Recipients.Num() == 0)
 	{
-		// publish the message
-		MessageProcessor->EnqueueOutboundMessage(SerializedMessage, FGuid());
-	}
-	else
-	{
-		// send the message
-		for (const auto& Recipient : Recipients)
-		{
-			MessageProcessor->EnqueueOutboundMessage(SerializedMessage, Recipient);
-		}
+		return MessageProcessor->EnqueueOutboundMessage(SerializedMessage, FGuid());
 	}
 
-	TGraphTask<FUdpSerializeMessageTask>::CreateTask().ConstructAndDispatchWhenReady(Context, SerializedMessage);
+	// send the message
+	for (int32 Index = 0; Index < Recipients.Num(); ++Index)
+	{
+		if (!MessageProcessor->EnqueueOutboundMessage(SerializedMessage, Recipients[Index]))
+		{
+			return false;
+		}
+	}
 
 	return true;
 }
@@ -151,7 +147,7 @@ bool FUdpMessageTransport::TransportMessage(const IMessageContextRef& Context, c
 /* FUdpMessageTransport event handlers
  *****************************************************************************/
 
-void FUdpMessageTransport::HandleProcessorMessageReassembled(const FUdpReassembledMessageRef& ReassembledMessage, const IMessageAttachmentPtr& Attachment, const FGuid& NodeId)
+void FUdpMessageTransport::HandleProcessorMessageReassembled( const FUdpReassembledMessageRef& ReassembledMessage, const IMessageAttachmentPtr& Attachment, const FGuid& NodeId )
 {
 	// @todo gmp: move message deserialization into an async task
 	FUdpDeserializedMessageRef DeserializedMessage = MakeShareable(new FUdpDeserializedMessage(Attachment));
@@ -163,7 +159,7 @@ void FUdpMessageTransport::HandleProcessorMessageReassembled(const FUdpReassembl
 }
 
 
-void FUdpMessageTransport::HandleSocketDataReceived(const FArrayReaderPtr& Data, const FIPv4Endpoint& Sender)
+void FUdpMessageTransport::HandleSocketDataReceived( const FArrayReaderPtr& Data, const FIPv4Endpoint& Sender )
 {
 	if (MessageProcessor != nullptr)
 	{

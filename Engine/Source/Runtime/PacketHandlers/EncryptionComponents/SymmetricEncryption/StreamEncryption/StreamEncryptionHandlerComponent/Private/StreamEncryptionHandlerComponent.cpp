@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "StreamEncryptionHandlerComponent.h"
 #include "XORStreamEncryptor.h"
@@ -141,26 +141,14 @@ void StreamEncryptionHandlerComponent::DecryptStream(FBitReader& Packet)
 }
 
 // MODULE INTERFACE
-TSharedPtr<HandlerComponent> FStreamEncryptionHandlerComponentModuleInterface::CreateComponentInstance()
+HandlerComponent* FStreamEncryptionHandlerComponentModuleInterface::CreateComponentInstance()
 {
-	return MakeShareable(new StreamEncryptionHandlerComponent);
+	return new StreamEncryptionHandlerComponent;
 }
 
-TSharedPtr<HandlerComponent> FStreamEncryptionHandlerComponentModuleInterface::CreateComponentInstance(FString& Options)
+HandlerComponent* FStreamEncryptionHandlerComponentModuleInterface::CreateComponentInstance(FString& Options)
 {
-	TSharedPtr<HandlerComponent> ReturnVal = NULL;
-
-	if (!Options.IsEmpty())
-	{
-		TSharedPtr<IModuleInterface> Interface = FModuleManager::Get().LoadModule(FName(*Options));
-		TSharedPtr<FStreamEncryptorModuleInterface> StreamEncryptorInterface(static_cast<FStreamEncryptorModuleInterface*>(&(*Interface)));
-
-		ReturnVal = MakeShareable(new StreamEncryptionHandlerComponent(StreamEncryptorInterface->CreateStreamEncryptorInstance()));
-	}
-	else
-	{
-		ReturnVal = MakeShareable(new StreamEncryptionHandlerComponent);
-	}
-
-	return ReturnVal;
+	TSharedPtr<IModuleInterface> Interface = FModuleManager::Get().LoadModule(FName(*Options));
+	TSharedPtr<FStreamEncryptorModuleInterface> StreamEncryptorInterface(static_cast<FStreamEncryptorModuleInterface*>(&(*Interface)));
+	return new StreamEncryptionHandlerComponent(StreamEncryptorInterface->CreateStreamEncryptorInstance());
 }

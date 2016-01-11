@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneEventSection.h"
@@ -70,10 +70,28 @@ void UMovieSceneEventTrack::TriggerEvents(float Position, float LastPosition)
 		return;
 	}
 
+	// get the traversed sections
 	TArray<UMovieSceneSection*> TraversedSections = MovieSceneHelpers::GetTraversedSections(Sections, Position, LastPosition);
-	for (auto EventSection : TraversedSections)
+	int32 EndIndex = TraversedSections.Num() - 1;
+
+	if (EndIndex < 0)
 	{
-		CastChecked<UMovieSceneEventSection>(EventSection)->TriggerEvents(LevelScriptActor, Position, LastPosition);
+		return;
+	}
+
+	int32 StartIndex = 0;
+	int32 Increment = 1;
+
+	if (Backwards)
+	{
+		Swap(StartIndex, EndIndex);
+		Increment = -1;
+	}
+
+	// traverse sections
+	for (int32 SectionIndex = StartIndex; SectionIndex <= EndIndex; SectionIndex += Increment)
+	{
+		CastChecked<UMovieSceneEventSection>(TraversedSections[SectionIndex])->TriggerEvents(LevelScriptActor, Position, LastPosition);
 	}
 }
 
@@ -81,9 +99,9 @@ void UMovieSceneEventTrack::TriggerEvents(float Position, float LastPosition)
 /* UMovieSceneTrack interface
  *****************************************************************************/
 
-void UMovieSceneEventTrack::AddSection(UMovieSceneSection& Section)
+void UMovieSceneEventTrack::AddSection(UMovieSceneSection* Section)
 {
-	Sections.Add(&Section);
+	Sections.Add(Section);
 }
 
 
@@ -118,9 +136,15 @@ TRange<float> UMovieSceneEventTrack::GetSectionBoundaries() const
 }
 
 
-bool UMovieSceneEventTrack::HasSection(const UMovieSceneSection& Section) const
+FName UMovieSceneEventTrack::GetTrackName() const
 {
-	return Sections.Contains(&Section);
+	return TrackName;
+}
+
+
+bool UMovieSceneEventTrack::HasSection(UMovieSceneSection* Section) const
+{
+	return Sections.Contains(Section);
 }
 
 
@@ -136,7 +160,7 @@ void UMovieSceneEventTrack::RemoveAllAnimationData()
 }
 
 
-void UMovieSceneEventTrack::RemoveSection(UMovieSceneSection& Section)
+void UMovieSceneEventTrack::RemoveSection(UMovieSceneSection* Section)
 {
-	Sections.Remove(&Section);
+	Sections.Remove(Section);
 }

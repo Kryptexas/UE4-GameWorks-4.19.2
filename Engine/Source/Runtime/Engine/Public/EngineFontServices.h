@@ -1,11 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "SlateCore.h"
 
 /** 
- * A shim around FSlateFontServices that provides access from the render thread (where FSlateApplication::Get() would assert)
+ * Provides the Engine with access to the Slate font cache and font measuring services (for Canvas)
+ * On the game thread this just leverages the Slate services, but the render thread needs its own instances
  */
 class ENGINE_API FEngineFontServices
 {
@@ -38,8 +39,20 @@ private:
 	/** Destructor - must be called from the game thread */
 	~FEngineFontServices();
 
-	/** Slate font services instance being wrapped */
-	TSharedPtr<class FSlateFontServices> SlateFontServices;
+	/** Create the font cache for the render thread if it doesn't yet exist */
+	void ConditionalCreateRenderThreadFontCache();
+
+	/** Create the font measure for the render thread if it doesn't yet exist */
+	void ConditionalCreatRenderThreadFontMeasure();
+
+	/** Font atlas factory to use for the render thread - created on the game thread as it depends on another module */
+	TSharedPtr<ISlateFontAtlasFactory> RenderThreadFontAtlasFactory;
+
+	/** Font cache used by the render thread - creation is delayed until the first request is made */
+	TSharedPtr<FSlateFontCache> RenderThreadFontCache;
+
+	/** Font measure used by the render thread - creation is delayed until the first request is made */
+	TSharedPtr<FSlateFontMeasure> RenderThreadFontMeasure;
 
 	/** Singular instance of this class */
 	static FEngineFontServices* Instance;

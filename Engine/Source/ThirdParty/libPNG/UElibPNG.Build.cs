@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -47,21 +47,6 @@ public class UElibPNG : ModuleRules
 
             PublicAdditionalLibraries.Add("png152");
         }
-		else if (Target.Platform == UnrealTargetPlatform.TVOS)
-		{
-			if (Target.Architecture == "-simulator")
-			{
-				PublicLibraryPaths.Add(libPNGPath + "/lib/TVOS/Simulator");
-				PublicAdditionalShadowFiles.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "libPNG/libPNG-1.5.2/lib/TVOS/Simulator/libpng152.a");
-			}
-			else
-			{
-				PublicLibraryPaths.Add(libPNGPath + "/lib/TVOS/Device");
-				PublicAdditionalShadowFiles.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "libPNG/libPNG-1.5.2/lib/TVOS/Device/libpng152.a");
-			}
-
-			PublicAdditionalLibraries.Add("png152");
-		}
         else if (Target.Platform == UnrealTargetPlatform.Android)
         {
 			PublicLibraryPaths.Add(libPNGPath + "/lib/Android/ARMv7");

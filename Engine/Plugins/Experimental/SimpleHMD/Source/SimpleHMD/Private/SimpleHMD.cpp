@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SimpleHMDPrivatePCH.h"
 #include "SimpleHMD.h"
@@ -155,9 +155,9 @@ void FSimpleHMD::ApplyHmdRotation(APlayerController* PC, FRotator& ViewRotation)
 	ViewRotation = FRotator(DeltaControlOrientation * CurHmdOrientation);
 }
 
-bool FSimpleHMD::UpdatePlayerCamera(FQuat& CurrentOrientation, FVector& CurrentPosition)
+void FSimpleHMD::UpdatePlayerCameraRotation(APlayerCameraManager* Camera, struct FMinimalViewInfo& POV)
 {
-	return false;
+	return;
 }
 
 bool FSimpleHMD::IsChromaAbCorrectionEnabled() const
@@ -334,7 +334,7 @@ void FSimpleHMD::SetupViewFamily(FSceneViewFamily& InViewFamily)
 {
 	InViewFamily.EngineShowFlags.MotionBlur = 0;
 	InViewFamily.EngineShowFlags.HMDDistortion = true;
-	InViewFamily.EngineShowFlags.SetScreenPercentage(true);
+	InViewFamily.EngineShowFlags.ScreenPercentage = 1.0f;
 	InViewFamily.EngineShowFlags.StereoRendering = IsStereoEnabled();
 }
 

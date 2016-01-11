@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -59,7 +59,7 @@ namespace AutomationTool
 						LogError("Loader Exceptions:");
 						foreach (var LoaderException in TypeLoadException.LoaderExceptions)
 						{
-							LogError(LogUtils.FormatException(LoaderException));
+							Log(System.Diagnostics.TraceEventType.Error, LoaderException);
 						}
 					}
 					else
@@ -117,16 +117,6 @@ namespace AutomationTool
 			throw new AutomationException("{0} does not yet implement Packaging.", PlatformType);
 		}
 
-        /// <summary>
-        /// Does the reverse of the output from the package process
-        /// </summary>
-        /// <param name="SourcePath"></param>
-        /// <param name="DestinationPath"></param>
-        public virtual void ExtractPackage(ProjectParams Params, string SourcePath, string DestinationPath)
-        {
-            throw new AutomationException("{0} does not yet implement ExtractPackage.", PlatformType);
-        }
-
 		/// <summary>
 		/// Allow platform to do platform specific work on archived project before it's deployed.
 		/// </summary>
@@ -182,11 +172,6 @@ namespace AutomationTool
 		public virtual void PostRunClient(ProcessResult Result, ProjectParams Params)
 		{
 			// do nothing in the default case
-		}
-
-		public virtual void UploadSymbols(ProjectParams Params, DeploymentContext SC)
-		{
-			Log("{0} does not implement UploadSymbols...", PlatformType);
 		}
 
 		/// <summary>
@@ -482,7 +467,7 @@ namespace AutomationTool
 
 		}
 
-		public virtual void PostBuildTarget(UE4Build Build, FileReference UProjectPath, string TargetName, string Config)
+		public virtual void PostBuildTarget(UE4Build Build, string ProjectName, string UProjectPath, string Config)
 		{
 
 		}

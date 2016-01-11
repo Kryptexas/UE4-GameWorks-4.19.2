@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneToolsPrivatePCH.h"
 #include "MovieSceneBoolTrack.h"
@@ -8,8 +8,7 @@
 void FBoolPropertySection::GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const
 {
 	UMovieSceneBoolSection* BoolSection = Cast<UMovieSceneBoolSection>( &SectionObject );
-	KeyArea = MakeShareable( new FBoolKeyArea( BoolSection->GetCurve(), BoolSection ) );
-	LayoutBuilder.SetSectionAsKeyArea( KeyArea.ToSharedRef() );
+	LayoutBuilder.SetSectionAsKeyArea( MakeShareable( new FBoolKeyArea( BoolSection->GetCurve(), BoolSection ) ) );
 }
 
 int32 FBoolPropertySection::OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const
@@ -80,14 +79,4 @@ int32 FBoolPropertySection::OnPaintSection( const FGeometry& AllottedGeometry, c
 	}
 
 	return LayerId + 1;
-}
-
-void FBoolPropertySection::SetIntermediateValue( FPropertyChangedParams PropertyChangedParams )
-{
-	KeyArea->SetIntermediateValue( PropertyChangedParams.GetPropertyValue<bool>() );
-}
-
-void FBoolPropertySection::ClearIntermediateValue()
-{
-	KeyArea->ClearIntermediateValue();
 }

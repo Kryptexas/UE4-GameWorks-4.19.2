@@ -1,11 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RHIDefinitions.h: Render Hardware Interface definitions
 		(that don't require linking).
 =============================================================================*/
 
-#pragma once
+#ifndef __RHIDEFINITIONS_H__
+#define __RHIDEFINITIONS_H__
 
 #include "Core.h"
 
@@ -58,9 +59,8 @@ enum EShaderPlatform
 	SP_OPENGL_PCES3_1	= 16,
 	SP_METAL_SM5		= 17,
 	SP_VULKAN_ES2		= 18,
-	SP_METAL_SM4		= 19,
 
-	SP_NumPlatforms		= 20,
+	SP_NumPlatforms		= 19,
 	SP_NumBits			= 5,
 };
 static_assert(SP_NumPlatforms <= (1 << SP_NumBits), "SP_NumPlatforms will not fit on SP_NumBits");
@@ -598,7 +598,7 @@ enum class ESimpleRenderTargetMode
 
 inline bool IsPCPlatform(const EShaderPlatform Platform)
 {
-	return Platform == SP_PCD3D_SM5 || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_ES2 || Platform == SP_PCD3D_ES3_1 || Platform ==  SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_PCES3_1 || Platform == SP_METAL_SM4 || Platform == SP_METAL_SM5;
+	return Platform == SP_PCD3D_SM5 || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_ES2 || Platform == SP_PCD3D_ES3_1 || Platform ==  SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_PCES3_1 || (PLATFORM_MAC && (Platform == SP_METAL_MRT || Platform == SP_METAL_SM5));
 }
 
 /** Whether the shader platform corresponds to the ES2 feature level. */
@@ -617,11 +617,6 @@ inline bool IsOpenGLPlatform(const EShaderPlatform Platform)
 {
 	return Platform == SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2
 		|| Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES31_EXT || Platform == SP_VULKAN_ES2;
-}
-
-inline bool IsMetalPlatform(const EShaderPlatform Platform)
-{
-	return Platform == SP_METAL || Platform == SP_METAL_MRT || Platform == SP_METAL_SM4 || Platform == SP_METAL_SM5;
 }
 
 inline bool IsConsolePlatform(const EShaderPlatform Platform)
@@ -644,7 +639,6 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_OPENGL_SM4:
 	case SP_OPENGL_SM4_MAC:
 	case SP_METAL_MRT:
-	case SP_METAL_SM4:
 		return ERHIFeatureLevel::SM4;
 	case SP_PCD3D_ES2:
 	case SP_OPENGL_PCES2:
@@ -701,8 +695,6 @@ inline bool IsFeatureLevelSupported(EShaderPlatform InShaderPlatform, ERHIFeatur
 		return InFeatureLevel <= ERHIFeatureLevel::ES3_1;
 	case SP_METAL_MRT:
 		return InFeatureLevel <= ERHIFeatureLevel::SM4;
-	case SP_METAL_SM4:
-		return InFeatureLevel <= ERHIFeatureLevel::SM4;
 	case SP_OPENGL_ES31_EXT:
 		return InFeatureLevel <= ERHIFeatureLevel::SM5;
 	case SP_METAL_SM5:
@@ -727,10 +719,20 @@ inline bool RHINeedsToSwitchVerticalAxis(EShaderPlatform Platform)
 	return IsES2Platform(Platform) && !IsPCPlatform(Platform) && Platform != SP_METAL;
 }
 
+inline bool RHISupportsInstancing(const EShaderPlatform Platform)
+{
+	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::ES3_1);
+}
+
+inline bool RHISupportsInstancing(ERHIFeatureLevel::Type FeatureLevel)
+{
+	return FeatureLevel >= ERHIFeatureLevel::ES3_1;
+}
+
 inline bool RHISupportsSeparateMSAAAndResolveTextures(const EShaderPlatform Platform)
 {
 	// Metal needs to handle MSAA and resolve textures internally (unless RHICreateTexture2D was changed to take an optional resolve target)
-	return !IsMetalPlatform(Platform);
+	return Platform != SP_METAL && Platform != SP_METAL_MRT && Platform != SP_METAL_SM5;
 }
 
 inline bool RHISupportsComputeShaders(const EShaderPlatform Platform)
@@ -739,19 +741,14 @@ inline bool RHISupportsComputeShaders(const EShaderPlatform Platform)
 	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
 }
 
-inline bool RHISupportsPixelShaderUAVs(const EShaderPlatform Platform)
-{
-	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsMetalPlatform(Platform);
-}
-
 inline bool RHISupportsGeometryShaders(const EShaderPlatform Platform)
 {
-	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && !IsMetalPlatform(Platform);
+	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && Platform != SP_METAL_MRT && Platform != SP_METAL_SM5;
 }
 
 inline bool RHIHasTiledGPU(const EShaderPlatform Platform)
 {
-	return (Platform == SP_METAL_MRT) || Platform == SP_METAL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES2_ANDROID;
+return (PLATFORM_IOS && Platform == SP_METAL_MRT) || Platform == SP_METAL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES2_ANDROID;
 }
 
 inline uint32 GetFeatureLevelMaxTextureSamplers(ERHIFeatureLevel::Type FeatureLevel)
@@ -788,21 +785,4 @@ inline bool IsUniformBufferResourceType(EUniformBufferBaseType BaseType)
 	return BaseType == UBMT_SRV || BaseType == UBMT_UAV || BaseType == UBMT_SAMPLER || BaseType == UBMT_TEXTURE;
 }
 
-inline const TCHAR* GetShaderFrequencyString(EShaderFrequency Frequency)
-{
-	switch (Frequency)
-	{
-	case SF_Vertex:			return TEXT("SF_Vertex");
-	case SF_Hull:			return TEXT("SF_Hull");
-	case SF_Domain:			return TEXT("SF_Domain");
-	case SF_Geometry:		return TEXT("SF_Geometry");
-	case SF_Pixel:			return TEXT("SF_Pixel");
-	case SF_Compute:		return TEXT("SF_Compute");
-#if USE_ASYNC_COMPUTE_CONTEXT 
-	case SF_AsyncCompute:	return TEXT("SF_AsyncCompute");
-#endif
-	default:				check(0); break;
-	}
-
-	return nullptr;
-};
+#endif	// __RHIDEFINITIONS_H__

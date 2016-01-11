@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HeightfieldLighting.cpp
@@ -65,7 +65,6 @@ FAutoConsoleVariableRef CVarHeightfieldTargetUnitsPerTexel(
 
 void FHeightfieldLightingAtlas::InitDynamicRHI()
 {
-	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
 	if (AtlasSize.GetMin() > 0)
 	{
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(
@@ -76,7 +75,7 @@ void FHeightfieldLightingAtlas::InitDynamicRHI()
 			TexCreate_RenderTargetable,
 			false));
 
-		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, Height, TEXT("HeightAtlas"));
+		GRenderTargetPool.FindFreeElement(Desc, Height, TEXT("HeightAtlas"));
 
 		FPooledRenderTargetDesc Desc2(FPooledRenderTargetDesc::Create2DDesc(
 			AtlasSize,
@@ -86,7 +85,7 @@ void FHeightfieldLightingAtlas::InitDynamicRHI()
 			TexCreate_RenderTargetable,
 			false));
 
-		GRenderTargetPool.FindFreeElement(RHICmdList, Desc2, Normal, TEXT("NormalAtlas"));
+		GRenderTargetPool.FindFreeElement(Desc2, Normal, TEXT("NormalAtlas"));
 
 		FPooledRenderTargetDesc Desc3(FPooledRenderTargetDesc::Create2DDesc(
 			AtlasSize,
@@ -96,7 +95,7 @@ void FHeightfieldLightingAtlas::InitDynamicRHI()
 			TexCreate_RenderTargetable,
 			false));
 
-		GRenderTargetPool.FindFreeElement(RHICmdList, Desc3, DiffuseColor, TEXT("DiffuseColorAtlas"));
+		GRenderTargetPool.FindFreeElement(Desc3, DiffuseColor, TEXT("DiffuseColorAtlas"));
 
 		FPooledRenderTargetDesc Desc4(FPooledRenderTargetDesc::Create2DDesc(
 			AtlasSize,
@@ -106,7 +105,7 @@ void FHeightfieldLightingAtlas::InitDynamicRHI()
 			TexCreate_RenderTargetable,
 			false));
 
-		GRenderTargetPool.FindFreeElement(RHICmdList, Desc4, DirectionalLightShadowing, TEXT("HeightfieldShadowingAtlas"));
+		GRenderTargetPool.FindFreeElement(Desc4, DirectionalLightShadowing, TEXT("HeightfieldShadowingAtlas"));
 
 		FPooledRenderTargetDesc Desc5(FPooledRenderTargetDesc::Create2DDesc(
 			AtlasSize,
@@ -115,9 +114,8 @@ void FHeightfieldLightingAtlas::InitDynamicRHI()
 			TexCreate_None,
 			TexCreate_RenderTargetable,
 			false));
-		Desc5.AutoWritable = false;
 
-		GRenderTargetPool.FindFreeElement(RHICmdList, Desc5, Lighting, TEXT("HeightfieldLightingAtlas"));
+		GRenderTargetPool.FindFreeElement(Desc5, Lighting, TEXT("HeightfieldLightingAtlas"));
 	}
 }
 
@@ -542,53 +540,12 @@ void FHeightfieldLightingViewInfo::SetupVisibleHeightfields(const FViewInfo& Vie
 							RHICmdList.DrawPrimitive(PT_TriangleList, 0, 2, NumQuads);
 						}
 					}
-
-					RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, RenderTargets, ARRAY_COUNT(RenderTargets));
 				}
 			}
 		}
 	}
 }
 
-void FHeightfieldLightingViewInfo::SetupHeightfieldsForScene(const FScene& Scene, FRHICommandListImmediate& RHICmdList)
-{
-	const int32 NumPrimitives = Scene.DistanceFieldSceneData.HeightfieldPrimitives.Num();
-
-	if (NumPrimitives > 0
-		&& SupportsHeightfieldLighting(Scene.GetFeatureLevel(), Scene.GetShaderPlatform()))
-	{
-		const float MaxDistanceSquared = FMath::Square(GetMaxAOViewDistance() + GetGHeightfieldBounceDistance());
-		float LocalToWorldScale = 1;
-
-		for (int32 HeightfieldPrimitiveIndex = 0; HeightfieldPrimitiveIndex < NumPrimitives; HeightfieldPrimitiveIndex++)
-		{
-			const FPrimitiveSceneInfo* HeightfieldPrimitive = Scene.DistanceFieldSceneData.HeightfieldPrimitives[HeightfieldPrimitiveIndex];
-
-			UTexture2D* HeightfieldTexture = NULL;
-			UTexture2D* DiffuseColorTexture = NULL;
-			FHeightfieldComponentDescription NewComponentDescription(HeightfieldPrimitive->Proxy->GetLocalToWorld());
-			HeightfieldPrimitive->Proxy->GetHeightfieldRepresentation(HeightfieldTexture, DiffuseColorTexture, NewComponentDescription);
-
-			if (HeightfieldTexture && HeightfieldTexture->Resource->TextureRHI)
-			{
-				const FIntPoint HeightfieldSize = NewComponentDescription.HeightfieldRect.Size();
-
-				if (Heightfield.Rect.Area() == 0)
-				{
-					Heightfield.Rect = NewComponentDescription.HeightfieldRect;
-					LocalToWorldScale = NewComponentDescription.LocalToWorld.GetScaleVector().X;
-				}
-				else
-				{
-					Heightfield.Rect.Union(NewComponentDescription.HeightfieldRect);
-				}
-
-				TArray<FHeightfieldComponentDescription>& ComponentDescriptions = Heightfield.ComponentDescriptions.FindOrAdd(FHeightfieldComponentTextures(HeightfieldTexture, DiffuseColorTexture));
-				ComponentDescriptions.Add(NewComponentDescription);
-			}
-		}
-	}
-}
 
 class FHeightfieldDescriptionsResource : public FRenderResource
 {
@@ -1315,15 +1272,8 @@ public:
 		SetSRVParameter(RHICmdList, ShaderRHI, ScatterDrawParameters, SurfaceCacheResources.Level[DepthLevel]->ScatterDrawParameters.SRV);
 		SetSRVParameter(RHICmdList, ShaderRHI, SavedStartIndex, SurfaceCacheResources.Level[DepthLevel]->SavedStartIndex.SRV);
 
-		const FRWBuffer& OccluderRadiusOut = SurfaceCacheResources.Level[DepthLevel]->OccluderRadius;
-		const FRWBuffer& ConeVisibiliyOut = TemporaryIrradianceCacheResources.ConeVisibility;
-		FUnorderedAccessViewRHIParamRef UAVs[2];
-		UAVs[0] = OccluderRadiusOut.UAV;
-		UAVs[1] = ConeVisibiliyOut.UAV;
-
-		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, UAVs, ARRAY_COUNT(UAVs));
-		OccluderRadius.SetBuffer(RHICmdList, ShaderRHI, OccluderRadiusOut);
-		RecordConeVisibility.SetBuffer(RHICmdList, ShaderRHI, ConeVisibiliyOut);
+		OccluderRadius.SetBuffer(RHICmdList, ShaderRHI, SurfaceCacheResources.Level[DepthLevel]->OccluderRadius);
+		RecordConeVisibility.SetBuffer(RHICmdList, ShaderRHI, TemporaryIrradianceCacheResources.ConeVisibility);
 
 		FAOSampleData2 AOSampleData;
 
@@ -1343,21 +1293,10 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, RecordRadiusScale, GAORecordRadiusScale);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList, const FSceneView& View, int32 DepthLevel, const FTemporaryIrradianceCacheResources& TemporaryIrradianceCacheResources)
+	void UnsetParameters(FRHICommandList& RHICmdList)
 	{
 		OccluderRadius.UnsetUAV(RHICmdList, GetComputeShader());
 		RecordConeVisibility.UnsetUAV(RHICmdList, GetComputeShader());
-
-		const FScene* Scene = (const FScene*)View.Family->Scene;
-		FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
-
-		const FRWBuffer& OccluderRadiusOut = SurfaceCacheResources.Level[DepthLevel]->OccluderRadius;
-		const FRWBuffer& ConeVisibiliyOut = TemporaryIrradianceCacheResources.ConeVisibility;
-		FUnorderedAccessViewRHIParamRef UAVs[2];
-		UAVs[0] = OccluderRadiusOut.UAV;
-		UAVs[1] = ConeVisibiliyOut.UAV;
-
-		RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, UAVs, ARRAY_COUNT(UAVs));
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -1413,7 +1352,7 @@ void FHeightfieldLightingViewInfo::ComputeOcclusionForSamples(
 			ComputeShader->SetParameters(RHICmdList, View, DepthLevel);
 			DispatchComputeShader(RHICmdList, *ComputeShader, 1, 1, 1);
 
-			ComputeShader->UnsetParameters(RHICmdList, View);
+			ComputeShader->UnsetParameters(RHICmdList);
 		}
 
 		SCOPED_DRAW_EVENT(RHICmdList, HeightfieldOcclusion);
@@ -1439,7 +1378,7 @@ void FHeightfieldLightingViewInfo::ComputeOcclusionForSamples(
 						FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
 						DispatchIndirectComputeShader(RHICmdList, *ComputeShader, SurfaceCacheResources.DispatchParameters.Buffer, 0);
 
-						ComputeShader->UnsetParameters(RHICmdList, View, DepthLevel, TemporaryIrradianceCacheResources);
+						ComputeShader->UnsetParameters(RHICmdList);
 					}
 				}
 			}
@@ -1515,7 +1454,6 @@ public:
 		SetSRVParameter(RHICmdList, ShaderRHI, SavedStartIndex, SurfaceCacheResources.Level[DepthLevel]->SavedStartIndex.SRV);
 		SetSRVParameter(RHICmdList, ShaderRHI, RecordConeVisibility, TemporaryIrradianceCacheResources.ConeVisibility.SRV);
 
-		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, TemporaryIrradianceCacheResources.HeightfieldIrradiance.UAV);
 		HeightfieldIrradiance.SetBuffer(RHICmdList, ShaderRHI, TemporaryIrradianceCacheResources.HeightfieldIrradiance);
 
 		{
@@ -1554,10 +1492,9 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, OuterLightTransferDistanceScale, GHeightfieldOuterBounceDistanceScale);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList, const FTemporaryIrradianceCacheResources& TemporaryIrradianceCacheResources)
+	void UnsetParameters(FRHICommandList& RHICmdList)
 	{
 		HeightfieldIrradiance.UnsetUAV(RHICmdList, GetComputeShader());
-		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, TemporaryIrradianceCacheResources.HeightfieldIrradiance.UAV);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -1624,7 +1561,7 @@ void FHeightfieldLightingViewInfo::ComputeIrradianceForSamples(
 			ComputeShader->SetParameters(RHICmdList, View, DepthLevel);
 			DispatchComputeShader(RHICmdList, *ComputeShader, 1, 1, 1);
 
-			ComputeShader->UnsetParameters(RHICmdList, View);
+			ComputeShader->UnsetParameters(RHICmdList);
 		}
 
 		SCOPED_DRAW_EVENT(RHICmdList, HeightfieldIrradiance);
@@ -1657,7 +1594,7 @@ void FHeightfieldLightingViewInfo::ComputeIrradianceForSamples(
 					FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
 					DispatchIndirectComputeShader(RHICmdList, *ComputeShader, SurfaceCacheResources.DispatchParameters.Buffer, 0);
 
-					ComputeShader->UnsetParameters(RHICmdList, TemporaryIrradianceCacheResources);
+					ComputeShader->UnsetParameters(RHICmdList);
 				}
 			}
 		}
@@ -1720,7 +1657,6 @@ public:
 		HeightfieldDescriptionParameters.Set(RHICmdList, ShaderRHI, NumHeightfieldsValue);
 		HeightfieldTextureParameters.Set(RHICmdList, ShaderRHI, HeightfieldTextureValue, NULL);
 
-		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, ScreenGridResources.ScreenGridConeVisibility.UAV);
 		ScreenGridConeVisibility.SetBuffer(RHICmdList, ShaderRHI, ScreenGridResources.ScreenGridConeVisibility);
 
 		FAOSampleData2 AOSampleData;
@@ -1739,10 +1675,9 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, TanConeHalfAngle, FMath::Tan(GAOConeHalfAngle));
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList, const FAOScreenGridResources& ScreenGridResources)
+	void UnsetParameters(FRHICommandList& RHICmdList)
 	{
 		ScreenGridConeVisibility.UnsetUAV(RHICmdList, GetComputeShader());
-		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, ScreenGridResources.ScreenGridConeVisibility.UAV);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -1803,7 +1738,7 @@ void FHeightfieldLightingViewInfo::ComputeOcclusionForScreenGrid(
 					RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 					ComputeShader->SetParameters(RHICmdList, View, HeightfieldTexture, HeightfieldDescriptions.Num(), DistanceFieldNormal, ScreenGridResources, Parameters);
 					DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
-					ComputeShader->UnsetParameters(RHICmdList, ScreenGridResources);
+					ComputeShader->UnsetParameters(RHICmdList);
 				}
 			}
 		}
@@ -1870,7 +1805,6 @@ public:
 		ScreenGridParameters.Set(RHICmdList, ShaderRHI, View, DistanceFieldNormal);
 		HeightfieldDescriptionParameters.Set(RHICmdList, ShaderRHI, NumHeightfieldsValue);
 
-		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, ScreenGridResources.HeightfieldIrradiance.UAV);
 		HeightfieldIrradiance.SetBuffer(RHICmdList, ShaderRHI, ScreenGridResources.HeightfieldIrradiance);
 
 		extern float GAOConeHalfAngle;
@@ -1911,10 +1845,9 @@ public:
 		SetSRVParameter(RHICmdList, ShaderRHI, RecordConeVisibility, ScreenGridResources.ConeDepthVisibilityFunction.SRV);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList, const FAOScreenGridResources& ScreenGridResources)
+	void UnsetParameters(FRHICommandList& RHICmdList)
 	{
 		HeightfieldIrradiance.UnsetUAV(RHICmdList, GetComputeShader());
-		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, ScreenGridResources.HeightfieldIrradiance.UAV);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -1999,149 +1932,7 @@ void FHeightfieldLightingViewInfo::ComputeIrradianceForScreenGrid(
 
 					DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
 
-					ComputeShader->UnsetParameters(RHICmdList, ScreenGridResources);
-				}
-			}
-		}
-	}
-}
-
-
-const int32 GPreCullTrianglesToHeightfieldsGroupSize = 64;
-
-class FPreCullTrianglesToHeightfields : public FGlobalShader
-{
-	DECLARE_SHADER_TYPE(FPreCullTrianglesToHeightfields,Global)
-public:
-
-	static bool ShouldCache(EShaderPlatform Platform)
-	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldGI(Platform);
-	}
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
-
-		OutEnvironment.SetDefine(TEXT("PRECULL_TRIANGLES_TO_HEIGHTFIELDS_GROUP_SIZE"), GPreCullTrianglesToHeightfieldsGroupSize);
-
-		// To reduce shader compile time of compute shaders with shared memory, doesn't have an impact on generated code with current compiler (June 2010 DX SDK)
-		OutEnvironment.CompilerFlags.Add(CFLAG_StandardOptimization);
-	}
-
-	FPreCullTrianglesToHeightfields(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
-		: FGlobalShader(Initializer)
-	{
-		HeightfieldDescriptionParameters.Bind(Initializer.ParameterMap);
-		HeightfieldTextureParameters.Bind(Initializer.ParameterMap);
-		TriangleVisibleMask.Bind(Initializer.ParameterMap, TEXT("TriangleVisibleMask"));
-		StartIndex.Bind(Initializer.ParameterMap, TEXT("StartIndex"));
-		NumTriangles.Bind(Initializer.ParameterMap, TEXT("NumTriangles"));
-		TriangleVertexData.Bind(Initializer.ParameterMap, TEXT("TriangleVertexData"));
-		PreCullMaxDistance.Bind(Initializer.ParameterMap, TEXT("PreCullMaxDistance"));
-	}
-
-	FPreCullTrianglesToHeightfields()
-	{
-	}
-
-	void SetParameters(
-		FRHICommandList& RHICmdList, 
-		const FViewInfo& View, 
-		UTexture2D* HeightfieldTextureValue, 
-		int32 NumHeightfieldsValue,
-		FPreCulledTriangleBuffers& PreCulledTriangleBuffers,
-		int32 StartIndexValue,
-		int32 NumTrianglesValue,
-		const FUniformMeshBuffers& UniformMeshBuffers)
-	{
-		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
-
-		HeightfieldDescriptionParameters.Set(RHICmdList, ShaderRHI, NumHeightfieldsValue);
-		HeightfieldTextureParameters.Set(RHICmdList, ShaderRHI, HeightfieldTextureValue, NULL);
-
-		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, PreCulledTriangleBuffers.TriangleVisibleMask.UAV);
-		TriangleVisibleMask.SetBuffer(RHICmdList, ShaderRHI, PreCulledTriangleBuffers.TriangleVisibleMask);
-
-		SetShaderValue(RHICmdList, ShaderRHI, StartIndex, StartIndexValue);
-		SetShaderValue(RHICmdList, ShaderRHI, NumTriangles, NumTrianglesValue);
-		SetSRVParameter(RHICmdList, ShaderRHI, TriangleVertexData, UniformMeshBuffers.TriangleDataSRV);
-		extern float GPreCullMaxDistance;
-		SetShaderValue(RHICmdList, ShaderRHI, PreCullMaxDistance, GPreCullMaxDistance);
-	}
-
-	void UnsetParameters(FRHICommandList& RHICmdList, FPreCulledTriangleBuffers& PreCulledTriangleBuffers)
-	{
-		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
-		TriangleVisibleMask.UnsetUAV(RHICmdList, ShaderRHI);
-		// RHISetStreamOutTargets doesn't unbind existing uses like render targets do 
-		SetSRVParameter(RHICmdList, ShaderRHI, TriangleVertexData, NULL);
-
-		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, PreCulledTriangleBuffers.TriangleVisibleMask.UAV);
-	}
-
-	virtual bool Serialize(FArchive& Ar) override
-	{		
-		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << HeightfieldDescriptionParameters;
-		Ar << HeightfieldTextureParameters;
-		Ar << TriangleVisibleMask;
-		Ar << StartIndex;
-		Ar << NumTriangles;
-		Ar << TriangleVertexData;
-		Ar << PreCullMaxDistance;
-		return bShaderHasOutdatedParameters;
-	}
-
-private:
-
-	FHeightfieldDescriptionParameters HeightfieldDescriptionParameters;
-	FHeightfieldTextureParameters HeightfieldTextureParameters;
-	FRWShaderParameter TriangleVisibleMask;
-	FShaderParameter StartIndex;
-	FShaderParameter NumTriangles;
-	FShaderResourceParameter TriangleVertexData;
-	FShaderParameter PreCullMaxDistance;
-};
-
-IMPLEMENT_SHADER_TYPE(,FPreCullTrianglesToHeightfields,TEXT("HeightfieldLighting"),TEXT("PreCullTrianglesToHeightfieldsCS"),SF_Compute);
-
-
-void FHeightfieldLightingViewInfo::PreCullTriangles(
-	const FViewInfo& View, 
-	FRHICommandListImmediate& RHICmdList,
-	FPreCulledTriangleBuffers& PreCulledTriangleBuffers,
-	int32 StartIndexValue,
-	int32 NumTrianglesValue,
-	const FUniformMeshBuffers& UniformMeshBuffers) const
-{
-	const FScene* Scene = (const FScene*)View.Family->Scene;
-
-	if (Heightfield.ComponentDescriptions.Num() > 0)
-	{
-		SCOPED_DRAW_EVENT(RHICmdList, PreCullTrianglesToHeightfields);
-
-		FSceneViewState* ViewState = (FSceneViewState*)View.State;
-
-		{
-			for (TMap<FHeightfieldComponentTextures, TArray<FHeightfieldComponentDescription>>::TConstIterator It(Heightfield.ComponentDescriptions); It; ++It)
-			{
-				const TArray<FHeightfieldComponentDescription>& HeightfieldDescriptions = It.Value();
-
-				if (HeightfieldDescriptions.Num() > 0)
-				{
-					UploadHeightfieldDescriptions(HeightfieldDescriptions, FVector2D(1, 1), 1.0f / Heightfield.DownsampleFactor);
-
-					UTexture2D* HeightfieldTexture = It.Key().HeightAndNormal;
-
-					const uint32 GroupSize = FMath::DivideAndRoundUp(NumTrianglesValue, GPreCullTrianglesToHeightfieldsGroupSize);
-
-					TShaderMapRef<FPreCullTrianglesToHeightfields> ComputeShader(View.ShaderMap);
-					RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-					ComputeShader->SetParameters(RHICmdList, View, HeightfieldTexture, HeightfieldDescriptions.Num(), PreCulledTriangleBuffers, StartIndexValue, NumTrianglesValue, UniformMeshBuffers);
-					DispatchComputeShader(RHICmdList, *ComputeShader, GroupSize, 1, 1);
-					ComputeShader->UnsetParameters(RHICmdList, PreCulledTriangleBuffers);
+					ComputeShader->UnsetParameters(RHICmdList);
 				}
 			}
 		}

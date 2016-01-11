@@ -1,7 +1,6 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneCommonHelpers.h"
 #include "MovieSceneVisibilityTrackInstance.h"
 #include "MovieSceneVisibilityTrack.h"
 
@@ -13,7 +12,7 @@ FMovieSceneVisibilityTrackInstance::FMovieSceneVisibilityTrackInstance(UMovieSce
 }
 
 
-void FMovieSceneVisibilityTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+void FMovieSceneVisibilityTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
  	for( UObject* Object : RuntimeObjects )
  	{
@@ -24,31 +23,17 @@ void FMovieSceneVisibilityTrackInstance::SaveState(const TArray<UObject*>& Runti
 #if WITH_EDITOR
 			if (GIsEditor && !Actor->GetWorld()->IsPlayInEditor())
 			{
-				if (InitHiddenInEditorMap.Find(Actor) == nullptr)
-				{
-					InitHiddenInEditorMap.Add(Actor, Actor->IsTemporarilyHiddenInEditor());
-				}
-			}
-			USceneComponent* SceneComponent = MovieSceneHelpers::SceneComponentFromRuntimeObject(Actor);
-			if (SceneComponent != nullptr)
-			{
-				if (InitSceneComponentVisibleMap.Find(Actor) == nullptr)
-				{
-					InitSceneComponentVisibleMap.Add(Actor, SceneComponent->IsVisibleInEditor());
-				}
+				InitHiddenInEditorMap.Add(Actor, Actor->IsTemporarilyHiddenInEditor());
 			}
 #endif // WITH_EDITOR
 
-			if (InitHiddenInGameMap.Find(Actor) == nullptr)
-			{
-				InitHiddenInGameMap.Add(Actor, Actor->bHidden);
-			}
+			InitHiddenInGameMap.Add(Object, Actor->bHidden);
 		}
  	}
 }
 
 
-void FMovieSceneVisibilityTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+void FMovieSceneVisibilityTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
  	for( UObject* Object : RuntimeObjects )
  	{
@@ -78,19 +63,6 @@ void FMovieSceneVisibilityTrackInstance::RestoreState(const TArray<UObject*>& Ru
 						Actor->SetIsTemporarilyHiddenInEditor(*HiddenInEditorValue);
 					}
 				}
-
-				bool *SceneComponentVisibleValue = InitSceneComponentVisibleMap.Find(Object);
-				if (SceneComponentVisibleValue != nullptr)
-				{
-					USceneComponent* SceneComponent = MovieSceneHelpers::SceneComponentFromRuntimeObject(Actor);
-					if (SceneComponent != nullptr)
-					{
-						if (SceneComponent->IsVisibleInEditor() != *SceneComponentVisibleValue)
-						{
-							SceneComponent->SetVisibility(*SceneComponentVisibleValue);
-						}
-					}
-				}
 			}
 #endif // WITH_EDITOR
 		}
@@ -98,7 +70,7 @@ void FMovieSceneVisibilityTrackInstance::RestoreState(const TArray<UObject*>& Ru
 }
 
 
-void FMovieSceneVisibilityTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass ) 
+void FMovieSceneVisibilityTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
 {
  	bool Visible = false;
  	if( VisibilityTrack->Eval( Position, LastPosition, Visible ) )
@@ -123,15 +95,6 @@ void FMovieSceneVisibilityTrackInstance::Update( float Position, float LastPosit
 					{
 						Actor->SetIsTemporarilyHiddenInEditor(Visible);
 					}
-
-					USceneComponent* SceneComponent = MovieSceneHelpers::SceneComponentFromRuntimeObject(Actor);
-					if (SceneComponent != nullptr)
-					{
-						if (SceneComponent->IsVisibleInEditor() != !Visible)
-						{
-							SceneComponent->SetVisibility(!Visible);
-						}
-					}
 				}
 #endif // WITH_EDITOR
 			}
@@ -140,7 +103,7 @@ void FMovieSceneVisibilityTrackInstance::Update( float Position, float LastPosit
 }
 
 
-void FMovieSceneVisibilityTrackInstance::RefreshInstance( const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance )
+void FMovieSceneVisibilityTrackInstance::RefreshInstance( const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player )
 {
 	PropertyBindings->UpdateBindings( RuntimeObjects );
 }

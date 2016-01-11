@@ -1,11 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "SoundDefinitions.h"
 #include "Sound/SoundNodeAttenuation.h"
 #include "Sound/SoundCue.h"
 #include "SubtitleManager.h"
-#include "Audio.h"
 
 /*-----------------------------------------------------------------------------
 UAudioComponent implementation.
@@ -18,22 +17,16 @@ UAudioComponent::UAudioComponent(const FObjectInitializer& ObjectInitializer)
 	bAllowSpatialization = true;
 	bStopWhenOwnerDestroyed = true;
 	bNeverNeedsRenderUpdate = true;
-	bWantsOnUpdateTransform = true;
 #if WITH_EDITORONLY_DATA
 	bVisualizeComponent = true;
 #endif
 	VolumeMultiplier = 1.f;
-	bOverridePriority = false;
-	Priority = 1.f;
 	PitchMultiplier = 1.f;
 	VolumeModulationMin = 1.f;
 	VolumeModulationMax = 1.f;
 	PitchModulationMin = 1.f;
 	PitchModulationMax = 1.f;
-	bEnableLowPassFilter = false;
-	LowPassFilterFrequency = MAX_FILTER_FREQUENCY;
-	OcclusionCheckInterval = 0.1f;
-	ActiveCount = 0;
+	HighFrequencyGainMultiplier = 1.0f;
 }
 
 FString UAudioComponent::GetDetailedInfoInternal( void ) const
@@ -50,30 +43,6 @@ FString UAudioComponent::GetDetailedInfoInternal( void ) const
 	}
 
 	return Result;
-}
-
-void UAudioComponent::PostLoad()
-{
-	const int32 LinkerUE4Version = GetLinkerUE4Version();
-
-	// Translate the old HighFrequencyGainMultiplier value to the new LowPassFilterFrequency value
-	if (LinkerUE4Version < VER_UE4_USE_LOW_PASS_FILTER_FREQ)
-	{
-		if (HighFrequencyGainMultiplier_DEPRECATED > 0.0f &&  HighFrequencyGainMultiplier_DEPRECATED < 1.0f)
-		{
-			bEnableLowPassFilter = true;
-
-			// This seems like it wouldn't make sense, but the original implementation for HighFrequencyGainMultiplier (a number between 0.0 and 1.0).
-			// In earlier versions, this was *not* used as a high frequency gain, but instead converted to a frequency value between 0.0 and 6000.0
-			// then "converted" to a radian frequency value using an equation taken from XAudio2 documentation. To recover
-			// the original intended frequency (approximately), we'll run it through that equation, then scale radian value by the max filter frequency.
-
-			float FilterConstant = 2.0f * FMath::Sin(PI * 6000.0f * HighFrequencyGainMultiplier_DEPRECATED / 48000);
-			LowPassFilterFrequency = FilterConstant * MAX_FILTER_FREQUENCY;
-		}
-	}
-
-	Super::PostLoad();
 }
 
 #if WITH_EDITORONLY_DATA
@@ -157,15 +126,9 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 		// If this is an auto destroy component we need to prevent it from being auto-destroyed since we're really just restarting it
 		bool bCurrentAutoDestroy = bAutoDestroy;
 		bAutoDestroy = false;
-		if (!bShouldRemainActiveIfDropped)
-		{
-			Stop();
-		}
+		Stop();
 		bAutoDestroy = bCurrentAutoDestroy;
 	}
-
-	// Bump ActiveCount... this is used to determine if an audio component is still active after "finishing"
-	++ActiveCount;
 
 	if (Sound && (World == nullptr || World->bAllowAudioPlayback))
 	{
@@ -176,22 +139,13 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 			NewActiveSound.World = GetWorld();
 			NewActiveSound.Sound = Sound;
 			NewActiveSound.SoundClassOverride = SoundClassOverride;
-			NewActiveSound.ConcurrencySettings = ConcurrencySettings;
 
 			NewActiveSound.VolumeMultiplier = (VolumeModulationMax + ((VolumeModulationMin - VolumeModulationMax) * FMath::SRand())) * VolumeMultiplier;
-			// The priority used for the active sound is the audio component's priority scaled with the sound's priority
-			if (bOverridePriority)
-			{
-				NewActiveSound.Priority = Priority;
-			}
-			else
-			{
-				NewActiveSound.Priority = Sound->Priority;
-			}
 			NewActiveSound.PitchMultiplier = (PitchModulationMax + ((PitchModulationMin - PitchModulationMax) * FMath::SRand())) * PitchMultiplier;
-			NewActiveSound.bEnableLowPassFilter = bEnableLowPassFilter;
-			NewActiveSound.LowPassFilterFrequency = LowPassFilterFrequency;
+			NewActiveSound.HighFrequencyGainMultiplier = HighFrequencyGainMultiplier;
+
 			NewActiveSound.RequestedStartTime = FMath::Max(0.f, StartTime);
+			NewActiveSound.OcclusionCheckInterval = OcclusionCheckInterval;
 			NewActiveSound.SubtitlePriority = SubtitlePriority;
 
 			NewActiveSound.bShouldRemainActiveIfDropped = bShouldRemainActiveIfDropped;
@@ -216,11 +170,6 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 			if (NewActiveSound.bHasAttenuationSettings)
 			{
 				NewActiveSound.AttenuationSettings = *AttenuationSettingsToApply;
-				NewActiveSound.MaxDistance = NewActiveSound.AttenuationSettings.GetMaxDimension();
-			}
-			else
-			{
-				NewActiveSound.MaxDistance = Sound->GetMaxAudibleDistance();
 			}
 
 			NewActiveSound.InstanceParameters = InstanceParameters;
@@ -325,9 +274,6 @@ void UAudioComponent::Stop()
 {
 	if (bIsActive)
 	{
-		// Set this to immediately be inactive
-		bIsActive = false;
-
 		UE_LOG(LogAudio, Verbose, TEXT( "%g: Stopping AudioComponent : '%s' with Sound: '%s'" ), GetWorld() ? GetWorld()->GetAudioTimeSeconds() : 0.0f, *GetFullName(), Sound ? *Sound->GetName() : TEXT( "nullptr" ) );
 
 		// TODO - Audio Threading. This call would be a task
@@ -340,11 +286,8 @@ void UAudioComponent::Stop()
 
 void UAudioComponent::PlaybackCompleted(bool bFailedToStart)
 {
-	check(ActiveCount > 0);
-	--ActiveCount;
-
 	// Mark inactive before calling destroy to avoid recursion
-	bIsActive = (ActiveCount > 0);
+	bIsActive = false;
 
 	if (!bFailedToStart && GetWorld() != nullptr && (OnAudioFinished.IsBound() || OnAudioFinishedNative.IsBound()))
 	{
@@ -634,45 +577,6 @@ void UAudioComponent::SetIntParameter( FName InName, int32 InInt )
 				if (ActiveSound)
 				{
 					ActiveSound->SetIntParameter(InName, InInt);
-				}
-			}
-		}
-	}
-}
-
-void UAudioComponent::SetSoundParameter(const FAudioComponentParam& Param)
-{
-	if (Param.ParamName != NAME_None)
-	{
-		bool bFound = false;
-		// First see if an entry for this name already exists
-		for (int32 i = 0; i < InstanceParameters.Num(); i++)
-		{
-			FAudioComponentParam& P = InstanceParameters[i];
-			if (P.ParamName == Param.ParamName)
-			{
-				P = Param;
-				bFound = true;
-				break;
-			}
-		}
-
-		// We didn't find one, so create a new one.
-		if (!bFound)
-		{
-			const int32 NewParamIndex = InstanceParameters.AddZeroed();
-			InstanceParameters[NewParamIndex] = Param;
-		}
-
-		if (bIsActive)
-		{
-			// TODO - Audio Threading. This call would be a task
-			if (FAudioDevice* AudioDevice = GetAudioDevice())
-			{
-				FActiveSound* ActiveSound = AudioDevice->FindActiveSound(this);
-				if (ActiveSound)
-				{
-					ActiveSound->SetSoundParameter(Param);
 				}
 			}
 		}

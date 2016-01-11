@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ContentBrowserPCH.h"
 
@@ -331,7 +331,7 @@ TSharedPtr<FTreeItem> SPathView::AddPath(const FString& Path, bool bUserNamed)
 
 					ChildItem = MakeShareable( new FTreeItem(FText::FromString(FolderName), FolderName, FolderPath, CurrentItem, bUserNamed) );
 					CurrentItem->Children.Add(ChildItem);
-					CurrentItem->RequestSortChildren();
+					CurrentItem->SortChildren();
 					TreeViewPtr->RequestTreeRefresh();
 
 					// If we have pending initial paths, and this path added the path, we should select it now
@@ -758,15 +758,17 @@ TSharedPtr<struct FTreeItem> SPathView::AddRootItem( const FString& InFolderName
 
 	// If this isn't an engine folder or we want to show them, add
 	const bool bDisplayEngine = GetDefault<UContentBrowserSettings>()->GetDisplayEngineFolder();
+	if ( bDisplayEngine || !ContentBrowserUtils::IsEngineFolder(InFolderName) )
+	{
 		const bool bDisplayPlugins = GetDefault<UContentBrowserSettings>()->GetDisplayPluginFolders();
-	if ( (bDisplayEngine || !ContentBrowserUtils::IsEngineFolder(InFolderName)) && 
-		 (bDisplayPlugins || !ContentBrowserUtils::IsPluginFolder(InFolderName)) )
+		if ( bDisplayPlugins || !ContentBrowserUtils::IsPluginFolder(InFolderName) )
 		{
 			const FText DisplayName = ContentBrowserUtils::GetRootDirDisplayName(InFolderName);
 			NewItem = MakeShareable( new FTreeItem(DisplayName, InFolderName, FString(TEXT("/")) + InFolderName, TSharedPtr<FTreeItem>()));
 			TreeRootItems.Add( NewItem );
 			TreeViewPtr->RequestTreeRefresh();
 		}
+	}
 
 	return NewItem;
 }
@@ -802,7 +804,6 @@ void SPathView::TreeItemScrolledIntoView( TSharedPtr<FTreeItem> TreeItem, const 
 
 void SPathView::GetChildrenForTree( TSharedPtr< FTreeItem > TreeItem, TArray< TSharedPtr<FTreeItem> >& OutChildren )
 {
-	TreeItem->SortChildrenIfNeeded();
 	OutChildren = TreeItem->Children;
 }
 
@@ -854,7 +855,7 @@ void SPathView::TreeSelectionChanged( TSharedPtr< FTreeItem > TreeItem, ESelectI
 	{
 		// Prioritize the asset registry scan for the selected path
 		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-		AssetRegistryModule.Get().PrioritizeSearchPath(TreeItem->FolderPath / TEXT(""));
+		AssetRegistryModule.Get().PrioritizeSearchPath(TreeItem->FolderPath);
 	}
 }
 
@@ -968,12 +969,6 @@ void SPathView::Populate()
 	// Add the user developer folder
 	const FString UserDeveloperFolder = FPackageName::FilenameToLongPackageName(FPaths::GameUserDeveloperDir().LeftChop(1));
 	PathList.Add(UserDeveloperFolder);
-
-	// Remove paths of localized assets.
-	PathList.RemoveAll([](const FString& Path) -> bool
-	{
-		return ContentBrowserUtils::IsLocalizationFolder(Path);
-	});
 
 	// we have a text filter, expand all parents of matching folders
 	for ( int32 PathIdx = 0; PathIdx < PathList.Num(); ++PathIdx)
@@ -1105,9 +1100,21 @@ FReply SPathView::OnFolderDragDetected(const FGeometry& Geometry, const FPointer
 	return FReply::Unhandled();
 }
 
-bool SPathView::VerifyFolderNameChanged(const FString& InName, FText& OutErrorMessage, const FString& InFolderPath) const
+bool SPathView::VerifyFolderNameChanged(const FText& InName, FText& OutErrorMessage, const FString& InFolderPath) const
 {	
-	return ContentBrowserUtils::IsValidFolderPathForCreate(FPaths::GetPath(InFolderPath), InName, OutErrorMessage);
+	if( !ContentBrowserUtils::IsValidFolderName(InName.ToString(), OutErrorMessage) )
+	{
+		return false;
+	}
+
+	const FString NewPath = FPaths::GetPath(InFolderPath) / InName.ToString();
+	if (ContentBrowserUtils::DoesFolderExist(NewPath))
+	{
+		OutErrorMessage = LOCTEXT("RenameFolderAlreadyExists", "A folder already exists at this location with this name.");
+		return false;
+	}
+
+	return true;
 }
 
 void SPathView::FolderNameChanged( const TSharedPtr< FTreeItem >& TreeItem, const FString& OldPath, const FVector2D& MessageLocation )
@@ -1136,7 +1143,7 @@ void SPathView::FolderNameChanged( const TSharedPtr< FTreeItem >& TreeItem, cons
 		// If we weren't a root node, make sure our parent is sorted
 		if ( TreeItem->Parent.IsValid() )
 		{
-			TreeItem->Parent.Pin()->RequestSortChildren();
+			TreeItem->Parent.Pin()->SortChildren();
 			TreeViewPtr->RequestTreeRefresh();
 		}
 
@@ -1375,11 +1382,7 @@ void SPathView::OnAssetRegistryPathAdded(const FString& Path)
 	// of successful hits in the filtered list. 
 	if ( SearchBoxFolderFilter->PassesFilter( Path ) )
 	{
-		// Do not add paths of localized assets.
-		if (!ContentBrowserUtils::IsLocalizationFolder(Path))
-		{
 		AddPath(Path);
-	}
 	}
 }
 

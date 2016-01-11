@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -31,44 +31,39 @@ public:
 
 protected:
 
-	/**
-	 * Fully expands the specified tree view item.
-	 *
-	 * @param Item The tree view item to expand.
-	 */
-	void ExpandItem(const TSharedPtr<FSessionBrowserTreeItem>& Item);
-
-	/** Filters the session tree. */
+	/** Filters the session list. */
 	void FilterSessions();
+
+	/**
+	 * Gets the display name of the specified session.
+	 *
+	 * @param SessionInfo The session to get the name for.
+	 * @param Session name.
+	 */
+	FText GetSessionName( const ISessionInfoPtr& SessionInfo ) const;
 
 	/** Reloads the sessions list. */
 	void ReloadSessions();
 
 private:
 
-	/** Callback for changing the selection state of an instance. */
-	void HandleSessionManagerInstanceSelectionChanged(const TSharedPtr<ISessionInstanceInfo>& Instance, bool Selected);
+	/** Callback for generating a row in the session combo box. */
+	TSharedRef<SWidget> HandleSessionComboBoxGenerateWidget( ISessionInfoPtr SessionInfo ) const;
+
+	/** Callback for selection changes in the session combo box. */
+	void HandleSessionComboBoxSelectionChanged( ISessionInfoPtr SelectedItem, ESelectInfo::Type SelectInfo );
+
+	/** Callback for getting the text in the session combo box. */
+	FText HandleSessionComboBoxText() const;
+
+	/** Callback for getting the text of the session details area. */
+	FText HandleSessionDetailsText() const;
 
 	/** Callback for changing the selected session in the session manager. */
-	void HandleSessionManagerSelectedSessionChanged(const ISessionInfoPtr& SelectedSession);
+	void HandleSessionManagerSelectedSessionChanged( const ISessionInfoPtr& SelectedSession );
 
 	/** Callback for updating the session list in the session manager. */
 	void HandleSessionManagerSessionsUpdated();
-
-	/** Callback for getting the tool tip text of a session tree row. */
-	FText HandleSessionTreeRowGetToolTipText(TSharedPtr<FSessionBrowserTreeItem> Item) const;
-
-	/** Callback for session tree view selection changes. */
-	void HandleSessionTreeViewExpansionChanged(TSharedPtr<FSessionBrowserTreeItem> TreeItem, bool bIsExpanded);
-
-	/** Callback for generating a row widget in the session tree view. */
-	TSharedRef<ITableRow> HandleSessionTreeViewGenerateRow(TSharedPtr<FSessionBrowserTreeItem> Item, const TSharedRef<STableViewBase>& OwnerTable);
-
-	/** Callback for getting the children of a node in the session tree view. */
-	void HandleSessionTreeViewGetChildren(TSharedPtr<FSessionBrowserTreeItem> Item, TArray<TSharedPtr<FSessionBrowserTreeItem>>& OutChildren);
-
-	/** Callback for session tree view selection changes. */
-	void HandleSessionTreeViewSelectionChanged(const TSharedPtr<FSessionBrowserTreeItem> Item, ESelectInfo::Type SelectInfo);
 
 	/** Callback for clicking the 'Terminate Session' button. */
 	FReply HandleTerminateSessionButtonClicked();
@@ -84,35 +79,26 @@ private:
 	/** Holds the command bar. */
 	TSharedPtr<SSessionBrowserCommandBar> CommandBar;
 
-	/** Whether to ignore events from the session manager. */
-	bool IgnoreSessionManagerEvents;
+	/** Holds the instance list view. */
+	TSharedPtr<SSessionInstanceList> InstanceListView;
 
-	/** Whether to ignore events from the session tree view. */
-	bool IgnoreSessionTreeEvents;
+	/** Holds the session combo box. */
+	TSharedPtr<SComboBox<ISessionInfoPtr>> SessionComboBox;
 
-	/** Maps session and instance GUIDs to existing tree items. */
-	TMap<FGuid, TSharedPtr<FSessionBrowserTreeItem>> ItemMap;
+	/** Holds the filtered list of sessions to be displayed. */
+	TArray<ISessionInfoPtr> SessionList;
 
 	/** Holds a reference to the session manager. */
 	ISessionManagerPtr SessionManager;
 
-	/** Holds the filtered list of tree items. */
-	TArray<TSharedPtr<FSessionBrowserTreeItem>> SessionTreeItems;
-
-	/** Holds the session tree view. */
-	TSharedPtr<STreeView<TSharedPtr<FSessionBrowserTreeItem>>> SessionTreeView;
-
 private:
 
-	/** The session tree item that holds this application's session. */
-	TSharedPtr<FSessionBrowserGroupTreeItem> AppGroupItem;
+	/** Callback for creating a row widget in the session list view. */
+	TSharedRef<ITableRow> HandleSessionListViewGenerateRow( ISessionInfoPtr Item, const TSharedRef<STableViewBase>& OwnerTable );
 
-	/** The session tree item that holds other user's sessions. */
-	TSharedPtr<FSessionBrowserGroupTreeItem> OtherGroupItem;
+	/** Handles changing the selection in the session tree. */
+	void HandleSessionListViewSelectionChanged( ISessionInfoPtr Item, ESelectInfo::Type SelectInfo );
 
-	/** The session tree item that holds the owner's remote sessions. */
-	TSharedPtr<FSessionBrowserGroupTreeItem> OwnerGroupItem;
-
-	/** The session tree item that holds other user's standalone instances. */
-	TSharedPtr<FSessionBrowserGroupTreeItem> StandaloneGroupItem;
+	/** Holds the session list view. */
+	TSharedPtr<SListView<ISessionInfoPtr>> SessionListView;
 };

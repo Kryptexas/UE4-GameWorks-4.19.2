@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -12,6 +12,11 @@
 #include "Logging/MessageLog.h"
 
 #include "UserWidget.generated.h"
+
+static FGeometry NullGeometry;
+static FSlateRect NullRect;
+static FSlateWindowElementList NullElementList;
+static FWidgetStyle NullStyle;
 
 class UWidget;
 class UWidgetAnimation;
@@ -29,7 +34,15 @@ struct UMG_API FPaintContext
 public:
 
 	/** Don't ever use this constructor.  Needed for code generation. */
-	FPaintContext();
+	FPaintContext()
+		: AllottedGeometry(NullGeometry)
+		, MyClippingRect(NullRect)
+		, OutDrawElements(NullElementList)
+		, LayerId(0)
+		, WidgetStyle(NullStyle)
+		, bParentEnabled(true)
+		, MaxLayer(0)
+	{ }
 
 	FPaintContext(const FGeometry& InAllottedGeometry, const FSlateRect& InMyClippingRect, FSlateWindowElementList& InOutDrawElements, const int32 InLayerId, const FWidgetStyle& InWidgetStyle, const bool bInParentEnabled)
 		: AllottedGeometry(InAllottedGeometry)
@@ -121,8 +134,6 @@ enum class EDesignPreviewSizeMode : uint8
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnConstructEvent);
 
-DECLARE_DYNAMIC_DELEGATE( FOnInputAction );
-
 /**
  * The user widget is extensible by users through the WidgetBlueprint.
  */
@@ -141,18 +152,17 @@ public:
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	virtual void BeginDestroy() override;
 	virtual void PostLoad() override;
-	//~ End UObject Interface
+	// End of UObject interface
 
 	virtual bool Initialize();
-	virtual void CustomNativeInitilize() {}
 
 	//UVisual interface
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
-	//~ End UVisual Interface
+	// End of UVisual interface
 
-	//~ Begin UWidget Interface
+	// UWidget interface
 	virtual void SynchronizeProperties() override;
-	//~ End UWidget Interface
+	// End of UWidget interface
 
 	// UNamedSlotInterface Begin
 	virtual void GetSlotNames(TArray<FName>& SlotNames) const override;
@@ -692,14 +702,11 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Appearance")
 	void SetForegroundColor(FSlateColor InForegroundColor);
 
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Appearance")
-	void SetPadding(FMargin InPadding);
-
 	/**
 	 * Plays an animation in this widget a specified number of times
 	 * 
 	 * @param InAnimation The animation to play
-	 * @param StartAtTime The time in the animation from which to start playing, relative to the start position. For looped animations, this will only affect the first playback of the animation.
+	 * @param StartAtTime The time in the animation from which to start playing. For looped animations, this will only affect the first playback of the animation.
 	 * @param NumLoopsToPlay The number of times to loop this animation (0 to loop indefinitely)
 	 * @param PlayMode Specifies the playback mode
 	 */
@@ -718,28 +725,10 @@ public:
 	 * Pauses an already running animation in this widget
 	 * 
 	 * @param The name of the animation to pause
-	 * @return the time point the animation was at when it was paused, relative to its start position.  Use this as the StartAtTime when you trigger PlayAnimation.
+	 * @return the time point the animation was at when it was paused.  Use this as the StartAtTime when you trigger PlayAnimation.
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="User Interface|Animation")
 	float PauseAnimation(const UWidgetAnimation* InAnimation);
-
-	/**
-	 * Gets whether an animation is currently playing on this widget.
-	 * 
-	 * @param InAnimation The animation to check the playback status of
-	 * @return True if the animation is currently playing
-	 */
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="User Interface|Animation")
-	bool IsAnimationPlaying(const UWidgetAnimation* InAnimation) const;
-
-	/**
-	* Changes the number of loops to play given a playing animation
-	*
-	* @param InAnimation The animation that is already playing
-	* @param NumLoopsToPlay The number of loops to play. (0 to loop indefinitely)
-	*/
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "User Interface|Animation")
-	void SetNumLoopsToPlay(const UWidgetAnimation* InAnimation, int32 NumLoopsToPlay);
 
 	/** Called when a sequence player is finished playing an animation */
 	void OnAnimationFinishedPlaying(UUMGSequencePlayer& Player );
@@ -764,19 +753,18 @@ public:
 	/** @returns The uobject widget corresponding to a given name */
 	UWidget* GetWidgetFromName(const FName& Name) const;
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void PreSave() override;
-	//~ End UObject Interface
+	// End UObject interface
 
 	/** Are we currently playing any animations? */
-	UFUNCTION(BlueprintCallable, Category="User Interface|Animation")
 	bool IsPlayingAnimation() const { return ActiveSequencePlayers.Num() > 0; }
 
 #if WITH_EDITOR
-	//~ Begin UWidget Interface
+	// UWidget interface
 	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual const FText GetPaletteCategory() override;
-	//~ End UWidget Interface
+	// End UWidget interface
 
 	void SetDesignerFlags(EWidgetDesignFlags::Type NewFlags);
 #endif
@@ -799,16 +787,9 @@ public:
 	UPROPERTY()
 	FGetSlateColor ForegroundColorDelegate;
 
-	/** The padding area around the content. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Appearance")
-	FMargin Padding;
-
-	UPROPERTY()
-	bool bSupportsKeyboardFocus_DEPRECATED;
-
 	/** Setting this flag to true, allows this widget to accept focus when clicked, or when navigated to. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Interaction")
-	bool bIsFocusable;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Interaction", meta=(DisplayName="Is Focusable"))
+	bool bSupportsKeyboardFocus;
 
 	/** The widget tree contained inside this user widget initialized by the blueprint */
 	UPROPERTY(Transient)
@@ -825,12 +806,6 @@ public:
 	/** Stores the widgets being assigned to named slots */
 	UPROPERTY()
 	TArray<FNamedSlotBinding> NamedSlotBindings;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
-	bool bStopAction;
-
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Input" )
-	int32 Priority;
 
 #if WITH_EDITORONLY_DATA
 
@@ -862,22 +837,16 @@ public:
 
 #endif
 
-	/** If a widget doesn't ever need to tick the blueprint, setting this to false is an optimization. */
-	bool bCanEverTick : 1;
-
-	/** If a widget doesn't ever need to do custom painting in the blueprint, setting this to false is an optimization. */
-	bool bCanEverPaint : 1;
-
 protected:
 
 	/** Adds the widget to the screen, either to the viewport or to the player's screen depending on if the LocalPlayer is null. */
-	virtual void AddToScreen(ULocalPlayer* LocalPlayer, int32 ZOrder);
+	void AddToScreen(ULocalPlayer* LocalPlayer, int32 ZOrder);
 
 	/**
 	 * Called when a top level widget is in the viewport and the world is potentially coming to and end. When this occurs, 
 	 * it's not save to keep widgets on the screen.  We automatically remove them when this happens and mark them for pending kill.
 	 */
-	virtual void OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld);
+	void OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld);
 
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	virtual void OnWidgetRebuilt() override;
@@ -932,31 +901,6 @@ protected:
 	 */
 	void TickActionsAndAnimation(const FGeometry& MyGeometry, float InDeltaTime);
 
-	void RemoveObsoleteBindings(const TArray<FName>& NamedSlots);
-	
-	UFUNCTION( BlueprintCallable, Category = "Input", meta = ( BlueprintProtected = "true" ) )
-	void ListenForInputAction( FName ActionName, TEnumAsByte< EInputEvent > EventType, bool bConsume, FOnInputAction Callback );
-
-	UFUNCTION( BlueprintCallable, Category = "Input", meta = ( BlueprintProtected = "true" ) )
-	void StopListeningForInputAction( FName ActionName, TEnumAsByte< EInputEvent > EventType );
-
-	UFUNCTION( BlueprintCallable, Category = "Input", meta = ( BlueprintProtected = "true" ) )
-	void StopListeningForAllInputActions();
-
-	UFUNCTION( BlueprintCallable, Category = "Input", meta = ( BlueprintProtected = "true" ) )
-	bool IsListeningForInputAction( FName ActionName ) const;
-
-	UFUNCTION( BlueprintCallable, Category = "Input", meta = ( BlueprintProtected = "true" ) )
-	void SetInputActionPriority( int32 NewPriority );
-
-	UFUNCTION( BlueprintCallable, Category = "Input", meta = ( BlueprintProtected = "true" ) )
-	void SetInputActionBlocking( bool bShouldBlock );
-
-	void OnInputAction( FOnInputAction Callback );
-
-	UPROPERTY( transient )
-	class UInputComponent* InputComponent;
-
 private:
 	FAnchors ViewportAnchors;
 	FMargin ViewportOffsets;
@@ -965,9 +909,6 @@ private:
 	TWeakPtr<SWidget> FullScreenWidget;
 
 	FLocalPlayerContext PlayerContext;
-
-	/** Get World calls can be expensive for Widgets, we speed them up by caching the last found world until it goes away. */
-	mutable TWeakObjectPtr<UWorld> CachedWorld;
 
 	/** Has this widget been initialized by its class yet? */
 	bool bInitialized;

@@ -1352,9 +1352,7 @@ DEFBUF **   look_prev(
     *cmp = -1;                              /* Initialize           */
 
     while ((dp = *prevp) != NULL) {
-// EPIC BEGIN
-        if ((*cmp = strncmp( dp->name, name, s_name)) >= 0)
-// EPIC END
+        if ((*cmp = memcmp( dp->name, name, s_name)) >= 0)
             break;
         prevp = &dp->link;
     }

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "FP_FirstPerson.h"
 #include "FP_FirstPersonCharacter.h"
@@ -187,13 +187,13 @@ void AFP_FirstPersonCharacter::TouchUpdate(const ETouchIndex::Type FingerIndex, 
 				FVector2D ScreenSize;
 				ViewportClient->GetViewportSize(ScreenSize);
 				FVector2D ScaledDelta = FVector2D(MoveDelta.X, MoveDelta.Y) / ScreenSize;
-				if (FMath::Abs(ScaledDelta.X) >= (4.0f / ScreenSize.X))
+				if (ScaledDelta.X != 0.0f)
 				{
 					TouchItem.bMoved = true;
 					float Value = ScaledDelta.X * BaseTurnRate;
 					AddControllerYawInput(Value);
 				}
-				if (FMath::Abs(ScaledDelta.Y) >= (4.0f / ScreenSize.Y))
+				if (ScaledDelta.Y != 0.0f)
 				{
 					TouchItem.bMoved = true;
 					float Value = ScaledDelta.Y* BaseTurnRate;

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ContentBrowserPCH.h"
 #include "SScrollBorder.h"
@@ -156,10 +156,6 @@ void SAssetView::Construct( const FArguments& InArgs )
 	bPreloadAssetsForContextMenu = InArgs._PreloadAssetsForContextMenu;
 
 	SelectionMode = InArgs._SelectionMode;
-
-	bShowPathInColumnView = InArgs._ShowPathInColumnView;
-	bShowTypeInColumnView = InArgs._ShowTypeInColumnView;
-	bSortByPathInColumnView = bShowPathInColumnView & InArgs._SortByPathInColumnView;
 
 	bPendingUpdateThumbnails = false;
 	CurrentThumbnailSize = TileViewThumbnailSize;
@@ -400,19 +396,6 @@ void SAssetView::Construct( const FArguments& InArgs )
 		TArray<FAssetData> AssetsToSync;
 		AssetsToSync.Add( InArgs._InitialAssetSelection );
 		SyncToAssets( AssetsToSync );
-	}
-
-	// If currently looking at column, and you could choose to sort by path in column first and then name
-	// Generalizing this is a bit difficult because the column ID is not accessible or is not known
-	// Currently I assume this won't work, if this view mode is not column. Otherwise, I don't think sorting by path
-	// is a good idea. 
-	if (CurrentViewType == EAssetViewType::Column && bSortByPathInColumnView)
-	{
-		SortManager.SetSortColumnId(EColumnSortPriority::Primary, SortManager.PathColumnId);
-		SortManager.SetSortColumnId(EColumnSortPriority::Secondary, SortManager.NameColumnId);
-		SortManager.SetSortMode(EColumnSortPriority::Primary, EColumnSortMode::Ascending);
-		SortManager.SetSortMode(EColumnSortPriority::Secondary, EColumnSortMode::Ascending);
-		SortList();
 	}
 }
 
@@ -1105,35 +1088,19 @@ void SAssetView::ProcessQueriedItems( const double TickStartTime )
 
 void SAssetView::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
-	TSharedPtr< FAssetDragDropOp > AssetDragDropOp = DragDropEvent.GetOperationAs< FAssetDragDropOp >();
-	if( AssetDragDropOp.IsValid() )
+	TSharedPtr< FAssetDragDropOp > DragAssetOp = DragDropEvent.GetOperationAs< FAssetDragDropOp >();
+	if( DragAssetOp.IsValid() )
 	{
-		AssetDragDropOp->ResetToDefaultToolTip();
-		return;
-	}
-
-	TSharedPtr<FDragDropOperation> DragDropOp = DragDropEvent.GetOperation();
-	if (DragDropOp.IsValid())
-	{
-		// Do we have a custom handler for this drag event?
-		FContentBrowserModule& ContentBrowserModule = FModuleManager::GetModuleChecked<FContentBrowserModule>("ContentBrowser");
-		const TArray<FAssetViewDragAndDropExtender>& AssetViewDragAndDropExtenders = ContentBrowserModule.GetAssetViewDragAndDropExtenders();
-		for (const auto& AssetViewDragAndDropExtender : AssetViewDragAndDropExtenders)
-		{
-			if (AssetViewDragAndDropExtender.OnDragLeaveDelegate.IsBound() && AssetViewDragAndDropExtender.OnDragLeaveDelegate.Execute(FAssetViewDragAndDropExtender::FPayload(DragDropOp, SourcesData.PackagePaths, SourcesData.Collections)))
-			{
-				return;
-			}
-		}
+		DragAssetOp->ResetToDefaultToolTip();
 	}
 }
 
 FReply SAssetView::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	TSharedPtr< FExternalDragOperation > ExternalDragDropOp = DragDropEvent.GetOperationAs< FExternalDragOperation >();
-	if ( ExternalDragDropOp.IsValid() )
+	TSharedPtr< FExternalDragOperation > DragDropOp = DragDropEvent.GetOperationAs< FExternalDragOperation >();
+	if ( DragDropOp.IsValid() )
 	{
-		if ( ExternalDragDropOp->HasFiles() )
+		if ( DragDropOp->HasFiles() )
 		{
 			return FReply::Handled();
 		}
@@ -1144,8 +1111,8 @@ FReply SAssetView::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent
 
 		if ( AssetDatas.Num() > 0 )
 		{
-			TSharedPtr< FAssetDragDropOp > AssetDragDropOp = DragDropEvent.GetOperationAs< FAssetDragDropOp >();
-			if( AssetDragDropOp.IsValid() )
+			TSharedPtr< FAssetDragDropOp > DragAssetOp = DragDropEvent.GetOperationAs< FAssetDragDropOp >();
+			if( DragAssetOp.IsValid() )
 			{
 				TArray< FName > ObjectPaths;
 				FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
@@ -1169,26 +1136,11 @@ FReply SAssetView::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent
 
 				if ( IsValidDrop )
 				{
-					AssetDragDropOp->SetToolTip( NSLOCTEXT( "AssetView", "OnDragOverCollection", "Add to Collection" ), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"))) ;
+					DragAssetOp->SetToolTip( NSLOCTEXT( "AssetView", "OnDragOverCollection", "Add to Collection" ), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"))) ;
 				}
 			}
 
 			return FReply::Handled();
-		}
-	}
-
-	TSharedPtr<FDragDropOperation> DragDropOp = DragDropEvent.GetOperation();
-	if (DragDropOp.IsValid())
-	{
-		// Do we have a custom handler for this drag event?
-		FContentBrowserModule& ContentBrowserModule = FModuleManager::GetModuleChecked<FContentBrowserModule>("ContentBrowser");
-		const TArray<FAssetViewDragAndDropExtender>& AssetViewDragAndDropExtenders = ContentBrowserModule.GetAssetViewDragAndDropExtenders();
-		for (const auto& AssetViewDragAndDropExtender : AssetViewDragAndDropExtenders)
-		{
-			if (AssetViewDragAndDropExtender.OnDragOverDelegate.IsBound() && AssetViewDragAndDropExtender.OnDragOverDelegate.Execute(FAssetViewDragAndDropExtender::FPayload(DragDropOp, SourcesData.PackagePaths, SourcesData.Collections)))
-			{
-				return FReply::Handled();
-			}
 		}
 	}
 
@@ -1200,13 +1152,13 @@ FReply SAssetView::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dr
 	// Handle drag drop for import
 	if ( IsAssetPathSelected() )
 	{
-		TSharedPtr<FExternalDragOperation> ExternalDragDropOp = DragDropEvent.GetOperationAs<FExternalDragOperation>();
-		if (ExternalDragDropOp.IsValid())
+		TSharedPtr<FExternalDragOperation> DragDropOp = DragDropEvent.GetOperationAs<FExternalDragOperation>();
+		if (DragDropOp.IsValid())
 		{
-			if ( ExternalDragDropOp->HasFiles() )
+			if ( DragDropOp->HasFiles() )
 			{
 				FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
-				AssetToolsModule.Get().ImportAssets( ExternalDragDropOp->GetFiles(), SourcesData.PackagePaths[0].ToString() );
+				AssetToolsModule.Get().ImportAssets( DragDropOp->GetFiles(), SourcesData.PackagePaths[0].ToString() );
 			}
 
 			return FReply::Handled();
@@ -1238,21 +1190,6 @@ FReply SAssetView::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dr
 		}
 	}
 
-	TSharedPtr<FDragDropOperation> DragDropOp = DragDropEvent.GetOperation();
-	if (DragDropOp.IsValid())
-	{
-		// Do we have a custom handler for this drag event?
-		FContentBrowserModule& ContentBrowserModule = FModuleManager::GetModuleChecked<FContentBrowserModule>("ContentBrowser");
-		const TArray<FAssetViewDragAndDropExtender>& AssetViewDragAndDropExtenders = ContentBrowserModule.GetAssetViewDragAndDropExtenders();
-		for (const auto& AssetViewDragAndDropExtender : AssetViewDragAndDropExtenders)
-		{
-			if (AssetViewDragAndDropExtender.OnDropDelegate.IsBound() && AssetViewDragAndDropExtender.OnDropDelegate.Execute(FAssetViewDragAndDropExtender::FPayload(DragDropOp, SourcesData.PackagePaths, SourcesData.Collections)))
-			{
-				return FReply::Handled();
-			}
-		}
-	}
-
 	return FReply::Unhandled();
 }
 
@@ -1273,30 +1210,10 @@ FReply SAssetView::OnKeyChar( const FGeometry& MyGeometry,const FCharacterEvent&
 FReply SAssetView::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	{
-		const bool bTestOnly = true;
-		if ( InKeyEvent.IsControlDown() && InKeyEvent.GetCharacter() == 'V' && IsAssetPathSelected() )
-		{
-			FString DestPaths;
-			TArray<FString> DestPathsSplit;
-
-			// Get the copied asset paths
-			FPlatformMisc::ClipboardPaste( DestPaths );
-			DestPaths.ParseIntoArrayLines( DestPathsSplit );
-
-			// Get assets and copy them
-			TArray<UObject*> ObjectsToCopy;
-			for (FString DestPath : DestPathsSplit)
-			{
-				if ( !(DestPath == TEXT("None")) )
-				{
-					ObjectsToCopy.Add( LoadObject<UObject>( NULL, *DestPath ));
-				}
-			}
-			ContentBrowserUtils::CopyAssets( ObjectsToCopy, SourcesData.PackagePaths[0].ToString() );
-		}
 		// Swallow the key-presses used by the quick-jump in OnKeyChar to avoid other things (such as the viewport commands) getting them instead
 		// eg) Pressing "W" without this would set the viewport to "translate" mode
-		else if( HandleQuickJumpKeyDown(InKeyEvent.GetCharacter(), InKeyEvent.IsControlDown(), InKeyEvent.IsAltDown(), bTestOnly).IsEventHandled() )
+		const bool bTestOnly = true;
+		if(HandleQuickJumpKeyDown(InKeyEvent.GetCharacter(), InKeyEvent.IsControlDown(), InKeyEvent.IsAltDown(), bTestOnly).IsEventHandled())
 		{
 			return FReply::Handled();
 		}
@@ -1353,7 +1270,7 @@ TSharedRef<SAssetListView> SAssetView::CreateListView()
 
 TSharedRef<SAssetColumnView> SAssetView::CreateColumnView()
 {
-	TSharedPtr<SAssetColumnView> NewColumnView = SNew(SAssetColumnView)
+	return SNew(SAssetColumnView)
 		.SelectionMode( SelectionMode )
 		.ListItemsSource(&FilteredAssetItems)
 		.OnGenerateRow(this, &SAssetView::MakeColumnViewWidget)
@@ -1371,34 +1288,14 @@ TSharedRef<SAssetColumnView> SAssetView::CreateColumnView()
 			.SortPriority(TAttribute< EColumnSortPriority::Type >::Create(TAttribute< EColumnSortPriority::Type >::FGetter::CreateSP(this, &SAssetView::GetColumnSortPriority, SortManager.NameColumnId)))
 			.OnSort( FOnSortModeChanged::CreateSP( this, &SAssetView::OnSortColumnHeader ) )
 			.DefaultLabel( LOCTEXT("Column_Name", "Name") )
+			//@TODO: Query the OnAssetTagWantsToBeDisplayed column filter here too, in case the user wants to bury the type column
+			+ SHeaderRow::Column(SortManager.ClassColumnId)
+			.FillWidth(160)
+			.SortMode( TAttribute< EColumnSortMode::Type >::Create( TAttribute< EColumnSortMode::Type >::FGetter::CreateSP( this, &SAssetView::GetColumnSortMode, SortManager.ClassColumnId ) ) )
+			.SortPriority(TAttribute< EColumnSortPriority::Type >::Create(TAttribute< EColumnSortPriority::Type >::FGetter::CreateSP(this, &SAssetView::GetColumnSortPriority, SortManager.ClassColumnId)))
+			.OnSort( FOnSortModeChanged::CreateSP( this, &SAssetView::OnSortColumnHeader ) )
+			.DefaultLabel( LOCTEXT("Column_Class", "Type") )
 		);
-
-	if(bShowTypeInColumnView)
-	{
-		NewColumnView->GetHeaderRow()->AddColumn(
-				SHeaderRow::Column(SortManager.ClassColumnId)
-				.FillWidth(160)
-				.SortMode(TAttribute< EColumnSortMode::Type >::Create(TAttribute< EColumnSortMode::Type >::FGetter::CreateSP(this, &SAssetView::GetColumnSortMode, SortManager.ClassColumnId)))
-				.SortPriority(TAttribute< EColumnSortPriority::Type >::Create(TAttribute< EColumnSortPriority::Type >::FGetter::CreateSP(this, &SAssetView::GetColumnSortPriority, SortManager.ClassColumnId)))
-				.OnSort(FOnSortModeChanged::CreateSP(this, &SAssetView::OnSortColumnHeader))
-				.DefaultLabel(LOCTEXT("Column_Class", "Type"))
-			);
-	}
-
-
-	if (bShowPathInColumnView)
-	{
-		NewColumnView->GetHeaderRow()->AddColumn(
-				SHeaderRow::Column(SortManager.PathColumnId)
-				.FillWidth(160)
-				.SortMode(TAttribute< EColumnSortMode::Type >::Create(TAttribute< EColumnSortMode::Type >::FGetter::CreateSP(this, &SAssetView::GetColumnSortMode, SortManager.PathColumnId)))
-				.SortPriority(TAttribute< EColumnSortPriority::Type >::Create(TAttribute< EColumnSortPriority::Type >::FGetter::CreateSP(this, &SAssetView::GetColumnSortPriority, SortManager.PathColumnId)))
-				.OnSort(FOnSortModeChanged::CreateSP(this, &SAssetView::OnSortColumnHeader))
-				.DefaultLabel(LOCTEXT("Column_Path", "Path"))
-			);
-	}
-
-	return NewColumnView.ToSharedRef();
 }
 
 bool SAssetView::IsValidSearchToken(const FString& Token) const
@@ -1538,18 +1435,19 @@ void SAssetView::RefreshSourceItems()
 	for (int32 AssetIdx = Items.Num() - 1; AssetIdx >= 0; --AssetIdx)
 	{
 		const FAssetData& Item = Items[AssetIdx];
-		// Do not show redirectors if they are not the main asset in the uasset file.
-		const bool IsMainlyARedirector = Item.AssetClass == UObjectRedirector::StaticClass()->GetFName() && !Item.IsUAsset();
-		// If this is an engine folder, and we don't want to show them, remove
-		const bool IsHiddenEngineFolder = !bDisplayEngine && ContentBrowserUtils::IsEngineFolder(Item.PackagePath.ToString());
-		// If this is a plugin folder, and we don't want to show them, remove
-		const bool IsAHiddenPluginFolder = !bDisplayPlugins && ContentBrowserUtils::IsPluginFolder(Item.PackagePath.ToString());
-		// Do not show localized content folders.
-		const bool IsLocalizedContentFolder = ContentBrowserUtils::IsLocalizationFolder(Item.PackagePath.ToString());
-
-		const bool ShouldFilterOut = IsMainlyARedirector || IsHiddenEngineFolder || IsAHiddenPluginFolder || IsLocalizedContentFolder;
-		if (ShouldFilterOut)
+		if ( Item.AssetClass == UObjectRedirector::StaticClass()->GetFName() && !Item.IsUAsset() )
 		{
+			// Do not show redirectors if they are not the main asset in the uasset file.
+			Items.RemoveAtSwap(AssetIdx);
+		}
+		else if ( !bDisplayEngine && ContentBrowserUtils::IsEngineFolder(Item.PackagePath.ToString()) )
+		{
+			// If this is an engine folder, and we don't want to show them, remove
+			Items.RemoveAtSwap(AssetIdx);
+		}
+		else if ( !bDisplayPlugins && ContentBrowserUtils::IsPluginFolder(Item.PackagePath.ToString()) )
+		{
+			// If this is a plugin folder, and we don't want to show them, remove
 			Items.RemoveAtSwap(AssetIdx);
 		}
 	}
@@ -1797,11 +1695,6 @@ void SAssetView::RefreshFolders()
 					continue;
 				}
 
-				if (ContentBrowserUtils::IsLocalizationFolder(SubPath))
-				{
-					continue;
-				}
-
 				if(!Folders.Contains(SubPath))
 				{
 					FoldersToAdd.Add(SubPath);
@@ -1872,12 +1765,7 @@ void SAssetView::SetMajorityAssetType(FName NewMajorityAssetType)
 		for ( int32 ColumnIdx = Columns.Num() - 1; ColumnIdx >= 0; --ColumnIdx )
 		{
 			const FName ColumnId = Columns[ColumnIdx].ColumnId;
-
-			const bool bIsFixedNameColumn = ColumnId == SortManager.NameColumnId;
-			const bool bIsFixedClassColumn = bShowTypeInColumnView && ColumnId == SortManager.ClassColumnId;
-			const bool bIsFixedPathColumn = bShowPathInColumnView && ColumnId == SortManager.PathColumnId;
-
-			if ( ColumnId != NAME_None && !(bIsFixedNameColumn || bIsFixedClassColumn || bIsFixedPathColumn) )
+			if ( ColumnId != SortManager.NameColumnId && ColumnId != SortManager.ClassColumnId && ColumnId != NAME_None )
 			{
 				ColumnView->GetHeaderRow()->RemoveColumn(ColumnId);
 			}
@@ -2592,7 +2480,6 @@ void SAssetView::ToggleRealTimeThumbnails()
 {
 	check( CanShowRealTimeThumbnails() );
 	GetMutableDefault<UContentBrowserSettings>()->RealTimeThumbnails = !GetDefault<UContentBrowserSettings>()->RealTimeThumbnails;
-	GetMutableDefault<UContentBrowserSettings>()->PostEditChange();
 }
 
 bool SAssetView::CanShowRealTimeThumbnails() const

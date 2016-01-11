@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -8,8 +8,15 @@ public class CookingStats : ModuleRules
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
-				"Core"
+				"Core",
+				"CoreUObject"
 			}
 			);
+
+		if (UEBuildConfiguration.bBuildEditor == true)
+		{
+			PrivateIncludePathModuleNames.AddRange(new string[] { "DirectoryWatcher" });
+			DynamicallyLoadedModuleNames.AddRange(new string[] { "DirectoryWatcher" });
+		}
 	}
 }

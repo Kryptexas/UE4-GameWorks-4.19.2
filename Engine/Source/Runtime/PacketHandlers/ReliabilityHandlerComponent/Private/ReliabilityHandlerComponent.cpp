@@ -1,5 +1,3 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
 #include "ReliabilityHandlerComponent.h"
 
 IMPLEMENT_MODULE(FReliabilityHandlerComponentModuleInterface, ReliabilityHandlerComponent);
@@ -181,7 +179,7 @@ void ReliabilityHandlerComponent::QueuePacketForResending(uint8* Packet, int32 C
 }
 
 // MODULE INTERFACE
-TSharedPtr<HandlerComponent> FReliabilityHandlerComponentModuleInterface::CreateComponentInstance(FString& Options)
+HandlerComponent* FReliabilityHandlerComponentModuleInterface::CreateComponentInstance()
 {
-	return MakeShareable(new ReliabilityHandlerComponent);
+	return new ReliabilityHandlerComponent;
 }

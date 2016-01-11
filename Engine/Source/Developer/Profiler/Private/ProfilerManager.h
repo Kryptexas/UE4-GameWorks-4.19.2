@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
  
 #pragma once
 
@@ -11,7 +11,8 @@ class FProfilerSettings
 {
 public:
 	FProfilerSettings( bool bInIsDefault = false )
-		: bShowCoalescedViewModesInEventGraph( true )
+		: bSingleInstanceMode( true )
+		, bShowCoalescedViewModesInEventGraph( true )
 		, bIsEditing( false )
 		, bIsDefault( bInIsDefault )
 	{
@@ -33,11 +34,13 @@ public:
 	{
 		FConfigCacheIni::LoadGlobalIniFile(ProfilerSettingsIni, TEXT("ProfilerSettings"));
 
+		GConfig->GetBool( TEXT("Profiler.ProfilerOptions"), TEXT("bSingleInstanceMode"), bSingleInstanceMode, ProfilerSettingsIni );
 		GConfig->GetBool( TEXT("Profiler.ProfilerOptions"), TEXT("bShowCoalescedViewModesInEventGraph"), bShowCoalescedViewModesInEventGraph, ProfilerSettingsIni );
 	}
 
 	void SaveToConfig()
 	{
+		GConfig->SetBool( TEXT("Profiler.ProfilerOptions"), TEXT("bSingleInstanceMode"), bSingleInstanceMode, ProfilerSettingsIni );
 		GConfig->SetBool( TEXT("Profiler.ProfilerOptions"), TEXT("bShowCoalescedViewModesInEventGraph"), bShowCoalescedViewModesInEventGraph, ProfilerSettingsIni );
 		GConfig->Flush( false, ProfilerSettingsIni );
 	}
@@ -68,6 +71,9 @@ public:
 
 	/** Profiler setting filename ini. */
 	FString ProfilerSettingsIni;
+
+	/** If True, the profiler will work in the single instance mode, all functionality related to multi instances will be disabled or removed from the UI. */
+	bool bSingleInstanceMode;
 
 	/** If True, coalesced view modes related functionality will be added to the event graph. */
 	bool bShowCoalescedViewModesInEventGraph;
@@ -253,14 +259,6 @@ public:
 	}
 
 	/**
-	 * @return an instance of the profiler session.
-	 */
-	FProfilerSessionPtr GetProfilerSession()
-	{
-		return ProfilerSession;
-	}
-
-	/**
 	 * Creates a combined graph data source which will provide data for graph drawing.
 	 *
 	 * @param StatID - the ID of the stat that will used for generating the combined graph data source.
@@ -284,6 +282,31 @@ public:
 	bool TrackStatForSessionInstance( const uint32 StatID, const FGuid& SessionInstanceID );
 	bool UntrackStatForSessionInstance( const uint32 StatID, const FGuid& SessionInstanceID );
 	const bool IsStatTrackedForSessionInstance( const uint32 StatID, const FGuid& SessionInstanceID ) const;
+	bool TrackSessionInstance( const FGuid& SessionInstanceID );
+	bool UntrackSessionInstance( const FGuid& SessionInstanceID );
+
+	/**
+	 * @return true, if the specified session instance ID belongs to a valid profiler session.
+	 */
+	bool IsSessionInstanceValid( const FGuid& SessionInstanceID ) const
+	{
+		const bool bIsValid = SessionInstanceID.IsValid() && ProfilerSessionInstances.Contains( SessionInstanceID );
+		return bIsValid;
+	}
+
+	const FProfilerSessionRef* FindSessionInstance( const FGuid& SessionInstanceID ) const
+	{
+		return ProfilerSessionInstances.Find( SessionInstanceID );
+	}
+
+	// TODO: At this moment SButtonRowBlock::OnIsChecked supports only Checked and Unchecked
+	// ECheckBoxState.Undetermined is not supported
+	/**
+	 * @return true, if the specified session instance tracks any stats.
+	 */
+	const bool IsSessionInstanceTracked( const FGuid& SessionInstanceID ) const;
+
+	//-----------------------------------------------------------------------------
 
 	/**
 	 * @return True, if the profiler has at least one fully processed capture file
@@ -298,13 +321,7 @@ public:
 	 */
 	const bool IsConnected() const
 	{
-		const bool bIsValid = ActiveSession.IsValid() && ActiveInstanceID.IsValid();
-		return bIsValid;
-	}
-
-	const bool HasValidSession() const
-	{
-		return ProfilerSession.IsValid();
+		return ActiveSession.IsValid();
 	}
 
 	/**
@@ -317,7 +334,24 @@ public:
 
 public:
 	/** @return true, if all session instances are previewing data */
-	const bool IsDataPreviewing() const;
+	const bool IsDataPreviewing()
+	{
+		return GetProfilerInstancesNum() > 0 && GetNumDataPreviewingInstances() == GetProfilerInstancesNum();
+	}
+
+	/** @return the number of session instances with data previewing enabled */
+	const int32 GetNumDataPreviewingInstances()
+	{
+		int32 NumDataPreviewingInstances = 0;
+
+		for( auto It = GetProfilerInstancesIterator(); It; ++It )
+		{
+			FProfilerSessionRef ProfilerSession = It.Value();
+			NumDataPreviewingInstances += ProfilerSession->bDataPreviewing ? 1 : 0;
+		}
+
+		return NumDataPreviewingInstances;
+	}
 
 	/**
 	 * Sets the data preview state for all session instances and sends message for remote profiler services.
@@ -325,10 +359,35 @@ public:
 	 * @param bRequestedDataPreviewState - data preview state that should be set
 	 *
 	 */
-	void SetDataPreview( const bool bRequestedDataPreviewState );
+	void SetDataPreview( const bool bRequestedDataPreviewState )
+	{
+		ProfilerClient->SetPreviewState( bRequestedDataPreviewState );
+		for( auto It = GetProfilerInstancesIterator(); It; ++It )
+		{
+			FProfilerSessionRef ProfilerSession = It.Value();
+			ProfilerSession->bDataPreviewing = bRequestedDataPreviewState;	
+		}
+	}
 
 	/** @return true, if all sessions instances are capturing data to a file, only valid if profiler is connected to network based session */
-	const bool IsDataCapturing() const;
+	const bool IsDataCapturing()
+	{
+		return GetProfilerInstancesNum() > 0 && GetNumDataCapturingInstances() == GetProfilerInstancesNum();
+	}
+
+	/** @return the number of session instances with data capturing enabled. */
+	const int32 GetNumDataCapturingInstances()
+	{
+		int32 NumDataCapturingInstances = 0;
+
+		for( auto It = GetProfilerInstancesIterator(); It; ++It )
+		{
+			FProfilerSessionRef ProfilerSession = It.Value();
+			NumDataCapturingInstances += ProfilerSession->bDataCapturing ? 1 : 0;
+		}
+
+		return NumDataCapturingInstances;
+	}
 
 	/**
 	 * Sets the data capture state for all session instances and sends message for remote profiler services.
@@ -451,24 +510,39 @@ public:
 	 * Creates a new profiler session instance and loads a saved profiler capture from the specified location.
 	 *
 	 * @param ProfilerCaptureFilepath	- The path to the file containing a captured session instance
+	 * @param bAdd						- if true, it will load a captured session instance and add to the existing ones
+	 *
 	 */
-	void LoadProfilerCapture( const FString& ProfilerCaptureFilepath );
+	void LoadProfilerCapture( const FString& ProfilerCaptureFilepath, const bool bAdd = false );
 
 	/** Creates a new profiler session instance and load a raw stats file from the specified location. */
 	void LoadRawStatsFile( const FString& RawStatsFileFileath );
 
 protected:
-	void ProfilerClient_OnProfilerData( const FGuid& InstanceID, const FProfilerDataFrame& Content );
+	void ProfilerClient_OnProfilerData( const FGuid& InstanceID, const FProfilerDataFrame& Content, const float DataLoadingProgress );
 	void ProfilerClient_OnClientConnected( const FGuid& SessioID, const FGuid& InstanceID );
 	void ProfilerClient_OnClientDisconnected( const FGuid& SessionID, const FGuid& InstanceID );
-	void ProfilerClient_OnMetaDataUpdated( const FGuid& InstanceID, const FStatMetaData& MetaData );
+	void ProfilerClient_OnMetaDataUpdated( const FGuid& InstanceID );
+	void ProfilerClient_OnLoadedMetaData( const FGuid& InstanceID );
 	void ProfilerClient_OnLoadCompleted( const FGuid& InstanceID );
 	void ProfilerClient_OnLoadStarted( const FGuid& InstanceID );
 
 	void ProfilerClient_OnProfilerFileTransfer( const FString& Filename, int64 FileProgress, int64 FileSize );
 
-	void SessionManager_OnInstanceSelectionChanged( const TSharedPtr<ISessionInstanceInfo>& Instance, bool Selected );
+	void SessionManager_OnCanSelectSession( const ISessionInfoPtr& Session, bool& CanSelect );
+	void SessionManager_OnInstanceSelectionChanged();
 	void SessionManager_OnSelectedSessionChanged( const ISessionInfoPtr& Session );
+
+public:
+	TMap<FGuid,FProfilerSessionRef>::TIterator GetProfilerInstancesIterator()
+	{
+		return ProfilerSessionInstances.CreateIterator();
+	}
+
+	const int32 GetProfilerInstancesNum() const
+	{
+		return ProfilerSessionInstances.Num();
+	}
 
 public:
 	const FLinearColor& GetColorForStatID( const uint32 StatID ) const;
@@ -507,11 +581,8 @@ protected:
 	/** A shared pointer to the currently selected session in the session browser. */
 	ISessionInfoPtr ActiveSession;
 
-	/** A shared pointer to the currently selected instance in the session browser. */
-	FGuid/*ISessionInstanceInfoPtr*/ ActiveInstanceID;
-
-	/** Profiler session, to be removed from here. */
-	FProfilerSessionPtr ProfilerSession;
+	/** Session instances currently selected in the session browser. */
+	TArray<ISessionInstanceInfoPtr> SelectedSessionInstances;
 
 	/** A shared pointer to the profiler client, which is used to deliver all profiler data from the active session. */
 	IProfilerClientPtr ProfilerClient;
@@ -538,7 +609,9 @@ protected:
 	/** Contains all currently tracked stats, stored as StatID -> FTrackedStat. */
 	TMap<uint32, FTrackedStat> TrackedStats;
 
-	
+	/** Holds all profiler session instances, stored as FGuid -> FProfilerSessionRef. */
+	TMap<FGuid,FProfilerSessionRef> ProfilerSessionInstances;
+
 	/*-----------------------------------------------------------------------------
 		Profiler manager states
 	-----------------------------------------------------------------------------*/

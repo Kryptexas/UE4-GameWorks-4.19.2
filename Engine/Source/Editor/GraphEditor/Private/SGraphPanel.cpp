@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "GraphEditorCommon.h"
@@ -159,8 +159,6 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 	const int32 NodeLayerId = NodeShadowsLayerId + 1;
 	int32 MaxLayerId = NodeLayerId;
 
-	const FPaintArgs NewArgs = Args.WithNewParent(this);
-
 	const FVector2D NodeShadowSize = GetDefault<UGraphEditorSettings>()->GetShadowDeltaSize();
 	const UEdGraphSchema* Schema = GraphObj->GetSchema();
 
@@ -265,7 +263,7 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 					const FWidgetStyle& NodeStyleToUse = (bNodeIsDifferent && !bNodeIsNotUsableInCurrentContext)? InWidgetStyle : FadedStyle;
 
 					// Draw the node.O
-					CurWidgetsMaxLayerId = CurWidget.Widget->Paint(NewArgs, CurWidget.Geometry, MyClippingRect, OutDrawElements, ChildLayerId, NodeStyleToUse, !DisplayAsReadOnly.Get() && ShouldBeEnabled( bParentEnabled ) );
+					CurWidgetsMaxLayerId = CurWidget.Widget->Paint( Args.WithNewParent(this), CurWidget.Geometry, MyClippingRect, OutDrawElements, ChildLayerId, NodeStyleToUse, !DisplayAsReadOnly.Get() && ShouldBeEnabled( bParentEnabled ) );
 				}
 
 				// Draw the node's overlay, if it has one.
@@ -315,7 +313,7 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 
 								const FGeometry WidgetGeometry = CurWidget.Geometry.MakeChild(OverlayInfo.OverlayOffset, OverlayInfo.Widget->GetDesiredSize());
 
-								OverlayInfo.Widget->Paint(NewArgs, WidgetGeometry, MyClippingRect, OutDrawElements, CurWidgetsMaxLayerId, InWidgetStyle, bParentEnabled);
+								OverlayInfo.Widget->Paint(Args.WithNewParent(this), WidgetGeometry, MyClippingRect, OutDrawElements, CurWidgetsMaxLayerId, InWidgetStyle, bParentEnabled);
 							}
 						}
 					}
@@ -1433,7 +1431,7 @@ void SGraphPanel::Update()
 			}
 			else
 			{
-				UE_LOG(LogGraphPanel, Warning, TEXT("Found NULL Node in GraphObj array of a graph in asset '%s'. A node type has been deleted without creating an ActiveClassRedirector to K2Node_DeadClass."), *GraphObj->GetOutermost()->GetName());
+				UE_LOG(LogGraphPanel, Warning, TEXT("Found NULL Node in GraphObj array. A node type has been deleted without creating an ActiveClassRedictor to K2Node_DeadClass."));
 			}
 		}
 
@@ -1603,43 +1601,61 @@ void SGraphPanel::OnGraphChanged(const FEdGraphEditAction& EditAction)
 		// that the timer system requires (and we don't leverage):
 		if (bWasRemoveAction)
 		{
-			const auto RemoveNodeDelegateWrapper = [](double, float, SGraphPanel* Parent, const UEdGraphNode* Node) -> EActiveTimerReturnType
+			const auto RemoveNodeDelegateWrapper = [](double, float, SGraphPanel* Parent, TWeakObjectPtr<UEdGraphNode> NodePtr) -> EActiveTimerReturnType
 			{
-				Parent->RemoveNode(Node);
+				if (UEdGraphNode* Node = NodePtr.Get())
+				{
+					Parent->RemoveNode(Node);
+				}
 				return EActiveTimerReturnType::Stop;
 			};
 
-			for (auto Node : EditAction.Nodes)
+			for (const UEdGraphNode* Node : EditAction.Nodes)
 			{
-				RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateStatic(RemoveNodeDelegateWrapper, this, Node));
+				TWeakObjectPtr<UEdGraphNode> NodePtr = Node;
+				RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateStatic(RemoveNodeDelegateWrapper, this, NodePtr));
 			}
 		}
 		if (bWasAddAction)
 		{
-			const auto AddNodeDelegateWrapper = [](double, float, SGraphPanel* Parent, UEdGraphNode* Node, bool bForceUserAdded) -> EActiveTimerReturnType
+			const auto AddNodeDelegateWrapper = [](double, float, SGraphPanel* Parent, TWeakObjectPtr<UEdGraphNode> NodePtr, bool bForceUserAdded) -> EActiveTimerReturnType
 			{
-				Parent->RemoveNode(Node);
-				Parent->AddNode(Node, bForceUserAdded ? WasUserAdded : NotUserAdded );
+				if (UEdGraphNode* Node = NodePtr.Get())
+				{
+					Parent->RemoveNode(Node);
+					Parent->AddNode(Node, bForceUserAdded ? WasUserAdded : NotUserAdded);
+				}
 				return EActiveTimerReturnType::Stop;
 			};
 
-			for (auto Node : EditAction.Nodes)
+			for (const UEdGraphNode* Node : EditAction.Nodes)
 			{
-				RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateStatic(AddNodeDelegateWrapper, this, const_cast<UEdGraphNode*>(Node), EditAction.bUserInvoked ) );
+				TWeakObjectPtr<UEdGraphNode> NodePtr = Node;
+				RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateStatic(AddNodeDelegateWrapper, this, NodePtr, EditAction.bUserInvoked));
 			}
 		}
 		if (bWasSelectAction)
 		{
-			const auto SelectNodeDelegateWrapper = [](double, float, SGraphPanel* Parent, TSet<const UEdGraphNode*> Nodes) -> EActiveTimerReturnType
+			const auto SelectNodeDelegateWrapper = [](double, float, SGraphPanel* Parent, TSet< TWeakObjectPtr<UEdGraphNode> > NodePtrs) -> EActiveTimerReturnType
 			{
 				Parent->DeferredSelectionTargetObjects.Empty();
-				for (auto Node : Nodes)
+				for (TWeakObjectPtr<UEdGraphNode>& NodePtr : NodePtrs)
 				{
-					Parent->DeferredSelectionTargetObjects.Add(Node);
+					if (UEdGraphNode* Node = NodePtr.Get())
+					{
+						Parent->DeferredSelectionTargetObjects.Add(Node);
+					}
 				}
 				return EActiveTimerReturnType::Stop;
 			};
-			RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateStatic(SelectNodeDelegateWrapper, this, EditAction.Nodes));
+
+			TSet< TWeakObjectPtr<UEdGraphNode> > NodePtrSet;
+			for (const UEdGraphNode* Node : EditAction.Nodes)
+			{
+				NodePtrSet.Add(Node);
+			}
+
+			RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateStatic(SelectNodeDelegateWrapper, this, NodePtrSet));
 		}
 	}
 }

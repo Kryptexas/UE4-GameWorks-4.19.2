@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.Collections.Generic;
@@ -10,6 +10,11 @@ public class BootstrapPackagedGameTarget : TargetRules
 		Type = TargetType.Program;
 
 		bUseStaticCRT = true;
+
+		if (Target.Platform == UnrealTargetPlatform.Win32)
+		{
+			PreferredSubPlatform = "WindowsXP";
+		}
 	}
 
 	//
@@ -49,11 +54,6 @@ public class BootstrapPackagedGameTarget : TargetRules
 		UEBuildConfiguration.bBuildWithEditorOnlyData = false;
 		UEBuildConfiguration.bCompileAgainstEngine = false;
 		UEBuildConfiguration.bCompileAgainstCoreUObject = false;
-
-		if (Target.Platform == UnrealTargetPlatform.Win32)
-		{
-			UEBuildConfiguration.PreferredSubPlatform = "WindowsXP";
-		}
 	}
 	
     public override bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, out bool bInternalToolOnly, out bool SeparateNode, out bool CrossCompile)

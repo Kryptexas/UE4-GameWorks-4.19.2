@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BasePassRendering.inl: Base pass rendering implementations.
@@ -7,11 +7,11 @@
 
 #pragma once
 
-template<typename VertexParametersType>
-inline void TBasePassVertexShaderPolicyParamType<VertexParametersType>::SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy, const FMeshBatch& Mesh, const FMeshBatchElement& BatchElement, const FMeshDrawingRenderState& DrawRenderState)
+template<typename LightMapPolicyType>
+inline void TBasePassVertexShaderBaseType<LightMapPolicyType>::SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy, const FMeshBatch& Mesh, const FMeshBatchElement& BatchElement, float DitheredLODTransitionValue)
 {
 	FVertexShaderRHIParamRef VertexShaderRHI = GetVertexShader();
-	FMeshMaterialShader::SetMesh(RHICmdList, VertexShaderRHI, VertexFactory, View, Proxy, BatchElement, DrawRenderState);
+	FMeshMaterialShader::SetMesh(RHICmdList, VertexShaderRHI, VertexFactory, View, Proxy, BatchElement, DitheredLODTransitionValue);
 
 	const bool bHasPreviousLocalToWorldParameter = PreviousLocalToWorldParameter.IsBound();
 	const bool bHasSkipOutputVelocityParameter = SkipOutputVelocityParameter.IsBound();
@@ -46,16 +46,8 @@ inline void TBasePassVertexShaderPolicyParamType<VertexParametersType>::SetMesh(
 	}
 }
 
-template<typename VertexParametersType>
-void TBasePassVertexShaderPolicyParamType<VertexParametersType>::SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) {
-	if (InstancedEyeIndexParameter.IsBound())
-	{
-		SetShaderValue(RHICmdList, GetVertexShader(), InstancedEyeIndexParameter, EyeIndex);
-	}
-}
-
-template<typename PixelParametersType>
-void TBasePassPixelShaderPolicyParamType<PixelParametersType>::SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory, const FSceneView& View, const FPrimitiveSceneProxy* Proxy, const FMeshBatchElement& BatchElement, const FMeshDrawingRenderState& DrawRenderState, EBlendMode BlendMode)
+template<typename LightMapPolicyType>
+void TBasePassPixelShaderBaseType<LightMapPolicyType>::SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory, const FSceneView& View, const FPrimitiveSceneProxy* Proxy, const FMeshBatchElement& BatchElement, EBlendMode BlendMode, float DitheredLODTransitionValue)
 {
 	if (View.GetFeatureLevel() >= ERHIFeatureLevel::SM4
 		&& IsTranslucentBlendMode(BlendMode))
@@ -63,5 +55,5 @@ void TBasePassPixelShaderPolicyParamType<PixelParametersType>::SetMesh(FRHIComma
 		TranslucentLightingParameters.SetMesh(RHICmdList, this, Proxy, View.GetFeatureLevel());
 	}
 
-	FMeshMaterialShader::SetMesh(RHICmdList, GetPixelShader(), VertexFactory, View, Proxy, BatchElement, DrawRenderState);
+	FMeshMaterialShader::SetMesh(RHICmdList, GetPixelShader(), VertexFactory, View, Proxy, BatchElement,DitheredLODTransitionValue);
 }

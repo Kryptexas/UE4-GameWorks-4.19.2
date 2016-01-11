@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "NetcodeUnitTestPCH.h"
 
@@ -40,10 +40,7 @@ class FNetcodeUnitTest : public INetcodeUnitTest
 {
 private:
 	static FWorldDelegates::FWorldInitializationEvent::FDelegate OnWorldCreatedDelegate;
-
-#if TARGET_UE4_CL >= CL_DEPRECATEDEL
 	static FDelegateHandle OnWorldCreatedDelegateHandle;
-#endif
 
 public:
 	/**
@@ -58,11 +55,7 @@ public:
 			OnWorldCreatedDelegate = FWorldDelegates::FWorldInitializationEvent::FDelegate::CreateStatic(
 										&FNetcodeUnitTest::OnWorldCreated);
 
-#if TARGET_UE4_CL >= CL_DEPRECATEDEL
 			OnWorldCreatedDelegateHandle = FWorldDelegates::OnPreWorldInitialization.Add(OnWorldCreatedDelegate);
-#else
-			FWorldDelegates::OnPreWorldInitialization.Add(OnWorldCreatedDelegate);
-#endif
 
 			bSetDelegate = true;
 		}
@@ -104,19 +97,13 @@ public:
 		}
 
 		// Now remove it, so it's only called once
-#if TARGET_UE4_CL >= CL_DEPRECATEDEL
 		FWorldDelegates::OnPreWorldInitialization.Remove(OnWorldCreatedDelegateHandle);
-#else
-		FWorldDelegates::OnPreWorldInitialization.Remove(OnWorldCreatedDelegate);
-#endif
 	}
 };
 
 FWorldDelegates::FWorldInitializationEvent::FDelegate FNetcodeUnitTest::OnWorldCreatedDelegate = NULL;
 
-#if TARGET_UE4_CL >= CL_DEPRECATEDEL
 FDelegateHandle FNetcodeUnitTest::OnWorldCreatedDelegateHandle;
-#endif
 
 
 // Essential for getting the .dll to compile, and for the package to be loadable

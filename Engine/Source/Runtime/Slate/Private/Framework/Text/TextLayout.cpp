@@ -1,31 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "BreakIterator.h"
 
-
-static TAutoConsoleVariable<int32> CVarDefaultTextFlowDirection(
-	TEXT("Slate.DefaultTextFlowDirection"),
-	static_cast<int32>(ETextFlowDirection::Auto),
-	TEXT("0: Auto (default), 1: LeftToRight, 2: RightToLeft."),
-	ECVF_Default
-	);
-
-ETextFlowDirection GetDefaultTextFlowDirection()
-{
-	const int32 DefaultTextFlowDirectionAsInt = CVarDefaultTextFlowDirection.AsVariable()->GetInt();
-	if (DefaultTextFlowDirectionAsInt >= static_cast<int32>(ETextFlowDirection::Auto) && DefaultTextFlowDirectionAsInt <= static_cast<int32>(ETextFlowDirection::RightToLeft))
-	{
-		return static_cast<ETextFlowDirection>(DefaultTextFlowDirectionAsInt);
-	}
-	return ETextFlowDirection::Auto;
-}
-
-
 FTextLayout::FBreakCandidate FTextLayout::CreateBreakCandidate( int32& OutRunIndex, FLineModel& Line, int32 PreviousBreak, int32 CurrentBreak )
 {
-	const FRunTextContext RunTextContext(TextShapingMethod, Line.TextBaseDirection);
-
 	bool SuccessfullyMeasuredSlice = false;
 	int16 MaxAboveBaseline = 0;
 	int16 MaxBelowBaseline = 0;
@@ -43,7 +22,7 @@ FTextLayout::FBreakCandidate FTextLayout::CreateBreakCandidate( int32& OutRunInd
 
 		if ( BeginIndex > 0 )
 		{
-			Kerning = Run.GetKerning( BeginIndex, Scale, RunTextContext );
+			Kerning = Run.GetKerning( BeginIndex, Scale );
 		}
 	}
 
@@ -74,14 +53,14 @@ FTextLayout::FBreakCandidate FTextLayout::CreateBreakCandidate( int32& OutRunInd
 		else if ( BeginIndex == WhitespaceStopIndex )
 		{
 			// This slice contains only whitespace, no need to adjust SliceSizeWithoutTrailingWhitespace
-			SliceSize = Run.Measure( BeginIndex, StopIndex, Scale, RunTextContext );
+			SliceSize = Run.Measure( BeginIndex, StopIndex, Scale );
 			SliceSizeWithoutTrailingWhitespace = FVector2D::ZeroVector;
 		}
 		else if ( WhitespaceStopIndex != StopIndex )
 		{
 			// This slice contains trailing whitespace, measure the text size, then add on the whitespace size
-			SliceSize = SliceSizeWithoutTrailingWhitespace = Run.Measure( BeginIndex, WhitespaceStopIndex, Scale, RunTextContext );
-			const float WhitespaceWidth = Run.Measure( WhitespaceStopIndex, StopIndex, Scale, RunTextContext ).X;
+			SliceSize = SliceSizeWithoutTrailingWhitespace = Run.Measure( BeginIndex, WhitespaceStopIndex, Scale );
+			const float WhitespaceWidth = Run.Measure( WhitespaceStopIndex, StopIndex, Scale ).X;
 			SliceSize.X += WhitespaceWidth;
 
 			// We also need to measure the width of the first piece of trailing whitespace
@@ -93,13 +72,13 @@ FTextLayout::FBreakCandidate FTextLayout::CreateBreakCandidate( int32& OutRunInd
 			else
 			{
 				// Deliberately use the run version of Measure as we don't want the run model to cache this measurement since it may be out of order and break the binary search
-				FirstTrailingWhitespaceCharWidth = Run.GetRun()->Measure( WhitespaceStopIndex, WhitespaceStopIndex + 1, Scale, RunTextContext ).X;
+				FirstTrailingWhitespaceCharWidth = Run.GetRun()->Measure( WhitespaceStopIndex, WhitespaceStopIndex + 1, Scale ).X;
 			}
 		}
 		else
 		{
 			// This slice contains no whitespace, both sizes are the same and can use the same measurement
-			SliceSize = SliceSizeWithoutTrailingWhitespace = Run.Measure( BeginIndex, StopIndex, Scale, RunTextContext );
+			SliceSize = SliceSizeWithoutTrailingWhitespace = Run.Measure( BeginIndex, StopIndex, Scale );
 		}
 
 		BreakSize.X += SliceSize.X; // We accumulate the slice widths
@@ -148,75 +127,17 @@ void FTextLayout::CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIn
 {
 	const FLineModel& LineModel = LineModels[ LineModelIndex ];
 
-	const FRunTextContext RunTextContext(TextShapingMethod, LineModel.TextBaseDirection);
-
 	int16 MaxAboveBaseline = 0;
 	int16 MaxBelowBaseline = 0;
-
-	int32 CurrentLineBegin = OutPreviousBlockEnd;
-	if (OutRunIndex < LineModel.Runs.Num())
-	{
-		CurrentLineBegin = FMath::Max(CurrentLineBegin, LineModel.Runs[OutRunIndex].GetTextRange().BeginIndex);
-	}
-
-	int32 CurrentLineEnd = StopIndex;
-	if (CurrentLineEnd == INDEX_NONE)
-	{
-		CurrentLineEnd = (LineModel.Runs.Num() > 0) ? LineModel.Runs.Last().GetTextRange().EndIndex : 0;
-	}
-	
-	// KerningOnly shaping implies LTR only text, so we can skip the bidirectional detection and splitting
-	TextBiDi::ETextDirection LineTextDirection = TextBiDi::ETextDirection::LeftToRight;
-	TArray<TextBiDi::FTextDirectionInfo> TextDirectionInfos;
-	if (TextShapingMethod != ETextShapingMethod::KerningOnly)
-	{
-		// The bidirectional text detection tells us the correct order for the blocks of text with regard to the base direction of the current line
-		LineTextDirection = TextBiDiDetection->ComputeTextDirection(**LineModel.Text, CurrentLineBegin, CurrentLineEnd - CurrentLineBegin, LineModel.TextBaseDirection, TextDirectionInfos);
-	}
-
-	// Ensure there is at least one directional block. This can happen when using KerningOnly shaping (since we skip the bidirectional detection), or for empty strings that are run through the bidirectional detection.
-	if (TextDirectionInfos.Num() == 0)
-	{
-		TextBiDi::FTextDirectionInfo TextDirectionInfo;
-		TextDirectionInfo.StartIndex = CurrentLineBegin;
-		TextDirectionInfo.Length = CurrentLineEnd - CurrentLineBegin;
-		TextDirectionInfo.TextDirection = TextBiDi::ETextDirection::LeftToRight;
-		TextDirectionInfos.Add(MoveTemp(TextDirectionInfo));
-	}
-
-	// We always add the runs to the line in ascending index order, so re-order a copy of the text direction data so that we can iterate it forwards by ascending index
-	// We'll re-sort the line into the correct visual order once we've finished generating the blocks
-	int32 CurrentSortedTextDirectionInfoIndex = 0;
-	TArray<TextBiDi::FTextDirectionInfo> SortedTextDirectionInfos = TextDirectionInfos;
-	SortedTextDirectionInfos.Sort([](const TextBiDi::FTextDirectionInfo& InFirst, const TextBiDi::FTextDirectionInfo& InSecond) -> bool
-	{
-		return InFirst.StartIndex < InSecond.StartIndex;
-	});
 
 	for (; OutRunIndex < LineModel.Runs.Num(); )
 	{
 		const FRunModel& Run = LineModel.Runs[ OutRunIndex ];
 		const FTextRange RunRange = Run.GetTextRange();
 
-		int32 BlockBeginIndex = FMath::Max( OutPreviousBlockEnd, RunRange.BeginIndex );
-		int32 BlockStopIndex = RunRange.EndIndex;
-
-		// Blocks can only contain text with the same reading direction
-		TextBiDi::ETextDirection BlockTextDirection = TextBiDi::ETextDirection::LeftToRight;
-		int32 CurrentTextDirectionStopIndex = 0;
-		if (CurrentSortedTextDirectionInfoIndex < SortedTextDirectionInfos.Num())
-		{
-			const TextBiDi::FTextDirectionInfo& CurrentTextDirectionInfo = SortedTextDirectionInfos[CurrentSortedTextDirectionInfoIndex];
-			CurrentTextDirectionStopIndex = CurrentTextDirectionInfo.StartIndex + CurrentTextDirectionInfo.Length;
-
-			check(BlockBeginIndex >= CurrentTextDirectionInfo.StartIndex);
-
-			BlockStopIndex = FMath::Min(BlockStopIndex, CurrentTextDirectionStopIndex);
-			BlockTextDirection = CurrentTextDirectionInfo.TextDirection;
-		}
-
 		TSharedPtr< IRunRenderer > BlockRenderer = nullptr;
 
+		int32 BlockStopIndex = RunRange.EndIndex;
 		if ( OutRendererIndex != INDEX_NONE )
 		{
 			// Grab the currently active renderer
@@ -225,8 +146,8 @@ void FTextLayout::CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIn
 			// Check to see if the last block was rendered with the same renderer
 			if ( OutPreviousBlockEnd >= Renderer.Range.BeginIndex )
 			{
-				//If the renderer ends before our directional run...
-				if ( Renderer.Range.EndIndex <= BlockStopIndex )
+				//If the renderer ends before our run...
+				if ( Renderer.Range.EndIndex <= RunRange.EndIndex )
 				{
 					// Adjust the stopping point of the block to be the end of the renderer range,
 					// since highlights need their own block segments
@@ -241,8 +162,8 @@ void FTextLayout::CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIn
 			}
 			else
 			{
-				// Does the renderer range begin before our directional run ends?
-				if ( Renderer.Range.BeginIndex <= BlockStopIndex )
+				// Does the renderer range begin before our run ends?
+				if ( Renderer.Range.BeginIndex <= RunRange.EndIndex )
 				{
 					// then adjust the current block stopping point to just before the renderer range begins,
 					// since renderers need their own block segments
@@ -257,24 +178,29 @@ void FTextLayout::CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIn
 			BlockStopIndex = FMath::Min(StopIndex, BlockStopIndex);
 		}
 
-		// Have we reached the end of this bidirectional block?
-		if (BlockStopIndex == CurrentTextDirectionStopIndex)
-		{
-			++CurrentSortedTextDirectionInfoIndex;
-		}
-
+		int32 BlockBeginIndex = FMath::Max( OutPreviousBlockEnd, RunRange.BeginIndex );
 		const bool IsLastBlock = BlockStopIndex == StopIndex;
 
-		check( BlockBeginIndex <= BlockStopIndex );
-
-		// Add the new block
+		// if this new block will be entirely encapsulated by the run...
+		if ( RunRange.BeginIndex < BlockStopIndex && RunRange.EndIndex > BlockBeginIndex )
 		{
+			check( BlockBeginIndex <= BlockStopIndex );
+
 			FBlockDefinition BlockDefine;
 			BlockDefine.ActualRange = FTextRange(BlockBeginIndex, BlockStopIndex);
 			BlockDefine.Renderer = BlockRenderer;
 
-			OutSoftLine.Add( Run.CreateBlock( BlockDefine, Scale, FLayoutBlockTextContext(RunTextContext, BlockTextDirection) ) );
+			OutSoftLine.Add( Run.CreateBlock( BlockDefine, Scale ) );
 			OutPreviousBlockEnd = BlockStopIndex;
+		}
+		else
+		{
+			FBlockDefinition BlockDefine;
+			BlockDefine.ActualRange = RunRange;
+			BlockDefine.Renderer = BlockRenderer;
+
+			OutSoftLine.Add( Run.CreateBlock( BlockDefine, Scale ) );
+			OutPreviousBlockEnd = RunRange.EndIndex;
 		}
 
 		// Get the baseline and flip it's sign; Baselines are generally negative
@@ -312,45 +238,6 @@ void FTextLayout::CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIn
 
 	if ( OutSoftLine.Num() > 0 )
 	{
-		// Re-order the blocks based on their visual direction
-		if (OutSoftLine.Num() > 1 && LineTextDirection != TextBiDi::ETextDirection::LeftToRight)
-		{
-			TArray<TSharedRef<ILayoutBlock>> VisualSoftLine;
-			VisualSoftLine.Reserve(OutSoftLine.Num());
-
-			TArray<TSharedRef<ILayoutBlock>> CurrentVisualSoftLine;
-			for (const TextBiDi::FTextDirectionInfo& VisualTextDirectionInfo : TextDirectionInfos)
-			{
-				const int32 VisualTextEndIndex = VisualTextDirectionInfo.StartIndex + VisualTextDirectionInfo.Length;
-
-				for (int32 CurrentBlockStartIndex = VisualTextDirectionInfo.StartIndex; CurrentBlockStartIndex < VisualTextEndIndex; )
-				{
-					const TSharedRef<ILayoutBlock>* FoundLineBlock = OutSoftLine.FindByPredicate([&](const TSharedRef<ILayoutBlock>& InLineBlock) -> bool
-					{
-						return InLineBlock->GetTextRange().BeginIndex == CurrentBlockStartIndex;
-					});
-
-					check(FoundLineBlock);
-
-					const TSharedRef<ILayoutBlock>& FoundLineBlockRef = *FoundLineBlock;
-					if (VisualTextDirectionInfo.TextDirection == TextBiDi::ETextDirection::LeftToRight)
-					{
-						CurrentVisualSoftLine.Add(FoundLineBlockRef);
-					}
-					else
-					{
-						CurrentVisualSoftLine.Insert(FoundLineBlockRef, 0);
-					}
-					CurrentBlockStartIndex = FoundLineBlockRef->GetTextRange().EndIndex;
-				}
-
-				VisualSoftLine.Append(MoveTemp(CurrentVisualSoftLine));
-				CurrentVisualSoftLine.Reset();
-			}
-
-			OutSoftLine = MoveTemp(VisualSoftLine);
-		}
-
 		float CurrentHorizontalPos = 0.0f;
 		for (int32 Index = 0; Index < OutSoftLine.Num(); Index++)
 		{
@@ -359,7 +246,7 @@ void FTextLayout::CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIn
 
 			const int16 BlockBaseline = Run->GetBaseLine(Scale);
 			const int16 VerticalOffset = MaxAboveBaseline - Block->GetSize().Y - BlockBaseline;
-			const int8 BlockKerning = Run->GetKerning(Block->GetTextRange().BeginIndex, Scale, RunTextContext);
+			const int8 BlockKerning = Run->GetKerning(Block->GetTextRange().BeginIndex, Scale);
 
 			Block->SetLocationOffset(FVector2D(CurrentOffset.X + CurrentHorizontalPos + BlockKerning, CurrentOffset.Y + VerticalOffset));
 
@@ -376,7 +263,6 @@ void FTextLayout::CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIn
 		LineView.Size = LineSize;
 		LineView.TextSize = FVector2D(CurrentHorizontalPos, UnscaleLineHeight);
 		LineView.Range = FTextRange(OutSoftLine[0]->GetTextRange().BeginIndex, OutSoftLine.Last()->GetTextRange().EndIndex);
-		LineView.TextBaseDirection = LineModel.TextBaseDirection;
 		LineView.ModelIndex = LineModelIndex;
 		LineView.Blocks.Append( OutSoftLine );
 
@@ -390,7 +276,7 @@ void FTextLayout::CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIn
 
 void FTextLayout::JustifyLayout()
 {
-	if ( Justification == ETextJustify::Left && TextFlowDirection == ETextFlowDirection::LeftToRight )
+	if ( Justification == ETextJustify::Left )
 	{
 		return;
 	}
@@ -399,33 +285,14 @@ void FTextLayout::JustifyLayout()
 
 	for (FLineView& LineView : LineViews)
 	{
-		// Work out the visual justification to use for this line
-		ETextJustify::Type VisualJustification = Justification;
-		if ( LineView.TextBaseDirection == TextBiDi::ETextDirection::RightToLeft )
-		{
-			if ( VisualJustification == ETextJustify::Left )
-			{
-				VisualJustification = ETextJustify::Right;
-			}
-			else if ( VisualJustification == ETextJustify::Right )
-			{
-				VisualJustification = ETextJustify::Left;
-			}
-		}
-
-		if ( VisualJustification == ETextJustify::Left )
-		{
-			continue;
-		}
-
 		const float ExtraSpace = LayoutWidthNoMargin - LineView.Size.X;
 
 		FVector2D OffsetAdjustment( ForceInitToZero );
-		if ( VisualJustification == ETextJustify::Center )
+		if ( Justification == ETextJustify::Center )
 		{
 			OffsetAdjustment = FVector2D( ExtraSpace * 0.5f, 0 );
 		}
-		else if ( VisualJustification == ETextJustify::Right )
+		else if ( Justification == ETextJustify::Right )
 		{
 			OffsetAdjustment = FVector2D( ExtraSpace, 0 );
 		}
@@ -449,13 +316,11 @@ void FTextLayout::FlowLayout()
 {
 	const float WrappingDrawWidth = GetWrappingDrawWidth();
 
+	CreateWrappingCache();
+
 	TArray< TSharedRef< ILayoutBlock > > SoftLine;
 	for (int32 LineModelIndex = 0; LineModelIndex < LineModels.Num(); LineModelIndex++)
 	{
-		FLineModel& LineModel = LineModels[ LineModelIndex ];
-		CalculateLineTextDirection(LineModel);
-		CreateLineWrappingCache(LineModel);
-
 		FlowLineLayout(LineModelIndex, WrappingDrawWidth, SoftLine);
 	}
 }
@@ -505,7 +370,7 @@ void FTextLayout::FlowLineLayout(const int32 LineModelIndex, const float Wrappin
 		CreateLineViewBlocks( LineModelIndex, INDEX_NONE, 0.0f, /*OUT*/CurrentRunIndex, /*OUT*/CurrentRendererIndex, /*OUT*/PreviousBlockEnd, SoftLine );
 		check( CurrentRunIndex == LineModel.Runs.Num() );
 		CurrentWidth = 0;
-		SoftLine.Reset();
+		SoftLine.Empty();
 	}
 	else
 	{
@@ -550,7 +415,7 @@ void FTextLayout::FlowLineLayout(const int32 LineModelIndex, const float Wrappin
 				PreviousBlockEnd = FinalBreakOnSoftLine.ActualRange.EndIndex;
 
 				CurrentWidth = 0;
-				SoftLine.Reset();
+				SoftLine.Empty();
 			} 
 			else
 			{
@@ -563,7 +428,7 @@ void FTextLayout::FlowLineLayout(const int32 LineModelIndex, const float Wrappin
 void FTextLayout::FlowHighlights()
 {
 	// FlowLayout must have been called first
-	check(!(DirtyFlags & ETextLayoutDirtyState::Layout));
+	check(!(DirtyFlags & EDirtyState::Layout));
 
 	for (FLineView& LineView : LineViews)
 	{
@@ -572,8 +437,6 @@ void FTextLayout::FlowHighlights()
 
 		FLineModel& LineModel = LineModels[LineView.ModelIndex];
 		
-		const FRunTextContext RunTextContext(TextShapingMethod, LineModel.TextBaseDirection);
-
 		// Insert each highlighter into every line view that's within its range, either as an underlay, or as an overlay
 		for (FTextLineHighlight& LineHighlight : LineModel.LineHighlights)
 		{
@@ -604,12 +467,12 @@ void FTextLayout::FlowHighlights()
 				if (LineHighlight.Range.BeginIndex > BlockTextRange.EndIndex)
 				{
 					// Highlight starts after this block, just include its entire size
-					LineViewHighlight.OffsetX += Run->Measure(BlockTextRange.BeginIndex, BlockTextRange.EndIndex, Scale, RunTextContext).X;
+					LineViewHighlight.OffsetX += Run->Measure(BlockTextRange.BeginIndex, BlockTextRange.EndIndex, Scale).X;
 				}
 				else
 				{
 					// This block contains the start of this highlight, measure to that point and then we're done!
-					LineViewHighlight.OffsetX += Run->Measure(BlockTextRange.BeginIndex, LineHighlight.Range.BeginIndex, Scale, RunTextContext).X;
+					LineViewHighlight.OffsetX += Run->Measure(BlockTextRange.BeginIndex, LineHighlight.Range.BeginIndex, Scale).X;
 					break;
 				}
 			}
@@ -625,7 +488,7 @@ void FTextLayout::FlowHighlights()
 				if (!IntersectedRange.IsEmpty())
 				{
 					// Measure the part of the run which intersects the highlight
-					LineViewHighlight.Width += Run->Measure(IntersectedRange.BeginIndex, IntersectedRange.EndIndex, Scale, RunTextContext).X;
+					LineViewHighlight.Width += Run->Measure(IntersectedRange.BeginIndex, IntersectedRange.EndIndex, Scale).X;
 				}
 					
 				if (BlockTextRange.EndIndex > LineHighlight.Range.EndIndex)
@@ -685,40 +548,6 @@ void FTextLayout::ClearView()
 	LineViews.Empty();
 }
 
-void FTextLayout::CalculateTextDirection()
-{
-	for (FLineModel& LineModel : LineModels)
-	{
-		CalculateLineTextDirection(LineModel);
-	}
-}
-
-void FTextLayout::CalculateLineTextDirection(FLineModel& LineModel)
-{
-	if (!(LineModel.DirtyFlags & ELineModelDirtyState::TextBaseDirection))
-	{
-		return;
-	}
-
-	switch(TextFlowDirection)
-	{
-	case ETextFlowDirection::Auto:
-		// KerningOnly shaping implies LTR only text, so we can skip the text direction detection
-		LineModel.TextBaseDirection = (TextShapingMethod == ETextShapingMethod::KerningOnly) ? TextBiDi::ETextDirection::LeftToRight : TextBiDi::ComputeBaseDirection(*LineModel.Text);
-		break;
-	case ETextFlowDirection::LeftToRight:
-		LineModel.TextBaseDirection = TextBiDi::ETextDirection::LeftToRight;
-		break;
-	case ETextFlowDirection::RightToLeft:
-		LineModel.TextBaseDirection = TextBiDi::ETextDirection::RightToLeft;
-		break;
-	default:
-		break;
-	}
-	
-	LineModel.DirtyFlags &= ~ELineModelDirtyState::TextBaseDirection;
-}
-
 void FTextLayout::CreateWrappingCache()
 {
 	const bool IsWrapping = WrappingWidth > 0.0f;
@@ -735,7 +564,7 @@ void FTextLayout::CreateWrappingCache()
 
 void FTextLayout::CreateLineWrappingCache(FLineModel& LineModel)
 {
-	if (!(LineModel.DirtyFlags & ELineModelDirtyState::WrappingInformation))
+	if (LineModel.HasWrappingInformation)
 	{
 		return;
 	}
@@ -747,7 +576,7 @@ void FTextLayout::CreateLineWrappingCache(FLineModel& LineModel)
 	}
 
 	LineModel.BreakCandidates.Empty();
-	LineModel.DirtyFlags &= ~ELineModelDirtyState::WrappingInformation;
+	LineModel.HasWrappingInformation = true;
 
 	for (int32 RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
 	{
@@ -769,20 +598,18 @@ void FTextLayout::CreateLineWrappingCache(FLineModel& LineModel)
 	LineBreakIterator->ClearString();
 }
 
-void FTextLayout::DirtyAllLineModels(const ELineModelDirtyState::Flags InDirtyFlags)
+void FTextLayout::ClearWrappingCache()
 {
 	for (FLineModel& LineModel : LineModels)
 	{
-		LineModel.DirtyFlags |= InDirtyFlags;
+		LineModel.HasWrappingInformation = false;
 	}
 }
 
 FTextLayout::FTextLayout() 
 	: LineModels()
 	, LineViews()
-	, DirtyFlags( ETextLayoutDirtyState::None )
-	, TextShapingMethod( GetDefaultTextShapingMethod() )
-	, TextFlowDirection( GetDefaultTextFlowDirection() )
+	, DirtyFlags( EDirtyState::None )
 	, Scale( 1.0f )
 	, WrappingWidth( 0 )
 	, Margin()
@@ -793,15 +620,14 @@ FTextLayout::FTextLayout()
 	, ScrollOffset( ForceInitToZero )
 	, LineBreakIterator() // Initialized in FTextLayout::CreateWrappingCache if no custom iterator is provided
 	, WordBreakIterator(FBreakIterator::CreateWordBreakIterator())
-	, TextBiDiDetection(TextBiDi::CreateTextBiDi())
 {
 
 }
 
 void FTextLayout::UpdateIfNeeded()
 {
-	const bool bHasChangedLayout = !!(DirtyFlags & ETextLayoutDirtyState::Layout);
-	const bool bHasChangedHighlights = !!(DirtyFlags & ETextLayoutDirtyState::Highlights);
+	const bool bHasChangedLayout = !!(DirtyFlags & EDirtyState::Layout);
+	const bool bHasChangedHighlights = !!(DirtyFlags & EDirtyState::Highlights);
 
 	if ( bHasChangedLayout )
 	{
@@ -827,14 +653,14 @@ void FTextLayout::UpdateLayout()
 
 	EndLayout();
 
-	DirtyFlags &= ~ETextLayoutDirtyState::Layout;
+	DirtyFlags &= ~EDirtyState::Layout;
 }
 
 void FTextLayout::UpdateHighlights()
 {
 	FlowHighlights();
 
-	DirtyFlags &= ~ETextLayoutDirtyState::Highlights;
+	DirtyFlags &= ~EDirtyState::Highlights;
 }
 
 void FTextLayout::DirtyRunLayout(const TSharedRef<const IRun>& Run)
@@ -843,7 +669,7 @@ void FTextLayout::DirtyRunLayout(const TSharedRef<const IRun>& Run)
 	{
 		FLineModel& LineModel = LineModels[LineModelIndex];
 
-		if (!(LineModel.DirtyFlags & ELineModelDirtyState::WrappingInformation))
+		if (LineModel.HasWrappingInformation)
 		{
 			for (int32 RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
 			{
@@ -856,20 +682,20 @@ void FTextLayout::DirtyRunLayout(const TSharedRef<const IRun>& Run)
 		}
 	}
 
-	DirtyFlags |= ETextLayoutDirtyState::Layout;
+	DirtyFlags |= EDirtyState::Layout;
 }
 
 void FTextLayout::DirtyLayout()
 {
-	DirtyFlags |= ETextLayoutDirtyState::Layout;
+	DirtyFlags |= EDirtyState::Layout;
 
 	// Clear out the entire cache so it gets regenerated on the text call to FlowLayout
-	DirtyAllLineModels(ELineModelDirtyState::WrappingInformation);
+	ClearWrappingCache();
 }
 
 bool FTextLayout::IsLayoutDirty() const
 {
-	return !!(DirtyFlags & ETextLayoutDirtyState::Layout);
+	return !!(DirtyFlags & EDirtyState::Layout);
 }
 
 void FTextLayout::ClearRunRenderers()
@@ -879,7 +705,7 @@ void FTextLayout::ClearRunRenderers()
 		if (LineModels[ Index ].RunRenderers.Num() )
 		{
 			LineModels[ Index ].RunRenderers.Empty();
-			DirtyFlags |= ETextLayoutDirtyState::Layout;
+			DirtyFlags |= EDirtyState::Layout;
 		}
 	}
 }
@@ -923,7 +749,7 @@ void FTextLayout::AddRunRenderer( const FTextRunRenderer& Renderer )
 		LineModel.RunRenderers.Add( Renderer );
 	}
 
-	DirtyFlags |= ETextLayoutDirtyState::Layout;
+	DirtyFlags |= EDirtyState::Layout;
 }
 
 void FTextLayout::ClearLineHighlights()
@@ -933,7 +759,7 @@ void FTextLayout::ClearLineHighlights()
 		if (LineModels[ Index ].LineHighlights.Num())
 		{
 			LineModels[ Index ].LineHighlights.Empty();
-			DirtyFlags |= ETextLayoutDirtyState::Highlights;
+			DirtyFlags |= EDirtyState::Highlights;
 		}
 	}
 }
@@ -971,7 +797,7 @@ void FTextLayout::AddLineHighlight( const FTextLineHighlight& Highlight )
 		LineModel.LineHighlights.Add( Highlight );
 	}
 
-	DirtyFlags |= ETextLayoutDirtyState::Highlights;
+	DirtyFlags |= EDirtyState::Highlights;
 }
 
 FTextLocation FTextLayout::GetTextLocationAt( const FLineView& LineView, const FVector2D& Relative, ETextHitPoint* const OutHitPoint )
@@ -1144,7 +970,7 @@ bool FTextLayout::InsertAt(const FTextLocation& Location, TCHAR Character)
 	FLineModel& LineModel = LineModels[LineIndex];
 
 	LineModel.Text->InsertAt(InsertLocation, Character);
-	LineModel.DirtyFlags |= ELineModelDirtyState::All;
+	LineModel.HasWrappingInformation = false;
 
 	bool RunIsAfterInsertLocation = false;
 	for (int32 RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
@@ -1192,7 +1018,7 @@ bool FTextLayout::InsertAt(const FTextLocation& Location, TCHAR Character)
 		}
 	}
 
-	DirtyFlags |= ETextLayoutDirtyState::Layout;
+	DirtyFlags |= EDirtyState::Layout;
 	return true;
 }
 
@@ -1209,7 +1035,7 @@ bool FTextLayout::InsertAt(const FTextLocation& Location, const FString& Text)
 	FLineModel& LineModel = LineModels[LineIndex];
 
 	LineModel.Text->InsertAt(InsertLocation, Text);
-	LineModel.DirtyFlags |= ELineModelDirtyState::All;
+	LineModel.HasWrappingInformation = false;
 
 	bool RunIsAfterInsertLocation = false;
 	for (int32 RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
@@ -1257,7 +1083,7 @@ bool FTextLayout::InsertAt(const FTextLocation& Location, const FString& Text)
 		}
 	}
 
-	DirtyFlags |= ETextLayoutDirtyState::Layout;
+	DirtyFlags |= EDirtyState::Layout;
 	return true;
 }
 
@@ -1277,7 +1103,7 @@ bool FTextLayout::InsertAt(const FTextLocation& Location, TSharedRef<IRun> InRun
 	InRun->AppendTextTo(NewRunText);
 
 	LineModel.Text->InsertAt(InsertLocation, NewRunText);
-	LineModel.DirtyFlags |= ELineModelDirtyState::All;
+	LineModel.HasWrappingInformation = false;
 
 	bool RunIsAfterInsertLocation = false;
 	for (int32 RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
@@ -1354,7 +1180,7 @@ bool FTextLayout::InsertAt(const FTextLocation& Location, TSharedRef<IRun> InRun
 		}
 	}
 
-	DirtyFlags |= ETextLayoutDirtyState::Layout;
+	DirtyFlags |= EDirtyState::Layout;
 	return true;
 }
 
@@ -1380,8 +1206,8 @@ bool FTextLayout::JoinLineWithNextLine(int32 LineIndex)
 	//Append the next line to the current line
 	LineModel.Text->InsertAt(LineLength, NextLineModel.Text.Get());
 
-	//Dirty the current line
-	LineModel.DirtyFlags |= ELineModelDirtyState::All;
+	//Clear the current lines wrapping information
+	LineModel.HasWrappingInformation = false;
 
 	//Iterate through all of the next lines runs and bring them over to the current line
 	for (int32 RunIndex = 0; RunIndex < NextLineModel.Runs.Num(); RunIndex++)
@@ -1401,7 +1227,7 @@ bool FTextLayout::JoinLineWithNextLine(int32 LineIndex)
 	//Remove the next line from the list of line models
 	LineModels.RemoveAt(LineIndex + 1);
 
-	DirtyFlags |= ETextLayoutDirtyState::Layout;
+	DirtyFlags |= EDirtyState::Layout;
 	return true;
 }
 
@@ -1493,7 +1319,7 @@ bool FTextLayout::SplitLineAt(const FTextLocation& Location)
 	LineModels.Insert(LeftLineModel, LineIndex);
 	LineModels.Insert(RightLineModel, LineIndex + 1);
 
-	DirtyFlags |= ETextLayoutDirtyState::Layout;
+	DirtyFlags |= EDirtyState::Layout;
 	return true;
 }
 
@@ -1518,7 +1344,7 @@ bool FTextLayout::RemoveAt( const FTextLocation& Location, int32 Count )
 	}
 
 	LineModel.Text->RemoveAt(RemoveLocation, Count);
-	LineModel.DirtyFlags |= ELineModelDirtyState::All;
+	LineModel.HasWrappingInformation = false;
 
 	const FTextRange RemoveTextRange(RemoveLocation, RemoveLocation + Count);
 	for (int32 RunIndex = LineModel.Runs.Num() - 1; RunIndex >= 0; --RunIndex)
@@ -1580,7 +1406,7 @@ bool FTextLayout::RemoveAt( const FTextLocation& Location, int32 Count )
 		}
 	}
 
-	DirtyFlags |= ETextLayoutDirtyState::Layout;
+	DirtyFlags |= EDirtyState::Layout;
 	return true;
 }
 
@@ -1595,7 +1421,7 @@ bool FTextLayout::RemoveLine(int32 LineIndex)
 
 	// If our layout is clean, then we can remove this line immediately (and efficiently)
 	// If our layout is dirty, then we might as well wait as the next UpdateLayout call will remove it
-	if (!(DirtyFlags & ETextLayoutDirtyState::Layout))
+	if (!(DirtyFlags & EDirtyState::Layout))
 	{
 		//Lots of room for additional optimization
 		float OffsetAdjustment = 0;
@@ -1654,13 +1480,10 @@ void FTextLayout::AddLine( const TSharedRef< FString >& Text, const TArray< TSha
 
 	// If our layout is clean, then we can add this new line immediately (and efficiently)
 	// If our layout is dirty, then we might as well wait as the next UpdateLayout call will add it
-	if (!(DirtyFlags & ETextLayoutDirtyState::Layout))
+	if (!(DirtyFlags & EDirtyState::Layout))
 	{
 		const int32 LineModelIndex = LineModels.Num() - 1;
 		FLineModel& LineModel = LineModels[LineModelIndex];
-
-		CalculateLineTextDirection(LineModel);
-		CreateLineWrappingCache(LineModel);
 
 		BeginLineLayout(LineModel);
 
@@ -1694,7 +1517,7 @@ void FTextLayout::AddLine( const TSharedRef< FString >& Text, const TArray< TSha
 void FTextLayout::ClearLines()
 {
 	LineModels.Empty();
-	DirtyFlags |= ETextLayoutDirtyState::Layout;
+	DirtyFlags |= EDirtyState::Layout;
 }
 
 bool FTextLayout::IsEmpty() const
@@ -1893,7 +1716,7 @@ void FTextLayout::SetVisibleRegion( const FVector2D& InViewSize, const FVector2D
 		if (Justification != ETextJustify::Left)
 		{
 			// If the view size has changed, we may need to update our positions based on our justification
-			DirtyFlags |= ETextLayoutDirtyState::Layout;
+			DirtyFlags |= EDirtyState::Layout;
 		}
 	}
 	
@@ -1920,11 +1743,11 @@ void FTextLayout::SetVisibleRegion( const FVector2D& InViewSize, const FVector2D
 void FTextLayout::SetLineBreakIterator( TSharedPtr<IBreakIterator> InLineBreakIterator )
 {
 	LineBreakIterator = InLineBreakIterator;
-	DirtyFlags |= ETextLayoutDirtyState::Layout;
+	DirtyFlags |= EDirtyState::Layout;
 
 	// Changing the line break iterator will affect the wrapping information for *all lines*
 	// Clear out the entire cache so it gets regenerated on the text call to FlowLayout
-	DirtyAllLineModels(ELineModelDirtyState::WrappingInformation);
+	ClearWrappingCache();
 }
 
 void FTextLayout::SetMargin( const FMargin& InMargin )
@@ -1935,7 +1758,12 @@ void FTextLayout::SetMargin( const FMargin& InMargin )
 	}
 
 	Margin = InMargin;
-	DirtyFlags |= ETextLayoutDirtyState::Layout;
+	DirtyFlags |= EDirtyState::Layout;
+}
+
+FMargin FTextLayout::GetMargin() const
+{
+	return Margin;
 }
 
 void FTextLayout::SetScale( float Value )
@@ -1946,43 +1774,16 @@ void FTextLayout::SetScale( float Value )
 	}
 
 	Scale = Value;
-	DirtyFlags |= ETextLayoutDirtyState::Layout;
+	DirtyFlags |= EDirtyState::Layout;
 
 	// Changing the scale will affect the wrapping information for *all lines*
 	// Clear out the entire cache so it gets regenerated on the text call to FlowLayout
-	DirtyAllLineModels(ELineModelDirtyState::WrappingInformation);
+	ClearWrappingCache();
 }
 
-void FTextLayout::SetTextShapingMethod( const ETextShapingMethod InTextShapingMethod )
+float FTextLayout::GetScale() const
 {
-	if ( TextShapingMethod == InTextShapingMethod )
-	{
-		return;
-	}
-
-	TextShapingMethod = InTextShapingMethod;
-	DirtyFlags |= ETextLayoutDirtyState::Layout;
-
-	// Changing the shaping method will affect the wrapping information for *all lines*
-	// Clear out the entire cache so it gets regenerated on the text call to FlowLayout
-	// Also clear our the base direction for each line, as the shaping method can affect that
-	DirtyAllLineModels(ELineModelDirtyState::WrappingInformation | ELineModelDirtyState::TextBaseDirection);
-}
-
-void FTextLayout::SetTextFlowDirection( const ETextFlowDirection InTextFlowDirection )
-{
-	if ( TextFlowDirection == InTextFlowDirection )
-	{
-		return;
-	}
-
-	TextFlowDirection = InTextFlowDirection;
-	DirtyFlags |= ETextLayoutDirtyState::Layout;
-
-	// Changing the flow direction will affect the wrapping information for *all lines*
-	// Clear out the entire cache so it gets regenerated on the text call to FlowLayout
-	// Also clear our the base direction for each line, as the flow direction can affect that
-	DirtyAllLineModels(ELineModelDirtyState::WrappingInformation | ELineModelDirtyState::TextBaseDirection);
+	return Scale;
 }
 
 void FTextLayout::SetJustification( ETextJustify::Type Value )
@@ -1993,7 +1794,12 @@ void FTextLayout::SetJustification( ETextJustify::Type Value )
 	}
 
 	Justification = Value;
-	DirtyFlags |= ETextLayoutDirtyState::Layout;
+	DirtyFlags |= EDirtyState::Layout;
+}
+
+ETextJustify::Type FTextLayout::GetJustification() const
+{
+	return Justification;
 }
 
 void FTextLayout::SetLineHeightPercentage( float Value )
@@ -2001,8 +1807,13 @@ void FTextLayout::SetLineHeightPercentage( float Value )
 	if ( LineHeightPercentage != Value )
 	{
 		LineHeightPercentage = Value; 
-		DirtyFlags |= ETextLayoutDirtyState::Layout;
+		DirtyFlags |= EDirtyState::Layout;
 	}
+}
+
+float FTextLayout::GetLineHeightPercentage() const
+{
+	return LineHeightPercentage;
 }
 
 void FTextLayout::SetWrappingWidth( float Value )
@@ -2010,8 +1821,13 @@ void FTextLayout::SetWrappingWidth( float Value )
 	if ( WrappingWidth != Value )
 	{
 		WrappingWidth = Value; 
-		DirtyFlags |= ETextLayoutDirtyState::Layout;
+		DirtyFlags |= EDirtyState::Layout;
 	}
+}
+
+float FTextLayout::GetWrappingWidth() const
+{
+	return WrappingWidth;
 }
 
 FVector2D FTextLayout::GetDrawSize() const
@@ -2029,6 +1845,16 @@ FVector2D FTextLayout::GetSize() const
 	return TextLayoutSize.GetDrawSize() * ( 1 / Scale );
 }
 
+const TArray< FTextLayout::FLineModel >& FTextLayout::GetLineModels() const
+{
+	return LineModels;
+}
+
+const TArray< FTextLayout::FLineView >& FTextLayout::GetLineViews() const
+{
+	return LineViews;
+}
+
 FTextLayout::~FTextLayout()
 {
 
@@ -2036,12 +1862,12 @@ FTextLayout::~FTextLayout()
 
 FTextLayout::FLineModel::FLineModel( const TSharedRef< FString >& InText ) 
 	: Text( InText )
-	, TextBaseDirection( TextBiDi::ETextDirection::LeftToRight )
 	, Runs()
 	, BreakCandidates()
 	, RunRenderers()
-	, DirtyFlags( ELineModelDirtyState::All )
+	, HasWrappingInformation( false )
 {
+
 }
 
 void FTextLayout::FRunModel::ClearCache()
@@ -2060,14 +1886,14 @@ void FTextLayout::FRunModel::AppendTextTo(FString& Text, const FTextRange& Range
 	Run->AppendTextTo(Text, Range);
 }
 
-TSharedRef< ILayoutBlock > FTextLayout::FRunModel::CreateBlock( const FBlockDefinition& BlockDefine, float InScale, const FLayoutBlockTextContext& InTextContext ) const
+TSharedRef< ILayoutBlock > FTextLayout::FRunModel::CreateBlock( const FBlockDefinition& BlockDefine, float InScale ) const
 {
 	const FTextRange& SizeRange = BlockDefine.ActualRange;
 
 	if ( MeasuredRanges.Num() == 0 )
 	{
 		FTextRange RunRange = Run->GetTextRange();
-		return Run->CreateBlock( BlockDefine.ActualRange.BeginIndex, BlockDefine.ActualRange.EndIndex, Run->Measure( SizeRange.BeginIndex, SizeRange.EndIndex, InScale, InTextContext ), InTextContext, BlockDefine.Renderer );
+		return Run->CreateBlock( BlockDefine.ActualRange.BeginIndex, BlockDefine.ActualRange.EndIndex, Run->Measure( SizeRange.BeginIndex, SizeRange.EndIndex, InScale ), BlockDefine.Renderer );
 	}
 
 	int32 StartRangeIndex = 0;
@@ -2132,7 +1958,7 @@ TSharedRef< ILayoutBlock > FTextLayout::FRunModel::CreateBlock( const FBlockDefi
 		}
 		else
 		{
-			BlockSize += Run->Measure( SizeRange.BeginIndex, SizeRange.EndIndex, InScale, InTextContext );
+			BlockSize += Run->Measure( SizeRange.BeginIndex, SizeRange.EndIndex, InScale );
 		}
 	}
 	else
@@ -2143,7 +1969,7 @@ TSharedRef< ILayoutBlock > FTextLayout::FRunModel::CreateBlock( const FBlockDefi
 		}
 		else
 		{
-			BlockSize += Run->Measure( SizeRange.BeginIndex, MeasuredRanges[ StartRangeIndex ].EndIndex, InScale, InTextContext );
+			BlockSize += Run->Measure( SizeRange.BeginIndex, MeasuredRanges[ StartRangeIndex ].EndIndex, InScale );
 		}
 
 		for (int32 Index = StartRangeIndex + 1; Index < EndRangeIndex; Index++)
@@ -2159,13 +1985,13 @@ TSharedRef< ILayoutBlock > FTextLayout::FRunModel::CreateBlock( const FBlockDefi
 		}
 		else
 		{
-			FVector2D Size = Run->Measure( MeasuredRanges[ EndRangeIndex ].BeginIndex, SizeRange.EndIndex, InScale, InTextContext );
+			FVector2D Size = Run->Measure( MeasuredRanges[ EndRangeIndex ].BeginIndex, SizeRange.EndIndex, InScale );
 			BlockSize.X += Size.X;
 			BlockSize.Y = FMath::Max( Size.Y, BlockSize.Y );
 		}
 	}
 
-	return Run->CreateBlock( BlockDefine.ActualRange.BeginIndex, BlockDefine.ActualRange.EndIndex, BlockSize, InTextContext, BlockDefine.Renderer );
+	return Run->CreateBlock( BlockDefine.ActualRange.BeginIndex, BlockDefine.ActualRange.EndIndex, BlockSize, BlockDefine.Renderer );
 }
 
 int32 FTextLayout::FRunModel::BinarySearchForEndIndex( const TArray< FTextRange >& Ranges, int32 RangeBeginIndex, int32 EndIndex )
@@ -2218,14 +2044,14 @@ int32 FTextLayout::FRunModel::BinarySearchForBeginIndex( const TArray< FTextRang
 	return Mid;
 }
 
-uint8 FTextLayout::FRunModel::GetKerning(int32 CurrentIndex, float InScale, const FRunTextContext& InTextContext)
+uint8 FTextLayout::FRunModel::GetKerning(int32 CurrentIndex, float InScale)
 {
-	return Run->GetKerning(CurrentIndex, InScale, InTextContext);
+	return Run->GetKerning(CurrentIndex, InScale);
 }
 
-FVector2D FTextLayout::FRunModel::Measure(int32 BeginIndex, int32 EndIndex, float InScale, const FRunTextContext& InTextContext)
+FVector2D FTextLayout::FRunModel::Measure(int32 BeginIndex, int32 EndIndex, float InScale)
 {
-	FVector2D Size = Run->Measure(BeginIndex, EndIndex, InScale, InTextContext);
+	FVector2D Size = Run->Measure(BeginIndex, EndIndex, InScale);
 
 	MeasuredRanges.Add( FTextRange( BeginIndex, EndIndex ) );
 	MeasuredRangeSizes.Add( Size );

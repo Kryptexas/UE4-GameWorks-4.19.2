@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyEditorPrivatePCH.h"
 #include "PropertyEditing.h"
@@ -298,7 +298,7 @@ namespace PropertyCustomizationHelpers
 			if (Class->IsChildOf(UFactory::StaticClass()) && !Class->HasAnyClassFlags(CLASS_Abstract))
 			{
 				UFactory* Factory = Class->GetDefaultObject<UFactory>();
-				if (Factory->CanCreateNew() && ensure(!Factory->GetDisplayName().IsEmpty()))
+				if (Factory->ShouldShowInNewMenu() && ensure(!Factory->GetDisplayName().IsEmpty()))
 				{
 					UClass* SupportedClass = Factory->GetSupportedClass();
 					if (SupportedClass != nullptr && Classes.ContainsByPredicate([=](const UClass* InClass) { return SupportedClass->IsChildOf(InClass); }))
@@ -864,11 +864,10 @@ private:
 };
 
 
-FMaterialList::FMaterialList(IDetailLayoutBuilder& InDetailLayoutBuilder, FMaterialListDelegates& InMaterialListDelegates, bool bInAllowCollapse /*= false*/)
+FMaterialList::FMaterialList( IDetailLayoutBuilder& InDetailLayoutBuilder, FMaterialListDelegates& InMaterialListDelegates )
 	: MaterialListDelegates( InMaterialListDelegates )
 	, DetailLayoutBuilder( InDetailLayoutBuilder )
 	, MaterialListBuilder( new FMaterialListBuilder )
-	, bAllowCollpase(bInAllowCollapse)
 {
 }
 
@@ -938,15 +937,6 @@ void FMaterialList::Tick( float DeltaTime )
 
 void FMaterialList::GenerateHeaderRowContent( FDetailWidgetRow& NodeRow )
 {
-	if (bAllowCollpase)
-	{
-		NodeRow.NameContent()
-			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("MaterialHeaderTitle", "Materials"))
-				.Font(IDetailLayoutBuilder::GetDetailFont())
-			];
-	}
 }
 
 void FMaterialList::GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder )

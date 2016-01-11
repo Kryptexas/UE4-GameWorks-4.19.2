@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -34,8 +34,7 @@ struct dtObstacleCircle
 struct dtObstacleSegment
 {
 	float p[3], q[3];		///< End points of the obstacle segment
-	unsigned char touch : 1;
-	unsigned char canIgnore : 1;
+	bool touch;
 };
 
 class NAVMESH_API dtObstacleAvoidanceDebugData
@@ -115,7 +114,7 @@ public:
 	void addCircle(const float* pos, const float rad,
 				   const float* vel, const float* dvel);
 				   
-	void addSegment(const float* p, const float* q, int flags = 0);
+	void addSegment(const float* p, const float* q);
 
 	// [UE4] store new sampling pattern
 	bool setCustomSamplingPattern(int idx, const float* angles, const float* radii, int nsamples);

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /**
  *
@@ -7,7 +7,6 @@
 
 #pragma once
 #include "GameFramework/Volume.h"
-#include "Audio.h"
 #include "AudioVolume.generated.h"
 
 /**
@@ -112,8 +111,8 @@ struct FInteriorSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InteriorSettings)
 	float ExteriorTime;
 
-	// The desired LPF frequency cutoff in hertz of sounds outside the volume when the player is inside the volume
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = InteriorSettings)
+	// The desired LPF of sounds outside the volume when the player is inside the volume
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InteriorSettings)
 	float ExteriorLPF;
 
 	// The time over which to interpolate from the current LPF to the desired LPF of sounds outside the volume when the player enters the volume
@@ -128,8 +127,8 @@ struct FInteriorSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InteriorSettings)
 	float InteriorTime;
 
-	// The desired LPF frequency cutoff in hertz of sounds inside  the volume when the player is outside the volume
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = InteriorSettings)
+	// The desired LPF of sounds inside  the volume when the player is outside the volume
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InteriorSettings)
 	float InteriorLPF;
 
 	// The time over which to interpolate from the current LPF to the desired LPF of sounds inside the volume when the player enters the volume
@@ -140,44 +139,17 @@ struct FInteriorSettings
 		: bIsWorldSettings(false)
 		, ExteriorVolume(1.0f)
 		, ExteriorTime(0.5f)
-		, ExteriorLPF(MAX_FILTER_FREQUENCY)
+		, ExteriorLPF(1.0f)
 		, ExteriorLPFTime(0.5f)
 		, InteriorVolume(1.0f)
 		, InteriorTime(0.5f)
-		, InteriorLPF(MAX_FILTER_FREQUENCY)
+		, InteriorLPF(1.0f)
 		, InteriorLPFTime(0.5f)
 		{
 		}
 
 	bool operator==(const FInteriorSettings& Other) const;
 	bool operator!=(const FInteriorSettings& Other) const;
-
-	void PostSerialize(const FArchive& Ar)
-	{
-		if (Ar.UE4Ver() < VER_UE4_USE_LOW_PASS_FILTER_FREQ)
-		{
-			if (InteriorLPF > 0.0f && InteriorLPF < 1.0f)
-			{
-				float FilterConstant = 2.0f * FMath::Sin(PI * 6000.0f * InteriorLPF / 48000);
-				InteriorLPF = FilterConstant * MAX_FILTER_FREQUENCY;
-			}
-
-			if (ExteriorLPF > 0.0f && ExteriorLPF < 1.0f)
-			{
-				float FilterConstant = 2.0f * FMath::Sin(PI * 6000.0f * ExteriorLPF / 48000);
-				ExteriorLPF = FilterConstant * MAX_FILTER_FREQUENCY;
-			}
-		}
-	}
-};
-
-template<>
-struct TStructOpsTypeTraits<FInteriorSettings> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithPostSerialize = true,
-	};
 };
 
 UCLASS(hidecategories=(Advanced, Attachment, Collision, Volume), MinimalAPI)
@@ -210,18 +182,18 @@ class AAudioVolume : public AVolume
 
 
 
-	//~ Begin UObject Interface
+	// Begin UObject Interface
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	//~ End UObject Interface
+	// End UObject Interface
 
-	//~ Begin AActor Interface
+	// Begin AActor Interface
 	virtual void PostUnregisterAllComponents() override;
 protected:
 	virtual void PostRegisterAllComponents() override;
 public:
-	//~ End AActor Interface
+	// End AActor Interface
 };
 
 

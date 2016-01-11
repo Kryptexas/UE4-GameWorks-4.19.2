@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "K2Node_CallFunction.h"
@@ -9,7 +9,7 @@ class UK2Node_CallMaterialParameterCollectionFunction : public UK2Node_CallFunct
 {
 	GENERATED_UCLASS_BODY()
 
-	//~ Begin EdGraphNode Interface
+	// Begin EdGraphNode interface
 	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) override;
-	//~ End EdGraphNode Interface
+	// End EdGraphNode interface
 };

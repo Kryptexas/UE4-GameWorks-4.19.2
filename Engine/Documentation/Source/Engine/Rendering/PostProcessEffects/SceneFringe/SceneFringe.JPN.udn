@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2537714
 Availability:Public
-Title:シーン フリンジ
+Title:シーンフリンジ (収差)
 Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
 Description:実際のカメラレンズ端付近の色の移り変わりをシミュレートする色収差エフェクト
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
 
@@ -71,8 +71,6 @@ class FSelectedWidgetDragDropOp : public FDecoratedDragDropOp
 public:
 	DRAG_DROP_OPERATOR_TYPE(FSelectedWidgetDragDropOp, FDecoratedDragDropOp)
 
-	virtual ~FSelectedWidgetDragDropOp();
-
 	struct FDraggingWidgetReference
 	{
 		FWidgetReference Widget;
@@ -102,26 +100,12 @@ public:
 
 	TArray<FItem> DraggedWidgets;
 
-	bool bShowingMessage;
-
-	IUMGDesigner* Designer;
-
-	static TSharedRef<FSelectedWidgetDragDropOp> New(TSharedPtr<FWidgetBlueprintEditor> Editor, IUMGDesigner* InDesigner, const TArray<FDraggingWidgetReference>& InWidgets);
+	static TSharedRef<FSelectedWidgetDragDropOp> New(TSharedPtr<FWidgetBlueprintEditor> Editor, const TArray<FDraggingWidgetReference>& InWidgets);
 };
 
-FSelectedWidgetDragDropOp::~FSelectedWidgetDragDropOp()
-{
-	if ( bShowingMessage )
-	{
-		Designer->PopDesignerMessage();
-	}
-}
-
-TSharedRef<FSelectedWidgetDragDropOp> FSelectedWidgetDragDropOp::New(TSharedPtr<FWidgetBlueprintEditor> Editor, IUMGDesigner* InDesigner, const TArray<FDraggingWidgetReference>& InWidgets)
+TSharedRef<FSelectedWidgetDragDropOp> FSelectedWidgetDragDropOp::New(TSharedPtr<FWidgetBlueprintEditor> Editor, const TArray<FDraggingWidgetReference>& InWidgets)
 {
 	TSharedRef<FSelectedWidgetDragDropOp> Operation = MakeShareable(new FSelectedWidgetDragDropOp());
-	Operation->bShowingMessage = false;
-	Operation->Designer = InDesigner;
 
 	for (const auto& InDraggedWidget : InWidgets)
 	{
@@ -132,11 +116,6 @@ TSharedRef<FSelectedWidgetDragDropOp> FSelectedWidgetDragDropOp::New(TSharedPtr<
 		{
 			DraggedWidget.ParentWidget = Editor->GetReferenceFromTemplate(PanelTemplate);
 			DraggedWidget.bStayingInParent = PanelTemplate->LockToPanelOnDrag() || GetDefault<UWidgetDesignerSettings>()->bLockToPanelOnDragByDefault;
-
-			if ( DraggedWidget.bStayingInParent )
-			{
-				Operation->bShowingMessage = true;
-			}
 		}
 
 		// Cache the preview and template, it's not safe to query the preview/template while dragging the widget as it no longer
@@ -160,11 +139,6 @@ TSharedRef<FSelectedWidgetDragDropOp> FSelectedWidgetDragDropOp::New(TSharedPtr<
 	else
 	{
 		Operation->CurrentHoverText = Operation->DefaultHoverText = LOCTEXT("DragMultipleWidgets", "Multiple Widgets");
-	}
-
-	if ( Operation->bShowingMessage )
-	{
-		InDesigner->PushDesignerMessage(LOCTEXT("PressAltToMoveFromParent", "Press [Alt] to move the widget out of the current parent"));
 	}
 
 	Operation->Construct();
@@ -233,6 +207,7 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 	PreviewWidget = nullptr;
 	BlueprintEditor = InBlueprintEditor;
 
+	DesignerMessage = EDesignerMessage::None;
 	TransformMode = ETransformMode::Layout;
 
 	SetStartupResolution();
@@ -373,37 +348,27 @@ TSharedRef<SWidget> SDesignerView::CreateOverlayUI()
 {
 	return SNew(SOverlay)
 
-	// Outline and text for important state.
+	// Top-right corner text indicating PIE is active
 	+ SOverlay::Slot()
 	.Padding(0)
 	.VAlign(VAlign_Fill)
 	.HAlign(HAlign_Fill)
 	[
-		SNew(SOverlay)
-		.Visibility(this, &SDesignerView::GetDesignerOutlineVisibility)
+		SNew(SImage)
+		.Visibility(this, &SDesignerView::PIENotification)
+		.Image(FEditorStyle::GetBrush(TEXT("Graph.PlayInEditor")))
+	]
 
-		// Top-right corner text indicating PIE is active
-		+ SOverlay::Slot()
-		.Padding(0)
-		.VAlign(VAlign_Fill)
-		.HAlign(HAlign_Fill)
-		[
-			SNew(SImage)
-			.ColorAndOpacity(this, &SDesignerView::GetDesignerOutlineColor)
-			.Image(FEditorStyle::GetBrush(TEXT("UMGEditor.DesignerMessageBorder")))
-		]
-
-		// Top-right corner text indicating PIE is active
-		+ SOverlay::Slot()
-		.Padding(20)
-		.VAlign(VAlign_Top)
-		.HAlign(HAlign_Right)
-		[
-			SNew(STextBlock)
-			.TextStyle(FEditorStyle::Get(), "Graph.SimulatingText")
-			.ColorAndOpacity(this, &SDesignerView::GetDesignerOutlineColor)
-			.Text(this, &SDesignerView::GetDesignerOutlineText)
-		]
+	// Top-right corner text indicating PIE is active
+	+ SOverlay::Slot()
+	.Padding(20)
+	.VAlign(VAlign_Top)
+	.HAlign(HAlign_Right)
+	[
+		SNew(STextBlock)
+		.Visibility(this, &SDesignerView::PIENotification)
+		.TextStyle( FEditorStyle::Get(), "Graph.SimulatingText" )
+		.Text( LOCTEXT("SIMULATING", "SIMULATING") )
 	]
 
 	// Top bar with buttons for changing the designer
@@ -861,7 +826,7 @@ float SDesignerView::GetGridScaleAmount() const
 
 EVisibility SDesignerView::GetInfoBarVisibility() const
 {
-	if ( DesignerMessageStack.Num() > 0 )
+	if ( DesignerMessage != EDesignerMessage::None )
 	{
 		return EVisibility::Visible;
 	}
@@ -871,22 +836,13 @@ EVisibility SDesignerView::GetInfoBarVisibility() const
 
 FText SDesignerView::GetInfoBarText() const
 {
-	if ( DesignerMessageStack.Num() > 0 )
+	switch ( DesignerMessage )
 	{
-		return DesignerMessageStack.Top();
+	case EDesignerMessage::MoveFromParent:
+		return LOCTEXT("PressShiftToMove", "Press Alt to move the widget out of the current parent");
 	}
 
 	return FText::GetEmpty();
-}
-
-void SDesignerView::PushDesignerMessage(const FText& Message)
-{
-	DesignerMessageStack.Push(Message);
-}
-
-void SDesignerView::PopDesignerMessage()
-{
-	DesignerMessageStack.Pop();
 }
 
 void SDesignerView::OnEditorSelectionChanged()
@@ -1324,6 +1280,7 @@ FReply SDesignerView::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointe
 		ResolvePendingSelectedWidgets();
 
 		bMovingExistingWidget = false;
+		DesignerMessage = EDesignerMessage::None;
 
 		EndTransaction(false);
 	}
@@ -1847,8 +1804,7 @@ FReply SDesignerView::OnDragDetected(const FGeometry& MyGeometry, const FPointer
 
 		ClearExtensionWidgets();
 
-		TSharedRef<FSelectedWidgetDragDropOp> DragOp = FSelectedWidgetDragDropOp::New(BlueprintEditor.Pin(), this, DraggingWidgets);
-		return FReply::Handled().BeginDragDrop(DragOp);
+		return FReply::Handled().BeginDragDrop(FSelectedWidgetDragDropOp::New(BlueprintEditor.Pin(), DraggingWidgets));
 	}
 
 	return FReply::Unhandled();
@@ -2069,17 +2025,15 @@ void SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, const F
 			if (DragDropEvent.IsAltDown() && DraggedWidget.bStayingInParent)
 			{
 				DraggedWidget.bStayingInParent = false;
-				if ( SelectedDragDropOp->bShowingMessage )
-				{
-					SelectedDragDropOp->bShowingMessage = false;
-					PopDesignerMessage();
-				}
+				DesignerMessage = EDesignerMessage::None;
 			}
 
 			// If we're staying in the parent we started in, replace the parent found under the cursor with
 			// the original one, also update the arranged widget data so that our layout calculations are accurate.
 			if (DraggedWidget.bStayingInParent)
 			{
+				DesignerMessage = EDesignerMessage::MoveFromParent;
+
 				WidgetUnderCursorGeometry = GetDesignerGeometry();
 				if (GetWidgetGeometry(DraggedWidget.ParentWidget, WidgetUnderCursorGeometry))
 				{
@@ -2270,9 +2224,13 @@ FReply SDesignerView::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& 
 		// Regenerate extension widgets now that we've finished moving or placing the widget.
 		CreateExtensionWidgetsForSelection();
 
+		DesignerMessage = EDesignerMessage::None;
+
 		DropPreviews.Empty();
 		return FReply::Handled();
 	}
+
+	DesignerMessage = EDesignerMessage::None;
 	
 	return FReply::Unhandled();
 }
@@ -2329,52 +2287,14 @@ EVisibility SDesignerView::GetResolutionTextVisibility() const
 	return EVisibility::SelfHitTestInvisible;
 }
 
-EVisibility SDesignerView::GetDesignerOutlineVisibility() const
+EVisibility SDesignerView::PIENotification() const
 {
 	if ( GEditor->bIsSimulatingInEditor || GEditor->PlayWorld != nullptr )
-	{
-		return EVisibility::HitTestInvisible;
-	}
-
-	TSharedPtr<ISequencer> Sequencer = BlueprintEditor.Pin()->GetSequencer();
-	if ( Sequencer.IsValid() && Sequencer->GetAutoKeyMode() != EAutoKeyMode::KeyNone )
 	{
 		return EVisibility::HitTestInvisible;
 	}
 
 	return EVisibility::Hidden;
-}
-
-FSlateColor SDesignerView::GetDesignerOutlineColor() const
-{
-	if ( GEditor->bIsSimulatingInEditor || GEditor->PlayWorld != nullptr )
-	{
-		return FLinearColor(0.863f, 0.407, 0.0f);
-	}
-
-	TSharedPtr<ISequencer> Sequencer = BlueprintEditor.Pin()->GetSequencer();
-	if ( Sequencer.IsValid() && Sequencer->GetAutoKeyMode() != EAutoKeyMode::KeyNone )
-	{
-		return FLinearColor::FromSRGBColor(FColor(251, 37, 0));
-	}
-
-	return FLinearColor::Transparent;
-}
-
-FText SDesignerView::GetDesignerOutlineText() const
-{
-	if ( GEditor->bIsSimulatingInEditor || GEditor->PlayWorld != nullptr )
-	{
-		return LOCTEXT("SIMULATING", "SIMULATING");
-	}
-	
-	TSharedPtr<ISequencer> Sequencer = BlueprintEditor.Pin()->GetSequencer();
-	if ( Sequencer.IsValid() && Sequencer->GetAutoKeyMode() != EAutoKeyMode::KeyNone )
-	{
-		return LOCTEXT("RECORDING", "RECORDING");
-	}
-
-	return FText::GetEmpty();
 }
 
 FReply SDesignerView::HandleDPISettingsClicked()

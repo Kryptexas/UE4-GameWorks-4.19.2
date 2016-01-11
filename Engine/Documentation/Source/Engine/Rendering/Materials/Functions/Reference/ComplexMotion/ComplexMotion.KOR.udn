@@ -1,0 +1,51 @@
+﻿INTSourceChangelist:2591123
+Availability: docs
+title:복합 모션
+Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
+Description:Complex Motion 카테고리 아래 머티리얼 함수에 대한 설명과 예제입니다.
+
+[TOC (start:2 end:3)]
+
+## 개요
+
+복합 모션 함수는 텍스처를 무작위 방식으로 동요시킬 필요가 있을 때 유용합니다. 수면 위의 모션처럼 아른거리는 효과를 내기에 좋습니다.
+
+## 복합 모션 함수
+
+ComplexMotion 카테고리 아래 있는 함수들은 다음과 같습니다.
+
+### Motion_4WayChaos
+
+임포트된 텍스처를 따라 혼란스런 사선 모션을 내는 함수입니다. 본질적으로는 텍스처 사본을 넷 만들어서, 그 각각을 각기 다른 사선 방향으로 계속해서 이동시킨 다음, 그 결과를 혼합하는 것입니다.
+
+| 항목 | 설명 |
+| ---- | ---- |
+|[REGION:tablesection]입력[/REGION] ||
+| **Coordinates** | 좌표 - 텍스처 좌표에 있을 타일링 같은 조절입니다. |
+| **Speed** | 속력 - 4 방향 모션의 이동 속력입니다. |
+| **Divisor** | 나눗수 - 4 방향 더하기를 합친 전체적인 결과를 얼마만큼 줄일 것인가 입니다. |
+| **Texture** | 텍스처 - 동요시킬 텍스처 입력입니다. |
+
+
+![Motion_4WayChaos](Motion_4WayChaos.png)
+
+![Motion_4WayChaos Incoming Texture](Motion_4WayChaos_Texture.png) ![Motion_4WayChaos Result](Motion_4WayChaos_Result.png)
+
+### Motion_4WayChaos_Normal
+
+Motion_4WayChaos_Normal 함수 역시 Motion_4WayChaos 함수와 마찬가지로 임포트된 텍스처를 따라 혼란스런 사선 모션을 내는 함수입니다. 그러나 이것은 노멀맵 작업에 특화된 버전입니다. 본질적으로는 텍스처 사본을 넷 만든 다음, 각각을 다른 사선 방향으로 계속해서 이동시킨 다음, 그 결과를 혼합하는 것입니다.
+
+
+| 항목 | 설명 |
+| ---- | ---- |
+|[REGION:tablesection]입력[/REGION] ||
+| **Coordinates** | 좌표 - 텍스처 좌표에 있을 타일링 같은 조절입니다. |
+| **Speed** | 속력 - 4 방향 모션의 이동 속력입니다. |
+| **Divisor** | 나눗수 - 4 방향 더하기를 합친 전체적인 결과를 얼마만큼 줄일 것인가 입니다. |
+| **Texture** | 텍스처 - 동요시킬 텍스처 입력입니다. |
+
+
+![Motion_4WayChaos_Normal](Motion_4WayChaos_Normal.png)
+
+
+![Motion_4WayChaos_Normal Incoming Texture](Motion_4WayChaos_Normal_Texture.png) ![Motion_4WayChaos_Normal Result](Motion_4WayChaos_Normal_Result.png)

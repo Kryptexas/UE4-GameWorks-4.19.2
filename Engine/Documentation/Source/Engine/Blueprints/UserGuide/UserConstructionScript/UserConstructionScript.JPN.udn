@@ -1,9 +1,8 @@
-﻿INTSourceChangelist:2695905
+﻿INTSourceChangelist:2454950
 Availability:Public
 Title:コンストラクション スクリプト
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:初期化を行うためにブループリントのインスタンス作成時に実行される
-version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -49,6 +48,9 @@ version:4.9
 [/REGION]
 
 
+[TOC(start:2 end:3)]
+
+## 概要
 
 [EXCERPT:Intro]
 
@@ -61,7 +63,7 @@ version:4.9
 Blueprint クラスのみに **コンストラクションスクリプト** が含まれます。Level ブループリントには含まれていません。
 [/REGION]
 
-**Construction Script** グラフへの実行エントリーポイントは **ConstructionScript** ノードで、常に存在しています。
+**Construction Script** グラフへの実行エントリーポイントは _ConstructionScript_ ノードで、常に存在しています。
 
 ![](construction_script.png)
 
@@ -69,4 +71,4 @@ Blueprint クラスのみに **コンストラクションスクリプト** が�
 
 [INCLUDE:Shared/Glossary/G/#Glossary_Graph_Mode]
 
-**コンストラクションスクリプト** およびブループリントのその他の グラフ の詳細な作業ガイドは [](Engine/Blueprints/Editor/UIComponents/GraphEditor) をご覧ください。
+**コンストラクションスクリプト** およびブループリントのその他の **グラフ** の詳細な作業ガイドは [](Engine/Blueprints/Editor/UIComponents/GraphEditor) をご覧ください。

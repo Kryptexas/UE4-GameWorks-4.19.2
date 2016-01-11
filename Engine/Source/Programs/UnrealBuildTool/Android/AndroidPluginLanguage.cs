@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -9,7 +9,7 @@ using System.Xml.Linq;
 using System.Diagnostics;
 using System.IO;
 
-namespace UnrealBuildTool
+namespace UnrealBuildTool.Android
 {
 	/* AndroidPluginLanguage (APL) is a simple XML-based language for manipulating XML and returning
 	 * strings.  It contains an <init> section which is evaluated once per architecture before any
@@ -392,9 +392,6 @@ namespace UnrealBuildTool
 		/** Trace flag to enable debugging */
 		static private bool bGlobalTrace = false;
 
-		/** Project file reference */
-		private FileReference ProjectFile;
-		
 		static private XDocument XMLDummy = XDocument.Parse("<manifest></manifest>");
 
 		private class APLContext
@@ -426,10 +423,8 @@ namespace UnrealBuildTool
 		private Dictionary<string, APLContext> Contexts;
 		private int ContextIndex;
 
-		public AndroidPluginLanguage(FileReference InProjectFile, List<string> XMLFiles, List<string> Architectures)
+		public AndroidPluginLanguage(List<string> XMLFiles, List<string> Architectures)
 		{
-			ProjectFile = InProjectFile;
-
 			Contexts = new Dictionary<string, APLContext>();
 			GlobalContext = new APLContext("", "");
 			ContextIndex = 0;
@@ -732,7 +727,7 @@ namespace UnrealBuildTool
 
 		static private Dictionary<string, ConfigCacheIni> ConfigCache = null;
 
-		private ConfigCacheIni GetConfigCacheIni(string baseIniName)
+		private static ConfigCacheIni GetConfigCacheIni(string baseIniName)
 		{
 			if (ConfigCache == null)
 			{
@@ -741,7 +736,7 @@ namespace UnrealBuildTool
 			ConfigCacheIni config = null;
 			if (!ConfigCache.TryGetValue(baseIniName, out config))
 			{
-				config = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Android, "Engine", DirectoryReference.FromFile(ProjectFile));
+				config = new ConfigCacheIni(UnrealTargetPlatform.Android, "Engine", UnrealBuildTool.GetUProjectPath());
 				ConfigCache.Add(baseIniName, config);
 			}
 			return config;
@@ -1452,10 +1447,6 @@ namespace UnrealBuildTool
 										Directory.CreateDirectory(Path.GetDirectoryName(Dst));
 										File.Copy(Src, Dst, true);
 										Log.TraceInformation("\nFile {0} copied to {1}", Src, Dst);
-
-										// remove any read only flags
-										FileInfo DestFileInfo = new FileInfo(Dst);
-										DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
 									}
 								}
 							}

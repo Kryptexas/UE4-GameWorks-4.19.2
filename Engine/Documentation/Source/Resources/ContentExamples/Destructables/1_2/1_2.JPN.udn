@@ -1,0 +1,36 @@
+﻿Availability:Docs
+Title:1.2 - カスタム破壊
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Destructables
+Description: 破壊性能事例レベルの概要、例 1.2:カスタム破壊
+
+
+[VAR:Topic]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Destructables/1_2:title%](Resources/ContentExamples/Destructables/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Destructables/1_2:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Destructables/1_2:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Destructables/1_2]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth raw]
+![](Resources/ContentExamples/Destructables/physics_banner.png)
+[/REGION]
+
+アンリアル エンジン 4 は、Max や Maya のような、サードパーティのプログラムからカスタム破壊をインポートすることができます。FBX でのエクスポートが可能であれば、全ての種類のプラグインを使用できます。その後 FBX ファイルをデストラクタブル エディタ ウィンドウ内の最初の **破壊デプス** としてアンリアル エンジン 4 へインポートすることができます。その後で、Voronoi (ボロノイ) を使って、 2 つ目の **破壊デプス** を作成することができます。現時点では、2 より高い **破壊デプス** が作成できるのは Nvidia Physix Lab のみですが、アンリアル エンジン 4 を使用する場合は、カスタム破壊を FBX でインポートし、その上で Voronoi を操作することにより、レベル 1 と 2 を作成することができます。
+
+[REGION:lightbox]
+[![](1_2_solid.png)(w:300)](1_2_solid.png) [![](1_2_fractured.png)(w:300)](1_2_fractured.png) [![](1_2_blown.png)(w:300)](1_2_blown.png)
+[/REGION]

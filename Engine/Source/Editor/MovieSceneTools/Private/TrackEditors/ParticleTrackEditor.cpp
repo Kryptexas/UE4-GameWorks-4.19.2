@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneToolsPrivatePCH.h"
 #include "MovieScene.h"
@@ -12,6 +12,7 @@
 #include "ISequencerObjectChangeListener.h"
 #include "ISectionLayoutBuilder.h"
 #include "IKeyArea.h"
+#include "MovieSceneToolHelpers.h"
 #include "MovieSceneTrackEditor.h"
 #include "ParticleTrackEditor.h"
 #include "MovieSceneParticleSection.h"
@@ -21,9 +22,6 @@
 #include "Particles/ParticleEmitter.h"
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleModuleRequired.h"
-#include "EnumKeyArea.h"
-#include "MatineeImportTools.h"
-#include "Matinee/InterpTrackToggle.h"
 
 
 namespace AnimatableParticleEditorConstants
@@ -31,9 +29,6 @@ namespace AnimatableParticleEditorConstants
 	// @todo Sequencer Allow this to be customizable
 	const uint32 ParticleTrackHeight = 20;
 }
-
-
-#define LOCTEXT_NAMESPACE "FParticleTrackEditor"
 
 
 FParticleSection::FParticleSection( UMovieSceneSection& InSection, TSharedRef<ISequencer>InOwningSequencer )
@@ -61,7 +56,7 @@ UMovieSceneSection* FParticleSection::GetSectionObject()
 
 FText FParticleSection::GetDisplayName() const
 {
-	return LOCTEXT("Emitter", "Emitter");
+	return NSLOCTEXT( "FParticleSection", "Emitter", "Emitter" );
 }
 
 float FParticleSection::GetSectionHeight() const
@@ -102,18 +97,14 @@ int32 FParticleSection::OnPaintSection( const FGeometry& AllottedGeometry, const
 
 			if ( ObjectHandle.IsValid() )
 			{
-				AEmitter* ParticleSystemActor = Cast<AEmitter>( OwningSequencer->GetFocusedMovieSceneSequenceInstance()->FindObject( ObjectHandle, *OwningSequencer ) );
+				AEmitter* ParticleSystemActor = Cast<AEmitter>( OwningSequencer->GetFocusedMovieSceneSequence()->FindObject( ObjectHandle ) );
 				if ( ParticleSystemActor != nullptr )
 				{
-					UParticleSystemComponent* ParticleSystemComponent = ParticleSystemActor->GetParticleSystemComponent();
-					if ( ParticleSystemComponent != nullptr && ParticleSystemComponent->Template != nullptr )
+					for ( UParticleEmitter* Emitter : ParticleSystemActor->GetParticleSystemComponent()->Template->Emitters )
 					{
-						for ( UParticleEmitter* Emitter : ParticleSystemComponent->Template->Emitters )
-						{
-							UParticleModuleRequired* RequiredModule = Emitter->GetLODLevel( 0 )->RequiredModule;
-							bIsLooping |= RequiredModule->EmitterLoops == 0;
-							LastEmitterEndTime = FMath::Max( LastEmitterEndTime, RequiredModule->EmitterDelay + RequiredModule->EmitterDuration );
-						}
+						UParticleModuleRequired* RequiredModule = Emitter->GetLODLevel( 0 )->RequiredModule;
+						bIsLooping |= RequiredModule->EmitterLoops == 0;
+						LastEmitterEndTime = FMath::Max( LastEmitterEndTime, RequiredModule->EmitterDelay + RequiredModule->EmitterDuration );
 					}
 				}
 			}
@@ -126,7 +117,7 @@ int32 FParticleSection::OnPaintSection( const FGeometry& AllottedGeometry, const
 	for ( auto KeyIterator = ParticleSection->GetParticleCurve().GetKeyIterator(); KeyIterator; ++KeyIterator )
 	{
 		FIntegralKey Key = *KeyIterator;
-		if ( (EParticleKey::Type)Key.Value == EParticleKey::Activate )
+		if ( (EParticleKey::Type)Key.Value == EParticleKey::Active )
 		{
 			if ( CurrentRangeStart.IsSet() == false )
 			{
@@ -148,7 +139,7 @@ int32 FParticleSection::OnPaintSection( const FGeometry& AllottedGeometry, const
 				}
 			}
 		}
-		if ( (EParticleKey::Type)Key.Value == EParticleKey::Deactivate )
+		if ( (EParticleKey::Type)Key.Value == EParticleKey::Inactive )
 		{
 			if ( CurrentRangeStart.IsSet() )
 			{
@@ -208,11 +199,11 @@ const FSlateBrush* FParticleSection::GetKeyBrush( FKeyHandle KeyHandle ) const
 	if ( ParticleSection != nullptr )
 	{
 		FIntegralKey ParticleKey = ParticleSection->GetParticleCurve().GetKey(KeyHandle);
-		if ( (EParticleKey::Type)ParticleKey.Value == EParticleKey::Activate )
+		if ( (EParticleKey::Type)ParticleKey.Value == EParticleKey::Active )
 		{
 			return LeftKeyBrush;
 		}
-		else if ( (EParticleKey::Type)ParticleKey.Value == EParticleKey::Deactivate )
+		else if ( (EParticleKey::Type)ParticleKey.Value == EParticleKey::Inactive )
 		{
 			return RightKeyBrush;
 		}
@@ -223,7 +214,13 @@ const FSlateBrush* FParticleSection::GetKeyBrush( FKeyHandle KeyHandle ) const
 
 FParticleTrackEditor::FParticleTrackEditor( TSharedRef<ISequencer> InSequencer )
 	: FMovieSceneTrackEditor( InSequencer ) 
-{ }
+{
+}
+
+
+FParticleTrackEditor::~FParticleTrackEditor()
+{
+}
 
 
 TSharedRef<ISequencerTrackEditor> FParticleTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
@@ -254,76 +251,38 @@ void FParticleTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder
 		const TSharedPtr<ISequencer> ParentSequencer = GetSequencer();
 
 		MenuBuilder.AddMenuEntry(
-			LOCTEXT("AddParticleTrack", "Particle Toggle Track"),
-			LOCTEXT("TriggerParticlesTooltip", "Adds a track for controlling particle emitter state."),
+			NSLOCTEXT("Sequencer", "AddParticleTrack", "Add Particle Track"),
+			NSLOCTEXT("Sequencer", "TriggerParticlesTooltip", "Adds a track for controlling particle emitter state."),
 			FSlateIcon(),
 			FUIAction(FExecuteAction::CreateSP(this, &FParticleTrackEditor::AddParticleKey, ObjectBinding))
-		);
+			);
 	}
 }
-
 
 void FParticleTrackEditor::AddParticleKey( const FGuid ObjectGuid )
 {
 	TArray<UObject*> OutObjects;
-
 	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects );
-	AnimatablePropertyChanged( FOnKeyProperty::CreateRaw( this, &FParticleTrackEditor::AddKeyInternal, OutObjects ) );
+
+	AnimatablePropertyChanged( UMovieSceneParticleTrack::StaticClass(), 
+		FOnKeyProperty::CreateRaw( this, &FParticleTrackEditor::AddKeyInternal, OutObjects ) );
 }
 
-
-bool FParticleTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*> Objects )
+void FParticleTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*> Objects )
 {
-	bool bHandleCreated = false;
-	bool bTrackCreated = false;
-
 	for( int32 ObjectIndex = 0; ObjectIndex < Objects.Num(); ++ObjectIndex )
 	{
 		UObject* Object = Objects[ObjectIndex];
 
-		FFindOrCreateHandleResult HandleResult = FindOrCreateHandleToObject( Object );
-		FGuid ObjectHandle = HandleResult.Handle;
-		bHandleCreated |= HandleResult.bWasCreated;
-
+		FGuid ObjectHandle = FindOrCreateHandleToObject( Object );
 		if (ObjectHandle.IsValid())
 		{
-			FFindOrCreateTrackResult TrackResult = FindOrCreateTrackForObject(ObjectHandle, UMovieSceneParticleTrack::StaticClass());
-			UMovieSceneTrack* Track = TrackResult.Track;
-			bTrackCreated |= TrackResult.bWasCreated;
+			UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, UMovieSceneParticleTrack::StaticClass(), FName("ParticleSystem"));
 
-			if (bTrackCreated && ensure(Track))
+			if (ensure(Track))
 			{
-				UMovieSceneParticleTrack* ParticleTrack = Cast<UMovieSceneParticleTrack>(Track);
-				ParticleTrack->AddNewSection(KeyTime);
-				ParticleTrack->SetDisplayName(LOCTEXT("TrackName", "Particle System"));
+				Cast<UMovieSceneParticleTrack>(Track)->AddNewKey( KeyTime );
 			}
 		}
 	}
-
-	return bHandleCreated || bTrackCreated;
 }
-
-
-void FParticleTrackEditor::BuildTrackContextMenu( FMenuBuilder& MenuBuilder, UMovieSceneTrack* Track )
-{
-	UInterpTrackToggle* MatineeToggleTrack = nullptr;
-	for ( UObject* CopyPasteObject : GUnrealEd->MatineeCopyPasteBuffer )
-	{
-		MatineeToggleTrack = Cast<UInterpTrackToggle>( CopyPasteObject );
-		if ( MatineeToggleTrack != nullptr )
-		{
-			break;
-		}
-	}
-	UMovieSceneParticleTrack* ParticleTrack = Cast<UMovieSceneParticleTrack>( Track );
-	MenuBuilder.AddMenuEntry(
-		NSLOCTEXT( "Sequencer", "PasteMatineeToggleTrack", "Paste Matinee Particle Track" ),
-		NSLOCTEXT( "Sequencer", "PasteMatineeToggleTrackTooltip", "Pastes keys from a Matinee particle track into this track." ),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateStatic( &FMatineeImportTools::CopyInterpParticleTrack, GetSequencer().ToSharedRef(), MatineeToggleTrack, ParticleTrack ),
-			FCanExecuteAction::CreateLambda( [=]()->bool { return MatineeToggleTrack != nullptr && MatineeToggleTrack->ToggleTrack.Num() > 0 && ParticleTrack != nullptr; } ) ) );
-}
-
-
-#undef LOCTEXT_NAMESPACE

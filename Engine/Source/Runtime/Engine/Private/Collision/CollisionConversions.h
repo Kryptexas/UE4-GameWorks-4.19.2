@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 // Utilities to convert from PhysX result structs to Unreal ones
 
 #pragma once 
@@ -6,12 +6,6 @@
 #if WITH_PHYSX
 
 #include "../PhysicsEngine/PhysXSupport.h"
-
-enum class EConvertQueryResult
-{
-	Valid,
-	Invalid
-};
 
 /** 
  * Util to convert single physX hit (raycast or sweep) to our hit result
@@ -25,14 +19,12 @@ enum class EConvertQueryResult
  * @param	Geom
  * @param	bReturnFaceIndex	True if we want to lookup the face index
  * @param	bReturnPhysMat		True if we want to lookup the physical material
- * @return	Whether result passed NaN/Inf checks.
  */
-EConvertQueryResult ConvertQueryImpactHit(const UWorld* World, const PxLocationHit& PHit, FHitResult& OutResult, float CheckLength, const PxFilterData& QueryFilter, const FVector& StartLoc, const FVector& EndLoc, const PxGeometry* const Geom, const PxTransform& QueryTM, bool bReturnFaceIndex, bool bReturnPhysMat);
+void ConvertQueryImpactHit(const UWorld* World, const PxLocationHit& PHit, FHitResult& OutResult, float CheckLength, const PxFilterData& QueryFilter, const FVector& StartLoc, const FVector& EndLoc, const PxGeometry* const Geom, const PxTransform& QueryTM, bool bReturnFaceIndex, bool bReturnPhysMat);
 
 /** 
  * Util to convert physX raycast results to our hit results
  *
- * @param	OutHasValidBlockingHit set to whether there is a valid blocking hit found in the results.
  * @param	NumHits		Number of Hits
  * @param	Hits		Array of hits
  * @param	CheckLength	Distance of trace
@@ -41,14 +33,12 @@ EConvertQueryResult ConvertQueryImpactHit(const UWorld* World, const PxLocationH
  * @param	EndLoc		End of trace
  * @param	bReturnFaceIndex	True if we want to lookup the face index
  * @param	bReturnPhysMat		True if we want to lookup the physical material
- * @return	Whether all results passed NaN/Inf checks.
  */
-EConvertQueryResult ConvertRaycastResults(bool& OutHasValidBlockingHit, const UWorld* World, int32 NumHits, PxRaycastHit* Hits, float CheckLength, const PxFilterData& QueryFilter, TArray<FHitResult>& OutHits, const FVector& StartLoc, const FVector& EndLoc, bool bReturnFaceIndex, bool bReturnPhysMat);
+void ConvertRaycastResults(const UWorld* World, int32 NumHits, PxRaycastHit* Hits, float CheckLength, const PxFilterData& QueryFilter, TArray<FHitResult>& OutHits, const FVector& StartLoc, const FVector& EndLoc, bool bReturnFaceIndex, bool bReturnPhysMat);
 
 /** 
  * Util to convert physX sweep results to unreal hit results and add to array
  *
- * @param	OutHasValidBlockingHit set to whether there is a valid blocking hit found in the results.
  * @param	NumHits		Number of Hits
  * @param	Hits		Array of hits
  * @param	CheckLength	Distance of trace
@@ -56,9 +46,9 @@ EConvertQueryResult ConvertRaycastResults(bool& OutHasValidBlockingHit, const UW
  * @param	StartLoc	Start of trace
  * @param	EndLoc		End of trace
  * @param	Geom
- * @return	Whether all results passed NaN/Inf checks.
+ * @return	true if any blocking hit was found within MaxDistance.
  */
-EConvertQueryResult AddSweepResults(bool& OutHasValidBlockingHit, const UWorld* World, int32 NumHits, const PxSweepHit* Hits, float CheckLength, const PxFilterData& QueryFilter, TArray<FHitResult>& OutHits, const FVector& StartLoc, const FVector& EndLoc, const PxGeometry& Geom, const PxTransform& QueryTM, float MaxDistance, bool bReturnPhysMat);
+bool AddSweepResults(const UWorld* World, int32 NumHits, const PxSweepHit* Hits, float CheckLength, const PxFilterData& QueryFilter, TArray<FHitResult>& OutHits, const FVector& StartLoc, const FVector& EndLoc, const PxGeometry& Geom, const PxTransform& QueryTM, float MaxDistance, bool bReturnPhysMat);
 
 /** 
  * Util to convert physX overlap query to our overlap result

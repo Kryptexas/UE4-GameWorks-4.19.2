@@ -2,7 +2,6 @@ Availability:Public
 Title:Pawn
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
 Description:The **Pawn** is the physical representation of a player within the world.
-Version: 4.9
 
 [OBJECT:Redirect]
 [PARAM:link]

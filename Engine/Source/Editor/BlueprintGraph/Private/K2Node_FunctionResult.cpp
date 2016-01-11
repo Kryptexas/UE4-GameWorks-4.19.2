@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 
@@ -93,10 +93,10 @@ public:
 		{
 			GenerateAssigments(Context, Node);
 
-			if (Context.IsDebuggingOrInstrumentationRequired() && Node)
+			if (Context.bCreateDebugData && Node)
 			{
 				FBlueprintCompiledStatement& TraceStatement = Context.AppendStatementForNode(Node);
-				TraceStatement.Type = Context.GetWireTraceType();
+				TraceStatement.Type = KCST_WireTraceSite;
 				TraceStatement.Comment = Node->NodeComment.IsEmpty() ? Node->GetName() : Node->NodeComment;
 			}
 
@@ -210,36 +210,12 @@ void UK2Node_FunctionResult::PostPlacedNewNode()
 {
 	Super::PostPlacedNewNode();
 
-	// If the entry is editable, so is the result
-	TArray<UK2Node_FunctionEntry*> AllEntryNodes;
-	if (auto Graph = GetGraph())
-	{
-		Graph->GetNodesOfClass(AllEntryNodes);
-
-		if (AllEntryNodes.Num() > 0)
-		{
-			bIsEditable = AllEntryNodes[0]->bIsEditable;
-		}
-	}
-
 	SyncWithPrimaryResultNode();
 }
 
 void UK2Node_FunctionResult::PostPasteNode()
 {
 	Super::PostPasteNode();
-
-	// If the entry is editable, so is the result
-	TArray<UK2Node_FunctionEntry*> AllEntryNodes;
-	if (auto Graph = GetGraph())
-	{
-		Graph->GetNodesOfClass(AllEntryNodes);
-
-		if (AllEntryNodes.Num() > 0)
-		{
-			bIsEditable = AllEntryNodes[0]->bIsEditable;
-		}
-	}
 
 	SyncWithPrimaryResultNode();
 }
@@ -303,21 +279,5 @@ void UK2Node_FunctionResult::ValidateNodeDuringCompilation(class FCompilerResult
 				break;
 			}
 		}
-	}
-}
-
-void UK2Node_FunctionResult::PromoteFromInterfaceOverride(bool bIsPrimaryTerminator/* = true*/)
-{
-	// For non-primary terminators, we want to sync with the primary one and reconstruct.
-	if (bIsPrimaryTerminator)
-	{
-		Super::PromoteFromInterfaceOverride();
-	}
-	else
-	{
-		SignatureClass = nullptr;
-		SyncWithPrimaryResultNode();
-		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-		Schema->ReconstructNode(*this, true);
 	}
 }

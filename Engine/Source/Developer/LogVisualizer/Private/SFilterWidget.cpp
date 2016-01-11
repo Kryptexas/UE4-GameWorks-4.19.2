@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LogVisualizer.h"
 #include "SFilterWidget.h"
@@ -15,12 +15,6 @@ void SFilterWidget::Construct(const FArguments& InArgs)
 	FilterName = InArgs._FilterName;
 	ColorCategory = InArgs._ColorCategory;
 	BorderBackgroundColor = FLinearColor(0.2f, 0.2f, 0.2f, 0.2f);
-
-	LastVerbosity = ELogVerbosity::NoLogging;
-	GetCaptionString(); // cache caption string
-
-	bWasEnabledLastTime = !IsEnabled();
-	GetTooltipString(); // cache tooltip string
 
 	// Get the tooltip and color of the type represented by this filter
 	FilterColor = ColorCategory;
@@ -57,43 +51,30 @@ void SFilterWidget::Construct(const FArguments& InArgs)
 FText SFilterWidget::GetCaptionString() const
 {
 	FString CaptionString;
-	FCategoryFilter& CategoryFilter = FVisualLoggerFilters::Get().GetCategoryByName(GetFilterNameAsString());
-	if (CategoryFilter.LogVerbosity != LastVerbosity)
+	FCategoryFilter& Filter = FCategoryFiltersManager::Get().GetCategory(GetFilterNameAsString());
+	const FString VerbosityStr = FOutputDevice::VerbosityToString((ELogVerbosity::Type)Filter.LogVerbosity);
+	if (Filter.LogVerbosity != ELogVerbosity::VeryVerbose)
 	{
-		const FString VerbosityStr = FOutputDevice::VerbosityToString((ELogVerbosity::Type)CategoryFilter.LogVerbosity);
-		if (CategoryFilter.LogVerbosity != ELogVerbosity::VeryVerbose)
-		{
-			CaptionString = FString::Printf(TEXT("%s [%s]"), *GetFilterNameAsString().Replace(TEXT("Log"), TEXT(""), ESearchCase::CaseSensitive), *VerbosityStr.Mid(0, 1));
-		}
-		else
-		{
-			CaptionString = FString::Printf(TEXT("%s [VV]"), *GetFilterNameAsString().Replace(TEXT("Log"), TEXT(""), ESearchCase::CaseSensitive));
-		}
-
-		CachedCaptionString = FText::FromString(CaptionString);
-		LastVerbosity = (ELogVerbosity::Type)CategoryFilter.LogVerbosity;
+		CaptionString = FString::Printf(TEXT("%s [%s]"), *GetFilterNameAsString().Replace(TEXT("Log"), TEXT(""), ESearchCase::CaseSensitive), *VerbosityStr.Mid(0, 1));
 	}
-	return CachedCaptionString;
+	else
+	{
+		CaptionString = FString::Printf(TEXT("%s [VV]"), *GetFilterNameAsString().Replace(TEXT("Log"), TEXT(""), ESearchCase::CaseSensitive));
+	}
+	return FText::FromString(CaptionString);
 }
 
 FText SFilterWidget::GetTooltipString() const
 {
-	if (bWasEnabledLastTime != IsEnabled())
-	{
-		FCategoryFilter& CategoryFilter = FVisualLoggerFilters::Get().GetCategoryByName(GetFilterNameAsString());
-		const FString VerbosityStr = FOutputDevice::VerbosityToString((ELogVerbosity::Type)CategoryFilter.LogVerbosity);
+	FCategoryFilter& Filter = FCategoryFiltersManager::Get().GetCategory(GetFilterNameAsString());
+	const FString VerbosityStr = FOutputDevice::VerbosityToString((ELogVerbosity::Type)Filter.LogVerbosity);
 
-		CachedTooltipString = FText::FromString(
-			IsEnabled() ?
-			FString::Printf(TEXT("Enabled '%s' category for '%s' verbosity and lower\nRight click to change verbosity"), *GetFilterNameAsString(), *VerbosityStr)
-			:
-			FString::Printf(TEXT("Disabled '%s' category"), *GetFilterNameAsString())
-			);
-
-		bWasEnabledLastTime = IsEnabled();
-	}
-
-	return CachedTooltipString;
+	return FText::FromString(
+		IsEnabled() ?
+		FString::Printf(TEXT("Enabled '%s' category for '%s' verbosity and lower\nRight click to change verbosity"), *GetFilterNameAsString(), *VerbosityStr)
+		:
+		FString::Printf(TEXT("Disabled '%s' category"), *GetFilterNameAsString())
+		);
 }
 
 TSharedRef<SWidget> SFilterWidget::GetRightClickMenuContent()
@@ -118,63 +99,37 @@ TSharedRef<SWidget> SFilterWidget::GetRightClickMenuContent()
 		}
 		MenuBuilder.EndSection();
 	}
-	MenuBuilder.BeginSection("FilterAction", LOCTEXT("FilterAction", "Context actions"));
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("DisableAllButThis", "Disable all but this"),
-			LOCTEXT("HideAllButThisTooltip", "Disable all other categories"),
-			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(this, &SFilterWidget::DisableAllButThis))
-			);
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("EnableAll", "Enable all categories"),
-			LOCTEXT("EnableAllTooltip", "Enable all categories"),
-			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(this, &SFilterWidget::EnableAllCategories))
-			);
-	MenuBuilder.EndSection();
 
 	return MenuBuilder.MakeWidget();
 }
 
 bool SFilterWidget::IsEnabled() const 
 { 
-	FCategoryFilter& CategoryFilter = FVisualLoggerFilters::Get().GetCategoryByName(GetFilterNameAsString());
-	return CategoryFilter.Enabled;
+	FCategoryFilter& Filter = FCategoryFiltersManager::Get().GetCategory(GetFilterNameAsString());
+	return Filter.Enabled;
 }
 
 void SFilterWidget::SetEnabled(bool InEnabled)
 {
-	FCategoryFilter& CategoryFilter = FVisualLoggerFilters::Get().GetCategoryByName(GetFilterNameAsString());
-	if (InEnabled != CategoryFilter.Enabled)
+	FCategoryFilter& Filter = FCategoryFiltersManager::Get().GetCategory(GetFilterNameAsString());
+	if (InEnabled != Filter.Enabled)
 	{
-		CategoryFilter.Enabled = InEnabled;
+		Filter.Enabled = InEnabled;
 		OnFilterChanged.ExecuteIfBound();
 	}
 }
 
 void SFilterWidget::FilterToggled(ECheckBoxState NewState)
 {
+	FCategoryFilter& Filter = FCategoryFiltersManager::Get().GetCategory(GetFilterNameAsString());
 	SetEnabled(NewState == ECheckBoxState::Checked);
 }
 
 void SFilterWidget::SetVerbosityFilter(int32 SelectedVerbosityIndex)
 {
-	FCategoryFilter& CategoryFilter = FVisualLoggerFilters::Get().GetCategoryByName(GetFilterNameAsString());
-	CategoryFilter.LogVerbosity = (ELogVerbosity::Type)SelectedVerbosityIndex;
+	FCategoryFilter& Filter = FCategoryFiltersManager::Get().GetCategory(GetFilterNameAsString());
+	Filter.LogVerbosity = (ELogVerbosity::Type)SelectedVerbosityIndex;
 	OnFilterChanged.ExecuteIfBound();
 }
-
-void SFilterWidget::DisableAllButThis()
-{
-	FVisualLoggerFilters::Get().DeactivateAllButThis(GetFilterNameAsString());
-	OnFilterChanged.ExecuteIfBound();
-}
-
-void SFilterWidget::EnableAllCategories()
-{
-	FVisualLoggerFilters::Get().EnableAllCategories();
-	OnFilterChanged.ExecuteIfBound();
-}
-
 
 #undef LOCTEXT_NAMESPACE

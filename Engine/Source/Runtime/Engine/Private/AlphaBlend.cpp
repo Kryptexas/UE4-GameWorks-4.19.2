@@ -1,87 +1,69 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "AlphaBlend.h"
 
-FAlphaBlend::FAlphaBlend(float NewBlendTime) 
+FAlphaBlend::FAlphaBlend() 
 	: BlendOption(EAlphaBlendOption::Linear)
-	, CustomCurve(nullptr)
-	, BlendTime(NewBlendTime)
 	, BeginValue(0.0f)
 	, DesiredValue(1.0f)
+	, BlendTime(0.2f)
+	, CustomCurve(nullptr)
 {
 	Reset();
 }
 
-FAlphaBlend::FAlphaBlend(const FAlphaBlend& Other, float NewBlendTime)
-	: BlendOption(Other.BlendOption)
-	, CustomCurve(Other.CustomCurve)
-	, BlendTime(NewBlendTime)
-	, BeginValue(Other.BeginValue)
-	, DesiredValue(Other.DesiredValue)
+void FAlphaBlend::SetBlendTime(float InBlendTime)
 {
-	Reset();
-}
-
-void FAlphaBlend::ResetBlendTime()
-{
-	// if blend time is <= 0, then blending is done and complete
-	if(BlendTime <= 0.f)
-	{
-		BlendTimeRemaining = 0.f;
-		SetAlpha(1.f);
-	}
-	else
-	{
-		// Blend time is to go all the way, so scale that by how much we have to travel
-		BlendTimeRemaining = BlendTime * FMath::Abs(1.f - AlphaLerp);
-	}
-	
-	bNeedsToResetBlendTime = false;
-}
-
-void FAlphaBlend::ResetAlpha()
-{
-	float SmallerValue = FMath::Min(BeginValue, DesiredValue);
-	float BiggerValue = FMath::Max(BeginValue, DesiredValue);
-	// make sure it's within the range
-	float NewBlendedValue = FMath::Clamp(BlendedValue, SmallerValue, BiggerValue);
-
-	// if blend time is <= 0, or begin == end is same, there is nothing to be done
-	// blending is done and complete
-	if (BeginValue == DesiredValue)
-	{
-		SetAlpha(1.f);
-	}
-	else
-	{
-		AlphaLerp = (BlendedValue - BeginValue)/(DesiredValue - BeginValue);
-		SetAlpha(AlphaLerp);
-	}
-
-	// reset the flag
-	bNeedsToResetAlpha = false;
+	BlendTime = FMath::Max(InBlendTime, 0.f);
 }
 
 void FAlphaBlend::Reset()
 {
+	AlphaLerp = 0.0f;
+	AlphaBlend = 0.0f;
+	BlendedValue = BeginValue;
+
 	// Set alpha target to full - will also handle zero blend times
+	SetTarget(1.0f);
+}
+
+bool FAlphaBlend::GetToggleStatus()
+{
+	return (AlphaTarget > 0.f);
+}
+
+void FAlphaBlend::Toggle(bool bEnable)
+{
+	ConditionalSetTarget(bEnable ? 1.f : 0.f);
+}
+
+void FAlphaBlend::ConditionalSetTarget(float InAlphaTarget)
+{
+	if( AlphaTarget != InAlphaTarget )
+	{
+		SetTarget(InAlphaTarget);
+	}
+}
+
+void FAlphaBlend::SetTarget(float InAlphaTarget)
+{
+	// Clamp parameters to valid range
+	AlphaTarget = FMath::Clamp<float>(InAlphaTarget, 0.f, 1.f);
+
 	// if blend time is zero, transition now, don't wait to call update.
 	if( BlendTime <= 0.f )
 	{
-		SetAlpha(1.f);
+		AlphaLerp = AlphaTarget;
+		AlphaBlend = AlphaToBlendOption();
 		BlendTimeRemaining = 0.f;
+		BlendedValue = BeginValue + (DesiredValue - BeginValue) * AlphaBlend;
 	}
 	else
 	{
-		SetAlpha(0.f);
 		// Blend time is to go all the way, so scale that by how much we have to travel
-		BlendTimeRemaining = BlendTime * FMath::Abs(1.f - AlphaLerp);
+		BlendTimeRemaining = BlendTime * FMath::Abs(AlphaTarget - AlphaLerp);
 	}
-
-	RecacheDesiredBlendedValue();
-	bNeedsToResetAlpha = false;
-	bNeedsToResetBlendTime = false;
 }
 
 void FAlphaBlend::Update(float InDeltaTime)
@@ -89,32 +71,23 @@ void FAlphaBlend::Update(float InDeltaTime)
 	// Make sure passed in delta time is positive
 	check(InDeltaTime >= 0.f);
 
-	// check if we should reset alpha
-	if (bNeedsToResetAlpha)
-	{
-		ResetAlpha();
-	}
-
-	// or should re calc blend time remaining
-	if (bNeedsToResetBlendTime)
-	{
-		ResetBlendTime();
-	}
-
-	// if not complete, 
 	if( !IsComplete() )
 	{
 		if( BlendTimeRemaining > InDeltaTime )
 		{
-			const float BlendDelta = 1.f - AlphaLerp; 
+			const float BlendDelta = AlphaTarget - AlphaLerp; 
 			AlphaLerp += (BlendDelta / BlendTimeRemaining) * InDeltaTime;
 			BlendTimeRemaining -= InDeltaTime;
-			SetAlpha(AlphaLerp);
+
+			AlphaBlend = AlphaToBlendOption();
+			BlendedValue = BeginValue + (DesiredValue - BeginValue) * AlphaBlend;
 		}
 		else
 		{
 			BlendTimeRemaining = 0.f; 
-			SetAlpha(1.f);
+			AlphaLerp = 1.0f;
+			AlphaBlend = 1.0f;
+			BlendedValue = DesiredValue;
 		}
 	}
 }
@@ -156,22 +129,29 @@ float FAlphaBlend::AlphaToBlendOption(float InAlpha, EAlphaBlendOption InBlendOp
 	return InAlpha;
 }
 
+void FAlphaBlend::SetBlendOption(EAlphaBlendOption InBlendOption)
+{
+	BlendOption = InBlendOption;
+
+	// Recalculate the current blended value
+	AlphaBlend = AlphaToBlendOption();
+	BlendedValue = BeginValue + (DesiredValue - BeginValue) * AlphaBlend;
+}
+
+float FAlphaBlend::GetBlendedValue()
+{
+	return BlendedValue;
+}
+
 void FAlphaBlend::SetValueRange(float Begin, float Desired)
 {
 	BeginValue = Begin;
 	DesiredValue = Desired;
 
-	bNeedsToResetAlpha = true;
-	RecacheDesiredBlendedValue();
+	// Convert to new range
+	BlendedValue = BeginValue + (DesiredValue - BeginValue) * AlphaBlend;
 }
 
-/** Sets the final desired value for the blended value */
-void FAlphaBlend::SetDesiredValue(float InDesired)
-{
-	SetValueRange(BlendedValue, InDesired);
-}
-
-/** note this function can modify BlendedValue right away */
 void FAlphaBlend::SetAlpha(float InAlpha)
 {
 	AlphaLerp = FMath::Clamp(InAlpha, 0.0f, 1.0f);
@@ -179,32 +159,7 @@ void FAlphaBlend::SetAlpha(float InAlpha)
 	BlendedValue = BeginValue + (DesiredValue - BeginValue) * AlphaBlend;
 }
 
-void FAlphaBlend::RecacheDesiredBlendedValue()
+bool FAlphaBlend::IsComplete()
 {
-	CachedDesiredBlendedValue = BeginValue + (DesiredValue - BeginValue) * AlphaToBlendOption(1.f, BlendOption, CustomCurve);
+	return AlphaLerp == 1.0f;
 }
-
-void FAlphaBlend::SetBlendTime(float InBlendTime)
-{
-	BlendTime = FMath::Max(InBlendTime, 0.f);
-	// when blend time changes, we have to restart alpha
-	bNeedsToResetBlendTime = true;
-}
-
-void FAlphaBlend::SetBlendOption(EAlphaBlendOption InBlendOption)
-{
-	BlendOption = InBlendOption;
-	RecacheDesiredBlendedValue();
-}
-
-void FAlphaBlend::SetCustomCurve(UCurveFloat* InCustomCurve)
-{
-	CustomCurve = InCustomCurve;
-	RecacheDesiredBlendedValue();
-}
-
-bool FAlphaBlend::IsComplete() const
-{
-	return CachedDesiredBlendedValue == BlendedValue;
-}
-

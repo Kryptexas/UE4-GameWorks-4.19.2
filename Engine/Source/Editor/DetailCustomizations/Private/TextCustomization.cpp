@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "TextCustomization.h"
@@ -100,7 +100,6 @@ namespace
 
 		TSharedPtr<SHorizontalBox> HorizontalBox;
 
-		bool bIsPassword = PropertyHandle->GetBoolMetaData("PasswordField");
 		bIsMultiLine = PropertyHandle->GetBoolMetaData("MultiLine");
 		if(bIsMultiLine)
 		{
@@ -110,21 +109,16 @@ namespace
 					+SHorizontalBox::Slot()
 					.FillWidth(1.0f)
 					[
-						SNew( SBox )
-						.MaxDesiredHeight(300.f)
-						[
-							SAssignNew(MultiLineWidget, SMultiLineEditableTextBox)
-							.Text_Lambda(GetTextValue)
-							.Font(InArgs._Font)
-							.SelectAllTextWhenFocused(false)
-							.ClearKeyboardFocusOnCommit(false)
-							.OnTextCommitted_Lambda(OnTextCommitted)
-							.SelectAllTextOnCommit(false)
-							.IsReadOnly(this, &STextPropertyWidget::IsReadOnly)
-							.AutoWrapText(true)
-							.ModiferKeyForNewLine(EModifierKey::Shift)
-							.IsPassword(bIsPassword)
-						]
+						SAssignNew(MultiLineWidget, SMultiLineEditableTextBox)
+						.Text_Lambda(GetTextValue)
+						.Font(InArgs._Font)
+						.SelectAllTextWhenFocused(false)
+						.ClearKeyboardFocusOnCommit(false)
+						.OnTextCommitted_Lambda(OnTextCommitted)
+						.SelectAllTextOnCommit(false)
+						.IsReadOnly(this, &STextPropertyWidget::IsReadOnly)
+						.AutoWrapText(true)
+						.ModiferKeyForNewLine(EModifierKey::Shift)
 					]
 				];
 
@@ -146,7 +140,6 @@ namespace
 						.OnTextCommitted_Lambda(OnTextCommitted)
 						.SelectAllTextOnCommit( true )
 						.IsReadOnly(this, &STextPropertyWidget::IsReadOnly)
-						.IsPassword(bIsPassword)
 
 					]
 				];
@@ -205,16 +198,12 @@ namespace
 
 void FTextCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> InPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& PropertyTypeCustomizationUtils )
 {
-	const bool bIsMultiLine = InPropertyHandle->GetProperty()->GetBoolMetaData("MultiLine");
-
 	HeaderRow.FilterString(InPropertyHandle->GetPropertyDisplayName())
 		.NameContent()
 		[
 			InPropertyHandle->CreatePropertyNameWidget()
 		]
 		.ValueContent()
-		.MinDesiredWidth(bIsMultiLine ? 250.f : 125.f)
-		.MaxDesiredWidth(600.f)
 		[
 			SNew(STextPropertyWidget, InPropertyHandle, PropertyTypeCustomizationUtils.GetPropertyUtilities())
 		];

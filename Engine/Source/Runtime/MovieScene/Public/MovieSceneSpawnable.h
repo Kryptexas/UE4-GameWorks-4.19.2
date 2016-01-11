@@ -1,21 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "MovieSceneSpawnable.generated.h"
 
-UENUM()
-enum class ESpawnOwnership : uint8
-{
-	/** The object's lifetime is managed by the sequence that spawned it */
-	InnerSequence,
-
-	/** The object's lifetime is managed by the outermost sequence */
-	MasterSequence,
-
-	/** Once spawned, the object's lifetime is managed externally. */
-	External,
-};
 
 /**
  * MovieSceneSpawnable describes an object that can be spawned for this MovieScene
@@ -30,12 +18,12 @@ public:
 	/** FMovieSceneSpawnable default constructor */
 	FMovieSceneSpawnable() { }
 
-/** FMovieSceneSpawnable initialization constructor */
-	FMovieSceneSpawnable(const FString& InitName, UClass* InitClass)
+	/** FMovieSceneSpawnable initialization constructor */
+	FMovieSceneSpawnable(const FString& InitName, UClass* InitClass, UObject* InitCounterpartGamePreviewObject)
 		: Guid(FGuid::NewGuid())
 		, Name(InitName)
 		, GeneratedClass(InitClass)
-		, Ownership(ESpawnOwnership::InnerSequence)
+		, CounterpartGamePreviewObject(InitCounterpartGamePreviewObject)
 	{ }
 
 public:
@@ -44,7 +32,7 @@ public:
 	 * Get the Blueprint associated with the spawnable object.
 	 *
 	 * @return Blueprint class
-	 * @see GetGuid, GetName
+	 * @see GetCounterpartGamePreviewObject, GetGuid, GetName
 	 */
 	UClass* GetClass()
 	{
@@ -52,10 +40,21 @@ public:
 	}
 
 	/**
+	 * Get the game preview counterpart object for the spawnable object, if it has one.
+	 *
+	 * @return Counterpart object, or nullptr if it doesn't have one.
+	 * @see GetClass, GetGuid, GetName
+	 */
+	const FWeakObjectPtr& GetCounterpartGamePreviewObject() const
+	{
+		return CounterpartGamePreviewObject;
+	}
+
+	/**
 	 * Get the unique identifier of the spawnable object.
 	 *
 	 * @return Object GUID.
-	 * @see GetClass, GetName
+	 * @see GetClass, GetCounterpartGamePreviewObject, GetName
 	 */
 	const FGuid& GetGuid() const
 	{
@@ -66,55 +65,11 @@ public:
 	 * Get the name of the spawnable object.
 	 *
 	 * @return Object name.
-	 * @see GetClass, GetGuid
+	 * @see GetClass, GetCounterpartGamePreviewObject, GetGuid
 	 */
 	const FString& GetName() const
 	{
 		return Name;
-	}
-
-	/**
-	 * Report the specified GUID as being an inner possessable dependency for this spawnable
-	 *
-	 * @param PossessableGuid The guid pertaining to the inner possessable
-	 */
-	void AddChildPossessable(const FGuid& PossessableGuid)
-	{
-		ChildPossessables.AddUnique(PossessableGuid);
-	}
-
-	/**
-	 * Remove the specified GUID from this spawnables list of dependent possessables
-	 *
-	 * @param PossessableGuid The guid pertaining to the inner possessable
-	 */
-	void RemoveChildPossessable(const FGuid& PossessableGuid)
-	{
-		ChildPossessables.Remove(PossessableGuid);
-	}
-
-	/**
-	 * @return const access to the child possessables set
-	 */
-	const TArray<FGuid>& GetChildPossessables() const
-	{
-		return ChildPossessables;
-	}
-
-	/**
-	 * Get a value indicating what is responsible for this object once it's spawned
-	 */
-	ESpawnOwnership GetSpawnOwnership() const
-	{
-		return Ownership;
-	}
-
-	/**
-	 * Set a value indicating what is responsible for this object once it's spawned
-	 */
-	void SetSpawnOwnership(ESpawnOwnership InOwnership)
-	{
-		Ownership = InOwnership;
 	}
 
 private:
@@ -135,12 +90,8 @@ private:
 	UPROPERTY()
 	UClass* GeneratedClass;
 
-	/** Set of GUIDs to possessable object bindings that are bound to an object inside this spawnable */
-	// @todo sequencer: This should be a TSet, but they don't duplicate correctly atm
-	UPROPERTY()
-	TArray<FGuid> ChildPossessables;
-
-	/** Property indicating where ownership responsibility for this object lies */
-	UPROPERTY()
-	ESpawnOwnership Ownership;
+	/** Optional transient weak pointer to the game preview object this spawnable was created to capture data for.  This is
+	    used in the editor when capturing keyframe data from a live simulation */
+	// @todo sequencer data: Should be editor only
+	FWeakObjectPtr CounterpartGamePreviewObject;
 };

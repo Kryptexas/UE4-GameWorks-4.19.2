@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "WorldBrowserPrivatePCH.h"
 
 #include "Engine/WorldComposition.h"
@@ -320,8 +320,6 @@ void FWorldTileCollectionModel::BuildWorldCompositionMenu(FMenuBuilder& InMenuBu
 			LOCTEXT("LockHeader", "Lock"),
 			LOCTEXT("LockSubMenu_ToolTip", "Selected Level(s) lock commands"),
 			FNewMenuDelegate::CreateSP(this, &FWorldTileCollectionModel::FillLockSubMenu ) );
-
-		InMenuBuilder.AddMenuEntry(Commands.World_FindInContentBrowser);
 	}
 	InMenuBuilder.EndSection();
 
@@ -425,7 +423,6 @@ void FWorldTileCollectionModel::BuildHierarchyMenu(FMenuBuilder& InMenuBuilder) 
 			LOCTEXT("LockSubMenu_ToolTip", "Selected Level(s) lock commands"),
 			FNewMenuDelegate::CreateSP(this, &FWorldTileCollectionModel::FillLockSubMenu ) );
 	
-		InMenuBuilder.AddMenuEntry(Commands.World_FindInContentBrowser);
 	}
 	InMenuBuilder.EndSection();
 
@@ -912,7 +909,7 @@ void FWorldTileCollectionModel::UpdateStreamingPreview(FVector2D InLocation, boo
 	{
 		FVector NewPreviewLocation = FVector(InLocation, 0);
 		
-		if ((PreviewLocation-NewPreviewLocation).SizeSquared() > FMath::Square(KINDA_SMALL_NUMBER))
+		if ((PreviewLocation-NewPreviewLocation).Size() > KINDA_SMALL_NUMBER)
 		{
 			PreviewLocation = NewPreviewLocation;
 			PreviewVisibleTiles.Empty();
@@ -1520,10 +1517,10 @@ static void SetupLandscapeImportLayers(const FTiledLandscapeImportSettings& InIm
 				ReadWeightmapFile(LayerImportInfo.LayerData, LayerImportInfo.SourceFilePath, FILEREAD_Silent);
 			}
 		}
-
+		
 		LayerImportInfo.LayerInfo = GetLandscapeLayerInfoObject(LayerImportInfo.LayerName, ContentPath);
 		LayerImportInfo.LayerInfo->bNoWeightBlend = LayerSettings.bNoBlendWeight;
-
+						
 		OutLayerInfo.Add(LayerImportInfo);
 	}
 }
@@ -1609,8 +1606,7 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 
 			// Setup layers list for importing
 			SetupLandscapeImportLayers(ImportSettings, GetWorld()->GetOutermost()->GetName(), TileIndex, TileImportSettings.ImportLayers);
-			TileImportSettings.ImportLayerType = ELandscapeImportAlphamapType::Additive;
-
+						
 			if (ReadRawFile(TileImportSettings.HeightData, Filename, FILEREAD_Silent))
 			{
 				FString MapFileName = WorldRootPath + TileName + FPackageName::GetMapPackageExtension();
@@ -1960,31 +1956,25 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 
 			FMeshProxySettings ProxySettings;
 			ProxySettings.ScreenSize = ProxySettings.ScreenSize*(SimplificationDetails.DetailsPercentage/100.f);
-			ProxySettings.MaterialSettings = SimplificationDetails.StaticMeshMaterialSettings;
+			ProxySettings.Material = SimplificationDetails.StaticMeshMaterial;
 
 			TArray<UObject*> OutAssets;
+			FVector OutProxyLocation;
 			FString ProxyPackageName = FString::Printf(TEXT("PROXY_%s_LOD%d"), *FPackageName::GetShortName(TileModel->TileDetails->PackageName), TargetLODIndex + 1);
 			
-			// Generate proxy mesh and proxy material assets 
-			FCreateProxyDelegate ProxyDelegate;
-			ProxyDelegate.BindLambda(
-				[&](const FGuid Guid, TArray<UObject*>& AssetsToSync)
+			// Generate proxy mesh and proxy material assets
+			MeshUtilities.CreateProxyMesh(Actors, ProxySettings, AssetsOuter, AssetsPath + ProxyPackageName, OutAssets, OutProxyLocation);
+		
+			if (OutAssets.Num())
 			{
-				//Update the asset registry that a new static mash and material has been created
-				if (AssetsToSync.Num())
+				UStaticMesh* ProxyMesh = nullptr;
+				if (OutAssets.FindItemByClass(&ProxyMesh))
 				{
-					UStaticMesh* ProxyMesh = nullptr;
-					if (OutAssets.FindItemByClass(&ProxyMesh))
-					{
-						new(AssetsToSpawn)FAssetToSpawnInfo(ProxyMesh, FTransform(-ActorsOffset));
-					}
-
-					GeneratedAssets.Append(OutAssets);
+					new(AssetsToSpawn) FAssetToSpawnInfo(ProxyMesh, FTransform(OutProxyLocation - ActorsOffset));
 				}
-			});
 
-			FGuid JobGuid = FGuid::NewGuid();
-			MeshUtilities.CreateProxyMesh(Actors, ProxySettings, NULL, ProxyPackageName, JobGuid, ProxyDelegate);
+				GeneratedAssets.Append(OutAssets);
+			}
 		}
 
 		// Convert landscape actors into static meshes
@@ -2036,11 +2026,11 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 			}
 								
 			// This is texture resolution for a landscape mesh, probably needs to be calculated using landscape size
-			LandscapeFlattenMaterial.DiffuseSize = SimplificationDetails.LandscapeMaterialSettings.TextureSize;
-			LandscapeFlattenMaterial.NormalSize = SimplificationDetails.LandscapeMaterialSettings.bNormalMap ? SimplificationDetails.LandscapeMaterialSettings.TextureSize : FIntPoint::ZeroValue;
-			LandscapeFlattenMaterial.MetallicSize = SimplificationDetails.LandscapeMaterialSettings.bMetallicMap ? SimplificationDetails.LandscapeMaterialSettings.TextureSize : FIntPoint::ZeroValue;
-			LandscapeFlattenMaterial.RoughnessSize = SimplificationDetails.LandscapeMaterialSettings.bRoughnessMap ? SimplificationDetails.LandscapeMaterialSettings.TextureSize : FIntPoint::ZeroValue;
-			LandscapeFlattenMaterial.SpecularSize = SimplificationDetails.LandscapeMaterialSettings.bSpecularMap ? SimplificationDetails.LandscapeMaterialSettings.TextureSize : FIntPoint::ZeroValue;
+			LandscapeFlattenMaterial.DiffuseSize	= SimplificationDetails.LandscapeMaterial.BaseColorMapSize;
+			LandscapeFlattenMaterial.NormalSize		= SimplificationDetails.LandscapeMaterial.bNormalMap ?  SimplificationDetails.LandscapeMaterial.NormalMapSize : FIntPoint::ZeroValue;
+			LandscapeFlattenMaterial.MetallicSize	= SimplificationDetails.LandscapeMaterial.bMetallicMap ? SimplificationDetails.LandscapeMaterial.MetallicMapSize : FIntPoint::ZeroValue;
+			LandscapeFlattenMaterial.RoughnessSize	= SimplificationDetails.LandscapeMaterial.bRoughnessMap ? SimplificationDetails.LandscapeMaterial.RoughnessMapSize : FIntPoint::ZeroValue;
+			LandscapeFlattenMaterial.SpecularSize	= SimplificationDetails.LandscapeMaterial.bSpecularMap ? SimplificationDetails.LandscapeMaterial.SpecularMapSize : FIntPoint::ZeroValue;
 			
 			FMaterialUtilities::ExportLandscapeMaterial(Landscape, PrimitivesToHide, LandscapeFlattenMaterial);
 
@@ -2050,19 +2040,19 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 				{
 					LandscapeFlattenMaterial.MetallicSize = FIntPoint(1, 1);
 					LandscapeFlattenMaterial.MetallicSamples.SetNum(1);
-					LandscapeFlattenMaterial.MetallicSamples[0].DWColor() = *(uint32*)(&SimplificationDetails.LandscapeMaterialSettings.MetallicConstant);
+					LandscapeFlattenMaterial.MetallicSamples[0].DWColor() = *(uint32*)(&SimplificationDetails.LandscapeMaterial.MetallicConstant);
 				}
 				if (LandscapeFlattenMaterial.RoughnessSamples.Num() == 0)
 				{
 					LandscapeFlattenMaterial.RoughnessSize = FIntPoint(1, 1);
 					LandscapeFlattenMaterial.RoughnessSamples.SetNum(1);
-					LandscapeFlattenMaterial.RoughnessSamples[0].DWColor() = *(uint32*)(&SimplificationDetails.LandscapeMaterialSettings.RoughnessConstant);
+					LandscapeFlattenMaterial.RoughnessSamples[0].DWColor() = *(uint32*)(&SimplificationDetails.LandscapeMaterial.RoughnessConstant);
 				}
 				if (LandscapeFlattenMaterial.SpecularSamples.Num() == 0)
 				{
 					LandscapeFlattenMaterial.SpecularSize = FIntPoint(1, 1);
 					LandscapeFlattenMaterial.SpecularSamples.SetNum(1);
-					LandscapeFlattenMaterial.SpecularSamples[0].DWColor() = *(uint32*)(&SimplificationDetails.LandscapeMaterialSettings.SpecularConstant);
+					LandscapeFlattenMaterial.SpecularSamples[0].DWColor() = *(uint32*)(&SimplificationDetails.LandscapeMaterial.SpecularConstant);
 				}
 			}
 		

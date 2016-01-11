@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,9 +13,9 @@ public:
 
 	void Construct(const FArguments& InArgs, UEdGraphPin* InGraphPinObj);
 
-	//~ Begin SGraphPin Interface
+	// Begin SGraphPin interface
 	virtual TSharedRef<SWidget>	GetDefaultValueWidget() override;
-	//~ End SGraphPin Interface
+	// End SGraphPin interface
 
 	void OnAttributeChanged(UProperty* SelectedAttribute);
 

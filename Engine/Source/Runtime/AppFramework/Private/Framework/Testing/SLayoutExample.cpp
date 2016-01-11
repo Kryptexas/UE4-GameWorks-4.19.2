@@ -1,9 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AppFrameworkPrivatePCH.h"
 #include "SLayoutExample.h"
 
-#if !UE_BUILD_SHIPPING
 
 #define LOCTEXT_NAMESPACE "ExampleLayoutTest"
 
@@ -382,7 +381,7 @@ public:
 
 
 
-TSharedRef<SWidget> MakeLayoutExample()
+APPFRAMEWORK_API TSharedRef<SWidget> MakeLayoutExample()
 {
 	extern TOptional<FSlateRenderTransform> GetTestRenderTransform();
 	extern FVector2D GetTestRenderTransformPivot();
@@ -393,5 +392,3 @@ TSharedRef<SWidget> MakeLayoutExample()
 }
 
 #undef LOCTEXT_NAMESPACE
-
-#endif // #if !UE_BUILD_SHIPPING

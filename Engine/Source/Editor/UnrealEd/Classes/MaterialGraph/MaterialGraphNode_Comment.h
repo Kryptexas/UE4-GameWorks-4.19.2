@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "EdGraphNode_Comment.h"
@@ -21,20 +21,20 @@ class UMaterialGraphNode_Comment : public UEdGraphNode_Comment
 	/** Fix up the node's owner after being copied */
 	UNREALED_API void PostCopyNode();
 
-	//~ Begin UObject Interface
+	// UObject interface
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostEditImport() override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
-	//~ End UObject Interface
+	// End of UObject interface
 
-	//~ Begin UEdGraphNode Interface.
+	// Begin UEdGraphNode interface.
 	virtual void PrepareForCopying() override;
 	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const override;
 	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* Schema) const override;
 	virtual void PostPlacedNewNode() override;
 	virtual void OnRenameNode(const FString& NewName) override;
 	virtual void ResizeNode(const FVector2D& NewSize) override;
-	//~ End UEdGraphNode Interface.
+	// End UEdGraphNode interface.
 
 private:
 	/** Make sure the MaterialExpressionComment is owned by the Material */

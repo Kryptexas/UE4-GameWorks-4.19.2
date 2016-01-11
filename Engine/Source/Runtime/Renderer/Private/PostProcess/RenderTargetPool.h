@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RenderTargetPool.h: Scene render target pool manager.
@@ -188,16 +188,13 @@ class FRenderTargetPool : public FRenderResource
 public:
 	FRenderTargetPool();
 
-	/** Transitions all targets in the pool to writable. */
-	void TransitionTargetsWritable(FRHICommandListImmediate& RHICmdList);
-
 	/**
 	 * @param DebugName must not be 0, we only store the pointer
 	 * @param Out is not the return argument to avoid double allocation because of wrong reference counting
 	 * call from RenderThread only
 	 * @return true if the old element was still valid, false if a new one was assigned
 	 */
-	bool FindFreeElement(FRHICommandList& RHICmdList, const FPooledRenderTargetDesc& Desc, TRefCountPtr<IPooledRenderTarget>& Out, const TCHAR* InDebugName, bool bDoWritableBarrier = true);
+	bool FindFreeElement(const FPooledRenderTargetDesc& Desc, TRefCountPtr<IPooledRenderTarget>& Out, const TCHAR* InDebugName);
 
 	void CreateUntrackedElement(const FPooledRenderTargetDesc& Desc, TRefCountPtr<IPooledRenderTarget>& Out, const FSceneRenderTargetItem& Item);
 
@@ -263,16 +260,12 @@ private:
 
 	/** Elements can be 0, we compact the buffer later. */
 	TArray< TRefCountPtr<FPooledRenderTarget> > PooledRenderTargets;
-	TArray< TRefCountPtr<FPooledRenderTarget> > DeferredDeleteArray;
-	TArray< FTextureRHIParamRef > TransitionTargets;	
 
 	/** These are snapshots, have odd life times, live in the scene allocator, and don't contibute to any accounting or other management. */
 	TArray<FPooledRenderTarget*> PooledRenderTargetSnapshots;
 
 	// redundant, can always be computed with GetStats(), to debug "out of memory" situations and used for r.RenderTargetPoolMin
 	uint32 AllocationLevelInKB;
-
-	FGraphEventRef TransitionFence;
 
 	// to avoid log spam
 	bool bCurrentlyOverBudget;
@@ -282,8 +275,6 @@ private:
 
 	// could be done on the fly but that makes the RenderTargetPoolEvents harder to read
 	void CompactPool();
-
-	void WaitForTransitionFence();
 
 	// the following is used for Event recording --------------------------------
 

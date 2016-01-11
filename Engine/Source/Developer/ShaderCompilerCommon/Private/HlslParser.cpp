@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HlslParser.cpp - Implementation for parsing hlsl.
@@ -29,11 +29,9 @@ namespace CrossCompiler
 	class FHlslParser
 	{
 	public:
-		FHlslParser(FLinearAllocator* InAllocator, FCompilerMessages& InCompilerMessages);
+		FHlslParser(FLinearAllocator* InAllocator);
 		FHlslScanner Scanner;
-		FCompilerMessages& CompilerMessages;
 		FSymbolScope GlobalScope;
-		FSymbolScope Namespaces;
 		FSymbolScope* CurrentScope;
 		FLinearAllocator* Allocator;
 	};
@@ -93,19 +91,6 @@ namespace CrossCompiler
 		}
 
 		return EParseResult::NotMatched;
-	}
-
-	bool MatchPragma(FHlslParser& Parser, FLinearAllocator* Allocator, AST::FNode** OutNode)
-	{
-		const auto* Peek = Parser.Scanner.GetCurrentToken();
-		if (Parser.Scanner.MatchToken(EHlslToken::Pragma))
-		{
-			auto* Pragma = new(Allocator)AST::FPragma(Allocator, *Peek->String, Peek->SourceInfo);
-			*OutNode = Pragma;
-			return true;
-		}
-
-		return false;
 	}
 
 	EParseResult ParseDeclarationArrayBracketsAndIndex(FHlslScanner& Scanner, FSymbolScope* SymbolScope, bool bNeedsDimension, FLinearAllocator* Allocator, AST::FExpression** OutExpression)
@@ -323,10 +308,7 @@ namespace CrossCompiler
 				if (Token->String == TEXT("point") ||
 					Token->String == TEXT("line") ||
 					Token->String == TEXT("triangle") ||
-					Token->String == TEXT("Triangle") ||	// PSSL
-					Token->String == TEXT("AdjacentLine") ||	// PSSL
 					Token->String == TEXT("lineadj") ||
-					Token->String == TEXT("AdjacentTriangle") ||	// PSSL
 					Token->String == TEXT("triangleadj"))
 				{
 					Scanner.Advance();
@@ -470,7 +452,7 @@ namespace CrossCompiler
 						return EParseResult::Error;
 					}
 				}
-				else if (Token->String == TEXT("noperspective") || Token->String == TEXT("nopersp"))	// PSSL nopersp
+				else if (Token->String == TEXT("noperspective"))
 				{
 					Scanner.Advance();
 					++InterpolationNoPerspectiveFound;
@@ -555,11 +537,8 @@ namespace CrossCompiler
 				if (StreamToken->Token == EHlslToken::Identifier)
 				{
 					if (StreamToken->String == TEXT("PointStream") ||
-						StreamToken->String == TEXT("PointBuffer") ||	// PSSL
 						StreamToken->String == TEXT("LineStream") ||
-						StreamToken->String == TEXT("LineBuffer") ||	// PSSL
 						StreamToken->String == TEXT("TriangleStream") ||
-						StreamToken->String == TEXT("TriangleBuffer") ||	// PSSL
 						StreamToken->String == TEXT("InputPatch") ||
 						StreamToken->String == TEXT("OutputPatch"))
 					{
@@ -993,11 +972,6 @@ Done:
 
 	EParseResult ParseStatement(FHlslParser& Parser, FLinearAllocator* Allocator, AST::FNode** OutStatement)
 	{
-		if (MatchPragma(Parser, Allocator, OutStatement))
-		{
-			return EParseResult::Matched;
-		}
-
 		const auto* Token = Parser.Scanner.PeekToken();
 		if (Token && Token->Token == EHlslToken::RightBrace)
 		{
@@ -1065,13 +1039,11 @@ check(0);
 			// Optional semantic
 			if (Parser.Scanner.MatchToken(EHlslToken::Colon))
 			{
-				const auto* Semantic = Parser.Scanner.GetCurrentToken();
 				if (!Parser.Scanner.MatchToken(EHlslToken::Identifier))
 				{
 					Parser.Scanner.SourceError(TEXT("Identifier for semantic expected"));
 					return EParseResult::Error;
 				}
-				Function->ReturnSemantic = Allocator->Strdup(Semantic->String);
 			}
 
 			if (!Parser.Scanner.MatchToken(EHlslToken::LeftBrace))
@@ -1648,11 +1620,6 @@ check(0);
 
 	EParseResult TryTranslationUnit(FHlslParser& Parser, FLinearAllocator* Allocator, AST::FNode** OutNode)
 	{
-		if (MatchPragma(Parser, Allocator, OutNode))
-		{
-			return EParseResult::Matched;
-		}
-
 		if (Parser.Scanner.MatchToken(EHlslToken::CBuffer))
 		{
 			auto Result = ParseCBuffer(Parser, Allocator, OutNode);
@@ -1730,40 +1697,20 @@ check(0);
 		} GStaticInitializer;
 	}
 
-	FHlslParser::FHlslParser(FLinearAllocator* InAllocator, FCompilerMessages& InCompilerMessages) :
-		Scanner(InCompilerMessages),
-		CompilerMessages(InCompilerMessages),
+	FHlslParser::FHlslParser(FLinearAllocator* InAllocator) :
+		Scanner(),
 		GlobalScope(InAllocator, nullptr),
-		Namespaces(InAllocator, nullptr),
 		Allocator(InAllocator)
 	{
 		CurrentScope = &GlobalScope;
-
-		{
-			FCreateSymbolScope SceScope(Allocator, &CurrentScope);
-			CurrentScope->Name = TEXT("sce");
-			{
-				FCreateSymbolScope GnmScope(Allocator, &CurrentScope);
-				CurrentScope->Name = TEXT("Gnm");
-
-				CurrentScope->Add(TEXT("Sampler"));	// sce::Gnm::Sampler
-
-				CurrentScope->Add(TEXT("kAnisotropyRatio1"));	// sce::Gnm::kAnisotropyRatio1
-				CurrentScope->Add(TEXT("kBorderColorTransBlack"));	// sce::Gnm::kBorderColorTransBlack
-				CurrentScope->Add(TEXT("kDepthCompareNever"));	// sce::Gnm::kDepthCompareNever
-			}
-			//auto* Found = CurrentScope->FindGlobalNamespace(TEXT("sce"), CurrentScope);
-			//Found = Found->FindNamespace(TEXT("Gnm"));
-			//Found->FindType(Found, TEXT("Sampler"), false);
-		}
 	}
 
 	namespace Parser
 	{
-		bool Parse(const FString& Input, const FString& Filename, FCompilerMessages& OutCompilerMessages, TCallback* Callback, void* CallbackData)
+		bool Parse(const FString& Input, const FString& Filename, bool bDump)
 		{
 			FLinearAllocator Allocator;
-			FHlslParser Parser(&Allocator, OutCompilerMessages);
+			FHlslParser Parser(&Allocator);
 			if (!Parser.Scanner.Lex(Input, Filename))
 			{
 				return false;
@@ -1788,21 +1735,14 @@ check(0);
 				else
 				{
 					check(Result == EParseResult::Matched);
-/*
 					if (bDump && Node)
 					{
 						Node->Dump(0);
 					}
-*/
 					Nodes.Add(Node);
 				}
 
 				check(LastIndex != Parser.Scanner.GetCurrentTokenIndex());
-			}
-
-			if (bSuccess && Callback)
-			{
-				Callback(CallbackData, &Allocator, Nodes);
 			}
 
 			return bSuccess;

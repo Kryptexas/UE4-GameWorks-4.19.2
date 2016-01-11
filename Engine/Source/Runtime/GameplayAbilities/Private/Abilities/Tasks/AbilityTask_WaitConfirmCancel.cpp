@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "Abilities/Tasks/AbilityTask_WaitConfirmCancel.h"
@@ -17,7 +17,7 @@ UAbilityTask_WaitConfirmCancel::UAbilityTask_WaitConfirmCancel(const FObjectInit
 void UAbilityTask_WaitConfirmCancel::OnConfirmCallback()
 {
 	
-	if (AbilitySystemComponent)
+	if (AbilitySystemComponent.IsValid())
 	{
 		AbilitySystemComponent->ConsumeGenericReplicatedEvent(EAbilityGenericReplicatedEvent::GenericConfirm, GetAbilitySpecHandle(), GetActivationPredictionKey());
 		OnConfirm.Broadcast();
@@ -27,7 +27,7 @@ void UAbilityTask_WaitConfirmCancel::OnConfirmCallback()
 
 void UAbilityTask_WaitConfirmCancel::OnCancelCallback()
 {
-	if (AbilitySystemComponent)
+	if (AbilitySystemComponent.IsValid())
 	{
 		AbilitySystemComponent->ConsumeGenericReplicatedEvent(EAbilityGenericReplicatedEvent::GenericCancel, GetAbilitySpecHandle(), GetActivationPredictionKey());
 		OnCancel.Broadcast();
@@ -37,7 +37,7 @@ void UAbilityTask_WaitConfirmCancel::OnCancelCallback()
 
 void UAbilityTask_WaitConfirmCancel::OnLocalConfirmCallback()
 {
-	if (AbilitySystemComponent && IsPredictingClient())
+	if (AbilitySystemComponent.IsValid() && IsPredictingClient())
 	{
 		AbilitySystemComponent->ServerSetReplicatedEvent(EAbilityGenericReplicatedEvent::GenericConfirm, GetAbilitySpecHandle(), GetActivationPredictionKey() ,AbilitySystemComponent->ScopedPredictionKey);
 	}
@@ -46,7 +46,7 @@ void UAbilityTask_WaitConfirmCancel::OnLocalConfirmCallback()
 
 void UAbilityTask_WaitConfirmCancel::OnLocalCancelCallback()
 {
-	if (AbilitySystemComponent && IsPredictingClient())
+	if (AbilitySystemComponent.IsValid() && IsPredictingClient())
 	{
 		AbilitySystemComponent->ServerSetReplicatedEvent(EAbilityGenericReplicatedEvent::GenericCancel, GetAbilitySpecHandle(), GetActivationPredictionKey() ,AbilitySystemComponent->ScopedPredictionKey);
 	}
@@ -60,9 +60,9 @@ UAbilityTask_WaitConfirmCancel* UAbilityTask_WaitConfirmCancel::WaitConfirmCance
 
 void UAbilityTask_WaitConfirmCancel::Activate()
 {
-	if (AbilitySystemComponent && Ability)
+	if (AbilitySystemComponent.IsValid())
 	{
-		const FGameplayAbilityActorInfo* Info = Ability->GetCurrentActorInfo();
+		const FGameplayAbilityActorInfo* Info = Ability.Get()->GetCurrentActorInfo();
 
 		
 		if (Info->IsLocallyControlled())
@@ -91,7 +91,7 @@ void UAbilityTask_WaitConfirmCancel::Activate()
 
 void UAbilityTask_WaitConfirmCancel::OnDestroy(bool AbilityEnding)
 {
-	if (RegisteredCallbacks && AbilitySystemComponent)
+	if (RegisteredCallbacks && AbilitySystemComponent.IsValid())
 	{
 		AbilitySystemComponent->GenericLocalConfirmCallbacks.RemoveDynamic(this, &UAbilityTask_WaitConfirmCancel::OnLocalConfirmCallback);
 		AbilitySystemComponent->GenericLocalCancelCallbacks.RemoveDynamic(this, &UAbilityTask_WaitConfirmCancel::OnLocalCancelCallback);

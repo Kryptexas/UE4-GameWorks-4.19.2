@@ -1,44 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "FindInBlueprintManager.h"
-
 typedef TSharedPtr<class FFindInBlueprintsResult> FSearchResult;
 typedef STreeView<FSearchResult>  STreeViewType;
-
-DECLARE_DELEGATE_OneParam(FOnSearchComplete, TArray<TSharedPtr<class FImaginaryFiBData>>&);
-
-/** Some utility functions to help with Find-in-Blueprint functionality */
-namespace FindInBlueprintsHelpers
-{
-	/** Looks up a JsonValue's FText from the passed lookup table */
-	FText AsFText(TSharedPtr< FJsonValue > InJsonValue, const TMap<int32, FText>& InLookupTable);
-
-	/** Looks up a JsonValue's FText from the passed lookup table */
-	FText AsFText(int32 InValue, const TMap<int32, FText>& InLookupTable);
-
-	bool IsTextEqualToString(FText InText, FString InString);
-
-	/**
-	 * Retrieves the pin type as a string value
-	 *
-	 * @param InPinType		The pin type to look at
-	 *
-	 * @return				The pin type as a string in format [category]'[sub-category object]'
-	 */
-	FString GetPinTypeAsString(const FEdGraphPinType& InPinType);
-
-	/**
-	 * Parses a pin type from passed in key names and values
-	 *
-	 * @param InKey					The key name for what the data should be translated as
-	 * @param InValue				Value to be be translated
-	 * @param InOutPinType			Modifies the PinType based on the passed parameters, building it up over multiple calls
-	 * @return						TRUE when the parsing is successful
-	 */
-	bool ParsePinType(FText InKey, FText InValue, FEdGraphPinType& InOutPinType);
-}
 
 /* Item that matched the search results */
 class FFindInBlueprintsResult : public TSharedFromThis< FFindInBlueprintsResult >
@@ -71,17 +36,37 @@ public:
 	UBlueprint* GetParentBlueprint() const;
 
 	/**
+	 * Extracts the content of a JsonNode, building the sub-hierarchy for display
+	 *
+	 * @param InLookupTable		Lookup table for converting Json strings into an FText
+	 * @param InJsonNode		Node to extract data from
+	 * @param InTokens			Tokens to match searchable content against
+	 * @return					Returns TRUE if the content matches search results and was extracted
+	 */
+	virtual bool ExtractContent(const TMap<int32, FText>& InLookupTable, TSharedPtr< FJsonObject > InJsonNode, const TArray<FString>& InTokens) { return ExtractContent(InLookupTable, InJsonNode, InTokens, NULL); };
+
+	/**
+	 * Extracts the content of a JsonNode, building the sub-hierarchy for display
+	 *
+	 * @param InLookupTable		Lookup table for converting Json strings into an FText
+	 * @param InJsonNode		Node to extract data from
+	 * @param InTokens			Tokens to match searchable content against
+	 * @param InParentOverride	Parent search result to attach sub-content to
+	 * @return					Returns TRUE if the content matches search results and was extracted
+	 */
+	virtual bool ExtractContent(const TMap<int32, FText>& InLookupTable, TSharedPtr< FJsonObject > InJsonNode, const TArray<FString>& InTokens, TSharedPtr< FFindInBlueprintsResult > InParentOverride);
+
+	/**
 	 * Parses search info for specific data important for displaying the search result in an easy to understand format
 	 *
 	 * @param	InTokens		The search tokens to check results against
 	 * @param	InKey			This is the tag for the data, describing what it is so special handling can occur if needed
 	 * @param	InValue			Compared against search query to see if it passes the filter, sometimes data is rejected because it is deemed unsearchable
 	 * @param	InParent		The parent search result
+	 *
+	 * @return					TRUE if the item passes the search filter or is otherwise accepted
 	 */
-	virtual void ParseSearchInfo(FText InKey, FText InValue) {};
-
-	/** Returns the Object represented by this search information give the Blueprint it can be found in */
-	virtual UObject* GetObject(UBlueprint* InBlueprint) const;
+	virtual bool ParseSearchInfo(const TArray<FString> &InTokens, FText InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParent);
 
 	/**
 	 * Adds extra search info, anything that does not have a predestined place in the search result. Adds a sub-item to the searches and formats its description so the tag displays
@@ -99,6 +84,19 @@ public:
 
 	/** Returns the display string for the row */
 	FText GetDisplayString() const;
+
+protected:
+
+	/**
+	 * Extracts the details of a JsonValue in the search results, pushing arrays into sub-objects correctly, breaking up objects, and passing on the rest of the types
+	 *
+	 * @param	InLookupTable			Lookup table for converting Json strings into an FText
+	 * @param	InTokens				The search tokens to check results against
+	 * @param	InKey					This is the tag for the data, describing what it is so special handling can occur if needed
+	 * @param	InValue					Has all the data for this object that needs to be deciphered or broken up into base types to be deciphered
+	 * @param	InParentOverride		The parent to attach all children data to, can be NULL.
+	 */
+	bool ExtractJsonValue(const TMap<int32, FText>& InLookupTable, const TArray<FString>& InTokens, FText InKey, TSharedPtr< FJsonValue > InValue, TSharedPtr< FFindInBlueprintsResult > InParentOverride);
 
 public:
 	/*Any children listed under this category */
@@ -124,10 +122,10 @@ public:
 	/** FFindInBlueprintsResult Interface */
 	virtual FReply OnClick() override;
 	virtual TSharedRef<SWidget>	CreateIcon() const override;
-	virtual void ParseSearchInfo(FText InKey, FText InValue) override;
+	virtual bool ParseSearchInfo(const TArray<FString> &InTokens, FText InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParentOverride = NULL) override;
+	virtual bool ExtractContent(const TMap<int32, FText>& InLookupTable, TSharedPtr< FJsonObject > InJsonNode, const TArray<FString>& InTokens) override;
 	virtual FText GetCategory() const override;
 	virtual void FinalizeSearchData() override;
-	virtual UObject* GetObject(UBlueprint* InBlueprint) const override;
 	/** End FFindInBlueprintsResult Interface */
 
 private:
@@ -156,7 +154,7 @@ public:
 
 	/** FFindInBlueprintsResult Interface */
 	virtual TSharedRef<SWidget>	CreateIcon() const override;
-	virtual void ParseSearchInfo(FText InKey, FText InValue) override;
+	virtual bool ParseSearchInfo(const TArray<FString> &InTokens, FText InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParentOverride = NULL) override;
 	virtual FText GetCategory() const override;
 	virtual void FinalizeSearchData() override;
 	/** End FFindInBlueprintsResult Interface */
@@ -166,6 +164,9 @@ protected:
 
 	/** The pin that this search result refers to */
 	FEdGraphPinType PinType;
+
+	/** The Pin's sub-category name */
+	FString PinSubCategory;
 
 	/** Pin's icon color */
 	FSlateColor IconColor;
@@ -180,7 +181,7 @@ public:
 
 	/** FFindInBlueprintsResult Interface */
 	virtual TSharedRef<SWidget>	CreateIcon() const override;
-	virtual void ParseSearchInfo(FText InKey, FText InValue) override;
+	virtual bool ParseSearchInfo(const TArray<FString> &InTokens, FText InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParentOverride = NULL) override;
 	virtual FText GetCategory() const override;
 	virtual void FinalizeSearchData() override;
 	/** End FFindInBlueprintsResult Interface */
@@ -190,6 +191,9 @@ protected:
 
 	/** The default value of a property as a string */
 	FString DefaultValue;
+
+	/** The Property's sub-category name, for the pin display type */
+	FString PinSubCategory;
 
 	/** TRUE if the property is an SCS_Component */
 	bool bIsSCSComponent;
@@ -205,8 +209,9 @@ public:
 	/** FFindInBlueprintsResult Interface */
 	virtual FReply OnClick() override;
 	virtual TSharedRef<SWidget>	CreateIcon() const override;
-	virtual void ParseSearchInfo(FText InKey, FText InValue) override;
+	virtual bool ParseSearchInfo(const TArray<FString> &InTokens, FText InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParentOverride = NULL) override;
 	virtual FText GetCategory() const override;
+	virtual bool ExtractContent(const TMap<int32, FText>& InLookupTable, TSharedPtr< FJsonObject > InJsonNode, const TArray<FString>& InTokens) override;
 	/** End FFindInBlueprintsResult Interface */
 protected:
 
@@ -218,12 +223,7 @@ protected:
 class SFindInBlueprints: public SCompoundWidget
 {
 public:
-	SLATE_BEGIN_ARGS( SFindInBlueprints )
-		: _bIsSearchWindow(true)
-		, _bHideSearchBar(false)
-	{}
-		SLATE_ARGUMENT(bool, bIsSearchWindow)
-		SLATE_ARGUMENT(bool, bHideSearchBar)
+	SLATE_BEGIN_ARGS( SFindInBlueprints ){}
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, TSharedPtr<class FBlueprintEditor> InBlueprintEditor);
@@ -232,28 +232,8 @@ public:
 	/** Focuses this widget's search box, and changes the mode as well, and optionally the search terms */
 	void FocusForUse(bool bSetFindWithinBlueprint, FString NewSearchTerms = FString(), bool bSelectFirstResult = false);
 
-	/**
-	 * Submits a search query
-	 *
-	 * @param InSearchString						String to search using
-	 * @param bInIsFindWithinBlueprint				TRUE if searching within the current Blueprint only
-	 * @param InSearchFilterForImaginaryDataReturn	If requesting a callback on search complete for the filtered imaginary data, this is the filter that the raw data will be passed through. By default nothing is collected
-	 * @param InMinimiumVersionRequirement			The minimum search requirement Blueprints must be to be searched or they will be reported as out-of-date.
-	 * @param InOnSearchComplete					Callback when the search is complete, passing the filtered imaginary data (if any).
-	 */
-	void MakeSearchQuery(FString InSearchString, bool bInIsFindWithinBlueprint, enum ESearchQueryFilter InSearchFilterForImaginaryDataReturn = ESearchQueryFilter::AllFilter, EFiBVersion InMinimiumVersionRequirement = EFiBVersion::FIB_VER_LATEST, FOnSearchComplete InOnSearchComplete = FOnSearchComplete());
-
 	/** Called when caching Blueprints is complete, if this widget initiated the indexing */
 	void OnCacheComplete();
-
-	/**
-	 * Asynchronously caches all Blueprints below a specified version.
-	 *
-	 * @param InOnFinished						Callback when the cache process is complete.
-	 * @param InMinimiumVersionRequirement		Version that Blueprints must be below to be loaded and indexed, by default all out-of-date Blueprints
-	 */
-	void CacheAllBlueprints(FSimpleDelegate InOnFinished = FSimpleDelegate(), EFiBVersion InMinimiumVersionRequirement = EFiBVersion::FIB_VER_LATEST);
-
 private:
 	/** Processes results of the ongoing async stream search */
 	EActiveTimerReturnType UpdateSearchResults( double InCurrentTime, float InDeltaTime );
@@ -281,10 +261,15 @@ private:
 
 	/* Called when a new row is being generated */
 	TSharedRef<ITableRow> OnGenerateRow(FSearchResult InItem, const TSharedRef<STableViewBase>& OwnerTable);
+
+	/** Begins the search based on the SearchValue */
+	void InitiateSearch();
 	
+	/* Find any results that contain all of the tokens, however, only in find within blueprints */
+	void MatchTokensWithinBlueprint(const TArray<FString>& Tokens);
+
 	/** Launches a thread for streaming more content into the results widget */
-	void LaunchStreamThread(const FString& InSearchValue);
-	void LaunchStreamThread(const FString& InSearchValue, enum ESearchQueryFilter InSearchFilterForRawDataReturn, EFiBVersion InMinimiumVersionRequirement, FOnSearchComplete InOnSearchComplete);
+	void LaunchStreamThread(const TArray<FString>& InTokens);
 
 	/** Returns the percent complete on the search for the progress bar */
 	TOptional<float> GetPercentCompleteSearch() const;
@@ -306,7 +291,6 @@ private:
 
 	/** Callback to cache all uncached Blueprints */
 	FReply OnCacheAllBlueprints();
-	FReply OnCacheAllBlueprints(FSimpleDelegate InOnFinished, EFiBVersion InMinimiumVersionRequirement = EFiBVersion::FIB_VER_LATEST);
 
 	/** Callback to cancel the caching process */
 	FReply OnCancelCacheAll();
@@ -383,13 +367,4 @@ private:
 
 	/** Weak pointer to the cache bar slot, so it can be removed */
 	TWeakPtr< SWidget > CacheBarSlot;
-
-	/** Callback when search is complete */
-	FOnSearchComplete OnSearchComplete;
-
-	/** Cached count of out of date Blueprints from last search. */
-	int32 OutOfDateWithLastSearchBPCount;
-
-	/** Cached version that was last searched */
-	EFiBVersion LastSearchedFiBVersion;
 };

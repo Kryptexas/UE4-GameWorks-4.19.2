@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "BrushComponent.generated.h"
@@ -27,19 +27,19 @@ class UBrushComponent : public UPrimitiveComponent
 	UPROPERTY()
 	FVector PrePivot_DEPRECATED;
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void PostLoad() override;
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
-	//~ End UObject Interface
+	// End UObject interface
 
-	//~ Begin USceneComponent Interface
+	// Begin USceneComponent interface
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual bool ShouldCollideWhenPlacing() const override { return true; }
-	//~ End USceneComponent Interface
+	// End USceneComponent interface
 
 public:
 
-	//~ Begin UPrimitiveComponent Interface.
+	// Begin UPrimitiveComponent interface.
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual class UBodySetup* GetBodySetup() override { return BrushBodySetup; };
 	virtual void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const override;
@@ -47,10 +47,7 @@ public:
 #if WITH_EDITOR
 	virtual bool ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
 	virtual bool ComponentIsTouchingSelectionFrustum(const FConvexVolume& InFrustum, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
-	//~ End UPrimitiveComponent Interface.
-
-	/** Return true if the brush appears to have inverted polys */
-	ENGINE_API bool HasInvertedPolys() const;
+	// End UPrimitiveComponent interface.
 
 	/** If the transform mirroring no longer reflects the body setup, request its recalculation */
 	ENGINE_API void RequestUpdateBrushCollision();

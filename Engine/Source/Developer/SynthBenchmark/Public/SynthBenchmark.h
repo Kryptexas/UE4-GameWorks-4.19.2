@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -15,7 +15,7 @@ class ISynthBenchmark : public IModuleInterface
 public:
 
 	// @param >0, WorkScale 10 for normal precision and runtime of less than a second
-	virtual void Run(FSynthBenchmarkResults& Out, bool bGPUBenchmark = true, float WorkScale = 10.0f) const = 0;
+	virtual void Run(FSynthBenchmarkResults& Out, bool bGPUBenchmark = false, float WorkScale = 10.0f) const = 0;
 
 	/**
 	 * Singleton-like access to this module's interface.  This is just for convenience!

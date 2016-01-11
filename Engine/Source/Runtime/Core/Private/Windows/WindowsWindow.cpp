@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "WindowsWindow.h"
@@ -110,32 +110,16 @@ void FWindowsWindow::Initialize( FWindowsApplication* const Application, const T
 	{
 		// OS Window border setup
 		WindowExStyle = WS_EX_APPWINDOW;
-		WindowStyle = WS_OVERLAPPED | WS_SYSMENU | WS_CAPTION;
+		WindowStyle = WS_POPUP | WS_OVERLAPPED | WS_SYSMENU | WS_BORDER | WS_CAPTION;
 
-		if (IsRegularWindow())
+		if (Definition->SupportsMaximize)
 		{
-			if (Definition->SupportsMaximize)
-			{
-				WindowStyle |= WS_MAXIMIZEBOX;
-			}
-
-			if (Definition->SupportsMinimize)
-			{
-				WindowStyle |= WS_MINIMIZEBOX;
-			}
-
-			if (Definition->HasSizingFrame)
-			{
-				WindowStyle |= WS_THICKFRAME;
-			}
-			else
-			{
-				WindowStyle |= WS_BORDER;
-			}
+			WindowStyle |= WS_MAXIMIZEBOX;
 		}
-		else
+
+		if (Definition->SupportsMinimize)
 		{
-			WindowStyle |= WS_POPUP | WS_BORDER;
+			WindowStyle |= WS_MINIMIZEBOX;
 		}
 
 		// Note SizeX and SizeY should be the size of the client area.  We need to get the actual window size by adjusting the client size to account for standard windows border around the window
@@ -543,35 +527,9 @@ void FWindowsWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 		bool bTrueFullscreen = NewWindowMode == EWindowMode::Fullscreen;
 
 		// Setup Win32 Flags to be used for Fullscreen mode
-		LONG WindowStyle = GetWindowLong(HWnd, GWL_STYLE);
-		const LONG FullscreenModeStyle = WS_POPUP;
-
-		LONG WindowedModeStyle = WS_OVERLAPPED | WS_SYSMENU | WS_CAPTION;
-		if (IsRegularWindow())
-		{
-			if (Definition->SupportsMaximize)
-			{
-				WindowedModeStyle |= WS_MAXIMIZEBOX;
-			}
-
-			if (Definition->SupportsMinimize)
-			{
-				WindowedModeStyle |= WS_MINIMIZEBOX;
-			}
-
-			if (Definition->HasSizingFrame)
-			{
-				WindowedModeStyle |= WS_THICKFRAME;
-			}
-			else
-			{
-				WindowedModeStyle |= WS_BORDER;
-			}
-		}
-		else
-		{
-			WindowedModeStyle |= WS_POPUP | WS_BORDER;
-		}
+		LONG WindowFlags = GetWindowLong(HWnd, GWL_STYLE);
+		const LONG FullscreenFlags = WS_POPUP;
+		const LONG RestoredFlags = WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_CAPTION | WS_SYSMENU | WS_OVERLAPPED | WS_BORDER;
 
 		// If we're not in fullscreen, make it so
 		if( NewWindowMode == EWindowMode::WindowedFullscreen || NewWindowMode == EWindowMode::Fullscreen)
@@ -579,10 +537,10 @@ void FWindowsWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 			::GetWindowPlacement(HWnd, &PreFullscreenWindowPlacement);
 
 			// Setup Win32 flags for fullscreen window
-			WindowStyle &= ~WindowedModeStyle;
-			WindowStyle |= FullscreenModeStyle;
+			WindowFlags &= ~RestoredFlags;
+			WindowFlags |= FullscreenFlags;
 
-			SetWindowLong(HWnd, GWL_STYLE, WindowStyle);
+			SetWindowLong(HWnd, GWL_STYLE, WindowFlags);
 			::SetWindowPos(HWnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 
 			if (!bTrueFullscreen)
@@ -628,9 +586,9 @@ void FWindowsWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 			// Windowed:
 
 			// Setup Win32 flags for restored window
-			WindowStyle &= ~FullscreenModeStyle;
-			WindowStyle |= WindowedModeStyle;
-			SetWindowLong(HWnd, GWL_STYLE, WindowStyle);
+			WindowFlags &= ~FullscreenFlags;
+			WindowFlags |= RestoredFlags;
+			SetWindowLong(HWnd, GWL_STYLE, WindowFlags);
 			::SetWindowPos(HWnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 
 			::SetWindowPlacement(HWnd, &PreFullscreenWindowPlacement);

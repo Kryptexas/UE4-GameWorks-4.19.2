@@ -3,9 +3,6 @@ Title: Get Started with UE4
 Crumbs: %ROOT%
 Description:Introductory information for developers starting out creating games with Unreal Engine.
 Navigation:start
-version: 4.9
-parent:%ROOT%
-order:1
 
 [VAR:Params]
 [PARAM:image]
@@ -118,7 +115,19 @@ gettingstarted
 		[REGION:normaltitle]
 		Related Videos
 		[/REGION]
-		[VideoLink(videoid:"w4XlBKeE46E" playlistid:"PLZlv_N0_O1gasd4IcOe9Cx9wHoBB7rxFl" width:"180")]
+		[OBJECT:VideoLink]
+			[PARAMLITERAL:videoid]
+				w4XlBKeE46E
+			[/PARAMLITERAL]
+			[PARAMLITERAL:playlistid]
+				PLZlv_N0_O1gasd4IcOe9Cx9wHoBB7rxFl
+			[/PARAMLITERAL]
+			[PARAMLITERAL:width]
+				180
+			[/PARAMLITERAL]
+			[PARAMLITERAL:image]
+			[/PARAMLITERAL]
+		[/OBJECT]
 		[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -173,7 +182,19 @@ gettingstarted
 	[REGION:normaltitle]
 	Related Videos
 	[/REGION]
-	[VideoLink(videoid:"cl_eoVfNDKU" playlistid:"PLZlv_N0_O1gak1_FoAJVrEGiLIploeF3F" width:"180")]
+	[OBJECT:VideoLink]
+		[PARAMLITERAL:videoid]
+			cl_eoVfNDKU
+		[/PARAMLITERAL]
+		[PARAMLITERAL:playlistid]
+			PLZlv_N0_O1gak1_FoAJVrEGiLIploeF3F
+		[/PARAMLITERAL]
+		[PARAMLITERAL:width]
+			180
+		[/PARAMLITERAL]
+		[PARAMLITERAL:image]
+		[/PARAMLITERAL]
+	[/OBJECT]
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -237,7 +258,20 @@ gettingstarted
 		[REGION:normaltitle]
 		Related Videos
 		[/REGION]
-		[VideoLink(videoid:"lngF4VVNER4" playlistid:"PLZlv_N0_O1gbQjgY0nDwZNYe_N8IcYWS-" width:"180" image:"https://img.youtube.com/vi/lngF4VVNER4/hqdefault.jpg")]
+		[OBJECT:VideoLink]
+			[PARAMLITERAL:videoid]
+				lngF4VVNER4
+			[/PARAMLITERAL]
+			[PARAMLITERAL:playlistid]
+				PLZlv_N0_O1gbQjgY0nDwZNYe_N8IcYWS-
+			[/PARAMLITERAL]
+			[PARAMLITERAL:width]
+				180
+			[/PARAMLITERAL]
+			[PARAMLITERAL:image]
+				https://img.youtube.com/vi/Yb4uu2NEC0E/maxresdefault.jpg
+			[/PARAMLITERAL]
+		[/OBJECT]
 		[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -260,7 +294,19 @@ gettingstarted
 		[REGION:normaltitle]
 		Related Videos
 		[/REGION]
-		[VideoLink(videoid:"cRhWc2kAhqI" playlistid:"PLZlv_N0_O1gY35ezlSQn1sWOGfh4C7ewO" width:"180")]
+		[OBJECT:VideoLink]
+			[PARAMLITERAL:videoid]
+				cRhWc2kAhqI
+			[/PARAMLITERAL]
+			[PARAMLITERAL:playlistid]
+				PLZlv_N0_O1gbYMYfhhdzfW1tUV4jU0YxH
+			[/PARAMLITERAL]
+			[PARAMLITERAL:width]
+				180
+			[/PARAMLITERAL]
+			[PARAMLITERAL:image]
+			[/PARAMLITERAL]
+		[/OBJECT]
 		[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -287,7 +333,19 @@ gettingstarted
 		[REGION:normaltitle]
 		Related Videos
 		[/REGION]
-		[VideoLink(videoid:"vtcWrcscXos" playlistid:"PLZlv_N0_O1gb5xvsc7VM7pfoRAKLuIcFi" width:"180")]
+		[OBJECT:VideoLink]
+			[PARAMLITERAL:videoid]
+				vtcWrcscXos
+			[/PARAMLITERAL]
+			[PARAMLITERAL:playlistid]
+				PLZlv_N0_O1gb5xvsc7VM7pfoRAKLuIcFi
+			[/PARAMLITERAL]
+			[PARAMLITERAL:width]
+				180
+			[/PARAMLITERAL]
+			[PARAMLITERAL:image]
+			[/PARAMLITERAL]
+		[/OBJECT]
 		[/REGION]
 	[/PARAM]
 [/OBJECT]

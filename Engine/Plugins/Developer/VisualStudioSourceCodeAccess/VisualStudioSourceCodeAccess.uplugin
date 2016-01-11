@@ -1,30 +1,22 @@
 {
 	"FileVersion" : 3,
+	
+	"FriendlyName" : "Visual Studio Integration",
 	"Version" : 1,
 	"VersionName" : "1.0",
-	"FriendlyName" : "Visual Studio Integration",
-	"Description" : "Allows access to source code in Visual Studio.",
-	"Category" : "Programming",
 	"CreatedBy" : "Epic Games, Inc.",
 	"CreatedByURL" : "http://epicgames.com",
-	"DocsURL" : "",
-	"MarketplaceURL" : "",
-	"SupportURL" : "",
+	"EngineVersion" : "4.2.0",
+	"Description" : "Allows access to source code in Visual Studio.",
+	"Category" : "Programming",
 	"EnabledByDefault" : true,
-	"CanContainContent" : false,
-	"IsBetaVersion" : false,
-	"Installed" : false,
+	
 	"Modules" :
 	[
 		{
 			"Name" : "VisualStudioSourceCodeAccess",
 			"Type" : "Developer",
-			"LoadingPhase" : "Default",
-			"WhitelistPlatforms" :
-			[
-				"Win64",
-				"Win32"
-			]
+			"WhitelistPlatforms" : [ "Win64", "Win32" ]
 		}
 	]
 }

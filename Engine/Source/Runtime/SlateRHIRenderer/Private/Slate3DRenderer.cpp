@@ -1,16 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateRHIRendererPrivatePCH.h"
 #include "Slate3DRenderer.h"
 #include "ElementBatcher.h"
 
-FSlate3DRenderer::FSlate3DRenderer( TSharedRef<FSlateFontServices> InSlateFontServices, TSharedRef<FSlateRHIResourceManager> InResourceManager, bool bUseGammaCorrection )
-	: SlateFontServices( InSlateFontServices )
-	, ResourceManager( InResourceManager )
+FSlate3DRenderer::FSlate3DRenderer( TSharedPtr<FSlateRHIResourceManager> InResourceManager, TSharedPtr<FSlateFontCache> InFontCache )
+	: ResourceManager( InResourceManager.ToSharedRef() )
+	, FontCache( InFontCache.ToSharedRef() )
 {
-	const int32 InitialBufferSize = 200;
-	RenderTargetPolicy = MakeShareable( new FSlateRHIRenderingPolicy( SlateFontServices, ResourceManager, InitialBufferSize ) );
-	RenderTargetPolicy->SetUseGammaCorrection( bUseGammaCorrection );
+
+	RenderTargetPolicy = MakeShareable( new FSlateRHIRenderingPolicy( FontCache, ResourceManager ) );
+	RenderTargetPolicy->SetUseGammaCorrection( false );
 
 	ElementBatcher = MakeShareable(new FSlateElementBatcher(RenderTargetPolicy.ToSharedRef()));
 }
@@ -22,15 +22,13 @@ FSlate3DRenderer::~FSlate3DRenderer()
 		RenderTargetPolicy->ReleaseResources();
 	}
 
-	if ( IsInGameThread() )
-	{
-		FlushRenderingCommands();
-	}
+	FlushRenderingCommands();
 }
 
 FSlateDrawBuffer& FSlate3DRenderer::GetDrawBuffer()
 {
-	FreeBufferIndex = (FreeBufferIndex + 1) % NUM_DRAW_BUFFERS;
+	FreeBufferIndex = (FreeBufferIndex + 1) % 2;
+
 	FSlateDrawBuffer* Buffer = &DrawBuffers[FreeBufferIndex];
 
 	while (!Buffer->Lock())
@@ -43,6 +41,7 @@ FSlateDrawBuffer& FSlate3DRenderer::GetDrawBuffer()
 		Buffer = &DrawBuffers[FreeBufferIndex];
 	}
 
+
 	Buffer->ClearBuffer();
 
 	return *Buffer;
@@ -51,8 +50,6 @@ FSlateDrawBuffer& FSlate3DRenderer::GetDrawBuffer()
 void FSlate3DRenderer::DrawWindow_GameThread(FSlateDrawBuffer& DrawBuffer)
 {
 	check( IsInGameThread() );
-
-	const TSharedRef<FSlateFontCache> FontCache = SlateFontServices->GetGameThreadFontCache();
 
 	TArray<TSharedPtr<FSlateWindowElementList>>& WindowElementLists = DrawBuffer.GetWindowElementLists();
 
@@ -74,58 +71,47 @@ void FSlate3DRenderer::DrawWindow_GameThread(FSlateDrawBuffer& DrawBuffer)
 			// Update the font cache with new text after elements are batched
 			FontCache->UpdateCache();
 
+			bool temp = false;
+
+
 			// All elements for this window have been batched and rendering data updated
 			ElementBatcher->ResetBatches();
 		}
 	}
+
+	FontCache->ConditionalFlushCache();
 }
 
-void FSlate3DRenderer::DrawWindowToTarget_RenderThread(FRHICommandListImmediate& InRHICmdList, FTextureRenderTarget2DResource* RenderTargetResource, FSlateDrawBuffer& WindowDrawBuffer)
+void FSlate3DRenderer::DrawWindowToTarget_RenderThread( FRHICommandListImmediate& RHICmdList, UTextureRenderTarget2D* RenderTarget, FSlateDrawBuffer& InDrawBuffer )
 {
-	SCOPED_DRAW_EVENT(InRHICmdList, SlateRenderToTarget);
+	FSlateBatchData& BatchData = InDrawBuffer.GetWindowElementLists()[0]->GetBatchData();
 
-	checkSlow(WindowDrawBuffer.GetWindowElementLists().Num() == 1);
-	checkSlow(RenderTargetResource);
+	BatchData.CreateRenderBatches();
+	RenderTargetPolicy->BeginDrawingWindows();
 
-	FSlateWindowElementList& WindowElementList = *WindowDrawBuffer.GetWindowElementLists()[0].Get();
-
-	FSlateBatchData& BatchData = WindowElementList.GetBatchData();
-	FElementBatchMap& RootBatchMap = WindowElementList.GetRootDrawLayer().GetElementBatchMap();
-
-	WindowElementList.PreDraw_ParallelThread();
-
-	BatchData.CreateRenderBatches(RootBatchMap);
-
-	// Enqueue a command to unlock the draw buffer after all windows have been drawn
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(SlateBeginDrawingWindowsCommand,
-		FSlateRHIRenderingPolicy&, Policy, *RenderTargetPolicy,
-		{
-			Policy.BeginDrawingWindows();
-		});
-
-	RenderTargetPolicy->UpdateVertexAndIndexBuffers( InRHICmdList, BatchData );
+	RenderTargetPolicy->UpdateVertexAndIndexBuffers( RHICmdList, BatchData );
+	FTextureRenderTarget2DResource* RenderTargetResource = static_cast<FTextureRenderTarget2DResource*>( RenderTarget->GetRenderTargetResource() );
 	
 	// Set render target and clear.
 	FTexture2DRHIRef RTResource = RenderTargetResource->GetTextureRHI();
 	FRHIRenderTargetView ColorRTV(RTResource);
-	ColorRTV.LoadAction = ERenderTargetLoadAction::EClear;
 	FRHISetRenderTargetsInfo Info(1, &ColorRTV, FTextureRHIParamRef());
 	Info.bClearColor = true;
+	ensure(ColorRTV.Texture->GetClearColor() == RenderTarget->ClearColor);
 
-	InRHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, RTResource);
-	InRHICmdList.SetRenderTargetsAndClear(Info);
+	RHICmdList.SetRenderTargetsAndClear(Info);
 
-	FMatrix ProjectionMatrix = FSlateRHIRenderer::CreateProjectionMatrix(RTResource->GetSizeX(), RTResource->GetSizeY());
+	FMatrix ProjectionMatrix = FSlateRHIRenderer::CreateProjectionMatrix( RenderTarget->SizeX, RenderTarget->SizeY );
 	if (BatchData.GetRenderBatches().Num() > 0)
 	{
-		FSlateBackBuffer BackBufferTarget(RenderTargetResource->GetTextureRHI(), FIntPoint(RTResource->GetSizeX(), RTResource->GetSizeY()));
+		FSlateBackBuffer BackBufferTarget(RenderTargetResource->GetTextureRHI(), FIntPoint(RenderTarget->SizeX, RenderTarget->SizeY ) );
 
 		// The scene renderer will handle it in this case
 		const bool bAllowSwitchVerticalAxis = false;
 
 		RenderTargetPolicy->DrawElements
 		(
-			InRHICmdList,
+			RHICmdList,
 			BackBufferTarget,
 			ProjectionMatrix,
 			BatchData.GetRenderBatches(),
@@ -133,12 +119,9 @@ void FSlate3DRenderer::DrawWindowToTarget_RenderThread(FRHICommandListImmediate&
 		);
 	}
 
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(SlateEndDrawingWindowsCommand,
-		FSlateDrawBuffer*, DrawBuffer, &WindowDrawBuffer,
-		FSlateRHIRenderingPolicy&, Policy, *RenderTargetPolicy,
-		{
-			FSlateEndDrawingWindowsCommand::EndDrawingWindows(RHICmdList, DrawBuffer, Policy);
-		});
+	InDrawBuffer.Unlock();
 
-	InRHICmdList.CopyToResolveTarget(RenderTargetResource->GetTextureRHI(), RTResource, true, FResolveParams());
+	RenderTargetPolicy->EndDrawingWindows();
+
+	RHICmdList.CopyToResolveTarget(RenderTargetResource->GetTextureRHI(), RTResource, true, FResolveParams());
 }

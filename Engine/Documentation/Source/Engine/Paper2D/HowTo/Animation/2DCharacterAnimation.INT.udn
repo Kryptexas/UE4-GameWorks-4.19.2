@@ -5,10 +5,6 @@ Description:How to set up and play different animations for a 2D character based
 Related: Engine\Paper2D\HowTo\TopDown
 Related: Engine\Paper2D\Sprites
 Related: Engine\Paper2D\Flipbooks
-Related: Engine/Animation/StateMachines/CreatingStateMachines
-Related: Engine/Animation/StateMachines
-Version: 4.9
-SkillLevel: Intermediate
 
 On this page you will learn how to set up an Animation State machine for a 2D character which will allow the character to cycle between different Flipbook animations based on your defined criteria. 
 
@@ -156,17 +152,7 @@ Now that our function is complete, we will call it as part of our Update Animati
 
 1.	**Compile** and **Save** then play in the editor. 
 
-	[OBJECT:EmbeddedVideo]
-	[PARAMLITERAL:width]
-	640
-	[/PARAMLITERAL]
-	[PARAMLITERAL:height]
-	360
-	[/PARAMLITERAL]
-	[PARAMLITERAL:videoid]
-	umA8BlEjgF8
-	[/PARAMLITERAL]
-	[/OBJECT]
+	![](AnimationExample.gif)(convert:false)
 
 	You will now have a character that cycles between the two states based on your condition of whether or not the character is moving. 
 

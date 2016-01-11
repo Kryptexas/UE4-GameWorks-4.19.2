@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -80,25 +80,23 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void ScrollWidgetIntoView(UWidget* WidgetToFind, bool AnimateScroll = true);
 
-	//~ Begin UWidget Interface
+	// UWidget interface
 	virtual void SynchronizeProperties() override;
-	//~ End UWidget Interface
+	// End of UWidget interface
 
-	//~ Begin UVisual Interface
+	// UVisual interface
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
-	//~ End UVisual Interface
+	// End of UVisual interface
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void PostLoad() override;
-	//~ End UObject Interface
+	// End of UObject interface
 
 #if WITH_EDITOR
-	//~ Begin UWidget Interface
+	// UWidget interface
 	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual const FText GetPaletteCategory() override;
-	virtual void OnDescendantSelected( UWidget* DescendantWidget ) override;
-	virtual void OnDescendantDeselected( UWidget* DescendantWidget ) override;
-	//~ End UWidget Interface
+	// End UWidget interface
 #endif
 
 protected:
@@ -116,11 +114,7 @@ protected:
 	TSharedPtr<class SScrollBox> MyScrollBox;
 
 protected:
-	//~ Begin UWidget Interface
+	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
-	//~ End UWidget Interface
-
-#if WITH_EDITOR
-	FDelegateHandle TickHandle;
-#endif //WITH_EDITOR
+	// End of UWidget interface
 };

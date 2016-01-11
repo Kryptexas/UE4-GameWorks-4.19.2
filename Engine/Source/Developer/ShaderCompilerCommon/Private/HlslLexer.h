@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HlslLexer.h - Interface for scanning & tokenizing hlsl.
@@ -14,7 +14,6 @@ namespace CrossCompiler
 	{
 		// Control
 		Invalid,
-		Pragma,
 
 		// Math
 		Plus,
@@ -235,7 +234,6 @@ namespace CrossCompiler
 		RightSquareBracket,
 		Question,
 		Colon,
-		ColonColon,
 		Comma,
 		Dot,
 		Struct,
@@ -269,7 +267,7 @@ namespace CrossCompiler
 	class FHlslScanner
 	{
 	public:
-		FHlslScanner(FCompilerMessages& InCompilerMessages);
+		FHlslScanner();
 		virtual ~FHlslScanner();
 
 		// Processing
@@ -294,8 +292,6 @@ namespace CrossCompiler
 		void SourceError(const FString& Error);
 
 	private:
-		FCompilerMessages& CompilerMessages;
-
 		TArray<FHlslToken> Tokens;
 		void AddToken(const FHlslToken& Token, const struct FTokenizer& Tokenizer);
 
@@ -305,7 +301,5 @@ namespace CrossCompiler
 		TIndirectArray<FString> SourceFilenames;
 
 		void Clear(const FString& Filename);
-
-		friend struct FTokenizer;
 	};
 }

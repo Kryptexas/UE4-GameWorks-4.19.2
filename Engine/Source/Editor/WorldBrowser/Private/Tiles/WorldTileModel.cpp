@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "WorldBrowserPrivatePCH.h"
 
@@ -28,8 +28,7 @@ FWorldTileModel::FWorldTileModel(FWorldTileCollectionModel& InWorldModel, int32 
 	UWorldComposition* WorldComposition = LevelCollectionModel.GetWorld()->WorldComposition;
 
 	// Tile display details object
-	TileDetails = NewObject<UWorldTileDetails>(GetTransientPackage(), NAME_None, RF_Transient);
-	TileDetails->AddToRoot();
+	TileDetails = NewObject<UWorldTileDetails>(GetTransientPackage(), NAME_None, RF_RootSet | RF_Transient);
 
 	// Subscribe to tile properties changes
 	TileDetails->PositionChangedEvent.AddRaw(this, &FWorldTileModel::OnPositionPropertyChanged);
@@ -567,55 +566,21 @@ void FWorldTileModel::LoadLevel()
 
 	// Create transient level streaming object and add to persistent level
 	ULevelStreaming* LevelStreaming = GetAssosiatedStreamingLevel();
-	// should be clean level streaming object here
-	check(LevelStreaming && LevelStreaming->GetLoadedLevel() == nullptr);
-	
-	bLoadingLevel = true;
 
-	// Load level package 
-	{
-		FName LevelPackageName = LevelStreaming->GetWorldAssetPackageFName();
-		
-		ULevel::StreamedLevelsOwningWorld.Add(LevelPackageName, LevelCollectionModel.GetWorld());
-		UWorld::WorldTypePreLoadMap.FindOrAdd(LevelPackageName) = LevelCollectionModel.GetWorld()->WorldType;
-
-		UPackage* LevelPackage = LoadPackage(nullptr, *LevelPackageName.ToString(), LOAD_None);
-
-		ULevel::StreamedLevelsOwningWorld.Remove(LevelPackageName);
-		UWorld::WorldTypePreLoadMap.Remove(LevelPackageName);
-
-		// Find world object and use its PersistentLevel pointer.
-		UWorld* LevelWorld = UWorld::FindWorldInPackage(LevelPackage);
-		// Check for a redirector. Follow it, if found.
-		if (LevelWorld == nullptr)
-		{
-			LevelWorld = UWorld::FollowWorldRedirectorInPackage(LevelPackage);
-		}
-
-		if (LevelWorld && LevelWorld->PersistentLevel)
-		{
-			// LevelStreaming is transient object so world composition stores color in ULevel object
-			LevelStreaming->LevelColor = LevelWorld->PersistentLevel->LevelColor;
-		}
-	}
-	
 	// Whether this tile should be made visible at current world bounds
 	const bool bShouldBeVisible = ShouldBeVisible(LevelCollectionModel.EditableWorldArea());
 	
-	// Our level package should be loaded at this point, so level streaming will find it in memory
+	// Load level
+	bLoadingLevel = true;
 	LevelStreaming->bShouldBeLoaded = true;
 	LevelStreaming->bShouldBeVisible = false; // Should be always false in the Editor
-	LevelStreaming->bShouldBeVisibleInEditor = bShouldBeVisible; 
-	// Bring level to world
+	LevelStreaming->bShouldBeVisibleInEditor = bShouldBeVisible;
 	LevelCollectionModel.GetWorld()->FlushLevelStreaming();
-	
 	bLoadingLevel = false;
-
 	// Mark tile as shelved in case it is hidden(does not fit to world bounds)
 	bWasShelved = !bShouldBeVisible;
 	//
 	LoadedLevel = LevelStreaming->GetLoadedLevel();
-	
 	// Enable tile properties
 	TileDetails->bTileEditable = (LoadedLevel != nullptr);
 }
@@ -640,7 +605,7 @@ ULevelStreaming* FWorldTileModel::GetAssosiatedStreamingLevel()
 
 		//
 		AssociatedStreamingLevel->SetWorldAssetByPackageName(PackageName);
-		AssociatedStreamingLevel->LevelColor		= GetLevelColor();
+		AssociatedStreamingLevel->LevelColor		= FLinearColor::MakeRandomColor();
 		AssociatedStreamingLevel->LevelTransform	= FTransform::Identity;
 		AssociatedStreamingLevel->PackageNameToLoad	= PackageName;
 		//
@@ -693,35 +658,6 @@ void FWorldTileModel::OnParentChanged()
 bool FWorldTileModel::IsVisibleInCompositionView() const
 {
 	return !TileDetails->bHideInTileView && LevelCollectionModel.PassesAllFilters(*this);
-}
-
-FLinearColor FWorldTileModel::GetLevelColor() const
-{
-	ULevel* LevelObject = GetLevelObject();
-	if (LevelObject)
-	{
-		return LevelObject->LevelColor;
-	}
-	else
-	{
-		return FLevelModel::GetLevelColor();
-	}
-}
-
-void FWorldTileModel::SetLevelColor(FLinearColor InColor)
-{
-	ULevel* LevelObject = GetLevelObject();
-	if (LevelObject)
-	{
-		ULevelStreaming* StreamingLevel = GetAssosiatedStreamingLevel();
-		if (StreamingLevel)
-		{
-			LevelObject->MarkPackageDirty();
-			LevelObject->LevelColor = InColor;
-			StreamingLevel->LevelColor = InColor; // this is transient object, but components fetch color from it
-			LevelObject->MarkLevelComponentsRenderStateDirty();
-		}
-	}
 }
 
 void FWorldTileModel::OnLevelBoundsActorUpdated()
@@ -931,18 +867,17 @@ ALandscapeProxy* FWorldTileModel::ImportLandscapeTile(const FLandscapeImportSett
 	// Cache pointer to landscape in the level model
 	Landscape = LandscapeProxy;
 
-	// Create landscape components
+	// Create landscape components	
 	LandscapeProxy->Import(
-		Settings.LandscapeGuid,
-		0, 0,
-		Settings.SizeX - 1,
-		Settings.SizeY - 1,
-		Settings.SectionsPerComponent,
-		Settings.QuadsPerSection,
-		Settings.HeightData.GetData(),
-		*Settings.HeightmapFilename,
-		Settings.ImportLayers,
-		Settings.ImportLayerType);
+		Settings.LandscapeGuid, 
+		Settings.SizeX, 
+		Settings.SizeY, 
+		Settings.ComponentSizeQuads, 
+		Settings.SectionsPerComponent, 
+		Settings.QuadsPerSection, 
+		Settings.HeightData.GetData(), 
+		*Settings.HeightmapFilename, 
+		Settings.ImportLayers);
 
 	return LandscapeProxy;
 }

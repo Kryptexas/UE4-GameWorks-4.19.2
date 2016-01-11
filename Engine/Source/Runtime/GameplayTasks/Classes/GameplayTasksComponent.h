@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -67,8 +67,7 @@ protected:
 	TArray<FGameplayTaskEventData> TaskEvents;
 
 	/** Array of currently active UAbilityTasks that require ticking */
-	UPROPERTY()
-	TArray<UGameplayTask*> TickingTasks;
+	TArray<TWeakObjectPtr<UGameplayTask> > TickingTasks;
 
 	/** Indicates what's the highest priority among currently running tasks */
 	uint8 TopActivePriority;
@@ -118,7 +117,7 @@ public:
 
 	static EGameplayTaskRunResult RunGameplayTask(IGameplayTaskOwnerInterface& TaskOwner, UGameplayTask& Task, uint8 Priority, FGameplayResourceSet AdditionalRequiredResources, FGameplayResourceSet AdditionalClaimedResources);
 	
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && ENABLE_VISUAL_LOG
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	FString GetTickingTasksDescription() const;
 	FString GetTasksPriorityQueueDescription() const;
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

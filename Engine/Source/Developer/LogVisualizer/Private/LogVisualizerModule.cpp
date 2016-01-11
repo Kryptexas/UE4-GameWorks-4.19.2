@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LogVisualizer.h"
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
@@ -26,6 +26,10 @@ public:
 	virtual void ShutdownModule() override;
 	// End IModuleInterface
 
+	virtual void Goto(float Timestamp, FName LogOwner) override;
+	virtual void GotoNextItem() override;
+	virtual void GotoPreviousItem() override;
+
 private:
 	TSharedRef<SDockTab> SpawnLogVisualizerTab(const FSpawnTabArgs& SpawnTabArgs);
 };
@@ -33,9 +37,7 @@ private:
 void FLogVisualizerModule::StartupModule()
 {
 	FLogVisualizerStyle::Initialize();
-	FVisualLoggerDatabase::Initialize();
 	FLogVisualizer::Initialize();
-	FVisualLoggerFilters::Initialize();
 
 	FVisualLoggerCommands::Register();
 	IModularFeatures::Get().RegisterModularFeature(VisualLoggerTabName, this);
@@ -71,9 +73,7 @@ void FLogVisualizerModule::ShutdownModule()
 		SettingsModule->UnregisterSettings("Editor", "General", "VisualLogger");
 	}
 
-	FVisualLoggerFilters::Shutdown();
 	FLogVisualizer::Shutdown();
-	FVisualLoggerDatabase::Shutdown();
 	FLogVisualizerStyle::Shutdown();
 }
 
@@ -90,6 +90,22 @@ TSharedRef<SDockTab> FLogVisualizerModule::SpawnLogVisualizerTab(const FSpawnTab
 
 	return MajorTab;
 }
+
+void FLogVisualizerModule::Goto(float Timestamp, FName LogOwner)
+{
+	FLogVisualizer::Get().Goto(Timestamp, LogOwner);
+}
+
+void FLogVisualizerModule::GotoNextItem()
+{
+	FLogVisualizer::Get().GotoNextItem(1);
+}
+
+void FLogVisualizerModule::GotoPreviousItem()
+{
+	FLogVisualizer::Get().GotoPreviousItem(1);
+}
+
 
 IMPLEMENT_MODULE(FLogVisualizerModule, LogVisualizer);
 #undef LOCTEXT_NAMESPACE

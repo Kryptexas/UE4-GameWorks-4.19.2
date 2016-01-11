@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LinuxPlatformMemory.cpp: Linux platform memory functions
@@ -7,7 +7,7 @@
 #include "CorePrivatePCH.h"
 #include "MallocAnsi.h"
 #include "MallocJemalloc.h"
-#include "MallocBinned2.h"
+#include "MallocBinned.h"
 #include <sys/sysinfo.h>
 #include <sys/file.h>
 #include <sys/mman.h>
@@ -15,8 +15,6 @@
 
 void FLinuxPlatformMemory::Init()
 {
-	FGenericPlatformMemory::Init();
-
 	const FPlatformMemoryConstants& MemoryConstants = FPlatformMemory::GetConstants();
 	UE_LOG(LogInit, Log, TEXT(" - Physical RAM available (not considering process quota): %d GB (%lu MB, %lu KB, %lu bytes)"), 
 		MemoryConstants.TotalPhysicalGB, 
@@ -43,23 +41,11 @@ class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 		Jemalloc,
 		Binned
 	}
-	AllocatorToUse = EAllocatorToUse::Binned;
+	AllocatorToUse = FORCE_ANSI_ALLOCATOR ? EAllocatorToUse::Ansi : EAllocatorToUse::Binned;
 
-	// Prefer jemalloc for the editor and programs as it saved ~20% RES usage in my (RCL) tests.
-	// Leave binned as the default for games and servers to keep runtime behavior consistent across platforms.
-	if (PLATFORM_SUPPORTS_JEMALLOC && (UE_EDITOR || IS_PROGRAM))
+	// we get here before main due to global ctors, so need to do some hackery to get command line args
+	if (!FORCE_ANSI_ALLOCATOR)
 	{
-		AllocatorToUse = EAllocatorToUse::Jemalloc;
-	}
-
-	if (FORCE_ANSI_ALLOCATOR)
-	{
-		AllocatorToUse = EAllocatorToUse::Ansi;
-	}
-	else
-	{
-		// Allow overriding on the command line.
-		// We get here before main due to global ctors, so need to do some hackery to get command line args
 		if (FILE* CmdLineFile = fopen("/proc/self/cmdline", "r"))
 		{
 			char * Arg = nullptr;
@@ -106,7 +92,7 @@ class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 
 		default:	// intentional fall-through
 		case Binned:
-			Allocator = new FMallocBinned2(FPlatformMemory::GetConstants().PageSize & MAX_uint32, 0x100000000);
+			Allocator = new FMallocBinned(FPlatformMemory::GetConstants().PageSize & MAX_uint32, 0x100000000);
 			break;
 	}
 

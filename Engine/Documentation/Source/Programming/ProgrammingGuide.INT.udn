@@ -2,9 +2,6 @@ Availability:Public
 Title:Programming Guide
 Crumbs: %ROOT%
 Description:Information for programmers developing with Unreal Engine.
-version: 4.9
-parent:%ROOT%
-order:4
 
 [VAR:Params]
 [PARAM:image]
@@ -54,7 +51,7 @@ order:4
 [/OBJECT]
 [/VAR]
 
-[VAR:TopicRole]
+[VAR:Role]
 [OBJECT:Role]
 %homeparams%
 [PARAMLITERAL:id]
@@ -63,7 +60,7 @@ programmer
 [/OBJECT]
 [/VAR]
 
-[VAR:Role]
+[VAR:TopicRole]
 [OBJECT:Role]
 %params%
 [PARAMLITERAL:id]
@@ -210,7 +207,7 @@ C++ classes can be used as a base for Blueprint classes, and in this way program
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-		* [](Programming/Animation/AnimNodes "%Programming/Animation/AnimNodes:description%")
+		* [](Programming/Animation "%Programming/Animation:description%")
 		* [](Programming/Automation "%Programming/Automation:description%")
 		* [](Engine/Blueprints/TechnicalGuide "%Engine/Blueprints/TechnicalGuide:description%")
 		* [](Programming/Online "%Programming/Online:description%")

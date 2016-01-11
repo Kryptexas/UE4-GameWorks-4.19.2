@@ -1,0 +1,90 @@
+INTSourceChangelist:2087000
+Availability: Docs
+Title: MineCookedPackages 커맨드렛
+Crumbs: %ROOT%, Engine, Engine/Commandlets
+Description:쿠킹된 패키지와 거기에 들어있는 애셋에 관한 정보로 DB 를 채우는 커맨드렛입니다.
+
+[REGION:todo]
+	언리얼 엔진 3 에서 이식해 온 문서로 현재 검토중에 있습니다. 정보가 맞지 않을 수 있습니다.
+[/REGION]
+
+[TOC(start:2)]
+
+## 개요
+
+Minecookedpackages 커맨드렛은 쿠킹된 패키지와 그 익스포트에 대한 정보로 데이터베이스를 채우기 위해 쓰입니다. 코드를 수정하거나 예전 데이터를 유지하지 않고도 폭넓은 범위의 퀴리가 가능해 집니다.
+
+
+
+## 시작하기
+
+
+### 셋업
+
+
+* Microsoft SQL Server 또는 Microsoft SQL Server Express 설치하기.
+    * SQL Server Express는 VS.NET 2005/ 2008에 포함되어 있습니다.
+* Microsoft SQL Server Management Studio Express (SMS)를 설치합니다.
+    * 필수 작업은 Visual Studio내에서 대부분 할 수 있지만 SQL Server Management Studio의 Express 버전은 무료이니 마다할 이유는 없습니다.
+* 데이터베이스 만들기
+    * SMS를 통해 데이터베이스에 연결합니다.
+    * 데이터베이스를 오른쪽 버튼으로 클릭하고 new(새로 만들기)를 클릭합니다.
+    * CookedContent-1과 같은 이름을 입력합니다.
+* 테이블 만들기.
+    * CookedContent-1을 오른쪽 버튼으로 클릭하고 "new query"(새로운 퀴리)를 선택합니다.
+        * 앞으로의 계획은 고유의 ID로 태그된 각각의 고유의 실행에서 데이터를 얻고, 그리하여 실행 전반에 걸친 경향화(trending)와 공유를 가능하게 하는 것이지만, 현재로서는 각 실행마다 새로운 데이터베이스를 만들어 줘야 합니다.
+    * [MineCookedPackages.sql](MineCookedPackages.sql) 의 콘텐츠를 방금 연 텍스트 창으로 옮겨 붙이고 실행 버튼을 누릅니다. 이렇게 함으로 데이터베이스와 관련된 모든 테이블을 만들 수 있습니다.
+
+
+
+
+## 실행
+
+이 커맨드렛을 실행하려면, cmd 창에서 _UnrealEngine3\Binaries_ 디렉토리로 이동합니다.
+
+
+### 구문
+
+구문은 다음과 같습니다:
+
+    [Gamename].exe minecookedpackages ..\MyGame\CookedXenon\\*.xxx -DATABASE=machinename\sqlexpress -CATALOG=CookedContent-1
+    
+
+현재 완전 압축된 패키지를 건너뜁니다. 저희에게 있어 그러한 경우는 스타트업 패키지 뿐입니다.
+
+
+### 퀴리
+
+다음은 클래스별로 익스포트를 그룹화하여, 인스턴스를 찾은 횟수와 함께 누적 및 평균 크기를 누적 크기로 소트하여 나열하는 퀴리입니다.
+
+
+    
+    SELECT ClassName, SUM(Size) / 1024 / 1024 AS SumSize, AVG(Size) / 1024 AS AvgSize, COUNT(ClassName) AS Count
+    FROM Exports
+    JOIN Objects ON Exports.ObjectID = Objects.ObjectID
+    JOIN Classes ON Objects.ClassID = Classes.ClassID
+    GROUP BY ClassName
+    ORDER BY SUM(SIZE) DESC
+    
+
+
+
+다음은 고유 오브젝트별로 익스포트를 그룹화하여, 누적 크기와 카운트를 누적 크기로 소트하여 나열하는 퀴리입니다.
+
+
+    
+    SELECT ClassName, ObjectName, SUM(Size) / 1024 AS Size, COUNT(ObjectName) AS Count
+    FROM Exports
+    JOIN Objects ON Exports.ObjectID = Objects.ObjectID
+    JOIN Classes ON Objects.ClassID = Classes.ClassID
+    GROUP BY ObjectName, ClassName
+    ORDER BY SUM(Size) DESC
+    
+
+
+
+ 
+
+
+
+

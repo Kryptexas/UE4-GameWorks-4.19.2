@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,7 +14,7 @@ public:
 	void OnTypeChanged(const FEdGraphPinType& PinType);
 
 protected:
-	//~ Begin SGraphPin Interface
+	// Begin SGraphPin interface
 	virtual TSharedRef<SWidget>	GetDefaultValueWidget() override;
-	//~ End SGraphPin Interface
+	// End SGraphPin interface
 };

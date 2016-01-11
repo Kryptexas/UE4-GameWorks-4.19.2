@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DistanceFieldAtlas.cpp
@@ -15,13 +15,10 @@
 
 TGlobalResource<FDistanceFieldVolumeTextureAtlas> GDistanceFieldVolumeTextureAtlas = TGlobalResource<FDistanceFieldVolumeTextureAtlas>(PF_R16F);
 
-// 512Mb
-const int32 MaxAtlasDimensionX = 512;
-const int32 MaxAtlasDimensionY = 512;
-const int32 MaxAtlasDimensionZ = 1024;
+const int32 MaxAtlasDimension = 512;
 
 FDistanceFieldVolumeTextureAtlas::FDistanceFieldVolumeTextureAtlas(EPixelFormat InFormat) :
-	BlockAllocator(0, 0, 0, MaxAtlasDimensionX, MaxAtlasDimensionY, MaxAtlasDimensionZ, false, false)
+	BlockAllocator(0, 0, 0, MaxAtlasDimension, MaxAtlasDimension, MaxAtlasDimension, false, false)
 {
 	Generation = 0;
 	Format = InFormat;
@@ -95,7 +92,7 @@ void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 			if (CurrentAllocations.Num() > 0)
 			{
 				// Remove all allocations from the layout so we have a clean slate
-				BlockAllocator = FTextureLayout3d(0, 0, 0, MaxAtlasDimensionX, MaxAtlasDimensionY, MaxAtlasDimensionZ, false, false);
+				BlockAllocator = FTextureLayout3d(0, 0, 0, MaxAtlasDimension, MaxAtlasDimension, MaxAtlasDimension, false, false);
 				
 				Generation++;
 

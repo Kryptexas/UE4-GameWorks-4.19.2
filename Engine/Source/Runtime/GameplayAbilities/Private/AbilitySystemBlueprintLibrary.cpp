@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemBlueprintLibrary.h"
@@ -40,15 +40,9 @@ void UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(AActor* Actor, FGa
 
 float UAbilitySystemBlueprintLibrary::GetFloatAttribute(const class AActor* Actor, FGameplayAttribute Attribute, bool& bSuccessfullyFoundAttribute)
 {
-	const UAbilitySystemComponent* const AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Actor);
-
-	return GetFloatAttributeFromAbilitySystemComponent(AbilitySystem, Attribute, bSuccessfullyFoundAttribute);
-}
-
-float UAbilitySystemBlueprintLibrary::GetFloatAttributeFromAbilitySystemComponent(const class UAbilitySystemComponent* AbilitySystem, FGameplayAttribute Attribute, bool& bSuccessfullyFoundAttribute)
-{
 	bSuccessfullyFoundAttribute = true;
 
+	const UAbilitySystemComponent* const AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Actor);
 	if (!AbilitySystem || !AbilitySystem->HasAttributeSetForAttribute(Attribute))
 	{
 		bSuccessfullyFoundAttribute = false;
@@ -266,11 +260,6 @@ FHitResult UAbilitySystemBlueprintLibrary::GetHitResultFromTargetData(FGameplayA
 
 bool UAbilitySystemBlueprintLibrary::TargetDataHasOrigin(FGameplayAbilityTargetDataHandle TargetData, int32 Index)
 {
-	if (TargetData.Data.IsValidIndex(Index) == false)
-	{
-		return false;
-	}
-
 	FGameplayAbilityTargetData* Data = TargetData.Data[Index].Get();
 	if (Data)
 	{
@@ -281,11 +270,6 @@ bool UAbilitySystemBlueprintLibrary::TargetDataHasOrigin(FGameplayAbilityTargetD
 
 FTransform UAbilitySystemBlueprintLibrary::GetTargetDataOrigin(FGameplayAbilityTargetDataHandle TargetData, int32 Index)
 {
-	if (TargetData.Data.IsValidIndex(Index) == false)
-	{
-		return FTransform::Identity;
-	}
-
 	FGameplayAbilityTargetData* Data = TargetData.Data[Index].Get();
 	if (Data)
 	{
@@ -358,10 +342,6 @@ FTransform UAbilitySystemBlueprintLibrary::GetTargetDataEndPointTransform(FGamep
 
 // -------------------------------------------------------------------------------------
 
-bool UAbilitySystemBlueprintLibrary::EffectContextIsValid(FGameplayEffectContextHandle EffectContext)
-{
-	return EffectContext.IsValid();
-}
 
 bool UAbilitySystemBlueprintLibrary::EffectContextIsInstigatorLocallyControlled(FGameplayEffectContextHandle EffectContext)
 {
@@ -415,12 +395,12 @@ FVector UAbilitySystemBlueprintLibrary::EffectContextGetOrigin(FGameplayEffectCo
 
 bool UAbilitySystemBlueprintLibrary::IsInstigatorLocallyControlled(FGameplayCueParameters Parameters)
 {
-	return Parameters.IsInstigatorLocallyControlled();
+	return Parameters.EffectContext.IsLocallyControlled();
 }
 
 bool UAbilitySystemBlueprintLibrary::IsInstigatorLocallyControlledPlayer(FGameplayCueParameters Parameters)
 {
-	return Parameters.IsInstigatorLocallyControlledPlayer();
+	return Parameters.EffectContext.IsLocallyControlledPlayer();
 }
 
 int32 UAbilitySystemBlueprintLibrary::GetActorCount(FGameplayCueParameters Parameters)
@@ -463,7 +443,7 @@ void UAbilitySystemBlueprintLibrary::ForwardGameplayCueToTarget(TScriptInterface
 
 AActor*	UAbilitySystemBlueprintLibrary::GetInstigatorActor(FGameplayCueParameters Parameters)
 {
-	return Parameters.GetInstigator();
+	return Parameters.EffectContext.GetInstigator();
 }
 
 FTransform UAbilitySystemBlueprintLibrary::GetInstigatorTransform(FGameplayCueParameters Parameters)
@@ -485,19 +465,15 @@ FVector UAbilitySystemBlueprintLibrary::GetOrigin(FGameplayCueParameters Paramet
 		return Parameters.EffectContext.GetOrigin();
 	}
 
-	return Parameters.Location;
+	return FVector::ZeroVector;
 }
 
 bool UAbilitySystemBlueprintLibrary::GetGameplayCueEndLocationAndNormal(AActor* TargetActor, FGameplayCueParameters Parameters, FVector& Location, FVector& Normal)
 {
 	FGameplayEffectContext* Data = Parameters.EffectContext.Get();
-	if (Parameters.Location.IsNearlyZero() == false)
+	if (Data && Data->GetHitResult())
 	{
-		Location = Parameters.Location;
-		Normal = Parameters.Normal;
-	}
-	else if (Data && Data->GetHitResult())
-	{
+		
 		Location = Data->GetHitResult()->Location;
 		Normal = Data->GetHitResult()->Normal;
 		return true;
@@ -514,12 +490,6 @@ bool UAbilitySystemBlueprintLibrary::GetGameplayCueEndLocationAndNormal(AActor* 
 
 bool UAbilitySystemBlueprintLibrary::GetGameplayCueDirection(AActor* TargetActor, FGameplayCueParameters Parameters, FVector& Direction)
 {
-	if (Parameters.Normal.IsNearlyZero() == false)
-	{
-		Direction = Parameters.Normal;
-		return true;
-	}
-
 	if (FGameplayEffectContext* Ctx = Parameters.EffectContext.Get())
 	{
 		if (Ctx->GetHitResult())
@@ -700,46 +670,4 @@ int32 UAbilitySystemBlueprintLibrary::GetActiveGameplayEffectStackCount(FActiveG
 		return ASC->GetCurrentStackCount(ActiveHandle);
 	}
 	return 0;
-}
-
-int32 UAbilitySystemBlueprintLibrary::GetActiveGameplayEffectStackLimitCount(FActiveGameplayEffectHandle ActiveHandle)
-{
-	UAbilitySystemComponent* ASC = ActiveHandle.GetOwningAbilitySystemComponent();
-	if (ASC)
-	{
-		const UGameplayEffect* ActiveGE = ASC->GetGameplayEffectDefForHandle(ActiveHandle);
-		if (ActiveGE)
-		{
-			return ActiveGE->StackLimitCount;
-		}
-	}
-	return 0;
-}
-
-float UAbilitySystemBlueprintLibrary::GetModifiedAttributeMagnitude(FGameplayEffectSpecHandle SpecHandle, FGameplayAttribute Attribute)
-{
-	FGameplayEffectSpec* Spec = SpecHandle.Data.Get();
-	float Delta = 0.f;
-	if (Spec)
-	{
-		for (FGameplayEffectModifiedAttribute &Mod : Spec->ModifiedAttributes)
-		{
-			if (Mod.Attribute == Attribute)
-			{
-				Delta += Mod.TotalMagnitude;
-			}
-		}
-	}
-	return Delta;
-}
-
-FString UAbilitySystemBlueprintLibrary::GetActiveGameplayEffectDebugString(FActiveGameplayEffectHandle ActiveHandle)
-{
-	FString Str;
-	UAbilitySystemComponent* ASC = ActiveHandle.GetOwningAbilitySystemComponent();
-	if (ASC)
-	{
-		Str = ASC->GetActiveGEDebugString(ActiveHandle);
-	}
-	return Str;
 }

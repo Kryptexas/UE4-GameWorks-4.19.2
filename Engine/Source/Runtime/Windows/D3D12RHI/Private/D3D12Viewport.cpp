@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12Viewport.cpp: D3D viewport RHI implementation.
@@ -669,6 +669,16 @@ void FD3D12CommandContext::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRH
 #if CHECK_SRV_TRANSITIONS
 	UnresolvedTargets.Reset();
 #endif
+}
+
+/**
+ * Determine if currently drawing the viewport
+ *
+ * @return true if currently within a BeginDrawingViewport/EndDrawingViewport block
+ */
+bool FD3D12DynamicRHI::RHIIsDrawingViewport()
+{
+	return GetRHIDevice()->GetDrawingViewport() != NULL;
 }
 
 void FD3D12DynamicRHI::RHIAdvanceFrameForGetViewportBackBuffer()

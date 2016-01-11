@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ImageWrapperPrivatePCH.h"
 #include "BmpImageSupport.h"
@@ -58,12 +58,11 @@ void FBmpImageWrapper::UncompressBMPData( const ERGBFormat::Type InFormat, const
 	if( bmhdr->biPlanes==1 && bmhdr->biBitCount==8 )
 	{
 		// Do palette.
-		const uint8* bmpal = (uint8*)CompressedData.GetData() + sizeof(FBitmapFileHeader) + sizeof(FBitmapInfoHeader);
+		const uint8* bmpal = (uint8*)CompressedData.GetData() + sizeof(FBitmapInfoHeader);
 
 		// Set texture properties.
 		Width = bmhdr->biWidth;
-		const bool bNegativeHeight = (bmhdr->biHeight < 0);
-		Height = FMath::Abs(bHalfHeight ? bmhdr->biHeight / 2 : bmhdr->biHeight);
+		Height = bHalfHeight ? bmhdr->biHeight / 2 : bmhdr->biHeight;
 		Format = ERGBFormat::BGRA;
 		RawData.Empty(Height * Width * 4);
 		RawData.AddUninitialized(Height * Width * 4);
@@ -78,81 +77,67 @@ void FBmpImageWrapper::UncompressBMPData( const ERGBFormat::Type InFormat, const
 		while( Palette.Num()<256 )
 			Palette.Add(FColor(0,0,0,255));
 
-		// Copy scanlines, accounting for scanline direction according to the Height field.
-		const int32 SrcStride = Align(Width, 4);
-		const int32 SrcPtrDiff = bNegativeHeight ? SrcStride : -SrcStride;
-		const uint8* SrcPtr = Bits + (bNegativeHeight ? 0 : Height - 1) * SrcStride;
-
-		for (int32 Y = 0; Y < Height; Y++)
+		// Copy upside-down scanlines.
+		int32 SizeX = Width;
+		int32 SizeY = Height;
+		for(int32 Y = 0;Y < Height;Y++)
 		{
-			for (int32 X = 0; X < Width; X++)
+			for(int32 X = 0;X < Width;X++)
 			{
-				*ImageData++ = Palette[SrcPtr[X]];
+				ImageData[(SizeY - Y - 1) * SizeX + X] = Palette[*(Bits + Y * Align(Width,4) + X)];
 			}
-
-			SrcPtr += SrcPtrDiff;
 		}
 	}
 	else if( bmhdr->biPlanes==1 && bmhdr->biBitCount==24 )
 	{
 		// Set texture properties.
 		Width = bmhdr->biWidth;
-		const bool bNegativeHeight = (bmhdr->biHeight < 0);
-		Height = FMath::Abs(bHalfHeight ? bmhdr->biHeight / 2 : bmhdr->biHeight);
+		Height = bHalfHeight ? bmhdr->biHeight / 2 : bmhdr->biHeight;
 		Format = ERGBFormat::BGRA;
 		RawData.Empty(Height * Width * 4);
 		RawData.AddUninitialized(Height * Width * 4);
 
 		uint8* ImageData = RawData.GetData();
 
-		// Copy scanlines, accounting for scanline direction according to the Height field.
-		const int32 SrcStride = Align(Width * 3, 4);
-		const int32 SrcPtrDiff = bNegativeHeight ? SrcStride : -SrcStride;
-		const uint8* SrcPtr = Bits + (bNegativeHeight ? 0 : Height - 1) * SrcStride;
-
-		for (int32 Y = 0; Y < Height; Y++)
+		// Copy upside-down scanlines.
+		const uint8* Ptr = Bits;
+		for( int32 y=0; y<Height; y++ ) 
 		{
-			const uint8* SrcRowPtr = SrcPtr;
-			for (int32 X = 0; X < Width; X++)
+			uint8* DestPtr = &ImageData[(Height - 1 - y) * Width * 4];
+			uint8* SrcPtr = (uint8*) &Ptr[y * Align(Width*3,4)];
+			for( int32 x=0; x<Width; x++ )
 			{
-				*ImageData++ = *SrcRowPtr++;
-				*ImageData++ = *SrcRowPtr++;
-				*ImageData++ = *SrcRowPtr++;
-				*ImageData++ = 0xFF;
+				*DestPtr++ = *SrcPtr++;
+				*DestPtr++ = *SrcPtr++;
+				*DestPtr++ = *SrcPtr++;
+				*DestPtr++ = 0xFF;
 			}
-
-			SrcPtr += SrcPtrDiff;
 		}
 	}
 	else if( bmhdr->biPlanes==1 && bmhdr->biBitCount==32 )
 	{
 		// Set texture properties.
 		Width = bmhdr->biWidth;
-		const bool bNegativeHeight = (bmhdr->biHeight < 0);
-		Height = FMath::Abs(bHalfHeight ? bmhdr->biHeight / 2 : bmhdr->biHeight);
+		Height = bHalfHeight ? bmhdr->biHeight / 2 : bmhdr->biHeight;
 		Format = ERGBFormat::BGRA;
 		RawData.Empty(Height * Width * 4);
 		RawData.AddUninitialized(Height * Width * 4);
 
 		uint8* ImageData = RawData.GetData();
 
-		// Copy scanlines, accounting for scanline direction according to the Height field.
-		const int32 SrcStride = Width * 4;
-		const int32 SrcPtrDiff = bNegativeHeight ? SrcStride : -SrcStride;
-		const uint8* SrcPtr = Bits + (bNegativeHeight ? 0 : Height - 1) * SrcStride;
-
-		for (int32 Y = 0; Y < Height; Y++)
+		// Copy upside-down scanlines.
+		const uint8* Ptr = Bits;
+		for( int32 y=0; y<Height; y++ ) 
 		{
-			const uint8* SrcRowPtr = SrcPtr;
-			for (int32 X = 0; X < Width; X++)
+			uint8* DestPtr = &ImageData[(Height - 1 - y) * Width * 4];
+			uint8* SrcPtr = (uint8*) &Ptr[y * Width * 4];
+			for( int32 x=0; x<Width; x++ )
 			{
-				*ImageData++ = *SrcRowPtr++;
-				*ImageData++ = *SrcRowPtr++;
-				*ImageData++ = *SrcRowPtr++;
-				*ImageData++ = *SrcRowPtr++;
+				*DestPtr++ = *SrcPtr++;
+				*DestPtr++ = *SrcPtr++;
+				*DestPtr++ = *SrcPtr++;
+				*DestPtr++ = *SrcPtr++;
 			}
-
-			SrcPtr += SrcPtrDiff;
 		}
 	}
 	else if( bmhdr->biPlanes==1 && bmhdr->biBitCount==16 )
@@ -180,7 +165,6 @@ bool FBmpImageWrapper::LoadBMPHeader()
 	{
 		if( bmhdr->biCompression != BCBI_RGB )
 		{
-			UE_LOG(LogImageWrapper, Error, TEXT("RLE compression of BMP images not supported"));
 			return false;
 		}
 
@@ -188,18 +172,9 @@ bool FBmpImageWrapper::LoadBMPHeader()
 		{
 			// Set texture properties.
 			Width = bmhdr->biWidth;
-			Height = FMath::Abs(bmhdr->biHeight);
+			Height = bmhdr->biHeight;
 			Format = ERGBFormat::BGRA;
-			BitDepth = bmhdr->biBitCount;
 			return true;
-		}
-		else if (bmhdr->biPlanes == 1 && bmhdr->biBitCount == 16)
-		{
-			UE_LOG(LogImageWrapper, Error, TEXT("BMP 16 bit format no longer supported. Use terrain tools for importing/exporting heightmaps."));
-		}
-		else
-		{
-			UE_LOG(LogImageWrapper, Error, TEXT("BMP uses an unsupported format (%i/%i)"), bmhdr->biPlanes, bmhdr->biBitCount);
 		}
 	}
 
@@ -212,7 +187,6 @@ bool FBmpImageWrapper::LoadBMPInfoHeader()
 
 	if( bmhdr->biCompression != BCBI_RGB )
 	{
-		UE_LOG(LogImageWrapper, Error, TEXT("RLE compression of BMP images not supported"));
 		return false;
 	}
 
@@ -220,18 +194,9 @@ bool FBmpImageWrapper::LoadBMPInfoHeader()
 	{
 		// Set texture properties.
 		Width = bmhdr->biWidth;
-		Height = FMath::Abs(bmhdr->biHeight);
+		Height = bmhdr->biHeight;
 		Format = ERGBFormat::BGRA;
-		BitDepth = bmhdr->biBitCount;
 		return true;
-	}
-	else if (bmhdr->biPlanes == 1 && bmhdr->biBitCount == 16)
-	{
-		UE_LOG(LogImageWrapper, Error, TEXT("BMP 16 bit format no longer supported. Use terrain tools for importing/exporting heightmaps."));
-	}
-	else
-	{
-		UE_LOG(LogImageWrapper, Error, TEXT("BMP uses an unsupported format (%i/%i)"), bmhdr->biPlanes, bmhdr->biBitCount);
 	}
 
 	return false;

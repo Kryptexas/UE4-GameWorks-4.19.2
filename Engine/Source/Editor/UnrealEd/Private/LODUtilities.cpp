@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 
@@ -71,7 +71,7 @@ void FLODUtilities::RemoveLOD(FSkeletalMeshUpdateContext& UpdateContext, int32 D
 	}
 }
 
-void FLODUtilities::SimplifySkeletalMeshLOD( USkeletalMesh* SkeletalMesh, const FSkeletalMeshOptimizationSettings& InSetting, int32 DesiredLOD, bool bReregisterComponent /*= true*/ )
+void FLODUtilities::SimplifySkeletalMeshLOD( USkeletalMesh* SkeletalMesh, const FSkeletalMeshOptimizationSettings& InSetting, int32 DesiredLOD )
 {
 	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
 	IMeshReduction* MeshReduction = MeshUtilities.GetMeshReductionInterface();
@@ -85,8 +85,7 @@ void FLODUtilities::SimplifySkeletalMeshLOD( USkeletalMesh* SkeletalMesh, const 
 		GWarn->BeginSlowTask(StatusUpdate, true);
 	}
 
-	bool bRecalcLOD = ( !SkeletalMesh->LODInfo.IsValidIndex(DesiredLOD) );
-	if (MeshReduction->ReduceSkeletalMesh(SkeletalMesh, DesiredLOD, InSetting, bRecalcLOD, bReregisterComponent))
+	if(MeshReduction->ReduceSkeletalMesh(SkeletalMesh, DesiredLOD, InSetting, true))
 	{
 		check(SkeletalMesh->LODInfo.Num() >= 2);
 		SkeletalMesh->MarkPackageDirty();
@@ -133,20 +132,6 @@ void FLODUtilities::SimplifySkeletalMesh( FSkeletalMeshUpdateContext& UpdateCont
 	}
 }
 
-void FLODUtilities::SimplifySkeletalMeshLOD(FSkeletalMeshUpdateContext& UpdateContext, const FSkeletalMeshOptimizationSettings& Setting, int32 DesiredLOD, bool bReregisterComponent /*= true*/)
-{
-	USkeletalMesh* SkeletalMesh = UpdateContext.SkeletalMesh;
-	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
-	IMeshReduction* MeshReduction = MeshUtilities.GetMeshReductionInterface();
-
-	if (MeshReduction && MeshReduction->IsSupported() && SkeletalMesh)
-	{
-		SimplifySkeletalMeshLOD(SkeletalMesh, Setting, DesiredLOD, bReregisterComponent);
-
-		//Notify calling system of change
-		UpdateContext.OnLODChanged.ExecuteIfBound();
-	}
-}
 void FLODUtilities::RefreshLODChange(const USkeletalMesh* SkeletalMesh)
 {
 	for (FObjectIterator Iter(USkeletalMeshComponent::StaticClass()); Iter; ++Iter)

@@ -1,0 +1,46 @@
+﻿Availability: Public
+Title:自定义工具
+Crumbs:%ROOT%, Resources, Resources/SampleGames/SwingNinja
+Description:涵盖创建Swing Ninja游戏的自定义工具的文件。
+
+
+[REGION:banner]
+![](CustomToolsBanner.png)
+[/REGION]
+
+
+[TOC(start:2 end:3)]
+[REGION:fullwidth]
+## 概述
+
+蓝图可视脚本系统中最有用的功能之一就是由关卡设计师来构建自定义工具，这些工具可以让它们更快地执行必要的设计操作。 为使得Swing Ninja的创建工作更为有效，我们使用蓝图构建特定的设计工具。 下方是每个工具的概述，为何创建它们以及它们是如何被创建的。
+
+
+## 金币放置系统
+
+为帮助在关卡周围放置金币的尾迹，我们创建了专用蓝图，以使得金币放置能按程序沿直线进行。 通过使用蓝图的位置作为起始点，使自定义的指定终点可用，并提供路径为直线或是曲线的选项，以及控制沿其长度方向放置的金币数量，使得蓝图可用。
+
+
+### 构建脚本
+
+[REGION:lightbox]
+[![](Coins_CS.png)](Coins_CS.png)
+[/REGION]
+[REGION:caption]
+点击以查看完整尺寸图片或右键点击并另存。
+[/REGION]
+
+
+
+### 事件图表
+
+
+[REGION:lightbox]
+[![](Coins_EG.png)](Coins_EG.png)
+[/REGION]
+[REGION:caption]
+点击以查看完整尺寸图片或右键点击并另存。
+[/REGION]
+
+
+[/REGION]

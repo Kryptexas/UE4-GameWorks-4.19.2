@@ -1,0 +1,41 @@
+﻿INTSourceChangelist:2591123
+Availability: Docs
+Title:1.6 - 可破坏物体的粒子特效
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Destructables
+Description:破坏性示例关卡概述，示例1.6: 可破坏物体的粒子特效
+
+
+[VAR:Topic]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Destructables/1_4:title%](Resources/ContentExamples/Destructables/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Destructables/1_4:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Destructables/1_4:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Destructables/1_4]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth raw]
+![](Resources/ContentExamples/Destructables/physics_banner.png)
+[/REGION]
+
+当网格物体被破坏时，会生成粒子特效。
+
+[REGION:todo]
+这里最好能加上一些简单的规则，以告诉读者发射器生成的位置。内容示例中应针对此处加入粒子特效部分的内容。
+[/REGION]
+
+<!--[REGION:lightbox]
+[![](1_4_solid.png)(w:300)](1_4_solid.png) [![](1_4_fractured.png)(w:300)](1_4_fractured.png) [![](1_4_blown.png)(w:300)](1_4_blown.png)
+[/REGION]-->

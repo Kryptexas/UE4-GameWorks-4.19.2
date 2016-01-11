@@ -1,9 +1,7 @@
 Availability: Public
-Title:Setting Up a Door
+Title:Set Up a Door
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
 Description:Setting up a door that opens/closes automatically through Matinee. 
-Version: 4.9
-SkillLevel: Beginner
 
 
 ---
@@ -21,7 +19,7 @@ In the following steps, we are going to create a simple door that opens/closes w
 
 1. From the **Unreal Project Browser** window, create a **New Project** and use the **Blueprint Third Person** template. 
 
-	![](MatineeHowTo.jpg)(w:640)
+	![](MHT1_CreateProject.png)(w:640)
 
 1. Make sure that **Include starter content** is enabled. 
 
@@ -43,35 +41,29 @@ In the following steps, we are going to create a simple door that opens/closes w
 
 	![](MHT1_DoorFrame.png)(w:480)
 
-	[Region:note]
-	If you do not see the **Props** folder, refer to the **Creating the Project** step and make sure that you enabled **Include Starter Content**.
-	[/Region]
-
+	_Note: if you do not see the **Props** folder, refer to the **Creating the Project** step and make sure that you enabled **Include starter content**._
+	
 1. **Left-Click** on the **SM_DoorFrame** Static Mesh and drag-and-drop it into the **Level Viewport**. 
 	
-	![](MHT_DoorFrameDragIn.jpg)(w:640)
+	![](MHT1_DragFrame.png)(w:640)
 
 1. Also in the Props folder, locate the **SM_Door** Static Mesh and drag-and-drop it into the Level Viewport. 
 
-	![](MHT_DoorDragIn.jpg)(w:640)
+	![](MHT1_DragDoor.png)(w:640)
 
 1. In the Content Browser, find the SM_Door Static Mesh again and **Double-Click** on it to open it up in the **Static Mesh** viewer. 
 
 1. Inside the **Details** panel, in the search field type in **Collision** and set the **Collision Complexity** setting to **Use Complex Collision as Simple**. 
 
-	![](MHT_CollisionComplexity.jpg)
+	![](MHT1_DoorCollision.png)
 
-	[Region:note]
-	The step above will ensure that the door has collision applied to it.
-	[/Region]
+	_Note: The step above will ensure that the door has collision applied to it. _
 
 1. With the **SM_Door** selected in the Level Viewport find the Details panel. Under **Transform** and the **Rotation** setting, set the **Z** value to **-180**. 
 
 	![](MHT1_RotateDoor.png)(w:640)
 
-	[Region:note]
-	It will auto adjust to -179.99 which is okay.
-	[/Region]
+	_Note: it will auto adjust to -179.99 which is okay._
 
 1. Using the **Translation** widget, position the door inside the door frame. 
 
@@ -79,7 +71,7 @@ In the following steps, we are going to create a simple door that opens/closes w
 	
 1. Inside the **Modes** menu and under the **Basic** tab, find the **Box Trigger** and drag-and-drop it into the Level Viewport inside the door frame.
 
-	![](MHT_DragInBoxTrigger.jpg)(w:640)
+	![](MHT1_DragTrigger.png)(w:640)
 
 1. Select the **TriggerBox** and in the Details panel under the **Shape** section, locate and change the **X** value for **Box Extent** to **140**. 
 
@@ -104,7 +96,7 @@ In the following steps, we are going to create a simple door that opens/closes w
 
 1. From the **Toolbar** menu, select **Matinee** and click the **Add Matinee** button. 
 
-	![](MHT_AddMatinee.jpg)(w:760)
+	![](MHT1_AddMatinee.png)(w:760)
 
 1. The Matinee undo warning message will appear, click the **Continue** button. 
 
@@ -122,7 +114,7 @@ In the following steps, we are going to create a simple door that opens/closes w
 
 	![](MHT1_TrackContextMenu.png)
 
-1. When the window asking you to enter a **New Group Name** for the group appears enter a name for this group (in this example, we are using the name **Door**). 
+1. When the ![](MHT1_GroupName.png) appears, enter a **New Group Name** for the group (in this example, we are using the name **Door**). 
 
 1. Minimize the Matinee window, then in the **Main Editor** find the **World Outliner** window and select the **SM_Door** so that it is highlighted. 
 
@@ -132,9 +124,7 @@ In the following steps, we are going to create a simple door that opens/closes w
 
 	![](MHT1_AddDoorToGroup.png)
 
-	[Region:note]
-	This will add the **SM_Door** Actor to the **Door** group.
-	[/Region]
+	_Note: This will add the **SM_Door** Actor to the **Door** group._
 
 1. **Right-Click** on the Group (Door) again to bring up the context menu, then select **Add New Movement Track**. 
 
@@ -158,7 +148,7 @@ In the following steps, we are going to create a simple door that opens/closes w
 
 	![](MHT1_DoorOpen.png)
 
-1. Return to the Matinee window and **Left-Click** on the Red arrow **End Marker** and move it to the left to **0.50**. 
+1. Return to the Matinee window and **Left-Click** on the ![](MHT1_EndPoint.png) **End Marker** and move it to the left to **0.50**. 
 
 	![](MHT1_EndPointMoved.png)
 
@@ -176,7 +166,7 @@ In the following steps, we are going to create a simple door that opens/closes w
 
 1. From the **Toolbar** menu, select **Blueprints** and click the **Open Level Blueprint** button. 
 
-	![](MHT_OpenLvlBlueprint.jpg)(w:720)
+	![](MHT1_LevelBluerpint.png)(w:720)
 
 1. Minimize the **Level Blueprint** and through the **Level Viewport** or **World Outliner**, **Left-Click** on the **MatineeActor** to select it. 
 
@@ -184,7 +174,7 @@ In the following steps, we are going to create a simple door that opens/closes w
 
 1. Open the **Level Blueprint** window and **Right-Click** in the **Event Graph**, then in the context menu, select the **Add Reference to MatineeActor** option. 
 
-	![](MHT_MatineeReference.jpg)
+	![](MHT1_AddMatineeToBP.png)
 
 1. This will add the **MatineeActor** to the **Event Graph** of the **Level Blueprint**. 
 
@@ -224,19 +214,9 @@ In the following steps, we are going to create a simple door that opens/closes w
 	
 1. The Blueprint is now complete and the **TriggerBox** is now hooked up to the Matinee Actor. 
 
-1. Minimize the Level Blueprint and click the **Play** Button in the main toolbar to play in the Editor. 
+1. Minimize the Level Blueprint and **click** the ![](MHT1_PlayButton.png) **Play** Button to play in the Editor. 
 
-	[OBJECT:EmbeddedVideo]
-	[PARAMLITERAL:width]
-	640
-	[/PARAMLITERAL]
-	[PARAMLITERAL:height]
-	360
-	[/PARAMLITERAL]
-	[PARAMLITERAL:videoid]
-	Z2son2Wcgbo
-	[/PARAMLITERAL]
-	[/OBJECT]
+	![](MHT1_SimpleDoor.gif)(w:480 convert:false)
 
 ---
 

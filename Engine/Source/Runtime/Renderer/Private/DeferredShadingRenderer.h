@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DeferredShadingRenderer.h: Scene rendering definitions.
@@ -11,8 +11,12 @@
 class FLightShaftsOutput
 {
 public:
-	// 0 if not rendered
+	bool bRendered;
 	TRefCountPtr<IPooledRenderTarget> LightShaftOcclusion;
+
+	FLightShaftsOutput() :
+		bRendered(false)
+	{}
 };
 
 /**
@@ -24,7 +28,6 @@ public:
 
 	/** Defines which objects we want to render in the EarlyZPass. */
 	EDepthDrawingMode EarlyZPassMode;
-	bool bDitheredLODTransitionsUseStencil;
 
 	/** 
 	 * Layout used to track translucent self shadow residency from the per-light shadow passes, 
@@ -91,9 +94,6 @@ public:
 
 	/** Renders the basepass for a given View. */
 	bool RenderBasePassView(FRHICommandListImmediate& RHICmdList, FViewInfo& View);
-
-	/** Renders editor primitives for a given View. */
-	void RenderEditorPrimitives(FRHICommandList& RHICmdList, const FViewInfo& View, bool& bOutDirty);
 	
 	/** 
 	* Renders the scene's base pass 
@@ -116,8 +116,6 @@ public:
 	void RenderVisualizeTexturePool(FRHICommandListImmediate& RHICmdList);
 #endif
 
-	/** Offline culling of static triangles that won't be seen at runtime. */
-	void PreCullStaticMeshes(FRHICommandListImmediate& RHICmdList, const TArray<UStaticMeshComponent*>& ComponentsToPreCull, const TArray<TArray<FPlane> >& CullVolumes);
 
 	/** bound shader state for occlusion test prims */
 	static FGlobalBoundShaderState OcclusionTestBoundShaderState;
@@ -159,8 +157,6 @@ private:
 	/** Determines which primitives are visible for each view. */
 	void InitViews(FRHICommandListImmediate& RHICmdList);
 
-	void CreateIndirectCapsuleShadows();
-
 	/**
 	 * Renders the scene's prepass and occlusion queries.
 	 * @return true if anything was rendered
@@ -177,10 +173,10 @@ private:
 	void BeginOcclusionTests(FRHICommandListImmediate& RHICmdList, bool bRenderQueries, bool bRenderHZB);
 
 	/** Renders the scene's fogging. */
-	bool RenderFog(FRHICommandListImmediate& RHICmdList, const FLightShaftsOutput& LightShaftsOutput);
+	bool RenderFog(FRHICommandListImmediate& RHICmdList, FLightShaftsOutput LightShaftsOutput);
 
 	/** Renders the scene's atmosphere. */
-	void RenderAtmosphere(FRHICommandListImmediate& RHICmdList, const FLightShaftsOutput& LightShaftsOutput);
+	void RenderAtmosphere(FRHICommandListImmediate& RHICmdList, FLightShaftsOutput LightShaftsOutput);
 
 	/** Renders reflections that can be done in a deferred pass. */
 	void RenderDeferredReflections(FRHICommandListImmediate& RHICmdList, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO);
@@ -240,7 +236,7 @@ private:
 	void RenderTranslucency(FRHICommandListImmediate& RHICmdList);
 
 	/** Renders the scene's light shafts */
-	void RenderLightShaftOcclusion(FRHICommandListImmediate& RHICmdList, FLightShaftsOutput& Output);
+	FLightShaftsOutput RenderLightShaftOcclusion(FRHICommandListImmediate& RHICmdList);
 
 	void RenderLightShaftBloom(FRHICommandListImmediate& RHICmdList);
 
@@ -263,16 +259,8 @@ private:
 	/** Renders world-space lightmap density instead of the normal color. */
 	bool RenderLightMapDensities(FRHICommandListImmediate& RHICmdList);
 
-	/** Renders the visualize vertex densities mode. */
-	bool RenderVertexDensities(FRHICommandListImmediate& RHICmdList);
-
 	/** Updates the downsized depth buffer with the current full resolution depth buffer. */
 	void UpdateDownsampledDepthSurface(FRHICommandList& RHICmdList);
-
-	/** Downsample the scene depth with a specified scale factor to a specified render target*/
-	void DownsampleDepthSurface(FRHICommandList& RHICmdList, const FTexture2DRHIRef& RenderTarget, const FViewInfo &View, float ScaleFactor, float MinMaxFilterBlend = 0.0f);
-
-	void CopyStencilToLightingChannelTexture(FRHICommandList& RHICmdList);
 
 	/** Renders one pass point light shadows. */
 	bool RenderOnePassPointLightShadows(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bRenderedTranslucentObjectShadows, bool& bInjectedTranslucentVolume);
@@ -282,21 +270,6 @@ private:
 
 	/** Renders reflective shadowmaps for LPVs */
 	bool RenderReflectiveShadowMaps(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo);
-
-	/** Renders capsule shadows for all per-object shadows using it for the given light. */
-	bool RenderCapsuleDirectShadows(
-		const FLightSceneInfo& LightSceneInfo,
-		FRHICommandListImmediate& RHICmdList, 
-		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& CapsuleShadows) const;
-
-	/** Sets up ViewState buffers for rendering capsule shadows. */
-	void SetupIndirectCapsuleShadows(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bPrepareLightData, int32& NumCapsuleShapes) const;
-
-	/** Renders indirect shadows from capsules modulated onto scene color. */
-	void RenderIndirectCapsuleShadows(FRHICommandListImmediate& RHICmdList) const;
-
-	/** Renders capsule shadows for movable skylights, using the cone of visibility (bent normal) from DFAO. */
-	void RenderCapsuleShadowsForMovableSkylight(FRHICommandListImmediate& RHICmdList, TRefCountPtr<IPooledRenderTarget>& BentNormalOutput) const;
 
 	/**
 	  * Used by RenderLights to render projected shadows to the attenuation buffer.

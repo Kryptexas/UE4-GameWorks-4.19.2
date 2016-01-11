@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #if WITH_RECAST
@@ -37,11 +37,8 @@ void UBTDecorator_DoesPathExist::InitializeFromAsset(UBehaviorTree& Asset)
 	}
 
 	UBlackboardData* BBAsset = GetBlackboardAsset();
-	if (ensure(BBAsset))
-	{
-		BlackboardKeyA.ResolveSelectedKey(*BBAsset);
-		BlackboardKeyB.ResolveSelectedKey(*BBAsset);
-	}
+	BlackboardKeyA.CacheSelectedKey(BBAsset);
+	BlackboardKeyB.CacheSelectedKey(BBAsset);
 }
 
 bool UBTDecorator_DoesPathExist::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const
@@ -66,7 +63,7 @@ bool UBTDecorator_DoesPathExist::CalculateRawConditionValue(UBehaviorTreeCompone
 		const ANavigationData* NavData = AIOwner ? NavSys->GetNavDataForProps(AIOwner->GetNavAgentPropertiesRef()) : NULL;
 		if (NavData)
 		{
-			FSharedConstNavQueryFilter QueryFilter = UNavigationQueryFilter::GetQueryFilter(*NavData, FilterClass);
+			TSharedPtr<const FNavigationQueryFilter> QueryFilter = UNavigationQueryFilter::GetQueryFilter(*NavData, FilterClass);
 
 			if (PathQueryType == EPathExistanceQueryType::NavmeshRaycast2D)
 			{

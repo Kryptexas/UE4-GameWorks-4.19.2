@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SurfelTree.cpp
@@ -228,11 +228,6 @@ public:
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
 
 		const FScene* Scene = (const FScene*)View.Family->Scene;
-
-		FUnorderedAccessViewRHIParamRef UniformMeshUAVs[1];
-		UniformMeshUAVs[0] = Scene->DistanceFieldSceneData.SurfelBuffers->InterpolatedVertexData.UAV;
-		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, UniformMeshUAVs, ARRAY_COUNT(UniformMeshUAVs));
-
 		SurfelBufferParameters.Set(RHICmdList, ShaderRHI, *Scene->DistanceFieldSceneData.SurfelBuffers, *Scene->DistanceFieldSceneData.InstancedSurfelBuffers);
 		
 		SetShaderValue(RHICmdList, ShaderRHI, SurfelStartIndex, SurfelStartIndexValue);
@@ -243,18 +238,12 @@ public:
 		SetSRVParameter(RHICmdList, ShaderRHI, TriangleCDFs, UniformMeshBuffers.TriangleCDFs.SRV);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList, const FSceneView& View)
+	void UnsetParameters(FRHICommandList& RHICmdList)
 	{
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
-
-		const FScene* Scene = (const FScene*)View.Family->Scene;
 		SurfelBufferParameters.UnsetParameters(RHICmdList, ShaderRHI);
 		// RHISetStreamOutTargets doesn't unbind existing uses like render targets do 
 		SetSRVParameter(RHICmdList, ShaderRHI, TriangleVertexData, NULL);
-
-		FUnorderedAccessViewRHIParamRef UniformMeshUAVs[1];
-		UniformMeshUAVs[0] = Scene->DistanceFieldSceneData.SurfelBuffers->InterpolatedVertexData.UAV;
-		RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, UniformMeshUAVs, ARRAY_COUNT(UniformMeshUAVs));
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -302,15 +291,10 @@ void GenerateSurfelRepresentation(FRHICommandListImmediate& RHICmdList, FSceneRe
 		FUniformMeshBuffers* UniformMeshBuffers = NULL;
 		const FMaterialRenderProxy* MaterialRenderProxy = NULL;
 		FUniformBufferRHIParamRef PrimitiveUniformBuffer = NULL;
-		const int32 NumUniformTriangles = FUniformMeshConverter::Convert(RHICmdList, Renderer, View, PrimitiveSceneInfo, 0, UniformMeshBuffers, MaterialRenderProxy, PrimitiveUniformBuffer);
+		const int32 NumUniformTriangles = FUniformMeshConverter::Convert(RHICmdList, Renderer, View, PrimitiveSceneInfo, UniformMeshBuffers, MaterialRenderProxy, PrimitiveUniformBuffer);
 
 		if (NumUniformTriangles > 0 && MaterialRenderProxy && PrimitiveUniformBuffer)
 		{
-			FUnorderedAccessViewRHIParamRef UniformMeshUAVs[2];
-			UniformMeshUAVs[0] = UniformMeshBuffers->TriangleAreas.UAV;
-			UniformMeshUAVs[1] = UniformMeshBuffers->TriangleCDFs.UAV;
-			RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, UniformMeshUAVs, ARRAY_COUNT(UniformMeshUAVs));
-
 			{
 				TShaderMapRef<FComputeTriangleAreasCS> ComputeShader(GetGlobalShaderMap(View.GetFeatureLevel()));
 
@@ -319,8 +303,7 @@ void GenerateSurfelRepresentation(FRHICommandListImmediate& RHICmdList, FSceneRe
 				DispatchComputeShader(RHICmdList, *ComputeShader, FMath::DivideAndRoundUp(NumUniformTriangles, GDistanceFieldAOTileSizeX * GDistanceFieldAOTileSizeY), 1, 1);
 
 				ComputeShader->UnsetParameters(RHICmdList);
-				RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, UniformMeshBuffers->TriangleAreas.UAV);
-			}			
+			}
 
 			{
 				TShaderMapRef<FComputeTriangleCDFsCS> ComputeShader(GetGlobalShaderMap(View.GetFeatureLevel()));
@@ -330,8 +313,7 @@ void GenerateSurfelRepresentation(FRHICommandListImmediate& RHICmdList, FSceneRe
 				DispatchComputeShader(RHICmdList, *ComputeShader, FMath::DivideAndRoundUp(NumUniformTriangles, GDistanceFieldAOTileSizeX * GDistanceFieldAOTileSizeY), 1, 1);
 
 				ComputeShader->UnsetParameters(RHICmdList);
-				RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, UniformMeshBuffers->TriangleCDFs.UAV);
-			}			
+			}
 
 			{
 				TShaderMapRef<FSampleTrianglesCS> ComputeShader(GetGlobalShaderMap(View.GetFeatureLevel()));
@@ -340,7 +322,7 @@ void GenerateSurfelRepresentation(FRHICommandListImmediate& RHICmdList, FSceneRe
 				ComputeShader->SetParameters(RHICmdList, View, Allocation.Offset, Allocation.NumLOD0, NumUniformTriangles, *UniformMeshBuffers);
 				DispatchComputeShader(RHICmdList, *ComputeShader, FMath::DivideAndRoundUp(Allocation.NumLOD0, GDistanceFieldAOTileSizeX * GDistanceFieldAOTileSizeY), 1, 1);
 
-				ComputeShader->UnsetParameters(RHICmdList, View);
+				ComputeShader->UnsetParameters(RHICmdList);
 			}
 
 			FUniformMeshConverter::GenerateSurfels(RHICmdList, View, PrimitiveSceneInfo, MaterialRenderProxy, PrimitiveUniformBuffer, Instance0Transform, Allocation.Offset, Allocation.NumLOD0);
@@ -356,7 +338,7 @@ void GenerateSurfelRepresentation(FRHICommandListImmediate& RHICmdList, FSceneRe
 					ComputeShader->SetParameters(RHICmdList, View, Allocation.Offset + Allocation.NumLOD0, NumLOD1, NumUniformTriangles, *UniformMeshBuffers);
 					DispatchComputeShader(RHICmdList, *ComputeShader, FMath::DivideAndRoundUp(NumLOD1, GDistanceFieldAOTileSizeX * GDistanceFieldAOTileSizeY), 1, 1);
 
-					ComputeShader->UnsetParameters(RHICmdList, View);
+					ComputeShader->UnsetParameters(RHICmdList);
 				}
 
 				FUniformMeshConverter::GenerateSurfels(RHICmdList, View, PrimitiveSceneInfo, MaterialRenderProxy, PrimitiveUniformBuffer, Instance0Transform, Allocation.Offset + Allocation.NumLOD0, NumLOD1);

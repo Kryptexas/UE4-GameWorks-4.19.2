@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "AssetImportDataCustomization.h"
@@ -40,7 +40,6 @@ void FAssetImportDataCustomization::CustomizeChildren( TSharedRef<IPropertyHandl
 			.Font(Font)
 		]
 		.ValueContent()
-		.HAlign(HAlign_Fill)
 		.MaxDesiredWidth(TOptional<float>())
 		[
 			SNew(SVerticalBox)
@@ -69,21 +68,6 @@ void FAssetImportDataCustomization::CustomizeChildren( TSharedRef<IPropertyHandl
 						SNew(STextBlock)
 						.Text(LOCTEXT("...", "..."))
 						.Font(Font)
-					]
-				]
-
-				+SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					SNew(SButton)
-					.VAlign(VAlign_Center)
-					.HAlign(HAlign_Center)
-					.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
-					.OnClicked(this, &FAssetImportDataCustomization::OnClearPathClicked, Index)
-					.ToolTipText(LOCTEXT("ClearPath_Tooltip", "Clear this source file information from the asset"))
-					[
-						SNew(SImage)
-						.Image(FEditorStyle::GetBrush("Cross"))
 					]
 				]
 			]
@@ -169,18 +153,6 @@ FReply FAssetImportDataCustomization::OnChangePathClicked(int32 Index) const
 		ImportData->UpdateFilenameOnly(FPaths::ConvertRelativePathToFull(OpenFilenames[0]), Index);
 		ImportData->MarkPackageDirty();
 	}
-	return FReply::Handled();
-}
-
-FReply FAssetImportDataCustomization::OnClearPathClicked(int32 Index) const
-{
-	UAssetImportData* ImportData = GetOuterClass();
-	if (ImportData && ImportData->SourceData.SourceFiles.IsValidIndex(Index))
-	{
-		ImportData->SourceData.SourceFiles[Index] = FAssetImportInfo::FSourceFile(FString());
-		ImportData->MarkPackageDirty();
-	}
-
 	return FReply::Handled();
 }
 

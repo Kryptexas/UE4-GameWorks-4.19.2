@@ -2,7 +2,6 @@ Availability:Public
 Title:Post Process Materials
 Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
 Description:How to author and blend custom Post Process passes with the material editor.
-Version: 4.9
 
 ![](Teaser3.png)
 ![](Teaser0.png)
@@ -34,14 +33,14 @@ Through post process settings (usually defined with post process volumes or came
 At the moment, only **materials** and **material instances** are blendable assets. The engine provides a few post process materials but with this feature
 you can create your own **custom post processing** without any programmer help.
 
-Simply assign one or more post process materials to a post process volume in the **Blendables** section. First press the + to add
+Simply assign one or more post process materials to a post process volume in the **Misc** section to the **Blendables**. First press the + to add
 new slots, select a material in the **Content Browser**, and press the left arrow to assign it. The order here is not important and unused slots are simply ignored.
 
-![](PostProcessSettings.png)
+![](PostProcessSettings.gif)
 
 ## Making a Simple Post Process Material
 
-For an overview of creating a simple Post Process Material effect from scratch, see the **[](Engine/Rendering/PostProcessEffects/PostProcessMaterials/PostProcessDemoMaterialOverview)**.
+For an overview of creating a simple Post Process Material effect from scratch, see the [](Engine/Rendering/PostProcessEffects/PostProcessMaterials/PostProcessDemoMaterialOverview).
 
 ![](Engine/Rendering/PostProcessEffects/PostProcessMaterials/PostProcessDemoMaterialOverview/FinalPostEffect.png)(w:640)
 
@@ -75,14 +74,11 @@ Each volume we specify a different material instance of the same material. The c
 
 Depending on the camera position the setting of one volume are used:
 
-[OBJECT:ComparisonSlider]
-	[PARAM:before]
-	![Green vignette material instance](VignetteG.png)(w:450)
-	[/PARAM]
-	[PARAM:after]
-	![Red vignette material instance](VignetteR.png)(w:450)
-	[/PARAM]
-[/OBJECT]
+[REGION:imagetable]
+| ![](VignetteG.png) | ![](VignetteR.png) |
+| ------ | ------ |
+| Green vignette material instance | Red vignette material instance |
+[/REGION]
 
 
 With camera movement, you can perceive soft linear transition between the two effect setting.
@@ -93,15 +89,11 @@ The fuzzy borders are defined by the BlendRadius property specified in the volum
 
 With the correct setup all blending happens as expected.
 
-[OBJECT:ComparisonSlider]
-	[PARAM:before]
-	![Bad Setup](VolumeBlendBad.png)(w:450)
-	[/PARAM]
-	[PARAM:after]
-	![Good Setup](VolumeBlendGood.png)(w:450)
-	[/PARAM]
-[/OBJECT]
-
+[REGION:imagetable]
+| ![](VolumeBlendBad.png) | ![](VolumeBlendGood.png) |
+| ------ | ------ |
+| Bad setup | Good setup |
+[/REGION]
 
 The difference between the both setup is the default value specified on the material (scalar or vector) parameters.
 The good setup has values that make the pass appear to not have any effect (e.g. multiply with white or lerp with 0).

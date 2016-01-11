@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PhysAnim.cpp: Code for supporting animation/physics blending
@@ -93,9 +93,9 @@ public:
 	}
 };
 
-typedef TArray<FAssetWorldBoneTM, TMemStackAllocator<ALIGNOF(FAssetWorldBoneTM)>> TAssetWorldBoneTMArray;
+
 // Use current pose to calculate world-space position of this bone without physics now.
-void UpdateWorldBoneTM(TAssetWorldBoneTMArray& WorldBoneTMs, const TArray<FTransform>& InLocalAtoms, int32 BoneIndex, USkeletalMeshComponent* SkelComp, const FTransform &LocalToWorldTM, const FVector& Scale3D)
+void UpdateWorldBoneTM(TArray<FAssetWorldBoneTM> & WorldBoneTMs, const TArray<FTransform>& InLocalAtoms, int32 BoneIndex, USkeletalMeshComponent* SkelComp, const FTransform &LocalToWorldTM, const FVector& Scale3D)
 {
 	// If its already up to date - do nothing
 	if(	WorldBoneTMs[BoneIndex].bUpToDate )
@@ -152,9 +152,9 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 		return;
 	}
 
-	FMemMark Mark(FMemStack::Get());
 	// Make sure scratch space is big enough.
-	TAssetWorldBoneTMArray WorldBoneTMs;
+	TArray<FAssetWorldBoneTM> WorldBoneTMs;
+	WorldBoneTMs.Reset();
 	WorldBoneTMs.AddZeroed(GetNumSpaceBases());
 	
 	FTransform LocalToWorldTM = ComponentToWorld;
@@ -167,7 +167,8 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 		FBodyInstance* BI;
 		FTransform TM;
 	};
-	TArray<FBodyTMPair, TMemStackAllocator<ALIGNOF(FBodyTMPair)>> PendingBodyTMs;
+
+	TArray<FBodyTMPair> PendingBodyTMs;
 
 #if WITH_PHYSX
 	// Lock the scenes we need (flags set in InitArticulated)
@@ -342,6 +343,9 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
     }
 #endif
 	
+
+	// Transforms updated, cached local bounds are now out of date.
+	InvalidateCachedBounds();
 }
 
 
@@ -394,8 +398,7 @@ void USkeletalMeshComponent::BlendInPhysics(FTickFunction& ThisTickFunction)
 				AnimEvaluationContext.VertexAnims = ActiveVertexAnims;
 			}
 
-			AnimEvaluationContext.LocalAtoms.Reset(LocalAtoms.Num());
-			AnimEvaluationContext.LocalAtoms.Append(LocalAtoms);
+			AnimEvaluationContext.LocalAtoms = LocalAtoms;
 
 			ParallelAnimationEvaluationTask = TGraphTask<FParallelBlendPhysicsTask>::CreateTask().ConstructAndDispatchWhenReady(this);
 
@@ -407,8 +410,7 @@ void USkeletalMeshComponent::BlendInPhysics(FTickFunction& ThisTickFunction)
 			ParallelBlendPhysicsCompletionTask = TGraphTask<FParallelBlendPhysicsCompletionTask>::CreateTask(&Prerequistes).ConstructAndDispatchWhenReady(this);
 
 			ThisTickFunction.GetCompletionHandle()->DontCompleteUntil(ParallelBlendPhysicsCompletionTask);
-		}
-		else
+		}else
 		{
 			PerformBlendPhysicsBones(RequiredBones, LocalAtoms);
 			PostBlendPhysics();
@@ -418,10 +420,9 @@ void USkeletalMeshComponent::BlendInPhysics(FTickFunction& ThisTickFunction)
 
 void USkeletalMeshComponent::PostBlendPhysics()
 {
-	SCOPE_CYCLE_COUNTER(STAT_UpdateLocalToWorldAndOverlaps);
-	
-	// Flip bone buffer and send 'post anim' notification
-	FinalizeBoneTransform();
+	FlipEditableSpaceBases();
+
+	UpdateComponentToWorld();
 
 	// Update Child Transform - The above function changes bone transform, so will need to update child transform
 	UpdateChildTransforms();
@@ -429,17 +430,10 @@ void USkeletalMeshComponent::PostBlendPhysics()
 	// animation often change overlap. 
 	UpdateOverlaps();
 
-	// Cached local bounds are now out of date
-	InvalidateCachedBounds();
-
-	// update bounds
-	UpdateBounds();
-
-	// Need to send new bounds to 
-	MarkRenderTransformDirty();
-
 	// New bone positions need to be sent to render thread
 	MarkRenderDynamicDataDirty();
+
+	FinalizeBoneTransform();
 }
 
 void USkeletalMeshComponent::CompleteParallelBlendPhysics()
@@ -452,7 +446,8 @@ void USkeletalMeshComponent::CompleteParallelBlendPhysics()
 	ParallelBlendPhysicsCompletionTask.SafeRelease();
 }
 
-void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>& InSpaceBases, ETeleportType Teleport, bool bNeedsSkinning, EAllowKinematicDeferral DeferralAllowed)
+
+void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>& InSpaceBases, ETeleportType Teleport, bool bNeedsSkinning)
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateRBBones);
 
@@ -490,14 +485,6 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 		return;
 	}
 
-	// If we are only using bodies for physics, don't need to move them right away, can defer until simulation (unless told not to)
-	if(BodyInstance.GetCollisionEnabled() == ECollisionEnabled::PhysicsOnly && DeferralAllowed == EAllowKinematicDeferral::AllowDeferral)
-	{
-		PhysScene->MarkForPreSimKinematicUpdate(this, Teleport, bNeedsSkinning);
-		return;
-	}
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	// If desired, draw the skeleton at the point where we pass it to the physics.
 	if (bShowPrePhysBones && SkeletalMesh && InSpaceBases.Num() == SkeletalMesh->RefSkeleton.GetNum())
 	{
@@ -511,7 +498,6 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 			GetWorld()->LineBatcher->DrawLine(ThisPos, ParentPos, AnimSkelDrawColor, SDPG_Foreground);
 		}
 	}
-#endif
 
 	// warn if it has non-uniform scale
 	const FVector& MeshScale3D = CurrentLocalToWorld.GetScale3D();
@@ -573,17 +559,16 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 #if WITH_PHYSX
 						// update bone transform to world
 						const FTransform BoneTransform = InSpaceBases[BoneIndex] * CurrentLocalToWorld;
-						if(!BoneTransform.IsValid())
+						if(BoneTransform.ContainsNaN())
 						{
 							const FName BodyName = PhysicsAsset->BodySetup[i]->BoneName;
 							UE_LOG(LogPhysics, Warning, TEXT("UpdateKinematicBonesToAnim: Trying to set transform with bad data %s on PhysicsAsset '%s' in SkeletalMesh '%s' for bone '%s'"), *BoneTransform.ToHumanReadableString(), *PhysicsAsset->GetName(), *SkeletalMesh->GetName(), *BodyName.ToString());
-							BoneTransform.DiagnosticCheck_IsValid();	//In special nan mode we want to actually ensure
-
 							continue;
-						}
+						}					
 
 						// If kinematic and not teleporting, set kinematic target
-						if (!BodyInst->IsInstanceSimulatingPhysics() && !bTeleport)
+						PxRigidDynamic* PRigidDynamic = BodyInst->GetPxRigidDynamic_AssumesLocked();
+						if (!IsRigidBodyNonKinematic_AssumesLocked(PRigidDynamic) && !bTeleport)
 						{
 							PhysScene->SetKinematicTarget_AssumesLocked(BodyInst, BoneTransform, true);
 						}
@@ -592,8 +577,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 						{
 							const PxTransform PNewPose = U2PTransform(BoneTransform);
 							ensure(PNewPose.isValid());
-							PxRigidActor* RigidActor = BodyInst->GetPxRigidActor_AssumesLocked(); // This should never fail because IsValidBodyInstance() passed above
-							RigidActor->setGlobalPose(PNewPose);
+							PRigidDynamic->setGlobalPose(PNewPose);
 						}
 #endif
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
 #include "Components/CanvasPanelSlot.h"
@@ -31,8 +31,6 @@ public:
 		bIsHovered = false;
 		ResizeCurve = FCurveSequence(0, 0.40f);
 
-		RegisterActiveTimer(0.0f, FWidgetActiveTimerDelegate::CreateSP(this, &SAnchorPreviewWidget::UpdateAnimation));
-
 		ChildSlot
 		[
 			SNew(SButton)
@@ -61,6 +59,9 @@ public:
 							.HeightOverride(this, &SAnchorPreviewWidget::GetCurrentHeight)
 							[
 								SNew(SBorder)
+								//.BorderImage(FEditorStyle::GetBrush("NoBrush"))
+								//.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+								//.BorderBackgroundColor
 								.Padding(1)
 								[
 									SNew(SConstraintCanvas)
@@ -81,8 +82,8 @@ public:
 			]
 		];
 	}
-	
-	EActiveTimerReturnType UpdateAnimation(double InCurrentTime, float InDeltaTime)
+
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 	{
 		if ( bIsHovered )
 		{
@@ -103,8 +104,6 @@ public:
 		{
 			ResizeCurve.Reverse();
 		}
-
-		return EActiveTimerReturnType::Continue;
 	}
 
 	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
@@ -141,14 +140,12 @@ private:
 			AnchorsHandle->SetValueFromFormattedString(Value);
 		}
 
-		// If shift is down, update the alignment/pivot point to match the anchor position.
 		if ( FSlateApplication::Get().GetModifierKeys().IsShiftDown() )
 		{
 			const FString Value = FString::Printf(TEXT("(X=%f,Y=%f)"), Anchors.IsStretchedHorizontal() ? 0 : Anchors.Minimum.X, Anchors.IsStretchedVertical() ? 0 : Anchors.Minimum.Y);
 			AlignmentHandle->SetValueFromFormattedString(Value);
 		}
 
-		// If control is down, update position to be reset to 0 in the directions where it's appropriate.
 		if ( FSlateApplication::Get().GetModifierKeys().IsControlDown() )
 		{
 			TArray<void*> RawOffsetData;
@@ -451,31 +448,6 @@ void FCanvasSlotCustomization::CustomizeAnchors(TSharedPtr<IPropertyHandle> Prop
 							.Padding(FillDividePadding, 0, 0, 0)
 							[
 								SNew(SAnchorPreviewWidget, AnchorsHandle, AlignmentHandle, OffsetsHandle, LOCTEXT("FillFill", "Fill/Fill"), FAnchors(0, 0, 1, 1))
-							]
-						]
-
-						+ SVerticalBox::Slot()
-						.AutoHeight()
-						[
-							SNew(SBorder)
-							.BorderImage(FEditorStyle::GetBrush("WhiteBrush"))
-							.BorderBackgroundColor(FLinearColor(0.016f, 0.016f, 0.016f))
-							[
-								SNew(SVerticalBox)
-
-								+ SVerticalBox::Slot()
-								.AutoHeight()
-								[
-									SNew(STextBlock)
-									.Text(LOCTEXT("ShiftResetsAlignment", "Hold [Shift] to update the alignment to match."))
-								]
-
-								+ SVerticalBox::Slot()
-								.AutoHeight()
-								[
-									SNew(STextBlock)
-									.Text(LOCTEXT("ControlResetsPosition", "Hold [Control] to update the position to match."))
-								]
 							]
 						]
 					]

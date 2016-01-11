@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 
@@ -25,8 +25,6 @@ FTextRange FSlateHyperlinkRun::GetTextRange() const
 void FSlateHyperlinkRun::SetTextRange( const FTextRange& Value )
 {
 	Range = Value;
-
-	ShapedTextCache->Clear();
 }
 
 int16 FSlateHyperlinkRun::GetBaseLine( float Scale ) const 
@@ -41,7 +39,7 @@ int16 FSlateHyperlinkRun::GetMaxHeight( float Scale ) const
 	return FontMeasure->GetMaxCharacterHeight( Style.TextStyle.Font, Scale ) + FMath::Abs(Style.TextStyle.ShadowOffset.Y * Scale);
 }
 
-FVector2D FSlateHyperlinkRun::Measure( int32 StartIndex, int32 EndIndex, float Scale, const FRunTextContext& TextContext ) const 
+FVector2D FSlateHyperlinkRun::Measure( int32 StartIndex, int32 EndIndex, float Scale ) const 
 {
 	const FVector2D ShadowOffsetToApply((EndIndex == Range.EndIndex) ? FMath::Abs(Style.TextStyle.ShadowOffset.X * Scale) : 0.0f, FMath::Abs(Style.TextStyle.ShadowOffset.Y * Scale));
 
@@ -50,16 +48,16 @@ FVector2D FSlateHyperlinkRun::Measure( int32 StartIndex, int32 EndIndex, float S
 		return FVector2D( ShadowOffsetToApply.X * Scale, GetMaxHeight( Scale ) );
 	}
 
-	// todo: SHAPING - Use the full text range (rather than the run range) so that text that spans runs will still be shaped correctly
-	return ShapedTextCacheUtil::MeasureShapedText(ShapedTextCache, FCachedShapedTextKey(Range/*FTextRange(0, Text->Len())*/, Scale, TextContext), FTextRange(StartIndex, EndIndex), **Text, Style.TextStyle.Font) + ShadowOffsetToApply;
+	const TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
+	return FontMeasure->Measure( **Text, StartIndex, EndIndex, Style.TextStyle.Font, true, Scale ) + ShadowOffsetToApply;
 }
 
-int8 FSlateHyperlinkRun::GetKerning( int32 CurrentIndex, float Scale, const FRunTextContext& TextContext ) const 
+int8 FSlateHyperlinkRun::GetKerning( int32 CurrentIndex, float Scale ) const 
 {
 	return 0;
 }
 
-TSharedRef< ILayoutBlock > FSlateHyperlinkRun::CreateBlock( int32 StartIndex, int32 EndIndex, FVector2D Size, const FLayoutBlockTextContext& TextContext, const TSharedPtr< IRunRenderer >& Renderer )
+TSharedRef< ILayoutBlock > FSlateHyperlinkRun::CreateBlock( int32 StartIndex, int32 EndIndex, FVector2D Size, const TSharedPtr< IRunRenderer >& Renderer )
 {
 	FText ToolTipText;
 	TSharedPtr<IToolTip> ToolTip;
@@ -86,8 +84,7 @@ TSharedRef< ILayoutBlock > FSlateHyperlinkRun::CreateBlock( int32 StartIndex, in
 		.Text( FText::FromString( FString( EndIndex - StartIndex, **Text + StartIndex ) ) )
 		.ToolTip( ToolTip )
 		.ToolTipText( ToolTipText )
-		.OnNavigate( this, &FSlateHyperlinkRun::OnNavigate )
-		.TextShapingMethod( TextContext.TextShapingMethod );
+		.OnNavigate( this, &FSlateHyperlinkRun::OnNavigate );
 	
 	// We need to do a prepass here as CreateBlock can be called after the main Slate prepass has been run, 
 	// which can result in the hyperlink widget not being correctly setup before it is painted
@@ -95,7 +92,7 @@ TSharedRef< ILayoutBlock > FSlateHyperlinkRun::CreateBlock( int32 StartIndex, in
 
 	Children.Add( Widget );
 
-	return FWidgetLayoutBlock::Create( SharedThis( this ), Widget, FTextRange( StartIndex, EndIndex ), Size, TextContext, Renderer );
+	return FWidgetLayoutBlock::Create( SharedThis( this ), Widget, FTextRange( StartIndex, EndIndex ), Size, Renderer );
 }
 
 void FSlateHyperlinkRun::OnNavigate()
@@ -169,8 +166,6 @@ void FSlateHyperlinkRun::Move(const TSharedRef<FString>& NewText, const FTextRan
 {
 	Text = NewText;
 	Range = NewRange;
-
-	ShapedTextCache->Clear();
 }
 
 TSharedRef<IRun> FSlateHyperlinkRun::Clone() const
@@ -211,7 +206,6 @@ FSlateHyperlinkRun::FSlateHyperlinkRun( const FRunInfo& InRunInfo, const TShared
 	, TooltipTextDelegate( InTooltipTextDelegate )
 	, ViewModel( MakeShareable( new FSlateHyperlinkRun::FWidgetViewModel() ) )
 	, Children()
-	, ShapedTextCache( FShapedTextCache::Create(*FSlateApplication::Get().GetRenderer()->GetFontCache()) )
 {
 
 }
@@ -226,7 +220,6 @@ FSlateHyperlinkRun::FSlateHyperlinkRun( const FRunInfo& InRunInfo, const TShared
 	, TooltipTextDelegate( InTooltipTextDelegate )
 	, ViewModel( MakeShareable( new FSlateHyperlinkRun::FWidgetViewModel() ) )
 	, Children()
-	, ShapedTextCache( FShapedTextCache::Create(*FSlateApplication::Get().GetRenderer()->GetFontCache()) )
 {
 
 }
@@ -241,7 +234,6 @@ FSlateHyperlinkRun::FSlateHyperlinkRun( const FSlateHyperlinkRun& Run )
 	, TooltipTextDelegate( Run.TooltipTextDelegate )
 	, ViewModel( MakeShareable( new FSlateHyperlinkRun::FWidgetViewModel() ) )
 	, Children()
-	, ShapedTextCache( FShapedTextCache::Create(*FSlateApplication::Get().GetRenderer()->GetFontCache()) )
 {
 
 }

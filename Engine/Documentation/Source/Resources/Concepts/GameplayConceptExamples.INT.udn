@@ -3,8 +3,6 @@ Title:Gameplay Concept Examples
 Crumbs:%ROOT%
 Description:These are framework examples, aimed at showing you how to add a certain design tool or game feature.
 Navigation:topic
-Version: 4.9
-
 
 [VAR:Params]
 [PARAM:image]
@@ -94,10 +92,10 @@ Feel free to open up and analyze any element of these examples, as well as use t
 	Inventory UI with UMG
 	[/PARAMLITERAL]
 	[PARAMLITERAL:playlistid]
-	PLZlv_N0_O1gZalvQWYs8sc7RP_-8eSr3i
+	PLZlv_N0_O1gZo6zXTHGGSH8gxaA7a_zCt
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
-	r4tltrLLVuQ
+	RQm6cm05SLc
 	[/PARAMLITERAL]
 	[PARAM:image]
 	![](store_UMGDemo_Featured.png)

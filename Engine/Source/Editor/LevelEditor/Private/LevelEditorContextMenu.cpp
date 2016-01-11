@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "LevelEditor.h"
@@ -278,28 +278,25 @@ void FLevelEditorContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLev
 				const FLevelViewportCommands& Actions = FLevelViewportCommands::Get();
 
 				auto Viewport = LevelEditor.Pin()->GetActiveViewport();
-				if (Viewport.IsValid())
-				{
-					auto& ViewportClient = Viewport->GetLevelViewportClient();
+				auto& ViewportClient = Viewport->GetLevelViewportClient();
 
-					if (ViewportClient.IsPerspective() && !ViewportClient.IsLockedToMatinee())
+				if (ViewportClient.IsPerspective() && !ViewportClient.IsLockedToMatinee())
+				{
+				    if (Viewport->IsSelectedActorLocked())
+				    {
+					    MenuBuilder.AddMenuEntry(
+						    Actions.EjectActorPilot,
+						    NAME_None,
+						    FText::Format(LOCTEXT("PilotActor", "Stop piloting '{0}'"), FText::FromString(SelectedActors[0]->GetActorLabel()))
+						    );
+					}
+					else
 					{
-						if (Viewport->IsSelectedActorLocked())
-						{
-							MenuBuilder.AddMenuEntry(
-								Actions.EjectActorPilot,
-								NAME_None,
-								FText::Format(LOCTEXT("PilotActor_Stop", "Stop piloting '{0}'"), FText::FromString(SelectedActors[0]->GetActorLabel()))
-								);
-						}
-						else
-						{
-							MenuBuilder.AddMenuEntry(
-								Actions.PilotSelectedActor,
-								NAME_None,
-								FText::Format(LOCTEXT("PilotActor", "Pilot '{0}'"), FText::FromString(SelectedActors[0]->GetActorLabel()))
-								);
-						}
+					    MenuBuilder.AddMenuEntry(
+						    Actions.PilotSelectedActor,
+						    NAME_None,
+						    FText::Format(LOCTEXT("PilotActor", "Pilot '{0}'"), FText::FromString(SelectedActors[0]->GetActorLabel()))
+						    );
 					}
 				}
 			}
@@ -573,15 +570,6 @@ void FLevelEditorContextMenuImpl::FillSelectActorMenu( FMenuBuilder& MenuBuilder
 				MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().SelectStaticMeshesAllClasses, NAME_None, LOCTEXT("SelectStaticMeshesAllClasses_Menu", "Select Matching (All Classes)") );
 			}
 			MenuBuilder.EndSection();
-
-			if (SelectionInfo.NumSelected == 1)
-			{
-				MenuBuilder.BeginSection("SelectHLODCluster", LOCTEXT("SelectHLODClusterHeading", "Hierachical LODs"));
-				{
-					MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().SelectOwningHierarchicalLODCluster, NAME_None, LOCTEXT("SelectOwningHierarchicalLODCluster_Menu", "Select Owning HierarchicalLODCluster"));
-				}
-				MenuBuilder.EndSection();
-			}			
 		}
 
 		if( SelectionInfo.bHavePawn || SelectionInfo.bHaveSkeletalMesh )
@@ -733,7 +721,7 @@ void FLevelEditorContextMenuImpl::FillActorVisibilityMenu( FMenuBuilder& MenuBui
 
 void FLevelEditorContextMenuImpl::FillActorLevelMenu( FMenuBuilder& MenuBuilder )
 {
-	MenuBuilder.BeginSection("ActorLevel", LOCTEXT("ActorLevel", "Actor Level"));
+	MenuBuilder.BeginSection("ActorLevel");
 	{
 		if( SelectionInfo.SharedLevel && SelectionInfo.SharedWorld && SelectionInfo.SharedWorld->GetCurrentLevel() != SelectionInfo.SharedLevel )
 		{
@@ -749,24 +737,13 @@ void FLevelEditorContextMenuImpl::FillActorLevelMenu( FMenuBuilder& MenuBuilder 
 			// Only show this menu entry if any actors are not in the current level
 			MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().MoveSelectedToCurrentLevel );
 		}
-
-		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().FindActorLevelInContentBrowser);
 	}
 	MenuBuilder.EndSection();
 
-	MenuBuilder.BeginSection("LevelBlueprint", LOCTEXT("LevelBlueprint", "Level Blueprint"));
-	{
-		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().FindActorInLevelScript);
-	}
-	MenuBuilder.EndSection();
-
-	MenuBuilder.BeginSection("LevelBrowser", LOCTEXT("LevelBrowser", "Level Browser"));
-	{
-		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().FindLevelsInLevelBrowser);
-		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().AddLevelsToSelection);
-		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().RemoveLevelsFromSelection);
-	}
-	MenuBuilder.EndSection();
+	MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().FindActorInLevelScript );
+	MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().FindLevelsInLevelBrowser );
+	MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().AddLevelsToSelection );
+	MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().RemoveLevelsFromSelection );
 }
 
 

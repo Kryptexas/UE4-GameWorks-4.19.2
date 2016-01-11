@@ -1,9 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class FSequencerSectionKeyAreaNode;
-class FSequencerTrackNode;
+class FSectionKeyAreaNode;
+class FTrackNode;
 
 /**
  * Visualizes a section area and its children                                        
@@ -22,7 +22,6 @@ public:
 private:
 	/** SWidget Interface */
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 	/** SPanel Interface */
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
@@ -54,11 +53,11 @@ private:
 	FSequencer& GetSequencer() const;
 private:
 	/** The node containing the sections we are viewing/manipulating */
-	TSharedPtr<FSequencerTrackNode> SectionAreaNode;
+	TSharedPtr<FTrackNode> SectionAreaNode;
 	/** The current view range */
 	TAttribute< TRange<float> > ViewRange;
 	/** Background brush of the section area */
 	const FSlateBrush* BackgroundBrush;
 	/** All the widgets in the panel */
-	TSlotlessChildren<SSequencerSection> Children;
+	TSlotlessChildren<SSection> Children;
 };

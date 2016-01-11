@@ -1,10 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "WebBrowserPrivatePCH.h"
 #include "WebBrowserWindow.h"
+#include "WebBrowserViewport.h"
+#include "WebBrowserByteResource.h"
 #include "WebBrowserPopupFeatures.h"
-#include "WebBrowserDialog.h"
-#include "WebBrowserClosureTask.h"
 #include "WebJSScripting.h"
 #include "RHI.h"
 
@@ -25,32 +25,10 @@ typedef FMacCursor FPlatformCursor;
 #else
 #endif
 
-namespace {
-	// Private helper class to post a callback to GetSource.
-	class FWebBrowserClosureVisitor
-		: public CefStringVisitor
-	{
-	public:
-		FWebBrowserClosureVisitor(TFunction<void (const FString&)> InClosure)
-			: Closure(InClosure)
-		{ }
-
-		virtual void Visit(const CefString& String) override
-		{
-			Closure(FString(String.ToWString().c_str()));
-		}
-
-	private:
-		TFunction<void (const FString&)> Closure;
-		IMPLEMENT_REFCOUNTING(FWebBrowserClosureVisitor);
-	};
-}
-
-FWebBrowserWindow::FWebBrowserWindow(CefRefPtr<CefBrowser> InBrowser, FString InUrl, TOptional<FString> InContentsToLoad, bool InShowErrorMessage, bool InThumbMouseButtonNavigation, bool InUseTransparency)
+FWebBrowserWindow::FWebBrowserWindow(FIntPoint InViewportSize, FString InUrl, TOptional<FString> InContentsToLoad, bool InShowErrorMessage, bool InThumbMouseButtonNavigation, bool InUseTransparency)
 	: DocumentState(EWebBrowserDocumentState::NoDocument)
-	, InternalCefBrowser(InBrowser)
 	, CurrentUrl(InUrl)
-	, ViewportSize(FIntPoint::ZeroValue)
+	, ViewportSize(InViewportSize)
 	, bIsClosing(false)
 	, bIsInitialized(false)
 	, ContentsToLoad(InContentsToLoad)
@@ -58,7 +36,6 @@ FWebBrowserWindow::FWebBrowserWindow(CefRefPtr<CefBrowser> InBrowser, FString In
 	, bThumbMouseButtonNavigation(InThumbMouseButtonNavigation)
 	, bUseTransparency(InUseTransparency)
 	, Cursor(EMouseCursor::Default)
-	, bIsDisabled(false)
 	, bIsHidden(false)
 	, bTickedLastFrame(true)
 	, PreviousKeyDownEvent()
@@ -69,12 +46,8 @@ FWebBrowserWindow::FWebBrowserWindow(CefRefPtr<CefBrowser> InBrowser, FString In
 	, bIgnoreCharacterEvent(false)
 	, bMainHasFocus(false)
 	, bPopupHasFocus(false)
-	, bRecoverFromRenderProcessCrash(false)
-	, ErrorCode(0)
-	, Scripting(new FWebJSScripting(InBrowser))
+	, Scripting(new FWebJSScripting)
 {
-	check(InBrowser.get() != nullptr);
-
 	UpdatableTextures[0] = nullptr;
 	UpdatableTextures[1] = nullptr;
 }
@@ -124,69 +97,43 @@ void FWebBrowserWindow::LoadString(FString Contents, FString DummyURL)
 	}
 }
 
-void FWebBrowserWindow::SetViewportSize(FIntPoint WindowSize, FIntPoint WindowPos)
+void FWebBrowserWindow::SetViewportSize(FIntPoint WindowSize)
 {
 	// SetViewportSize is called from the browser viewport tick method, which means that since we are receiving ticks, we can mark the browser as visible.
-	if (! bIsDisabled)
-	{
-		SetIsHidden(false);
-	}
+	SetIsHidden(false);
 	bTickedLastFrame=true;
-
 	// Ignore sizes that can't be seen as it forces CEF to re-render whole image
 	if (WindowSize.X > 0 && WindowSize.Y > 0 && ViewportSize != WindowSize)
 	{
-		ViewportSize = WindowSize;
+		ViewportSize = MoveTemp(WindowSize);
 		
 		if (IsValid())
 		{
-#if PLATFORM_WINDOWS
-			HWND NativeHandle = InternalCefBrowser->GetHost()->GetWindowHandle();
-			if (NativeHandle)
-			{
-				HWND Parent = ::GetParent(NativeHandle);
-				// Position is in screen coordinates, so we'll need to get the parent window location first.
-				RECT ParentRect = { 0, 0, 0, 0 };
-				if (Parent)
-				{
-					::GetWindowRect(Parent, &ParentRect);
-				}
-				// allow resizing the window by nudging the edges of the viewport by a pixel if the content extends all the way to the edge
-				if (WindowPos.X == ParentRect.left)
-				{
-					WindowPos.X++;
-					WindowSize.X--;
-				}
-				if (WindowPos.Y == ParentRect.top)
-				{
-					WindowPos.Y++;
-					WindowSize.Y--;
-				}
-				if (WindowPos.X + WindowSize.X == ParentRect.right)
-				{
-					WindowSize.X--;
-				}
-				if (WindowPos.Y + WindowSize.Y == ParentRect.bottom)
-				{
-					WindowSize.Y--;
-				}
-				::SetWindowPos(NativeHandle, 0, WindowPos.X - ParentRect.left, WindowPos.Y - ParentRect.top, WindowSize.X, WindowSize.Y, 0);
-			}
-#endif
 			InternalCefBrowser->GetHost()->WasResized();
 		}
 	}
 }
 
+TSharedRef<SWidget> FWebBrowserWindow::CreateWidget(TAttribute<FVector2D> InViewportSize)
+{
+	TSharedRef<SViewport> ViewportWidgetRef =
+		SNew(SViewport)
+		.ViewportSize(InViewportSize)
+		.EnableGammaCorrection(false)
+		.EnableBlending(bUseTransparency)
+		.IgnoreTextureAlpha(!bUseTransparency);
+
+	TSharedRef<FWebBrowserViewport> BrowserViewportRef = MakeShareable(new FWebBrowserViewport(this->AsShared(), ViewportWidgetRef));
+	BrowserViewport = BrowserViewportRef;
+	ViewportWidgetRef->SetViewportInterface(MoveTemp(BrowserViewportRef));
+	ViewportWidget = ViewportWidgetRef;
+
+	return ViewportWidgetRef;
+}
+
 FSlateShaderResource* FWebBrowserWindow::GetTexture(bool bIsPopup)
 {
-	if (!bIsPopup && UpdatableTextures[0] == nullptr && FSlateApplication::IsInitialized())
-	{
-		// SViewport renders a black quad over the entire view if we return nullptr. Return an empty texture instead.
-		UpdatableTextures[0] = FSlateApplication::Get().GetRenderer()->CreateUpdatableTexture(1,1);
-	}
-
-	if (UpdatableTextures[bIsPopup?1:0] != nullptr)
+	if (UpdatableTextures[bIsPopup?1:0] != nullptr && IsInitialized())
 	{
 		return UpdatableTextures[bIsPopup?1:0]->GetSlateResource();
 	}
@@ -231,18 +178,6 @@ FString FWebBrowserWindow::GetUrl() const
 	}
 
 	return FString();
-}
-
-void FWebBrowserWindow::GetSource(TFunction<void (const FString&)> Callback) const
-{
-	if (IsValid())
-	{
-		InternalCefBrowser->GetMainFrame()->GetSource(new FWebBrowserClosureVisitor(Callback));
-	}
-	else
-	{
-		Callback(FString());
-	}
 }
 
 void FWebBrowserWindow::PopulateCefKeyEvent(const FKeyEvent& InKeyEvent, CefKeyEvent& OutKeyEvent)
@@ -536,90 +471,6 @@ bool FWebBrowserWindow::RequestCreateWindow( const TSharedRef<IWebBrowserWindow>
 	return false;
 }
 
-bool FWebBrowserWindow::OnJSDialog(CefJSDialogHandler::JSDialogType DialogType, const CefString& MessageText, const CefString& DefaultPromptText, CefRefPtr<CefJSDialogCallback> Callback, bool& OutSuppressMessage)
-{
-	bool Retval = false;
-	if ( OnShowDialog().IsBound() )
-	{
-		TSharedPtr<IWebBrowserDialog> Dialog(new FWebBrowserDialog(DialogType, MessageText, DefaultPromptText, Callback));
-		EWebBrowserDialogEventResponse EventResponse = OnShowDialog().Execute(TWeakPtr<IWebBrowserDialog>(Dialog));
-		switch (EventResponse)
-		{
-		case EWebBrowserDialogEventResponse::Handled:
-			Retval = true;
-			break;
-		case EWebBrowserDialogEventResponse::Continue:
-			if (DialogType == JSDIALOGTYPE_ALERT)
-			{
-				// Alert dialogs don't return a value, so treat Continue the same way as Ingore
-				OutSuppressMessage = true;
-				Retval = false;
-			}
-			else
-			{
-				Callback->Continue(true, DefaultPromptText);
-				Retval = true;
-			}
-			break;
-		case EWebBrowserDialogEventResponse::Ignore:
-			OutSuppressMessage = true;
-			Retval = false;
-			break;
-		case EWebBrowserDialogEventResponse::Unhandled:
-		default:
-			Retval = false;
-			break;
-		}
-	}
-	return Retval;
-}
-
-bool FWebBrowserWindow::OnBeforeUnloadDialog(const CefString& MessageText, bool IsReload, CefRefPtr<CefJSDialogCallback> Callback)
-{
-	bool Retval = false;
-	if ( OnShowDialog().IsBound() )
-	{
-		TSharedPtr<IWebBrowserDialog> Dialog(new FWebBrowserDialog(MessageText, IsReload, Callback));
-		EWebBrowserDialogEventResponse EventResponse = OnShowDialog().Execute(TWeakPtr<IWebBrowserDialog>(Dialog));
-		switch (EventResponse)
-		{
-		case EWebBrowserDialogEventResponse::Handled:
-			Retval = true;
-			break;
-		case EWebBrowserDialogEventResponse::Continue:
-			Callback->Continue(true, CefString());
-			Retval = true;
-			break;
-		case EWebBrowserDialogEventResponse::Ignore:
-			Callback->Continue(false, CefString());
-			Retval = true;
-			break;
-		case EWebBrowserDialogEventResponse::Unhandled:
-		default:
-			Retval = false;
-			break;
-		}
-	}
-	return Retval;
-}
-
-void FWebBrowserWindow::OnResetDialogState()
-{
-	OnDismissAllDialogs().ExecuteIfBound();
-}
-
-void FWebBrowserWindow::OnRenderProcessTerminated(CefRequestHandler::TerminationStatus Status)
-{
-	if(bRecoverFromRenderProcessCrash)
-	{
-		bRecoverFromRenderProcessCrash = false;
-		NotifyDocumentError((int)ERR_FAILED); // Only attempt a single recovery at a time
-	}
-
-	bRecoverFromRenderProcessCrash = true;
-	Reload();
-}
-
 FReply FWebBrowserWindow::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup)
 {
 	FReply Reply = FReply::Unhandled();
@@ -830,19 +681,29 @@ void FWebBrowserWindow::ExecuteJavascript(const FString& Script)
 	}
 }
 
+void FWebBrowserWindow::SetHandler(CefRefPtr<FWebBrowserHandler> InHandler)
+{
+	if (InHandler.get())
+	{
+		Handler = InHandler;
+		Handler->SetBrowserWindow(SharedThis(this));
+		Handler->SetShowErrorMessage(ShowErrorMessage);
+	}
+}
 
 void FWebBrowserWindow::CloseBrowser(bool bForce)
 {
 	if (IsValid())
 	{
-		// In case this is called from inside a CEF event handler, use CEF's task mechanism to
-		// postpone the actual closing of the window until it is safe.
-		CefRefPtr<CefBrowserHost> Host = InternalCefBrowser->GetHost();
-		CefPostTask(TID_UI, new FWebBrowserClosureTask(nullptr, [=]()
-		{
-			Host->CloseBrowser(bForce);
-		}));
+		InternalCefBrowser->GetHost()->CloseBrowser(bForce);
 	}
+}
+
+void FWebBrowserWindow::BindCefBrowser(CefRefPtr<CefBrowser> Browser)
+{
+	check(Browser.get() == nullptr || InternalCefBrowser.get() == nullptr || InternalCefBrowser->IsSame(Browser));
+	Scripting->BindCefBrowser(Browser); // The scripting interface needs the browser too
+	InternalCefBrowser = Browser;
 }
 
 CefRefPtr<CefBrowser> FWebBrowserWindow::GetCefBrowser()
@@ -868,9 +729,20 @@ void FWebBrowserWindow::SetToolTip(const CefString& CefToolTip)
 	if (ToolTipText != NewToolTipText)
 	{
 		ToolTipText = NewToolTipText;
-		OnToolTip().Broadcast(ToolTipText);
+
+		if (ToolTipText.IsEmpty())
+		{
+			FSlateApplication::Get().CloseToolTip();
+			ViewportWidget->SetToolTip(nullptr);
+		}
+		else
+		{
+			ViewportWidget->SetToolTipText(FText::FromString(ToolTipText));
+			FSlateApplication::Get().UpdateToolTip(true);
+		}
 	}
 }
+
 
 bool FWebBrowserWindow::GetViewRect(CefRect& Rect)
 {
@@ -878,22 +750,17 @@ bool FWebBrowserWindow::GetViewRect(CefRect& Rect)
 	{
 		return false;
 	}
-	else
-	{
-		Rect.width = ViewportSize.X;
-		Rect.height = ViewportSize.Y;
-		return true;
-	}
+	
+	Rect.x = 0;
+	Rect.y = 0;
+	Rect.width = ViewportSize.X;
+	Rect.height = ViewportSize.Y;
+
+	return true;
 }
 
-int FWebBrowserWindow::GetLoadError()
+void FWebBrowserWindow::NotifyDocumentError()
 {
-	return ErrorCode;
-}
-
-void FWebBrowserWindow::NotifyDocumentError(int InErrorCode)
-{
-	ErrorCode = InErrorCode;
 	DocumentState = EWebBrowserDocumentState::Error;
 	DocumentStateChangedEvent.Broadcast(DocumentState);
 }
@@ -903,27 +770,18 @@ void FWebBrowserWindow::NotifyDocumentLoadingStateChange(bool IsLoading)
 	if (! IsLoading)
 	{
 		bIsInitialized = true;
-
-		if (bRecoverFromRenderProcessCrash)
-		{
-			bRecoverFromRenderProcessCrash = false;
-			// Toggle hidden/visible state to get OnPaint calls from CEF.
-			SetIsHidden(true);
-			SetIsHidden(false);
-		}
 	}
+	
+	EWebBrowserDocumentState NewState = IsLoading
+		? EWebBrowserDocumentState::Loading
+		: EWebBrowserDocumentState::Completed;
 
-	// Ignore a load completed notification if there was an error.
-	// For load started, reset any errors from previous page load.
-	if (IsLoading || DocumentState != EWebBrowserDocumentState::Error)
+	if (DocumentState != EWebBrowserDocumentState::Error)
 	{
-		ErrorCode = 0;
-		DocumentState = IsLoading
-			? EWebBrowserDocumentState::Loading
-			: EWebBrowserDocumentState::Completed;
-		DocumentStateChangedEvent.Broadcast(DocumentState);
+		DocumentState = NewState;
 	}
 
+	DocumentStateChangedEvent.Broadcast(NewState);
 }
 
 void FWebBrowserWindow::OnPaint(CefRenderHandler::PaintElementType Type, const CefRenderHandler::RectList& DirtyRects, const void* Buffer, int Width, int Height)
@@ -940,15 +798,6 @@ void FWebBrowserWindow::OnPaint(CefRenderHandler::PaintElementType Type, const C
 		// In case that should change in the future, we'll simply update the entire area if DirtyRects is not a single element.
 		FIntRect Dirty = (DirtyRects.size() == 1)?FIntRect(DirtyRects[0].x, DirtyRects[0].y, DirtyRects[0].x + DirtyRects[0].width, DirtyRects[0].y + DirtyRects[0].height):FIntRect();
 		UpdatableTextures[Type]->UpdateTextureThreadSafeRaw(Width, Height, Buffer, Dirty);
-	}
-
-	if (Type == PET_POPUP && bShowPopupRequested)
-	{
-		bShowPopupRequested = false;
-		bPopupHasFocus = true;
-		FIntPoint PopupSize = FIntPoint(Width, Height);
-		FIntRect PopupRect = FIntRect(PopupPosition, PopupPosition+PopupSize);
-		OnShowPopup().Broadcast(PopupRect);
 	}
 
 	bIsInitialized = true;
@@ -1059,13 +908,14 @@ bool FWebBrowserWindow::OnBeforeBrowse( CefRefPtr<CefBrowser> Browser, CefRefPtr
 	return false;
 }
 
-TOptional<FString> FWebBrowserWindow::GetResourceContent( CefRefPtr< CefFrame > Frame, CefRefPtr< CefRequest > Request)
+CefRefPtr<CefResourceHandler> FWebBrowserWindow::GetResourceHandler(CefRefPtr< CefFrame > Frame, CefRefPtr< CefRequest > Request )
 {
 	if (ContentsToLoad.IsSet())
 	{
-		FString Contents = ContentsToLoad.GetValue();
-		ContentsToLoad.Reset();
-		return Contents;
+		FTCHARToUTF8 Convert(*ContentsToLoad.GetValue());
+		CefRefPtr<CefResourceHandler> Resource = new FWebBrowserByteResource(Convert.Get(), Convert.Length());
+		ContentsToLoad = TOptional<FString>();
+		return Resource;
 	}
 	if (OnLoadUrl().IsBound())
 	{
@@ -1073,12 +923,13 @@ TOptional<FString> FWebBrowserWindow::GetResourceContent( CefRefPtr< CefFrame > 
 		FString Url = Request->GetURL().ToWString().c_str();
 		FString Response;
 		if ( OnLoadUrl().Execute(Method, Url, Response))
-		{
-			return Response;
+	{
+			FTCHARToUTF8 Convert(*Response);
+			CefRefPtr<CefResourceHandler> Resource = new FWebBrowserByteResource(Convert.Get(), Convert.Length());
+			return Resource;
 		}
 	}
-
-	return TOptional<FString>();
+	return NULL;
 }
 
 
@@ -1142,12 +993,13 @@ CefMouseEvent FWebBrowserWindow::GetCefMouseEvent(const FGeometry& MyGeometry, c
 {
 	CefMouseEvent Event;
 	FVector2D LocalPos = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
-	if (bIsPopup)
-	{
-		LocalPos += PopupPosition;
-	}
 	Event.x = LocalPos.X;
 	Event.y = LocalPos.Y;
+	if (bIsPopup)
+	{
+		Event.x += PopupRect.Min.X;
+		Event.y += PopupRect.Min.Y;
+	}
 	Event.modifiers = GetCefMouseModifiers(MouseEvent);
 	return Event;
 }
@@ -1223,27 +1075,8 @@ void FWebBrowserWindow::SetIsHidden(bool bValue)
 	bIsHidden = bValue;
 	if ( IsValid() )
 	{
-		CefRefPtr<CefBrowserHost> BrowserHost = InternalCefBrowser->GetHost();
-		BrowserHost->WasHidden(bIsHidden);
-#if PLATFORM_WINDOWS
-		HWND NativeWindowHandle = BrowserHost->GetWindowHandle();
-		if (NativeWindowHandle != nullptr)
-		{
-			// When rendering directly into a subwindow, we must hide the native window when fully obscured
-			::ShowWindow(NativeWindowHandle, bIsHidden ? SW_HIDE : SW_SHOW);
-		}
-#endif
+		InternalCefBrowser->GetHost()->WasHidden(bIsHidden);
 	}
-}
-
-void FWebBrowserWindow::SetIsDisabled(bool bValue)
-{
-	if (bIsDisabled == bValue)
-	{
-		return;
-	}
-	bIsDisabled = bValue;
-	SetIsHidden(bIsDisabled);
 }
 
 CefRefPtr<CefDictionaryValue> FWebBrowserWindow::GetProcessInfo()
@@ -1299,26 +1132,20 @@ void FWebBrowserWindow::OnBrowserClosed()
 
 	Scripting->UnbindCefBrowser();
 	InternalCefBrowser = nullptr;
+	Handler = nullptr;
 }
 
-void FWebBrowserWindow::SetPopupMenuPosition(CefRect CefPopupSize)
+void FWebBrowserWindow::ShowPopup(CefRect CefPopupSize)
 {
-	// We only store the position, as the size will be provided ib the OnPaint call.
-	PopupPosition = FIntPoint(CefPopupSize.x, CefPopupSize.y);
+	PopupRect = FIntRect(CefPopupSize.x, CefPopupSize.y, CefPopupSize.x+CefPopupSize.width, CefPopupSize.y+CefPopupSize.height);
+	bPopupHasFocus = true;
+	OnShowPopup().Broadcast(PopupRect);
 }
 
-void FWebBrowserWindow:: ShowPopupMenu(bool bShow)
+void FWebBrowserWindow::HidePopup()
 {
-	if (bShow)
-	{
-		bShowPopupRequested = true; // We have to delay showing the popup until we get the first OnPaint on it.
-	}
-	else
-	{
-		bPopupHasFocus = false;
-		bShowPopupRequested = false;
-		OnDismissPopup().Broadcast();
-	}
+	bPopupHasFocus = false;
+	OnDismissPopup().Broadcast();
 }
 
 

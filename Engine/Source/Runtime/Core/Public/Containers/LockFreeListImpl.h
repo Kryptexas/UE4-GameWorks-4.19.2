@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,7 +9,7 @@
  *	T is the type of the pointer the list will contain.
  */
 template <class T>
-class TLockFreePointerListLIFOBase : private FLockFreeVoidPointerListGeneric 
+class TLockFreePointerList : private FLockFreeVoidPointerListGeneric 
 {
 public:
 	/**	
@@ -19,6 +19,7 @@ public:
 	 */
 	void Push(T *NewItem)
 	{
+		FLockFreeListPerfCounter LockFreePerfCounter;
 		FLockFreeVoidPointerListGeneric::Push(NewItem);
 	}
 
@@ -28,6 +29,7 @@ public:
 	 */
 	T* Pop()
 	{
+		FLockFreeListPerfCounter LockFreePerfCounter;
 		return (T*)FLockFreeVoidPointerListGeneric::Pop();
 	}
 
@@ -38,8 +40,18 @@ public:
 	 */
 	void PopAll(TArray<T *>& Output)
 	{
+		FLockFreeListPerfCounter LockFreePerfCounter;
 		FLockFreeVoidPointerListGeneric::PopAll<TArray<T *>, T * >(Output);
 	}	
+
+	/**	
+	 *	If the list is empty, replace it with the other list and null the other list.
+	 *	@return true if this call actively closed the list
+	 */
+	bool ReplaceListIfEmpty(TLockFreePointerList<T>& NotThreadSafeTempListToReplaceWith)
+	{
+		return FLockFreeVoidPointerListGeneric::ReplaceListIfEmpty(NotThreadSafeTempListToReplaceWith);
+	}
 
 	/**	
 	 *	Check if the list is empty.
@@ -48,34 +60,33 @@ public:
 	 *	CAUTION: This methods safety depends on external assumptions. For example, if another thread could add to the list at any time, the return value is no better than a best guess.
 	 *	As typically used, the list is not being access concurrently when this is called.
 	 */
-	FORCEINLINE bool IsEmpty() const  
+	bool IsEmpty() const  
 	{
 		return FLockFreeVoidPointerListGeneric::IsEmpty();
 	}
-protected:
-	/**	
-	 *	If the list is empty, replace it with the other list and null the other list.
-	 *	@return true if this call actively closed the list
+
+#if	!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	/**
+	 * Checks if the pointers look 'ok'. Used for debugging.
 	 */
-	FORCEINLINE bool ReplaceListIfEmpty(TLockFreePointerListLIFOBase<T>& NotThreadSafeTempListToReplaceWith)
+	bool CheckPointers() const
 	{
-		return FLockFreeVoidPointerListGeneric::ReplaceListIfEmpty(NotThreadSafeTempListToReplaceWith);
+		return FLockFreeVoidPointerListGeneric::CheckPointers();
 	}
+
+	/**
+	 * @return number of elements via iterating through this list, used for debugging.
+	 */
+	int32 NumVerified() const
+	{
+		return FLockFreeVoidPointerListGeneric::NumVerified();
+	}
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
 };
 
 template <class T>
-class TLockFreePointerListLIFO : public TLockFreePointerListLIFOBase<T> 
-{
-public:
-	FORCEINLINE bool ReplaceListIfEmpty(TLockFreePointerListLIFO<T>& NotThreadSafeTempListToReplaceWith)
-	{
-		return TLockFreePointerListLIFOBase<T>::ReplaceListIfEmpty(NotThreadSafeTempListToReplaceWith);
-	}
-
-};
-
-template <class T>
-class TClosableLockFreePointerListLIFO : private FLockFreeVoidPointerListGeneric 
+class TClosableLockFreePointerList : private FLockFreeVoidPointerListGeneric 
 {
 public:
 	/**	
@@ -86,6 +97,7 @@ public:
 	 */
 	bool PushIfNotClosed(T *NewItem)
 	{
+		FLockFreeListPerfCounter LockFreePerfCounter;
 		return FLockFreeVoidPointerListGeneric::PushIfNotClosed(NewItem);
 	}
 
@@ -96,6 +108,7 @@ public:
 	 */
 	void PopAllAndClose(TArray<T *>& Output)
 	{
+		FLockFreeListPerfCounter LockFreePerfCounter;
 		FLockFreeVoidPointerListGeneric::PopAllAndClose<TArray<T *>, T * >(Output);
 	}	
 
@@ -108,10 +121,28 @@ public:
 	{
 		return FLockFreeVoidPointerListGeneric::IsClosed();
 	}
+
+#if	!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	/**
+	 * Checks if the pointers look 'ok'. Used for debugging.
+	 */
+	bool CheckPointers() const
+	{
+		return FLockFreeVoidPointerListGeneric::CheckPointers();
+	}
+
+	/**
+	 * @return number of elements via iterating through this list, used for debugging.
+	 */
+	int32 NumVerified() const
+	{
+		return FLockFreeVoidPointerListGeneric::NumVerified();
+	}
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 };
 
 template <class T>
-class TReopenableLockFreePointerListLIFO : private FLockFreeVoidPointerListGeneric
+class TReopenableLockFreePointerList : private FLockFreeVoidPointerListGeneric
 {
 public:
 	/**	
@@ -122,6 +153,7 @@ public:
 	 */
 	bool ReopenIfClosedAndPush(T *NewItem)
 	{
+		FLockFreeListPerfCounter LockFreePerfCounter;
 		bool bWasReopenedByMe = FLockFreeVoidPointerListGeneric::ReopenIfClosedAndPush(NewItem);
 		return bWasReopenedByMe;
 	}
@@ -132,6 +164,7 @@ public:
 	 */
 	T* PopIfNotClosed()
 	{
+		FLockFreeListPerfCounter LockFreePerfCounter;
 		return (T*)FLockFreeVoidPointerListGeneric::PopIfNotClosed();
 	}
 
@@ -143,6 +176,7 @@ public:
 	 */
 	void PopAll(TArray<T *>& Output)
 	{
+		FLockFreeListPerfCounter LockFreePerfCounter;
 		FLockFreeVoidPointerListGeneric::PopAll<TArray<T *>, T * >(Output);
 	}	
 	/**	
@@ -152,122 +186,25 @@ public:
 	 */
 	bool CloseIfEmpty()
 	{
+		FLockFreeListPerfCounter LockFreePerfCounter;
 		return FLockFreeVoidPointerListGeneric::CloseIfEmpty();
 	}
+
+#if	!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	/**
+	 * Checks if the pointers look 'ok'. Used for debugging.
+	 */
+	bool CheckPointers() const
+	{
+		return FLockFreeVoidPointerListGeneric::CheckPointers();
+	}
+
+	/**
+	 * @return number of elements via iterating through this list, used for debugging.
+	 */
+	int32 NumVerified() const
+	{
+		return FLockFreeVoidPointerListGeneric::NumVerified();
+	}
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 };
-
-#if !USE_NEW_LOCK_FREE_LISTS
-// where you don't care what order they pop in. We choose the fastest implementation we have.
-template <class T>
-class TLockFreePointerListUnordered : public TLockFreePointerListLIFOBase<T>
-{
-
-};
-template <class T>
-class TClosableLockFreePointerListUnorderedSingleConsumer : public TClosableLockFreePointerListLIFO<T>
-{
-
-};
-
-#else
-
-template <class T>
-class TClosableLockFreePointerListFIFOSingleConsumer
-{
-public:
-	/**	
-	 *	Push an item onto the head of the list, unless the list is closed
-	 *
-	 *	@param NewItem, the new item to push on the list, cannot be NULL
-	 *	@return true if the item was pushed on the list, false if the list was closed.
-	 */
-	FORCEINLINE bool PushIfNotClosed(T *NewItem)
-	{
-		return Inner.PushIfNotClosed(NewItem);
-	}
-
-	/**	
-	 *	Pop an item from the list or return NULL if the list is empty
-	 *	@return The new item, if any
-	 *	CAUTION: This method should not be used unless the list is known to not be closed.
-	 */
-	FORCEINLINE T* Pop()
-	{
-		return (T*)Inner.Pop();
-	}
-
-	/**	
-	 *	Close the list if it is empty.
-	 *	@return true if this call actively closed the list.
-	 */
-	FORCEINLINE bool CloseIfEmpty()
-	{
-		return Inner.CloseIfEmpty();
-	}
-
-	/**	
-	 *	Check if the list is closed
-	 *	@return true if the list is closed.
-	 */
-	FORCEINLINE bool IsClosed() const
-	{
-		return Inner.IsClosed();
-	}
-	/**	
-	 *	Not thread safe, used to reset the list for recycling without freeing the stub
-	 *	@return true if the list is closed.
-	 */
-	FORCEINLINE void Reset()
-	{
-		return Inner.Reset();
-	}
-private:
-	FCloseableLockFreePointerListFIFOBaseSingleConsumer Inner;
-};
-
-template <class T>
-class TReopenableLockFreePointerListFIFOSingleConsumer
-{
-public:
-	/**	
-	 *	Push an item onto the head of the list, opening it first if necessary.
-	 *
-	 *	@param NewItem, the new item to push on the list, cannot be NULL.
-	 *	@return true if the list needed to be opened first, false if the list was not closed before our push.
-	 */
-	FORCEINLINE bool ReopenIfClosedAndPush(T *NewItem)
-	{
-		return Inner.ReopenIfClosedAndPush(NewItem);
-	}
-
-	/**	
-	 *	Pop an item from the list or return NULL if the list is empty
-	 *	@return The new item, if any
-	 *	CAUTION: This method should not be used unless the list is known to not be closed.
-	 */
-	FORCEINLINE T* Pop()
-	{
-		return (T*)Inner.Pop();
-	}
-
-	/**	
-	 *	Close the list if it is empty.
-	 *	@return true if this call actively closed the list.
-	 */
-	FORCEINLINE bool CloseIfEmpty()
-	{
-		return Inner.CloseIfEmpty();
-	}
-private:
-	FCloseableLockFreePointerListFIFOBaseSingleConsumer Inner;
-};
-
-template <class T>
-class TClosableLockFreePointerListUnorderedSingleConsumer : public TClosableLockFreePointerListFIFOSingleConsumer<T>
-{
-
-};
-
-
-#endif
-

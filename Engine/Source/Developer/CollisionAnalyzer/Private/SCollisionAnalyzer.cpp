@@ -1,24 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CollisionAnalyzerPCH.h"
-#include "DesktopPlatformModule.h"
-#include "MainFrame.h"
 
 #define LOCTEXT_NAMESPACE "SCollisionAnalyzer"
 
 static const int32 NumDrawRecentQueries = 10;
 
-// Column names
-const FName SCollisionAnalyzer::IDColumnName(TEXT("ID"));
-const FName SCollisionAnalyzer::FrameColumnName(TEXT("Frame"));
-const FName SCollisionAnalyzer::TypeColumnName(TEXT("Type"));
-const FName SCollisionAnalyzer::ShapeColumnName(TEXT("Shape"));
-const FName SCollisionAnalyzer::ModeColumnName(TEXT("Mode"));
-const FName SCollisionAnalyzer::TagColumnName(TEXT("Tag"));
-const FName SCollisionAnalyzer::OwnerColumnName(TEXT("Owner"));
-const FName SCollisionAnalyzer::NumBlockColumnName(TEXT("NumBlock"));
-const FName SCollisionAnalyzer::NumTouchColumnName(TEXT("NumTouch"));
-const FName SCollisionAnalyzer::TimeColumnName(TEXT("Time"));
+static FName TimeColumnName(TEXT("Name"));
+static FName IDColumnName(TEXT("ID"));
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SCollisionAnalyzer::Construct(const FArguments& InArgs, FCollisionAnalyzer* InAnalyzer)
@@ -71,32 +60,6 @@ void SCollisionAnalyzer::Construct(const FArguments& InArgs, FCollisionAnalyzer*
 						.Image(FCollisionAnalyzerStyle::Get()->GetBrush("CollisionAnalyzer.ShowRecent"))
 					]
 				]
-				// Load profile
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(1)
-				[
-					SNew(SButton)
-					.OnClicked(this, &SCollisionAnalyzer::OnLoadButtonClicked)
-					.Content()
-					[
-						SNew(SImage)
-						.Image(FCollisionAnalyzerStyle::Get()->GetBrush("CollisionAnalyzer.Load"))
-					]
-				]
-				// Save profile
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(1)
-				[
-					SNew(SButton)
-					.OnClicked(this, &SCollisionAnalyzer::OnSaveButtonClicked)
-					.Content()
-					[
-						SNew(SImage)
-						.Image(FCollisionAnalyzerStyle::Get()->GetBrush("CollisionAnalyzer.Save"))
-					]
-				]
 			]
 		]
 		// List area
@@ -132,7 +95,7 @@ void SCollisionAnalyzer::Construct(const FArguments& InArgs, FCollisionAnalyzer*
 							.Text(LOCTEXT("QueryListIdHeader", "ID"))
 						]
 						// Frame number
-						+SHeaderRow::Column(FrameColumnName)
+						+SHeaderRow::Column("Frame")
 						.FixedWidth(48)
 						[
 							SNew(SVerticalBox)
@@ -172,28 +135,21 @@ void SCollisionAnalyzer::Construct(const FArguments& InArgs, FCollisionAnalyzer*
 							]
 						]
 						// Type
-						+SHeaderRow::Column(TypeColumnName)
-						.FillWidth(0.5)
+						+SHeaderRow::Column("Type")
+						.FillWidth(0.75)
 						[
 							SNew(STextBlock)
 							.Text(LOCTEXT("QueryListTypeHeader", "Type"))
 						]
 						// Shape
-						+SHeaderRow::Column(ShapeColumnName)
-						.FillWidth(0.5)
+						+SHeaderRow::Column("Shape")
+						.FillWidth(0.75)
 						[
 							SNew(STextBlock)
 							.Text(LOCTEXT("QueryListShapeHeader", "Shape"))
 						]
-						// Shape
-						+SHeaderRow::Column(ModeColumnName)
-						.FillWidth(0.5)
-						[
-							SNew(STextBlock)
-							.Text(LOCTEXT("QueryListModeHeader", "Mode"))
-						]
 						// Tag
-						+SHeaderRow::Column(TagColumnName)
+						+SHeaderRow::Column("Tag")
 						.FillWidth(1.5)
 						[
 							SNew(SVerticalBox)
@@ -233,7 +189,7 @@ void SCollisionAnalyzer::Construct(const FArguments& InArgs, FCollisionAnalyzer*
 							]
 						]
 						// Owner
-						+SHeaderRow::Column(OwnerColumnName)
+						+SHeaderRow::Column("Owner")
 						.FillWidth(1.5)
 						[
 							SNew(SVerticalBox)
@@ -273,7 +229,7 @@ void SCollisionAnalyzer::Construct(const FArguments& InArgs, FCollisionAnalyzer*
 							]
 						]
 						// Num blocking hits
-						+SHeaderRow::Column(NumBlockColumnName)
+						+SHeaderRow::Column("NumBlock")
 						.FixedWidth(24)
 						[
 							SNew(STextBlock)
@@ -281,7 +237,7 @@ void SCollisionAnalyzer::Construct(const FArguments& InArgs, FCollisionAnalyzer*
 							.ToolTipText( LOCTEXT("NumberBlocksTooltip", "Number of blocking results, red means 'started penetrating'") )
 						]
 						// Num touching hits
-						+SHeaderRow::Column(NumTouchColumnName)
+						+SHeaderRow::Column("NumTouch")
 						.FixedWidth(24)
 						[
 							SNew(STextBlock)
@@ -582,16 +538,13 @@ void SCollisionAnalyzer::AddQueryToGroupedQueries(int32 NewQueryIndex, bool bPer
 	{
 		GroupedQueries.Add(NewItem);
 
-		if(bPerformSort)
+		if(SortBy == EQuerySortMode::ByTime && bPerformSort)
 		{
-			if(SortBy == EQuerySortMode::ByTime)
-			{
-				GroupedQueries.Sort( FCompareQueryByCPUTime(Analyzer) );
-			}
-			else if (SortBy == EQuerySortMode::ByID)
-			{
-				GroupedQueries.Sort( FCompareQueryByID(Analyzer, SortDirection) );
-			}
+			GroupedQueries.Sort( FCompareQueryByCPUTime(Analyzer) );
+		}
+		else if (SortBy == EQuerySortMode::ByID)
+		{
+			GroupedQueries.Sort( FCompareQueryByID(Analyzer, SortDirection) );
 		}
 	}
 	// If we are grouping..
@@ -627,11 +580,6 @@ void SCollisionAnalyzer::AddQueryToGroupedQueries(int32 NewQueryIndex, bool bPer
 			{
 				GroupedQueries.Sort( FCompareGroupByCPUTime() );
 				AddToGroup->QueriesInGroup.Sort( FCompareQueryByCPUTime(Analyzer) );
-			}
-			else if (SortBy == EQuerySortMode::ByID)
-			{
-				GroupedQueries.Sort( FCompareGroupByCPUTime() );
-				AddToGroup->QueriesInGroup.Sort( FCompareQueryByID(Analyzer, SortDirection) );
 			}
 		}
 	}
@@ -689,22 +637,7 @@ void SCollisionAnalyzer::RebuildFilteredList()
 	}
 	else if (SortBy == EQuerySortMode::ByID)
 	{
-		// Ungrouped
-		if (GroupBy == EQueryGroupMode::Ungrouped)
-		{
-			GroupedQueries.Sort(FCompareQueryByID(Analyzer, SortDirection));
-		}
-		// Grouped
-		else
-		{
-			GroupedQueries.Sort(FCompareGroupByCPUTime()); // Sort groups by time again, doesn't make sense to sort by 
-			for (int i = 0; i < GroupedQueries.Num(); i++)
-			{
-				TSharedPtr<FQueryTreeItem> Group = GroupedQueries[i];
-				check(Group->bIsGroup);
-				Group->QueriesInGroup.Sort(FCompareQueryByID(Analyzer, SortDirection));
-			}
-		}
+		GroupedQueries.Sort(FCompareQueryByID(Analyzer, SortDirection));
 	}
 	
 	// When underlying array changes, refresh list
@@ -745,83 +678,6 @@ FReply SCollisionAnalyzer::OnRecordButtonClicked()
 {
 	// Toggle recording state
 	Analyzer->SetIsRecording(!Analyzer->IsRecording());
-
-	return FReply::Handled();
-}
-
-FReply SCollisionAnalyzer::OnLoadButtonClicked()
-{
-	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
-	if (DesktopPlatform)
-	{
-		// Get the window handles
-		void* ParentWindowWindowHandle = NULL;
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-		if (MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid())
-		{
-			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-		}
-
-		// Default path to find stats
-		const FString DefaultPath = FPaths::ProfilingDir() + TEXT("CollisionAnalyzer");
-
-		// File open dialog
-		TArray<FString> Filenames;
-		bool bOpened = DesktopPlatform->OpenFileDialog(
-			ParentWindowWindowHandle,
-			LOCTEXT("OpenProjectBrowseTitle", "Open Project").ToString(),
-			DefaultPath,
-			TEXT(""),
-			TEXT( "UCA file|*.uca" ),
-			EFileDialogFlags::None,
-			Filenames
-			);
-
-		// If we chose a file
-		if(bOpened && Filenames.Num() > 0)
-		{
-			Analyzer->LoadCollisionProfileData(Filenames[0]);
-		}
-	}
-	return FReply::Handled();
-}
-
-FReply SCollisionAnalyzer::OnSaveButtonClicked()
-{
-	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
-	if (DesktopPlatform)
-	{
-		// Get the window handles
-		void* ParentWindowWindowHandle = NULL;
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-		if (MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid())
-		{
-			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-		}
-
-		// Default path to find stats
-		const FString DefaultPath = FPaths::ProfilingDir() + TEXT("CollisionAnalyzer");
-
-		// File save dialog
-		TArray<FString> Filenames;
-		bool bSaved = DesktopPlatform->SaveFileDialog(
-			ParentWindowWindowHandle,
-			LOCTEXT("CollisionFileLocation", "Choose file location").ToString(),
-			DefaultPath,
-			TEXT(""),
-			TEXT( "UCA file|*.uca" ),
-			EFileDialogFlags::None,
-			Filenames
-			);
-
-		// If we chose a file
-		if(bSaved && Filenames.Num() > 0)
-		{
-			Analyzer->SaveCollisionProfileData(Filenames[0]);
-		}
-	}
 
 	return FReply::Handled();
 }
@@ -913,32 +769,19 @@ EColumnSortMode::Type SCollisionAnalyzer::GetTimeSortMode() const
 	return (SortBy == EQuerySortMode::ByTime) ? SortDirection : EColumnSortMode::None;
 }
 
-FString SCollisionAnalyzer::QueryTypeToString(ECAQueryType::Type QueryType)
-{
-	switch (QueryType)
-	{
-	case ECAQueryType::Raycast:
-		return FString(TEXT("Raycast"));
-	case ECAQueryType::GeomSweep:
-		return FString(TEXT("Sweep"));
-	case ECAQueryType::GeomOverlap:
-		return FString(TEXT("Overlap"));
-	}
-
-	return FString(TEXT("UNKNOWNN"));
-}
-
 FString SCollisionAnalyzer::QueryShapeToString(ECAQueryShape::Type QueryShape)
 {
 	switch(QueryShape)
 	{
-	case ECAQueryShape::Sphere:
+	case ECAQueryShape::Raycast:
+		return FString(TEXT("Raycast"));
+	case ECAQueryShape::SphereSweep:
 		return FString(TEXT("Sphere"));
-	case ECAQueryShape::Box:
+	case ECAQueryShape::BoxSweep:
 		return FString(TEXT("Box"));
-	case ECAQueryShape::Capsule:
+	case ECAQueryShape::CapsuleSweep:
 		return FString(TEXT("Capsule"));	
-	case ECAQueryShape::Convex:
+	case ECAQueryShape::ConvexSweep:
 		return FString(TEXT("Convex"));
 	}
 
@@ -946,15 +789,15 @@ FString SCollisionAnalyzer::QueryShapeToString(ECAQueryShape::Type QueryShape)
 }
 
 
-FString SCollisionAnalyzer::QueryModeToString(ECAQueryMode::Type QueryMode)
+FString SCollisionAnalyzer::QueryTypeToString(ECAQueryType::Type QueryType)
 {
-	switch(QueryMode)
+	switch(QueryType)
 	{
-	case ECAQueryMode::Test:
+	case ECAQueryType::Test:
 		return FString(TEXT("Test"));
-	case ECAQueryMode::Single:
+	case ECAQueryType::Single:
 		return FString(TEXT("Single"));
-	case ECAQueryMode::Multi:
+	case ECAQueryType::Multi:
 		return FString(TEXT("Multi"));
 	}
 

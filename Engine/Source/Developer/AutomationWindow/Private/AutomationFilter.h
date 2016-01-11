@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -92,18 +92,9 @@ public:
 	virtual bool PassesFilter( const TSharedPtr< IAutomationReport >& InReport ) const override
 	{
 		bool FilterPassed = true;
-		if (OnlySmokeTests)
+		if( OnlySmokeTests && !InReport->IsSmokeTest( ) )
 		{
-			//if we only want smoke tests and this isn't one
-			if (!InReport->IsSmokeTest())
-			{
-				FilterPassed = false;
-			}
-			//Leaf Nodes dictate this matching, not root nodes
-			if (InReport->GetTotalNumChildren())
-			{
-				FilterPassed = false;
-			}
+			FilterPassed = false;
 		}
 
 		if (ShowWarnings && ShowErrors)

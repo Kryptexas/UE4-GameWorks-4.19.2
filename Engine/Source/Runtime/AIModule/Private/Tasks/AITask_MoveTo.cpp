@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "GameplayTasksComponent.h"
@@ -81,8 +81,15 @@ void UAITask_MoveTo::HandleMoveFinished(FAIRequestID RequestID, EPathFollowingRe
 {
 	if (RequestID == MoveRequestID)
 	{
-		EndTask();
-		OnMoveFinished.Broadcast(Result);
+		if (Result == EPathFollowingResult::Success)
+		{
+			EndTask();
+			OnMoveFinished.Broadcast(Result);
+		}
+		else
+		{
+			Pause();
+		}
 	}
 	else
 	{
@@ -95,22 +102,12 @@ void UAITask_MoveTo::Activate()
 {
 	Super::Activate();
 
-	PerformMove();
-}
-
-void UAITask_MoveTo::PerformMove()
-{
 	FAIMoveRequest MoveRequest = (MoveGoalActor != nullptr) ? FAIMoveRequest(MoveGoalActor) : FAIMoveRequest(RealGoalLocation);
 
 	MoveRequest.SetAllowPartialPath(bShouldAcceptPartialPath)
 		.SetAcceptanceRadius(MoveAcceptanceRadius)
 		.SetStopOnOverlap(bShouldStopOnOverlap)
 		.SetUsePathfinding(bShouldUsePathfinding);
-
-	if (PathFollowingDelegateHandle.IsValid())
-	{
-		OwnerController->GetPathFollowingComponent()->OnMoveFinished.Remove(PathFollowingDelegateHandle);
-	}
 
 	const EPathFollowingRequestResult::Type RequestResult = OwnerController->MoveTo(MoveRequest);
 
@@ -132,16 +129,7 @@ void UAITask_MoveTo::PerformMove()
 		if (OwnerController->GetPathFollowingComponent())
 		{
 			MoveRequestID = OwnerController->GetPathFollowingComponent()->GetCurrentRequestId();
-
-			if (TaskState == EGameplayTaskState::Finished)
-			{
-				UE_VLOG(GetGameplayTasksComponent(), LogGameplayTasks, Error, TEXT("%s re-Activating Finished task!")
-					, *GetName());
-			}
-			else if (PathFollowingDelegateHandle.IsValid() == false)
-			{
-				PathFollowingDelegateHandle = OwnerController->GetPathFollowingComponent()->OnMoveFinished.AddUObject(this, &UAITask_MoveTo::HandleMoveFinished);
-			}
+			OwnerController->GetPathFollowingComponent()->OnMoveFinished.AddUObject(this, &UAITask_MoveTo::HandleMoveFinished);
 		}
 		break;
 	default:
@@ -154,8 +142,7 @@ void UAITask_MoveTo::Pause()
 {
 	if (OwnerController)
 	{
-		OwnerController->GetPathFollowingComponent()->OnMoveFinished.Remove(PathFollowingDelegateHandle);
-		PathFollowingDelegateHandle.Reset();
+		OwnerController->GetPathFollowingComponent()->OnMoveFinished.RemoveAll(this);
 		OwnerController->PauseMove(MoveRequestID);
 	}
 	Super::Pause();
@@ -172,7 +159,7 @@ void UAITask_MoveTo::OnDestroy(bool bOwnerFinished)
 	Super::OnDestroy(bOwnerFinished);
 	if (OwnerController && OwnerController->GetPathFollowingComponent())
 	{
-		OwnerController->GetPathFollowingComponent()->OnMoveFinished.Remove(PathFollowingDelegateHandle);
+		OwnerController->GetPathFollowingComponent()->OnMoveFinished.RemoveAll(this);
 		OwnerController->GetPathFollowingComponent()->AbortMove(TEXT("UAITask_MoveTo finishing"), MoveRequestID);
 	}
 }

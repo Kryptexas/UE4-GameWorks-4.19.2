@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "StaticMeshEditorModule.h"
 
@@ -93,20 +93,27 @@ namespace EditorViewButtonHelper
 			case EStaticMeshFlag::Vert:
 				if (!AutomationParameters.ViewportClient->EngineShowFlags.VertexColors)
 				{
-					AutomationParameters.ViewportClient->EngineShowFlags.SetVertexColors(true);
-					AutomationParameters.ViewportClient->EngineShowFlags.SetLighting(false);
+					AutomationParameters.ViewportClient->EngineShowFlags.VertexColors = true;
+					AutomationParameters.ViewportClient->EngineShowFlags.Lighting = false;
 				}
 				else
 				{
-					AutomationParameters.ViewportClient->EngineShowFlags.SetVertexColors(false);
-					AutomationParameters.ViewportClient->EngineShowFlags.SetLighting(true);
+					AutomationParameters.ViewportClient->EngineShowFlags.VertexColors = false;
+					AutomationParameters.ViewportClient->EngineShowFlags.Lighting = true;
 				}
 				break;
 			case EStaticMeshFlag::Grid:
 				AutomationParameters.ViewportClient->SetShowGrid();
 				break;
 			case EStaticMeshFlag::Bounds:
-				AutomationParameters.ViewportClient->EngineShowFlags.SetBounds(!AutomationParameters.ViewportClient->EngineShowFlags.Bounds);
+				if (AutomationParameters.ViewportClient->EngineShowFlags.Bounds)
+				{
+					AutomationParameters.ViewportClient->EngineShowFlags.Bounds = false;
+				}
+				else
+				{
+					AutomationParameters.ViewportClient->EngineShowFlags.Bounds = true;
+				}
 				break;
 			case EStaticMeshFlag::Collision:
 				AutomationParameters.ViewportClient->SetShowCollision();
@@ -149,7 +156,7 @@ namespace EditorViewButtonHelper
 /**
  * Static mesh editor test
  */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStaticMeshEditorTest, "System.Editor.Content.Static Mesh Editor Test", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST( FStaticMeshEditorTest, "System.Editor.Content.Static Mesh Editor Test", EAutomationTestFlags::ATF_Editor )
 
 /**
  * Take screenshots of the SME window with each of the toolbar buttons toggled separately

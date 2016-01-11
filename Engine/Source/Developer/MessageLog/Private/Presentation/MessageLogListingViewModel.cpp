@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MessageLogPrivatePCH.h"
 #include "MessageLogListingViewModel.h"
@@ -123,7 +123,7 @@ EMessageSeverity::Type FMessageLogListingViewModel::HighestSeverityPresent( uint
 	return Severity;
 }
 
-void FMessageLogListingViewModel::AddMessage( const TSharedRef< class FTokenizedMessage >& NewMessage, bool bMirrorToOutputLog )
+void FMessageLogListingViewModel::AddMessage( const TSharedRef< class FTokenizedMessage >& NewMessage )
 {
 	if(bDiscardDuplicates)
 	{
@@ -137,22 +137,22 @@ void FMessageLogListingViewModel::AddMessage( const TSharedRef< class FTokenized
 		}
 	}
 
-	MessageLogListingModel->AddMessage(NewMessage, bMirrorToOutputLog);
+	MessageLogListingModel->AddMessage(NewMessage);
 }
 
-void FMessageLogListingViewModel::AddMessages( const TArray< TSharedRef< class FTokenizedMessage > >& NewMessages, bool bMirrorToOutputLog )
+void FMessageLogListingViewModel::AddMessages( const TArray< TSharedRef< class FTokenizedMessage > >& NewMessages )
 {
 	if(bDiscardDuplicates)
 	{
-		// add each message individually - AddMessage() will decide if it is a duplicate
+		// add each message individually - AddMessage() will decide if tis a duplicate
 		for(auto It(NewMessages.CreateConstIterator()); It; It++)
 		{
-			AddMessage(*It, bMirrorToOutputLog);
+			AddMessage(*It);
 		}
 	}
 	else
 	{
-		MessageLogListingModel->AddMessages(NewMessages, bMirrorToOutputLog);
+		MessageLogListingModel->AddMessages(NewMessages);
 	}
 }
 

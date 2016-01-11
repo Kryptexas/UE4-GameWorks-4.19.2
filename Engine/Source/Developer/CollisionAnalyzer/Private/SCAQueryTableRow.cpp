@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CollisionAnalyzerPCH.h"
 
@@ -23,29 +23,29 @@ TSharedRef<SWidget> SCAQueryTableRow::GenerateWidgetForColumn(const FName& Colum
 	// GROUP
 	if(Item->bIsGroup)
 	{
-		if (ColumnName == SCollisionAnalyzer::IDColumnName)
+		if (ColumnName == TEXT("ID"))
 		{
 			return	SNew(SExpanderArrow, SharedThis(this));
 		}
-		else if (ColumnName == SCollisionAnalyzer::FrameColumnName && OwnerAnalyzerWidget->GroupBy == EQueryGroupMode::ByFrameNum)
+		else if (ColumnName == TEXT("Frame") && OwnerAnalyzerWidget->GroupBy == EQueryGroupMode::ByFrameNum)
 		{
 			return	SNew(STextBlock)
 					.Font(FCollisionAnalyzerStyle::Get()->GetFontStyle("BoldFont"))
 					.Text(FText::AsNumber(Item->FrameNum));
 		}
-		else if (ColumnName == SCollisionAnalyzer::TagColumnName && OwnerAnalyzerWidget->GroupBy == EQueryGroupMode::ByTag)
+		else if (ColumnName == TEXT("Tag") && OwnerAnalyzerWidget->GroupBy == EQueryGroupMode::ByTag)
 		{
 			return	SNew(STextBlock)
 					.Font(FCollisionAnalyzerStyle::Get()->GetFontStyle("BoldFont"))
 					.Text(FText::FromName(Item->GroupName));
 		}
-		else if (ColumnName == SCollisionAnalyzer::OwnerColumnName && OwnerAnalyzerWidget->GroupBy == EQueryGroupMode::ByOwnerTag)
+		else if (ColumnName == TEXT("Owner") && OwnerAnalyzerWidget->GroupBy == EQueryGroupMode::ByOwnerTag)
 		{
 			return	SNew(STextBlock)
 					.Font(FCollisionAnalyzerStyle::Get()->GetFontStyle("BoldFont"))
 					.Text(FText::FromName(Item->GroupName));
 		}
-		else if (ColumnName == SCollisionAnalyzer::TimeColumnName)
+		else if (ColumnName == TEXT("Time"))
 		{
 			return	SNew(STextBlock)
 					.Font(FCollisionAnalyzerStyle::Get()->GetFontStyle("BoldFont"))
@@ -64,49 +64,37 @@ TSharedRef<SWidget> SCAQueryTableRow::GenerateWidgetForColumn(const FName& Colum
 
 		FCAQuery& Query = OwnerAnalyzerWidget->Analyzer->Queries[QueryId];
 
-		if (ColumnName == SCollisionAnalyzer::IDColumnName)
+		if (ColumnName == TEXT("ID"))
 		{	
 			return	SNew(STextBlock)
 					.Text( FText::AsNumber(QueryId) );
 		}
-		else if (ColumnName == SCollisionAnalyzer::FrameColumnName)
+		else if (ColumnName == TEXT("Frame"))
 		{
 			return	SNew(STextBlock)
 					.Text( FText::AsNumber(Query.FrameNum) );
 		}
-		else if (ColumnName == SCollisionAnalyzer::TypeColumnName)
+		else if (ColumnName == TEXT("Type"))
 		{
 			return	SNew(STextBlock)
 					.Text(FText::FromString(SCollisionAnalyzer::QueryTypeToString(Query.Type)));
 		}
-		else if (ColumnName == SCollisionAnalyzer::ShapeColumnName)
-		{
-			// Leave shape string blank if this is a raycast, it doesn't matter
-			FString ShapeString;
-			if(Query.Type != ECAQueryType::Raycast)
-			{
-				ShapeString = SCollisionAnalyzer::QueryShapeToString(Query.Shape);
-			}
-
-			return	SNew(STextBlock)
-					.Text(FText::FromString(ShapeString));
-		}
-		else if (ColumnName == SCollisionAnalyzer::ModeColumnName)
+		else if (ColumnName == TEXT("Shape"))
 		{
 			return	SNew(STextBlock)
-					.Text(FText::FromString(SCollisionAnalyzer::QueryModeToString(Query.Mode)));
+					.Text(FText::FromString(SCollisionAnalyzer::QueryShapeToString(Query.Shape)));
 		}
-		else if (ColumnName == SCollisionAnalyzer::TagColumnName)
+		else if (ColumnName == TEXT("Tag"))
 		{
 			return	SNew(STextBlock)
 					.Text(FText::FromName(Query.Params.TraceTag));
 		}
-		else if (ColumnName == SCollisionAnalyzer::OwnerColumnName)
+		else if (ColumnName == TEXT("Owner"))
 		{
 			return	SNew(STextBlock)
 					.Text(FText::FromName(Query.Params.OwnerTag));
 		}
-		else if (ColumnName == SCollisionAnalyzer::NumBlockColumnName)
+		else if (ColumnName == TEXT("NumBlock"))
 		{
 			FHitResult* FirstHit = FHitResult::GetFirstBlockingHit(Query.Results);
 			bool bStartPenetrating = (FirstHit != NULL) && FirstHit->bStartPenetrating;
@@ -115,15 +103,19 @@ TSharedRef<SWidget> SCAQueryTableRow::GenerateWidgetForColumn(const FName& Colum
 					.Text(FText::AsNumber(FHitResult::GetNumBlockingHits(Query.Results)))
 					.ColorAndOpacity(bStartPenetrating ? FLinearColor(1.f,0.25f,0.25f) : FSlateColor::UseForeground() );
 		}
-		else if (ColumnName == SCollisionAnalyzer::NumTouchColumnName)
+		else if (ColumnName == TEXT("NumTouch"))
 		{
 			return	SNew(STextBlock)
 					.Text(FText::AsNumber(FHitResult::GetNumOverlapHits(Query.Results)));
 		}
-		else if (ColumnName == SCollisionAnalyzer::TimeColumnName)
+		else if (ColumnName == TEXT("Time"))
 		{
+			static const FNumberFormattingOptions TimeFormatOptions = FNumberFormattingOptions()
+				.SetMinimumFractionalDigits(3)
+				.SetMaximumFractionalDigits(3);
+
 			return	SNew(STextBlock)
-					.Text(FText::FromString(FString::Printf(TEXT("%.3f"), Query.CPUTime)));
+					.Text(FText::AsNumber(Query.CPUTime, &TimeFormatOptions));
 		}
 	}
 
@@ -132,8 +124,12 @@ TSharedRef<SWidget> SCAQueryTableRow::GenerateWidgetForColumn(const FName& Colum
 
 FText SCAQueryTableRow::GetTotalTimeText() const
 {
+	static const FNumberFormattingOptions TimeFormatOptions = FNumberFormattingOptions()
+		.SetMinimumFractionalDigits(3)
+		.SetMaximumFractionalDigits(3);
+
 	check(Item->bIsGroup)
-	return FText::FromString(FString::Printf(TEXT("%.3f"), Item->TotalCPUTime));
+	return FText::AsNumber(Item->TotalCPUTime, &TimeFormatOptions);
 }
 
 #undef LOCTEXT_NAMESPACE

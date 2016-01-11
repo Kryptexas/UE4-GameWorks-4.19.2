@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightMap.cpp: Light-map implementation.
@@ -9,9 +9,7 @@
 #include "StaticLighting.h"
 #include "LightMap.h"
 #include "Components/InstancedStaticMeshComponent.h"
-#if WITH_EDITOR
-#include "Editor/UnrealEd/Classes/Settings/EditorExperimentalSettings.h"
-#endif
+
 DEFINE_LOG_CATEGORY_STATIC(LogLightMap, Log, All);
 
 FLightmassDebugOptions GLightmassDebugOptions;
@@ -33,10 +31,13 @@ ENGINE_API bool GAllowStreamingLightmaps = false;
 /** Largest boundingsphere radius to use when packing lightmaps into a texture atlas. */
 ENGINE_API float GMaxLightmapRadius = 5000.0f;	//10000.0;	//2000.0f;
 
+/** The quality level of DXT encoding for lightmaps (values come from nvtt::Quality enum) */
+int32 GLightmapEncodeQualityLevel = 2; // nvtt::Quality_Production
+
 /** The quality level of the current lighting build */
 ELightingBuildQuality GLightingBuildQuality = Quality_Preview;
 
-#if WITH_EDITOR
+#if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING && WITH_EDITOR
 	/** Information about the lightmap sample that is selected */
 	UNREALED_API extern FSelectedLightmapSample GCurrentSelectedLightmapSample;
 #endif
@@ -63,17 +64,6 @@ ENGINE_API FColor GTexelSelectionColor(255, 50, 0);
 	/** Total memory size for streaming lightmaps (in bytes). */
 	ENGINE_API uint64 GLightmapTotalStreamingSize = 0;
 #endif
-
-static TAutoConsoleVariable<int32> CVarTexelDebugging(
-	TEXT("r.TexelDebugging"),
-	0,	
-	TEXT("Whether T + Left mouse click in the editor selects lightmap texels for debugging Lightmass.  Lightmass must be recompiled with ALLOW_LIGHTMAP_SAMPLE_DEBUGGING enabled for this to work."),
-	ECVF_Default);
-
-bool IsTexelDebuggingEnabled()
-{
-	return CVarTexelDebugging.GetValueOnGameThread() != 0;
-}
 
 #include "TextureLayout.h"
 
@@ -106,6 +96,7 @@ ULightMapTexture2D::ULightMapTexture2D(const FObjectInitializer& ObjectInitializ
 	: Super(ObjectInitializer)
 {
 }
+
 void ULightMapTexture2D::Serialize(FArchive& Ar)
 {
 	LODGroup = TEXTUREGROUP_Lightmap;
@@ -199,10 +190,7 @@ FStaticLightingMesh::FStaticLightingMesh(
 	Component(InComponent),
 	BoundingBox(InBoundingBox),
 	Guid(FGuid::NewGuid()),
-	SourceMeshGuid(InGuid),
-	HLODTreeIndex(0),
-	HLODChildStartIndex(0),
-	HLODChildEndIndex(0)
+	SourceMeshGuid(InGuid)
 {}
 
 FStaticLightingTextureMapping::FStaticLightingTextureMapping(FStaticLightingMesh* InMesh,UObject* InOwner,int32 InSizeX,int32 InSizeY,int32 InLightmapTextureCoordinateIndex,bool bInBilinearFilter):
@@ -352,11 +340,47 @@ public:
 	int32			TotalTexels;
 };
 
+enum ELightmapTextureType
+{
+	LTT_Coefficients = NUM_STORED_LIGHTMAP_COEF,
+	LTT_SkyOcclusion,
+	LTT_AOMaterialMask,
+	LTT_Num
+};
+
 /**
  * A light-map texture which has been partially allocated, but not yet encoded.
  */
 struct FLightMapPendingTexture : public FTextureLayout
 {
+	/**
+	 * Information on light map textures being cached asynchronously.
+	 */
+	struct FAsyncLightMapCacheTask
+	{
+		/** The lightmap texture. */
+		FLightMapPendingTexture* Texture;
+		/** The coefficient index. */
+		ELightmapTextureType TextureType;
+
+		/** Initialization constructor. */
+		FAsyncLightMapCacheTask(FLightMapPendingTexture* InTexture, ELightmapTextureType InTextureType)
+			: Texture(InTexture)
+			, TextureType(InTextureType)
+		{
+		}
+	};
+
+	/** List of async light map cache tasks. */
+	static TArray<FAsyncLightMapCacheTask> TotalAsyncTasks;
+
+	/**
+	 * Checks for any completed asynchronous DXT compression tasks and finishes the texture creation.
+	 * It will block until there are no more than 'NumUnfinishedTasksAllowed' tasks left unfinished.
+	 *
+	 * @param NumUnfinishedTasksAllowed		Maximum number of unfinished tasks to allow, before returning
+	 */
+	static void						FinishCompletedTasks( int32 NumUnfinishedTasksAllowed );
 
 	/** Helper data to keep track of the asynchronous tasks for the 4 lightmap textures. */
 	ULightMapTexture2D*				Textures[NUM_STORED_LIGHTMAP_COEF];
@@ -374,14 +398,8 @@ struct FLightMapPendingTexture : public FTextureLayout
 	// Optimization to quickly test if a new allocation won't fit
 	// Primarily of benefit to instanced mesh lightmaps
 	int32							UnallocatedTexels;
+
 	int32							NumOutstandingAsyncTasks;
-	bool							bUObjectsCreated;
-	int32							NumNonPower2Texels;
-	uint64							NumLightmapMappedTexels;
-	uint64							NumLightmapUnmappedTexels;
-	volatile bool					bIsFinishedEncoding; // has the encoding thread finished encoding (not the AsyncCache)
-	bool							bHasRunPostEncode;
-	bool							bTexelDebuggingEnabled;
 
 	FLightMapPendingTexture(UWorld* InWorld, uint32 InSizeX,uint32 InSizeY)
 		: FTextureLayout(4, 4, InSizeX, InSizeY, /* PowerOfTwo */ true, /* AlignByFour */ true) // Min size is 4x4 in case of block compression.
@@ -392,20 +410,11 @@ struct FLightMapPendingTexture : public FTextureLayout
 		, LightmapFlags(LMF_None)
 		, UnallocatedTexels(InSizeX * InSizeY)
 		, NumOutstandingAsyncTasks(0)
-		, bUObjectsCreated(false)
-		, NumNonPower2Texels(0)
-		, NumLightmapMappedTexels(0)
-		, NumLightmapUnmappedTexels(0)
-		, bIsFinishedEncoding(false)
-		, bHasRunPostEncode(false)
-		, bTexelDebuggingEnabled(IsTexelDebuggingEnabled())
 	{}
 
 	~FLightMapPendingTexture()
 	{
 	}
-
-	void CreateUObjects();
 
 	/**
 	 * Processes the textures and starts asynchronous compression tasks for all mip-levels.
@@ -413,31 +422,13 @@ struct FLightMapPendingTexture : public FTextureLayout
 	void StartEncoding();
 
 	/**
-	 * Call this function after the IsFinishedEncoding function returns true
+	 * Called once the compression tasks for all mip-levels of a texture has finished.
+	 * Copies the compressed data into each of the mip-levels of the texture and deletes the tasks.
+	 *
+	 * @param CoefficientIndex	Texture coefficient index, identifying the specific texture with this FLightMapPendingTexture.
 	 */
-	void PostEncode();
+	void FinishEncoding( ELightmapTextureType TextureType );
 
-	/**
-	 * IsFinishedCoding
-	 * Are we ready to call PostEncode
-	 * encode is run in a separate thread
-	 * @return are we finished with the StartEncoding function yet
-	 */
-	bool IsFinishedEncoding() const;
-
-	/**
-	 * IsAsyncCacheComplete
-	 * checks if any of our texture async caches are still running
-	 */
-	bool IsAsyncCacheComplete() const;
-
-	/**
-	 * Call this function after IsAscynCacheComplete returns true
-	 */
-	void FinishCachingTextures();
-
-	
-	
 	/**
 	 * Finds a free area in the texture large enough to contain a surface with the given size.
 	 * If a large enough area is found, it is marked as in use, the output parameters OutBaseX and OutBaseY are
@@ -455,53 +446,61 @@ struct FLightMapPendingTexture : public FTextureLayout
 	bool AddElement(FLightMapAllocationGroup& AllocationGroup, const bool bForceIntoThisTexture = false);
 
 private:
-	/**
-	* Finish caching the texture
-	*/
-	void FinishCacheTexture(UTexture2D* Texture);
-
-	void PostEncode(UTexture2D* Texture);
-
-	
-
 	FName GetLightmapName(int32 TextureIndex, int32 CoefficientIndex);
 	FName GetSkyOcclusionTextureName(int32 TextureIndex);
 	FName GetAOMaterialMaskTextureName(int32 TextureIndex);
-	bool NeedsSkyOcclusionTexture() const;
-	bool NeedsAOMaterialMaskTexture() const;
 };
 
+TArray<FLightMapPendingTexture::FAsyncLightMapCacheTask> FLightMapPendingTexture::TotalAsyncTasks;
+
 /**
- * IsAsyncCacheComplete
- * checks if any of our texture async caches are still running
+ * Checks for any completed asynchronous DXT compression tasks and finishes the texture creation.
+ * It will block until there are no more than 'NumUnfinishedTasksAllowed' tasks left unfinished.
+ *
+ * @param NumUnfinishedTasksAllowed		Maximum number of unfinished tasks to allow, before returning
  */
-bool FLightMapPendingTexture::IsAsyncCacheComplete() const
+void FLightMapPendingTexture::FinishCompletedTasks( int32 NumUnfinishedTasksAllowed )
 {
-	check(IsInGameThread()); //updates global variables and accesses shared UObjects
-	if (SkyOcclusionTexture && !SkyOcclusionTexture->IsAsyncCacheComplete())
+	do
 	{
-		return false;
-	}
-
-	if (AOMaterialMaskTexture && !AOMaterialMaskTexture->IsAsyncCacheComplete())
-	{
-		return false;
-	}
-
-	// Encode and compress the coefficient textures.
-	for (uint32 CoefficientIndex = 0; CoefficientIndex < NUM_STORED_LIGHTMAP_COEF; CoefficientIndex += 2)
-	{
-		auto Texture = Textures[CoefficientIndex];
-		if (Texture == nullptr)
+		// Check for completed async compression tasks.
+		for ( int32 TaskIndex=0; TaskIndex < TotalAsyncTasks.Num(); )
 		{
-			continue;
+			FAsyncLightMapCacheTask Task = TotalAsyncTasks[TaskIndex];
+			FLightMapPendingTexture* PendingTexture = Task.Texture;
+			ULightMapTexture2D* LightMapTexture;
+
+			if (Task.TextureType == LTT_SkyOcclusion)
+			{
+				LightMapTexture = PendingTexture->SkyOcclusionTexture;
+			}
+			else if (Task.TextureType == LTT_AOMaterialMask)
+			{
+				LightMapTexture = PendingTexture->AOMaterialMaskTexture;
+			}
+			else
+			{
+				LightMapTexture = PendingTexture->Textures[(int32)Task.TextureType];
+			}
+
+			if (LightMapTexture->IsAsyncCacheComplete())
+			{
+				TotalAsyncTasks.RemoveAtSwap(TaskIndex);
+				PendingTexture->FinishEncoding(Task.TextureType);
+			}
+			else
+			{
+				++TaskIndex;
+			}
 		}
-		if (!Texture->IsAsyncCacheComplete())
+
+		// If we still have too many unfinished tasks, wait for someone to finish.
+		if ( TotalAsyncTasks.Num() > NumUnfinishedTasksAllowed )
 		{
-			return false;
+			FPlatformProcess::Sleep(0.1f);
 		}
-	}
-	return true;
+
+	} while ( TotalAsyncTasks.Num() > NumUnfinishedTasksAllowed );
 }
 
 /**
@@ -510,152 +509,53 @@ bool FLightMapPendingTexture::IsAsyncCacheComplete() const
  *
  * @param CoefficientIndex	Texture coefficient index, identifying the specific texture with this FLightMapPendingTexture.
  */
-
-
-void FLightMapPendingTexture::FinishCacheTexture(UTexture2D* Texture)
+void FLightMapPendingTexture::FinishEncoding( ELightmapTextureType TextureType )
 {
-	check(IsInGameThread()); // updating global variables needs to be done in main thread
-	check(Texture != nullptr);
+	UTexture2D* Texture2D;
 
-	Texture->FinishCachePlatformData();
-	Texture->UpdateResource();
-
-	int32 TextureSize = Texture->CalcTextureMemorySizeEnum(TMC_AllMips);
-	GLightmapTotalSize += TextureSize;
-	GLightmapTotalStreamingSize += (LightmapFlags & LMF_Streamed) ? TextureSize : 0;
-}
-
-void FLightMapPendingTexture::PostEncode(UTexture2D* Texture)
-{
-	check(IsInGameThread());
-	check(Texture != nullptr);
-	Texture->CachePlatformData(true, true);
-}
-
-
-bool FLightMapPendingTexture::IsFinishedEncoding() const
-{
-	return bIsFinishedEncoding;
-}
-
-void FLightMapPendingTexture::PostEncode()
-{
-	check(IsInGameThread()); 
-	check(bIsFinishedEncoding);
-
-	if (bHasRunPostEncode)
+	if (TextureType == LTT_SkyOcclusion)
 	{
-		return;
+		Texture2D = SkyOcclusionTexture;
 	}
-	bHasRunPostEncode = true;
-
-	for (int32 AllocationIndex = 0; AllocationIndex < Allocations.Num(); AllocationIndex++)
+	else if (TextureType == LTT_AOMaterialMask)
 	{
-		FLightMapAllocation* Allocation = Allocations[AllocationIndex];
+		Texture2D = AOMaterialMaskTexture;
+	}
+	else
+	{
+		Texture2D = Textures[(int32)TextureType];
+	}
 
-		int32 PaddedSizeX = Allocation->TotalSizeX;
-		int32 PaddedSizeY = Allocation->TotalSizeY;
-		int32 BaseX = Allocation->OffsetX - Allocation->MappedRect.Min.X;
-		int32 BaseY = Allocation->OffsetY - Allocation->MappedRect.Min.Y;
-		if (FPlatformProperties::HasEditorOnlyData() && GLightmassDebugOptions.bPadMappings && (Allocation->PaddingType == LMPT_NormalPadding))
+	Texture2D->FinishCachePlatformData();
+	Texture2D->UpdateResource();
+
+	if ( (int32)TextureType < NUM_HQ_LIGHTMAP_COEF )
+	{
+		int32 TextureSize = Texture2D->CalcTextureMemorySizeEnum( TMC_AllMips );
+		GLightmapTotalSize += TextureSize;
+		GLightmapTotalStreamingSize += (LightmapFlags & LMF_Streamed) ? TextureSize : 0;
+
+		UPackage* TexturePackage = Texture2D->GetOutermost();
+		if( OwningWorld.IsValid() )
 		{
-			if ((PaddedSizeX - 2 > 0) && ((PaddedSizeY - 2) > 0))
-			{
-				PaddedSizeX -= 2;
-				PaddedSizeY -= 2;
-				BaseX += 1;
-				BaseY += 1;
-			}
-		}
-
-		// Calculate the coordinate scale/biases this light-map.
-		FVector2D Scale((float)PaddedSizeX / (float)GetSizeX(), (float)PaddedSizeY / (float)GetSizeY());
-		FVector2D Bias((float)BaseX / (float)GetSizeX(), (float)BaseY / (float)GetSizeY());
-
-		// Set the scale/bias of the lightmap
-		check(Allocation->LightMap);
-		Allocation->LightMap->CoordinateScale = Scale;
-		Allocation->LightMap->CoordinateBias = Bias;
-		Allocation->PostEncode();
-
-		// Free the light-map's raw data.
-		Allocation->RawData.Empty();
-	}
-
-
-	if (SkyOcclusionTexture!=nullptr)
-	{
-		PostEncode(SkyOcclusionTexture);
-	}
-
-	if (AOMaterialMaskTexture != nullptr)
-	{
-		PostEncode(AOMaterialMaskTexture);
-	}
-
-
-	// update all the global stats
-	GNumLightmapMappedTexels += NumLightmapMappedTexels;
-	GNumLightmapUnmappedTexels += NumLightmapUnmappedTexels;
-	GNumLightmapTotalTexelsNonPow2 += NumNonPower2Texels;
-
-	// Encode and compress the coefficient textures.
-	for (uint32 CoefficientIndex = 0; CoefficientIndex < NUM_STORED_LIGHTMAP_COEF; CoefficientIndex += 2)
-	{
-		auto Texture = Textures[CoefficientIndex];
-		if (Texture == nullptr)
-		{
-			continue;
-		}
-		
-		PostEncode(Texture);
-
-		GNumLightmapTotalTexels += Texture->Source.GetSizeX() * Texture->Source.GetSizeY();
-		GNumLightmapTextures++;
-
-
-		UPackage* TexturePackage = Texture->GetOutermost();
-		if (OwningWorld.IsValid())
-		{
-			for (int32 LevelIndex = 0; TexturePackage && LevelIndex < OwningWorld->GetNumLevels(); LevelIndex++)
+			for ( int32 LevelIndex=0; TexturePackage && LevelIndex < OwningWorld->GetNumLevels(); LevelIndex++ )
 			{
 				ULevel* Level = OwningWorld->GetLevel(LevelIndex);
 				UPackage* LevelPackage = Level->GetOutermost();
-				if (TexturePackage == LevelPackage)
+				if ( TexturePackage == LevelPackage )
 				{
-					Level->LightmapTotalSize += float(Texture->CalcTextureMemorySizeEnum(TMC_AllMips)) / 1024.0f;
+					Level->LightmapTotalSize += float(Texture2D->CalcTextureMemorySizeEnum( TMC_AllMips )) / 1024.0f;
 					break;
 				}
 			}
 		}
 	}
 
-}
-
-
-void FLightMapPendingTexture::FinishCachingTextures()
-{
-	check(IsInGameThread()); //updates global variables and accesses shared UObjects
-	if (SkyOcclusionTexture)
+	// Delete the pending texture when all async tasks have completed.
+	if (--NumOutstandingAsyncTasks == 0)
 	{
-		FinishCacheTexture(SkyOcclusionTexture);
+		delete this;
 	}
-
-	if (AOMaterialMaskTexture)
-	{
-		FinishCacheTexture(AOMaterialMaskTexture);
-	}
-
-	// Encode and compress the coefficient textures.
-	for (uint32 CoefficientIndex = 0; CoefficientIndex < NUM_STORED_LIGHTMAP_COEF; CoefficientIndex += 2)
-	{
-		auto& Texture = Textures[CoefficientIndex];
-		if (Texture)
-		{
-			FinishCacheTexture(Texture);
-		}
-	}
-
 }
 
 /**
@@ -1078,84 +978,9 @@ static void GenerateLightmapMipsAndDilateByte(int32 NumMips, int32 TextureSizeX,
 	}
 }
 
-void FLightMapPendingTexture::CreateUObjects()
-{
-	check(IsInGameThread());
-	++GLightmapCounter;
-	if (NeedsSkyOcclusionTexture())
-	{
-		SkyOcclusionTexture = NewObject<ULightMapTexture2D>(Outer, GetSkyOcclusionTextureName(GLightmapCounter));
-	}
-
-	if (NeedsAOMaterialMaskTexture())
-	{
-		AOMaterialMaskTexture = NewObject<ULightMapTexture2D>(Outer, GetAOMaterialMaskTextureName(GLightmapCounter));
-	}
-
-	// Encode and compress the coefficient textures.
-	for (uint32 CoefficientIndex = 0; CoefficientIndex < NUM_STORED_LIGHTMAP_COEF; CoefficientIndex += 2)
-	{
-		Textures[CoefficientIndex] = nullptr;
-		// Skip generating simple lightmaps if wanted.
-		if (!GEngine->bShouldGenerateLowQualityLightmaps && CoefficientIndex >= LQ_LIGHTMAP_COEF_INDEX)
-		{
-			continue;
-		}
-
-		// Create the light-map texture for this coefficient.
-		auto Texture = NewObject<ULightMapTexture2D>(Outer, GetLightmapName(GLightmapCounter, CoefficientIndex));
-		Textures[CoefficientIndex] = Texture;
-	}
-
-	check(bUObjectsCreated == false);
-	bUObjectsCreated = true;
-}
-
-bool FLightMapPendingTexture::NeedsSkyOcclusionTexture() const
-{
-	if (bUObjectsCreated)
-	{
-		return SkyOcclusionTexture != nullptr;
-	}
-
-	bool bNeedsSkyOcclusionTexture = false;
-
-	for (int32 AllocationIndex = 0; AllocationIndex < Allocations.Num(); AllocationIndex++)
-	{
-		FLightMapAllocation* Allocation = Allocations[AllocationIndex];
-
-		if (Allocation->bHasSkyShadowing)
-		{
-			bNeedsSkyOcclusionTexture = true;
-			break;
-		}
-	}
-	return bNeedsSkyOcclusionTexture;
-}
-
-bool FLightMapPendingTexture::NeedsAOMaterialMaskTexture() const
-{
-	if (bUObjectsCreated)
-	{
-		return AOMaterialMaskTexture != nullptr;
-	}
-
-	const FLightmassWorldInfoSettings* LightmassWorldSettings = OwningWorld.IsValid() ? &(OwningWorld->GetWorldSettings()->LightmassSettings) : NULL;
-	if (LightmassWorldSettings && LightmassWorldSettings->bUseAmbientOcclusion && LightmassWorldSettings->bGenerateAmbientOcclusionMaterialMask)
-	{
-		return true;
-	}
-
-	return false;
-}
-
 void FLightMapPendingTexture::StartEncoding()
 {
-	if (!bUObjectsCreated)
-	{
-		check(IsInGameThread());
-		CreateUObjects();
-	}
+	GLightmapCounter++;
 
 	FColor TextureColor;
 	if ( GVisualizeLightmapTextures )
@@ -1163,10 +988,23 @@ void FLightMapPendingTexture::StartEncoding()
 		TextureColor = FColor::MakeRandomColor();
 	}
 
-	if (SkyOcclusionTexture != nullptr)
+	bool bNeedsSkyOcclusionTexture = false;
+
+	for(int32 AllocationIndex = 0;AllocationIndex < Allocations.Num();AllocationIndex++)
 	{
-		auto Texture = SkyOcclusionTexture;
-		
+		FLightMapAllocation* Allocation = Allocations[AllocationIndex];
+
+		if (Allocation->bHasSkyShadowing)
+		{
+			bNeedsSkyOcclusionTexture = true;
+		}
+	}
+
+	if (bNeedsSkyOcclusionTexture)
+	{
+		auto Texture = NewObject<ULightMapTexture2D>(Outer, GetSkyOcclusionTextureName(GLightmapCounter));
+		SkyOcclusionTexture = Texture;
+
 		Texture->Source.Init2DWithMipChain(GetSizeX(), GetSizeY(), TSF_BGRA8);
 		Texture->MipGenSettings = TMGS_LeaveExistingMips;
 		int32 NumMips = Texture->Source.GetNumMips();
@@ -1247,12 +1085,18 @@ void FLightMapPendingTexture::StartEncoding()
 			FMemory::Free( MipCoverageData[ MipIndex ] );
 		}
 
+		Texture->BeginCachePlatformData();
+		new(TotalAsyncTasks) FAsyncLightMapCacheTask(this, LTT_SkyOcclusion);
+		NumOutstandingAsyncTasks++;
 	}
 	
-	if (AOMaterialMaskTexture != nullptr)
+	const FLightmassWorldInfoSettings* LightmassWorldSettings = OwningWorld.IsValid() ? &(OwningWorld->GetWorldSettings()->LightmassSettings) : NULL;
+
+	if (LightmassWorldSettings && LightmassWorldSettings->bUseAmbientOcclusion && LightmassWorldSettings->bGenerateAmbientOcclusionMaterialMask)
 	{
-		auto Texture = AOMaterialMaskTexture;
-		
+		auto Texture = NewObject<ULightMapTexture2D>(Outer, GetAOMaterialMaskTextureName(GLightmapCounter));
+		AOMaterialMaskTexture = Texture;
+
 		Texture->Source.Init2DWithMipChain(GetSizeX(), GetSizeY(), TSF_G8);
 		Texture->MipGenSettings = TMGS_LeaveExistingMips;
 		int32 NumMips = Texture->Source.GetNumMips();
@@ -1332,17 +1176,23 @@ void FLightMapPendingTexture::StartEncoding()
 			FMemory::Free( MipCoverageData[ MipIndex ] );
 		}
 
+		Texture->BeginCachePlatformData();
+		new(TotalAsyncTasks) FAsyncLightMapCacheTask(this, LTT_AOMaterialMask);
+		NumOutstandingAsyncTasks++;
 	}
 
 	// Encode and compress the coefficient textures.
 	for(uint32 CoefficientIndex = 0; CoefficientIndex < NUM_STORED_LIGHTMAP_COEF; CoefficientIndex += 2)
 	{
-		auto Texture = Textures[CoefficientIndex];
-		if (Texture == nullptr)
+		// Skip generating simple lightmaps if wanted.
+		if( !GEngine->bShouldGenerateLowQualityLightmaps && CoefficientIndex >= LQ_LIGHTMAP_COEF_INDEX )
 		{
 			continue;
 		}
 
+		// Create the light-map texture for this coefficient.
+		auto Texture = NewObject<ULightMapTexture2D>(Outer, GetLightmapName(GLightmapCounter, CoefficientIndex));
+		Textures[CoefficientIndex] = Texture;
 		Texture->Source.Init2DWithMipChain(GetSizeX(), GetSizeY() * 2, TSF_BGRA8);	// Top/bottom atlased
 		Texture->MipGenSettings = TMGS_LeaveExistingMips;
 		int32 NumMips = Texture->Source.GetNumMips();
@@ -1376,7 +1226,7 @@ void FLightMapPendingTexture::StartEncoding()
 		FMemory::Memzero( TopMipData, TextureSizeX * TextureSizeY * sizeof(FColor) );
 		FMemory::Memzero( MipCoverageData[0], TextureSizeX * TextureSizeY );
 
-		
+		FIntRect TextureRect( MAX_int32, MAX_int32, MIN_int32, MIN_int32 );
 		for(int32 AllocationIndex = 0;AllocationIndex < Allocations.Num();AllocationIndex++)
 		{
 			FLightMapAllocation* Allocation = Allocations[AllocationIndex];
@@ -1402,15 +1252,11 @@ void FLightMapPendingTexture::StartEncoding()
 			// Skip encoding of this texture if we were asked not to bother
 			if( !Allocation->bSkipEncoding )
 			{
-				FIntRect TextureRect(MAX_int32, MAX_int32, MIN_int32, MIN_int32);
 				TextureRect.Min.X = FMath::Min<int32>( TextureRect.Min.X, Allocation->OffsetX );
 				TextureRect.Min.Y = FMath::Min<int32>( TextureRect.Min.Y, Allocation->OffsetY );
 				TextureRect.Max.X = FMath::Max<int32>( TextureRect.Max.X, Allocation->OffsetX + Allocation->MappedRect.Width() );
 				TextureRect.Max.Y = FMath::Max<int32>( TextureRect.Max.Y, Allocation->OffsetY + Allocation->MappedRect.Height() );
 	
-				NumNonPower2Texels += TextureRect.Width() * TextureRect.Height();
-
-
 				// Copy the raw data for this light-map into the raw texture data array.
 				for(int32 Y = Allocation->MappedRect.Min.Y; Y < Allocation->MappedRect.Max.Y; ++Y)
 				{
@@ -1459,44 +1305,43 @@ void FLightMapPendingTexture::StartEncoding()
 						DestCoverage = DestBottomCoverage = SourceCoefficients.Coverage / 2;
 						if ( SourceCoefficients.Coverage > 0 )
 						{
-							NumLightmapMappedTexels++;
+							GNumLightmapMappedTexels++;
 						}
 						else
 						{
-							NumLightmapUnmappedTexels++;
+							GNumLightmapUnmappedTexels++;
 						}
 
-#if WITH_EDITOR
-						if (bTexelDebuggingEnabled)
+#if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING && WITH_EDITOR
+						int32 PaddedX = X;
+						int32 PaddedY = Y;
+						if (GLightmassDebugOptions.bPadMappings && (Allocation->PaddingType == LMPT_NormalPadding))
 						{
-							int32 PaddedX = X;
-							int32 PaddedY = Y;
-							if (GLightmassDebugOptions.bPadMappings && (Allocation->PaddingType == LMPT_NormalPadding))
+							if (Allocation->TotalSizeX - 2 > 0 && Allocation->TotalSizeY - 2 > 0)
 							{
-								if (Allocation->TotalSizeX - 2 > 0 && Allocation->TotalSizeY - 2 > 0)
-								{
-									PaddedX -= 1;
-									PaddedY -= 1;
-								}
+								PaddedX -= 1;
+								PaddedY -= 1;
 							}
+						}
 
-							if (Allocation->bDebug
-								&& PaddedX == GCurrentSelectedLightmapSample.LocalX
-								&& PaddedY == GCurrentSelectedLightmapSample.LocalY)
-							{
-								extern FColor GTexelSelectionColor;
-								DestColor = GTexelSelectionColor;
-							}
+						if (Allocation->bDebug
+							&& PaddedX == GCurrentSelectedLightmapSample.LocalX
+							&& PaddedY == GCurrentSelectedLightmapSample.LocalY)
+						{
+							GCurrentSelectedLightmapSample.OriginalColor = DestColor;
+							extern FColor GTexelSelectionColor;
+							DestColor = GTexelSelectionColor;
 						}
 #endif
 #endif
 					}
 				}
-
-
 			}
 		}
 
+		GNumLightmapTotalTexels += Texture->Source.GetSizeX() * Texture->Source.GetSizeY();
+		GNumLightmapTotalTexelsNonPow2 += TextureRect.Width() * TextureRect.Height();
+		GNumLightmapTextures++;
 
 		GenerateLightmapMipsAndDilateColor(NumMips, TextureSizeX, TextureSizeY, TextureColor, MipData, MipCoverageData);
 
@@ -1506,9 +1351,44 @@ void FLightMapPendingTexture::StartEncoding()
 			Texture->Source.UnlockMip(MipIndex);
 			FMemory::Free( MipCoverageData[ MipIndex ] );
 		}
+
+		Texture->BeginCachePlatformData();
+		new(TotalAsyncTasks) FAsyncLightMapCacheTask(this, (ELightmapTextureType)CoefficientIndex);
+		NumOutstandingAsyncTasks++;
 	}
 
-	bIsFinishedEncoding = true;
+	for(int32 AllocationIndex = 0; AllocationIndex < Allocations.Num(); AllocationIndex++)
+	{
+		FLightMapAllocation* Allocation = Allocations[AllocationIndex];
+
+		int32 PaddedSizeX = Allocation->TotalSizeX;
+		int32 PaddedSizeY = Allocation->TotalSizeY;
+		int32 BaseX = Allocation->OffsetX - Allocation->MappedRect.Min.X;
+		int32 BaseY = Allocation->OffsetY - Allocation->MappedRect.Min.Y;
+		if (FPlatformProperties::HasEditorOnlyData() && GLightmassDebugOptions.bPadMappings && (Allocation->PaddingType == LMPT_NormalPadding))
+		{
+			if ((PaddedSizeX - 2 > 0) && ((PaddedSizeY - 2) > 0))
+			{
+				PaddedSizeX -= 2;
+				PaddedSizeY -= 2;
+				BaseX += 1;
+				BaseY += 1;
+			}
+		}
+		
+		// Calculate the coordinate scale/biases this light-map.
+		FVector2D Scale((float)PaddedSizeX / (float)GetSizeX(), (float)PaddedSizeY / (float)GetSizeY());
+		FVector2D Bias((float)BaseX / (float)GetSizeX(), (float)BaseY / (float)GetSizeY());
+
+		// Set the scale/bias of the lightmap
+		check( Allocation->LightMap );
+		Allocation->LightMap->CoordinateScale = Scale;
+		Allocation->LightMap->CoordinateBias = Bias;
+		Allocation->PostEncode();
+
+		// Free the light-map's raw data.
+		Allocation->RawData.Empty();
+	}
 }
 
 FName FLightMapPendingTexture::GetLightmapName(int32 TextureIndex, int32 CoefficientIndex)
@@ -1606,21 +1486,18 @@ FLightMap2D* FLightMap2D::AllocateLightMap(UObject* LightMapOuter, FQuantizedLig
 		Allocation->LightMap = LightMap;
 		Allocation->Primitive = LightMapOuter;
 
-#if WITH_EDITOR
-		if (IsTexelDebuggingEnabled())
+#if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING && WITH_EDITOR
+		// Detect if this allocation belongs to the texture mapping that was being debugged
+		//@todo - this only works for mappings that can be uniquely identified by a single component, BSP for example does not work.
+		if (GCurrentSelectedLightmapSample.Component && GCurrentSelectedLightmapSample.Component == LightMapOuter)
 		{
-			// Detect if this allocation belongs to the texture mapping that was being debugged
-			//@todo - this only works for mappings that can be uniquely identified by a single component, BSP for example does not work.
-			if (GCurrentSelectedLightmapSample.Component && GCurrentSelectedLightmapSample.Component == LightMapOuter)
-			{
-				GCurrentSelectedLightmapSample.Lightmap = LightMap;
-				Allocation->bDebug = true;
-			}
-			else
-			{
-				Allocation->bDebug = false;
-			}
+			GCurrentSelectedLightmapSample.Lightmap = LightMap;
+			Allocation->bDebug = true;
 		}
+		else
+		{
+			Allocation->bDebug = false;
+	}
 #endif
 
 		// SourceQuantizedData is no longer needed now that FLightMapAllocation has what it needs
@@ -1832,13 +1709,12 @@ struct FCompareLightmaps
 };
 
 #endif //WITH_EDITOR
-
 /**
  * Executes all pending light-map encoding requests.
  * @param	bLightingSuccessful	Whether the lighting build was successful or not.
- * @param	bMultithreadedEncode encode textures on different threads ;)
+ * @param	bForceCompletion	Force all encoding to be fully completed (they may be asynchronous).
  */
-void FLightMap2D::EncodeTextures( UWorld* InWorld, bool bLightingSuccessful, bool bMultithreadedEncode)
+void FLightMap2D::EncodeTextures( UWorld* InWorld, bool bLightingSuccessful, bool bForceCompletion )
 {
 #if WITH_EDITOR
 	if (bLightingSuccessful)
@@ -1952,70 +1828,24 @@ void FLightMap2D::EncodeTextures( UWorld* InWorld, bool bLightingSuccessful, boo
 			}
 		}
 		PendingLightMaps.Empty();
-		if (bMultithreadedEncode)
-		{
-			FThreadSafeCounter Counter(PendingTextures.Num());
-			// allocate memory for all the async encode tasks
-			TArray<FAsyncEncode<FLightMapPendingTexture>> AsyncEncodeTasks;
-			AsyncEncodeTasks.Empty(PendingTextures.Num());
-			for (auto& Texture :PendingTextures)
-			{
-				// precreate the UObjects then give them to some threads to process
-				// need to precreate Uobjects 
-				Texture->CreateUObjects();
-				auto AsyncEncodeTask = new (AsyncEncodeTasks)FAsyncEncode<FLightMapPendingTexture>(Texture,Counter);
-				GLargeThreadPool->AddQueuedWork(AsyncEncodeTask);
-			}
 
-			while (Counter.GetValue() > 0)
-			{
-				GWarn->UpdateProgress(Counter.GetValue(), PendingTextures.Num());
-				FPlatformProcess::Sleep(0.0001f);
-			}
-		}
-		else
+		// Encode all the pending textures.
+		for (int32 TextureIndex = 0; TextureIndex < PendingTextures.Num(); TextureIndex++)
 		{
-			// Encode all the pending textures.
-			for (int32 TextureIndex = 0; TextureIndex < PendingTextures.Num(); TextureIndex++)
+			if (bUpdateStatus && (TextureIndex % 20) == 0)
 			{
-				if (bUpdateStatus && (TextureIndex % 20) == 0)
-				{
-					GWarn->UpdateProgress(TextureIndex, PendingTextures.Num());
-				}
-				FLightMapPendingTexture* PendingTexture = PendingTextures[TextureIndex];
-				PendingTexture->StartEncoding();
+				GWarn->UpdateProgress(TextureIndex, PendingTextures.Num());
 			}
+			FLightMapPendingTexture* PendingTexture = PendingTextures[TextureIndex];
+			PendingTexture->StartEncoding();
 		}
-
-		// finish the encode (separate from waiting for the cache to complete)
-		while (true)
-		{
-			bool bIsFinishedPostEncode = true;
-			for (auto& PendingTexture : PendingTextures)
-			{
-				if (PendingTexture->IsFinishedEncoding())
-				{
-					PendingTexture->PostEncode();
-				}
-				else
-				{
-					// call post encode in order
-					bIsFinishedPostEncode = false;
-					break;
-				}
-			}
-			if (bIsFinishedPostEncode)
-				break;
-		}
-
-		for (auto& PendingTexture : PendingTextures)
-		{
-			PendingTexture->FinishCachingTextures();
-			delete PendingTexture;
-		}
-
 		PendingTextures.Empty();
 
+		if (bForceCompletion)
+		{
+			// Block until there are 0 unfinished tasks, making sure all compression has completed.
+			FLightMapPendingTexture::FinishCompletedTasks(0);
+		}
 
 		// End the encoding lighmaps slow task
 		GWarn->EndSlowTask();

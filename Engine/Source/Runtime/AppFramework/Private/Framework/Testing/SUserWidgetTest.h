@@ -1,8 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#if !UE_BUILD_SHIPPING
 
 class SUserWidgetExample
 	: public SUserWidget
@@ -19,5 +18,3 @@ class SUserWidgetExample
 
 	virtual void DoStuff() = 0;
 };
-
-#endif // #if !UE_BUILD_SHIPPING

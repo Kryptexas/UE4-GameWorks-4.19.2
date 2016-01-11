@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -27,9 +27,6 @@ class UFunctionalTestingManager : public UBlueprintFunctionLibrary
 
 	UPROPERTY(BlueprintAssignable)
 	FFunctionalTestEventSignature OnSetupTests;
-
-	UPROPERTY(BlueprintAssignable)
-	FFunctionalTestEventSignature OnTestsComplete;
 	
 	UFUNCTION(BlueprintCallable, Category="FunctionalTesting", meta=(WorldContext="WorldContext", CallableWithoutWorldContext ) )
 	/** Triggers in sequence all functional tests found on the level.
@@ -43,6 +40,14 @@ class UFunctionalTestingManager : public UBlueprintFunctionLibrary
 
 	void TickMe(float DeltaTime);
 
+	//----------------------------------------------------------------------//
+	// Automation logging
+	//----------------------------------------------------------------------//
+	static void SetAutomationExecutionInfo(FAutomationTestExecutionInfo* InExecutionInfo) { ExecutionInfo = InExecutionInfo; }
+	static void AddError(const FText& InError);
+	static void AddWarning(const FText& InWarning);
+	static void AddLogItem(const FText& InLogItem);
+
 private:
 	void LogMessage(const FString& MessageString, TSharedPtr<IMessageLogListing> LogListing = NULL);
 	
@@ -53,6 +58,7 @@ protected:
 	void SetUpTests();
 
 	void OnTestDone(class AFunctionalTest* FTest);
+	void OnEndPIE(const bool bIsSimulating);
 
 	bool RunFirstValidTest();
 
@@ -77,17 +83,8 @@ protected:
 	FString StartingReproString;
 	TArray<FString> TestReproStrings;
 
+	static FAutomationTestExecutionInfo* ExecutionInfo;
+
 private:
 	FTimerHandle TriggerFirstValidTestTimerHandle;
-};
-
-UCLASS(abstract, Blueprintable, MinimalAPI)
-class APhasedAutomationActorBase : public AActor
-{
-	GENERATED_BODY()
-
-public:
-
-	UFUNCTION(BlueprintImplementableEvent, Category = "Automation")
-	void OnFunctionalTestingComplete();
 };

@@ -1,40 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "MovieSceneSection.h"
-#include "IKeyframeSection.h"
+
 #include "MovieSceneMarginSection.generated.h"
 
-
-enum class EKeyMarginChannel
-{
-	Left,
-	Top,
-	Right,
-	Bottom
-};
-
-
-struct FMarginKey
-{
-	FMarginKey( EKeyMarginChannel InChannel, float InValue )
-	{
-		Channel = InChannel;
-		Value = InValue;
-	}
-	EKeyMarginChannel Channel;
-	float Value;
-};
-
+struct FMarginKey;
 
 /**
  * A section in a Margin track
  */
 UCLASS(MinimalAPI)
-class UMovieSceneMarginSection 
-	: public UMovieSceneSection
-	, public IKeyframeSection<FMarginKey>
+class UMovieSceneMarginSection : public UMovieSceneSection
 {
 	GENERATED_UCLASS_BODY()
 public:
@@ -50,11 +28,24 @@ public:
 	 */
 	FMargin Eval( float Position, const FMargin& DefaultValue ) const;
 
-	// IKeyframeSection interface.
-	virtual void AddKey( float Time, const FMarginKey& MarginKey, EMovieSceneKeyInterpolation KeyInterpolation ) override;
-	virtual bool NewKeyIsNewData(float Time, const FMarginKey& Key ) const override;
-	virtual bool HasKeys(const FMarginKey& Key) const override;
-	virtual void SetDefault(const FMarginKey& Key) override;
+	/** 
+	 * Adds a key to the section
+	 *
+	 * @param Time	The location in time where the key should be added
+	 * @param Value	The value of the key
+	 * @param KeyParams The keying parameters
+	 */
+	void AddKey( float Time, const FMarginKey& MarginKey, FKeyParams KeyParams );
+	
+	/** 
+	 * Determines if a new key would be new data, or just a duplicate of existing data
+	 *
+	 * @param Time	The location in time where the key would be added
+	 * @param Value	The value of the new key
+	 * @param KeyParams The keying parameters
+	 * @return True if the new key would be new data, false if duplicate
+	 */
+	bool NewKeyIsNewData(float Time, const FMargin& Value, FKeyParams KeyParams) const;
 
 	/**
 	 * Gets the top curve
@@ -88,7 +79,6 @@ public:
 	const FRichCurve& GetBottomCurve() const { return BottomCurve; }
 
 private:
-
 	/** Red curve data */
 	UPROPERTY()
 	FRichCurve TopCurve;

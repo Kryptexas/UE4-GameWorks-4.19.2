@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "UnrealEd.h"
@@ -179,17 +179,6 @@ UEdGraph* FEdGraphUtilities::CloneGraph(UEdGraph* InSource, UObject* NewOuter, F
 			UObject* const Dest = It.Value();
 
 			MessageLog->NotifyIntermediateObjectCreation(Dest, Source);
-
-			// During compilation, set cloned nodes to a non-conditional enabled state.
-			if (bCloningForCompile)
-			{
-				const UEdGraphNode* SrcNode = Cast<UEdGraphNode>(Source);
-				UEdGraphNode* DstNode = Cast<UEdGraphNode>(Dest);
-				if(SrcNode && DstNode)
-				{
-					DstNode->EnabledState = SrcNode->IsNodeEnabled() ? ENodeEnabledState::Enabled : ENodeEnabledState::Disabled;
-				}
-			}
 		}
 	}
 

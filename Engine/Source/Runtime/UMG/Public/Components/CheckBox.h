@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,8 +13,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnCheckBoxComponentStateChanged, b
  * 'indeterminable.  You can use the checkbox for a classic checkbox, or as a toggle button,
  * or as radio buttons.
  * 
- * * Single Child
- * * Toggle
+ * ● Single Child
+ * ● Toggle
  */
 UCLASS()
 class UMG_API UCheckBox : public UContentWidget
@@ -117,17 +117,17 @@ public:
 
 public:
 	
-	//~ Begin UWidget Interface
+	// UWidget interface
 	virtual void SynchronizeProperties() override;
-	//~ End UWidget Interface
+	// End of UWidget interface
 
-	//~ Begin UVisual Interface
+	// UVisual interface
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
-	//~ End UVisual Interface
+	// End of UVisual interface
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void PostLoad() override;
-	//~ End UObject Interface
+	// End of UObject interface
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
@@ -142,9 +142,9 @@ protected:
 	// End UPanelWidget
 
 protected:
-	//~ Begin UWidget Interface
+	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
-	//~ End UWidget Interface
+	// End of UWidget interface
 
 	void SlateOnCheckStateChangedCallback(ECheckBoxState NewState);
 	

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 /*=============================================================================
 	HLSLMaterialTranslator.h: Translates material expressions into HLSL code.
 =============================================================================*/
@@ -26,7 +26,7 @@
 #include "LazyPrintf.h"
 
 /** @return the number of components in a vector type. */
-static inline uint32 GetNumComponents(EMaterialValueType Type)
+uint32 GetNumComponents(EMaterialValueType Type)
 {
 	switch(Type)
 	{
@@ -40,7 +40,7 @@ static inline uint32 GetNumComponents(EMaterialValueType Type)
 }
 
 /** @return the vector type containing a given number of components. */
-static inline EMaterialValueType GetVectorType(uint32 NumComponents)
+EMaterialValueType GetVectorType(uint32 NumComponents)
 {
 	switch(NumComponents)
 	{
@@ -112,12 +112,8 @@ protected:
 	EMaterialProperty MaterialProperty;
 	/** The code chunks corresponding to the currently compiled property or custom output. */
 	TArray<FShaderCodeChunk>* CurrentScopeChunks;
-
-	// List of Shared pixel properties. Used to share generated code
-	bool SharedPixelProperties[CompiledMP_MAX];
-
 	/* Stack that tracks compiler state specific to the function currently being compiled. */
-	TArray<FMaterialFunctionCompileState> FunctionStacks[SF_NumFrequencies];
+	TArray<FMaterialFunctionCompileState> FunctionStack;
 	/** Material being compiled.  Only transient compilation output like error information can be stored on the FMaterial. */
 	FMaterial* Material;
 	/** Compilation output which will be stored in the DDC. */
@@ -141,12 +137,12 @@ protected:
 
 	/** Stores the resource declarations */
 	FString ResourcesString;
-
+	
 	/** Contents of the MaterialTemplate.usf file */
 	FString MaterialTemplate;
 
 	// Array of code chunks per material property
-	TArray<FShaderCodeChunk> SharedPropertyCodeChunks[SF_NumFrequencies];
+	TArray<FShaderCodeChunk> PropertyCodeChunks[MP_MAX][SF_NumFrequencies];
 
 	// Uniform expressions used across all material properties
 	TArray<FShaderCodeChunk> UniformExpressions;
@@ -179,8 +175,6 @@ protected:
 	uint32 bNeedsParticleTime : 1;
 	/** true if the material uses particle motion blur. */
 	uint32 bUsesParticleMotionBlur : 1;
-	/** true if the material needs particle random value. */
-	uint32 bNeedsParticleRandom : 1;
 	/** true if the material uses spherical particle opacity. */
 	uint32 bUsesSphericalParticleOpacity : 1;
 	/** true if the material uses particle sub uvs. */
@@ -240,7 +234,6 @@ public:
 	,	bNeedsParticleDynamicParameter(false)
 	,	bNeedsParticleTime(false)
 	,	bUsesParticleMotionBlur(false)
-	,	bNeedsParticleRandom(false)
 	,	bUsesSphericalParticleOpacity(false)
 	,   bUsesParticleSubUVs(false)
 	,	bUsesLightmapUVs(false)
@@ -258,28 +251,7 @@ public:
 	,	bUsesPixelDepthOffset(false)
 	,	NumUserTexCoords(0)
 	,	NumUserVertexTexCoords(0)
-	{
-		FMemory::Memzero(SharedPixelProperties);
-
-		SharedPixelProperties[MP_Normal] = true;
-		SharedPixelProperties[MP_EmissiveColor] = true;
-		SharedPixelProperties[MP_Opacity] = true;
-		SharedPixelProperties[MP_OpacityMask] = true;
-		SharedPixelProperties[MP_BaseColor] = true;
-		SharedPixelProperties[MP_Metallic] = true;
-		SharedPixelProperties[MP_Specular] = true;
-		SharedPixelProperties[MP_Roughness] = true;
-		SharedPixelProperties[MP_AmbientOcclusion] = true;
-		SharedPixelProperties[MP_Refraction] = true;
-		SharedPixelProperties[MP_PixelDepthOffset] = true;
-
-		{
-			for (int32 Frequency = 0; Frequency < SF_NumFrequencies; ++Frequency)
-			{
-				FunctionStacks[Frequency].Add(FMaterialFunctionCompileState(nullptr));
-			}
-		}
-	}
+	{}
  
 	bool Translate()
 	{
@@ -296,44 +268,12 @@ public:
 
 			bCompileForComputeShader = Material->IsLightFunction();
 
-			// Generate code:
-			// Normally one would expect the generator to emit something like
-			//		float Local0 = ...
-			//		...
-			//		float Local3= ...
-			//		...
-			//		float Localn= ...
-			//		PixelMaterialInputs.EmissiveColor = Local0 + ...
-			//		PixelMaterialInputs.Normal = Local3 * ...
-			// However because the Normal can be used in the middle of generating other Locals (which happens when using a node like PixelNormalWS)
-			// instead we generate this:
-			//		float Local0 = ...
-			//		...
-			//		float Local3= ...
-			//		PixelMaterialInputs.Normal = Local3 * ...
-			//		...
-			//		float Localn= ...
-			//		PixelMaterialInputs.EmissiveColor = Local0 + ...
-			// in other words, compile Normal first, then emit all the expressions up to the last one Normal requires;
-			// assign the normal into the shared struct, then emit the remaining expressions; finally assign the rest of the shared struct inputs.
-			// Inputs that are not shared, have false in the SharedPixelProperties array, and those ones will emit the full code.
-
-			int32 NormalCodeChunkEnd = -1;
+			// Generate code
 			int32 Chunk[CompiledMP_MAX];
 
 			memset(Chunk, -1, sizeof(Chunk));
 
-			const EShaderFrequency NormalShaderFrequency = GetMaterialPropertyShaderFrequency(MP_Normal);
-
-			// Normal must always be compiled first; this will ensure its chunk calculations are the first to be added
-			{
-				// Verify that start chunk is 0
-				check(SharedPropertyCodeChunks[NormalShaderFrequency].Num() == 0);
-				Chunk[MP_Normal]						= Material->CompilePropertyAndSetMaterialProperty(MP_Normal, this);
-				NormalCodeChunkEnd = SharedPropertyCodeChunks[NormalShaderFrequency].Num();
-			}
-
-			// Rest of properties
+			Chunk[MP_Normal]						= Material->CompilePropertyAndSetMaterialProperty(MP_Normal                ,this);
 			Chunk[MP_EmissiveColor]					= Material->CompilePropertyAndSetMaterialProperty(MP_EmissiveColor         ,this);
 			Chunk[MP_DiffuseColor]					= Material->CompilePropertyAndSetMaterialProperty(MP_DiffuseColor          ,this);
 			Chunk[MP_SpecularColor]					= Material->CompilePropertyAndSetMaterialProperty(MP_SpecularColor         ,this);
@@ -375,9 +315,9 @@ public:
 				Chunk[MP_SubsurfaceColor] = AppendVector(SubsurfaceColor, CodeSubsurfaceProfile);		
 			}
 
-			Chunk[MP_CustomData0]					= Material->CompilePropertyAndSetMaterialProperty(MP_CustomData0		,this);
-			Chunk[MP_CustomData1]					= Material->CompilePropertyAndSetMaterialProperty(MP_CustomData1		,this);
-			Chunk[MP_AmbientOcclusion]				= Material->CompilePropertyAndSetMaterialProperty(MP_AmbientOcclusion	,this);
+			Chunk[MP_ClearCoat]						= Material->CompilePropertyAndSetMaterialProperty(MP_ClearCoat			   ,this);
+			Chunk[MP_ClearCoatRoughness]			= Material->CompilePropertyAndSetMaterialProperty(MP_ClearCoatRoughness    ,this);
+			Chunk[MP_AmbientOcclusion]				= Material->CompilePropertyAndSetMaterialProperty(MP_AmbientOcclusion      ,this);
 
 			if(IsTranslucentBlendMode(Material->GetBlendMode()))
 			{
@@ -468,19 +408,7 @@ public:
 
 			if (MaterialCompilationOutput.bNeedsSceneTextures)
 			{
-				if (Domain == MD_DeferredDecal)
-				{
-					uint32 DecalBlendMode = Material->GetDecalBlendMode();
-					if (DecalBlendMode != DBM_Translucent && DecalBlendMode != DBM_Stain && DecalBlendMode != DBM_Emissive && DecalBlendMode != DBM_Normal && DecalBlendMode != DBM_Volumetric_DistanceFunction)
-					{
-						Errorf(TEXT("SceneTexture expressions can not be used with decals using DBuffer"));
-					} 
-					else if (MaterialCompilationOutput.bNeedsGBuffer && Material->HasNormalConnected()) // GBuffer can only relate to WorldNormal here.
-					{
-						Errorf(TEXT("Can't read WorldNormal and output to normal at the same time"));
-					}
-				}
-				else if (Domain != MD_PostProcess)
+				if (Domain != MD_PostProcess)
 				{
 					if (Material->GetBlendMode() == BLEND_Opaque || Material->GetBlendMode() == BLEND_Masked)
 					{
@@ -498,43 +426,6 @@ public:
 			check(SavedNumUserTexCoords == NumUserTexCoords);
 
 			ResourcesString = TEXT("");
-
-			// Gather the implementation for any custom output expressions
-			{
-				TArray<UMaterialExpressionCustomOutput*> CustomOutputExpressions;
-				Material->GatherCustomOutputExpressions(CustomOutputExpressions);
-				TSet<UClass*> SeenCustomOutputExpressionsClases;
-
-				for (UMaterialExpressionCustomOutput* CustomOutput : CustomOutputExpressions)
-				{
-					if (SeenCustomOutputExpressionsClases.Contains(CustomOutput->GetClass()))
-					{
-						Errorf(TEXT("The material can contain only one %s node"), *CustomOutput->GetDescription());
-					}
-					else
-					{
-						SeenCustomOutputExpressionsClases.Add(CustomOutput->GetClass());
-
-						int32 NumOutputs = CustomOutput->GetNumOutputs();
-						ResourcesString += FString::Printf(TEXT("#define NUM_MATERIAL_OUTPUTS_%s %d\r\n"), *CustomOutput->GetFunctionName().ToUpper(), NumOutputs);
-						if (NumOutputs > 0)
-						{
-							for (int32 Index = 0; Index < NumOutputs; Index++)
-							{
-								{
-									FunctionStacks[SF_Pixel].Empty();
-									FunctionStacks[SF_Pixel].Add(FMaterialFunctionCompileState(nullptr));
-								}
-								MaterialProperty = MP_MAX; // Indicates we're not compiling any material property.
-								ShaderFrequency = SF_Pixel;
-								TArray<FShaderCodeChunk> CustomExpressionChunks;
-								CurrentScopeChunks = &CustomExpressionChunks; //-V506
-								CustomOutput->Compile(this, Index, 0);
-							}
-						}
-					}
-				}
-			}
 
 			// Output the implementation for any custom expressions we will call below.
 			for(int32 ExpressionIndex = 0;ExpressionIndex < CustomExpressionImplementations.Num();ExpressionIndex++)
@@ -565,39 +456,16 @@ public:
 				}
 			}
 
-			// Do Normal Chunk first
-			{
-				GetFixedParameterCode(
-					0,
-					NormalCodeChunkEnd,
-					Chunk[MP_Normal],
-					SharedPropertyCodeChunks[NormalShaderFrequency],
-					TranslatedCodeChunkDefinitions[MP_Normal],
-					TranslatedCodeChunks[MP_Normal]);
-			}
-
-			// Now the rest, skipping Normal
 			for(uint32 PropertyId = 0; PropertyId < MP_MAX; ++PropertyId)
 			{
-				if (PropertyId == MP_MaterialAttributes || PropertyId == MP_Normal)
+				if(PropertyId == MP_MaterialAttributes )
 				{
 					continue;
 				}
 
-				const EShaderFrequency PropertyShaderFrequency = GetMaterialPropertyShaderFrequency((EMaterialProperty)PropertyId);
-
-				int32 StartChunk = 0;
-				if (PropertyShaderFrequency == NormalShaderFrequency && SharedPixelProperties[PropertyId])
-				{
-					// When processing shared properties, do not generate the code before the Normal was generated as those are already handled
-					StartChunk = NormalCodeChunkEnd;
-				}
-
 				GetFixedParameterCode(
-					StartChunk,
-					SharedPropertyCodeChunks[PropertyShaderFrequency].Num(),
-					Chunk[PropertyId],
-					SharedPropertyCodeChunks[PropertyShaderFrequency],
+					Chunk[PropertyId], 
+					PropertyCodeChunks[PropertyId][GetMaterialPropertyShaderFrequency((EMaterialProperty)PropertyId)],
 					TranslatedCodeChunkDefinitions[PropertyId],
 					TranslatedCodeChunks[PropertyId]);
 			}
@@ -609,22 +477,50 @@ public:
 				case CompiledMP_EmissiveColorCS:
 			    	if (bCompileForComputeShader)
 				    {
-						{
-							GetFixedParameterCode(Chunk[PropertyId], SharedPropertyCodeChunks[SF_Compute], TranslatedCodeChunkDefinitions[PropertyId], TranslatedCodeChunks[PropertyId]);
-						}
+						GetFixedParameterCode(Chunk[PropertyId], PropertyCodeChunks[MP_EmissiveColor][SF_Compute], TranslatedCodeChunkDefinitions[PropertyId], TranslatedCodeChunks[PropertyId]);
 				    }
 					break;
 				case CompiledMP_PrevWorldPositionOffset:
-					{
-						GetFixedParameterCode(Chunk[PropertyId], SharedPropertyCodeChunks[SF_Vertex], TranslatedCodeChunkDefinitions[PropertyId], TranslatedCodeChunks[PropertyId]);
-					}
+					GetFixedParameterCode(Chunk[PropertyId], PropertyCodeChunks[MP_WorldPositionOffset][SF_Vertex], TranslatedCodeChunkDefinitions[PropertyId], TranslatedCodeChunks[PropertyId]);
 					break;
 				default: check(0);
 					break;
 				}
 			}
 
-			// Output the implementation for any custom output expressions
+			// Gather and output the implementation for any custom output expressions
+			TArray<UMaterialExpressionCustomOutput*> CustomOutputExpressions;
+			Material->GatherCustomOutputExpressions(CustomOutputExpressions);
+			TSet<UClass*> SeenCustomOutputExpressionsClases;
+
+			for(UMaterialExpressionCustomOutput* CustomOutput : CustomOutputExpressions)
+			{
+				if(SeenCustomOutputExpressionsClases.Contains(CustomOutput->GetClass()))
+				{
+					Errorf(TEXT("The material can contain only one %s node"), *CustomOutput->GetDescription());
+				}
+				else
+				{
+					SeenCustomOutputExpressionsClases.Add(CustomOutput->GetClass());
+
+					int32 NumOutputs = CustomOutput->GetNumOutputs();
+					ResourcesString += FString::Printf(TEXT("#define NUM_MATERIAL_OUTPUTS_%s %d\r\n"), *CustomOutput->GetFunctionName().ToUpper(), NumOutputs);
+					if (NumOutputs > 0)
+					{
+						for (int32 Index = 0; Index < NumOutputs; Index++)
+						{
+							FunctionStack.Empty();
+							FunctionStack.Add(FMaterialFunctionCompileState(NULL));
+							MaterialProperty = MP_MAX; // Indicates we're not compiling any material property.
+							ShaderFrequency = SF_Pixel;
+							TArray<FShaderCodeChunk> CustomExpressionChunks;
+							CurrentScopeChunks = &CustomExpressionChunks; //-V506
+							CustomOutput->Compile(this, Index, 0);
+						}
+					}
+				}
+			}
+
 			for (int32 ExpressionIndex = 0; ExpressionIndex < CustomOutputImplementations.Num(); ExpressionIndex++)
 			{
 				ResourcesString += CustomOutputImplementations[ExpressionIndex] + "\r\n\r\n";
@@ -689,11 +585,6 @@ public:
 			OutEnvironment.SetDefine(TEXT("USES_PARTICLE_MOTION_BLUR"), 1);
 		}
 
-		if (bNeedsParticleRandom)
-		{
-			OutEnvironment.SetDefine(TEXT("NEEDS_PARTICLE_RANDOM"), 1);
-		}
-
 		if (bUsesSphericalParticleOpacity)
 		{
 			OutEnvironment.SetDefine(TEXT("SPHERICAL_PARTICLE_OPACITY"), TEXT("1"));
@@ -755,62 +646,6 @@ public:
 		}
 	}
 
-	void GetSharedInputsMaterialCode(FString& PixelMembersDeclaration, FString& NormalAssignment, FString& PixelMembersInitializationEpilog)
-	{
-		{
-			int32 LastProperty = -1;
-
-			FString PixelInputInitializerValues;
-			FString NormalInitializerValue;
-
-			for (int32 PropertyIndex = 0; PropertyIndex < MP_MAX; ++PropertyIndex)
-			{
-				// Skip non-shared properties
-				if (!SharedPixelProperties[PropertyIndex])
-				{
-					continue;
-				}
-
-				const EMaterialProperty Property = (EMaterialProperty)PropertyIndex;
-				check(GetMaterialPropertyShaderFrequency(Property) == SF_Pixel);
-				const FString PropertyName = GetNameOfMaterialProperty(Property);
-				check(PropertyName.Len() > 0);
-				const EMaterialValueType Type = GetMaterialPropertyType(Property);
-
-				// Normal requires its own separate initializer
-				if (Property == MP_Normal)
-				{
-					NormalInitializerValue = FString::Printf(TEXT("\tPixelMaterialInputs.%s = %s;\n"), *PropertyName, *TranslatedCodeChunks[Property]);
-				}
-				else
-				{
-					if (TranslatedCodeChunkDefinitions[Property].Len() > 0)
-					{
-						if (LastProperty >= 0)
-						{
-							// Verify that all code chunks have the same contents
-							check(TranslatedCodeChunkDefinitions[Property].Len() == TranslatedCodeChunkDefinitions[LastProperty].Len());
-						}
-
-						LastProperty = Property;
-					}
-
-					PixelInputInitializerValues += FString::Printf(TEXT("\tPixelMaterialInputs.%s = %s;\n"), *PropertyName, *TranslatedCodeChunks[Property]);
-				}
-
-				PixelMembersDeclaration += FString::Printf(TEXT("\t%s %s;\n"), HLSLTypeString(Type), *PropertyName);
-			}
-
-			NormalAssignment = NormalInitializerValue;
-			if (LastProperty != -1)
-			{
-				PixelMembersInitializationEpilog += TranslatedCodeChunkDefinitions[LastProperty] + TEXT("\n");
-			}
-
-			PixelMembersInitializationEpilog += PixelInputInitializerValues;
-		}
-	}
-
 	FString GetMaterialShaderCode()
 	{	
 		// use "MaterialTemplate.usf" to create the functions to get data (e.g. material attributes) and code (e.g. material expressions to create specular color) from C++
@@ -818,22 +653,12 @@ public:
 
 		LazyPrintf.PushParam(*FString::Printf(TEXT("%u"),NumUserVertexTexCoords));
 		LazyPrintf.PushParam(*FString::Printf(TEXT("%u"),NumUserTexCoords));
-
-		// Stores the shared shader results member declarations
-		FString PixelMembersDeclaration;
-
-		FString NormalAssignment;
-
-		// Stores the code to initialize all inputs after MP_Normal
-		FString PixelMembersSetupAndAssignments;
-
-		GetSharedInputsMaterialCode(PixelMembersDeclaration, NormalAssignment, PixelMembersSetupAndAssignments);
-
-		LazyPrintf.PushParam(*PixelMembersDeclaration);
-
 		LazyPrintf.PushParam(*ResourcesString);
 
-		if (bCompileForComputeShader)
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_Normal));
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_EmissiveColor));
+
+		if(bCompileForComputeShader)
 		{
 			LazyPrintf.PushParam(*GenerateFunctionCode(CompiledMP_EmissiveColorCS));
 		}
@@ -841,6 +666,11 @@ public:
 		{
 			LazyPrintf.PushParam(TEXT("return 0"));
 		}
+
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_BaseColor));
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_Metallic));
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_Specular));
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_Roughness));
 
 		LazyPrintf.PushParam(*FString::Printf(TEXT("return %.5f"),Material->GetTranslucencyDirectionalLightingIntensity()));
 		
@@ -858,45 +688,29 @@ public:
 
 		LazyPrintf.PushParam(*FString::Printf(TEXT("return %.5f"),Material->GetOpacityMaskClipValue()));
 
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_Opacity));
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_OpacityMask));
 		LazyPrintf.PushParam(*GenerateFunctionCode(MP_WorldPositionOffset));
 		LazyPrintf.PushParam(*GenerateFunctionCode(CompiledMP_PrevWorldPositionOffset));
 		LazyPrintf.PushParam(*GenerateFunctionCode(MP_WorldDisplacement));
 		LazyPrintf.PushParam(*FString::Printf(TEXT("return %.5f"),Material->GetMaxDisplacement()));
 		LazyPrintf.PushParam(*GenerateFunctionCode(MP_TessellationMultiplier));
 		LazyPrintf.PushParam(*GenerateFunctionCode(MP_SubsurfaceColor));
-		LazyPrintf.PushParam(*GenerateFunctionCode(MP_CustomData0));
-		LazyPrintf.PushParam(*GenerateFunctionCode(MP_CustomData1));
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_ClearCoat));
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_ClearCoatRoughness));
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_AmbientOcclusion));
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_Refraction));
 
 		FString CustomUVAssignments;
 
+		for (uint32 CustomUVIndex = 0; CustomUVIndex < NumUserTexCoords; CustomUVIndex++)
 		{
-			int32 LastProperty = -1;
-			for (uint32 CustomUVIndex = 0; CustomUVIndex < NumUserTexCoords; CustomUVIndex++)
-			{
-				if (CustomUVIndex == 0)
-				{
-					CustomUVAssignments += TranslatedCodeChunkDefinitions[MP_CustomizedUVs0 + CustomUVIndex];
-				}
-
-				if (TranslatedCodeChunkDefinitions[MP_CustomizedUVs0 + CustomUVIndex].Len() > 0)
-				{
-					if (LastProperty >= 0)
-					{
-						check(TranslatedCodeChunkDefinitions[LastProperty].Len() == TranslatedCodeChunkDefinitions[MP_CustomizedUVs0 + CustomUVIndex].Len());
-					}
-					LastProperty = MP_CustomizedUVs0 + CustomUVIndex;
-				}
-				CustomUVAssignments += FString::Printf(TEXT("\tOutTexCoords[%u] = %s;") LINE_TERMINATOR, CustomUVIndex, *TranslatedCodeChunks[MP_CustomizedUVs0 + CustomUVIndex]);
-			}
+			CustomUVAssignments += FString::Printf(TEXT("%s	OutTexCoords[%u] = %s;") LINE_TERMINATOR, *TranslatedCodeChunkDefinitions[MP_CustomizedUVs0 + CustomUVIndex], CustomUVIndex, *TranslatedCodeChunks[MP_CustomizedUVs0 + CustomUVIndex]);
 		}
 
 		LazyPrintf.PushParam(*CustomUVAssignments);
-
-		// Initializers required for Normal
-		LazyPrintf.PushParam(*TranslatedCodeChunkDefinitions[MP_Normal]);
-		LazyPrintf.PushParam(*NormalAssignment);
-		// Finally the rest of common code followed by assignment into each input
-		LazyPrintf.PushParam(*PixelMembersSetupAndAssignments);
+	
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_PixelDepthOffset));
 
 		LazyPrintf.PushParam(*FString::Printf(TEXT("%u"),MaterialTemplateLineNumber));
 
@@ -916,7 +730,7 @@ protected:
 		else
 		{
 			int32 Frequency = (int32)GetMaterialPropertyShaderFrequency(Property);
-			FShaderCodeChunk& PropertyChunk = SharedPropertyCodeChunks[Frequency][PropertyChunkIndex];
+			FShaderCodeChunk& PropertyChunk = PropertyCodeChunks[Property][Frequency][PropertyChunkIndex];
 
 			// Determine whether the property is used. 
 			// If the output chunk has a uniform expression, it is constant, and GetNumberValue returns the default property value then property isn't used.
@@ -988,10 +802,10 @@ protected:
 	}
 
 	/** Creates a string of all definitions needed for the given material input. */
-	FString GetDefinitions(TArray<FShaderCodeChunk>& CodeChunks, int32 StartChunk, int32 EndChunk) const
+	FString GetDefinitions(TArray<FShaderCodeChunk>& CodeChunks) const
 	{
 		FString Definitions;
-		for (int32 ChunkIndex = StartChunk; ChunkIndex < EndChunk; ChunkIndex++)
+		for (int32 ChunkIndex = 0; ChunkIndex < CodeChunks.Num(); ChunkIndex++)
 		{
 			const FShaderCodeChunk& CodeChunk = CodeChunks[ChunkIndex];
 			// Uniform expressions (both constant and variable) and inline expressions don't have definitions.
@@ -1004,7 +818,7 @@ protected:
 	}
 
 	// GetFixedParameterCode
-	void GetFixedParameterCode(int32 StartChunk, int32 EndChunk, int32 ResultIndex, TArray<FShaderCodeChunk>& CodeChunks, FString& OutDefinitions, FString& OutValue)
+	void GetFixedParameterCode(int32 ResultIndex, TArray<FShaderCodeChunk>& CodeChunks, FString& OutDefinitions, FString& OutValue)
 	{
 		if (ResultIndex != INDEX_NONE)
 		{
@@ -1021,7 +835,7 @@ protected:
 				const FShaderCodeChunk& ResultChunk = CodeChunks[ResultIndex];
 				// Combine the definition lines and the return statement
 				check(ResultChunk.bInline || ResultChunk.SymbolName.Len() > 0);
-				OutDefinitions = GetDefinitions(CodeChunks, StartChunk, EndChunk);
+				OutDefinitions = GetDefinitions(CodeChunks);
 				OutValue = ResultChunk.bInline ? ResultChunk.Definition : ResultChunk.SymbolName;
 			}
 		}
@@ -1029,11 +843,6 @@ protected:
 		{
 			OutValue = TEXT("0");
 		}
-	}
-
-	void GetFixedParameterCode(int32 ResultIndex, TArray<FShaderCodeChunk>& CodeChunks, FString& OutDefinitions, FString& OutValue)
-	{
-		GetFixedParameterCode(0, CodeChunks.Num(), ResultIndex, CodeChunks, OutDefinitions, OutValue);
 	}
 
 	/** Used to get a user friendly type from EMaterialValueType */
@@ -1484,6 +1293,9 @@ protected:
 	 */
 	virtual void SetMaterialProperty(EMaterialProperty InProperty, EShaderFrequency OverrideShaderFrequency = SF_NumFrequencies, bool bUsePreviousFrameTime = false) override
 	{
+		FunctionStack.Empty();
+		FunctionStack.Add(FMaterialFunctionCompileState(NULL));
+
 		MaterialProperty = InProperty;
 
 		if(OverrideShaderFrequency != SF_NumFrequencies)
@@ -1497,7 +1309,7 @@ protected:
 
 		bCompilingPreviousFrame = bUsePreviousFrameTime;
 
-		CurrentScopeChunks = &SharedPropertyCodeChunks[ShaderFrequency];
+		CurrentScopeChunks = &PropertyCodeChunks[MaterialProperty][ShaderFrequency];
 	}
 	virtual EShaderFrequency GetCurrentShaderFrequency() const override
 	{
@@ -1507,22 +1319,21 @@ protected:
 	virtual int32 Error(const TCHAR* Text) override
 	{
 		FString ErrorString;
-		check(ShaderFrequency < SF_NumFrequencies);
-		auto& CurrentFunctionStack = FunctionStacks[ShaderFrequency];
-		if (CurrentFunctionStack.Num() > 1)
+
+		if (FunctionStack.Num() > 1)
 		{
 			// If we are inside a function, add that to the error message.  
 			// Only add the function call node to ErrorExpressions, since we can't add a reference to the expressions inside the function as they are private objects.
 			// Add the first function node on the stack because that's the one visible in the material being compiled, the rest are all nested functions.
-			UMaterialExpressionMaterialFunctionCall* ErrorFunction = CurrentFunctionStack[1].FunctionCall;
+			UMaterialExpressionMaterialFunctionCall* ErrorFunction = FunctionStack[1].FunctionCall;
 			Material->ErrorExpressions.Add(ErrorFunction);
 			ErrorFunction->LastErrorText = Text;
 			ErrorString = FString(TEXT("Function ")) + ErrorFunction->MaterialFunction->GetName() + TEXT(": ");
 		}
 
-		if (CurrentFunctionStack.Last().ExpressionStack.Num() > 0)
+		if (FunctionStack.Last().ExpressionStack.Num() > 0)
 		{
-			UMaterialExpression* ErrorExpression = CurrentFunctionStack.Last().ExpressionStack.Last().Expression;
+			UMaterialExpression* ErrorExpression = FunctionStack.Last().ExpressionStack.Last().Expression;
 			check(ErrorExpression);
 
 			if (ErrorExpression->GetClass() != UMaterialExpressionMaterialFunctionCall::StaticClass()
@@ -1553,9 +1364,7 @@ protected:
 	virtual int32 CallExpression(FMaterialExpressionKey ExpressionKey,FMaterialCompiler* Compiler) override
 	{
 		// Check if this expression has already been translated.
-		check(ShaderFrequency < SF_NumFrequencies);
-		auto& CurrentFunctionStack = FunctionStacks[ShaderFrequency];
-		int32* ExistingCodeIndex = CurrentFunctionStack.Last().ExpressionCodeMap.Find(ExpressionKey);
+		int32* ExistingCodeIndex = FunctionStack.Last().ExpressionCodeMap.Find(ExpressionKey);
 		if(ExistingCodeIndex)
 		{
 			return *ExistingCodeIndex;
@@ -1563,25 +1372,25 @@ protected:
 		else
 		{
 			// Disallow reentrance.
-			if(CurrentFunctionStack.Last().ExpressionStack.Find(ExpressionKey) != INDEX_NONE)
+			if(FunctionStack.Last().ExpressionStack.Find(ExpressionKey) != INDEX_NONE)
 			{
 				return Error(TEXT("Reentrant expression"));
 			}
 
 			// The first time this expression is called, translate it.
-			CurrentFunctionStack.Last().ExpressionStack.Add(ExpressionKey);
-			const int32 FunctionDepth = CurrentFunctionStack.Num();
+			FunctionStack.Last().ExpressionStack.Add(ExpressionKey);
+			const int32 FunctionDepth = FunctionStack.Num();
 
 			int32 Result = ExpressionKey.Expression->Compile(Compiler, ExpressionKey.OutputIndex, ExpressionKey.MultiplexIndex);
 
-			FMaterialExpressionKey PoppedExpressionKey = CurrentFunctionStack.Last().ExpressionStack.Pop();
+			FMaterialExpressionKey PoppedExpressionKey = FunctionStack.Last().ExpressionStack.Pop();
 
 			// Verify state integrity
 			check(PoppedExpressionKey == ExpressionKey);
-			check(FunctionDepth == CurrentFunctionStack.Num());
+			check(FunctionDepth == FunctionStack.Num());
 
 			// Cache the translation.
-			CurrentFunctionStack.Last().ExpressionCodeMap.Add(ExpressionKey,Result);
+			FunctionStack.Last().ExpressionCodeMap.Add(ExpressionKey,Result);
 
 			return Result;
 		}
@@ -1765,17 +1574,13 @@ protected:
 	/** Pushes a function onto the compiler's function stack, which indicates that compilation is entering a function. */
 	virtual void PushFunction(const FMaterialFunctionCompileState& FunctionState) override
 	{
-		check(ShaderFrequency < SF_NumFrequencies);
-		auto& CurrentFunctionStack = FunctionStacks[ShaderFrequency];
-		CurrentFunctionStack.Push(FunctionState);
+		FunctionStack.Push(FunctionState);
 	}	
 
 	/** Pops a function from the compiler's function stack, which indicates that compilation is leaving a function. */
 	virtual FMaterialFunctionCompileState PopFunction() override
 	{
-		check(ShaderFrequency < SF_NumFrequencies);
-		auto& CurrentFunctionStack = FunctionStacks[ShaderFrequency];
-		return CurrentFunctionStack.Pop();
+		return FunctionStack.Pop();
 	}
 
 	virtual int32 AccessCollectionParameter(UMaterialParameterCollection* ParameterCollection, int32 ParameterIndex, int32 ComponentIndex) override
@@ -1851,12 +1656,11 @@ protected:
 		};
 
 		static const EMaterialExposedViewPropertyMeta ViewPropertyMetaArray[] = {
-			{MEVP_BufferSize, MCT_Float2, TEXT("Frame.BufferSizeAndInvSize.xy"), TEXT("Frame.BufferSizeAndInvSize.zw")},
-			{MEVP_FieldOfView, MCT_Float2, TEXT("Frame.<PREV>FieldOfViewWideAngles"), nullptr},
+			{MEVP_BufferSize, MCT_Float2, TEXT("View.BufferSizeAndInvSize.xy"), TEXT("View.BufferSizeAndInvSize.zw")},
+			{MEVP_FieldOfView, MCT_Float2, TEXT("View.<PREV>FieldOfViewWideAngles"), nullptr},
 			{MEVP_TanHalfFieldOfView, MCT_Float2, TEXT("Get<PREV>TanHalfFieldOfView()"), TEXT("Get<PREV>CotanHalfFieldOfView()")},
-			{MEVP_ViewSize, MCT_Float2, TEXT("Frame.ViewSizeAndInvSize.xy"), TEXT("Frame.ViewSizeAndInvSize.zw")},
-			{MEVP_WorldSpaceViewPosition, MCT_Float3, TEXT("ResolvedView.<PREV>WorldViewOrigin"), nullptr},
-			{MEVP_WorldSpaceCameraPosition, MCT_Float3, TEXT("ResolvedView.<PREV>WorldCameraOrigin"), nullptr},
+			{MEVP_ViewSize, MCT_Float2, TEXT("View.ViewSizeAndInvSize.xy"), TEXT("View.ViewSizeAndInvSize.zw")},
+			{MEVP_WorldSpaceCameraPosition, MCT_Float3, TEXT("View.<PREV>ViewOrigin"), nullptr},
 		};
 		static_assert((sizeof(ViewPropertyMetaArray) / sizeof(ViewPropertyMetaArray[0])) == MEVP_MAX, "incoherency between EMaterialExposedViewProperty and ViewPropertyMetaArray");
 
@@ -1888,10 +1692,10 @@ protected:
 		{
 			if (bCompilingPreviousFrame)
 			{
-				return AddInlinedCodeChunk(MCT_Float, TEXT("Frame.PrevFrameGameTime"));
+				return AddInlinedCodeChunk(MCT_Float, TEXT("View.PrevFrameGameTime"));
 			}
 
-			return AddInlinedCodeChunk(MCT_Float, TEXT("Frame.GameTime"));
+			return AddInlinedCodeChunk(MCT_Float, TEXT("View.GameTime"));
 		}
 		else if (Period == 0.0f)
 		{
@@ -1913,10 +1717,10 @@ protected:
 		{
 			if (bCompilingPreviousFrame)
 			{
-				return AddInlinedCodeChunk(MCT_Float, TEXT("Frame.PrevFrameRealTime"));
+				return AddInlinedCodeChunk(MCT_Float, TEXT("View.PrevFrameRealTime"));
 			}
 
-			return AddInlinedCodeChunk(MCT_Float, TEXT("Frame.RealTime"));
+			return AddInlinedCodeChunk(MCT_Float, TEXT("View.RealTime"));
 		}
 		else if (Period == 0.0f)
 		{
@@ -2144,12 +1948,12 @@ protected:
 
 	virtual int32 ScreenPosition() override
 	{
-		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute && ShaderFrequency != SF_Vertex)
+		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
 		{
-			return Errorf(TEXT("Invalid node used in hull/domain shader input!"));
+			return NonPixelShaderExpressionError();
 		}
 
-		return AddCodeChunk(MCT_Float2,TEXT("ScreenAlignedPosition(GetScreenPosition(Parameters))"));		
+		return AddCodeChunk(MCT_Float2,TEXT("ScreenAlignedPosition(Parameters.ScreenPosition).xy"));		
 	}
 
 	virtual int32 ParticleMacroUV() override 
@@ -2268,17 +2072,6 @@ protected:
 		return AddInlinedCodeChunk(MCT_Float,TEXT("Parameters.Particle.MotionBlurFade"));
 	}
 
-	virtual int32 ParticleRandom() override
-	{
-		if (ShaderFrequency != SF_Vertex && ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
-		{
-			return NonVertexOrPixelShaderExpressionError();
-		}
-		bNeedsParticleRandom = true;
-		return AddInlinedCodeChunk(MCT_Float,TEXT("Parameters.Particle.Random"));
-	}
-
-
 	virtual int32 ParticleDirection() override
 	{
 		if (ShaderFrequency != SF_Vertex && ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
@@ -2376,12 +2169,12 @@ protected:
 
 	virtual int32 ObjectRadius() override
 	{
-		return GetPrimitiveProperty(MCT_Float, TEXT("ObjectRadius"), TEXT("ObjectWorldPositionAndRadius.w"));		
+		return AddInlinedCodeChunk(MCT_Float,TEXT("Primitive.ObjectWorldPositionAndRadius.w"));		
 	}
 
 	virtual int32 ObjectBounds() override
 	{
-		return GetPrimitiveProperty(MCT_Float3, TEXT("ObjectBounds"), TEXT("ObjectBounds.xyz"));
+		return AddInlinedCodeChunk(MCT_Float3,TEXT("Primitive.ObjectBounds.xyz"));		
 	}
 
 	virtual int32 DistanceCullFade() override
@@ -2449,25 +2242,6 @@ protected:
 				);
 		}
 	}
-
-#if WITH_EDITOR
-	virtual int32 MaterialBakingWorldPosition() override
-	{
-		if (ShaderFrequency == SF_Vertex)
-		{
-			NumUserVertexTexCoords = FMath::Max((uint32)8, NumUserVertexTexCoords);
-		}
-		else
-		{
-			NumUserTexCoords = FMath::Max((uint32)8, NumUserTexCoords);
-		}
-
-		// Note: inlining is important so that on ES2 devices, where half precision is used in the pixel shader, 
-		// The UV does not get assigned to a half temporary in cases where the texture sample is done directly from interpolated UVs
-		return AddInlinedCodeChunk(MCT_Float3, TEXT("float3(Parameters.TexCoords[6].x, Parameters.TexCoords[6].y, Parameters.TexCoords[7].x)"));
-	}
-#endif
-		
 
 	virtual int32 TextureCoordinate(uint32 CoordinateIndex, bool UnMirrorU, bool UnMirrorV) override
 	{
@@ -2686,27 +2460,8 @@ protected:
 			);
 	}
 
-	virtual int32 TextureProperty(int32 TextureIndex, EMaterialExposedTextureProperty Property) override
-	{
-		EMaterialValueType TextureType = GetParameterType(TextureIndex);
-
-		if(TextureType != MCT_Texture2D)
-		{
-			return Errorf(TEXT("Texture size only available for Texture2D, not %s"),DescribeType(TextureType));
-		}
-		
-		auto TextureExpression = (FMaterialUniformExpressionTexture*) (*CurrentScopeChunks)[TextureIndex].UniformExpression.GetReference();
-
-		return AddUniformExpression(new FMaterialUniformExpressionTextureProperty(TextureExpression, Property), MCT_Float2, TEXT(""));
-	}
-
 	virtual int32 TextureDecalMipmapLevel(int32 TextureSizeInput) override
 	{
-		if (Material->GetMaterialDomain() != MD_DeferredDecal)
-		{
-			return Errorf(TEXT("Decal mipmap level only available in the decal material domain."));
-		}
-
 		EMaterialValueType TextureSizeType = GetParameterType(TextureSizeInput);
 
 		if (TextureSizeType != MCT_Float2)
@@ -2724,38 +2479,25 @@ protected:
 			);
 	}
 
-	virtual int32 TextureDecalDerivative(bool bDDY) override
-	{
-		if (Material->GetMaterialDomain() != MD_DeferredDecal)
-		{
-			return Errorf(TEXT("Decal derivatives only available in the decal material domain."));
-		}
-
-		return AddCodeChunk(
-			MCT_Float2,
-			bDDY ? TEXT("ComputeDecalDDY(Parameters)") : TEXT("ComputeDecalDDX(Parameters)")
-			);
-	}
-
 	virtual int32 PixelDepth() override
 	{
-		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute && ShaderFrequency != SF_Vertex)
+		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
 		{
-			return Errorf(TEXT("Invalid node used in hull/domain shader input!"));
+			return NonPixelShaderExpressionError();
 		}
-		return AddInlinedCodeChunk(MCT_Float, TEXT("GetScreenPosition(Parameters).w"));		
+		return AddInlinedCodeChunk(MCT_Float, TEXT("Parameters.ScreenPosition.w"));		
 	}
 
-	/** Calculate screen aligned UV coordinates from an offset fraction or texture coordinate */
+	/** Calculate screen aligned UV coodinates from an offset fraction or texture coordinate */
 	int32 GetScreenAlignedUV(int32 Offset, int32 UV, bool bUseOffset)
 	{
 		if(bUseOffset)
 		{
-			return AddCodeChunk(MCT_Float2, TEXT("CalcScreenUVFromOffsetFraction(GetScreenPosition(Parameters), %s)"), *GetParameterCode(Offset));
+			return AddCodeChunk(MCT_Float2, TEXT("CalcScreenUVFromOffsetFraction(Parameters.ScreenPosition, %s)"), *GetParameterCode(Offset));
 		}
 		else
 		{
-			FString DefaultScreenAligned(TEXT("ScreenAlignedPosition(GetScreenPosition(Parameters))"));
+			FString DefaultScreenAligned(TEXT("MaterialFloat2(ScreenAlignedPosition(Parameters.ScreenPosition).xy)"));
 			FString CodeString = (UV != INDEX_NONE) ? CoerceParameter(UV,MCT_Float2) : DefaultScreenAligned;
 			return AddInlinedCodeChunk(MCT_Float2, *CodeString );
 		}
@@ -2763,6 +2505,11 @@ protected:
 
 	virtual int32 SceneDepth(int32 Offset, int32 UV, bool bUseOffset) override
 	{
+		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
+		{
+			return NonPixelShaderExpressionError();
+		}
+
 		if (Offset == INDEX_NONE && bUseOffset)
 		{
 			return INDEX_NONE;
@@ -2788,22 +2535,17 @@ protected:
 			return INDEX_NONE;
 		}
 
-		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Vertex)
+		if (ShaderFrequency != SF_Pixel)
 		{
 			// we can relax this later if needed
 			return NonPixelShaderExpressionError();
 		}
 		
-		if (InSceneTextureId == PPI_DecalMask)
-		{
-			return Error(TEXT("Decal Mask bit was move out of GBuffer to the stencil buffer for performance optimisation and is therefor no longer available"));
-		}
-
 		ESceneTextureId SceneTextureId = (ESceneTextureId)InSceneTextureId;
 
 		UseSceneTextureId(SceneTextureId, true);
 
-		FString DefaultScreenAligned(TEXT("ScreenAlignedPosition(GetScreenPosition(Parameters))"));
+		FString DefaultScreenAligned(TEXT("MaterialFloat2(ScreenAlignedPosition(Parameters.ScreenPosition).xy)"));
 		FString TexCoordCode((UV != INDEX_NONE) ? CoerceParameter(UV, MCT_Float2) : DefaultScreenAligned);
 
 		return AddCodeChunk(
@@ -2837,11 +2579,11 @@ protected:
 			// BufferSize
 			if(bInvert)
 			{
-				return Div(Constant(1.0f), AddCodeChunk(MCT_Float2, TEXT("Frame.RenderTargetSize")));
+				return Div(Constant(1.0f), AddCodeChunk(MCT_Float2, TEXT("View.RenderTargetSize")));
 			}
 			else
 			{
-				return AddCodeChunk(MCT_Float2, TEXT("Frame.RenderTargetSize"));
+				return AddCodeChunk(MCT_Float2, TEXT("View.RenderTargetSize"));
 			}
 		}
 	}
@@ -2867,7 +2609,7 @@ protected:
 		}
 		else
 		{			
-			return AddCodeChunk(MCT_Float2,TEXT("Frame.SceneTextureMinMax.xy"));
+			return AddCodeChunk(MCT_Float2,TEXT("View.SceneTextureMinMax.xy"));
 		}
 	}
 
@@ -2891,7 +2633,7 @@ protected:
 		}
 		else
 		{			
-			return AddCodeChunk(MCT_Float2,TEXT("Frame.SceneTextureMinMax.zw"));
+			return AddCodeChunk(MCT_Float2,TEXT("View.SceneTextureMinMax.zw"));
 		}
 	}
 
@@ -2899,19 +2641,6 @@ protected:
 	void UseSceneTextureId(ESceneTextureId SceneTextureId, bool bTextureLookup)
 	{
 		MaterialCompilationOutput.bNeedsSceneTextures = true;
-
-		//todo: available textures change depending on whether this is a dbuffer decal or not.  Need to pass that information in to warn properly.
-		if(Material->GetMaterialDomain() == MD_DeferredDecal)
-		{
-			if (SceneTextureId == PPI_WorldNormal || SceneTextureId == PPI_CustomDepth || SceneTextureId == PPI_CustomStencil || SceneTextureId == PPI_AmbientOcclusion)
-			{
-				ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4);
-			}
-			else
-			{
-				Errorf(TEXT("Only some SceneTextureId are available when MaterialDomain = Deferred Decal."));
-			}
-		}
 
 		if(SceneTextureId == PPI_SceneColor && Material->GetMaterialDomain() != MD_Surface)
 		{
@@ -2944,9 +2673,7 @@ protected:
 			|| SceneTextureId == PPI_Roughness
 			|| SceneTextureId == PPI_MaterialAO
 			|| SceneTextureId == PPI_DecalMask
-			|| SceneTextureId == PPI_ShadingModel
-			|| SceneTextureId == PPI_StoredBaseColor
-			|| SceneTextureId == PPI_StoredSpecular;
+			|| SceneTextureId == PPI_ShadingModel;
 
 		// not yet tracked:
 		//   PPI_SeparateTranslucency, PPI_CustomDepth, PPI_AmbientOcclusion
@@ -2994,21 +2721,7 @@ protected:
 
 		EMaterialValueType ShaderType = InTexture->GetMaterialType();
 		const int32 TextureReferenceIndex = Material->GetReferencedTextures().Find(InTexture);
-
-#if DO_CHECK
-		// UE-3518: Additional pre-assert logging to help determine the cause of this failure.
-		if (TextureReferenceIndex == INDEX_NONE)
-		{
-			const TArray<UTexture*>& ReferencedTextures = Material->GetReferencedTextures();
-			UE_LOG(LogMaterial, Error, TEXT("Compiler->Texture() failed to find texture '%s' in referenced list of size '%i':"), *InTexture->GetName(), ReferencedTextures.Num());
-			for (int32 i = 0; i < ReferencedTextures.Num(); ++i)
-			{
-				UE_LOG(LogMaterial, Error, TEXT("%i: '%s'"), i, ReferencedTextures[i] ? *ReferencedTextures[i]->GetName() : TEXT("nullptr"));
-			}
-		}
-#endif
 		checkf(TextureReferenceIndex != INDEX_NONE, TEXT("Material expression called Compiler->Texture() without implementing UMaterialExpression::GetReferencedTexture properly"));
-
 		return AddUniformExpression(new FMaterialUniformExpressionTexture(TextureReferenceIndex, SamplerSource),ShaderType,TEXT(""));
 	}
 
@@ -3575,20 +3288,16 @@ protected:
 				{
 					if (AWComponent)
 					{
-						CodeStr = TEXT("(<A>.xyz - ResolvedView.<PREV>PreViewTranslation.xyz)");
+						CodeStr = TEXT("(<A>.xyz - View.<PREV>PreViewTranslation.xyz)");
 					}
 					else
 					{
 						CodeStr = TEXT("<A>");
 					}
 				}
-				else if (DestCoordBasis == MCB_Camera)
-				{
-					CodeStr = TEXT("mul(<A>, <MATRIX>(ResolvedView.<PREV>TranslatedWorldToCameraView))");
-				}
 				else if (DestCoordBasis == MCB_View)
 				{
-					CodeStr = TEXT("mul(<A>, <MATRIX>(ResolvedView.<PREV>TranslatedWorldToView))");
+					CodeStr = TEXT("mul(<A>, <MATRIX>(View.<PREV>TranslatedWorldToView))");
 				}
 				// else use MCB_World as intermediary basis
 				break;
@@ -3601,24 +3310,15 @@ protected:
 				}
 				else if (DestCoordBasis == MCB_Local)
 				{
-					const EMaterialDomain Domain = (const EMaterialDomain)Material->GetMaterialDomain();
-
-					if(Domain != MD_Surface)
-					{
-						// TODO: for decals we could support it
-						Errorf(TEXT("This transformation is only supported in the 'Surface' material domain."));
-						return INDEX_NONE;
-					}
-
-					// TODO: need Primitive.PrevWorldToLocal
-					// TODO: inconsistent with TransformLocal<TO>World with instancing
+					//TODO: need Primitive.PrevWorldToLocal
+					//TODO: inconsistent with TransformLocal<TO>World with instancing
 					CodeStr = TEXT("mul(<A>, <MATRIX>(Primitive.WorldToLocal))");
 				}
 				else if (DestCoordBasis == MCB_TranslatedWorld)
 				{
 					if (AWComponent)
 					{
-						CodeStr = TEXT("(<A>.xyz + ResolvedView.<PREV>PreViewTranslation.xyz)");
+						CodeStr = TEXT("(<A>.xyz + View.<PREV>PreViewTranslation.xyz)");
 					}
 					else
 					{
@@ -3629,21 +3329,11 @@ protected:
 				IntermediaryBasis = MCB_TranslatedWorld;
 				break;
 			}
-			case MCB_Camera:
-			{
-				if (DestCoordBasis == MCB_TranslatedWorld)
-				{
-					CodeStr = TEXT("mul(<A>, <MATRIX>(ResolvedView.<PREV>CameraViewToTranslatedWorld))");
-				}
-				// else use MCB_TranslatedWorld as intermediary basis
-				IntermediaryBasis = MCB_TranslatedWorld;
-				break;
-			}
 			case MCB_View:
 			{
 				if (DestCoordBasis == MCB_TranslatedWorld)
 				{
-					CodeStr = TEXT("mul(<A>, <MATRIX>(ResolvedView.<PREV>ViewToTranslatedWorld))");
+					CodeStr = TEXT("mul(<A>, <MATRIX>(View.<PREV>ViewToTranslatedWorld))");
 				}
 				// else use MCB_TranslatedWorld as intermediary basis
 				IntermediaryBasis = MCB_TranslatedWorld;
@@ -3783,11 +3473,9 @@ protected:
 		return AddCodeChunk(ResultType,TEXT("(GetGIReplaceState() ? (%s) : (%s))"), *GetParameterCode(DynamicIndirect), *GetParameterCode(Direct));
 	}
 
-	virtual int32 MaterialProxyReplace(int32 Realtime, int32 MaterialProxy) override { return Realtime; }
-
 	virtual int32 ObjectOrientation() override
 	{ 
-		return GetPrimitiveProperty(MCT_Float3, TEXT("ObjectOrientation"), TEXT("ObjectOrientation.xyz"));
+		return AddInlinedCodeChunk(MCT_Float3,TEXT("Primitive.ObjectOrientation.xyz"));	
 	}
 
 	virtual int32 RotateAboutAxis(int32 NormalizedRotationAxisAndAngleIndex, int32 PositionOnAxisIndex, int32 PositionIndex) override
@@ -4030,7 +3718,7 @@ protected:
 		bUsesAtmosphericFog = true;
 		if( WorldPosition == INDEX_NONE )
 		{
-			return AddCodeChunk( MCT_Float4, TEXT("MaterialExpressionAtmosphericFog(Parameters, Parameters.AbsoluteWorldPosition)"));
+			return AddCodeChunk( MCT_Float4, TEXT("MaterialExpressionAtmosphericFog(Parameters, Parameters.WorldPosition)"));
 		}
 		else
 		{
@@ -4301,21 +3989,6 @@ protected:
 		MaterialCompilationOutput.bUsesEyeAdaptation = true;
 
 		return AddInlinedCodeChunk(MCT_Float, TEXT("EyeAdaptationLookup()"));
-	}
-
-	// to only have one piece of code dealing with error handling if the Primitive constant buffer is not used.
-	// @param Name e.g. TEXT("ObjectWorldPositionAndRadius.w")
-	int32 GetPrimitiveProperty(EMaterialValueType Type, const TCHAR* ExpressionName, const TCHAR* HLSLName)
-	{
-		const EMaterialDomain Domain = (const EMaterialDomain)Material->GetMaterialDomain();
-
-		if(Domain != MD_Surface)
-		{
-			Errorf(TEXT("The material expression '%s' is only supported in the 'Surface' material domain."), ExpressionName);
-			return INDEX_NONE;
-		}
-
-		return AddInlinedCodeChunk(Type, TEXT("Primitive.%s"), HLSLName);
 	}
 };
 

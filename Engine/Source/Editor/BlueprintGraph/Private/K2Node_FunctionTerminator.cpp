@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintGraphPrivatePCH.h"
@@ -42,10 +42,6 @@ bool UK2Node_FunctionTerminator::CanCreateUserDefinedPin(const FEdGraphPinType& 
 		OutErrorMessage = LOCTEXT("MultipleExecPinError", "Cannot support more exec pins!");
 		return false;
 	}
-	else if (!bIsEditable)
-	{
-		OutErrorMessage = LOCTEXT("NotEditableError", "Cannot edit this node!");
-	}
 
 	return bIsEditable;
 }
@@ -55,51 +51,14 @@ bool UK2Node_FunctionTerminator::HasExternalDependencies(TArray<class UStruct*>*
 	const UBlueprint* SourceBlueprint = GetBlueprint();
 
 	UClass* SourceClass = *SignatureClass;
-	bool bResult = (SourceClass != nullptr) && (SourceClass->ClassGeneratedBy != SourceBlueprint);
+	const bool bResult = (SourceClass != NULL) && (SourceClass->ClassGeneratedBy != SourceBlueprint);
 	if (bResult && OptionalOutput)
 	{
 		OptionalOutput->AddUnique(SourceClass);
 	}
 
-	// All structures, that are required for the BP compilation, should be gathered
-	for (auto Pin : Pins)
-	{
-		UStruct* DepStruct = Pin ? Cast<UStruct>(Pin->PinType.PinSubCategoryObject.Get()) : nullptr;
-
-		UClass* DepClass = Cast<UClass>(DepStruct);
-		if (DepClass && (DepClass->ClassGeneratedBy == SourceBlueprint))
-		{
-			//Don't include self
-			continue;
-		}
-
-		if (DepStruct && !DepStruct->IsNative())
-		{
-			if (OptionalOutput)
-			{
-				OptionalOutput->AddUnique(DepStruct);
-			}
-			bResult = true;
-		}
-	}
-
 	const bool bSuperResult = Super::HasExternalDependencies(OptionalOutput);
 	return bSuperResult || bResult;
-}
-
-void UK2Node_FunctionTerminator::PromoteFromInterfaceOverride(bool bIsPrimaryTerminator)
-{
-	// Remove the signature class, that is not relevant.
-	SignatureClass = nullptr;
-	for (const UEdGraphPin* Pin : Pins)
-	{
-		if (Pin->PinType.PinCategory != UEdGraphSchema_K2::PC_Exec)
-		{
-			CreateUserDefinedPin(Pin->PinName, Pin->PinType, (Pin->Direction == EGPD_Input)? EGPD_Output : EGPD_Input, false);
-		}
-	}
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-	Schema->ReconstructNode(*this, true);
 }
 
 #undef LOCTEXT_NAMESPACE

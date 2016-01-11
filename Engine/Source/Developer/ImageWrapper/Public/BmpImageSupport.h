@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -34,7 +34,7 @@ struct FBitmapInfoHeader
 {
 	uint32 biSize;
 	uint32 biWidth;
-	int32 biHeight;
+	uint32 biHeight;
 	uint16 biPlanes;
 	uint16 biBitCount;
 	uint32 biCompression;

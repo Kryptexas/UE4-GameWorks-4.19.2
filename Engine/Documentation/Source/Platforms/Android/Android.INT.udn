@@ -4,7 +4,6 @@ Crumbs:%ROOT%, Platforms
 Description:Developing games for the Android platform.
 Platform:Android
 Navigation:platform
-version: 4.9
 
 
 [OBJECT:TopicButtonList]
@@ -20,5 +19,6 @@ version: 4.9
 		* [](Platforms/Android/GettingStarted "%Platforms/Android/GettingStarted:description%")
 		* [](Platforms/Android/Reference "%Platforms/Android/Reference:description%")
 		* [](Platforms/Android/DeviceCompatibility "%Platforms/Android/DeviceCompatibility:description%")
+		* [](Platforms/Android/ReducingAPKSize "%Platforms/Android/ReducingAPKSize:description%")
 	[/PARAM]
 [/OBJECT]

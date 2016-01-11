@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AsyncLoading.h: Unreal async loading definitions.
@@ -78,15 +78,9 @@ struct FAsyncPackage
 	}
 
 	/** Returns package loading priority. */
-	FORCEINLINE TAsyncLoadPriority GetPriority() const
+	FORCEINLINE uint32 GetPriority() const
 	{
 		return Desc.Priority;
-	}
-
-	/** Returns package loading priority. */
-	FORCEINLINE void SetPriority(TAsyncLoadPriority InPriority)
-	{
-		Desc.Priority = InPriority;
 	}
 
 	/** Returns true if loading has failed */
@@ -252,7 +246,7 @@ private:
 	/**
 	 * Begin async loading process. Simulates parts of BeginLoad.
 	 *
-	 * Objects created during BeginAsyncLoad and EndAsyncLoad will have EInternalObjectFlags::AsyncLoading set
+	 * Objects created during BeginAsyncLoad and EndAsyncLoad will have RF_AsyncLoading set
 	 */
 	void BeginAsyncLoad();
 	/**
@@ -309,7 +303,7 @@ private:
 	 */
 	EAsyncPackageState::Type PostLoadObjects();
 	/**
-	 * Finish up objects and state, which means clearing the EInternalObjectFlags::AsyncLoading flag on newly created ones
+	 * Finish up objects and state, which means clearing the RF_AsyncLoading flag on newly created ones
 	 *
 	 * @return true
 	 */

@@ -1,15 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "LayoutUtils.h"
 
 
+/* SCanvas structors
+ *****************************************************************************/
+
 SCanvas::SCanvas()
-: Children()
-{
-	bCanTick = false;
-	bCanSupportFocus = false;
-}
+	: Children()
+{ }
+
+
+/* SCanvas interface
+ *****************************************************************************/
 
 void SCanvas::Construct( const SCanvas::FArguments& InArgs )
 {
@@ -20,10 +24,12 @@ void SCanvas::Construct( const SCanvas::FArguments& InArgs )
 	}
 }
 
+
 void SCanvas::ClearChildren( )
 {
 	Children.Empty();
 }
+
 
 int32 SCanvas::RemoveSlot( const TSharedRef<SWidget>& SlotWidget )
 {
@@ -38,6 +44,10 @@ int32 SCanvas::RemoveSlot( const TSharedRef<SWidget>& SlotWidget )
 
 	return -1;
 }
+
+
+/* SWidget overrides
+ *****************************************************************************/
 
 void SCanvas::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
@@ -91,6 +101,7 @@ void SCanvas::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChi
 	}
 }
 
+
 int32 SCanvas::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	FArrangedChildren ArrangedChildren(EVisibility::Visible);
@@ -100,8 +111,6 @@ int32 SCanvas::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometr
 	// wants to an overlay for all of its contents.
 	int32 MaxLayerId = LayerId;
 
-	const FPaintArgs NewArgs = Args.WithNewParent(this);
-
 	for (int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
 	{
 		FArrangedWidget& CurWidget = ArrangedChildren[ChildIndex];
@@ -109,7 +118,7 @@ int32 SCanvas::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometr
 
 		if (!ChildClipRect.IsEmpty())
 		{
-			const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint(NewArgs, CurWidget.Geometry, ChildClipRect, OutDrawElements, MaxLayerId + 1, InWidgetStyle, ShouldBeEnabled(bParentEnabled));
+			const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint(Args.WithNewParent(this), CurWidget.Geometry, ChildClipRect, OutDrawElements, MaxLayerId + 1, InWidgetStyle, ShouldBeEnabled(bParentEnabled));
 
 			MaxLayerId = FMath::Max(MaxLayerId, CurWidgetsMaxLayerId);
 		}
@@ -118,11 +127,13 @@ int32 SCanvas::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometr
 	return MaxLayerId;
 }
 
+
 FVector2D SCanvas::ComputeDesiredSize( float ) const
 {
 	// Canvas widgets have no desired size -- their size is always determined by their container
 	return FVector2D::ZeroVector;
 }
+
 
 FChildren* SCanvas::GetChildren()
 {

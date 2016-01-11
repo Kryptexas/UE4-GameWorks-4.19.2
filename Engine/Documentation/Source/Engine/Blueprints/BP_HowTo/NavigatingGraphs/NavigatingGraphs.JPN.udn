@@ -1,10 +1,8 @@
-﻿INTSourceChangelist:2679100
+﻿INTSourceChangelist:2457628
 Availability:Public
 Title:グラフをナビゲートする
 Crumbs:
 Description:様々なグラフ エレメントとグラフでの移動方法。
-Version:4.8
-skilllevel:Beginner
 
 [OBJECT:Redirect]
 [PARAM:link]
@@ -13,9 +11,9 @@ skilllevel:Beginner
 [/OBJECT]
 
 <!--
-このページでは **[Graph Editor]** ウィンドウ内のブループリントの **[Graph]** タブでの作業について説明します。 
+このページでは **[グラフ エディタ]** ウィンドウ内のブループリントの **[グラフ]** タブでの作業について説明します。 
 
-**[Graph] タブ** で利用可能な様々なオプションの詳しい情報については、 [](Engine/Blueprints/Editor/Modes/GraphPanel) のドキュメントをご覧ください。
+**[グラフ] タブ** で利用可能な様々なオプションの詳しい情報については、 [](Engine/Blueprints/Editor/Modes/GraphPanel) のドキュメントをご覧ください。
 
 ## グラフエディタのインターフェイス
 

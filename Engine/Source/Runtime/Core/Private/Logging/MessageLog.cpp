@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "MessageLog.h"
@@ -19,16 +19,16 @@ public:
 	}
 
 	/** Begin IMessageLog interface */
-	virtual void AddMessage( const TSharedRef<FTokenizedMessage>& NewMessage, bool bMirrorToOutputLog ) override
+	virtual void AddMessage( const TSharedRef<FTokenizedMessage>& NewMessage ) override
 	{
-		AddMessageInternal(NewMessage, bMirrorToOutputLog);
+		AddMessageInternal(NewMessage);
 	}
 
-	virtual void AddMessages( const TArray< TSharedRef<FTokenizedMessage> >& NewMessages, bool bMirrorToOutputLog ) override
+	virtual void AddMessages( const TArray< TSharedRef<FTokenizedMessage> >& NewMessages ) override
 	{
 		for(TArray< TSharedRef<FTokenizedMessage> >::TConstIterator It = NewMessages.CreateConstIterator(); It; It++)
 		{
-			AddMessageInternal(*It, bMirrorToOutputLog);
+			AddMessageInternal(*It);
 		}
 	}
 
@@ -58,18 +58,15 @@ public:
 	/** End IMessageLog interface */
 
 private:
-	void AddMessageInternal( const TSharedRef<FTokenizedMessage>& Message, bool bMirrorToOutputLog )
+	void AddMessageInternal( const TSharedRef<FTokenizedMessage>& Message )
 	{
-		if (bMirrorToOutputLog)
+		const TCHAR* const LogColor = FMessageLog::GetLogColor(Message->GetSeverity());
+		if(LogColor)
 		{
-			const TCHAR* const LogColor = FMessageLog::GetLogColor(Message->GetSeverity());
-			if (LogColor)
-			{
-				SET_WARN_COLOR(LogColor);
-			}
-			FMsg::Logf(__FILE__, __LINE__, LogName, FMessageLog::GetLogVerbosity(Message->GetSeverity()), *Message->ToText().ToString());
-			CLEAR_WARN_COLOR();
+			SET_WARN_COLOR(LogColor);
 		}
+		FMsg::Logf(__FILE__, __LINE__, LogName, FMessageLog::GetLogVerbosity(Message->GetSeverity()), *Message->ToText().ToString());
+		CLEAR_WARN_COLOR();
 	}
 
 private:
@@ -78,7 +75,6 @@ private:
 };
 
 FMessageLog::FMessageLog( const FName& InLogName )
-	: bSuppressLoggingToOutputLog(false)
 {
 	if(GetLog.IsBound())
 	{
@@ -184,17 +180,11 @@ void FMessageLog::NewPage( const FText& InLabel )
 	MessageLog->NewPage(InLabel);
 }
 
-FMessageLog& FMessageLog::SuppressLoggingToOutputLog(bool bShouldSuppress)
-{
-	bSuppressLoggingToOutputLog = bShouldSuppress;
-	return *this;
-}
-
 void FMessageLog::Flush()
 {
 	if(Messages.Num() > 0)
 	{
-		MessageLog->AddMessages(Messages, !bSuppressLoggingToOutputLog);
+		MessageLog->AddMessages(Messages);
 		Messages.Empty();
 	}
 }

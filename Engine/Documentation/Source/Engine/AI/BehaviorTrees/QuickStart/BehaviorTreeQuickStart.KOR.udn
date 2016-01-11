@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2625743
+﻿INTSourceChangelist:2572470
 Availability:Public
 Title: 비헤이비어 트리 퀵스타트 가이드
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
@@ -38,17 +38,7 @@ Description:AI 개요 및 예제입니다.
 [/OBJECT]
 [/VAR]
 
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-1td5wSD3PPU
-[/PARAMLITERAL]
-[/OBJECT]
+![](Engine\AI\BehaviorTrees\QuickStart\14\BTFinal.gif)(convert:false)
 
 비헤이비어 트리 퀵스타트 가이드는 내비메시, AI 콘트롤러, 그 AI 콘트롤러에 제어되는 캐릭터, 간단한 비헤이비어 트리에 필요한 모든 부분 생성 프로세스에 대해 안내해 드립니다.
 

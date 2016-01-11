@@ -1,25 +1,21 @@
 {
-	"FileVersion" : 3,
+    "FileVersion" : 3,
+	
+	"FriendlyName" : "Code Editor",
 	"Version" : 1,
 	"VersionName" : "0.1",
-	"FriendlyName" : "Code Editor",
-	"Description" : "[EXPERIMENTAL] Allows editing of code from within the Unreal editor",
-	"Category" : "Programming",
 	"CreatedBy" : "Epic Games, Inc.",
 	"CreatedByURL" : "http://epicgames.com",
-	"DocsURL" : "",
-	"MarketplaceURL" : "",
-	"SupportURL" : "",
-	"EnabledByDefault" : false,
-	"CanContainContent" : false,
+	"EngineVersion" : "4.8.0",
+	"Description" : "[EXPERIMENTAL] Allows editing of code from within the Unreal editor",
+	"Category" : "Programming",
 	"IsBetaVersion" : true,
-	"Installed" : false,
-	"Modules" :
+
+    "Modules" :
 	[
 		{
 			"Name" : "CodeEditor",
-			"Type" : "Developer",
-			"LoadingPhase" : "Default"
+			"Type" : "Developer"
 		}
 	]
 }

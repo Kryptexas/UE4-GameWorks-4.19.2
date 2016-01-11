@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLResources.h: OpenGL resource RHI definitions.
@@ -33,8 +33,6 @@ namespace OpenGLConsoleVariables
 
 #if PLATFORM_WINDOWS || PLATFORM_ANDROIDES31
 #define RESTRICT_SUBDATA_SIZE 1
-#else 
-#define RESTRICT_SUBDATA_SIZE 0
 #endif
 
 void IncrementBufferMemory(GLenum Type, bool bStructuredBuffer, uint32 NumBytes);
@@ -194,28 +192,18 @@ public:
 		bIsLocked = true;
 		bIsLockReadOnly = bReadOnly;
 		uint8 *Data = NULL;
-		
-		// Discard if the input size is the same as the backing store size, regardless of the input argument, as orphaning the backing store will typically be faster.
-		bDiscard = bDiscard || (!bReadOnly && InSize == RealSize);
-		
-		// Map buffer is faster in some circumstances and slower in others, decide when to use it carefully.
-		bool const bCanUseMapBuffer = FOpenGL::SupportsMapBuffer() && BaseType::GLSupportsType();
-		bool const bUseMapBuffer = bCanUseMapBuffer && (bReadOnly || OpenGLConsoleVariables::bUseMapBuffer);
-		
+
 		// If we're able to discard the current data, do so right away
-		// If we can then we should orphan the buffer name & reallocate the backing store only once as calls to glBufferData may do so even when the size is the same.
-		uint32 DiscardSize = (bDiscard && !bUseMapBuffer && InSize == RealSize && !RESTRICT_SUBDATA_SIZE) ? 0 : RealSize;
-		
 		// Don't call BufferData if Bindless is on, as bindless texture buffers make buffers immutable
 		if ( bDiscard && !OpenGLConsoleVariables::bBindlessTexture )
 		{
 			if (BaseType::GLSupportsType())
 			{
-				glBufferData( Type, DiscardSize, NULL, GetAccess());
+				glBufferData( Type, RealSize, NULL, GetAccess());
 			}
 		}
 
-		if ( bUseMapBuffer)
+		if ( FOpenGL::SupportsMapBuffer() && BaseType::GLSupportsType() && (OpenGLConsoleVariables::bUseMapBuffer || bReadOnly))
 		{
 			FOpenGL::EResourceLockMode LockMode = bReadOnly ? FOpenGL::RLM_ReadOnly : FOpenGL::RLM_WriteOnly;
 			Data = static_cast<uint8*>( FOpenGL::MapBufferRange( Type, InOffset, InSize, LockMode ) );
@@ -255,27 +243,14 @@ public:
 		bIsLockReadOnly = false;
 		uint8 *Data = NULL;
 
-		// Discard if the input size is the same as the backing store size, regardless of the input argument, as orphaning the backing store will typically be faster.
-		bDiscard = bDiscard || InSize == RealSize;
-		
-		// Map buffer is faster in some circumstances and slower in others, decide when to use it carefully.
-		bool const bCanUseMapBuffer = FOpenGL::SupportsMapBuffer() && BaseType::GLSupportsType();
-		bool const bUseMapBuffer = bCanUseMapBuffer && OpenGLConsoleVariables::bUseMapBuffer;
-		
 		// If we're able to discard the current data, do so right away
-		// If we can then we should orphan the buffer name & reallocate the backing store only once as calls to glBufferData may do so even when the size is the same.
-		uint32 DiscardSize = (bDiscard && !bUseMapBuffer && InSize == RealSize && !RESTRICT_SUBDATA_SIZE) ? 0 : RealSize;
-		
 		// Don't call BufferData if Bindless is on, as bindless texture buffers make buffers immutable
-		if ( bDiscard && !OpenGLConsoleVariables::bBindlessTexture )
+		if (bDiscard && !OpenGLConsoleVariables::bBindlessTexture)
 		{
-			if (BaseType::GLSupportsType())
-			{
-				glBufferData( Type, DiscardSize, NULL, GetAccess());
-			}
+			glBufferData( Type, RealSize, NULL, GetAccess());
 		}
-		
-		if ( bUseMapBuffer)
+
+		if ( FOpenGL::SupportsMapBuffer() && OpenGLConsoleVariables::bUseMapBuffer)
 		{
 			FOpenGL::EResourceLockMode LockMode = bDiscard ? FOpenGL::RLM_WriteOnly : FOpenGL::RLM_WriteOnlyUnsynchronized;
 			Data = static_cast<uint8*>( FOpenGL::MapBufferRange( Type, InOffset, InSize, LockMode ) );

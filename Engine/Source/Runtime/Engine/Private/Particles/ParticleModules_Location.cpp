@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleModules_Location.cpp: 
@@ -184,7 +184,7 @@ void UParticleModuleLocation_Seeded::Spawn(FParticleEmitterInstance* Owner, int3
 	SpawnEx(Owner, Offset, SpawnTime, (Payload != NULL) ? &(Payload->RandomStream) : NULL, ParticleBase);
 }
 
-uint32 UParticleModuleLocation_Seeded::RequiredBytesPerInstance()
+uint32 UParticleModuleLocation_Seeded::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
 {
 	return RandomSeedInfo.GetInstancePayloadSize();
 }
@@ -247,7 +247,7 @@ void UParticleModuleLocationWorldOffset_Seeded::Spawn(FParticleEmitterInstance* 
 	SpawnEx(Owner, Offset, SpawnTime, (Payload != NULL) ? &(Payload->RandomStream) : NULL, ParticleBase);
 }
 
-uint32 UParticleModuleLocationWorldOffset_Seeded::RequiredBytesPerInstance()
+uint32 UParticleModuleLocationWorldOffset_Seeded::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
 {
 	return RandomSeedInfo.GetInstancePayloadSize();
 }
@@ -372,7 +372,7 @@ void UParticleModuleLocationDirect::Update(FParticleEmitterInstance* Owner, int3
 	END_UPDATE_LOOP;
 }
 
-uint32 UParticleModuleLocationDirect::RequiredBytes(UParticleModuleTypeDataBase* TypeData)
+uint32 UParticleModuleLocationDirect::RequiredBytes(FParticleEmitterInstance* Owner)
 {
 	return sizeof(FVector);
 }
@@ -521,7 +521,7 @@ void UParticleModuleLocationEmitter::Spawn(FParticleEmitterInstance* Owner, int3
 		}
 } 
 
-uint32 UParticleModuleLocationEmitter::RequiredBytesPerInstance()
+uint32 UParticleModuleLocationEmitter::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
 {
 	return sizeof(FLocationEmitterInstancePayload);
 }
@@ -1207,7 +1207,7 @@ void UParticleModuleLocationPrimitiveCylinder_Seeded::Spawn(FParticleEmitterInst
 	SpawnEx(Owner, Offset, SpawnTime, (Payload != NULL) ? &(Payload->RandomStream) : NULL, ParticleBase);
 }
 
-uint32 UParticleModuleLocationPrimitiveCylinder_Seeded::RequiredBytesPerInstance()
+uint32 UParticleModuleLocationPrimitiveCylinder_Seeded::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
 {
 	return RandomSeedInfo.GetInstancePayloadSize();
 }
@@ -1421,7 +1421,7 @@ void UParticleModuleLocationPrimitiveSphere_Seeded::Spawn(FParticleEmitterInstan
 	SpawnEx(Owner, Offset, SpawnTime, (Payload != NULL) ? &(Payload->RandomStream) : NULL, ParticleBase);
 }
 
-uint32 UParticleModuleLocationPrimitiveSphere_Seeded::RequiredBytesPerInstance()
+uint32 UParticleModuleLocationPrimitiveSphere_Seeded::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
 {
 	return RandomSeedInfo.GetInstancePayloadSize();
 }
@@ -1578,7 +1578,7 @@ void UParticleModuleLocationBoneSocket::Update(FParticleEmitterInstance* Owner, 
 		for(int32 SourceIndex = 0; SourceIndex < SourceLocations.Num(); ++SourceIndex)
 		{
 			int32 BoneIndex = SourceComponent->GetBoneIndex(SourceLocations[SourceIndex].BoneSocketName);
-			if (BoneIndex != INDEX_NONE && SourceIndex < InstancePayload->BoneSocketVelocities.Num())
+			if (BoneIndex != INDEX_NONE)
 			{
 				// Calculate the velocity
 				const FMatrix WorldBoneTM = SourceComponent->GetBoneMatrix(BoneIndex);
@@ -1645,7 +1645,7 @@ void UParticleModuleLocationBoneSocket::FinalUpdate(FParticleEmitterInstance* Ow
 		for(int32 SourceIndex = 0; SourceIndex < SourceLocations.Num(); ++SourceIndex)
 		{
 			int32 BoneIndex = InstancePayload->SourceComponent->GetBoneIndex(SourceLocations[SourceIndex].BoneSocketName);
-			if (BoneIndex != INDEX_NONE && InstancePayload->PrevFrameBoneSocketPositions.Num() > SourceIndex)
+			if (BoneIndex != INDEX_NONE)
 			{
 				const FMatrix WorldBoneTM = SourceComponent->GetBoneMatrix(BoneIndex);
 				InstancePayload->PrevFrameBoneSocketPositions[SourceIndex] = WorldBoneTM.GetOrigin();
@@ -1694,12 +1694,12 @@ void UParticleModuleLocationBoneSocket::FinalUpdate(FParticleEmitterInstance* Ow
 	}
 }
 
-uint32 UParticleModuleLocationBoneSocket::RequiredBytes(UParticleModuleTypeDataBase* TypeData)
+uint32 UParticleModuleLocationBoneSocket::RequiredBytes(FParticleEmitterInstance* Owner)
 {
 	return sizeof(FModuleLocationBoneSocketParticlePayload);
 }
 
-uint32 UParticleModuleLocationBoneSocket::RequiredBytesPerInstance()
+uint32 UParticleModuleLocationBoneSocket::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
 {
     // Memory in addition to the struct size is reserved for the PrevFrameBonePositions and BoneVelocity arrays. 
     // The size of these arrays are fixed to SourceLocations.Num(). FModuleLocationBoneSocketInstancePayload contains
@@ -2384,13 +2384,13 @@ void UParticleModuleLocationSkelVertSurface::UpdateBoneIndicesList(FParticleEmit
 }
 
 
-uint32 UParticleModuleLocationSkelVertSurface::RequiredBytes(UParticleModuleTypeDataBase* TypeData)
+uint32 UParticleModuleLocationSkelVertSurface::RequiredBytes(FParticleEmitterInstance* Owner)
 {
 	return sizeof(FModuleLocationVertSurfaceParticlePayload);
 }
 
 
-uint32 UParticleModuleLocationSkelVertSurface::RequiredBytesPerInstance()
+uint32 UParticleModuleLocationSkelVertSurface::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
 {
 	// Memory in addition to the struct size is reserved for the ValidAssociatedBoneIndices, PrevFrameBonePositions and BoneVelocity arrays. 
     // The size of these arrays are fixed to ValidAssociatedBones.Num(). Proxys are setup in PrepPerInstanceBlock 
@@ -2663,7 +2663,7 @@ bool UParticleModuleLocationSkelVertSurface::VertInfluencedByActiveBone(FParticl
 
 		const FSkelMeshChunk& Chunk = Model.Chunks[ChunkIndex];
 
-		return Model.VertexBufferGPUSkin.HasExtraBoneInfluences()
+		return Chunk.HasExtraBoneInfluences()
 			? VertInfluencedByActiveBoneTyped<true>(bSoftVertex, Model, Chunk, VertIndex, InSkelMeshComponent, InstancePayload, OutBoneIndex)
 			: VertInfluencedByActiveBoneTyped<false>(bSoftVertex, Model, Chunk, VertIndex, InSkelMeshComponent, InstancePayload, OutBoneIndex);
 	}
@@ -2673,7 +2673,6 @@ bool UParticleModuleLocationSkelVertSurface::VertInfluencedByActiveBone(FParticl
 template<bool bExtraBoneInfluencesT>
 bool UParticleModuleLocationSkelVertSurface::VertInfluencedByActiveBoneTyped(bool bSoftVertex, FStaticLODModel& Model, const FSkelMeshChunk& Chunk, int32 VertIndex, USkeletalMeshComponent* InSkelMeshComponent, FModuleLocationVertSurfaceInstancePayload* InstancePayload, int32* OutBoneIndex)
 {
-	const TArray<int32>& MasterBoneMap = InSkelMeshComponent->GetMasterBoneMap();
 	// Do soft skinning for this vertex.
 	if(bSoftVertex)
 	{
@@ -2689,8 +2688,8 @@ bool UParticleModuleLocationSkelVertSurface::VertInfluencedByActiveBoneTyped(boo
 			int32 BoneIndex = Chunk.BoneMap[SrcSoftVertex->InfluenceBones[InfluenceIndex]];
 			if(InSkelMeshComponent->MasterPoseComponent.IsValid())
 			{		
-				check(MasterBoneMap.Num() == InSkelMeshComponent->SkeletalMesh->RefSkeleton.GetNum());
-				BoneIndex = MasterBoneMap[BoneIndex];
+				check(InSkelMeshComponent->MasterBoneMap.Num() == InSkelMeshComponent->SkeletalMesh->RefSkeleton.GetNum());
+				BoneIndex = InSkelMeshComponent->MasterBoneMap[BoneIndex];
 			}
 
 			if(!InstancePayload->NumValidAssociatedBoneIndices || InstancePayload->ValidAssociatedBoneIndices.Contains(BoneIndex))
@@ -2713,8 +2712,8 @@ bool UParticleModuleLocationSkelVertSurface::VertInfluencedByActiveBoneTyped(boo
 		int32 BoneIndex = Chunk.BoneMap[SrcRigidVertex->InfluenceBones[RigidInfluenceIndex]];
 		if(InSkelMeshComponent->MasterPoseComponent.IsValid())
 		{
-			check(MasterBoneMap.Num() == InSkelMeshComponent->SkeletalMesh->RefSkeleton.GetNum());
-			BoneIndex = MasterBoneMap[BoneIndex];
+			check(InSkelMeshComponent->MasterBoneMap.Num() == InSkelMeshComponent->SkeletalMesh->RefSkeleton.GetNum());
+			BoneIndex = InSkelMeshComponent->MasterBoneMap[BoneIndex];
 		}
 
 		if(!InstancePayload->NumValidAssociatedBoneIndices || InstancePayload->ValidAssociatedBoneIndices.Contains(BoneIndex))

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RenderingThread.cpp: Rendering thread implementation.
@@ -309,14 +309,6 @@ void RenderingThreadMain( FEvent* TaskGraphBoundSyncEvent )
 	FTaskGraphInterface::Get().ProcessThreadUntilRequestReturn(ENamedThreads::RenderThread);
 	FPlatformMisc::MemoryBarrier();
 	check(!GIsThreadedRendering);
-	
-#if STATS
-	if (FThreadStats::WillEverCollectData())
-	{
-		FThreadStats::ExplicitFlush(); // Another explicit flush to clean up the ScopeCount established above for any stats lingering since the last frame
-	}
-#endif
-	
 	ENamedThreads::RenderThread = ENamedThreads::GameThread;
 	ENamedThreads::RenderThread_Local = ENamedThreads::GameThread_Local;
 	FPlatformMisc::MemoryBarrier();
@@ -333,7 +325,9 @@ static void AdvanceRenderingThreadStats(int64 StatsFrame, int32 MasterDisableCha
 	{
 		Frame = -StatsFrame; // mark this as a bad frame
 	}
-	FThreadStats::AddMessage(FStatConstants::AdvanceFrame.GetEncodedName(), EStatOperation::AdvanceFrameEventRenderThread, Frame);
+	// @TODO yrx 2014-10-17 Add AddAdvanceFrame message
+	static FStatNameAndInfo Adv(NAME_AdvanceFrame, "", "", TEXT(""), EStatDataType::ST_int64, true, false);
+	FThreadStats::AddMessage(Adv.GetEncodedName(), EStatOperation::AdvanceFrameEventRenderThread, Frame);
 	if( IsInActualRenderingThread() )
 	{
 		FThreadStats::ExplicitFlush();
@@ -544,7 +538,6 @@ void StartRenderingThread()
 	check(!GRHIThread)
 	if (GUseRHIThread)
 	{
-		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);		
 		if (!FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::RHIThread))
 		{
 			FRHIThread::Get().Start();
@@ -915,7 +908,7 @@ FRHICommandListImmediate& GetImmediateCommandList_ForRenderCommand()
 }
 
 /** The set of deferred cleanup objects which are pending cleanup. */
-static TLockFreePointerListUnordered<FDeferredCleanupInterface>	PendingCleanupObjectsList;
+static TLockFreePointerList<FDeferredCleanupInterface>	PendingCleanupObjectsList;
 
 FPendingCleanupObjects::FPendingCleanupObjects()
 {

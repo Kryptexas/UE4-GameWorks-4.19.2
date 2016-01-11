@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "GeometryModePrivatePCH.h"
 #include "Engine/BrushShape.h"
@@ -13,20 +13,6 @@
 #include "Engine/Polys.h"
 #include "Engine/Selection.h"
 #include "Components/BrushComponent.h"
-#include "Classes/GeomModifier.h"
-#include "Classes/GeomModifier_Edit.h"
-#include "Classes/GeomModifier_Clip.h"
-#include "Classes/GeomModifier_Create.h"
-#include "Classes/GeomModifier_Delete.h"
-#include "Classes/GeomModifier_Extrude.h"
-#include "Classes/GeomModifier_Flip.h"
-#include "Classes/GeomModifier_Lathe.h"
-#include "Classes/GeomModifier_Pen.h"
-#include "Classes/GeomModifier_Split.h"
-#include "Classes/GeomModifier_Triangulate.h"
-#include "Classes/GeomModifier_Optimize.h"
-#include "Classes/GeomModifier_Turn.h"
-#include "Classes/GeomModifier_Weld.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGeomModifier, Log, All);
 
@@ -50,7 +36,6 @@ UGeomModifier::UGeomModifier(const FObjectInitializer& ObjectInitializer)
 {
 	bPushButton = false;
 	bInitialized = false;
-	bPendingPivotOffsetUpdate = false;
 	CachedPolys = NULL;
 }
 
@@ -124,17 +109,12 @@ void UGeomModifier::GeomError(const FString& InErrorMsg)
 bool UGeomModifier::StartModify()
 {
 	bInitialized = false;
-	bPendingPivotOffsetUpdate = false;
 	return false;
 }
 
 
 bool UGeomModifier::EndModify()
 {
-	if (bPendingPivotOffsetUpdate)
-	{
-		UpdatePivotOffset();
-	}
 	StoreAllCurrentGeomSelections();
 	FEditorSupportDelegates::RedrawAllViewports.Broadcast();
 	return true;
@@ -264,48 +244,6 @@ bool UGeomModifier::DoEdgesOverlap()
 	}
 
 	return false;
-}
-
-void UGeomModifier::UpdatePivotOffset()
-{
-	if (!GetDefault<ULevelEditorMiscSettings>()->bAutoMoveBSPPivotOffset)
-	{
-		return;
-	}
-
-	FEdModeGeometry* Mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
-
-	for (FEdModeGeometry::TGeomObjectIterator It(Mode->GeomObjectItor()); It; ++It)
-	{
-		FGeomObjectPtr GeomObject = *It;
-		ABrush* Brush = GeomObject->GetActualBrush();
-
-		TSet<FVector> UniqueVertices;
-		FVector VertexCenter = FVector::ZeroVector;
-
-		if (Brush->Brush && Brush->Brush->Polys)
-		{
-			for (const auto& Element : Brush->Brush->Polys->Element)
-			{
-				for (const auto& Vertex : Element.Vertices)
-				{
-					UniqueVertices.Add(Vertex);
-				}
-			}
-
-			for (const auto& Vertex : UniqueVertices)
-			{
-				VertexCenter += Vertex;
-			}
-
-			if (UniqueVertices.Num() > 0)
-			{
-				VertexCenter /= UniqueVertices.Num();
-			}
-		}
-
-		Brush->SetPivotOffset(VertexCenter);
-	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -640,7 +578,7 @@ bool UGeomModifier_Edit::InputDelta(FEditorViewportClient* InViewportClient,FVie
 	}
 
 	EndTrans();
-	bPendingPivotOffsetUpdate = true;
+
 	GEditor->RedrawLevelEditingViewports(true);
 
 	return true;
@@ -723,7 +661,6 @@ bool UGeomModifier_Extrude::OnApply()
 	GLevelEditorModeTools().SetCoordSystem(SaveCS);
 
 	GEditor->RebuildAlteredBSP(); // Brush has been altered, update the Bsp
-	bPendingPivotOffsetUpdate = true;
 
 	return true;
 }
@@ -825,7 +762,7 @@ void UGeomModifier_Extrude::Apply(int32 InLength, int32 InSegments)
 			{
 				FORCEINLINE bool operator()( const FPoly& A, const FPoly& B ) const
 				{
-					return (B.Normal - A.Normal).SizeSquared() < 0.f;
+					return (B.Normal - A.Normal).Size() < 0;
 				}
 			};
 			Polygons.Sort( FCompareFPolyNormal() );
@@ -925,7 +862,6 @@ bool UGeomModifier_Lathe::OnApply()
 
 	GEditor->RebuildAlteredBSP(); // Brush has been altered, update the Bsp
 
-	bPendingPivotOffsetUpdate = true;
 	return true;
 }
 
@@ -1240,7 +1176,6 @@ bool UGeomModifier_Pen::OnApply()
 {
 	Apply();
 
-	bPendingPivotOffsetUpdate = true;
 	return true;
 }
 
@@ -2044,7 +1979,6 @@ bool UGeomModifier_Clip::OnApply()
 
 	GEditor->RebuildAlteredBSP(); // Brush has been altered, update the Bsp
 
-	bPendingPivotOffsetUpdate = true;
 	return true;
 }
 
@@ -2483,7 +2417,6 @@ bool UGeomModifier_Delete::OnApply()
 		Tools.SetPivotLocation( SelectedActor->GetActorLocation() , false );
 	}
 	
-	bPendingPivotOffsetUpdate = true;
 	return bHandled;
 }
 
@@ -2549,7 +2482,6 @@ bool UGeomModifier_Create::OnApply()
 
 	GEditor->RebuildAlteredBSP(); // Brush has been altered, update the Bsp
 
-	bPendingPivotOffsetUpdate = true;
 	return true;
 }
 
@@ -2595,7 +2527,6 @@ bool UGeomModifier_Flip::OnApply()
 
 	GEditor->RebuildAlteredBSP(); // Brush has been altered, update the Bsp
 
-	bPendingPivotOffsetUpdate = true;
 	return true;
 }
 
@@ -2603,7 +2534,7 @@ UGeomModifier_Split::UGeomModifier_Split(const FObjectInitializer& ObjectInitial
 	: Super(ObjectInitializer)
 {
 	Description = NSLOCTEXT("UnrealEd", "Split", "Split");
-	Tooltip = NSLOCTEXT("UnrealEd.GeomModifier_Pen", "Split_Tooltip", "Split a brush in half, the exact operation depending on which geometry elements are selected.");
+	Tooltip = NSLOCTEXT("UnrealEd.GeomModifier_Pen", "Tooltip", "Split a brush in half, the exact operation depending on which geometry elements are selected.");
 	bPushButton = true;
 }
 
@@ -2967,7 +2898,6 @@ bool UGeomModifier_Split::OnApply()
 
 	GEditor->RebuildAlteredBSP(); // Brush has been altered, update the Bsp
 
-	bPendingPivotOffsetUpdate = true;
 	return true;
 }
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShadowRendering.h: Shadow rendering definitions.
@@ -21,17 +21,13 @@ namespace StencilingGeometry
 	* Note: The sphere will be of unit size unless transformed by the shader. 
 	*/
 	extern void DrawSphere(FRHICommandList& RHICmdList);
-	/**
-	 * Draws exactly the same as above, but uses FVector rather than FVector4 vertex data.
-	 */
-	extern void DrawVectorSphere(FRHICommandList& RHICmdList);
 	/** Renders a cone with a spherical cap, used for rendering spot lights in deferred passes. */
 	extern void DrawCone(FRHICommandList& RHICmdList);
 
 	/** 
 	* Vertex buffer for a sphere of unit size. Used for drawing a sphere as approximate bounding geometry for deferred passes.
 	*/
-	template<int32 NumSphereSides, int32 NumSphereRings, typename VectorType>
+	template<int32 NumSphereSides, int32 NumSphereRings>
 	class TStencilSphereVertexBuffer : public FVertexBuffer
 	{
 	public:
@@ -53,7 +49,7 @@ namespace StencilingGeometry
 			const float RadiansPerRingSegment = PI / (float)NumRings;
 			float Radius = 1;
 
-			TArray<VectorType, TInlineAllocator<NumRings + 1> > ArcVerts;
+			TArray<FVector4, TInlineAllocator<NumRings + 1> > ArcVerts;
 			ArcVerts.Empty(NumRings + 1);
 			// Calculate verts for one arc
 			for (int32 i = 0; i < NumRings + 1; i++)
@@ -62,7 +58,7 @@ namespace StencilingGeometry
 				ArcVerts.Add(FVector(0.0f, FMath::Sin(Angle), FMath::Cos(Angle)));
 			}
 
-			TResourceArray<VectorType, VERTEXBUFFER_ALIGNMENT> Verts;
+			TResourceArray<FVector4, VERTEXBUFFER_ALIGNMENT> Verts;
 			Verts.Empty(NumVerts);
 			// Then rotate this arc NumSides + 1 times.
 			const FVector Center = FVector(0,0,0);
@@ -265,10 +261,9 @@ namespace StencilingGeometry
 		int32 GetVertexCount() const { return NumVerts; }
 	};
 
-	extern TGlobalResource<TStencilSphereVertexBuffer<18, 12, FVector4> > GStencilSphereVertexBuffer;
-	extern TGlobalResource<TStencilSphereVertexBuffer<18, 12, FVector> > GStencilSphereVectorBuffer;
+	extern TGlobalResource<TStencilSphereVertexBuffer<18, 12> > GStencilSphereVertexBuffer;
 	extern TGlobalResource<TStencilSphereIndexBuffer<18, 12> > GStencilSphereIndexBuffer;
-	extern TGlobalResource<TStencilSphereVertexBuffer<4, 4, FVector4> > GLowPolyStencilSphereVertexBuffer;
+	extern TGlobalResource<TStencilSphereVertexBuffer<4, 4> > GLowPolyStencilSphereVertexBuffer;
 	extern TGlobalResource<TStencilSphereIndexBuffer<4, 4> > GLowPolyStencilSphereIndexBuffer;
 	extern TGlobalResource<FStencilConeVertexBuffer> GStencilConeVertexBuffer;
 	extern TGlobalResource<FStencilConeIndexBuffer> GStencilConeIndexBuffer;
@@ -345,7 +340,7 @@ public:
 		return *this; 
 	}
 
-	//~ Begin FMeshDrawingPolicy Interface.
+	// FMeshDrawingPolicy interface.
 	bool Matches(const FShadowDepthDrawingPolicy& Other) const
 	{
 		return FMeshDrawingPolicy::Matches(Other) 
@@ -377,7 +372,7 @@ public:
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
 		bool bBackFace,
-		const FMeshDrawingRenderState& DrawRenderState,
+		float DitheredLODTransitionValue,
 		const ElementDataType& ElementData,
 		const ContextDataType PolicyContext
 		) const;
@@ -389,11 +384,6 @@ public:
 	{
 		return bReverseCulling;
 	}
-	
-	/**
-	  * Executes the draw commands for a mesh.
-	  */
-	void DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch& Mesh, int32 BatchElementIndex, const bool bIsInstancedStereo = false) const;
 
 private:
 
@@ -604,9 +594,6 @@ public:
 	/** Whether this shadow should support casting shadows from translucent surfaces. */
 	uint32 bTranslucentShadow : 1;
 
-	/** Whether this is a per-object shadow that should use capsule shapes to shadow instead of the mesh's triangles. */
-	uint32 bCapsuleShadow : 1;
-
 	/** Whether the shadow is a preshadow or not.  A preshadow is a per object shadow that handles the static environment casting on a dynamic receiver. */
 	uint32 bPreShadow : 1;
 
@@ -741,7 +728,7 @@ public:
 		return bWholeSceneShadow && LightSceneInfo->Proxy->GetLightType() == LightType_Point;
 	}
 
-	/** Sorts StaticSubjectMeshElements based on state so that rendering the static elements will set as little state as possible. */
+	/** Sorts SubjectMeshElements based on state so that rendering the static elements will set as little state as possible. */
 	void SortSubjectMeshElements();
 
 	// 0 if Setup...() wasn't called yet
@@ -765,7 +752,7 @@ private:
 	const FPrimitiveSceneInfo* ParentSceneInfo;
 
 	/** dynamic shadow casting elements */
-	PrimitiveArrayType DynamicSubjectPrimitives;
+	PrimitiveArrayType SubjectPrimitives;
 	/** For preshadows, this contains the receiver primitives to mask the projection to. */
 	PrimitiveArrayType ReceiverPrimitives;
 	/** Subject primitives with translucent relevance. */
@@ -782,7 +769,7 @@ private:
 	TArray<FShadowStaticMeshElement,SceneRenderingAllocator> GIBlockingMeshElements;
 
 	/** Static shadow casting elements. */
-	TArray<FShadowStaticMeshElement,SceneRenderingAllocator> StaticSubjectMeshElements;
+	TArray<FShadowStaticMeshElement,SceneRenderingAllocator> SubjectMeshElements;
 
 	/** Dynamic mesh elements for subject primitives. */
 	TArray<FMeshBatchAndRelevance,SceneRenderingAllocator> DynamicSubjectMeshElements;
@@ -981,14 +968,14 @@ public:
 
 	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo);
 
-	//~ Begin FShader Interface
+	// Begin FShader interface
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << StencilingGeometryParameters;
 		return bShaderHasOutdatedParameters;
 	}
-	//~ Begin  End FShader Interface 
+	//  End FShader interface 
 
 private:
 	FStencilingGeometryShaderParameters StencilingGeometryParameters;

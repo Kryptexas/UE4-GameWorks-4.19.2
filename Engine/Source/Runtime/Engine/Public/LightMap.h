@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightMap.h: Light-map definitions.
@@ -20,6 +20,9 @@ extern ENGINE_API bool GUseBilinearLightmaps;
 /** Whether to allow padding around mappings. Old-style lighting doesn't use this. */
 extern ENGINE_API bool GAllowLightmapPadding;
 
+/** The quality level of DXT encoding for lightmaps (values come from nvtt::Quality enum) */
+extern ENGINE_API int32 GLightmapEncodeQualityLevel;
+
 /** The quality level of the current lighting build */
 extern ENGINE_API ELightingBuildQuality GLightingBuildQuality;
 
@@ -30,7 +33,12 @@ extern ENGINE_API FLightmassDebugOptions GLightmassDebugOptions;
 
 extern ENGINE_API FColor GTexelSelectionColor;
 
-extern ENGINE_API bool IsTexelDebuggingEnabled();
+/** 
+ * Set to 1 to allow selecting lightmap texels by holding down T and left clicking in the editor,
+ * And having debug information about that texel tracked during subsequent lighting rebuilds.
+ * Be sure to set the define with the same name in Lightmass!
+ */
+#define ALLOW_LIGHTMAP_SAMPLE_DEBUGGING 0
 
 /**
  * The abstract base class of 1D and 2D light-maps.
@@ -262,7 +270,7 @@ public:
 	 * @param	bLightingSuccessful	Whether the lighting build was successful or not.
 	 * @param	bForceCompletion	Force all encoding to be fully completed (they may be asynchronous).
 	 */
-	ENGINE_API static void EncodeTextures( UWorld* InWorld, bool bLightingSuccessful, bool bMultithreadedEncode = false );
+	ENGINE_API static void EncodeTextures( UWorld* InWorld, bool bLightingSuccessful, bool bForceCompletion );
 
 	/** Call to enable/disable status update of LightMap encoding */
 	static void SetStatusUpdate(bool bInEnable)
@@ -399,6 +407,10 @@ struct FSelectedLightmapSample
 	int32 LocalY;
 	int32 MappingSizeX;
 	int32 MappingSizeY;
+	/** Position in the lightmap atlas */
+	int32 LightmapX;
+	int32 LightmapY;
+	FColor OriginalColor;
 	
 	/** Default ctor */
 	FSelectedLightmapSample() :
@@ -409,7 +421,10 @@ struct FSelectedLightmapSample
 		LocalX(-1),
 		LocalY(-1),
 		MappingSizeX(-1),
-		MappingSizeY(-1)
+		MappingSizeY(-1),
+		LightmapX(-1),
+		LightmapY(-1),
+		OriginalColor(FColor(0,0,0))
 	{}
 
 	/** Constructor used for a texture lightmap sample */
@@ -430,7 +445,10 @@ struct FSelectedLightmapSample
 		LocalX(InLocalX),
 		LocalY(InLocalY),
 		MappingSizeX(InMappingSizeX),
-		MappingSizeY(InMappingSizeY)
+		MappingSizeY(InMappingSizeY),
+		LightmapX(-1),
+		LightmapY(-1),
+		OriginalColor(FColor(0,0,0))
 	{}
 };
 

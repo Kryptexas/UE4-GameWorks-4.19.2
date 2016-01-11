@@ -1,12 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessSelectionOutline.h: Post processing outline effect.
 =============================================================================*/
 
 #pragma once
-
-#if WITH_EDITOR
 
 #include "RenderingCompositionGraph.h"
 
@@ -32,5 +30,3 @@ public:
 	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
 };
-
-#endif

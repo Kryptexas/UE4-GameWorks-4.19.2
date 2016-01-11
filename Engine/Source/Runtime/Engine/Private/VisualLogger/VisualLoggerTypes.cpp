@@ -1,14 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "ObjectBase.h"
 #include "VisualLogger/VisualLogger.h"
-#include "VisualLogger/VisualLoggerDebugSnapshotInterface.h"
-
-UVisualLoggerDebugSnapshotInterface::UVisualLoggerDebugSnapshotInterface(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-{
-}
 
 #if ENABLE_VISUAL_LOG
 
@@ -50,11 +44,7 @@ FVisualLogEntry::FVisualLogEntry(const class AActor* InActor, TArray<TWeakObject
 	{
 		TimeStamp = InActor->GetWorld()->TimeSeconds;
 		Location = InActor->GetActorLocation();
-		const IVisualLoggerDebugSnapshotInterface* DebugSnapshotInterface = Cast<const IVisualLoggerDebugSnapshotInterface>(InActor);
-		if (DebugSnapshotInterface)
-		{
-			DebugSnapshotInterface->GrabDebugSnapshot(this);
-		}
+		InActor->GrabDebugSnapshot(this);
 		if (Children != nullptr)
 		{
 			TWeakObjectPtr<UObject>* WeakActorPtr = Children->GetData();
@@ -62,7 +52,7 @@ FVisualLogEntry::FVisualLogEntry(const class AActor* InActor, TArray<TWeakObject
 			{
 				if (WeakActorPtr->IsValid())
 				{
-					const IVisualLoggerDebugSnapshotInterface* ChildActor = Cast<const IVisualLoggerDebugSnapshotInterface>(WeakActorPtr->Get());
+					const AActor* ChildActor = Cast<AActor>(WeakActorPtr->Get());
 					if (ChildActor)
 					{
 						ChildActor->GrabDebugSnapshot(this);
@@ -77,10 +67,10 @@ FVisualLogEntry::FVisualLogEntry(float InTimeStamp, FVector InLocation, const UO
 {
 	TimeStamp = InTimeStamp;
 	Location = InLocation;
-	const IVisualLoggerDebugSnapshotInterface* DebugSnapshotInterface = Cast<const IVisualLoggerDebugSnapshotInterface>(Object);
-	if (DebugSnapshotInterface)
+	const AActor* AsActor = Cast<AActor>(Object);
+	if (AsActor)
 	{
-		DebugSnapshotInterface->GrabDebugSnapshot(this);
+		AsActor->GrabDebugSnapshot(this);
 	}
 	if (Children != nullptr)
 	{
@@ -89,7 +79,7 @@ FVisualLogEntry::FVisualLogEntry(float InTimeStamp, FVector InLocation, const UO
 		{
 			if (WeakActorPtr->IsValid())
 			{
-				const IVisualLoggerDebugSnapshotInterface* ChildActor = Cast<const IVisualLoggerDebugSnapshotInterface>(WeakActorPtr->Get());
+				const AActor* ChildActor = Cast<AActor>(WeakActorPtr->Get());
 				if (ChildActor)
 				{
 					ChildActor->GrabDebugSnapshot(this);
@@ -515,27 +505,27 @@ void FVisualLoggerHelpers::GetCategories(const FVisualLogEntry& EntryItem, TArra
 {
 	for (const auto& CurrentEvent : EntryItem.Events)
 	{
-		OutCategories.AddUnique(FVisualLoggerCategoryVerbosityPair(*CurrentEvent.Name, ELogVerbosity::All));
+		OutCategories.Add(FVisualLoggerCategoryVerbosityPair(*CurrentEvent.Name, CurrentEvent.Verbosity));
 	}
 
 	for (const auto& CurrentLine : EntryItem.LogLines)
 	{
-		OutCategories.AddUnique(FVisualLoggerCategoryVerbosityPair(CurrentLine.Category, ELogVerbosity::All));
+		OutCategories.Add(FVisualLoggerCategoryVerbosityPair(CurrentLine.Category, CurrentLine.Verbosity));
 	}
 
 	for (const auto& CurrentElement : EntryItem.ElementsToDraw)
 	{
-		OutCategories.AddUnique(FVisualLoggerCategoryVerbosityPair(CurrentElement.Category, ELogVerbosity::All));
+		OutCategories.Add(FVisualLoggerCategoryVerbosityPair(CurrentElement.Category, CurrentElement.Verbosity));
 	}
 
 	for (const auto& CurrentSample : EntryItem.HistogramSamples)
 	{
-		OutCategories.AddUnique(FVisualLoggerCategoryVerbosityPair(CurrentSample.Category, ELogVerbosity::All));
+		OutCategories.Add(FVisualLoggerCategoryVerbosityPair(CurrentSample.Category, CurrentSample.Verbosity));
 	}
 
 	for (const auto& CurrentBlock : EntryItem.DataBlocks)
 	{
-		OutCategories.AddUnique(FVisualLoggerCategoryVerbosityPair(CurrentBlock.Category, ELogVerbosity::All));
+		OutCategories.Add(FVisualLoggerCategoryVerbosityPair(CurrentBlock.Category, CurrentBlock.Verbosity));
 	}
 }
 
@@ -546,7 +536,7 @@ void FVisualLoggerHelpers::GetHistogramCategories(const FVisualLogEntry& EntryIt
 		auto& DataNames = OutCategories.FindOrAdd(CurrentSample.GraphName.ToString());
 		if (DataNames.Find(CurrentSample.DataName.ToString()) == INDEX_NONE)
 		{
-			DataNames.AddUnique(CurrentSample.DataName.ToString());
+			DataNames.Add(CurrentSample.DataName.ToString());
 		}
 	}
 }

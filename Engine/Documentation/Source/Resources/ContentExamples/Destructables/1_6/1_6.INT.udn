@@ -1,0 +1,40 @@
+Availability: Docs
+Title:1.6 - Destruction Particle Effects
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Destructables
+Description:An overview of the Destructibility example level, example 1.6: Destruction Particle Effects
+
+
+[VAR:Topic]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Destructables/1_4:title%](Resources/ContentExamples/Destructables/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Destructables/1_4:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Destructables/1_4:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Destructables/1_4]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth raw]
+![](Resources/ContentExamples/Destructables/physics_banner.png)
+[/REGION]
+
+Spawn a particle effect when mesh gets destroyed.
+
+[REGION:todo]
+Some brief rules about where the emitter is spawned would be nice. Content example is lacking a particle effect for this section.
+[/REGION]
+
+<!--[REGION:lightbox]
+[![](1_4_solid.png)(w:300)](1_4_solid.png) [![](1_4_fractured.png)(w:300)](1_4_fractured.png) [![](1_4_blown.png)(w:300)](1_4_blown.png)
+[/REGION]-->

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneColorTrackInstance.h"
@@ -15,39 +15,29 @@ FMovieSceneColorTrackInstance::FMovieSceneColorTrackInstance( UMovieSceneColorTr
 }
 
 
-void FMovieSceneColorTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+void FMovieSceneColorTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
 	for( UObject* Object : RuntimeObjects )
 	{
-		
 		if( ColorType == EColorType::Slate )
 		{
-			if (InitSlateColorMap.Find(Object) == nullptr)
-			{			
-				FSlateColor ColorValue = PropertyBindings->GetCurrentValue<FSlateColor>(Object);
-				InitSlateColorMap.Add(Object, ColorValue);
-			}
+			FSlateColor ColorValue = PropertyBindings->GetCurrentValue<FSlateColor>(Object);
+			InitSlateColorMap.Add(Object, ColorValue);
 		}
 		else if( ColorType == EColorType::Linear )
 		{
-			if (InitLinearColorMap.Find(Object) == nullptr)
-			{			
-				UProperty* Property = PropertyBindings->GetProperty(Object);
-				FLinearColor ColorValue = PropertyBindings->GetCurrentValue<FLinearColor>(Object);
-				InitLinearColorMap.Add(Object, ColorValue);
-			}
+			UProperty* Property = PropertyBindings->GetProperty(Object);
+			FLinearColor ColorValue = PropertyBindings->GetCurrentValue<FLinearColor>(Object);
+			InitLinearColorMap.Add(Object, ColorValue);
 		}
 		else if( ColorType == EColorType::RegularColor )
 		{
-			if (InitLinearColorMap.Find(Object) == nullptr)
-			{			
-				UProperty* Property = PropertyBindings->GetProperty(Object);
-				FColor ColorValue = PropertyBindings->GetCurrentValue<FColor>(Object);
-				FLinearColor LinearColorValue = ColorValue.ReinterpretAsLinear();
-				InitLinearColorMap.Add(Object, ColorValue);
-			}
+			UProperty* Property = PropertyBindings->GetProperty(Object);
+			FColor ColorValue = PropertyBindings->GetCurrentValue<FColor>(Object);
+			FLinearColor LinearColorValue = ColorValue.ReinterpretAsLinear();
+			InitLinearColorMap.Add(Object, ColorValue);
 		}
-		else 
+		else
 		{
 			checkf(0, TEXT("Invalid Color Type"));
 		}
@@ -55,7 +45,7 @@ void FMovieSceneColorTrackInstance::SaveState(const TArray<UObject*>& RuntimeObj
 }
 
 
-void FMovieSceneColorTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+void FMovieSceneColorTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
 	for( UObject* Object : RuntimeObjects )
 	{
@@ -91,7 +81,7 @@ void FMovieSceneColorTrackInstance::RestoreState(const TArray<UObject*>& Runtime
 }
 
 
-void FMovieSceneColorTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass ) 
+void FMovieSceneColorTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
 {
 	for(UObject* Object : RuntimeObjects)
 	{
@@ -124,7 +114,7 @@ void FMovieSceneColorTrackInstance::Update( float Position, float LastPosition, 
 }
 
 
-void FMovieSceneColorTrackInstance::RefreshInstance( const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance )
+void FMovieSceneColorTrackInstance::RefreshInstance( const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player )
 {
 	if( RuntimeObjects.Num() == 0 )
 	{

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ProjectLauncherPrivatePCH.h"
 #include "SInlineEditableTextBlock.h"
@@ -47,7 +47,7 @@ void SProjectLauncherSettings::Construct( const FArguments& InArgs, const FProje
 				.VAlign(VAlign_Center)
 				.Padding(4.0f, 0.0f, 4.0f, 0.0f)
 				[
-					SNew(SProjectLauncherProfileNameDescEditor, InModel, true)
+					SNew(SProjectLauncherProfileNameDescEditor, true)
 					.LaunchProfile(this, &SProjectLauncherSettings::GetLaunchProfile)
 				]
 
@@ -299,7 +299,7 @@ void SProjectLauncherSettings::OnNameTextCommitted(const FText& NewText, ETextCo
 	const ILauncherProfilePtr& LaunchProfile = Model->GetSelectedProfile();
 	if (LaunchProfile.IsValid())
 	{
-		Model->GetProfileManager()->ChangeProfileName(LaunchProfile.ToSharedRef(), NewText.ToString());
+		LaunchProfile->SetName(NewText.ToString());
 	}
 }
 
@@ -331,7 +331,7 @@ void SProjectLauncherSettings::HandleCloseActionExecute()
 	const ILauncherProfilePtr& LaunchProfile = Model->GetSelectedProfile();
 	if (LaunchProfile.IsValid())
 	{
-		Model->GetProfileManager()->SaveJSONProfile(LaunchProfile.ToSharedRef());
+		Model->GetProfileManager()->SaveProfile(LaunchProfile.ToSharedRef());
 		//@Todo: FIX! Very Heavy Handed! Will have to re factor the device group saving code, but branch is tonight and this is safe. 
 		Model->GetProfileManager()->SaveDeviceGroups();
 	}

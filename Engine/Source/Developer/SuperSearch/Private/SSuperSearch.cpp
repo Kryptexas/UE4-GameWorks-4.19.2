@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SuperSearchPrivatePCH.h"
 #include "SSearchBox.h"
@@ -25,7 +25,7 @@ static TSharedRef<FSearchEntry> AskQuestionEntry (new FSearchEntry());
 #define LOCTEXT_NAMESPACE "SuperSearch"
 
 SSuperSearchBox::SSuperSearchBox()
-	: SelectedSuggestion(INDEX_NONE)
+	: SelectedSuggestion(-1)
 	, bIgnoreUIUpdate(false)
 {
 	CategoryToIconMap.Add("Documentation", FName("LevelEditor.BrowseDocumentation") );
@@ -70,7 +70,6 @@ void SSuperSearchBox::Construct( const FArguments& InArgs )
 				.OptionsSource(&SearchEngines)
 				.OnGenerateWidget(this, &SSuperSearchBox::GenerateSearchEngineItem)
 				.OnSelectionChanged(this, &SSuperSearchBox::HandleSearchEngineChanged)
-				.ContentPadding(FMargin(4.0f, 1.0f))
 				[
 					SNew(STextBlock)
 					.Text(this, &SSuperSearchBox::GetSelectedSearchEngineText)
@@ -376,7 +375,7 @@ void SSuperSearchBox::OnTextChanged(const FText& InText)
 	{
 		TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
-		FString UrlEncodedString = FPlatformHttp::UrlEncode(InText.ToString());	//we need to url encode for special characters (especially other languages)
+		FString UrlEncodedString = FGenericPlatformHttp::UrlEncode(InText.ToString());	//we need to url encode for special characters (especially other languages)
 
 		if ( CurrentSearchEngine == ESearchEngine::Bing )
 		{
@@ -706,15 +705,16 @@ void SSuperSearchBox::UpdateSuggestions()
 	const FText& Query = InputText->GetText();
 	FSearchResults* SearchResults = SearchResultsCache.Find(Query.ToString());
 
-	//go through and build new suggestion list for list view widget
-	ClearSuggestions();
-
 	//still waiting on results for current query
 	if (SearchResults == nullptr)
 	{
 		return;
 	}
 
+	//go through and build new suggestion list for list view widget
+	Suggestions.Empty();
+	SelectedSuggestion = -1;
+	
 	//first tutorials
 	UpdateSuggestionHelper(NSLOCTEXT("SuperSearch", "tutorials", "Tutorials"), SearchResults->TutorialResults, Suggestions);
 
@@ -767,6 +767,7 @@ void SSuperSearchBox::ClearSuggestions()
 	SelectedSuggestion = INDEX_NONE;
 	SuggestionBox->SetIsOpen(false);
 	SelectedSuggestion = INDEX_NONE;
+	SelectedSuggestion = -1;
 	SuggestionBox->SetIsOpen(false);
 	Suggestions.Empty();
 }

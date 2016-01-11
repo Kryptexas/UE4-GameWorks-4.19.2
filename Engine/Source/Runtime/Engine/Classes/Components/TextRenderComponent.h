@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -144,7 +144,7 @@ class ENGINE_API UTextRenderComponent : public UPrimitiveComponent
 
 	// -----------------------------
 
-	//~ Begin UPrimitiveComponent Interface.
+	// Begin UPrimitiveComponent interface.
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const override;
 	virtual int32 GetNumMaterials() const override;
@@ -152,19 +152,15 @@ class ENGINE_API UTextRenderComponent : public UPrimitiveComponent
 	virtual bool ShouldRecreateProxyOnUpdateTransform() const override;
 	virtual void SetMaterial(int32 ElementIndex, UMaterialInterface* InMaterial) override;
 	virtual FMatrix GetRenderMatrix() const override;
-	//~ End UPrimitiveComponent Interface.
+	// End UPrimitiveComponent interface.
 
-	//~ Begin USceneComponent Interface.
+	// Begin USceneComponent interface.
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
-	//~ End USceneComponent Interface.
+	// End USceneComponent interface.
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual void PostLoad() override;
-	virtual bool NeedsLoadForServer() const override
-	{
-		return false;
-	}
-	//~ End UObject interface.
+	// End UObject interface.
 };
 
 

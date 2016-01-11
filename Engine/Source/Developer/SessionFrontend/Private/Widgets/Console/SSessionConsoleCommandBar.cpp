@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SessionFrontendPrivatePCH.h"
 #include "SSuggestionTextBox.h"
@@ -10,8 +10,7 @@
 /* SSessionConsoleCommandBar interface
  *****************************************************************************/
 
-BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SSessionConsoleCommandBar::Construct(const FArguments& InArgs)
+void SSessionConsoleCommandBar::Construct( const FArguments& InArgs )
 {
 	OnCommandSubmitted = InArgs._OnCommandSubmitted;
 	OnPromoteToShortcutClicked = InArgs._OnPromoteToShortcutClicked;
@@ -65,10 +64,9 @@ void SSessionConsoleCommandBar::Construct(const FArguments& InArgs)
 			]
 	];
 }
-END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 
-void SSessionConsoleCommandBar::SetNumSelectedInstances(int Count)
+void SSessionConsoleCommandBar::SetNumSelectedInstances( int Count )
 {
 	FString CommandString = InputTextBox->GetText().ToString();
 	CommandString.Trim();
@@ -84,7 +82,7 @@ void SSessionConsoleCommandBar::SetNumSelectedInstances(int Count)
 /* SSessionConsoleCommandBar implementation
  *****************************************************************************/
 
-void SSessionConsoleCommandBar::SubmitCommand(const FString& Command)
+void SSessionConsoleCommandBar::SubmitCommand( const FString& Command )
 {
 	OnCommandSubmitted.ExecuteIfBound(Command);
 
@@ -98,7 +96,7 @@ void SSessionConsoleCommandBar::SubmitCommand(const FString& Command)
 /* SSessionConsoleCommandBar event handlers
  *****************************************************************************/
 
-void SSessionConsoleCommandBar::HandleInputTextChanged(const FText& InText)
+void SSessionConsoleCommandBar::HandleInputTextChanged( const FText& InText )
 {
 	FString CommandString = InputTextBox->GetText().ToString();
 	CommandString.Trim();
@@ -108,7 +106,7 @@ void SSessionConsoleCommandBar::HandleInputTextChanged(const FText& InText)
 }
 
 
-void SSessionConsoleCommandBar::HandleInputTextCommitted(const FText& InText, ETextCommit::Type CommitInfo)
+void SSessionConsoleCommandBar::HandleInputTextCommitted( const FText& InText, ETextCommit::Type CommitInfo )
 {
 	if (CommitInfo == ETextCommit::OnEnter)
 	{
@@ -117,13 +115,13 @@ void SSessionConsoleCommandBar::HandleInputTextCommitted(const FText& InText, ET
 }
 
 
-void SSessionConsoleCommandBar::HandleInputTextShowingHistory(TArray<FString>& OutHistory)
+void SSessionConsoleCommandBar::HandleInputTextShowingHistory( TArray<FString>& OutHistory )
 {
 	OutHistory = CommandHistory;
 }
 
 
-void SSessionConsoleCommandBar::HandleInputTextShowingSuggestions(const FString& Text, TArray<FString>& OutSuggestions)
+void SSessionConsoleCommandBar::HandleInputTextShowingSuggestions( const FString& Text, TArray<FString>& OutSuggestions )
 {
 	// @todo gmp: implement remote auto-complete
 }

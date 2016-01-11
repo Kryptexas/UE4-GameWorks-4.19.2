@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemSteamPrivatePCH.h"
 #include "OnlineSessionAsyncLobbySteam.h"
@@ -1029,11 +1029,7 @@ void FOnlineAsyncTaskSteamFindLobbies::Finalize()
 			}
 		}
 
-		if (SearchSettings->SearchResults.Num() > 0)
-		{
-			// Allow game code to sort the servers
-			SearchSettings->SortSearchResults();
-		}
+		SearchSettings->SortSearchResults();
 	}
 
 	SearchSettings->SearchState = bWasSuccessful ? EOnlineAsyncTaskState::Done : EOnlineAsyncTaskState::Failed;
@@ -1124,11 +1120,7 @@ void FOnlineAsyncTaskSteamFindLobby::Finalize()
 				}
 			}
 
-			if (SearchSettings->SearchResults.Num() > 0)
-			{
-				// Allow game code to sort the servers
-				SearchSettings->SortSearchResults();
-			}
+			SearchSettings->SortSearchResults();
 		}
 
 		SearchSettings->SearchState = bWasSuccessful ? EOnlineAsyncTaskState::Done : EOnlineAsyncTaskState::Failed;

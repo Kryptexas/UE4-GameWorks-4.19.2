@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -42,15 +42,15 @@ class UMaterialExpressionSceneColor : public UMaterialExpression
 	UPROPERTY(EditAnywhere, Category = MaterialExpressionSceneColor)
 	FVector2D ConstInput;
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual void PostLoad() override;
-	//~ End UObject Interface.
+	// End UObject interface.
 
-	//~ Begin UMaterialExpression Interface
+	// Begin UMaterialExpression Interface
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
 	virtual FString GetInputName(int32 InputIndex) const override;
-	//~ End UMaterialExpression Interface
+	// End UMaterialExpression Interface
 };
 
 

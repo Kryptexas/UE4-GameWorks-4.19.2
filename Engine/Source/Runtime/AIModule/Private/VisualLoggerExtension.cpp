@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "CanvasItem.h"
@@ -10,10 +10,33 @@
 
 #if ENABLE_VISUAL_LOG
 FVisualLoggerExtension::FVisualLoggerExtension()
-	: SelectedEQSId(INDEX_NONE)
+	: CachedEQSId(INDEX_NONE)
+	, SelectedEQSId(INDEX_NONE)
 	, CurrentTimestamp(FLT_MIN)
 {
 
+}
+
+void FVisualLoggerExtension::OnTimestampChange(float Timestamp, UWorld* InWorld, AActor* HelperActor )
+{
+#if USE_EQS_DEBUGGER
+	if (CurrentTimestamp != Timestamp)
+	{
+		CurrentTimestamp = Timestamp;
+		CachedEQSId = INDEX_NONE;
+		DisableEQSRendering(HelperActor);
+	}
+#endif
+}
+
+void FVisualLoggerExtension::DisableDrawingForData(UWorld* InWorld, UCanvas* Canvas, AActor* HelperActor, const FName& TagName, const FVisualLogDataBlock& DataBlock, float Timestamp)
+{
+#if USE_EQS_DEBUGGER
+	if (TagName == *EVisLogTags::TAG_EQS && CurrentTimestamp == Timestamp)
+	{
+		DisableEQSRendering(HelperActor);
+	}
+#endif
 }
 
 void FVisualLoggerExtension::DisableEQSRendering(AActor* HelperActor)
@@ -34,102 +57,46 @@ void FVisualLoggerExtension::DisableEQSRendering(AActor* HelperActor)
 #endif
 }
 
+void FVisualLoggerExtension::LogEntryLineSelectionChanged(TSharedPtr<FLogEntryItem> SelectedItem, int64 UserData, FName TagName)
+{
+	if (TagName == *EVisLogTags::TAG_EQS)
+	{
+		SelectedEQSId = (int32)UserData;
+	}
+}
+
 extern RENDERCORE_API FTexture* GWhiteTexture;
 
-void FVisualLoggerExtension::ResetData(IVisualLoggerEditorInterface* EdInterface)
-{
-	DisableEQSRendering(EdInterface->GetHelperActor());
-}
-
-void FVisualLoggerExtension::OnItemsSelectionChanged(IVisualLoggerEditorInterface* EdInterface)
-{
-	DrawData(EdInterface, nullptr); //it'll reset current data first
-}
-
-void FVisualLoggerExtension::OnLogLineSelectionChanged(IVisualLoggerEditorInterface* EdInterface, TSharedPtr<struct FLogEntryItem> SelectedItem, int64 UserData)
-{
-	SelectedEQSId = SelectedItem.IsValid() ? UserData : INDEX_NONE;
-	EdInterface->GetHelperActor()->MarkComponentsRenderStateDirty();
-	DrawData(EdInterface, NULL); //we have to refresh rendering components
-}
-
-void FVisualLoggerExtension::DrawData(IVisualLoggerEditorInterface* EdInterface, UCanvas* Canvas)
-{
-	if (Canvas == nullptr)
-	{
-		// disable and refresh EQS rendering
-		DisableEQSRendering(EdInterface->GetHelperActor());
-	}
-
-	UWorld* World = EdInterface->GetWorld();
-	AActor* VisLogHelperActor = EdInterface->GetHelperActor();
-	if (World == nullptr || VisLogHelperActor == nullptr)
-	{
-		return;
-	}
-
-	int32 EQSRenderingComponentIndex = 0;
-	TArray<FName> RowNames = EdInterface->GetSelectedRows();
-	for (const FName& RowName : RowNames)
-	{
-		if (EdInterface->GetSelectedItemIndex(RowName) != INDEX_NONE )
-		{
-			if (EdInterface->IsItemVisible(RowName, EdInterface->GetSelectedItemIndex(RowName)) == false)
-			{
-				continue;
-			}
-
-			const FVisualLogDevice::FVisualLogEntryItem& EntryItem = EdInterface->GetSelectedItem(RowName);
-			if (Canvas == nullptr)
-			{
-				for (auto& Component : EQSRenderingComponents)
-				{
-					if (Component.IsValid())
-					{
-						Component->SetHiddenInGame(true);
-						Component->Deactivate();
-						Component->DebugData.Reset();
-						Component->MarkRenderStateDirty();
-					}
-				}
-			}
-			for (const auto& CurrentData : EntryItem.Entry.DataBlocks)
-			{
-				const FName TagName = CurrentData.TagName;
-				if (EdInterface->MatchCategoryFilters(TagName.ToString()))
-				{
-					UEQSRenderingComponent* EQSRenderComp = (Canvas == nullptr && EQSRenderingComponents.IsValidIndex(EQSRenderingComponentIndex) ? EQSRenderingComponents[EQSRenderingComponentIndex].Get() : nullptr);
-					if (EQSRenderComp == nullptr && Canvas == nullptr)
-					{
-						EQSRenderComp = NewObject<UEQSRenderingComponent>(VisLogHelperActor);
-						EQSRenderComp->bDrawOnlyWhenSelected = false;
-						EQSRenderComp->RegisterComponent();
-						EQSRenderComp->SetHiddenInGame(false);
-						EQSRenderComp->Activate();
-						EQSRenderComp->MarkRenderStateDirty();
-						EQSRenderingComponents.Add(EQSRenderComp);
-					}
-					DrawData(World, EQSRenderComp, Canvas, VisLogHelperActor, TagName, CurrentData, EntryItem.Entry.TimeStamp);
-				}
-				EQSRenderingComponentIndex++;
-			}
-		}
-	}
-}
-
-void FVisualLoggerExtension::DrawData(UWorld* InWorld, class UEQSRenderingComponent* EQSRenderComp, UCanvas* Canvas, AActor* HelperActor, const FName& TagName, const FVisualLogDataBlock& DataBlock, float Timestamp)
+void FVisualLoggerExtension::DrawData(UWorld* InWorld, UCanvas* Canvas, AActor* HelperActor, const FName& TagName, const FVisualLogDataBlock& DataBlock, float Timestamp)
 {
 #if USE_EQS_DEBUGGER
 	if (TagName == *EVisLogTags::TAG_EQS)
 	{
 		EQSDebug::FQueryData DebugData;
 		UEnvQueryDebugHelpers::BlobArrayToDebugData(DataBlock.Data, DebugData, false);
-		if (EQSRenderComp && !Canvas && (SelectedEQSId == DebugData.Id || SelectedEQSId == INDEX_NONE))
+		if (HelperActor)
 		{
-			EQSRenderComp->DebugData = DebugData;
-			EQSRenderComp->SetHiddenInGame(false);
-			EQSRenderComp->Activate();
-			EQSRenderComp->MarkRenderStateDirty();
+			UEQSRenderingComponent* EQSRenderComp = HelperActor->FindComponentByClass<UEQSRenderingComponent>();
+			if (!EQSRenderComp)
+			{
+				EQSRenderComp = NewObject<UEQSRenderingComponent>(HelperActor);
+				EQSRenderComp->bDrawOnlyWhenSelected = false;
+				EQSRenderComp->RegisterComponent();
+				EQSRenderComp->SetHiddenInGame(true);
+			}
+
+			if (SelectedEQSId == INDEX_NONE || SelectedEQSId != CachedEQSId /*|| (EQSRenderComp && EQSRenderComp->bHiddenInGame)*/)
+			{
+				if (SelectedEQSId == INDEX_NONE)
+				{
+					SelectedEQSId = DebugData.Id;
+				}
+				CachedEQSId = DebugData.Id;
+				EQSRenderComp->DebugData = DebugData;
+				EQSRenderComp->Activate();
+				EQSRenderComp->SetHiddenInGame(false);
+				EQSRenderComp->MarkRenderStateDirty();
+			}
 		}
 
 		/** find and draw item selection */

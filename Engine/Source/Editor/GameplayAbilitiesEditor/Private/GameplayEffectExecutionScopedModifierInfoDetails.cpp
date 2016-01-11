@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemEditorPrivatePCH.h"
 #include "GameplayEffectExecutionScopedModifierInfoDetails.h"
@@ -260,7 +260,7 @@ TSharedRef<SWidget> FGameplayEffectExecutionScopedModifierInfoDetails::OnGenerat
 
 TSharedPtr<FGameplayEffectAttributeCaptureDefinition> FGameplayEffectExecutionScopedModifierInfoDetails::GetCurrentCaptureDef() const
 {
-	if (CaptureDefPropertyHandle.IsValid() && CaptureDefPropertyHandle->GetProperty())
+	if (CaptureDefPropertyHandle.IsValid())
 	{
 		TArray<const void*> RawStructPtrs;
 		CaptureDefPropertyHandle->AccessRawData(RawStructPtrs);
@@ -282,7 +282,7 @@ TSharedPtr<FGameplayEffectAttributeCaptureDefinition> FGameplayEffectExecutionSc
 
 void FGameplayEffectExecutionScopedModifierInfoDetails::SetCurrentCaptureDef(TSharedPtr<FGameplayEffectAttributeCaptureDefinition> InDef)
 {
-	if (CaptureDefPropertyHandle.IsValid() && CaptureDefPropertyHandle->GetProperty() && InDef.IsValid())
+	if (CaptureDefPropertyHandle.IsValid() && InDef.IsValid())
 	{
 		TArray<void*> RawStructPtrs;
 		CaptureDefPropertyHandle->AccessRawData(RawStructPtrs);

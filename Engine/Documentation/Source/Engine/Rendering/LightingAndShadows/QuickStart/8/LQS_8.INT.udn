@@ -1,0 +1,52 @@
+Availability: Docs
+Title:8. Further Reading
+Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
+Description:Further reading on the topics covered in the Lighting Quick Start Guide. 
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine/Rendering/LightingAndShadows/QuickStart/7 "%Engine/Rendering/LightingAndShadows/QuickStart/7:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/Rendering/LightingAndShadows/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+
+
+For more information on the topics covered in this Quick Start Guide, and across the entire editor, see the [**Unreal Editor Manual**](Engine).
+
+As for coverage related to the topics in this guide:
+
+* For more information on Lighting Basics, see: [**Lighting Basics**](Engine\Rendering\LightingAndShadows\Basics)
+
+* For more information on the Lighting the Environment, see: [**Lighting and Shadows**](Engine\Rendering\LightingAndShadows)
+
+* For more information on IES Profiles, see: [**IES Light Profiles**](Engine/Rendering/LightingAndShadows/IESLightProfiles) 
+
+* For more information on Light Functions, see: [**Light Functions**](Engine/Rendering/LightingAndShadows/LightFunctions)
+
+* For more information on Rendering in Unreal Engine 4, see: [**Rendering Overview**](Engine\Rendering\Overview)
+
+* For more Lighting Examples, see: [**Lighting Content Examples**](Resources\ContentExamples\Lighting)
+
+* For more information on building levels with Brushes, see: [**Geometry Brush Actors**](Engine\Actors\Brushes)
+
+* For more information on Materials see: [**Introduction To Materials**](Engine/Rendering/Materials/IntroductionToMaterials)
+
+* For more information on Blueprints, see: [**Blueprints Landing Page**](Engine\Blueprints)
+
+
+
+%Steps%
+
+

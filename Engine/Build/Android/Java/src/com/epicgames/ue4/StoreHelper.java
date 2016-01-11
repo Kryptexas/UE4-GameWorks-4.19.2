@@ -3,14 +3,16 @@
 package com.epicgames.ue4;
 
 import android.content.Intent;
-import android.os.Bundle;
 
-public interface StoreHelper
+public abstract class StoreHelper
 {
-	public boolean QueryInAppPurchases(String[] ProductIDs, boolean[] bConsumable);
-	public boolean BeginPurchase(String ProductID, boolean bConsumable);
-	public boolean IsAllowedToMakePurchases();
-	public boolean RestorePurchases();
-	public void	onDestroy();
-	public boolean onActivityResult(int requestCode, int resultCode, Intent data);
+	public StoreHelper()
+	{
+	}
+	
+	public abstract void SetupIapService();
+	public abstract boolean QueryInAppPurchases(String[] ProductIDs, boolean[] bConsumable);
+	public abstract boolean BeginPurchase(String ProductID, boolean bConsumable);
+	public abstract boolean IsAllowedToMakePurchases();
+	public abstract boolean onActivityResult(int requestCode, int resultCode, Intent data);
 }

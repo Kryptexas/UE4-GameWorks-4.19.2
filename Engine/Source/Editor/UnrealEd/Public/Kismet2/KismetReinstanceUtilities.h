@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __KismetReinstanceUtilities_h__
@@ -16,7 +16,7 @@ struct UNREALED_API FRecreateUberGraphFrameScope
 {
 private:
 	TArray<UObject*> Objects;
-	UClass* RecompiledClass;
+	UClass* Class;
 public:
 	FRecreateUberGraphFrameScope(UClass* InClass, bool bRecreate);
 	~FRecreateUberGraphFrameScope();

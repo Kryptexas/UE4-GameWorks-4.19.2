@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightFunction.usf: Pixel shader for computing a light function.
@@ -8,48 +8,36 @@
 #include "Material.usf"
 #include "LightFunctionCommon.usf"
 
-// used like this: mul(float4(SvPosition.xyz, 1), SvPositionToLight);
-float4x4 SvPositionToLight;
+float4x4 ScreenToLight;
 
 /** Fade distance in x, disabled brightness in y, output for preview shadows mask in z. */
 float3 LightFunctionParameters2;
 
 void Main(
-	// in float4 ScreenPosition : TEXCOORD0, // Not used and not output in VS
-	in float4 SvPosition : SV_Position,		// after all interpolators
+	in float4 ScreenPosition : TEXCOORD0,
 	out float4 OutColor : SV_Target0
 	)
 {
-	float2 ScreenUV = SvPositionToBufferUV(SvPosition);
+	half SceneW = PreviousDepth(ScreenPosition);
+	float4 ProjectedScreenPosition = float4(ScreenPosition.xy / ScreenPosition.w * SceneW, SceneW, 1);
+	float4 LightVector = mul(ProjectedScreenPosition, ScreenToLight);
+	LightVector.xyz /= LightVector.w;
 
-	// make SvPosition appear to be rasterized with the depth from the depth buffer
-	SvPosition.z = LookupDeviceZ(ScreenUV);
-
-	float3 LightVector;
-	{
-		float4 Hom = mul(float4(SvPosition.xyz, 1), SvPositionToLight);
-		LightVector = Hom.xyz / Hom.w;
-	}
-	
-	// todo: TranslatedWorld would be better for quality
-	float3 AbsoluteWorldPosition = SvPositionToWorld(SvPosition);
-
+	float4 HomogeneousWorldPosition = mul(ProjectedScreenPosition, View.ScreenToWorld);
+	float3 WorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
 	// Calculate radial view distance for stable fading
-	float ViewDistance = length(View.WorldCameraOrigin - AbsoluteWorldPosition);
+	float ViewDistance = length(View.ViewOrigin.xyz - WorldPosition);
 
-	float GreyScale;
-	{
-		float3 Color = GetLightFunctionColor(LightVector, AbsoluteWorldPosition);
-		GreyScale = dot(Color, .3333f);
-	}
+	float3 Color = GetLightFunctionColor(LightVector.xyz, WorldPosition);
 
 	float DistanceFadeAlpha = saturate((LightFunctionParameters2.x - ViewDistance) / (LightFunctionParameters2.x * .2f));
 	// Fade to disabled based on LightFunctionFadeDistance
-	GreyScale = lerp(LightFunctionParameters2.y, GreyScale, DistanceFadeAlpha);
+	Color = lerp(LightFunctionParameters2.yyy, Color, DistanceFadeAlpha);
 
 	// Fade to disabled based on ShadowFadeFraction
-	GreyScale = lerp(LightFunctionParameters2.y, GreyScale, LightFunctionParameters.y);
+	Color = lerp(LightFunctionParameters2.yyy, Color, LightFunctionParameters.y);
 
+	float GreyScale = dot(Color, .3333f);
 	float EncodedLightAttenuation = EncodeLightAttenuation(GreyScale);
 
 	// Light function shadows write to the blue channel.

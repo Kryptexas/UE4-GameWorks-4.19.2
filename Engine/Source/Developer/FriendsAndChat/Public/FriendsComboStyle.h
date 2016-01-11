@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -39,7 +39,7 @@ struct FRIENDSANDCHAT_API FFriendsComboStyle
 	 */
 	static const FFriendsComboStyle& GetDefault();
 
-	UPROPERTY(EditAnywhere, Category = Appearance)
+	UPROPERTY()
 	FButtonStyle ComboItemButtonStyle;
 	FFriendsComboStyle& SetComboItemButtonStyle(const FButtonStyle& ButtonStyle);
 
@@ -88,27 +88,27 @@ struct FRIENDSANDCHAT_API FFriendsComboStyle
 	FFriendsComboStyle& SetComboItemContentPadding(const FMargin& InPadding);
 
 	/** Friends List Combo Button menu background image (left) */
-	UPROPERTY(EditAnywhere, Category = Appearance)
+	UPROPERTY()
 	FSlateBrush FriendComboBackgroundLeftBrush;
 	FFriendsComboStyle& SetFriendComboBackgroundLeftBrush(const FSlateBrush& BrushStyle);
 
 	/** Friends List Combo Button menu background image (right) */
-	UPROPERTY(EditAnywhere, Category = Appearance)
+	UPROPERTY()
 	FSlateBrush FriendComboBackgroundRightBrush;
 	FFriendsComboStyle& SetFriendComboBackgroundRightBrush(const FSlateBrush& BrushStyle);
 
 	/** Friends List Combo Button menu background image (left-flipped) - for MenuPlacement_ComboBoxRight menus */
-	UPROPERTY(EditAnywhere, Category = Appearance)
+	UPROPERTY()
 	FSlateBrush FriendComboBackgroundLeftFlippedBrush;
 	FFriendsComboStyle& SetFriendComboBackgroundLeftFlippedBrush(const FSlateBrush& BrushStyle);
 
 	/** Friends List Combo Button menu background image (right-flipped) - for MenuPlacement_ComboBoxRight menus */
-	UPROPERTY(EditAnywhere, Category = Appearance)
+	UPROPERTY()
 	FSlateBrush FriendComboBackgroundRightFlippedBrush;
 	FFriendsComboStyle& SetFriendComboBackgroundRightFlippedBrush(const FSlateBrush& BrushStyle);
 
 	/** Friends List Combo Button style */
-	UPROPERTY(EditAnywhere, Category = Appearance)
+	UPROPERTY()
 	FComboButtonStyle FriendListComboButtonStyle;
 	FFriendsComboStyle& SetFriendsListComboButtonStyle(const FComboButtonStyle& ButtonStyle);
 };

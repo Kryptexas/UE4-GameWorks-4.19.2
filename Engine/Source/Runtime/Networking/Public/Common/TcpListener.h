@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -27,7 +27,7 @@ public:
 	 * @param LocalEndpoint The local IP endpoint to listen on.
 	 * @param SleepTime The time to sleep between checking for pending connections (default = 0 seconds).
 	 */
-	FTcpListener(const FIPv4Endpoint& LocalEndpoint, const FTimespan& InSleepTime = FTimespan::Zero())
+	FTcpListener( const FIPv4Endpoint& LocalEndpoint, const FTimespan& InSleepTime = FTimespan::Zero())
 		: DeleteSocket(true)
 		, Endpoint(LocalEndpoint)
 		, SleepTime(InSleepTime)
@@ -43,7 +43,7 @@ public:
 	 * @param InSocket The socket to listen on.
 	 * @param SleepTime The time to sleep between checking for pending connections (default = 0 seconds).
 	 */
-	FTcpListener(FSocket& InSocket, const FTimespan& InSleepTime = FTimespan::Zero())
+	FTcpListener( FSocket& InSocket, const FTimespan& InSleepTime = FTimespan::Zero() )
 		: DeleteSocket(false)
 		, SleepTime(InSleepTime)
 		, Socket(&InSocket)
@@ -59,7 +59,7 @@ public:
 	/**
 	 * Destructor.
 	 */
-	~FTcpListener()
+	~FTcpListener( )
 	{
 		if (Thread != NULL)
 		{
@@ -81,7 +81,7 @@ public:
 	 *
 	 * @return IP endpoint.
 	 */
-	const FIPv4Endpoint& GetLocalEndpoint() const
+	const FIPv4Endpoint& GetLocalEndpoint( ) const
 	{
 		return Endpoint;
 	}
@@ -91,7 +91,7 @@ public:
 	 *
 	 * @return Network socket.
 	 */
-	FSocket* GetSocket() const
+	FSocket* GetSocket( ) const
 	{
 		return Socket;
 	}
@@ -101,7 +101,7 @@ public:
 	 *
 	 * @return true if it is listening, false otherwise.
 	 */
-	bool IsActive() const
+	bool IsActive( ) const
 	{
 		return ((Socket != NULL) && !Stopping);
 	}
@@ -117,7 +117,7 @@ public:
 	 * @return The delegate.
 	 * @see Enable, Disable
 	 */
-	FOnTcpListenerConnectionAccepted& OnConnectionAccepted()
+	FOnTcpListenerConnectionAccepted& OnConnectionAccepted( )
 	{
 		return ConnectionAcceptedDelegate;
 	}
@@ -126,7 +126,7 @@ public:
 
 	// FRunnable interface
 
-	virtual bool Init() override
+	virtual bool Init( ) override
 	{
 		if (Socket == NULL)
 		{
@@ -142,7 +142,7 @@ public:
 		return (Socket != NULL);
 	}
 
-	virtual uint32 Run() override
+	virtual uint32 Run( ) override
 	{
 		TSharedRef<FInternetAddr> RemoteAddress = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
 
@@ -178,12 +178,12 @@ public:
 		return 0;
 	}
 
-	virtual void Stop() override
+	virtual void Stop( ) override
 	{
 		Stopping = true;
 	}
 
-	virtual void Exit() override { }
+	virtual void Exit( ) override { }
 
 private:
 

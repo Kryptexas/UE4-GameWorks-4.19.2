@@ -2,7 +2,6 @@ Availability:Public
 Title: Data Driven Gameplay Elements
 Crumbs:%ROOT%, Programming
 Description:Driving gameplay elements using externally stored data.
-Version: 4.9
 
 [OBJECT:Redirect]
 [PARAM:link]

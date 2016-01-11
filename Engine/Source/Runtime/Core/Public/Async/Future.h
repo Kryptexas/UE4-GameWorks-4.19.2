@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -16,17 +16,6 @@ public:
 	/** Default constructor. */
 	FFutureState()
 		: CompletionEvent(FPlatformProcess::GetSynchEventFromPool(true))
-		, Complete(false)
-	{ }
-
-	/**
-	 * Create and initialize a new instance with a callback.
-	 *
-	 * @param InCompletionCallback A function that is called when the state is completed.
-	 */
-	FFutureState(TFunction<void()>&& InCompletionCallback)
-		: CompletionCallback(InCompletionCallback)
-		, CompletionEvent(FPlatformProcess::GetSynchEventFromPool(true))
 		, Complete(false)
 	{ }
 
@@ -73,19 +62,10 @@ protected:
 	void MarkComplete()
 	{
 		Complete = true;
-
-		if (CompletionCallback)
-		{
-			CompletionCallback();
-		}
-
 		CompletionEvent->Trigger();
 	}
 
 private:
-
-	/** An optional callback function that is executed the state is completed. */
-	TFunction<void()> CompletionCallback;
 
 	/** Holds an event signaling that the result is available. */
 	FEvent* CompletionEvent;
@@ -102,22 +82,6 @@ template<typename InternalResultType>
 class TFutureState
 	: public FFutureState
 {
-public:
-
-	/** Default constructor. */
-	TFutureState()
-		: FFutureState()
-	{ }
-
-	/**
-	 * Create and initialize a new instance with a callback.
-	 *
-	 * @param CompletionCallback A function that is called when the state is completed.
-	 */
-	TFutureState(TFunction<void()>&& CompletionCallback)
-		: FFutureState(MoveTemp(CompletionCallback))
-	{ }
-
 public:
 
 	/**
@@ -289,7 +253,7 @@ protected:
 	{
 		// if you hit this assertion then your future has an invalid state.
 		// this happens if you have an uninitialized future or if you moved
-		// it to another instance.
+		// the future it to another instance.
 		check(State.IsValid());
 
 		return State;
@@ -782,15 +746,6 @@ public:
 		Other.State.Reset();
 	}
 
-	/**
-	 * Create and initialize a new instance with a callback.
-	 *
-	 * @param CompletionCallback A function that is called when the future state is completed.
-	 */
-	TPromiseBase(TFunction<void()>&& CompletionCallback)
-		: State(MakeShareable(new TFutureState<InternalResultType>(MoveTemp(CompletionCallback))))
-	{ }
-
 public:
 
 	/** Move assignment operator. */
@@ -860,16 +815,6 @@ public:
 	TPromise(TPromise&& Other)
 		: BaseType(MoveTemp(Other))
 		, FutureRetrieved(MoveTemp(Other.FutureRetrieved))
-	{ }
-
-	/**
-	 * Create and initialize a new instance with a callback.
-	 *
-	 * @param CompletionCallback A function that is called when the future state is completed.
-	 */
-	TPromise(TFunction<void()>&& CompletionCallback)
-		: BaseType(MoveTemp(CompletionCallback))
-		, FutureRetrieved(false)
 	{ }
 
 public:
@@ -962,16 +907,6 @@ public:
 		, FutureRetrieved(MoveTemp(Other.FutureRetrieved))
 	{ }
 
-	/**
-	 * Create and initialize a new instance with a callback.
-	 *
-	 * @param CompletionCallback A function that is called when the future state is completed.
-	 */
-	TPromise(TFunction<void()>&& CompletionCallback)
-		: BaseType(MoveTemp(CompletionCallback))
-		, FutureRetrieved(false)
-	{ }
-
 public:
 
 	/**
@@ -1046,16 +981,6 @@ public:
 	 */
 	TPromise(TPromise&& Other)
 		: BaseType(MoveTemp(Other))
-		, FutureRetrieved(false)
-	{ }
-
-	/**
-	 * Create and initialize a new instance with a callback.
-	 *
-	 * @param CompletionCallback A function that is called when the future state is completed.
-	 */
-	TPromise(TFunction<void()>&& CompletionCallback)
-		: BaseType(MoveTemp(CompletionCallback))
 		, FutureRetrieved(false)
 	{ }
 

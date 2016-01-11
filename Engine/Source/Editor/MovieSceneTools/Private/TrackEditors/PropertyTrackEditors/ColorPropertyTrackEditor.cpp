@@ -1,15 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneToolsPrivatePCH.h"
 #include "MovieSceneColorTrack.h"
 #include "ColorPropertyTrackEditor.h"
 #include "ColorPropertySection.h"
-
-
-FName FColorPropertyTrackEditor::RedName( "R" );
-FName FColorPropertyTrackEditor::GreenName( "G" );
-FName FColorPropertyTrackEditor::BlueName( "B" );
-FName FColorPropertyTrackEditor::AlphaName( "A" );
 
 
 TSharedRef<ISequencerTrackEditor> FColorPropertyTrackEditor::CreateTrackEditor(TSharedRef<ISequencer> InSequencer)
@@ -18,31 +12,42 @@ TSharedRef<ISequencerTrackEditor> FColorPropertyTrackEditor::CreateTrackEditor(T
 }
 
 
-TSharedRef<FPropertySection> FColorPropertyTrackEditor::MakePropertySectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
+TSharedRef<ISequencerSection> FColorPropertyTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
 {
 	return MakeShareable(new FColorPropertySection(SectionObject, GetSequencer().Get(), Track));
 }
 
 
-void FColorPropertyTrackEditor::GenerateKeysFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, TArray<FColorKey>& NewGeneratedKeys, TArray<FColorKey>& DefaultGeneratedKeys )
+bool FColorPropertyTrackEditor::TryGenerateKeyFromPropertyChanged(  const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, FColorKey& OutKey )
 {
-	const UStructProperty* StructProp = Cast<const UStructProperty>( PropertyChangedParams.PropertyPath.Last() );
-	FName StructName = StructProp->Struct->GetFName();
-	FName PropertyName = PropertyChangedParams.PropertyPath.Last()->GetFName();
+	bool bIsFColor = false, bIsFLinearColor = false, bIsSlateColor = false;
+	const UStructProperty* StructProp = Cast<const UStructProperty>(PropertyChangedParams.PropertyPath.Last());
 
-	bool bIsFColor = StructName == NAME_Color;
-	bool bIsFLinearColor = StructName == NAME_LinearColor;
-	bool bIsSlateColor = StructName == FName( "SlateColor" );
+	if (StructProp && StructProp->Struct)
+	{
+		FName StructName = StructProp->Struct->GetFName();
+
+		bIsFColor = StructName == NAME_Color;
+		bIsFLinearColor = StructName == NAME_LinearColor;
+		bIsSlateColor = StructName == FName("SlateColor");
+	}
+
+	if (!bIsFColor && !bIsFLinearColor && !bIsSlateColor) 
+	{
+		return false;
+	}
+
+	FName PropertyName = PropertyChangedParams.PropertyPath.Last()->GetFName();
 
 	FLinearColor ColorValue;
 
 	if (bIsFColor)
 	{
-		ColorValue = PropertyChangedParams.GetPropertyValue<FColor>().ReinterpretAsLinear();
+		ColorValue = PropertyChangedParams.GetPropertyValue<FColor>()->ReinterpretAsLinear();
 	}
 	else
 	{
-		ColorValue = PropertyChangedParams.GetPropertyValue<FLinearColor>();
+		ColorValue = *PropertyChangedParams.GetPropertyValue<FLinearColor>();
 	}
 
 	if( StructProp->HasMetaData("HideAlphaChannel") )
@@ -50,17 +55,19 @@ void FColorPropertyTrackEditor::GenerateKeysFromPropertyChanged( const FProperty
 		ColorValue.A = 1;
 	}
 
-	FName ChannelName = PropertyChangedParams.StructPropertyNameToKey;
+	OutKey.Value = ColorValue;
+	OutKey.CurveName = PropertyChangedParams.StructPropertyNameToKey;
+	OutKey.bIsSlateColor = bIsSlateColor;
 
-	TArray<FColorKey>& RedKeys = ChannelName == NAME_None || ChannelName == RedName ? NewGeneratedKeys : DefaultGeneratedKeys;
-	RedKeys.Add( FColorKey( EKeyColorChannel::Red, ColorValue.R, bIsSlateColor ) );
+	if (InTrack)
+	{
+		const UMovieSceneColorTrack* ColorTrack = CastChecked<const UMovieSceneColorTrack>( InTrack );
+		if (ColorTrack)
+		{
+			float KeyTime =	GetTimeForKey(GetMovieSceneSequence());
+			return ColorTrack->CanKeyTrack(KeyTime, OutKey, PropertyChangedParams.KeyParams);
+		}
+	}
 
-	TArray<FColorKey>& GreenKeys = ChannelName == NAME_None || ChannelName == GreenName ? NewGeneratedKeys : DefaultGeneratedKeys;
-	GreenKeys.Add( FColorKey( EKeyColorChannel::Green, ColorValue.G, bIsSlateColor ) );
-
-	TArray<FColorKey>& BlueKeys =  ChannelName == NAME_None || ChannelName == BlueName ? NewGeneratedKeys : DefaultGeneratedKeys;
-	BlueKeys.Add( FColorKey( EKeyColorChannel::Blue, ColorValue.B, bIsSlateColor ) );
-
-	TArray<FColorKey>& AlphaKeys = ChannelName == NAME_None || ChannelName == AlphaName ? NewGeneratedKeys : DefaultGeneratedKeys;
-	AlphaKeys.Add( FColorKey( EKeyColorChannel::Alpha, ColorValue.A, bIsSlateColor ) );
+	return false;
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -20,6 +20,7 @@ public class Toolbox : ModuleRules
                 "InputCore",
 				"Slate",
 				"SlateCore",
+				"SlateReflector",
                 "EditorStyle",
 				"DesktopPlatform",
 				"AppFramework"
@@ -33,22 +34,5 @@ public class Toolbox : ModuleRules
 				"ModuleUI"
 			}
 		);
-
-		if (Target.Configuration != UnrealTargetConfiguration.Shipping)
-		{
-			PrivateIncludePathModuleNames.AddRange(
-				new string[] {
-					"SlateReflector",
-				}
-			);
-
-			DynamicallyLoadedModuleNames.AddRange(
-				new string[] {
-					"SlateReflector",
-				}
-			);
-		}
-
-		PrecompileForTargets = PrecompileTargetsType.None;
 	}
 }

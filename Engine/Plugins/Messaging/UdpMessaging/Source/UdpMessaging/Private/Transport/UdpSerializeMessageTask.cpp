@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UdpMessagingPrivatePCH.h"
 #include "TaskGraphInterfaces.h"
@@ -7,7 +7,7 @@
 /* FUdpSerializeMessageTask interface
  *****************************************************************************/
 
-void FUdpSerializeMessageTask::DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+void FUdpSerializeMessageTask::DoTask( ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent )
 {
 	if (MessageContext->IsValid())
 	{
@@ -15,8 +15,9 @@ void FUdpSerializeMessageTask::DoTask(ENamedThreads::Type CurrentThread, const F
 		// a consistent wire format, if their implementations change. This allows us to sanity
 		// check the values during deserialization. @see FUdpDeserializeMessage::Deserialize()
 
-		// serialize context
 		FArchive& Archive = SerializedMessage.Get();
+
+		// serialize context
 		{
 			const FName& MessageType = MessageContext->GetMessageType();
 			Archive << const_cast<FName&>(MessageType);
@@ -39,16 +40,18 @@ void FUdpSerializeMessageTask::DoTask(ENamedThreads::Type CurrentThread, const F
 			int32 NumAnnotations = MessageContext->GetAnnotations().Num();
 			Archive << NumAnnotations;
 
-			for (const auto& AnnotationPair : MessageContext->GetAnnotations())
+			for (TMap<FName, FString>::TConstIterator It(MessageContext->GetAnnotations()); It; ++It)
 			{
-				Archive << const_cast<FName&>(AnnotationPair.Key);
-				Archive << const_cast<FString&>(AnnotationPair.Value);
+				Archive << const_cast<FName&>(It->Key);
+				Archive << const_cast<FString&>(It->Value);
 			}
 		}
 
 		// serialize message body
-		FJsonStructSerializerBackend Backend(Archive);
-		FStructSerializer::Serialize(MessageContext->GetMessage(), *MessageContext->GetMessageTypeInfo(), Backend);
+		{
+			FJsonStructSerializerBackend Backend(Archive);
+			FStructSerializer::Serialize(MessageContext->GetMessage(), *MessageContext->GetMessageTypeInfo(), Backend);
+		}
 
 		SerializedMessage->UpdateState(EUdpSerializedMessageState::Complete);
 	}
@@ -73,5 +76,5 @@ TStatId FUdpSerializeMessageTask::GetStatId() const
 
 ESubsequentsMode::Type FUdpSerializeMessageTask::GetSubsequentsMode() 
 { 
-	return ESubsequentsMode::FireAndForget; 
+	return ESubsequentsMode::TrackSubsequents; 
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -30,40 +30,27 @@ public:
 	 * @param InArgs The declaration data for this widget.
 	 * @param InSessionManager The session manager to use.
 	 */
-	void Construct(const FArguments& InArgs, ISessionManagerRef InSessionManager);
+	void Construct( const FArguments& InArgs, ISessionManagerRef InSessionManager );
 
 protected:
 
 	/** Binds the device commands on our toolbar. */
 	void BindCommands();
 
-	/**
-	 * Clears the log list view.
-	 *
-	 * @see CopyLog, ReloadLog, SaveLog
-	 */
+	/** Clears the log list view. */
 	void ClearLog();
 
-	/**
-	 * Copies the selected log messages to the clipboard.
-	 *
-	 * @see ClearLog, ReloadLog, SaveLog
-	 */
+	/** Copies the selected log messages to the clipboard. */
 	void CopyLog();
 
 	/**
 	 * Reloads the log messages for the currently selected engine instances.
 	 *
-	 * @param FullyReload Whether to fully reload the log entries or only re-apply filtering.
-	 * @see ClearLog, CopyLog, SaveLog
+	 * @param FullyReload - Whether to fully reload the log entries or only re-apply filtering.
 	 */
-	void ReloadLog(bool FullyReload);
+	void ReloadLog( bool FullyReload );
 
-	/**
-	 * Saves all log messages to a file.
-	 *
-	 * @see ClearLog, CopyLog, ReloadLog
-	 */
+	/** Saves all log messages to a file. */
 	void SaveLog();
 
 	/**
@@ -71,13 +58,11 @@ protected:
 	 *
 	 * @param CommandString The command string to send.
 	 */
-	void SendCommand(const FString& CommandString);
+	void SendCommand( const FString& CommandString );
 
 protected:
 
-	// SCompoundWidget overrides
-
-	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 
 private:
 
@@ -100,25 +85,25 @@ private:
 	bool HandleSaveActionCanExecute();
 
 	/** Callback for promoting console command to shortcuts. */
-	void HandleCommandBarPromoteToShortcutClicked(const FString& CommandString);
+	void HandleCommandBarPromoteToShortcutClicked( const FString& CommandString );
 
 	/** Callback for submitting console commands. */
-	void HandleCommandSubmitted(const FString& CommandString);
+	void HandleCommandSubmitted( const FString& CommandString );
 
 	/** Callback for changing the filter settings. */
 	void HandleFilterChanged();
 
 	/** Callback for scrolling a log item into view. */
-	void HandleLogListItemScrolledIntoView(FSessionLogMessagePtr Item, const TSharedPtr<ITableRow>& TableRow);
+	void HandleLogListItemScrolledIntoView( FSessionLogMessagePtr Item, const TSharedPtr<ITableRow>& TableRow );
 
 	/** Callback for generating a row widget for the log list view. */
-	TSharedRef<ITableRow> HandleLogListGenerateRow(FSessionLogMessagePtr Message, const TSharedRef<STableViewBase>& OwnerTable);
+	TSharedRef<ITableRow> HandleLogListGenerateRow( FSessionLogMessagePtr Message, const TSharedRef<STableViewBase>& OwnerTable );
 
 	/** Callback for getting the highlight string for log messages. */
 	FText HandleLogListGetHighlightText() const;
 
 	/** Callback for selecting log messages. */
-	void HandleLogListSelectionChanged(FSessionLogMessagePtr InItem, ESelectInfo::Type SelectInfo);
+	void HandleLogListSelectionChanged( FSessionLogMessagePtr InItem, ESelectInfo::Type SelectInfo );
 
 	/** Callback for getting the enabled state of the console box. */
 	bool HandleMainContentIsEnabled() const;
@@ -127,13 +112,13 @@ private:
 	EVisibility HandleSelectSessionOverlayVisibility() const;
 
 	/** Callback for changing the engine instance selection. */
-	void HandleSessionManagerInstanceSelectionChanged(const TSharedPtr<ISessionInstanceInfo>& Instance, bool Selected);
+	void HandleSessionManagerInstanceSelectionChanged();
 
 	/** Callback for received log entries. */
-	void HandleSessionManagerLogReceived(const ISessionInfoRef& Session, const ISessionInstanceInfoRef& Instance, const FSessionLogMessageRef& Message);
+	void HandleSessionManagerLogReceived( const ISessionInfoRef& Session, const ISessionInstanceInfoRef& Instance, const FSessionLogMessageRef& Message );
 
 	/** Callback for changing the selected session. */
-	void HandleSessionManagerSelectedSessionChanged(const ISessionInfoPtr& SelectedSession);
+	void HandleSessionManagerSelectedSessionChanged( const ISessionInfoPtr& SelectedSession );
 
 private:
 

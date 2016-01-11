@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,24 +7,22 @@
 class FSlate3DRenderer : public ISlate3DRenderer
 {
 public:
-	FSlate3DRenderer( TSharedRef<FSlateFontServices> InSlateFontServices, TSharedRef<FSlateRHIResourceManager> InResourceManager, bool bUseGammaCorrection = false );
+	FSlate3DRenderer( TSharedPtr<FSlateRHIResourceManager> InResourceManager, TSharedPtr<FSlateFontCache> InFontCache );
 	~FSlate3DRenderer();
 
 	virtual FSlateDrawBuffer& GetDrawBuffer() override;
 	virtual void DrawWindow_GameThread(FSlateDrawBuffer& DrawBuffer) override;
-	virtual void DrawWindowToTarget_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRenderTarget2DResource* RenderTargetResource, FSlateDrawBuffer& InDrawBuffer) override;
-
+	virtual void DrawWindowToTarget_RenderThread( FRHICommandListImmediate& RHICmdList, UTextureRenderTarget2D* RenderTarget, FSlateDrawBuffer& InDrawBuffer ) override;
 private:
 
 	/** Double buffered draw buffers so that the rendering thread can be rendering windows while the game thread is setting up for next frame */
-	static const int32 NUM_DRAW_BUFFERS = 3;
-	FSlateDrawBuffer DrawBuffers[NUM_DRAW_BUFFERS];
-
-	/** The font services to use for rendering text */
-	TSharedRef<FSlateFontServices> SlateFontServices;
+	FSlateDrawBuffer DrawBuffers[2];
 
 	/** Texture manager for accessing textures on the game thread */
 	TSharedRef<FSlateRHIResourceManager> ResourceManager;
+
+	/** The font cache for rendering text */
+	TSharedRef<FSlateFontCache> FontCache;
 
 	/** The rendering policy to use for drawing to the render target */
 	TSharedPtr<class FSlateRHIRenderingPolicy> RenderTargetPolicy;
@@ -34,4 +32,5 @@ private:
 
 	/** The draw buffer that is currently free for use by the game thread */
 	uint8 FreeBufferIndex;
+
 };

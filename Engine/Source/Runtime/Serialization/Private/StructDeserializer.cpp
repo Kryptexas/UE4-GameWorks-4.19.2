@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SerializationPrivatePCH.h"
 #include "IStructDeserializerBackend.h"
@@ -109,7 +109,7 @@ bool FStructDeserializer::Deserialize( void* OutStruct, UStruct& TypeInfo, IStru
 					return false;
 				}
 
-				CurrentState = StateStack.Pop(/*bAllowShrinking*/ false);
+				CurrentState = StateStack.Pop(/*bAllowShrinking=*/ false);
 			}
 			break;
 
@@ -119,24 +119,8 @@ bool FStructDeserializer::Deserialize( void* OutStruct, UStruct& TypeInfo, IStru
 
 				NewState.Property = FindField<UProperty>(CurrentState.TypeInfo, *PropertyName);
 
-				if (NewState.Property != nullptr)
+				if (NewState.Property == nullptr)
 				{
-					// handle array property
-					if (Policies.PropertyFilter && Policies.PropertyFilter(NewState.Property, CurrentState.Property))
-					{
-						continue;
-					}
-
-					NewState.ArrayIndex = 0;
-					NewState.Data = CurrentState.Data;
-					NewState.TypeInfo = FindClass(NewState);
-
-					StateStack.Push(CurrentState);
-					CurrentState = NewState;
-				}
-				else
-				{
-					// error: array property not found
 					if (Policies.MissingFields != EStructDeserializerErrorPolicies::Ignore)
 					{
 						UE_LOG(LogSerialization, Verbose, TEXT("The array property '%s' does not exist"), *PropertyName);
@@ -149,6 +133,15 @@ bool FStructDeserializer::Deserialize( void* OutStruct, UStruct& TypeInfo, IStru
 
 					Backend.SkipArray();
 				}
+				else
+				{
+					NewState.ArrayIndex = 0;
+					NewState.Data = CurrentState.Data;
+					NewState.TypeInfo = FindClass(NewState);
+
+					StateStack.Push(CurrentState);
+					CurrentState = NewState;
+				}
 			}
 			break;
 
@@ -159,26 +152,27 @@ bool FStructDeserializer::Deserialize( void* OutStruct, UStruct& TypeInfo, IStru
 
 		case EStructDeserializerBackendTokens::Property:
 			{
+				UProperty* Property = nullptr;
+
 				if (PropertyName.IsEmpty())
 				{
-					// handle array element
+					// handle array property
 					UArrayProperty* ArrayProperty = Cast<UArrayProperty>(CurrentState.Property);
-					UProperty* Property = nullptr;
 
 					if (ArrayProperty != nullptr)
 					{
-						// dynamic array element
+						// dynamic array property
 						Property = ArrayProperty->Inner;
 					}
 					else
 					{
-						// static array element
+						// static array property
 						Property = CurrentState.Property;
 					}
 
 					if (Property == nullptr)
 					{
-						// error: no meta data for array element
+						// error: no property for array element
 						if (Policies.MissingFields != EStructDeserializerErrorPolicies::Ignore)
 						{
 							UE_LOG(LogSerialization, Verbose, TEXT("Failed to serialize array element %i"), CurrentState.ArrayIndex);
@@ -193,43 +187,14 @@ bool FStructDeserializer::Deserialize( void* OutStruct, UStruct& TypeInfo, IStru
 
 					++CurrentState.ArrayIndex;
 				}
-				else if ((CurrentState.Property != nullptr) && (CurrentState.Property->GetClass() == UMapProperty::StaticClass()))
-				{
-					// handle map element
-					UMapProperty* MapProperty = Cast<UMapProperty>(CurrentState.Property);
-					FScriptMapHelper MapHelper(MapProperty, MapProperty->ContainerPtrToValuePtr<void>(CurrentState.Data));
-					UProperty* Property = MapProperty->ValueProp;
-
-					int32 PairIndex = MapHelper.AddDefaultValue_Invalid_NeedsRehash();
-					uint8* PairPtr = MapHelper.GetPairPtr(PairIndex);
-
-					MapProperty->KeyProp->ImportText(*PropertyName, PairPtr + MapProperty->MapLayout.KeyOffset, PPF_Delimited, nullptr);
-
-					if (!Backend.ReadProperty(Property, CurrentState.Property, PairPtr, CurrentState.ArrayIndex))
-					{
-						UE_LOG(LogSerialization, Verbose, TEXT("An item in map '%s' could not be read (%s)"), *PropertyName, *Backend.GetDebugString());
-					}
-				}
 				else
 				{
 					// handle scalar property
-					UProperty* Property = FindField<UProperty>(CurrentState.TypeInfo, *PropertyName);
+					Property = FindField<UProperty>(CurrentState.TypeInfo, *PropertyName);
 
-					if (Property != nullptr)
+					if (Property == nullptr)
 					{
-						if (Policies.PropertyFilter && Policies.PropertyFilter(Property, CurrentState.Property))
-						{
-							continue;
-						}
-
-						if (!Backend.ReadProperty(Property, CurrentState.Property, CurrentState.Data, CurrentState.ArrayIndex))
-						{
-							UE_LOG(LogSerialization, Verbose, TEXT("The property '%s' could not be read (%s)"), *PropertyName, *Backend.GetDebugString());
-						}
-					}
-					else
-					{
-						// error: scalar property not found
+						// error: property not found
 						if (Policies.MissingFields != EStructDeserializerErrorPolicies::Ignore)
 						{
 							UE_LOG(LogSerialization, Verbose, TEXT("The property '%s' does not exist"), *PropertyName);
@@ -240,27 +205,22 @@ bool FStructDeserializer::Deserialize( void* OutStruct, UStruct& TypeInfo, IStru
 							return false;
 						}
 					}
+					else if (!Backend.ReadProperty(Property, CurrentState.Property, CurrentState.Data, CurrentState.ArrayIndex))
+					{
+						UE_LOG(LogSerialization, Verbose, TEXT("The property '%s' could not be read (%s)"), *PropertyName, *Backend.GetDebugString());
+					}
 				}
 			}
 			break;
 
 		case EStructDeserializerBackendTokens::StructureEnd:
 			{
-				// rehash if value was a map
-				UMapProperty* MapProperty = Cast<UMapProperty>(CurrentState.Property);
-
-				if (MapProperty != nullptr)
-				{			
-					FScriptMapHelper MapHelper(MapProperty, CurrentState.Data);
-					MapHelper.Rehash();
-				}
-
 				if (StateStack.Num() == 0)
 				{
 					return true;
 				}
 
-				CurrentState = StateStack.Pop(/*bAllowShrinking*/ false);
+				CurrentState = StateStack.Pop(/*bAllowShrinking=*/ false);
 			}
 			break;
 
@@ -276,12 +236,12 @@ bool FStructDeserializer::Deserialize( void* OutStruct, UStruct& TypeInfo, IStru
 						continue;
 					}
 
-					// handle struct element inside array
+					// handle structured array element
 					UArrayProperty* ArrayProperty = Cast<UArrayProperty>(CurrentState.Property);
 
 					if (ArrayProperty == nullptr)
 					{
-						UE_LOG(LogSerialization, Verbose, TEXT("Found unnamed value outside of array"));
+						UE_LOG(LogSerialization, Verbose, TEXT("Property %s is not an array"));
 
 						return false;
 					}
@@ -292,29 +252,17 @@ bool FStructDeserializer::Deserialize( void* OutStruct, UStruct& TypeInfo, IStru
 					NewState.Property = ArrayProperty->Inner;
 					NewState.Data = ArrayHelper.GetRawPtr(ArrayIndex);
 				}
-				else if ((CurrentState.Property != nullptr) && (CurrentState.Property->GetClass() == UMapProperty::StaticClass()))
-				{
-					// handle map or struct element inside map
-					UMapProperty* MapProperty = Cast<UMapProperty>(CurrentState.Property);
-					FScriptMapHelper MapHelper(MapProperty, CurrentState.Data);
-					int32 PairIndex = MapHelper.AddDefaultValue_Invalid_NeedsRehash();
-					uint8* PairPtr = MapHelper.GetPairPtr(PairIndex);
-					
-					NewState.Data = PairPtr + MapHelper.MapLayout.ValueOffset;
-					NewState.Property = MapProperty->ValueProp;
-
-					MapProperty->KeyProp->ImportText(*PropertyName, PairPtr + MapProperty->MapLayout.KeyOffset, PPF_None, nullptr);
-				}
 				else
 				{
+					// handle structured property
 					NewState.Property = FindField<UProperty>(CurrentState.TypeInfo, *PropertyName);
 
 					if (NewState.Property == nullptr)
 					{
-						// error: map or struct property not found
+						// error: structured property not found
 						if (Policies.MissingFields != EStructDeserializerErrorPolicies::Ignore)
 						{
-							UE_LOG(LogSerialization, Verbose, TEXT("Map or struct property '%s' not found"), *PropertyName);
+							UE_LOG(LogSerialization, Verbose, TEXT("Structured property '%s' not found"), *PropertyName);
 						}
 
 						if (Policies.MissingFields == EStructDeserializerErrorPolicies::Error)
@@ -322,31 +270,14 @@ bool FStructDeserializer::Deserialize( void* OutStruct, UStruct& TypeInfo, IStru
 							return false;
 						}
 					}
-					else if (NewState.Property->GetClass() == UMapProperty::StaticClass())
-					{
-						// handle map property
-						UMapProperty* MapProperty = Cast<UMapProperty>(NewState.Property);
-						NewState.Data = MapProperty->ContainerPtrToValuePtr<void>(CurrentState.Data, CurrentState.ArrayIndex);
-
-						FScriptMapHelper MapHelper(MapProperty, NewState.Data);
-						MapHelper.EmptyValues();
-					}
 					else
 					{
-						// handle struct property
 						NewState.Data = NewState.Property->ContainerPtrToValuePtr<void>(CurrentState.Data);
 					}
 				}
 
 				if (NewState.Property != nullptr)
 				{
-					// skip struct property if property filter is set and rejects it
-					if (Policies.PropertyFilter && !Policies.PropertyFilter(NewState.Property, CurrentState.Property))
-					{
-						Backend.SkipStructure();
-						continue;
-					}
-
 					NewState.ArrayIndex = 0;
 					NewState.TypeInfo = FindClass(NewState);
 

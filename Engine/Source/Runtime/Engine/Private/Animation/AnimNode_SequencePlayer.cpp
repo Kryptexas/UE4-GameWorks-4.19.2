@@ -1,23 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Animation/AnimNode_SequencePlayer.h"
-#include "Animation/AnimInstanceProxy.h"
 
 /////////////////////////////////////////////////////
 // FAnimSequencePlayerNode
 
 void FAnimNode_SequencePlayer::Initialize(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_AssetPlayerBase::Initialize(Context);
-
 	EvaluateGraphExposedInputs.Execute(Context);
-	InternalTimeAccumulator = StartPosition;
+	InternalTimeAccumulator = 0.0f;
+
 	if (Sequence != NULL)
 	{
-		InternalTimeAccumulator = FMath::Clamp(StartPosition, 0.f, Sequence->SequenceLength);
-
-		if (StartPosition == 0.f && (PlayRate * Sequence->RateScale) < 0.0f)
+		if ((PlayRate * Sequence->RateScale) < 0.0f)
 		{
 			InternalTimeAccumulator = Sequence->SequenceLength;
 		}
@@ -32,18 +28,33 @@ void FAnimNode_SequencePlayer::UpdateAssetPlayer(const FAnimationUpdateContext& 
 {
 	EvaluateGraphExposedInputs.Execute(Context);
 
-	if ((Sequence != NULL) && (Context.AnimInstanceProxy->IsSkeletonCompatible(Sequence->GetSkeleton())))
+	if ((Sequence != NULL) && (Context.AnimInstance->CurrentSkeleton->IsCompatible(Sequence->GetSkeleton())))
 	{
-		InternalTimeAccumulator = FMath::Clamp(InternalTimeAccumulator, 0.f, Sequence->SequenceLength);
-		CreateTickRecordForNode(Context, Sequence, bLoopAnimation, PlayRate);
+		const float FinalBlendWeight = Context.GetFinalBlendWeight();
+
+		// Create a tick record and fill it out
+		FAnimGroupInstance* SyncGroup;
+		FAnimTickRecord& TickRecord = Context.AnimInstance->CreateUninitializedTickRecord(GroupIndex, /*out*/ SyncGroup);
+
+		if (InternalTimeAccumulator > Sequence->SequenceLength)
+		{
+			InternalTimeAccumulator = 0.f;
+		}
+		Context.AnimInstance->MakeSequenceTickRecord(TickRecord, Sequence, bLoopAnimation, PlayRate, FinalBlendWeight, /*inout*/ InternalTimeAccumulator);
+
+		// Update the sync group if it exists
+		if (SyncGroup != NULL)
+		{
+			SyncGroup->TestTickRecordForLeadership(GroupRole);
+		}
 	}
 }
 
 void FAnimNode_SequencePlayer::Evaluate(FPoseContext& Output)
 {
-	if ((Sequence != NULL) && (Output.AnimInstanceProxy->IsSkeletonCompatible(Sequence->GetSkeleton())))
+	if ((Sequence != NULL) && (Output.AnimInstance->CurrentSkeleton->IsCompatible(Sequence->GetSkeleton())))
 	{
-		Sequence->GetAnimationPose(Output.Pose, Output.Curve, FAnimExtractContext(InternalTimeAccumulator, Output.AnimInstanceProxy->ShouldExtractRootMotion()));
+		Sequence->GetAnimationPose(Output.Pose, Output.Curve, FAnimExtractContext(InternalTimeAccumulator, Output.AnimInstance->ShouldExtractRootMotion()));
 	}
 	else
 	{

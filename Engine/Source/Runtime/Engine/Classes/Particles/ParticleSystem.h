@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -14,7 +14,8 @@ enum EParticleSystemUpdateMode
 	/** RealTime	- update via the delta time passed in				*/
 	EPSUM_RealTime UMETA(DisplayName="Real-Time"),
 	/** FixedTime	- update via a fixed time step						*/
-	EPSUM_FixedTime UMETA(DisplayName="Fixed-Time")
+	EPSUM_FixedTime UMETA(DisplayName="Fixed-Time"),
+	EPSUM_MAX,
 };
 
 /**
@@ -23,14 +24,10 @@ enum EParticleSystemUpdateMode
 UENUM()
 enum ParticleSystemLODMethod
 {
-	// Automatically set the LOD level, checking every LODDistanceCheckTime seconds.
 	PARTICLESYSTEMLODMETHOD_Automatic UMETA(DisplayName="Automatic"),
-
-	// LOD level is directly set by the game code.
-	PARTICLESYSTEMLODMETHOD_DirectSet UMETA(DisplayName = "Direct Set"),
-
-	// LOD level is determined at Activation time, then left alone unless directly set by game code.
-	PARTICLESYSTEMLODMETHOD_ActivateAutomatic UMETA(DisplayName = "Activate Automatic")
+	PARTICLESYSTEMLODMETHOD_DirectSet UMETA(DisplayName="Direct Set"),
+	PARTICLESYSTEMLODMETHOD_ActivateAutomatic UMETA(DisplayName="Activate Automatic"),
+	PARTICLESYSTEMLODMETHOD_MAX,
 };
 
 /** Occlusion method enumeration */
@@ -42,7 +39,8 @@ enum EParticleSystemOcclusionBoundsMethod
 	/** Use the bounds of the particle system component when determining occlusion */
 	EPSOBM_ParticleBounds UMETA(DisplayName="Particle Bounds"),
 	/** Use the custom occlusion bounds when determining occlusion */
-	EPSOBM_CustomBounds UMETA(DisplayName="Custom Bounds")
+	EPSOBM_CustomBounds UMETA(DisplayName="Custom Bounds"),
+	EPSOBM_MAX,
 };
 
 /** Structure containing per-LOD settings that pertain to the entire UParticleSystem. */
@@ -88,7 +86,7 @@ struct FNamedEmitterMaterial
 	}
 
 	UPROPERTY(EditAnywhere, Category = NamedMaterial)
-	FName Name;
+		FName Name;
 
 	UPROPERTY(EditAnywhere, Category = NamedMaterial)
 	class UMaterialInterface* Material;
@@ -161,7 +159,7 @@ class UParticleSystem : public UObject
 	/**
 	 *	How often (in seconds) the system should perform the LOD distance check.
 	 */
-	UPROPERTY(EditAnywhere, Category=LOD, AssetRegistrySearchable)
+	UPROPERTY(EditAnywhere, Category=LOD)
 	float LODDistanceCheckTime;
 
 	/**
@@ -290,12 +288,6 @@ public:
 	UPROPERTY(EditAnywhere, Category=Delay)
 	uint32 bUseDelayRange:1;
 
-	UPROPERTY(EditAnywhere, Category = Performance, meta = (ToolTip = "Auto-deactivate system if all emitters are determined to not spawn particles again, regardless of lifetime."))
-	bool bAutoDeactivate;
-
-	UPROPERTY(EditAnywhere, Category = Performance, meta = (ToolTip = "Minimum duration between ticks; 33=tick at max. 30FPS, 16=60FPS, 8=120FPS"))
-	uint32 MinTimeBetweenTicks;
-
 	/** Local space position that UVs generated with the ParticleMacroUV material node will be centered on. */
 	UPROPERTY(EditAnywhere, Category=MacroUV)
 	FVector MacroUVPosition;
@@ -322,12 +314,12 @@ public:
 	/** 
 	*	Array of named material slots for use by emitters of this system. 
 	*	Emitters can use these instead of their own materials by providing the name to the NamedMaterialOverrides property of their required module.
-	*	These materials can be overridden using CreateNamedDynamicMaterialInstance() on a ParticleSystemComponent.
+	*	These materials can be overriden using CreateNamedDynamicMaterialInstance() on a ParticleSystemComponent.
 	*/
 	UPROPERTY(EditAnywhere, Category = Materials)
 	TArray<FNamedEmitterMaterial> NamedMaterialSlots;
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
@@ -335,8 +327,7 @@ public:
 	virtual void PostLoad() override;
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
-	virtual bool CanBeClusterRoot() const override;
-	//~ End UObject Interface.
+	// End UObject interface.
 
 
 	// @todo document
@@ -468,12 +459,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Particle System")
 	bool ContainsEmitterType(UClass* TypeData);
 
-	/** Returns true if the particle system is looping (contains one or more looping emitters) */
-	bool IsLooping() const { return bAnyEmitterLoopsForever; }
-
-private:
-	/** Does any emitter loop forever (computed during load and when emitters are built) */
-	bool bAnyEmitterLoopsForever;
 };
 
 

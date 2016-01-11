@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "DataProviders/AIDataProvider.h"
@@ -23,13 +23,7 @@ namespace EnvQueryTestVersion
 #if WITH_EDITORONLY_DATA
 struct FEnvQueryTestScoringPreview
 {
-	enum 
-	{
-		// used for built-in functions (@see EEnvTestScoreEquation)
-		DefaultSamplesCount = 21
-	};
-
-	TArray<float> Samples;
+	float Samples[11];
 	float FilterLow;
 	float FilterHigh;
 	float ClampMin;
@@ -53,12 +47,7 @@ class AIMODULE_API UEnvQueryTest : public UEnvQueryNode
 	/** The purpose of this test.  Should it be used for filtering possible results, scoring them, or both? */
 	UPROPERTY(EditDefaultsOnly, Category=Test)
 	TEnumAsByte<EEnvTestPurpose::Type> TestPurpose;
-
-	/** Optional comment or explanation about what this test is for.  Useful when the purpose of tests may not be clear,
-	  * especially when there are multiple tests of the same type. */
-	UPROPERTY(EditDefaultsOnly, Category=Test)
-	FString TestComment;
-
+	
 	/** Determines filtering operator when context returns multiple items */
 	UPROPERTY(EditDefaultsOnly, Category=Filter, AdvancedDisplay)
 	TEnumAsByte<EEnvTestFilterOperator::Type> MultipleContextFilterOp;
@@ -112,16 +101,6 @@ class AIMODULE_API UEnvQueryTest : public UEnvQueryNode
 	UPROPERTY(EditDefaultsOnly, Category=Score, Meta=(ClampMin="0.001", UIMin="0.001"))
 	FAIDataProviderFloatValue ScoringFactor;
 
-	/** When specified gets used to normalize test's results in such a way that the closer a value is to SweetSpotValue
-	 *	the higher normalized result it will produce. Value farthest from SweetSpotValue will be normalized
-	 *	to 0, and all the other values in between will get normalized linearly with the distance to SweetSpotValue. */
-	UPROPERTY(EditDefaultsOnly, Category = Score, Meta=(EditCondition = "bDefineSweetSpot"))
-	FAIDataProviderFloatValue SweetSpotValue;
-
-	/** When set to true enables usage of SweetSpotValue. It's false by default */
-	UPROPERTY()
-	bool bDefineSweetSpot;
-	
 	/** Validation: item type that can be used with this test */
 	TSubclassOf<UEnvQueryItemType> ValidItemType;
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RepLayout.cpp: Unreal replication layout implementation.
@@ -938,7 +938,7 @@ static FORCEINLINE void WritePropertyHandle( FNetBitWriter & Writer, uint16 Hand
 	}
 #endif
 
-	NETWORK_PROFILER(GNetworkProfiler.TrackWritePropertyHandle( Writer.GetNumBits() - NumStartingBits, nullptr ));
+	NETWORK_PROFILER(GNetworkProfiler.TrackWritePropertyHandle( Writer.GetNumBits() - NumStartingBits ));
 }
 
 static bool ShouldSendProperty( FRepWriterState & WriterState, const uint16 Handle )
@@ -1067,7 +1067,7 @@ uint16 FRepLayout::SendProperties_r(
 
 			const FRepParentCmd& ParentCmd = Parents[Cmd.ParentIndex];
 
-			NETWORK_PROFILER( GNetworkProfiler.TrackReplicateProperty( ParentCmd.Property, NumEndBits - NumStartBits, nullptr ) );
+			NETWORK_PROFILER( GNetworkProfiler.TrackReplicateProperty( ParentCmd.Property, NumEndBits - NumStartBits ) );
 
 			// Make the shadow state match the actual state at the time of send
 			StoreProperty( Cmd, (void*)( StoredData + Cmd.Offset ), (const void*)( Data + Cmd.Offset ) );
@@ -1140,7 +1140,7 @@ void FRepLayout::WritePropertyHeader(
 		Bunch.SerializeIntPacked( ArrayIndex );
 	}
 
-	NETWORK_PROFILER(GNetworkProfiler.TrackWritePropertyHeader(Property, Bunch.GetNumBits() - NumStartingBits, nullptr ));
+	NETWORK_PROFILER(GNetworkProfiler.TrackWritePropertyHeader(Property, Bunch.GetNumBits() - NumStartingBits));
 }
 
 void FRepLayout::SendProperties( 

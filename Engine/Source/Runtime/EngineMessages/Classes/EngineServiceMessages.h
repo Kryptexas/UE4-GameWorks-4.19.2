@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -27,31 +27,31 @@ struct FEngineServicePong
 	GENERATED_USTRUCT_BODY()
 
 	/** Holds the name of the currently loaded level, if any. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString CurrentLevel;
 
 	/** Holds the engine version. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	int32 EngineVersion;
 
 	/** Holds a flag indicating whether game play has begun. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	bool HasBegunPlay;
 
 	/** Holds the instance identifier. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FGuid InstanceId;
 
 	/** Holds the type of the engine instance. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString InstanceType;
 
 	/** Holds the identifier of the session that the application belongs to. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FGuid SessionId;
 
 	/** Holds the time in seconds since the world was loaded. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	float WorldTimeSeconds;
 };
 
@@ -68,11 +68,11 @@ struct FEngineServiceAuthDeny
 	GENERATED_USTRUCT_BODY()
 
 	/** Holds the name of the user that denied access. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString UserName;
 
 	/** Holds the name of the user that access is denied to. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString UserToDeny;
 };
 
@@ -86,11 +86,11 @@ struct FEngineServiceAuthGrant
 	GENERATED_USTRUCT_BODY()
 
 	/** Holds the name of the user that granted access. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString UserName;
 
 	/** Holds the name of the user that access is granted to. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString UserToGrant;
 
 };
@@ -108,18 +108,22 @@ struct FEngineServiceExecuteCommand
 	GENERATED_USTRUCT_BODY()
 
 	/** Holds the command to execute. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString Command;
 
 	/** Holds the name of the user that wants to execute the command. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString UserName;
 
-	/** Default constructor. */
-	FEngineServiceExecuteCommand() { }
+	/**
+	 * Default constructor.
+	 */
+	FEngineServiceExecuteCommand( ) { }
 
-	/** Creates and initializes a new instance. */
-	FEngineServiceExecuteCommand(const FString& InCommand, const FString& InUserName)
+	/**
+	 * Creates and initializes a new instance.
+	 */
+	FEngineServiceExecuteCommand( const FString& InCommand, const FString& InUserName )
 		: Command(InCommand)
 		, UserName(InUserName)
 	{ }
@@ -135,14 +139,18 @@ struct FEngineServiceTerminate
 	GENERATED_USTRUCT_BODY()
 
 	/** Holds the name of the user that wants to terminate the engine. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString UserName;
 
-	/** Default constructor. */
-	FEngineServiceTerminate() { }
+	/**
+	 * Default constructor.
+	 */
+	FEngineServiceTerminate( ) { }
 
-	/** Creates and initializes a new instance. */
-	FEngineServiceTerminate(const FString& InUserName)
+	/**
+	 * Creates and initializes a new instance.
+	 */
+	FEngineServiceTerminate( const FString& InUserName )
 		: UserName(InUserName)
 	{ }
 };
@@ -160,18 +168,22 @@ struct FEngineServiceNotification
 	GENERATED_USTRUCT_BODY()
 
 	/** Holds the notification text. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString Text;
 
 	/** Holds the time in seconds since the engine started. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	double TimeSeconds;
 
-	/** Default constructor. */
-	FEngineServiceNotification() { }
+	/**
+	 * Default constructor.
+	 */
+	FEngineServiceNotification( ) { }
 
-	/** Creates and initializes a new instance. */
-	FEngineServiceNotification(const FString& InText, double InTimeSeconds)
+	/**
+	 * Creates and initializes a new instance.
+	 */
+	FEngineServiceNotification( const FString& InText, double InTimeSeconds )
 		: Text(InText)
 		, TimeSeconds(InTimeSeconds)
 	{ }

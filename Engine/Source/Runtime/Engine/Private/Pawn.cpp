@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Pawn.cpp: APawn AI implementation
@@ -162,7 +162,7 @@ void APawn::SetCanAffectNavigationGeneration(bool bNewValue)
 		UpdateNavigationRelevance();
 
 		// update entries in navigation octree 
-		UNavigationSystem::UpdateActorAndComponentsInNavOctree(*this);
+		UNavigationSystem::UpdateNavOctreeAll(this);
 	}
 }
 
@@ -203,10 +203,6 @@ FVector APawn::GetVelocity() const
 bool APawn::IsLocallyControlled() const
 {
 	return ( Controller && Controller->IsLocalController() );
-}
-bool APawn::IsPlayerControlled() const
-{
-	return PlayerState && !PlayerState->bIsABot;
 }
 
 bool APawn::ReachedDesiredRotation()
@@ -364,12 +360,12 @@ void APawn::PawnClientRestart()
 			{
 				SetupPlayerInputComponent(InputComponent);
 				InputComponent->RegisterComponent();
-				if (UInputDelegateBinding::SupportsInputDelegate(GetClass()))
+				UBlueprintGeneratedClass* BGClass = Cast<UBlueprintGeneratedClass>(GetClass());
+				if(BGClass != NULL)
 				{
 					InputComponent->bBlockInput = bBlockInput;
-					UInputDelegateBinding::BindInputDelegates(GetClass(), InputComponent);
+					UInputDelegateBinding::BindInputDelegates(BGClass, InputComponent);
 				}
-
 			}
 		}
 	}
@@ -430,6 +426,12 @@ bool APawn::IsControlled() const
 {
 	APlayerController* const PC = Cast<APlayerController>(Controller);
 	return(PC != NULL);
+}
+
+/** For K2 access to the controller. */
+AController* APawn::GetController() const
+{
+	return Controller;
 }
 
 FRotator APawn::GetControlRotation() const
@@ -698,6 +700,16 @@ void APawn::SetPlayerDefaults()
 {
 }
 
+void APawn::Tick( float DeltaSeconds )
+{
+	Super::Tick(DeltaSeconds);
+
+	if (Role == ROLE_Authority && GetController())
+	{
+		SetRemoteViewPitch(GetController()->GetControlRotation().Pitch);
+	}
+}
+
 void APawn::RecalculateBaseEyeHeight()
 {
 	BaseEyeHeight = GetDefault<APawn>(GetClass())->BaseEyeHeight;
@@ -735,10 +747,11 @@ void APawn::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDi
 // 		HUD->Canvas->SetPos(4,YPos);
 // 	}
 
-	FDisplayDebugManager& DisplayDebugManager = Canvas->DisplayDebugManager;
+	UFont* RenderFont = GEngine->GetSmallFont();
 	if ( PlayerState == NULL )
 	{
-		DisplayDebugManager.DrawString(TEXT("NO PlayerState"));
+		YL = Canvas->DrawText(RenderFont, TEXT("NO PlayerState"), 4.0f, YPos );
+		YPos += YL;
 	}
 	else
 	{
@@ -747,18 +760,22 @@ void APawn::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDi
 
 	Super::DisplayDebug(Canvas, DebugDisplay, YL, YPos);
 
-	DisplayDebugManager.SetDrawColor(FColor(255,255,255));
+	Canvas->SetDrawColor(255,255,255);
+
 
 	if (DebugDisplay.IsDisplayOn(NAME_Camera))
 	{
-		DisplayDebugManager.DrawString(FString::Printf(TEXT("BaseEyeHeight %f"), BaseEyeHeight));
+		YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT("BaseEyeHeight %f"), BaseEyeHeight), 4.0f, YPos);
+		YPos += YL;
 	}
 
 	// Controller
 	if ( Controller == NULL )
 	{
-		DisplayDebugManager.SetDrawColor(FColor(255, 0, 0));
-		DisplayDebugManager.DrawString(TEXT("NO Controller"));
+		Canvas->SetDrawColor(255,0,0);
+		YL = Canvas->DrawText(RenderFont, TEXT("NO Controller"), 4.0f, YPos);
+		YPos += YL;
+		//HUD->PlayerOwner->DisplayDebug(Canvas, DebugDisplay, YL, YPos);
 	}
 	else
 	{
@@ -857,13 +874,6 @@ void APawn::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 		{
 			NewControlRotation.Roll = CurrentRotation.Roll;
 		}
-
-#if ENABLE_NAN_DIAGNOSTIC
-		if (NewControlRotation.ContainsNaN())
-		{
-			logOrEnsureNanError(TEXT("APawn::FaceRotation about to apply NaN-containing rotation to actor! New:(%s), Current:(%s)"), *NewControlRotation.ToString(), *CurrentRotation.ToString());
-		}
-#endif
 
 		SetActorRotation(NewControlRotation);
 	}
@@ -996,7 +1006,7 @@ void APawn::PostNetReceiveLocationAndRotation()
 		INetworkPredictionInterface* PredictionInterface = Cast<INetworkPredictionInterface>(GetMovementComponent());
 		if (PredictionInterface)
 		{
-			PredictionInterface->SmoothCorrection(OldLocation, OldRotation, ReplicatedMovement.Location, ReplicatedMovement.Rotation.Quaternion());
+			PredictionInterface->SmoothCorrection(OldLocation, OldRotation);
 		}
 	}
 }
@@ -1047,16 +1057,6 @@ void APawn::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetim
 	DOREPLIFETIME( APawn, Controller );
 
 	DOREPLIFETIME_CONDITION( APawn, RemoteViewPitch, 	COND_SkipOwner );
-}
-
-void APawn::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTracker )
-{
-	Super::PreReplication( ChangedPropertyTracker );
-
-	if (Role == ROLE_Authority && GetController())
-	{
-		SetRemoteViewPitch(GetController()->GetControlRotation().Pitch);
-	}
 }
 
 void APawn::MoveIgnoreActorAdd(AActor* ActorToIgnore)

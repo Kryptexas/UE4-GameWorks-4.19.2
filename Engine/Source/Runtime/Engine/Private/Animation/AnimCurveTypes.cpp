@@ -1,12 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "AnimCurveTypes.h"
 #include "Animation/AnimInstance.h"
 #include "AnimationRuntime.h"
-
-DECLARE_CYCLE_STAT(TEXT("BlendedCurve InitFrom"), STAT_BlendedCurve_InitFrom, STATGROUP_Anim);
-
 
 /////////////////////////////////////////////////////
 // FFloatCurve
@@ -187,7 +184,7 @@ void FRawCurveTracks::EvaluateTransformCurveData(USkeleton * Skeleton, TMap<FNam
 			continue;
 		}
 
-		const FSmartNameMapping* NameMapping = Skeleton->GetSmartNameContainer(USkeleton::AnimTrackCurveMappingName);
+		FSmartNameMapping* NameMapping = Skeleton->SmartNames.GetContainer(USkeleton::AnimTrackCurveMappingName);
 
 		// Add or retrieve curve
 		FName CurveName;
@@ -231,25 +228,6 @@ bool FRawCurveTracks::DeleteCurveData(USkeleton::AnimCurveUID Uid, ESupportedCur
 	case FloatType:
 	default:
 		return DeleteCurveDataImpl<FFloatCurve>(FloatCurves, Uid);
-	}
-}
-
-void FRawCurveTracks::DeleteAllCurveData(ESupportedCurveType SupportedCurveType /*= FloatType*/)
-{
-	switch(SupportedCurveType)
-	{
-#if WITH_EDITOR
-	case VectorType:
-		VectorCurves.Empty();
-		break;
-	case TransformType:
-		TransformCurves.Empty();
-		break;
-#endif // WITH_EDITOR
-	case FloatType:
-	default:
-		FloatCurves.Empty();
-		break;
 	}
 }
 
@@ -318,7 +296,7 @@ void FRawCurveTracks::Serialize(FArchive& Ar)
 	}
 }
 
-void FRawCurveTracks::UpdateLastObservedNames(const FSmartNameMapping* NameMapping, ESupportedCurveType SupportedCurveType /*= FloatType*/)
+void FRawCurveTracks::UpdateLastObservedNames(FSmartNameMapping* NameMapping, ESupportedCurveType SupportedCurveType /*= FloatType*/)
 {
 	switch(SupportedCurveType)
 	{
@@ -403,7 +381,7 @@ bool FRawCurveTracks::AddCurveDataImpl(TArray<DataType> & Curves, USkeleton::Ani
 }
 
 template <typename DataType>
-void FRawCurveTracks::UpdateLastObservedNamesImpl(TArray<DataType> & Curves, const FSmartNameMapping* NameMapping)
+void FRawCurveTracks::UpdateLastObservedNamesImpl(TArray<DataType> & Curves, FSmartNameMapping* NameMapping)
 {
 	if(NameMapping)
 	{
@@ -449,7 +427,7 @@ void FBlendedCurve::Set(USkeleton::AnimCurveUID InUid, float InValue, int32 InFl
 
 	check(bInitialized);
 
-	if (UIDList->Find(InUid, ArrayIndex))
+	if (UIDList.Find(InUid, ArrayIndex))
 	{
 		Elements[ArrayIndex].Value = InValue;
 		Elements[ArrayIndex].Flags = InFlags;
@@ -460,11 +438,11 @@ void FBlendedCurve::Set(USkeleton::AnimCurveUID InUid, float InValue, int32 InFl
 
 void FBlendedCurve::Reset(int32 Count)
 {
-	Elements.Reset();
+	Elements.Empty(Count);
 	Elements.Reserve(Count);
 }
 
-//@Todo curve flags won't transfer over - it only overwrites
+//@Todo curve flags won't transfer over - it only overwritees
 void FBlendedCurve::Blend(const FBlendedCurve& A, const FBlendedCurve& B, float Alpha)
 {
 	check(A.Num()==B.Num());
@@ -484,34 +462,10 @@ void FBlendedCurve::Blend(const FBlendedCurve& A, const FBlendedCurve& B, float 
 		for(int32 CurveId=0; CurveId<A.Elements.Num(); ++CurveId)
 		{
 			Elements[CurveId].Value = FMath::Lerp(A.Elements[CurveId].Value, B.Elements[CurveId].Value, Alpha); 
-			Elements[CurveId].Flags = (A.Elements[CurveId].Flags) | (B.Elements[CurveId].Flags);
+			Elements[CurveId].Flags |= (A.Elements[CurveId].Flags | B.Elements[CurveId].Flags);
 		}
 	}
 
-	ValidateCurve(this);
-}
-
-void FBlendedCurve::BlendWith(const FBlendedCurve& Other, float Alpha)
-{
-	check(Num()==Other.Num());
-	if(FMath::Abs(Alpha) <= ZERO_ANIMWEIGHT_THRESH)
-	{
-		return;
-	}
-	else if(FMath::Abs(Alpha - 1.0f) <= ZERO_ANIMWEIGHT_THRESH)
-	{
-		// if blend is all the way for child2, then just copy its bone atoms
-		Override(Other);
-	}
-	else
-	{
-		for(int32 CurveId=0; CurveId<Elements.Num(); ++CurveId)
-		{
-			Elements[CurveId].Value = FMath::Lerp(Elements[CurveId].Value, Other.Elements[CurveId].Value, Alpha);
-			Elements[CurveId].Flags |= (Other.Elements[CurveId].Flags);
-		}
-	}
-	 
 	ValidateCurve(this);
 }
 
@@ -568,67 +522,45 @@ void FBlendedCurve::Override(const FBlendedCurve& CurveToOverrideFrom, float Wei
 void FBlendedCurve::Override(const FBlendedCurve& CurveToOverrideFrom)
 {
 	InitFrom(CurveToOverrideFrom);
-	Elements.Reset();
-	Elements.Append(CurveToOverrideFrom.Elements);
+	Elements = CurveToOverrideFrom.Elements;
 
 	ValidateCurve(this);
 }
 
 void FBlendedCurve::InitFrom(const USkeleton* Skeleton)
 {
-	SCOPE_CYCLE_COUNTER(STAT_BlendedCurve_InitFrom);
-	InitFrom((TArray<FSmartNameMapping::UID>*)&(const_cast<USkeleton*>(Skeleton)->GetCachedAnimCurveMappingNameUids()));
-}
-
-void FBlendedCurve::InitFrom(TArray<FSmartNameMapping::UID> const * InSmartNameUIDs)
-{
-	SCOPE_CYCLE_COUNTER(STAT_BlendedCurve_InitFrom);
-
-	check(InSmartNameUIDs != nullptr);
-	UIDList = InSmartNameUIDs;
-	Elements.Reset();
-	Elements.AddZeroed(UIDList->Num());
+	if(const FSmartNameMapping* Mapping = Skeleton->SmartNames.GetContainer(USkeleton::AnimCurveMappingName))
+	{
+		Mapping->FillUidArray(UIDList);
+		Elements.Empty(UIDList.Num());
+		Elements.AddZeroed(UIDList.Num());
+	}
 
 	// no name, means no curve
 	bInitialized = true;
 }
 
-
-void FBlendedCurve::InitFrom(const FBlendedCurve& InCurveToInitFrom)
+FBlendedCurve::FBlendedCurve(const class UAnimInstance* AnimInstance)
 {
-	SCOPE_CYCLE_COUNTER(STAT_BlendedCurve_InitFrom);	
-
-	// make sure this doesn't happen
-	if (ensure(&InCurveToInitFrom != this))
-	{
-		check(InCurveToInitFrom.UIDList != nullptr);
-		UIDList = InCurveToInitFrom.UIDList;
-		Elements.Reset();
-		Elements.AddZeroed(UIDList->Num());
-
-		bInitialized = true;
-	}
+	check(AnimInstance);
+	InitFrom(AnimInstance->CurrentSkeleton);
 }
 
 void FBlendedCurve::CopyFrom(const FBlendedCurve& CurveToCopyFrom)
 {
-	if (&CurveToCopyFrom != this)
-	{
-		UIDList = CurveToCopyFrom.UIDList;
-		Elements.Reset();
-		Elements.Append(CurveToCopyFrom.Elements);
-		bInitialized = true;
-		ValidateCurve(this);
-	}
+	UIDList = CurveToCopyFrom.UIDList;
+	Elements = CurveToCopyFrom.Elements;
+	bInitialized = true;
+	ValidateCurve(this);
 }
 
 void FBlendedCurve::MoveFrom(FBlendedCurve& CurveToMoveFrom)
 {
-	UIDList = CurveToMoveFrom.UIDList;
-	CurveToMoveFrom.UIDList = nullptr;
+	UIDList = MoveTemp(CurveToMoveFrom.UIDList);
 	Elements = MoveTemp(CurveToMoveFrom.Elements);
 	bInitialized = true;
 	CurveToMoveFrom.bInitialized = false;
+
 	ValidateCurve(this);
 }
 

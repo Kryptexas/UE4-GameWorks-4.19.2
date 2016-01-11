@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	FXSystem.cpp: Implementation of the effects system.
@@ -332,17 +332,8 @@ void FFXSystem::PreRender(FRHICommandListImmediate& RHICmdList, const FGlobalDis
 {
 	if (RHISupportsGPUParticles(FeatureLevel))
 	{
-		PrepareGPUSimulation(RHICmdList);
-
 		SimulateGPUParticles(RHICmdList, EParticleSimulatePhase::Main, NULL, NULL, FTexture2DRHIParamRef(), FTexture2DRHIParamRef());
-
-		FinalizeGPUSimulation(RHICmdList);
-		PrepareGPUSimulation(RHICmdList);
-
 		SimulateGPUParticles(RHICmdList, EParticleSimulatePhase::CollisionDistanceField, NULL, GlobalDistanceFieldParameterData, FTexture2DRHIParamRef(), FTexture2DRHIParamRef());
-
-		//particles rendered during basepass may need to read pos/velocity buffers.  must finalize unless we know for sure that nothingin base pass will read.
-		FinalizeGPUSimulation(RHICmdList);
 	}
 }
 
@@ -350,12 +341,7 @@ void FFXSystem::PostRenderOpaque(FRHICommandListImmediate& RHICmdList, const cla
 {
 	if (RHISupportsGPUParticles(FeatureLevel))
 	{
-		PrepareGPUSimulation(RHICmdList);
-
 		SimulateGPUParticles(RHICmdList, EParticleSimulatePhase::CollisionDepthBuffer, CollisionView, NULL, SceneDepthTexture, GBufferATexture);
-
-		FinalizeGPUSimulation(RHICmdList);
-
-		SortGPUParticles(RHICmdList);		
+		SortGPUParticles(RHICmdList);
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -77,6 +77,16 @@ public:
 	SLATE_END_ARGS()
 public:
 
+	//LOD selection type
+	enum ELODViewSelection
+	{
+		LOD_Auto = 0,
+		LOD_0,
+		LOD_1,
+		LOD_2,
+		LOD_3,
+	};
+
 	void Construct(const FArguments& InArgs);
 	SAnimationEditorViewportTabBody();
 	virtual ~SAnimationEditorViewportTabBody();
@@ -98,8 +108,7 @@ public:
 	int32 GetLODModelCount() const;
 
 	/** LOD model selection checking function*/
-	bool IsLODModelSelected( int32 LODSelectionType ) const;
-	int32 GetLODSelection() const { return LODSelection; };
+	bool IsLODModelSelected( ELODViewSelection LODSelectionType ) const;
 
 	/** Function to set the current playback speed*/
 	void OnSetPlaybackSpeed(int32 PlaybackSpeedMode);
@@ -177,9 +186,6 @@ public:
 	float GetGravityScaleSliderValue() const;
 	FText GetGravityScaleLabel() const;
 
-	/** Function to set LOD model selection*/
-	void OnSetLODModel(int32 LODSelectionType);
-
 protected:
 
 
@@ -256,6 +262,9 @@ private:
 	/** Function to check whether socket hit points are displayed or not*/
 	bool IsShowingSockets() const;
 
+	/** Function to set LOD model selection*/
+	void OnSetLODModel( ELODViewSelection LODSelectionType );
+
 	/** Function to show/hide mesh info*/
 	void OnShowDisplayInfo(int32 DisplayInfoMode);
 
@@ -322,6 +331,9 @@ private:
 
 	/** Tests to see if bone move mode buttons should be visibile */
 	EVisibility GetBoneMoveModeButtonVisibility() const;
+
+	/** Updates the viewport client with the users currently selected playback scale */
+	void UpdateViewportClientPlaybackScale();
 
 	/** Changes the currently selected LoD if the current one becomes invalid */
 	void OnLODChanged();
@@ -439,7 +451,7 @@ private:
 	bool bPreviewLockModeOn;
 
 	/** Current LOD selection*/
-	int32 LODSelection;
+	ELODViewSelection LODSelection;
 
 	/** Selected playback speed mode, used for deciding scale */
 	EAnimationPlaybackSpeeds::Type AnimationPlaybackSpeedMode;

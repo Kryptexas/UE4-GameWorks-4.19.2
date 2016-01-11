@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "AssetToolsPrivatePCH.h"
@@ -548,15 +548,15 @@ void FAssetRenameManager::RenameReferencingStringAssetReferences(const TArray<UP
 
 		FArchive& operator<<(FStringAssetReference& Reference) override
 		{
-			if (Reference.ToString() == OldAssetPath)
+			if (Reference.AssetLongPathname == OldAssetPath)
 			{
-				Reference.SetPath(NewAssetPath);
+				Reference.AssetLongPathname = NewAssetPath;
 			}
 
 			// Generated class path support.
-			if (Reference.ToString() == OldAssetPath + "_C")
+			if (Reference.AssetLongPathname == OldAssetPath + "_C")
 			{
-				Reference.SetPath(NewAssetPath + "_C");
+				Reference.AssetLongPathname = NewAssetPath + "_C";
 			}
 
 			return *this;

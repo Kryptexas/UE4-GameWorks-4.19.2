@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "BehaviorTree/BlackboardComponent.h"
@@ -33,12 +33,9 @@ void UBTDecorator_ConeCheck::InitializeFromAsset(UBehaviorTree& Asset)
 	ConeHalfAngleDot = FMath::Cos(FMath::DegreesToRadians(ConeHalfAngle));
 
 	UBlackboardData* BBAsset = GetBlackboardAsset();
-	if (ensure(BBAsset))
-	{
-		ConeOrigin.ResolveSelectedKey(*BBAsset);
-		ConeDirection.ResolveSelectedKey(*BBAsset);
-		Observed.ResolveSelectedKey(*BBAsset);
-	}
+	ConeOrigin.CacheSelectedKey(BBAsset);
+	ConeDirection.CacheSelectedKey(BBAsset);
+	Observed.CacheSelectedKey(BBAsset);
 }
 
 bool UBTDecorator_ConeCheck::CalculateDirection(const UBlackboardComponent* BlackboardComp, const FBlackboardKeySelector& Origin, const FBlackboardKeySelector& End, FVector& Direction) const
@@ -97,12 +94,10 @@ void UBTDecorator_ConeCheck::OnBlackboardChange(const UBlackboardComponent& Blac
 
 void UBTDecorator_ConeCheck::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
-	TNodeInstanceMemory* DecoratorMemory = reinterpret_cast<TNodeInstanceMemory*>(NodeMemory);
-	
-	const bool bResult = CalcConditionImpl(OwnerComp, NodeMemory);
-	if (bResult != DecoratorMemory->bLastRawResult)
+	const TNodeInstanceMemory* DecoratorMemory = reinterpret_cast<TNodeInstanceMemory*>(NodeMemory);
+
+	if (CalcConditionImpl(OwnerComp, NodeMemory) != DecoratorMemory->bLastRawResult)
 	{
-		DecoratorMemory->bLastRawResult = bResult;
 		OwnerComp.RequestExecution(this);
 	}
 }

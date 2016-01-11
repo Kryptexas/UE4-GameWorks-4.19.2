@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 // @todo AIModule circular dependency
@@ -21,7 +21,7 @@ FNavigationQueryFilter::FNavigationQueryFilter(const FNavigationQueryFilter* Sou
 	}
 }
 
-FNavigationQueryFilter::FNavigationQueryFilter(const FSharedNavQueryFilter Source)
+FNavigationQueryFilter::FNavigationQueryFilter(const TSharedPtr<FNavigationQueryFilter> Source)
 : MaxSearchNodes(DefaultMaxSearchNodes)
 {
 	if (Source.IsValid())
@@ -45,9 +45,9 @@ void FNavigationQueryFilter::Assign(const FNavigationQueryFilter& Source)
 	MaxSearchNodes = Source.GetMaxSearchNodes();
 }
 
-FSharedNavQueryFilter FNavigationQueryFilter::GetCopy() const
+TSharedPtr<FNavigationQueryFilter> FNavigationQueryFilter::GetCopy() const
 {
-	FSharedNavQueryFilter Copy = MakeShareable(new FNavigationQueryFilter());
+	TSharedPtr<FNavigationQueryFilter> Copy = MakeShareable(new FNavigationQueryFilter());
 	Copy->QueryFilterImpl = MakeShareable(QueryFilterImpl->CreateCopy());
 	Copy->MaxSearchNodes = MaxSearchNodes;
 
@@ -115,9 +115,9 @@ UNavigationQueryFilter::UNavigationQueryFilter(const FObjectInitializer& ObjectI
 	ExcludeFlags.Packed = 0;
 }
 
-FSharedConstNavQueryFilter UNavigationQueryFilter::GetQueryFilter(const ANavigationData& NavData) const
+TSharedPtr<const FNavigationQueryFilter> UNavigationQueryFilter::GetQueryFilter(const ANavigationData& NavData) const
 {
-	FSharedConstNavQueryFilter SharedFilter = NavData.GetQueryFilter(GetClass());
+	TSharedPtr<const FNavigationQueryFilter> SharedFilter = NavData.GetQueryFilter(GetClass());
 	if (!SharedFilter.IsValid())
 	{
 		FNavigationQueryFilter* NavFilter = new FNavigationQueryFilter();
@@ -168,7 +168,7 @@ void UNavigationQueryFilter::InitializeFilter(const ANavigationData& NavData, FN
 	Filter.SetExcludeFlags(ExcludeFlags.Packed);
 }
 
-FSharedConstNavQueryFilter UNavigationQueryFilter::GetQueryFilter(const ANavigationData& NavData, TSubclassOf<UNavigationQueryFilter> FilterClass)
+TSharedPtr<const FNavigationQueryFilter> UNavigationQueryFilter::GetQueryFilter(const ANavigationData& NavData, TSubclassOf<UNavigationQueryFilter> FilterClass)
 {
 	if (FilterClass)
 	{

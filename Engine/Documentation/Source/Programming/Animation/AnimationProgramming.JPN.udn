@@ -1,0 +1,17 @@
+﻿INTSourceChangelist:2291853
+Availability:Public
+Title:アニメーション プログラミング
+Crumbs: %ROOT%, Engine, Engine/Animation
+Description:アニメーション システムで作業するプログラマー向けの情報
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Essentials
+	[/PARAM]
+	[PARAM:links]
+		* [](Programming/Animation/AnimNodes) - %Programming/Animation/AnimNodes:description%
+	[/PARAM]
+[/OBJECT]

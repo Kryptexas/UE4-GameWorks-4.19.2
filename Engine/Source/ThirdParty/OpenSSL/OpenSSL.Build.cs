@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -42,14 +42,6 @@ public class OpenSSL : ModuleRules
 							"ssleay32.dll" 
 					   }
 					   );
-
-			if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32)
-			{
-				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/OpenSSL/Win64/VS2012/libeay32.dll"));
-				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/OpenSSL/Win64/VS2012/ssleay32.dll"));
-				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/OpenSSL/Win64/VS2013/libeay32.dll"));
-				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/OpenSSL/Win64/VS2013/ssleay32.dll"));
-			}
 		}
 	}
 }

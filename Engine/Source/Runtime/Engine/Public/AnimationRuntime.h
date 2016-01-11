@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimationRuntime.h: Skeletal mesh animation utilities
@@ -6,41 +6,28 @@
 =============================================================================*/ 
 
 #pragma once
-
 #include "BonePose.h"
 #include "AnimTypes.h"
 #include "AnimCurveTypes.h"
-#include "FixedSizeArrayView.h"
 
 struct FInputBlendPose;
 struct FA2CSPose;
 struct FA2Pose;
 struct FPerBoneBlendWeight;
-struct FCompactPose;
-struct FBlendedCurve;
 class UBlendSpaceBase;
 typedef TArray<FTransform> FTransformArrayA2;
-
-/** Interface used to provide interpolation indices for per bone blends
-  *
-  */
-class ENGINE_API IInterpolationIndexProvider
-{
-public:
-	virtual int32 GetPerBoneInterpolationIndex(int32 BoneIndex, const FBoneContainer& RequiredBones) const = 0;
-};
-
 /** In AnimationRunTime Library, we extract animation data based on Skeleton hierarchy, not ref pose hierarchy. 
 	Ref pose will need to be re-mapped later **/
+
 class ENGINE_API FAnimationRuntime
 {
 public:
 	static void NormalizeRotations(const FBoneContainer& RequiredBones, /*inout*/ FTransformArrayA2& Atoms);
-	static void NormalizeRotations(FTransformArrayA2& Atoms);
+	static void NormalizeRotations(FTransformArrayA2 & Atoms);
 
 	static void InitializeTransform(const FBoneContainer& RequiredBones, /*inout*/ FTransformArrayA2& Atoms);
 #if DO_GUARD_SLOW
-	static bool ContainsNaN(TArray<FBoneIndexType>& RequiredBoneIndices, FA2Pose& Pose);
+	static bool ContainsNaN(TArray<FBoneIndexType> & RequiredBoneIndices, FA2Pose & Pose);
 #endif
 
 	/**
@@ -53,9 +40,9 @@ public:
 	* @param	ResultPose		Output pose of relative bone transforms.
 	*/
 	static void BlendPosesTogether(
-		const TFixedSizeArrayView<FCompactPose>& SourcePoses,
-		const TFixedSizeArrayView<FBlendedCurve>& SourceCurves,
-		const TFixedSizeArrayView<float>& SourceWeights,
+		const TArray<FCompactPose>& SourcePoses,
+		const TArray<FBlendedCurve>& SourceCurves,
+		const TArray<float>&	SourceWeights,
 		/*out*/ FCompactPose& ResultPose, 
 		/*out*/ FBlendedCurve& ResultCurve);
 
@@ -66,31 +53,12 @@ public:
 	* The blend is done by taking a weighted sum of each atom, and re-normalizing the quaternion part at the end, not using SLERP.
 	* This allows n-way blends, and makes the code much faster, though the angular velocity will not be constant across the blend.
 	*
-	* SourceWeightsIndices is used to index SourceWeights, to prevent caller having to supply an ordered weights array 
-	*
 	* @param	ResultPose		Output pose of relative bone transforms.
 	*/
 	static void BlendPosesTogether(
-		const TFixedSizeArrayView<FCompactPose>& SourcePoses,
-		const TFixedSizeArrayView<FBlendedCurve>& SourceCurves,
-		const TFixedSizeArrayView<float>& SourceWeights,
-		const TFixedSizeArrayView<int32>& SourceWeightsIndices,
-		/*out*/ FCompactPose& ResultPose,
-		/*out*/ FBlendedCurve& ResultCurve);
-
-	/**
-	* Blends together a set of poses, each with a given weight.
-	* This function is lightweight, it does not cull out nearly zero weights or check to make sure weights sum to 1.0, the caller should take care of that if needed.
-	*
-	* The blend is done by taking a weighted sum of each atom, and re-normalizing the quaternion part at the end, not using SLERP.
-	* This allows n-way blends, and makes the code much faster, though the angular velocity will not be constant across the blend.
-	*
-	* @param	ResultPose		Output pose of relative bone transforms.
-	*/
-	static void BlendPosesTogetherIndirect(
-		const TFixedSizeArrayView<const FCompactPose*>& SourcePoses,
-		const TFixedSizeArrayView<const FBlendedCurve*>& SourceCurves,
-		const TFixedSizeArrayView<float>& SourceWeights,
+		const TArray<const FCompactPose*>& SourcePoses,
+		const TArray<const FBlendedCurve*>& SourceCurves,
+		const TArray<float>&	SourceWeights,
 		/*out*/ FCompactPose& ResultPose, 
 		/*out*/ FBlendedCurve& ResultCurve);
 
@@ -107,7 +75,7 @@ public:
 		const FCompactPose& SourcePose2,
 		const FBlendedCurve& SourceCurve1,
 		const FBlendedCurve& SourceCurve2,
-		const float WeightOfPose1,
+		const float			WeightOfPose1,
 		/*out*/ FCompactPose& ResultPose,
 		/*out*/ FBlendedCurve& ResultCurve);
 
@@ -120,28 +88,11 @@ public:
 	* @param	ResultPose		Output pose of relative bone transforms.
 	*/
 	static void BlendPosesTogetherPerBone(
-		const TFixedSizeArrayView<FCompactPose>& SourcePoses,
-		const TFixedSizeArrayView<FBlendedCurve>& SourceCurves,
-		const IInterpolationIndexProvider* IndexProvider,
-		const TFixedSizeArrayView<FBlendSampleData>& BlendSampleDataCache,
+		const TArray<FCompactPose>& SourcePoses,
+		const TArray<FBlendedCurve>& SourceCurves,
+		const UBlendSpaceBase* BlendSpace,
+		const TArray<FBlendSampleData>& BlendSampleDataCache,
 		/*out*/ FCompactPose& ResultPose, 
-		/*out*/ FBlendedCurve& ResultCurve);
-
-	/**
-	* Blends together a set of poses, each with a given weight.
-	* This function is for BlendSpace per bone blending. BlendSampleDataCache contains the weight information and is indexed using BlendSampleDataCacheIndices, to prevent caller having to supply an ordered array 
-	*
-	* This blends in local space
-	*
-	* @param	ResultPose		Output pose of relative bone transforms.
-	*/
-	static void BlendPosesTogetherPerBone(
-		const TFixedSizeArrayView<FCompactPose>& SourcePoses,
-		const TFixedSizeArrayView<FBlendedCurve>& SourceCurves,
-		const IInterpolationIndexProvider* IndexProvider,
-		const TFixedSizeArrayView<FBlendSampleData>& BlendSampleDataCache,
-		const TFixedSizeArrayView<int32>& BlendSampleDataCacheIndices,
-		/*out*/ FCompactPose& ResultPose,
 		/*out*/ FBlendedCurve& ResultCurve);
 
 	/**
@@ -153,10 +104,10 @@ public:
 	* @param	ResultPose		Output pose of relative bone transforms.
 	*/
 	static void BlendPosesTogetherPerBoneInMeshSpace(
-		TFixedSizeArrayView<FCompactPose>& SourcePoses,
-		const TFixedSizeArrayView<FBlendedCurve>& SourceCurves,
+		TArray<FCompactPose>& SourcePoses,
+		const TArray<FBlendedCurve>& SourceCurves,
 		const UBlendSpaceBase* BlendSpace,
-		const TFixedSizeArrayView<FBlendSampleData>& BlendSampleDataCache,
+		const TArray<FBlendSampleData>& BlendSampleDataCache,
 		/*out*/ FCompactPose& ResultPose,
 		/*out*/ FBlendedCurve& ResultCurve);
 
@@ -172,12 +123,12 @@ public:
 	* I assume all those things should be determined before coming here and this only cares about weights
 	**/
 	static void BlendPosesPerBoneFilter(
-		FCompactPose& BasePose, 
-		const TArray<FCompactPose>& BlendPoses, 
-		FBlendedCurve& BaseCurve, 
-		const TArray<FBlendedCurve>& BlendCurves, 
-		FCompactPose& OutPose, 
-		FBlendedCurve& OutCurve, 
+		struct FCompactPose& BasePose, 
+		const TArray<struct FCompactPose>& BlendPoses, 
+		struct FBlendedCurve& BaseCurve, 
+		const TArray<struct FBlendedCurve>& BlendCurves, 
+		struct FCompactPose& OutPose, 
+		struct FBlendedCurve& OutCurve, 
 		TArray<FPerBoneBlendWeight>& BoneBlendWeights, 
 		bool bMeshSpaceRotationBlending,
 		enum ECurveBlendOption::Type CurveBlendOption);
@@ -185,8 +136,8 @@ public:
 	static void UpdateDesiredBoneWeight(const TArray<FPerBoneBlendWeight>& SrcBoneBlendWeights, TArray<FPerBoneBlendWeight>& TargetBoneBlendWeights, const TArray<float>& BlendWeights);
 
 	static void CreateMaskWeights(
-			TArray<FPerBoneBlendWeight>& BoneBlendWeights, 
-			const TArray<FInputBlendPose>& BlendFilters, 
+			TArray<FPerBoneBlendWeight> & BoneBlendWeights, 
+			const TArray<FInputBlendPose>	&BlendFilters, 
 			const FBoneContainer& RequiredBones, 
 			const USkeleton* Skeleton);
 
@@ -198,7 +149,7 @@ public:
 		/*inout*/ FTransformArrayA2& Atoms);
 
 	/** Fill ref pose **/
-	static void FillWithRefPose(TArray<FTransform>& OutAtoms, const FBoneContainer& RequiredBones);
+	static void FillWithRefPose(TArray<FTransform> & OutAtoms, const FBoneContainer& RequiredBones);
 
 #if WITH_EDITOR
 	/** fill with retarget base ref pose but this isn't used during run-time, so it always copies all of them */
@@ -206,7 +157,7 @@ public:
 #endif
 
 	/** Convert LocalTransforms into MeshSpaceTransforms over RequiredBones. */
-	static void ConvertPoseToMeshSpace(const TArray<FTransform>& LocalTransforms, TArray<FTransform>& MeshSpaceTransforms, const FBoneContainer& RequiredBones);
+	static void ConvertPoseToMeshSpace(const TArray<FTransform> & LocalTransforms, TArray<FTransform> & MeshSpaceTransforms, const FBoneContainer& RequiredBones);
 
 	/** Convert TargetPose into an AdditivePose, by doing TargetPose = TargetPose - BasePose */
 	static void ConvertPoseToAdditive(FCompactPose& TargetPose, const FCompactPose& BasePose);
@@ -233,7 +184,7 @@ public:
 	 * @param Alpha : Alpha.
 	 * @param RequiredBonesArray : Array of bone indices.
 	 */
-	static void LerpBoneTransforms(TArray<FTransform>& A, const TArray<FTransform>& B, float Alpha, const TArray<FBoneIndexType>& RequiredBonesArray);
+	static void LerpBoneTransforms(TArray<FTransform> & A, const TArray<FTransform> & B, float Alpha, const TArray<FBoneIndexType> & RequiredBonesArray);
 
 
 	/** 
@@ -242,7 +193,7 @@ public:
 	 *
 	 * return ETypeAdvanceAnim type
 	 */
-	static enum ETypeAdvanceAnim AdvanceTime(const bool& bAllowLooping, const float& MoveDelta, float& InOutTime, const float& EndTime);
+	static enum ETypeAdvanceAnim AdvanceTime(const bool & bAllowLooping, const float& MoveDelta, float& InOutTime, const float& EndTime);
 
 	static void TickBlendWeight(float DeltaTime, float DesiredWeight, float& Weight, float& BlendTime);
 	/** 
@@ -265,13 +216,13 @@ public:
 	 */
 	static void EnsureParentsPresent(TArray<FBoneIndexType>& BoneIndices, USkeletalMesh* SkelMesh);
 
-	static void ExcludeBonesWithNoParents(const TArray<int32>& BoneIndices, const FReferenceSkeleton& RefSkeleton, TArray<int32>& FilteredRequiredBones);
+	static void ExcludeBonesWithNoParents(const TArray<int32> & BoneIndices, const FReferenceSkeleton& RefSkeleton, TArray<int32> & FilteredRequiredBones);
 
 	/** Convert a ComponentSpace FTransform to given BoneSpace. */
 	static void ConvertCSTransformToBoneSpace
 	(
-		USkeletalMeshComponent* SkelComp,  
-		FCSPose<FCompactPose>& MeshBases,
+		USkeletalMeshComponent * SkelComp,  
+		FCSPose<FCompactPose> & MeshBases,
 		/*inout*/ FTransform& CSBoneTM, 
 		FCompactPoseBoneIndex BoneIndex,
 		uint8 Space
@@ -294,19 +245,10 @@ public:
 	static void SetSpaceTransform(FA2CSPose& Pose, int32 Index, FTransform& NewTransform);
 	// space bases
 #if WITH_EDITOR
-	static void FillUpSpaceBases(const FReferenceSkeleton& RefSkeleton, const TArray<FTransform> &LocalAtoms, TArray<FTransform> &SpaceBases);
+	static void FillUpSpaceBases(const FReferenceSkeleton & RefSkeleton, const TArray<FTransform> &LocalAtoms, TArray<FTransform> &SpaceBases);
 	static void FillUpSpaceBasesRefPose(const USkeleton* Skeleton, TArray<FTransform> &SpaceBaseRefPose);
 	static void FillUpSpaceBasesRetargetBasePose(const USkeleton* Skeleton, TArray<FTransform> &SpaceBaseRefPose);
 #endif
-
-	/* Weight utility functions */
-	static bool IsFullWeight(float Weight) { return Weight > 1.f - ZERO_ANIMWEIGHT_THRESH; }
-	static bool HasWeight(float Weight) { return Weight > ZERO_ANIMWEIGHT_THRESH; }
-	
-	/**
-	* Combine CurveKeys (that reference morph targets by name) and ActiveAnims (that reference vertex anims by reference) into the ActiveVertexAnims array.
-	*/
-	static TArray<struct FActiveVertexAnim> UpdateActiveVertexAnims(const USkeletalMesh* InSkeletalMesh, const TMap<FName, float>& InMorphCurveAnims, const TArray<FActiveVertexAnim>& InActiveAnims);
 
 private:
 	/** 
@@ -323,14 +265,14 @@ private:
 	* I assume all those things should be determined before coming here and this only cares about weights
 	**/
 	static void BlendMeshPosesPerBoneWeights(
-				FCompactPose& BasePose,
-				const TArray<FCompactPose>& BlendPoses,
-				FBlendedCurve& BaseCurve, 
-				const TArray<FBlendedCurve>& BlendedCurves, 
-				const TArray<FPerBoneBlendWeight>& BoneBlendWeights,
+				struct FCompactPose& BasePose,
+				const TArray<struct FCompactPose>& BlendPoses,
+				struct FBlendedCurve& BaseCurve, 
+				const TArray<struct FBlendedCurve>& BlendedCurves, 
+				const TArray<FPerBoneBlendWeight> & BoneBlendWeights,
 				enum ECurveBlendOption::Type CurveBlendOption,
 				/*out*/ FCompactPose& OutPose, 
-				/*out*/ FBlendedCurve& OutCurve);
+				/*out*/ struct FBlendedCurve& OutCurve);
 
 	/** 
 	* Blend Poses per bone weights : The BasePoses + BlendPoses(SourceIndex) * Blend Weights(BoneIndex)
@@ -348,11 +290,11 @@ private:
 	static void BlendLocalPosesPerBoneWeights(
 			FCompactPose& BasePose,
 			const TArray<FCompactPose>& BlendPoses,
-			FBlendedCurve& BaseCurve, 
-			const TArray<FBlendedCurve>& BlendedCurves, 
-			const TArray<FPerBoneBlendWeight>& BoneBlendWeights,
+			struct FBlendedCurve& BaseCurve, 
+			const TArray<struct FBlendedCurve>& BlendedCurves, 
+			const TArray<FPerBoneBlendWeight> & BoneBlendWeights,
 			enum ECurveBlendOption::Type CurveBlendOption,
 			/*out*/ FCompactPose& OutPose, 
-			/*out*/ FBlendedCurve& OutCurve);
+			/*out*/ struct FBlendedCurve& OutCurve);
 };
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CrashTrackerPrivatePCH.h"
 
@@ -90,6 +90,7 @@ FCrashVideoCapture::FCrashVideoCapture()
 		bIsRunning,
 		TEXT("Whether to toggle the running of crash video capturing in the background."))
 {
+	Buffer[0] = Buffer[1] = NULL;
 }
 
 
@@ -112,8 +113,7 @@ void FCrashVideoCapture::BeginCapture(FSlateRenderer* SlateRenderer)
 	
 	KeypressBuffer.Empty();
 
-	Buffer[0].Reset();
-	Buffer[1].Reset();
+	Buffer[0] = Buffer[1] = NULL;
 	CurrentBufferIndex = 0;
 	
 	CompressedFrames.Empty(CrashTrackerConstants::VideoFramesToCapture);
@@ -151,7 +151,10 @@ void FCrashVideoCapture::EndCapture(bool bSaveCapture)
 	
 	for (int32 i = 0; i < 2; ++i)
 	{
-		Buffer[i].Reset();
+		if (Buffer[i])
+		{
+			Buffer[i] = NULL;
+		}
 	}
 	KeypressBuffer.Empty();
 	for (int32 i = 0; i < CompressedFrames.Num(); ++i)
@@ -267,10 +270,8 @@ void FCrashVideoCapture::Update(float DeltaSeconds)
 			{
 				StrippedKeyPressBuffer.Add(KeypressBuffer[i].Key);
 			}
-
-			const FMappedTextureBuffer& CurrentBuffer = Buffer[CurrentBufferIndex];
 			
-			if ( CurrentBuffer.IsValid() )
+			if (Buffer[CurrentBufferIndex] && Width > 0 && Height > 0)
 			{
 				IImageWrapperPtr ImageWrapper;
 
@@ -279,7 +280,7 @@ void FCrashVideoCapture::Update(float DeltaSeconds)
 
 					IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>( FName("ImageWrapper") );
 					ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::JPEG );
-					ImageWrapper->SetRaw(CurrentBuffer.Data, CurrentBuffer.Width * CurrentBuffer.Height * sizeof(FColor), CurrentBuffer.Width, CurrentBuffer.Height, ERGBFormat::RGBA, 8);
+					ImageWrapper->SetRaw(Buffer[CurrentBufferIndex], Width * Height * sizeof(FColor), Width, Height, ERGBFormat::RGBA, 8);
 				}
 
 				{
@@ -321,8 +322,7 @@ bool FCrashVideoCapture::IsCapturing() const
 
 void FCrashVideoCapture::InvalidateFrame()
 {
-	Buffer[0].Reset();
-	Buffer[1].Reset();
+	Buffer[0] = Buffer[1] = NULL;
 }
 
 

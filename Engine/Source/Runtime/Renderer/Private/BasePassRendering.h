@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BasePassRendering.h: Base pass rendering definitions.
@@ -15,111 +15,22 @@
 /** Whether to allow the indirect lighting cache to be applied to dynamic objects. */
 extern int32 GIndirectLightingCache;
 
-/** Whether some GBuffer targets are optional. */
-extern bool UseSelectiveBasePassOutputs();
-
-/** Parameters needed for looking up into translucency lighting volumes. */
-class FTranslucentLightingVolumeParameters
-{
-public:
-
-	void Bind(const FShaderParameterMap& ParameterMap)
-	{
-		TranslucencyLightingVolumeAmbientInner.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeAmbientInner"));
-		TranslucencyLightingVolumeAmbientInnerSampler.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeAmbientInnerSampler"));
-		TranslucencyLightingVolumeAmbientOuter.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeAmbientOuter"));
-		TranslucencyLightingVolumeAmbientOuterSampler.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeAmbientOuterSampler"));
-		TranslucencyLightingVolumeDirectionalInner.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeDirectionalInner"));
-		TranslucencyLightingVolumeDirectionalInnerSampler.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeDirectionalInnerSampler"));
-		TranslucencyLightingVolumeDirectionalOuter.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeDirectionalOuter"));
-		TranslucencyLightingVolumeDirectionalOuterSampler.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeDirectionalOuterSampler"));
-	}
-
-	template<typename ShaderRHIParamRef>
-	void Set(FRHICommandList& RHICmdList, const ShaderRHIParamRef& ShaderRHI)
-	{
-		if (TranslucencyLightingVolumeAmbientInner.IsBound())
-		{
-			FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
-
-			SetTextureParameter(
-				RHICmdList, 
-				ShaderRHI, 
-				TranslucencyLightingVolumeAmbientInner, 
-				TranslucencyLightingVolumeAmbientInnerSampler, 
-				TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
-				SceneContext.GetTranslucencyVolumeAmbient(TVC_Inner)->GetRenderTargetItem().ShaderResourceTexture);
-
-			SetTextureParameter(
-				RHICmdList, 
-				ShaderRHI, 
-				TranslucencyLightingVolumeAmbientOuter, 
-				TranslucencyLightingVolumeAmbientOuterSampler, 
-				TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
-				SceneContext.GetTranslucencyVolumeAmbient(TVC_Outer)->GetRenderTargetItem().ShaderResourceTexture);
-
-			SetTextureParameter(
-				RHICmdList, 
-				ShaderRHI, 
-				TranslucencyLightingVolumeDirectionalInner, 
-				TranslucencyLightingVolumeDirectionalInnerSampler, 
-				TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
-				SceneContext.GetTranslucencyVolumeDirectional(TVC_Inner)->GetRenderTargetItem().ShaderResourceTexture);
-
-			SetTextureParameter(
-				RHICmdList, 
-				ShaderRHI, 
-				TranslucencyLightingVolumeDirectionalOuter, 
-				TranslucencyLightingVolumeDirectionalOuterSampler, 
-				TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
-				SceneContext.GetTranslucencyVolumeDirectional(TVC_Outer)->GetRenderTargetItem().ShaderResourceTexture);
-		}
-	}
-
-	/** Serializer. */
-	friend FArchive& operator<<(FArchive& Ar,FTranslucentLightingVolumeParameters& P)
-	{
-		Ar << P.TranslucencyLightingVolumeAmbientInner;
-		Ar << P.TranslucencyLightingVolumeAmbientInnerSampler;
-		Ar << P.TranslucencyLightingVolumeAmbientOuter;
-		Ar << P.TranslucencyLightingVolumeAmbientOuterSampler;
-		Ar << P.TranslucencyLightingVolumeDirectionalInner;
-		Ar << P.TranslucencyLightingVolumeDirectionalInnerSampler;
-		Ar << P.TranslucencyLightingVolumeDirectionalOuter;
-		Ar << P.TranslucencyLightingVolumeDirectionalOuterSampler;
-		return Ar;
-	}
-
-private:
-
-	FShaderResourceParameter TranslucencyLightingVolumeAmbientInner;
-	FShaderResourceParameter TranslucencyLightingVolumeAmbientInnerSampler;
-	FShaderResourceParameter TranslucencyLightingVolumeAmbientOuter;
-	FShaderResourceParameter TranslucencyLightingVolumeAmbientOuterSampler;
-	FShaderResourceParameter TranslucencyLightingVolumeDirectionalInner;
-	FShaderResourceParameter TranslucencyLightingVolumeDirectionalInnerSampler;
-	FShaderResourceParameter TranslucencyLightingVolumeDirectionalOuter;
-	FShaderResourceParameter TranslucencyLightingVolumeDirectionalOuterSampler;
-};
-
 /**
  * The base shader type for vertex shaders that render the emissive color, and light-mapped/ambient lighting of a mesh.
  * The base type is shared between the versions with and without atmospheric fog.
  */
 
-template<typename VertexParametersType>
-class TBasePassVertexShaderPolicyParamType : public FMeshMaterialShader, public VertexParametersType
+template<typename LightMapPolicyType>
+class TBasePassVertexShaderBaseType : public FMeshMaterialShader, public LightMapPolicyType::VertexParametersType
 {
 protected:
-
-	TBasePassVertexShaderPolicyParamType() {}
-	TBasePassVertexShaderPolicyParamType(const FMeshMaterialShaderType::CompiledShaderInitializerType& Initializer):
+	TBasePassVertexShaderBaseType() {}
+	TBasePassVertexShaderBaseType(const FMeshMaterialShaderType::CompiledShaderInitializerType& Initializer):
 		FMeshMaterialShader(Initializer)
 	{
-		VertexParametersType::Bind(Initializer.ParameterMap);
+		LightMapPolicyType::VertexParametersType::Bind(Initializer.ParameterMap);
 		HeightFogParameters.Bind(Initializer.ParameterMap);
 		AtmosphericFogTextureParameters.Bind(Initializer.ParameterMap);
-		TranslucentLightingVolumeParameters.Bind(Initializer.ParameterMap);
 		const bool bOutputsVelocityToGBuffer = FVelocityRendering::OutputsToGBuffer();
 		if (bOutputsVelocityToGBuffer)
 		{
@@ -127,29 +38,28 @@ protected:
 //@todo-rco: Move to pixel shader
 			SkipOutputVelocityParameter.Bind(Initializer.ParameterMap, TEXT("SkipOutputVelocity"));
 		}
-
-		InstancedEyeIndexParameter.Bind(Initializer.ParameterMap, TEXT("InstancedEyeIndex"));
-		IsInstancedStereoParameter.Bind(Initializer.ParameterMap, TEXT("bIsInstancedStereo"));
 	}
 
 public:
+	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	{
+		return LightMapPolicyType::ShouldCache(Platform, Material, VertexFactoryType);
+	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FMeshMaterialShader::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		LightMapPolicyType::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
 	{
 		bool bShaderHasOutdatedParameters = FMeshMaterialShader::Serialize(Ar);
-		VertexParametersType::Serialize(Ar);
+		LightMapPolicyType::VertexParametersType::Serialize(Ar);
 		Ar << HeightFogParameters;
 		Ar << AtmosphericFogTextureParameters;
-		Ar << TranslucentLightingVolumeParameters;
 		Ar << PreviousLocalToWorldParameter;
 		Ar << SkipOutputVelocityParameter;
-		Ar << InstancedEyeIndexParameter;
-		Ar << IsInstancedStereoParameter;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -160,74 +70,28 @@ public:
 		const FMaterial& InMaterialResource,
 		const FSceneView& View,
 		bool bAllowGlobalFog,
-		ESceneRenderTargetsMode::Type TextureMode, 
-		const bool bIsInstancedStereo
+		ESceneRenderTargetsMode::Type TextureMode
 		)
 	{
-		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(), MaterialRenderProxy, InMaterialResource, View, TextureMode);
+		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(),MaterialRenderProxy,InMaterialResource,View,TextureMode);
 
 		if (bAllowGlobalFog)
 		{
 			HeightFogParameters.Set(RHICmdList, GetVertexShader(), &View);
 			AtmosphericFogTextureParameters.Set(RHICmdList, GetVertexShader(), View);
 		}
-
-		TranslucentLightingVolumeParameters.Set(RHICmdList, GetVertexShader());
-
-		if (IsInstancedStereoParameter.IsBound())
-		{
-			SetShaderValue(RHICmdList, GetVertexShader(), IsInstancedStereoParameter, bIsInstancedStereo);
-		}
 	}
 
-	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy, const FMeshBatch& Mesh, const FMeshBatchElement& BatchElement, const FMeshDrawingRenderState& DrawRenderState);
-
-	void SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex);
+	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy, const FMeshBatch& Mesh, const FMeshBatchElement& BatchElement, float DitheredLODTransitionValue);
 
 private:
 	
 	/** The parameters needed to calculate the fog contribution from height fog layers. */
 	FHeightFogShaderParameters HeightFogParameters;
 	FAtmosphereShaderTextureParameters AtmosphericFogTextureParameters;
-	FTranslucentLightingVolumeParameters TranslucentLightingVolumeParameters;
 	// When outputting from base pass, the previous transform
 	FShaderParameter PreviousLocalToWorldParameter;
 	FShaderParameter SkipOutputVelocityParameter;
-	FShaderParameter InstancedEyeIndexParameter;
-	FShaderParameter IsInstancedStereoParameter;
-};
-
-
-
-
-/**
- * The base shader type for vertex shaders that render the emissive color, and light-mapped/ambient lighting of a mesh.
- * The base type is shared between the versions with and without atmospheric fog.
- */
-
-template<typename LightMapPolicyType>
-class TBasePassVertexShaderBaseType : public TBasePassVertexShaderPolicyParamType<typename LightMapPolicyType::VertexParametersType>
-{
-	typedef TBasePassVertexShaderPolicyParamType<typename LightMapPolicyType::VertexParametersType> Super;
-
-protected:
-
-	TBasePassVertexShaderBaseType(const FMeshMaterialShaderType::CompiledShaderInitializerType& Initializer) : Super(Initializer) {}
-
-	TBasePassVertexShaderBaseType() {}
-
-public:
-
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
-	{
-		return LightMapPolicyType::ShouldCache(Platform, Material, VertexFactoryType);
-	}
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		LightMapPolicyType::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
-		Super::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
-	}
 };
 
 template<typename LightMapPolicyType, bool bEnableAtmosphericFog>
@@ -288,8 +152,6 @@ protected:
 		// Re-use vertex shader compilation environment
 		TBasePassVS<LightMapPolicyType,false>::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 	}
-
-	// Don't implement : void SetParameters(...) or SetMesh() unless changing the shader reference in TBasePassDrawingPolicy
 };
 
 /**
@@ -329,7 +191,15 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	// Don't implement : void SetParameters(...) or SetMesh() unless changing the shader reference in TBasePassDrawingPolicy
+	void SetParameters(
+		FRHICommandList& RHICmdList, 
+		const FMaterialRenderProxy* MaterialRenderProxy,
+		const FVertexFactory* VertexFactory,
+		const FSceneView& View
+		)
+	{
+		FBaseDS::SetParameters(RHICmdList, MaterialRenderProxy, View);
+	}
 };
 
 /** Parameters needed to implement the sky light cubemap reflection. */
@@ -346,8 +216,8 @@ public:
 		SkyLightParameters.Bind(ParameterMap, TEXT("SkyLightParameters"));
 	}
 
-	template<typename TParamRef, typename TRHICmdList>
-	void SetParameters(TRHICmdList& RHICmdList, const TParamRef& ShaderRHI, const FScene* Scene, bool bApplySkyLight)
+	template<typename TParamRef>
+	void SetParameters(FRHICommandList& RHICmdList, const TParamRef& ShaderRHI, const FScene* Scene, bool bApplySkyLight)
 	{
 		if (SkyLightCubemap.IsBound() || SkyLightBlendDestinationCubemap.IsBound() || SkyLightParameters.IsBound())
 		{
@@ -399,7 +269,14 @@ public:
 
 	void Bind(const FShaderParameterMap& ParameterMap)
 	{
-		TranslucentLightingVolumeParameters.Bind(ParameterMap);
+		TranslucencyLightingVolumeAmbientInner.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeAmbientInner"));
+		TranslucencyLightingVolumeAmbientInnerSampler.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeAmbientInnerSampler"));
+		TranslucencyLightingVolumeAmbientOuter.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeAmbientOuter"));
+		TranslucencyLightingVolumeAmbientOuterSampler.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeAmbientOuterSampler"));
+		TranslucencyLightingVolumeDirectionalInner.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeDirectionalInner"));
+		TranslucencyLightingVolumeDirectionalInnerSampler.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeDirectionalInnerSampler"));
+		TranslucencyLightingVolumeDirectionalOuter.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeDirectionalOuter"));
+		TranslucencyLightingVolumeDirectionalOuterSampler.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeDirectionalOuterSampler"));
 		ReflectionCubemap.Bind(ParameterMap, TEXT("ReflectionCubemap"));
 		ReflectionCubemapSampler.Bind(ParameterMap, TEXT("ReflectionCubemapSampler"));
 		CubemapArrayIndex.Bind(ParameterMap, TEXT("CubemapArrayIndex"));
@@ -418,7 +295,14 @@ public:
 	/** Serializer. */
 	friend FArchive& operator<<(FArchive& Ar,FTranslucentLightingParameters& P)
 	{
-		Ar << P.TranslucentLightingVolumeParameters;
+		Ar << P.TranslucencyLightingVolumeAmbientInner;
+		Ar << P.TranslucencyLightingVolumeAmbientInnerSampler;
+		Ar << P.TranslucencyLightingVolumeAmbientOuter;
+		Ar << P.TranslucencyLightingVolumeAmbientOuterSampler;
+		Ar << P.TranslucencyLightingVolumeDirectionalInner;
+		Ar << P.TranslucencyLightingVolumeDirectionalInnerSampler;
+		Ar << P.TranslucencyLightingVolumeDirectionalOuter;
+		Ar << P.TranslucencyLightingVolumeDirectionalOuterSampler;
 		Ar << P.ReflectionCubemap;
 		Ar << P.ReflectionCubemapSampler;
 		Ar << P.CubemapArrayIndex;
@@ -433,7 +317,14 @@ public:
 
 private:
 
-	FTranslucentLightingVolumeParameters TranslucentLightingVolumeParameters;
+	FShaderResourceParameter TranslucencyLightingVolumeAmbientInner;
+	FShaderResourceParameter TranslucencyLightingVolumeAmbientInnerSampler;
+	FShaderResourceParameter TranslucencyLightingVolumeAmbientOuter;
+	FShaderResourceParameter TranslucencyLightingVolumeAmbientOuterSampler;
+	FShaderResourceParameter TranslucencyLightingVolumeDirectionalInner;
+	FShaderResourceParameter TranslucencyLightingVolumeDirectionalInnerSampler;
+	FShaderResourceParameter TranslucencyLightingVolumeDirectionalOuter;
+	FShaderResourceParameter TranslucencyLightingVolumeDirectionalOuterSampler;
 	FShaderResourceParameter ReflectionCubemap;
 	FShaderResourceParameter ReflectionCubemapSampler;
 	FShaderParameter CubemapArrayIndex;
@@ -449,16 +340,20 @@ private:
  * The base type for pixel shaders that render the emissive color, and light-mapped/ambient lighting of a mesh.
  * The base type is shared between the versions with and without sky light.
  */
-template<typename PixelParametersType>
-class TBasePassPixelShaderPolicyParamType : public FMeshMaterialShader, public PixelParametersType
+template<typename LightMapPolicyType>
+class TBasePassPixelShaderBaseType : public FMeshMaterialShader, public LightMapPolicyType::PixelParametersType
 {
 public:
 
-	// static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	{
+		return LightMapPolicyType::ShouldCache(Platform,Material,VertexFactoryType);
+	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FMeshMaterialShader::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		LightMapPolicyType::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 
 		const bool bOutputVelocity = FVelocityRendering::OutputsToGBuffer();
 		if (bOutputVelocity)
@@ -468,21 +363,18 @@ public:
 			const int32 VelocityIndex = (CVar && CVar->GetValueOnAnyThread() != 0) ? 6 : 5;
 			OutEnvironment.SetRenderTargetOutputFormat(VelocityIndex, PF_G16R16);
 		}
-
-		OutEnvironment.SetDefine(TEXT("TRANSLUCENCY_RENDERING"), 1);
 	}
 
 	/** Initialization constructor. */
-	TBasePassPixelShaderPolicyParamType(const FMeshMaterialShaderType::CompiledShaderInitializerType& Initializer):
+	TBasePassPixelShaderBaseType(const FMeshMaterialShaderType::CompiledShaderInitializerType& Initializer):
 		FMeshMaterialShader(Initializer)
 	{
-		PixelParametersType::Bind(Initializer.ParameterMap);
+		LightMapPolicyType::PixelParametersType::Bind(Initializer.ParameterMap);
 		TranslucentLightingParameters.Bind(Initializer.ParameterMap);
 		EditorCompositeParams.Bind(Initializer.ParameterMap);
 		LightGrid.Bind(Initializer.ParameterMap,TEXT("LightGrid"));
-		ScreenTextureUVScale.Bind(Initializer.ParameterMap, TEXT("ScreenPositionUVScale"));
 	}
-	TBasePassPixelShaderPolicyParamType() {}
+	TBasePassPixelShaderBaseType() {}
 
 	void SetParameters(
 		FRHICommandList& RHICmdList, 
@@ -491,8 +383,7 @@ public:
 		const FViewInfo* View, 
 		EBlendMode BlendMode, 
 		bool bEnableEditorPrimitveDepthTest,
-		ESceneRenderTargetsMode::Type TextureMode,
-		float ScreenTextureScaleFactor = 1.0f)
+		ESceneRenderTargetsMode::Type TextureMode)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -502,7 +393,6 @@ public:
 		{
 			if (IsTranslucentBlendMode(BlendMode))
 			{
-				SetShaderValue(RHICmdList, ShaderRHI, ScreenTextureUVScale, FVector(ScreenTextureScaleFactor));
 				TranslucentLightingParameters.Set(RHICmdList, this, View);
 
 				// Experimental dynamic forward lighting for translucency. Can be the base for opaque forward lighting which will allow more lighting models or rendering without a GBuffer
@@ -531,16 +421,15 @@ public:
 		EditorCompositeParams.SetParameters(RHICmdList, MaterialResource, View, bEnableEditorPrimitveDepthTest, GetPixelShader());
 	}
 
-	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement, const FMeshDrawingRenderState& DrawRenderState, EBlendMode BlendMode);
+	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement, EBlendMode BlendMode, float DitheredLODTransitionValue);
 
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FMeshMaterialShader::Serialize(Ar);
-		PixelParametersType::Serialize(Ar);
+		LightMapPolicyType::PixelParametersType::Serialize(Ar);
 		Ar << TranslucentLightingParameters;
  		Ar << EditorCompositeParams;
 		Ar << LightGrid;
-		Ar << ScreenTextureUVScale;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -548,35 +437,6 @@ private:
 	FTranslucentLightingParameters TranslucentLightingParameters;
 	FEditorCompositingParameters EditorCompositeParams;
 	FShaderResourceParameter LightGrid;
-	FShaderParameter ScreenTextureUVScale;
-};
-
-/**
- * The base type for pixel shaders that render the emissive color, and light-mapped/ambient lighting of a mesh.
- * The base type is shared between the versions with and without sky light.
- */
-template<typename LightMapPolicyType>
-class TBasePassPixelShaderBaseType : public TBasePassPixelShaderPolicyParamType<typename LightMapPolicyType::PixelParametersType>
-{
-	typedef TBasePassPixelShaderPolicyParamType<typename LightMapPolicyType::PixelParametersType> Super;
-
-public:
-
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
-	{
-		return LightMapPolicyType::ShouldCache(Platform,Material,VertexFactoryType);
-	}
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		LightMapPolicyType::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
-		Super::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
-	}
-
-	/** Initialization constructor. */
-	TBasePassPixelShaderBaseType(const FMeshMaterialShaderType::CompiledShaderInitializerType& Initializer) : Super(Initializer) {}
-
-	TBasePassPixelShaderBaseType() {}
 };
 
 /** The concrete base pass pixel shader type. */
@@ -598,9 +458,6 @@ public:
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		// For deferred decals, the shader class used is FDeferredDecalPS. the TBasePassPS is only used in the material editor and will read wrong values.
-		OutEnvironment.SetDefine(TEXT("SCENE_TEXTURES_DISABLED"),(uint32)(Material->GetMaterialDomain() == MD_DeferredDecal ? 1 : 0)); 
-
 		OutEnvironment.SetDefine(TEXT("ENABLE_SKY_LIGHT"),(uint32)(bEnableSkyLight ? 1 : 0));
 		TBasePassPixelShaderBaseType<LightMapPolicyType>::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 	}
@@ -613,62 +470,6 @@ public:
 	/** Default constructor. */
 	TBasePassPS() {}
 };
-
-/**
- * Get shader templates allowing to redirect between compatible shaders.
- */
-
-template <typename LightMapPolicyType>
-void GetBasePassShaders(
-	const FMaterial& Material, 
-	FVertexFactoryType* VertexFactoryType, 
-	LightMapPolicyType LightMapPolicy, 
-	bool bNeedsHSDS,
-	bool bEnableAtmosphericFog,
-	bool bEnableSkyLight,
-	FBaseHS*& HullShader,
-	FBaseDS*& DomainShader,
-	TBasePassVertexShaderPolicyParamType<typename LightMapPolicyType::VertexParametersType>*& VertexShader,
-	TBasePassPixelShaderPolicyParamType<typename LightMapPolicyType::PixelParametersType>*& PixelShader
-	)
-{
-	if (bNeedsHSDS)
-	{
-		HullShader = Material.GetShader<TBasePassHS<LightMapPolicyType> >(VertexFactoryType);
-		DomainShader = Material.GetShader<TBasePassDS<LightMapPolicyType> >(VertexFactoryType);
-	}
-
-	if (bEnableAtmosphericFog)
-	{
-		VertexShader = Material.GetShader<TBasePassVS<LightMapPolicyType, true> >(VertexFactoryType);
-	}
-	else
-	{
-		VertexShader = Material.GetShader<TBasePassVS<LightMapPolicyType, false> >(VertexFactoryType);
-	}
-	if (bEnableSkyLight)
-	{
-		PixelShader = Material.GetShader<TBasePassPS<LightMapPolicyType, true> >(VertexFactoryType);
-	}
-	else
-	{
-		PixelShader = Material.GetShader<TBasePassPS<LightMapPolicyType, false> >(VertexFactoryType);
-	}
-}
-
-template <>
-void GetBasePassShaders<FUniformLightMapPolicy>(
-	const FMaterial& Material, 
-	FVertexFactoryType* VertexFactoryType, 
-	FUniformLightMapPolicy LightMapPolicy, 
-	bool bNeedsHSDS,
-	bool bEnableAtmosphericFog,
-	bool bEnableSkyLight,
-	FBaseHS*& HullShader,
-	FBaseDS*& DomainShader,
-	TBasePassVertexShaderPolicyParamType<FUniformLightMapPolicyShaderParametersType>*& VertexShader,
-	TBasePassPixelShaderPolicyParamType<FUniformLightMapPolicyShaderParametersType>*& PixelShader
-	);
 
 /**
  * Draws the emissive color and the light-map of a mesh.
@@ -709,41 +510,48 @@ public:
 		bool bInEnableAtmosphericFog,
 		bool bOverrideWithShaderComplexity = false,
 		bool bInAllowGlobalFog = false,
-		bool bInEnableEditorPrimitiveDepthTest = false,
-		bool bInEnableReceiveDecalOutput = false,
-		EQuadOverdrawMode InQuadOverdrawMode = QOM_None
+		bool bInEnableEditorPrimitiveDepthTest = false
 		):
-		FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,bOverrideWithShaderComplexity, false, false, false, AllowRuntimeQuadOverdraw(InFeatureLevel) ? InQuadOverdrawMode : QOM_None),
+		FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,bOverrideWithShaderComplexity),
 		LightMapPolicy(InLightMapPolicy),
 		BlendMode(InBlendMode),
 		SceneTextureMode(InSceneTextureMode),
 		bAllowGlobalFog(bInAllowGlobalFog),
 		bEnableSkyLight(bInEnableSkyLight),
 		bEnableEditorPrimitiveDepthTest(bInEnableEditorPrimitiveDepthTest),
-		bEnableAtmosphericFog(bInEnableAtmosphericFog),
-		bEnableReceiveDecalOutput(bInEnableReceiveDecalOutput)
+		bEnableAtmosphericFog(bInEnableAtmosphericFog)
 	{
 		HullShader = NULL;
 		DomainShader = NULL;
 	
 		const EMaterialTessellationMode MaterialTessellationMode = InMaterialResource.GetTessellationMode();
 
-		const bool bNeedsHSDS = RHISupportsTessellation(GShaderPlatformForFeatureLevel[InFeatureLevel])
-								&& InVertexFactory->GetType()->SupportsTessellationShaders() 
-								&& MaterialTessellationMode != MTM_NoTessellation;
+		if (RHISupportsTessellation(GShaderPlatformForFeatureLevel[InFeatureLevel])
+			&& InVertexFactory->GetType()->SupportsTessellationShaders() 
+			&& MaterialTessellationMode != MTM_NoTessellation)
+		{
+			// Find the base pass tessellation shaders since the material is tessellated
+			HullShader = InMaterialResource.GetShader<TBasePassHS<LightMapPolicyType> >(VertexFactory->GetType());
+			DomainShader = InMaterialResource.GetShader<TBasePassDS<LightMapPolicyType> >(VertexFactory->GetType());
+		}
 
-		GetBasePassShaders<LightMapPolicyType>(
-			InMaterialResource, 
-			VertexFactory->GetType(), 
-			InLightMapPolicy, 
-			bNeedsHSDS,
-			bEnableAtmosphericFog,
-			bEnableSkyLight,
-			HullShader,
-			DomainShader,
-			VertexShader,
-			PixelShader
-			);
+		if (bEnableAtmosphericFog)
+		{
+			VertexShader = InMaterialResource.GetShader<TBasePassVS<LightMapPolicyType, true> >(InVertexFactory->GetType());
+		}
+		else
+		{
+			VertexShader = InMaterialResource.GetShader<TBasePassVS<LightMapPolicyType, false> >(InVertexFactory->GetType());
+		}
+
+		if (bEnableSkyLight)
+		{
+			PixelShader = InMaterialResource.GetShader<TBasePassPS<LightMapPolicyType, true> >(InVertexFactory->GetType());
+		}
+		else
+		{
+			PixelShader = InMaterialResource.GetShader<TBasePassPS<LightMapPolicyType, false> >(InVertexFactory->GetType());
+		}
 
 #if DO_GUARD_SLOW
 		// Somewhat hacky
@@ -770,31 +578,21 @@ public:
 			LightMapPolicy == Other.LightMapPolicy;
 	}
 
-	void SetSharedState(FRHICommandList& RHICmdList, const FViewInfo* View, const ContextDataType PolicyContext, float ScreenTextureScaleFactor = 1.0f) const
+	void SetSharedState(FRHICommandList& RHICmdList, const FViewInfo* View, const ContextDataType PolicyContext) const
 	{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		// If QuadOverdraw is allowed, different VS/DS/HS must be used (with only SV_POSITION as PS interpolant).
-		if (bOverrideWithShaderComplexity && AllowRuntimeQuadOverdraw(View->GetFeatureLevel()))
+		// Set the light-map policy.
+		LightMapPolicy.Set(RHICmdList, VertexShader,bOverrideWithShaderComplexity ? NULL : PixelShader,VertexShader,PixelShader,VertexFactory,MaterialRenderProxy,View);
+
+		VertexShader->SetParameters(RHICmdList, MaterialRenderProxy, VertexFactory, *MaterialResource, *View, bAllowGlobalFog, SceneTextureMode);
+
+		if(HullShader)
 		{
-			SetNonPSParametersForQuadOverdraw(RHICmdList, MaterialRenderProxy, MaterialResource, *View, VertexFactory, HullShader && DomainShader);
+			HullShader->SetParameters(RHICmdList, MaterialRenderProxy, *View);
 		}
-		else
-#endif
+
+		if (DomainShader)
 		{
-			// Set the light-map policy.
-			LightMapPolicy.Set(RHICmdList, VertexShader,bOverrideWithShaderComplexity ? NULL : PixelShader,VertexShader,PixelShader,VertexFactory,MaterialRenderProxy,View);
-
-			VertexShader->SetParameters(RHICmdList, MaterialRenderProxy, VertexFactory, *MaterialResource, *View, bAllowGlobalFog, SceneTextureMode, PolicyContext.bIsInstancedStereo);
-
-			if(HullShader)
-			{
-				HullShader->SetParameters(RHICmdList, MaterialRenderProxy, *View);
-			}
-
-			if (DomainShader)
-			{
-				DomainShader->SetParameters(RHICmdList, MaterialRenderProxy, *View);
-			}
+			DomainShader->SetParameters(RHICmdList, MaterialRenderProxy, VertexFactory, *View);
 		}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -806,14 +604,15 @@ public:
 				RHICmdList.SetBlendState( TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_One>::GetRHI());
 			}
 
+			TShaderMapRef<FShaderComplexityAccumulatePS> ShaderComplexityPixelShader(View->ShaderMap);
 			const uint32 NumPixelShaderInstructions = PixelShader->GetNumInstructions();
 			const uint32 NumVertexShaderInstructions = VertexShader->GetNumInstructions();
-			FShaderComplexityAccumulatePS::SetParameters(View->ShaderMap,RHICmdList,NumVertexShaderInstructions,NumPixelShaderInstructions,GetQuadOverdrawMode(),View->GetFeatureLevel());
+			ShaderComplexityPixelShader->SetParameters(RHICmdList, NumVertexShaderInstructions, NumPixelShaderInstructions, View->GetFeatureLevel());
 		}
 		else
 #endif
 		{
-			PixelShader->SetParameters(RHICmdList, MaterialRenderProxy, *MaterialResource, View, BlendMode, bEnableEditorPrimitiveDepthTest, SceneTextureMode, ScreenTextureScaleFactor);
+			PixelShader->SetParameters(RHICmdList, MaterialRenderProxy,*MaterialResource,View,BlendMode,bEnableEditorPrimitiveDepthTest,SceneTextureMode);
 
 			switch(BlendMode)
 			{
@@ -842,10 +641,6 @@ public:
 		}
 	}
 
-	void SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) const {
-		VertexShader->SetInstancedEyeIndex(RHICmdList, EyeIndex);
-	}
-
 	/** 
 	* Create bound shader state using the vertex decl from the mesh draw policy
 	* as well as the shaders needed to draw the mesh
@@ -854,30 +649,23 @@ public:
 	*/
 	FBoundShaderStateInput GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel)
 	{
-		FBoundShaderStateInput BoundShaderStateInput(
-			FMeshDrawingPolicy::GetVertexDeclaration(), 
-			VertexShader->GetVertexShader(),
-			GETSAFERHISHADER_HULL(HullShader), 
-			GETSAFERHISHADER_DOMAIN(DomainShader), 
-			PixelShader->GetPixelShader(),
-			FGeometryShaderRHIRef()
-			);
+		FPixelShaderRHIParamRef PixelShaderRHIRef = PixelShader->GetPixelShader();
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		if (bOverrideWithShaderComplexity)
 		{
-			if (AllowRuntimeQuadOverdraw(InFeatureLevel))
-			{
-				PatchBoundShaderStateInputForQuadOverdraw(BoundShaderStateInput, MaterialResource, VertexFactory, InFeatureLevel, GetQuadOverdrawMode());
-			}
-			else
-			{
-				TShaderMapRef<TShaderComplexityAccumulatePS> ShaderComplexityAccumulatePixelShader(GetGlobalShaderMap(InFeatureLevel));
-				BoundShaderStateInput.PixelShaderRHI = ShaderComplexityAccumulatePixelShader->FGlobalShader::GetPixelShader();
-			}
+			TShaderMapRef<FShaderComplexityAccumulatePS> ShaderComplexityAccumulatePixelShader(GetGlobalShaderMap(InFeatureLevel));
+			PixelShaderRHIRef = ShaderComplexityAccumulatePixelShader->GetPixelShader();
 		}
 #endif
-		return BoundShaderStateInput;
+
+		return FBoundShaderStateInput(
+			FMeshDrawingPolicy::GetVertexDeclaration(), 
+			VertexShader->GetVertexShader(),
+			GETSAFERHISHADER_HULL(HullShader), 
+			GETSAFERHISHADER_DOMAIN(DomainShader), 
+			PixelShaderRHIRef,
+			FGeometryShaderRHIRef());
 	}
 
 	void SetMeshRenderState(
@@ -887,42 +675,31 @@ public:
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
 		bool bBackFace,
-		const FMeshDrawingRenderState& DrawRenderState,
+		float DitheredLODTransitionValue,
 		const ElementDataType& ElementData,
 		const ContextDataType PolicyContext
 		) const
 	{
+		// Set the light-map policy's mesh-specific settings.
+		LightMapPolicy.SetMesh(
+			RHICmdList, 
+			View,
+			PrimitiveSceneProxy,
+			VertexShader,
+			bOverrideWithShaderComplexity ? NULL : PixelShader,
+			VertexShader,
+			PixelShader,
+			VertexFactory,
+			MaterialRenderProxy,
+			ElementData.LightMapElementData);
+
 		const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		// If QuadOverdraw is allowed, different VS/DS/HS must be used (with only SV_POSITION as PS interpolant).
-		if (bOverrideWithShaderComplexity && AllowRuntimeQuadOverdraw(View.GetFeatureLevel()))
-		{
-			SetMeshForQuadOverdraw(RHICmdList, MaterialResource, View, VertexFactory, HullShader && DomainShader, PrimitiveSceneProxy, BatchElement, DrawRenderState);
-		}
-		else
-#endif
-		{
-			// Set the light-map policy's mesh-specific settings.
-			LightMapPolicy.SetMesh(
-				RHICmdList, 
-				View,
-				PrimitiveSceneProxy,
-				VertexShader,
-				bOverrideWithShaderComplexity ? NULL : PixelShader,
-				VertexShader,
-				PixelShader,
-				VertexFactory,
-				MaterialRenderProxy,
-				ElementData.LightMapElementData);
-
-			VertexShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy, Mesh,BatchElement,DrawRenderState);
+		VertexShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy, Mesh,BatchElement,DitheredLODTransitionValue);
 		
-			if(HullShader && DomainShader)
-			{
-				HullShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState);
-				DomainShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState);
-			}
+		if(HullShader && DomainShader)
+		{
+			HullShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DitheredLODTransitionValue);
+			DomainShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DitheredLODTransitionValue);
 		}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -936,45 +713,18 @@ public:
 			}
 
 			const auto FeatureLevel = View.GetFeatureLevel();
+			TShaderMapRef<FShaderComplexityAccumulatePS> ShaderComplexityPixelShader(View.ShaderMap);
 			const uint32 NumPixelShaderInstructions = PixelShader->GetNumInstructions();
 			const uint32 NumVertexShaderInstructions = VertexShader->GetNumInstructions();
-			FShaderComplexityAccumulatePS::SetParameters(View.ShaderMap,RHICmdList,NumVertexShaderInstructions,NumPixelShaderInstructions,GetQuadOverdrawMode(),FeatureLevel);
+			ShaderComplexityPixelShader->SetParameters(RHICmdList, NumVertexShaderInstructions,NumPixelShaderInstructions, FeatureLevel);
 		}
 		else
 #endif
 		{
-			PixelShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState,BlendMode);
+			PixelShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,BlendMode,DitheredLODTransitionValue);
 		}
 
-		if (bEnableReceiveDecalOutput)
-		{
-			// Set stencil value for this draw call
-			// This is effectively extending the GBuffer using the stencil bits
-			const uint8 StencilValue = GET_STENCIL_BIT_MASK(RECEIVE_DECAL, PrimitiveSceneProxy ? !!PrimitiveSceneProxy->ReceivesDecals() : 0x00)
-				| STENCIL_LIGHTING_CHANNELS_MASK(PrimitiveSceneProxy ? PrimitiveSceneProxy->GetLightingChannelStencilValue() : 0x00);
-			
-			const bool bStencilDithered = DrawRenderState.bAllowStencilDither && DrawRenderState.DitheredLODState != EDitheredLODState::None;
-			if (bStencilDithered)
-			{
-				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-					false, CF_Equal,
-					true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
-					false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
-					0xFF, GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1) | STENCIL_LIGHTING_CHANNELS_MASK(0x7)
-				>::GetRHI(), StencilValue);
-			}
-			else
-			{
-				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-					true, CF_GreaterEqual,
-					true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
-					false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
-					0xFF, GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1) | STENCIL_LIGHTING_CHANNELS_MASK(0x7)
-				>::GetRHI(), StencilValue);
-			}
-		}
-
-		FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,DrawRenderState,FMeshDrawingPolicy::ElementDataType(),PolicyContext);
+		FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace, DitheredLODTransitionValue,FMeshDrawingPolicy::ElementDataType(),PolicyContext);
 	}
 
 	friend int32 CompareDrawingPolicy(const TBasePassDrawingPolicy& A,const TBasePassDrawingPolicy& B)
@@ -988,19 +738,15 @@ public:
 		COMPAREDRAWINGPOLICYMEMBERS(SceneTextureMode);
 		COMPAREDRAWINGPOLICYMEMBERS(bAllowGlobalFog);
 		COMPAREDRAWINGPOLICYMEMBERS(bEnableSkyLight);
-		COMPAREDRAWINGPOLICYMEMBERS(bEnableReceiveDecalOutput);
 
 		return CompareDrawingPolicy(A.LightMapPolicy,B.LightMapPolicy);
 	}
 
 protected:
-
-	// Here we don't store the most derived type of shaders, for instance TBasePassVertexShaderBaseType<LightMapPolicyType>.
-	// This is to allow any shader using the same parameters to be used, and is required to allow FUniformLightMapPolicy to use shaders derived from TUniformLightMapPolicy.
-	TBasePassVertexShaderPolicyParamType<typename LightMapPolicyType::VertexParametersType>* VertexShader;
-	FBaseHS* HullShader; // Does not depend on LightMapPolicyType
-	FBaseDS* DomainShader; // Does not depend on LightMapPolicyType
-	TBasePassPixelShaderPolicyParamType<typename LightMapPolicyType::PixelParametersType>* PixelShader;
+	TBasePassVertexShaderBaseType<LightMapPolicyType>* VertexShader;
+	TBasePassHS<LightMapPolicyType>* HullShader;
+	TBasePassDS<LightMapPolicyType>* DomainShader;
+	TBasePassPixelShaderBaseType<LightMapPolicyType>* PixelShader;
 
 	LightMapPolicyType LightMapPolicy;
 	EBlendMode BlendMode;
@@ -1015,9 +761,6 @@ protected:
 	uint32 bEnableEditorPrimitiveDepthTest : 1;
 	/** Whether or not this policy enables atmospheric fog */
 	uint32 bEnableAtmosphericFog : 1;
-
-	/** Whether or not outputing the receive decal boolean */
-	uint32 bEnableReceiveDecalOutput : 1;
 };
 
 /**
@@ -1050,8 +793,7 @@ public:
 		bool bBackFace,
 		bool bPreFog,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
-		FHitProxyId HitProxyId, 
-		const bool bIsInstancedStereo = false
+		FHitProxyId HitProxyId
 		);
 };
 
@@ -1071,7 +813,6 @@ public:
 	const bool bEditorCompositeDepthTest;
 	ESceneRenderTargetsMode::Type TextureMode;
 	ERHIFeatureLevel::Type FeatureLevel;
-	const bool bIsInstancedStereo;
 
 	/** Initialization constructor. */
 	FProcessBasePassMeshParameters(
@@ -1081,8 +822,7 @@ public:
 		bool InbAllowFog,
 		bool bInEditorCompositeDepthTest,
 		ESceneRenderTargetsMode::Type InTextureMode,
-		ERHIFeatureLevel::Type InFeatureLevel, 
-		const bool InbIsInstancedStereo = false
+		ERHIFeatureLevel::Type InFeatureLevel
 		):
 		Mesh(InMesh),
 		BatchElementMask(Mesh.Elements.Num()==1 ? 1 : (1<<Mesh.Elements.Num())-1), // 1 bit set for each mesh element
@@ -1093,8 +833,7 @@ public:
 		bAllowFog(InbAllowFog),
 		bEditorCompositeDepthTest(bInEditorCompositeDepthTest),
 		TextureMode(InTextureMode),
-		FeatureLevel(InFeatureLevel), 
-		bIsInstancedStereo(InbIsInstancedStereo)
+		FeatureLevel(InFeatureLevel)
 	{
 	}
 
@@ -1107,8 +846,7 @@ public:
 		bool InbAllowFog,
 		bool bInEditorCompositeDepthTest,
 		ESceneRenderTargetsMode::Type InTextureMode,
-		ERHIFeatureLevel::Type InFeatureLevel, 
-		bool InbIsInstancedStereo = false
+		ERHIFeatureLevel::Type InFeatureLevel
 		) :
 		Mesh(InMesh),
 		BatchElementMask(InBatchElementMask),
@@ -1119,8 +857,7 @@ public:
 		bAllowFog(InbAllowFog),
 		bEditorCompositeDepthTest(bInEditorCompositeDepthTest),
 		TextureMode(InTextureMode),
-		FeatureLevel(InFeatureLevel),
-		bIsInstancedStereo(InbIsInstancedStereo)
+		FeatureLevel(InFeatureLevel)
 	{
 	}
 };
@@ -1135,8 +872,7 @@ void ProcessBasePassMesh(
 {
 	// Check for a cached light-map.
 	const bool bIsLitMaterial = Parameters.ShadingModel != MSM_Unlit;
-	 // It is ok for deferred decals to sample some scene texture since they are rendered in a different renderpass. The sampling will be disabled in the shader for the basepass.
-	const bool bNeedsSceneTextures = Parameters.Material->NeedsSceneTextures() && !(Parameters.Material->GetMaterialDomain() == MD_DeferredDecal);
+	const bool bNeedsSceneTextures = Parameters.Material->NeedsSceneTextures();
 	static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
 	const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnRenderThread() != 0);
 
@@ -1180,16 +916,20 @@ void ProcessBasePassMesh(
 
 						if (ShadowMapInteraction.GetType() == SMIT_Texture)
 						{
-							Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_DISTANCE_FIELD_SHADOWS_AND_HQ_LIGHTMAP), Parameters.Mesh.LCI);
+							Action.template Process< TDistanceFieldShadowsAndLightMapPolicy<HQ_LIGHTMAP> >(
+								RHICmdList,
+								Parameters,
+								TDistanceFieldShadowsAndLightMapPolicy<HQ_LIGHTMAP>(),
+								TDistanceFieldShadowsAndLightMapPolicy<HQ_LIGHTMAP>::ElementDataType(ShadowMapInteraction, LightMapInteraction));
 						}
 						else
 						{
-							Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_HQ_LIGHTMAP), Parameters.Mesh.LCI);
+							Action.template Process< TLightMapPolicy<HQ_LIGHTMAP> >(RHICmdList, Parameters, TLightMapPolicy<HQ_LIGHTMAP>(), LightMapInteraction);
 						}
 					} 
 					else 
 					{ 
-						Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_LQ_LIGHTMAP), Parameters.Mesh.LCI);
+						Action.template Process< TLightMapPolicy<LQ_LIGHTMAP> >(RHICmdList, Parameters, TLightMapPolicy<LQ_LIGHTMAP>(), LightMapInteraction);
 					} 
 					break;
 				default:
@@ -1199,7 +939,7 @@ void ProcessBasePassMesh(
 						{
 							if (IsSimpleDynamicLightingEnabled())
 							{
-								Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_SIMPLE_DYNAMIC_LIGHTING), Parameters.Mesh.LCI);
+								Action.template Process<FSimpleDynamicLightingPolicy>(RHICmdList, Parameters, FSimpleDynamicLightingPolicy(), FSimpleDynamicLightingPolicy::ElementDataType());
 							}
 							else if (IsIndirectLightingCacheAllowed(Parameters.FeatureLevel)
 								&& Action.AllowIndirectLightingCache()
@@ -1207,15 +947,13 @@ void ProcessBasePassMesh(
 							{
 								const FIndirectLightingCacheAllocation* IndirectLightingCacheAllocation = Parameters.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->IndirectLightingCacheAllocation;
 								const bool bPrimitiveIsMovable = Parameters.PrimitiveSceneProxy->IsMovable();
-								const bool bPrimitiveUsesILC = Parameters.PrimitiveSceneProxy->GetIndirectLightingCacheQuality() != ILCQ_Off;								
 
 								// Use the indirect lighting cache shaders if the object has a cache allocation
 								// This happens for objects with unbuilt lighting
-								if (bPrimitiveUsesILC &&
-									((IndirectLightingCacheAllocation && IndirectLightingCacheAllocation->IsValid())
+								if ((IndirectLightingCacheAllocation && IndirectLightingCacheAllocation->IsValid())
 									// Use the indirect lighting cache shaders if the object is movable, it may not have a cache allocation yet because that is done in InitViews
 									// And movable objects are sometimes rendered in the static draw lists
-									|| bPrimitiveIsMovable))
+									|| bPrimitiveIsMovable)
 								{
 									if (CanIndirectLightingCacheUseVolumeTexture(Parameters.FeatureLevel) 
 										// Translucency forces point sample for pixel performance
@@ -1224,27 +962,27 @@ void ProcessBasePassMesh(
 											|| (bPrimitiveIsMovable && Parameters.PrimitiveSceneProxy->GetIndirectLightingCacheQuality() == ILCQ_Volume)))
 									{
 										// Use a lightmap policy that supports reading indirect lighting from a volume texture for dynamic objects
-										Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_CACHED_VOLUME_INDIRECT_LIGHTING), Parameters.Mesh.LCI);
+										Action.template Process<FCachedVolumeIndirectLightingPolicy>(RHICmdList, Parameters, FCachedVolumeIndirectLightingPolicy(), FCachedVolumeIndirectLightingPolicy::ElementDataType());
 									}
 									else
 									{
 										// Use a lightmap policy that supports reading indirect lighting from a single SH sample
-										Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_CACHED_POINT_INDIRECT_LIGHTING), Parameters.Mesh.LCI);
+										Action.template Process<FCachedPointIndirectLightingPolicy>(RHICmdList, Parameters, FCachedPointIndirectLightingPolicy(), FCachedPointIndirectLightingPolicy::ElementDataType(false));
 									}
 								}
 								else
 								{
-									Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_NO_LIGHTMAP), Parameters.Mesh.LCI);
+									Action.template Process<FNoLightMapPolicy>(RHICmdList, Parameters, FNoLightMapPolicy(), FNoLightMapPolicy::ElementDataType());
 								}
 							}
 							else
 							{
-								Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_NO_LIGHTMAP), Parameters.Mesh.LCI);
+								Action.template Process<FNoLightMapPolicy>(RHICmdList, Parameters, FNoLightMapPolicy(), FNoLightMapPolicy::ElementDataType());
 							}
 						}
 						else
 						{
-							Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_NO_LIGHTMAP), Parameters.Mesh.LCI);
+							Action.template Process<FNoLightMapPolicy>(RHICmdList, Parameters, FNoLightMapPolicy(), FNoLightMapPolicy::ElementDataType());
 						}
 					}
 					break;

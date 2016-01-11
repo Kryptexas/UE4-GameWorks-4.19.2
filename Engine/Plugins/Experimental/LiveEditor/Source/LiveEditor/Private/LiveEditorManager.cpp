@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LiveEditorPrivatePCH.h"
 #include "LiveEditorManager.h"
@@ -524,8 +524,7 @@ bool FLiveEditorManager::Activate( const FString &Name )
 		FActiveBlueprintRecord Record;
 		Record.Name = Name;
 
-		auto Instance = NewObject<ULiveEditorBlueprint>(GetTransientPackage(), Blueprint->GeneratedClass, NAME_None, RF_Transient | RF_Public | RF_Standalone);
-		Instance->AddToRoot();
+		auto Instance = NewObject<ULiveEditorBlueprint>(GetTransientPackage(), Blueprint->GeneratedClass, NAME_None, RF_Transient | RF_Public | RF_RootSet | RF_Standalone);
 		Instance->DoInit();
 		Record.Blueprint = Instance;
 

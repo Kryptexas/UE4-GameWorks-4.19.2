@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "UnrealEd.h"
@@ -107,6 +107,7 @@ void SKeySelector::Construct(const FArguments& InArgs)
 	TreeViewHeight = InArgs._TreeViewHeight;
 	CategoryFont = FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 9 );
 	KeyFont = FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10);
+	bHasMultipleValues = InArgs._HasMultipleValues;
 
 	FilteredKeyTreeRoot = KeyTreeRoot;
 
@@ -145,22 +146,20 @@ void SKeySelector::Construct(const FArguments& InArgs)
 
 FText SKeySelector::GetKeyDescription() const
 {
-	TOptional<FKey> CurrentKeyValue = CurrentKey.Get();
-	if (CurrentKeyValue.IsSet())
+	if (bHasMultipleValues)
 	{
-		return CurrentKeyValue.GetValue().GetDisplayName();
+		return LOCTEXT("MultipleValues", "Multiple Values");
 	}
-	return LOCTEXT("MultipleValues", "Multiple Values");
+	return CurrentKey.Get().GetDisplayName();
 }
 
 const FSlateBrush* SKeySelector::GetKeyIconImage() const
 {
-	TOptional<FKey> CurrentKeyValue = CurrentKey.Get();
-	if (CurrentKeyValue.IsSet())
+	if (bHasMultipleValues)
 	{
-		return GetIconFromKey(CurrentKeyValue.GetValue());
+		return nullptr;
 	}
-	return nullptr;
+	return GetIconFromKey(CurrentKey.Get());
 }
 
 //=======================================================================
@@ -219,6 +218,7 @@ void SKeySelector::OnKeySelectionChanged(FKeyTreeItem Selection, ESelectInfo::Ty
 			KeyComboButton->SetIsOpen(false);
 
 			OnKeyChanged.ExecuteIfBound(Selection->GetKey());
+			bHasMultipleValues = false;
 		}
 		else
 		{

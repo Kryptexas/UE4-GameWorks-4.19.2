@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Audio.h: Unreal base audio.
@@ -8,18 +8,18 @@
 
 #include "Sound/SoundClass.h"
 #include "Sound/SoundAttenuation.h"
-//#include "Sound/SoundConcurrency.h"
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogAudio, Warning, All);
-
-// Special log category used for temporary programmer debugging code of audio
-ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogAudioDebug, Display, All);
 
 /** 
  * Maximum number of channels that can be set using the ini setting
  */
 #define MAX_AUDIOCHANNELS				64
 
+/** 
+ * Number of ticks an inaudible source remains alive before being stopped
+ */
+#define AUDIOSOURCE_TICK_LONGEVITY		60
 
 /** 
  * Length of sound in seconds to be considered as looping forever
@@ -56,7 +56,6 @@ ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogAudioDebug, Display, All);
  */
 DECLARE_CYCLE_STAT_EXTERN( TEXT( "Audio Update Time" ), STAT_AudioUpdateTime, STATGROUP_Audio , );
 DECLARE_DWORD_COUNTER_STAT_EXTERN( TEXT( "Active Sounds" ), STAT_ActiveSounds, STATGROUP_Audio , );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Audio Evaluate Concurrency"), STAT_AudioEvaluateConcurrency, STATGROUP_Audio, );
 DECLARE_DWORD_COUNTER_STAT_EXTERN( TEXT( "Audio Sources" ), STAT_AudioSources, STATGROUP_Audio , );
 DECLARE_DWORD_COUNTER_STAT_EXTERN( TEXT( "Wave Instances" ), STAT_WaveInstances, STATGROUP_Audio , );
 DECLARE_DWORD_COUNTER_STAT_EXTERN( TEXT( "Wave Instances Dropped" ), STAT_WavesDroppedDueToPriority, STATGROUP_Audio , );
@@ -191,8 +190,8 @@ struct ENGINE_API FWaveInstance
 	float				Volume;
 	/** Current volume multiplier - used to zero the volume without stopping the source */
 	float				VolumeMultiplier;
-	/** An audio component priority value that scales with volume (post all gain stages) and is used to determine voice playback priority. */
-	float				Priority;
+	/** Current priority */
+	float				PlayPriority;
 	/** Voice center channel volume */
 	float				VoiceCenterChannelVolume;
 	/** Volume of the radio filter effect */
@@ -220,10 +219,8 @@ struct ENGINE_API FWaveInstance
 	uint32				bAlreadyNotifiedHook:1;
 	/** Whether to use spatialization */
 	uint32				bUseSpatialization:1;
-	/** Whether or not to enable the low pass filter */
-	uint32				bEnableLowPassFilter:1;
-	/** Whether or not the sound is occluded. */
-	uint32				bIsOccluded:1;
+	/** Which algorithm to use to spatialize 3d sounds. */
+	ESoundSpatializationAlgorithm SpatializationAlgorithm;
 	/** Whether to apply audio effects */
 	uint32				bEQFilterApplied:1;
 	/** Whether or not this sound plays when the game is paused in the UI */
@@ -236,17 +233,10 @@ struct ENGINE_API FWaveInstance
 	uint32				bCenterChannelOnly:1;
 	/** Prevent spamming of spatialization of surround sounds by tracking if the warning has already been emitted */
 	uint32				bReportedSpatializationWarning:1;
-	/** Which algorithm to use to spatialize 3d sounds. */
-	ESoundSpatializationAlgorithm SpatializationAlgorithm;
 	/** Which output target the sound should play to */
 	EAudioOutputTarget::Type OutputTarget;
-	float				LowPassFilterFrequency;
-	/** The low pass filter frequency to use if the sound is occluded */
-	float				OcclusionFilterFrequency;
-	/** The low pass filter frequency to use due to ambient zones */
-	float				AmbientZoneFilterFrequency;
-	/** The low pass filter frequency to use due to distance attenuation */
-	float				AttenuationFilterFrequency;
+	/** Low pass filter setting */
+	float				HighFrequencyGain;
 	/** Current pitch */
 	float				Pitch;
 	/** Current velocity */
@@ -255,8 +245,6 @@ struct ENGINE_API FWaveInstance
 	FVector				Location;
 	/** At what distance we start transforming into omnidirectional soundsource */
 	float				OmniRadius;
-	/** Amount of spread for 3d multi-channel asset spatialization */
-	float				StereoSpread;
 	/** Cached type hash */
 	uint32				TypeHash;
 	/** Hash value for finding the wave instance based on the path through the cue to get to it */
@@ -294,9 +282,6 @@ struct ENGINE_API FWaveInstance
 
 	/** Returns the actual volume the wave instance will play at */
 	float GetActualVolume() const;
-
-	/** Returns the weighted priority of the wave instance. */
-	float GetVolumeWeightedPriority() const;
 
 	/**
 	 * Checks whether wave is streaming and streaming is supported
@@ -365,21 +350,6 @@ public:
 	class FAudioDevice * AudioDevice;
 };
 
-/**
-* FSpatializationParams
-* Struct for retrieving parameters needed for computing 3d spatialization
-*/
-struct FSpatializationParams
-{
-	FVector ListenerPosition;
-	FVector ListenerOrientation;
-	FVector EmitterPosition;
-	FVector LeftChannelPosition;
-	FVector RightChannelPosition;
-	float Distance;
-	float NormalizedOmniRadius;
-};
-
 /*-----------------------------------------------------------------------------
 	FSoundSource.
 -----------------------------------------------------------------------------*/
@@ -397,11 +367,8 @@ public:
 		, bReverbApplied(false)
 		, StereoBleed(0.0f)
 		, LFEBleed(0.5f)
-		, LPFFrequency(MAX_FILTER_FREQUENCY)
-		, LastLPFFrequency(MAX_FILTER_FREQUENCY)
+		, HighFrequencyGain(1.0f)
 		, LastUpdate(0)
-		, LeftChannelSourceLocation(0)
-		, RightChannelSourceLocation(0)
 	{
 	}
 
@@ -500,21 +467,9 @@ public:
 	ENGINE_API float SetLFEBleed( void );
 
 	/**
-	* Set the FilterFrequency value
-	*/
-	ENGINE_API void SetFilterFrequency(void);
-
-	/** Updates the stereo emitter positions of this voice */
-	ENGINE_API void UpdateStereoEmitterPositions();
-
-	/** Draws debug info about this source voice if enabled. */
-	ENGINE_API void DrawDebugInfo();
-
-	/**
-	* Gets parameters necessary for computing 3d spatialization of sources
-	*/
-	ENGINE_API FSpatializationParams GetSpatializationParams();
-
+	 * Set the HighFrequencyGain value
+	 */
+	ENGINE_API void SetHighFrequencyGain( void );
 
 	const FSoundBuffer* GetBuffer() const {return Buffer;}
 
@@ -526,7 +481,6 @@ public:
 	}
 
 protected:
-
 	// Variables.	
 	class FAudioDevice*		AudioDevice;
 	struct FWaveInstance*	WaveInstance;
@@ -545,22 +499,13 @@ protected:
 	float				StereoBleed;
 	/** The amount of a sound to bleed to the LFE speaker */
 	float				LFEBleed;
-
-	/** What frequency to set the LPF filter to. Note this could be caused by occlusion, manual LPF application, or LPF distance attenuation. */
-	float				LPFFrequency;
-
-	/** The last LPF frequency set. Used to avoid making API calls when parameter doesn't changing. */
-	float				LastLPFFrequency;
+	/** Low pass filter setting */
+	float				HighFrequencyGain;
 
 	/** Last tick when this source was active */
 	int32					LastUpdate;
 	/** Last tick when this source was active *and* had a hearable volume */
 	int32					LastHeardUpdate;
-
-	/** The location of the left-channel source for stereo spatialization. */
-	FVector						LeftChannelSourceLocation;
-	/** The location of the right-channel source for stereo spatialization. */
-	FVector						RightChannelSourceLocation;
 
 	friend class FAudioDevice;
 };
@@ -616,33 +561,6 @@ public:
 	ENGINE_API bool ReadWaveHeader(uint8* RawWaveData, int32 Size, int32 Offset );
 
 	ENGINE_API void ReportImportFailure() const;
-};
-
-/** Simple class that wraps the math involved with interpolating a parameter over time based on audio device update time. */
-class ENGINE_API FDynamicParameter
-{
-public:
-	FDynamicParameter(float Value);
-
-	void Set(float Value, float InDuration);
-	void Update(float DeltaTime);
-	float GetValue() const
-	{
-		return CurrValue;
-	}
-	float GetTargetValue() const
-	{
-		return TargetValue;
-	}
-
-private:
-	float CurrValue;
-	float StartValue;
-	float DeltaValue;
-	float CurrTimeSec;
-	float DurationSec;
-	float LastTime;
-	float TargetValue;
 };
 
 /**

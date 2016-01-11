@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,7 +6,6 @@
 #include "AnimGraphNode_ModifyBone.h"
 #include "Animation/AnimSingleNodeInstance.h"
 #include "BoneControllers/AnimNode_ModifyBone.h"
-#include "Animation/AnimSingleNodeInstanceProxy.h"
 #include "AnimPreviewInstance.generated.h"
 
 /** Enum to know how montage is being played */
@@ -20,121 +19,6 @@ enum EMontagePreviewType
 	EMPT_MAX,
 };
 
-
-/** Proxy override for this UAnimInstance-derived class */
-USTRUCT()
-struct FAnimPreviewInstanceProxy : public FAnimSingleNodeInstanceProxy
-{
-	GENERATED_BODY()
-
-public:
-	FAnimPreviewInstanceProxy()
-	{
-	}
-
-	FAnimPreviewInstanceProxy(UAnimInstance* InAnimInstance)
-		: FAnimSingleNodeInstanceProxy(InAnimInstance)
-		, SkeletalControlAlpha(1.0f)
-#if WITH_EDITORONLY_DATA
-		, bForceRetargetBasePose(false)
-#endif
-		, bEnableControllers(true)
-		, bSetKey(false)
-	{
-	}
-
-	virtual void Initialize(UAnimInstance* InAnimInstance) override;
-	virtual void Update(float DeltaSeconds) override;
-	virtual bool Evaluate(FPoseContext& Output) override;
-
-	void ResetModifiedBone(bool bCurveController = false);
-
-	FAnimNode_ModifyBone* FindModifiedBone(const FName& InBoneName, bool bCurveController = false);	
-
-	FAnimNode_ModifyBone& ModifyBone(const FName& InBoneName, bool bCurveController = false);
-
-	void RemoveBoneModification(const FName& InBoneName, bool bCurveController = false);
-
-	void SetForceRetargetBasePose(bool bInForceRetargetBasePose)
-	{ 
-		bForceRetargetBasePose = bInForceRetargetBasePose; 
-	}
-
-	bool GetForceRetargetBasePose() const 
-	{ 
-		return bForceRetargetBasePose; 
-	}
-
-	void EnableControllers(bool bEnable)
-	{
-		bEnableControllers = bEnable;
-	}
-
-	void SetSkeletalControlAlpha(float InSkeletalControlAlpha)
-	{
-		SkeletalControlAlpha = FMath::Clamp<float>(InSkeletalControlAlpha, 0.f, 1.f);
-	}
-
-	void SetKey(FSimpleDelegate InOnSetKeyCompleteDelegate)
-	{
-#if WITH_EDITOR
-		bSetKey = true;
-		OnSetKeyCompleteDelegate = InOnSetKeyCompleteDelegate;
-#endif
-	}
-
-	void RefreshCurveBoneControllers();
-
-	TArray<FAnimNode_ModifyBone>& GetBoneControllers()
-	{
-		return BoneControllers;
-	}
-
-	TArray<FAnimNode_ModifyBone>& GetCurveBoneControllers()
-	{
-		return CurveBoneControllers;
-	}
-
-private:
-	void UpdateCurveController();
-
-	void ApplyBoneControllers(USkeletalMeshComponent* Component, TArray<FAnimNode_ModifyBone> &InBoneControllers, FCSPose<FCompactPose>& OutMeshPose);
-
-	void SetKeyImplementation(const FCompactPose& PreControllerInLocalSpace, const FCompactPose& PostControllerInLocalSpace);
-
-	void AddKeyToSequence(UAnimSequence* Sequence, float Time, const FName& BoneName, const FTransform& AdditiveTransform);
-
-private:
-	/** Controllers for individual bones */
-	TArray<FAnimNode_ModifyBone> BoneControllers;
-
-	/** Curve modifiers */
-	TArray<FAnimNode_ModifyBone> CurveBoneControllers;
-
-	/**
-	 * Delegate to call after Key is set
-	 */
-	FSimpleDelegate OnSetKeyCompleteDelegate;
-
-	/** Shared parameters for previewing blendspace or animsequence **/
-	float SkeletalControlAlpha;
-
-#if WITH_EDITORONLY_DATA
-	bool bForceRetargetBasePose;
-#endif
-
-	/*
-	 * Used to determine if controller has to be applied or not
-	 * Used to disable controller during editing
-	 */
-	bool bEnableControllers;
-
-	/* 
-	 * When this flag is true, it sets key
-	 */
-	bool bSetKey;
-};
-
 /**
  * This Instance only contains one AnimationAsset, and produce poses
  * Used by Preview in AnimGraph, Playing single animation in Kismet2 and etc
@@ -145,21 +29,16 @@ class ANIMGRAPH_API UAnimPreviewInstance : public UAnimSingleNodeInstance
 {
 	GENERATED_UCLASS_BODY()
 
-	// Disable compiler-generated deprecation warnings by implementing our own destructor
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	~UAnimPreviewInstance() {}
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
-
 	/** Controllers for individual bones */
-	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads")
+	UPROPERTY(transient)
 	TArray<FAnimNode_ModifyBone> BoneControllers;
 
 	/** Curve modifiers */
-	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads")
+	UPROPERTY(transient)
 	TArray<FAnimNode_ModifyBone> CurveBoneControllers;
 
 	/** Shared parameters for previewing blendspace or animsequence **/
-	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads")
+	UPROPERTY(transient)
 	float SkeletalControlAlpha;
 
 	/** Shared parameters for previewing blendspace or animsequence **/
@@ -169,24 +48,21 @@ class ANIMGRAPH_API UAnimPreviewInstance : public UAnimSingleNodeInstance
 	UPROPERTY(transient)
 	int32 MontagePreviewStartSectionIdx;
 
-	//~ Begin UObject Interface
-	virtual void Serialize(FArchive& Ar) override;
-	//~ End UObject Interface
-
-	//~ Begin UAnimInstance Interface
+	// Begin UAnimInstance interface
 	virtual void NativeInitializeAnimation() override;
-	virtual FAnimInstanceProxy* CreateAnimInstanceProxy() override;
-	//~ End UAnimInstance Interface
+	virtual void NativeUpdateAnimation(float DeltaTimeX) override;
+	virtual bool NativeEvaluateAnimation(FPoseContext& Output) override;
+	// End UAnimInstance interface
 
 	/** Set SkeletalControl Alpha**/
 	void SetSkeletalControlAlpha(float SkeletalControlAlpha);
 
 	UAnimSequence* GetAnimSequence();
 
-	//~ Begin UAnimSingleNodeInstance Interface
+	// Begin UAnimSingleNodeInstance interface
 	virtual void RestartMontage(UAnimMontage* Montage, FName FromSection = FName()) override;
 	virtual void SetAnimationAsset(UAnimationAsset* NewAsset, bool bIsLooping = true, float InPlayRate = 1.f) override;
-	//~ End UAnimSingleNodeInstance Interface
+	// End UAnimSingleNodeInstance interface
 
 	/** Montage preview functions */
 	void MontagePreview_JumpToStart();
@@ -236,12 +112,7 @@ class ANIMGRAPH_API UAnimPreviewInstance : public UAnimSingleNodeInstance
 	 */
 	void ResetModifiedBone(bool bCurveController=false);
 
-	void SetForceRetargetBasePose(bool ForceRetargetBasePose);
-
-	bool GetForceRetargetBasePose() const;
-
 #if WITH_EDITORONLY_DATA
-	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads, use SetForceRetargetBasePose/GetForceRetargetBasePose")
 	bool bForceRetargetBasePose;
 #endif
 
@@ -270,6 +141,46 @@ class ANIMGRAPH_API UAnimPreviewInstance : public UAnimSingleNodeInstance
 	 * This is used by when editing, when controller has to be disabled
 	 */
 	void EnableControllers(bool bEnable);
+
+private:
+	/** 
+	 * Apply Bone Controllers to the Outpose
+	 *
+	 * @param	Component	Component to apply bone controller to
+	 * @param	BoneControllers	 List of Bone Controllers to apply
+	 * @param 	OutMeshPose	Outpose in Mesh Space once applied
+	 */
+	void ApplyBoneControllers(USkeletalMeshComponent* Component, TArray<FAnimNode_ModifyBone> &BoneControllers, FCSPose<FCompactPose>& OutMeshPose);
+	/** 
+	 * Update CurveControllers based on TransformCurves of Animation
+	 */
+	void UpdateCurveController();
+
+	/* 
+	 * Set Key Implementation function
+	 * It gets Pre Controller Local Space and gets Post Controller Local Space, and add the key to the curve 
+	 */
+	void SetKeyImplementation(const FCompactPose& PreControllerInLocalSpace, const FCompactPose& PostControllerInLocalSpace);
+	/** 
+	 * Add Key to the Sequence
+	 * Now Additive Key is generated, add to the curves
+	 */
+	void AddKeyToSequence(UAnimSequence* Sequence, float Time, const FName& BoneName, const FTransform& AdditiveTransform);
+	/* 
+	 * When this flag is true, it sets key
+	 */
+	bool bSetKey;
+
+	/*
+	 * Used to determine if controller has to be applied or not
+	 * Used to disable controller during editing
+	 */
+	bool bEnableControllers;
+	
+	/**
+	 * Delegate to call after Key is set
+	 */
+	FSimpleDelegate OnSetKeyCompleteDelegate;
 };
 
 

@@ -1,0 +1,32 @@
+﻿Availability: Docs
+Title:1.3 - 剔除距离体积
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Volumes
+Description:体积示例关卡的概述,示例1.3: 剔除距离体积
+
+[TOC(start:2 end:2)]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Volumes/1_3:title%](Resources\ContentExamples\Volumes\content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Volumes/1_3:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Volumes/1_3:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Volumes/1_3]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+它基于距离和大小剔除（而非描画）对象。 您可以设置您想要的任意数量的步骤。 本例中您可以看到对象位于cull distance volum（剔除距离体积）的左侧。 当这些对象位于屏幕上时，它们总是被描画。 在右侧，您可以看到同样的位于体积内的对象。 蓝色的小球体在500单位的距离处被首先剔除。 红色的中等球体在大于1000单位的距离处被剔除。 绿色的球体的距离被设置为0，它将永远不会根据体积进行剔除。
+
+这是为了最优化的性能表现而设置的。
+
+

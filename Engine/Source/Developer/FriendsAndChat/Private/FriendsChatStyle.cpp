@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "FriendsAndChatPrivatePCH.h"
 
@@ -10,21 +10,27 @@ const FFriendsChatStyle& FFriendsChatStyle::GetDefault()
 	return Default;
 }
 
+FFriendsChatStyle& FFriendsChatStyle::SetChatEntryHeight(float Value)
+{
+	ChatEntryHeight = Value;
+	return *this;
+}
+
+FFriendsChatStyle& FFriendsChatStyle::SetGlobalChatHeaderBrush(const FSlateBrush& Value)
+{
+	GlobalChatHeaderBrush = Value;
+	return *this;
+}
+
+FFriendsChatStyle& FFriendsChatStyle::SetChatContainerBackground(const FSlateBrush& InChatContainerBackground)
+{
+	ChatContainerBackground = InChatContainerBackground;
+	return *this;
+}
+
 FFriendsChatStyle& FFriendsChatStyle::SetTextStyle(const FTextBlockStyle& InTextStle)
 {
 	TextStyle = InTextStle;
-	return *this;
-}
-
-FFriendsChatStyle& FFriendsChatStyle::SetTimeStampTextStyle(const FTextBlockStyle& InTextStle)
-{
-	TimeStampTextStyle = InTextStle;
-	return *this;
-}
-
-FFriendsChatStyle& FFriendsChatStyle::SetTimestampOpacity(float Value)
-{
-	TimeStampOpacity = Value;
 	return *this;
 }
 
@@ -42,7 +48,7 @@ FFriendsChatStyle& FFriendsChatStyle::SetGlobalChatColor(const FLinearColor& InF
 
 FFriendsChatStyle& FFriendsChatStyle::SetWhisplerChatColor(const FLinearColor& InFontColor)
 {
-	WhisperChatColor = InFontColor;
+	WhisplerChatColor = InFontColor;
 	return *this;
 }
 
@@ -58,33 +64,34 @@ FFriendsChatStyle& FFriendsChatStyle::SetPartyChatColor(const FLinearColor& InFo
 	return *this;
 }
 
-FFriendsChatStyle& FFriendsChatStyle::SetAdminChatColor(const FLinearColor& InFontColor)
+
+FFriendsChatStyle& FFriendsChatStyle::SetChatGlobalBrush(const FSlateBrush& Brush)
 {
-	AdminChatColor = InFontColor;
+	ChatGlobalBrush = Brush;
 	return *this;
 }
 
-FFriendsChatStyle& FFriendsChatStyle::SetWhisplerHyperlinkChatColor(const FLinearColor& InFontColor)
+FFriendsChatStyle& FFriendsChatStyle::SetChatGameBrush(const FSlateBrush& Brush)
 {
-	WhisperHyperlinkChatColor = InFontColor;
+	ChatGameBrush = Brush;
 	return *this;
 }
 
-FFriendsChatStyle& FFriendsChatStyle::SetGlobalHyperlinkChatColor(const FLinearColor& InFontColor)
+FFriendsChatStyle& FFriendsChatStyle::SetChatPartyBrush(const FSlateBrush& Brush)
 {
-	GlobalHyperlinkChatColor = InFontColor;
+	ChatPartyBrush = Brush;
 	return *this;
 }
 
-FFriendsChatStyle& FFriendsChatStyle::SetGameHyperlinkChatColor(const FLinearColor& InFontColor)
+FFriendsChatStyle& FFriendsChatStyle::SetChatWhisperBrush(const FSlateBrush& Brush)
 {
-	GameHyperlinkChatColor = InFontColor;
+	ChatWhisperBrush = Brush;
 	return *this;
 }
 
-FFriendsChatStyle& FFriendsChatStyle::SetPartyHyperlinkChatColor(const FLinearColor& InFontColor)
+FFriendsChatStyle& FFriendsChatStyle::SetChatInvalidBrush(const FSlateBrush& Brush)
 {
-	PartyHyperlinkChatColor = InFontColor;
+	ChatInvalidBrush = Brush;
 	return *this;
 }
 
@@ -100,26 +107,38 @@ FFriendsChatStyle& FFriendsChatStyle::SetChatDisplayTextStyle(const FEditableTex
 	return *this;
 }
 
-FFriendsChatStyle& FFriendsChatStyle::SetScrollBorderStyle(const FScrollBoxStyle& InScrollBorderStyle)
+FFriendsChatStyle& FFriendsChatStyle::SetScrollBorderStyle(const FScrollBorderStyle& InScrollBorderStyle)
 {
 	ScrollBorderStyle = InScrollBorderStyle;
 	return *this;
 }
 
-FFriendsChatStyle& FFriendsChatStyle::SetMessageNotificationBrush(const FSlateBrush& Brush)
+FFriendsChatStyle& FFriendsChatStyle::SetChatBackgroundBrush(const FSlateBrush& InChatBackgroundBrush)
 {
-	MessageNotificationBrush = Brush;
+	ChatBackgroundBrush = InChatBackgroundBrush;
 	return *this;
 }
 
-FFriendsChatStyle& FFriendsChatStyle::SetChatChannelPadding(const FMargin& Value)
+FFriendsChatStyle& FFriendsChatStyle::SetChatFooterBrush(const FSlateBrush& Value)
 {
-	ChatEntryPadding = Value;
+	ChatFooterBrush = Value;
 	return *this;
 }
 
-FFriendsChatStyle& FFriendsChatStyle::SetChatEntryHeight(float Value)
+FFriendsChatStyle& FFriendsChatStyle::SetChatChannelsBackgroundBrush(const FSlateBrush& InChatChannelsBackgroundBrush)
 {
-	ChatEntryHeight = Value;
+	ChatChannelsBackgroundBrush = InChatChannelsBackgroundBrush;
+	return *this;
+}
+
+FFriendsChatStyle& FFriendsChatStyle::SetQuickSettingsBrush(const FSlateBrush& Brush)
+{
+	QuickSettingsBrush = Brush;
+	return *this;
+}
+
+FFriendsChatStyle& FFriendsChatStyle::SetChatSettingsBrush(const FSlateBrush& Brush)
+{
+	ChatSettingsBrush = Brush;
 	return *this;
 }

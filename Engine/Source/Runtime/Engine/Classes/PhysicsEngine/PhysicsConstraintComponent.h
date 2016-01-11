@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "PhysicsEngine/ConstraintInstance.h"
 #include "PhysicsConstraintComponent.generated.h"
@@ -74,11 +74,11 @@ public:
 	virtual void InitializeComponent() override;
 	//End ActorComponent interface
 
-	//~ Begin SceneComponent Interface
+	// Begin SceneComponent interface
 #if WITH_EDITOR
 	virtual void PostEditComponentMove(bool bFinished) override;
 #endif // WITH_EDITOR
-	//~ End SceneComponent Interface
+	// End SceneComponent interface
 
 	/** Get the body frame. Works without constraint being created */
 	ENGINE_API FTransform GetBodyTransform(EConstraintFrame::Type Frame) const;

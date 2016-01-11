@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "KeyStructCustomization.h"
@@ -24,6 +24,21 @@ void FKeyStructCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle>
 {
 	PropertyHandle = StructPropertyHandle;
 
+	TArray<void*> StructPtrs;
+	StructPropertyHandle->AccessRawData(StructPtrs);
+	check(StructPtrs.Num() != 0);
+	FKey* SelectedKey = (FKey*)StructPtrs[0];
+
+	bool bMultipleValues = false;
+	for (int32 StructPtrIndex = 1; StructPtrIndex < StructPtrs.Num(); ++StructPtrIndex)
+	{
+		if (*(FKey*)StructPtrs[StructPtrIndex] != *SelectedKey)
+		{
+			bMultipleValues = true;
+			break;
+		}
+	}
+
 	// create struct header
 	HeaderRow.NameContent()
 	[
@@ -37,10 +52,11 @@ void FKeyStructCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle>
 		.CurrentKey(this, &FKeyStructCustomization::GetCurrentKey)
 		.OnKeyChanged(this, &FKeyStructCustomization::OnKeyChanged)
 		.Font(StructCustomizationUtils.GetRegularFont())
+		.HasMultipleValues(bMultipleValues)
 	];
 }
 
-TOptional<FKey> FKeyStructCustomization::GetCurrentKey() const
+FKey FKeyStructCustomization::GetCurrentKey() const
 {
 	TArray<void*> StructPtrs;
 	PropertyHandle->AccessRawData(StructPtrs);
@@ -48,15 +64,20 @@ TOptional<FKey> FKeyStructCustomization::GetCurrentKey() const
 	{
 		FKey* SelectedKey = (FKey*)StructPtrs[0];
 
+		bool bMultipleValues = false;
 		for(int32 StructPtrIndex = 1; StructPtrIndex < StructPtrs.Num(); ++StructPtrIndex)
 		{
 			if (SelectedKey && *(FKey*)StructPtrs[StructPtrIndex] != *SelectedKey)
 			{
-				return TOptional<FKey>();
+				bMultipleValues = true;
+				break;
 			}
 		}
 
-		return *SelectedKey;
+		if( !bMultipleValues && SelectedKey )
+		{
+			return *SelectedKey;
+		}
 	}
 	return FKey();
 }

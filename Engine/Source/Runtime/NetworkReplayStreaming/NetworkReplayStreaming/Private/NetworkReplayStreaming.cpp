@@ -1,21 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "NetworkReplayStreaming.h"
 
 IMPLEMENT_MODULE( FNetworkReplayStreaming, NetworkReplayStreaming );
 
-INetworkReplayStreamingFactory& FNetworkReplayStreaming::GetFactory(const TCHAR* FactoryNameOverride)
+INetworkReplayStreamingFactory& FNetworkReplayStreaming::GetFactory()
 {
 	FString FactoryName = TEXT( "NullNetworkReplayStreaming" );
-
-	if (FactoryNameOverride == nullptr)
-	{
-		GConfig->GetString( TEXT( "NetworkReplayStreaming" ), TEXT( "DefaultFactoryName" ), FactoryName, GEngineIni );
-	}
-	else
-	{
-		FactoryName = FactoryNameOverride;
-	}
+	GConfig->GetString( TEXT( "NetworkReplayStreaming" ), TEXT( "DefaultFactoryName" ), FactoryName, GEngineIni );
 
 	// See if we need to forcefully fallback to the null streamer
 	if ( !FModuleManager::Get().IsModuleLoaded( *FactoryName ) )

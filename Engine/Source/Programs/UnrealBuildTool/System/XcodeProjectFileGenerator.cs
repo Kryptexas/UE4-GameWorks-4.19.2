@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -26,14 +26,9 @@ namespace UnrealBuildTool
 		// always seed the random number the same, so multiple runs of the generator will generate the same project
 		static Random Rand = new Random(0);
 
-		public XcodeProjectFileGenerator(FileReference InOnlyGameProject)
-			: base(InOnlyGameProject)
-		{
-		}
-
-		/// <summary>
-		/// Make a random Guid string usable by Xcode (24 characters exactly)
-		/// </summary>
+		/**
+		 * Make a random Guid string usable by Xcode (24 characters exactly)
+		 */
 		public static string MakeXcodeGuid()
 		{
 			string Guid = "";
@@ -59,20 +54,21 @@ namespace UnrealBuildTool
 
 		/// <summary>
 		/// </summary>
-		public override void CleanProjectFiles(DirectoryReference InMasterProjectDirectory, string InMasterProjectName, DirectoryReference InIntermediateProjectFilesPath)
+		public override void CleanProjectFiles(string InMasterProjectRelativePath, string InMasterProjectName, string InIntermediateProjectFilesPath)
 		{
-			DirectoryReference MasterProjDeleteFilename = DirectoryReference.Combine(InMasterProjectDirectory, InMasterProjectName + ".xcworkspace");
-			if (MasterProjDeleteFilename.Exists())
+			string MasterProjectFile = Path.Combine(InMasterProjectRelativePath, InMasterProjectName);
+			string MasterProjDeleteFilename = MasterProjectFile + ".xcworkspace";
+			if (Directory.Exists(MasterProjDeleteFilename))
 			{
-				Directory.Delete(MasterProjDeleteFilename.FullName, true);
+				Directory.Delete(MasterProjDeleteFilename);
 			}
 
 			// Delete the project files folder
-			if (InIntermediateProjectFilesPath.Exists())
+			if (Directory.Exists(InIntermediateProjectFilesPath))
 			{
 				try
 				{
-					Directory.Delete(InIntermediateProjectFilesPath.FullName, true);
+					Directory.Delete(InIntermediateProjectFilesPath, true);
 				}
 				catch (Exception Ex)
 				{
@@ -87,9 +83,9 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="InitFilePath">Path to the project file</param>
 		/// <returns>The newly allocated project file object</returns>
-		protected override ProjectFile AllocateProjectFile(FileReference InitFilePath)
+		protected override ProjectFile AllocateProjectFile(string InitFilePath)
 		{
-			return new XcodeProjectFile(InitFilePath, OnlyGameProject);
+			return new XcodeProjectFile(InitFilePath);
 		}
 
 		/// ProjectFileGenerator interface
@@ -136,28 +132,28 @@ namespace UnrealBuildTool
 
 			System.Action< List<MasterProjectFolder> /* Folders */, string /* Ident */ > AddProjectsFunction = null;
 			AddProjectsFunction = (FolderList, Ident) =>
+			{
+				foreach (XcodeProjectFolder CurFolder in FolderList)
 				{
-					foreach (XcodeProjectFolder CurFolder in FolderList)
+					WorkspaceDataContent.Append(Ident + "   <Group" + ProjectFileGenerator.NewLine);
+					WorkspaceDataContent.Append(Ident + "      location = \"container:\"      name = \"" + CurFolder.FolderName + "\">" + ProjectFileGenerator.NewLine);
+
+					AddProjectsFunction(CurFolder.SubFolders, Ident + "   ");
+
+					foreach (ProjectFile CurProject in CurFolder.ChildProjects)
 					{
-						WorkspaceDataContent.Append(Ident + "   <Group" + ProjectFileGenerator.NewLine);
-						WorkspaceDataContent.Append(Ident + "      location = \"container:\"      name = \"" + CurFolder.FolderName + "\">" + ProjectFileGenerator.NewLine);
-
-						AddProjectsFunction(CurFolder.SubFolders, Ident + "   ");
-
-						foreach (ProjectFile CurProject in CurFolder.ChildProjects)
+						XcodeProjectFile XcodeProject = CurProject as XcodeProjectFile;
+						if (XcodeProject != null)
 						{
-							XcodeProjectFile XcodeProject = CurProject as XcodeProjectFile;
-							if (XcodeProject != null)
-							{
-								WorkspaceDataContent.Append(Ident + "      <FileRef" + ProjectFileGenerator.NewLine);
-								WorkspaceDataContent.Append(Ident + "         location = \"group:" + XcodeProject.ProjectFilePath.MakeRelativeTo(ProjectFileGenerator.MasterProjectPath) + "\">" + ProjectFileGenerator.NewLine);
-								WorkspaceDataContent.Append(Ident + "      </FileRef>" + ProjectFileGenerator.NewLine);
-							}
+							WorkspaceDataContent.Append(Ident + "      <FileRef" + ProjectFileGenerator.NewLine);
+							WorkspaceDataContent.Append(Ident + "         location = \"group:" + XcodeProject.RelativeProjectFilePath + "\">" + ProjectFileGenerator.NewLine);
+							WorkspaceDataContent.Append(Ident + "      </FileRef>" + ProjectFileGenerator.NewLine);
 						}
-
-						WorkspaceDataContent.Append(Ident + "   </Group>" + ProjectFileGenerator.NewLine);
 					}
-				};
+
+					WorkspaceDataContent.Append(Ident + "   </Group>" + ProjectFileGenerator.NewLine);
+				}
+			};
 			AddProjectsFunction(RootFolder.SubFolders, "");
 
 			WorkspaceDataContent.Append("</Workspace>" + ProjectFileGenerator.NewLine);
@@ -165,13 +161,13 @@ namespace UnrealBuildTool
 			string ProjectName = MasterProjectName;
 			if (ProjectFilePlatform != XcodeProjectFilePlatform.All)
 			{
-				ProjectName += ProjectFilePlatform == XcodeProjectFilePlatform.Mac ? "_Mac" : (ProjectFilePlatform == XcodeProjectFilePlatform.iOS ? "_IOS" : "_TVOS");
+				ProjectName += ProjectFilePlatform == XcodeProjectFilePlatform.Mac ? "_Mac" : "_IOS";
 			}
-			var WorkspaceDataFilePath = MasterProjectPath + "/" + ProjectName + ".xcworkspace/contents.xcworkspacedata";
+			var WorkspaceDataFilePath = MasterProjectRelativePath + "/" + ProjectName + ".xcworkspace/contents.xcworkspacedata";
 			bSuccess = WriteFileIfChanged(WorkspaceDataFilePath, WorkspaceDataContent.ToString(), new UTF8Encoding());
 			if (bSuccess)
 			{
-				var WorkspaceSettingsFilePath = MasterProjectPath + "/" + ProjectName + ".xcworkspace/xcuserdata/" + Environment.UserName + ".xcuserdatad/WorkspaceSettings.xcsettings";
+				var WorkspaceSettingsFilePath = MasterProjectRelativePath + "/" + ProjectName + ".xcworkspace/xcuserdata/" + Environment.UserName + ".xcuserdatad/WorkspaceSettings.xcsettings";
 				bSuccess = WriteWorkspaceSettingsFile(WorkspaceSettingsFilePath);
 			}
 
@@ -188,8 +184,7 @@ namespace UnrealBuildTool
 		{
 			Mac = 1 << 0,
 			iOS = 1 << 1,
-			tvOS = 1 << 2,
-			All = Mac | iOS | tvOS
+			All = Mac | iOS
 		}
 
 		/// Which platforms we should generate targets for
@@ -197,9 +192,6 @@ namespace UnrealBuildTool
 
 		/// Should we generate a special project to use for iOS signing instead of a normal one
 		static public bool bGeneratingRunIOSProject = false;
-
-		/// Should we generate a special project to use for tvOS signing instead of a normal one
-		static public bool bGeneratingRunTVOSProject = false;
 
 		/// <summary>
 		/// Configures project generator based on command-line options
@@ -217,12 +209,6 @@ namespace UnrealBuildTool
 				if (CurArgument.StartsWith("-iOSDeployOnly", StringComparison.InvariantCultureIgnoreCase))
 				{
 					bGeneratingRunIOSProject = true;
-					break;
-				}
-
-				if (CurArgument.StartsWith("-tvOSDeployOnly", StringComparison.InvariantCultureIgnoreCase))
-				{
-					bGeneratingRunTVOSProject = true;
 					break;
 				}
 			}

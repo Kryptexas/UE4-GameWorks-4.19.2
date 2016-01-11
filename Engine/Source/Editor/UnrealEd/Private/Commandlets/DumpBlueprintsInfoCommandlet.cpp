@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "ObjectEditorUtils.h"
@@ -1016,7 +1016,8 @@ static FString DumpBlueprintInfoUtils::GetGraphTypeString(UEdGraph const* Graph)
 //------------------------------------------------------------------------------
 static FString DumpBlueprintInfoUtils::GetActionKey(FGraphActionListBuilderBase::ActionGroup const& Action)
 {
-	const TArray<FString>& MenuHierarchy = Action.GetCategoryChain();
+	TArray<FString> MenuHierarchy;
+	Action.GetCategoryChain(MenuHierarchy);
 
 	FString ActionKey;
 	for (FString const& SubCategory : MenuHierarchy)
@@ -1029,7 +1030,7 @@ static FString DumpBlueprintInfoUtils::GetActionKey(FGraphActionListBuilderBase:
 	}
 
 	TSharedPtr<FEdGraphSchemaAction> MainAction = Action.Actions[0];
-	ActionKey += MainAction->GetMenuDescription().ToString();
+	ActionKey += MainAction->MenuDescription.ToString();
 
 	return ActionKey;
 }
@@ -1606,9 +1607,9 @@ static void DumpBlueprintInfoUtils::DumpActionList(uint32 Indent, FGraphActionLi
 			TSharedPtr<FEdGraphSchemaAction> LHSAction = LHS.Actions[0];
 			TSharedPtr<FEdGraphSchemaAction> RHSAction = RHS.Actions[0];
 			
-			if (LHSAction->GetGrouping() != RHSAction->GetGrouping())
+			if (LHSAction->Grouping != RHSAction->Grouping)
 			{
-				return LHSAction->GetGrouping() > RHSAction->GetGrouping();
+				return LHSAction->Grouping > RHSAction->Grouping;
 			}
 			
 			FString LhKey = GetActionKey(LHS);
@@ -1646,7 +1647,8 @@ static void DumpBlueprintInfoUtils::DumpActionMenuItem(uint32 Indent, FGraphActi
 	check(Action.Actions.Num() > 0);
 
 	// Get action category info
-	TArray<FString> MenuHierarchy = Action.GetCategoryChain();
+	TArray<FString> MenuHierarchy;
+	Action.GetCategoryChain(MenuHierarchy);
 
 	FString ActionCategory = TEXT("");
 
@@ -1660,7 +1662,7 @@ static void DumpBlueprintInfoUtils::DumpActionMenuItem(uint32 Indent, FGraphActi
 	}
 
 	TSharedPtr<FEdGraphSchemaAction> PrimeAction = Action.Actions[0];
-	FString const ActionName = PrimeAction->GetMenuDescription().ToString();
+	FString const ActionName = PrimeAction->MenuDescription.ToString();
 
 	FString const ActionEntryIndent = BuildIndentString(Indent);
 	FString ActionEntry = ActionEntryIndent + "\"" + ActionCategory + ActionName + "\"";;
@@ -1682,14 +1684,14 @@ static void DumpBlueprintInfoUtils::DumpActionMenuItem(uint32 Indent, FGraphActi
 		}
 		ActionEntry += "\","; // end action category data
 
-		FString TooltipStr = PrimeAction->GetTooltipDescription().Replace(TEXT("\\\""), TEXT("'")).Replace(TEXT("\""), TEXT("'"));
+		FString TooltipStr = PrimeAction->TooltipDescription.Replace(TEXT("\\\""), TEXT("'")).Replace(TEXT("\""), TEXT("'"));
 		FString const TooltipFieldLabel("\"Tooltip\"     : \"");
 		TooltipStr = TooltipStr.Replace(TEXT("\n"), *(IndentedNewline + BuildIndentString(TooltipFieldLabel.Len(), /*bUseSpaces =*/true)));
 
 		ActionEntry += IndentedNewline + TooltipFieldLabel + TooltipStr + "\",";
-		ActionEntry += IndentedNewline + "\"Keywords\"    : \"" + PrimeAction->GetKeywords().ToString() + "\",";
-		ActionEntry += IndentedNewline + "\"SearchTitle\" : \"" + PrimeAction->GetMenuDescription().ToString() + "\",";
-		ActionEntry += IndentedNewline + FString::Printf(TEXT("\"Grouping\"    : %d"), PrimeAction->GetGrouping());
+		ActionEntry += IndentedNewline + "\"Keywords\"    : \"" + PrimeAction->Keywords.ToString() + "\",";
+		ActionEntry += IndentedNewline + "\"SearchTitle\" : \"" + PrimeAction->GetSearchTitle() + "\",";
+		ActionEntry += IndentedNewline + FString::Printf(TEXT("\"Grouping\"    : %d"), PrimeAction->Grouping);
 		
 		// Get action node type info
 		UK2Node const* NodeTemplate = FBlueprintActionMenuUtils::ExtractNodeTemplateFromAction(PrimeAction);

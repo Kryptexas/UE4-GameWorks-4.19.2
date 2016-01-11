@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 // Implementation of Device Context State Caching to improve draw
 //	thread performance by removing redundant device context calls.
@@ -415,7 +415,6 @@ public:
 	HRESULT CreateBuffer(D3D12_HEAP_TYPE heapType, uint64 heapSize, FD3D12Resource** ppOutResource);
 
 	FD3D12ResourceHelper(FD3D12Device* InParent);
-
 };
 
 // Vertex Buffer State
@@ -710,10 +709,6 @@ public:
 	~FD3D12PipelineStateCache();
 
 	static const bool bUseAPILibaries = false;
-
-private:
-	FD3D12PipelineStateCache(const FD3D12PipelineStateCache&);
-	FD3D12PipelineStateCache& operator=(const FD3D12PipelineStateCache&);
 };
 
 class FD3D12BitArray
@@ -1058,10 +1053,10 @@ protected:
 		TShader* OldShader = Traits::GetShader(BSS());
 		if (OldShader != Shader)
 		{
-			PipelineState.Common.CurrentShaderSamplerCounts[Traits::Frequency] = (Shader) ? Shader->ResourceCounts.NumSamplers : 0;
-			PipelineState.Common.CurrentShaderSRVCounts[Traits::Frequency]     = (Shader) ? Shader->ResourceCounts.NumSRVs : 0;
-			PipelineState.Common.CurrentShaderCBCounts[Traits::Frequency]      = (Shader) ? Shader->ResourceCounts.NumCBs : 0;
-			PipelineState.Common.CurrentShaderUAVCounts[Traits::Frequency]     = (Shader) ? Shader->ResourceCounts.NumUAVs : 0;
+			PipelineState.Common.CurrentShaderSamplerCounts[Traits::Frequency] = (Shader) ? Shader->SamplerCount : 0;
+			PipelineState.Common.CurrentShaderSRVCounts[Traits::Frequency]     = (Shader) ? Shader->SRVCount     : 0;
+			PipelineState.Common.CurrentShaderCBCounts[Traits::Frequency]      = (Shader) ? Shader->CBCount      : 0;
+			PipelineState.Common.CurrentShaderUAVCounts[Traits::Frequency]     = (Shader) ? Shader->UAVCount     : 0;
 		}
 	}
 
@@ -1317,10 +1312,10 @@ public:
 		{
 			PipelineState.Compute.CurrentComputeShader                  = Shader;
 			PipelineState.Compute.bNeedRebuildPSO = true;
-			PipelineState.Common.CurrentShaderSamplerCounts[SF_Compute] = (Shader) ? Shader->ResourceCounts.NumSamplers : 0;
-			PipelineState.Common.CurrentShaderSRVCounts[SF_Compute]     = (Shader) ? Shader->ResourceCounts.NumSRVs : 0;
-			PipelineState.Common.CurrentShaderCBCounts[SF_Compute]      = (Shader) ? Shader->ResourceCounts.NumCBs : 0;
-			PipelineState.Common.CurrentShaderUAVCounts[SF_Compute]     = (Shader) ? Shader->ResourceCounts.NumUAVs : 0;
+			PipelineState.Common.CurrentShaderSamplerCounts[SF_Compute] = (Shader) ? Shader->SamplerCount : 0;
+			PipelineState.Common.CurrentShaderSRVCounts[SF_Compute]     = (Shader) ? Shader->SRVCount     : 0;
+			PipelineState.Common.CurrentShaderCBCounts[SF_Compute]      = (Shader) ? Shader->CBCount      : 0;
+			PipelineState.Common.CurrentShaderUAVCounts[SF_Compute]     = (Shader) ? Shader->UAVCount     : 0;
 		}
 	}
 

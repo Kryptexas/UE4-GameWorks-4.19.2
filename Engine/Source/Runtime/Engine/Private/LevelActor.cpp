@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EnginePrivate.h"
@@ -266,8 +266,6 @@ AActor* UWorld::SpawnActor( UClass* Class, FVector const* Location, FRotator con
 	return SpawnActor(Class, &Transform, SpawnParameters);
 }
 
-#include "GameFramework/SpawnActorTimer.h"
-
 AActor* UWorld::SpawnActor( UClass* Class, FTransform const* UserTransformPtr, const FActorSpawnParameters& SpawnParameters )
 {
 	SCOPE_CYCLE_COUNTER(STAT_SpawnActorTime);
@@ -280,11 +278,6 @@ AActor* UWorld::SpawnActor( UClass* Class, FTransform const* UserTransformPtr, c
 		UE_LOG(LogSpawn, Warning, TEXT("SpawnActor failed because no class was specified") );
 		return NULL;
 	}
-
-#if ENABLE_SPAWNACTORTIMER
-	FScopedSpawnActorTimer SpawnTimer(Class->GetFName(), SpawnParameters.bDeferConstruction ? ESpawnActorTimingType::SpawnActorDeferred : ESpawnActorTimingType::SpawnActorNonDeferred);
-#endif
-
 	if( Class->HasAnyClassFlags(CLASS_Deprecated) )
 	{
 		UE_LOG(LogSpawn, Warning, TEXT("SpawnActor failed because class %s is deprecated"), *Class->GetName() );
@@ -408,10 +401,6 @@ AActor* UWorld::SpawnActor( UClass* Class, FTransform const* UserTransformPtr, c
 	AActor* const Actor = NewObject<AActor>(LevelToSpawnIn, Class, NewActorName, SpawnParameters.ObjectFlags, Template);
 	check(Actor);
 
-#if ENABLE_SPAWNACTORTIMER
-	SpawnTimer.SetActorName(Actor->GetFName());
-#endif
-
 #if WITH_EDITOR
 	Actor->ClearActorLabel(); // Clear label on newly spawned actors
 #endif // WITH_EDITOR
@@ -528,11 +517,20 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 			return false;
 		}
 
-		if (ThisActor->DestroyNetworkActorHandled())
+		// Don't destroy player actors.
+		APlayerController* PC = Cast<APlayerController>(ThisActor);
+		if ( PC )
 		{
-			// Network actor short circuited the destroy (network will cleanup properly)
-			// Don't destroy PlayerControllers and BeaconClients
-			return false;
+			UNetConnection* C = Cast<UNetConnection>(PC->Player);
+			if( C )
+			{	
+				if( C->Channels[0] && C->State!=USOCK_Closed )
+				{
+					C->bPendingDestroy = true;
+					C->Channels[0]->Close();
+				}
+				return false;
+			}
 		}
 	}
 	else
@@ -541,7 +539,7 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 	}
 
 	// Prevent recursion
-	FMarkActorIsBeingDestroyed MarkActorIsBeingDestroyed(ThisActor);
+	//FMarkActorIsBeingDestroyed MarkActorIsBeingDestroyed(ThisActor);
 
 	// Notify the texture streaming manager about the destruction of this actor.
 	IStreamingManager::Get().NotifyActorDestroyed( ThisActor );
@@ -776,8 +774,6 @@ static bool ComponentEncroachesBlockingGeometry_NoAdjustment(UWorld const* World
 				// must be registered
 				TArray<FOverlapResult> Overlaps;
 				FComponentQueryParams Params(NAME_ComponentEncroachesBlockingGeometry_NoAdjustment, TestActor);
-				FCollisionResponseParams ResponseParams;
-				PrimComp->InitSweepCollisionParams(Params, ResponseParams);
 				return World->ComponentOverlapMultiByChannel(Overlaps, PrimComp, TestWorldTransform.GetLocation(), TestWorldTransform.GetRotation(), BlockingChannel, Params);
 			}
 			else
@@ -789,9 +785,7 @@ static bool ComponentEncroachesBlockingGeometry_NoAdjustment(UWorld const* World
 		else
 		{
 			FCollisionQueryParams Params(NAME_ComponentEncroachesBlockingGeometry_NoAdjustment, false, TestActor);
-			FCollisionResponseParams ResponseParams;
-			PrimComp->InitSweepCollisionParams(Params, ResponseParams);
-			return World->OverlapBlockingTestByChannel(TestWorldTransform.GetLocation(), TestWorldTransform.GetRotation(), BlockingChannel, CollisionShape, Params, ResponseParams);
+			return World->OverlapAnyTestByChannel(TestWorldTransform.GetLocation(), TestWorldTransform.GetRotation(), BlockingChannel, CollisionShape, Params);
 		}
 	}
 
@@ -825,8 +819,6 @@ static bool ComponentEncroachesBlockingGeometry_WithAdjustment(UWorld const* Wor
 			{
 				// must be registered
 				FComponentQueryParams Params(NAME_ComponentEncroachesBlockingGeometry_WithAdjustment, TestActor);
-				FCollisionResponseParams ResponseParams;
-				PrimComp->InitSweepCollisionParams(Params, ResponseParams);
 				bFoundBlockingHit = World->ComponentOverlapMultiByChannel(Overlaps, PrimComp, TestWorldTransform.GetLocation(), TestWorldTransform.GetRotation(), BlockingChannel, Params);
 				bComputePenetrationAdjustment = false;
 			}
@@ -839,9 +831,7 @@ static bool ComponentEncroachesBlockingGeometry_WithAdjustment(UWorld const* Wor
 		{
 			// overlap our shape
 			FCollisionQueryParams Params(NAME_ComponentEncroachesBlockingGeometry_WithAdjustment, false, TestActor);
-			FCollisionResponseParams ResponseParams;
-			PrimComp->InitSweepCollisionParams(Params, ResponseParams);
-			bFoundBlockingHit = World->OverlapMultiByChannel(Overlaps, TestWorldTransform.GetLocation(), TestWorldTransform.GetRotation(), BlockingChannel, CollisionShape, Params, ResponseParams);
+			bFoundBlockingHit = World->OverlapMultiByChannel(Overlaps, TestWorldTransform.GetLocation(), TestWorldTransform.GetRotation(), BlockingChannel, CollisionShape, Params);
 		}
 
 		// compute adjustment
@@ -944,7 +934,7 @@ bool UWorld::EncroachingBlockingGeometry(AActor* TestActor, FVector TestLocation
 		// the world, and that component is the only one we care about encroaching (since the movement code will happily embedding
 		// other components in the world during movement updates)
 		UPrimitiveComponent* const MovedPrimComp = MoveComponent->UpdatedPrimitive;
-		if (MovedPrimComp->IsQueryCollisionEnabled())
+		if (MovedPrimComp->IsCollisionEnabled())
 		{
 			// might not be the root, so we need to compute the transform
 			FTransform const CompToRoot = MovedPrimComp->GetComponentToWorld() * WorldToOldRoot;
@@ -970,7 +960,7 @@ bool UWorld::EncroachingBlockingGeometry(AActor* TestActor, FVector TestLocation
 	{
 		// This actor does not have a movement component, so we'll assume all components are potentially important to keep out of the world
 		UPrimitiveComponent* const RootPrimComp = Cast<UPrimitiveComponent>(RootComponent);
-		if (RootPrimComp && RootPrimComp->IsQueryCollisionEnabled())
+		if (RootPrimComp && RootPrimComp->IsCollisionEnabled())
 		{
 			if (ComponentEncroachesBlockingGeometry(this, TestActor, RootPrimComp, TestRootToWorld, ProposedAdjustment))
 			{
@@ -994,7 +984,7 @@ bool UWorld::EncroachingBlockingGeometry(AActor* TestActor, FVector TestLocation
 
 		for (auto Child : Children)
 		{
-			if (Child->IsQueryCollisionEnabled())
+			if (Child->IsCollisionEnabled())
 			{
 				UPrimitiveComponent* const PrimComp = Cast<UPrimitiveComponent>(Child);
 				if (PrimComp)

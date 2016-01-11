@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Misc/OutputDeviceConsole.h"
@@ -185,8 +185,7 @@ public:
 	 * @param Data	Text to display
 	 * @param Event	Event type, used for filtering/ suppression
 	 */
-	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category, const double Time ) override;
-	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category ) override;
+	void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category );
 
 	void SetColor( const TCHAR* Color );
 };

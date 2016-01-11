@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CustomDepthRendering.cpp: CustomDepth rendering implementation.
@@ -61,7 +61,7 @@ bool FCustomDepthPrimSet::DrawPrims(FRHICommandListImmediate& RHICmdList, const 
 
 						if (View.StaticMeshVisibilityMap[StaticMesh.Id])
 						{
-							const FMeshDrawingRenderState DrawRenderState(View.GetDitheredLODTransitionState(StaticMesh));
+							float DitherValue = View.GetDitheredLODTransitionValue(StaticMesh);
 							bDirty |= FDepthDrawingPolicyFactory::DrawStaticMesh(
 								RHICmdList, 
 								View,
@@ -69,7 +69,7 @@ bool FCustomDepthPrimSet::DrawPrims(FRHICommandListImmediate& RHICmdList, const 
 								StaticMesh,
 								StaticMesh.Elements.Num() == 1 ? 1 : View.StaticMeshBatchVisibility[StaticMesh.Id],
 								true,
-								DrawRenderState,
+								DitherValue,
 								PrimitiveSceneProxy,
 								StaticMesh.BatchHitProxyId
 								);

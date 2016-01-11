@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_VectorBase.h"
@@ -22,16 +22,10 @@ UEnvQueryTest_Dot::UEnvQueryTest_Dot(const FObjectInitializer& ObjectInitializer
 
 void UEnvQueryTest_Dot::RunTest(FEnvQueryInstance& QueryInstance) const
 {
-	UObject* QueryOwner = QueryInstance.Owner.Get();
-	if (QueryOwner == nullptr)
-	{
-		return;
-	}
-
-	FloatValueMin.BindData(QueryOwner, QueryInstance.QueryID);
+	FloatValueMin.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
 	float MinThresholdValue = FloatValueMin.GetValue();
 
-	FloatValueMax.BindData(QueryOwner, QueryInstance.QueryID);
+	FloatValueMax.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
 	float MaxThresholdValue = FloatValueMax.GetValue();
 
 	// gather all possible directions: for contexts different than Item

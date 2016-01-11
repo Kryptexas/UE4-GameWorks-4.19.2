@@ -1,0 +1,36 @@
+Availability: Docs
+Title:1.5 - WorldSupport
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Destructables
+Description:An overview of the Destructibility example level, example 1.5: WorldSupport
+
+
+[VAR:Topic]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Destructables/1_3:title%](Resources/ContentExamples/Destructables/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Destructables/1_3:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Destructables/1_3:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Destructables/1_3]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth raw]
+![](Resources/ContentExamples/Destructables/physics_banner.png)
+[/REGION]
+
+This ties the destructible mesh to a piece of Static world geometry. Every part that of the destructible mesh that touches a **Static Mesh** will act like it is fixed to the environment.
+
+<!--[REGION:lightbox]
+[![](1_3_solid.png)(w:300)](1_3_solid.png) [![](1_3_fractured.png)(w:300)](1_3_fractured.png) [![](1_3_blown.png)(w:300)](1_3_blown.png)
+[/REGION]-->

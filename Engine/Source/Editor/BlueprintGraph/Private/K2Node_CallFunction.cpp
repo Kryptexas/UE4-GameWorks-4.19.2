@@ -1,4 +1,5 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
 
 #include "BlueprintGraphPrivatePCH.h"
 
@@ -7,7 +8,6 @@
 #include "K2Node_SwitchEnum.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetArrayLibrary.h"
-#include "Kismet2/KismetDebugUtilities.h"
 #include "K2Node_PureAssignmentStatement.h"
 #include "GraphEditorSettings.h"
 #include "BlueprintActionFilter.h"
@@ -975,16 +975,6 @@ void UK2Node_CallFunction::PostReconstructNode()
 	{
 		FDynamicOutputHelper(TypePickerPin).ConformOutputType();
 	}
-
-	if (IsNodePure())
-	{
-		// Remove any pre-existing breakpoint on this node since pure nodes cannot have breakpoints
-		if (UBreakpoint* ExistingBreakpoint = FKismetDebugUtilities::FindBreakpointForNode(GetBlueprint(), this))
-		{
-			// Remove the breakpoint
-			FKismetDebugUtilities::StartDeletingBreakpoint(ExistingBreakpoint, GetBlueprint());
-		}
-	}
 }
 
 void UK2Node_CallFunction::DestroyNode()
@@ -1212,7 +1202,7 @@ FText UK2Node_CallFunction::GetTooltipText() const
 		{
 			Args.Add(
 				TEXT("ClientString"),
-				NSLOCTEXT("K2Node", "ClientFunction", "Cosmetic. This event is only for cosmetic, non-gameplay actions.")
+				NSLOCTEXT("K2Node", "ClientEvent", "Cosmetic. This event is only for cosmetic, non-gameplay actions.")
 			);
 			// FText::Format() is slow, so we cache this to save on performance
 			CachedTooltip.SetCachedText(FText::Format(LOCTEXT("CallFunction_SubtitledTooltip", "{DefaultTooltip}\n\n{ClientString}"), Args), this);
@@ -1376,15 +1366,10 @@ FString UK2Node_CallFunction::GetDefaultTooltipForFunction(const UFunction* Func
 		static const FString DoxygenParam(TEXT("@param"));
 		static const FString DoxygenReturn(TEXT("@return"));
 		static const FString DoxygenSee(TEXT("@see"));
-		static const FString TooltipSee(TEXT("See:"));
-		static const FString DoxygenNote(TEXT("@note"));
-		static const FString TooltipNote(TEXT("Note:"));
 
 		Tooltip.Split(DoxygenParam, &Tooltip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 		Tooltip.Split(DoxygenReturn, &Tooltip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
-		Tooltip.ReplaceInline(*DoxygenSee, *TooltipSee);
-		Tooltip.ReplaceInline(*DoxygenNote, *TooltipNote);
-
+		Tooltip.Split(DoxygenSee, &Tooltip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 		Tooltip.Trim();
 		Tooltip.TrimTrailing();
 
@@ -1623,52 +1608,52 @@ void UK2Node_CallFunction::GetRedirectPinNames(const UEdGraphPin& Pin, TArray<FS
 	}
 }
 
-void UK2Node_CallFunction::FixupSelfMemberContext()
+bool UK2Node_CallFunction::IsSelfPinCompatibleWithBlueprintContext(UEdGraphPin *SelfPin, UBlueprint* BlueprintObj) const
 {
-	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNode(this);
-	auto IsBlueprintOfType = [Blueprint](UClass* ClassType)->bool
-	{
-		bool bIsChildOf  = Blueprint && (Blueprint->GeneratedClass != nullptr) && Blueprint->GeneratedClass->IsChildOf(ClassType);
-		if (!bIsChildOf && Blueprint && (Blueprint->SkeletonGeneratedClass))
-		{
-			bIsChildOf = Blueprint->SkeletonGeneratedClass->IsChildOf(ClassType);
-		}
-		return bIsChildOf;
-	};
-	
+	check(BlueprintObj);
 
-	UClass* MemberClass = FunctionReference.GetMemberParentClass();
-	if (FunctionReference.IsSelfContext())
+	UClass* FunctionClass = FunctionReference.GetMemberParentClass(GetBlueprintClassFromNode());
+
+	bool bIsCompatible = (SelfPin != NULL) ? SelfPin->bHidden : true;
+	if (!bIsCompatible && (BlueprintObj->GeneratedClass != NULL))
 	{
-		if (MemberClass == nullptr)
-		{
-			// the self pin may have type information stored on it
-			if (UEdGraphPin* SelfPin = GetDefault<UEdGraphSchema_K2>()->FindSelfPin(*this, EGPD_Input))
-			{
-				MemberClass = Cast<UClass>(SelfPin->PinType.PinSubCategoryObject.Get());
-			}
-		}
-		// if we happened to retain the ParentClass for a self reference 
-		// (unlikely), then we know where this node came from... let's keep it
-		// referencing that function
-		if (MemberClass != nullptr)
-		{
-			if (!IsBlueprintOfType(MemberClass))
-			{
-				FunctionReference.SetExternalMember(FunctionReference.GetMemberName(), MemberClass);
-			}
-		}
-		// else, there is nothing we can do... if there is an function matching 
-		// the member name in this Blueprint, then it will reference that 
-		// function (even if it came from a different Blueprint, one with an 
-		// identically named function)... if there is no function matching this 
-		// reference, then the node will produce an error later during compilation
+		bIsCompatible |= BlueprintObj->GeneratedClass->IsChildOf(FunctionClass);
 	}
-	else if (ensure(MemberClass != nullptr))
+
+	if (!bIsCompatible && (BlueprintObj->SkeletonGeneratedClass != NULL))
 	{
-		if (IsBlueprintOfType(MemberClass))
+		bIsCompatible |= BlueprintObj->SkeletonGeneratedClass->IsChildOf(FunctionClass);
+	}
+	return bIsCompatible;
+}
+
+void UK2Node_CallFunction::EnsureFunctionIsInBlueprint()
+{
+	// Do not mess with the function if there are pins connected to the target pin
+	UEdGraphPin* SelfPin = GetDefault<UEdGraphSchema_K2>()->FindSelfPin(*this, EGPD_Input);
+	if (SelfPin && SelfPin->LinkedTo.Num() == 0)
+	{
+		// Ensure we're calling a function in a context related to our blueprint. If not, 
+		// reassigning the class and then calling ReconstructNodes will re-wire the pins correctly
+		if (UFunction* Function = GetTargetFunction())
 		{
-			FunctionReference.SetSelfMember(FunctionReference.GetMemberName());
+			UClass* FunctionOwnerClass = Function->GetOuterUClass();
+			UObject* FunctionGenerator = FunctionOwnerClass ? FunctionOwnerClass->ClassGeneratedBy : NULL;
+
+			// Never change the type if the function is an Interface function type, this only occurs when 
+			// the function is the interface function and the self pin will be PC_Interface type
+			if (!FunctionOwnerClass->IsChildOf(UInterface::StaticClass()))
+			{
+				// If function is generated from a blueprint object then dbl check self pin compatibility
+				if (FunctionGenerator != NULL)
+				{
+					UBlueprint* BlueprintObj = FBlueprintEditorUtils::FindBlueprintForNode(this);
+					if ((BlueprintObj != NULL) && !IsSelfPinCompatibleWithBlueprintContext(SelfPin, BlueprintObj))
+					{
+						FunctionReference.SetSelfMember(Function->GetFName());
+					}
+				}
+			}
 		}
 	}
 }
@@ -1676,7 +1661,7 @@ void UK2Node_CallFunction::FixupSelfMemberContext()
 void UK2Node_CallFunction::PostPasteNode()
 {
 	Super::PostPasteNode();
-	FixupSelfMemberContext();
+	EnsureFunctionIsInBlueprint();
 
 	UFunction* Function = GetTargetFunction();
 	if(Function != NULL)
@@ -1713,7 +1698,8 @@ void UK2Node_CallFunction::PostDuplicate(bool bDuplicateForPIE)
 	Super::PostDuplicate(bDuplicateForPIE);
 	if (!bDuplicateForPIE && (!this->HasAnyFlags(RF_Transient)))
 	{
-		FixupSelfMemberContext();
+		FunctionReference.InvalidateScope();
+		EnsureFunctionIsInBlueprint();
 	}
 }
 
@@ -1823,32 +1809,6 @@ void UK2Node_CallFunction::Serialize(FArchive& Ar)
 				FunctionReference.SetDirect(FunctionReference.GetMemberName(), FunctionGuid, (bSelf ? NULL : FunctionReference.GetMemberParentClass((UClass*)NULL)), bSelf);
 			}
 		}
-
-		if (!Ar.IsObjectReferenceCollector())
-		{
-			// Don't validate the enabled state if the user has explicitly set it. Also skip validation if we're just duplicating this node.
-			const bool bIsDuplicating = (Ar.GetPortFlags() & PPF_Duplicate) != 0;
-			if (!bIsDuplicating && !bUserSetEnabledState)
-			{
-				UClass* SelfScope = GetBlueprintClassFromNode();
-				if (!FunctionReference.IsSelfContext() || SelfScope != nullptr)
-				{
-					if (const UFunction* Function = FunctionReference.ResolveMember<UFunction>(SelfScope))
-					{
-						// Enable as development-only if specified in metadata. This way existing functions that have the metadata added to them will get their enabled state fixed up on load.
-						if (EnabledState == ENodeEnabledState::Enabled && Function->HasMetaData(FBlueprintMetadata::MD_DevelopmentOnly))
-						{
-							EnabledState = ENodeEnabledState::DevelopmentOnly;
-						}
-						// Ensure that if the metadata is removed, we also fix up the enabled state to avoid leaving it set as development-only in that case.
-						else if (EnabledState == ENodeEnabledState::DevelopmentOnly && !Function->HasMetaData(FBlueprintMetadata::MD_DevelopmentOnly))
-						{
-							EnabledState = ENodeEnabledState::Enabled;
-						}
-					}
-				}
-			}
-		}
 	}
 }
 
@@ -1858,16 +1818,6 @@ void UK2Node_CallFunction::PostPlacedNewNode()
 
 	// Try re-setting the function given our new parent scope, in case it turns an external to an internal, or vis versa
 	FunctionReference.RefreshGivenNewSelfScope<UFunction>(GetBlueprintClassFromNode());
-
-	// Re-enable for development only if specified in metadata.
-	if(EnabledState == ENodeEnabledState::Enabled && !bUserSetEnabledState)
-	{
-		const UFunction* Function = GetTargetFunction();
-		if (Function && Function->HasMetaData(FBlueprintMetadata::MD_DevelopmentOnly))
-		{
-			EnabledState = ENodeEnabledState::DevelopmentOnly;
-		}
-	}
 }
 
 FNodeHandlingFunctor* UK2Node_CallFunction::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
@@ -2336,32 +2286,10 @@ bool UK2Node_CallFunction::HasExternalDependencies(TArray<class UStruct*>* Optio
 	UFunction* Function = GetTargetFunction();
 	const UClass* SourceClass = Function ? Function->GetOwnerClass() : nullptr;
 	const UBlueprint* SourceBlueprint = GetBlueprint();
-	bool bResult = (SourceClass != nullptr) && (SourceClass->ClassGeneratedBy != SourceBlueprint);
+	const bool bResult = (SourceClass != NULL) && (SourceClass->ClassGeneratedBy != SourceBlueprint);
 	if (bResult && OptionalOutput)
 	{
 		OptionalOutput->AddUnique(Function);
-	}
-
-	// All structures, that are required for the BP compilation, should be gathered
-	for(auto Pin : Pins)
-	{
-		UStruct* DepStruct = Pin ? Cast<UStruct>(Pin->PinType.PinSubCategoryObject.Get()) : nullptr;
-
-		UClass* DepClass = Cast<UClass>(DepStruct);
-		if (DepClass && (DepClass->ClassGeneratedBy == SourceBlueprint))
-		{
-			//Don't include self
-			continue;
-		}
-
-		if (DepStruct && !DepStruct->IsNative())
-		{
-			if (OptionalOutput)
-			{
-				OptionalOutput->AddUnique(DepStruct);
-			}
-			bResult = true;
-		}
 	}
 
 	const bool bSuperResult = Super::HasExternalDependencies(OptionalOutput);

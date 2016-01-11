@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "EnvironmentQuery/EnvQueryManager.h"
@@ -219,7 +219,7 @@ void FEnvQueryInstance::ExecuteOneStep(double InCurrentStepTimeLimit)
 		Items.Reset();
 		ItemType = OptionItem.ItemType;
 		bPassOnSingleResult = false;
-		ValueSize = (ItemType->GetDefaultObject<UEnvQueryItemType>())->GetValueSize();
+		ValueSize = ((UEnvQueryItemType*)ItemType->GetDefaultObject())->GetValueSize();
 		
 		{
 			FScopeCycleCounterUObject GeneratorScope(OptionItem.Generator);
@@ -380,7 +380,7 @@ void FEnvQueryInstance::ReserveItemData(int32 NumAdditionalItems)
 {
 	DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, RawData.GetAllocatedSize());
 
-	RawData.Reserve(RawData.Num() + (NumAdditionalItems * ValueSize));
+	RawData.Reserve((RawData.Num() + NumAdditionalItems) * ValueSize);
 
 	INC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, RawData.GetAllocatedSize());
 }
@@ -628,17 +628,15 @@ void FEnvQueryInstance::FinalizeQuery()
 			// do anything for discarded items
 			NormalizeScores();
 		}
-
-		MarkAsFinishedWithoutIssues();
 	}
 	else
 	{
 		Items.Reset();
 		ItemDetails.Reset();
 		RawData.Reset();
-
-		MarkAsFailed();
 	}
+
+	MarkAsFinishedWithoutIssues();
 }
 
 void FEnvQueryInstance::FinalizeGeneration()
@@ -665,10 +663,10 @@ void FEnvQueryInstance::FinalizeGeneration()
 	INC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, ItemDetails.GetAllocatedSize());
 
 	ItemTypeVectorCDO = (ItemType && ItemType->IsChildOf(UEnvQueryItemType_VectorBase::StaticClass())) ?
-		ItemType->GetDefaultObject<UEnvQueryItemType_VectorBase>() : NULL;
+		(UEnvQueryItemType_VectorBase*)ItemType->GetDefaultObject() :	NULL;
 
 	ItemTypeActorCDO = (ItemType && ItemType->IsChildOf(UEnvQueryItemType_ActorBase::StaticClass())) ?
-		ItemType->GetDefaultObject<UEnvQueryItemType_ActorBase>() : NULL;
+		(UEnvQueryItemType_ActorBase*)ItemType->GetDefaultObject() : NULL;
 }
 
 void FEnvQueryInstance::FinalizeTest()
@@ -746,7 +744,7 @@ FBox FEnvQueryInstance::GetBoundingBox() const
 
 	if (ItemType->IsChildOf(UEnvQueryItemType_VectorBase::StaticClass()))
 	{
-		UEnvQueryItemType_VectorBase* DefTypeOb = ItemType->GetDefaultObject<UEnvQueryItemType_VectorBase>();
+		UEnvQueryItemType_VectorBase* DefTypeOb = (UEnvQueryItemType_VectorBase*)ItemType->GetDefaultObject();
 
 		for (int32 Index = 0; Index < Items.Num(); ++Index)
 		{		

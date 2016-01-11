@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HUD.cpp: Heads up Display related functionality
@@ -18,8 +18,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogHUD, Log, All);
 
 #define LOCTEXT_NAMESPACE "HUD"
 
-FOnShowDebugInfo AHUD::OnShowDebugInfo;
-
+bool AHUD::bShowDebugForReticleTarget = false;
 
 AHUD::AHUD(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -128,67 +127,55 @@ void AHUD::PostRender()
 
 	if ( bShowDebugInfo )
 	{
-		if (DebugCanvas)
-		{
-			DebugCanvas->DisplayDebugManager.Initialize(DebugCanvas, GEngine->GetTinyFont(), FVector2D(4.f, 50.f));
-			ShowDebugInfo(DebugCanvas->DisplayDebugManager.GetMaxCharHeightRef(), DebugCanvas->DisplayDebugManager.GetYPosRef());
-		}
+		UFont* Font = GEngine->GetTinyFont();
+		float XL, YL;
+		Canvas->StrLen(Font, TEXT("X"), XL, YL);
+
+		float YPos = 50;
+		ShowDebugInfo(YL, YPos);
 	}
 	else if ( bShowHUD )
 	{
 		DrawHUD();
 		
-		// No need to do work to determine hit box candidates if there will never be any
-		if (HitBoxMap.Num() > 0)
+		ULocalPlayer* LocalPlayer = GetOwningPlayerController() ? Cast<ULocalPlayer>(GetOwningPlayerController()->Player) : NULL;
+
+		if (LocalPlayer && LocalPlayer->ViewportClient)
 		{
-			ULocalPlayer* LocalPlayer = GetOwningPlayerController() ? Cast<ULocalPlayer>(GetOwningPlayerController()->Player) : NULL;
+			TArray<FVector2D> ContactPoints;
 
-			if (LocalPlayer && LocalPlayer->ViewportClient)
+			if (!FSlateApplication::Get().IsFakingTouchEvents())
 			{
-				TArray<FVector2D> ContactPoints;
-
-				if (!FSlateApplication::Get().IsFakingTouchEvents())
+				FVector2D MousePosition;
+				if (LocalPlayer->ViewportClient->GetMousePosition(MousePosition))
 				{
-					FVector2D MousePosition;
-					if (LocalPlayer->ViewportClient->GetMousePosition(MousePosition))
-					{
-						ContactPoints.Add(MousePosition);
-					}
+					ContactPoints.Add(MousePosition);
 				}
-
-				for (int32 FingerIndex = 0; FingerIndex < EKeys::NUM_TOUCH_KEYS; ++FingerIndex)
-				{
-					FVector2D TouchLocation;
-					bool bPressed = false;
-
-					GetOwningPlayerController()->GetInputTouchState((ETouchIndex::Type)FingerIndex, TouchLocation.X, TouchLocation.Y, bPressed);
-
-					if (bPressed)
-					{
-						ContactPoints.Add(TouchLocation);
-					}
-				}
-
-				const FVector2D ContactPointOffset = GetCoordinateOffset();
-
-				if (!ContactPointOffset.IsZero())
-				{
-					for (FVector2D& ContactPoint : ContactPoints)
-					{
-						ContactPoint += ContactPointOffset;
-					}
-				}
-				UpdateHitBoxCandidates( ContactPoints );
 			}
-		}
-		else if (HitBoxesOver.Num() > 0)
-		{
-			// We still need to dispatch any end cursor over messages even if we don't have any hitboxes anymore
-			for (const FName HitBoxName : HitBoxesOver)
+
+			for (int32 FingerIndex = 0; FingerIndex < EKeys::NUM_TOUCH_KEYS; ++FingerIndex)
 			{
-				NotifyHitBoxEndCursorOver(HitBoxName);
+				FVector2D TouchLocation;
+				bool bPressed = false;
+
+				GetOwningPlayerController()->GetInputTouchState((ETouchIndex::Type)FingerIndex, TouchLocation.X, TouchLocation.Y, bPressed);
+
+				if (bPressed)
+				{
+					ContactPoints.Add(TouchLocation);
+				}
 			}
-			HitBoxesOver.Reset();
+
+			FVector2D ContactPointOffset = GetCoordinateOffset();
+
+			if (!ContactPointOffset.IsZero())
+			{
+				for (FVector2D& ContactPoint : ContactPoints)
+				{
+					ContactPoint += ContactPointOffset;
+				}
+			}
+			UpdateHitBoxCandidates( ContactPoints );
 		}
 	}
 	
@@ -274,7 +261,7 @@ void AHUD::ShowDebug(FName DebugType)
 	}
 	else if( DebugType == NAME_Reset )
 	{
-		DebugDisplay.Reset();
+		DebugDisplay.Empty();
 		bShowDebugInfo = false;
 		SaveConfig();
 	}
@@ -304,7 +291,7 @@ void AHUD::ShowDebugToggleSubCategory(FName Category)
 {
 	if( Category == NAME_Reset )
 	{
-		ToggledDebugCategories.Reset();
+		ToggledDebugCategories.Empty();
 		SaveConfig();
 	}
 	else
@@ -367,18 +354,13 @@ void AHUD::ShowDebugInfo(float& YL, float& YPos)
 		{
 			GetWorld()->GetAuthGameMode()->DisplayDebug(DebugCanvas, DisplayInfo, YL, YPos);
 		}
-
-		if (bShowDebugInfo)
-		{
-			OnShowDebugInfo.Broadcast(this, DebugCanvas, DisplayInfo, YL, YPos);
-		}
 	}
 }
 
 void AHUD::DrawHUD()
 {
-	HitBoxMap.Reset();
-	HitBoxHits.Reset();
+	HitBoxMap.Empty();
+	HitBoxHits.Empty();
 	if ( bShowOverlays && (PlayerOwner != NULL) )
 	{
 		FVector ViewPoint;
@@ -389,6 +371,18 @@ void AHUD::DrawHUD()
 
 	// Blueprint draw
 	ReceiveDrawHUD(Canvas->SizeX, Canvas->SizeY);
+}
+
+void AHUD::DrawText(const FString& Text, FVector2D Position, UFont* TextFont, FVector2D FontScale, FColor TextColor)
+{
+	float XL, YL;
+	Canvas->TextSize(TextFont, Text, XL, YL);
+	const float X = Canvas->ClipX/2.0f - XL/2.0f + Position.X;
+	const float Y = Canvas->ClipY/2.0f - YL/2.0f + Position.Y;
+	FCanvasTextItem TextItem( FVector2D( X, Y ), FText::FromString( Text ), TextFont, FLinearColor( TextColor ) );
+	TextItem.Scale = FontScale;
+	
+	Canvas->DrawItem(TextItem);
 }
 
 UFont* AHUD::GetFontFromSizeIndex(int32 FontSizeIndex) const
@@ -586,7 +580,7 @@ void AHUD::RemoveDebugText_Implementation(AActor* SrcActor, bool bLeaveDurationT
 /** Remove all debug text */
 void AHUD::RemoveAllDebugStrings_Implementation()
 {
-	DebugTextList.Reset();
+	DebugTextList.Empty();
 }
 
 void AHUD::NotifyHitBoxClick(FName BoxName)
@@ -731,7 +725,7 @@ void AHUD::GetActorsInSelectionRectangle(TSubclassOf<class AActor> ClassFilter, 
 {
 	// Because this is a HUD function it is likely to get called each tick,
 	// so make sure any previous contents of the out actor array have been cleared!
-	OutActors.Reset();
+	OutActors.Empty();
 
 	//Create Selection Rectangle from Points
 	FBox2D SelectionRectangle(0);
@@ -846,7 +840,7 @@ void AHUD::RenderHitBoxes( FCanvas* InCanvas )
 
 void AHUD::UpdateHitBoxCandidates( TArray<FVector2D> InContactPoints )
 {
-	HitBoxHits.Reset();
+	HitBoxHits.Empty();
 	for (FHUDHitBox& HitBox : HitBoxMap)
 	{
 		bool bAdded = false;
@@ -893,15 +887,17 @@ void AHUD::UpdateHitBoxCandidates( TArray<FVector2D> InContactPoints )
 	}
 
 	// Dispatch the end cursor over messages
-	for (const FName HitBoxName : NotOverHitBoxes)
+	for (auto It = NotOverHitBoxes.CreateConstIterator(); It; ++It)
 	{
+		const FName HitBoxName = *It;
 		NotifyHitBoxEndCursorOver(HitBoxName);
 		HitBoxesOver.Remove(HitBoxName);
 	}
 
 	// Dispatch the newly over hitbox messages
-	for (const FName HitBoxName : NewlyOverHitBoxes)
+	for (int32 OverIndex = 0; OverIndex < NewlyOverHitBoxes.Num(); ++OverIndex)
 	{
+		const FName HitBoxName = NewlyOverHitBoxes[OverIndex];
 		NotifyHitBoxBeginCursorOver(HitBoxName);
 		HitBoxesOver.Add(HitBoxName);
 	}
@@ -909,49 +905,42 @@ void AHUD::UpdateHitBoxCandidates( TArray<FVector2D> InContactPoints )
 
 const FHUDHitBox* AHUD::GetHitBoxAtCoordinates( FVector2D InHitLocation, const bool bIsConsumingInput ) const
 {
-	if (HitBoxMap.Num() > 0)
-	{
-		InHitLocation -= GetCoordinateOffset();
+	InHitLocation -= GetCoordinateOffset();
 
-		for (const FHUDHitBox& HitBox : HitBoxMap)
+	for (const FHUDHitBox& HitBox : HitBoxMap)
+	{
+		if( (!bIsConsumingInput || HitBox.ConsumesInput()) && HitBox.Contains( InHitLocation ) )
 		{
-			if( (!bIsConsumingInput || HitBox.ConsumesInput()) && HitBox.Contains( InHitLocation ) )
-			{
-				return &HitBox;
-			}
+			return &HitBox;
 		}
 	}
-	return nullptr;
+	return NULL;
 }
 
 void AHUD::GetHitBoxesAtCoordinates(FVector2D InHitLocation, TArray<const FHUDHitBox*>& OutHitBoxes) const
 {
-	OutHitBoxes.Reset();
+	InHitLocation -= GetCoordinateOffset();
+	OutHitBoxes.Empty();
 
-	if (HitBoxMap.Num() > 0)
+	for (const FHUDHitBox& HitBox : HitBoxMap)
 	{
-		InHitLocation -= GetCoordinateOffset();
-
-		for (const FHUDHitBox& HitBox : HitBoxMap)
+		if (HitBox.Contains(InHitLocation))
 		{
-			if (HitBox.Contains(InHitLocation))
-			{
-				OutHitBoxes.Add(&HitBox);
-			}
+			OutHitBoxes.Add(&HitBox);
 		}
 	}
 }
 
 const FHUDHitBox* AHUD::GetHitBoxWithName( const FName InName ) const
 {
-	for (const FHUDHitBox& HitBox : HitBoxMap)
+	for (int32 iBox = 0; iBox < HitBoxMap.Num() ; iBox++)
 	{
-		if( HitBox.GetName() == InName )
+		if( HitBoxMap[iBox].GetName() == InName )
 		{
-			return &HitBox;
+			return &HitBoxMap[iBox];
 		}
 	}
-	return nullptr;
+	return NULL;
 }
 
 bool AHUD::AnyCurrentHitBoxHits() const
@@ -961,16 +950,9 @@ bool AHUD::AnyCurrentHitBoxHits() const
 
 bool AHUD::UpdateAndDispatchHitBoxClickEvents(FVector2D ClickLocation, const EInputEvent InEventType)
 {
-	const bool bIsClickEvent = (InEventType == IE_Pressed || InEventType == IE_DoubleClick);
-
-	// Early out to avoid unnecessary expense of calling GetCoordinateOffset
-	if ((bIsClickEvent && HitBoxMap.Num() == 0) || (!bIsClickEvent && HitBoxHits.Num() == 0))
-	{
-		return false;
-	}
-
 	ClickLocation += GetCoordinateOffset();
 
+	const bool bIsClickEvent = (InEventType == IE_Pressed || InEventType == IE_DoubleClick);
 	bool bHit = false;
 
 	// If this is a click event we may not have the hit box in the hit list yet (particularly for touch events) so we need to check all HitBoxes
@@ -1016,7 +998,7 @@ bool AHUD::UpdateAndDispatchHitBoxClickEvents(FVector2D ClickLocation, const EIn
 
 void AHUD::AddHitBox(FVector2D Position, FVector2D Size, FName Name, bool bConsumesInput, int32 Priority)
 {	
-	if( GetHitBoxWithName(Name) == nullptr )
+	if( GetHitBoxWithName(Name) == NULL )
 	{
 		bool bAdded = false;
 		for (int32 Index = 0; Index < HitBoxMap.Num(); ++Index)

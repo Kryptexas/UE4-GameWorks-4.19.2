@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -6,7 +6,6 @@ using System.Text;
 using System.Reflection;
 using Microsoft.Win32;
 using System.Diagnostics;
-using Tools.DotNETCommon;
 using UnrealBuildTool;
 using System.Text.RegularExpressions;
 
@@ -22,6 +21,8 @@ namespace AutomationTool
 		static public readonly string LogFolder = "uebp_LogFolder";
         static public readonly string CSVFile = "uebp_CSVFile";
 		static public readonly string EngineSavedFolder = "uebp_EngineSavedFolder";
+		static public readonly string NETFrameworkDir = "FrameworkDir";
+		static public readonly string NETFrameworkVersion = "FrameworkVersion";
 
 		// Perforce Environment
 		static public readonly string P4Port = "uebp_PORT";		
@@ -75,7 +76,7 @@ namespace AutomationTool
 		{
 			if (String.IsNullOrEmpty(UATExe))
 			{
-				UATExe = Assembly.GetEntryAssembly().GetOriginalLocation();
+				UATExe = CommandUtils.CombinePaths(Path.GetFullPath(InternalUtils.ExecutingAssemblyLocation));
 			}
 			if (!CommandUtils.FileExists_NoExceptions(UATExe))
 			{
@@ -206,6 +207,17 @@ namespace AutomationTool
 			// Assume we have the capability co compile.
 			HasCapabilityToCompile = true;
 
+			try
+			{
+				HostPlatform.Current.SetFrameworkVars();
+			}
+			catch (Exception)
+			{
+				// Something went wrong, we can't compile.
+				Log.WriteLine(TraceEventType.Warning, "SetFrameworkVars failed. Assuming no compilation capability.");
+				HasCapabilityToCompile = false;
+			}
+
 			if (HasCapabilityToCompile)
 			{
 				try
@@ -214,8 +226,8 @@ namespace AutomationTool
 				}
 				catch (Exception Ex)
 				{
-					Log.WriteLine(LogEventType.Warning, Ex.Message);
-					Log.WriteLine(LogEventType.Warning, "Assuming no compilation capability.");
+					Log.WriteLine(TraceEventType.Warning, Ex.Message);
+					Log.WriteLine(TraceEventType.Warning, "Assuming no compilation capability.");
 					HasCapabilityToCompile = false;
 					MsBuildExe = "";
 				}
@@ -229,8 +241,8 @@ namespace AutomationTool
 				}
 				catch (Exception Ex)
 				{
-					Log.WriteLine(LogEventType.Warning, Ex.Message);
-					Log.WriteLine(LogEventType.Warning, "Assuming no solution compilation capability.");
+					Log.WriteLine(TraceEventType.Warning, Ex.Message);
+					Log.WriteLine(TraceEventType.Warning, "Assuming no solution compilation capability.");
 					MsDevExe = "";
 				}
 			}

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -316,11 +316,6 @@ struct CORE_API FGenericPlatformProcess
 	static void LaunchURL( const TCHAR* URL, const TCHAR* Parms, FString* Error );
 
 	/**
-	 * Checks if the platform can launch a uniform resource locator (i.e. http://www.epicgames.com/unreal).
-	 **/
-	static bool CanLaunchURL(const TCHAR* URL);
-
-	/**
 	 * Creates a new process and its primary thread. The new process runs the
 	 * specified executable file in the security context of the calling process.
 	 * @param URL					executable name
@@ -334,7 +329,7 @@ struct CORE_API FGenericPlatformProcess
 	 * @param PipeWrite				Optional HANDLE to pipe for redirecting output
 	 * @return	The process handle for use in other process functions
 	 */
-	static FProcHandle CreateProc( const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWriteChild, void * PipeReadChild = nullptr);
+	static FProcHandle CreateProc( const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWrite );
 
 	/**
 	 * Returns true if the specified process is running 
@@ -433,7 +428,7 @@ struct CORE_API FGenericPlatformProcess
 	* @param	Condition	Condition to evaluate.
 	* @param	SleepTime	Time to sleep
 	*/
-	static void ConditionalSleep(TFunctionRef<bool()> Condition, float SleepTime = 0.0f);
+	static void ConditionalSleep(const TFunctionRef<bool()>& Condition, float SleepTime = 0.0f);
 
 	/**
 	 * Creates a new event.
@@ -553,11 +548,6 @@ struct CORE_API FGenericPlatformProcess
 	 * @return true if successful, false otherwise.
 	 */
 	static bool Daemonize();
-
-	/**
-	 * Checks if we're the first instance. An instance can become first if the previous first instance quits before it.
-	 */
-	static bool IsFirstInstance();
 };
 
 

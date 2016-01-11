@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -64,12 +64,11 @@
 	NiagaraOp(Transpose)\
 	NiagaraOp(Inverse)\
 	NiagaraOp(LessThan)\
-	NiagaraOp(GreaterThan)\
-	NiagaraOp(Select)\
 	NiagaraOp(Sample)\
 	NiagaraOp(Write)\
+	NiagaraOp(EventBroadcast)\
 	NiagaraOp(EaseIn)\
-	NiagaraOp(EaseInOut)
+	NiagaraOp(EaseInOut)\
 
 enum class ENiagaraExpressionResultLocation
 {
@@ -78,20 +77,12 @@ enum class ENiagaraExpressionResultLocation
 	Constants,
 	Temporaries,
 	BufferConstants,
-	SharedData,
 	Unknown,
 };
 
 
 
 typedef TSharedPtr<class FNiagaraExpression> TNiagaraExprPtr;
-
-struct FNiagaraExpressionResult
-{
-	int32 Index;
-
-	ENiagaraExpressionResultLocation ResultLocation;
-};
 
 /** Base class for all Niagara Expresions. Intermediate data collected from the node graph used for compiling Niagara scripts. */
 class FNiagaraExpression : public TSharedFromThis<FNiagaraExpression>
@@ -101,6 +92,7 @@ public:
 		: Compiler(InCompiler)
 		, ResultLocation(ENiagaraExpressionResultLocation::Unknown)
 		, ResultIndex(INDEX_NONE)
+		, ComponentIndex(INDEX_NONE)
 		, Result(InResult)
 	{
 	}
@@ -109,8 +101,8 @@ public:
 	{
 	}
 
-	/** Perform the work specific to the expression type. Returns success or faliure. */
-	virtual bool Process(){ return true; }
+	/** Perform the work specific to the expression type. */
+	virtual void Process(){}
 
 	virtual void PostProcess()
 	{
@@ -127,6 +119,9 @@ public:
 
 	/** Index of this result within it's location. */
 	int32 ResultIndex;
+
+	/** The index of the component we're accessing. Typically this is unused and set to INDEX_NONE. Scalar ops will set and use it however. */
+	int32 ComponentIndex;
 
 	/** The variable info for the result of this expression. */
 	FNiagaraVariableInfo Result;

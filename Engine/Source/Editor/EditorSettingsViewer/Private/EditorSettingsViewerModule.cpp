@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EditorSettingsViewerPrivatePCH.h"
 #include "ISettingsCategory.h"
@@ -13,8 +13,6 @@
 
 #include "Tests/AutomationTestSettings.h"
 #include "BlueprintEditorSettings.h"
-
-#include "CrashReporterSettings.h"
 #include "Analytics/AnalyticsPrivacySettings.h"
 
 #define LOCTEXT_NAMESPACE "FEditorSettingsViewerModule"
@@ -101,11 +99,19 @@ protected:
 		);
 
 		// region & language
-		ISettingsSectionPtr RegionAndLanguageSettings = SettingsModule.RegisterSettings("Editor", "General", "Internationalization",
+		ISettingsSectionPtr RegionAndLanguageSettingsSection = SettingsModule.RegisterSettings("Editor", "General", "Internationalization",
 			LOCTEXT("InternationalizationSettingsModelName", "Region & Language"),
 			LOCTEXT("InternationalizationSettingsModelDescription", "Configure the editor's behavior to use a language and fit a region's culture."),
 			GetMutableDefault<UInternationalizationSettingsModel>()
 		);
+
+		if (RegionAndLanguageSettingsSection.IsValid())
+		{
+			RegionAndLanguageSettingsSection->OnExport().BindRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageExport);
+			RegionAndLanguageSettingsSection->OnImport().BindRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageImport);
+			RegionAndLanguageSettingsSection->OnSaveDefaults().BindRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageSaveDefaults);
+			RegionAndLanguageSettingsSection->OnResetDefaults().BindRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageResetToDefault);
+		}
 
 		// input bindings
 		TWeakPtr<SWidget> InputBindingEditorPanel = FModuleManager::LoadModuleChecked<IInputBindingEditorModule>("InputBindingEditor").CreateInputBindingEditorPanel();
@@ -139,13 +145,6 @@ protected:
 			LOCTEXT("UserSettingsDescription", "Customize the behavior, look and feel of the editor."),
 			GetMutableDefault<UEditorPerProjectUserSettings>()
 		);
-
-		// Crash Reporter settings
-		SettingsModule.RegisterSettings("Editor", "General", "CrashReporter",
-			LOCTEXT("CrashReporterSettingsName", "Crash Reporter"),
-			LOCTEXT("CrashReporterSettingsDescription", "Various Crash Reporter related settings."),
-			GetMutableDefault<UCrashReporterSettings>()
-			);
 
 		// experimental features
 		SettingsModule.RegisterSettings("Editor", "General", "Experimental",
@@ -247,7 +246,6 @@ protected:
 			SettingsModule->UnregisterSettings("Editor", "General", "AutomationTest");
 			SettingsModule->UnregisterSettings("Editor", "General", "Internationalization");
 			SettingsModule->UnregisterSettings("Editor", "General", "Experimental");
-			SettingsModule->UnregisterSettings("Editor", "General", "CrashReporter");			
 
 			// level editor settings
 			SettingsModule->UnregisterSettings("Editor", "LevelEditor", "PlayIn");
@@ -378,6 +376,39 @@ private:
 	{
 		FInputBindingManager::Get().RemoveUserDefinedChords();
 		GConfig->Flush(false, GEditorKeyBindingsIni);
+		return true;
+	}
+
+	bool HandleRegionAndLanguageExport(const FString& FileName)
+	{
+		UInternationalizationSettingsModel* Model = GetMutableDefault<UInternationalizationSettingsModel>();
+		GConfig->Flush(false, Model->GetDefaultConfigFilename());
+		return BackupFile(Model->GetDefaultConfigFilename(), FileName);
+	}
+
+	bool HandleRegionAndLanguageImport(const FString& FileName)
+	{
+		UInternationalizationSettingsModel* Model = GetMutableDefault<UInternationalizationSettingsModel>();
+		if( EAppReturnType::Ok == ShowRestartWarning(LOCTEXT("ImportRegionAndLanguage_Title", "Import Region & Language")))
+		{
+			FUnrealEdMisc::Get().SetConfigRestoreFilename(FileName, Model->GetDefaultConfigFilename());
+			FUnrealEdMisc::Get().RestartEditor(false);
+
+			return true;
+		}
+
+		return false;
+	}
+
+	bool HandleRegionAndLanguageSaveDefaults()
+	{
+		GetMutableDefault<UInternationalizationSettingsModel>()->SaveDefaults();
+		return true;
+	}
+
+	bool HandleRegionAndLanguageResetToDefault()
+	{
+		GetMutableDefault<UInternationalizationSettingsModel>()->ResetToDefault();
 		return true;
 	}
 

@@ -1,0 +1,39 @@
+﻿Availability: Docs
+Title:1.6 - 预计算的可见性体积
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Volumes
+Description:体积示例关卡的概述,示例1.6: 预计算的可见性体积
+
+[TOC(start:2 end:2)]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Volumes/1_6:title%](Resources\ContentExamples\Volumes
+\content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Volumes/1_6:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Volumes/1_6:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Volumes/1_6]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+它对动态载入关卡不起作用。 这是对多人关卡的性能最优化。 它存储了对象的可见性。 预计算的可见性在关卡被重建时被创建。 为激活它，必须在'WORLD SETTING -> PRECOMPUTED VISIBILITY'（世界设置 ->预计算的可见性）中进行启用。
+
+沿着摄像机路径放置单元格是确保Matinee动画间高性能的一个功能。
+
+可见性单元格-其大小为其被计算的细节。 
+
+侵略性-设置网格物体何时被认为不可见的阀值。
+
+如使用正确，您将不会看到在视觉上的差异，而是会得到更佳的性能表现。 
+
+

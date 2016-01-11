@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "StandaloneRendererPrivate.h"
@@ -34,6 +34,21 @@ static FMatrix CreateProjectionMatrixD3D( uint32 Width, uint32 Height )
 
 }
 
+
+FSlateD3DRenderer::FSlateD3DRenderer( const ISlateStyle& InStyle )
+{
+
+	ViewMatrix = FMatrix(	FPlane(1,	0,	0,	0),
+							FPlane(0,	1,	0,	0),
+							FPlane(0,	0,	1,  0),
+							FPlane(0,	0,	0,	1));
+
+}
+
+FSlateD3DRenderer::~FSlateD3DRenderer()
+{
+}
+
 class FSlateD3DFontAtlasFactory : public ISlateFontAtlasFactory
 {
 public:
@@ -58,39 +73,18 @@ private:
 	static const uint32 TextureSize = 1024;
 };
 
-TSharedRef<FSlateFontServices> CreateD3DFontServices()
-{
-	const TSharedRef<FSlateFontCache> FontCache = MakeShareable(new FSlateFontCache(MakeShareable(new FSlateD3DFontAtlasFactory)));
-
-	return MakeShareable(new FSlateFontServices(FontCache, FontCache));
-}
-
-
-FSlateD3DRenderer::FSlateD3DRenderer( const ISlateStyle& InStyle )
-	: FSlateRenderer( CreateD3DFontServices() )
-{
-
-	ViewMatrix = FMatrix(	FPlane(1,	0,	0,	0),
-							FPlane(0,	1,	0,	0),
-							FPlane(0,	0,	1,  0),
-							FPlane(0,	0,	0,	1));
-
-}
-
-FSlateD3DRenderer::~FSlateD3DRenderer()
-{
-}
-
 void FSlateD3DRenderer::Initialize()
 {
 	CreateDevice();
 
-	TextureManager = MakeShareable( new FSlateD3DTextureManager );
-	FSlateDataPayload::ResourceManager = TextureManager.Get();
 
+	TextureManager = MakeShareable( new FSlateD3DTextureManager );
 	TextureManager->LoadUsedTextures();
 
-	RenderingPolicy = MakeShareable( new FSlateD3D11RenderingPolicy( SlateFontServices.ToSharedRef(), TextureManager.ToSharedRef() ) );
+	FontCache = MakeShareable( new FSlateFontCache( MakeShareable( new FSlateD3DFontAtlasFactory ) ) );
+	FontMeasure = FSlateFontMeasure::Create( FontCache.ToSharedRef() );
+
+	RenderingPolicy = MakeShareable( new FSlateD3D11RenderingPolicy( FontCache, TextureManager.ToSharedRef() ) );
 
 	ElementBatcher = MakeShareable( new FSlateElementBatcher( RenderingPolicy.ToSharedRef() ) );
 }
@@ -124,7 +118,7 @@ void FSlateD3DRenderer::CreateDevice()
 
 		if (Hr == DXGI_ERROR_UNSUPPORTED)
 		{
-			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *NSLOCTEXT("SlateD3DRenderer", "ProblemWithGraphicsCard", "There is a problem with your graphics card. Please ensure your card meets the minimum system requirements and that you have the latest drivers installed.").ToString(), *NSLOCTEXT("SlateD3DRenderer", "UnsupportedVideoCardErrorTitle", "Unsupported Video Card").ToString());
+			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *NSLOCTEXT("", "", "There is a problem with your graphics card. Please ensure your card meets the minimum system requirements and that you have the latest drivers installed.").ToString(), *NSLOCTEXT("", "UnsupportedVideoCardErrorTitle", "Unsupported Video Card").ToString());
 		}
 		
 		checkf(SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr);
@@ -249,11 +243,6 @@ bool FSlateD3DRenderer::GenerateDynamicImageResource(FName ResourceName, uint32 
 	return TextureManager->CreateDynamicTextureResource(ResourceName, Width, Height, Bytes) != NULL;
 }
 
-FSlateResourceHandle FSlateD3DRenderer::GetResourceHandle( const FSlateBrush& Brush )
-{
-	return TextureManager->GetResourceHandle( Brush );
-}
-
 void FSlateD3DRenderer::RemoveDynamicBrushResource( TSharedPtr<FSlateDynamicImageBrush> BrushToRemove )
 {
 	DynamicBrushesToRemove.Add( BrushToRemove );
@@ -350,8 +339,6 @@ void FSlateD3DRenderer::CreateDepthStencilBuffer( FSlateD3DViewport& Viewport )
 
 void FSlateD3DRenderer::DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer )
 {
-	const TSharedRef<FSlateFontCache> FontCache = SlateFontServices->GetFontCache();
-
 	// Update the font cache with new text before elements are batched
 	FontCache->UpdateCache();
 
@@ -377,7 +364,7 @@ void FSlateD3DRenderer::DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer )
 			FSlateBatchData& BatchData = ElementList.GetBatchData();
 			{
 				SLATE_CYCLE_COUNTER_SCOPE(GRendererUpdateBuffers);
-				BatchData.CreateRenderBatches(ElementList.GetRootDrawLayer().GetElementBatchMap());
+				BatchData.CreateRenderBatches();
 				RenderingPolicy->UpdateVertexAndIndexBuffers(BatchData);
 			}
 

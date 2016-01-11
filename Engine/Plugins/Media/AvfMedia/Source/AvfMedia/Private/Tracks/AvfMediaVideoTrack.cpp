@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AvfMediaPrivatePCH.h"
 
@@ -68,32 +68,6 @@ FAvfMediaVideoTrack::~FAvfMediaVideoTrack()
 /* FAvfMediaVideoTrack interface
  *****************************************************************************/
 
-bool FAvfMediaVideoTrack::IsReady() const
-{
-    return AVReader != nil && AVReader.status == AVAssetReaderStatusReading;
-}
-
-
-/* IMediaVideoTrack interface
- *****************************************************************************/
-
-#if WITH_ENGINE
-void FAvfMediaVideoTrack::BindTexture(class FRHITexture* Texture)
-{
-	// @todo avf: trepka: implement texture binding
-}
-
-
-void FAvfMediaVideoTrack::UnbindTexture(class FRHITexture* Texture)
-{
-	// @todo avf: trepka: implement texture binding
-}
-#endif
-
-
-/* FAvfMediaVideoTrack implementation
- *****************************************************************************/
-
 bool FAvfMediaVideoTrack::SeekToTime( const CMTime& SeekTime )
 {
     bool bSeekComplete = false;
@@ -134,6 +108,12 @@ void FAvfMediaVideoTrack::ResetAssetReader()
 {
     [AVReader cancelReading];
     [AVReader release];
+}
+
+
+bool FAvfMediaVideoTrack::IsReady() const
+{
+    return AVReader != nil && AVReader.status == AVAssetReaderStatusReading;
 }
 
 

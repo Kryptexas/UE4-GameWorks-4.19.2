@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,7 +14,6 @@
 #include "BehaviorTree/BehaviorTreeTypes.h"
 #include "GameplayTaskOwnerInterface.h"
 #include "GenericTeamAgentInterface.h"
-#include "VisualLogger/VisualLoggerDebugSnapshotInterface.h"
 #include "AIController.generated.h"
 
 class APawn;
@@ -66,7 +65,7 @@ struct FFocusKnowledge
 	TArray<FFocusItem> Priorities;
 };
 
-//~=============================================================================
+//=============================================================================
 /**
  * AIController is the base class of controllers for AI-controlled Pawns.
  * 
@@ -78,17 +77,12 @@ struct FFocusKnowledge
  */
 
 UCLASS(ClassGroup = AI, BlueprintType, Blueprintable)
-class AIMODULE_API AAIController : public AController, public IAIPerceptionListenerInterface, public IGameplayTaskOwnerInterface, public IGenericTeamAgentInterface, public IVisualLoggerDebugSnapshotInterface
+class AIMODULE_API AAIController : public AController, public IAIPerceptionListenerInterface, public IGameplayTaskOwnerInterface, public IGenericTeamAgentInterface
 {
 	GENERATED_BODY()
 
 protected:
 	FFocusKnowledge	FocusInformation;
-	
-	/** By default AI's logic gets stopped when controlled Pawn is unpossesed. Setting this flag to false
-	 *	will make AI logic persist past loosing controll over a pawn */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AI)
-	uint32 bStopAILogicOnUnposses : 1;
 
 public:
 	/** used for alternating LineOfSight traces */
@@ -144,10 +138,6 @@ public:
 	/** Event called when PossessedPawn is possessed by this controller. */
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnPossess(APawn* PossessedPawn);
-
-	/** Gets triggered after given pawn has been unpossesed */
-	UFUNCTION(BlueprintImplementableEvent)
-	void OnUnpossess(APawn* UnpossessedPawn);
 
 	virtual void SetPawn(APawn* InPawn) override;
 
@@ -278,7 +268,7 @@ public:
 	virtual FVector GetFocalPointOnActor(const AActor *Actor) const;
 
 	/** Set the position that controller should be looking at. */
-	UFUNCTION(BlueprintCallable, Category="AI", meta=(DisplayName="SetFocalPoint", Keywords="focus"))
+	UFUNCTION(BlueprintCallable, Category="AI", meta=(DisplayName="SetFocalPoint"))
 	void K2_SetFocalPoint(FVector FP);
 
 	/** Set Focus for actor, will set FocalPoint as a result. */
@@ -310,13 +300,13 @@ public:
 	 */
 	bool SuggestTossVelocity(FVector& OutTossVelocity, FVector Start, FVector End, float TossSpeed, bool bPreferHighArc, float CollisionRadius=0, bool bOnlyTraceUp=false);
 
-	//~ Begin AActor Interface
+	// Begin AActor Interface
 	virtual void Tick(float DeltaTime) override;
 	virtual void PostInitializeComponents() override;
 	virtual void PostRegisterAllComponents() override;
-	//~ End AActor Interface
+	// End AActor Interface
 
-	//~ Begin AController Interface
+	// Begin AController Interface
 	virtual void Possess(APawn* InPawn) override;
 	virtual void UnPossess() override;
 	virtual void DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
@@ -335,7 +325,7 @@ public:
 	 * @return true if controller's pawn can see Other actor.
 	 */
 	virtual bool LineOfSightTo(const AActor* Other, FVector ViewPoint = FVector(ForceInit), bool bAlternateChecks = false) const override;
-	//~ End AController Interface
+	// End AController Interface
 
 	/** Notifies AIController of changes in given actors' perception */
 	virtual void ActorsPerceptionUpdated(const TArray<AActor*>& UpdatedActors);
@@ -416,8 +406,6 @@ public:
 	UAIPerceptionComponent* GetAIPerceptionComponent();
 
 	const UAIPerceptionComponent* GetAIPerceptionComponent() const;
-
-	UBrainComponent* GetBrainComponent() { return BrainComponent; }
 };
 
 //----------------------------------------------------------------------//

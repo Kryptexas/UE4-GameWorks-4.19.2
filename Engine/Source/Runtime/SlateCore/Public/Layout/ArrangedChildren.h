@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -60,34 +60,25 @@ class SLATECORE_API FArrangedChildren
 	 *                             of layout or performance (i.e. prevent redundant call to Widget->GetVisibility())
 	 * @param InWidgetGeometry     The arranged widget (i.e. widget and its geometry)
 	 */
-	FORCEINLINE_DEBUGGABLE void AddWidget(EVisibility VisibilityOverride, const FArrangedWidget& InWidgetGeometry)
-	{
-		if ( Accepts(VisibilityOverride) )
-		{
-			Array.Add(InWidgetGeometry);
-		}
-	}
+	void AddWidget( EVisibility VisibilityOverride, const FArrangedWidget& InWidgetGeometry );
 	
 	/**
 	 * Add an arranged widget (i.e. widget and its resulting geometry) to the list of Arranged children
 	 * based on the the visibility filter and the arranged widget's visibility
 	 */
-	void AddWidget(const FArrangedWidget& InWidgetGeometry);
+	void AddWidget( const FArrangedWidget& InWidgetGeometry );
 
-	FORCEINLINE_DEBUGGABLE EVisibility GetFilter() const
+	EVisibility GetFilter() const
 	{
 		return VisibilityFilter;
 	}
 
-	FORCEINLINE_DEBUGGABLE bool Accepts(EVisibility InVisibility) const
+	bool Accepts( EVisibility InVisibility ) const
 	{
 		return 0 != (InVisibility.Value & VisibilityFilter.Value);
 	}
 
-	FORCEINLINE_DEBUGGABLE bool Allows3DWidgets() const
-	{
-		return bAllow3DWidgets;
-	}
+	bool Allows3DWidgets() const { return bAllow3DWidgets; }
 
 	// We duplicate parts of TArray's interface here!
 	// Inheriting from "public TArray<FArrangedWidget>"
@@ -101,63 +92,75 @@ private:
 	bool bAllow3DWidgets;
 public:
 
-	FORCEINLINE FArrangedWidgetArray& GetInternalArray()
+	FArrangedWidgetArray& GetInternalArray()
 	{
 		return Array;
 	}
 
-	FORCEINLINE const FArrangedWidgetArray& GetInternalArray() const
+	const FArrangedWidgetArray& GetInternalArray() const
 	{
 		return Array;
 	}
 
-	FORCEINLINE int32 Num() const
+	int32 Num() const
 	{
 		return Array.Num();
 	}
 
-	FORCEINLINE const FArrangedWidget& operator[]( int32 Index ) const
+	const FArrangedWidget& operator[]( int32 Index ) const
 	{
 		return Array[Index];
 	}
 
-	FORCEINLINE FArrangedWidget& operator[](int32 Index)
+	FArrangedWidget& operator[]( int32 Index )
 	{
 		return Array[Index];
 	}
 
-	FORCEINLINE const FArrangedWidget& Last() const
+	//// @todo umg na deprecate this
+	//const FArrangedWidget& operator()(int32 Index) const
+	//{
+	//	return Array[Index];
+	//}
+
+	//// @todo umg na deprecate this
+	//FArrangedWidget& operator()(int32 Index)
+	//{
+	//	return Array[Index];
+	//}
+
+	const FArrangedWidget& Last() const
 	{
 		return Array.Last();
 	}
 
-	FORCEINLINE FArrangedWidget& Last()
+	FArrangedWidget& Last()
 	{
 		return Array.Last();
 	}
 
-	FORCEINLINE int32 FindItemIndex(const FArrangedWidget& ItemToFind) const
+	int32 FindItemIndex(const FArrangedWidget& ItemToFind ) const
 	{
 		return Array.Find(ItemToFind);
 	}
 
 	template<typename PredicateType>
-	FORCEINLINE int32 IndexOfByPredicate(const PredicateType& Pred) const
+	int32 IndexOfByPredicate( const PredicateType& Pred ) const
 	{
 		return Array.IndexOfByPredicate( Pred );
 	}
 
-	FORCEINLINE void Remove(int32 Index, int32 Count=1)
+	void Remove( int32 Index, int32 Count=1 )
 	{
 		Array.RemoveAt(Index, Count);
 	}
 
-	FORCEINLINE void Append(const FArrangedChildren& Source)
+	void Append( const FArrangedChildren& Source )
 	{
 		Array.Append( Source.Array );
 	}
 
-	FORCEINLINE void Empty()
+	void Empty()
 	{
 		Array.Empty();
 	}

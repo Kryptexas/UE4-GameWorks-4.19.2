@@ -1,4 +1,5 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
 
 #include "AsyncResult.h"
@@ -7,6 +8,7 @@
 #include "IMessageContext.h"
 #include "IMessageRpcHandler.h"
 #include "IMessageRpcReturn.h"
+
 
 /** Delegate type for RPC messages that have no registered handler. */
 DECLARE_DELEGATE_OneParam(FOnMessageRpcNoHandler, const FName& /*MessageType*/)

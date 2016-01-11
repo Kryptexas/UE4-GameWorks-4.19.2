@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "StaticMeshEditorModule.h"
@@ -177,7 +177,7 @@ void SStaticMeshEditorViewport::OnObjectPropertyChanged(UObject* ObjectBeingModi
 	if( PreviewMeshComponent )
 	{
 		bool bShouldUpdatePreviewSocketMeshes = (ObjectBeingModified == PreviewMeshComponent->StaticMesh);
-		if( !bShouldUpdatePreviewSocketMeshes && PreviewMeshComponent->StaticMesh )
+		if( !bShouldUpdatePreviewSocketMeshes )
 		{
 			const int32 SocketCount = PreviewMeshComponent->StaticMesh->Sockets.Num();
 			for( int32 i = 0; i < SocketCount; ++i )
@@ -339,13 +339,13 @@ void SStaticMeshEditorViewport::SetViewModeVertexColor()
 {
 	if (!EditorViewportClient->EngineShowFlags.VertexColors)
 	{
-		EditorViewportClient->EngineShowFlags.SetVertexColors(true);
-		EditorViewportClient->EngineShowFlags.SetLighting(false);
+		EditorViewportClient->EngineShowFlags.VertexColors = true;
+		EditorViewportClient->EngineShowFlags.Lighting = false;
 	}
 	else
 	{
-		EditorViewportClient->EngineShowFlags.SetVertexColors(false);
-		EditorViewportClient->EngineShowFlags.SetLighting(true);
+		EditorViewportClient->EngineShowFlags.VertexColors = false;
+		EditorViewportClient->EngineShowFlags.Lighting = true;
 	}
 	if (FEngineAnalytics::IsAvailable())
 	{

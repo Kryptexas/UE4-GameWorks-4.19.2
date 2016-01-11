@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IOSPlatformMisc.mm: iOS implementations of misc functions
@@ -10,8 +10,7 @@
 #include "IOSApplication.h"
 #include "IOSAppDelegate.h"
 #include "IOSView.h"
-#include "IOSChunkInstaller.h"
-#include "IOSInputInterface.h"
+#include "GenericPlatformChunkInstall.h"
 
 #include "Apple/ApplePlatformCrashContext.h"
 
@@ -36,8 +35,6 @@ static int32 GetFreeMemoryMB()
 	host_statistics(mach_host_self(), HOST_VM_INFO, (host_info_t)&Stats, &StatsSize);
 	return (Stats.free_count * PageSize) / 1024 / 1024;
 }
-
-FIOSApplication* FPlatformMisc::CachedApplication = nullptr;
 
 void FIOSPlatformMisc::PlatformInit()
 {
@@ -71,8 +68,7 @@ void FIOSPlatformMisc::PlatformPostInit(bool ShowSplashScreen)
 
 GenericApplication* FIOSPlatformMisc::CreateApplication()
 {
-	CachedApplication = FIOSApplication::CreateIOSApplication();
-	return CachedApplication;
+	return FIOSApplication::CreateIOSApplication();
 }
 
 void FIOSPlatformMisc::GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength)
@@ -151,16 +147,13 @@ const TCHAR* FIOSPlatformMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32 Buf
 
 void FIOSPlatformMisc::ClipboardCopy(const TCHAR* Str)
 {
-#if !PLATFORM_TVOS
 	CFStringRef CocoaString = FPlatformString::TCHARToCFString(Str);
 	UIPasteboard* Pasteboard = [UIPasteboard generalPasteboard];
 	[Pasteboard setString:(NSString*)CocoaString];
-#endif
 }
 
 void FIOSPlatformMisc::ClipboardPaste(class FString& Result)
 {
-#if !PLATFORM_TVOS
 	UIPasteboard* Pasteboard = [UIPasteboard generalPasteboard];
 	NSString* CocoaString = [Pasteboard string];
 	if(CocoaString)
@@ -174,7 +167,6 @@ void FIOSPlatformMisc::ClipboardPaste(class FString& Result)
 	{
 		Result = TEXT("");
 	}
-#endif
 }
 
 
@@ -196,9 +188,6 @@ FString FIOSPlatformMisc::GetDefaultLocale()
 
 EAppReturnType::Type FIOSPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption )
 {
-#if PLATFORM_TVOS
-	return FGenericPlatformMisc::MessageBoxExt(MsgType, Text, Caption);
-#else
 	NSString* CocoaText = (NSString*)FPlatformString::TCHARToCFString(Text);
 	NSString* CocoaCaption = (NSString*)FPlatformString::TCHARToCFString(Caption);
 
@@ -315,7 +304,13 @@ EAppReturnType::Type FIOSPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgType,
 	CFRelease((CFStringRef)CocoaText);
 
 	return Result;
-#endif
+}
+
+bool FIOSPlatformMisc::ControlScreensaver(EScreenSaverAction Action)
+{
+	IOSAppDelegate* AppDelegate = [IOSAppDelegate GetDelegate];
+	[AppDelegate EnableIdleTimer: (Action == FGenericPlatformMisc::Enable)];
+	return true;
 }
 
 int32 FIOSPlatformMisc::NumberOfCores()
@@ -506,11 +501,11 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 			// note that Apple switched the minor order around between 6 and 6S (gotta keep us on our toes!)
 			if (Minor == 1)
 			{
-				DeviceType = IOS_IPhone6;
+				DeviceType = IOS_IPhone6S;
 			}
 			else if (Minor == 2)
 			{
-				DeviceType = IOS_IPhone6Plus;
+				DeviceType = IOS_IPhone6SPlus;
 			}
 		}
 		else if (Major >= 9)
@@ -526,11 +521,6 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 				DeviceType = IOS_IPhone6S;
 			}
 		}
-	}
-	// tvOS
-	else if ([DeviceIDString hasPrefix:@"AppleTV"])
-	{
-		DeviceType = IOS_AppleTV;
 	}
 	// simulator
 	else if ([DeviceIDString hasPrefix:@"x86"])
@@ -624,8 +614,23 @@ FString FIOSPlatformMisc::GetUniqueDeviceId()
 
 class IPlatformChunkInstall* FIOSPlatformMisc::GetPlatformChunkInstall()
 {
-    static FIOSChunkInstall Singleton;
-    return &Singleton;
+	static IPlatformChunkInstall* ChunkInstall = nullptr;
+	IPlatformChunkInstallModule* PlatformChunkInstallModule = FModuleManager::LoadModulePtr<IPlatformChunkInstallModule>("HTTPChunkInstaller");
+	if(!ChunkInstall)
+	{
+		if(PlatformChunkInstallModule != NULL)
+		{
+			// Attempt to grab the platform installer
+			ChunkInstall = PlatformChunkInstallModule->GetPlatformChunkInstall();
+		} else
+		{
+			// Placeholder instance
+			ChunkInstall = new FGenericPlatformChunkInstall();
+		}
+	}
+
+	return ChunkInstall;
+
 }
 
 
@@ -773,13 +778,9 @@ void GetBytesForFont(const NSString* InFontName, OUT TArray<uint8>& OutBytes)
 
 TArray<uint8> FIOSPlatformMisc::GetSystemFontBytes()
 {
-#if PLATFORM_TVOS
-	NSString* SystemFontName = [UIFont preferredFontForTextStyle:UIFontTextStyleBody].fontName;
-#else
 	// Gather some details about the system font
 	uint32 SystemFontSize = [UIFont systemFontSize];
 	NSString* SystemFontName = [UIFont systemFontOfSize:SystemFontSize].fontName;
-#endif
 
 	TArray<uint8> FontBytes;
 	GetBytesForFont(SystemFontName, FontBytes);
@@ -811,7 +812,6 @@ FString FIOSPlatformMisc::GetLocalCurrencySymbol()
 
 void FIOSPlatformMisc::RegisterForRemoteNotifications()
 {
-#if !PLATFORM_TVOS
 	UIApplication* application = [UIApplication sharedApplication];
 	if ([application respondsToSelector : @selector(registerUserNotifcationSettings:)])
 	{
@@ -831,31 +831,4 @@ void FIOSPlatformMisc::RegisterForRemoteNotifications()
 		[application registerForRemoteNotificationTypes : myTypes];
 #endif
 	}
-#endif
-}
-
-void FIOSPlatformMisc::GetValidTargetPlatforms(TArray<FString>& TargetPlatformNames)
-{
-	// this is only used to cook with the proper TargetPlatform with COTF, it's not the runtime platform (which is just IOS for both)
-#if PLATFORM_TVOS
-	TargetPlatformNames.Add(TEXT("TVOS"));
-#else
-	TargetPlatformNames.Add(FIOSPlatformProperties::PlatformName());
-#endif
-}
-
-void FIOSPlatformMisc::ResetGamepadAssignments()
-{
-	UE_LOG(LogIOS, Warning, TEXT("Restting gamepad assignments is not allowed in IOS"))
-}
-
-void FIOSPlatformMisc::ResetGamepadAssignmentToController(int32 ControllerId)
-{
-	
-}
-
-bool FIOSPlatformMisc::IsControllerAssignedToGamepad(int32 ControllerId)
-{
-	FIOSInputInterface* InputInterface = (FIOSInputInterface*)CachedApplication->GetInputInterface();
-	return InputInterface->IsControllerAssignedToGamepad(ControllerId);
 }

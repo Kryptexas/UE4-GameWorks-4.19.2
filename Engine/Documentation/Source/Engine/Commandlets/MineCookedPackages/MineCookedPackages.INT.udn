@@ -1,0 +1,89 @@
+Availability: Docs
+Title: MineCookedPackages commandlet
+Crumbs: %ROOT%, Engine, Engine/Commandlets
+Description:Commandlet that populates a database with information about cooked packages and the assets they contain.
+
+[REGION:todo]
+	This page is converted from Unreal Engine 3 documentation and currently being reviewed. Information may be outdated.
+[/REGION]
+
+[TOC(start:2)]
+
+## Overview
+
+The purpose of the minecookedpackages commandlet is to populate a database with information for cooked packages and their exports. This in turn allows a wide range of queries to be executed without modifying code or keeping old data around.
+
+
+
+## Getting it to work
+
+
+### Setup
+
+
+* Install Microsoft SQL Server or Microsoft SQL Server Express.
+    * SQL Server Express comes with VS.NET 2005/ 2008.
+* Install Microsoft SQL Server Management Studio Express (SMS).
+    * I believe you can do most what is needed from within Visual Studio. though the Express version of SQL Server Management Studio is free so you might as well install it and use it.
+* Create the database.
+    * Connect to your database via SMS.
+    * Right click on Databases and click new.
+    * Enter a name like CookedContent-1.
+* Create the tables.
+    * Right click on CookedContent-1 and select "new query".
+        * The plan going forward is to have data from each unique run be tagged with a unique ID to allow trending and sharing the DB across runs, but for now a new database needs to be created for each run.
+    * Paste the contents of [MineCookedPackages.sql](MineCookedPackages.sql) into the just opened text window and press the execute button. This will create all the relevant tables in your database.
+
+
+
+
+## Operation
+
+To run this commandlet, from a command prompt window, navigate to the _UnrealEngine3\Binaries_ directory.
+
+
+### Syntax
+
+The syntax is as follows:
+
+    [Gamename].exe minecookedpackages ..\MyGame\CookedXenon\\*.xxx -DATABASE=machinename\sqlexpress -CATALOG=CookedContent-1
+    
+
+At the moment, it will skip fully compressed packages. In our usage case those are only startup packages.
+
+
+### Queries
+
+The below query will group exports by class and list their accumulative and average size in combination with the number of instances found, sorted by accumulative size.
+
+
+    
+    SELECT ClassName, SUM(Size) / 1024 / 1024 AS SumSize, AVG(Size) / 1024 AS AvgSize, COUNT(ClassName) AS Count
+    FROM Exports
+    JOIN Objects ON Exports.ObjectID = Objects.ObjectID
+    JOIN Classes ON Objects.ClassID = Classes.ClassID
+    GROUP BY ClassName
+    ORDER BY SUM(SIZE) DESC
+    
+
+
+
+The below query will group exports by unique object and list the accumulative size and count sorted by accumulative size.
+
+
+    
+    SELECT ClassName, ObjectName, SUM(Size) / 1024 AS Size, COUNT(ObjectName) AS Count
+    FROM Exports
+    JOIN Objects ON Exports.ObjectID = Objects.ObjectID
+    JOIN Classes ON Objects.ClassID = Classes.ClassID
+    GROUP BY ObjectName, ClassName
+    ORDER BY SUM(Size) DESC
+    
+
+
+
+ 
+
+
+
+

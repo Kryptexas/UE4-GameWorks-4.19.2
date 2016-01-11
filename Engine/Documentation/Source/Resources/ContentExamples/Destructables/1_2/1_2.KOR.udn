@@ -1,0 +1,37 @@
+﻿INTSourceChangelist:2435932
+Availability: Docs
+Title:1.2 - 커스텀 디스트럭션
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Destructables
+Description:Destructibility 예제 레벨에 대한 개요로, 예제 1.2: Custom Destruction 입니다.
+
+
+[VAR:Topic]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Destructables/1_2:title%](Resources/ContentExamples/Destructables/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Destructables/1_2:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Destructables/1_2:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Destructables/1_2]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth raw]
+![](Resources/ContentExamples/Destructables/physics_banner.png)
+[/REGION]
+
+언리얼 엔진 4 에는 맥스나 마야같은 응용프로그램에서 만든 커스텀 디스트럭션을 임포트할 수 있는 기능이 있습니다. FBX 익스포트가 가능한 아무 플러그인이나 사용하여 디스트럭션 메시를 생성합니다. 그러면 이 FBX 파일을 언리얼 엔진 4 의 디스트럭터블 에디터 창에서 첫째 **Destruction Depth** 로 하여 임포트하면 됩니다. 그 이후 Voronoi (보로노이)를 사용하여 둘째 **Destruction Depth** 를 만듭니다. 현재 둘째 이후의 **Destruction Depth** 는 Nvidia Physics Lab 에서만 생성 가능하며, 언리얼 엔진 4 만 사용하는 다른 방식으로는 커스텀 디스트럭션 FBX 를 임포트한 다음 거기에 보로노이를 실행시키는 식으로 1 과 2 레벨을 만들 수 있습니다.
+
+[REGION:lightbox]
+[![](1_2_solid.png)(w:300)](1_2_solid.png) [![](1_2_fractured.png)(w:300)](1_2_fractured.png) [![](1_2_blown.png)(w:300)](1_2_blown.png)
+[/REGION]

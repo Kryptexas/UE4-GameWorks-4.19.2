@@ -1,25 +1,21 @@
 {
 	"FileVersion" : 3,
+	
+	"FriendlyName" : "Cable Component",
 	"Version" : 1,
 	"VersionName" : "1.0",
-	"FriendlyName" : "Cable Component",
-	"Description" : "A simulated cable component.",
-	"Category" : "Rendering",
 	"CreatedBy" : "Epic Games, Inc.",
 	"CreatedByURL" : "http://epicgames.com",
-	"DocsURL" : "",
-	"MarketplaceURL" : "",
-	"SupportURL" : "",
+	"EngineVersion" : "4.2.0",
+	"Description" : "A simulated cable component.",
+	"Category" : "Rendering",
 	"EnabledByDefault" : true,
-	"CanContainContent" : false,
-	"IsBetaVersion" : false,
-	"Installed" : false,
+	
 	"Modules" :
 	[
 		{
 			"Name" : "CableComponent",
-			"Type" : "Runtime",
-			"LoadingPhase" : "Default"
+			"Type" : "Runtime"
 		}
 	]
 }

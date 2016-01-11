@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieScene3DPathSection.h"
@@ -144,11 +144,9 @@ void UMovieScene3DPathSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 
 void UMovieScene3DPathSection::AddPath( float Time, float SequenceEndTime, const FGuid& InPathId )
 {
-	if (TryModify())
-	{
-		ConstraintId = InPathId;
+	Modify();
+	ConstraintId = InPathId;
 
-		TimingCurve.UpdateOrAddKey(Time, 0);
-		TimingCurve.UpdateOrAddKey(SequenceEndTime, 1);
-	}		
+	TimingCurve.UpdateOrAddKey(Time, 0);
+	TimingCurve.UpdateOrAddKey(SequenceEndTime, 1);
 }

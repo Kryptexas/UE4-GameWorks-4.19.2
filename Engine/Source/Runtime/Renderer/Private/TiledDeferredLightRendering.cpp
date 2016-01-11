@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TiledDeferredLightRendering.cpp: Implementation of tiled deferred shading
@@ -123,10 +123,7 @@ public:
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
 		SetTextureParameter(RHICmdList, ShaderRHI, InTexture, InTextureValue.GetRenderTargetItem().ShaderResourceTexture);
-
-		FUnorderedAccessViewRHIParamRef OutUAV = OutTextureValue.GetRenderTargetItem().UAV;
-		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, &OutUAV, 1);
-		OutTexture.SetTexture(RHICmdList, ShaderRHI, 0, OutUAV);
+		OutTexture.SetTexture(RHICmdList, ShaderRHI, 0, OutTextureValue.GetRenderTargetItem().UAV);
 
 		SetShaderValue(RHICmdList, ShaderRHI, ViewDimensions, View.ViewRect);
 
@@ -232,12 +229,9 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, NumLights, NumThisPass);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList, IPooledRenderTarget& OutTextureValue)
+	void UnsetParameters(FRHICommandList& RHICmdList)
 	{
 		OutTexture.UnsetUAV(RHICmdList, GetComputeShader());
-
-		FUnorderedAccessViewRHIParamRef OutUAV = OutTextureValue.GetRenderTargetItem().UAV;
-		RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, &OutUAV, 1);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -317,7 +311,7 @@ static void SetShaderTemplTiledLighting(
 	uint32 GroupSizeY = (View.ViewRect.Size().Y + GDeferredLightTileSizeY - 1) / GDeferredLightTileSizeY;
 	DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
 
-	ComputeShader->UnsetParameters(RHICmdList, OutTexture);
+	ComputeShader->UnsetParameters(RHICmdList);
 }
 
 
@@ -354,7 +348,7 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredLighting(FRHICommandListI
 				FPooledRenderTargetDesc Desc = SceneContext.GetSceneColor()->GetDesc();
 				Desc.TargetableFlags |= TexCreate_UAV;
 
-				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, OutTexture, TEXT("SceneColorTiled") );
+				GRenderTargetPool.FindFreeElement( Desc, OutTexture, TEXT("SceneColorTiled") );
 			}
 
 			{

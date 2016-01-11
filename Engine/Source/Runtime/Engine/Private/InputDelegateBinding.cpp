@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "BlueprintUtilities.h"
@@ -15,12 +15,7 @@ UInputDelegateBinding::UInputDelegateBinding(const FObjectInitializer& ObjectIni
 {
 }
 
-bool UInputDelegateBinding::SupportsInputDelegate(const UClass* InClass)
-{
-	return Cast<UDynamicClass>(InClass) || Cast<UBlueprintGeneratedClass>(InClass);
-}
-
-void UInputDelegateBinding::BindInputDelegates(const UClass* InClass, UInputComponent* InputComponent)
+void UInputDelegateBinding::BindInputDelegates(const UBlueprintGeneratedClass* BGClass, UInputComponent* InputComponent)
 {
 	static UClass* InputBindingClasses[] = { 
 												UInputActionDelegateBinding::StaticClass(), 
@@ -31,15 +26,13 @@ void UInputDelegateBinding::BindInputDelegates(const UClass* InClass, UInputComp
 												UInputVectorAxisDelegateBinding::StaticClass(),
 										   };
 
-	if (InClass)
+	if (BGClass)
 	{
-		BindInputDelegates(InClass->GetSuperClass(), InputComponent);
+		BindInputDelegates(Cast<UBlueprintGeneratedClass>(BGClass->GetSuperStruct()), InputComponent);
 
 		for (int32 Index = 0; Index < ARRAY_COUNT(InputBindingClasses); ++Index)
 		{
-			UInputDelegateBinding* BindingObject = CastChecked<UInputDelegateBinding>(
-				UBlueprintGeneratedClass::GetDynamicBindingObject(InClass, InputBindingClasses[Index])
-				, ECastCheckedType::NullAllowed);
+			UInputDelegateBinding* BindingObject = CastChecked<UInputDelegateBinding>(BGClass->GetDynamicBindingObject(InputBindingClasses[Index]), ECastCheckedType::NullAllowed);
 			if (BindingObject)
 			{
 				BindingObject->BindToInputComponent(InputComponent);

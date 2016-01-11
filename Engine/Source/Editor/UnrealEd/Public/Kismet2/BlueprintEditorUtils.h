@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -94,20 +94,8 @@ private:
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Notify Blueprint Changed"), EKismetCompilerStats_NotifyBlueprintChanged, STATGROUP_KismetCompiler, );
 
-struct UNREALED_API FCompilerRelevantNodeLink
-{
-	UK2Node* Node;
-	UEdGraphPin* LinkedPin;
-
-	FCompilerRelevantNodeLink(UK2Node* InNode, UEdGraphPin* InLinkedPin)
-		: Node(InNode)
-		, LinkedPin(InLinkedPin)
-	{
-	}
-};
-
-/** Array type for GetCompilerRelevantNodeLinks() */
-typedef TArray<FCompilerRelevantNodeLink, TInlineAllocator<4> > FCompilerRelevantNodeLinkArray;
+/** Array type for GetCompilerRelevantNodes()                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 */
+typedef TArray<UK2Node*, TInlineAllocator<4> > FCompilerRelevantNodesArray;
 
 class UNREALED_API FBlueprintEditorUtils
 {
@@ -364,9 +352,6 @@ public:
 	 */
 	static UEdGraph* GetTopLevelGraph(const UEdGraph* InGraph);
 
-	/** Determines if the graph is ReadOnly, this differs from editable in that it is never expected to be edited and is in a read-only state */
-	static bool IsGraphReadOnly(UEdGraph* InGraph);
-
 	/** Look to see if an event already exists to override a particular function */
 	static class UK2Node_Event* FindOverrideForFunction(const UBlueprint* Blueprint, const UClass* SignatureClass, FName SignatureName);
 
@@ -531,12 +516,12 @@ public:
 	static void GetAllGraphNames(const UBlueprint* Blueprint, TArray<FName>& GraphNames);
 
 	/**
-	 * Gets the compiler-relevant (i.e. non-ignorable) node links from the given pin.
+	 * Gets the compiler-relevant (i.e. non-ignorable) nodes from the given pin.
 	 *
 	 * @param			FromPin			The pin to start searching from.
-	 * @param			OutNodeLinks	Will contain the given pin + owning node if compiler-relevant, or all nodes linked to the owning node at the matching "pass-through" pin that are compiler-relevant. Empty if no compiler-relevant node links can be found from the given pin.
+	 * @param			OutNodes		Will contain the given pin's owning node if compiler-relevant, or all nodes linked to the owning node at the matching "pass-through" pin that are compiler-relevant. Empty if no compiler-relevant nodes can be found from the given pin.
 	 */
-	static void GetCompilerRelevantNodeLinks(UEdGraphPin* FromPin, FCompilerRelevantNodeLinkArray& OutNodeLinks);
+	static void GetCompilerRelevantNodes(const UEdGraphPin* FromPin, FCompilerRelevantNodesArray& OutNodes);
 
 	/**
 	 * Finds the first compiler-relevant (i.e. non-ignorable) node from the given pin.
@@ -545,16 +530,8 @@ public:
 	 *
 	 * @return			The given pin's owning node if compiler-relevant, or the first node linked to the owning node at the matching "pass-through" pin that is compiler-relevant. May be NULL if no compiler-relevant nodes can be found from the given pin.
 	 */
-	static UK2Node* FindFirstCompilerRelevantNode(UEdGraphPin* FromPin);
+	static UK2Node* FindFirstCompilerRelevantNode(const UEdGraphPin* FromPin);
 
-	/**
-	 * Finds the first compiler-relevant (i.e. non-ignorable) node from the given pin and returns the owned pin that's linked.
-	 *
-	 * @param			FromPin			The pin to start searching from.
-	 *
-	 * @return			The given pin if its owning node is compiler-relevant, or the first pin linked to the owning node at the matching "pass-through" pin that is owned by a compiler-relevant node. May be NULL if no compiler-relevant nodes can be found from the given pin.
-	 */
-	static UEdGraphPin* FindFirstCompilerRelevantLinkedPin(UEdGraphPin* FromPin);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Functions
@@ -1258,14 +1235,6 @@ public:
 	 */
 	static class UK2Node_FunctionResult* FindOrCreateFunctionResultNode(class UK2Node_EditablePinBase* InFunctionEntryNode);
 
-	/** 
-	 * Determine the best icon to represent the given pin.
-	 *
-	 * @param PinType		The pin get the icon for.
-	 * @param returns a brush that best represents the icon (or Kismet.VariableList.TypeIcon if none is available )
-	 */
-	static const struct FSlateBrush* GetIconFromPin( const FEdGraphPinType& PinType );
-
 protected:
 	// Removes all NULL graph references from the SubGraphs array and recurses thru the non-NULL ones
 	static void CleanNullGraphReferencesRecursive(UEdGraph* Graph);
@@ -1358,23 +1327,4 @@ public:
 	 * Remove overridden component templates from instance component handlers when a parent class disables editable when inherited boolean.
 	 */
 	static void HandleDisableEditableWhenInherited(UObject* ModifiedObject, TArray<UObject*>& ArchetypeInstances);
-};
-
-struct UNREALED_API FBlueprintDuplicationScopeFlags
-{
-	enum EFlags : uint32
-	{
-		NoFlags = 0,
-		NoExtraCompilation = 1 << 0,
-		TheSameTimelineGuid = 1 << 1,
-	};
-
-	static uint32 bStaticFlags;
-	static bool HasAnyFlag(uint32 InFlags)
-	{
-		return 0 != (bStaticFlags & InFlags);
-	}
-
-	TGuardValue<uint32> Guard;
-	FBlueprintDuplicationScopeFlags(uint32 InFlags) : Guard(bStaticFlags, InFlags) {}
 };

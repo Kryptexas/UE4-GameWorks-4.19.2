@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -134,14 +134,6 @@ public:
 	 * @return true if two Quaternion are equal, within specified tolerance, otherwise false.
 	 */
 	FORCEINLINE bool Equals(const FQuat& Q, float Tolerance=KINDA_SMALL_NUMBER) const;
-
-	/**
-	 * Checks whether this Quaternion is an Identity Quaternion.
-	 * Assumes Quaternion tested is normalized.
-	 *
-	 * @return true if Quaternion is a normalized Identity Quaternion.
-	 */
-	FORCEINLINE bool IsIdentity() const;
 
 	/**
 	 * Subtracts another quaternion from this.
@@ -347,35 +339,19 @@ public:
 	 */
 	void EnforceShortestArcWith( const FQuat& OtherQuat );
 	
-	/** Get the forward direction (X axis) after it has been rotated by this Quaternion. */
+	/** Get X Rotation Axis. */
 	FORCEINLINE FVector GetAxisX() const;
 
-	/** Get the right direction (Y axis) after it has been rotated by this Quaternion. */
+	/** Get Y Rotation Axis. */
 	FORCEINLINE FVector GetAxisY() const;
 
-	/** Get the up direction (Z axis) after it has been rotated by this Quaternion. */
+	/** Get Z Rotation Axis. */
 	FORCEINLINE FVector GetAxisZ() const;
 
-	/** Get the forward direction (X axis) after it has been rotated by this Quaternion. */
-	FORCEINLINE FVector GetForwardVector() const;
-
-	/** Get the right direction (Y axis) after it has been rotated by this Quaternion. */
-	FORCEINLINE FVector GetRightVector() const;
-
-	/** Get the up direction (Z axis) after it has been rotated by this Quaternion. */
-	FORCEINLINE FVector GetUpVector() const;
-
-	/** Convert a rotation into a unit vector facing in its direction. Equivalent to GetForwardVector(). */
-	FORCEINLINE FVector Vector() const;
-
-	/** Get the FRotator representation of this Quaternion. */
+	/** @return rotator representation of this quaternion */
 	CORE_API FRotator Rotator() const;
 
-	/**
-	 * Get the axis of rotation of the Quaternion.
-	 * This is the axis around which rotation occurs to transform the canonical coordinate system to the target orientation.
-	 * For the identity Quaternion which has no such rotation, FVector(1,0,0) is returned.
-	 */
+	/** @return Vector of the axis of the quaternion */
 	FORCEINLINE FVector GetRotationAxis() const;
 
 	/**
@@ -404,11 +380,7 @@ public:
 #if ENABLE_NAN_DIAGNOSTIC
 	FORCEINLINE void DiagnosticCheckNaN() const
 	{
-		if (ContainsNaN())
-		{
-			logOrEnsureNanError(TEXT("FQuat contains NaN: %s"), *ToString());
-			*const_cast<FQuat*>(this) = FQuat::Identity;
-		}
+		ensureMsgf(!ContainsNaN(), TEXT("FQuat contains NaN: %s"), *ToString());
 	}
 #else
 	FORCEINLINE void DiagnosticCheckNaN() const {}
@@ -417,22 +389,9 @@ public:
 public:
 
 	/**
-	 * Generates the 'smallest' (geodesic) rotation between two vectors of arbitrary length.
+	 * Generates the 'smallest' (geodesic) rotation between these two vectors.
 	 */
-	static FORCEINLINE FQuat FindBetween( const FVector& Vector1, const FVector& Vector2 )
-	{
-		return FindBetweenVectors(Vector1, Vector2);
-	}
-
-	/**
-	 * Generates the 'smallest' (geodesic) rotation between two normals (assumed to be unit length).
-	 */
-	static CORE_API FQuat FindBetweenNormals( const FVector& Normal1, const FVector& Normal2 );
-
-	/**
-	 * Generates the 'smallest' (geodesic) rotation between two vectors of arbitrary length.
-	 */
-	static CORE_API FQuat FindBetweenVectors( const FVector& Vector1, const FVector& Vector2 );
+	static CORE_API FQuat FindBetween( const FVector& vec1, const FVector& vec2 );
 
 	/**
 	 * Error measure (angle) between two quaternions, ranged [0..1].
@@ -459,33 +418,16 @@ public:
 	static FORCEINLINE FQuat FastBilerp( const FQuat& P00, const FQuat& P10, const FQuat& P01, const FQuat& P11, float FracX, float FracY );
 
 
-	/** Spherical interpolation. Will correct alignment. Result is NOT normalized. */
-	static CORE_API FQuat Slerp_NotNormalized( const FQuat &Quat1, const FQuat &Quat2, float Slerp );
-
-	/** Spherical interpolation. Will correct alignment. Result is normalized. */
-	static FORCEINLINE FQuat Slerp( const FQuat &Quat1, const FQuat &Quat2, float Slerp )
-	{
-		return Slerp_NotNormalized(Quat1, Quat2, Slerp).GetNormalized();
-	}
+	/** Spherical interpolation. Will correct alignment. Output is not normalized. */
+	static CORE_API FQuat Slerp( const FQuat &Quat1,const FQuat &Quat2, float Slerp );
 
 	/**
 	 * Simpler Slerp that doesn't do any checks for 'shortest distance' etc.
 	 * We need this for the cubic interpolation stuff so that the multiple Slerps dont go in different directions.
-	 * Result is NOT normalized.
 	 */
-	static CORE_API FQuat SlerpFullPath_NotNormalized( const FQuat &quat1, const FQuat &quat2, float Alpha );
-
-	/**
-	 * Simpler Slerp that doesn't do any checks for 'shortest distance' etc.
-	 * We need this for the cubic interpolation stuff so that the multiple Slerps dont go in different directions.
-	 * Result is normalized.
-	 */
-	static FORCEINLINE FQuat SlerpFullPath( const FQuat &quat1, const FQuat &quat2, float Alpha )
-	{
-		return SlerpFullPath_NotNormalized(quat1, quat2, Alpha).GetNormalized();
-	}
+	static CORE_API FQuat SlerpFullPath( const FQuat &quat1, const FQuat &quat2, float Alpha );
 	
-	/** Given start and end quaternions of quat1 and quat2, and tangents at those points tang1 and tang2, calculate the point at Alpha (between 0 and 1) between them. Result is normalized. */
+	/** Given start and end quaternions of quat1 and quat2, and tangents at those points tang1 and tang2, calculate the point at Alpha (between 0 and 1) between them. */
 	static CORE_API FQuat Squad( const FQuat& quat1, const FQuat& tang1, const FQuat& quat2, const FQuat& tang2, float Alpha );
 
 	/** 
@@ -661,7 +603,7 @@ FORCEINLINE FQuat::FQuat( const FQuat& Q )
 
 FORCEINLINE FString FQuat::ToString() const
 {
-	return FString::Printf(TEXT("X=%.6f Y=%.6f Z=%.6f W=%.6f"), X, Y, Z, W);
+	return FString::Printf(TEXT("X=%3.3f Y=%3.3f Z=%3.3f W=%3.3f"), X, Y, Z, W);
 }
 
 
@@ -734,10 +676,6 @@ FORCEINLINE bool FQuat::Equals(const FQuat& Q, float Tolerance) const
 #endif // PLATFORM_ENABLE_VECTORINTRINSICS
 }
 
-FORCEINLINE bool FQuat::IsIdentity() const
-{
-	return ((W * W) > ((1.f - DELTA) * (1.f - DELTA)));
-}
 
 FORCEINLINE FQuat FQuat::operator-=(const FQuat& Q)
 {
@@ -1005,27 +943,6 @@ FORCEINLINE FVector FQuat::GetAxisY() const
 FORCEINLINE FVector FQuat::GetAxisZ() const
 {
 	return RotateVector(FVector(0.f, 0.f, 1.f));
-}
-
-
-FORCEINLINE FVector FQuat::GetForwardVector() const
-{
-	return GetAxisX();
-}
-
-FORCEINLINE FVector FQuat::GetRightVector() const
-{
-	return GetAxisY();
-}
-
-FORCEINLINE FVector FQuat::GetUpVector() const
-{
-	return GetAxisZ();
-}
-
-FORCEINLINE FVector FQuat::Vector() const
-{
-	return GetAxisX();
 }
 
 

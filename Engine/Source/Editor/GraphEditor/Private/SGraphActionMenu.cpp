@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "GraphEditorCommon.h"
@@ -128,14 +128,14 @@ void SDefaultGraphActionWidget::Construct(const FArguments& InArgs, const FCreat
 	this->ChildSlot
 	[
 		SNew(SHorizontalBox)
-		.ToolTipText( FText::FromString(InCreateData->Action->GetTooltipDescription()) )
+		.ToolTipText( FText::FromString(InCreateData->Action->TooltipDescription) )
 		+ SHorizontalBox::Slot()
 		.AutoWidth()
 		.VAlign(VAlign_Center)
 		[
 			SNew(STextBlock)
 			.Font(FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 9 ))
-			.Text(InCreateData->Action->GetMenuDescription())
+			.Text(InCreateData->Action->MenuDescription)
 			.HighlightText(InArgs._HighlightText)
 		]
 	];
@@ -586,7 +586,7 @@ static bool CompareGraphActionNode(TSharedPtr<FGraphActionNode> A, TSharedPtr<FG
 
 	if (A->HasValidAction() && B->HasValidAction())
 	{
-		return A->GetPrimaryAction()->GetMenuDescription().CompareTo(B->GetPrimaryAction()->GetMenuDescription()) == 0;
+		return A->GetPrimaryAction()->MenuDescription.CompareTo(B->GetPrimaryAction()->MenuDescription) == 0;
 	}
 	else if(!A->HasValidAction() && !B->HasValidAction())
 	{

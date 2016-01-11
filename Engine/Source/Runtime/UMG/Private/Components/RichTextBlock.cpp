@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 
@@ -13,12 +13,10 @@
 URichTextBlock::URichTextBlock(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	if (!UE_SERVER)
-	{
-		static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
-		Font = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Regular"));
-	}
+	static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
+	Font = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Regular"));
 	Color = FLinearColor::White;
+	LineHeightPercentage = 1;
 
 	Decorators.Add(ObjectInitializer.CreateOptionalDefaultSubobject<URichTextBlockDecorator>(this, FName("DefaultDecorator")));
 }
@@ -51,6 +49,11 @@ TSharedRef<SWidget> URichTextBlock::RebuildWidget()
 
 	MyRichTextBlock =
 		SNew(SRichTextBlock)
+		.Justification(Justification)
+		.AutoWrapText(AutoWrapText)
+		.WrapTextAt(WrapTextAt)
+		.Margin(Margin)
+		.LineHeightPercentage(LineHeightPercentage)
 		.TextStyle(&DefaultStyle)
 		.Decorators(CreatedDecorators);
 	
@@ -64,8 +67,6 @@ void URichTextBlock::SynchronizeProperties()
 	TAttribute<FText> TextBinding = OPTIONAL_BINDING(FText, Text);
 
 	MyRichTextBlock->SetText(TextBinding);
-
-	Super::SynchronizeTextLayoutProperties( *MyRichTextBlock );
 }
 
 #if WITH_EDITOR

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 
@@ -8,18 +8,20 @@
 #include "LegacyText.h"
 #endif
 
-#include "TextData.h"
 #include "TextHistory.h"
 
-#include "DebugSerializationFlags.h"
+//DEFINE_LOG_CATEGORY(LogText);
 
 //DEFINE_STAT(STAT_TextFormat);
 
-DECLARE_LOG_CATEGORY_EXTERN(LogText, Log, All);
-DEFINE_LOG_CATEGORY(LogText);
-
-
 #define LOCTEXT_NAMESPACE "Core.Text"
+
+FArchive& operator<<( FArchive& Ar, FFormatArgumentData& Value )
+{
+	Ar << Value.ArgumentName;
+	Ar << Value.ArgumentValue;
+	return Ar;
+}
 
 bool FTextInspector::ShouldGatherForLocalization(const FText& Text)
 {
@@ -28,54 +30,169 @@ bool FTextInspector::ShouldGatherForLocalization(const FText& Text)
 
 TOptional<FString> FTextInspector::GetNamespace(const FText& Text)
 {
-	FTextDisplayStringPtr LocalizedString = Text.TextData->GetLocalizedString();
-	if (LocalizedString.IsValid())
-	{
-		FString Namespace;
-		FString Key;
-		if (FTextLocalizationManager::Get().FindNamespaceAndKeyFromDisplayString(LocalizedString.ToSharedRef(), Namespace, Key))
-		{
-			return Namespace;
-		}
-	}
-	return TOptional<FString>();
+	FString Namespace;
+	FString Key;
+	const bool WasNamespaceAndKeyFound = FTextLocalizationManager::Get().FindNamespaceAndKeyFromDisplayString(Text.DisplayString, Namespace, Key);
+	return WasNamespaceAndKeyFound ? TOptional<FString>(Namespace) : TOptional<FString>();
 }
 
 TOptional<FString> FTextInspector::GetKey(const FText& Text)
 {
-	FTextDisplayStringPtr LocalizedString = Text.TextData->GetLocalizedString();
-	if (LocalizedString.IsValid())
-	{
-		FString Namespace;
-		FString Key;
-		if (FTextLocalizationManager::Get().FindNamespaceAndKeyFromDisplayString(LocalizedString.ToSharedRef(), Namespace, Key))
-		{
-			return Key;
-		}
-	}
-	return TOptional<FString>();
+	FString Namespace;
+	FString Key;
+	const bool WasNamespaceAndKeyFound = FTextLocalizationManager::Get().FindNamespaceAndKeyFromDisplayString(Text.DisplayString, Namespace, Key);
+	return WasNamespaceAndKeyFound ? TOptional<FString>(Key) : TOptional<FString>();
 }
 
 const FString* FTextInspector::GetSourceString(const FText& Text)
 {
-	return &Text.GetSourceString();
+	return Text.GetSourceString().Get();
 }
 
 const FString& FTextInspector::GetDisplayString(const FText& Text)
 {
-	return Text.TextData->GetDisplayString();
+	return Text.DisplayString.Get();
 }
 
 const FTextDisplayStringRef FTextInspector::GetSharedDisplayString(const FText& Text)
 {
-	// todo: calling PersistText here probably isn't the right thing to do, however it avoids having to make an external API change at this point
-	Text.TextData->PersistText();
-	return Text.TextData->GetLocalizedString().ToSharedRef();
+	return Text.DisplayString;
 }
 
-uint32 FTextInspector::GetFlags(const FText& Text)
+int32 FTextInspector::GetFlags(const FText& Text)
 {
 	return Text.Flags;
+}
+
+FFormatArgumentValue::FFormatArgumentValue()
+	: Type(EFormatArgumentType::Int)
+{
+	IntValue = 0;
+};
+
+
+FFormatArgumentValue::FFormatArgumentValue(const int Value)
+	: Type(EFormatArgumentType::Int)
+{
+	IntValue = Value;
+}
+
+FFormatArgumentValue::FFormatArgumentValue(const unsigned int Value)
+	: Type(EFormatArgumentType::UInt)
+{
+	UIntValue = Value;
+}
+
+FFormatArgumentValue::FFormatArgumentValue(const int64 Value)
+	: Type(EFormatArgumentType::Int)
+{
+	IntValue = Value;
+}
+
+FFormatArgumentValue::FFormatArgumentValue(const uint64 Value)
+	: Type(EFormatArgumentType::UInt)
+{
+	UIntValue = Value;
+}
+
+FFormatArgumentValue::FFormatArgumentValue(const float Value)
+	: Type(EFormatArgumentType::Float)
+{
+	FloatValue = Value;
+}
+
+FFormatArgumentValue::FFormatArgumentValue(const double Value)
+	: Type(EFormatArgumentType::Double)
+{
+	DoubleValue = Value;
+}
+
+FFormatArgumentValue::FFormatArgumentValue(const FText& Value)
+	: Type(EFormatArgumentType::Text)
+{
+	TextValue = new FText(Value);
+}
+
+FFormatArgumentValue::FFormatArgumentValue(const FFormatArgumentValue& Source)
+	: Type(Source.Type)
+{
+	switch(Type)
+	{
+	case EFormatArgumentType::Int:
+		{
+			IntValue = Source.IntValue;
+		}
+		break;
+	case EFormatArgumentType::UInt:
+		{
+			UIntValue = Source.UIntValue;
+		}
+		break;
+	case EFormatArgumentType::Float:
+		{
+			FloatValue = Source.FloatValue;
+		}
+	case EFormatArgumentType::Double:
+		{
+			DoubleValue = Source.DoubleValue;
+		}
+		break;
+	case EFormatArgumentType::Text:
+		{
+			TextValue = new FText(*Source.TextValue);
+		}
+		break;
+	}
+}
+
+FFormatArgumentValue::~FFormatArgumentValue()
+{
+	if(Type == EFormatArgumentType::Text)
+	{
+		delete TextValue;
+	}
+}
+
+FArchive& operator<<( FArchive& Ar, FFormatArgumentValue& Value )
+{
+	int8 TypeAsInt8 = Value.Type;
+	Ar << TypeAsInt8;
+	Value.Type = (EFormatArgumentType::Type)TypeAsInt8;
+
+	switch(Value.Type)
+	{
+	case EFormatArgumentType::Double:
+		{
+			Ar << Value.DoubleValue;
+			break;
+		}
+	case EFormatArgumentType::Float:
+		{
+			Ar << Value.FloatValue;
+			break;
+		}
+	case EFormatArgumentType::Int:
+		{
+			Ar << Value.IntValue;
+			break;
+		}
+	case EFormatArgumentType::UInt:
+		{
+			Ar << Value.UIntValue;
+			break;
+		}
+	case EFormatArgumentType::Text:
+		{
+			if(Ar.IsLoading())
+			{
+				Value.TextValue = new FText;
+			}
+			Ar << *Value.TextValue;
+			break;
+		}
+	}
+	
+	return Ar;
 }
 
 // These default values have been duplicated to the KismetTextLibrary functions for Blueprints. Please replicate any changes there!
@@ -155,13 +272,13 @@ const FText FText::UnEscapedCloseBraceOutsideOfArgumentBlock = LOCTEXT("Error_Un
 const FText FText::SerializationFailureError = LOCTEXT("Error_SerializationFailure", "ERR: Transient text cannot be serialized \"{0}\".");
 
 FText::FText()
-	: TextData(GetEmpty().TextData)
+	: DisplayString( GetEmpty().DisplayString )
 	, Flags(0)
 {
 }
 
 FText::FText( EInitToEmptyString )
-	: TextData(new TLocalizedTextData<FTextHistory_Base>(MakeShareable(new FString())))
+	: DisplayString( new FString() )
 	, Flags(0)
 {
 }
@@ -173,72 +290,61 @@ FText::FText( EInitToEmptyString )
 	FText& FText::operator=(FText&& Other) = default;
 #else
 FText::FText(const FText& Source)
-	: TextData(Source.TextData)
+	: DisplayString(Source.DisplayString)
+	, History(Source.History)
 	, Flags(Source.Flags)
 {
 }
 
 FText::FText(FText&& Source)
-	: TextData(MoveTemp(Source.TextData))
-	, Flags(Source.Flags)
+	: DisplayString(MoveTemp(Source.DisplayString))
+	, History(MoveTemp(Source.History))
+	, Flags(MoveTemp(Source.Flags))
 {
 }
 
 FText& FText::operator=(const FText& Source)
 {
-	if (this != &Source)
-	{
-		TextData = Source.TextData;
-		Flags = Source.Flags;
-	}
+	DisplayString = Source.DisplayString;
+	History = Source.History;
+	Flags = Source.Flags;
+
 	return *this;
 }
 
 FText& FText::operator=(FText&& Source)
 {
-	if (this != &Source)
-	{
-		TextData = MoveTemp(Source.TextData);
-		Flags = Source.Flags;
-	}
+	DisplayString = MoveTemp(Source.DisplayString);
+	History = MoveTemp(Source.History);
+	Flags = MoveTemp(Source.Flags);
+
 	return *this;
 }
 #endif
 
-FText::FText( TSharedRef<ITextData, ESPMode::ThreadSafe> InTextData )
-	: TextData(MoveTemp(InTextData))
-	, Flags(0)
-{
-}
-
 FText::FText( FString InSourceString )
-	: TextData(new TGeneratedTextData<FTextHistory_Base>(InSourceString))
+	: DisplayString( new FString( MoveTemp(InSourceString) ))
 	, Flags(0)
 {
-	TextData->SetTextHistory(FTextHistory_Base(MoveTemp(InSourceString)));
+	History = MakeShareable(new FTextHistory_Base(DisplayString));
 }
 
-FText::FText( FString InSourceString, const FString& InNamespace, const FString& InKey, uint32 InFlags )
-	: TextData(new TLocalizedTextData<FTextHistory_Base>(FTextLocalizationManager::Get().GetDisplayString(InNamespace, InKey, &InSourceString)))
+FText::FText( FString InSourceString, FString InNamespace, FString InKey, int32 InFlags )
+	: DisplayString( FTextLocalizationManager::Get().GetDisplayString(InNamespace, InKey, &InSourceString) )
 	, Flags(InFlags)
 {
-	TextData->SetTextHistory(FTextHistory_Base(MoveTemp(InSourceString)));
+	History = MakeShareable(new FTextHistory_Base(InSourceString));
 }
 
-bool FText::IsEmpty() const
-{
-	return TextData->GetDisplayString().IsEmpty();
-}
 
 bool FText::IsEmptyOrWhitespace() const
 {
-	const FString& DisplayString = TextData->GetDisplayString();
-	if (DisplayString.IsEmpty())
+	if (DisplayString.Get().IsEmpty())
 	{
 		return true;
 	}
 
-	for( const TCHAR Character : DisplayString )
+	for( const TCHAR Character : DisplayString.Get() )
 	{
 		if (!IsWhitespace(Character))
 		{
@@ -271,13 +377,13 @@ FText FText::TrimPreceding( const FText& InText )
 
 	if (!GIsEditor)
 	{
-		if( (NewText.Flags & ETextFlag::CultureInvariant) != 0 )
+		if( (InText.Flags & (1 << ETextFlag::CultureInvariant)) != 0 )
 		{
-			NewText.Flags |= ETextFlag::Transient;
+			NewText.Flags = NewText.Flags | ETextFlag::Transient;
 		}
 		else
 		{
-			NewText.Flags |= ETextFlag::CultureInvariant;
+			NewText.Flags = NewText.Flags | ETextFlag::CultureInvariant;
 		}
 	}
 
@@ -306,13 +412,13 @@ FText FText::TrimTrailing( const FText& InText )
 
 	if (!GIsEditor)
 	{
-		if( (NewText.Flags & ETextFlag::CultureInvariant) != 0 )
+		if( (InText.Flags & (1 << ETextFlag::CultureInvariant)) != 0 )
 		{
-			NewText.Flags |= ETextFlag::Transient;
+			NewText.Flags = NewText.Flags & ETextFlag::Transient;
 		}
 		else
 		{
-			NewText.Flags |= ETextFlag::CultureInvariant;
+			NewText.Flags = NewText.Flags & ETextFlag::CultureInvariant;
 		}
 	}
 
@@ -353,51 +459,51 @@ FText FText::TrimPrecedingAndTrailing( const FText& InText )
 
 	if (!GIsEditor)
 	{
-		if( (NewText.Flags & ETextFlag::CultureInvariant) != 0 )
+		if( (InText.Flags & (1 << ETextFlag::CultureInvariant)) != 0 )
 		{
-			NewText.Flags |= ETextFlag::Transient;
+			NewText.Flags = NewText.Flags | ETextFlag::Transient;
 		}
 		else
 		{
-			NewText.Flags |= ETextFlag::CultureInvariant;
+			NewText.Flags = NewText.Flags | ETextFlag::CultureInvariant;
 		}
 	}
 
 	return NewText;
 }
 
-FText FText::Format(FText Fmt, FText v1)
+FText FText::Format(const FText& Fmt,const FText& v1)
 {
 	FFormatOrderedArguments Arguments;
-	Arguments.Add(MoveTemp(v1));
-	return FText::Format(MoveTemp(Fmt), MoveTemp(Arguments));
+	Arguments.Add(v1);
+	return FText::Format(Fmt, Arguments);
 }
 
-FText FText::Format(FText Fmt, FText v1, FText v2)
+FText FText::Format(const FText& Fmt,const FText& v1,const FText& v2)
 {
 	FFormatOrderedArguments Arguments;
-	Arguments.Add(MoveTemp(v1));
-	Arguments.Add(MoveTemp(v2));
-	return FText::Format(MoveTemp(Fmt), MoveTemp(Arguments));
+	Arguments.Add(v1);
+	Arguments.Add(v2);
+	return FText::Format(Fmt, Arguments);
 }
 
-FText FText::Format(FText Fmt, FText v1, FText v2, FText v3)
+FText FText::Format(const FText& Fmt,const FText& v1,const FText& v2,const FText& v3)
 {
 	FFormatOrderedArguments Arguments;
-	Arguments.Add(MoveTemp(v1));
-	Arguments.Add(MoveTemp(v2));
-	Arguments.Add(MoveTemp(v3));
-	return FText::Format(MoveTemp(Fmt), MoveTemp(Arguments));
+	Arguments.Add(v1);
+	Arguments.Add(v2);
+	Arguments.Add(v3);
+	return FText::Format(Fmt, Arguments);
 }
 
-FText FText::Format(FText Fmt, FText v1, FText v2, FText v3, FText v4)
+FText FText::Format(const FText& Fmt,const FText& v1,const FText& v2,const FText& v3,const FText& v4)
 {
 	FFormatOrderedArguments Arguments;
-	Arguments.Add(MoveTemp(v1));
-	Arguments.Add(MoveTemp(v2));
-	Arguments.Add(MoveTemp(v3));
-	Arguments.Add(MoveTemp(v4));
-	return FText::Format(MoveTemp(Fmt), MoveTemp(Arguments));
+	Arguments.Add(v1);
+	Arguments.Add(v2);
+	Arguments.Add(v3);
+	Arguments.Add(v4);
+	return FText::Format(Fmt, Arguments);
 }
 
 class FTextFormatHelper
@@ -418,51 +524,19 @@ private:
 	};
 
 public:
-	struct FArgumentName
-	{
-		FArgumentName(const TCHAR* InNamePtr, const int32 InNameLen)
-			: NamePtr(InNamePtr)
-			, NameLen(InNameLen)
-		{
-		}
-
-		TOptional<int32> AsIndex() const
-		{
-			int32 Index = 0;
-			for (int32 NameOffset = 0; NameOffset < NameLen; ++NameOffset)
-			{
-				const TCHAR C = *(NamePtr + NameOffset);
-
-				if (C >= '0' && C <= '9')
-				{
-					Index *= 10;
-					Index += C - '0';
-				}
-				else
-				{
-					return TOptional<int32>();
-				}
-			}
-			return Index;
-		}
-
-		const TCHAR* NamePtr;
-		int32 NameLen;
-	};
-
-	typedef TFunctionRef<const FFormatArgumentValue*(const FArgumentName&, int32)> FGetArgumentValue;
+	DECLARE_DELEGATE_RetVal_TwoParams( const FFormatArgumentValue*, FGetArgumentValue, const FString&, int32 );
 
 	static int32 EstimateArgumentValueLength(const FFormatArgumentValue& ArgumentValue)
 	{
-		switch(ArgumentValue.GetType())
+		switch(ArgumentValue.Type)
 		{
 		case EFormatArgumentType::Text:
-			return ArgumentValue.GetTextValue().ToString().Len();
+			return ArgumentValue.TextValue->ToString().Len();
 		case EFormatArgumentType::Int:
 		case EFormatArgumentType::UInt:
 		case EFormatArgumentType::Float:
 		case EFormatArgumentType::Double:
-			return 20;
+			return 16;
 		default:
 			break;
 		}
@@ -595,7 +669,7 @@ public:
 		}
 	}
 
-	static FString Format(const FText& Pattern, const int32 EstimatedArgumentValuesLength, FGetArgumentValue GetArgumentValue, bool bInRebuildText, bool bInRebuildAsSource)
+	static FText Format(const FText& Pattern, const int32 EstimatedArgumentValuesLength, FGetArgumentValue GetArgumentValue, const TSharedPtr<FTextHistory, ESPMode::ThreadSafe>& InHistory, bool bInRebuildText, bool bInRebuildAsSource)
 	{
 		checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 		//SCOPE_CYCLE_COUNTER( STAT_TextFormat );
@@ -610,7 +684,7 @@ public:
 		EEscapeState EscapeState = EEscapeState::None;
 		EBlockState BlockState = EBlockState::None;
 
-		int32 ArgumentNameIndex = INDEX_NONE;
+		FString ArgumentName;
 		int32 ArgumentNumber = 0;
 
 		for(int32 i = 0; i < PatternString.Len(); ++i)
@@ -700,70 +774,59 @@ public:
 						{
 						case '}':
 							{
-								if (ArgumentNameIndex == INDEX_NONE)
-								{
-									// Can happen for empty argument blocks
-									ArgumentNameIndex = i;
-								}
-
-								const FArgumentName ArgumentName = FArgumentName(&PatternString[ArgumentNameIndex], i - ArgumentNameIndex);
-								const FFormatArgumentValue* const PossibleArgumentValue = GetArgumentValue(ArgumentName, ArgumentNumber++);
+							
+								const FFormatArgumentValue* const PossibleArgumentValue = GetArgumentValue.Execute(ArgumentName, ArgumentNumber++);
 								if( PossibleArgumentValue )
 								{
 									const FFormatArgumentValue& ArgumentValue = *PossibleArgumentValue;
-									switch(ArgumentValue.GetType())
+									switch(ArgumentValue.Type)
 									{
 									case EFormatArgumentType::Text:
 										{
-											const FText& TextValue = ArgumentValue.GetTextValue();
-
 											// When doing a rebuild, all FText arguments need to be rebuilt during the Format
 											if( bInRebuildText )
 											{
-												TextValue.Rebuild();
+												ArgumentValue.TextValue->Rebuild();
 											}
 
-											ResultString += bInRebuildAsSource ? TextValue.BuildSourceString() : TextValue.ToString();
+											ResultString += bInRebuildAsSource ? ArgumentValue.TextValue->BuildSourceString() : ArgumentValue.TextValue->ToString();
 										}
 										break;
 									case EFormatArgumentType::Int:
 										{
-											ResultString += FText::AsNumber(ArgumentValue.GetIntValue()).ToString();
+											ResultString += FText::AsNumber(ArgumentValue.IntValue).ToString();
 										}
 										break;
 									case EFormatArgumentType::UInt:
 										{
-											ResultString += FText::AsNumber(ArgumentValue.GetUIntValue()).ToString();
+											ResultString += FText::AsNumber(ArgumentValue.UIntValue).ToString();
 										}
 										break;
 									case EFormatArgumentType::Float:
 										{
-											ResultString += FText::AsNumber(ArgumentValue.GetFloatValue()).ToString();
+											ResultString += FText::AsNumber(ArgumentValue.FloatValue).ToString();
 										}
 										break;
 									case EFormatArgumentType::Double:
 										{
-											ResultString += FText::AsNumber(ArgumentValue.GetDoubleValue()).ToString();
+											ResultString += FText::AsNumber(ArgumentValue.DoubleValue).ToString();
 										}
 										break;
 									}
 								}
 								else
 								{
-									ResultString.AppendChar('{');
-									ResultString.AppendChars(ArgumentName.NamePtr, ArgumentName.NameLen);
-									ResultString.AppendChar('}');
+									ResultString += TEXT("{");
+									ResultString += ArgumentName;
+									ResultString += TEXT("}");
 								}
-								ArgumentNameIndex = INDEX_NONE;
+								ArgumentName.Reset();
 								BlockState = EBlockState::None;
 							}
 							break;
 						default:
 							{
-								if (ArgumentNameIndex == INDEX_NONE)
-								{
-									ArgumentNameIndex = i;
-								}
+								ArgumentName += PatternString[i];
 							}
 							break;
 						}
@@ -773,7 +836,13 @@ public:
 			}
 		}
 
-		return ResultString;
+		FText Result = FText(MoveTemp(ResultString));
+		Result.History = InHistory;
+		if (!GIsEditor)
+		{
+			Result.Flags = Result.Flags | ETextFlag::Transient;
+		}
+		return Result;
 	}
 };
 
@@ -782,22 +851,22 @@ void FText::GetFormatPatternParameters(const FText& Pattern, TArray<FString>& Pa
 	FTextFormatHelper::EnumerateParameters(Pattern, ParameterNames);
 }
 
-FText FText::Format(FText Pattern, FFormatNamedArguments Arguments)
+FText FText::Format(const FText& Pattern, const FFormatNamedArguments& Arguments)
 {
-	return FormatInternal(MoveTemp(Pattern), MoveTemp(Arguments), false, false);
+	return FormatInternal(Pattern, Arguments, false, false);
 }
 
-FText FText::Format(FText Pattern, FFormatOrderedArguments Arguments)
+FText FText::Format(const FText& Pattern, const FFormatOrderedArguments& Arguments)
 {
-	return FormatInternal(MoveTemp(Pattern), MoveTemp(Arguments), false, false);
+	return FormatInternal(Pattern, Arguments, false, false);
 }
 
-FText FText::Format(FText Pattern, TArray< FFormatArgumentData > InArguments)
+FText FText::Format(const FText& Pattern, const TArray< FFormatArgumentData > InArguments)
 {
-	return FormatInternal(MoveTemp(Pattern), MoveTemp(InArguments), false, false);
+	return FormatInternal(Pattern, InArguments, false, false);
 }
 
-FText FText::FormatInternal(FText Pattern, FFormatNamedArguments Arguments, bool bInRebuildText, bool bInRebuildAsSource)
+FText FText::FormatInternal(const FText& Pattern, const FFormatNamedArguments& Arguments, bool bInRebuildText, bool bInRebuildAsSource)
 {
 	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	//SCOPE_CYCLE_COUNTER( STAT_TextFormat );
@@ -808,29 +877,15 @@ FText FText::FormatInternal(FText Pattern, FFormatNamedArguments Arguments, bool
 		EstimatedArgumentValuesLength += FTextFormatHelper::EstimateArgumentValueLength(Arg.Value);
 	}
 
-	auto GetArgumentValue = [&Arguments](const FTextFormatHelper::FArgumentName& ArgumentName, int32 ArgumentNumber) -> const FFormatArgumentValue*
+	auto GetArgumentValue = [&Arguments](const FString& ArgumentName, int32 ArgumentNumber) -> const FFormatArgumentValue*
 	{
-		for (const auto& Pair : Arguments)
-		{
-			if (ArgumentName.NameLen == Pair.Key.Len() && FCString::Strnicmp(ArgumentName.NamePtr, *Pair.Key, ArgumentName.NameLen) == 0)
-			{
-				return &Pair.Value;
-			}
-		}
-		return nullptr;
+		return Arguments.Find(ArgumentName);
 	};
 
-	FString ResultString = FTextFormatHelper::Format(Pattern, EstimatedArgumentValuesLength, FTextFormatHelper::FGetArgumentValue(GetArgumentValue), bInRebuildText, bInRebuildAsSource);
-	
-	FText Result = FText(MakeShareable(new TGeneratedTextData<FTextHistory_NamedFormat>(MoveTemp(ResultString), FTextHistory_NamedFormat(MoveTemp(Pattern), MoveTemp(Arguments)))));
-	if (!GIsEditor)
-	{
-		Result.Flags |= ETextFlag::Transient;
-	}
-	return Result;
+	return FTextFormatHelper::Format(Pattern, EstimatedArgumentValuesLength, FTextFormatHelper::FGetArgumentValue::CreateLambda(GetArgumentValue), MakeShareable(new FTextHistory_NamedFormat(Pattern, Arguments)), bInRebuildText, bInRebuildAsSource);
 }
 
-FText FText::FormatInternal(FText Pattern, FFormatOrderedArguments Arguments, bool bInRebuildText, bool bInRebuildAsSource)
+FText FText::FormatInternal(const FText& Pattern, const FFormatOrderedArguments& Arguments, bool bInRebuildText, bool bInRebuildAsSource)
 {
 	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	//SCOPE_CYCLE_COUNTER( STAT_TextFormat );
@@ -841,10 +896,10 @@ FText FText::FormatInternal(FText Pattern, FFormatOrderedArguments Arguments, bo
 		EstimatedArgumentValuesLength += FTextFormatHelper::EstimateArgumentValueLength(Arg);
 	}
 
-	auto GetArgumentValue = [&Arguments](const FTextFormatHelper::FArgumentName& ArgumentName, int32 ArgumentNumber) -> const FFormatArgumentValue*
+	auto GetArgumentValue = [&Arguments](const FString& ArgumentName, int32 ArgumentNumber) -> const FFormatArgumentValue*
 	{
-		TOptional<int32> ArgumentIndex = ArgumentName.AsIndex();
-		if (!ArgumentIndex.IsSet())
+		int32 ArgumentIndex = INDEX_NONE;
+		if (!LexicalConversion::TryParseString(ArgumentIndex, *ArgumentName))
 		{
 			// We failed to parse the argument name into a number...
 			// We have existing code that is incorrectly using names in the format string when providing ordered arguments
@@ -852,53 +907,31 @@ FText FText::FormatInternal(FText Pattern, FFormatOrderedArguments Arguments, bo
 			// by the argument name, so we need to emulate that behavior to avoid breaking some format operations
 			ArgumentIndex = ArgumentNumber;
 		}
-		return Arguments.IsValidIndex(ArgumentIndex.GetValue()) ? &(Arguments[ArgumentIndex.GetValue()]) : nullptr;
+		return ArgumentIndex != INDEX_NONE && ArgumentIndex < Arguments.Num() ? &(Arguments[ArgumentIndex]) : nullptr;
 	};
 
-	FString ResultString = FTextFormatHelper::Format(Pattern, EstimatedArgumentValuesLength, FTextFormatHelper::FGetArgumentValue(GetArgumentValue), bInRebuildText, bInRebuildAsSource);
-
-	FText Result = FText(MakeShareable(new TGeneratedTextData<FTextHistory_OrderedFormat>(MoveTemp(ResultString), FTextHistory_OrderedFormat(MoveTemp(Pattern), MoveTemp(Arguments)))));
-	if (!GIsEditor)
-	{
-		Result.Flags |= ETextFlag::Transient;
-	}
-	return Result;
+	return FTextFormatHelper::Format(Pattern, EstimatedArgumentValuesLength, FTextFormatHelper::FGetArgumentValue::CreateLambda(GetArgumentValue), MakeShareable(new FTextHistory_OrderedFormat(Pattern, Arguments)), bInRebuildText, bInRebuildAsSource);
 }
 
-FText FText::FormatInternal(FText Pattern, TArray< struct FFormatArgumentData > Arguments, bool bInRebuildText, bool bInRebuildAsSource)
+FText FText::FormatInternal(const FText& Pattern, const TArray< struct FFormatArgumentData > Arguments, bool bInRebuildText, bool bInRebuildAsSource)
 {
 	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	//SCOPE_CYCLE_COUNTER( STAT_TextFormat );
 
 	int32 EstimatedArgumentValuesLength = 0;
+	FFormatNamedArguments FormatNamedArguments;
 	for (const auto& Arg : Arguments)
 	{
 		EstimatedArgumentValuesLength += FTextFormatHelper::EstimateArgumentValueLength(Arg.ArgumentValue);
+		FormatNamedArguments.Add(Arg.ArgumentName.ToString(), FFormatArgumentValue(Arg.ArgumentValue));
 	}
 
-	FFormatArgumentValue TmpArgumentValue;
-	FFormatArgumentValue* TmpArgumentValuePtr = &TmpArgumentValue; // Need to do this to avoid the error "address of stack memory associated with local variable 'TmpArgumentValue' returned"
-	auto GetArgumentValue = [&Arguments, &TmpArgumentValuePtr](const FTextFormatHelper::FArgumentName& ArgumentName, int32 ArgumentNumber) -> const FFormatArgumentValue*
+	auto GetArgumentValue = [&FormatNamedArguments](const FString& ArgumentName, int32 ArgumentNumber) -> const FFormatArgumentValue*
 	{
-		for (const auto& Arg : Arguments)
-		{
-			if (ArgumentName.NameLen == Arg.ArgumentName.Len() && FCString::Strnicmp(ArgumentName.NamePtr, *Arg.ArgumentName, ArgumentName.NameLen) == 0)
-			{
-				(*TmpArgumentValuePtr) = FFormatArgumentValue(Arg.ArgumentValue);
-				return TmpArgumentValuePtr;
-			}
-		}
-		return nullptr;
+		return FormatNamedArguments.Find(ArgumentName);
 	};
 
-	FString ResultString = FTextFormatHelper::Format(Pattern, EstimatedArgumentValuesLength, FTextFormatHelper::FGetArgumentValue(GetArgumentValue), bInRebuildText, bInRebuildAsSource);
-
-	FText Result = FText(MakeShareable(new TGeneratedTextData<FTextHistory_ArgumentDataFormat>(MoveTemp(ResultString), FTextHistory_ArgumentDataFormat(MoveTemp(Pattern), MoveTemp(Arguments)))));
-	if (!GIsEditor)
-	{
-		Result.Flags |= ETextFlag::Transient;
-	}
-	return Result;
+	return FTextFormatHelper::Format(Pattern, EstimatedArgumentValuesLength, FTextFormatHelper::FGetArgumentValue::CreateLambda(GetArgumentValue), MakeShareable(new FTextHistory_ArgumentDataFormat(Pattern, Arguments)), bInRebuildText, bInRebuildAsSource);
 }
 
 /**
@@ -952,32 +985,6 @@ DEF_ASPERCENT(float)
 #undef DEF_ASPERCENT
 #undef DEF_ASPERCENT_CAST
 
-FText FText::AsMemory(uint64 NumBytes, const FNumberFormattingOptions* const Options, const FCulturePtr& TargetCulture)
-{
-	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
-	FFormatNamedArguments Args;
-
-	if (NumBytes < 1024)
-	{
-		Args.Add( TEXT("Number"), FText::AsNumber( NumBytes, Options, TargetCulture) );
-		Args.Add( TEXT("Unit"), FText::FromString( FString( TEXT("B") ) ) );
-		return FText::Format( NSLOCTEXT("Internationalization", "ComputerMemoryFormatting", "{Number} {Unit}"), Args );
-	}
-
-	static const TCHAR* Prefixes = TEXT("kMGTPEZY");
-	int32 Prefix = 0;
-
-	for (; NumBytes > 1024 * 1024; NumBytes >>= 10)
-	{
-		++Prefix;
-	}
-
-	const double MemorySizeAsDouble = (double)NumBytes / 1024.0;
-	Args.Add( TEXT("Number"), FText::AsNumber( MemorySizeAsDouble, Options, TargetCulture) );
-	Args.Add( TEXT("Unit"), FText::FromString( FString( 1, &Prefixes[Prefix] ) + TEXT("B") ) );
-	return FText::Format( NSLOCTEXT("Internationalization", "ComputerMemoryFormatting", "{Number} {Unit}"), Args);
-}
-
 FString FText::GetInvariantTimeZone()
 {
 	return TEXT("Etc/Unknown");
@@ -995,22 +1002,22 @@ bool FText::FindText( const FString& Namespace, const FString& Key, FText& OutTe
 	return FoundString.IsValid();
 }
 
-CORE_API FArchive& operator<<(FArchive& Ar, FText& Value)
+CORE_API FArchive& operator<<( FArchive& Ar, FText& Value )
 {
 	//When duplicating, the CDO is used as the template, then values for the instance are assigned.
 	//If we don't duplicate the string, the CDO and the instance are both pointing at the same thing.
 	//This would result in all subsequently duplicated objects stamping over formerly duplicated ones.
 
 	// Older FText's stored their "SourceString", that is now stored in a history class so move it there
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_FTEXT_HISTORY)
+	if(Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_FTEXT_HISTORY)
 	{
 		FString SourceStringToImplantIntoHistory;
 		Ar << SourceStringToImplantIntoHistory;
 
-		FTextDisplayStringPtr DisplayString;
+		Value.History = MakeShareable(new FTextHistory_Base(SourceStringToImplantIntoHistory));
 
 		// Namespaces and keys are no longer stored in the FText, we need to read them in and discard
-		if (Ar.UE4Ver() >= VER_UE4_ADDED_NAMESPACE_AND_KEY_DATA_TO_FTEXT)
+		if( Ar.UE4Ver() >= VER_UE4_ADDED_NAMESPACE_AND_KEY_DATA_TO_FTEXT )
 		{
 			FString Namespace;
 			FString Key;
@@ -1019,58 +1026,22 @@ CORE_API FArchive& operator<<(FArchive& Ar, FText& Value)
 			Ar << Key;
 
 			// Get the DisplayString using the namespace, key, and source string.
-			DisplayString = FTextLocalizationManager::Get().GetDisplayString(Namespace, Key, &SourceStringToImplantIntoHistory);
-		}
-		else
-		{
-			DisplayString = MakeShareable(new FString());
-		}
-
-		check(DisplayString.IsValid());
-		Value.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_Base>(DisplayString.ToSharedRef(), FTextHistory_Base(MoveTemp(SourceStringToImplantIntoHistory))));
-	}
-
-#if WITH_EDITOR
-	if (Ar.IsCooking() && Ar.IsSaving() && Ar.IsPersistent() && (Ar.GetDebugSerializationFlags() & DSF_EnableCookerWarnings))
-	{
-		if (!!(Value.Flags & ETextFlag::ConvertedProperty))
-		{
-			UE_LOG(LogText, Warning, TEXT("Saving FText \"%s\" which has been converted at load time please resave source package %s to avoid determinisitic cook and localization issues."), *Value.ToString(), *Ar.GetArchiveName());
-		}
-		else if (!!(Value.Flags & ETextFlag::InitializedFromString))
-		{
-			UE_LOG(LogText, Warning, TEXT("Saving FText \"%s\" which has been initialized from FString at cook time resave of source package %s may fix issue."), *Value.ToString(), *Ar.GetArchiveName())
+			Value.DisplayString = FTextLocalizationManager::Get().GetDisplayString(Namespace, Key, &SourceStringToImplantIntoHistory);
 		}
 	}
-#endif
 
-	const int32 OriginalFlags = Value.Flags;
-
-	if(Ar.IsSaving())
+	if(Ar.IsPersistent())
 	{
-		Value.TextData->PersistText(); // We always need to do this when saving so that we can save the history correctly
-		if(Ar.IsPersistent())
-		{
-			Value.Flags &= ~(ETextFlag::ConvertedProperty); // Remove conversion flag before saving.
-		}
+		Value.Flags &= ~(ETextFlag::ConvertedProperty); // Remove conversion flag before saving.
 	}
 	Ar << Value.Flags;
 
-	if (Ar.IsSaving())
+	if( Ar.UE4Ver() >= VER_UE4_FTEXT_HISTORY )
 	{
-		Value.Flags = OriginalFlags;
-	}
-
-	if (Ar.UE4Ver() >= VER_UE4_FTEXT_HISTORY)
-	{
-		bool bSerializeHistory = true;
-
-		if (Ar.IsSaving())
+		if(Ar.IsSaving())
 		{
-			// Skip the history for empty texts
-			bSerializeHistory = !Value.IsEmpty();
-
-			if (!bSerializeHistory)
+			// If there is no history, mark it, otherwise the history will serialize it's type
+			if(!Value.History.IsValid())
 			{
 				int8 NoHistory = INDEX_NONE;
 				Ar << NoHistory;
@@ -1087,67 +1058,66 @@ CORE_API FArchive& operator<<(FArchive& Ar, FText& Value)
 			{
 			case ETextHistoryType::Base:
 				{
-					Value.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_Base>());
+					Value.History = MakeShareable(new FTextHistory_Base);
 					break;
 				}
 			case ETextHistoryType::NamedFormat:
 				{
-					Value.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_NamedFormat>());
+					Value.History = MakeShareable(new FTextHistory_NamedFormat);
 					break;
 				}
 			case ETextHistoryType::OrderedFormat:
 				{
-					Value.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_OrderedFormat>());
+					Value.History = MakeShareable(new FTextHistory_OrderedFormat);
 					break;
 				}
 			case ETextHistoryType::ArgumentFormat:
 				{
-					Value.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_ArgumentDataFormat>());
+					Value.History = MakeShareable(new FTextHistory_ArgumentDataFormat);
 					break;
 				}
 			case ETextHistoryType::AsNumber:
 				{
-					Value.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_AsNumber>());
+					Value.History = MakeShareable(new FTextHistory_AsNumber);
 					break;
 				}
 			case ETextHistoryType::AsPercent:
 				{
-					Value.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_AsPercent>());
+					Value.History = MakeShareable(new FTextHistory_AsPercent);
 					break;
 				}
 			case ETextHistoryType::AsCurrency:
 				{
-					Value.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_AsCurrency>());
+					Value.History = MakeShareable(new FTextHistory_AsCurrency);
 					break;
 				}
 			case ETextHistoryType::AsDate:
 				{
-					Value.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_AsDate>());
+					Value.History = MakeShareable(new FTextHistory_AsDate);
 					break;
 				}
 			case ETextHistoryType::AsTime:
 				{
-					Value.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_AsTime>());
+					Value.History = MakeShareable(new FTextHistory_AsTime);
 					break;
 				}
 			case ETextHistoryType::AsDateTime:
 				{
-					Value.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_AsDateTime>());
+					Value.History = MakeShareable(new FTextHistory_AsDateTime);
 					break;
 				}
 			default:
 				{
-					bSerializeHistory = false;
-					Value.TextData = FText::GetEmpty().TextData;
+					Value.History.Reset();
+					Value.DisplayString = FText::GetEmpty().DisplayString;
 				}
 			}
 		}
 
-		if(bSerializeHistory)
+		if(Value.History.IsValid())
 		{
-			FTextHistory& MutableTextHistory = Value.TextData->GetMutableTextHistory();
-			MutableTextHistory.Serialize(Ar);
-			MutableTextHistory.SerializeForDisplayString(Ar, Value.TextData->GetMutableLocalizedString());
+			Value.History->Serialize(Ar);
+			Value.History->SerializeForDisplayString(Ar, Value.DisplayString);
 		}
 	}
 
@@ -1173,13 +1143,13 @@ CORE_API FArchive& operator<<(FArchive& Ar, FText& Value)
 #if WITH_EDITOR
 FText FText::ChangeKey( FString Namespace, FString Key, const FText& Text )
 {
-	return FText( *Text.TextData->GetTextHistory().GetSourceString(), MoveTemp( Namespace ), MoveTemp( Key ), Text.Flags );
+	return FText( *Text.History->GetSourceString().Get(), MoveTemp( Namespace ), MoveTemp( Key ) );
 }
 #endif
 
-FText FText::CreateNumericalText(TSharedRef<ITextData, ESPMode::ThreadSafe> InTextData)
+FText FText::CreateNumericalText(FString InSourceString)
 {
-	FText NewText = FText(MoveTemp(InTextData));
+	FText NewText = FText( MoveTemp( InSourceString ) );
 	if (!GIsEditor)
 	{
 		NewText.Flags |= ETextFlag::Transient;
@@ -1187,9 +1157,9 @@ FText FText::CreateNumericalText(TSharedRef<ITextData, ESPMode::ThreadSafe> InTe
 	return NewText;
 }
 
-FText FText::CreateChronologicalText(TSharedRef<ITextData, ESPMode::ThreadSafe> InTextData)
+FText FText::CreateChronologicalText(FString InSourceString)
 {
-	FText NewText = FText(MoveTemp(InTextData));
+	FText NewText = FText( MoveTemp( InSourceString ) );
 	if (!GIsEditor)
 	{
 		NewText.Flags |= ETextFlag::Transient;
@@ -1199,7 +1169,14 @@ FText FText::CreateChronologicalText(TSharedRef<ITextData, ESPMode::ThreadSafe> 
 
 FText FText::FromName( const FName& Val) 
 {
-	return FText::FromString(Val.ToString());
+	FText NewText = FText( Val.ToString() );
+
+	if (!GIsEditor)
+	{
+		NewText.Flags |= ETextFlag::CultureInvariant;
+	}
+
+	return NewText; 
 }
 
 FText FText::FromString( FString String )
@@ -1234,45 +1211,31 @@ const FString& FText::ToString() const
 {
 	Rebuild();
 
-	return TextData->GetDisplayString();
+	return DisplayString.Get();
 }
 
 FString FText::BuildSourceString() const
 {
-	return TextData->GetTextHistory().ToText(true).ToString();
-}
-
-bool FText::IsNumeric() const
-{
-	return TextData->GetDisplayString().IsNumeric();
+	if(History.IsValid())
+	{
+		return History->ToText(true).ToString();
+	}
+	return DisplayString.Get();
 }
 
 void FText::Rebuild() const
 {
-	FTextHistory& MutableTextHistory = TextData->GetMutableTextHistory();
-	if (MutableTextHistory.IsOutOfDate())
+	if(History.IsValid())
 	{
-		// Need to persist the text before the rebuild so that we have a valid localized string pointer
-		TextData->PersistText();
-		MutableTextHistory.Rebuild(TextData->GetLocalizedString().ToSharedRef());
+		History->Rebuild(DisplayString);
 	}
-}
-
-bool FText::IsTransient() const
-{
-	return (Flags & ETextFlag::Transient) != 0;
-}
-
-bool FText::IsCultureInvariant() const
-{
-	return (Flags & ETextFlag::CultureInvariant) != 0;
 }
 
 bool FText::ShouldGatherForLocalization() const
 {
-	const FString& SourceString = GetSourceString();
+	auto SourceString = GetSourceString();
 
-	auto IsAllWhitespace = [](const FString& String) -> bool
+	auto IsAllWhitespace = [](FString& String) -> bool
 	{
 		for(int32 i = 0; i < String.Len(); ++i)
 		{
@@ -1284,85 +1247,46 @@ bool FText::ShouldGatherForLocalization() const
 		return true;
 	};
 
-	return !((Flags & ETextFlag::CultureInvariant) || (Flags & ETextFlag::Transient)) && !SourceString.IsEmpty() && !IsAllWhitespace(SourceString);
+	return !((Flags & ETextFlag::CultureInvariant) || (Flags & ETextFlag::Transient)) && SourceString.IsValid() && !SourceString->IsEmpty() && !IsAllWhitespace(*SourceString);
 }
 
-const FString& FText::GetSourceString() const
+TSharedPtr< FString, ESPMode::ThreadSafe > FText::GetSourceString() const
 {
-	const FString* SourceString = TextData->GetTextHistory().GetSourceString();
-	if(SourceString)
+	if(History.IsValid())
 	{
-		return *SourceString;
+		TSharedPtr< FString, ESPMode::ThreadSafe > SourceString = History->GetSourceString();
+		if(SourceString.IsValid())
+		{
+			return SourceString;
+		}
 	}
 
-	return TextData->GetDisplayString();
+	return DisplayString;
 }
 
 bool FText::IdenticalTo( const FText& Other ) const
 {
-	// If both instances point to the same data or localized string, then both instances are considered identical.
+	// If both instances point to the same string, then both instances are considered identical.
 	// This is fast as it skips a lexical compare, however it can also return false for two instances that have identical strings, but in different pointers.
 	// For instance, this method will return false for two FText objects created from FText::FromString("Wooble") as they each have unique, non-shared instances.
-	return TextData == Other.TextData || TextData->GetLocalizedString() == Other.TextData->GetLocalizedString();
+	return DisplayString == Other.DisplayString;
 }
 
 void FText::GetSourceTextsFromFormatHistory(TArray<FText>& OutSourceTexts) const
 {
-	TextData->GetTextHistory().GetSourceTextsFromFormatHistory(*this, OutSourceTexts);
-}
-
-FArchive& operator<<(FArchive& Ar, FFormatArgumentValue& Value)
-{
-	int8 TypeAsInt8 = Value.Type;
-	Ar << TypeAsInt8;
-	Value.Type = (EFormatArgumentType::Type)TypeAsInt8;
-
-	switch(Value.Type)
-	{
-	case EFormatArgumentType::Double:
-		{
-			Ar << Value.DoubleValue;
-			break;
-		}
-	case EFormatArgumentType::Float:
-		{
-			Ar << Value.FloatValue;
-			break;
-		}
-	case EFormatArgumentType::Int:
-		{
-			Ar << Value.IntValue;
-			break;
-		}
-	case EFormatArgumentType::UInt:
-		{
-			Ar << Value.UIntValue;
-			break;
-		}
-	case EFormatArgumentType::Text:
-		{
-			if(Ar.IsLoading())
-			{
-				Value.TextValue = FText();
-			}
-			Ar << Value.TextValue.GetValue();
-			break;
-		}
-	}
-	
-	return Ar;
+	History->GetSourceTextsFromFormatHistory(*(this), OutSourceTexts);
 }
 
 FTextSnapshot::FTextSnapshot()
-	: TextDataPtr()
+	: DisplayStringPtr()
 	, HistoryRevision(INDEX_NONE)
 	, Flags(0)
 {
 }
 
 FTextSnapshot::FTextSnapshot(const FText& InText)
-	: TextDataPtr(InText.TextData)
-	, HistoryRevision(InText.TextData->GetTextHistory().Revision)
+	: DisplayStringPtr(InText.DisplayString)
+	, HistoryRevision(InText.History.IsValid() ? InText.History->Revision : INDEX_NONE)
 	, Flags(InText.Flags)
 {
 }
@@ -1373,9 +1297,10 @@ bool FTextSnapshot::IdenticalTo(const FText& InText) const
 	// (this usually happens when ToString() is called)
 	InText.Rebuild();
 
-	return TextDataPtr == InText.TextData 
-		&& HistoryRevision == InText.TextData->GetTextHistory().Revision
-		&& Flags == InText.Flags;;
+	const int32 InHistoryRevision = InText.History.IsValid() ? InText.History->Revision : INDEX_NONE;
+	return DisplayStringPtr == InText.DisplayString
+		&& HistoryRevision == InHistoryRevision
+		&& Flags == InText.Flags;
 }
 
 bool FTextSnapshot::IsDisplayStringEqualTo(const FText& InText) const
@@ -1386,21 +1311,20 @@ bool FTextSnapshot::IsDisplayStringEqualTo(const FText& InText) const
 
 	// We have to assume that the display string has changed if the history of the text has changed
 	// (due to a culture change), as we no longer have the old display string to compare against
-	return HistoryRevision == InText.TextData->GetTextHistory().Revision 
-		&& TextDataPtr.IsValid() && TextDataPtr->GetDisplayString().Equals(InText.ToString(), ESearchCase::CaseSensitive);
+	const int32 InHistoryRevision = InText.History.IsValid() ? InText.History->Revision : INDEX_NONE;
+	return HistoryRevision == InHistoryRevision && DisplayStringPtr.IsValid() && DisplayStringPtr->Equals(InText.ToString(), ESearchCase::CaseSensitive);
 }
 
 FScopedTextIdentityPreserver::FScopedTextIdentityPreserver(FText& InTextToPersist)
-	: TextToPersist(InTextToPersist)
-	, HadFoundNamespaceAndKey(false)
-	, Flags(TextToPersist.Flags)
+	: HadFoundNamespaceAndKey(false)
+	, Flags(InTextToPersist.Flags)
+	, TextToPersist(InTextToPersist)
 {
 	// Empty display strings can't have a namespace or key.
-	if (GIsEditor && !TextToPersist.TextData->GetDisplayString().IsEmpty())
+	if (GIsEditor && !InTextToPersist.DisplayString->IsEmpty())
 	{
 		// Save off namespace and key to be restored later.
-		TextToPersist.TextData->PersistText();
-		HadFoundNamespaceAndKey = FTextLocalizationManager::Get().FindNamespaceAndKeyFromDisplayString(TextToPersist.TextData->GetLocalizedString().ToSharedRef(), Namespace, Key);
+		HadFoundNamespaceAndKey = FTextLocalizationManager::Get().FindNamespaceAndKeyFromDisplayString(InTextToPersist.DisplayString, Namespace, Key);
 	}
 }
 
@@ -1417,11 +1341,14 @@ FScopedTextIdentityPreserver::~FScopedTextIdentityPreserver()
 		// Without a source string, we can't possibly preserve the identity. If the text we're preserving identity for can't possibly have an identity anymore, this class shouldn't be used on this text.
 		check(SourceString);
 
+		// Make the history so that it can attempt find and serialize the identity for this source string when the history itself is serialized.
+		TextToPersist.History = MakeShareable(new FTextHistory_Base(*SourceString));
+
 		// Create/update the display string instance for this identity in the text localization manager...
 		const FTextDisplayStringRef DisplayString = FTextLocalizationManager::Get().GetDisplayString(Namespace, Key, SourceString);
 
-		// ... and update the data on the text instance
-		TextToPersist.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_Base>(MoveTemp(DisplayString), FTextHistory_Base(*SourceString)));
+		// ... and set it so that the text's history's serialization will properly map this display string instance back to the identity we intended to preserve and restore.
+		TextToPersist.DisplayString = DisplayString;
 	}
 }
 

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System;
@@ -19,54 +19,51 @@ public class PhysX : ModuleRules
 		switch (Config)
 		{
 			case UnrealTargetConfiguration.Debug:
-                {
-                    if (BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
-                    {
-                        return PhysXLibraryMode.Debug;
-                    }else if(BuildConfiguration.bUseCheckedPhysXLibraries)
-					{
-						return PhysXLibraryMode.Checked;
-					}
-					else
-                    {
-                        return PhysXLibraryMode.Profile;
-                    }
-                }
-
+				return PhysXLibraryMode.Debug;
+			case UnrealTargetConfiguration.Shipping:
+			case UnrealTargetConfiguration.Test:
+				return PhysXLibraryMode.Shipping;
 			case UnrealTargetConfiguration.Development:
 			case UnrealTargetConfiguration.DebugGame:
 			case UnrealTargetConfiguration.Unknown:
-			case UnrealTargetConfiguration.Shipping:
-			case UnrealTargetConfiguration.Test:
 			default:
-            if(BuildConfiguration.bUseShippingPhysXLibraries)
-            {
-                return PhysXLibraryMode.Shipping;
-            }
-            else if(BuildConfiguration.bUseCheckedPhysXLibraries)
-            {
-                return PhysXLibraryMode.Checked;
-            }
-            else
-            {
-                return PhysXLibraryMode.Profile;
-            }
+				return PhysXLibraryMode.Profile;
 		}
 	}
+
+	static bool bShippingBuildsActuallyUseShippingPhysXLibraries = false;
 
 	static string GetPhysXLibrarySuffix(PhysXLibraryMode Mode)
 	{
 		switch (Mode)
 		{
 			case PhysXLibraryMode.Debug:
-                return "DEBUG";
+				{ 
+					if( BuildConfiguration.bDebugBuildsActuallyUseDebugCRT )
+					{ 
+						return "DEBUG";
+					}
+					else
+					{
+						return "PROFILE";
+					}
+				}
 			case PhysXLibraryMode.Checked:
 				return "CHECKED";
 			case PhysXLibraryMode.Profile:
 				return "PROFILE";
 			default:
 			case PhysXLibraryMode.Shipping:
-                return "";
+				{
+					if( bShippingBuildsActuallyUseShippingPhysXLibraries )
+					{
+						return "";	
+					}
+					else
+					{
+						return "PROFILE";
+					}
+				}
 		}
 	}
 
@@ -91,25 +88,6 @@ public class PhysX : ModuleRules
 			// This will properly cover the case where PhysX is compiled but Vehicle is not.
 			Definitions.Add("WITH_VEHICLE=0");
 		}
-
-        if (LibraryMode == PhysXLibraryMode.Shipping)
-        {
-            Definitions.Add("WITH_PHYSX_RELEASE=1");
-        }
-        else
-		{
-		    Definitions.Add("WITH_PHYSX_RELEASE=0");
-		}
-
-        if (LibraryMode == PhysXLibraryMode.Checked)
-        {
-            Definitions.Add("WITH_PHYSX_CHECKED=1");
-        }
-        else
-        {
-            Definitions.Add("WITH_PHYSX_CHECKED=0");
-        }
-        
 
 		string PhysXVersion = "PhysX-3.3";
 
@@ -174,9 +152,7 @@ public class PhysX : ModuleRules
 			string PhysXBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX/{0}/Win64/VS{1}/", PhysXVersion, WindowsPlatform.GetVisualStudioCompilerVersionName());
 			foreach(string DLL in RuntimeDependenciesX64)
 			{
-				string FileName = PhysXBinariesDir + String.Format(DLL, LibrarySuffix);
-				RuntimeDependencies.Add(new RuntimeDependency(FileName));
-				RuntimeDependencies.Add(new RuntimeDependency(Path.ChangeExtension(FileName, ".pdb")));
+				RuntimeDependencies.Add(new RuntimeDependency(PhysXBinariesDir + String.Format(DLL, LibrarySuffix)));
 			}
 			RuntimeDependencies.Add(new RuntimeDependency(PhysXBinariesDir + "nvToolsExt64_1.dll"));
 		}
@@ -224,9 +200,7 @@ public class PhysX : ModuleRules
 			string PhysXBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX/{0}/Win32/VS{1}/", PhysXVersion, WindowsPlatform.GetVisualStudioCompilerVersionName());
 			foreach(string DLL in RuntimeDependenciesX86)
 			{
-				string FileName = PhysXBinariesDir + String.Format(DLL, LibrarySuffix);
-				RuntimeDependencies.Add(new RuntimeDependency(FileName));
-				RuntimeDependencies.Add(new RuntimeDependency(Path.ChangeExtension(FileName, ".pdb")));
+				RuntimeDependencies.Add(new RuntimeDependency(PhysXBinariesDir + String.Format(DLL, LibrarySuffix)));
 			}
 			RuntimeDependencies.Add(new RuntimeDependency(PhysXBinariesDir + "nvToolsExt32_1.dll"));
 		}
@@ -282,8 +256,8 @@ public class PhysX : ModuleRules
 				"SimulationController{0}",
 			};
 
-			// shipping libs do not need this
-            if (LibraryMode != PhysXLibraryMode.Shipping)
+			// the "shipping" don't need the nvTools library
+			if (LibraryMode != PhysXLibraryMode.Shipping || !bShippingBuildsActuallyUseShippingPhysXLibraries)
 			{
 				// use for profiling, but crash handler won't work
 //				PublicAdditionalLibraries.Add("nvToolsExt");
@@ -332,11 +306,11 @@ public class PhysX : ModuleRules
 				PublicAdditionalLibraries.Add(String.Format(Lib, LibrarySuffix));
 			}
 		}
-		else if (Target.Platform == UnrealTargetPlatform.IOS || Target.Platform == UnrealTargetPlatform.TVOS)
+		else if (Target.Platform == UnrealTargetPlatform.IOS)
 		{
 			PublicSystemIncludePaths.Add(PhysXDir + "include/foundation/unix");
 
-			PhysXLibDir = Path.Combine(PhysXLibDir, Target.Platform.ToString());
+			PhysXLibDir = Path.Combine(PhysXLibDir, "IOS/");
 			PublicLibraryPaths.Add(PhysXLibDir);
 
 			string[] PhysXLibs = new string[] 

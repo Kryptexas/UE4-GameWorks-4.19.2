@@ -13,8 +13,6 @@
 #define CLOTHING_ACTOR_TASKS_H
 
 #include "PxTask.h"
-#include "PsSync.h"
-#include "ApexInterface.h"
 
 #ifdef PX_PS3
 #include "PxSpuTask.h"
@@ -36,7 +34,7 @@ class ClothingActorBeforeTickTask : public physx::PxLightCpuTask
 {
 public:
 	ClothingActorBeforeTickTask(ClothingActor* actor) : mActor(actor), mDeltaTime(0.0f), mSubstepSize(0.0f), mNumSubSteps(0) {}
-	~ClothingActorBeforeTickTask() {}
+
 	PX_INLINE void setDeltaTime(PxF32 simulationDelta, PxF32 substepSize, PxU32 numSubSteps)
 	{
 		mDeltaTime = simulationDelta;
@@ -70,14 +68,14 @@ private:
 
 
 
-class ClothingActorFetchResultsTask : public physx::PxTask
+class ClothingActorFetchResultsTask : public physx::PxLightCpuTask
 {
 public:
 	ClothingActorFetchResultsTask(ClothingActor* actor) : mActor(actor) {}
 
 	virtual void		run();
 	virtual const char*	getName() const;
-	virtual void release();
+
 private:
 	ClothingActor* mActor;
 };

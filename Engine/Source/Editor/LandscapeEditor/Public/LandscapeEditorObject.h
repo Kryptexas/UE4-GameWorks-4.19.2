@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -472,10 +472,6 @@ class ULandscapeEditorObject : public UObject
 	UPROPERTY(NonTransactional)
 	TArray<uint16> ImportLandscape_Data;
 
-	// Whether the imported alpha maps are to be interpreted as "layered" or "additive" (UE4 uses additive internally)
-	UPROPERTY(Category="New Landscape", EditAnywhere, NonTransactional, EditFixedSize, meta=(DisplayName="Layer Alphamap Type", ShowForTools="NewLandscape"))
-	ELandscapeImportAlphamapType ImportLandscape_AlphamapType;
-
 	// The landscape layers that will be created. Only layer names referenced in the material assigned above are shown here. Modify the material to add more layers.
 	UPROPERTY(Category="New Landscape", EditAnywhere, NonTransactional, EditFixedSize, meta=(DisplayName="Layers", ShowForTools="NewLandscape"))
 	TArray<FLandscapeImportLayer> ImportLandscape_Layers;
@@ -548,12 +544,12 @@ class ULandscapeEditorObject : public UObject
 
 	// Limits painting to only the components that already have the selected layer
 	UPROPERTY(Category="Target Layers", EditAnywhere, NonTransactional, meta=(ShowForTargetTypes="Weightmap,Visibility"))
-	ELandscapeLayerPaintingRestriction PaintingRestriction;
+	TEnumAsByte<ELandscapeLayerPaintingRestriction::Type> PaintingRestriction;
 
 #if WITH_EDITOR
-	//~ Begin UObject Interface
+	// Begin UObject Interface
 	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-	//~ End UObject Interface
+	// End UObject Interface
 #endif // WITH_EDITOR
 
 	void Load();
@@ -578,8 +574,6 @@ class ULandscapeEditorObject : public UObject
 
 	void RefreshImportLayersList();
 	
-	void UpdateComponentLayerWhitelist();
-
 	int32 ClampLandscapeSize(int32 InComponenetsCount) const
 	{
 		// Max size is either whole components below 8192 verts, or 32 components 

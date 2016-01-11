@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "UnrealEd.h"
@@ -89,12 +89,13 @@ UDebugSkelMeshComponent::UDebugSkelMeshComponent(const FObjectInitializer& Objec
 	bSkeletonSocketsVisible = true;
 
 	TurnTableSpeedScaling = 1.f;
+	PlaybackSpeedScaling = 1.f;
 	TurnTableMode = EPersonaTurnTableMode::Stopped;
 
 #if WITH_APEX_CLOTHING
 	SectionsDisplayMode = ESectionDisplayMode::None;
 	// always shows cloth morph target when previewing in editor
-	bClothMorphTarget = false;
+	bClothMorphTarget = true;
 #endif //#if WITH_APEX_CLOTHING
 }
 
@@ -246,25 +247,23 @@ FString UDebugSkelMeshComponent::GetPreviewText() const
 
 	if (IsPreviewOn())
 	{
-		UAnimationAsset* CurrentAsset = PreviewInstance->GetCurrentAsset();
-		UVertexAnimation* CurrentVertexAnim = PreviewInstance->GetCurrentVertexAnimation();
-		if (UBlendSpaceBase* BlendSpace = Cast<UBlendSpaceBase>(CurrentAsset))
+		if (UBlendSpaceBase* BlendSpace = Cast<UBlendSpaceBase>(PreviewInstance->CurrentAsset))
 		{
 			return FText::Format( LOCTEXT("BlendSpace", "Blend Space {0}"), FText::FromString(BlendSpace->GetName()) ).ToString();
 		}
-		else if (UAnimMontage* Montage = Cast<UAnimMontage>(CurrentAsset))
+		else if (UAnimMontage* Montage = Cast<UAnimMontage>(PreviewInstance->CurrentAsset))
 		{
 			return FText::Format( LOCTEXT("Montage", "Montage {0}"), FText::FromString(Montage->GetName()) ).ToString();
 		}
-		else if(UAnimComposite* Composite = Cast<UAnimComposite>(CurrentAsset))
+		else if(UAnimComposite* Composite = Cast<UAnimComposite>(PreviewInstance->CurrentAsset))
 		{
 			return FText::Format(LOCTEXT("Composite", "Composite {0}"), FText::FromString(Composite->GetName())).ToString();
 		}
-		else if (UAnimSequence* Sequence = Cast<UAnimSequence>(CurrentAsset))
+		else if (UAnimSequence* Sequence = Cast<UAnimSequence>(PreviewInstance->CurrentAsset))
 		{
 			return FText::Format( LOCTEXT("Animation", "Animation {0}"), FText::FromString(Sequence->GetName()) ).ToString();
 		}
-		else if (UVertexAnimation* VertAnim = Cast<UVertexAnimation>(CurrentVertexAnim))
+		else if (UVertexAnimation* VertAnim = Cast<UVertexAnimation>(PreviewInstance->CurrentVertexAnim))
 		{
 			return FText::Format( LOCTEXT("VertexAnim", "VertexAnim {0}"), FText::FromString(VertAnim->GetName()) ).ToString();
 		}
@@ -279,9 +278,9 @@ void UDebugSkelMeshComponent::InitAnim(bool bForceReinit)
 {
 	// If we already have PreviewInstnace and its asset's Skeleton does not match with mesh's Skeleton
 	// then we need to clear it up to avoid an issue
-	if ( PreviewInstance && PreviewInstance->GetCurrentAsset() && SkeletalMesh )
+	if ( PreviewInstance && PreviewInstance->CurrentAsset && SkeletalMesh )
 	{
-		if ( PreviewInstance->GetCurrentAsset()->GetSkeleton() != SkeletalMesh->Skeleton )
+		if ( PreviewInstance->CurrentAsset->GetSkeleton() != SkeletalMesh->Skeleton )
 		{
 			// if it doesn't match, just clear it
 			PreviewInstance->SetAnimationAsset(NULL);
@@ -349,7 +348,7 @@ void UDebugSkelMeshComponent::EnablePreview(bool bEnable, UAnimationAsset* Previ
 			}
 		else if (IsPreviewOn())
 		{
-			if (PreviewInstance->GetCurrentAsset() == PreviewAsset || PreviewAsset == NULL)
+			if (PreviewInstance->CurrentAsset == PreviewAsset || PreviewAsset == NULL)
 			{
 				// now recover to saved AnimScriptInstance;
 				AnimScriptInstance = SavedAnimScriptInstance;
@@ -432,80 +431,78 @@ void UDebugSkelMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction*
 
 	const bool bIsPreviewInstance = (PreviewInstance && PreviewInstance == AnimScriptInstance);
 
-	BakedAnimationPoses.Reset();
-	if(bDisplayBakedAnimation && bIsPreviewInstance && PreviewInstance->GetRequiredBones().IsValid())
+	BakedAnimationPoses.Empty();
+	if(bDisplayBakedAnimation && bIsPreviewInstance && PreviewInstance->RequiredBones.IsValid())
 	{
-		if(UAnimSequence* Sequence = Cast<UAnimSequence>(PreviewInstance->GetCurrentAsset()))
+		if(UAnimSequence* Sequence = Cast<UAnimSequence>(PreviewInstance->CurrentAsset))
 		{
-			BakedAnimationPoses.AddUninitialized(PreviewInstance->GetRequiredBones().GetNumBones());
-			bool bSavedUseSourceData = PreviewInstance->GetRequiredBones().ShouldUseSourceData();
-			PreviewInstance->GetRequiredBones().SetUseRAWData(true);
-			PreviewInstance->GetRequiredBones().SetUseSourceData(false);
+			BakedAnimationPoses.AddUninitialized(PreviewInstance->RequiredBones.GetNumBones());
+			bool bSavedUseSourceData = AnimScriptInstance->RequiredBones.ShouldUseSourceData();
+			AnimScriptInstance->RequiredBones.SetUseRAWData(true);
+			AnimScriptInstance->RequiredBones.SetUseSourceData(false);
 			PreviewInstance->EnableControllers(false);
 			GenSpaceBases(BakedAnimationPoses);
-			PreviewInstance->GetRequiredBones().SetUseRAWData(false);
-			PreviewInstance->GetRequiredBones().SetUseSourceData(bSavedUseSourceData);
+			AnimScriptInstance->RequiredBones.SetUseRAWData(false);
+			AnimScriptInstance->RequiredBones.SetUseSourceData(bSavedUseSourceData);
 			PreviewInstance->EnableControllers(true);
 		}
 	}
 
-	SourceAnimationPoses.Reset();
-	if(bDisplaySourceAnimation && bIsPreviewInstance && PreviewInstance->GetRequiredBones().IsValid())
+	SourceAnimationPoses.Empty();
+	if(bDisplaySourceAnimation && bIsPreviewInstance && PreviewInstance->RequiredBones.IsValid())
 	{
-		if(UAnimSequence* Sequence = Cast<UAnimSequence>(PreviewInstance->GetCurrentAsset()))
+		if(UAnimSequence* Sequence = Cast<UAnimSequence>(PreviewInstance->CurrentAsset))
 		{
-			SourceAnimationPoses.AddUninitialized(PreviewInstance->GetRequiredBones().GetNumBones());
-			bool bSavedUseSourceData = PreviewInstance->GetRequiredBones().ShouldUseSourceData();
-			PreviewInstance->GetRequiredBones().SetUseSourceData(true);
+			SourceAnimationPoses.AddUninitialized(PreviewInstance->RequiredBones.GetNumBones());
+			bool bSavedUseSourceData = AnimScriptInstance->RequiredBones.ShouldUseSourceData();
+			AnimScriptInstance->RequiredBones.SetUseSourceData(true);
 			PreviewInstance->EnableControllers(false);
 			GenSpaceBases(SourceAnimationPoses);
-			PreviewInstance->GetRequiredBones().SetUseSourceData(bSavedUseSourceData);
+			AnimScriptInstance->RequiredBones.SetUseSourceData(bSavedUseSourceData);
 			PreviewInstance->EnableControllers(true);
 		}
 	}
 
-	UncompressedSpaceBases.Reset();
-	if (bDisplayRawAnimation && AnimScriptInstance && AnimScriptInstance->GetRequiredBones().IsValid())
+	UncompressedSpaceBases.Empty();
+	if (bDisplayRawAnimation && AnimScriptInstance && AnimScriptInstance->RequiredBones.IsValid())
 	{
-		UncompressedSpaceBases.AddUninitialized(AnimScriptInstance->GetRequiredBones().GetNumBones());
+		UncompressedSpaceBases.AddUninitialized(AnimScriptInstance->RequiredBones.GetNumBones());
 
-		AnimScriptInstance->GetRequiredBones().SetUseRAWData(true);
+		AnimScriptInstance->RequiredBones.SetUseRAWData(true);
 		GenSpaceBases(UncompressedSpaceBases);
-		AnimScriptInstance->GetRequiredBones().SetUseRAWData(false);
+		AnimScriptInstance->RequiredBones.SetUseRAWData(false);
 	}
 
 	// Non retargeted pose.
-	NonRetargetedSpaceBases.Reset();
-	if( bDisplayNonRetargetedPose && AnimScriptInstance && AnimScriptInstance->GetRequiredBones().IsValid() )
+	NonRetargetedSpaceBases.Empty();
+	if( bDisplayNonRetargetedPose && AnimScriptInstance && AnimScriptInstance->RequiredBones.IsValid() )
 	{
-		NonRetargetedSpaceBases.AddUninitialized(AnimScriptInstance->GetRequiredBones().GetNumBones());
-		AnimScriptInstance->GetRequiredBones().SetDisableRetargeting(true);
+		NonRetargetedSpaceBases.AddUninitialized(AnimScriptInstance->RequiredBones.GetNumBones());
+		AnimScriptInstance->RequiredBones.SetDisableRetargeting(true);
 		GenSpaceBases(NonRetargetedSpaceBases);
-		AnimScriptInstance->GetRequiredBones().SetDisableRetargeting(false);
+		AnimScriptInstance->RequiredBones.SetDisableRetargeting(false);
 	}
 
 	// Only works in PreviewInstance, and not for anim blueprint. This is intended.
-	AdditiveBasePoses.Reset();
-	if( bDisplayAdditiveBasePose && bIsPreviewInstance && PreviewInstance->GetRequiredBones().IsValid() )
+	AdditiveBasePoses.Empty();
+	if( bDisplayAdditiveBasePose && bIsPreviewInstance && PreviewInstance->RequiredBones.IsValid() )
 	{
-		if (UAnimSequence* Sequence = Cast<UAnimSequence>(PreviewInstance->GetCurrentAsset())) 
+		if (UAnimSequence* Sequence = Cast<UAnimSequence>(PreviewInstance->CurrentAsset)) 
 		{ 
 			if (Sequence->IsValidAdditive()) 
 			{ 
 				FCSPose<FCompactPose> CSAdditiveBasePose;
 				{
 					FCompactPose AdditiveBasePose;
-					FBlendedCurve AdditiveCurve;
-					AdditiveCurve.InitFrom(AnimScriptInstance->GetSkelMeshComponent()->GetCachedAnimCurveMappingNameUids());
-					AdditiveBasePose.SetBoneContainer(&PreviewInstance->GetRequiredBones());
-					Sequence->GetAdditiveBasePose(AdditiveBasePose, AdditiveCurve, FAnimExtractContext(PreviewInstance->GetCurrentTime()));
+					FBlendedCurve AdditiveCurve(PreviewInstance);
+					AdditiveBasePose.SetBoneContainer(&PreviewInstance->RequiredBones);
+					Sequence->GetAdditiveBasePose(AdditiveBasePose, AdditiveCurve, FAnimExtractContext(PreviewInstance->CurrentTime));
 					CSAdditiveBasePose.InitPose(AdditiveBasePose);
 				}
 
-				AdditiveBasePoses.AddUninitialized(PreviewInstance->GetRequiredBones().GetNumBones());
 				for (int32 i = 0; i < AdditiveBasePoses.Num(); ++i)
 				{
-					FCompactPoseBoneIndex CompactIndex = PreviewInstance->GetRequiredBones().MakeCompactPoseIndex(FMeshPoseBoneIndex(i));
+					FCompactPoseBoneIndex CompactIndex = PreviewInstance->RequiredBones.MakeCompactPoseIndex(FMeshPoseBoneIndex(i));
 					AdditiveBasePoses[i] = CSAdditiveBasePose.GetComponentSpaceTransform(CompactIndex);
 				}
 			}
@@ -708,7 +705,7 @@ int32 UDebugSkelMeshComponent::FindCurrentSectionDisplayMode()
 	return DisplayMode;
 }
 
-void UDebugSkelMeshComponent::CheckClothTeleport()
+void UDebugSkelMeshComponent::CheckClothTeleport(float DeltaTime)
 {
 	// do nothing to avoid clothing reset while modifying properties
 	// modifying values can cause frame delay and clothes will be reset by a large delta time (low fps)
@@ -722,13 +719,8 @@ void UDebugSkelMeshComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 	if (TurnTableMode == EPersonaTurnTableMode::Playing)
 	{
 		FRotator Rotation = GetRelativeTransform().Rotator();
-		// Take into account time dilation, so it doesn't affect turn table turn rate.
-		float CurrentTimeDilation = 1.0f;
-		if(GetWorld())
-		{
-			CurrentTimeDilation = GetWorld()->GetWorldSettings()->GetEffectiveTimeDilation();
-		}
-		Rotation.Yaw += 36.f * TurnTableSpeedScaling * DeltaTime / FMath::Max(CurrentTimeDilation, KINDA_SMALL_NUMBER);
+		// Take into account PlaybackSpeedScaling, so it doesn't affect turn table turn rate.
+		Rotation.Yaw += 36.f * TurnTableSpeedScaling * DeltaTime / FMath::Max(PlaybackSpeedScaling, KINDA_SMALL_NUMBER);
 		SetRelativeRotation(Rotation);
 	}
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
@@ -37,43 +37,54 @@ UGameplayStatics::UGameplayStatics(const FObjectInitializer& ObjectInitializer)
 UGameInstance* UGameplayStatics::GetGameInstance(UObject* WorldContextObject)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-	return World ? World->GetGameInstance() : nullptr;
+	return World->GetGameInstance();
 }
 
 APlayerController* UGameplayStatics::GetPlayerController(UObject* WorldContextObject, int32 PlayerIndex ) 
 {
-	if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject))
+	if (WorldContextObject)
 	{
-		uint32 Index = 0;
-		for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
+		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+		if(World != nullptr)
 		{
-			APlayerController* PlayerController = *Iterator;
-			if (Index == PlayerIndex)
+			uint32 Index = 0;
+			for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
 			{
-				return PlayerController;
+				APlayerController* PlayerController = *Iterator;
+				if (Index == PlayerIndex)
+				{
+					return PlayerController;
+				}
+				Index++;
 			}
-			Index++;
 		}
 	}
+
 	return nullptr;
 }
 
 ACharacter* UGameplayStatics::GetPlayerCharacter(UObject* WorldContextObject, int32 PlayerIndex)
 {
-	APlayerController* PC = GetPlayerController(WorldContextObject, PlayerIndex);
-	return PC ? Cast<ACharacter>(PC->GetPawn()) : nullptr;
+	ACharacter* Character = nullptr;
+	APlayerController* PC = GetPlayerController(WorldContextObject, PlayerIndex );
+	if (PC != nullptr)
+	{
+		Character = Cast<ACharacter>(PC->GetPawn());
+	}
+
+	return Character;
 }
 
 APawn* UGameplayStatics::GetPlayerPawn(UObject* WorldContextObject, int32 PlayerIndex)
 {
-	APlayerController* PC = GetPlayerController(WorldContextObject, PlayerIndex);
-	return PC ? PC->GetPawnOrSpectator() : nullptr;
+	APlayerController* PlayerController = GetPlayerController(WorldContextObject, PlayerIndex);
+	return PlayerController ? PlayerController->GetPawnOrSpectator() : NULL;
 }
 
 APlayerCameraManager* UGameplayStatics::GetPlayerCameraManager(UObject* WorldContextObject, int32 PlayerIndex)
 {
-	APlayerController* const PC = GetPlayerController(WorldContextObject, PlayerIndex);
-	return PC ? PC->PlayerCameraManager : nullptr;
+	APlayerController* const PC = GetPlayerController( WorldContextObject, PlayerIndex );
+	return PC ? PC->PlayerCameraManager : NULL;
 }
 
 APlayerController* UGameplayStatics::CreatePlayer(UObject* WorldContextObject, int32 ControllerId, bool bSpawnPawn)
@@ -88,7 +99,7 @@ APlayerController* UGameplayStatics::CreatePlayer(UObject* WorldContextObject, i
 		UE_LOG(LogPlayerManagement, Error, TEXT("Failed to Create Player: %s"), *Error);
 	}
 
-	return (LocalPlayer ? LocalPlayer->PlayerController : nullptr);
+	return (LocalPlayer ? LocalPlayer->PlayerController : NULL);
 }
 
 void UGameplayStatics::RemovePlayer(APlayerController* PlayerController, bool bDestroyPawn)
@@ -118,12 +129,12 @@ AGameMode* UGameplayStatics::GetGameMode(UObject* WorldContextObject)
 AGameState* UGameplayStatics::GetGameState(UObject* WorldContextObject)
 {
 	UWorld* const World = GEngine->GetWorldFromContextObject(WorldContextObject);
-	return World ? World->GameState : nullptr;
+	return World ? World->GameState : NULL;
 }
 
 class UClass* UGameplayStatics::GetObjectClass(const UObject* Object)
 {
-	return Object ? Object->GetClass() : nullptr;
+	return Object ? Object->GetClass() : NULL;
 }
 
 float UGameplayStatics::GetGlobalTimeDilation(UObject* WorldContextObject)
@@ -148,8 +159,8 @@ void UGameplayStatics::SetGlobalTimeDilation(UObject* WorldContextObject, float 
 
 bool UGameplayStatics::SetGamePaused(UObject* WorldContextObject, bool bPaused)
 {
-	UGameInstance* const GameInstance = GetGameInstance( WorldContextObject );
-	APlayerController* const PC = GameInstance ? GameInstance->GetFirstLocalPlayerController() : nullptr;
+	UWorld* const World = GEngine->GetWorldFromContextObject( WorldContextObject );
+	APlayerController* const PC = World ? World->GetFirstPlayerController() : nullptr;
 	return PC ? PC->SetPause(bPaused) : false;
 }
 
@@ -244,7 +255,7 @@ bool UGameplayStatics::ApplyRadialDamageWithFalloff(UObject* WorldContextObject,
 	}
 
 	// make sure we have a good damage type
-	TSubclassOf<UDamageType> const ValidDamageTypeClass = DamageTypeClass ? DamageTypeClass : TSubclassOf<UDamageType>(UDamageType::StaticClass());
+	TSubclassOf<UDamageType> const ValidDamageTypeClass = (DamageTypeClass == NULL) ? TSubclassOf<UDamageType>(UDamageType::StaticClass()) : DamageTypeClass;
 
 	bool bAppliedDamage = false;
 
@@ -273,7 +284,7 @@ void UGameplayStatics::ApplyPointDamage(AActor* DamagedActor, float BaseDamage, 
 	if (DamagedActor && BaseDamage != 0.f)
 	{
 		// make sure we have a good damage type
-		TSubclassOf<UDamageType> const ValidDamageTypeClass = DamageTypeClass ? DamageTypeClass : TSubclassOf<UDamageType>(UDamageType::StaticClass());
+		TSubclassOf<UDamageType> const ValidDamageTypeClass = DamageTypeClass == NULL ? TSubclassOf<UDamageType>(UDamageType::StaticClass()) : DamageTypeClass;
 		FPointDamageEvent PointDamageEvent(BaseDamage, HitInfo, HitFromDirection, ValidDamageTypeClass);
 
 		DamagedActor->TakeDamage(BaseDamage, PointDamageEvent, EventInstigator, DamageCauser);
@@ -285,7 +296,7 @@ void UGameplayStatics::ApplyDamage(AActor* DamagedActor, float BaseDamage, ACont
 	if ( DamagedActor && (BaseDamage != 0.f) )
 	{
 		// make sure we have a good damage type
-		TSubclassOf<UDamageType> const ValidDamageTypeClass = DamageTypeClass ? DamageTypeClass : TSubclassOf<UDamageType>(UDamageType::StaticClass());
+		TSubclassOf<UDamageType> const ValidDamageTypeClass = DamageTypeClass == NULL ? TSubclassOf<UDamageType>(UDamageType::StaticClass()) : DamageTypeClass;
 		FDamageEvent DamageEvent(ValidDamageTypeClass);
 
 		DamagedActor->TakeDamage(BaseDamage, DamageEvent, EventInstigator, DamageCauser);
@@ -370,19 +381,20 @@ UObject* UGameplayStatics::SpawnObject(TSubclassOf<UObject> ObjectClass, UObject
 
 AActor* UGameplayStatics::BeginSpawningActorFromBlueprint(UObject* WorldContextObject, UBlueprint const* Blueprint, const FTransform& SpawnTransform, bool bNoCollisionFail)
 {
-	if (Blueprint && Blueprint->GeneratedClass)
+	AActor* NewActor = NULL;
+	if(Blueprint != NULL && Blueprint->GeneratedClass != NULL)
 	{
 		if( Blueprint->GeneratedClass->IsChildOf(AActor::StaticClass()) )
 		{
 			ESpawnActorCollisionHandlingMethod const CollisionHandlingOverride = bNoCollisionFail ? ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding : ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-			return BeginDeferredActorSpawnFromClass(WorldContextObject, *Blueprint->GeneratedClass, SpawnTransform, CollisionHandlingOverride);
+			NewActor = BeginDeferredActorSpawnFromClass(WorldContextObject, *Blueprint->GeneratedClass, SpawnTransform, CollisionHandlingOverride);
 		}
 		else
 		{
 			UE_LOG(LogScript, Warning, TEXT("UGameplayStatics::BeginSpawningActorFromBlueprint: %s is not an actor class"), *Blueprint->GeneratedClass->GetName() );
 		}
 	}
-	return nullptr;
+	return NewActor;
 }
 
 // deprecated
@@ -394,23 +406,28 @@ AActor* UGameplayStatics::BeginSpawningActorFromClass(UObject* WorldContextObjec
 
 AActor* UGameplayStatics::BeginDeferredActorSpawnFromClass(UObject* WorldContextObject, TSubclassOf<AActor> ActorClass, const FTransform& SpawnTransform, ESpawnActorCollisionHandlingMethod CollisionHandlingMethod, AActor* Owner)
 {
-	if (UClass* Class = *ActorClass)
+	AActor* NewActor = NULL;
+
+	UClass* Class = *ActorClass;
+	if (Class != NULL)
 	{
 		// If the WorldContextObject is a Pawn we will use that as the instigator.
 		// Otherwise if the WorldContextObject is an Actor we will share its instigator.
 		// If the value is set via the exposed parameter on SpawnNode it will be overwritten anyways, so this is safe to specify here
 		APawn* AutoInstigator = Cast<APawn>(WorldContextObject);
-		if (AutoInstigator)
+		if (AutoInstigator == nullptr)
 		{
-			if (AActor* ContextActor = Cast<AActor>(WorldContextObject))
+			AActor* ContextActor = Cast<AActor>(WorldContextObject);
+			if (ContextActor)
 			{
 				AutoInstigator = ContextActor->Instigator;
 			}
 		}
 
-		if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject))
+		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+		if (World)
 		{
-			return World->SpawnActorDeferred<AActor>(Class, SpawnTransform, Owner, AutoInstigator, CollisionHandlingMethod);
+			NewActor = World->SpawnActorDeferred<AActor>(Class, SpawnTransform, Owner, AutoInstigator, CollisionHandlingMethod);
 		}
 		else
 		{
@@ -421,7 +438,8 @@ AActor* UGameplayStatics::BeginDeferredActorSpawnFromClass(UObject* WorldContext
 	{
 		UE_LOG(LogScript, Warning, TEXT("UGameplayStatics::BeginSpawningActorFromClass: can not spawn an actor from a NULL class"));
 	}
-	return nullptr;
+
+	return NewActor;
 }
 
 AActor* UGameplayStatics::FinishSpawningActor(AActor* Actor, const FTransform& SpawnTransform)
@@ -436,10 +454,11 @@ AActor* UGameplayStatics::FinishSpawningActor(AActor* Actor, const FTransform& S
 
 void UGameplayStatics::LoadStreamLevel(UObject* WorldContextObject, FName LevelName,bool bMakeVisibleAfterLoad,bool bShouldBlockOnLoad,FLatentActionInfo LatentInfo)
 {
-	if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject))
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if(World != nullptr)
 	{
 		FLatentActionManager& LatentManager = World->GetLatentActionManager();
-		if (LatentManager.FindExistingAction<FStreamLevelAction>(LatentInfo.CallbackTarget, LatentInfo.UUID) == nullptr)
+		if (LatentManager.FindExistingAction<FStreamLevelAction>(LatentInfo.CallbackTarget, LatentInfo.UUID) == NULL)
 		{
 			FStreamLevelAction* NewAction = new FStreamLevelAction(true, LevelName, bMakeVisibleAfterLoad, bShouldBlockOnLoad, LatentInfo, World);
 			LatentManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, NewAction);
@@ -449,10 +468,11 @@ void UGameplayStatics::LoadStreamLevel(UObject* WorldContextObject, FName LevelN
 
 void UGameplayStatics::UnloadStreamLevel(UObject* WorldContextObject, FName LevelName,FLatentActionInfo LatentInfo)
 {
-	if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject))
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (World != nullptr)
 	{
 		FLatentActionManager& LatentManager = World->GetLatentActionManager();
-		if (LatentManager.FindExistingAction<FStreamLevelAction>(LatentInfo.CallbackTarget, LatentInfo.UUID) == nullptr)
+		if (LatentManager.FindExistingAction<FStreamLevelAction>(LatentInfo.CallbackTarget, LatentInfo.UUID) == NULL)
 		{
 			FStreamLevelAction* NewAction = new FStreamLevelAction(false, LevelName, false, false, LatentInfo, World );
 			LatentManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, NewAction );
@@ -464,7 +484,8 @@ ULevelStreaming* UGameplayStatics::GetStreamingLevel(UObject* WorldContextObject
 {
 	if (InPackageName != NAME_None)
 	{
-		if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject))
+		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+		if (World != nullptr)
 		{
 			const FString SearchPackageName = FStreamLevelAction::MakeSafeLevelName(InPackageName, World);
 
@@ -472,7 +493,8 @@ ULevelStreaming* UGameplayStatics::GetStreamingLevel(UObject* WorldContextObject
 			{
 				// We check only suffix of package name, to handle situations when packages were saved for play into a temporary folder
 				// Like Saved/Autosaves/PackageName
-				if (LevelStreaming && LevelStreaming->GetWorldAssetPackageName().EndsWith(SearchPackageName, ESearchCase::IgnoreCase))
+				if (LevelStreaming && 
+					LevelStreaming->GetWorldAssetPackageName().EndsWith(SearchPackageName, ESearchCase::IgnoreCase))
 				{
 					return LevelStreaming;
 				}
@@ -485,7 +507,8 @@ ULevelStreaming* UGameplayStatics::GetStreamingLevel(UObject* WorldContextObject
 
 void UGameplayStatics::FlushLevelStreaming(UObject* WorldContextObject)
 {
-	if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject))
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (World != nullptr)
 	{
 		World->FlushLevelStreaming();
 	}
@@ -542,7 +565,7 @@ FVector UGameplayStatics::GetActorArrayAverageLocation(const TArray<AActor*>& Ac
 	{
 		AActor* A = Actors[ActorIdx];
 		// Check actor is non-null, not deleted, and has a root component
-		if (A && !A->IsPendingKill() && A->GetRootComponent())
+		if(A != NULL && !A->IsPendingKill() && A->GetRootComponent() != NULL)
 		{
 			LocationSum += A->GetActorLocation();
 			ActorCount++;
@@ -566,7 +589,7 @@ void UGameplayStatics::GetActorArrayBounds(const TArray<AActor*>& Actors, bool b
 	{
 		AActor* A = Actors[ActorIdx];
 		// Check actor is non-null, not deleted
-		if(A && !A->IsPendingKill())
+		if(A != NULL && !A->IsPendingKill())
 		{
 			ActorBounds += A->GetComponentsBoundingBox(!bOnlyCollidingComponents);
 		}
@@ -588,7 +611,7 @@ void UGameplayStatics::GetAllActorsOfClass(UObject* WorldContextObject, TSubclas
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 
 	// We do nothing if not class provided, rather than giving ALL actors!
-	if (ActorClass && World)
+	if(ActorClass != NULL && World != nullptr)
 	{
 		for(TActorIterator<AActor> It(World, ActorClass); It; ++It)
 		{
@@ -607,12 +630,12 @@ void UGameplayStatics::GetAllActorsWithInterface(UObject* WorldContextObject, TS
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	// We do nothing if not class provided, rather than giving ALL actors!
-	if (Interface && World)
+	if(Interface != NULL && World != nullptr)
 	{
 		for(FActorIterator It(World); It; ++It)
 		{
 			AActor* Actor = *It;
-			if (Actor && !Actor->IsPendingKill() && Actor->GetClass()->ImplementsInterface(Interface))
+			if(Actor != NULL && !Actor->IsPendingKill() && Actor->GetClass()->ImplementsInterface(Interface))
 			{
 				OutActors.Add(Actor);
 			}
@@ -640,75 +663,54 @@ UParticleSystemComponent* CreateParticleSystem(UParticleSystem* EmitterTemplate,
 	PSC->SetTemplate(EmitterTemplate);
 	PSC->bOverrideLODMethod = false;
 
+	PSC->RegisterComponentWithWorld(World);
+
 	return PSC;
 }
 
 UParticleSystemComponent* UGameplayStatics::SpawnEmitterAtLocation(UObject* WorldContextObject, UParticleSystem* EmitterTemplate, FVector SpawnLocation, FRotator SpawnRotation, bool bAutoDestroy)
 {
+	UParticleSystemComponent* PSC = NULL;
 	if (EmitterTemplate)
 	{
-		if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject))
+		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+		if(World != nullptr)
 		{
-			UParticleSystemComponent* PSC = CreateParticleSystem(EmitterTemplate, World, World->GetWorldSettings(), bAutoDestroy);
+			PSC = CreateParticleSystem(EmitterTemplate, World, World->GetWorldSettings(), bAutoDestroy);
+
 			PSC->SetAbsolute(true, true, true);
 			PSC->SetWorldLocationAndRotation(SpawnLocation, SpawnRotation);
 			PSC->SetRelativeScale3D(FVector(1.f));
-
-			PSC->RegisterComponentWithWorld(World);
-
 			PSC->ActivateSystem(true);
-			return PSC;
 		}
-	}
-	return nullptr;
-}
-
-UParticleSystemComponent* UGameplayStatics::SpawnEmitterAtLocation(UWorld* World, UParticleSystem* EmitterTemplate, const FTransform& SpawnTransform, bool bAutoDestroy)
-{
-	UParticleSystemComponent* PSC = nullptr;
-	if (World && EmitterTemplate)
-	{
-		PSC = CreateParticleSystem(EmitterTemplate, World, World->GetWorldSettings(), bAutoDestroy);
-
-		PSC->SetAbsolute(true, true, true);
-		PSC->SetWorldTransform(SpawnTransform);
-
-		PSC->RegisterComponentWithWorld(World);
-
-		PSC->ActivateSystem(true);
 	}
 	return PSC;
 }
 
-
 UParticleSystemComponent* UGameplayStatics::SpawnEmitterAttached(UParticleSystem* EmitterTemplate, USceneComponent* AttachToComponent, FName AttachPointName, FVector Location, FRotator Rotation, EAttachLocation::Type LocationType, bool bAutoDestroy)
 {
-	UParticleSystemComponent* PSC = nullptr;
+	UParticleSystemComponent* PSC = NULL;
 	if (EmitterTemplate)
 	{
-		if (AttachToComponent == nullptr)
+		if (AttachToComponent == NULL)
 		{
 			UE_LOG(LogScript, Warning, TEXT("UGameplayStatics::SpawnEmitterAttached: NULL AttachComponent specified!"));
 		}
-		else
+		else if (AttachToComponent->GetWorld() != NULL && AttachToComponent->GetWorld()->GetNetMode() != NM_DedicatedServer)
 		{
-			UWorld* const World = AttachToComponent->GetWorld();
-			if (World && World->GetNetMode() != NM_DedicatedServer)
+			PSC = CreateParticleSystem(EmitterTemplate, AttachToComponent->GetWorld(), AttachToComponent->GetOwner(), bAutoDestroy);
+
+			PSC->AttachTo(AttachToComponent, AttachPointName);
+			if (LocationType == EAttachLocation::KeepWorldPosition)
 			{
-				PSC = CreateParticleSystem(EmitterTemplate, World, AttachToComponent->GetOwner(), bAutoDestroy);
-				PSC->AttachTo(AttachToComponent, AttachPointName);
-				if (LocationType == EAttachLocation::KeepWorldPosition)
-				{
-					PSC->SetWorldLocationAndRotation(Location, Rotation);
-				}
-				else
-				{
-					PSC->SetRelativeLocationAndRotation(Location, Rotation);
-				}
-				PSC->SetRelativeScale3D(FVector(1.f));
-				PSC->RegisterComponentWithWorld(World);
-				PSC->ActivateSystem(true);
+				PSC->SetWorldLocationAndRotation(Location, Rotation);
 			}
+			else
+			{
+				PSC->SetRelativeLocationAndRotation(Location, Rotation);
+			}
+			PSC->SetRelativeScale3D(FVector(1.f));
+			PSC->ActivateSystem(true);
 		}
 	}
 	return PSC;
@@ -760,27 +762,7 @@ bool UGameplayStatics::AreAnyListenersWithinRange(UObject* WorldContextObject, F
 	return false;
 }
 
-void UGameplayStatics::SetGlobalPitchModulation(UObject* WorldContextObject, float PitchModulation, float TimeSec)
-{
-	if (!GEngine || !GEngine->UseSound())
-	{
-		return;
-	}
-
-	UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject);
-	if (!ThisWorld || !ThisWorld->bAllowAudioPlayback || ThisWorld->GetNetMode() == NM_DedicatedServer)
-	{
-		return;
-	}
-
-	if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
-	{
-		AudioDevice->GlobalPitchScale.Set(PitchModulation, TimeSec);
-	}
-}
-
-
-void UGameplayStatics::PlaySound2D(UObject* WorldContextObject, class USoundBase* Sound, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundConcurrency* ConcurrencySettings)
+void UGameplayStatics::PlaySound2D(UObject* WorldContextObject, class USoundBase* Sound, float VolumeMultiplier, float PitchMultiplier, float StartTime)
 {
 	if (!Sound || !GEngine || !GEngine->UseSound())
 	{
@@ -805,14 +787,12 @@ void UGameplayStatics::PlaySound2D(UObject* WorldContextObject, class USoundBase
 		NewActiveSound.RequestedStartTime = FMath::Max(0.f, StartTime);
 
 		NewActiveSound.bIsUISound = true;
-		NewActiveSound.ConcurrencySettings = ConcurrencySettings;
-		NewActiveSound.Priority = Sound->Priority;
 
 		AudioDevice->AddNewActiveSound(NewActiveSound);
 	}
 }
 
-UAudioComponent* UGameplayStatics::CreateSound2D(UObject* WorldContextObject, class USoundBase* Sound, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundConcurrency* ConcurrencySettings)
+UAudioComponent* UGameplayStatics::SpawnSound2D(UObject* WorldContextObject, class USoundBase* Sound, float VolumeMultiplier, float PitchMultiplier, float StartTime)
 {
 	if (!Sound || !GEngine || !GEngine->UseSound())
 	{
@@ -825,31 +805,23 @@ UAudioComponent* UGameplayStatics::CreateSound2D(UObject* WorldContextObject, cl
 		return nullptr;
 	}
 
-	UAudioComponent* AudioComponent = FAudioDevice::CreateComponent(Sound, ThisWorld, ThisWorld->GetWorldSettings(), false, false, nullptr, nullptr, ConcurrencySettings);
+	UAudioComponent* AudioComponent = FAudioDevice::CreateComponent(Sound, ThisWorld, ThisWorld->GetWorldSettings(), false);
 	if (AudioComponent)
 	{
 		const bool bIsInGameWorld = AudioComponent->GetWorld()->IsGameWorld();
+
 		AudioComponent->SetVolumeMultiplier(VolumeMultiplier);
 		AudioComponent->SetPitchMultiplier(PitchMultiplier);
-		AudioComponent->bAllowSpatialization = false;
-		AudioComponent->bIsUISound = true;
-		AudioComponent->bAutoDestroy = true;
-		AudioComponent->SubtitlePriority = 10000.f; // Fixme: pass in? Do we want that exposed to blueprints though?		
-	}
-	return AudioComponent;
-}
-
-UAudioComponent* UGameplayStatics::SpawnSound2D(UObject* WorldContextObject, class USoundBase* Sound, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundConcurrency* ConcurrencySettings)
-{
-	UAudioComponent* AudioComponent = CreateSound2D(WorldContextObject, Sound, VolumeMultiplier, PitchMultiplier, StartTime, ConcurrencySettings);
-	if (AudioComponent)
-	{
+		AudioComponent->bAllowSpatialization	= false;
+		AudioComponent->bIsUISound				= true;
+		AudioComponent->bAutoDestroy			= true;
+		AudioComponent->SubtitlePriority		= 10000.f; // Fixme: pass in? Do we want that exposed to blueprints though?
 		AudioComponent->Play(StartTime);
 	}
 	return AudioComponent;
 }
 
-void UGameplayStatics::PlaySoundAtLocation(UObject* WorldContextObject, class USoundBase* Sound, FVector Location, FRotator Rotation, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings, class USoundConcurrency* ConcurrencySettings)
+void UGameplayStatics::PlaySoundAtLocation(UObject* WorldContextObject, class USoundBase* Sound, FVector Location, FRotator Rotation, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings)
 {
 	if (!Sound || !GEngine || !GEngine->UseSound())
 	{
@@ -864,11 +836,47 @@ void UGameplayStatics::PlaySoundAtLocation(UObject* WorldContextObject, class US
 
 	if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
 	{
-		AudioDevice->PlaySoundAtLocation(Sound, ThisWorld, VolumeMultiplier, PitchMultiplier, StartTime, Location, Rotation, AttenuationSettings, ConcurrencySettings);
+		if (Sound->IsAudibleSimple(AudioDevice, Location, AttenuationSettings))
+		{
+			const bool bIsInGameWorld = ThisWorld->IsGameWorld();
+
+			FActiveSound NewActiveSound;
+			NewActiveSound.World = ThisWorld;
+			NewActiveSound.Sound = Sound;
+
+			NewActiveSound.VolumeMultiplier = VolumeMultiplier;
+			NewActiveSound.PitchMultiplier = PitchMultiplier;
+
+			NewActiveSound.RequestedStartTime = FMath::Max(0.f, StartTime);
+
+			NewActiveSound.bLocationDefined = true;
+			NewActiveSound.Transform.SetTranslation(Location);
+			NewActiveSound.Transform.SetRotation(FQuat(Rotation));
+
+			NewActiveSound.bIsUISound = !bIsInGameWorld;
+			NewActiveSound.bHandleSubtitles = true;
+			NewActiveSound.SubtitlePriority = 10000.f; // Fixme: pass in? Do we want that exposed to blueprints though?
+
+			const FAttenuationSettings* AttenuationSettingsToApply = (AttenuationSettings ? &AttenuationSettings->Attenuation : Sound->GetAttenuationSettingsToApply());
+
+			NewActiveSound.bHasAttenuationSettings = (bIsInGameWorld && AttenuationSettingsToApply);
+			if (NewActiveSound.bHasAttenuationSettings)
+			{
+				NewActiveSound.AttenuationSettings = *AttenuationSettingsToApply;
+			}
+
+			// TODO - Audio Threading. This call would be a task call to dispatch to the audio thread
+			AudioDevice->AddNewActiveSound(NewActiveSound);
+		}
+		else
+		{
+			// Don't play a sound for short sounds that start out of range of any listener
+			UE_LOG(LogAudio, Log, TEXT("Sound not played for out of range Sound %s"), *Sound->GetName());
+		}
 	}
 }
 
-UAudioComponent* UGameplayStatics::SpawnSoundAtLocation(UObject* WorldContextObject, class USoundBase* Sound, FVector Location, FRotator Rotation, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings, class USoundConcurrency* ConcurrencySettings)
+UAudioComponent* UGameplayStatics::SpawnSoundAtLocation(UObject* WorldContextObject, class USoundBase* Sound, FVector Location, FRotator Rotation, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings)
 {
 	if (!Sound || !GEngine || !GEngine->UseSound())
 	{
@@ -883,7 +891,7 @@ UAudioComponent* UGameplayStatics::SpawnSoundAtLocation(UObject* WorldContextObj
 
 	const bool bIsInGameWorld = ThisWorld->IsGameWorld();
 
-	UAudioComponent* AudioComponent = FAudioDevice::CreateComponent(Sound, ThisWorld, ThisWorld->GetWorldSettings(), false, false, &Location, AttenuationSettings, ConcurrencySettings);
+	UAudioComponent* AudioComponent = FAudioDevice::CreateComponent(Sound, ThisWorld, ThisWorld->GetWorldSettings(), false, false, &Location, AttenuationSettings);
 
 	if (AudioComponent)
 	{
@@ -900,7 +908,7 @@ UAudioComponent* UGameplayStatics::SpawnSoundAtLocation(UObject* WorldContextObj
 	return AudioComponent;
 }
 
-class UAudioComponent* UGameplayStatics::SpawnSoundAttached(class USoundBase* Sound, class USceneComponent* AttachToComponent, FName AttachPointName, FVector Location, FRotator Rotation, EAttachLocation::Type LocationType, bool bStopWhenAttachedToDestroyed, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings, class USoundConcurrency* ConcurrencySettings)
+class UAudioComponent* UGameplayStatics::SpawnSoundAttached(class USoundBase* Sound, class USceneComponent* AttachToComponent, FName AttachPointName, FVector Location, FRotator Rotation, EAttachLocation::Type LocationType, bool bStopWhenAttachedToDestroyed, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings)
 {
 	if (!Sound)
 	{
@@ -909,7 +917,7 @@ class UAudioComponent* UGameplayStatics::SpawnSoundAttached(class USoundBase* So
 
 	if (!AttachToComponent)
 	{
-		UE_LOG(LogScript, Warning, TEXT("UGameplayStatics::PlaySoundAttached: NULL AttachComponent specified! Trying to spawn sound [%s],"), *Sound->GetName());
+		UE_LOG(LogScript, Warning, TEXT("UGameplayStatics::PlaySoundAttached: NULL AttachComponent specified!"));
 		return nullptr;
 	}
 
@@ -920,7 +928,7 @@ class UAudioComponent* UGameplayStatics::SpawnSoundAttached(class USoundBase* So
 		TestLocation = AttachToComponent->GetRelativeTransform().TransformPosition(Location);
 	}
 
-	UAudioComponent* AudioComponent = FAudioDevice::CreateComponent(Sound, AttachToComponent->GetWorld(), AttachToComponent->GetOwner(), false, bStopWhenAttachedToDestroyed, &TestLocation, AttenuationSettings, ConcurrencySettings);
+	UAudioComponent* AudioComponent = FAudioDevice::CreateComponent(Sound, AttachToComponent->GetWorld(), AttachToComponent->GetOwner(), false, bStopWhenAttachedToDestroyed, &TestLocation, AttenuationSettings);
 	if (AudioComponent)
 	{
 		const bool bIsInGameWorld = AudioComponent->GetWorld()->IsGameWorld();
@@ -1105,10 +1113,12 @@ void UGameplayStatics::DeactivateReverbEffect(UObject* WorldContextObject, FName
 
 UDecalComponent* CreateDecalComponent(class UMaterialInterface* DecalMaterial, FVector DecalSize, UWorld* World, AActor* Actor, float LifeSpan)
 {
+	const FMatrix DecalInternalTransform = FRotationMatrix(FRotator(0.f, 90.0f, -90.0f));
+
 	UDecalComponent* DecalComp = NewObject<UDecalComponent>((Actor ? Actor : (UObject*)World));
 	DecalComp->bAllowAnyoneToDestroyMe = true;
 	DecalComp->DecalMaterial = DecalMaterial;
-	DecalComp->DecalSize = DecalSize;
+	DecalComp->RelativeScale3D = DecalInternalTransform.TransformVector(DecalSize);
 	DecalComp->bAbsoluteScale = true;
 	DecalComp->RegisterComponentWithWorld(World);
 
@@ -1122,40 +1132,47 @@ UDecalComponent* CreateDecalComponent(class UMaterialInterface* DecalMaterial, F
 
 UDecalComponent* UGameplayStatics::SpawnDecalAtLocation(UObject* WorldContextObject, class UMaterialInterface* DecalMaterial, FVector DecalSize, FVector Location, FRotator Rotation, float LifeSpan)
 {
+	UDecalComponent* DecalComp = NULL;
+
 	if (DecalMaterial)
 	{
-		if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject))
+		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+		if(World != nullptr)
 		{
-			UDecalComponent* DecalComp = CreateDecalComponent(DecalMaterial, DecalSize, World, World->GetWorldSettings(), LifeSpan);
+			DecalComp = CreateDecalComponent(DecalMaterial, DecalSize, World, World->GetWorldSettings(), LifeSpan);
 			DecalComp->SetWorldLocationAndRotation(Location, Rotation);
-			return DecalComp;
 		}
 	}
-	return nullptr;
+
+	return DecalComp;
 }
 
 UDecalComponent* UGameplayStatics::SpawnDecalAttached(class UMaterialInterface* DecalMaterial, FVector DecalSize, class USceneComponent* AttachToComponent, FName AttachPointName, FVector Location, FRotator Rotation, EAttachLocation::Type LocationType, float LifeSpan)
 {
+	UDecalComponent* DecalComp = nullptr;
+
 	if (DecalMaterial)
 	{
-		if (!AttachToComponent)
+		if (AttachToComponent == nullptr)
 		{
 			UE_LOG(LogScript, Warning, TEXT("UGameplayStatics::SpawnDecalAttached: NULL AttachComponent specified!"));
 		}
 		else
 		{
 			UPrimitiveComponent* AttachToPrimitive = Cast<UPrimitiveComponent>(AttachToComponent);
-			if (!AttachToPrimitive || AttachToPrimitive->bReceivesDecals)
+			if (AttachToPrimitive == nullptr || AttachToPrimitive->bReceivesDecals)
 			{
-				if (AttachToPrimitive && Cast<AWorldSettings>(AttachToPrimitive->GetOwner()))
+				const bool bOnBSPBrush = AttachToPrimitive && (Cast<AWorldSettings>(AttachToPrimitive->GetOwner()) != nullptr);
+				if (bOnBSPBrush)
 				{
 					// special case: don't attach to component when it's owned by invisible WorldSettings (decals on BSP brush)
-					return SpawnDecalAtLocation(AttachToPrimitive->GetOwner(), DecalMaterial, DecalSize, Location, Rotation, LifeSpan);
+					DecalComp = SpawnDecalAtLocation(AttachToPrimitive->GetOwner(), DecalMaterial, DecalSize, Location, Rotation, LifeSpan);
 				}
 				else
 				{
-					UDecalComponent* DecalComp = CreateDecalComponent(DecalMaterial, DecalSize, AttachToComponent->GetWorld(), AttachToComponent->GetOwner(), LifeSpan);
+					DecalComp = CreateDecalComponent(DecalMaterial, DecalSize, AttachToComponent->GetWorld(), AttachToComponent->GetOwner(), LifeSpan);
 					DecalComp->AttachTo(AttachToComponent, AttachPointName);
+
 					if (LocationType == EAttachLocation::KeepWorldPosition)
 					{
 						DecalComp->SetWorldLocationAndRotation(Location, Rotation);
@@ -1164,41 +1181,51 @@ UDecalComponent* UGameplayStatics::SpawnDecalAttached(class UMaterialInterface* 
 					{
 						DecalComp->SetRelativeLocationAndRotation(Location, Rotation);
 					}
-					return DecalComp;
 				}
 			}
 		}
 	}
-	return nullptr;
+
+	return DecalComp;
 }
 
 //////////////////////////////////////////////////////////////////////////
 
 USaveGame* UGameplayStatics::CreateSaveGameObject(TSubclassOf<USaveGame> SaveGameClass)
 {
-	// Don't save if no class or if class is the abstract base class.
-	if (*SaveGameClass && (*SaveGameClass != USaveGame::StaticClass()))
+	USaveGame* OutSaveGameObject = NULL;
+
+	// don't save if no class or if class is the abstract base class
+	if ( (*SaveGameClass != NULL) && (*SaveGameClass != USaveGame::StaticClass()) )
 	{
-		return NewObject<USaveGame>(GetTransientPackage(), SaveGameClass);
+		OutSaveGameObject = NewObject<USaveGame>(GetTransientPackage(), SaveGameClass);
 	}
-	return nullptr;
+
+	return OutSaveGameObject;
 }
 
 USaveGame* UGameplayStatics::CreateSaveGameObjectFromBlueprint(UBlueprint* SaveGameBlueprint)
 {
-	if (SaveGameBlueprint && SaveGameBlueprint->GeneratedClass && SaveGameBlueprint->GeneratedClass->IsChildOf(USaveGame::StaticClass()))
+	USaveGame* OutSaveGameObject = NULL;
+
+	if( SaveGameBlueprint != NULL &&
+		SaveGameBlueprint->GeneratedClass != NULL &&
+		SaveGameBlueprint->GeneratedClass->IsChildOf(USaveGame::StaticClass()) )
 	{
-		return NewObject<USaveGame>(GetTransientPackage(), SaveGameBlueprint->GeneratedClass);
+		OutSaveGameObject = NewObject<USaveGame>(GetTransientPackage(), SaveGameBlueprint->GeneratedClass);
 	}
-	return nullptr;
+
+	return OutSaveGameObject;
 }
 
 
 bool UGameplayStatics::SaveGameToSlot(USaveGame* SaveGameObject, const FString& SlotName, const int32 UserIndex)
 {
+	bool bSuccess = false;
+
 	ISaveGameSystem* SaveSystem = IPlatformFeaturesModule::Get().GetSaveGameSystem();
 	// If we have a system and an object to save and a save name...
-	if(SaveSystem && SaveGameObject && (SlotName.Len() > 0))
+	if(SaveSystem && (SaveGameObject != NULL) && (SlotName.Len() > 0))
 	{
 		TArray<uint8> ObjectBytes;
 		FMemoryWriter MemoryWriter(ObjectBytes, true);
@@ -1213,9 +1240,8 @@ bool UGameplayStatics::SaveGameToSlot(USaveGame* SaveGameObject, const FString& 
 		MemoryWriter << SavegameFileVersion;
 
 		// Write out engine and UE4 version information
-		int32 PackageFileUE4Version = GPackageFileUE4Version;
-		MemoryWriter << PackageFileUE4Version;
-		FEngineVersion SavedEngineVersion = FEngineVersion::Current();
+		MemoryWriter << GPackageFileUE4Version;
+		FEngineVersion SavedEngineVersion = GEngineVersion;
 		MemoryWriter << SavedEngineVersion;
 
 		// Write the class name so we know what class to load to
@@ -1227,23 +1253,30 @@ bool UGameplayStatics::SaveGameToSlot(USaveGame* SaveGameObject, const FString& 
 		SaveGameObject->Serialize(Ar);
 
 		// Stuff that data into the save system with the desired file name
-		return SaveSystem->SaveGame(false, *SlotName, UserIndex, ObjectBytes);
+		bSuccess = SaveSystem->SaveGame(false, *SlotName, UserIndex, ObjectBytes);
 	}
-	return false;
+
+	return bSuccess;
 }
 
 bool UGameplayStatics::DoesSaveGameExist(const FString& SlotName, const int32 UserIndex)
 {
-	if (ISaveGameSystem* SaveSystem = IPlatformFeaturesModule::Get().GetSaveGameSystem())
+	bool bExists = false;
+
+	ISaveGameSystem* SaveSystem = IPlatformFeaturesModule::Get().GetSaveGameSystem();
+	if(SaveSystem != NULL)
 	{
-		return SaveSystem->DoesSaveGameExist(*SlotName, UserIndex);
+		bExists = SaveSystem->DoesSaveGameExist(*SlotName, UserIndex);
 	}
-	return false;
+
+	return bExists;
 }
 
+//static 
 bool UGameplayStatics::DeleteGameInSlot(const FString& SlotName, const int32 UserIndex)
 {
-	if (ISaveGameSystem* SaveSystem = IPlatformFeaturesModule::Get().GetSaveGameSystem())
+	ISaveGameSystem* SaveSystem = IPlatformFeaturesModule::Get().GetSaveGameSystem();
+	if (SaveSystem != NULL)
 	{
 		return SaveSystem->DeleteGame(false, *SlotName, UserIndex);
 	}
@@ -1279,7 +1312,7 @@ USaveGame* UGameplayStatics::LoadGameFromSlot(const FString& SlotName, const int
 				// you don't want to delete it, try uncommenting these lines and changing them to use the version 
 				// information from your previous build. Then load and resave your savegame file.
 				//MemoryReader.SetUE4Ver(MyPreviousUE4Version);				// @see GPackageFileUE4Version
-				//MemoryReader.SetEngineVer(MyPreviousEngineVersion);		// @see FEngineVersion::Current()
+				//MemoryReader.SetEngineVer(MyPreviousEngineVersion);		// @see GEngineVersion
 			}
 			else
 			{
@@ -1349,7 +1382,8 @@ void UGameplayStatics::GetAccurateRealTime(UObject* WorldContextObject, int32& S
 
 void UGameplayStatics::EnableLiveStreaming(bool Enable)
 {
-	if (IDVRStreamingSystem* StreamingSystem = IPlatformFeaturesModule::Get().GetStreamingSystem())
+	IDVRStreamingSystem* StreamingSystem = IPlatformFeaturesModule::Get().GetStreamingSystem();
+	if (StreamingSystem)
 	{
 		StreamingSystem->EnableStreaming(Enable);
 	}

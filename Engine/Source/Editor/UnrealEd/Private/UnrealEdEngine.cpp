@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 
@@ -39,9 +39,6 @@
 #include "IMovieSceneCapture.h"
 #include "EngineUtils.h"
 
-#include "TargetPlatform.h"
-
-#include "CookerSettings.h"
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdEngine, Log, All);
 
 
@@ -133,16 +130,12 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 	if (!IsRunningCommandlet())
 	{
 		UEditorExperimentalSettings const* ExperimentalSettings = GetDefault<UEditorExperimentalSettings>();
-		UCookerSettings const* CookerSettings = GetDefault<UCookerSettings>();
 		ECookInitializationFlags BaseCookingFlags = ECookInitializationFlags::AutoTick | ECookInitializationFlags::AsyncSave | ECookInitializationFlags::Compressed;
-		BaseCookingFlags |= CookerSettings->bIterativeCookingForLaunchOn ? ECookInitializationFlags::Iterative : ECookInitializationFlags::None;
+		BaseCookingFlags |= ExperimentalSettings->bIterativeCookingForLaunchOn ? ECookInitializationFlags::Iterative : ECookInitializationFlags::None;
 
 		bool bEnableCookOnTheSide = false;
 		GConfig->GetBool(TEXT("/Script/UnrealEd.CookerSettings"), TEXT("bEnableCookOnTheSide"), bEnableCookOnTheSide, GEngineIni);
 
-		bool bEnableBuildDDCInBackground = false;
-		GConfig->GetBool(TEXT("/Script/UnrealEd.CookerSettings"), TEXT("bEnableBuildDDCInBackground"), bEnableBuildDDCInBackground, GEngineIni);
-		BaseCookingFlags |= bEnableBuildDDCInBackground ? ECookInitializationFlags::BuildDDCInBackground : ECookInitializationFlags::None;
 		if (bEnableCookOnTheSide)
 		{
 			CookServer = NewObject<UCookOnTheFlyServer>();
@@ -406,29 +399,6 @@ void UUnrealEdEngine::Tick(float DeltaSeconds, bool bIdleMode)
 	// Update lightmass
 	UpdateBuildLighting();
 	
-	if (!GIsSlowTask && !bFirstTick)
-	{
-		if (CookServer && 
-			CookServer->IsCookByTheBookMode() && 
-			!CookServer->IsCookByTheBookRunning() )
-		{
-			TArray<const ITargetPlatform*> CacheTargetPlatforms;
-
-			const ULevelEditorPlaySettings* PlaySettings = GetDefault<ULevelEditorPlaySettings>();
-			ITargetPlatform* TargetPlatform = nullptr;
-			if (PlaySettings && (PlaySettings->LastExecutedLaunchModeType == LaunchMode_OnDevice))
-			{
-				FString DeviceName = PlaySettings->LastExecutedLaunchDevice.Left(PlaySettings->LastExecutedLaunchDevice.Find(TEXT("@")));
-				CacheTargetPlatforms.Add( GetTargetPlatformManager()->FindTargetPlatform(DeviceName) );
-			}
-
-			if (CacheTargetPlatforms.Num() > 0)
-			{
-				CookServer->EditorTick(0.001f, CacheTargetPlatforms);
-			}
-		}
-	}
-
 	ICrashTrackerModule* CrashTracker = FModuleManager::LoadModulePtr<ICrashTrackerModule>( FName("CrashTracker") );
 	bool bCrashTrackerEnabled = false;
 	if (CrashTracker)
@@ -474,7 +444,7 @@ void UUnrealEdEngine::OnPackageDirtyStateUpdated( UPackage* Pkg)
 				FPackageFileSummary Summary;
 				*PackageReader << Summary;
 
-				if ( Summary.GetFileVersionUE4() > GPackageFileUE4Version || !FEngineVersion::Current().IsCompatibleWith(Summary.CompatibleWithEngineVersion) )
+				if ( Summary.GetFileVersionUE4() > GPackageFileUE4Version || !GEngineVersion.IsCompatibleWith(Summary.CompatibleWithEngineVersion) )
 				{
 					WarningStateToSet = WDWS_PendingWarn;
 					bNeedWarningForPkgEngineVer = true;
@@ -1206,56 +1176,6 @@ void UUnrealEdEngine::UpdateVolumeActorVisibility( UClass* InVolumeActorClass, F
 					PrimitiveComponent->PushEditorVisibilityToProxy( ActorToUpdate->HiddenEditorViews );
 				}
 			}
-		}
-	}
-}
-
-
-void UUnrealEdEngine::FixAnyInvertedBrushes(UWorld* World)
-{
-	// Get list of brushes with inverted polys
-	TArray<ABrush*> Brushes;
-	for (TActorIterator<ABrush> It(World); It; ++It)
-	{
-		ABrush* Brush = *It;
-		if (Brush->BrushComponent && Brush->BrushComponent->HasInvertedPolys())
-		{
-			Brushes.Add(Brush);
-		}
-	}
-
-	bool bAnyStaticBrushesFixed = false;
-	if (Brushes.Num() > 0)
-	{
-		for (ABrush* Brush : Brushes)
-		{
-			UE_LOG(LogUnrealEdEngine, Warning, TEXT("Brush '%s' appears to be inside out - fixing."), *Brush->GetName());
-
-			// Invert the polys of the brush
-			for (auto& Poly : Brush->BrushComponent->Brush->Polys->Element)
-			{
-				Poly.Reverse();
-				Poly.CalcNormal();
-			}
-
-			if (Brush->IsStaticBrush())
-			{
-				// Static brushes require a full BSP rebuild
-				bAnyStaticBrushesFixed = true;
-			}
-			else
-			{
-				// Dynamic brushes can be fixed up here
-				FBSPOps::csgPrepMovingBrush(Brush);
-				Brush->BrushComponent->BuildSimpleBrushCollision();
-			}
-
-			Brush->MarkPackageDirty();
-		}
-
-		if (bAnyStaticBrushesFixed)
-		{
-			RebuildAlteredBSP();
 		}
 	}
 }

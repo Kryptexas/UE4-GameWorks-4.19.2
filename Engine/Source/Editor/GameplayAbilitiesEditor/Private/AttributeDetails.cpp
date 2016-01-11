@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemEditorPrivatePCH.h"
 #include "AttributeDetails.h"
@@ -184,11 +184,7 @@ void FAttributePropertyDetails::OnChangeProperty(TSharedPtr<FString> ItemSelecte
 void FAttributePropertyDetails::OnAttributeChanged(UProperty* SelectedAttribute)
 {
 	const UObject* ObjPtr = SelectedAttribute;
-
-	if (MyProperty.IsValid())
-	{
-		MyProperty->SetValue(ObjPtr);
-	}
+	MyProperty->SetValue(ObjPtr);
 }
 
 // ------------------------------------------------------------------------------------

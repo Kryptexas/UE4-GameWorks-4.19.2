@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DistanceFieldSurfaceCacheLighting.cpp
@@ -150,7 +150,7 @@ FAutoConsoleVariableRef CVarAOScatterTileCulling(
 	TEXT("r.AOScatterTileCulling"),
 	GAOScatterTileCulling,
 	TEXT("Whether to use the rasterizer for binning occluder objects into screenspace tiles."),
-	ECVF_RenderThreadSafe
+	ECVF_Cheat | ECVF_RenderThreadSafe
 	);
 
 int32 GAOComputeShaderNormalCalculation = 0;
@@ -404,20 +404,9 @@ public:
 
 	void SetParameters(FRHICommandList& RHICmdList, const FScene* Scene, const FSceneView& View, const FDistanceFieldAOParameters& Parameters)
 	{
-		FUnorderedAccessViewRHIParamRef OutUAVs[6];
-		OutUAVs[0] = GAOCulledObjectBuffers.Buffers.ObjectIndirectArguments.UAV;
-		OutUAVs[1] = GAOCulledObjectBuffers.Buffers.Bounds.UAV;
-		OutUAVs[2] = GAOCulledObjectBuffers.Buffers.Data.UAV;
-		OutUAVs[3] = GAOCulledObjectBuffers.Buffers.BoxBounds.UAV;
-		OutUAVs[4] = Scene->DistanceFieldSceneData.ObjectBuffers->Data.UAV;
-		OutUAVs[5] = Scene->DistanceFieldSceneData.ObjectBuffers->Bounds.UAV;
-		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, ARRAY_COUNT(OutUAVs));
-
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
 		ObjectBufferParameters.Set(RHICmdList, ShaderRHI, *(Scene->DistanceFieldSceneData.ObjectBuffers), Scene->DistanceFieldSceneData.NumObjectsInBuffer);
-
-		
 
 		ObjectIndirectArguments.SetBuffer(RHICmdList, ShaderRHI, GAOCulledObjectBuffers.Buffers.ObjectIndirectArguments);
 		CulledObjectBounds.SetBuffer(RHICmdList, ShaderRHI, GAOCulledObjectBuffers.Buffers.Bounds);
@@ -432,22 +421,13 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, ObjectBoundingGeometryIndexCount, StencilingGeometry::GLowPolyStencilSphereIndexBuffer.GetIndexCount());
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList, const FScene* Scene)
+	void UnsetParameters(FRHICommandList& RHICmdList)
 	{
-		ObjectBufferParameters.UnsetParameters(RHICmdList, GetComputeShader(), *(Scene->DistanceFieldSceneData.ObjectBuffers));
+		ObjectBufferParameters.UnsetParameters(RHICmdList, GetComputeShader());
 		ObjectIndirectArguments.UnsetUAV(RHICmdList, GetComputeShader());
 		CulledObjectBounds.UnsetUAV(RHICmdList, GetComputeShader());
 		CulledObjectData.UnsetUAV(RHICmdList, GetComputeShader());
 		CulledObjectBoxBounds.UnsetUAV(RHICmdList, GetComputeShader());
-
-		FUnorderedAccessViewRHIParamRef OutUAVs[6];
-		OutUAVs[0] = GAOCulledObjectBuffers.Buffers.ObjectIndirectArguments.UAV;
-		OutUAVs[1] = GAOCulledObjectBuffers.Buffers.Bounds.UAV;
-		OutUAVs[2] = GAOCulledObjectBuffers.Buffers.Data.UAV;
-		OutUAVs[3] = GAOCulledObjectBuffers.Buffers.BoxBounds.UAV;
-		OutUAVs[4] = Scene->DistanceFieldSceneData.ObjectBuffers->Data.UAV;
-		OutUAVs[5] = Scene->DistanceFieldSceneData.ObjectBuffers->Bounds.UAV;		
-		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, ARRAY_COUNT(OutUAVs));
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -529,12 +509,6 @@ public:
 
 		FTileIntersectionResources* TileIntersectionResources = ((FSceneViewState*)View.State)->AOTileIntersectionResources;
 
-		FUnorderedAccessViewRHIParamRef OutUAVs[3];
-		OutUAVs[0] = TileIntersectionResources->TileConeAxisAndCos.UAV;
-		OutUAVs[1] = TileIntersectionResources->TileConeDepthRanges.UAV;
-		OutUAVs[2] = TileIntersectionResources->TileHeadDataUnpacked.UAV;
-		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, ARRAY_COUNT(OutUAVs));
-
 		TileConeAxisAndCos.SetBuffer(RHICmdList, ShaderRHI, TileIntersectionResources->TileConeAxisAndCos);
 		TileConeDepthRanges.SetBuffer(RHICmdList, ShaderRHI, TileIntersectionResources->TileConeDepthRanges);
 		TileHeadDataUnpacked.SetBuffer(RHICmdList, ShaderRHI, TileIntersectionResources->TileHeadDataUnpacked);
@@ -553,19 +527,11 @@ public:
 			);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList, const FSceneView& View)
+	void UnsetParameters(FRHICommandList& RHICmdList)
 	{
 		TileConeAxisAndCos.UnsetUAV(RHICmdList, GetComputeShader());
 		TileConeDepthRanges.UnsetUAV(RHICmdList, GetComputeShader());
 		TileHeadDataUnpacked.UnsetUAV(RHICmdList, GetComputeShader());
-
-		FTileIntersectionResources* TileIntersectionResources = ((FSceneViewState*)View.State)->AOTileIntersectionResources;
-
-		FUnorderedAccessViewRHIParamRef OutUAVs[3];
-		OutUAVs[0] = TileIntersectionResources->TileConeAxisAndCos.UAV;
-		OutUAVs[1] = TileIntersectionResources->TileConeDepthRanges.UAV;
-		OutUAVs[2] = TileIntersectionResources->TileHeadDataUnpacked.UAV;
-		RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, ARRAY_COUNT(OutUAVs));
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -666,7 +632,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldAO(Platform) && RHISupportsPixelShaderUAVs(Platform);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldAO(Platform);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -800,14 +766,7 @@ public:
 		ObjectParameters.Set(RHICmdList, ShaderRHI, GAOCulledObjectBuffers.Buffers);
 		AOParameters.Set(RHICmdList, ShaderRHI, Parameters);
 
-
 		FTileIntersectionResources* TileIntersectionResources = ((FSceneViewState*)View.State)->AOTileIntersectionResources;
-
-		FUnorderedAccessViewRHIParamRef OutUAVs[3];
-		OutUAVs[0] = TileIntersectionResources->TileHeadDataUnpacked.UAV;
-		OutUAVs[1] = TileIntersectionResources->TileArrayData.UAV;
-		OutUAVs[2] = TileIntersectionResources->TileArrayNextAllocation.UAV;
-		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, ARRAY_COUNT(OutUAVs));
 
 		TileHeadDataUnpacked.SetBuffer(RHICmdList, ShaderRHI, TileIntersectionResources->TileHeadDataUnpacked);
 		TileArrayData.SetBuffer(RHICmdList, ShaderRHI, TileIntersectionResources->TileArrayData);
@@ -818,19 +777,11 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, NumGroups, NumGroupsValue);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList, const FSceneView& View)
+	void UnsetParameters(FRHICommandList& RHICmdList)
 	{
 		TileHeadDataUnpacked.UnsetUAV(RHICmdList, GetComputeShader());
 		TileArrayData.UnsetUAV(RHICmdList, GetComputeShader());
 		TileArrayNextAllocation.UnsetUAV(RHICmdList, GetComputeShader());
-
-		FTileIntersectionResources* TileIntersectionResources = ((FSceneViewState*)View.State)->AOTileIntersectionResources;
-
-		FUnorderedAccessViewRHIParamRef OutUAVs[3];
-		OutUAVs[0] = TileIntersectionResources->TileHeadDataUnpacked.UAV;
-		OutUAVs[1] = TileIntersectionResources->TileArrayData.UAV;
-		OutUAVs[2] = TileIntersectionResources->TileArrayNextAllocation.UAV;
-		RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, ARRAY_COUNT(OutUAVs));
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -950,16 +901,14 @@ public:
 
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
 
-		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, DistanceFieldNormalValue.UAV);
 		DistanceFieldNormal.SetTexture(RHICmdList, ShaderRHI, DistanceFieldNormalValue.ShaderResourceTexture, DistanceFieldNormalValue.UAV);
 		AOParameters.Set(RHICmdList, ShaderRHI, Parameters);
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList, FSceneRenderTargetItem& DistanceFieldNormalValue)
+	void UnsetParameters(FRHICommandList& RHICmdList)
 	{
 		DistanceFieldNormal.UnsetUAV(RHICmdList, GetComputeShader());
-		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, DistanceFieldNormalValue.UAV);
 	}
 
 	// FShader interface.
@@ -1002,13 +951,13 @@ void ComputeDistanceFieldNormal(FRHICommandListImmediate& RHICmdList, const TArr
 				ComputeShader->SetParameters(RHICmdList, View, DistanceFieldNormal, Parameters);
 				DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
 
-				ComputeShader->UnsetParameters(RHICmdList, DistanceFieldNormal);
+				ComputeShader->UnsetParameters(RHICmdList);
 			}
 		}
 	}
 	else
 	{
-		SetRenderTarget(RHICmdList, DistanceFieldNormal.TargetableTexture, NULL, true);
+		SetRenderTarget(RHICmdList, DistanceFieldNormal.TargetableTexture, NULL);
 
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
@@ -1020,28 +969,26 @@ void ComputeDistanceFieldNormal(FRHICommandListImmediate& RHICmdList, const TArr
 			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-
+			
 			TShaderMapRef<FPostProcessVS> VertexShader(View.ShaderMap);
 			TShaderMapRef<FComputeDistanceFieldNormalPS> PixelShader(View.ShaderMap);
 
 			static FGlobalBoundShaderState BoundShaderState;
-
+			
 			SetGlobalBoundShaderState(RHICmdList, View.FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 			PixelShader->SetParameters(RHICmdList, View, Parameters);
 
-			DrawRectangle(
+			DrawRectangle( 
 				RHICmdList,
-				0, 0,
+				0, 0, 
 				View.ViewRect.Width() / GAODownsampleFactor, View.ViewRect.Height() / GAODownsampleFactor,
-				0, 0,
+				0, 0, 
 				View.ViewRect.Width(), View.ViewRect.Height(),
 				FIntPoint(View.ViewRect.Width() / GAODownsampleFactor, View.ViewRect.Height() / GAODownsampleFactor),
 				FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY(),
 				*VertexShader);
 		}
-
-		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, DistanceFieldNormal.TargetableTexture);
 	}
 }
 
@@ -1084,29 +1031,16 @@ public:
 
 		SetSRVParameter(RHICmdList, ShaderRHI, DrawParameters, SurfaceCacheResources.Level[DepthLevel]->ScatterDrawParameters.SRV);
 
-		FUnorderedAccessViewRHIParamRef OutUAVs[2];
-		OutUAVs[0] = SurfaceCacheResources.DispatchParameters.UAV;
-		OutUAVs[1] = SurfaceCacheResources.TempResources->ScatterDrawParameters.UAV;
-		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, ARRAY_COUNT(OutUAVs));
-
 		DispatchParameters.SetBuffer(RHICmdList, ShaderRHI, SurfaceCacheResources.DispatchParameters);
 		ScatterDrawParameters.SetBuffer(RHICmdList, ShaderRHI, SurfaceCacheResources.TempResources->ScatterDrawParameters);
 
 		SetShaderValue(RHICmdList, ShaderRHI, TrimFraction, GAOTrimOldRecordsFraction);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList, const FSceneView& View)
+	void UnsetParameters(FRHICommandList& RHICmdList)
 	{
 		DispatchParameters.UnsetUAV(RHICmdList, GetComputeShader());
 		ScatterDrawParameters.UnsetUAV(RHICmdList, GetComputeShader());
-
-		const FScene* Scene = (const FScene*)View.Family->Scene;
-		FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
-
-		FUnorderedAccessViewRHIParamRef OutUAVs[2];
-		OutUAVs[0] = SurfaceCacheResources.DispatchParameters.UAV;
-		OutUAVs[1] = SurfaceCacheResources.TempResources->ScatterDrawParameters.UAV;
-		RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, ARRAY_COUNT(OutUAVs));
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -1177,16 +1111,6 @@ public:
 		CacheParameters.Set(RHICmdList, ShaderRHI, *SurfaceCacheResources.Level[DepthLevel]);
 		SetSRVParameter(RHICmdList, ShaderRHI, DrawParameters, SurfaceCacheResources.Level[DepthLevel]->ScatterDrawParameters.SRV);
 
-		FUnorderedAccessViewRHIParamRef OutUAVs[7];
-		OutUAVs[0] = SurfaceCacheResources.TempResources->PositionAndRadius.UAV;
-		OutUAVs[1] = SurfaceCacheResources.TempResources->Normal.UAV;
-		OutUAVs[2] = SurfaceCacheResources.TempResources->OccluderRadius.UAV;
-		OutUAVs[3] = SurfaceCacheResources.TempResources->BentNormal.UAV;
-		OutUAVs[4] = SurfaceCacheResources.TempResources->Irradiance.UAV;
-		OutUAVs[5] = SurfaceCacheResources.TempResources->TileCoordinate.UAV;
-		OutUAVs[6] = SurfaceCacheResources.TempResources->ScatterDrawParameters.UAV;
-		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, ARRAY_COUNT(OutUAVs));
-
 		CopyIrradianceCachePositionRadius.SetBuffer(RHICmdList, ShaderRHI, SurfaceCacheResources.TempResources->PositionAndRadius);
 		CopyIrradianceCacheNormal.SetBuffer(RHICmdList, ShaderRHI, SurfaceCacheResources.TempResources->Normal);
 		CopyOccluderRadius.SetBuffer(RHICmdList, ShaderRHI, SurfaceCacheResources.TempResources->OccluderRadius);
@@ -1198,7 +1122,7 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, TrimFraction, GAOTrimOldRecordsFraction);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList, const FSceneView& View)
+	void UnsetParameters(FRHICommandList& RHICmdList)
 	{
 		CopyIrradianceCachePositionRadius.UnsetUAV(RHICmdList, GetComputeShader());
 		CopyIrradianceCacheNormal.UnsetUAV(RHICmdList, GetComputeShader());
@@ -1207,19 +1131,6 @@ public:
 		CopyIrradianceCacheIrradiance.UnsetUAV(RHICmdList, GetComputeShader());
 		CopyIrradianceCacheTileCoordinate.UnsetUAV(RHICmdList, GetComputeShader());
 		ScatterDrawParameters.UnsetUAV(RHICmdList, GetComputeShader());
-
-		const FScene* Scene = (const FScene*)View.Family->Scene;
-		FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
-
-		FUnorderedAccessViewRHIParamRef OutUAVs[7];
-		OutUAVs[0] = SurfaceCacheResources.TempResources->PositionAndRadius.UAV;
-		OutUAVs[1] = SurfaceCacheResources.TempResources->Normal.UAV;
-		OutUAVs[2] = SurfaceCacheResources.TempResources->OccluderRadius.UAV;
-		OutUAVs[3] = SurfaceCacheResources.TempResources->BentNormal.UAV;
-		OutUAVs[4] = SurfaceCacheResources.TempResources->Irradiance.UAV;
-		OutUAVs[5] = SurfaceCacheResources.TempResources->TileCoordinate.UAV;
-		OutUAVs[6] = SurfaceCacheResources.TempResources->ScatterDrawParameters.UAV;
-		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, ARRAY_COUNT(OutUAVs));
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -1285,18 +1196,12 @@ public:
 		FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
 
 		SetSRVParameter(RHICmdList, ShaderRHI, DrawParameters, SurfaceCacheResources.Level[DepthLevel]->ScatterDrawParameters.SRV);
-
-		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, SurfaceCacheResources.Level[DepthLevel]->SavedStartIndex.UAV);
 		SavedStartIndex.SetBuffer(RHICmdList, ShaderRHI, SurfaceCacheResources.Level[DepthLevel]->SavedStartIndex);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList, const FSceneView& View, int32 DepthLevel)
+	void UnsetParameters(FRHICommandList& RHICmdList)
 	{
 		SavedStartIndex.UnsetUAV(RHICmdList, GetComputeShader());
-
-		const FScene* Scene = (const FScene*)View.Family->Scene;
-		FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
-		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, SurfaceCacheResources.Level[DepthLevel]->SavedStartIndex.UAV);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -1379,13 +1284,6 @@ public:
 		const FScene* Scene = (const FScene*)View.Family->Scene;
 		FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
 
-		FUnorderedAccessViewRHIParamRef OutUAVs[4];
-		OutUAVs[0] = SurfaceCacheResources.Level[DepthLevel]->PositionAndRadius.UAV;
-		OutUAVs[1] = SurfaceCacheResources.Level[DepthLevel]->Normal.UAV;
-		OutUAVs[2] = SurfaceCacheResources.Level[DepthLevel]->TileCoordinate.UAV;
-		OutUAVs[3] = SurfaceCacheResources.Level[DepthLevel]->ScatterDrawParameters.UAV;
-		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, ARRAY_COUNT(OutUAVs));
-
 		IrradianceCachePositionRadius.SetBuffer(RHICmdList, ShaderRHI, SurfaceCacheResources.Level[DepthLevel]->PositionAndRadius);
 		IrradianceCacheNormal.SetBuffer(RHICmdList, ShaderRHI, SurfaceCacheResources.Level[DepthLevel]->Normal);
 		IrradianceCacheTileCoordinate.SetBuffer(RHICmdList, ShaderRHI, SurfaceCacheResources.Level[DepthLevel]->TileCoordinate);
@@ -1431,22 +1329,12 @@ public:
 			);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList, const FSceneView& View, int32 DepthLevel)
+	void UnsetParameters(FRHICommandList& RHICmdList)
 	{
 		IrradianceCachePositionRadius.UnsetUAV(RHICmdList, GetComputeShader());
 		IrradianceCacheNormal.UnsetUAV(RHICmdList, GetComputeShader());
 		IrradianceCacheTileCoordinate.UnsetUAV(RHICmdList, GetComputeShader());
 		ScatterDrawParameters.UnsetUAV(RHICmdList, GetComputeShader());
-
-		const FScene* Scene = (const FScene*)View.Family->Scene;
-		FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
-
-		FUnorderedAccessViewRHIParamRef OutUAVs[4];
-		OutUAVs[0] = SurfaceCacheResources.Level[DepthLevel]->PositionAndRadius.UAV;
-		OutUAVs[1] = SurfaceCacheResources.Level[DepthLevel]->Normal.UAV;
-		OutUAVs[2] = SurfaceCacheResources.Level[DepthLevel]->TileCoordinate.UAV;
-		OutUAVs[3] = SurfaceCacheResources.Level[DepthLevel]->ScatterDrawParameters.UAV;
-		RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, ARRAY_COUNT(OutUAVs));
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -1575,12 +1463,6 @@ public:
 		SetSRVParameter(RHICmdList, ShaderRHI, SavedStartIndex, SurfaceCacheResources.Level[DepthLevel]->SavedStartIndex.SRV);
 		SetSRVParameter(RHICmdList, ShaderRHI, IrradianceCachePositionRadius, SurfaceCacheResources.Level[DepthLevel]->PositionAndRadius.SRV);
 
-		FUnorderedAccessViewRHIParamRef OutUAVs[3];
-		OutUAVs[0] = SurfaceCacheResources.Level[DepthLevel]->OccluderRadius.UAV;
-		OutUAVs[1] = GTemporaryIrradianceCacheResources.ConeVisibility.UAV;
-		OutUAVs[2] = GTemporaryIrradianceCacheResources.ConeData.UAV;
-		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, ARRAY_COUNT(OutUAVs));
-
 		OccluderRadius.SetBuffer(RHICmdList, ShaderRHI, SurfaceCacheResources.Level[DepthLevel]->OccluderRadius);
 		RecordConeVisibility.SetBuffer(RHICmdList, ShaderRHI, GTemporaryIrradianceCacheResources.ConeVisibility);
 		RecordConeData.SetBuffer(RHICmdList, ShaderRHI, GTemporaryIrradianceCacheResources.ConeData);
@@ -1650,20 +1532,11 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, RecordRadiusScale, GAORecordRadiusScale);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList, const FSceneView& View, int32 DepthLevel)
+	void UnsetParameters(FRHICommandList& RHICmdList)
 	{
 		OccluderRadius.UnsetUAV(RHICmdList, GetComputeShader());
 		RecordConeVisibility.UnsetUAV(RHICmdList, GetComputeShader());
 		RecordConeData.UnsetUAV(RHICmdList, GetComputeShader());
-
-		const FScene* Scene = (const FScene*)View.Family->Scene;
-		FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
-
-		FUnorderedAccessViewRHIParamRef OutUAVs[3];
-		OutUAVs[0] = SurfaceCacheResources.Level[DepthLevel]->OccluderRadius.UAV;
-		OutUAVs[1] = GTemporaryIrradianceCacheResources.ConeVisibility.UAV;
-		OutUAVs[2] = GTemporaryIrradianceCacheResources.ConeData.UAV;
-		RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, ARRAY_COUNT(OutUAVs));
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -1789,7 +1662,6 @@ public:
 		SetSRVParameter(RHICmdList, ShaderRHI, SavedStartIndex, SurfaceCacheResources.Level[DepthLevel]->SavedStartIndex.SRV);
 		SetSRVParameter(RHICmdList, ShaderRHI, RecordConeVisibility, GTemporaryIrradianceCacheResources.ConeVisibility.SRV);
 
-		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, SurfaceCacheResources.Level[DepthLevel]->BentNormal.UAV);
 		IrradianceCacheBentNormal.SetBuffer(RHICmdList, ShaderRHI, SurfaceCacheResources.Level[DepthLevel]->BentNormal);
 
 		FAOSampleData2 AOSampleData;
@@ -1817,13 +1689,9 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, TanConeHalfAngle, FMath::Tan(GAOConeHalfAngle));
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList, const FSceneView& View, int32 DepthLevel)
+	void UnsetParameters(FRHICommandList& RHICmdList)
 	{
 		IrradianceCacheBentNormal.UnsetUAV(RHICmdList, GetComputeShader());
-
-		const FScene* Scene = (const FScene*)View.Family->Scene;
-		FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
-		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, SurfaceCacheResources.Level[DepthLevel]->BentNormal.UAV);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -2292,7 +2160,7 @@ FIntPoint BuildTileObjectLists(FRHICommandListImmediate& RHICmdList, FScene* Sce
 				ComputeShader->SetParameters(RHICmdList, View, DistanceFieldNormal, Scene, FVector2D(GroupSizeX, GroupSizeY), Parameters);
 				DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
 
-				ComputeShader->UnsetParameters(RHICmdList, View);
+				ComputeShader->UnsetParameters(RHICmdList);
 			}
 
 			{
@@ -2303,7 +2171,6 @@ FIntPoint BuildTileObjectLists(FRHICommandListImmediate& RHICmdList, FScene* Sce
 
 				TArray<FUnorderedAccessViewRHIParamRef> UAVs;
 				PixelShader->GetUAVs(Views[0], UAVs);
-				RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, UAVs.GetData(), UAVs.Num());
 				RHICmdList.SetRenderTargets(0, (const FRHIRenderTargetView*)NULL, NULL, UAVs.Num(), UAVs.GetData());
 
 				RHICmdList.SetViewport(0, 0, 0.0f, GroupSizeX, GroupSizeY, 1.0f);
@@ -2327,7 +2194,6 @@ FIntPoint BuildTileObjectLists(FRHICommandListImmediate& RHICmdList, FScene* Sce
 					StencilingGeometry::GLowPolyStencilSphereIndexBuffer.IndexBufferRHI, 
 					GAOCulledObjectBuffers.Buffers.ObjectIndirectArguments.Buffer,
 					0);
-				RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, UAVs.GetData(), UAVs.Num());
 			}
 		}
 	}
@@ -2370,7 +2236,7 @@ FIntPoint BuildTileObjectLists(FRHICommandListImmediate& RHICmdList, FScene* Sce
 			ComputeShader->SetParameters(RHICmdList, View, Scene, FVector2D(GroupSizeX, GroupSizeY), Parameters);
 			DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
 
-			ComputeShader->UnsetParameters(RHICmdList, View);
+			ComputeShader->UnsetParameters(RHICmdList);
 		}
 	}
 
@@ -2478,7 +2344,7 @@ void RenderIrradianceCacheInterpolation(
 		if (bFinalInterpolation && (GAOInterpolationDepthTesting || GAOInterpolationStencilTesting))
 		{
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BentNormalInterpolationTarget->GetDesc().Extent, PF_DepthStencil, FClearValueBinding::DepthZero, TexCreate_None, TexCreate_DepthStencilTargetable, false));
-			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SplatDepthStencilBuffer, TEXT("DistanceFieldAOSplatDepthBuffer"));
+			GRenderTargetPool.FindFreeElement(Desc, SplatDepthStencilBuffer, TEXT("DistanceFieldAOSplatDepthBuffer"));
 
 			SetupDepthStencil(RHICmdList, View, SplatDepthStencilBuffer->GetRenderTargetItem(), DistanceFieldNormal, DepthLevel, DestLevelDownsampleFactor);
 
@@ -2747,17 +2613,11 @@ bool FDeferredShadingSceneRenderer::ShouldPrepareForDistanceFieldAO() const
 
 bool FDeferredShadingSceneRenderer::ShouldPrepareDistanceFields() const
 {
-	if (!ensure(Scene != nullptr))
-	{
-		return false;
-	}
-
 	return SupportsDistanceFieldAO(Scene->GetFeatureLevel(), Scene->GetShaderPlatform())
 		&& (ShouldPrepareForDistanceFieldAO() 
 			|| ShouldPrepareForDistanceFieldShadows() 
-			|| ((Views.Num() > 0) && Views[0].bUsesGlobalDistanceField)
-			|| ((Scene->FXSystem != nullptr) && Scene->FXSystem->UsesGlobalDistanceField())
-		   );
+			|| Views[0].bUsesGlobalDistanceField
+			|| Scene->FXSystem->UsesGlobalDistanceField());
 }
 
 void RenderDistanceFieldAOSurfaceCache(
@@ -2826,7 +2686,7 @@ void RenderDistanceFieldAOSurfaceCache(
 					ComputeShader->SetParameters(RHICmdList, View, DepthLevel);
 					DispatchComputeShader(RHICmdList, *ComputeShader, 1, 1, 1);
 
-					ComputeShader->UnsetParameters(RHICmdList, View);
+					ComputeShader->UnsetParameters(RHICmdList);
 				}
 
 				if (bUseDistanceFieldGI)
@@ -2837,7 +2697,7 @@ void RenderDistanceFieldAOSurfaceCache(
 					ComputeShader->SetParameters(RHICmdList, View, DepthLevel);
 					DispatchIndirectComputeShader(RHICmdList, *ComputeShader, SurfaceCacheResources.DispatchParameters.Buffer, 0);
 
-					ComputeShader->UnsetParameters(RHICmdList, View);
+					ComputeShader->UnsetParameters(RHICmdList);
 				}
 				else
 				{
@@ -2847,7 +2707,7 @@ void RenderDistanceFieldAOSurfaceCache(
 					ComputeShader->SetParameters(RHICmdList, View, DepthLevel);
 					DispatchIndirectComputeShader(RHICmdList, *ComputeShader, SurfaceCacheResources.DispatchParameters.Buffer, 0);
 
-					ComputeShader->UnsetParameters(RHICmdList, View);
+					ComputeShader->UnsetParameters(RHICmdList);
 				}
 
 				Swap(SurfaceCacheResources.Level[DepthLevel], SurfaceCacheResources.TempResources);
@@ -2869,7 +2729,7 @@ void RenderDistanceFieldAOSurfaceCache(
 		{
 			FIntPoint AOBufferSize = FIntPoint::DivideAndRoundUp(SceneContext.GetBufferSizeXY(), DestLevelDownsampleFactor);
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(AOBufferSize, PF_FloatRGBA, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
-			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, DistanceFieldAOBentNormalSplat, TEXT("DistanceFieldAOBentNormalSplat"));
+			GRenderTargetPool.FindFreeElement(Desc, DistanceFieldAOBentNormalSplat, TEXT("DistanceFieldAOBentNormalSplat"));
 		}
 
 		// Splat / interpolate the surface cache records onto the buffer sized for the current depth level
@@ -2887,7 +2747,7 @@ void RenderDistanceFieldAOSurfaceCache(
 				ComputeShader->SetParameters(RHICmdList, View, DepthLevel);
 				DispatchComputeShader(RHICmdList, *ComputeShader, 1, 1, 1);
 
-				ComputeShader->UnsetParameters(RHICmdList, View, DepthLevel);
+				ComputeShader->UnsetParameters(RHICmdList);
 			}
 
 			// Create new records which haven't been shaded yet for shading points which don't have a valid interpolation from existing records
@@ -2902,7 +2762,7 @@ void RenderDistanceFieldAOSurfaceCache(
 		        ComputeShader->SetParameters(RHICmdList, View, DistanceFieldAOBentNormalSplat->GetRenderTargetItem(), DistanceFieldNormal->GetRenderTargetItem(), DestLevelDownsampleFactor, DepthLevel, TileListGroupSize, Parameters);
 				DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
 
-				ComputeShader->UnsetParameters(RHICmdList, View, DepthLevel);
+				ComputeShader->UnsetParameters(RHICmdList);
 			}
 
 			{	
@@ -2912,7 +2772,7 @@ void RenderDistanceFieldAOSurfaceCache(
 				ComputeShader->SetParameters(RHICmdList, View, DepthLevel);
 				DispatchComputeShader(RHICmdList, *ComputeShader, 1, 1, 1);
 
-				ComputeShader->UnsetParameters(RHICmdList, View);
+				ComputeShader->UnsetParameters(RHICmdList);
 			}
 
 			// Compute lighting for the new surface cache records by cone-stepping through the object distance fields
@@ -2924,7 +2784,7 @@ void RenderDistanceFieldAOSurfaceCache(
 				ComputeShader->SetParameters(RHICmdList, View, DistanceFieldAOBentNormalSplat->GetRenderTargetItem(), DistanceFieldNormal->GetRenderTargetItem(), DestLevelDownsampleFactor, DepthLevel, TileListGroupSize, Parameters);
 				DispatchIndirectComputeShader(RHICmdList, *ComputeShader, SurfaceCacheResources.DispatchParameters.Buffer, 0);
 
-				ComputeShader->UnsetParameters(RHICmdList, View, DepthLevel);
+				ComputeShader->UnsetParameters(RHICmdList);
 			}
 			else
 			{
@@ -2934,7 +2794,7 @@ void RenderDistanceFieldAOSurfaceCache(
 				ComputeShader->SetParameters(RHICmdList, View, DistanceFieldAOBentNormalSplat->GetRenderTargetItem(), DistanceFieldNormal->GetRenderTargetItem(), DestLevelDownsampleFactor, DepthLevel, TileListGroupSize, Parameters);
 				DispatchIndirectComputeShader(RHICmdList, *ComputeShader, SurfaceCacheResources.DispatchParameters.Buffer, 0);
 
-				ComputeShader->UnsetParameters(RHICmdList, View, DepthLevel);
+				ComputeShader->UnsetParameters(RHICmdList);
 			}
 		}
 
@@ -2961,7 +2821,7 @@ void RenderDistanceFieldAOSurfaceCache(
 			ComputeShader->SetParameters(RHICmdList, View, DepthLevel);
 			DispatchComputeShader(RHICmdList, *ComputeShader, 1, 1, 1);
 
-			ComputeShader->UnsetParameters(RHICmdList, View);
+			ComputeShader->UnsetParameters(RHICmdList);
 		}
 
 		// Compute and store the final bent normal now that all occlusion sources have been computed (distance fields, heightfields)
@@ -2972,7 +2832,7 @@ void RenderDistanceFieldAOSurfaceCache(
 			ComputeShader->SetParameters(RHICmdList, View, DepthLevel, Parameters, NULL, FMatrix::Identity, NULL, NULL);
 			DispatchIndirectComputeShader(RHICmdList, *ComputeShader, SurfaceCacheResources.DispatchParameters.Buffer, 0);
 
-			ComputeShader->UnsetParameters(RHICmdList, View, DepthLevel);
+			ComputeShader->UnsetParameters(RHICmdList);
 		}
 	}
 
@@ -2982,11 +2842,11 @@ void RenderDistanceFieldAOSurfaceCache(
 	{
 		FIntPoint BufferSize = GetBufferSizeForAO();
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_FloatRGBA, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
-		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, BentNormalAccumulation, TEXT("BentNormalAccumulation"));
+		GRenderTargetPool.FindFreeElement(Desc, BentNormalAccumulation, TEXT("BentNormalAccumulation"));
 
 		if (bUseDistanceFieldGI)
 		{
-			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, IrradianceAccumulation, TEXT("IrradianceAccumulation"));
+			GRenderTargetPool.FindFreeElement(Desc, IrradianceAccumulation, TEXT("IrradianceAccumulation"));
 		}
 	}
 
@@ -3068,7 +2928,7 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldLighting(
 					ComputeShader->SetParameters(RHICmdList, Scene, View, Parameters);
 
 					DispatchComputeShader(RHICmdList, *ComputeShader, FMath::DivideAndRoundUp<uint32>(Scene->DistanceFieldSceneData.NumObjectsInBuffer, UpdateObjectsGroupSize), 1, 1);
-					ComputeShader->UnsetParameters(RHICmdList, Scene);
+					ComputeShader->UnsetParameters(RHICmdList);
 				}
 			}
 			
@@ -3077,7 +2937,7 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldLighting(
 			{
 				const FIntPoint BufferSize = GetBufferSizeForAO();
 				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_FloatRGBA, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
-				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, DistanceFieldNormal, TEXT("DistanceFieldNormal"));
+				GRenderTargetPool.FindFreeElement(Desc, DistanceFieldNormal, TEXT("DistanceFieldNormal"));
 			}
 
 			ComputeDistanceFieldNormal(RHICmdList, Views, DistanceFieldNormal->GetRenderTargetItem(), Parameters);
@@ -3111,8 +2971,8 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldLighting(
 					Parameters, 
 					VelocityTexture,
 					DistanceFieldNormal, 
-					BentNormalOutput, 
-					IrradianceOutput);
+				BentNormalOutput, 
+				IrradianceOutput);
 			}
 			else
 			{
@@ -3127,8 +2987,6 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldLighting(
 					IrradianceOutput);
 			}
 
-			RenderCapsuleShadowsForMovableSkylight(RHICmdList, BentNormalOutput);
-
 			GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, BentNormalOutput);
 
 			if (bVisualizeAmbientOcclusion || bVisualizeGlobalIllumination)
@@ -3140,12 +2998,12 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldLighting(
 				FPooledRenderTargetDesc Desc = SceneContext.GetSceneColor()->GetDesc();
 				// Make sure we get a signed format
 				Desc.Format = PF_FloatRGBA;
-				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, OutDynamicBentNormalAO, TEXT("DynamicBentNormalAO"));
+				GRenderTargetPool.FindFreeElement(Desc, OutDynamicBentNormalAO, TEXT("DynamicBentNormalAO"));
 
 				if (bUseDistanceFieldGI)
 				{
 					Desc.Format = PF_FloatRGB;
-					GRenderTargetPool.FindFreeElement(RHICmdList, Desc, OutDynamicIrradiance, TEXT("DynamicIrradiance"));
+					GRenderTargetPool.FindFreeElement(Desc, OutDynamicIrradiance, TEXT("DynamicIrradiance"));
 				}
 
 				FTextureRHIParamRef RenderTargets[2] =
@@ -3297,7 +3155,7 @@ void FDeferredShadingSceneRenderer::RenderDynamicSkyLighting(FRHICommandListImme
 		}
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
-		SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilRead);
+		SceneContext.BeginRenderingSceneColor(RHICmdList);
 
 		for( int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++ )
 		{
@@ -3316,7 +3174,7 @@ void FDeferredShadingSceneRenderer::RenderDynamicSkyLighting(FRHICommandListImme
 				RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::GetRHI());
 			}
 
-			const bool bUseDistanceFieldGI = IsDistanceFieldGIAllowed(View) && IsValidRef(DynamicIrradiance);
+			const bool bUseDistanceFieldGI = IsDistanceFieldGIAllowed(View);
 			TShaderMapRef< FPostProcessVS > VertexShader(View.ShaderMap);
 
 			if (bApplyShadowing)
@@ -3417,7 +3275,6 @@ public:
 
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
 
-		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, VisualizeMeshDistanceFieldsValue.UAV);
 		VisualizeMeshDistanceFields.SetTexture(RHICmdList, ShaderRHI, VisualizeMeshDistanceFieldsValue.ShaderResourceTexture, VisualizeMeshDistanceFieldsValue.UAV);
 
 		ObjectParameters.Set(RHICmdList, ShaderRHI, GAOCulledObjectBuffers.Buffers);
@@ -3432,9 +3289,8 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, NumGroups, NumGroupsValue);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList, FSceneRenderTargetItem& VisualizeMeshDistanceFieldsValue)
+	void UnsetParameters(FRHICommandList& RHICmdList)
 	{
-		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, VisualizeMeshDistanceFieldsValue.UAV);
 		VisualizeMeshDistanceFields.UnsetUAV(RHICmdList, GetComputeShader());
 	}
 
@@ -3558,7 +3414,7 @@ void FDeferredShadingSceneRenderer::RenderMeshDistanceFieldVisualization(FRHICom
 					ComputeShader->SetParameters(RHICmdList, Scene, View, Parameters);
 
 					DispatchComputeShader(RHICmdList, *ComputeShader, FMath::DivideAndRoundUp<uint32>(Scene->DistanceFieldSceneData.NumObjectsInBuffer, UpdateObjectsGroupSize), 1, 1);
-					ComputeShader->UnsetParameters(RHICmdList, Scene);
+					ComputeShader->UnsetParameters(RHICmdList);
 				}
 			}
 
@@ -3567,7 +3423,7 @@ void FDeferredShadingSceneRenderer::RenderMeshDistanceFieldVisualization(FRHICom
 			{
 				const FIntPoint BufferSize = GetBufferSizeForAO();
 				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_FloatRGBA, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
-				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, VisualizeResultRT, TEXT("VisualizeDistanceField"));
+				GRenderTargetPool.FindFreeElement(Desc, VisualizeResultRT, TEXT("VisualizeDistanceField"));
 			}
 
 			{
@@ -3582,7 +3438,6 @@ void FDeferredShadingSceneRenderer::RenderMeshDistanceFieldVisualization(FRHICom
 
 					SCOPED_DRAW_EVENT(RHICmdList, VisualizeMeshDistanceFieldCS);
 
-					FSceneRenderTargetItem& VisualizeResultRTI = VisualizeResultRT->GetRenderTargetItem();
 					if (bUseGlobalDistanceField)
 					{
 						check(View.GlobalDistanceFieldInfo.Clipmaps.Num() > 0);
@@ -3590,26 +3445,26 @@ void FDeferredShadingSceneRenderer::RenderMeshDistanceFieldVisualization(FRHICom
 						TShaderMapRef<TVisualizeMeshDistanceFieldCS<true> > ComputeShader(ViewInfo.ShaderMap);
 
 						RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-						ComputeShader->SetParameters(RHICmdList, ViewInfo, VisualizeResultRTI, FVector2D(GroupSizeX, GroupSizeY), Parameters, View.GlobalDistanceFieldInfo);
+						ComputeShader->SetParameters(RHICmdList, ViewInfo, VisualizeResultRT->GetRenderTargetItem(), FVector2D(GroupSizeX, GroupSizeY), Parameters, View.GlobalDistanceFieldInfo);
 						DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
 
-						ComputeShader->UnsetParameters(RHICmdList, VisualizeResultRTI);
+						ComputeShader->UnsetParameters(RHICmdList);
 					}
 					else
 					{
 						TShaderMapRef<TVisualizeMeshDistanceFieldCS<false> > ComputeShader(ViewInfo.ShaderMap);
 
 						RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-						ComputeShader->SetParameters(RHICmdList, ViewInfo, VisualizeResultRTI, FVector2D(GroupSizeX, GroupSizeY), Parameters, View.GlobalDistanceFieldInfo);
+						ComputeShader->SetParameters(RHICmdList, ViewInfo, VisualizeResultRT->GetRenderTargetItem(), FVector2D(GroupSizeX, GroupSizeY), Parameters, View.GlobalDistanceFieldInfo);
 						DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
 
-						ComputeShader->UnsetParameters(RHICmdList, VisualizeResultRTI);
+						ComputeShader->UnsetParameters(RHICmdList);
 					}
 				}
 			}
 
 			{
-				FSceneRenderTargets::Get(RHICmdList).BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilRead);
+				FSceneRenderTargets::Get(RHICmdList).BeginRenderingSceneColor(RHICmdList);
 
 				for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 				{

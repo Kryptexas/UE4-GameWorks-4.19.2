@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "AI/Navigation/NavigationSystem.h"
@@ -59,13 +59,13 @@ namespace NodePoolHelpers
 
 void UEnvQueryTest_PathfindingBatch::RunTest(FEnvQueryInstance& QueryInstance) const
 {
-	UObject* QueryOwner = QueryInstance.Owner.Get();
-	BoolValue.BindData(QueryOwner, QueryInstance.QueryID);
-	PathFromContext.BindData(QueryOwner, QueryInstance.QueryID);
-	SkipUnreachable.BindData(QueryOwner, QueryInstance.QueryID);
-	FloatValueMin.BindData(QueryOwner, QueryInstance.QueryID);
-	FloatValueMax.BindData(QueryOwner, QueryInstance.QueryID);
-	ScanRangeMultiplier.BindData(QueryOwner, QueryInstance.QueryID);
+	UObject* DataOwner = QueryInstance.Owner.Get();
+	BoolValue.BindData(DataOwner, QueryInstance.QueryID);
+	PathFromContext.BindData(DataOwner, QueryInstance.QueryID);
+	SkipUnreachable.BindData(DataOwner, QueryInstance.QueryID);
+	FloatValueMin.BindData(DataOwner, QueryInstance.QueryID);
+	FloatValueMax.BindData(DataOwner, QueryInstance.QueryID);
+	ScanRangeMultiplier.BindData(DataOwner, QueryInstance.QueryID);
 
 	bool bWantsPath = BoolValue.GetValue();
 	bool bPathToItem = PathFromContext.GetValue();
@@ -79,7 +79,7 @@ void UEnvQueryTest_PathfindingBatch::RunTest(FEnvQueryInstance& QueryInstance) c
 	{
 		return;
 	}
-	ANavigationData* NavData = FindNavigationData(*NavSys, QueryOwner);
+	ANavigationData* NavData = FindNavigationData(*NavSys, QueryInstance.Owner.Get());
 	ARecastNavMesh* NavMeshData = Cast<ARecastNavMesh>(NavData);
 	if (NavMeshData == nullptr)
 	{
@@ -96,7 +96,7 @@ void UEnvQueryTest_PathfindingBatch::RunTest(FEnvQueryInstance& QueryInstance) c
 	TArray<float> CollectDistanceSq;
 	CollectDistanceSq.Init(0.0f, ContextLocations.Num());
 
-	FSharedNavQueryFilter NavigationFilter = FilterClass != nullptr
+	TSharedPtr<FNavigationQueryFilter> NavigationFilter = FilterClass != nullptr
 		? UNavigationQueryFilter::GetQueryFilter(*NavMeshData, FilterClass)->GetCopy()
 		: NavMeshData->GetDefaultQueryFilter()->GetCopy();
 	NavigationFilter->SetBacktrackingEnabled(!bPathToItem);

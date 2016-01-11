@@ -1,377 +1,312 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 //This file needs to be here so the "ant" build step doesnt fail when looking for a /src folder.
 
 package com.epicgames.ue4;
 
-import android.app.PendingIntent;
-import android.content.ComponentName;
-import android.content.Context;
+import java.util.ArrayList;
+
+import android.os.RemoteException;
+import org.json.JSONException;
+import android.os.Handler;
+import android.os.Looper;
 import android.content.Intent;
 import android.content.IntentSender.SendIntentException;
-import android.content.ServiceConnection;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.IBinder;
-import android.os.Looper;
-import com.android.vending.billing.util.Base64;
-import com.android.vending.billing.IInAppBillingService;
+
+import com.android.vending.billing.util.IabHelper;
+import com.android.vending.billing.util.IabResult;
+import com.android.vending.billing.util.Inventory;
 import com.android.vending.billing.util.Purchase;
-import java.util.ArrayList;
-import org.json.JSONException;
-import org.json.JSONObject;
+import com.android.vending.billing.util.Base64;
 
-
-public class GooglePlayStoreHelper implements StoreHelper
+public class GooglePlayStoreHelper extends StoreHelper
 {
-	// Our IAB helper interface provided by google.
-	private IInAppBillingService mService;
-
-	// Flag that determines whether the store is ready to use.
-	private boolean bIsIapSetup;
-
-	// Output device for log messages.
-	private Logger Log;
-
-	// Cache access to the games activity.
+	private IabHelper inAppPurchaseHelper;
+	
 	private GameActivity gameActivity;
 
-	// The google play license key.
-	private String productKey;
+	private Logger Log;
+
+	private String ProductKey;
+
 	
+	
+	/*********************************************************************
+	 ** IAP SETUP WORKFLOW...
+	 *********************************************************************/
+	private boolean bIsIapSetup = false;
+
+	
+	// Constructor...
 	public GooglePlayStoreHelper(String InProductKey, GameActivity InGameActivity, final Logger InLog)
 	{
-		// IAP is not ready to use until the service is instantiated.
-		bIsIapSetup = false;
-
-		Log = InLog;
-		Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::GooglePlayStoreHelper");
-
+		ProductKey = InProductKey;
 		gameActivity = InGameActivity;
-		productKey = InProductKey;
-		
-		Intent serviceIntent = new Intent("com.android.vending.billing.InAppBillingService.BIND");
-		serviceIntent.setPackage("com.android.vending");
-		gameActivity.bindService(serviceIntent, mServiceConn, Context.BIND_AUTO_CREATE);
+		Log = InLog;
+
+		// Create an Iab Helper.
+		SetupIapService();
+	}
+	
+
+	/**
+	 *	Initialize the Iab helper functionality for our application.
+	 */
+	public void SetupIapService()
+	{
+		Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::SetupIapService");
+		inAppPurchaseHelper = new IabHelper(gameActivity, ProductKey);
+
+		inAppPurchaseHelper.startSetup(new IabHelper.OnIabSetupFinishedListener() 
+		{
+			public void onIabSetupFinished(IabResult result)
+			{
+				Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::onIabSetupFinished");
+
+				bIsIapSetup = result.isSuccess();
+
+				if (bIsIapSetup)
+				{
+					Log.debug("[GooglePlayStoreHelper] - In-app purchasing helper has been setup");
+				}
+				else
+				{
+					Log.debug("[GooglePlayStoreHelper] - Problem setting up In-app purchasing helper: " + result);
+				}
+			}
+		});
 	}
 
 	
-	///////////////////////////////////////////////////////
-	// The StoreHelper interfaces implementation for Google Play Store.
-
-	/**
-	 * Determine whether the store is ready for purchases.
-	 */
-	public boolean IsAllowedToMakePurchases()
+	/*********************************************************************
+	 ** QUERY PURCHASES WORKFLOW...
+	 *********************************************************************/
+	private String[] cachedQueryProductIds;
+	private boolean[] cachedQueryConsumableFlags;
+	
+	
+	// Iab helper functions for the store interface and query functionality
+	IabHelper.QueryInventoryFinishedListener GotInventoryListener = new IabHelper.QueryInventoryFinishedListener()
 	{
-		Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::IsAllowedToMakePurchases");
-		return bIsIapSetup;
-	}
-
-	/**
-	 * Query product details for the provided skus
-	 */
-	public boolean QueryInAppPurchases(String[] ProductIDs, boolean[] bConsumable)
-	{
-		Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::QueryInAppPurchases");
-		ArrayList<String> skuList = new ArrayList<String> ();
-		
-		for (String productId : ProductIDs)
+		public void onQueryInventoryFinished(IabResult result, Inventory inventory)
 		{
-			Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::QueryInAppPurchases - Querying " + productId);
-			skuList.add(productId);
-		}
+			Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::onQueryInventoryFinished - " + result);
 
-		Bundle querySkus = new Bundle();
-		querySkus.putStringArrayList("ITEM_ID_LIST", skuList);
-
-		try
-		{
-			Bundle skuDetails = mService.getSkuDetails(3, gameActivity.getPackageName(), "inapp", querySkus);
-
-			int response = skuDetails.getInt("RESPONSE_CODE");
-			if (response == 0)
-			{
+			if (result.isSuccess())
+			{			
 				ArrayList<String> titles = new ArrayList<String>();
 				ArrayList<String> descriptions = new ArrayList<String>();
 				ArrayList<String> prices = new ArrayList<String>();
-			
-				ArrayList<String> responseList = skuDetails.getStringArrayList("DETAILS_LIST");
-				for (String thisResponse : responseList)
-				{
-					JSONObject object = new JSONObject(thisResponse);
-				
-					String productId = object.getString("productId");
-					Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::QueryInAppPurchases - Parsing details for: " + productId);
-				
-					String title = object.getString("title");
-					titles.add(title);
-					Log.debug("[GooglePlayStoreHelper] - title: " + title);
+				for( int Idx = 0; Idx < cachedQueryProductIds.length; Idx++ )
+				{	
+					String productId = cachedQueryProductIds[Idx];
+					Log.debug("[GooglePlayStoreHelper] - Checking details for " + productId);
 
-					String description = object.getString("description");
-					descriptions.add(description);
-					Log.debug("[GooglePlayStoreHelper] - description: " + description);
-
-					String price = object.getString("price");
-					prices.add(price);
-					Log.debug("[GooglePlayStoreHelper] - price: " + price);
-				}
-
-				Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::QueryInAppPurchases - Success!");
-				nativeQueryComplete(true, ProductIDs, titles.toArray(new String[titles.size()]), descriptions.toArray(new String[descriptions.size()]), prices.toArray(new String[prices.size()]));
-			}
-			else
-			{
-				Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::QueryInAppPurchases - Failed!");
-				nativeQueryComplete(false, null, null, null, null);
-			}
-		}
-		catch(Exception e)
-		{
-			Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::QueryInAppPurchases - Failed! " + e.getMessage());
-			nativeQueryComplete(false, null, null, null, null);
-		}
-
-		return true;
-	}
-	
-	/**
-	 * Start the purchase flow for a particular sku
-	 */
-	final int purchaseIntentIdentifier = 1001;
-	public boolean BeginPurchase(String ProductID, boolean bConsumable)
-	{
-		Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::BeginPurchase");
-		
-		try
-		{
-			String devPayload = GenerateDevPayload(ProductID);
-			Bundle buyIntentBundle = mService.getBuyIntent(3, gameActivity.getPackageName(), ProductID, "inapp", devPayload);
-			int response = buyIntentBundle.getInt("RESPONSE_CODE");
-			if (response == 0)
-			{
-				Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::BeginPurchase - Starting Intent to buy " + ProductID);
-				PendingIntent pendingIntent = buyIntentBundle.getParcelable("BUY_INTENT");
-				gameActivity.startIntentSenderForResult(pendingIntent.getIntentSender(), purchaseIntentIdentifier, new Intent(), Integer.valueOf(0), Integer.valueOf(0), Integer.valueOf(0));
-			}
-			else
-			{
-				Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::BeginPurchase - Failed with error: " + response);
-				nativePurchaseComplete(false, ProductID, "");
-			}
-		}
-		catch(Exception e)
-		{
-			Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::BeginPurchase - Failed! " + e.getMessage());
-			nativePurchaseComplete(false, ProductID, "");
-		}
-
-		return true;
-	}
-
-	/**
-	 * Restore previous purchases the user may have made.
-	 */
-	public boolean RestorePurchases()
-	{
-		Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::RestorePurchases");
-		ArrayList<String> ownedSkus = new ArrayList<String>();
-		ArrayList<String> purchaseDataList = new ArrayList<String>();
-		ArrayList<String> signatureList = new ArrayList<String>();
-		
-		// On first pas the continuation token should be null. 
-		// This will allow us to gather large sets of purchased items recursively
-		if (GatherOwnedPurchaseData(ownedSkus, purchaseDataList, signatureList, null))
-		{
-			Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::RestorePurchases - User has previously purchased " + ownedSkus.size() + " inapp products" );
-
-			final ArrayList<String> f_ownedSkus = ownedSkus;
-			final ArrayList<String> f_purchaseDataList = purchaseDataList;
-			final ArrayList<String> f_signatureList = signatureList;
-
-			Handler mainHandler = new Handler(Looper.getMainLooper());
-			mainHandler.post(new Runnable()
-			{
-				@Override
-				public void run()
-				{
-					try
+					if( inventory.hasDetails(productId) )
 					{
-						Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::RestorePurchases - Now consuming any purchases that may have been missed.");
-						ArrayList<String> receipts = new ArrayList<String>();
-
-						for (int Idx = 0; Idx < f_ownedSkus.size(); Idx++)
-						{
-							String purchaseData = f_purchaseDataList.get(Idx);
-							String dataSignature = f_signatureList.get(Idx);
-							Purchase purchase = new Purchase("inapp", purchaseData, dataSignature);
-							
-							Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::RestorePurchases - Attempting to consume " + purchase.getSku());
-							int consumeResponse = mService.consumePurchase(3, gameActivity.getPackageName(), purchase.getToken());
-							if (consumeResponse == 0)
-							{
-								Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::RestorePurchases - consumePurchase succeeded for " + purchase.getSku());
-								String receipt = Base64.encode(purchase.getOriginalJson().getBytes());
-								receipts.add(receipt);
-							}
-							else
-							{
-								Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::RestorePurchases - consumePurchase failed for " + purchase.getSku() + " with error " + consumeResponse);
-								receipts.add("");
-							}
+					Log.debug("[GooglePlayStoreHelper] - Found details for " + productId);
+						titles.add( inventory.getSkuDetails(productId).getTitle() );
+						descriptions.add( inventory.getSkuDetails(productId).getDescription() );
+						prices.add( inventory.getSkuDetails(productId).getPrice() );
+					}
+					
+					// If we have this item, but somehow failed to consume it on purchase.
+					if (inventory.hasPurchase(productId))
+					{
+						try {
+							Purchase purchase = inventory.getPurchase(productId);
+							inAppPurchaseHelper.consumeAsync(purchase, ConsumeProductFinishedCallback);
+						} catch(Exception e) {
+							Log.debug("[GooglePlayStoreHelper] - consumeAsync - Exception caught - " + e.getMessage());
 						}
-						Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::RestorePurchases - Success!");
-						nativeRestorePurchasesComplete(true, f_ownedSkus.toArray(new String[f_ownedSkus.size()]), receipts.toArray(new String[receipts.size()]));
-					}
-					catch(Exception e)
-					{
-						Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::RestorePurchases - consumePurchase failed. " + e.getMessage());
-						nativeRestorePurchasesComplete(false, null, null);
 					}
 				}
-			});
+
+				if( titles.size() > 0 )
+				{
+					if( titles.size() != cachedQueryProductIds.length )
+					{
+						Log.debug("[GooglePlayStoreHelper] - Mismatch in the number of products returned vs those queried.");
+						Log.debug("[GooglePlayStoreHelper] - Requested: "+ cachedQueryProductIds.length + ", Received information for: " + titles.size());
+					}
+					Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::onQueryInventoryFinished - Succeeded.");
+					nativeQueryComplete(true, cachedQueryProductIds, titles.toArray(new String[titles.size()]), descriptions.toArray(new String[descriptions.size()]), prices.toArray(new String[prices.size()])); 
+				}
+				else
+				{
+					Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::onQueryInventoryFinished - Failed. " + result.getMessage());
+					nativeQueryComplete(false, cachedQueryProductIds, null, null, null);
+				}
+			}
+			else
+			{
+				Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::onQueryInventoryFinished - Failed. " + result.getMessage());
+				nativeQueryComplete(false, cachedQueryProductIds, null, null, null);
+			}
+		}
+	};
+
+
+	/**
+	 *	Execute a query available purchases workflow for the provided product Id
+	 */
+	public boolean QueryInAppPurchases(final String[] ProductIds, final boolean[] bConsumableFlags)
+	{
+		Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::QueryInAppPurchases");
+
+		// Cache the input parameters for cross threading
+		cachedQueryProductIds = ProductIds;
+		cachedQueryConsumableFlags = bConsumableFlags;
+		
+		// We can launch a purchase workflow if we have provided product Ids and the IabHelper is set-up.
+		boolean bIsAbleToSendQuery = bIsIapSetup && (cachedQueryProductIds.length > 0 );
+		if( bIsAbleToSendQuery )
+		{
+			// Populate a useable list for the query
+			ArrayList<String> SkuList = new ArrayList<String>();
+			for (String productID : ProductIds) 
+			{
+				SkuList.add(productID);
+			}
+			// Run the query pruchases command.
+			Log.debug("[GooglePlayStoreHelper] - queryInventoryAsync. - start");
+			try {
+				inAppPurchaseHelper.queryInventoryAsync(true, SkuList, GotInventoryListener);
+			} catch(Exception e) {
+				Log.debug("[GooglePlayStoreHelper] - queryInventoryAsync - Exception caught - " + e.getMessage());
+			}
+			Log.debug("[GooglePlayStoreHelper] - queryInventoryAsync. - end");
+
 		}
 		else
 		{
-			nativeRestorePurchasesComplete(false, null, null);
-			Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::RestorePurchases - Failed to collect existing purchases");
-			return false;
+			if( bIsIapSetup == false )
+			{
+				Log.debug("[GooglePlayStoreHelper] - Failed to launch a query inventory flow, Store Helper is not set-up.");
+			}
+			else if(cachedQueryProductIds.length <= 0 )
+			{
+				Log.debug("[GooglePlayStoreHelper] - Failed to launch a query inventory flow, Cannot query without product Ids.");
+			}
+
+			nativeQueryComplete(false, null, null, null, null);
 		}
 
-		return true;
+		return bIsAbleToSendQuery;
 	}
 
 	
-	///////////////////////////////////////////////////////
-	// IInAppBillingService service registration and unregistration
+	/*********************************************************************
+	 ** PURCHASE WORKFLOW...
+	 *********************************************************************/
+	String cachedPurchaseProductId;
+	boolean cachedPurchaseConsumableFlag;
 
-	private ServiceConnection mServiceConn = new ServiceConnection()
+	// Iab helper functions for the store interface
+	IabHelper.OnConsumeFinishedListener ConsumeProductFinishedCallback =  new IabHelper.OnConsumeFinishedListener() 
 	{
-		@Override
-		public void onServiceDisconnected(ComponentName name)
+		public void onConsumeFinished(Purchase purchase, IabResult result) 
 		{
-			Log.debug("[GooglePlayStoreHelper] - ServiceConnection::onServiceDisconnected");
-			mService = null;
-			bIsIapSetup = false;
+			Log.debug("[GooglePlayStoreHelper] - ConsumeProductFinishedCallback::onConsumeFinished");
+			if (result.isSuccess()) 
+			{
+				Log.debug("[GooglePlayStoreHelper] - onConsumeFinished: Success");
+				String Receipt = Base64.encode(purchase.getOriginalJson().getBytes());
+				nativePurchaseComplete(true, purchase.getSku(), Receipt);
+			}
+			else
+			{
+				// Something went wrong, cannot consume product...send back success, but will be unable to purchase again
+				Log.debug("[GooglePlayStoreHelper] - ERROR: Could not successfully consume item. Will attempt again on next inventory update.");
+				nativePurchaseComplete(false, purchase.getSku(), "");
+			}
 		}
+	};
+	
 
-		@Override
-		public void onServiceConnected(ComponentName name, IBinder service)
+	// Query inventory callback used to find an existing purchase and consume it.
+	// Only used when we have a lingering purchase on the server that wasnt consumed.
+	IabHelper.QueryInventoryFinishedListener ConsumeInventoryListener = new IabHelper.QueryInventoryFinishedListener()
+	{
+		public void onQueryInventoryFinished(IabResult result, Inventory inventory)
 		{
-			Log.debug("[GooglePlayStoreHelper] - ServiceConnection::onServiceConnected");
-			mService = IInAppBillingService.Stub.asInterface(service);
-			bIsIapSetup = true;
+			Log.debug("[GooglePlayStoreHelper] - ConsumeInventoryListener::onQueryInventoryFinished");
+			if (result.isSuccess() && inventory.hasPurchase(cachedPurchaseProductId))
+			{
+				final Purchase UnconsumedPurchase = inventory.getPurchase(cachedPurchaseProductId);
+				inAppPurchaseHelper.consumeAsync(UnconsumedPurchase, ConsumeProductFinishedCallback);										
+			}
+			else
+			{
+				Log.debug("[GooglePlayStoreHelper] - Purchase Unsuccessful. Failed to find the already purchased product on the server...");
+				nativePurchaseComplete(false, cachedPurchaseProductId, "" );
+			}
 		}
 	};
 
 	
-	///////////////////////////////////////////////////////
-	// Game Activity/Context driven methods we need to listen for.
-	
-	/**
-	 * On Destory we should unbind our IInAppBillingService service
-	 */
-	public void onDestroy()
+	// Iab helper functions for the store interface and purchase functionality
+	IabHelper.OnIabPurchaseFinishedListener PurchaseFinishedCallback = new IabHelper.OnIabPurchaseFinishedListener() 
 	{
-		Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::onDestroy");
-
-		if (mService != null)
+		public void onIabPurchaseFinished(IabResult result, Purchase purchase)
 		{
-			gameActivity.unbindService(mServiceConn);
-		}
-	}
-	
-	/**
-	 * Route taken by the Purchase workflow. We listen for our purchaseIntentIdentifier request code and
-	 * handle the response accordingly
-	 */
-	public boolean onActivityResult(int requestCode, int resultCode, Intent data)
-	{
-		Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::onActivityResult");
-
-		if (requestCode == purchaseIntentIdentifier)
-		{
-			int responseCode = data.getIntExtra("RESPONSE_CODE", 0);
-			Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::onActivityResult - Processing purchase result. Response Code: " + responseCode);
-			if (responseCode == 0)
+			Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::onIabPurchaseFinished - " + result + ", purchase: " + purchase);
+			if(result.isSuccess())
 			{
-				try
+				if( VerifyPayload(purchase.getDeveloperPayload(), purchase.getSku() ) == true )
 				{
-					final String purchaseData = data.getStringExtra("INAPP_PURCHASE_DATA");
-					final String dataSignature = data.getStringExtra("INAPP_DATA_SIGNATURE");
-					JSONObject jo = new JSONObject(purchaseData);
-					final String sku = jo.getString("productId");
-					String developerPayload = jo.getString("developerPayload");
-					if (VerifyPayload(developerPayload, sku))
+					// Consumable items must be consumed on the server prior to provisioning the item to the game
+					if(cachedPurchaseConsumableFlag == true)
 					{
-						final String purchaseToken = jo.getString("purchaseToken");
-						
-						Handler mainHandler = new Handler(Looper.getMainLooper());
-						mainHandler.post(new Runnable()
-						{
-							@Override
-							public void run()
-							{
-								try
-								{
-									int consumeResponse = mService.consumePurchase(3, gameActivity.getPackageName(), purchaseToken);
-									if (consumeResponse == 0)
-									{
-										Log.debug("[GooglePlayStoreHelper] - consumePurchase succeeded for" + sku);
-										Purchase purchase = new Purchase("inapp", purchaseData, dataSignature);
-										String receipt = Base64.encode(purchase.getOriginalJson().getBytes());
-										nativePurchaseComplete(true, sku, receipt);
-									}
-									else
-									{
-										Log.debug("[GooglePlayStoreHelper] - consumePurchase failed with error " + consumeResponse);
-										nativePurchaseComplete(false, sku, "" );
-									}
-								}
-								catch(Exception e)
-								{
-									Log.debug("[GooglePlayStoreHelper] - consumePurchase failed. " + e.getMessage());
-									nativePurchaseComplete(false, sku, "" );
-								}
-							}
-						});
+						Log.debug("[GooglePlayStoreHelper] - Purchase Success. Requesting Item be consumed.");
+						inAppPurchaseHelper.consumeAsync(purchase, ConsumeProductFinishedCallback);
 					}
+					// Non consumable can immediately notify the game of the purchase
 					else
 					{
-						Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::onActivityResult - Failed for verify developer payload for " + sku);
-						nativePurchaseComplete(false, sku, "");
+						Log.debug("[GooglePlayStoreHelper] - Purchase Success.");
+						String Receipt = Base64.encode(purchase.getOriginalJson().getBytes());
+						nativePurchaseComplete(true, cachedPurchaseProductId, Receipt);
 					}
 				}
-				catch (JSONException e)
+				else
 				{
-					Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::onActivityResult - Failed for purchase request! " + e.getMessage());
-					nativePurchaseComplete(false, "", "");
+					Log.debug("[GooglePlayStoreHelper] - Purchase Unsuccessful. Validation of developer payload failed.");
+					nativePurchaseComplete(false, cachedPurchaseProductId, "" );
 				}
+			}
+			else if( result.getResponse() == IabHelper.BILLING_RESPONSE_RESULT_ITEM_ALREADY_OWNED)
+			{
+				Log.debug("[GooglePlayStoreHelper] - Item was already owned but not consumed, attempting to consume... ");
+				
+				// Post the consume command so it is spawned from the main looper, needed for an async operation
+				Handler mainHandler = new Handler(Looper.getMainLooper());
+				mainHandler.post(new Runnable()
+				{
+					@Override
+					public void run()
+					{
+						try {
+								inAppPurchaseHelper.queryInventoryAsync(ConsumeInventoryListener);										
+							}
+						catch(Exception e) {
+							Log.debug("[GooglePlayStoreHelper] - queryInventoryAsync - Exception caught - " + e.getMessage());
+						}
+					}
+				});
 			}
 			else
 			{
-				Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::onActivityResult - Failed for purchase request!. " + TranslateServerResponseCode(responseCode));
-				nativePurchaseComplete(false, "", "");
-			}
+				Log.debug("[GooglePlayStoreHelper] - Purchase Unsuccessful. " + result.getMessage());
+				nativePurchaseComplete(false, cachedPurchaseProductId, "" );
+			} 
 		}
+	};
 
-		return true;
-	}
-
-	
-	///////////////////////////////////////////////////////
-	// Internal helper functions that deal assist with various IAB related events
-	
-	/**
-	 * Create a UE4 specific unique string that will be used to verify purchases are legit.
-	 */
 	private String GenerateDevPayload( String ProductId )
 	{
 		return "ue4."+ProductId;
 	}
-	
-	/**
-	 * Check the returned payload matches one for the product we are buying.
-	 */
+
 	private boolean VerifyPayload( String ExistingPayload, String ProductId )
 	{
 		String GeneratedPayload = GenerateDevPayload(ProductId);
@@ -380,96 +315,61 @@ public class GooglePlayStoreHelper implements StoreHelper
 
 		return ExistingPayload.equals(GeneratedPayload);
 	}
-	
+
 	/**
-	 * Get a text tranlation of the Response Codes returned by google play.
+	 *	Execute a purchase workflow for the provided product Id
 	 */
-	private String TranslateServerResponseCode(final int serverResponseCode)
+	public boolean BeginPurchase(final String ProductId, final boolean bConsumableFlag)
 	{
-		// taken from http://developer.android.com/google/play/billing/billing_reference.html
-		switch(serverResponseCode)
-		{
-			case 0: // BILLING_RESPONSE_RESULT_OK
-				return "Success";
-			case 1: // BILLING_RESPONSE_RESULT_USER_CANCELED
-				return "User pressed back or canceled a dialog";
-			case 2: // BILLING_RESPONSE_RESULT_SERVICE_UNAVAILABLE
-				return "Network connection is down";
-			case 3: // BILLING_RESPONSE_RESULT_BILLING_UNAVAILABLE
-				return "Billing API version is not supported for the type requested";
-			case 4: // BILLING_RESPONSE_RESULT_ITEM_UNAVAILABLE
-				return "Requested product is not available for purchase";
-			case 5: // BILLING_RESPONSE_RESULT_DEVELOPER_ERROR
-				return "Invalid arguments provided to the API. This error can also indicate that the application was not correctly signed or properly set up for In-app Billing in Google Play, or does not have the necessary permissions in its manifest";
-			case 6: // BILLING_RESPONSE_RESULT_ERROR
-				return "Fatal error during the API action";
-			case 7: // BILLING_RESPONSE_RESULT_ITEM_ALREADY_OWNED
-				return "Failure to purchase since item is already owned";
-			case 8: // BILLING_RESPONSE_RESULT_ITEM_NOT_OWNED
-				return "Failure to consume since item is not owned";
-			default:
-				return "Unknown Server Response Code";
-		}
-	}
+		Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::BeginPurchase");
 	
-	/**
-	 * Recursive functionality to gather all of the purchases owned by a user.
-	 * if the user owns a lot of products then we need to getPurchases again with a continuationToken
-	 */
-	private boolean GatherOwnedPurchaseData(ArrayList<String> inOwnedSkus, ArrayList<String> inPurchaseDataList, ArrayList<String> inSignatureList, String inContinuationToken)
-	{
-		try
-		{
-			Bundle ownedItems = mService.getPurchases(3, gameActivity.getPackageName(), "inapp", inContinuationToken);
+		// Cache the input parameters for cross threading
+		cachedPurchaseProductId = ProductId;
+		cachedPurchaseConsumableFlag = bConsumableFlag;
 
-			int responseCode = ownedItems.getInt("RESPONSE_CODE");
-			Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::RestorePurchases - getPurchases result. Response Code: " + responseCode);
-			if (responseCode == 0)
-			{
-				ArrayList<String> ownedSkus = ownedItems.getStringArrayList("INAPP_PURCHASE_ITEM_LIST");
-				ArrayList<String> purchaseDataList = ownedItems.getStringArrayList("INAPP_PURCHASE_DATA_LIST");
-				ArrayList<String> signatureList = ownedItems.getStringArrayList("INAPP_DATA_SIGNATURE_LIST");
-				String continuationToken = ownedItems.getString("INAPP_CONTINUATION_TOKEN");
-
-				for (int Idx = 0; Idx < purchaseDataList.size(); Idx++)
-				{
-					String sku = ownedSkus.get(Idx);
-					inOwnedSkus.add(sku);
-
-					String purchaseData = purchaseDataList.get(Idx);
-					purchaseDataList.add(purchaseData);
-
-					String signature = signatureList.get(Idx);
-					signatureList.add(signature);
-				}
-
-				// if continuationToken != null, call getPurchases again
-				// and pass in the token to retrieve more items
-				if (continuationToken != null)
-				{
-					return GatherOwnedPurchaseData(inOwnedSkus, inPurchaseDataList, inSignatureList, inContinuationToken);
-				}
-			}
-			else
-			{
-				Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::onActivityResult - Failed for purchase request!. " + TranslateServerResponseCode(responseCode));
-				return false;
+		// We can launch a purchase workflow if we have a provided product Id and the IabHelper is set-up.
+		boolean bIsValidProductId = (cachedPurchaseProductId.length() > 0);
+		if( bIsIapSetup && bIsValidProductId )
+		{	
+			try {
+				String DevPayload = GenerateDevPayload(ProductId);
+				inAppPurchaseHelper.launchPurchaseFlow(gameActivity, cachedPurchaseProductId, cachedPurchaseConsumableFlag ? 10001 : 10002, PurchaseFinishedCallback, DevPayload);
+			} catch(Exception e) {
+				Log.debug("[GooglePlayStoreHelper] - launchPurchaseFlow - Exception caught - " + e.getMessage());
 			}
 		}
-		catch (Exception e)
+		else
 		{
-			Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::onActivityResult - Failed for purchase request!. " + e.getMessage());
-			return false;
-		}
+			if( bIsIapSetup == false )
+			{
+				Log.debug("[GooglePlayStoreHelper] - Failed to launch a purchase flow, Store Helper is not set-up.");
+			}
+			else if( bIsValidProductId == false )
+			{
+				Log.debug("[GooglePlayStoreHelper] - Failed to launch a purchase flow, Cannot purchase without a valid product Id.");
+			}
 
-		return true;
+			nativePurchaseComplete(false, ProductId, "" );
+		}
+		
+		Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::BeginPurchase - " + ((bIsIapSetup && bIsValidProductId) ? "true" : "false"));
+		return bIsIapSetup && bIsValidProductId;
 	}
 
+	public boolean IsAllowedToMakePurchases()
+	{
+		Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::IsAllowedToMakePurchases");
+		return bIsIapSetup;
+	}
 
-	// Callback that notify the C++ implementation that a task has completed
+	public boolean onActivityResult(int requestCode, int resultCode, Intent data)
+	{
+		Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::onActivityResult");
+		return inAppPurchaseHelper != null && inAppPurchaseHelper.handleActivityResult(requestCode, resultCode, data);
+	}
+
 	public native void nativeQueryComplete(boolean bSuccess, String[] productIDs, String[] titles, String[] descriptions, String[] prices );
-	public native void nativePurchaseComplete(boolean bSuccess, String ProductId, String ReceiptData);
-	public native void nativeRestorePurchasesComplete(boolean bSuccess, String[] ProductIds, String[] ReceiptsData);
 
+	public native void nativePurchaseComplete(boolean bSuccess, String ProductId, String ReceiptData);
 }
 

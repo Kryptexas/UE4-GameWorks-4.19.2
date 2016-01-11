@@ -1,0 +1,28 @@
+﻿Availability: Docs
+Title:1.7 - 预计算的可见性覆盖体积。 
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Volumes
+Description:体积示例关卡的概述,示例1.7: 预计算的可见性覆盖体积。 
+
+[TOC(start:2 end:2)]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Volumes/1_7:title%](Resources\ContentExamples\Volumes\content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Volumes/1_7:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Volumes/1_7:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Volumes/1_7]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+它可以让您在此区域内设置您期望为可见或不可见的具有网格物体的数组。

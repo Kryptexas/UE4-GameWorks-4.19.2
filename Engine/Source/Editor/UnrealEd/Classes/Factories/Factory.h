@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Base class for all factories
@@ -69,9 +69,9 @@ public:
 	DEPRECATED(4.8, "bAllowOneTimeWarningMessages is due to be removed in future.")
 	static bool bAllowOneTimeWarningMessages;
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	//~ End UObject Interface.
+	// End UObject interface.
 
 	/** Helper function to sort an array of factories by their import priority - use as a predicate for Sort */
 	static bool SortFactoriesByPriority(const UFactory& A, const UFactory& B);

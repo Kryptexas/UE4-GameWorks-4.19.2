@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BasePassForForwardShadingVertexShader.usf: Base pass vertex shader used with forward shading
@@ -7,7 +7,7 @@
 #define IS_FORWARD_BASEPASS_VERTEX_SHADER 1
 
 // @todo urban: branch was: #define FORCE_FLOATS 1
-#define FORCE_FLOATS (COMPILER_METAL)
+#define FORCE_FLOATS METAL_PROFILE
 
 #include "Common.usf"
 #include "BasePassForForwardShadingCommon.usf"
@@ -31,8 +31,6 @@ void Main(
 	out FForwardShadingBasePassVSOutput Output
 	)
 {
-	ResolvedView = ResolveView();
-
 #if PACK_INTERPOLANTS
 	float4 PackedInterps[NUM_VF_PACKED_INTERPOLANTS];
 	UNROLL 
@@ -53,18 +51,18 @@ void Main(
 	
 	WorldPosition.xyz += WorldPositionOffset;
 	float4 RasterizedWorldPosition = VertexFactoryGetRasterizedWorldPosition(Input, VFIntermediates, WorldPosition);
-	Output.Position = mul(RasterizedWorldPosition, ResolvedView.TranslatedWorldToClip);
+	Output.Position = mul(RasterizedWorldPosition, View.TranslatedWorldToClip);
 	Output.BasePassInterpolants.PixelPosition = WorldPosition;
 
 #if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
-	Output.BasePassInterpolants.PixelPositionExcludingWPO = WorldPositionExcludingWPO.xyz;
+	Output.BasePassInterpolants.PixelPositionExcludingWPO = WorldPositionExcludingWPO;
 #endif
 
 #if USE_VERTEX_FOG
 #if PACK_INTERPOLANTS
-	PackedInterps[0] = CalculateVertexHeightFog(WorldPosition.xyz - float4(ResolvedView.TranslatedWorldCameraOrigin, 1));
+	PackedInterps[0] = CalculateVertexHeightFog(WorldPosition.xyz, View.TranslatedViewOrigin);
 #else
-	Output.BasePassInterpolants.VertexFog = CalculateVertexHeightFog(WorldPosition.xyz - float4(ResolvedView.TranslatedWorldCameraOrigin, 1));
+	Output.BasePassInterpolants.VertexFog = CalculateVertexHeightFog(WorldPosition.xyz, View.TranslatedViewOrigin);
 #endif // PACK_INTERPOLANTS
 #endif
 

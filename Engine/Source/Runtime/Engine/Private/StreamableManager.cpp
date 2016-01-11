@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Engine/StreamableManager.h"
@@ -179,7 +179,7 @@ UObject* FStreamableManager::SynchronousLoad(FStringAssetReference const& InTarg
 	return Existing->Target;
 }
 
-struct FStreamable* FStreamableManager::StreamInternal(FStringAssetReference const& InTargetName, TAsyncLoadPriority Priority)
+struct FStreamable* FStreamableManager::StreamInternal(FStringAssetReference const& InTargetName)
 {
 	check(IsInGameThread());
 	UE_LOG(LogStreamableManager, Verbose, TEXT("Asynchronous load %s"), *InTargetName.ToString());
@@ -233,17 +233,17 @@ struct FStreamable* FStreamableManager::StreamInternal(FStringAssetReference con
 		}
 
 		Existing->bAsyncLoadRequestOutstanding = true;
-		LoadPackageAsync(Package, FLoadPackageAsyncDelegate::CreateStatic(&AsyncLoadCallbackWrapper, new FCallback(TargetName, this)), Priority);
+		LoadPackageAsync(Package, FLoadPackageAsyncDelegate::CreateStatic(&AsyncLoadCallbackWrapper, new FCallback(TargetName, this)));
 	}
 	return Existing;
 }
 
-void FStreamableManager::SimpleAsyncLoad(FStringAssetReference const& InTargetName, TAsyncLoadPriority Priority)
+void FStreamableManager::SimpleAsyncLoad(FStringAssetReference const& InTargetName)
 {
-	StreamInternal(InTargetName, Priority);
+	StreamInternal(InTargetName);
 }
 
-void FStreamableManager::RequestAsyncLoad(const TArray<FStringAssetReference>& TargetsToStream, FStreamableDelegate DelegateToCall, TAsyncLoadPriority Priority)
+void FStreamableManager::RequestAsyncLoad(const TArray<FStringAssetReference>& TargetsToStream, FStreamableDelegate DelegateToCall)
 {
 	// Schedule a new callback, this will get called when all related async loads are completed
 	TSharedRef<FStreamableRequest> NewRequest = MakeShareable(new FStreamableRequest());
@@ -254,7 +254,7 @@ void FStreamableManager::RequestAsyncLoad(const TArray<FStringAssetReference>& T
 
 	for (int32 i = 0; i < TargetsToStream.Num(); i++)
 	{
-		FStreamable* Existing = StreamInternal(TargetsToStream[i], Priority);
+		FStreamable* Existing = StreamInternal(TargetsToStream[i]);
 		ExistingStreamables[i] = Existing;
 
 		if (Existing)
@@ -275,12 +275,12 @@ void FStreamableManager::RequestAsyncLoad(const TArray<FStringAssetReference>& T
 	}
 }
 
-void FStreamableManager::RequestAsyncLoad(const FStringAssetReference& TargetToStream, FStreamableDelegate DelegateToCall, TAsyncLoadPriority Priority)
+void FStreamableManager::RequestAsyncLoad( const FStringAssetReference& TargetToStream, FStreamableDelegate DelegateToCall )
 {
 	TSharedRef< FStreamableRequest > NewRequest = MakeShareable( new FStreamableRequest() );
 	NewRequest->CompletionDelegate = DelegateToCall;
 
-	if ( FStreamable* Streamable = StreamInternal( TargetToStream, Priority ) )
+	if ( FStreamable* Streamable = StreamInternal( TargetToStream ) )
 	{
 		Streamable->AddRelatedRequest( NewRequest );
 
@@ -292,17 +292,7 @@ void FStreamableManager::RequestAsyncLoad(const FStringAssetReference& TargetToS
 }
 
 
-void FStreamableManager::RequestAsyncLoad( const TArray<FStringAssetReference>& TargetsToStream, TFunction<void()>&& Callback, TAsyncLoadPriority Priority /*= DefaultAsyncLoadPriority */ )
-{
-	RequestAsyncLoad( TargetsToStream, FStreamableDelegate::CreateLambda( MoveTemp( Callback ) ), Priority );
-}
-
-void FStreamableManager::RequestAsyncLoad( const FStringAssetReference& TargetToStream, TFunction<void()>&& Callback, TAsyncLoadPriority Priority /*= DefaultAsyncLoadPriority */ )
-{
-	RequestAsyncLoad( TargetToStream, FStreamableDelegate::CreateLambda( MoveTemp( Callback ) ), Priority );
-}
-
-void FStreamableManager::FindInMemory( FStringAssetReference& InOutTargetName, struct FStreamable* Existing )
+void FStreamableManager::FindInMemory(FStringAssetReference& InOutTargetName, struct FStreamable* Existing)
 {
 	check(Existing);
 	check(!Existing->bAsyncUnloadRequestOutstanding);

@@ -1,0 +1,17 @@
+Availability: Docs
+Title:How to Use Cameras in Code
+Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\UsingCameras
+Description:A How To Guide for Using Cameras in Code. 
+
+[TOC (start:2 end:2)]
+
+## Overview
+
+## Using a Static Camera
+
+## Switching Between Multiple Cameras
+
+## Using a Camera Component
+
+## Using a Spring Arm Component
+

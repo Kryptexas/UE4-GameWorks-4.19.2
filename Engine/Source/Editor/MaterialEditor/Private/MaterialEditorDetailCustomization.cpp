@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MaterialEditorModule.h"
 #include "Editor/PropertyEditor/Public/PropertyEditing.h"
@@ -30,24 +30,19 @@ void FMaterialExpressionParameterDetails::CustomizeDetails( IDetailLayoutBuilder
 	TArray< TWeakObjectPtr<UObject> > Objects;
 	DetailLayout.GetObjectsBeingCustomized(Objects);
 
-	DefaultValueHandles.Reset();
-	ScalarParameterObjects.Reset();
-
-	for (const auto& WeakObjectPtr : Objects)
+	if (Objects.Num() > 0)
 	{
-		UObject* Object = WeakObjectPtr.Get();
-
-		UMaterialExpressionScalarParameter* ScalarParameter = Cast<UMaterialExpressionScalarParameter>(Object);
+		UMaterialExpressionScalarParameter* ScalarParameter = Cast<UMaterialExpressionScalarParameter>(Objects[0].Get());
 
 		if (ScalarParameter)
 		{
 			// Store these for OnSliderMinMaxEdited
-			ScalarParameterObjects.Emplace(WeakObjectPtr);
-			DefaultValueHandles.Emplace(DetailLayout.GetProperty("DefaultValue", UMaterialExpressionScalarParameter::StaticClass()));
+			ScalarParameterObject = Objects[0];
+			DefaultValueHandle = DetailLayout.GetProperty("DefaultValue", UMaterialExpressionScalarParameter::StaticClass());
 
 			TSharedPtr<IPropertyHandle> SliderMinHandle = DetailLayout.GetProperty("SliderMin", UMaterialExpressionScalarParameter::StaticClass());
 
-			if (SliderMinHandle.IsValid() && SliderMinHandle->IsValidHandle())
+			if (SliderMinHandle.IsValid())
 			{
 				// Setup a callback when SliderMin changes to update the DefaultValue slider
 				FSimpleDelegate OnSliderMinMaxEditedDelegate = FSimpleDelegate::CreateSP(this, &FMaterialExpressionParameterDetails::OnSliderMinMaxEdited);
@@ -56,7 +51,7 @@ void FMaterialExpressionParameterDetails::CustomizeDetails( IDetailLayoutBuilder
 
 			TSharedPtr<IPropertyHandle> SliderMaxHandle = DetailLayout.GetProperty("SliderMax", UMaterialExpressionScalarParameter::StaticClass());
 
-			if (SliderMaxHandle.IsValid() && SliderMaxHandle->IsValidHandle())
+			if (SliderMaxHandle.IsValid())
 			{
 				FSimpleDelegate OnSliderMinMaxEditedDelegate = FSimpleDelegate::CreateSP(this, &FMaterialExpressionParameterDetails::OnSliderMinMaxEdited);
 				SliderMaxHandle->SetOnPropertyValueChanged(OnSliderMinMaxEditedDelegate);
@@ -65,8 +60,6 @@ void FMaterialExpressionParameterDetails::CustomizeDetails( IDetailLayoutBuilder
 			OnSliderMinMaxEdited();
 		}
 	}
-
-	check(ScalarParameterObjects.Num() == DefaultValueHandles.Num());
 	
 	Category.AddProperty("ParameterName");
 	
@@ -172,25 +165,21 @@ FText FMaterialExpressionParameterDetails::OnGetText() const
 
 void FMaterialExpressionParameterDetails::OnSliderMinMaxEdited()
 {
-	check(ScalarParameterObjects.Num() == DefaultValueHandles.Num());
-	for (int32 Index = 0; Index < ScalarParameterObjects.Num(); Index++)
-	{
-		UMaterialExpressionScalarParameter* ScalarParameter = Cast<UMaterialExpressionScalarParameter>(ScalarParameterObjects[Index].Get());
+	UMaterialExpressionScalarParameter* ScalarParameter = Cast<UMaterialExpressionScalarParameter>(ScalarParameterObject.Get());
 
-		if (ScalarParameter && DefaultValueHandles[Index].IsValid() && DefaultValueHandles[Index]->IsValidHandle())
+	if (ScalarParameter && DefaultValueHandle.IsValid())
+	{
+		if (ScalarParameter->SliderMax > ScalarParameter->SliderMin)
 		{
-			if (ScalarParameter->SliderMax > ScalarParameter->SliderMin)
-			{
-				// Update the values that SPropertyEditorNumeric reads
-				// Unfortuantly there is no way to recreate the widget to actually update the UI with these new values
-				DefaultValueHandles[Index]->SetInstanceMetaData("UIMin", FString::Printf(TEXT("%f"), ScalarParameter->SliderMin));
-				DefaultValueHandles[Index]->SetInstanceMetaData("UIMax", FString::Printf(TEXT("%f"), ScalarParameter->SliderMax));
-			}
-			else
-			{
-				DefaultValueHandles[Index]->SetInstanceMetaData("UIMin", TEXT(""));
-				DefaultValueHandles[Index]->SetInstanceMetaData("UIMax", TEXT(""));
-			}
+			// Update the values that SPropertyEditorNumeric reads
+			// Unfortuantly there is no way to recreate the widget to actually update the UI with these new values
+			DefaultValueHandle->SetInstanceMetaData("UIMin",FString::Printf(TEXT("%f"), ScalarParameter->SliderMin));
+			DefaultValueHandle->SetInstanceMetaData("UIMax",FString::Printf(TEXT("%f"), ScalarParameter->SliderMax));
+		}
+		else
+		{
+			DefaultValueHandle->SetInstanceMetaData("UIMin", TEXT(""));
+			DefaultValueHandle->SetInstanceMetaData("UIMax", TEXT(""));
 		}
 	}
 }
@@ -414,8 +403,7 @@ void FMaterialDetailCustomization::CustomizeDetails( IDetailLayoutBuilder& Detai
 
 			if(		PropertyName != GET_MEMBER_NAME_CHECKED(UMaterial, MaterialDomain) 
 				&&	PropertyName != GET_MEMBER_NAME_CHECKED(UMaterial, BlendMode) 
-				&&	PropertyName != GET_MEMBER_NAME_CHECKED(UMaterial, OpacityMaskClipValue) 
-				&&  	PropertyName != GET_MEMBER_NAME_CHECKED(UMaterial, NumCustomizedUVs) )
+				&&	PropertyName != GET_MEMBER_NAME_CHECKED(UMaterial, OpacityMaskClipValue) )
 			{
 				DetailLayout.HideProperty( PropertyHandle );
 			}

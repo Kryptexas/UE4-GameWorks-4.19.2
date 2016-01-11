@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Lightmass.h: lightmass import/export definitions.
@@ -20,7 +20,6 @@
 #include "Lightmass/LightmassImportanceVolume.h"
 #include "Lightmass/LightmassCharacterIndirectDetailVolume.h"
 #include "GameFramework/WorldSettings.h"
-#include "Components/LightmassPortalComponent.h"
 
 // Forward declarations
 class FLandscapeStaticLightingMesh;
@@ -97,11 +96,6 @@ public:
 		CharacterIndirectDetailVolumes.Add(InDetailVolume->GetComponentsBoundingBox(true));
 	}
 
-	void AddPortal(const ULightmassPortalComponent* InPortalComponent)
-	{
-		Portals.Add(InPortalComponent->ComponentToWorld.ToMatrixWithScale());
-	}
-
 	// if provided, InStaticLightingMesh is used to UV unwrap the material into the static lighting textures
 	void AddMaterial(UMaterialInterface* InMaterialInterface, const FStaticLightingMesh* InStaticLightingMesh = nullptr);
 
@@ -174,7 +168,6 @@ private:
 
 	TArray<FBox>				ImportanceVolumes;
 	TArray<FBox>				CharacterIndirectDetailVolumes;
-	TArray<FMatrix>				Portals;
 
 	FLightmassWorldInfoSettings LevelSettings;
 	/** The number of local cores to leave unused */

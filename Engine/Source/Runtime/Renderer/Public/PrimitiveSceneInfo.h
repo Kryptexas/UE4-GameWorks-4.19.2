@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PrimitiveSceneInfo.h: Primitive scene info definitions.
@@ -200,13 +200,6 @@ public:
 	const FIndirectLightingCacheAllocation* IndirectLightingCacheAllocation;
 
 	/** 
-	 * The uniform buffer holding precomputed lighting parameters for the indirect lighting cache allocation.
-	 * WARNING : This can hold buffer valid for a single frame only, don't cache anywhere. 
-	 * See FPrimitiveSceneInfo::UpdatePrecomputedLightingBuffer()
-	 */
-	FUniformBufferRHIRef IndirectLightingCacheUniformBuffer;
-
-	/** 
 	 * Reflection capture proxy that was closest to this primitive, used for the forward shading rendering path. 
 	 */
 	const FReflectionCaptureProxy* CachedReflectionCaptureProxy;
@@ -217,9 +210,9 @@ public:
 	/** Whether the primitive is newly registered or moved and CachedReflectionCaptureProxy needs to be updated on the next render. */
 	uint32 bNeedsCachedReflectionCaptureUpdate : 1;
 
-	static const uint32 MaxCachedReflectionCaptureProxies = 3;
-	const FReflectionCaptureProxy* CachedReflectionCaptureProxies[MaxCachedReflectionCaptureProxies];
-	
+	/** This primitive has the Motion Blur explicitly disabled */
+	uint32 bVelocityIsSupressed : 1;
+
 	/** The hit proxies used by the primitive. */
 	TArray<TRefCountPtr<HHitProxy> > HitProxies;
 
@@ -263,15 +256,9 @@ public:
 	}
 
 	/** return true if we need to call LazyUpdateForRendering */
-	FORCEINLINE bool NeedsUniformBufferUpdate() const
+	FORCEINLINE bool NeedsUniformBufferUpdate()
 	{
 		return bNeedsUniformBufferUpdate;
-	}
-
-	/** return true if we need to call LazyUpdateForRendering */
-	FORCEINLINE bool NeedsPrecomputedLightingBufferUpdate()
-	{
-		return bPrecomputedLightingBufferDirty;
 	}
 
 	/** return true if we need to call ConditionalLazyUpdateForRendering */
@@ -337,7 +324,6 @@ public:
 	 * This only works on potential parents (!LightingAttachmentRoot.IsValid()) and will include the current primitive in the output array.
 	 */
 	void GatherLightingAttachmentGroupPrimitives(TArray<FPrimitiveSceneInfo*, SceneRenderingAllocator>& OutChildSceneInfos);
-	void GatherLightingAttachmentGroupPrimitives(TArray<const FPrimitiveSceneInfo*, SceneRenderingAllocator>& OutChildSceneInfos) const;
 
 	/** 
 	 * Builds a cumulative bounding box of this primitive and all the primitives in the same attachment group. 
@@ -373,14 +359,6 @@ public:
 		bNeedsUniformBufferUpdate = bInNeedsUniformBufferUpdate;
 	}
 
-	FORCEINLINE void MarkPrecomputedLightingBufferDirty()
-	{
-		bPrecomputedLightingBufferDirty = true;
-	}
-
-	void UpdatePrecomputedLightingBuffer();
-	void ClearPrecomputedLightingBuffer(bool bSingleFrameOnly);
-
 private:
 
 	/** Let FScene have direct access to the Id. */
@@ -404,9 +382,6 @@ private:
 
 	/** If this is TRUE, this primitive's uniform buffer needs to be updated before it can be rendered. */
 	bool bNeedsUniformBufferUpdate;
-
-	/** If this is TRUE, this primitive's precomputed lighting buffer needs to be updated before it can be rendered. */
-	bool bPrecomputedLightingBufferDirty;
 };
 
 /** Defines how the primitive is stored in the scene's primitive octree. */

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "HttpPrivatePCH.h"
@@ -221,7 +221,7 @@ bool FIOSHttpRequest::StartRequest()
 		[Request setValue:[NSString stringWithFormat:@"%d", GetContentLength()] forHTTPHeaderField:@"Content-Length"];
 	}
 
-	NSString* Tag = [NSString stringWithFString:FString::Printf(TEXT("UE4-%s,UE4Ver(%s)"), FApp::GetGameName(), *FEngineVersion::Current().ToString())];
+	NSString* Tag = [NSString stringWithFString:FString::Printf(TEXT("UE4-%s,UE4Ver(%s)"), FApp::GetGameName(), *GEngineVersion.ToString())];
 	[Request addValue:Tag forHTTPHeaderField:@"User-Agent"];
 
 	Response = MakeShareable( new FIOSHttpResponse( *this ) );

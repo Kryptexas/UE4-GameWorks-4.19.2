@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -8,14 +8,14 @@ using System.IO;
 
 namespace UnrealBuildTool
 {
-	/// <summary>
-	/// Base class for platform-specific project generators
-	/// </summary>
+	/**
+	 *	Base class for platform-specific project generators 
+	 */
 	class WinRTProjectGenerator : UEPlatformProjectGenerator
 	{
-		/// <summary>
-		/// Register the platform with the UEPlatformProjectGenerator class
-		/// </summary>
+		/**
+		 *	Register the platform with the UEPlatformProjectGenerator class
+		 */
 		public override void RegisterPlatformProjectGenerator()
 		{
 			// Register this project generator for WinRT
@@ -34,23 +34,27 @@ namespace UnrealBuildTool
 		///
 		///	VisualStudio project generation functions
 		///	
-		/// <summary>
-		/// Whether this build platform has native support for VisualStudio
-		/// </summary>
-		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
-		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
-		/// <returns>bool    true if native VisualStudio support (or custom VSI) is available</returns>
+		/**
+		 *	Whether this build platform has native support for VisualStudio
+		 *	
+		 *	@param	InPlatform			The UnrealTargetPlatform being built
+		 *	@param	InConfiguration		The UnrealTargetConfiguration being built
+		 *	
+		 *	@return	bool				true if native VisualStudio support (or custom VSI) is available
+		 */
 		public override bool HasVisualStudioSupport(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
 		{
 			return false;
 		}
 
-		/// <summary>
-		/// Return the VisualStudio platform name for this build platform
-		/// </summary>
-		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
-		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
-		/// <returns>string    The name of the platform that VisualStudio recognizes</returns>
+		/**
+		 *	Return the VisualStudio platform name for this build platform
+		 *	
+		 *	@param	InPlatform			The UnrealTargetPlatform being built
+		 *	@param	InConfiguration		The UnrealTargetConfiguration being built
+		 *	
+		 *	@return	string				The name of the platform that VisualStudio recognizes
+		 */
 		public override string GetVisualStudioPlatformName(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
 		{
 			if (InPlatform == UnrealTargetPlatform.WinRT)
@@ -60,21 +64,24 @@ namespace UnrealBuildTool
 			return InPlatform.ToString();
 		}
 
-		/// <summary>
-		/// Return the platform toolset string to write into the project configuration
-		/// </summary>
-		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
-		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
-		/// <returns>string    The custom configuration section for the project file; Empty string if it doesn't require one</returns>
+		/**
+		 *	Return the platform toolset string to write into the project configuration
+		 *	
+		 *	@param	InPlatform			The UnrealTargetPlatform being built
+		 *	@param	InConfiguration		The UnrealTargetConfiguration being built
+		 *	
+		 *	@return	string				The custom configuration section for the project file; Empty string if it doesn't require one
+		 */
 		public override string GetVisualStudioPlatformToolsetString(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration, VCProjectFile InProjectFile)
 		{
 			return "		<PlatformToolset>v110</PlatformToolset>" + ProjectFileGenerator.NewLine;
 		}
 
-		/// <summary>
-		/// Get whether this platform deploys
-		/// </summary>
-		/// <returns>bool  true if the 'Deploy' option should be enabled</returns>
+		/**
+		 * Get whether this platform deploys 
+		 * 
+		 * @return	bool		true if the 'Deploy' option should be enabled
+		 */
 		public override bool GetVisualStudioDeploymentEnabled(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
 		{
 			return true;

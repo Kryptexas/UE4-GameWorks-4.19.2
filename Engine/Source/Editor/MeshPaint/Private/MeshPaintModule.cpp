@@ -1,10 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MeshPaintPrivatePCH.h"
 #include "MeshPaintEdMode.h"
 #include "MeshPaintAdapterFactory.h"
 #include "MeshPaintStaticMeshAdapter.h"
-#include "MeshPaintSplineMeshAdapter.h"
 
 #include "Materials/MaterialExpressionTextureBase.h"
 #include "Materials/MaterialExpressionTextureSample.h"
@@ -113,7 +112,6 @@ public:
 			);
 
 
-		RegisterGeometryAdapterFactory(MakeShareable(new FMeshPaintGeometryAdapterForSplineMeshesFactory));
 		RegisterGeometryAdapterFactory(MakeShareable(new FMeshPaintGeometryAdapterForStaticMeshesFactory));
 	}
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -396,12 +396,12 @@ private:
 
 	FText GetRerunButtonToolTip() const
 	{
-		return LOCTEXT("RerunButtonTooltip", "Run this launch profile.");
+		return LOCTEXT("DoneButtonCloseTooltip", "Run this launch profile.");
 	}
 
 	FText GetRerunButtonText() const
 	{
-		return LOCTEXT("RerunButtonLabel", "Run");
+		return LOCTEXT("DoneButtonDoneLabel", "Run");
 	}
 
 	bool IsDoneButtonEnabled() const

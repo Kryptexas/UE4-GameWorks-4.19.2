@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -53,9 +53,8 @@ namespace AutomationTool
 		/// <summary>
 		/// Finds and/or compiles all script files and assemblies.
 		/// </summary>
-		/// <param name="ScriptsForProjectFileName">Path to the current project. May be null, in which case we compile scripts for all projects.</param>
 		/// <param name="AdditionalScriptsFolders">Additional script fodlers to look for source files in.</param>
-		public void FindAndCompileAllScripts(string ScriptsForProjectFileName, List<string> AdditionalScriptsFolders)
+		public void FindAndCompileAllScripts(List<string> AdditionalScriptsFolders)
 		{
 			bool DoCompile = false;
 			if (GlobalCommandLine.Compile)
@@ -79,7 +78,7 @@ namespace AutomationTool
 			if (DoCompile && !String.IsNullOrEmpty(CommandUtils.CmdEnv.MsBuildExe))
 			{
 				CleanupScriptsAssemblies();
-				FindAndCompileScriptModules(ScriptsForProjectFileName, AdditionalScriptsFolders);
+				FindAndCompileScriptModules(AdditionalScriptsFolders);
 			}
 
 			var ScriptAssemblies = new List<Assembly>();
@@ -111,44 +110,44 @@ namespace AutomationTool
 			}
 		}
 
-		private static void FindAndCompileScriptModules(string ScriptsForProjectFileName, List<string> AdditionalScriptsFolders)
+		private static void FindAndCompileScriptModules(List<string> AdditionalScriptsFolders)
 		{
 			var OldCWD = Environment.CurrentDirectory;
 			var UnrealBuildToolCWD = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Source");
+
+			// Convert script folders to be relative to UnrealBuildTool's expected CWD
+			var RemappedAdditionalScriptFolders = new List<string>();
+			foreach (var CurFolder in AdditionalScriptsFolders)
+			{
+				RemappedAdditionalScriptFolders.Add(UnrealBuildTool.Utils.MakePathRelativeTo(CurFolder, UnrealBuildToolCWD));
+			}
 
 			Environment.CurrentDirectory = UnrealBuildToolCWD;
 
 			// Configure the rules compiler
 			// Get all game folders and convert them to build subfolders.
-			List<DirectoryReference> AllGameFolders;
-			if(ScriptsForProjectFileName == null)
-			{
-				AllGameFolders = UnrealBuildTool.UEBuildTarget.DiscoverAllGameFolders();
-			}
-			else
-			{
-				AllGameFolders = new List<DirectoryReference>{ new DirectoryReference(Path.GetDirectoryName(ScriptsForProjectFileName)) };
-			}
-
-			var AllAdditionalScriptFolders = new List<DirectoryReference>(AdditionalScriptsFolders.Select(x => new DirectoryReference(x)));
+			var AllGameFolders = UnrealBuildTool.UEBuildTarget.DiscoverAllGameFolders();
+			var BuildFolders = new List<string>(AllGameFolders.Count);
 			foreach (var Folder in AllGameFolders)
 			{
-				var GameBuildFolder = DirectoryReference.Combine(Folder, "Build");
-				if (GameBuildFolder.Exists())
+				var GameBuildFolder = CommandUtils.CombinePaths(Folder, "Build");
+				if (Directory.Exists(GameBuildFolder))
 				{
-					AllAdditionalScriptFolders.Add(GameBuildFolder);
+					BuildFolders.Add(GameBuildFolder);
 				}
 			}
+			RemappedAdditionalScriptFolders.AddRange(BuildFolders);
 
 			Log.TraceVerbose("Discovering game folders.");
+			UnrealBuildTool.RulesCompiler.SetAssemblyNameAndGameFolders("UnrealAutomationToolRules", AllGameFolders);
 
-			var DiscoveredModules = UnrealBuildTool.RulesCompiler.FindAllRulesSourceFiles(UnrealBuildTool.RulesCompiler.RulesFileType.AutomationModule, GameFolders: AllGameFolders, ForeignPlugins: null, AdditionalSearchPaths: AllAdditionalScriptFolders);
+			var DiscoveredModules = UnrealBuildTool.RulesCompiler.FindAllRulesSourceFiles(UnrealBuildTool.RulesCompiler.RulesFileType.AutomationModule, RemappedAdditionalScriptFolders);
 			var ModulesToCompile = new List<string>(DiscoveredModules.Count);
 			foreach (var ModuleFilename in DiscoveredModules)
 			{
-				if (HostPlatform.Current.IsScriptModuleSupported(ModuleFilename.GetFileNameWithoutAnyExtensions()))
+				if (HostPlatform.Current.IsScriptModuleSupported(CommandUtils.GetFilenameWithoutAnyExtensions(ModuleFilename)))
 				{
-					ModulesToCompile.Add(ModuleFilename.FullName);
+					ModulesToCompile.Add(ModuleFilename);
 				}
 				else
 				{
@@ -161,7 +160,8 @@ namespace AutomationTool
 			{
 				string Modules = string.Join(";", ModulesToCompile.ToArray());
 				var UATProj = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, @"Engine\Source\Programs\AutomationTool\Scripts\UAT.proj");
-				var CmdLine = String.Format("\"{0}\" /p:Modules=\"{1}\" /p:Configuration={2} /verbosity:minimal /nologo", UATProj, Modules, BuildConfig);
+				var CmdLine = String.Format("\"{0}\" /p:Modules=\"{1}\" /p:Configuration={2} /verbosity:minimal", UATProj, Modules, BuildConfig);
+                Log.TraceInformation("Building Automation projects in parallel...");
                 // supress the run command because it can be long and intimidating, making the logs around this code harder to read.
                 var Result = CommandUtils.Run(CommandUtils.CmdEnv.MsBuildExe, CmdLine, Options: CommandUtils.ERunOptions.Default | CommandUtils.ERunOptions.NoLoggingOfRunCommand | CommandUtils.ERunOptions.LoggingOfRunDuration);
 				if (Result.ExitCode != 0)
@@ -199,7 +199,7 @@ namespace AutomationTool
 					}
 					catch (Exception Ex)
 					{
-						CommandUtils.LogError(LogUtils.FormatException(Ex));
+						CommandUtils.Log(TraceEventType.Error, Ex);
 						throw new AutomationException("Failed to compile module {0}", ModuleName);
 					}
 					break;
@@ -218,7 +218,7 @@ namespace AutomationTool
 					}
 					catch (Exception Ex)
 					{
-						CommandUtils.LogError(LogUtils.FormatException(Ex));
+						CommandUtils.Log(TraceEventType.Error, Ex);
 						throw new AutomationException("Failed to compile module {0}", ModuleName);
 					}
 				}
@@ -241,7 +241,7 @@ namespace AutomationTool
 				throw new AutomationException(String.Format("Unable to build Project {0}. Project file not found.", ProjectFile));
 			}
 
-			var CmdLine = String.Format("\"{0}\" /verbosity:quiet /nologo /target:Build /property:Configuration={1} /property:Platform=AnyCPU /p:TreatWarningsAsErrors=false /p:NoWarn=\"612,618,672\" /p:BuildProjectReferences=true",
+			var CmdLine = String.Format("\"{0}\" /verbosity:quiet /nologo /target:Build /property:Configuration={1} /property:Platform=AnyCPU /p:TreatWarningsAsErrors=true /p:BuildProjectReferences=true",
 				ProjectFile, BuildConfig);
 
 			// Compile the project
@@ -264,7 +264,7 @@ namespace AutomationTool
 		/// <param name="OutScriptAssemblies">List to store all loaded assemblies.</param>
 		private static void LoadPreCompiledScriptAssemblies(List<Assembly> OutScriptAssemblies)
 		{
-			CommandUtils.LogVerbose("Loading precompiled script DLLs");
+			CommandUtils.Log("Loading precompiled script DLLs");
 
 			bool DefaultScriptsDLLFound = false;
 			var ScriptsLocation = GetScriptAssemblyFolder();
@@ -272,7 +272,7 @@ namespace AutomationTool
 			{
 				var ScriptDLLFiles = Directory.GetFiles(ScriptsLocation, "*.Automation.dll", SearchOption.AllDirectories);
 
-				CommandUtils.LogVerbose("Found {0} script DLL(s).", ScriptDLLFiles.Length);
+				CommandUtils.Log("Found {0} script DLL(s).", ScriptDLLFiles.Length);
 				foreach (var ScriptsDLLFilename in ScriptDLLFiles)
 				{
 
@@ -313,7 +313,7 @@ namespace AutomationTool
 
 		private void CleanupScriptsAssemblies()
 		{
-			CommandUtils.LogVerbose("Cleaning up script DLL folder");
+			Log.TraceInformation("Cleaning up script DLL folder");
 			CommandUtils.DeleteDirectory(GetScriptAssemblyFolder());
 		}
 

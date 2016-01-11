@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AutomationWindowPrivatePCH.h"
 
@@ -104,6 +104,7 @@ void SAutomationHistoryCell::RebuildContentArea()
 		];
 	}
 }
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void SAutomationHistoryCell::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
@@ -308,7 +309,7 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 const FSlateBrush* SAutomationTestItem::GetSmokeTestImage() const
 {
 	const FSlateBrush* ImageToUse = nullptr;
-	if ( TestStatus->GetTestFlags() & EAutomationTestFlags::SmokeFilter )
+	if ( TestStatus->GetTestType() & EAutomationTestType::ATT_SmokeTest )
 	{
 		if ( TestStatus->IsParent() )
 		{

@@ -1,20 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MatineeModule.h"
 #include "Matinee.h"
-#include "Classes/InterpTrackHelper.h"
-#include "Classes/MatineeTrackAnimControlHelper.h"
-#include "Classes/MatineeTrackBoolPropHelper.h"
-#include "Classes/MatineeTrackDirectorHelper.h"
-#include "Classes/MatineeTrackEventHelper.h"
-#include "Classes/MatineeTrackFloatPropHelper.h"
-#include "Classes/MatineeTrackParticleReplayHelper.h"
-#include "Classes/MatineeTrackSoundHelper.h"
-#include "Classes/MatineeTrackToggleHelper.h"
-#include "Classes/MatineeTrackVectorPropHelper.h"
-#include "Classes/MatineeTrackColorPropHelper.h"
-#include "Classes/MatineeTrackLinearColorPropHelper.h"
-#include "Classes/MatineeTrackVisibilityHelper.h"
+#include "MatineeClasses.h"
 #include "AssetRegistryModule.h"
 #include "SoundDefinitions.h"
 #include "MatineeUtils.h"
@@ -96,7 +84,7 @@ UMatineeTrackAnimControlHelper::UMatineeTrackAnimControlHelper(const FObjectInit
 bool UMatineeTrackAnimControlHelper::PreCreateTrack( UInterpGroup* Group, const UInterpTrack *TrackDef, bool bDuplicatingTrack, bool bAllowPrompts ) const
 {
 	// For AnimControl tracks - pop up a dialog to choose slot name.
-	AnimSlotName = FAnimSlotGroup::DefaultSlotName;
+	AnimSlotName = NAME_None;
 
 	FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
 	check(Mode != NULL);

@@ -1,0 +1,41 @@
+﻿INTSourceChangelist:2591123
+Availability:Docs
+Title:1.7 - 破壊サウンド
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Destructables
+Description:破壊性能事例レベルの概要、例 1.7:破壊サウンド
+
+
+[VAR:Topic]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Destructables/1_5:title%](Resources/ContentExamples/Destructables/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Destructables/1_5:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Destructables/1_5:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Destructables/1_5]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth raw]
+![](Resources/ContentExamples/Destructables/physics_banner.png)
+[/REGION]
+
+Destruction event 時にサウンドを再生します。
+
+[REGION:todo]
+ブループリントを使用、またはサウンド再生の仕組みのいずれかを指摘すると便利です。 
+[/REGION]
+
+<!--[REGION:lightbox]
+[![](1_5_solid.png)(w:300)](1_5_solid.png)
+[/REGION]-->

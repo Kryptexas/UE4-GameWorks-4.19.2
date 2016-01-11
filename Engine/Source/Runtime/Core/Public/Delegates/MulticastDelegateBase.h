@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,23 +6,27 @@
 /**
  * Abstract base class for multicast delegates.
  */
-typedef TArray<FDelegateBase, TInlineAllocator<1> > TInvocationList;
-
-template<typename ObjectPtrType>
+template<typename ObjectPtrType = FWeakObjectPtr>
 class FMulticastDelegateBase
 {
 public:
 
 	~FMulticastDelegateBase()
 	{
+		// On destruction clear our invocation list, but don't bother compacting
+		for (IDelegateInstance*& DelegateInstanceRef : InvocationList)
+		{
+			delete DelegateInstanceRef;
+		}
 	}
 
 	/** Removes all functions from this delegate's invocation list. */
 	void Clear( )
 	{
-		for (FDelegateBase& DelegateBaseRef : InvocationList)
+		for (IDelegateInstance*& DelegateInstanceRef : InvocationList)
 		{
-			DelegateBaseRef.Unbind();
+			delete DelegateInstanceRef;
+			DelegateInstanceRef = nullptr;
 		}
 
 		CompactInvocationList();
@@ -35,9 +39,9 @@ public:
 	 */
 	inline bool IsBound( ) const
 	{
-		for (const FDelegateBase& DelegateBaseRef : InvocationList)
+		for (IDelegateInstance* DelegateInstance : InvocationList)
 		{
-			if (DelegateBaseRef.GetDelegateInstanceProtected())
+			if (DelegateInstance != nullptr)
 			{
 				return true;
 			}
@@ -52,9 +56,8 @@ public:
 	 */
 	inline bool IsBoundToObject( void const* InUserObject ) const
 	{
-		for (const FDelegateBase& DelegateBaseRef : InvocationList)
+		for (IDelegateInstance* DelegateInstance : InvocationList)
 		{
-			IDelegateInstance* DelegateInstance = DelegateBaseRef.GetDelegateInstanceProtected();
 			if ((DelegateInstance != nullptr) && DelegateInstance->HasSameObject(InUserObject))
 			{
 				return true;
@@ -74,12 +77,12 @@ public:
 	{
 		for (int32 InvocationListIndex = InvocationList.Num() - 1; InvocationListIndex >= 0; --InvocationListIndex)
 		{
-			FDelegateBase& DelegateBaseRef = InvocationList[InvocationListIndex];
+			IDelegateInstance*& DelegateInstanceRef = InvocationList[InvocationListIndex];
 
-			IDelegateInstance* DelegateInstance = DelegateBaseRef.GetDelegateInstanceProtected();
-			if ((DelegateInstance != nullptr) && DelegateInstance->HasSameObject(InUserObject))
+			if ((DelegateInstanceRef != nullptr) && DelegateInstanceRef->HasSameObject(InUserObject))
 			{
-				DelegateBaseRef.Unbind();
+				delete DelegateInstanceRef;
+				DelegateInstanceRef = nullptr;
 			}
 		}
 
@@ -99,13 +102,12 @@ protected:
 	/**
 	 * Adds the given delegate instance to the invocation list.
 	 *
-	 * @param NewDelegateBaseRef The delegate instance to add.
+	 * @param DelegateInstance The delegate instance to add.
 	 */
-	inline FDelegateHandle AddInternal(FDelegateBase&& NewDelegateBaseRef)
+	inline FDelegateHandle AddInternal( IDelegateInstance* DelegateInstance )
 	{
-		FDelegateHandle Result = NewDelegateBaseRef.GetHandle();
-		InvocationList.Add(MoveTemp(NewDelegateBaseRef));
-		return Result;
+		InvocationList.Add(DelegateInstance);
+		return DelegateInstance->GetHandle();
 	}
 
 	/**
@@ -122,13 +124,16 @@ protected:
 
 		for (int32 InvocationListIndex = InvocationList.Num() - 1; InvocationListIndex >= 0; --InvocationListIndex)
 		{
-			FDelegateBase& DelegateBaseRef = InvocationList[InvocationListIndex];
-
-			IDelegateInstance* DelegateInstance = DelegateBaseRef.GetDelegateInstanceProtected();
+			IDelegateInstance* DelegateInstance = InvocationList[InvocationListIndex];
 
 			if ((DelegateInstance == nullptr) || DelegateInstance->IsCompactable())
 			{
 				InvocationList.RemoveAtSwap(InvocationListIndex);
+
+				if (DelegateInstance != nullptr)
+				{
+					delete DelegateInstance;
+				}
 			}
 		}
 
@@ -140,7 +145,7 @@ protected:
 	 *
 	 * @return The invocation list.
 	 */
-	inline const TInvocationList& GetInvocationList( ) const
+	inline const TArray<IDelegateInstance*>& GetInvocationList( ) const
 	{
 		return InvocationList;
 	}
@@ -157,22 +162,13 @@ protected:
 		--InvocationListLockCount;
 	}
 
-protected:
-	/**
-	 * Helper function for derived classes of FMulticastDelegateBase to get at the delegate instance.
-	 */
-	static FORCEINLINE IDelegateInstance* GetDelegateInstanceProtectedHelper(const FDelegateBase& Base)
-	{
-		return Base.GetDelegateInstanceProtected();
-	}
-
 private:
-
-	/** Holds the collection of delegate instances to invoke. */
-	TInvocationList InvocationList;
 
 	/** Used to determine when a compaction should happen. */
 	int32 CompactionThreshold;
+
+	/** Holds the collection of delegate instances to invoke. */
+	TArray<IDelegateInstance*> InvocationList;
 
 	/** Holds a lock counter for the invocation list. */
 	mutable int32 InvocationListLockCount;

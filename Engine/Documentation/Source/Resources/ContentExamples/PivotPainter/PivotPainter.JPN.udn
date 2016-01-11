@@ -1,13 +1,12 @@
-﻿INTSourceChangelist:2720118
+﻿INTSourceChangelist:2346120
 Availability:Public
-Title:ピボットペインタのコンテンツのサンプル
+Title:ピボットペインタ コンテンツのサンプル
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
-Description:ピボットペインタのコンテンツ サンプルで提供されるサンプルの概要
+Description:ピボットペインタのコンテンツ例で提供されるサンプルの概要
 Related:Engine/Rendering/Materials
 Related:Engine/Rendering/Materials/ExpressionReference
 Related:Engine/Rendering/Materials/Functions/Reference/PivotPainter
 Related:Engine/Rendering/Materials/Functions/Creating
-Version:4.9
 
 [REGION:banner]
 ![](PivotPainter_Header.png)(convert:false)
@@ -44,11 +43,13 @@ Version:4.9
 [/OBJECT]
 [/VAR]
 
+[TOC(start:2 end:2)]
 
 
-[ピボットペインタ ツール](Engine\Content\Tools\PivotPainter) は、モデルの頂点データの中にモデルの回転軸 (ピボット) と回転の情報を格納する MAXScript です。この情報がアンリアル エンジン 4 のシェーダー システムの内部で参照されることによって、魅力あるインタラクティブなエフェクトが作成されるようになります。  
+## 概要
+[ピボット ペインタ ツール](Engine\Content\Tools\PivotPainter) は、モデルの頂点データの中にモデルの回転軸 (ピボット) と回転の情報を格納する MAXScript です。この情報がアンリアル エンジン 4 のシェーダー システムの内部で参照されることによって、魅力あるインタラクティブなエフェクトが作成されるようになります。  
 
-**コンテンツ サンプル** プロジェクトの中にある ピボットペインタ マップでは、 **Pivot Painter Material 関数** を使ってこのエフェクトを実現するモデル作成し、風やプレイヤーの相互処理など幾つかの力によりこのモデルを操作する方法を実演するサンプルを見ることができます。 
+**コンテンツ事例** プロジェクトの中にある **ピボットペインタ** マップでは、 **Pivot Painter Material 関数** を使ってこのエフェクトを実現するモデル作成し、風やプレイヤーの相互処理など幾つかの力によりこのモデルを操作する方法を実演するサンプルを見ることができます。 
 
 
  
@@ -58,7 +59,7 @@ Version:4.9
 
 **ピボットペインタ** マップで提供されているサンプルは以下の通りです。 
 
-| サンプル | 実演内容 |
+| 例 | 実演内容 |
 | ------- | ------------|
 | **1.1.エレメントのスケール** | 時間経過と共にオブジェクトのスケールを増減します。 |
 | **1.2.カメラ距離を使ったスケール** | プレイヤーとの距離に応じてオブジェクトのスケールを増減します。 |

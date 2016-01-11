@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -100,9 +100,9 @@ public:
 
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void PostLoad() override;
-	//~ End UObject Interface
+	// End of UObject interface
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
@@ -119,9 +119,9 @@ protected:
 	/** Called by slate when the underlying comobobox is opening */
 	virtual void HandleOpening();
 
-	//~ Begin UWidget Interface
+	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
-	//~ End UWidget Interface
+	// End of UWidget interface
 
 protected:
 	/** The true objects bound to the Slate combobox. */

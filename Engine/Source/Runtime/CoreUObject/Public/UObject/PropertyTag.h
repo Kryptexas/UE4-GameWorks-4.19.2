@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*-----------------------------------------------------------------------------
 	FPropertyTag.
@@ -6,8 +6,6 @@
 
 #ifndef __UNPROPERTYTAG_H__
 #define __UNPROPERTYTAG_H__
-
-#include "DebugSerializationFlags.h"
 
 /**
  *  A tag describing a class property, to aid in serialization.
@@ -93,10 +91,8 @@ struct FPropertyTag
 			// property has been serialized.
 			Tag.SizeOffset = Ar.Tell();
 		}
-		{
-			FArchive::FScopeSetDebugSerializationFlags S(Ar, DSF_IgnoreDiff);
-			Ar << Tag.Size << Tag.ArrayIndex;
-		}
+		Ar << Tag.Size << Tag.ArrayIndex;
+
 		// only need to serialize this for structs
 		if (Tag.Type == NAME_StructProperty)
 		{
@@ -141,8 +137,12 @@ struct FPropertyTag
 		}
 		else
 		{
-			FSerializedPropertyScope SerializedProperty(Ar, Property);
+			UProperty* OldSerializedProperty = Ar.GetSerializedProperty();
+			Ar.SetSerializedProperty(Property);
+
 			Property->SerializeItem( Ar, Value, Defaults );
+
+			Ar.SetSerializedProperty(OldSerializedProperty);
 		}
 	}
 };

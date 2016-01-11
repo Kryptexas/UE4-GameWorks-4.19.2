@@ -1,9 +1,8 @@
-﻿INTSourceChangelist:2683039
+﻿INTSourceChangelist:2445736
 Availability:Public
 Title:ブループリントインターフェース UI
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Editor
 Description:ブループリント クラス エディタ インターフェースの概要
-version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -27,6 +26,8 @@ version:4.9
 
 [TOC (start:2)]
 
+## 概要
+
 [INCLUDE:Engine/Blueprints/UserGuide\Types\Interface#intro]
 
 ## ブループリント インターフェース エディタの UI
@@ -48,7 +49,7 @@ version:4.9
 1. [ツールバー](Engine/Blueprints/Editor\UIComponents\Toolbar\ToolbarOptions)
 1. [My Blueprint](Engine/Blueprints/Editor\UIComponents\MyBlueprint)
 1. [詳細](Engine/Blueprints/Editor\UIComponents\Details)
-1. [グラフ エディタ](Engine/Blueprints/Editor\UIComponents\GraphEditor)
+1. [グラフ エディタ](Engine/Blueprints/Editor\UIComponents\GraphEditor)v
 [/EXCERPT:Visible]
 
 [EXCERPT:Invisible]

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12Device.cpp: D3D device RHI implementation.
@@ -503,12 +503,11 @@ void FD3D12DynamicRHI::PerRHISetup(FD3D12Device* MainDevice)
     // Notify all initialized FRenderResources that there's a valid RHI device to create their RHI resources for now.
     for (TLinkedList<FRenderResource*>::TIterator ResourceIt(FRenderResource::GetResourceList()); ResourceIt; ResourceIt.Next())
     {
-        ResourceIt->InitRHI();
+        ResourceIt->InitDynamicRHI();
     }
-	// Dynamic resources can have dependencies on static resources (with uniform buffers) and must initialized last!
     for (TLinkedList<FRenderResource*>::TIterator ResourceIt(FRenderResource::GetResourceList()); ResourceIt; ResourceIt.Next())
     {
-        ResourceIt->InitDynamicRHI();
+        ResourceIt->InitRHI();
     }
 
     FHardwareInfo::RegisterHardwareInfo(NAME_RHI, TEXT("D3D12"));

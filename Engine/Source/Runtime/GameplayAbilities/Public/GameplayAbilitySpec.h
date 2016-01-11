@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -90,11 +90,10 @@ USTRUCT(BlueprintType)
 struct FGameplayAbilitySpecDef
 {
 	FGameplayAbilitySpecDef()
-		: Level(INDEX_NONE)
+		: Level(1)
 		, InputID(INDEX_NONE)
 		, RemovalPolicy(EGameplayEffectGrantedAbilityRemovePolicy::CancelAbilityImmediately)
 	{
-		LevelScalableFloat.SetValue(1.f);
 	}
 
 	GENERATED_USTRUCT_BODY()
@@ -102,12 +101,8 @@ struct FGameplayAbilitySpecDef
 	UPROPERTY(EditDefaultsOnly, Category="Ability Definition", NotReplicated)
 	TSubclassOf<UGameplayAbility> Ability;
 	
-	// Deprecated for LevelScalableFloat
-	UPROPERTY(NotReplicated)
+	UPROPERTY(EditDefaultsOnly, Category="Ability Definition", NotReplicated)
 	int32 Level; 
-
-	UPROPERTY(EditDefaultsOnly, Category="Ability Definition", NotReplicated, DisplayName="Level")
-	FScalableFloat LevelScalableFloat; 
 	
 	UPROPERTY(EditDefaultsOnly, Category="Ability Definition", NotReplicated)
 	int32 InputID;
@@ -205,7 +200,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec : public FFastArraySerializerI
 		Handle.GenerateNewHandle();
 	}
 	
-	FGameplayAbilitySpec(FGameplayAbilitySpecDef& InDef, int32 InGameplayEffectLevel, FActiveGameplayEffectHandle InGameplayEffectHandle = FActiveGameplayEffectHandle());
+	FGameplayAbilitySpec(FGameplayAbilitySpecDef& InDef, FActiveGameplayEffectHandle InGameplayEffectHandle = FActiveGameplayEffectHandle());
 
 	/** Handle for outside sources to refer to this spec by */
 	UPROPERTY()

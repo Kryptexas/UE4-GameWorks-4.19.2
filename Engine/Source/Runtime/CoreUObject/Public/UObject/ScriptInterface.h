@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScriptInterface.h: Script interface definitions.
@@ -116,12 +116,6 @@ public:
 	 * Default constructor
 	 */
 	TScriptInterface() {}
-
-	/**
-	 * Construction from nullptr
-	 */
-	TScriptInterface(TYPE_OF_NULLPTR) {}
-
 	/**
 	 * Standard constructor.
 	 *
@@ -153,14 +147,6 @@ public:
 		SetInterface( SourceInterface );
 
 		return *((InterfaceType*)GetInterface());
-	}
-
-	/**
-	 * Assignment from nullptr
-	 */
-	void operator=(TYPE_OF_NULLPTR)
-	{
-		*this = TScriptInterface();
 	}
 
 	/**

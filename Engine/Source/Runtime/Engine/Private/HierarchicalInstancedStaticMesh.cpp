@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	InstancedStaticMesh.cpp: Static mesh rendering code.
@@ -752,7 +752,7 @@ public:
 		SceneProxyCreatedFrameNumberRenderThread = GFrameNumberRenderThread;
 	}
 	
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
 	{
 		FPrimitiveViewRelevance Result;
 		if (bIsGrass ? View->Family->EngineShowFlags.InstancedGrass : View->Family->EngineShowFlags.InstancedFoliage)
@@ -1097,7 +1097,7 @@ void FHierarchicalStaticMeshSceneProxy::FillDynamicMeshElements(FMeshElementColl
 					FMeshBatch& MeshElement = Collector.AllocateMesh();
 					INC_DWORD_STAT(STAT_FoliageMeshBatches);
 
-					if (!FStaticMeshSceneProxy::GetMeshElement(LODIndex, 0, SectionIndex, GetDepthPriorityGroup(ElementParams.View), ElementParams.BatchRenderSelection[SelectionGroupIndex], ElementParams.bUseHoveredMaterial, true, MeshElement))
+					if (!FStaticMeshSceneProxy::GetMeshElement(LODIndex, 0, SectionIndex, GetDepthPriorityGroup(ElementParams.View), ElementParams.BatchRenderSelection[SelectionGroupIndex], ElementParams.bUseHoveredMaterial, MeshElement))
 					{
 						continue;
 					}
@@ -1234,7 +1234,7 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 			ElementParams.BatchRenderSelection[1] = false;
 			ElementParams.bIsWireframe = ViewFamily.EngineShowFlags.Wireframe;
 			ElementParams.bUseHoveredMaterial = IsHovered();
-			ElementParams.bInstanced = GRHISupportsInstancing;
+			ElementParams.bInstanced = RHISupportsInstancing(GetFeatureLevelShaderPlatform(InstancedRenderData.FeatureLevel));
 			ElementParams.FeatureLevel = InstancedRenderData.FeatureLevel;
 			ElementParams.ViewIndex = ViewIndex;
 			ElementParams.View = View;
@@ -1619,7 +1619,6 @@ FBoxSphereBounds UHierarchicalInstancedStaticMeshComponent::CalcBounds(const FTr
 UHierarchicalInstancedStaticMeshComponent::UHierarchicalInstancedStaticMeshComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, ClusterTreePtr(MakeShareable(new TArray<FClusterNode>))
-	, WriteOncePrebuiltInstanceBuffer(/*NeedsCPUAccess*/ false, /*bSupportsVertexHalfFloat*/ GVertexElementTypeSupport.IsSupported(VET_Half2))
 	, NumBuiltInstances(0)
 	, UnbuiltInstanceBounds(0)
 	, bIsAsyncBuilding(false)
@@ -2005,8 +2004,8 @@ void UHierarchicalInstancedStaticMeshComponent::PostBuildStats()
 {
 #if 0
 	const TArray<FClusterNode>& ClusterTree = *ClusterTreePtr;
-	int32 NumInst = WriteOncePrebuiltInstanceBuffer.NumInstances() ? WriteOncePrebuiltInstanceBuffer.NumInstances() : PerInstanceSMData.Num();
-	UE_LOG(LogStaticMesh, Display, TEXT("Built a foliage hierarchy with %d instances, %d nodes, %f instances / leaf (desired %d) and %d verts in LOD0. Grass? %d "), NumInst, ClusterTree.Num(), ActualInstancesPerLeaf(), DesiredInstancesPerLeaf(), GetVertsForLOD(0), !!WriteOncePrebuiltInstanceBuffer.NumInstances());
+	int32 NumInst = WriteOncePrebuiltInstanceBuffer.Num() ? WriteOncePrebuiltInstanceBuffer.Num() : PerInstanceSMData.Num();
+	UE_LOG(LogStaticMesh, Display, TEXT("Built a foliage hierarchy with %d instances, %d nodes, %f instances / leaf (desired %d) and %d verts in LOD0. Grass? %d "), NumInst, ClusterTree.Num(), ActualInstancesPerLeaf(), DesiredInstancesPerLeaf(), GetVertsForLOD(0), !!WriteOncePrebuiltInstanceBuffer.Num());
 #endif
 }
 
@@ -2091,7 +2090,7 @@ void UHierarchicalInstancedStaticMeshComponent::AcceptPrebuiltTree(TArray<FClust
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_UHierarchicalInstancedStaticMeshComponent_AcceptPrebuiltTree);
 	// this is only for prebuild data, already in the correct order
 	check(!PerInstanceSMData.Num());
-	NumBuiltInstances = WriteOncePrebuiltInstanceBuffer.NumInstances();
+	NumBuiltInstances = WriteOncePrebuiltInstanceBuffer.Num();
 	check(NumBuiltInstances);
 	UnbuiltInstanceBounds.Init();
 	UnbuiltInstanceBoundsList.Empty();
@@ -2361,7 +2360,7 @@ FPrimitiveSceneProxy* UHierarchicalInstancedStaticMeshComponent::CreateSceneProx
 	// Verify that the mesh is valid before using it.
 	const bool bMeshIsValid = 
 		// make sure we have instances
-		(PerInstanceSMData.Num() > 0 || WriteOncePrebuiltInstanceBuffer.NumInstances() > 0 || bPerInstanceRenderDataWasPrebuilt) &&
+		(PerInstanceSMData.Num() > 0 || WriteOncePrebuiltInstanceBuffer.Num() > 0 || bPerInstanceRenderDataWasPrebuilt) &&
 		// make sure we have an actual staticmesh
 		StaticMesh &&
 		StaticMesh->HasValidRenderData() &&
@@ -2384,19 +2383,17 @@ FPrimitiveSceneProxy* UHierarchicalInstancedStaticMeshComponent::CreateSceneProx
 			InstancingRandomSeed = FMath::Rand();
 		}
 
-		if (WriteOncePrebuiltInstanceBuffer.NumInstances() > 0 || bPerInstanceRenderDataWasPrebuilt)
+		if (WriteOncePrebuiltInstanceBuffer.Num() > 0 || bPerInstanceRenderDataWasPrebuilt)
 		{
-			ProxySize = WriteOncePrebuiltInstanceBuffer.GetResourceSize();
+			ProxySize = FStaticMeshInstanceData::GetResourceSize(WriteOncePrebuiltInstanceBuffer.Num());
 			INC_DWORD_STAT_BY(STAT_FoliageInstanceBuffers, ProxySize);
 
 			bool bIsGrass = !PerInstanceSMData.Num();
 
-			check(bIsGrass || PerInstanceSMData.Num() == WriteOncePrebuiltInstanceBuffer.NumInstances());
+			check(bIsGrass || PerInstanceSMData.Num() == WriteOncePrebuiltInstanceBuffer.Num());
 			return ::new FHierarchicalStaticMeshSceneProxy(bIsGrass, this, GetWorld()->FeatureLevel, WriteOncePrebuiltInstanceBuffer);
 		}
-
-		const bool bSupportsVertexHalfFloat = GVertexElementTypeSupport.IsSupported(VET_Half2);
-		ProxySize = FStaticMeshInstanceData::GetResourceSize(PerInstanceSMData.Num(), bSupportsVertexHalfFloat);
+		ProxySize = FStaticMeshInstanceData::GetResourceSize(PerInstanceSMData.Num());
 		INC_DWORD_STAT_BY(STAT_FoliageInstanceBuffers, ProxySize);
 		return ::new FHierarchicalStaticMeshSceneProxy(false, this, GetWorld()->FeatureLevel);
 	}
@@ -2414,17 +2411,18 @@ void FAsyncBuildInstanceBuffer::DoWork()
 
 	for (int32 InstanceIndex = 0; InstanceIndex < Num; InstanceIndex++)
 	{
+		FInstanceStream* InstanceRenderData = Component->WriteOncePrebuiltInstanceBuffer.GetInstanceWriteAddress(bUseRemapTable ? Component->InstanceReorderTable[InstanceIndex] : InstanceIndex);
 		const FInstancedStaticMeshInstanceData& Instance = Component->PerInstanceSMData[InstanceIndex];
-		const int32 DestInstanceIndex = bUseRemapTable ? Component->InstanceReorderTable[InstanceIndex] : InstanceIndex;
-		Component->WriteOncePrebuiltInstanceBuffer.SetInstance(DestInstanceIndex, Instance.Transform, RandomStream.GetFraction(), Instance.LightmapUVBias, Instance.ShadowmapUVBias);
+
+		InstanceRenderData->SetInstance(Instance.Transform, RandomStream.GetFraction(), Instance.LightmapUVBias, Instance.ShadowmapUVBias);
 	}
 	if (Component->RemovedInstances.Num())
 	{
 		check(bUseRemapTable);
 		for (int32 InstanceIndex = 0; InstanceIndex < Component->RemovedInstances.Num(); InstanceIndex++)
 		{
-			const int32 DestInstanceIndex = Component->RemovedInstances[InstanceIndex];
-			Component->WriteOncePrebuiltInstanceBuffer.NullifyInstance(DestInstanceIndex);
+			FInstanceStream* InstanceRenderData = Component->WriteOncePrebuiltInstanceBuffer.GetInstanceWriteAddress(Component->RemovedInstances[InstanceIndex]);
+			InstanceRenderData->NullifyInstance();
 		}
 	}
 
@@ -2483,19 +2481,19 @@ static void GatherInstanceTransformsInArea(const UHierarchicalInstancedStaticMes
 				{
 					int32 SortedIdx = bUseRemaping ? Component.SortedInstances[i] : i;
 
-					FTransform InstanceToComponent;
-					if (Component.PerInstanceSMData.IsValidIndex(SortedIdx))
-					{
-						InstanceToComponent = FTransform(Component.PerInstanceSMData[SortedIdx].Transform);
-					}
-					else if (Component.PerInstanceRenderData.IsValid())
-					{
-						// if there's no PerInstanceSMData (e.g. for grass), we'll go ge the transform from the render buffer
-						FMatrix XformMat;
-						Component.PerInstanceRenderData->InstanceBuffer.GetInstanceTransform(i, XformMat);
-						InstanceToComponent = FTransform(XformMat);
-					}
-					
+						FTransform InstanceToComponent;
+						if (Component.PerInstanceSMData.IsValidIndex(SortedIdx))
+						{
+							InstanceToComponent = FTransform(Component.PerInstanceSMData[SortedIdx].Transform);
+						}
+						else if (Component.PerInstanceRenderData.IsValid())
+						{
+							// if there's no PerInstanceSMData (e.g. for grass), we'll go ge the transform from the render buffer
+							FInstanceStream const* Inst = Component.PerInstanceRenderData->InstanceBuffer.GetInstance(i);
+							FMatrix XformMat;
+							Inst->GetInstanceTransform(XformMat);
+							InstanceToComponent = FTransform(XformMat);
+						}
 					if (!InstanceToComponent.GetScale3D().IsZero())
 					{
 						InstanceData.Add(InstanceToComponent*Component.ComponentToWorld);
@@ -2599,7 +2597,7 @@ void UHierarchicalInstancedStaticMeshComponent::PartialNavigationUpdate(int32 In
 	if (InstanceIdx == INDEX_NONE)
 	{
 		AccumulatedNavigationDirtyArea.Init();
-		UNavigationSystem::UpdateComponentInNavOctree(*this);
+		UNavigationSystem::UpdateNavOctree(this);
 	}
 	else if (StaticMesh)
 	{

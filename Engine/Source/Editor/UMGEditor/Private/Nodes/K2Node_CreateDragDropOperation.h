@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,15 +11,15 @@ class UMGEDITOR_API UK2Node_CreateDragDropOperation : public UK2Node_ConstructOb
 {
 	GENERATED_UCLASS_BODY()
 
-	//~ Begin UEdGraphNode Interface.
+	// Begin UEdGraphNode interface.
 	virtual void AllocateDefaultPins() override;
 	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
-	//~ End UEdGraphNode Interface.
+	// End UEdGraphNode interface.
 
-	//~ Begin UK2Node Interface
+	// Begin UK2Node interface
 	virtual FText GetMenuCategory() const override;
 	virtual FName GetCornerIcon() const override;
-	//~ End UK2Node Interface.
+	// End UK2Node interface.
 
 protected:
 	/** Gets the default node title when no class is selected */

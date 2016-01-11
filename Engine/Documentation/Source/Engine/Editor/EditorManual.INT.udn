@@ -3,8 +3,6 @@ Title: Unreal Editor Manual
 Crumbs:%ROOT%, Engine
 Description:Guide to using and configuring the Unreal Editor toolset.
 Navigation:topic
-parent:%ROOT%
-order:2
 
 [VAR:Params]
 [PARAM:image]
@@ -60,9 +58,6 @@ order:2
 [/OBJECT]
 [/VAR]
 
-[DIR(end:"1" output:"topic" parent:"Engine/Editor")]
-
-<!--
 [REGION:topics third]
 %Engine/UI:topic%
 %GettingStarted/HowTo:topic%
@@ -73,4 +68,3 @@ order:2
 %Engine/Content:topic%
 %Engine/Basics/Projects:topic%
 [/REGION]
--->

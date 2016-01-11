@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "EnvQueryParamInstanceCustomization.h"
@@ -71,7 +71,7 @@ void FEnvQueryParamInstanceCustomization::CustomizeChildren( TSharedRef<class IP
 TOptional<float> FEnvQueryParamInstanceCustomization::GetParamNumValue() const
 {
 	// Gets the actual aspect ratio property value
-	if (ParamType == EAIParamType::Float)
+	if (ParamType == EEnvQueryParam::Float)
 	{
 		float FloatValue = 0.0f;
 		FPropertyAccess::Result PropResult = ValueProp->GetValue(FloatValue);
@@ -80,7 +80,7 @@ TOptional<float> FEnvQueryParamInstanceCustomization::GetParamNumValue() const
 			return FloatValue;
 		}
 	}
-	else if (ParamType == EAIParamType::Int)
+	else if (ParamType == EEnvQueryParam::Int)
 	{
 		float StoreValue = 0.0f;
 		FPropertyAccess::Result PropResult = ValueProp->GetValue(StoreValue);
@@ -96,12 +96,12 @@ TOptional<float> FEnvQueryParamInstanceCustomization::GetParamNumValue() const
 
 void FEnvQueryParamInstanceCustomization::OnParamNumValueChanged(float FloatValue) const
 {
-	if (ParamType == EAIParamType::Float)
+	if (ParamType == EEnvQueryParam::Float)
 	{
 		ValueProp->SetValue(FloatValue);
 		CachedFloat = FloatValue;
 	}
-	else if (ParamType == EAIParamType::Int)
+	else if (ParamType == EEnvQueryParam::Int)
 	{
 		const int32 IntValue = FMath::TruncToInt(FloatValue);
 		const float StoreValue = *((float*)&IntValue);
@@ -112,7 +112,7 @@ void FEnvQueryParamInstanceCustomization::OnParamNumValueChanged(float FloatValu
 
 ECheckBoxState FEnvQueryParamInstanceCustomization::GetParamBoolValue() const
 {
-	if (ParamType == EAIParamType::Bool)
+	if (ParamType == EEnvQueryParam::Bool)
 	{
 		float StoreValue = 0.0f;
 		FPropertyAccess::Result PropResult = ValueProp->GetValue(StoreValue);
@@ -127,7 +127,7 @@ ECheckBoxState FEnvQueryParamInstanceCustomization::GetParamBoolValue() const
 
 void FEnvQueryParamInstanceCustomization::OnParamBoolValueChanged(ECheckBoxState BoolValue) const
 {
-	if (ParamType == EAIParamType::Bool)
+	if (ParamType == EEnvQueryParam::Bool)
 	{
 		const float StoreValue = (BoolValue == ECheckBoxState::Checked) ? 1.0f : -1.0f;
 		ValueProp->SetValue(StoreValue);
@@ -137,12 +137,12 @@ void FEnvQueryParamInstanceCustomization::OnParamBoolValueChanged(ECheckBoxState
 
 EVisibility FEnvQueryParamInstanceCustomization::GetParamNumValueVisibility() const
 {
-	return (ParamType == EAIParamType::Int || ParamType == EAIParamType::Float) ? EVisibility::Visible : EVisibility::Collapsed;
+	return (ParamType == EEnvQueryParam::Int || ParamType == EEnvQueryParam::Float) ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 EVisibility FEnvQueryParamInstanceCustomization::GetParamBoolValueVisibility() const
 {
-	return (ParamType == EAIParamType::Bool) ? EVisibility::Visible : EVisibility::Collapsed;
+	return (ParamType == EEnvQueryParam::Bool) ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 FText FEnvQueryParamInstanceCustomization::GetHeaderDesc() const
@@ -152,9 +152,9 @@ FText FEnvQueryParamInstanceCustomization::GetHeaderDesc() const
 	{
 		switch (ParamType)
 		{
-		case EAIParamType::Float:	return FText::FromString(FString::Printf(TEXT("%s = %s"), *ParamName, *FString::SanitizeFloat(CachedFloat)));
-		case EAIParamType::Int:	return FText::FromString(FString::Printf(TEXT("%s = %d"), *ParamName, CachedInt));
-		case EAIParamType::Bool:	return FText::FromString(FString::Printf(TEXT("%s = %s"), *ParamName, CachedBool ? TEXT("true") : TEXT("false")));
+		case EEnvQueryParam::Float:	return FText::FromString(FString::Printf(TEXT("%s = %s"), *ParamName, *FString::SanitizeFloat(CachedFloat)));
+		case EEnvQueryParam::Int:	return FText::FromString(FString::Printf(TEXT("%s = %d"), *ParamName, CachedInt));
+		case EEnvQueryParam::Bool:	return FText::FromString(FString::Printf(TEXT("%s = %s"), *ParamName, CachedBool ? TEXT("true") : TEXT("false")));
 		}
 	}
 
@@ -171,12 +171,12 @@ void FEnvQueryParamInstanceCustomization::InitCachedTypes()
 	FPropertyAccess::Result PropResult = TypeProp->GetValue(EnumValue);
 	if (PropResult == FPropertyAccess::Success)
 	{
-		ParamType = (EAIParamType)EnumValue;
+		ParamType = (EEnvQueryParam::Type)EnumValue;
 		switch (ParamType)
 		{
-		case EAIParamType::Float:	CachedFloat = GetParamNumValue().GetValue(); break;
-		case EAIParamType::Int:	CachedInt = FMath::TruncToInt(GetParamNumValue().GetValue()); break;
-		case EAIParamType::Bool:	CachedBool = (GetParamBoolValue() == ECheckBoxState::Checked); break;
+		case EEnvQueryParam::Float:	CachedFloat = GetParamNumValue().GetValue(); break;
+		case EEnvQueryParam::Int:	CachedInt = FMath::TruncToInt(GetParamNumValue().GetValue()); break;
+		case EEnvQueryParam::Bool:	CachedBool = (GetParamBoolValue() == ECheckBoxState::Checked); break;
 		}
 	}
 }
@@ -187,12 +187,12 @@ void FEnvQueryParamInstanceCustomization::OnTypeChanged()
 	FPropertyAccess::Result PropResult = TypeProp->GetValue(EnumValue);
 	if (PropResult == FPropertyAccess::Success)
 	{
-		ParamType = (EAIParamType)EnumValue;
+		ParamType = (EEnvQueryParam::Type)EnumValue;
 		switch (ParamType)
 		{
-		case EAIParamType::Float:	OnParamNumValueChanged(CachedFloat); break;
-		case EAIParamType::Int:	OnParamNumValueChanged(CachedInt); break;
-		case EAIParamType::Bool:	OnParamBoolValueChanged(CachedBool ? ECheckBoxState::Checked : ECheckBoxState::Unchecked); break;
+		case EEnvQueryParam::Float:	OnParamNumValueChanged(CachedFloat); break;
+		case EEnvQueryParam::Int:	OnParamNumValueChanged(CachedInt); break;
+		case EEnvQueryParam::Bool:	OnParamBoolValueChanged(CachedBool ? ECheckBoxState::Checked : ECheckBoxState::Unchecked); break;
 		}
 	}
 }

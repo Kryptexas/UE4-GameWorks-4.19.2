@@ -1,13 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieScene3DConstraintSection.h"
 #include "MovieScene3DConstraintTrack.h"
 #include "IMovieScenePlayer.h"
 #include "MovieScene3DConstraintTrackInstance.h"
-
-
-#define LOCTEXT_NAMESPACE "MovieScene3DConstraintTrack"
 
 
 UMovieScene3DConstraintTrack::UMovieScene3DConstraintTrack( const FObjectInitializer& ObjectInitializer )
@@ -27,21 +24,21 @@ void UMovieScene3DConstraintTrack::RemoveAllAnimationData()
 }
 
 
-bool UMovieScene3DConstraintTrack::HasSection(const UMovieSceneSection& Section) const
+bool UMovieScene3DConstraintTrack::HasSection( UMovieSceneSection* Section ) const
 {
-	return ConstraintSections.Contains(&Section);
+	return ConstraintSections.Find( Section ) != INDEX_NONE;
 }
 
 
-void UMovieScene3DConstraintTrack::AddSection(UMovieSceneSection& Section)
+void UMovieScene3DConstraintTrack::AddSection( UMovieSceneSection* Section )
 {
-	ConstraintSections.Add(&Section);
+	ConstraintSections.Add( Section );
 }
 
 
-void UMovieScene3DConstraintTrack::RemoveSection(UMovieSceneSection& Section)
+void UMovieScene3DConstraintTrack::RemoveSection( UMovieSceneSection* Section )
 {
-	ConstraintSections.Remove(&Section);
+	ConstraintSections.Remove( Section );
 }
 
 
@@ -62,14 +59,3 @@ TRange<float> UMovieScene3DConstraintTrack::GetSectionBoundaries() const
 
 	return TRange<float>::Hull(Bounds);
 }
-
-
-#if WITH_EDITORONLY_DATA
-FText UMovieScene3DConstraintTrack::GetDisplayName() const
-{
-	return LOCTEXT("TrackName", "Constraint");
-}
-#endif
-
-
-#undef LOCTEXT_NAMESPACE

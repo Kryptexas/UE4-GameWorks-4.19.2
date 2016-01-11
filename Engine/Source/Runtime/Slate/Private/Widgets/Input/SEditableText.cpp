@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "BreakIterator.h"
@@ -67,7 +67,6 @@ void SEditableText::Construct( const FArguments& InArgs )
 	bSelectAllTextWhenFocused = InArgs._SelectAllTextWhenFocused;
 	RevertTextOnEscape = InArgs._RevertTextOnEscape;
 	ClearKeyboardFocusOnCommit = InArgs._ClearKeyboardFocusOnCommit;
-	AllowContextMenu = InArgs._AllowContextMenu;
 	OnContextMenuOpening = InArgs._OnContextMenuOpening;
 	OnIsTypedCharValid = InArgs._OnIsTypedCharValid;
 	OnTextChanged = InArgs._OnTextChanged;
@@ -160,7 +159,7 @@ void SEditableText::SetText( const TAttribute< FText >& InNewText )
 	}
 }
 
-void SEditableText::SetTextFromVirtualKeyboard(const FText& InNewText, ESetTextType SetTextType, ETextCommit::Type CommitType)
+void SEditableText::SetTextFromVirtualKeyboard(const FText& InNewText)
 {
 	// Only set the text if the text attribute doesn't have a getter binding (otherwise it would be blown away).
 	// If it is bound, we'll assume that OnTextCommitted will handle the update.
@@ -172,6 +171,9 @@ void SEditableText::SetTextFromVirtualKeyboard(const FText& InNewText, ESetTextT
 	if (!InNewText.EqualTo(EditedText))
 	{
 		EditedText = InNewText;
+
+		// Move the cursor to the end of the string
+		SetCaretPosition(EditedText.ToString().Len());
 
 		// This method is called from the main thread (i.e. not the game thread) of the device with the virtual keyboard
 		// This causes the app to crash on those devices, so we're using polling here to ensure delegates are
@@ -213,10 +215,6 @@ void SEditableText::Tick( const FGeometry& AllottedGeometry, const double InCurr
 	if (bTextChangedByVirtualKeyboard)
 	{
 		OnEnter();
-
-		// Move the cursor to the end of the string
-		SetCaretPosition(EditedText.ToString().Len());
-
 		bTextChangedByVirtualKeyboard = false;
 	}
 
@@ -1261,12 +1259,12 @@ int32 SEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedG
 	if (VisibleText.Len() == 0)
 	{
 		// Draw the hint text.
-		const FLinearColor HintTextColor = FLinearColor(ColorAndOpacitySRGB.R, ColorAndOpacitySRGB.G, ColorAndOpacitySRGB.B, 0.35f) * InWidgetStyle.GetColorAndOpacityTint();
+		const FLinearColor HintTextColor = FLinearColor(ColorAndOpacitySRGB.R, ColorAndOpacitySRGB.G, ColorAndOpacitySRGB.B, 0.35f);
 		const FString ThisHintText = this->HintText.Get().ToString();
 		FSlateDrawElement::MakeText(
 			OutDrawElements,
 			LayerId + TextLayer,
-			AllottedGeometry.ToPaintGeometry(FVector2D(0, DrawPositionY * ScaleInverse), AllottedGeometry.Size),
+			AllottedGeometry.ToPaintGeometry( FVector2D( 0, DrawPositionY ), AllottedGeometry.Size ),
 			ThisHintText,          // Text
 			FontInfo,              // Font information (font name, size)
 			MyClippingRect,        // Clipping rect
@@ -1593,18 +1591,6 @@ FCursorReply SEditableText::OnCursorQuery( const FGeometry& MyGeometry, const FP
 }
 
 
-const FSlateBrush* SEditableText::GetFocusBrush() const
-{
-	return nullptr;
-}
-
-
-bool SEditableText::IsInteractable() const
-{
-	return IsEnabled();
-}
-
-
 void SEditableText::SelectText( const int32 InOldCaretPosition )
 {
 	if( InOldCaretPosition != CaretPosition )
@@ -1825,12 +1811,8 @@ void SEditableText::SaveText()
 
 void SEditableText::SummonContextMenu(const FVector2D& InLocation, TSharedPtr<SWindow> ParentWindow, const FWidgetPath& EventPath)
 {
-	if (!AllowContextMenu.Get())
-	{
-		return;
-	}
-
 	TSharedPtr<SWidget> MenuContentWidget;
+
 	if (OnContextMenuOpening.IsBound())
 	{
 		MenuContentWidget = OnContextMenuOpening.Execute();
@@ -2075,11 +2057,6 @@ void SEditableText::SetClearKeyboardFocusOnCommit(const TAttribute<bool>& InClea
 void SEditableText::SetSelectAllTextOnCommit(const TAttribute<bool>& InSelectAllTextOnCommit)
 {
 	SelectAllTextOnCommit = InSelectAllTextOnCommit;
-}
-
-void SEditableText::SetAllowContextMenu(const TAttribute< bool >& InAllowContextMenu)
-{
-	AllowContextMenu = InAllowContextMenu;
 }
 
 void SEditableText::EnsureActiveTick()

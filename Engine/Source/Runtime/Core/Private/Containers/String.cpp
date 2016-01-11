@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 
@@ -37,7 +37,7 @@ int32 FString::Find(const TCHAR* SubStr, ESearchCase::Type SearchCase, ESearchDi
 			? FCString::Stristr(Start, SubStr)
 			: FCString::Strstr(Start, SubStr);
 
-		return Tmp ? (Tmp-**this) : INDEX_NONE;
+		return Tmp ? (Tmp-**this) : -1;
 	}
 	else
 	{
@@ -72,44 +72,31 @@ int32 FString::Find(const TCHAR* SubStr, ESearchCase::Type SearchCase, ESearchDi
 					return i;
 				}
 			}
-			return INDEX_NONE;
+			return -1;
 		}
 	}
 }
 
 FString FString::ToUpper() const
 {
-	FString New(**this);
-	New.ToUpperInline();
+	FString New( **this );
+	const int32 StringLength = Len();
+	for( int32 i=0; i < StringLength; ++i )
+	{
+		New[i] = FChar::ToUpper(New[i]);
+	}
 	return New;
 }
-
-void FString::ToUpperInline()
-{
-	const int32 StringLength = Len();
-	TCHAR* RawData = Data.GetData();
-	for (int32 i = 0; i < StringLength; ++i)
-	{
-		RawData[i] = FChar::ToUpper(RawData[i]);
-	}
-}
-
 
 FString FString::ToLower() const
 {
-	FString New(**this);
-	New.ToLowerInline();
-	return New;
-}
-
-void FString::ToLowerInline()
-{
+	FString New( **this );
 	const int32 StringLength = Len();
-	TCHAR* RawData = Data.GetData();
-	for (int32 i = 0; i < StringLength; ++i)
+	for( int32 i=0; i < StringLength; ++i )
 	{
-		RawData[i] = FChar::ToLower(RawData[i]);
+		New[i] = FChar::ToLower(New[i]);
 	}
+	return New;
 }
 
 bool FString::StartsWith(const FString& InPrefix, ESearchCase::Type SearchCase ) const
@@ -543,7 +530,7 @@ int32 FString::ParseIntoArray( TArray<FString>& OutArray, const TCHAR* pchDelim,
 			{
 				new (OutArray) FString(At-Start,Start);
 			}
-			Start = At + DelimLength;
+			Start += DelimLength + (At-Start);
 		}
 		if (!InCullEmpty || *Start)
 		{
@@ -1126,47 +1113,4 @@ FArchive& operator<<( FArchive& Ar, FString& A )
 	}
 
 	return Ar;
-}
-
-int32 FindMatchingClosingParenthesis(const FString& TargetString, const int32 StartSearch)
-{
-	check(StartSearch >= 0 && StartSearch <= TargetString.Len());// Check for usage, we do not accept INDEX_NONE like other string functions
-
-	const TCHAR* const StartPosition = (*TargetString) + StartSearch;
-	const TCHAR* CurrPosition = StartPosition;
-	int32 ParenthesisCount = 0;
-
-	// Move to first open parenthesis
-	while (*CurrPosition != 0 && *CurrPosition != TEXT('('))
-	{
-		++CurrPosition;
-	}
-
-	// Did we find the open parenthesis
-	if (*CurrPosition == TEXT('('))
-	{
-		++ParenthesisCount;
-		++CurrPosition;
-
-		while (*CurrPosition != 0 && ParenthesisCount > 0)
-		{
-			if (*CurrPosition == TEXT('('))
-			{
-				++ParenthesisCount;
-			}
-			else if (*CurrPosition == TEXT(')'))
-			{
-				--ParenthesisCount;
-			}
-			++CurrPosition;
-		}
-
-		// Did we find the matching close parenthesis
-		if (ParenthesisCount == 0 && *(CurrPosition - 1) == TEXT(')'))
-		{
-			return StartSearch + ((CurrPosition - 1) - StartPosition);
-		}
-	}
-
-	return INDEX_NONE;
 }

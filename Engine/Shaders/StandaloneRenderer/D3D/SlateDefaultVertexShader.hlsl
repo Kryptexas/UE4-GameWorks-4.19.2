@@ -1,6 +1,6 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "GammaCorrectionCommon.hlsl"
+
 
 cbuffer PerElementVSConstants
 {
@@ -33,8 +33,7 @@ VertexOut Main(
 	Out.ClipOriginAndPos = float4(InClipOrigin, InPosition.xy);
 	Out.ClipExtents = InClipExtents;
 	
-	Out.Color.rgb = sRGBToLinear(InColor.rgb);
-	Out.Color.a = InColor.a;
+	Out.Color = InColor;
 
 	return Out;
 }

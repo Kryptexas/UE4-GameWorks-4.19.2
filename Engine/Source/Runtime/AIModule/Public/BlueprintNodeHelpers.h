@@ -1,9 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 class UBTNode;
-class UBehaviorTreeComponent;
 
 namespace BlueprintNodeHelpers
 {
@@ -24,16 +23,14 @@ namespace BlueprintNodeHelpers
 
 	void AbortLatentActions(UActorComponent& OwnerOb, const UObject& Ob);
 
-	FORCEINLINE bool HasBlueprintFunction(FName FuncName, const UObject& Object, const UClass& StopAtClass)
+	FORCEINLINE bool HasBlueprintFunction(FName FuncName, const UObject* Ob, const UClass* StopAtClass)
 	{
-		const UFunction* Function = Object.GetClass()->FindFunctionByName(FuncName);
-		ensure(Function);
-		return (Function != nullptr) && (Function->GetOuter() != &StopAtClass);
+		return (Ob->GetClass()->FindFunctionByName(FuncName)->GetOuter() != StopAtClass);
 	}
 
-	FORCEINLINE FString GetNodeName(const UObject& NodeObject)
+	FORCEINLINE FString GetNodeName(const UObject* Ob)
 	{
-		return NodeObject.GetClass()->GetName().LeftChop(2);
+		return Ob->GetClass()->GetName().LeftChop(2);
 	}
 
 	//----------------------------------------------------------------------//
@@ -41,7 +38,4 @@ namespace BlueprintNodeHelpers
 	//----------------------------------------------------------------------//
 	DEPRECATED(4.7, "This version is deprecated. Please use the one taking reference to UActorComponent rather than a pointer.")
 	void AbortLatentActions(UActorComponent* OwnerOb, const UObject* Ob);
-
-	DEPRECATED(4.11, "This version of HasBlueprintFunction is deprecated. Please use the one taking reference to UObject and StopAtClass rather than a pointers.")
-	AIMODULE_API bool HasBlueprintFunction(FName FuncName, const UObject* Object, const UClass* StopAtClass);
 }

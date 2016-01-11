@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleModules_Event.cpp: Particle event-related module implementations.
@@ -52,12 +52,12 @@ void UParticleModuleEventGenerator::Update(FParticleEmitterInstance* Owner, int3
 {
 }
 
-uint32 UParticleModuleEventGenerator::RequiredBytes(UParticleModuleTypeDataBase* TypeData)
+uint32 UParticleModuleEventGenerator::RequiredBytes(FParticleEmitterInstance* Owner)
 {
 	return 0;
 }
 
-uint32 UParticleModuleEventGenerator::RequiredBytesPerInstance()
+uint32 UParticleModuleEventGenerator::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
 {
 	return sizeof(FParticleEventInstancePayload);
 }

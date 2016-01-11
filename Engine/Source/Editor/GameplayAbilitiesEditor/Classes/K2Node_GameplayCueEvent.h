@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "K2Node_GameplayCueEvent.generated.h"
@@ -9,17 +9,17 @@ class UK2Node_GameplayCueEvent : public UK2Node_Event
 {
 	GENERATED_UCLASS_BODY()
 
-	//~ Begin UObject Interface
+	// UObject interface
 	virtual void Serialize(FArchive& Ar) override;
-	//~ End UObject Interface
+	// End of UObject interface
 
-	//~ Begin UEdGraphNode Interface
+	// Begin UEdGraphNode interface
 	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual bool IsCompatibleWithGraph(const UEdGraph* TargetGraph) const override;
-	//~ End UEdGraphNode Interface
+	// End UEdGraphNode interface
 	
-	//~ Begin UK2Node Interface
+	// Begin UK2Node interface
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
-	//~ End UK2Node Interface
+	// End UK2Node interface
 };

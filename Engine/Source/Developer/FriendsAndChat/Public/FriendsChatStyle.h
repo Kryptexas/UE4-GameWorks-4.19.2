@@ -1,14 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "FriendsChatStyle.generated.h"
-
-// Forward declarations
-namespace EChatMessageType
-{
-	enum Type : uint16;
-}
 
 /**
  * Interface for the services manager.
@@ -20,11 +14,7 @@ struct FRIENDSANDCHAT_API FFriendsChatStyle
 	GENERATED_USTRUCT_BODY()
 
 	// Default Constructor
-	FFriendsChatStyle()
-		: TimeStampOpacity(1.0f)
-	{
-
-	}
+	FFriendsChatStyle() { }
 
 	// Default Destructor
 	virtual ~FFriendsChatStyle() { }
@@ -49,26 +39,31 @@ struct FRIENDSANDCHAT_API FFriendsChatStyle
 	 */
 	static const FFriendsChatStyle& GetDefault();
 
+	UPROPERTY()
+	FSlateBrush GlobalChatHeaderBrush;
+	FFriendsChatStyle& SetGlobalChatHeaderBrush(const FSlateBrush& Value);
+
+	/** Chat window background */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	float ChatEntryHeight;
+	FFriendsChatStyle& SetChatEntryHeight(float InChatEntryHeight);
+
+	/** Chat window background */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush ChatContainerBackground;
+	FFriendsChatStyle& SetChatContainerBackground(const FSlateBrush& InChatContainerBackground);
+
 	/** Text Style */
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FTextBlockStyle TextStyle;
 	FFriendsChatStyle& SetTextStyle(const FTextBlockStyle& InTextStyle);
-
-	/** Time Stamp Text Style */
-	UPROPERTY(EditAnywhere, Category=Appearance)
-	FTextBlockStyle TimeStampTextStyle;
-	FFriendsChatStyle& SetTimeStampTextStyle(const FTextBlockStyle& InTextStyle);
-
-	UPROPERTY(EditAnywhere, Category = Appearance)
-	float TimeStampOpacity;
-	FFriendsChatStyle& SetTimestampOpacity(float InOpacity);
 
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FLinearColor DefaultChatColor;
 	FFriendsChatStyle& SetDefaultChatColor(const FLinearColor& InFontColor);
 
 	UPROPERTY(EditAnywhere, Category=Appearance)
-	FLinearColor WhisperChatColor;
+	FLinearColor WhisplerChatColor;
 	FFriendsChatStyle& SetWhisplerChatColor(const FLinearColor& InFontColor);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
@@ -84,24 +79,24 @@ struct FRIENDSANDCHAT_API FFriendsChatStyle
 	FFriendsChatStyle& SetPartyChatColor(const FLinearColor& InFontColor);
 
 	UPROPERTY(EditAnywhere, Category=Appearance)
-	FLinearColor AdminChatColor;
-	FFriendsChatStyle& SetAdminChatColor(const FLinearColor& InFontColor);
+	FSlateBrush ChatGlobalBrush;
+	FFriendsChatStyle& SetChatGlobalBrush(const FSlateBrush& Brush);
 
 	UPROPERTY(EditAnywhere, Category=Appearance)
-	FLinearColor WhisperHyperlinkChatColor;
-	FFriendsChatStyle& SetWhisplerHyperlinkChatColor(const FLinearColor& InFontColor);
+	FSlateBrush ChatGameBrush;
+	FFriendsChatStyle& SetChatGameBrush(const FSlateBrush& Brush);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
-	FLinearColor GlobalHyperlinkChatColor;
-	FFriendsChatStyle& SetGlobalHyperlinkChatColor(const FLinearColor& InFontColor);
+	FSlateBrush ChatPartyBrush;
+	FFriendsChatStyle& SetChatPartyBrush(const FSlateBrush& Brush);
 
 	UPROPERTY(EditAnywhere, Category=Appearance)
-	FLinearColor GameHyperlinkChatColor;
-	FFriendsChatStyle& SetGameHyperlinkChatColor(const FLinearColor& InFontColor);
+	FSlateBrush ChatWhisperBrush;
+	FFriendsChatStyle& SetChatWhisperBrush(const FSlateBrush& Brush);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
-	FLinearColor PartyHyperlinkChatColor;
-	FFriendsChatStyle& SetPartyHyperlinkChatColor(const FLinearColor& InFontColor);
+	FSlateBrush ChatInvalidBrush;
+	FFriendsChatStyle& SetChatInvalidBrush(const FSlateBrush& Brush);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FEditableTextBoxStyle ChatEntryTextStyle;
@@ -112,28 +107,28 @@ struct FRIENDSANDCHAT_API FFriendsChatStyle
 	FFriendsChatStyle& SetChatDisplayTextStyle(const FEditableTextBoxStyle& InEditableTextStyle);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
-	FScrollBoxStyle ScrollBorderStyle;
-	FFriendsChatStyle& SetScrollBorderStyle(const FScrollBoxStyle& InScrollBorderStyle);
+	FSlateBrush ChatBackgroundBrush;
+	FFriendsChatStyle& SetChatBackgroundBrush(const FSlateBrush& InChatBackgroundBrush);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
-	FSlateBrush MessageNotificationBrush;
-	FFriendsChatStyle& SetMessageNotificationBrush(const FSlateBrush& Brush);
+	FSlateBrush ChatFooterBrush;
+	FFriendsChatStyle& SetChatFooterBrush(const FSlateBrush& Value);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
-	FMargin ChatEntryPadding;
-	FFriendsChatStyle& SetChatChannelPadding(const FMargin& Value);
+	FSlateBrush ChatChannelsBackgroundBrush;
+	FFriendsChatStyle& SetChatChannelsBackgroundBrush(const FSlateBrush& InChatChannelsBackgroundBrush);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
-	float ChatEntryHeight;
-	FFriendsChatStyle& SetChatEntryHeight(float Value);
+	FScrollBorderStyle ScrollBorderStyle;
+	FFriendsChatStyle& SetScrollBorderStyle(const FScrollBorderStyle& InScrollBorderStyle);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
-	FMargin FriendActionPadding;
+	FSlateBrush QuickSettingsBrush;
+	FFriendsChatStyle& SetQuickSettingsBrush(const FSlateBrush& Brush);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
-	FMargin FriendActionHeaderPadding;
+	FSlateBrush ChatSettingsBrush;
+	FFriendsChatStyle& SetChatSettingsBrush(const FSlateBrush& Brush);
 
-	UPROPERTY(EditAnywhere, Category = Appearance)
-	FMargin FriendActionStatusMargin;
 };
 

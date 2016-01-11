@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "MallocJemalloc.h"
@@ -128,10 +128,7 @@ namespace
 		check(Ar);
 		if (Ar)
 		{
-			FString Sanitized(ANSI_TO_TCHAR(String));
-			Sanitized.ReplaceInline(TEXT("\n"), TEXT(""), ESearchCase::CaseSensitive);
-			Sanitized.ReplaceInline(TEXT("\r"), TEXT(""), ESearchCase::CaseSensitive);
-			Ar->Logf(*Sanitized);
+			Ar->Logf(ANSI_TO_TCHAR(String));
 		}
 	}
 }
@@ -139,10 +136,7 @@ namespace
 void FMallocJemalloc::DumpAllocatorStats( FOutputDevice& Ar ) 
 {
 	MEM_TIME(Ar.Logf( TEXT("Seconds     % 5.3f"), MemTime ));
-	
-	// "g" omits static stats, "a" omits per-arena stats, "l" omits large object stats
-	// see http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html for detailed opts explanation.
-	je_malloc_stats_print(JemallocStatsPrintCallback, &Ar, "gla");
+	je_malloc_stats_print(JemallocStatsPrintCallback, &Ar, NULL);
 }
 
 bool FMallocJemalloc::GetAllocationSize(void *Original, SIZE_T &SizeOut)

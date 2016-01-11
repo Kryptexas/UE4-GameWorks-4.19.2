@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintGraphPrivatePCH.h"
@@ -8,8 +8,6 @@
 #include "KismetDebugUtilities.h" // for HasDebuggingData(), GetWatchText()
 #include "KismetCompiler.h"
 #include "GraphEditorSettings.h"
-#include "BlueprintEditorSettings.h"
-#include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
 
 #include "ObjectEditorUtils.h"
 
@@ -299,7 +297,6 @@ void UK2Node::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins)
 					{
 						NewPin->PinType = OldPin->ParentPin->PinType;
 						GetSchema()->SplitPin(NewPin);
-						break;
 					}
 				}
 			}
@@ -870,7 +867,11 @@ void FOptionalPinManager::RebuildPropertyList(TArray<FOptionalPinFromProperty>& 
 			CategoryName = FObjectEditorUtils::GetCategoryFName(TestProperty);
 #endif //WITH_EDITOR
 
-			OverridesMap.Remove(TestProperty->GetFName());
+			UProperty* OverrideProperty = nullptr;
+			if (OverridesMap.RemoveAndCopyValue(TestProperty->GetFName(), OverrideProperty) && OverrideProperty)
+			{
+				RebuildProperty(OverrideProperty, CategoryName, Properties, SourceStruct, OldVisibility);
+			}
 			RebuildProperty(TestProperty, CategoryName, Properties, SourceStruct, OldVisibility);
 		}
 	}
@@ -896,10 +897,6 @@ void FOptionalPinManager::RebuildProperty(UProperty* TestProperty, FName Categor
 	Record->PropertyFriendlyName = UEditorEngine::GetFriendlyName(TestProperty, SourceStruct);
 	Record->PropertyTooltip = TestProperty->GetToolTipText();
 	Record->CategoryName = CategoryName;
-
-	bool bNegate = false;
-	Record->bHasOverridePin = PropertyCustomizationHelpers::GetEditConditionProperty(TestProperty, bNegate) != nullptr;
-
 	// Get the defaults
 	GetRecordDefaults(TestProperty, *Record);
 
@@ -1017,39 +1014,24 @@ UEdGraphPin* UK2Node::GetExecPin() const
 
 UEdGraphPin* UK2Node::GetPassThroughPin(const UEdGraphPin* FromPin) const
 {
-	UEdGraphPin* PassThroughPin = nullptr;
+	UEdGraphPin* MatchedPin = nullptr;
 	if(FromPin && Pins.Contains(FromPin))
 	{
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		if(K2Schema->IsExecPin(*FromPin))
 		{
-			// Locate the first exec pin that's opposite the given exec pin, if any.
-			for(auto Pin : Pins)
+			if(FromPin->Direction == EGPD_Input)
 			{
-				if(Pin && Pin != FromPin && Pin->Direction != FromPin->Direction && K2Schema->IsExecPin(*Pin))
-				{
-					PassThroughPin = Pin;
-					break;
-				}
+				MatchedPin = FindPin(K2Schema->PN_Then);
+			}
+			else
+			{
+				MatchedPin = FindPin(K2Schema->PN_Execute);
 			}
 		}
 	}
 
-	return PassThroughPin;
-}
-
-bool UK2Node::IsInDevelopmentMode() const
-{
-	// Check class setting (which can override the default setting)
-	const UBlueprint* OwningBP = GetBlueprint();
-	if(OwningBP != nullptr
-		&& OwningBP->CompileMode != EBlueprintCompileMode::Default)
-	{
-		return OwningBP->CompileMode == EBlueprintCompileMode::Development;
-	}
-
-	// Check default setting
-	return Super::IsInDevelopmentMode();
+	return MatchedPin;
 }
 
 bool UK2Node::CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const
@@ -1149,6 +1131,7 @@ void UK2Node::GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) con
 	// grab the debug value of the pin
 	FString WatchText;
 	const FKismetDebugUtilities::EWatchTextResult WatchStatus = FKismetDebugUtilities::GetWatchText(/*inout*/ WatchText, Blueprint, ActiveObject, &Pin);
+
 	// if this is an array pin, then we possibly have too many lines (too many entries)
 	if (Pin.PinType.bIsArray)
 	{

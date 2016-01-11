@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -35,9 +35,9 @@ public:
 	/** Creates details for a static mesh */
 	TSharedRef<class IDetailCustomization> MakeStaticMeshDetails();
 
-	//~ Begin FGCObject Interface
+	// FGCObject interface
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
-	//~ End FGCObject Interface
+	// End of FGCObject interface
 
 	/** IToolkit interface */
 	virtual FName GetToolkitFName() const override;
@@ -231,11 +231,11 @@ private:
 	/** Opens the convex decomposition tab. */
 	void OnConvexDecomposition();
 
-	//~ Begin FAssetEditorToolkit Interface.
+	// Begin FAssetEditorToolkit interface.
 	virtual bool OnRequestClose() override;
-	//~ End FAssetEditorToolkit Interface.
+	// End FAssetEditorToolkit interface.
 
-	//~ Begin FEditorUndoClient Interface
+	// Begin FEditorUndoClient Interface
 	virtual void PostUndo( bool bSuccess ) override;
 	virtual void PostRedo( bool bSuccess ) override;
 	// End of FEditorUndoClient

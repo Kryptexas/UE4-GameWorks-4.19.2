@@ -1,0 +1,39 @@
+﻿INTSourceChangelist:2033300
+Availability: Docs
+Title:1.6 - 프리컴퓨티드 비저빌리티 볼륨
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Volumes
+Description:Volumes 예제 레벨에 대한 개요로, 예제 1.6: Precomputed Visibility Volume (프리컴퓨티드 비저빌리티 볼륨)입니다.
+
+[TOC(start:2 end:2)]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Volumes/1_6:title%](Resources\ContentExamples\Volumes\content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Volumes/1_6:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Volumes/1_6:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Volumes/1_6]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+이 볼륨은 스트리밍 레벨에서는 작동하지 않으며, 멀티플레이어 레벨의 퍼포먼스 최적화를 위해서 오브젝트의 표시여부를 저장해 두는 볼륨입니다. Precomputed Visibility (미리계산된 표시여부)는 레벨 리빌드시 생성됩니다. 해당 기능의 활성화를 위해서는 '월드 세팅->Precomputed Visibility'를 켜 둬야 합니다.
+
+'Place Cells along Camera Paths' (카메라 경로상에 셀 배치)는 마티네 시네마틱의 퍼포먼스를 높이기 위한 기능입니다.
+
+'Visibility Cell' (표시여부 셀)은 표시여부 계산의 세밀도를 나타내는 크기입니다.
+
+'Aggressiveness' (적극성)은 메시 메시가 보이지 않는 것으로 간주할 시점을 설정합니다.
+
+제대로만 사용하면 시각적인 면에서 차이가 나지 않으면서 훨씬 뛰어난 퍼포먼스를 낼 수 있습니다.
+
+

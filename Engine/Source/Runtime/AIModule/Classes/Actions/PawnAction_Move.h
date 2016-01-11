@@ -1,9 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
 #include "TimerManager.h"
-#include "Actions/PawnAction.h"
 #include "PawnAction_Move.generated.h"
 
 class AActor;
@@ -107,7 +105,6 @@ protected:
 	virtual bool Resume() override;
 	virtual void OnFinished(EPawnActionResult::Type WithResult) override;
 	virtual EPawnActionAbortState::Type PerformAbort(EAIForceParam::Type ShouldForce) override;
-	virtual bool IsPartialPathAllowed() const;
 
 	virtual EPathFollowingRequestResult::Type RequestMove(AAIController& Controller);
 	

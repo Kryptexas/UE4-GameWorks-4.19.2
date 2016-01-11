@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ForwardShadingRenderer.cpp: Scene rendering code for the ES2 feature level.
@@ -35,10 +35,9 @@ void FForwardShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLis
 
 	SCOPE_CYCLE_COUNTER(STAT_InitViewsTime);
 
-	FILCUpdatePrimTaskData ILCTaskData;
 	PreVisibilityFrameSetup(RHICmdList);
 	ComputeViewVisibility(RHICmdList);
-	PostVisibilityFrameSetup(ILCTaskData);
+	PostVisibilityFrameSetup();
 
 	bool bDynamicShadows = ViewFamily.EngineShowFlags.DynamicShadows && GetShadowQuality() > 0;
 
@@ -46,12 +45,6 @@ void FForwardShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLis
 	{
 		// Setup dynamic shadows.
 		InitDynamicShadows(RHICmdList);		
-	}
-
-	// if we kicked off ILC update via task, wait and finalize.
-	if (ILCTaskData.TaskRef.IsValid())
-	{
-		Scene->IndirectLightingCache.FinalizeCacheUpdates(Scene, *this, ILCTaskData);
 	}
 
 	// initialize per-view uniform buffer.  Pass in shadow info as necessary.
@@ -78,9 +71,6 @@ void FForwardShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLis
 		Views[ViewIndex].InitRHIResources(DirectionalLightShadowInfo);
 	}
 
-	// Now that the indirect lighting cache is updated, we can update the primitive precomputed lighting buffers.
-	UpdatePrimitivePrecomputedLightingBuffers();
-	
 	OnStartFrame();
 }
 
@@ -103,10 +93,7 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
 	// Allocate the maximum scene render target space for the current view family.
-	SceneContext.Allocate(RHICmdList, ViewFamily);
-
-	//make sure all the targets we're going to use will be safely writable.
-	GRenderTargetPool.TransitionTargetsWritable(RHICmdList);
+	SceneContext.Allocate(ViewFamily);
 
 	// Find the visible primitives.
 	InitViews(RHICmdList);
@@ -247,7 +234,7 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 void FForwardShadingSceneRenderer::BasicPostProcess(FRHICommandListImmediate& RHICmdList, FViewInfo &View, bool bDoUpscale, bool bDoEditorPrimitives)
 {
 	FRenderingCompositePassContext CompositeContext(RHICmdList, View);
-	FPostprocessContext Context(RHICmdList, CompositeContext.Graph, View);
+	FPostprocessContext Context(CompositeContext.Graph, View);
 
 	const bool bBlitRequired = !bDoUpscale && !bDoEditorPrimitives;
 
@@ -262,7 +249,6 @@ void FForwardShadingSceneRenderer::BasicPostProcess(FRHICommandListImmediate& RH
 		Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 	}
 
-#if WITH_EDITOR
 	// Composite editor primitives if we had any to draw and compositing is enabled
 	if (bDoEditorPrimitives)
 	{
@@ -271,7 +257,6 @@ void FForwardShadingSceneRenderer::BasicPostProcess(FRHICommandListImmediate& RH
 		//Node->SetInput(ePId_Input1, FRenderingCompositeOutputRef(Context.SceneDepth));
 		Context.FinalOutput = FRenderingCompositeOutputRef(EditorCompNode);
 	}
-#endif
 
 	// currently created on the heap each frame but View.Family->RenderTarget could keep this object and all would be cleaner
 	TRefCountPtr<IPooledRenderTarget> Temp;

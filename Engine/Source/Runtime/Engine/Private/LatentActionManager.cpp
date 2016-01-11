@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "LatentActions.h"
@@ -44,13 +44,8 @@ void FLatentActionManager::RemoveActionsForObject(TWeakObjectPtr<UObject> InObje
 	}
 }
 
-
-DECLARE_CYCLE_STAT(TEXT("Blueprint Latent Actions"), STAT_TickLatentActions, STATGROUP_Game);
-
 void FLatentActionManager::ProcessLatentActions(UObject* InObject, float DeltaTime)
 {
-	SCOPE_CYCLE_COUNTER(STAT_TickLatentActions);
-
 	for (FActionsForObject::TIterator It(ActionsToRemoveMap); It; ++It)
 	{
 		auto ActionList = GetActionListForObject(It.Key());
@@ -69,7 +64,7 @@ void FLatentActionManager::ProcessLatentActions(UObject* InObject, float DeltaTi
 			}
 		}
 	}
-	ActionsToRemoveMap.Reset();
+	ActionsToRemoveMap.Empty();
 
 	//@TODO: K2: Very inefficient code right now
 	if (InObject != NULL)
@@ -115,7 +110,7 @@ void FLatentActionManager::ProcessLatentActions(UObject* InObject, float DeltaTi
 					Action->NotifyObjectDestroyed();
 					delete Action;
 				}
-				ObjectActionList.Reset();
+				ObjectActionList.Empty();
 			}
 
 			// Remove the entry if there are no pending actions remaining for this object (or if the object was NULLed and cleaned up)
@@ -215,7 +210,6 @@ FString FLatentActionManager::GetDescription(UObject* InObject, int32 UUID) cons
 	}
 	return Description;
 }
-
 void FLatentActionManager::GetActiveUUIDs(UObject* InObject, TSet<int32>& UUIDList) const
 {
 	check(InObject);
@@ -231,21 +225,3 @@ void FLatentActionManager::GetActiveUUIDs(UObject* InObject, TSet<int32>& UUIDLi
 }
 
 #endif
-
-FLatentActionManager::~FLatentActionManager()
-{
-	for (auto& ObjectActionListIterator : ObjectToActionListMap)
-	{
-		TSharedPtr<FActionList>& ActionList = ObjectActionListIterator.Value;
-		if (ActionList.IsValid())
-		{
-			for (auto& ActionIterator : *ActionList.Get())
-			{
-				FPendingLatentAction* Action = ActionIterator.Value;
-				ActionIterator.Value = nullptr;
-				delete Action;
-			}
-			ActionList->Reset();
-		}
-	}
-}

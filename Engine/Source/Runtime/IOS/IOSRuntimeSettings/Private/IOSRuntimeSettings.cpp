@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "IOSRuntimeSettingsPrivatePCH.h"
 
@@ -28,10 +28,6 @@ UIOSRuntimeSettings::UIOSRuntimeSettings(const FObjectInitializer& ObjectInitial
 	AdditionalPlistData = TEXT("");
 	AdditionalLinkerFlags = TEXT("");
 	AdditionalShippingLinkerFlags = TEXT("");
-	bTreatRemoteAsSeparateController = false;
-	bAllowRemoteRotation = true;
-	bUseRemoteAsVirtualJoystick = true;
-	bUseRemoteAbsoluteDpadValues = false;
 }
 
 #if WITH_EDITOR

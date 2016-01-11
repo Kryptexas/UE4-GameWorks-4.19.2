@@ -1,20 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-void FinishSceneStat(uint32 Scene);
 
 //This is only here for now while we transition into substepping
 #if WITH_PHYSX
 #include "pxtask/PxTask.h"
 class PhysXCompletionTask : public PxLightCpuTask
 {
-	FGraphEventRef EventToFire;
-	uint32 Scene;
+	FGraphEventRef& EventToFire;
 public:
-	PhysXCompletionTask(FGraphEventRef& InEventToFire, uint32 InScene, PxTaskManager* TaskManager)
+	PhysXCompletionTask(FGraphEventRef& InEventToFire, PxTaskManager* TaskManager)
 		: EventToFire(InEventToFire)
-		, Scene(InScene)
 	{
 		setContinuation(*TaskManager, NULL);
 	}
@@ -24,12 +20,7 @@ public:
 	virtual void release()
 	{
 		PxLightCpuTask::release();
-		FinishSceneStat(Scene);
-		if (EventToFire.GetReference())
-		{
-			TArray<FBaseGraphTask*> NewTasks;
-			EventToFire->DispatchSubsequents(NewTasks);
-		}
+		EventToFire->DispatchSubsequents();
 		delete this;
 	}
 	virtual const char *getName() const

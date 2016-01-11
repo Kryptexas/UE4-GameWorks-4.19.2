@@ -1,9 +1,8 @@
-﻿INTSourceChangelist:2694959
+﻿INTSourceChangelist:2421168
 Availability:Public
-Title:ブループリントの種類
+Title:ブループリントのタイプ
 Crumbs: %ROOT%, Engine/Blueprints
 Description:様々な種類のブループリントの情報に関するランディングページ
-version:4.9
 
 
 一見しただけで、使用する **ブループリント** のタイプを見分けるのは難しいものです。 
@@ -12,59 +11,75 @@ version:4.9
 * _複数のインスタンスが存在するか ?_
 
 インスタンスが 1 つか 2 つある場合 (例、撮影やオンオフできるTV セット) 、 
-関連コードと一緒に ブループリントのクラス を作成するのが妥当です。 
+関連コードと一緒に **ブループリントのクラス** を作成するのが妥当です。 
 そうでない場合、またいくつかのヘルパー関数を使用したい場合は ( X ユニット内の全てのアクタを探すなど)、  
-Blueprint Macro Library に入れるのが理想的です。
+**Blueprint Macro Library** に入れるのが理想的です。
 
 
 [EXCERPT:Main]
 
-##Level ブループリント
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![](level_blueprint_test_image.png)(w:250)](Engine/Blueprints/UserGuide/Types/LevelBlueprint)
+	[/PARAM]
+	[PARAM:title]
+		[%Engine/Blueprints/UserGuide/Types/LevelBlueprint:title%](Engine/Blueprints/UserGuide/Types/LevelBlueprint)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Blueprints/UserGuide/Types/LevelBlueprint#Intro]
+	[/PARAM]
+[/OBJECT]
 
-![](level_blueprint_test_image.png)(w:250)
 
-[INCLUDE:Engine/Blueprints/UserGuide/Types/LevelBlueprint#Intro]
-
-ブループリントに関する詳細は [](Engine/Blueprints/UserGuide/Types/LevelBlueprint) を参照してください。
-
-
-##Blueprint クラス
-
-![](class_blueprint_test_image.png)(w:250)
-
-[INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint#Intro]
-
-ブループリントに関する詳細は [](Engine/Blueprints/UserGuide/Types/ClassBlueprint) を参照してください。
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![](class_blueprint_test_image.png)(w:250)](Engine/Blueprints/UserGuide/Types/ClassBlueprint)
+	[/PARAM]
+	[PARAM:title]
+		[%Engine/Blueprints/UserGuide/Types/ClassBlueprint:title%](Engine/Blueprints/UserGuide/Types/ClassBlueprint)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint#Intro]
+	[/PARAM]
+[/OBJECT]
 
 [/EXCERPT:Main]
 
 
 [EXCERPT:Types]
-
-## データのみのブループリント
-
-![](data_blueprint.png)(w:250)
-
-[INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint#DataBlueprint]
-
-詳細は [データのみのブループリント](Engine/Blueprints/UserGuide/Types/ClassBlueprint#データのみのブループリント) を参照してください。
-
-##ブループリント インターフェース
-
-![](blueprint_interface.png)(w:250)
-
-[INCLUDE:Engine/Blueprints/UserGuide/Types/Interface#Intro]
-
-詳細は [](Engine/Blueprints/UserGuide/Types/Interface) を参照してください。
-
-##ブループリント マクロ ライブラリ
-
-![](macro_blueprint.png)(w:250)
-
-[INCLUDE:Engine/Blueprints/UserGuide/Types/MacroLibrary#Intro]
-
-詳細は [](Engine/Blueprints/UserGuide/Types/MacroLibrary) を参照してください。
-
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![](data_blueprint.png)(w:250)](Engine/Blueprints/UserGuide/Types/ClassBlueprint#データのみのブループリント)
+	[/PARAM]
+	[PARAM:title]
+		[データのみのブループリント](Engine/Blueprints/UserGuide/Types/ClassBlueprint#データのみのブループリント)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint#DataBlueprint]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![](blueprint_interface.png)(w:250)](Engine/Blueprints/UserGuide/Types/Interface)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Blueprints/UserGuide/Types/Interface)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Blueprints/UserGuide/Types/Interface#Intro]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![](macro_blueprint.png)(w:250)](Engine/Blueprints/UserGuide/Types/MacroLibrary)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Blueprints/UserGuide/Types/MacroLibrary)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Blueprints/UserGuide/Types/MacroLibrary#Intro]
+	[/PARAM]
+[/OBJECT]
 
 <!--
 [OBJECT:IconSection]
@@ -75,7 +90,7 @@ Blueprint Macro Library に入れるのが理想的です。
 		ブループリント ユーティリティ
 	[/PARAM]
 	[PARAM:description]
-		**ブループリント ユーティリティ** は **Blutility** とも呼ばれる _ブループリント_ で、 
+		**ブループリントユーティリティ** は、エディタの機能のみを持つ _ブループリント_ で、 
 		エディタの実行や機能の拡張に使用します。これらは UI のボタンとしてパラメータなしで [](Engine/Blueprints/UserGuide/Events) をエクスポーズすることができます。 
 		_ブループリント_ にエクスポーズされた全ての機能を実行する能力があり、現在ビューポートで選択されているアクタ一式に作用します。
 	[/PARAM]

@@ -1,10 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OculusInput.h"
 #include "IOculusInputPlugin.h"
 #include "IOculusRiftPlugin.h"
 
-#if USE_OVR_MOTION_SDK
+#if OCULUS_TOUCH_SUPPORTED_PLATFORMS
 
 #define LOCTEXT_NAMESPACE "OculusTouch"
 
@@ -22,16 +22,17 @@ class FOculusInputModule : public IOculusInputPlugin
 			UE_LOG(LogOcInput, Warning, TEXT("OculusInput plugin enabled, but OculusRift plugin is not available."));
 			return nullptr;
 		}
+		
 	}
 };
 
-#else	//	USE_OVR_MOTION_SDK
+#else	//	OCULUS_TOUCH_SUPPORTED_PLATFORMS
 
 class FOculusInputModule : public FDefaultModuleImpl
 {
 };
 
 #undef LOCTEXT_NAMESPACE
-#endif	// USE_OVR_MOTION_SDK
+#endif	// OCULUS_TOUCH_SUPPORTED_PLATFORMS
 
 IMPLEMENT_MODULE( FOculusInputModule, OculusInput )

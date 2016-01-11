@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 // Core includes.
@@ -46,27 +46,16 @@ void FRedirectCollector::OnRedirectorFollowed(const FString& InString, UObject* 
 void FRedirectCollector::OnStringAssetReferenceLoaded(const FString& InString)
 {
 	FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
-	FPackagePropertyPair ContainingPackageAndProperty;
-
-	if (InString.IsEmpty())
-	{
-		// No need to track empty strings
-		return;
-	}
-
+	FString ContainingPackage;
 	if (ThreadContext.SerializedObject)
 	{
-		FLinkerLoad* Linker = ThreadContext.SerializedObject->GetLinker();
+		auto Linker = ThreadContext.SerializedObject->GetLinker();
 		if (Linker)
 		{
-			ContainingPackageAndProperty.Package = Linker->Filename;
-			if (Linker->GetSerializedProperty())
-			{
-				ContainingPackageAndProperty.Property = FString::Printf(TEXT("%s:%s"), *ThreadContext.SerializedObject->GetPathName(), *Linker->GetSerializedProperty()->GetName());
-			}
+			ContainingPackage = Linker->Filename;
 		}
 	}
-	StringAssetReferences.AddUnique(InString, ContainingPackageAndProperty);
+	StringAssetReferences.Add(InString, ContainingPackage);
 }
 
 FString FRedirectCollector::OnStringAssetReferenceSaved(const FString& InString)
@@ -79,38 +68,19 @@ FString FRedirectCollector::OnStringAssetReferenceSaved(const FString& InString)
 	return InString;
 }
 
-void FRedirectCollector::ResolveStringAssetReference(FString FilterPackage)
+void FRedirectCollector::ResolveStringAssetReference()
 {
-	TMultiMap<FString, FPackagePropertyPair> SkippedReferences;
 	while (StringAssetReferences.Num())
 	{
-		TMultiMap<FString, FPackagePropertyPair>::TIterator First(StringAssetReferences);
+		TMultiMap<FString, FString>::TIterator First(StringAssetReferences);
 		FString ToLoad = First.Key();
-		FPackagePropertyPair RefFilenameAndProperty = First.Value();
+		FString RefFilename = First.Value();
 		First.RemoveCurrent();
-		
-		if (FCoreDelegates::LoadStringAssetReferenceInCook.IsBound())
-		{
-			if (FCoreDelegates::LoadStringAssetReferenceInCook.Execute(ToLoad) == false)
-			{
-				// Skip this reference
-				continue;
-			}
-		}
-
-		if (!FilterPackage.IsEmpty() && FilterPackage != RefFilenameAndProperty.Package)
-		{
-			// If we have a valid filter and it doesn't match, skip this reference
-			SkippedReferences.Add(ToLoad, RefFilenameAndProperty);
-			continue;
-		}
 
 		if (ToLoad.Len() > 0)
 		{
-			UE_LOG(LogRedirectors, Verbose, TEXT("String Asset Reference '%s'"), *ToLoad);
-			UE_CLOG(RefFilenameAndProperty.Property.Len(), LogRedirectors, Verbose, TEXT("    Referenced by '%s'"), *RefFilenameAndProperty.Property);
-
-			StringAssetRefFilenameStack.Push(RefFilenameAndProperty.Package);
+			UE_LOG(LogRedirectors, Log, TEXT("String Asset Reference '%s'"), *ToLoad);
+			StringAssetRefFilenameStack.Push(RefFilename);
 
 			UObject *Loaded = LoadObject<UObject>(NULL, *ToLoad, NULL, LOAD_None, NULL);
 			StringAssetRefFilenameStack.Pop();
@@ -118,9 +88,9 @@ void FRedirectCollector::ResolveStringAssetReference(FString FilterPackage)
 			UObjectRedirector* Redirector = dynamic_cast<UObjectRedirector*>(Loaded);
 			if (Redirector)
 			{
-				UE_LOG(LogRedirectors, Verbose, TEXT("    Found redir '%s'"), *Redirector->GetFullName());
+				UE_LOG(LogRedirectors, Log, TEXT("    Found redir '%s'"), *Redirector->GetFullName());
 				FRedirection Redir;
-				Redir.PackageFilename = RefFilenameAndProperty.Package;
+				Redir.PackageFilename = RefFilename;
 				Redir.RedirectorName = Redirector->GetFullName();
 				Redir.RedirectorPackageFilename = Redirector->GetLinker()->Filename;
 				CA_SUPPRESS(28182)
@@ -131,7 +101,7 @@ void FRedirectCollector::ResolveStringAssetReference(FString FilterPackage)
 			if (Loaded)
 			{
 				FString Dest = Loaded->GetPathName();
-				UE_LOG(LogRedirectors, Verbose, TEXT("    Resolved to '%s'"), *Dest);
+				UE_LOG(LogRedirectors, Log, TEXT("    Resolved to '%s'"), *Dest);
 				if (Dest != ToLoad)
 				{
 					StringAssetRemap.Add(ToLoad, Dest);
@@ -139,13 +109,10 @@ void FRedirectCollector::ResolveStringAssetReference(FString FilterPackage)
 			}
 			else
 			{
-				UE_LOG(LogRedirectors, Warning, TEXT("String Asset Reference '%s' was not found!"), *ToLoad);
+				UE_LOG(LogRedirectors, Log, TEXT("    Not Found!"));
 			}
 		}
 	}
-
-	// Add any skipped references back into the map for the next time this is called
-	StringAssetReferences = SkippedReferences;
 }
 
 

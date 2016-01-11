@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LiveEditorListenServerPrivatePCH.h"
 #include "Networking.h"
@@ -221,10 +221,10 @@ void FLiveEditorListenServer::ShutdownModule()
 void FLiveEditorListenServer::InstallHooks()
 {
 	ObjectCreateListener = new nLiveEditorListenServer::FCreateListener(this);
-	GUObjectArray.AddUObjectCreateListener(ObjectCreateListener);
+	GetUObjectArray().AddUObjectCreateListener(ObjectCreateListener);
 
 	ObjectDeleteListener = new nLiveEditorListenServer::FDeleteListener(this);
-	GUObjectArray.AddUObjectDeleteListener(ObjectDeleteListener);
+	GetUObjectArray().AddUObjectDeleteListener(ObjectDeleteListener);
 
 	TickObject = new nLiveEditorListenServer::FTickObject(this);
 

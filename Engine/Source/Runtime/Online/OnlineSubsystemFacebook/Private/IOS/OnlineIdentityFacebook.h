@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -21,7 +21,6 @@ public:
 	virtual FString GetRealName() const override;
 	virtual FString GetDisplayName() const override;
 	virtual bool GetUserAttribute(const FString& AttrName, FString& OutAttrValue) const override;
-	virtual bool SetUserAttribute(const FString& AttrName, const FString& AttrValue) override;
 
 	// FUserOnlineAccount
 
@@ -65,7 +64,7 @@ class FOnlineIdentityFacebook : public IOnlineIdentity
 
 public:
 
-	//~ Begin IOnlineIdentity Interface	
+	// Begin IOnlineIdentity interface	
 	virtual bool Login(int32 LocalUserNum, const FOnlineAccountCredentials& AccountCredentials) override;
 	virtual bool Logout(int32 LocalUserNum) override;
 	virtual bool AutoLogin(int32 LocalUserNum) override;
@@ -81,8 +80,7 @@ public:
 	virtual FString GetAuthToken(int32 LocalUserNum) const override;
 	virtual void GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate) override;
 	virtual FPlatformUserId GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId) override;
-	virtual FString GetAuthType() const override;
-	//~ End IOnlineIdentity Interface
+	// End IOnlineIdentity interface
 
 
 public:

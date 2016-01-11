@@ -1,0 +1,36 @@
+﻿INTSourceChangelist:2438685
+Availability: Docs
+Title:1.1 - 배치
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Volumes
+Description:An overview of the Volumes example level, example 1.1: Placement
+
+[TOC(start:2 end:2)]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Volumes/1_1:title%](Resources\ContentExamples\Volumes\content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Volumes/1_1:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Volumes/1_1:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Volumes/1_1]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+볼륨은 **배치 모드 > 모든 콘텐츠** 에서 선택한 다음 씬에 끌어놓는 것으로 배치할 수 있습니다.
+
+
+배치하고난 후에는 브러시 편집 모드로 볼륨의 스케일 조절이나 변경이 가능합니다.
+
+이 예제에서는 블로킹 볼륨을 사용하나, 다른 볼륨도 이처럼 놓을 수 있습니다.
+
+

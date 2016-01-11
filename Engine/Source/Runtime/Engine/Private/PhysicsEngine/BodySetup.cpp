@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BodySetup.cpp
@@ -45,7 +45,6 @@ UBodySetup::UBodySetup(const FObjectInitializer& ObjectInitializer)
 	bMeshCollideAll = false;
 	CollisionTraceFlag = CTF_UseDefault;
 	bHasCookedCollisionData = true;
-	bNeverNeedsCookedCollisionData = false;
 	bGenerateMirroredCollision = true;
 	bGenerateNonMirroredCollision = true;
 	DefaultInstance.SetObjectType(ECC_PhysicsBody);
@@ -109,12 +108,6 @@ void UBodySetup::CreatePhysicsMeshes()
 #if WITH_PHYSX
 	// Create meshes from cooked data if not already done
 	if(bCreatedPhysicsMeshes)
-	{
-		return;
-	}
-
-	// If we don't have any convex/trimesh data we can skip this whole function
-	if (bNeverNeedsCookedCollisionData)
 	{
 		return;
 	}
@@ -342,8 +335,6 @@ struct FAddShapesHelper
 			Scale3DAbs.Y *= Scale3DAbsRelative.Y;
 			Scale3DAbs.Z *= Scale3DAbsRelative.Z;
 		}
-
-		GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
 	}
 
 	UBodySetup* BodySetup;
@@ -362,12 +353,12 @@ struct FAddShapesHelper
 	float MinScale;
 	FVector Scale3DAbs;
 
-	float ContactOffsetFactor;
-	float MaxContactOffset;
-
 public:
-	FORCEINLINE_DEBUGGABLE void AddSpheresToRigidActor_AssumesLocked() const
+	void AddSpheresToRigidActor_AssumesLocked() const
 	{
+		float ContactOffsetFactor, MaxContactOffset;
+		GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
+
 		for (int32 i = 0; i < BodySetup->AggGeom.SphereElems.Num(); i++)
 		{
 			const FKSphereElem& SphereElem = BodySetup->AggGeom.SphereElems[i];
@@ -394,8 +385,11 @@ public:
 		}
 	}
 
-	FORCEINLINE_DEBUGGABLE void AddBoxesToRigidActor_AssumesLocked() const
+	void AddBoxesToRigidActor_AssumesLocked() const
 	{
+		float ContactOffsetFactor, MaxContactOffset;
+		GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
+
 		for (int32 i = 0; i < BodySetup->AggGeom.BoxElems.Num(); i++)
 		{
 			const FKBoxElem& BoxElem = BodySetup->AggGeom.BoxElems[i];
@@ -426,8 +420,11 @@ public:
 		}
 	}
 
-	FORCEINLINE_DEBUGGABLE void AddSphylsToRigidActor_AssumesLocked() const
+	void AddSphylsToRigidActor_AssumesLocked() const
 	{
+		float ContactOffsetFactor, MaxContactOffset;
+		GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
+
 		float ScaleRadius = FMath::Max(Scale3DAbs.X, Scale3DAbs.Y);
 		float ScaleLength = Scale3DAbs.Z;
 
@@ -439,7 +436,7 @@ public:
 			// first apply the scale first 
 			float Radius = FMath::Max(SphylElem.Radius * ScaleRadius, 0.1f);
 			float Length = SphylElem.Length + SphylElem.Radius * 2.f;
-			float HalfLength = FMath::Max(Length * ScaleLength * 0.5f, 0.1f);
+			float HalfLength = Length * ScaleLength * 0.5f;
 			Radius = FMath::Clamp(Radius, 0.1f, HalfLength);	//radius is capped by half length
 			float HalfHeight = HalfLength - Radius;
 			HalfHeight = FMath::Max(0.1f, HalfHeight);
@@ -469,8 +466,11 @@ public:
 		}
 	}
 
-	FORCEINLINE_DEBUGGABLE void AddConvexElemsToRigidActor_AssumesLocked() const
+	void AddConvexElemsToRigidActor_AssumesLocked() const
 	{
+		float ContactOffsetFactor, MaxContactOffset;
+		GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
+
 		for (int32 i = 0; i < BodySetup->AggGeom.ConvexElems.Num(); i++)
 		{
 			const FKConvexElem& ConvexElem = BodySetup->AggGeom.ConvexElems[i];
@@ -524,8 +524,11 @@ public:
 		}
 	}
 
-	FORCEINLINE_DEBUGGABLE void AddTriMeshToRigidActor_AssumesLocked() const
+	void AddTriMeshToRigidActor_AssumesLocked() const
 	{
+		float ContactOffsetFactor, MaxContactOffset;
+		GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
+
 		for(PxTriangleMesh* TriMesh : BodySetup->TriMeshes)
 		{
 		

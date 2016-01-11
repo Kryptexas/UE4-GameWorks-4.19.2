@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SocketsPrivatePCH.h"
 
@@ -167,16 +167,13 @@ bool FSocketBSD::RecvFrom(uint8* Data, int32 BufferSize, int32& BytesRead, FInte
 	BytesRead = recvfrom(Socket, (char*)Data, BufferSize, TranslatedFlags, &Addr, &Size);
 //	NETWORK_PROFILER(FSocket::RecvFrom(Data,BufferSize,BytesRead,Source));
 
-	if (BytesRead < 0)
+	bool Result = BytesRead >= 0;
+	if (Result)
 	{
-		BytesRead = 0;
-
-		return false;
+		LastActivityTime = FDateTime::UtcNow();
 	}
 
-	LastActivityTime = FDateTime::UtcNow();
-
-	return true;
+	return Result;
 }
 
 

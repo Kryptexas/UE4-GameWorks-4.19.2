@@ -27,7 +27,14 @@ namespace clothing
 
 void ClothingActorBeforeTickTask::run()
 {
-	mActor->simulate(mDeltaTime);
+#ifdef PROFILE
+	PIXBeginNamedEvent(0, "ClothingActorBeforeTickTask");
+#endif
+	//PX_ASSERT(mDeltaTime > 0.0f); // need to allow simulate(0) calls
+	mActor->tickSynchBeforeSimulate_LocksPhysX(mDeltaTime, mSubstepSize, 0, mNumSubSteps);
+#ifdef PROFILE
+	PIXEndNamedEvent();
+#endif
 }
 
 
@@ -75,13 +82,10 @@ void ClothingActorFetchResultsTask::run()
 #ifdef PROFILE
 	PIXEndNamedEvent();
 #endif
-	mActor->setFetchResultsSync();
+
 }
 
-void ClothingActorFetchResultsTask::release()
-{
-	PxTask::release();
-}
+
 
 const char* ClothingActorFetchResultsTask::getName() const
 {

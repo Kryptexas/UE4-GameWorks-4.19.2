@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LogVisualizer.h"
 #include "SVisualLoggerView.h"
@@ -39,22 +39,11 @@ void SVisualLoggerLogsList::Construct(const FArguments& InArgs, const TSharedRef
 		[
 			SAssignNew(LogsLinesWidget, SListView<TSharedPtr<FLogEntryItem> >)
 			.ItemHeight(20)
-			.ListItemsSource(&CachedLogEntryLines)
+			.ListItemsSource(&LogEntryLines)
 			.SelectionMode(ESelectionMode::Multi)
 			.OnSelectionChanged(this, &SVisualLoggerLogsList::LogEntryLineSelectionChanged)
 			.OnGenerateRow(this, &SVisualLoggerLogsList::LogEntryLinesGenerateRow)
 		];
-
-	FVisualLoggerDatabase::Get().GetEvents().OnItemSelectionChanged.AddRaw(this, &SVisualLoggerLogsList::OnItemSelectionChanged);
-	FVisualLoggerDatabase::Get().GetEvents().OnRowSelectionChanged.AddRaw(this, &SVisualLoggerLogsList::ObjectSelectionChanged);
-	FLogVisualizer::Get().GetEvents().OnFiltersChanged.AddRaw(this, &SVisualLoggerLogsList::OnFiltersChanged);
-}
-
-SVisualLoggerLogsList::~SVisualLoggerLogsList()
-{
-	FVisualLoggerDatabase::Get().GetEvents().OnItemSelectionChanged.RemoveAll(this);
-	FVisualLoggerDatabase::Get().GetEvents().OnRowSelectionChanged.RemoveAll(this);
-	FLogVisualizer::Get().GetEvents().OnFiltersChanged.RemoveAll(this);
 }
 
 FReply SVisualLoggerLogsList::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
@@ -80,8 +69,8 @@ FReply SVisualLoggerLogsList::OnKeyDown(const FGeometry& MyGeometry, const FKeyE
 
 void SVisualLoggerLogsList::OnFiltersChanged()
 {
-	RegenerateLogEntries();
-	LogsLinesWidget->RequestListRefresh();
+	FVisualLogDevice::FVisualLogEntryItem LogEntry = CurrentLogEntry;
+	OnItemSelectionChanged(LogEntry);
 }
 
 TSharedRef<ITableRow> SVisualLoggerLogsList::LogEntryLinesGenerateRow(TSharedPtr<FLogEntryItem> Item, const TSharedRef<STableViewBase>& OwnerTable)
@@ -144,7 +133,7 @@ FText SVisualLoggerLogsList::GetFilterText() const
 {
 	static FText NoText;
 	const bool bSearchInsideLogs = ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->bSearchInsideLogs;
-	return bSearchInsideLogs ? FText::FromString(FVisualLoggerFilters::Get().GetSearchString()) : NoText;
+	return bSearchInsideLogs ? FText::FromString(FCategoryFiltersManager::Get().GetSearchString()) : NoText;
 }
 
 void SVisualLoggerLogsList::OnFiltersSearchChanged(const FText& Filter)
@@ -156,68 +145,69 @@ void SVisualLoggerLogsList::LogEntryLineSelectionChanged(TSharedPtr<FLogEntryIte
 {
 	if (SelectedItem.IsValid() == true)
 	{
-		FLogVisualizer::Get().GetEvents().OnLogLineSelectionChanged.ExecuteIfBound(SelectedItem, SelectedItem->UserData, SelectedItem->TagName);
+		FLogVisualizer::Get().GetVisualLoggerEvents().OnLogLineSelectionChanged.ExecuteIfBound(SelectedItem, SelectedItem->UserData, SelectedItem->TagName);
 	}
 	else
 	{
-		FLogVisualizer::Get().GetEvents().OnLogLineSelectionChanged.ExecuteIfBound(SelectedItem, 0, NAME_None);
+		FLogVisualizer::Get().GetVisualLoggerEvents().OnLogLineSelectionChanged.ExecuteIfBound(SelectedItem, 0, NAME_None);
 	}
 }
 
-void SVisualLoggerLogsList::ObjectSelectionChanged(const TArray<FName>&)
+void SVisualLoggerLogsList::ObjectSelectionChanged(TArray<TSharedPtr<class STimeline> >& TimeLines)
 {
-	RegenerateLogEntries();
+	CurrentLogEntry.Entry.Reset();
+	LogEntryLines.Reset();
 	LogsLinesWidget->RequestListRefresh();
+
+	SelectedTimeLines = TimeLines;
 }
 
-void SVisualLoggerLogsList::ResetData()
+void SVisualLoggerLogsList::OnItemSelectionChanged(const FVisualLogDevice::FVisualLogEntryItem& LogEntry)
 {
-	CachedLogEntryLines.Reset();
-	LogsLinesWidget->RequestListRefresh();
-}
+	CurrentLogEntry.Entry.Reset();
+	LogEntryLines.Reset();
 
-void SVisualLoggerLogsList::OnItemSelectionChanged(const FVisualLoggerDBRow& BDRow, int32 ItemIndex)
-{
-	RegenerateLogEntries();
-}
+	GenerateLogs(LogEntry, SelectedTimeLines.Num() > 1);
 
-void SVisualLoggerLogsList::RegenerateLogEntries()
-{
-	CachedLogEntryLines.Reset();
-
-	const TArray<FName> SelectedRows = FVisualLoggerDatabase::Get().GetSelectedRows();
-	for (FName CurrentRow : SelectedRows)
+	if (SelectedTimeLines.Num() > 1)
 	{
-		if (FVisualLoggerDatabase::Get().IsRowVisible(CurrentRow)  == false)
+		for (TSharedPtr<class STimeline> CurrentTimeline : SelectedTimeLines)
 		{
-			continue;
-		}
-
-		const FVisualLoggerDBRow& DBRow = FVisualLoggerDatabase::Get().GetRowByName(CurrentRow);
-		const TArray<FVisualLogDevice::FVisualLogEntryItem>& Entries = FVisualLoggerDatabase::Get().GetRowByName(CurrentRow).GetItems();
-		
-		int32 BestItemIndex = INDEX_NONE;
-		float BestDistance = MAX_FLT;
-		for (int32 Index = 0; Index < Entries.Num(); Index++)
-		{
-			auto& CurrentEntryItem = Entries[Index];
-			if (DBRow.IsItemVisible(Index) == false)
+			if (CurrentTimeline.IsValid() == false || CurrentTimeline->GetVisibility().IsVisible() == false)
 			{
 				continue;
 			}
 
-			TArray<FVisualLoggerCategoryVerbosityPair> OutCategories;
-			const float CurrentDist = DBRow.GetCurrentItemIndex() == INDEX_NONE ? 0 : FMath::Abs(CurrentEntryItem.Entry.TimeStamp - DBRow.GetCurrentItem().Entry.TimeStamp);
-			if (CurrentDist < BestDistance)
+			if (LogEntry.OwnerName == CurrentTimeline->GetName())
 			{
-				BestDistance = CurrentDist;
-				BestItemIndex = Index;
+				continue;
 			}
-		}
 
-		if (Entries.IsValidIndex(BestItemIndex))
-		{
-			GenerateLogs(Entries[BestItemIndex], SelectedRows.Num() > 1);
+			const TArray<FVisualLogDevice::FVisualLogEntryItem>& Entries = CurrentTimeline->GetEntries();
+
+			int32 BestItemIndex = INDEX_NONE;
+			float BestDistance = MAX_FLT;
+			for (int32 Index = 0; Index < Entries.Num(); Index++)
+			{
+				auto& CurrentEntryItem = Entries[Index];
+
+				if (CurrentTimeline->IsEntryHidden(CurrentEntryItem))
+				{
+					continue;
+				}
+				TArray<FVisualLoggerCategoryVerbosityPair> OutCategories;
+				const float CurrentDist = FMath::Abs(CurrentEntryItem.Entry.TimeStamp - LogEntry.Entry.TimeStamp);
+				if (CurrentDist < BestDistance)
+				{
+					BestDistance = CurrentDist;
+					BestItemIndex = Index;
+				}
+			}
+
+			if (Entries.IsValidIndex(BestItemIndex))
+			{
+				GenerateLogs(Entries[BestItemIndex], true);
+			}
 		}
 	}
 }
@@ -229,7 +219,7 @@ void SVisualLoggerLogsList::GenerateLogs(const FVisualLogDevice::FVisualLogEntry
 	bool bHasValidCategory = false;
 	for (auto& CurrentCategory : OutCategories)
 	{
-		bHasValidCategory |= FVisualLoggerFilters::Get().MatchCategoryFilters(CurrentCategory.CategoryName.ToString(), CurrentCategory.Verbosity);
+		bHasValidCategory |= FCategoryFiltersManager::Get().MatchCategoryFilters(CurrentCategory.CategoryName.ToString(), CurrentCategory.Verbosity);
 	}
 	
 	if (!bHasValidCategory)
@@ -246,17 +236,18 @@ void SVisualLoggerLogsList::GenerateLogs(const FVisualLogDevice::FVisualLogEntry
 		EntryItem.Line = LogEntry.OwnerName.ToString();
 		EntryItem.UserData = 0;
 		EntryItem.TagName = NAME_None;
-		CachedLogEntryLines.Add(MakeShareable(new FLogEntryItem(EntryItem)));
+		LogEntryLines.Add(MakeShareable(new FLogEntryItem(EntryItem)));
 	}
 
+	CurrentLogEntry = LogEntry;
 	const FVisualLogLine* LogLine = LogEntry.Entry.LogLines.GetData();
 	const bool bSearchInsideLogs = ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->bSearchInsideLogs;
 	for (int LineIndex = 0; LineIndex < LogEntry.Entry.LogLines.Num(); ++LineIndex, ++LogLine)
 	{
-		bool bShowLine = FVisualLoggerFilters::Get().MatchCategoryFilters(LogLine->Category.ToString(), LogLine->Verbosity);
+		bool bShowLine = FCategoryFiltersManager::Get().MatchCategoryFilters(LogLine->Category.ToString(), LogLine->Verbosity);
 		if (bSearchInsideLogs)
 		{
-			FString String = FVisualLoggerFilters::Get().GetSearchString();
+			FString String = FCategoryFiltersManager::Get().GetSearchString();
 			if (String.Len() > 0)
 			{
 				bShowLine &= LogLine->Line.Find(String) != INDEX_NONE || LogLine->Category.ToString().Find(String) != INDEX_NONE;
@@ -274,13 +265,13 @@ void SVisualLoggerLogsList::GenerateLogs(const FVisualLogDevice::FVisualLogEntry
 			EntryItem.UserData = LogLine->UserData;
 			EntryItem.TagName = LogLine->TagName;
 
-			CachedLogEntryLines.Add(MakeShareable(new FLogEntryItem(EntryItem)));
+			LogEntryLines.Add(MakeShareable(new FLogEntryItem(EntryItem)));
 		}
 	}
 
 	for (auto& Event : LogEntry.Entry.Events)
 	{
-		bool bShowLine = FVisualLoggerFilters::Get().MatchCategoryFilters(Event.Name, Event.Verbosity);
+		bool bShowLine = FCategoryFiltersManager::Get().MatchCategoryFilters(Event.Name, Event.Verbosity);
 
 		if (bShowLine)
 		{
@@ -296,7 +287,7 @@ void SVisualLoggerLogsList::GenerateLogs(const FVisualLogDevice::FVisualLogEntry
 			EntryItem.UserData = Event.UserData;
 			EntryItem.TagName = Event.TagName;
 
-			CachedLogEntryLines.Add(MakeShareable(new FLogEntryItem(EntryItem)));
+			LogEntryLines.Add(MakeShareable(new FLogEntryItem(EntryItem)));
 		}
 
 	}

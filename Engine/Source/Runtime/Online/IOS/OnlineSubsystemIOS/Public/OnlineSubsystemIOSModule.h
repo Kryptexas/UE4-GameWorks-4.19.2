@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -25,7 +25,7 @@ public:
 
 	virtual ~FOnlineSubsystemIOSModule(){}
 
-	//~ Begin IModuleInterface Interface
+	// Begin IModuleInterface interface
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 
@@ -38,7 +38,7 @@ public:
 	{
 		return false;
 	}
-	//~ End IModuleInterface Interface
+	// End IModuleInterface interface
 };
 
 

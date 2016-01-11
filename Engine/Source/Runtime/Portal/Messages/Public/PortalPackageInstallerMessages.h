@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -15,13 +15,13 @@ struct FPortalPackageInstallerInstallRequest
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString AppName;
 
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString BuildLabel;
 
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString DestinationPath;
 
 	FPortalPackageInstallerInstallRequest() { }
@@ -39,7 +39,7 @@ struct FPortalPackageInstallerInstallResponse
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	bool Result;
 
 	FPortalPackageInstallerInstallResponse() { }
@@ -55,16 +55,16 @@ struct FPortalPackageInstallerUninstallRequest
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString AppName;
 
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString BuildLabel;
 
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString InstallationPath;
 
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	bool RemoveUserFiles;
 
 	FPortalPackageInstallerUninstallRequest() { }
@@ -83,7 +83,7 @@ struct FPortalPackageInstallerUninstallResponse
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	bool Result;
 
 	FPortalPackageInstallerUninstallResponse() { }

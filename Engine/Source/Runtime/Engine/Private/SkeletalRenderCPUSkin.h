@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalRenderCPUSkin.h: CPU skinned mesh object and resource definitions
@@ -80,7 +80,7 @@ private:
 * Stores the updated matrices needed to skin the verts.
 * Created by the game thread and sent to the rendering thread as an update 
 */
-class FDynamicSkelMeshObjectDataCPUSkin
+class FDynamicSkelMeshObjectDataCPUSkin : public FDynamicSkelMeshObjectData
 {
 public:
 
@@ -97,10 +97,6 @@ public:
 		int32 InLODIndex,
 		const TArray<FActiveVertexAnim>& InActiveVertexAnims
 		);
-
-	virtual ~FDynamicSkelMeshObjectDataCPUSkin()
-	{
-	}
 
 	/** ref pose to local space transforms */
 	TArray<FMatrix> ReferenceToLocal;
@@ -142,11 +138,11 @@ public:
 	FSkeletalMeshObjectCPUSkin(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshResource* InSkeletalMeshResource, ERHIFeatureLevel::Type InFeatureLevel);
 	virtual ~FSkeletalMeshObjectCPUSkin();
 
-	//~ Begin FSkeletalMeshObject Interface
+	// Begin FSkeletalMeshObject interface
 	virtual void InitResources() override;
 	virtual void ReleaseResources() override;
 	virtual void Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveVertexAnim>& ActiveVertexAnims) override;
-	void UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectDataCPUSkin* InDynamicData, uint32 FrameNumber);
+	virtual void UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectData* InDynamicData) override;
 	virtual void EnableBlendWeightRendering(bool bEnabled, const TArray<int32>& InBonesOfInterest) override;
 	virtual void CacheVertices(int32 LODIndex, bool bForce) const override;
 	virtual bool IsCPUSkinned() const override { return true; }
@@ -194,7 +190,7 @@ public:
 	}
 
 	virtual void DrawVertexElements(FPrimitiveDrawInterface* PDI, const FTransform& ToWorldSpace, bool bDrawNormals, bool bDrawTangents, bool bDrawBinormals) const override;
-	//~ End FSkeletalMeshObject Interface
+	// End FSkeletalMeshObject interface
 
 private:
 	/** vertex data for rendering a single LOD */

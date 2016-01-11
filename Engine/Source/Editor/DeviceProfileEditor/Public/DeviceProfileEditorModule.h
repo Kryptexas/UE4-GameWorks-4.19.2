@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 /**
@@ -9,11 +9,11 @@ class FDeviceProfileEditorModule : public IModuleInterface
 
 public:
 
-	//~ Begin IModuleInterface Interface
+	// Begin IModuleInterface interface
 	virtual void StartupModule() override;
 
 	virtual void ShutdownModule() override;
-	//~ End IModuleInterface Interface
+	// End IModuleInterface interface
 
 public:
 	/**

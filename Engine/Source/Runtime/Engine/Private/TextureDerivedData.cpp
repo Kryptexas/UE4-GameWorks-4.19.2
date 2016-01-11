@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TextureDerivedData.cpp: Derived data management for textures.
@@ -24,8 +24,6 @@ enum
 #include "ImageCore.h"
 #include "Engine/TextureCube.h"
 
-#include "DebugSerializationFlags.h"
-
 /*------------------------------------------------------------------------------
 	Versioning for texture derived data.
 ------------------------------------------------------------------------------*/
@@ -38,13 +36,6 @@ enum
 
 #define TEXTURE_DERIVEDDATA_VER		TEXT("814DCC3DC72143F49509781513CB9855")
 
-
-// output texture building stats to Saved\Stats\Stats.csv
-#define BUILD_TEXTURE_STATS 1
-
-#if BUILD_TEXTURE_STATS
-#include "DDCStatsHelper.h"
-#endif
 
 /*------------------------------------------------------------------------------
 	Timing of derived data operations.
@@ -144,20 +135,7 @@ static void SerializeForKey(FArchive& Ar, const FTextureBuildSettings& Settings)
 	TempByte = Settings.bReplicateRed; Ar << TempByte;
 	TempByte = Settings.bReplicateAlpha; Ar << TempByte;
 	TempByte = Settings.bDownsampleWithAverage; Ar << TempByte;
-	
-	{
-		TempByte = Settings.bSharpenWithoutColorShift;
-
-		if(Settings.bSharpenWithoutColorShift && Settings.MipSharpening != 0.0f)
-		{
-			// bSharpenWithoutColorShift prevented alpha sharpening. This got fixed
-			// Here we update the key to get those cases recooked.
-			TempByte = 2;
-		}
-
-		Ar << TempByte;
-	}
-
+	TempByte = Settings.bSharpenWithoutColorShift; Ar << TempByte;
 	TempByte = Settings.bBorderColorBlack; Ar << TempByte;
 	TempByte = Settings.bFlipGreenChannel; Ar << TempByte;
 	TempByte = Settings.bApplyKernelToTopMip; Ar << TempByte;
@@ -708,7 +686,7 @@ class FTextureCacheDerivedDataWorker : public FNonAbandonableTask
 		if ( Texture.Source.HasHadBulkDataCleared() )
 		{
 			// don't do any work we can't reload this
-			UE_LOG(LogTexture, Error, TEXT("Unable to load texture source data could be because it has been cleared. %s"), *Texture.GetPathName())
+			UE_LOG(LogTexture, Warning, TEXT("Unable to load texture source data could be because it has been cleared. %s"), *Texture.GetName())
 			return;
 		}
 
@@ -774,14 +752,6 @@ class FTextureCacheDerivedDataWorker : public FNonAbandonableTask
 	/** Build the texture. This function is safe to call from any thread. */
 	void BuildTexture()
 	{
-#if BUILD_TEXTURE_STATS
-		FString DerivedDataKey;
-		GetTextureDerivedDataKeyFromSuffix(KeySuffix, DerivedDataKey);
-		static const FName NAME_BuildTexture(TEXT("BuildTexture"));
-		FDDCScopeStatHelper ScopeStat(*DerivedDataKey, NAME_BuildTexture);
-#endif
-
-
 		if (SourceMips.Num())
 		{
 			TextureDerivedDataTimings::FScopedMeasurement Timer(TextureDerivedDataTimings::BuildTextureTime);
@@ -1004,11 +974,7 @@ void FTexturePlatformData::Cache(
 	if (bAsync && !bForceRebuild)
 	{
 		AsyncTask = new FTextureAsyncCacheDerivedDataTask(Compressor, this, &InTexture, InSettings, Flags);
-		FQueuedThreadPool* ThreadPool = GThreadPool;
-#if WITH_EDITOR
-		ThreadPool = GLargeThreadPool;
-#endif
-		AsyncTask->StartBackgroundTask(ThreadPool);
+		AsyncTask->StartBackgroundTask();
 	}
 	else
 	{
@@ -1422,7 +1388,7 @@ void UTexture::UpdateCachedLODBias( bool bIncTextureMips )
 }
 
 #if WITH_EDITOR
-void UTexture::CachePlatformData(bool bAsyncCache, bool bAllowAsyncBuild)
+void UTexture::CachePlatformData(bool bAsyncCache)
 {
 	FTexturePlatformData** PlatformDataLinkPtr = GetRunningPlatformData();
 	if (PlatformDataLinkPtr)
@@ -1446,11 +1412,7 @@ void UTexture::CachePlatformData(bool bAsyncCache, bool bAllowAsyncBuild)
 				{
 					PlatformDataLink = new FTexturePlatformData();
 				}
-				int32 CacheFlags = 
-					(bAsyncCache ? ETextureCacheFlags::Async : ETextureCacheFlags::None) |
-					(bAllowAsyncBuild? ETextureCacheFlags::AllowAsyncBuild : ETextureCacheFlags::None);
-
-				PlatformDataLink->Cache(*this, BuildSettings, CacheFlags);
+				PlatformDataLink->Cache(*this, BuildSettings, bAsyncCache ? ETextureCacheFlags::Async : ETextureCacheFlags::None);
 			}
 		}
 		else if (PlatformDataLink == NULL)
@@ -1670,9 +1632,9 @@ bool UTexture::IsCachedCookedPlatformDataLoaded( const ITargetPlatform* TargetPl
 void UTexture2D::WillNeverCacheCookedPlatformDataAgain()
 {
 	Super::WillNeverCacheCookedPlatformDataAgain();
-#if WITH_EDITORONLY_DATA 
+#if WITH_EDITORONLY_DATA && 0 // enable this when I feel safe about it
 	// "Source" is only in WITH_EDITORONLY_DATA
-	// UE_LOG(LogTemp, Display, TEXT("Cleared source texture data for texture %s"), *GetName());
+	UE_LOG(LogTemp, Warning, TEXT("Cleared source texture data for texture %s"), *GetName());
 	// clear source mips if we are in the editor then we don't have this luxury 
 	check( IsAsyncCacheComplete());
 
@@ -1876,31 +1838,31 @@ void UTexture::SerializeCookedPlatformData(FArchive& Ar)
 			}
 			else
 			{
-			TMap<FString, FTexturePlatformData*> *CookedPlatformDataPtr = GetCookedPlatformData();
+				TMap<FString, FTexturePlatformData*> *CookedPlatformDataPtr = GetCookedPlatformData();
 				if (CookedPlatformDataPtr == NULL)
-				return;
-
-			TArray<FName> PlatformFormats;
-
-			Ar.CookingTarget()->GetTextureFormats(this, PlatformFormats);
-			for (int32 FormatIndex = 0; FormatIndex < PlatformFormats.Num(); FormatIndex++)
-			{
-				FString DerivedDataKey;
-				BuildSettings.TextureFormatName = PlatformFormats[FormatIndex];
-				GetTextureDerivedDataKey(*this, BuildSettings, DerivedDataKey);
-
-				FTexturePlatformData *PlatformDataPtr = (*CookedPlatformDataPtr).FindRef(DerivedDataKey);
+					return;
 				
-				if (PlatformDataPtr == NULL)
+				TArray<FName> PlatformFormats;
+
+				Ar.CookingTarget()->GetTextureFormats(this, PlatformFormats);
+				for (int32 FormatIndex = 0; FormatIndex < PlatformFormats.Num(); FormatIndex++)
 				{
-					PlatformDataPtr = new FTexturePlatformData();
-					PlatformDataPtr->Cache(*this, BuildSettings, ETextureCacheFlags::InlineMips | ETextureCacheFlags::Async);
-					
+					FString DerivedDataKey;
+					BuildSettings.TextureFormatName = PlatformFormats[FormatIndex];
+					GetTextureDerivedDataKey(*this, BuildSettings, DerivedDataKey);
+
+					FTexturePlatformData *PlatformDataPtr = (*CookedPlatformDataPtr).FindRef(DerivedDataKey);
+
+					if (PlatformDataPtr == NULL)
+					{
+						PlatformDataPtr = new FTexturePlatformData();
+						PlatformDataPtr->Cache(*this, BuildSettings, ETextureCacheFlags::InlineMips | ETextureCacheFlags::Async);
+
 						CookedPlatformDataPtr->Add(DerivedDataKey, PlatformDataPtr);
-					
+
+					}
+					PlatformDataToSerialize.Add(PlatformDataPtr);
 				}
-				PlatformDataToSerialize.Add(PlatformDataPtr);
-			}
 			}
 
 			for (int32 i = 0; i < PlatformDataToSerialize.Num(); ++i)
@@ -1911,12 +1873,7 @@ void UTexture::SerializeCookedPlatformData(FArchive& Ar)
 				Ar << PixelFormatName;
 				int32 SkipOffsetLoc = Ar.Tell();
 				int32 SkipOffset = 0;
-
-				{
-					FArchive::FScopeSetDebugSerializationFlags S(Ar,DSF_IgnoreDiff);
-					Ar << SkipOffset;
-				}
-
+				Ar << SkipOffset;
 				// Pass streamable flag for inlining mips
 				PlatformDataToSave->SerializeCooked(Ar, this, BuildSettings.bStreamable);
 				SkipOffset = Ar.Tell();

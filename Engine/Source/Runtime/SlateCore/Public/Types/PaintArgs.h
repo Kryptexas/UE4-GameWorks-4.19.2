@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -21,28 +21,9 @@ class FCachedWidgetNode;
 class SLATECORE_API FPaintArgs
 {
 public:
-	FPaintArgs( const SWidget& Parent, FHittestGrid& InHittestGrid, FVector2D InWindowOffset, double InCurrentTime, float InDeltaTime );
-	
-	FORCEINLINE FPaintArgs WithNewParent(const SWidget* Parent) const
-	{
-		checkSlow(Parent);
-		return WithNewParent(*Parent);
-	}
-
-	FORCEINLINE_DEBUGGABLE FPaintArgs WithNewParent(const SWidget& Parent) const
-	{
-		FPaintArgs Args = FPaintArgs(Parent, this->Grid, this->WindowOffset, this->CurrentTime, this->DeltaTime);
-		Args.LastHittestIndex = this->LastHittestIndex;
-		Args.LastRecordedVisibility = this->LastRecordedVisibility;
-		Args.LayoutCache = this->LayoutCache;
-		Args.ParentCacheNode = this->ParentCacheNode;
-		Args.bIsCaching = this->bIsCaching;
-		Args.bIsVolatilityPass = this->bIsVolatilityPass;
-
-		return Args;
-	}
-
-	FPaintArgs EnableCaching(ILayoutCache* InLayoutCache, FCachedWidgetNode* InParentCacheNode, bool bEnableCaching, bool bEnableVolatility) const;
+	FPaintArgs( const TSharedRef<SWidget>& Parent, FHittestGrid& InHittestGrid, FVector2D InWindowOffset, double InCurrentTime, float InDeltaTime );
+	FPaintArgs WithNewParent( const SWidget* Parent ) const;
+	FPaintArgs EnableCaching(const TSharedPtr<ILayoutCache>& InLayoutCache, FCachedWidgetNode* InParentCacheNode, bool bEnableCaching, bool bEnableVolatility) const;
 	FPaintArgs RecordHittestGeometry(const SWidget* Widget, const FGeometry& WidgetGeometry, const FSlateRect& InClippingRect) const;
 	FPaintArgs InsertCustomHitTestPath( TSharedRef<ICustomHitTestPath> CustomHitTestPath, int32 HitTestIndex ) const;
 
@@ -54,11 +35,11 @@ public:
 	float GetDeltaTime() const { return DeltaTime; }
 	bool IsCaching() const { return bIsCaching; }
 	bool IsVolatilityPass() const { return bIsVolatilityPass; }
-	ILayoutCache* GetLayoutCache() const { return LayoutCache; }
+	TSharedPtr<ILayoutCache> GetLayoutCache() const { return LayoutCache; }
 	FCachedWidgetNode* GetParentCacheNode() const { return ParentCacheNode; }
 
 private:
-	const SWidget& ParentPtr;
+	const TSharedRef<SWidget>& ParentPtr;
 	FHittestGrid& Grid;
 	int32 LastHittestIndex;
 	EVisibility LastRecordedVisibility;
@@ -67,6 +48,6 @@ private:
 	float DeltaTime;
 	bool bIsCaching;
 	bool bIsVolatilityPass;
-	ILayoutCache* LayoutCache;
+	TSharedPtr<ILayoutCache> LayoutCache;
 	FCachedWidgetNode* ParentCacheNode;
 };

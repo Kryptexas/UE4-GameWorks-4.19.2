@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "CocoaThread.h"
@@ -230,7 +230,7 @@ private:
 	}
 	
 private:
-	TLockFreePointerListLIFO<FCocoaRunLoopTask> Tasks;
+	TLockFreePointerList<FCocoaRunLoopTask> Tasks;
 	TArray<FCocoaRunLoopTask*> OutstandingTasks;
 	CFRunLoopRef TargetRunLoop;
 	CFMutableDictionaryRef SourceDictionary;

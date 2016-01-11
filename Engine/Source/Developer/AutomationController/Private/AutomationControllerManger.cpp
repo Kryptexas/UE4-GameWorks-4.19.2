@@ -1,10 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AutomationControllerPrivatePCH.h"
 
-#if WITH_EDITOR
-#include "MessageLog.h"
-#endif
 
 namespace AutomationControllerConstants
 {
@@ -17,8 +14,6 @@ void FAutomationControllerManager::RequestAvailableWorkers( const FGuid& Session
 	//invalidate previous tests
 	++ExecutionCount;
 	DeviceClusterManager.Reset();
-
-	ControllerResetDelegate.ExecuteIfBound();
 
 	// Don't allow reports to be exported
 	bTestResultsAvailable = false;
@@ -57,7 +52,7 @@ void FAutomationControllerManager::RequestTests()
 			ResetIntermediateTestData();
 
 			//issue tests on appropriate platforms
-			MessageEndpoint->Send(new FAutomationWorkerRequestTests(bDeveloperDirectoryIncluded, RequestedTestFlags), MessageAddress);
+			MessageEndpoint->Send(new FAutomationWorkerRequestTests(bDeveloperDirectoryIncluded, bVisualCommandletFilterOn), MessageAddress);
 		}
 	}
 }
@@ -77,14 +72,6 @@ void FAutomationControllerManager::RunTests( const bool bInIsLocalSession )
 	LastTimeUpdateTicked = FPlatformTime::Seconds();
 	CheckTestTimer = 0.f;
 
-#if WITH_EDITOR
-	FMessageLog AutomationTestingLog("AutomationTestingLog");
-	FString NewPageName = FString::Printf(TEXT("-----Test Run %d----"), ExecutionCount);
-	FText NewPageNameText = FText::FromString(*NewPageName);
-	AutomationTestingLog.Open();
-	AutomationTestingLog.NewPage(NewPageNameText);
-	AutomationTestingLog.Info(NewPageNameText);
-#endif
 	//reset all tests
 	ReportManager.ResetForExecution(NumTestPasses);
 
@@ -140,7 +127,7 @@ void FAutomationControllerManager::Init()
 	bTestResultsAvailable = false;
 	bScreenshotsEnabled = true;
 	bRequestFullScreenScreenshots = false;
-	bSendAnalytics = FParse::Param(FCommandLine::Get(), TEXT("SendAutomationAnalytics"));
+	bPrintResults = false;
 
 	// Update the ini with the settings
 	bTrackHistory = false;
@@ -249,7 +236,7 @@ void FAutomationControllerManager::ExecuteNextTask( int32 ClusterIndex, OUT bool
 							FMessageAddress DeviceAddress = DeviceAddresses[AddressIndex];
 
 							// Send the test to the device for execution!
-							MessageEndpoint->Send(new FAutomationWorkerRunTests(ExecutionCount, AddressIndex, NextTest->GetCommand(), NextTest->GetDisplayName(), bScreenshotsEnabled, bRequestFullScreenScreenshots, bSendAnalytics), DeviceAddress);
+							MessageEndpoint->Send(new FAutomationWorkerRunTests(ExecutionCount, AddressIndex, NextTest->GetCommand(), bScreenshotsEnabled, bRequestFullScreenScreenshots), DeviceAddress);
 
 							// Add a test so we can check later if the device is still active
 							TestRunningArray.Add( FTestRunningInfo( DeviceAddress ) );
@@ -307,7 +294,6 @@ void FAutomationControllerManager::Startup()
 		.Handling<FAutomationWorkerPong>(this, &FAutomationControllerManager::HandlePongMessage)
 		.Handling<FAutomationWorkerRequestNextNetworkCommand>(this, &FAutomationControllerManager::HandleRequestNextNetworkCommandMessage)
 		.Handling<FAutomationWorkerRequestTestsReply>(this, &FAutomationControllerManager::HandleRequestTestsReplyMessage)
-		.Handling<FAutomationWorkerRequestTestsReplyComplete>(this, &FAutomationControllerManager::HandleRequestTestsReplyCompleteMessage)
 		.Handling<FAutomationWorkerRunTestsReply>(this, &FAutomationControllerManager::HandleRunTestsReplyMessage)
 		.Handling<FAutomationWorkerScreenImage>(this, &FAutomationControllerManager::HandleReceivedScreenShot)
 		.Handling<FAutomationWorkerWorkerOffline>(this, &FAutomationControllerManager::HandleWorkerOfflineMessage);
@@ -320,7 +306,7 @@ void FAutomationControllerManager::Startup()
 	ClusterDistributionMask = 0;
 	ExecutionCount = 0;
 	bDeveloperDirectoryIncluded = false;
-	RequestedTestFlags = EAutomationTestFlags::SmokeFilter | EAutomationTestFlags::EngineFilter | EAutomationTestFlags::ProductFilter | EAutomationTestFlags::PerfFilter;
+	bVisualCommandletFilterOn = false;
 
 	NumOfTestsToReceive = 0;
 	NumTestPasses = 1;
@@ -356,17 +342,6 @@ void FAutomationControllerManager::SetTestNames( const FMessageAddress& Automati
 	// Find the device that requested these tests
 	if( DeviceClusterManager.FindDevice( AutomationWorkerAddress, DeviceClusterIndex, DeviceIndex ) )
 	{
-		// Sort tests by display name
-		struct FCompareAutomationTestInfo
-		{
-			FORCEINLINE bool operator()(const FAutomationTestInfo& A,const FAutomationTestInfo& B) const
-			{
-				return A.GetDisplayName() < B.GetDisplayName();
-			}
-		};
-
-		TestInfo.Sort(FCompareAutomationTestInfo());
-
 		// Add each test to the collection
 		for( int32 TestIndex = 0; TestIndex < TestInfo.Num(); ++TestIndex )
 		{
@@ -492,7 +467,7 @@ void FAutomationControllerManager::AddPingResult( const FMessageAddress& Respond
 void FAutomationControllerManager::UpdateTests( )
 {
 	static const float CheckTestInterval = 1.0f;
-	static const float GameInstanceLostTimer = 200.0f;
+	static const float GameInstanceLostTimer = 50.0f;
 
 	CheckTestTimer += FPlatformTime::Seconds() - LastTimeUpdateTicked;
 	LastTimeUpdateTicked = FPlatformTime::Seconds();
@@ -653,16 +628,17 @@ void FAutomationControllerManager::HandleRequestNextNetworkCommandMessage( const
 }
 
 
-void FAutomationControllerManager::HandleRequestTestsReplyMessage(const FAutomationWorkerRequestTestsReply& Message, const IMessageContextRef& Context)
+void FAutomationControllerManager::HandleRequestTestsReplyMessage( const FAutomationWorkerRequestTestsReply& Message, const IMessageContextRef& Context )
 {
+	NumOfTestsToReceive = Message.TotalNumTests;
+
 	FAutomationTestInfo NewTest(Message.TestInfo);
 	TestInfo.Add(NewTest);
-}
-
-
-void FAutomationControllerManager::HandleRequestTestsReplyCompleteMessage(const FAutomationWorkerRequestTestsReplyComplete& Message, const IMessageContextRef& Context)
-{
-	SetTestNames(Context->GetSender());
+	
+	if (TestInfo.Num() == NumOfTestsToReceive)
+	{
+		SetTestNames(Context->GetSender());
+	}
 }
 
 
@@ -693,48 +669,28 @@ void FAutomationControllerManager::HandleRunTestsReplyMessage( const FAutomation
 
 		Report->SetResults(ClusterIndex,CurrentTestPass, TestResults);
 
-#if WITH_EDITOR
-		FMessageLog AutomationTestingLog("AutomationTestingLog");
-		AutomationTestingLog.Open();
-#endif
-
-		for (TArray<FString>::TConstIterator ErrorIter(Message.Errors); ErrorIter; ++ErrorIter)
+		if (bPrintResults)
 		{
-			GLog->Logf(ELogVerbosity::Error, TEXT("%s"), **ErrorIter);
-#if WITH_EDITOR
-			AutomationTestingLog.Error(FText::FromString(*ErrorIter));
-#endif
-		}
-		for (TArray<FString>::TConstIterator WarningIter(Message.Warnings); WarningIter; ++WarningIter)
-		{
-			GLog->Logf(ELogVerbosity::Warning, TEXT("%s"), **WarningIter);
-#if WITH_EDITOR
-			AutomationTestingLog.Warning(FText::FromString(*WarningIter));
-#endif
-		}
-		for (TArray<FString>::TConstIterator LogItemIter(Message.Logs); LogItemIter; ++LogItemIter)
-		{
-			GLog->Logf(ELogVerbosity::Log, TEXT("%s"), **LogItemIter);
-#if WITH_EDITOR
-			AutomationTestingLog.Info(FText::FromString(*LogItemIter));
-#endif
-		}
-
-		if (TestResults.State == EAutomationState::Success)
-		{
-			FString SuccessString = FString::Printf(TEXT("...Automation Test Succeeded (%s)"), *Report->GetDisplayName());
-			GLog->Logf(ELogVerbosity::Log, *SuccessString);
-#if WITH_EDITOR
-			AutomationTestingLog.Info(FText::FromString(*SuccessString));
-#endif
-		}
-		else
-		{
-			FString FailureString = FString::Printf(TEXT("...Automation Test Failed (%s)"), *Report->GetDisplayName());
-			GLog->Logf(ELogVerbosity::Log, *FailureString);
-#if WITH_EDITOR
-			AutomationTestingLog.Error(FText::FromString(*FailureString));
-#endif
+			for (TArray<FString>::TConstIterator ErrorIter(Message.Errors); ErrorIter; ++ErrorIter)
+			{
+				GLog->Logf(ELogVerbosity::Error, TEXT("%s"), **ErrorIter);
+			}
+			for (TArray<FString>::TConstIterator WarningIter(Message.Warnings); WarningIter; ++WarningIter)
+			{
+				GLog->Logf(ELogVerbosity::Warning, TEXT("%s"), **WarningIter);
+			}
+			for (TArray<FString>::TConstIterator LogItemIter(Message.Logs); LogItemIter; ++LogItemIter)
+			{
+				GLog->Logf(ELogVerbosity::Log, TEXT("%s"), **LogItemIter);
+			}
+			if (TestResults.State == EAutomationState::Success)
+			{
+				GLog->Logf(ELogVerbosity::Log, TEXT("...Automation Test Succeeded (%s)"), *Report->GetDisplayName());
+			}
+			else
+			{
+				GLog->Logf(ELogVerbosity::Log, TEXT("...Automation Test Failed (%s)"), *Report->GetDisplayName());
+			}
 		}
 
 		// Device is now good to go

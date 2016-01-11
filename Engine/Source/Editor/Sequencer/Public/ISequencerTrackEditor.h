@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -17,11 +17,12 @@ public:
 
 	/**
 	 * Manually adds a key.
-	 *
-	 * @param ObjectGuid The Guid of the object that we are adding a key to.
-	 */
-	virtual void AddKey(const FGuid& ObjectGuid) = 0;
 
+	 * @param ObjectGuid The Guid of the object that we are adding a key to.
+	 * @param AdditionalAsset An optional asset that can be added with the key.
+	 */
+	virtual void AddKey(const FGuid& ObjectGuid, UObject* AdditionalAsset = nullptr) = 0;
+	
 	/**
 	 * Add a new track to the sequence.
 	 */
@@ -68,12 +69,6 @@ public:
 	virtual TSharedPtr<SWidget> BuildOutlinerEditWidget(const FGuid& ObjectBinding, UMovieSceneTrack* Track) = 0;
 
 	/**
-	 * Builds the context menu for the track.
-	 * @param MenuBuilder The menu builder to use to build the track menu. 
-	 */
-	virtual void BuildTrackContextMenu( FMenuBuilder& MenuBuilder, UMovieSceneTrack* Track ) = 0;
-
-	/**
 	 * Called when an asset is dropped into Sequencer. Can potentially consume the asset
 	 * so it doesn't get added as a spawnable.
 	 *
@@ -99,9 +94,6 @@ public:
 
 	/** Called when the instance of this track editor is released */
 	virtual void OnRelease() = 0;
-
-	/** Allows the track editor to paint on a track area. */
-	virtual int32 PaintTrackArea(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle) = 0;
 
 	/**
 	 * Returns whether a track class is supported by this tool.

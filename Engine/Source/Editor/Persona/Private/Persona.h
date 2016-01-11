@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -12,10 +12,6 @@
 #include "AnimationRecorder.h"
 //////////////////////////////////////////////////////////////////////////
 // FPersona
-
-class UBlendProfile;
-class USkeletalMesh;
-class SAnimationEditorViewportTabBody;
 
 /**
  * Persona asset editor (extends Blueprint editor)
@@ -174,11 +170,8 @@ public:
 	/** Called when an asset is imported into the editor */
 	void OnPostImport(UFactory* InFactory, UObject* InObject);
 
-	/** Called when the blend profile tab selects a profile */
-	void SetSelectedBlendProfile(UBlendProfile* InBlendProfile);
-
 public:
-	//~ Begin IToolkit Interface
+	// IToolkit interface
 	virtual FName GetToolkitContextFName() const override;
 	virtual FName GetToolkitFName() const override;
 	virtual FText GetBaseToolkitName() const override;
@@ -187,7 +180,7 @@ public:
 	virtual FString GetWorldCentricTabPrefix() const override;
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 	virtual void SaveAsset_Execute() override;
-	//~ End IToolkit Interface
+	// End of IToolkit interface
 
 	/** Saves all animation assets related to a skeleton */
 	void SaveAnimationAssets_Execute();
@@ -202,10 +195,10 @@ public:
 	/** Returns a pointer to the Blueprint object we are currently editing, as long as we are editing exactly one */
 	virtual UBlueprint* GetBlueprintObj() const override;
 
-	//~ Begin FTickableEditorObject Interface
+	// FTickableEditorObject interface
 	virtual void Tick(float DeltaTime) override;
 	virtual TStatId GetStatId() const override;
-	//~ End FTickableEditorObject Interface
+	// End of FTickableEditorObject interface
 
 	/** Returns the image brush to use for each modes dirty marker */
 	const FSlateBrush* GetDirtyImageForMode(FName Mode) const;
@@ -226,7 +219,7 @@ protected:
 	bool CanPreviewAsset() const;
 	FText GetPreviewAssetTooltip() const;
 
-	//~ Begin FBlueprintEditor Interface
+	// FBlueprintEditor interface
 	//virtual void CreateDefaultToolbar() override;
 	virtual void CreateDefaultCommands() override;
 	virtual void OnSelectBone() override;
@@ -249,18 +242,18 @@ protected:
 	virtual bool IsEditable(UEdGraph* InGraph) const override;
 	virtual FText GetGraphDecorationString(UEdGraph* InGraph) const override;
 	virtual void OnBlueprintChangedImpl(UBlueprint* InBlueprint, bool bIsJustBeingCompiled = false) override;
-	//~ End FBlueprintEditor Interface
+	// End of FBlueprintEditor interface
 
-	//~ Begin IAssetEditorInstance Interface
+	// IAssetEditorInstance interface
 	virtual void FocusWindow(UObject* ObjectToFocusOn = NULL) override;
-	//~ End IAssetEditorInstance Interface
+	// End of IAssetEditorInstance interface
 
-	//~ Begin FEditorUndoClient Interface
+	// Begin FEditorUndoClient Interface
 	virtual void PostUndo(bool bSuccess) override;
 	virtual void PostRedo(bool bSuccess) override;
 	// End of FEditorUndoClient
 
-	//~ Begin FAssetEditorToolkit Interface
+	// Begin FAssetEditorToolkit Interface
 	virtual void FindInContentBrowser_Execute() override;
 	// End of FAssetEditorToolkit
 
@@ -320,15 +313,13 @@ private:
 	// called when animation asset has been changed
 	DECLARE_MULTICAST_DELEGATE_OneParam( FOnAnimChangedMulticaster, UAnimationAsset* )
 	// Called when the preview mesh has been changed
-	DECLARE_MULTICAST_DELEGATE_OneParam( FOnPreviewMeshChangedMulticaster, USkeletalMesh* )
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPreviewMeshChangedMulticaster, class USkeletalMesh*)
 	// Called when a socket is selected
 	DECLARE_MULTICAST_DELEGATE_OneParam( FOnSelectSocket, const struct FSelectedSocketInfo& )
 	// Called when a bone is selected
 	DECLARE_MULTICAST_DELEGATE_OneParam( FOnSelectBone, const FName& )
-	// Called when a blend profile is selected in the blend profile tab
-	DECLARE_MULTICAST_DELEGATE_OneParam( FOnSelectBlendProfile, UBlendProfile*)
 	// Called when the preview viewport is created
-	DECLARE_MULTICAST_DELEGATE_OneParam( FOnCreateViewport, TWeakPtr<SAnimationEditorViewportTabBody> )
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnCreateViewport, TWeakPtr<class SAnimationEditorViewportTabBody>)
 public:
 
 	// Called when Persona refreshes
@@ -419,18 +410,6 @@ public:
 	void UnregisterOnSocketSelected(SWidget* Widget)
 	{
 		OnSocketSelected.RemoveAll( Widget );
-	}
-
-	typedef FOnSelectBlendProfile::FDelegate FOnBlendProfileSelected;
-
-	void RegisterOnBlendProfileSelected(const FOnBlendProfileSelected& Delegate)
-	{
-		OnBlendProfileSelected.Add(Delegate);
-	}
-
-	void UnregisterOnBlendProfileSelected(SWidget* Widget)
-	{
-		OnBlendProfileSelected.RemoveAll(Widget);
 	}
 
 	// Called when selection is cleared
@@ -562,24 +541,6 @@ public:
 		OnSectionsChanged.RemoveAll(Widget);
 	}
 
-	// Called when the notifies of the current animation are changed
-	typedef FSimpleMulticastDelegate::FDelegate FOnLODChanged;
-
-	/** Registers a delegate to be called when the skeleton anim notifies have been changed */
-	void RegisterOnLODChanged(const FOnLODChanged& Delegate)
-	{
-		OnLODChanged.Add(Delegate);
-	}
-
-	/** Unregisters a delegate to be called when the skeleton anim notifies have been changed */
-	void UnregisterOnLODChanged(SWidget* Widget)
-	{
-		OnLODChanged.RemoveAll(Widget);
-	}
-
-	/** Delegate for when the skeletons animation notifies have been changed */
-	FSimpleMulticastDelegate OnLODChanged;
-
 	/** Apply Compression to list of animations */
 	void ApplyCompression(TArray<TWeakObjectPtr<UAnimSequence>>& AnimSequences);
 	/** Export to FBX files of the list of animations */
@@ -612,9 +573,6 @@ protected:
 
 	/** Delegate for when a bone is selected by clicking its hit point */
 	FOnSelectBone OnBoneSelected;
-
-	/** Delegate for when a blend profile is selected in the blend profile tab */
-	FOnSelectBlendProfile OnBlendProfileSelected;
 
 	/** Delegate for clearing the current skeleton bone/socket selection */
 	FSimpleMulticastDelegate OnAllDeselected;
@@ -687,8 +645,6 @@ private:
 	void ExtendMenu();
 	/** update skeleton ref pose based on current preview mesh */
 	void UpdateSkeletonRefPose();
-	/** set preview mesh internal use only. The mesh should be verified by now.  */
-	void SetPreviewMeshInternal(USkeletalMesh* NewPreviewMesh);
 
 	/** Returns the editor objects that are applicable for our current mode (e.g mesh, animation etc) */
 	TArray<UObject*> GetEditorObjectsForMode(FName Mode) const;
@@ -716,7 +672,4 @@ private:
 
 	/** Handle to the registered OnPropertyChangedHandle delegate */
 	FDelegateHandle OnPropertyChangedHandleDelegateHandle;
-
-	/** Last Cached LOD value of Preview Mesh Component */
-	int32 LastCachedLODForPreviewComponent;
 };

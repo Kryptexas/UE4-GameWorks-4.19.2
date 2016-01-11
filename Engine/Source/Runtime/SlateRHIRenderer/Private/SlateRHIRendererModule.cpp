@@ -1,8 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateRHIRendererPrivatePCH.h"
 #include "Slate3DRenderer.h"
-#include "SlateUpdatableBuffer.h"
 
 class FSlateRHIFontAtlasFactory : public ISlateFontAtlasFactory
 {
@@ -57,24 +56,19 @@ public:
 	{
 		ConditionalCreateResources();
 
-		return MakeShareable( new FSlateRHIRenderer( SlateFontServices.ToSharedRef(), ResourceManager.ToSharedRef() ) );
+		return MakeShareable( new FSlateRHIRenderer( ResourceManager, FontCache, FontMeasure ) );
 	}
 
-	virtual TSharedRef<ISlate3DRenderer, ESPMode::ThreadSafe> CreateSlate3DRenderer(bool bUseGammaCorrection) override
+	virtual TSharedRef<ISlate3DRenderer> CreateSlate3DRenderer() override
 	{
 		ConditionalCreateResources();
 
-		return MakeShareable( new FSlate3DRenderer( SlateFontServices.ToSharedRef(),  ResourceManager.ToSharedRef(), bUseGammaCorrection ) );
+		return MakeShareable( new FSlate3DRenderer( ResourceManager, FontCache ) );
 	}
 
 	virtual TSharedRef<ISlateFontAtlasFactory> CreateSlateFontAtlasFactory() override
 	{
 		return MakeShareable(new FSlateRHIFontAtlasFactory);
-	}
-
-	virtual TSharedRef<ISlateUpdatableInstanceBuffer> CreateInstanceBuffer( int32 InitialInstanceCount ) override
-	{
-		return MakeShareable( new FSlateUpdatableInstanceBuffer(InitialInstanceCount) );
 	}
 
 	virtual void StartupModule( ) override { }
@@ -87,23 +81,28 @@ private:
 		if( !ResourceManager.IsValid() )
 		{
 			ResourceManager = MakeShareable( new FSlateRHIResourceManager );
-			FSlateDataPayload::ResourceManager = ResourceManager.Get();
 		}
 
-		if( !SlateFontServices.IsValid() )
+		if( !FontCache.IsValid() )
 		{
-			const TSharedRef<FSlateFontCache> GameThreadFontCache = MakeShareable(new FSlateFontCache(MakeShareable(new FSlateRHIFontAtlasFactory)));
-			const TSharedRef<FSlateFontCache> RenderThreadFontCache = MakeShareable(new FSlateFontCache(MakeShareable(new FSlateRHIFontAtlasFactory)));
-
-			SlateFontServices = MakeShareable(new FSlateFontServices(GameThreadFontCache, RenderThreadFontCache));
+			FontCache = MakeShareable(new FSlateFontCache(MakeShareable(new FSlateRHIFontAtlasFactory)));
 		}
+
+		if( !FontMeasure.IsValid() )
+		{
+			FontMeasure = FSlateFontMeasure::Create(FontCache.ToSharedRef());
+		}
+
 	}
 private:
 	/** Resource manager used for all renderers */
 	TSharedPtr<FSlateRHIResourceManager> ResourceManager;
 
-	/** Font services used for all renderers */
-	TSharedPtr<FSlateFontServices> SlateFontServices;
+	/** Font cache used for all renderers */
+	TSharedPtr<FSlateFontCache> FontCache;
+
+	/** Font measure interface used for all renderers */
+	TSharedPtr<FSlateFontMeasure> FontMeasure;
 };
 
 

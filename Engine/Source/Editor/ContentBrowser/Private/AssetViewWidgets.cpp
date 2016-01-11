@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "ContentBrowserPCH.h"
@@ -7,7 +7,6 @@
 #include "AssetViewTypes.h"
 #include "AssetViewWidgets.h"
 #include "SThumbnailEditModeTools.h"
-#include "AssetSourceFilenameCache.h"
 #include "CollectionManagerModule.h"
 #include "CollectionViewUtils.h"
 #include "DragAndDrop/AssetDragDropOp.h"
@@ -174,7 +173,7 @@ TSharedRef<SWidget> FAssetViewItemHelper::CreateListTileItemContents(T* const In
 		ItemContentsOverlay->AddSlot()
 		[
 			SNew(SThumbnailEditModeTools, InTileOrListItem->AssetThumbnail)
-			.SmallView(!InTileOrListItem->CanDisplayPrimitiveTools())
+			.SmallView(true)
 			.Visibility(InTileOrListItem, &T::GetThumbnailEditModeUIVisibility)
 		];
 
@@ -645,16 +644,6 @@ TSharedRef<SWidget> SAssetViewItem::CreateToolTipWidget() const
 			for (const auto& ToolTipTagItem : CachedToolTipTags)
 			{
 				AddToToolTipInfoBox(InfoBox, ToolTipTagItem.Key, ToolTipTagItem.Value, ToolTipTagItem.bImportant);
-			}
-
-			// Add asset source files
-			TOptional<FAssetImportInfo> ImportInfo = FAssetSourceFilenameCache::ExtractAssetImportInfo(AssetData.TagsAndValues);
-			if (ImportInfo.IsSet())
-			{
-				for (const auto& File : ImportInfo->SourceFiles)
-				{
-					AddToToolTipInfoBox( InfoBox, LOCTEXT("TileViewTooltipSourceFile", "Source File"), FText::FromString(File.RelativeFilename), false );
-				}
 			}
 
 			TSharedRef<SVerticalBox> OverallTooltipVBox = SNew(SVerticalBox);

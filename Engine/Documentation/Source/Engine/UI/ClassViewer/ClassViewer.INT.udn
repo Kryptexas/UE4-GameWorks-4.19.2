@@ -2,21 +2,20 @@ Availability:Public
 Title:Class Viewer
 Crumbs: %ROOT%, Engine, Engine/UI
 Description:Tool for examining UE4 classes.
-Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Engine/UI/ClassViewer:title%](Engine/UI/ClassViewer_topic.png)
+		![%Editor/ClassViewer:title%](Engine/UI/ClassViewer_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/editor_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Engine/UI/ClassViewer:title%
+		%Editor/ClassViewer:title%
 	[/PARAM]
 	[PARAM:description]
-		%Engine/UI/ClassViewer:description%
+		%Editor/ClassViewer:description%
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/UI/ClassViewer]
@@ -26,16 +25,16 @@ Version: 4.9
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Engine/UI/ClassViewer:title%](Engine/UI/ClassViewer_topic.png)
+		![%Editor/ClassViewer:title%](Engine/UI/ClassViewer_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/editor_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Engine/UI/ClassViewer:title%
+		%Editor/ClassViewer:title%
 	[/PARAM]
 	[PARAM:description]
-		%Engine/UI/ClassViewer:description%
+		%Editor/ClassViewer:description%
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/UI/ClassViewer]

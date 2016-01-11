@@ -1,101 +1,65 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PortalServicesPrivatePCH.h"
-#include "PortalServiceLocator.h"
-#include "IPortalServiceLocator.h"
 #include "IPortalServiceProvider.h"
 #include "ModuleManager.h"
-#include "TypeContainer.h"
 
-class FPortalServiceLocatorImpl
-	: public IPortalServiceLocator
+
+/* FPortalServiceLocator structors
+ *****************************************************************************/
+
+FPortalServiceLocator::FPortalServiceLocator(const TSharedRef<FTypeContainer>& InServiceDependencies)
+	: ServiceDependencies(InServiceDependencies)
+{ }
+
+
+/* IPortalServiceLocator interface
+ *****************************************************************************/
+
+void FPortalServiceLocator::Configure(const FString& ServiceName, const FWildcardString& ProductId, const FName& ServiceModule)
 {
-public:
-
-	~FPortalServiceLocatorImpl() { }
-
-public:
-
-	// IPortalServiceLocator interface
-
-	virtual void Configure(const FString& ServiceName, const FWildcardString& ProductId, const FName& ServiceModule) override
+	TArray<FConfigEntry>& Entries = Configuration.FindOrAdd(ServiceName);
+	FConfigEntry Entry;
 	{
-		TArray<FConfigEntry>& Entries = Configuration.FindOrAdd(ServiceName);
-		FConfigEntry Entry;
-		{
-			Entry.ProductId = ProductId;
-			Entry.ServiceModule = ServiceModule;
-		}
-
-		Entries.Add(Entry);
+		Entry.ProductId = ProductId;
+		Entry.ServiceModule = ServiceModule;
 	}
 
-	virtual TSharedPtr<IPortalService> GetService(const FString& ServiceName, const FString& ProductId) override
+	Entries.Add(Entry);
+}
+
+
+TSharedPtr<IPortalService> FPortalServiceLocator::GetService(const FString& ServiceName, const FString& ProductId)
+{
+	TSharedPtr<void> Result;
+	TArray<FConfigEntry>& Entries = Configuration.FindOrAdd(ServiceName);
+
+	for (FConfigEntry& Entry : Entries)
 	{
-		TSharedPtr<void> Result;
-		TArray<FConfigEntry>& Entries = Configuration.FindOrAdd(ServiceName);
-
-		for (FConfigEntry& Entry : Entries)
+		if (!Entry.ProductId.IsMatch(ProductId))
 		{
-			if (!Entry.ProductId.IsMatch(ProductId))
-			{
-				continue;
-			}
-
-			if (Entry.ServiceInstance.IsValid())
-			{
-				return Entry.ServiceInstance;
-			}
-
-			auto ServiceProvider = FModuleManager::LoadModulePtr<IPortalServiceProvider>(Entry.ServiceModule);
-
-			if (ServiceProvider == nullptr)
-			{
-				continue;
-			}
-
-			Entry.ServiceInstance = ServiceProvider->GetService(ServiceName, ServiceDependencies.ToSharedRef());
-
-			if (Entry.ServiceInstance.IsValid())
-			{
-				return Entry.ServiceInstance;
-			}
+			continue;
 		}
 
-		return nullptr;
+		if (Entry.ServiceInstance.IsValid())
+		{
+			return Entry.ServiceInstance;
+		}
+
+		auto ServiceProvider = FModuleManager::LoadModulePtr<IPortalServiceProvider>(Entry.ServiceModule);
+
+		if (ServiceProvider == nullptr)
+		{
+			continue;
+		}
+
+		Entry.ServiceInstance = ServiceProvider->GetService(ServiceName, ServiceDependencies.ToSharedRef());
+
+		if (Entry.ServiceInstance.IsValid())
+		{
+			return Entry.ServiceInstance;
+		}
 	}
 
-private:
-	
-	/**
-	 * Create and initialize a new instance.
-	 *
-	 * @param InServiceDependencies A type container for optional service dependencies.
-	 */
-	FPortalServiceLocatorImpl(const TSharedRef<FTypeContainer>& InServiceDependencies)
-		: ServiceDependencies(InServiceDependencies)
-	{ }
-
-
-private:
-
-	struct FConfigEntry
-	{
-		FWildcardString ProductId;
-		TSharedPtr<IPortalService> ServiceInstance;
-		FName ServiceModule;
-	};
-
-	/** Holds the service configuration entries. */
-	TMap<FString, TArray<FConfigEntry>> Configuration;
-
-	/** Optional service dependencies. */
-	TSharedPtr<FTypeContainer> ServiceDependencies;
-
-	friend FPortalServiceLocatorFactory;
-};
-
-TSharedRef<IPortalServiceLocator> FPortalServiceLocatorFactory::Create(const TSharedRef<FTypeContainer>& ServiceDependencies)
-{
-	return MakeShareable(new FPortalServiceLocatorImpl(ServiceDependencies));
+	return nullptr;
 }

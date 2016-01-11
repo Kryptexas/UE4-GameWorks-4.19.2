@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GlobalDistanceField.cpp
@@ -38,15 +38,6 @@ FAutoConsoleVariableRef CVarAOGlobalDistanceFieldPartialUpdates(
 	TEXT("r.AOGlobalDistanceFieldPartialUpdates"),
 	GAOGlobalDistanceFieldPartialUpdates,
 	TEXT("Whether to allow partial updates of the global distance field.  When profiling it's useful to disable this and get the worst case composition time that happens on camera cuts."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
-	);
-
-int32 GAOLogGlobalDistanceFieldModifiedPrimitives = 0;
-FAutoConsoleVariableRef CVarAOLogGlobalDistanceFieldModifiedPrimitives(
-	TEXT("r.AOGlobalDistanceFieldLogModifiedPrimitives"),
-	GAOLogGlobalDistanceFieldModifiedPrimitives,
-	TEXT("Whether to log primitive modifications (add, remove, updatetransform) that caused an update of the global distance field.\n")
-	TEXT("This can be useful for tracking down why updating the global distance field is always costing a lot, since it should be mostly cached."),
 	ECVF_Cheat | ECVF_RenderThreadSafe
 	);
 
@@ -172,13 +163,6 @@ public:
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
 		ObjectBufferParameters.Set(RHICmdList, ShaderRHI, *(Scene->DistanceFieldSceneData.ObjectBuffers), Scene->DistanceFieldSceneData.NumObjectsInBuffer);
 
-		FUnorderedAccessViewRHIParamRef OutUAVs[4];
-		OutUAVs[0] = GGlobalDistanceFieldCulledObjectBuffers.Buffers.ObjectIndirectArguments.UAV;
-		OutUAVs[1] = GGlobalDistanceFieldCulledObjectBuffers.Buffers.Bounds.UAV;
-		OutUAVs[2] = GGlobalDistanceFieldCulledObjectBuffers.Buffers.Data.UAV;
-		OutUAVs[3] = GGlobalDistanceFieldCulledObjectBuffers.Buffers.BoxBounds.UAV;
-		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, ARRAY_COUNT(OutUAVs));
-
 		ObjectIndirectArguments.SetBuffer(RHICmdList, ShaderRHI, GGlobalDistanceFieldCulledObjectBuffers.Buffers.ObjectIndirectArguments);
 		CulledObjectBounds.SetBuffer(RHICmdList, ShaderRHI, GGlobalDistanceFieldCulledObjectBuffers.Buffers.Bounds);
 		CulledObjectData.SetBuffer(RHICmdList, ShaderRHI, GGlobalDistanceFieldCulledObjectBuffers.Buffers.Data);
@@ -190,20 +174,13 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, VolumeBounds, VolumeBoundsValue);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList, const FScene* Scene)
+	void UnsetParameters(FRHICommandList& RHICmdList)
 	{
-		ObjectBufferParameters.UnsetParameters(RHICmdList, GetComputeShader(), *(Scene->DistanceFieldSceneData.ObjectBuffers));
+		ObjectBufferParameters.UnsetParameters(RHICmdList, GetComputeShader());
 		ObjectIndirectArguments.UnsetUAV(RHICmdList, GetComputeShader());
 		CulledObjectBounds.UnsetUAV(RHICmdList, GetComputeShader());
 		CulledObjectData.UnsetUAV(RHICmdList, GetComputeShader());
 		CulledObjectBoxBounds.UnsetUAV(RHICmdList, GetComputeShader());
-
-		FUnorderedAccessViewRHIParamRef OutUAVs[4];
-		OutUAVs[0] = GGlobalDistanceFieldCulledObjectBuffers.Buffers.ObjectIndirectArguments.UAV;
-		OutUAVs[1] = GGlobalDistanceFieldCulledObjectBuffers.Buffers.Bounds.UAV;
-		OutUAVs[2] = GGlobalDistanceFieldCulledObjectBuffers.Buffers.Data.UAV;
-		OutUAVs[3] = GGlobalDistanceFieldCulledObjectBuffers.Buffers.BoxBounds.UAV;
-		RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, ARRAY_COUNT(OutUAVs));
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -317,7 +294,6 @@ public:
 		CulledObjectBufferParameters.Set(RHICmdList, ShaderRHI, GGlobalDistanceFieldCulledObjectBuffers.Buffers);
 		GlobalDistanceFieldParameters.Set(RHICmdList, ShaderRHI, GlobalDistanceFieldInfo.ParameterData);
 
-		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, GObjectGridBuffers.CulledObjectGrid.UAV);
 		CulledObjectGrid.SetBuffer(RHICmdList, ShaderRHI, GObjectGridBuffers.CulledObjectGrid);
 
 		const FIntVector GridDimensionValue(
@@ -338,7 +314,6 @@ public:
 	void UnsetParameters(FRHICommandList& RHICmdList)
 	{
 		CulledObjectGrid.UnsetUAV(RHICmdList, GetComputeShader());
-		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, GObjectGridBuffers.CulledObjectGrid.UAV);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -422,9 +397,7 @@ public:
 		CulledObjectBufferParameters.Set(RHICmdList, ShaderRHI, GGlobalDistanceFieldCulledObjectBuffers.Buffers);
 		GlobalDistanceFieldParameters.Set(RHICmdList, ShaderRHI, GlobalDistanceFieldInfo.ParameterData);
 
-		const FSceneRenderTargetItem& ClipMapRTI = GlobalDistanceFieldInfo.Clipmaps[ClipmapIndexValue].RenderTarget->GetRenderTargetItem();
-		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, ClipMapRTI.UAV);
-		GlobalDistanceFieldTexture.SetTexture(RHICmdList, ShaderRHI, ClipMapRTI.ShaderResourceTexture, ClipMapRTI.UAV);
+		GlobalDistanceFieldTexture.SetTexture(RHICmdList, ShaderRHI, GlobalDistanceFieldInfo.Clipmaps[ClipmapIndexValue].RenderTarget->GetRenderTargetItem().ShaderResourceTexture, GlobalDistanceFieldInfo.Clipmaps[ClipmapIndexValue].RenderTarget->GetRenderTargetItem().UAV);
 
 		SetSRVParameter(RHICmdList, ShaderRHI, CulledObjectGrid, GObjectGridBuffers.CulledObjectGrid.SRV);
 
@@ -445,12 +418,9 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, AOGlobalMaxSphereQueryRadius, GlobalMaxSphereQueryRadius);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList, const FGlobalDistanceFieldInfo& GlobalDistanceFieldInfo, int32 ClipmapIndexValue)
+	void UnsetParameters(FRHICommandList& RHICmdList)
 	{
 		GlobalDistanceFieldTexture.UnsetUAV(RHICmdList, GetComputeShader());
-
-		const FSceneRenderTargetItem& ClipMapRTI = GlobalDistanceFieldInfo.Clipmaps[ClipmapIndexValue].RenderTarget->GetRenderTargetItem();
-		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, ClipMapRTI.UAV);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -542,7 +512,7 @@ void AddUpdateRegionForPrimitive(const FVector4& Bounds, float MaxSphereQueryRad
 	}
 }
 
-void AllocateClipmapTexture(FRHICommandListImmediate& RHICmdList, int32 ClipmapIndex, TRefCountPtr<IPooledRenderTarget>& Texture)
+void AllocateClipmapTexture(int32 ClipmapIndex, TRefCountPtr<IPooledRenderTarget>& Texture)
 {
 	const TCHAR* TextureName = TEXT("GlobalDistanceField0");
 
@@ -559,20 +529,16 @@ void AllocateClipmapTexture(FRHICommandListImmediate& RHICmdList, int32 ClipmapI
 		TextureName = TEXT("GlobalDistanceField3");
 	}
 
-	FPooledRenderTargetDesc VolumeDesc = FPooledRenderTargetDesc(FPooledRenderTargetDesc::CreateVolumeDesc(
-		GAOGlobalDFResolution,
-		GAOGlobalDFResolution,
-		GAOGlobalDFResolution,
-		PF_R16F,
-		FClearValueBinding::None,
-		0,
-		TexCreate_ShaderResource | TexCreate_RenderTargetable | TexCreate_UAV,
-		false));
-	VolumeDesc.AutoWritable = false;
-
 	GRenderTargetPool.FindFreeElement(
-		RHICmdList,
-		VolumeDesc,
+		FPooledRenderTargetDesc(FPooledRenderTargetDesc::CreateVolumeDesc(
+			GAOGlobalDFResolution,
+			GAOGlobalDFResolution,
+			GAOGlobalDFResolution,
+			PF_R16F,
+			FClearValueBinding::None,
+			0,
+			TexCreate_ShaderResource | TexCreate_RenderTargetable | TexCreate_UAV,
+			false)),
 		Texture,
 		TextureName 
 	);
@@ -605,7 +571,7 @@ float ComputeClipmapExtent(int32 ClipmapIndex)
 	return GAOInnerGlobalDFClipmapDistance * FMath::Pow(GAOGlobalDFClipmapDistanceExponent, ClipmapIndex);
 }
 
-void ComputeUpdateRegionsAndUpdateViewState(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, FGlobalDistanceFieldInfo& GlobalDistanceFieldInfo, int32 NumClipmaps, const TArray<FVector4>& PrimitiveModifiedBounds, float MaxOcclusionDistance)
+void ComputeUpdateRegionsAndUpdateViewState(const FViewInfo& View, FGlobalDistanceFieldInfo& GlobalDistanceFieldInfo, int32 NumClipmaps, const TArray<FVector4>& PrimitiveModifiedBounds, float MaxOcclusionDistance)
 {
 	GlobalDistanceFieldInfo.Clipmaps.AddZeroed(NumClipmaps);
 
@@ -627,7 +593,7 @@ void ComputeUpdateRegionsAndUpdateViewState(FRHICommandListImmediate& RHICmdList
 
 			if (!RenderTarget || RenderTarget->GetDesc().Extent.X != GAOGlobalDFResolution)
 			{
-				AllocateClipmapTexture(RHICmdList, ClipmapIndex, RenderTarget);
+				AllocateClipmapTexture(ClipmapIndex, RenderTarget);
 				bReallocated = true;
 			}
 
@@ -749,7 +715,7 @@ void ComputeUpdateRegionsAndUpdateViewState(FRHICommandListImmediate& RHICmdList
 		for (int32 ClipmapIndex = 0; ClipmapIndex < NumClipmaps; ClipmapIndex++)
 		{
 			FGlobalDistanceFieldClipmap& Clipmap = GlobalDistanceFieldInfo.Clipmaps[ClipmapIndex];
-			AllocateClipmapTexture(RHICmdList, ClipmapIndex, Clipmap.RenderTarget);
+			AllocateClipmapTexture(ClipmapIndex, Clipmap.RenderTarget);
 			Clipmap.ScrollOffset = FVector::ZeroVector;
 
 			const float Extent = ComputeClipmapExtent(ClipmapIndex);
@@ -791,7 +757,7 @@ void UpdateGlobalDistanceFieldVolume(
 {
 	if (Scene->DistanceFieldSceneData.NumObjectsInBuffer > 0)
 	{
-		ComputeUpdateRegionsAndUpdateViewState(RHICmdList, View, GlobalDistanceFieldInfo, GMaxGlobalDistanceFieldClipmaps, Scene->DistanceFieldSceneData.PrimitiveModifiedBounds, MaxOcclusionDistance);
+		ComputeUpdateRegionsAndUpdateViewState(View, GlobalDistanceFieldInfo, GMaxGlobalDistanceFieldClipmaps, Scene->DistanceFieldSceneData.PrimitiveModifiedBounds, MaxOcclusionDistance);
 
 		bool bHasUpdateRegions = false;
 
@@ -844,7 +810,7 @@ void UpdateGlobalDistanceFieldVolume(
 							ComputeShader->SetParameters(RHICmdList, Scene, View, MaxOcclusionDistance, VolumeBounds);
 
 							DispatchComputeShader(RHICmdList, *ComputeShader, FMath::DivideAndRoundUp<uint32>(Scene->DistanceFieldSceneData.NumObjectsInBuffer, CullObjectsGroupSize), 1, 1);
-							ComputeShader->UnsetParameters(RHICmdList, Scene);
+							ComputeShader->UnsetParameters(RHICmdList);
 						}
 
 						// Further cull the objects into a low resolution grid
@@ -875,7 +841,7 @@ void UpdateGlobalDistanceFieldVolume(
 						const uint32 NumGroupsZ = FMath::DivideAndRoundUp<int32>(UpdateRegion.CellsSize.Z, CompositeTileSize);
 
 						DispatchComputeShader(RHICmdList, *ComputeShader, NumGroupsX, NumGroupsY, NumGroupsZ);
-						ComputeShader->UnsetParameters(RHICmdList, GlobalDistanceFieldInfo, ClipmapIndex);
+						ComputeShader->UnsetParameters(RHICmdList);
 					}
 				}
 			}

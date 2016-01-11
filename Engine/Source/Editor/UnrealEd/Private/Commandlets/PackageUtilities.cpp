@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PackageUtilities.cpp: Commandlets for viewing information about package files
@@ -104,7 +104,7 @@ bool NormalizePackageNames( TArray<FString> PackageNames, TArray<FString>& Packa
 
 	if ( PackagePathNames.Num() == 0 )
 	{
-		UE_LOG(LogPackageUtilities, Log, TEXT("No packages found using '%s'!"), *PackageWildcard);
+		UE_LOG(LogPackageUtilities, Warning, TEXT("No packages found using '%s'!"), *PackageWildcard);
 		return false;
 	}
 
@@ -715,7 +715,7 @@ int32 ULoadPackageCommandlet::Main( const FString& Params )
 		}
 		if (!bFast || FileIndex % 100 == 99)
 		{
-			CollectGarbage(RF_NoFlags);
+			CollectGarbage( RF_Native );
 		}
 	}
 	GIsEditor = GIsServer = GIsClient = true;
@@ -818,20 +818,6 @@ namespace
 
 	EExportSortType FObjectExport_Sorter::SortPriority[EXPORTSORT_MAX] =
 	{ EXPORTSORT_ExportIndex, EXPORTSORT_ExportSize, EXPORTSORT_OuterPathname, EXPORTSORT_ObjectPathname };
-}
-
-/** Given a package filename, creates a linker and a temporary package. The filename does not need to point to a package under the current project content folder */
-FLinkerLoad* CreateLinkerForFilename(const FString& InFilename)
-{
-	FString TempPackageName;
-	TempPackageName = FPaths::Combine(TEXT("/Temp"), *FPaths::GetPath(InFilename.Mid(InFilename.Find(TEXT(":"), ESearchCase::CaseSensitive) + 1)), *FPaths::GetBaseFilename(InFilename));
-	UPackage* Package = FindObjectFast<UPackage>(nullptr, *TempPackageName);
-	if (!Package)
-	{
-		Package = CreatePackage(nullptr, *TempPackageName);
-	}
-	FLinkerLoad* Linker = FLinkerLoad::CreateLinker(Package, *InFilename, LOAD_NoVerify);
-	return Linker;
 }
 
 /**
@@ -1427,7 +1413,6 @@ int32 UPkgInfoCommandlet::Main( const FString& Params )
 				for ( int32 FileIndex = 0; FileIndex < PerTokenFilesInPath.Num(); FileIndex++ )
 				{
 					PerTokenFilesInPath[FileIndex] = FPaths::GetPath(WildcardPath) / PerTokenFilesInPath[FileIndex];
-					FPaths::NormalizeFilename(PerTokenFilesInPath[FileIndex]);
 				}
 			}
 
@@ -1443,7 +1428,7 @@ int32 UPkgInfoCommandlet::Main( const FString& Params )
 
 	for( int32 FileIndex = 0; FileIndex < FilesInPath.Num(); FileIndex++ )
 	{
-		FString Filename = FPaths::ConvertRelativePathToFull(FilesInPath[FileIndex]);
+		const FString &Filename = FilesInPath[FileIndex];
 
 		{
 			// reset the loaders for the packages we want to load so that we don't find the wrong version of the file
@@ -1457,7 +1442,7 @@ int32 UPkgInfoCommandlet::Main( const FString& Params )
 		}
 
 		BeginLoad();
-		FLinkerLoad* Linker = CreateLinkerForFilename(Filename);
+		auto Linker = GetPackageLinker( NULL, *Filename, LOAD_NoVerify, NULL, NULL );
 		EndLoad();
 
 		if( Linker )
@@ -1465,7 +1450,7 @@ int32 UPkgInfoCommandlet::Main( const FString& Params )
 			Reporter->GeneratePackageReport(Linker);
 		}
 
-		CollectGarbage(RF_NoFlags);
+		CollectGarbage(RF_Native);
 	}
 
 	// turn off as it makes diffing hard
@@ -2532,7 +2517,7 @@ int32 UReplaceActorCommandlet::Main(const FString& Params)
 
 		// get rid of the loaded world
 		UE_LOG(LogPackageUtilities, Warning, TEXT("GCing..."));
-		CollectGarbage(RF_NoFlags);
+		CollectGarbage(RF_Native);
 	}
 
 	// UEditorEngine::FinishDestroy() expects GWorld to exist

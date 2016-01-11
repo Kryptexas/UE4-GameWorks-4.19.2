@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "Core.h"
@@ -135,6 +135,11 @@ public:
 	 */
 	virtual bool CachedDataProbablyExists(const TCHAR* CacheKey) override
 	{
+		static FName NAME_CachedDataProbablyExists(TEXT("CachedDataProbablyExists"));
+		FDDCScopeStatHelper Stat(CacheKey, NAME_CachedDataProbablyExists);
+		static FName NAME_FileDDCPath(TEXT("FileDDCPath"));
+		Stat.AddTag(NAME_FileDDCPath, CachePath);
+
 		check(!bFailed);
 		FString Filename = BuildFilename(CacheKey);
 		FDateTime TimeStamp = IFileManager::Get().GetTimeStamp(*Filename);
@@ -157,10 +162,17 @@ public:
 	 * @param	OutData		Buffer to receive the results, if any were found
 	 * @return				true if any data was found, and in this case OutData is non-empty
 	 */
-	virtual bool GetCachedData(const TCHAR* CacheKey, TArray<uint8>& Data) override
+	virtual bool GetCachedData(const TCHAR* CacheKey,TArray<uint8>& Data) override
 	{
+		static FName NAME_GetCachedData(TEXT("GetCachedData"));
+		FDDCScopeStatHelper Stat(CacheKey, NAME_GetCachedData);
+		static FName NAME_FileDDCPath(TEXT("FileDDCPath"));
+		static FName NAME_Retrieved(TEXT("Retrieved"));
+		Stat.AddTag(NAME_FileDDCPath, CachePath);
+		
 		check(!bFailed);
 		FString Filename = BuildFilename(CacheKey);
+
 		double StartTime = FPlatformTime::Seconds();
 		if (FFileHelper::LoadFileToArray(Data,*Filename,FILEREAD_Silent))
 		{
@@ -174,7 +186,7 @@ public:
 		}
 		UE_LOG(LogDerivedDataCache, Verbose, TEXT("FileSystemDerivedDataBackend: Cache miss on %s"),*Filename);
 		Data.Empty();
-		return false;
+		return false;	
 	}
 	/**
 	 * Asynchronous, fire-and-forget placement of a cache item
@@ -185,11 +197,6 @@ public:
 	 */
 	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& Data, bool bPutEvenIfExists) override
 	{
-		//static FName NAME_PutCachedData(TEXT("PutCachedData"));
-		//FDDCScopeStatHelper Stat(CacheKey, NAME_PutCachedData);
-		//static FName NAME_FileDDCPath(TEXT("FileDDCPath"));
-		//Stat.AddTag(NAME_FileDDCPath, CachePath);
-		
 		check(!bFailed);
 		if (!bReadOnly)
 		{
@@ -197,7 +204,6 @@ public:
 			{
 				check(Data.Num());
 				FString Filename = BuildFilename(CacheKey);
-				double StartTime = FPlatformTime::Seconds();
 				FString TempFilename(TEXT("temp.")); 
 				TempFilename += FGuid::NewGuid().ToString();
 				TempFilename = FPaths::GetPath(Filename) / TempFilename;

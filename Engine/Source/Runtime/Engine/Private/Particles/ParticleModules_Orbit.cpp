@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleModules_Orbit.cpp: Orbit particle modules implementation.
@@ -222,12 +222,12 @@ void UParticleModuleOrbit::Update(FParticleEmitterInstance* Owner, int32 Offset,
 	END_UPDATE_LOOP;
 }
 
-uint32 UParticleModuleOrbit::RequiredBytes(UParticleModuleTypeDataBase* TypeData)
+uint32 UParticleModuleOrbit::RequiredBytes(FParticleEmitterInstance* Owner)
 {
 	return sizeof(FOrbitChainModuleInstancePayload);
 }
 
-uint32 UParticleModuleOrbit::RequiredBytesPerInstance()
+uint32 UParticleModuleOrbit::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
 {
 	return 0;
 }

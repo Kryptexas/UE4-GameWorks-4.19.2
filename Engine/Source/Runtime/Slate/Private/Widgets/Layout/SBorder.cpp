@@ -1,38 +1,26 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
-
-static FName SBorderTypeName("SBorder");
-
+ 
 SBorder::SBorder()
 	: BorderImage( FCoreStyle::Get().GetBrush( "Border" ) )
 	, BorderBackgroundColor( FLinearColor::White )
 	, DesiredSizeScale(FVector2D(1,1))
-{
-}
+{ }
 
+
+/**
+ * Construct this widget
+ *
+ * @param	InArgs	The declaration data for this widget
+ */
 void SBorder::Construct( const SBorder::FArguments& InArgs )
 {
-	// Only do this if we're exactly an SBorder
-	if ( GetType() == SBorderTypeName )
-	{
-		bCanTick = false;
-		bCanSupportFocus = false;
-	}
-
 	ContentScale = InArgs._ContentScale;
 	ColorAndOpacity = InArgs._ColorAndOpacity;
 	DesiredSizeScale = InArgs._DesiredSizeScale;
 
 	ShowDisabledEffect = InArgs._ShowEffectWhenDisabled;
-
-	BorderImage = InArgs._BorderImage;
-	BorderBackgroundColor = InArgs._BorderBackgroundColor;
-	ForegroundColor = InArgs._ForegroundColor;
-	MouseButtonDownHandler = InArgs._OnMouseButtonDown;
-	MouseButtonUpHandler = InArgs._OnMouseButtonUp;
-	MouseMoveHandler = InArgs._OnMouseMove;
-	MouseDoubleClickHandler = InArgs._OnMouseDoubleClick;
 
 	ChildSlot
 		.HAlign(InArgs._HAlign)
@@ -41,8 +29,22 @@ void SBorder::Construct( const SBorder::FArguments& InArgs )
 	[
 		InArgs._Content.Widget
 	];
+
+	BorderImage = InArgs._BorderImage;
+	BorderBackgroundColor = InArgs._BorderBackgroundColor;
+	ForegroundColor = InArgs._ForegroundColor;
+	MouseButtonDownHandler = InArgs._OnMouseButtonDown;
+	MouseButtonUpHandler = InArgs._OnMouseButtonUp;
+	MouseMoveHandler = InArgs._OnMouseMove;
+	MouseDoubleClickHandler = InArgs._OnMouseDoubleClick;
 }
 
+
+/**
+ * Sets the content for this border
+ *
+ * @param	InContent	The widget to use as content for the border
+ */
 void SBorder::SetContent( TSharedRef< SWidget > InContent )
 {
 	ChildSlot
@@ -56,6 +58,7 @@ const TSharedRef< SWidget >& SBorder::GetContent() const
 	return ChildSlot.GetWidget();
 }
 
+/** Clears out the content for the border */
 void SBorder::ClearContent()
 {
 	ChildSlot.DetachWidget();
@@ -63,10 +66,11 @@ void SBorder::ClearContent()
 
 int32 SBorder::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
+	bool bEnabled = false;
 	const FSlateBrush* BrushResource = BorderImage.Get();
 		
-	const bool bEnabled = ShouldBeEnabled(bParentEnabled);
-	const bool bShowDisabledEffect = ShowDisabledEffect.Get();
+	bEnabled = ShouldBeEnabled( bParentEnabled );
+	bool bShowDisabledEffect = ShowDisabledEffect.Get();
 	ESlateDrawEffect::Type DrawEffects = bShowDisabledEffect && !bEnabled ? ESlateDrawEffect::DisabledEffect : ESlateDrawEffect::None;
 
 	if ( BrushResource && BrushResource->DrawAs != ESlateBrushDrawType::NoDrawType )
@@ -89,6 +93,15 @@ int32 SBorder::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometr
 	return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect.IntersectionWith( AllottedGeometry.GetClippingRect() ), OutDrawElements, LayerId, CompoundedWidgetStyle, bEnabled );
 }
 
+
+/**
+ * The system calls this method to notify the widget that a mouse button was pressed within it. This event is bubbled.
+ *
+ * @param MyGeometry The Geometry of the widget receiving the event
+ * @param MouseEvent Information about the input event
+ *
+ * @return Whether the event was handled along with possible requests for the system to take action.
+ */
 FReply SBorder::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	if ( MouseButtonDownHandler.IsBound() )
@@ -103,6 +116,14 @@ FReply SBorder::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEv
 	}
 }
 
+/**
+ * The system calls this method to notify the widget that a mouse button was release within it. This event is bubbled.
+ *
+ * @param MyGeometry The Geometry of the widget receiving the event
+ * @param MouseEvent Information about the input event
+ *
+ * @return Whether the event was handled along with possible requests for the system to take action.
+ */
 FReply SBorder::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	if ( MouseButtonUpHandler.IsBound() )
@@ -117,6 +138,14 @@ FReply SBorder::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEven
 	}
 }
 
+/**
+ * The system calls this method to notify the widget that a mouse moved within it. This event is bubbled.
+ *
+ * @param MyGeometry The Geometry of the widget receiving the event
+ * @param MouseEvent Information about the input event
+ *
+ * @return Whether the event was handled along with possible requests for the system to take action.
+ */
 FReply SBorder::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	if ( MouseMoveHandler.IsBound() )
@@ -131,6 +160,14 @@ FReply SBorder::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& M
 	}
 }
 
+/**
+ * Called when a mouse button is double clicked
+ *
+ * @param  InMyGeometry  Widget geometry
+ * @param  InMouseEvent  Mouse button event
+ *
+ * @return  Returns whether the event was handled, along with other possible actions
+ */
 FReply SBorder::OnMouseButtonDoubleClick( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	if ( MouseDoubleClickHandler.IsBound() )

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
@@ -19,8 +19,34 @@
 #endif
 
 
+/** Physics stats */
+
+DEFINE_STAT(STAT_TotalPhysicsTime);
+DEFINE_STAT(STAT_PhysicsKickOffDynamicsTime);
+DEFINE_STAT(STAT_PhysicsFetchDynamicsTime);
+DEFINE_STAT(STAT_PhysicsEventTime);
+DEFINE_STAT(STAT_SetBodyTransform);
+
+DEFINE_STAT(STAT_NumBroadphaseAdds);
+DEFINE_STAT(STAT_NumBroadphaseRemoves);
+DEFINE_STAT(STAT_NumActiveConstraints);
+DEFINE_STAT(STAT_NumActiveSimulatedBodies);
+DEFINE_STAT(STAT_NumActiveKinematicBodies);
+DEFINE_STAT(STAT_NumMobileBodies);
+DEFINE_STAT(STAT_NumStaticBodies);
+DEFINE_STAT(STAT_NumShapes);
+
+DEFINE_STAT(STAT_NumBroadphaseAddsAsync);
+DEFINE_STAT(STAT_NumBroadphaseRemovesAsync);
+DEFINE_STAT(STAT_NumActiveConstraintsAsync);
+DEFINE_STAT(STAT_NumActiveSimulatedBodiesAsync);
+DEFINE_STAT(STAT_NumActiveKinematicBodiesAsync);
+DEFINE_STAT(STAT_NumMobileBodiesAsync);
+DEFINE_STAT(STAT_NumStaticBodiesAsync);
+DEFINE_STAT(STAT_NumShapesAsync);
+
+
 FPhysCommandHandler * GPhysCommandHandler = NULL;
-FDelegateHandle GPreGarbageCollectDelegateHandle;
 
 // CVars
 static TAutoConsoleVariable<float> CVarToleranceScaleLength(
@@ -80,14 +106,18 @@ void UWorld::SetupPhysicsTickFunctions(float DeltaSeconds)
 	EndPhysicsTickFunction.bCanEverTick = true;
 	EndPhysicsTickFunction.Target = this;
 	
-	StartAsyncTickFunction.bCanEverTick = true;
-	StartAsyncTickFunction.Target = this;
+	StartClothTickFunction.bCanEverTick = true;
+	StartClothTickFunction.Target = this;
+	
+	EndClothTickFunction.bCanEverTick = true;
+	EndClothTickFunction.Target = this;
 	
 	
 	// see if we need to update tick registration
 	bool bNeedToUpdateTickRegistration = (bShouldSimulatePhysics != StartPhysicsTickFunction.IsTickFunctionRegistered())
 		|| (bShouldSimulatePhysics != EndPhysicsTickFunction.IsTickFunctionRegistered())
-		|| (bShouldSimulatePhysics != StartAsyncTickFunction.IsTickFunctionRegistered());
+		|| (bShouldSimulatePhysics != StartClothTickFunction.IsTickFunctionRegistered())
+		|| (bShouldSimulatePhysics != EndClothTickFunction.IsTickFunctionRegistered());
 
 	if (bNeedToUpdateTickRegistration && PersistentLevel)
 	{
@@ -113,16 +143,27 @@ void UWorld::SetupPhysicsTickFunctions(float DeltaSeconds)
 			EndPhysicsTickFunction.UnRegisterTickFunction();
 		}
 
-		//async scene
-		if (bShouldSimulatePhysics && !StartAsyncTickFunction.IsTickFunctionRegistered() && UPhysicsSettings::Get()->bEnableAsyncScene)
+		//cloth
+		if (bShouldSimulatePhysics && !StartClothTickFunction.IsTickFunctionRegistered())
 		{
-			StartAsyncTickFunction.TickGroup = TG_EndPhysics;
-			StartAsyncTickFunction.RegisterTickFunction(PersistentLevel);
-			StartAsyncTickFunction.AddPrerequisite(this, EndPhysicsTickFunction);
+			StartClothTickFunction.TickGroup = TG_StartCloth;
+			StartClothTickFunction.RegisterTickFunction(PersistentLevel);
 		}
-		else if (!bShouldSimulatePhysics && StartAsyncTickFunction.IsTickFunctionRegistered())
+		else if (!bShouldSimulatePhysics && StartClothTickFunction.IsTickFunctionRegistered())
 		{
-			StartAsyncTickFunction.UnRegisterTickFunction();
+			StartClothTickFunction.UnRegisterTickFunction();
+		}
+
+		if (bShouldSimulatePhysics && !EndClothTickFunction.IsTickFunctionRegistered())
+		{
+			EndClothTickFunction.TickGroup = TG_EndCloth;
+			EndClothTickFunction.RegisterTickFunction(PersistentLevel);
+			EndClothTickFunction.AddPrerequisite(this, StartClothTickFunction);
+		}
+		else if (!bShouldSimulatePhysics && EndClothTickFunction.IsTickFunctionRegistered())
+		{
+			EndClothTickFunction.RemovePrerequisite(this, StartClothTickFunction);
+			EndClothTickFunction.UnRegisterTickFunction();
 		}
 	}
 
@@ -167,12 +208,15 @@ void UWorld::FinishPhysicsSim()
 	PhysScene->EndFrame(LineBatcher);
 }
 
-void UWorld::StartAsyncSim()
+void UWorld::StartClothSim()
 {
-	if (FPhysScene* PhysScene = GetPhysicsScene())
+	FPhysScene* PhysScene = GetPhysicsScene();
+	if (PhysScene == NULL)
 	{
-		PhysScene->StartAsync();
+		return;
 	}
+
+	PhysScene->StartCloth();
 }
 
 // the physics tick functions
@@ -235,20 +279,40 @@ FString FEndPhysicsTickFunction::DiagnosticMessage()
 	return TEXT("FEndPhysicsTickFunction");
 }
 
-void FStartAsyncSimulationFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+void FStartClothSimulationFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 {
-	QUICK_SCOPE_CYCLE_COUNTER(FStartAsyncSimulationFunction_ExecuteTick);
+	QUICK_SCOPE_CYCLE_COUNTER(FStartClothSimulationFunction_ExecuteTick);
 
 	check(Target);
-	Target->StartAsyncSim();
+	Target->StartClothSim();
 }
 
-FString FStartAsyncSimulationFunction::DiagnosticMessage()
+FString FStartClothSimulationFunction::DiagnosticMessage()
 {
-	return TEXT("FStartAsyncSimulationFunction");
+	return TEXT("FStartClothSimulationFunction");
 }
 
-void PvdConnect(FString Host, bool bVisualization);
+void FEndClothSimulationFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+{
+	QUICK_SCOPE_CYCLE_COUNTER(FEndClothSimulationFunction_ExecuteTick);
+
+	//We currently have nothing to do in this tick group, but we still want to wait on cloth simulation so that PostPhysics is ensured this is done
+	check(Target);
+	FPhysScene* PhysScene = Target->GetPhysicsScene();
+	if (PhysScene == NULL)
+	{
+		return;
+	}
+	PhysScene->WaitClothScene();
+}
+
+FString FEndClothSimulationFunction::DiagnosticMessage()
+{
+	return TEXT("FStartClothSimulationFunction");
+}
+
+
+void PvdConnect(FString Host);
 
 //////// GAME-LEVEL RIGID BODY PHYSICS STUFF ///////
 void InitGamePhys()
@@ -296,7 +360,7 @@ void InitGamePhys()
 
 	GPhysCommandHandler = new FPhysCommandHandler();
 
-	GPreGarbageCollectDelegateHandle = FCoreUObjectDelegates::PreGarbageCollect.AddRaw(GPhysCommandHandler, &FPhysCommandHandler::Flush);
+	FCoreUObjectDelegates::PreGarbageCollect.AddRaw(GPhysCommandHandler, &FPhysCommandHandler::Flush);
 
 	// Init Extensions
 	PxInitExtensions(*GPhysXSDK);
@@ -319,7 +383,7 @@ void InitGamePhys()
 
 	if( FParse::Param( FCommandLine::Get(), TEXT( "PVD" ) ) )
 	{
-		PvdConnect(TEXT("localhost"), true);
+		PvdConnect(TEXT("localhost"));
 	}
 
 
@@ -435,7 +499,6 @@ void TermGamePhys()
 	if (GPhysCommandHandler != NULL)
 	{
 		GPhysCommandHandler->Flush();	//finish off any remaining commands
-		FCoreUObjectDelegates::PreGarbageCollect.Remove(GPreGarbageCollectDelegateHandle);
 		delete GPhysCommandHandler;
 		GPhysCommandHandler = NULL;
 	}

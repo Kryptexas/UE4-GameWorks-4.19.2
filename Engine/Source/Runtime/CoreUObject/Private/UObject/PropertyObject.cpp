@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
 #include "LinkerPlaceholderExportObject.h"
@@ -8,10 +8,9 @@
 	UObjectProperty.
 -----------------------------------------------------------------------------*/
 
-FString UObjectProperty::GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, const FString& InnerNativeTypeName)  const
+FString UObjectProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint32 CPPExportFlags/*=0*/ ) const
 {
-	ensure(!InnerNativeTypeName.IsEmpty());
-	return FString::Printf(TEXT("%s*"), *InnerNativeTypeName);
+	return FString::Printf( TEXT("%s%s*"), PropertyClass->GetPrefixCPP(), *PropertyClass->GetName() );
 }
 
 FString UObjectProperty::GetCPPTypeForwardDeclaration() const

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -8,34 +8,24 @@ using System.Diagnostics;
 
 namespace UnrealBuildTool
 {
-	/// <summary>
-	/// Helper class for finding 3rd party headers included in public engine headers.
-	/// </summary>
+	/**
+	 * Helper class for finding 3rd party headers included in public engine headers.
+	 **/
 	public class ThirdPartyHeaderFinder
 	{
-		/// <summary>
-		/// List of all third party headers from the current game's modules
-		/// </summary>
+		/** List of all third party headers from the current game's modules */
 		static List<Header> ThirdPartyHeaders;
-
-		/// <summary>
-		/// List of all engine headers referenced by the current game.
-		/// </summary>
+		/** List of all engine headers referenced by the current game. */
 		static List<Header> EngineHeaders;
 
-		/// <summary>
-		/// Helper class for storing headers included from public engine headers
-		/// </summary>
+		/**
+		 * Helper class for storing headers included from public engine headers
+		 **/
 		class IncludePath
 		{
-			/// <summary>
-			/// Path of public engine header includes from which the other header is included.
-			/// </summary>
+			/** Path of public engine header includes from which the other header is included. */
 			public string PublicHeaderPath;
-
-			/// <summary>
-			/// The other header included from the public engine header (may be third party or private)
-			/// </summary>
+			/** The other header included from the public engine header (may be third party or private) */
 			public Header OtherHeader;
 
 			public IncludePath(string InPublicPath, Header Other)
@@ -45,34 +35,20 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/// <summary>
-		/// Helper class for storing info on a header file.
-		/// </summary>
+		/**
+		 * Helper class for storing info on a header file.
+		 **/
 		class Header
 		{
-			/// <summary>
-			/// Relative path to the header file.
-			/// </summary>
+			/** Relative path to the header file. */
 			public string Path;
-
-			/// <summary>
-			/// Name (with extension) of the header file.
-			/// </summary>
+			/** Name (with extension) of the header file. */
 			public string Name;
-
-			/// <summary>
-			/// If true this header is a public engine header file.
-			/// </summary>
+			/** If true this header is a public engine header file. */
 			public bool IsPublic;
-
-			/// <summary>
-			/// Contents of the header file.
-			/// </summary>
+			/** Contents of the header file. */
 			public string Contents;
-
-			/// <summary>
-			/// Pregenerated variations of includes.
-			/// </summary>
+			/** Pregenerated variations of includes. */
 			public string[] TestIncludes;
 
 			public Header(string InPath, bool InPublic)
@@ -102,29 +78,27 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/// <summary>
-		/// Find all third party and private header includes in public engine headers.
-		/// </summary>
-		public static void FindThirdPartyIncludes(UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, string Architecture)
+		/**
+		 * Find all third party and private header includes in public engine headers.
+		 **/
+		public static void FindThirdPartyIncludes(UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration)
 		{
 			Log.TraceInformation("Looking for third party header includes in public engine header files (this may take a few minutes)...");
 
-			TargetInfo Target = new TargetInfo(Platform, Configuration, Architecture);
+			TargetInfo Target = new TargetInfo(Platform, Configuration);
 			List<string> UncheckedModules = new List<string>();
 			EngineHeaders = new List<Header>();
 			ThirdPartyHeaders = new List<Header>();
 
-			// Create a rules assembly for the engine
-			RulesAssembly EngineRulesAssembly = RulesCompiler.CreateEngineRulesAssembly();
-
 			// Find all modules referenced by the current target
-			List<FileReference> ModuleFileNames = RulesCompiler.FindAllRulesSourceFiles(RulesCompiler.RulesFileType.Module, GameFolders: null, ForeignPlugins: null, AdditionalSearchPaths: null);
-			foreach (FileReference ModuleFileName in ModuleFileNames)
+			List<string> ModuleFileNames = RulesCompiler.FindAllRulesSourceFiles( RulesCompiler.RulesFileType.Module, AdditionalSearchPaths:null );
+			foreach (string ModuleFileName in ModuleFileNames)
 			{
-				string ModuleName = Path.GetFileNameWithoutExtension(ModuleFileName.GetFileNameWithoutExtension());
+				string ModuleName = Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(ModuleFileName));
 				try
 				{
-					ModuleRules RulesObject = EngineRulesAssembly.CreateModuleRules(ModuleName, Target);
+					string UnusedModuleFilename;
+					ModuleRules RulesObject = RulesCompiler.CreateModuleRules(ModuleName, Target, out UnusedModuleFilename);
 					bool bEngineHeaders = RulesObject.Type != ModuleRules.ModuleType.External;
 					foreach (string SystemIncludePath in RulesObject.PublicSystemIncludePaths)
 					{
@@ -136,7 +110,7 @@ namespace UnrealBuildTool
 					}
 				}
 				catch (Exception)
-				{
+				{ 
 					// Ignore, some modules may fail here.
 					UncheckedModules.Add(ModuleName);
 				}

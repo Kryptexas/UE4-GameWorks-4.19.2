@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 
@@ -16,7 +16,6 @@ UScaleBox::UScaleBox(const FObjectInitializer& ObjectInitializer)
 	StretchDirection = EStretchDirection::Both;
 	Stretch = EStretch::ScaleToFit;
 	UserSpecifiedScale = 1.0f;
-	IgnoreInheritedScale = false;
 }
 
 void UScaleBox::ReleaseSlateResources(bool bReleaseChildren)
@@ -45,7 +44,6 @@ void UScaleBox::SynchronizeProperties()
 	MyScaleBox->SetStretchDirection(StretchDirection);
 	MyScaleBox->SetStretch(Stretch);
 	MyScaleBox->SetUserSpecifiedScale(UserSpecifiedScale);
-	MyScaleBox->SetIgnoreInheritedScale(IgnoreInheritedScale);
 }
 
 UClass* UScaleBox::GetSlotClass() const

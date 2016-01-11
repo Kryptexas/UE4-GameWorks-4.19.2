@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
 #include "VirtualTrackArea.h"
@@ -50,14 +50,14 @@ TSharedPtr<FSequencerDisplayNode> FVirtualTrackArea::HitTestNode(float InPhysica
 	return TreeView.HitTestNode(InPhysicalPosition);
 }
 
-TSharedPtr<FSequencerTrackNode> GetParentTrackNode(FSequencerDisplayNode& In)
+TSharedPtr<FTrackNode> GetParentTrackNode(FSequencerDisplayNode& In)
 {
 	FSequencerDisplayNode* Current = &In;
 	while(Current && Current->GetType() != ESequencerNode::Object)
 	{
 		if (Current->GetType() == ESequencerNode::Track)
 		{
-			return StaticCastSharedRef<FSequencerTrackNode>(Current->AsShared());
+			return StaticCastSharedRef<FTrackNode>(Current->AsShared());
 		}
 		Current = Current->GetParent().Get();
 	}
@@ -71,7 +71,7 @@ TOptional<FSectionHandle> FVirtualTrackArea::HitTestSection(FVector2D InPhysical
 
 	if (Node.IsValid())
 	{
-		TSharedPtr<FSequencerTrackNode> TrackNode = GetParentTrackNode(*Node);
+		TSharedPtr<FTrackNode> TrackNode = GetParentTrackNode(*Node);
 
 		if (TrackNode.IsValid())
 		{
@@ -92,13 +92,13 @@ TOptional<FSectionHandle> FVirtualTrackArea::HitTestSection(FVector2D InPhysical
 	return TOptional<FSectionHandle>();
 }
 
-FSequencerSelectedKey FVirtualTrackArea::HitTestKey(FVector2D InPhysicalPosition) const
+FSelectedKey FVirtualTrackArea::HitTestKey(FVector2D InPhysicalPosition) const
 {
 	TSharedPtr<FSequencerDisplayNode> Node = HitTestNode(InPhysicalPosition.Y);
 
 	if (!Node.IsValid())
 	{
-		return FSequencerSelectedKey();
+		return FSelectedKey();
 	}
 
 	const float KeyLeft  = PixelToTime(InPhysicalPosition.X - SequencerSectionConstants::KeySize.X/2);
@@ -107,11 +107,11 @@ FSequencerSelectedKey FVirtualTrackArea::HitTestKey(FVector2D InPhysicalPosition
 	TArray<TSharedRef<IKeyArea>> KeyAreas;
 
 	// First check for a key area node on the hit-tested node
-	TSharedPtr<FSequencerSectionKeyAreaNode> KeyAreaNode;
+	TSharedPtr<FSectionKeyAreaNode> KeyAreaNode;
 	switch (Node->GetType())
 	{
-		case ESequencerNode::KeyArea: 	KeyAreaNode = StaticCastSharedPtr<FSequencerSectionKeyAreaNode>(Node); break;
-		case ESequencerNode::Track:		KeyAreaNode = StaticCastSharedPtr<FSequencerTrackNode>(Node)->GetTopLevelKeyNode(); break;
+		case ESequencerNode::KeyArea: 	KeyAreaNode = StaticCastSharedPtr<FSectionKeyAreaNode>(Node); break;
+		case ESequencerNode::Track:		KeyAreaNode = StaticCastSharedPtr<FTrackNode>(Node)->GetTopLevelKeyNode(); break;
 	}
 
 	if (KeyAreaNode.IsValid())
@@ -128,7 +128,7 @@ FSequencerSelectedKey FVirtualTrackArea::HitTestKey(FVector2D InPhysicalPosition
 	// Failing that, and the node is collapsed, we check for key groupings
 	else if (!Node->IsExpanded())
 	{
-		TSharedPtr<FSequencerTrackNode> TrackNode = GetParentTrackNode(*Node);
+		TSharedPtr<FTrackNode> TrackNode = GetParentTrackNode(*Node);
 		const TArray< TSharedRef<ISequencerSection> >& Sections = TrackNode->GetSections();
 
 		for ( int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex )
@@ -150,10 +150,10 @@ FSequencerSelectedKey FVirtualTrackArea::HitTestKey(FVector2D InPhysicalPosition
 			const float Time = KeyArea->GetKeyTime(Key);
 			if (Time >= KeyLeft && Time <= KeyRight)
 			{
-				return FSequencerSelectedKey(*KeyArea->GetOwningSection(), KeyArea, Key);
+				return FSelectedKey(*KeyArea->GetOwningSection(), KeyArea, Key);
 			}
 		}
 	}
 
-	return FSequencerSelectedKey();
+	return FSelectedKey();
 }

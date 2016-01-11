@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -41,12 +41,11 @@ class UDataTable
 	/** Map of name of row to row data structure. */
 	TMap<FName, uint8*>		RowMap;
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	ENGINE_API virtual void FinishDestroy() override;
 	ENGINE_API virtual void Serialize(FArchive& Ar) override;
 	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 #if WITH_EDITORONLY_DATA
-	ENGINE_API FName GetRowStructName() const;
 	ENGINE_API virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 	ENGINE_API virtual void PostInitProperties() override;
 	ENGINE_API virtual void PostLoad() override;
@@ -57,15 +56,11 @@ class UDataTable
 	/** The filename imported to create this object. Relative to this object's package, BaseDir() or absolute */
 	UPROPERTY()
 	FString ImportPath_DEPRECATED;
-
-	/** The name of the RowStruct we were using when we were last saved */
-	UPROPERTY()
-	FName RowStructName;
 #endif	// WITH_EDITORONLY_DATA
 
-	//~ End  UObject Interface
+	// End  UObject interface
 
-	//~ Begin UDataTable Interface
+	// Begin UDataTable interface
 
 	/** Function to find the row of a table given its name. */
 	template <class T>
@@ -194,7 +189,7 @@ public:
 	ENGINE_API TArray< TArray<FString> > GetTableData() const;
 #endif //WITH_EDITOR
 
-	//~ End UDataTable Interface
+	// End UDataTable interface
 
 private:
 	void SaveStructData(FArchive& Ar);

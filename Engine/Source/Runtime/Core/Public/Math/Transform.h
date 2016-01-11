@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -44,29 +44,17 @@ public:
 #if ENABLE_NAN_DIAGNOSTIC
 	FORCEINLINE void DiagnosticCheckNaN_Scale3D() const
 	{
-		if (Scale3D.ContainsNaN())
-		{
-			logOrEnsureNanError(TEXT("FTransform Scale3D contains NaN: %s"), *Scale3D.ToString());
-			const_cast<FTransform*>(this)->Scale3D = FVector(1.f);
-		}
+		ensureMsgf(!Scale3D.ContainsNaN(), TEXT("FTransform Scale3D contains NaN: %s"), *Scale3D.ToString());
 	}
 
 	FORCEINLINE void DiagnosticCheckNaN_Translate() const
 	{
-		if (Translation.ContainsNaN())
-		{
-			logOrEnsureNanError(TEXT("FTransform Translation contains NaN: %s"), *Translation.ToString());
-			const_cast<FTransform*>(this)->Translation = FVector::ZeroVector;
-		}
+		ensureMsgf(!Translation.ContainsNaN(), TEXT("FTransform Translation contains NaN: %s"), *Translation.ToString());
 	}
 
 	FORCEINLINE void DiagnosticCheckNaN_Rotate() const
 	{
-		if (Rotation.ContainsNaN())
-		{
-			logOrEnsureNanError(TEXT("FTransform Rotation contains NaN: %s"), *Rotation.ToString());
-			const_cast<FTransform*>(this)->Rotation = FQuat::Identity;			
-		}
+		ensureMsgf(!Rotation.ContainsNaN(), TEXT("FTransform Rotation contains NaN: %s"), *Rotation.ToString());
 	}
 
 	FORCEINLINE void DiagnosticCheckNaN_All() const
@@ -75,22 +63,11 @@ public:
 		DiagnosticCheckNaN_Rotate();
 		DiagnosticCheckNaN_Translate();
 	}
-
-	FORCEINLINE void DiagnosticCheck_IsValid() const
-	{
-		DiagnosticCheckNaN_All();
-		if (!IsValid())
-		{
-			logOrEnsureNanError(TEXT("FTransform transform is not valid: %s"), *ToHumanReadableString());
-		}
-		
-	}
 #else
 	FORCEINLINE void DiagnosticCheckNaN_Translate() const {}
 	FORCEINLINE void DiagnosticCheckNaN_Rotate() const {}
 	FORCEINLINE void DiagnosticCheckNaN_Scale3D() const {}
 	FORCEINLINE void DiagnosticCheckNaN_All() const {}
-	FORCEINLINE void DiagnosticCheck_IsValid() const {}
 #endif
 
 	/**
@@ -101,6 +78,15 @@ public:
 		, Translation(0.f)
 		, Scale3D(1.f)
 	{
+		// Note: This can be used to track down initialization issues with bone atom arrays; but it will
+		// cause issues with transient fields such as RootMotionDelta that get initialized to 0 by default
+#if 0
+		float qnan = FMath::Log2(-5.3f);
+		check(FMath::IsNaN(qnan));
+		Translation = FVector(qnan, qnan, qnan);
+		Rotation = FQuat(qnan, qnan, qnan, qnan);
+		Scale3D = FVector(qnan, qnan, qnan);
+#endif
 	}
 
 	/**
@@ -114,22 +100,6 @@ public:
 			Scale3D(FVector(1.f))
 	{
 		DiagnosticCheckNaN_All();
-	}
-
-	/**
-	 * Constructor with leaving uninitialized memory
-	 */
-	FORCEINLINE explicit FTransform(ENoInit) 
-	{
-		// Note: This can be used to track down initialization issues with bone transform arrays; but it will
-		// cause issues with transient fields such as RootMotionDelta that get initialized to 0 by default
-#if ENABLE_NAN_DIAGNOSTIC
-		float qnan = FMath::Log2(-5.3f);
-		check(FMath::IsNaN(qnan));
-		Translation = FVector(qnan, qnan, qnan);
-		Rotation = FQuat(qnan, qnan, qnan, qnan);
-		Scale3D = FVector(qnan, qnan, qnan);
-#endif
 	}
 
 	/**
@@ -654,7 +624,7 @@ private:
 
 	FORCEINLINE bool Private_Scale3DEquals(const FVector& InScale3D, const float Tolerance = KINDA_SMALL_NUMBER) const
 	{
-		return Scale3D.Equals(InScale3D, Tolerance);
+		return (Scale3D-InScale3D).SizeSquared() <= FMath::Square(Tolerance);
 	}
 
 public:
@@ -701,13 +671,13 @@ public:
 	// Test if all components of the transforms are equal, within a tolerance.
 	inline bool Equals(const FTransform& Other, float Tolerance=KINDA_SMALL_NUMBER) const
 	{
-		return Private_TranslationEquals(Other.Translation, Tolerance) && Private_RotationEquals(Other.Rotation, Tolerance) && Private_Scale3DEquals(Other.Scale3D, Tolerance);
+		return Private_RotationEquals(Other.Rotation, Tolerance) && Private_TranslationEquals(Other.Translation, Tolerance) && Private_Scale3DEquals(Other.Scale3D, Tolerance);
 	}
 
 	// Test if rotation and translation components of the transforms are equal, within a tolerance.
 	inline bool EqualsNoScale(const FTransform& Other, float Tolerance=KINDA_SMALL_NUMBER) const
 	{
-		return Private_TranslationEquals(Other.Translation, Tolerance) && Private_RotationEquals(Other.Rotation, Tolerance);
+		return Private_RotationEquals(Other.Rotation, Tolerance) && Private_TranslationEquals(Other.Translation, Tolerance);
 	}
 
 	/**

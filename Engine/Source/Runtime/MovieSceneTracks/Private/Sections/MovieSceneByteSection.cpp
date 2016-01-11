@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneByteSection.h"
@@ -42,31 +42,27 @@ void UMovieSceneByteSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 }
 
 
-void UMovieSceneByteSection::AddKey( float Time, const uint8& Value, EMovieSceneKeyInterpolation KeyInterpolation )
+void UMovieSceneByteSection::AddKey( float Time, uint8 Value, FKeyParams KeyParams )
 {
-	if (TryModify())
-	{
-		ByteCurve.UpdateOrAddKey(Time, Value);
-	}
-}
+	Modify();
 
-
-bool UMovieSceneByteSection::NewKeyIsNewData( float Time, const uint8& Value ) const
-{
-	return Eval( Time ) != Value;
-}
-
-
-bool UMovieSceneByteSection::HasKeys( const uint8& Value ) const
-{
-	return ByteCurve.GetNumKeys() > 0;
-}
-
-
-void UMovieSceneByteSection::SetDefault( const uint8& Value )
-{
-	if (TryModify())
+	if (ByteCurve.GetNumKeys() == 0 && !KeyParams.bAddKeyEvenIfUnchanged)
 	{
 		ByteCurve.SetDefaultValue(Value);
 	}
+	else
+	{
+		ByteCurve.UpdateOrAddKey(Time, Value ? 1 : 0);
+	}
+}
+
+
+bool UMovieSceneByteSection::NewKeyIsNewData(float Time, uint8 Value, FKeyParams KeyParams) const
+{
+	if ( ByteCurve.GetNumKeys() == 0 || (KeyParams.bAutoKeying && Eval(Time) != Value) )
+	{
+		return true;
+	}
+
+	return false;
 }

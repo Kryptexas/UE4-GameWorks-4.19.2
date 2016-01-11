@@ -1,0 +1,205 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Physics Asset Properties Reference
+Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhAT
+Description:A listing of properties and descriptions for Physics Bodies, Physics Constraints, and Physics Assets accessible in the Physics Asset Tool.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Physics/PhAT/Properties:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhAT/Properties:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhAT/Properties:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/Phat/Properties]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Physics/PhAT/Properties:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhAT/Properties:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhAT/Properties:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/Phat/Properties]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+
+
+## Physics Asset Tool Properties
+
+| Property | Description |
+| --- | --- |
+| [REGION:tablesection]Anim[/REGION] ||
+| **Physics Blend** | %doxygen:UPhATSimOptions::PhysicsBlend% |
+| **Poke Pause Time** | %doxygen:UPhATSimOptions::PokePauseTime% |
+| **Poke Blend Time** | %doxygen:UPhATSimOptions::PokeBlendTime% |
+|[REGION:tablesection]Simulation[/REGION]||
+|**Floor Gap** | %doxygen:UPhATSimOptions::FloorGap% |
+|**Grav Scale** | %doxygen:UPhATSimOptions::GravScale% |
+|**Max FPS** | |
+|**Time Dilation** |  |
+|[REGION:tablesection]Mouse Spring[/REGION]||
+|**Handle Linear Damping** | %doxygen:UPhATSimOptions::HandleLinearDamping% |
+|**Handle Linear Stiffness** | %doxygen:UPhATSimOptions::HandleLinearStiffness% |
+|**Handle Angular Damping** | %doxygen:UPhATSimOptions::HandleAngularDamping% |
+|**Handle Angular Stiffness** | %doxygen:UPhATSimOptions::HandleAngularStiffness% |
+|**Interpolation Speed** | %doxygen:UPhATSimOptions::InterpolationSpeed%|
+|[REGION:tablesection]Poking[/REGION]||
+| **Poke Strength** | %doxygen:UPhATSimOptions::PokeStrength% |
+|[REGION:tablesection]Advanced[/REGION]||
+| **Show Constraints as Points** | %doxygen:UPhATSimOptions::bShowConstraintsAsPoints% |
+| **Show Names in Hierarchy** | %doxygen:UPhATSimOptions::bShowNamesInHierarchy% |
+|[REGION:tablesection]Drawing[/REGION]||
+| **Constraint Draw Size** | %doxygen:UPhATSimOptions::ConstraintDrawSize% |
+
+
+## Physics Body Properties
+
+| Property | Description |
+| --- | --- |
+|[REGION:tablesection]Body Setup[/REGION]||
+| **Bone Name** | %doxygen:UBodySetup::BoneName% |
+| **Consider for Bounds** | %doxygen:UBodySetup::bConsiderForBounds% |
+|[REGION:tablesection]Physics[/REGION]||
+| **Mass in KG** | Mass of the body in KG. |
+| **Linear Damping** | %doxygen:FBodyInstance::LinearDamping% |
+| **Angular Damping** | %doxygen:FBodyInstance::AngularDamping% |
+| **Enable Gravity** | %doxygen:FBodyInstance::bEnableGravity% |
+| **Physics Type** | %doxygen:UBodySetup::PhysicsType% |
+| **Double Sided Geometry** |  |
+| **Simple Collision Physical Material** | %doxygen:UBodySetup::PhysMaterial% |
+| **Start Awake** | %doxygen:FBodyInstance::bStartAwake% |
+| **Center of Mass Offset** | %doxygen:FBodyInstance::COMNudge% |
+| **Mass Scale** | %doxygen:FBodyInstance::MassScale% |
+| **Max Angular Velocity** |  |
+| **Use Async Scene** | %doxygen:FBodyInstance::bUseAsyncScene% |
+| **Override Max Depenetration Velocity** |  |
+| **Max Depenetration Velocity** |  |
+| **Override Walkable Slope on Instance** |  |
+| **Walkable Slope Override** | %doxygen:UBodySetup::WalkableSlopeOverride% |
+| **Walkable Slope Behavior** | %doxygen:FWalkableSlopeOverride::WalkableSlopeBehavior% |
+| **Walkable Slope Angle** | %doxygen:FWalkableSlopeOverride::WalkableSlopeAngle% |
+| **Sleep Family** | %doxygen:FBodyInstance::SleepFamily% |
+| **Position Solver Iteration Count** | %doxygen:FBodyInstance::PositionSolverIterationCount% |
+| **Velocity Solver Iteration Count** | %doxygen:FBodyInstance::VelocitySolverIterationCount% |
+|[REGION:tablesection]Collision[/REGION]||
+| **Simulation Generates Hit Events** | %doxygen:FBodyInstance::bNotifyRigidBodyCollision% |
+| **Phys Material Override** | %doxygen:FBodyInstance::PhysMaterialOverride% |
+| **Collision Response** | %doxygen:UBodySetup::CollisionReponse% |
+| **Use CCD** | %doxygen:FBodyInstance::bUseCCD% |
+
+## Physics Constraint Properties
+
+| Property | Description |
+| --- | --- |
+|[REGION:tablesection]Constraint[/REGION]||
+| **Joint Name** | %doxygen:FConstraintInstance::JointName% |
+| **Constraint Bone 1** | %doxygen:FConstraintInstance::ConstraintBone1% |
+| **Constraint Bone 2** | %doxygen:FConstraintInstance::ConstraintBone2% |
+| **Disable Collision** | %doxygen:FConstraintInstance::bDisableCollision% |
+|[REGION:tablesection]Linear Limits[/REGION]||
+| **Linear XMotion** | %doxygen:FConstraintInstance::LinearXMotion% |
+| **Linear YMotion** | %doxygen:FConstraintInstance::LinearYMotion% |
+| **Linear ZMotion** | %doxygen:FConstraintInstance::LinearZMotion% |
+| **Linear Limit Size** | %doxygen:FConstraintInstance::LinearLimitSize% |
+| **Linear Limit Soft** | %doxygen:FConstraintInstance::bLinearLimitSoft% |
+| **Linear Limit Stiffness** | %doxygen:FConstraintInstance::LinearLimitStiffness% |
+| **Linear Limit Damping** | %doxygen:FConstraintInstance::LinearLimitDamping% |
+| **Linear Breakable** | %doxygen:FConstraintInstance::bLinearBreakable% |
+| **Linear Break Threshold** | %doxygen:FConstraintInstance::LinearBreakThreshold% |
+|[REGION:tablesection]Projection[/REGION]||
+| **Enable Projection** | %doxygen:FConstraintInstance::bEnableProjection% |
+| **Projection LinearTolerance** | %doxygen:FConstraintInstance::ProjectionLinearTolerance% |
+| **Projection Angular Tolerance** | %doxygen:FConstraintInstance::ProjectionAngularTolerance% |
+|[REGION:tablesection]Angular Limits[/REGION]||
+| **Angular Swing1 Motion** | %doxygen:FConstraintInstance::AngularSwing1Motion% |
+| **Angular Swing2 Motion** | %doxygen:FConstraintInstance::AngularSwing2Motion% |
+| **Angular Twist Motion** | %doxygen:FConstraintInstance::AngularTwistMotion% |
+| **Swing1 Limit Angle** | %doxygen:FConstraintInstance::Swing1LimitAngle% |
+| **Swing2 Limit Angle** | %doxygen:FConstraintInstance::Swing2LimitAngle% |
+| **Twist Limit Angle** | %doxygen:FConstraintInstance::TwistLimitAngle% |
+| **Swing Limit Soft** | %doxygen:FConstraintInstance::bSwingLimitSoft% |
+| **Swing Limit Stiffness** | %doxygen:FConstraintInstance::SwingLimitStiffness% |
+| **Swing Limit Damping** | %doxygen:FConstraintInstance::SwingLimitDamping% |
+| **Twist Limit Soft** | %doxygen:FConstraintInstance::bTwistLimitSoft% |
+| **Twist Limit Stiffness** | %doxygen:FConstraintInstance::TwistLimitStiffness% |
+| **Twist Limit Damping** | %doxygen:FConstraintInstance::TwistLimitDamping% |
+| **Angular Breakable** | %doxygen:FConstraintInstance::bAngularBreakable% |
+| **Angular Break Threshold** | %doxygen:FConstraintInstance::AngularBreakThreshold% |
+|[REGION:tablesection]Linear Motor[/REGION]||
+| **Linear Position Drive** | %doxygen:FConstraintInstance::bLinearPositionDrive% |
+| ^ | [INCLUDE:#linearMotor01] |
+| **Linear Velocity Drive** | %doxygen:FConstraintInstance::bLinearVelocityDrive% |
+| ^ | [INCLUDE:#linearMotor02] |
+|[REGION:tablesection]Angular Motor[/REGION]||
+| **bAngularOrientationDrive** | %doxygen:FConstraintInstance::bAngularOrientationDrive% |
+| ^ | [INCLUDE:#angularMotor01] |
+| **bAngularVelocityDrive** | %doxygen:FConstraintInstance::bAngularVelocityDrive% |
+| ^ | [INCLUDE:#angularMotor02] |
+
+<!--
+
+[EXCERPT:linearMotor01]
+[REGION:simpletable]
+| Property | Description |
+|---|---|
+| **Linear XPosition Drive** | %doxygen:FConstraintInstance::bLinearXPositionDrive%  |
+| **Linear YPosition Drive** | %doxygen:FConstraintInstance::bLinearYPositionDrive% |
+| **Linear ZPosition Drive** | %doxygen:FConstraintInstance::bLinearZPositionDrive% |
+| **Linear Position Target** | %doxygen:FConstraintInstance::LinearPositionTarget% |
+[/REGION]
+[/EXCERPT:linearMotor01]
+
+[EXCERPT:linearMotor02]
+[REGION:simpletable]
+| Property | Description |
+|---|---|
+| **Linear Position Target** | %doxygen:FConstraintInstance::LinearVelocityTarget% |
+| **Linear Drive Spring** | %doxygen:FConstraintInstance::LinearDriveSpring% |
+| **Linear Drive Damping** | %doxygen:FConstraintInstance::LinearDriveDamping% |
+| **Linear Drive Force Limit** | %doxygen:FConstraintInstance::LinearDriveForceLimit% |
+[/REGION]
+[/EXCERPT:linearMotor02]
+
+[EXCERPT:angularMotor01]
+[REGION:simpletable]
+| Property | Description |
+|---|---|
+| **Angular Orientation Target** | %doxygen:FConstraintInstance::AngularOrientationTarget%  |
+[/REGION]
+[/EXCERPT:angularMotor01]
+
+[EXCERPT:angularMotor02]
+[REGION:simpletable]
+| Property | Description |
+|---|---|
+| **Angular Velocity Target** | %doxygen:FConstraintInstance::AngularVelocityTarget%  |
+| **Angular Drive Force Limit** | %doxygen:FConstraintInstance::AngularDriveForceLimit% |
+| **Angular Drive Spring** | %doxygen:FConstraintInstance::AngularDriveSpring% |
+| **Angular Drive Damping** | %doxygen:FConstraintInstance::AngularDriveDamping% |
+[/REGION]
+[/EXCERPT:angularMotor02]
+
+-->

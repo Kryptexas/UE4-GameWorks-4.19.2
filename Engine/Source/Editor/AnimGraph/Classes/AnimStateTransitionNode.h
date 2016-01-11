@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -40,11 +40,7 @@ class UAnimStateTransitionNode : public UAnimStateNodeBase
 	UPROPERTY(EditAnywhere, Category=Transition)
 	UCurveFloat* CustomBlendCurve;
 
-	// The blend profile to use to evaluate this transition per-bone
-	UPROPERTY(EditAnywhere, Category=Transition)
-	UBlendProfile* BlendProfile;
-
-	// Try setting the rule automatically based on most relevant player node's remaining time and the CrossfadeDuration of the transition, ignoring the internal time
+	// Try setting the rule automatically based on the player node remaining time and the CrossfadeDuration, ignoring the internal time
 	UPROPERTY(EditAnywhere, Category=Transition)
 	bool bAutomaticRuleBasedOnSequencePlayerInState;
 
@@ -94,12 +90,12 @@ class UAnimStateTransitionNode : public UAnimStateNodeBase
 	UPROPERTY()
 	int32 SharedCrossfadeIdx;
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostLoad() override;
-	//~ End UObject Interface
+	// End UObject interface
 
-	//~ Begin UEdGraphNode Interface
+	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FText GetTooltipText() const override;
@@ -111,13 +107,13 @@ class UAnimStateTransitionNode : public UAnimStateNodeBase
 	virtual void PostPlacedNewNode() override;
 	virtual void DestroyNode() override;
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
-	//~ End UEdGraphNode Interface
+	// End UEdGraphNode interface
 
-	//~ Begin UAnimStateNodeBase Interface
+	// Begin UAnimStateNodeBase interface
 	virtual UEdGraph* GetBoundGraph() const override { return BoundGraph; }
 	virtual UEdGraphPin* GetInputPin() const override { return Pins[0]; }
 	virtual UEdGraphPin* GetOutputPin() const override { return Pins[1]; }
-	//~ End UAnimStateNodeBase Interface
+	// End UAnimStateNodeBase interface
 
 	// @return the name of this state
 	ANIMGRAPH_API FString GetStateName() const override;

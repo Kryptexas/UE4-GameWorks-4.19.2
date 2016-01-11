@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EnginePrivate.h"
@@ -31,7 +31,6 @@ void USphereComponent::UpdateBodySetup()
 		ShapeBodySetup = NewObject<UBodySetup>(this);
 		ShapeBodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
 		ShapeBodySetup->AggGeom.SphereElems.Add(FKSphereElem());
-		ShapeBodySetup->bNeverNeedsCookedCollisionData = true;
 	}
 
 	check (ShapeBodySetup->AggGeom.SphereElems.Num() == 1);
@@ -52,13 +51,13 @@ void USphereComponent::UpdateBodySetup()
 void USphereComponent::SetSphereRadius( float InSphereRadius, bool bUpdateOverlaps )
 {
 	SphereRadius = InSphereRadius;
-	UpdateBodySetup();
 	MarkRenderStateDirty();
 
 	if (bPhysicsStateCreated)
 	{
-		// Update physics engine collision shapes
-		BodyInstance.UpdateBodyScale(ComponentToWorld.GetScale3D(), true);
+		DestroyPhysicsState();
+		UpdateBodySetup();
+		CreatePhysicsState();
 
 		if ( bUpdateOverlaps && IsCollisionEnabled() && GetOwner() )
 		{
@@ -107,8 +106,8 @@ FPrimitiveSceneProxy* USphereComponent::CreateSceneProxy()
 					const FLinearColor DrawSphereColor = GetViewSelectionColor(SphereColor, *View, IsSelected(), IsHovered(), false, IsIndividuallySelected() );
 
 					// Taking into account the min and maximum drawing distance
-					const float DistanceSqr = (View->ViewMatrices.ViewOrigin - LocalToWorld.GetOrigin()).SizeSquared();
-					if (DistanceSqr < FMath::Square(GetMinDrawDistance()) || DistanceSqr > FMath::Square(GetMaxDrawDistance()) )
+					const float Distance = (View->ViewMatrices.ViewOrigin - LocalToWorld.GetOrigin()).Size();
+					if (Distance < GetMinDrawDistance() || Distance > GetMaxDrawDistance() )
 					{
 						continue;
 					}
@@ -130,7 +129,7 @@ FPrimitiveSceneProxy* USphereComponent::CreateSceneProxy()
 			}
 		}
 
-		virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
+		virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)  override
 		{
 			const bool bVisibleForSelection = !bDrawOnlyIfSelected || IsSelected();
 			const bool bVisibleForShowFlags = true; // @TODO

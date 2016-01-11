@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -247,10 +247,9 @@ public:
 	 * Finds a key a the specified time.
 	 *
 	 * @param KeyTime The time at which to find the key.
-	 * @param KeyTimeTolerance The key time tolerance to use for equality.
 	 * @return A handle to the key, or invalid key handle if not found.
 	 */
-	FKeyHandle FindKey(float KeyTime, float KeyTimeTolerance = KINDA_SMALL_NUMBER) const;
+	FKeyHandle FindKey(float KeyTime) const;
 
 	/**
 	 * Get a key.
@@ -290,13 +289,12 @@ public:
 	FKeyHandle SetKeyTime(FKeyHandle KeyHandle, float NewTime);
 
 	/**
-	 * Finds the key at InTime, and updates its value. If it can't find the key within the KeyTimeTolerance, it adds one at that time.
+	 * Finds the key at InTime, and updates its value. If it can't find the key, it adds one at that time.
 	 *
 	 * @param InTime The time at which the key should be added or updated.
 	 * @param InValue The value of the key.
-	 * @param KeyTimeTolerance The tolerance used for key time equality.
 	 */
-	FKeyHandle UpdateOrAddKey(float InTime, const FName& InValue, float KeyTimeTolerance = KINDA_SMALL_NUMBER);
+	FKeyHandle UpdateOrAddKey(float InTime, const FName& InValue);
 
 public:
 
@@ -535,8 +533,8 @@ public:
 	/** Remove the specified key from the curve.*/
 	void DeleteKey(FKeyHandle KeyHandle);
 
-	/** Finds the key at InTime, and updates its value. If it can't find the key within the KeyTimeTolerance, it adds one at that time */
-	FKeyHandle UpdateOrAddKey(float InTime, float InValue, const bool bUnwindRotation = false, float KeyTimeTolerance = KINDA_SMALL_NUMBER);
+	/** Finds the key at InTime, and updates its value. If it can't find the key, it adds one at that time */
+	FKeyHandle UpdateOrAddKey(float InTime, float InValue, const bool bUnwindRotation = false);
 
 	/** Move a key to a new time. This may change the index of the key, so the new key index is returned. */
 	FKeyHandle SetKeyTime(FKeyHandle KeyHandle, float NewTime);
@@ -545,7 +543,7 @@ public:
 	float GetKeyTime(FKeyHandle KeyHandle) const;
 
 	/** Finds a key a the specified time */
-	FKeyHandle FindKey( float KeyTime, float KeyTimeTolerance = KINDA_SMALL_NUMBER ) const;
+	FKeyHandle FindKey( float KeyTime ) const;
 
 	/** Set the value of the specified key */
 	void SetKeyValue(FKeyHandle KeyHandle, float NewValue, bool bAutoSetTangents=true);
@@ -797,10 +795,9 @@ public:
 
 	/** Override to ensure we write out the asset import data */
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
-	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;
 
-	UPROPERTY(VisibleAnywhere, Instanced, Category=ImportSettings)
+	UPROPERTY()
 	class UAssetImportData* AssetImportData;
 
 	/** The filename imported to create this object. Relative to this object's package, BaseDir() or absolute */
@@ -878,8 +875,8 @@ public:
 	/** Remove the specified key from the curve.*/
 	void DeleteKey(FKeyHandle KeyHandle);
 	
-	/** Finds the key at InTime, and updates its value. If it can't find the key within the KeyTimeTolerance, it adds one at that time */
-	FKeyHandle UpdateOrAddKey( float InTime, int32 Value, float KeyTimeTolerance = KINDA_SMALL_NUMBER );
+	/** Finds the key at InTime, and updates its value. If it can't find the key, it adds one at that time */
+	FKeyHandle UpdateOrAddKey( float Time, int32 Value );
 	
 	/** Move a key to a new time. This may change the index of the key, so the new key index is returned. */
 	FKeyHandle SetKeyTime(FKeyHandle KeyHandle, float NewTime);
@@ -911,7 +908,7 @@ public:
 	FIntegralKey& GetKey(FKeyHandle KeyHandle);
 	FIntegralKey GetKey(FKeyHandle KeyHandle) const;
 
-	FKeyHandle FindKey(float KeyTime, float KeyTimeTolerance = KINDA_SMALL_NUMBER) const;
+	FKeyHandle FindKey(float KeyTime) const;
 
 	/** Gets the handle for the last key which is at or before the time requested.  If there are no keys at or before the requested time, an invalid handle is returned. */
 	FKeyHandle FindKeyBeforeOrAt(float KeyTime) const;

@@ -1,11 +1,9 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:2591123
 Availability:Public
-Title:ゲームプレイのコンセプト サンプル
+Title:ゲームプレイのコンセプト例
 Crumbs:%ROOT%
-Description:フレームワークのサンプルです。デザイン ツールやゲーム機能の追加方法を示します。
+Description:フレームワーク例であり、デザイン ツールやゲーム機能の追加方法を示します。
 Navigation:topic
-Version:4.9
-
 
 [VAR:Params]
 [PARAM:image]
@@ -46,9 +44,9 @@ resources
 [/OBJECT]
 [/VAR]
 
-以下は、特定のビジュアル スタイルやスクリプト処理スタイルを必要とする場合、具体的課題へのアプローチを見る手段として紹介するものです。当然、ある問題を解決する _唯一_ の方法ではなく、各自のプロジェクトで別のアプローチを使った方がうまくいく場合もあるかもしれません。
+以下は、特定のビジュアル スタイルやスクリプト処理スタイルを必要とする場合、具体的課題に対するアプローチを見る手段として紹介されています。当然、ある問題を解決する _唯一_ の方法ではなく、プロジェクトによっては別のアプローチの方が適している場合もあります。
 
-こうした例を開いて要素を分析するだけでなく、ご自分のプロジェクトでも使ってみてください。
+こうした例を開いてエレメントを分析するだけでなく、ご自分のプロジェクトでも使ってみてください。
 
 [REGION:topics third]
 %Resources/Showcases/BlueprintMultiplayer:topiccompact%
@@ -78,7 +76,7 @@ resources
 [VAR:sticktopic]
 [OBJECT:TopicCompactVideo]
 	[PARAMLITERAL:title]
-	アンリアルのスティック フィギュア 2D
+	アンリアル スティック フィギュア 2D
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
 	qWUEkTd2Xu8
@@ -95,10 +93,10 @@ resources
 	UMG のインベントリ UI
 	[/PARAMLITERAL]
 	[PARAMLITERAL:playlistid]
-	PLZlv_N0_O1gZalvQWYs8sc7RP_-8eSr3i
+	PLZlv_N0_O1gZo6zXTHGGSH8gxaA7a_zCt
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
-	r4tltrLLVuQ
+	RQm6cm05SLc
 	[/PARAMLITERAL]
 	[PARAM:image]
 	![](store_UMGDemo_Featured.png)

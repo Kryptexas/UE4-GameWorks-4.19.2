@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -47,7 +47,6 @@ protected:
 
 	/** TextureResolution accessors */
 	void SetTextureResolution(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
-	void SetLightMapResolution(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
 
 	/** Export material properties acessors **/
 	ECheckBoxState GetExportNormalMap() const;
@@ -62,9 +61,6 @@ protected:
 private:
 	/** Creates the geometry mode controls */
 	void CreateLayout();
-
-	int32 FindTextureResolutionEntryIndex(int32 InResolution) const;
-	FText GetPropertyToolTipText(const FName& PropertyName) const;
 
 private:
 	FMeshProxyTool* Tool;

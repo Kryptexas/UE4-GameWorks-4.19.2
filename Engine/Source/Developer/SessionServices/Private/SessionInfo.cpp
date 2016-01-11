@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SessionServicesPrivatePCH.h"
 
@@ -51,7 +51,11 @@ void FSessionInfo::UpdateFromMessage( const FSessionServicePong& Message, const 
 	// update session info
 	Standalone = Message.Standalone;
 	SessionOwner = Message.SessionOwner;
-	SessionName = Message.SessionName;
+
+	if (SessionName.IsEmpty())
+	{
+		SessionName = Message.SessionName;
+	}
 
 	// update instance
 	TSharedPtr<FSessionInstanceInfo>& Instance = Instances.FindOrAdd(Context->GetSender());

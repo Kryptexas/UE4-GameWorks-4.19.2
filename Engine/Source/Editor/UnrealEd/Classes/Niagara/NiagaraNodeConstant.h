@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -27,18 +27,18 @@ public:
 
 	bool IsExposedToEffectEditor()	{ return bExposeToEffectEditor; }
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
-	//~ End UObject Interface
+	// End UObject interface
 	
-	//~ Begin EdGraphNode Interface
+	// Begin EdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FLinearColor GetNodeTitleColor() const override;
-	//~ End EdGraphNode Interface
+	// End EdGraphNode interface
 
-	//~ Begin UNiagaraNode Interface
+	// Begin UNiagaraNode interface
 	UNREALED_API virtual void Compile(class INiagaraCompiler* Compiler, TArray<FNiagaraNodeResult>& Outputs) override;
-	//~ End UNiagaraNode Interface
+	// End UNiagaraNode interface
 };
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -32,10 +32,6 @@ class UGeomModifier : public UObject
 	 */
 	UPROPERTY(EditAnywhere, Category=GeomModifier)
 	uint32 bInitialized:1;
-
-	/** If true, the pivot offset should be updated when the modification ends */
-	UPROPERTY()
-	uint32 bPendingPivotOffsetUpdate:1;
 
 private:
 	/** Stored state of polys in case the brush state needs to be restroed */
@@ -147,11 +143,6 @@ protected:
 	 * Implements the modifier application.
 	 */
 	virtual bool OnApply();
-
-	/**
-	 * Updates the pivot offset of the selected brushes based on the current vertex positions
-	 */
-	virtual void UpdatePivotOffset();
 };
 
 

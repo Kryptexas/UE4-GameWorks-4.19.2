@@ -1,13 +1,8 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "PlainTextLayoutMarshaller.h"
 #include "TextBlockLayout.h"
-
-DECLARE_CYCLE_STAT(TEXT("STextBlock::SetText Time"), Stat_SlateTextBlockSetText, STATGROUP_SlateVerbose)
-DECLARE_CYCLE_STAT(TEXT("STextBlock::OnPaint Time"), Stat_SlateTextBlockOnPaint, STATGROUP_SlateVerbose)
-DECLARE_CYCLE_STAT(TEXT("STextBlock::ComputeDesiredSize"), Stat_SlateTextBlockCDS, STATGROUP_SlateVerbose)
-DECLARE_CYCLE_STAT(TEXT("STextBlock::ComputeVolitility"), Stat_SlateTextBlockCV, STATGROUP_SlateVerbose)
 
 void STextBlock::Construct( const FArguments& InArgs )
 {
@@ -35,7 +30,7 @@ void STextBlock::Construct( const FArguments& InArgs )
 #if WITH_FANCY_TEXT
 
 	// We use a dummy style here (as it may not be safe to call the delegates used to compute the style), but the correct style is set by ComputeDesiredSize
-	TextLayoutCache = FTextBlockLayout::Create(FTextBlockStyle::GetDefault(), InArgs._TextShapingMethod, InArgs._TextFlowDirection, FPlainTextLayoutMarshaller::Create(), InArgs._LineBreakPolicy);
+	TextLayoutCache = FTextBlockLayout::Create(FTextBlockStyle::GetDefault(), FPlainTextLayoutMarshaller::Create(), InArgs._LineBreakPolicy);
 
 #endif//WITH_FANCY_TEXT
 }
@@ -72,7 +67,6 @@ const FSlateBrush* STextBlock::GetHighlightShape() const
 
 void STextBlock::SetText( const TAttribute< FString >& InText )
 {
-	SCOPE_CYCLE_COUNTER(Stat_SlateTextBlockSetText);
 	struct Local
 	{
 		static FText PassThroughAttribute( TAttribute< FString > InString )
@@ -88,22 +82,18 @@ void STextBlock::SetText( const TAttribute< FString >& InText )
 
 void STextBlock::SetText( const FString& InText )
 {
-	SCOPE_CYCLE_COUNTER(Stat_SlateTextBlockSetText);
 	BoundText = FText::FromString( InText );
 	Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
 void STextBlock::SetText( const TAttribute< FText >& InText )
 {
-	SCOPE_CYCLE_COUNTER(Stat_SlateTextBlockSetText);
 	BoundText = InText;
 	Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
 void STextBlock::SetText( const FText& InText )
 {
-	SCOPE_CYCLE_COUNTER(Stat_SlateTextBlockSetText);
-
 	if ( !BoundText.IsBound() )
 	{
 		const FString& OldString = BoundText.Get().ToString();
@@ -126,23 +116,12 @@ void STextBlock::SetText( const FText& InText )
 	Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
-void STextBlock::SetHighlightText(TAttribute<FText> InText)
-{
-	HighlightText = InText;
-}
-
 int32 STextBlock::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
-	SCOPE_CYCLE_COUNTER(Stat_SlateTextBlockOnPaint);
-
 #if WITH_FANCY_TEXT
-
-	//FPlatformMisc::BeginNamedEvent(FColor::Orange, "STextBlock");
 
 	// OnPaint will also update the text layout cache if required
 	LayerId = TextLayoutCache->OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled(bParentEnabled));
-
-	//FPlatformMisc::EndNamedEvent();
 
 #else//WITH_FANCY_TEXT
 
@@ -153,7 +132,7 @@ int32 STextBlock::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeom
 		const ESlateDrawEffect::Type DrawEffects = ShouldBeEnabled(bParentEnabled) ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 		const FLinearColor CurShadowColor = GetShadowColorAndOpacity();
 		const FVector2D CurShadowOffset = GetShadowOffset();
-		const bool ShouldDropShadow = CurShadowColor.A > 0.f && CurShadowOffset.SizeSquared() > 0.f;
+		const bool ShouldDropShadow = CurShadowOffset.Size() > 0 && CurShadowColor.A > 0;
 		const FSlateFontInfo FontInfo = GetFont();
 		const FText& TextToDraw = BoundText.Get(FText::GetEmpty());
 
@@ -196,7 +175,9 @@ FReply STextBlock::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, cons
 	{
 		if( OnDoubleClicked.IsBound() )
 		{
-			return OnDoubleClicked.Execute();
+			OnDoubleClicked.Execute();
+
+			return FReply::Handled();
 		}
 	}
 
@@ -205,7 +186,6 @@ FReply STextBlock::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, cons
 
 FVector2D STextBlock::ComputeDesiredSize(float LayoutScaleMultiplier) const
 {
-	SCOPE_CYCLE_COUNTER(Stat_SlateTextBlockCDS);
 #if WITH_FANCY_TEXT
 
 	// ComputeDesiredSize will also update the text layout cache if required
@@ -228,7 +208,6 @@ FVector2D STextBlock::ComputeDesiredSize(float LayoutScaleMultiplier) const
 
 bool STextBlock::ComputeVolatility() const
 {
-	SCOPE_CYCLE_COUNTER(Stat_SlateTextBlockCV);
 	return SLeafWidget::ComputeVolatility() || BoundText.IsBound();
 }
 
@@ -250,18 +229,6 @@ void STextBlock::SetColorAndOpacity(const TAttribute<FSlateColor>& InColorAndOpa
 void STextBlock::SetTextStyle(const FTextBlockStyle* InTextStyle)
 {
 	TextStyle = InTextStyle;
-	Invalidate(EInvalidateWidget::Layout);
-}
-
-void STextBlock::SetTextShapingMethod(const TOptional<ETextShapingMethod>& InTextShapingMethod)
-{
-	TextLayoutCache->SetTextShapingMethod(InTextShapingMethod);
-	Invalidate(EInvalidateWidget::Layout);
-}
-
-void STextBlock::SetTextFlowDirection(const TOptional<ETextFlowDirection>& InTextFlowDirection)
-{
-	TextLayoutCache->SetTextFlowDirection(InTextFlowDirection);
 	Invalidate(EInvalidateWidget::Layout);
 }
 

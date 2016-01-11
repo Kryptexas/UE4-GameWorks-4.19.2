@@ -1,12 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphPrivatePCH.h"
 
 #include "GraphEditorActions.h"
 #include "ScopedTransaction.h"
 #include "AnimGraphNode_ApplyAdditive.h"
-#include "Animation/AnimationSettings.h"
-#include "CompilerResultsLog.h"
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_ApplyAdditive
@@ -39,14 +37,4 @@ FString UAnimGraphNode_ApplyAdditive::GetNodeCategory() const
 	//@TODO: TEXT("Apply additive to normal pose"), TEXT("Apply additive pose"));
 }
 
-void UAnimGraphNode_ApplyAdditive::ValidateAnimNodeDuringCompilation(class USkeleton* ForSkeleton, class FCompilerResultsLog& MessageLog)
-{
-	if (UAnimationSettings::Get()->bEnablePerformanceLog)
-	{
-		if (Node.LODThreshold < 0)
-		{
-			MessageLog.Warning(TEXT("@@ contains no LOD Threshold."), this);
-		}
-	}
-}
 #undef LOCTEXT_NAMESPACE

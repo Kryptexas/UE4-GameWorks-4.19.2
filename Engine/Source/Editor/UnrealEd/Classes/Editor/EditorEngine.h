@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -17,7 +17,6 @@ class FPoly;
 class UAnimSequence;
 class USkeleton;
 class UFoliageType;
-
 //
 // Things to set in mapSetBrush.
 //
@@ -304,6 +303,12 @@ public:
 	UPROPERTY()
 	class UTexture2D* Bad;
 
+	UPROPERTY()
+	class UTexture2D* Bkgnd;
+
+	UPROPERTY()
+	class UTexture2D* BkgndHi;
+
 	// Font used by Canvas-based editors
 	UPROPERTY()
 	class UFont* EditorFont;
@@ -484,6 +489,14 @@ public:
 	/** Currently targeted device for mobile previewer. */
 	UPROPERTY(config)
 	int32 BuildPlayDevice;
+
+	/** Enabled online PIE */
+	UPROPERTY(config)
+	bool bOnlinePIEEnabled;
+
+	/** Logins available for use when running PIE instances */
+	UPROPERTY(config)
+	TArray<FPIELoginInfo> PIELogins;
 
 	/** Maps world contexts to their slate data */
 	TMap<FName, FSlatePlayInEditorInfo>	SlatePlayInEditorMap;
@@ -666,13 +679,13 @@ public:
 	/**	Broadcasts that an object has been reimported. THIS SHOULD NOT BE PUBLIC */
 	void BroadcastObjectReimported(UObject* InObject);
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual void FinishDestroy() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	//~ End UObject Interface.
+	// End UObject interface.
 
-	//~ Begin UEngine Interface.
+	// Begin UEngine interface.
 public:
 	virtual void Init(IEngineLoop* InEngineLoop) override;
 	virtual float GetMaxTickRate(float DeltaTime, bool bAllowFrameRateSmoothing = true) const override;
@@ -688,8 +701,6 @@ public:
 	virtual bool GetMapBuildCancelled() const override { return false; }
 	virtual void SetMapBuildCancelled(bool InCancelled) override { /* Intentionally empty. */ }
 	virtual void HandleNetworkFailure(UWorld *World, UNetDriver *NetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString) override;
-
-	FString GetPlayOnTargetPlatformName() const;
 protected:
 	virtual void InitializeObjectReferences() override;
 	virtual void ProcessToggleFreezeCommand(UWorld* InWorld) override;
@@ -704,11 +715,11 @@ private:
 	virtual void CreateStartupAnalyticsAttributes(TArray<FAnalyticsEventAttribute>& StartSessionAttributes) const override;
 	virtual void VerifyLoadMapWorldCleanup() override;
 public:
-	//~ End UEngine Interface.
+	// End UEngine interface.
 	
-	//~ Begin FExec Interface
+	// Begin FExec Interface
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog ) override;
-	//~ End FExec Interface
+	// End FExec Interface
 
 	bool	CommandIsDeprecated( const TCHAR* CommandStr, FOutputDevice& Ar );
 	
@@ -748,8 +759,7 @@ public:
 	bool	HandleListMapPackageDependenciesCommand( const TCHAR* Str, FOutputDevice& Ar );
 	bool	HandleRebuildVolumesCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld );
 	bool	HandleRemoveArchtypeFlagCommand( const TCHAR* Str, FOutputDevice& Ar );
-	bool	HandleStartMovieCaptureCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-	
+
 	/**
 	 * Initializes the Editor.
 	 */
@@ -816,7 +826,7 @@ public:
 	 */
 	void ExecFile( UWorld* InWorld, const TCHAR* InFilename, FOutputDevice& Ar );
 
-	//~ Begin Transaction Interfaces.
+	// Transaction interfaces.
 	int32 BeginTransaction(const TCHAR* SessionContext, const FText& Description, UObject* PrimaryObject);
 	int32 BeginTransaction(const FText& Description);
 	int32 EndTransaction();
@@ -859,9 +869,8 @@ public:
 	 *
 	 * @param Model					The model to be rebuilt.
 	 * @param bSelectedBrushesOnly	Use all brushes in the current level or just the selected ones?.
-	 * @param bTreatMovableBrushesAsStatic	Treat moveable brushes as static?.
 	 */
-	void RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushesOnly, bool bTreatMovableBrushesAsStatic = false);
+	void RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushesOnly);
 
 	/**
 	 * Rebuilds levels containing currently selected brushes and should be invoked after a brush has been modified
@@ -1017,9 +1026,6 @@ public:
 
 	/** Plays an editor sound, loading the sound on demand if necessary (if the user has sounds enabled.)  The reference to the sound asset is not retained. */
 	void PlayEditorSound( const FString& SoundAssetName );
-
-	/** Plays an editor sound (if the user has sounds enabled.) */
-	void PlayEditorSound( USoundBase* InSound );
 
 	/**
 	 * Returns the preview audio component
@@ -1924,8 +1930,8 @@ public:
 	 *
 	 * @param	ObjectSet	the list of objects to sync to
 	 */
-	void SyncBrowserToObjects( TArray<UObject*>& InObjectsToSync, bool bFocusContentBrowser = true );
-	void SyncBrowserToObjects( TArray<class FAssetData>& InAssetsToSync, bool bFocusContentBrowser = true );
+	void SyncBrowserToObjects( TArray<UObject*>& InObjectsToSync );
+	void SyncBrowserToObjects( TArray<class FAssetData>& InAssetsToSync );
 
 	/**
 	 * Syncs the selected actors objects to the content browser
@@ -1933,23 +1939,11 @@ public:
 	void SyncToContentBrowser();
 
 	/**
-	 * Syncs the selected actors' levels to the content browser
-	 */
-	void SyncActorLevelsToContentBrowser();
-
-	/**
 	 * Checks if the slected objects contain something to browse to
 	 *
 	 * @return true if any of the selected objects contains something that can be browsed to
 	 */
 	bool CanSyncToContentBrowser();
-
-	/**
-	 * Checks if the selected objects have levels which can be browsed to
-	 *
-	 * @return true if any of the selected objects contains something that can be browsed to
-	 */
-	bool CanSyncActorLevelsToContentBrowser();
 
 	/**
 	 * Toggles the movement lock on selected actors so they may or may not be moved with the transform widgets
@@ -2027,11 +2021,6 @@ public:
 	bool SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLevelFlags, const TCHAR* Filename, 
 		FOutputDevice* Error=GError, FLinkerLoad* Conform=NULL, bool bForceByteSwapping=false, bool bWarnOfLongFilename=true, 
 		uint32 SaveFlags=SAVE_None, const class ITargetPlatform* TargetPlatform = NULL, const FDateTime& FinalTimeStamp = FDateTime::MinValue(), bool bSlowTask = true );
-
-	/** The editor wrapper for UPackage::Save. Auto-adds files to source control when necessary */
-	ESavePackageResult Save(UPackage* InOuter, UObject* Base, EObjectFlags TopLevelFlags, const TCHAR* Filename,
-		FOutputDevice* Error = GError, FLinkerLoad* Conform = NULL, bool bForceByteSwapping = false, bool bWarnOfLongFilename = true,
-		uint32 SaveFlags = SAVE_None, const class ITargetPlatform* TargetPlatform = NULL, const FDateTime& FinalTimeStamp = FDateTime::MinValue(), bool bSlowTask = true);
 
 	/** Invoked before a UWorld is saved to update editor systems */
 	virtual void OnPreSaveWorld(uint32 SaveFlags, UWorld* World);
@@ -2203,13 +2192,6 @@ public:
 	 * @param Objects	Array to be filled with objects which can be browsed to
 	 */
 	void GetObjectsToSyncToContentBrowser( TArray<UObject*>& Objects );
-
-	/**
-	 * Gets all levels which can be synced to in content browser for current selection
-	 *
-	 * @param Objects	Array to be filled with ULevel objects
-	 */
-	void GetLevelsToSyncToContentBrowser(TArray<UObject*>& Objects);
 
 	/**
 	* Queries for a list of assets that are referenced by the current editor selection (actors, surfaces, etc.)
@@ -2621,9 +2603,6 @@ private:
 	/** The Timer manager for all timer delegates */
 	TSharedPtr<class FTimerManager> TimerManager;
 
-	/** The output log -> message log redirector for use during PIE */
-	TSharedPtr<class FOutputLogErrorsToMessageLogProxy> OutputLogErrorsToMessageLogProxyPtr;
-
 	struct FPlayOnPCInfo
 	{
 		FProcHandle ProcessHandle;
@@ -2675,12 +2654,7 @@ protected:
 
 	void PlayUsingLauncher();
 
-public:
-
-	/** Save the currently loaded world ready for a play session */
 	void SaveWorldForPlay(TArray<FString>& SavedMapNames);
-
-protected:
 
 	/** Called when Matinee is opened */
 	virtual void OnOpenMatinee(){};
@@ -2689,9 +2663,6 @@ protected:
 	 * Invalidates all editor viewports and hit proxies, used when global changes like Undo/Redo may have invalidated state everywhere
 	 */
 	void InvalidateAllViewportsAndHitProxies();
-
-	/** Initialize Portal RPC. */
-	void InitializePortal();
 
 	/** Destroy any online subsystems generated by PIE */
 	void CleanupPIEOnlineSessions(TArray<FName> OnlineIdentifiers);
@@ -2756,8 +2727,6 @@ public:
 	void SetActorLabelUnique( AActor* Actor, const FString& NewActorLabel, const FCachedActorLabels* InExistingActorLabels = nullptr ) const;
 
 	virtual void HandleTravelFailure(UWorld* InWorld, ETravelFailure::Type FailureType, const FString& ErrorString);
-
-	void AutomationLoadMap(const FString& MapName);
 
 private:
 	FTimerHandle CleanupPIEOnlineSessionsTimerHandle;

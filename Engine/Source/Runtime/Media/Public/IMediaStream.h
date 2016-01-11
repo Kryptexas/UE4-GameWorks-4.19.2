@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -33,9 +33,7 @@ public:
 	/**
 	 * Adds the given media sink to this stream.
 	 *
-	 * This method uses deferred CPU copies to update the resource, which can be slow.
-	 *
-	 * @param Sink The sink to add.
+	 * @param Sink The sink to add.  Uses deferred CPU copies to update the resource.
 	 * @see RemoveSink
 	 */
 	virtual void AddSink(const TSharedRef<IMediaSink, ESPMode::ThreadSafe>& Sink) = 0;
@@ -127,8 +125,8 @@ public:
 };
 
 
-/** Type definition for shared pointers to instances of IMediaStream. */
+/** Type definition for shared pointers to instances of IMediaTrack. */
 typedef TSharedPtr<IMediaStream, ESPMode::ThreadSafe> IMediaStreamPtr;
 
-/** Type definition for shared references to instances of IMediaStream. */
+/** Type definition for shared references to instances of IMediaTrack. */
 typedef TSharedRef<IMediaStream, ESPMode::ThreadSafe> IMediaStreamRef;

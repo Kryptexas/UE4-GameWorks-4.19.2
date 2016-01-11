@@ -1,10 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "HttpPrivatePCH.h"
 #include "MacHTTP.h"
 #include "EngineVersion.h"
-#include "Security/Security.h"
+
 
 /****************************************************************************
  * FMacHttpRequest implementation
@@ -220,7 +220,7 @@ bool FMacHttpRequest::StartRequest()
 	const FString UserAgent = GetHeader("User-Agent");
 	if(UserAgent.IsEmpty())
 	{
-		NSString* Tag = FString::Printf(TEXT("UE4-%s,UE4Ver(%s)"), FApp::GetGameName(), *FEngineVersion::Current().ToString()).GetNSString();
+		NSString* Tag = FString::Printf(TEXT("UE4-%s,UE4Ver(%s)"), FApp::GetGameName(), *GEngineVersion.ToString()).GetNSString();
 		[Request addValue:Tag forHTTPHeaderField:@"User-Agent"];
 	}
 	else
@@ -407,34 +407,6 @@ float FMacHttpRequest::GetElapsedTime()
 		*FString([error localizedDescription]),
 		*FString([[error userInfo] objectForKey:NSURLErrorFailingURLStringErrorKey]),
 		self);
-	// Log more details if verbose logging is enabled and this is an SSL error
-	if (UE_LOG_ACTIVE(LogHttp, Verbose))
-	{
-		SecTrustRef PeerTrustInfo = reinterpret_cast<SecTrustRef>([[error userInfo] objectForKey:NSURLErrorFailingURLPeerTrustErrorKey]);
-		if (PeerTrustInfo != nullptr)
-		{
-			SecTrustResultType TrustResult = 0;
-			SecTrustGetTrustResult(PeerTrustInfo, &TrustResult);
-
-			FString TrustResultString;
-			switch (TrustResult)
-			{
-#define MAP_TO_RESULTSTRING(Constant) case Constant: TrustResultString = TEXT(#Constant); break;
-			MAP_TO_RESULTSTRING(kSecTrustResultInvalid)
-			MAP_TO_RESULTSTRING(kSecTrustResultProceed)
-			MAP_TO_RESULTSTRING(kSecTrustResultDeny)
-			MAP_TO_RESULTSTRING(kSecTrustResultUnspecified)
-			MAP_TO_RESULTSTRING(kSecTrustResultRecoverableTrustFailure)
-			MAP_TO_RESULTSTRING(kSecTrustResultFatalTrustFailure)
-			MAP_TO_RESULTSTRING(kSecTrustResultOtherError)
-#undef MAP_TO_RESULTSTRING
-			default:
-				TrustResultString = TEXT("unknown");
-				break;
-			}
-			UE_LOG(LogHttp, Verbose, TEXT("didFailWithError. SSL trust result: %s (%d)"), *TrustResultString, TrustResult);
-		}
-	}
 }
 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LevelSequenceEditorPCH.h"
 #include "Toolkits/IToolkitHost.h"
@@ -11,13 +11,12 @@
 #include "SDockTab.h"
 #include "MovieSceneBinding.h"
 #include "MovieScene.h"
-#include "MovieSceneSequenceInstance.h"
 #include "MovieSceneMaterialTrack.h"
 #include "ScopedTransaction.h"
 #include "ClassIconFinder.h"
+
 #include "SceneOutlinerModule.h"
 #include "SceneOutlinerPublicTypes.h"
-#include "LevelSequenceEditorSpawnRegister.h"
 
 
 #define LOCTEXT_NAMESPACE "LevelSequenceEditor"
@@ -33,9 +32,6 @@ namespace SequencerDefs
 	static const FName SequencerAppIdentifier(TEXT("SequencerApp"));
 }
 
-
-/* FLevelSequenceEditorToolkit structors
- *****************************************************************************/
 
 FLevelSequenceEditorToolkit::FLevelSequenceEditorToolkit(const TSharedRef<ISlateStyle>& InStyle)
 	: Style(InStyle)
@@ -71,7 +67,7 @@ FLevelSequenceEditorToolkit::~FLevelSequenceEditorToolkit()
 /* FLevelSequenceEditorToolkit interface
  *****************************************************************************/
 
-void FLevelSequenceEditorToolkit::Initialize(const EToolkitMode::Type Mode, const TSharedPtr<IToolkitHost>& InitToolkitHost, ULevelSequence* InLevelSequence, bool bEditWithinLevelEditor)
+void FLevelSequenceEditorToolkit::Initialize( const EToolkitMode::Type Mode, const TSharedPtr<IToolkitHost>& InitToolkitHost, ULevelSequenceInstance* InLevelSequenceInstance, bool bEditWithinLevelEditor )
 {
 	// create tab layout
 	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_LevelSequenceEditor")
@@ -85,22 +81,19 @@ void FLevelSequenceEditorToolkit::Initialize(const EToolkitMode::Type Mode, cons
 				)
 		);
 
-	LevelSequence = InLevelSequence;
+	LevelSequenceInstance = InLevelSequenceInstance;
 
 	const bool bCreateDefaultStandaloneMenu = true;
 	const bool bCreateDefaultToolbar = false;
 
-	FAssetEditorToolkit::InitAssetEditor(Mode, InitToolkitHost, SequencerDefs::SequencerAppIdentifier, StandaloneDefaultLayout, bCreateDefaultStandaloneMenu, bCreateDefaultToolbar, LevelSequence);
-
-	TSharedRef<FLevelSequenceEditorSpawnRegister> SpawnRegister = MakeShareable(new FLevelSequenceEditorSpawnRegister);
+	FAssetEditorToolkit::InitAssetEditor(Mode, InitToolkitHost, SequencerDefs::SequencerAppIdentifier, StandaloneDefaultLayout, bCreateDefaultStandaloneMenu, bCreateDefaultToolbar, LevelSequenceInstance);
 
 	// initialize sequencer
 	FSequencerInitParams SequencerInitParams;
 	{
-		SequencerInitParams.RootSequence = LevelSequence;
+		SequencerInitParams.RootSequence = LevelSequenceInstance;
 		SequencerInitParams.bEditWithinLevelEditor = bEditWithinLevelEditor;
 		SequencerInitParams.ToolkitHost = InitToolkitHost;
-		SequencerInitParams.SpawnRegister = SpawnRegister;
 
 		TSharedRef<FExtender> AddMenuExtender = MakeShareable(new FExtender);
 
@@ -123,7 +116,6 @@ void FLevelSequenceEditorToolkit::Initialize(const EToolkitMode::Type Mode, cons
 	}
 
 	Sequencer = FModuleManager::LoadModuleChecked<ISequencerModule>("Sequencer").CreateSequencer(SequencerInitParams);
-	SpawnRegister->SetSequencer(Sequencer);
 
 	if (bEditWithinLevelEditor)
 	{
@@ -199,43 +191,38 @@ void FLevelSequenceEditorToolkit::UnregisterTabSpawners(const TSharedRef<class F
 /* FLevelSequenceEditorToolkit callbacks
  *****************************************************************************/
 
-void FLevelSequenceEditorToolkit::HandleAddComponentActionExecute(UActorComponent* Component)
+void FLevelSequenceEditorToolkit::HandleAddComponentActionExecute( UActorComponent* Component )
 {
-	Sequencer->GetHandleToObject(Component);
+	Sequencer->GetHandleToObject( Component );
 }
 
 
-void FLevelSequenceEditorToolkit::HandleAddComponentMaterialActionExecute(UPrimitiveComponent* Component, int32 MaterialIndex)
+void FLevelSequenceEditorToolkit::HandleAddComponentMaterialActionExecute( UPrimitiveComponent* Component, int32 MaterialIndex )
 {
-	FGuid ObjectHandle = Sequencer->GetHandleToObject(Component);
-	for (const FMovieSceneBinding& Binding : Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->GetBindings())
+	FGuid ObjectHandle = Sequencer->GetHandleToObject( Component );
+	for ( const FMovieSceneBinding& Binding : Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->GetBindings() )
 	{
-		if (Binding.GetObjectGuid() == ObjectHandle)
+		if ( Binding.GetObjectGuid() == ObjectHandle )
 		{
 			bool bHasMaterialTrack = false;
-			for (UMovieSceneTrack* Track : Binding.GetTracks())
+			for ( UMovieSceneTrack* Track : Binding.GetTracks() )
 			{
-				UMovieSceneComponentMaterialTrack* MaterialTrack = Cast<UMovieSceneComponentMaterialTrack>(Track);
-				if (MaterialTrack != nullptr && MaterialTrack->GetMaterialIndex() == MaterialIndex)
+				UMovieSceneComponentMaterialTrack* MaterialTrack = Cast<UMovieSceneComponentMaterialTrack>( Track );
+				if ( MaterialTrack->GetMaterialIndex() == MaterialIndex )
 				{
 					bHasMaterialTrack = true;
 					break;
 				}
 			}
-			if (bHasMaterialTrack == false)
+			if ( bHasMaterialTrack == false )
 			{
-				const FScopedTransaction Transaction(LOCTEXT("AddComponentMaterialTrack", "Add component material track"));
+				const FScopedTransaction Transaction( LOCTEXT( "AddComponentMaterialTrack", "Add component material track" ) );
 
 				UMovieScene* FocusedMovieScene = Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene();
-				{
-					FocusedMovieScene->Modify();
-				}
-
-				UMovieSceneComponentMaterialTrack* MaterialTrack = Cast<UMovieSceneComponentMaterialTrack>(FocusedMovieScene->AddTrack<UMovieSceneComponentMaterialTrack>(ObjectHandle));
-				{
-					MaterialTrack->Modify();
-					MaterialTrack->SetMaterialIndex(MaterialIndex);
-				}
+				FocusedMovieScene->Modify();
+				UMovieSceneComponentMaterialTrack* MaterialTrack = Cast<UMovieSceneComponentMaterialTrack>( FocusedMovieScene->AddTrack( UMovieSceneComponentMaterialTrack::StaticClass(), ObjectHandle ) );
+				MaterialTrack->Modify();
+				MaterialTrack->SetMaterialIndex( MaterialIndex );
 				
 				Sequencer->NotifyMovieSceneDataChanged();
 			}
@@ -256,9 +243,14 @@ void FLevelSequenceEditorToolkit::AddActorsToSequencer(AActor*const* InActors, i
 	while (NumActors--)
 	{
 		AActor* ThisActor = *InActors;
-		if (!Sequencer->GetFocusedMovieSceneSequenceInstance()->FindObjectId(*ThisActor).IsValid())
+
+		FGuid ObjectGuid = FocussedSequence->FindObjectId(*ThisActor);
+
+		// Add this object if it hasn't already been possessed
+		if (!ObjectGuid.IsValid() || !FocussedMovieScene->FindPossessable(ObjectGuid))
 		{
-			Sequencer->CreateBinding(*ThisActor, ThisActor->GetActorLabel());
+			ObjectGuid = FocussedMovieScene->AddPossessable(ThisActor->GetName(), ThisActor->GetClass());
+			FocussedSequence->BindPossessableObject(ObjectGuid, *ThisActor);
 		}
 
 		GEditor->SelectActor(ThisActor, true, true);
@@ -273,11 +265,7 @@ void FLevelSequenceEditorToolkit::AddPosessActorMenuExtensions(FMenuBuilder& Men
 {
 	auto IsActorValidForPossession = [=](const AActor* Actor){
 		bool bCreateHandleIfMissing = false;
-		if (Sequencer.IsValid())
-		{
-			return !Sequencer->GetHandleToObject((UObject*)Actor, bCreateHandleIfMissing).IsValid();
-		}
-		return true;
+		return !Sequencer->GetHandleToObject((UObject*)Actor, bCreateHandleIfMissing).IsValid();
 	};
 
 	// Set up a menu entry to add the selected actor(s) to the sequencer
@@ -324,13 +312,13 @@ void FLevelSequenceEditorToolkit::AddPosessActorMenuExtensions(FMenuBuilder& Men
 		InitOptions.ColumnMap.Add(FBuiltInColumnTypes::Label(), FColumnInfo(EColumnVisibility::Visible, 0));
 
 		// Only display actors that are not possessed already
-		InitOptions.Filters->AddFilterPredicate(FActorFilterPredicate::CreateLambda(IsActorValidForPossession));
+		InitOptions.Filters->AddFilterPredicate( FActorFilterPredicate::CreateLambda( IsActorValidForPossession ) );
 	}
 
 	// actor selector to allow the user to choose an actor
 	FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::LoadModuleChecked<FSceneOutlinerModule>("SceneOutliner");
 	TSharedRef< SWidget > MiniSceneOutliner =
-		SNew(SVerticalBox)
+		SNew( SVerticalBox )
 		+SVerticalBox::Slot()
 		.AutoHeight()
 		.MaxHeight(400.0f)
@@ -351,11 +339,13 @@ void FLevelSequenceEditorToolkit::AddPosessActorMenuExtensions(FMenuBuilder& Men
 
 void FLevelSequenceEditorToolkit::HandleMapChanged(class UWorld* NewWorld, EMapChangeType MapChangeType)
 {
+	LevelSequenceInstance->SetContext(NewWorld);
+
 	Sequencer->NotifyMapChanged(NewWorld, MapChangeType);
 }
 
 
-TSharedRef<FExtender> FLevelSequenceEditorToolkit::HandleMenuExtensibilityGetExtender(const TSharedRef<FUICommandList> CommandList, const TArray<UObject*> ContextSensitiveObjects)
+TSharedRef<FExtender> FLevelSequenceEditorToolkit::HandleMenuExtensibilityGetExtender( const TSharedRef<FUICommandList> CommandList, const TArray<UObject*> ContextSensitiveObjects )
 {
 	TSharedRef<FExtender> AddTrackMenuExtender(new FExtender());
 	AddTrackMenuExtender->AddMenuExtension(
@@ -387,7 +377,7 @@ TSharedRef<SDockTab> FLevelSequenceEditorToolkit::HandleTabManagerSpawnTab(const
 }
 
 
-void FLevelSequenceEditorToolkit::HandleTrackMenuExtensionAddTrack(FMenuBuilder& AddTrackMenuBuilder, TArray<UObject*> ContextObjects)
+void FLevelSequenceEditorToolkit::HandleTrackMenuExtensionAddTrack( FMenuBuilder& AddTrackMenuBuilder, TArray<UObject*> ContextObjects )
 {
 	if (ContextObjects.Num() != 1)
 	{
@@ -423,8 +413,8 @@ void FLevelSequenceEditorToolkit::HandleTrackMenuExtensionAddTrack(FMenuBuilder&
 					{
 						FUIAction AddComponentMaterialAction(FExecuteAction::CreateSP(this, &FLevelSequenceEditorToolkit::HandleAddComponentMaterialActionExecute, Component, MaterialIndex));
 						FText AddComponentMaterialLabel = FText::Format(LOCTEXT("ComponentMaterialIndexLabelFormat", "Element {0}"), FText::AsNumber(MaterialIndex));
-						FText AddComponentMaterialToolTip = FText::Format(LOCTEXT("ComponentMaterialIndexToolTipFormat", "Add material element {0}"), FText::AsNumber(MaterialIndex));
-						AddTrackMenuBuilder.AddMenuEntry(AddComponentMaterialLabel, AddComponentMaterialToolTip, FSlateIcon(), AddComponentMaterialAction);
+						FText AddComponentMaterialToolTip = FText::Format(LOCTEXT("ComponentMaterialIndexToolTipFormat", "Add material element {0}" ), FText::AsNumber(MaterialIndex));
+						AddTrackMenuBuilder.AddMenuEntry( AddComponentMaterialLabel, AddComponentMaterialToolTip, FSlateIcon(), AddComponentMaterialAction );
 					}
 				}
 				AddTrackMenuBuilder.EndSection();

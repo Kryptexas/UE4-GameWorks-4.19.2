@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -22,12 +22,10 @@ struct AIMODULE_API FAIDataProviderValue
 {
 	GENERATED_USTRUCT_BODY()
 
-private:
 	/** cached uproperty of provider */
 	UPROPERTY(transient)
 	mutable UProperty* CachedProperty;
 
-public:
 	/** (optional) provider for dynamic data binding */
 	UPROPERTY(EditAnywhere, Instanced, Category = Value)
 	UAIDataProvider* DataBinding;
@@ -48,10 +46,10 @@ public:
 
 	/** return raw data from provider's property */
 	template<typename T>
-	T* GetRawValuePtr() const;
+	T* GetRawValue() const;
 
 	/** bind data in provider and cache property for faster access */
-	void BindData(const UObject* Owner, int32 RequestId) const;
+	void BindData(UObject* Owner, int32 RequestId) const;
 
 	FORCEINLINE bool IsDynamic() const { return DataBinding != nullptr; }
 };
@@ -124,6 +122,6 @@ class AIMODULE_API UAIDataProvider : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	virtual void BindData(const UObject& Owner, int32 RequestId);
+	virtual void BindData(UObject* Owner, int32 RequestId);
 	virtual FString ToString(FName PropName) const;
 };

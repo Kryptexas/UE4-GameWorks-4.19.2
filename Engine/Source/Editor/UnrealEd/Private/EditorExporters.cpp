@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	EditorExporters.cpp: Editor exporters.
@@ -964,7 +964,7 @@ static void ExportMaterialPropertyTexture(const FString &BMPFilename, UMaterialI
 
 	// make the BMP for the diffuse channel
 	TArray<FColor> OutputBMP;
-	FIntPoint OutSize;
+	FIntPoint Size;
 	
 	TEnumAsByte<EBlendMode> BlendMode = Material->GetBlendMode();
 	bool bIsValidMaterial = FMaterialUtilities::SupportsExport((EBlendMode)(BlendMode), MatProp);
@@ -972,7 +972,7 @@ static void ExportMaterialPropertyTexture(const FString &BMPFilename, UMaterialI
 	if (bIsValidMaterial)
 	{
 		// render the material to a texture to export as a bmp
-		if (!FMaterialUtilities::ExportMaterialProperty(Material, MatProp, OutputBMP, OutSize ))
+		if (!FMaterialUtilities::ExportMaterialProperty(nullptr, Material, MatProp, Size, OutputBMP))
 		{
 			bIsValidMaterial = false;
 		}
@@ -981,13 +981,13 @@ static void ExportMaterialPropertyTexture(const FString &BMPFilename, UMaterialI
 	// make invalid textures a solid red
 	if (!bIsValidMaterial)
 	{
-		OutSize = FIntPoint(1, 1);
+		Size = FIntPoint(1,1);
 		OutputBMP.Empty();
 		OutputBMP.Add(FColor(255, 0, 0, 255));
 	}
 
 	// export the diffuse channel bmp
-	FFileHelper::CreateBitmap(*BMPFilename, OutSize.X, OutSize.Y, OutputBMP.GetData());
+	FFileHelper::CreateBitmap(*BMPFilename, Size.X, Size.Y, OutputBMP.GetData());
 }
 
 /**
@@ -1910,19 +1910,24 @@ UExportTextContainer::UExportTextContainer(const FObjectInitializer& ObjectIniti
 -----------------------------------------------------------------------------*/
 namespace MaterialExportUtils
 {
-	bool ExportMaterialProperty(UMaterialInterface* InMaterial, EMaterialProperty InMaterialProperty, FIntPoint InSize, TArray<FColor>& OutBMP)
+	bool ExportMaterialProperty(UMaterialInterface* InMaterial,	EMaterialProperty InMaterialProperty, UTextureRenderTarget2D* InRenderTarget, TArray<FColor>& OutBMP)
 	{
-		return FMaterialUtilities::ExportMaterialProperty(InMaterial, InMaterialProperty, InSize, OutBMP );
+		return FMaterialUtilities::ExportMaterialProperty(nullptr, InMaterial, InMaterialProperty, InRenderTarget, OutBMP);
 	}
 		
+	bool ExportMaterialProperty(UWorld* InWorld, UMaterialInterface* InMaterial, EMaterialProperty InMaterialProperty, UTextureRenderTarget2D* InRenderTarget, TArray<FColor>& OutBMP)
+	{
+		return FMaterialUtilities::ExportMaterialProperty(InWorld, InMaterial, InMaterialProperty, InRenderTarget, OutBMP);
+	}
+	
 	bool ExportMaterial(UMaterialInterface* InMaterial, FFlattenMaterial& OutFlattenMaterial)
 	{
-		return FMaterialUtilities::ExportMaterial(InMaterial, OutFlattenMaterial);
+		return FMaterialUtilities::ExportMaterial(nullptr, InMaterial, OutFlattenMaterial);
 	}
 	
 	bool ExportMaterial(UWorld* InWorld, UMaterialInterface* InMaterial, FFlattenMaterial& OutFlattenMaterial)
 	{
-		return FMaterialUtilities::ExportMaterial(InMaterial, OutFlattenMaterial);
+		return FMaterialUtilities::ExportMaterial(InWorld, InMaterial, OutFlattenMaterial);
 	}
 
 	bool ExportMaterial(ALandscapeProxy* InLandscape, const TSet<FPrimitiveComponentId>& HiddenPrimitives, FFlattenMaterial& OutFlattenMaterial)

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 /*=============================================================================================
@@ -190,13 +190,11 @@ struct CORE_API FLinuxPlatformProcess : public FGenericPlatformProcess
 	/**
 	 * Process enumerator.
 	 */
-	class CORE_API FProcEnumerator
+	class FProcEnumerator
 	{
 	public:
 		// Constructor
 		FProcEnumerator();
-		FProcEnumerator(const FProcEnumerator&) = delete;
-		FProcEnumerator& operator=(const FProcEnumerator&) = delete;
 
 		// Destructor
 		~FProcEnumerator();
@@ -218,7 +216,7 @@ struct CORE_API FLinuxPlatformProcess : public FGenericPlatformProcess
 	/**
 	 * Process enumeration info structure.
 	 */
-	struct CORE_API FProcEnumInfo
+	struct FProcEnumInfo
 	{
 		friend FLinuxPlatformProcess::FProcEnumerator::FProcEnumerator();
 
@@ -249,7 +247,6 @@ struct CORE_API FLinuxPlatformProcess : public FGenericPlatformProcess
 	static const TCHAR* ComputerName();
 	static void CleanFileCache();
 	static const TCHAR* BaseDir();
-	static const TCHAR* UserName(bool bOnlyAlphaNumeric = true);
 	static const TCHAR* UserDir();
 	static const TCHAR* UserSettingsDir();
 	static const TCHAR* ApplicationSettingsDir();
@@ -268,7 +265,7 @@ struct CORE_API FLinuxPlatformProcess : public FGenericPlatformProcess
 	static bool WritePipe(void* WritePipe, const FString& Message, FString* OutWritten = nullptr);
 	static class FRunnableThread* CreateRunnableThread();
 	static void LaunchURL(const TCHAR* URL, const TCHAR* Parms, FString* Error);
-	static FProcHandle CreateProc(const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWriteChild, void * PipeReadChild = nullptr);
+	static FProcHandle CreateProc(const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWrite);
 	static bool IsProcRunning( FProcHandle & ProcessHandle );
 	static void WaitForProc( FProcHandle & ProcessHandle );
 	static void CloseProc( FProcHandle & ProcessHandle );
@@ -282,19 +279,6 @@ struct CORE_API FLinuxPlatformProcess : public FGenericPlatformProcess
 	static bool ExecProcess( const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr );
 	static void ExploreFolder( const TCHAR* FilePath );
 	static void LaunchFileInDefaultExternalApplication( const TCHAR* FileName, const TCHAR* Parms = NULL, ELaunchVerb::Type Verb = ELaunchVerb::Open );
-	static bool IsFirstInstance();
-
-	/**
-	 * @brief Releases locks that we held for IsFirstInstance check
-	 */
-	static void CeaseBeingFirstInstance();
-
-	/**
-	 * @brief Returns user home directory (i.e. $HOME).
-	 *
-	 * Like other directory functions, cannot return nullptr!
-	 */
-	static const TCHAR* UserHomeDir();
 };
 
 typedef FLinuxPlatformProcess FPlatformProcess;

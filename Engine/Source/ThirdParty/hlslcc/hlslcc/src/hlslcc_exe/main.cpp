@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -119,12 +119,11 @@ struct SCmdOptions
 	bool bNoPreprocess;
 	bool bFlattenUB;
 	bool bFlattenUBStructures;
-	bool bUseDX11Clip;
 	bool bGroupFlattenedUB;
 	bool bExpandExpressions;
 	bool bCSE;
 	bool bSeparateShaderObjects;
-	bool bPackIntoUBs;
+	bool bPackGlobalsToUBs;
 	const char* OutFile;
 
 	SCmdOptions() 
@@ -138,12 +137,11 @@ struct SCmdOptions
 		bNoPreprocess = false;
 		bFlattenUB = false;
 		bFlattenUBStructures = false;
-		bUseDX11Clip = false;
 		bGroupFlattenedUB = false;
 		bExpandExpressions = false;
 		bCSE = false;
 		bSeparateShaderObjects = false;
-		bPackIntoUBs = false;
+		bPackGlobalsToUBs = false;
 		OutFile = nullptr;
 	}
 };
@@ -217,10 +215,6 @@ static int ParseCommandLine( int argc, char** argv, SCmdOptions& OutOptions)
 			{
 				OutOptions.bFlattenUBStructures = true;
 			}
-			else if (!strcmp(*argv, "-dx11clip"))
-			{
-				OutOptions.bUseDX11Clip = true;
-			}
 			else if (!strcmp(*argv, "-groupflatub"))
 			{
 				OutOptions.bGroupFlattenedUB = true;
@@ -241,9 +235,9 @@ static int ParseCommandLine( int argc, char** argv, SCmdOptions& OutOptions)
 			{
 				OutOptions.bSeparateShaderObjects = true;
 			}
-			else if (!strcmp(*argv, "-packintoubs"))
+			else if (!strcmp(*argv, "-packglobalsintoub"))
 			{
-				OutOptions.bPackIntoUBs = true;
+				OutOptions.bPackGlobalsToUBs = true;
 			}
 			else
 			{
@@ -355,14 +349,13 @@ int main( int argc, char** argv)
 	int Flags = HLSLCC_PackUniforms; // | HLSLCC_NoValidation | HLSLCC_PackUniforms;
 	Flags |= Options.bNoPreprocess ? HLSLCC_NoPreprocess : 0;
 	Flags |= Options.bDumpAST ? HLSLCC_PrintAST : 0;
-	Flags |= Options.bUseDX11Clip ? HLSLCC_DX11ClipSpace : 0;
 	Flags |= Options.bFlattenUB ? HLSLCC_FlattenUniformBuffers : 0;
 	Flags |= Options.bFlattenUBStructures ? HLSLCC_FlattenUniformBufferStructures : 0;
 	Flags |= Options.bGroupFlattenedUB ? HLSLCC_GroupFlattenedUniformBuffers : 0;
 	Flags |= Options.bCSE ? HLSLCC_ApplyCommonSubexpressionElimination : 0;
 	Flags |= Options.bExpandExpressions ? HLSLCC_ExpandSubexpressions : 0;
 	Flags |= Options.bSeparateShaderObjects ? HLSLCC_SeparateShaderObjects : 0;
-	Flags |= Options.bPackIntoUBs ? HLSLCC_PackUniformsIntoUniformBuffers : 0;
+	Flags |= Options.bPackGlobalsToUBs ? HLSLCC_PackUniformsIntoUniformBuffers : 0;
 
 	FGlslCodeBackend GlslCodeBackend(Flags, Options.Target);
 	FGlslLanguageSpec GlslLanguageSpec;//(Options.Target == HCT_FeatureLevelES2);

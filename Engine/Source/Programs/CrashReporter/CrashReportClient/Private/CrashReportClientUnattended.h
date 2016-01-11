@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,7 +14,7 @@ public:
 	 * Set up uploader object
 	 * @param ErrorReport Error report to upload
 	 */
-	explicit FCrashReportClientUnattended(FPlatformErrorReport& InErrorReport);
+	explicit FCrashReportClientUnattended(const FPlatformErrorReport& ErrorReport);
 
 private:
 	/**
@@ -30,11 +30,5 @@ private:
 	void StartTicker();
 
 	/** Object that uploads report files to the server */
-	FCrashUploadToReceiver ReceiverUploader;
-
-	/** Object that uploads report files to the server */
-	FCrashUploadToDataRouter DataRouterUploader;
-
-	/** Platform code for accessing the report */
-	FPlatformErrorReport ErrorReport;
+	FCrashUpload Uploader;
 };

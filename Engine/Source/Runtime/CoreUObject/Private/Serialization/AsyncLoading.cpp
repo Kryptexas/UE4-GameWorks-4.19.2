@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnAsyncLoading.cpp: Unreal async loading code.
@@ -11,10 +11,7 @@
 #include "UObject/UObjectThreadContext.h"
 #include "UObject/LinkerManager.h"
 #include "Serialization/AsyncLoadingThread.h"
-#include "ExclusiveLoadPackageTimeTracker.h"
 #include "AssetRegistryInterface.h"
-#include "BlueprintSupport.h"
-
 
 /*-----------------------------------------------------------------------------
 	Async loading stats.
@@ -132,20 +129,21 @@ public:
 #if THREADSAFE_UOBJECTS
 		FScopeLock ReferencedObjectsLock(&ReferencedObjectsCritical);
 #endif
-		const EInternalObjectFlags AsyncFlags = EInternalObjectFlags::Async | EInternalObjectFlags::AsyncLoading;
+		const EObjectFlags AsyncFlags = RF_Async | RF_AsyncLoading;
 		for (UObject* Obj : ReferencedObjects)
 		{
 			check(Obj);
-			Obj->AtomicallyClearInternalFlags(AsyncFlags);
-			check(!Obj->HasAnyInternalFlags(AsyncFlags))
+			Obj->AtomicallyClearFlags(AsyncFlags);
+			check(!Obj->HasAnyFlags(AsyncFlags))
 		}
-		ReferencedObjects.Reset();
+		ReferencedObjects.Empty(ReferencedObjects.Num());
 	}
 	/** Removes all referenced objects and markes them for GC */
 	void EmptyReferencedObjectsAndCancelLoading()
 	{
+		check(IsInGameThread());
 		const EObjectFlags LoadFlags = RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects;
-		const EInternalObjectFlags AsyncFlags = EInternalObjectFlags::Async | EInternalObjectFlags::AsyncLoading;
+		const EObjectFlags AsyncFlags = RF_Async | RF_AsyncLoading;
 
 #if THREADSAFE_UOBJECTS
 		FScopeLock ReferencedObjectsLock(&ReferencedObjectsCritical);
@@ -154,32 +152,29 @@ public:
 		// All of the referenced objects have been created by async loading code and may be in an invalid state so mark them for GC
 		for (auto Object : ReferencedObjects)
 		{
-			Object->ClearInternalFlags(AsyncFlags);
+			Object->ClearFlags(AsyncFlags);
 			if (Object->HasAnyFlags(LoadFlags))
 			{
 				Object->AtomicallyClearFlags(LoadFlags);
-				Object->MarkPendingKill();
+				Object->AtomicallySetFlags(RF_PendingKill);
 			}
-			check(!Object->HasAnyInternalFlags(AsyncFlags) && !Object->HasAnyFlags(LoadFlags));
+			check(!Object->HasAnyFlags(AsyncFlags | LoadFlags));
 		}
-		ReferencedObjects.Reset();
+		ReferencedObjects.Empty(ReferencedObjects.Num());
 	}
 
 #if !UE_BUILD_SHIPPING
-	/** Verifies that no object exists that has either EInternalObjectFlags::AsyncLoading and EInternalObjectFlags::Async set and is NOT being referenced by FAsyncObjectsReferencer */
+	/** Verifies that no object exists that has either RF_AsyncLoading|RF_Async set and is NOT being referenced by FAsyncObjectsReferencer */
 	FORCENOINLINE void VerifyAssumptions()
 	{
-		const EInternalObjectFlags AsyncFlags = EInternalObjectFlags::Async | EInternalObjectFlags::AsyncLoading;
 		for (FRawObjectIterator It; It; ++It)
 		{
-			FUObjectItem* ObjItem = *It;
-			checkSlow(ObjItem);
-			UObject* Object = static_cast<UObject*>(ObjItem->Object);
-			if (Object->HasAnyInternalFlags(AsyncFlags))
+			UObject* Obj = *It;
+			if (Obj->HasAnyFlags(RF_AsyncLoading|RF_Async))
 			{
-				if (!Contains(Object))
+				if (!Contains(Obj))
 				{
-					UE_LOG(LogStreaming, Error, TEXT("%s has AsyncLoading|Async set but is not referenced by FAsyncObjectsReferencer"), *Object->GetPathName());
+					UE_LOG(LogStreaming, Error, TEXT("%s has RF_AsyncLoading|RF_Async set but is not referenced by FAsyncObjectsReferencer"), *Obj->GetPathName());
 				}
 			}
 		}
@@ -333,23 +328,19 @@ void FAsyncLoadingThread::CancelAsyncLoadingInternal()
 #if THREADSAFE_UOBJECTS
 		FScopeLock QueueLock(&QueueCritical);
 #endif
-		for (FAsyncPackageDesc* PackageDesc : QueuedPackages)
-		{
-			delete PackageDesc;
-		}
-		QueuedPackages.Reset();
+		QueuedPackages.Empty();
 	}
 
 	{
 		// Packages we started processing, need to be canceled.
 		// Accessed only in async thread, no need to protect region.
-		for (FAsyncPackage* AsyncPackage : AsyncPackages)
+		for (auto AsyncPackage : AsyncPackages)
 		{
 			AsyncPackage->Cancel();
 			delete AsyncPackage;
 		}
 
-		AsyncPackages.Reset();
+		AsyncPackages.Empty();
 	}
 
 	{
@@ -357,23 +348,23 @@ void FAsyncLoadingThread::CancelAsyncLoadingInternal()
 #if THREADSAFE_UOBJECTS
 		FScopeLock LoadedLock(&LoadedPackagesCritical);
 #endif
-		for (FAsyncPackage* LoadedPackage : LoadedPackages)
+		for (auto LoadedPackage : LoadedPackages)
 		{
 			LoadedPackage->Cancel();
 			delete LoadedPackage;
 		}
-		LoadedPackages.Reset();
+		LoadedPackages.Empty();
 	}
 	{
 #if THREADSAFE_UOBJECTS
 		FScopeLock LoadedLock(&LoadedPackagesToProcessCritical);
 #endif
-		for (FAsyncPackage* LoadedPackage : LoadedPackagesToProcess)
+		for (auto LoadedPackage : LoadedPackagesToProcess)
 		{
 			LoadedPackage->Cancel();
 			delete LoadedPackage;
 		}
-		LoadedPackagesToProcess.Reset();
+		LoadedPackagesToProcess.Empty();
 	}
 
 	AsyncLoadingCounter.Reset();
@@ -381,10 +372,7 @@ void FAsyncLoadingThread::CancelAsyncLoadingInternal()
 	QueuedPackagesCounter.Reset();
 
 	FUObjectThreadContext::Get().ObjLoaded.Empty();
-	{
-		FGCScopeGuard GCGuard;
-		FAsyncObjectsReferencer::Get().EmptyReferencedObjectsAndCancelLoading();
-	}
+	FAsyncObjectsReferencer::Get().EmptyReferencedObjectsAndCancelLoading();
 
 	// Notify everyone streaming is canceled.
 	CancelLoadingEvent->Trigger();
@@ -422,57 +410,12 @@ FAsyncPackage* FAsyncLoadingThread::FindExistingPackageAndAddCompletionCallback(
 	return Result;
 }
 
-void FAsyncLoadingThread::UpdateExistingPackagePriorities(FAsyncPackage* InPackage, TAsyncLoadPriority InNewPriority, TSet<FName>& InDependencyTracker, IAssetRegistryInterface* InAssetRegistry)
-{
-	InDependencyTracker.Add(InPackage->GetPackageName());
-
-	if (InNewPriority > InPackage->GetPriority())
-	{
-		AsyncPackages.Remove(InPackage);
-		InPackage->SetPriority(InNewPriority);
-
-		// Reduce loading counters ready for InsertPackage to increment them again
-		AsyncLoadingCounter.Decrement();
-		AsyncPackagesCounter.Decrement();
-
-		InsertPackage(InPackage, InAssetRegistry != nullptr ? EAsyncPackageInsertMode::InsertAfterMatchingPriorities : EAsyncPackageInsertMode::InsertBeforeMatchingPriorities);
-	}
-
-	if (InAssetRegistry)
-	{
-		TArray<FName> Dependencies;
-		InAssetRegistry->GetDependencies(InPackage->GetPackageName(), Dependencies, EAssetRegistryDependencyType::Hard);
-
-		for (FName DependencyName : Dependencies)
-		{
-			if (!InDependencyTracker.Contains(DependencyName))
-			{
-				int32 PackageIndex = FindPackageByName(AsyncPackages, DependencyName);
-
-				if (PackageIndex >= 0)
-				{
-					FAsyncPackage* DependencyPackage = AsyncPackages[PackageIndex];
-					UpdateExistingPackagePriorities(DependencyPackage, InNewPriority, InDependencyTracker, InAssetRegistry);
-				}
-			}
-		}
-	}
-}
-
-void FAsyncLoadingThread::ProcessAsyncPackageRequest(FAsyncPackageDesc* InRequest, FAsyncPackage* InRootPackage, TSet<FName>& InDependencyTracker, IAssetRegistryInterface* InAssetRegistry)
+void FAsyncLoadingThread::ProcessAsyncPackageRequest(FAsyncPackageDesc* InRequest, FAsyncPackage* InRootPackage, TMap<FName, int32>& InDependencyTracker)
 {
 	check(!InDependencyTracker.Contains(InRequest->Name));
-	InDependencyTracker.Add(InRequest->Name);
-
 	FAsyncPackage* Package = FindExistingPackageAndAddCompletionCallback(InRequest, AsyncPackages);
 
-	if (Package)
-	{
-		// The package is already sitting in the queue. Make sure the its priority, and the priority of all its
-		// dependencies is at least as high as the priority of this request
-		UpdateExistingPackagePriorities(Package, InRequest->Priority, InDependencyTracker, InAssetRegistry);
-	}
-	else
+	if (!Package)
 	{
 		// [BLOCKING] LoadedPackages are accessed on the main thread too, so lock to be able to add a completion callback
 #if THREADSAFE_UOBJECTS
@@ -502,10 +445,13 @@ void FAsyncLoadingThread::ProcessAsyncPackageRequest(FAsyncPackageDesc* InReques
 		Package->SetDependencyRootPackage(InRootPackage);
 
 #if !WITH_EDITOR
-		if (InAssetRegistry)
+		if (GPreloadPackageDependencies != 0)
+		{
+			auto AssetRegistry = IAssetRegistryInterface::GetPtr();
+			if (AssetRegistry)
 			{
 				TArray<FName> Dependencies;
-			InAssetRegistry->GetDependencies(Package->GetPackageName(), Dependencies, EAssetRegistryDependencyType::Hard);
+				AssetRegistry->GetDependencies(Package->GetPackageName(), Dependencies, EAssetRegistryDependencyType::Hard);
 
 				if (InRootPackage == nullptr)
 				{
@@ -514,19 +460,21 @@ void FAsyncLoadingThread::ProcessAsyncPackageRequest(FAsyncPackageDesc* InReques
 
 				for (auto DependencyName : Dependencies)
 				{
-				if (!InDependencyTracker.Contains(DependencyName) && FindObjectFast<UPackage>(nullptr, DependencyName, false, false ) == nullptr)
-						{
-							QueuedPackagesCounter.Increment();
-							const int32 RequestID = GPackageRequestID.Increment();
-							FAsyncLoadingThread::Get().AddPendingRequest(RequestID);
-							FAsyncPackageDesc DependencyPackageRequest(RequestID, DependencyName, NAME_None, FGuid(), FLoadPackageAsyncDelegate(), InRequest->PackageFlags, INDEX_NONE, InRequest->Priority);
-					ProcessAsyncPackageRequest(&DependencyPackageRequest, InRootPackage, InDependencyTracker, InAssetRegistry);
+					if (!InDependencyTracker.Contains(DependencyName))
+					{
+						QueuedPackagesCounter.Increment();
+						const int32 RequestID = GPackageRequestID.Increment();
+						FAsyncLoadingThread::Get().AddPendingRequest(RequestID);
+						FAsyncPackageDesc DependencyPackageRequest(RequestID, DependencyName, NAME_None, FGuid(), FLoadPackageAsyncDelegate(), InRequest->PackageFlags, INDEX_NONE, InRequest->Priority);
+						InDependencyTracker.Add(InRequest->Name);
+						ProcessAsyncPackageRequest(&DependencyPackageRequest, InRootPackage, InDependencyTracker);
+					}
 				}
 			}
 		}
 #endif
 		// Add to queue according to priority.
-		InsertPackage(Package, InAssetRegistry != nullptr ? EAsyncPackageInsertMode::InsertAfterMatchingPriorities : EAsyncPackageInsertMode::InsertBeforeMatchingPriorities);
+		InsertPackage(Package);
 
 		// For all other cases this is handled in FindExistingPackageAndAddCompletionCallback
 		const int32 QueuedPackagesCount = QueuedPackagesCounter.Decrement();
@@ -549,26 +497,18 @@ int32 FAsyncLoadingThread::CreateAsyncPackagesFromQueue()
 		FScopeLock QueueLock(&QueueCritical);
 #endif
 		QueueCopy = QueuedPackages;
-		QueuedPackages.Reset();
+		QueuedPackages.Empty();
 	}
 
 	if (QueueCopy.Num() > 0)
 	{
-		IAssetRegistryInterface* AssetRegistry = nullptr;
-		
-		if (GPreloadPackageDependencies && IsPlatformFileCompatibleWithDependencyPreloading())
-		{
-			AssetRegistry = IAssetRegistryInterface::GetPtr();
-		}
-		
 		double Timer = 0;
 		{
 			SCOPE_SECONDS_COUNTER(Timer);
-			for (FAsyncPackageDesc* PackageRequest : QueueCopy)
+			DependencyTracker.Empty();
+			for (auto PackageRequest : QueueCopy)
 			{
-				DependencyTracker.Reset();
-				ProcessAsyncPackageRequest(PackageRequest, nullptr, DependencyTracker, AssetRegistry);
-				delete PackageRequest;
+				ProcessAsyncPackageRequest(PackageRequest, nullptr, DependencyTracker);
 			}
 		}
 		UE_LOG(LogStreaming, Verbose, TEXT("Async package requests inserted in %fms"), Timer * 1000.0);
@@ -579,7 +519,7 @@ int32 FAsyncLoadingThread::CreateAsyncPackagesFromQueue()
 	return NumCreated;
 }
 
-void FAsyncLoadingThread::InsertPackage(FAsyncPackage* Package, EAsyncPackageInsertMode InsertMode)
+void FAsyncLoadingThread::InsertPackage(FAsyncPackage* Package)
 {
 	checkSlow(IsInAsyncLoadThread());
 
@@ -593,31 +533,13 @@ void FAsyncLoadingThread::InsertPackage(FAsyncPackage* Package, EAsyncPackageIns
 #if THREADSAFE_UOBJECTS
 		FScopeLock LockAsyncPackages(&AsyncPackagesCritical);
 #endif
-		int32 InsertIndex = -1;
-
-		switch (InsertMode)
-		{
-		case EAsyncPackageInsertMode::InsertAfterMatchingPriorities:
-			{
-				InsertIndex = AsyncPackages.IndexOfByPredicate([Package](const FAsyncPackage* Element)
-				{
-					return Element->GetPriority() < Package->GetPriority();
-				});
-
-				break;
-			}
-
-		case EAsyncPackageInsertMode::InsertBeforeMatchingPriorities:
-			{
 		// Insert new package keeping descending priority order in AsyncPackages
-				InsertIndex = AsyncPackages.IndexOfByPredicate([Package](const FAsyncPackage* Element)
+		int32 InsertIndex = AsyncPackages.IndexOfByPredicate([Package](const FAsyncPackage* Element)
 		{
-			return Element->GetPriority() <= Package->GetPriority();
+			// NOTE: Switched to < because we want newly inserted packages to go AFTER all existing packages of the 
+			//		 same priority. If this is too slow, we could probably do "LastIndexOfByPredicate" where we iterate backwards??
+			return Element->GetPriority() < Package->GetPriority();
 		});
-
-				break;
-			}
-		};
 
 		InsertIndex = InsertIndex == INDEX_NONE ? AsyncPackages.Num() : InsertIndex;
 
@@ -700,7 +622,7 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessLoadedPackages(bool bUseTim
 		FScopeLock LoadedPackagesToProcessLock(&LoadedPackagesToProcessCritical);
 #endif
 		LoadedPackagesToProcess.Append(LoadedPackages);
-		LoadedPackages.Reset();
+		LoadedPackages.Empty();
 	}
 		
 	for (int32 PackageIndex = 0; PackageIndex < LoadedPackagesToProcess.Num() && !IsAsyncLoadingSuspended(); ++PackageIndex)
@@ -820,7 +742,6 @@ FAsyncLoadingThread::FAsyncLoadingThread()
 	QueuedRequestsEvent = FPlatformProcess::GetSynchEventFromPool();
 	CancelLoadingEvent = FPlatformProcess::GetSynchEventFromPool();
 	ThreadSuspendedEvent = FPlatformProcess::GetSynchEventFromPool();
-	ThreadResumedEvent = FPlatformProcess::GetSynchEventFromPool();
 	if (FAsyncLoadingThread::IsMultithreaded())
 	{
 		UE_LOG(LogStreaming, Log, TEXT("Async loading is multithreaded."));
@@ -845,8 +766,6 @@ FAsyncLoadingThread::~FAsyncLoadingThread()
 	CancelLoadingEvent = nullptr;
 	FPlatformProcess::ReturnSynchEventToPool(ThreadSuspendedEvent);
 	ThreadSuspendedEvent = nullptr;
-	FPlatformProcess::ReturnSynchEventToPool(ThreadResumedEvent);
-	ThreadResumedEvent = nullptr;	
 }
 
 bool FAsyncLoadingThread::Init()
@@ -863,11 +782,7 @@ uint32 FAsyncLoadingThread::Run()
 	{
 		if (IsLoadingSuspended.GetValue() == 0)
 		{
-			if (bWasSuspendedLastFrame)
-			{
-				bWasSuspendedLastFrame = false;
-				ThreadResumedEvent->Trigger();
-			}			
+			bWasSuspendedLastFrame = false;
 			TickAsyncThread(false, true, 0.0f);
 		}
 		else if (!bWasSuspendedLastFrame)
@@ -954,10 +869,6 @@ void FAsyncLoadingThread::ResumeLoading()
 	check(IsInGameThread());
 	const int32 SuspendCount = IsLoadingSuspended.Decrement();
 	UE_CLOG(SuspendCount < 0, LogStreaming, Fatal, TEXT("ResumeAsyncLoadingThread: Async loading was resumed more times than it was suspended."));
-	if (IsMultithreaded() && SuspendCount == 0)
-	{
-		ThreadResumedEvent->Wait();
-	}
 }
 
 float FAsyncLoadingThread::GetAsyncLoadPercentage(const FName& PackageName)
@@ -1010,7 +921,7 @@ void NotifyConstructedDuringAsyncLoading(UObject* Object, bool bSubObject)
 	// finished routing PostLoad to all objects.
 	if (!bSubObject)
 	{
-		Object->SetInternalFlags(EInternalObjectFlags::AsyncLoading);
+		Object->SetFlags(RF_AsyncLoading);
 	}
 	FAsyncObjectsReferencer::Get().AddObject(Object);
 }
@@ -1154,7 +1065,7 @@ bool FAsyncPackage::GiveUpTimeSlice()
 /**
  * Begin async loading process. Simulates parts of BeginLoad.
  *
- * Objects created during BeginAsyncLoad and EndAsyncLoad will have EInternalObjectFlags::AsyncLoading set
+ * Objects created during BeginAsyncLoad and EndAsyncLoad will have RF_AsyncLoading set
  */
 void FAsyncPackage::BeginAsyncLoad()
 {
@@ -1244,9 +1155,6 @@ EAsyncPackageState::Type FAsyncPackage::Tick(bool InbUseTimeLimit, bool InbUseFu
 		// Begin async loading, simulates BeginLoad
 		BeginAsyncLoad();
 
-		// We have begun loading a package that we know the name of. Let the package time tracker know.
-		FExclusiveLoadPackageTimeTracker::PushLoadPackage(Desc.NameToLoad);
-
 		// Create raw linker. Needs to be async created via ticking before it can be used.
 		if (LoadingState == EAsyncPackageState::Complete)
 		{
@@ -1296,13 +1204,10 @@ EAsyncPackageState::Type FAsyncPackage::Tick(bool InbUseTimeLimit, bool InbUseFu
 			LoadingState = PostLoadObjects();
 		}
 
-		// We are done loading the package for now. Whether it is done or not, let the package time tracker know.
-		FExclusiveLoadPackageTimeTracker::PopLoadPackage(Linker ? Linker->LinkerRoot : nullptr);
-
 		// End async loading, simulates EndLoad
 		EndAsyncLoad();
 
-		// Finish objects (removing EInternalObjectFlags::AsyncLoading, dissociate imports and forced exports, 
+		// Finish objects (removing RF_AsyncLoading, dissociate imports and forced exports, 
 		// call completion callback, ...
 		// If the load has failed, perform completion callbacks and then quit
 		if (LoadingState == EAsyncPackageState::Complete || bLoadHasFailed)
@@ -1358,10 +1263,6 @@ EAsyncPackageState::Type FAsyncPackage::CreateLinker()
 
 		// Always store package filename we loading from
 		Package->FileName = Desc.NameToLoad;
-#if WITH_EDITORONLY_DATA
-		// Assume all packages loaded through async loading are required by runtime
-		Package->SetLoadedByEditorPropertiesOnly(false);
-#endif
 
 		// if the linker already exists, we don't need to lookup the file (it may have been pre-created with
 		// a different filename)
@@ -1370,9 +1271,7 @@ EAsyncPackageState::Type FAsyncPackage::CreateLinker()
 		if (!Linker)
 		{
 			FString PackageFileName;
-			if (Desc.NameToLoad == NAME_None || 
-				(!GetConvertedDynamicPackageNameToTypeName().Contains(Desc.Name) &&
-				 !FPackageName::DoesPackageExist(Desc.NameToLoad.ToString(), Desc.Guid.IsValid() ? &Desc.Guid : nullptr, &PackageFileName)))
+			if (Desc.NameToLoad == NAME_None || !FPackageName::DoesPackageExist(Desc.NameToLoad.ToString(), Desc.Guid.IsValid() ? &Desc.Guid : nullptr, &PackageFileName))
 			{
 				UE_LOG(LogStreaming, Error, TEXT("Couldn't find file for package %s requested by async loading code."), *Desc.Name.ToString());
 				bLoadHasFailed = true;
@@ -1391,7 +1290,7 @@ EAsyncPackageState::Type FAsyncPackage::CreateLinker()
 				LinkerFlags |= LOAD_PackageForPIE;
 			}
 #endif
-			Linker = FLinkerLoad::CreateLinkerAsync(Package, *PackageFileName, LinkerFlags);
+			Linker = FLinkerLoad::CreateLinkerAsync( Package, *PackageFileName, LinkerFlags );
 		}
 
 		// Associate this async package with the linker
@@ -1568,7 +1467,6 @@ EAsyncPackageState::Type FAsyncPackage::LoadImports()
 	{
 		// Get the package for this import
 		const FObjectImport* Import = &Linker->ImportMap[LoadImportIndex++];
-
 		while (Import->OuterIndex.IsImport())
 		{
 			Import = &Linker->Imp(Import->OuterIndex);
@@ -1577,13 +1475,6 @@ EAsyncPackageState::Type FAsyncPackage::LoadImports()
 
 		// @todo: why do we need this? some UFunctions have null outer in the linker.
 		if (Import->ClassName != NAME_Package)
-		{
-			continue;
-		}
-			
-
-		// Don't try to import a package that is in an import table that we know is an invalid entry
-		if (FLinkerLoad::KnownMissingPackages.Contains(Import->ObjectName))
 		{
 			continue;
 		}
@@ -1623,7 +1514,7 @@ EAsyncPackageState::Type FAsyncPackage::LoadImports()
 		}
 
 		if (!ExistingPackage && ContainsDependencyPackage(PendingImportedPackages, ImportPackageFName) == INDEX_NONE)
-		{
+		{			
 			const FString ImportPackageName(Import->ObjectName.ToString());
 			// The package doesn't exist and this import is not in the dependency list so add it now.
 			if (!FPackageName::IsShortPackageName(ImportPackageName))
@@ -1640,8 +1531,7 @@ EAsyncPackageState::Type FAsyncPackage::LoadImports()
 
 		UpdateLoadPercentage();
 	}
-			
-	
+
 	if (PendingImportedPackages.Num())
 	{
 		GiveUpTimeSlice();
@@ -1933,16 +1823,16 @@ EAsyncPackageState::Type FAsyncPackage::PostLoadDeferredObjects(double InTickSta
 	Result = (DeferredPostLoadIndex == DeferredPostLoadObjects.Num()) ? EAsyncPackageState::Complete : EAsyncPackageState::TimeOut;
 	if (Result == EAsyncPackageState::Complete)
 	{
-		// Clear async loading flags (we still want RF_Async, but EInternalObjectFlags::AsyncLoading can be cleared)
+		// Clear async loading flags (we still want RF_Async, but RF_AsyncLoading can be cleared)
 		for (UObject* Object : DeferredFinalizeObjects)
 		{
-			Object->AtomicallyClearInternalFlags(EInternalObjectFlags::AsyncLoading);
+			Object->AtomicallyClearFlags(RF_AsyncLoading);
 		}
 
 		// Mark package as having been fully loaded and update load time.
 		if (LinkerRoot && !bLoadHasFailed)
 		{
-			LinkerRoot->AtomicallyClearInternalFlags(EInternalObjectFlags::AsyncLoading);
+			LinkerRoot->AtomicallyClearFlags(RF_AsyncLoading);
 			LinkerRoot->MarkAsFullyLoaded();
 			LinkerRoot->SetLoadTime(FPlatformTime::Seconds() - LoadStartTime);
 
@@ -1958,7 +1848,7 @@ EAsyncPackageState::Type FAsyncPackage::PostLoadDeferredObjects(double InTickSta
 }
 
 /**
- * Finish up objects and state, which means clearing the EInternalObjectFlags::AsyncLoading flag on newly created ones
+ * Finish up objects and state, which means clearing the RF_AsyncLoading flag on newly created ones
  *
  * @return true
  */
@@ -2075,7 +1965,7 @@ void FAsyncPackage::UpdateLoadPercentage()
 	LoadPercentage = FMath::Max(NewLoadPercentage, LoadPercentage);
 }
 
-int32 LoadPackageAsync(const FString& InName, const FGuid* InGuid /*= nullptr*/, const TCHAR* InPackageToLoadFrom /*= nullptr*/, FLoadPackageAsyncDelegate InCompletionDelegate /*= FLoadPackageAsyncDelegate()*/, EPackageFlags InPackageFlags /*= PKG_None*/, int32 InPIEInstanceID /*= INDEX_NONE*/, int32 InPackagePriority /*= 0*/)
+int32 LoadPackageAsync(const FString& InName, const FGuid* InGuid /*= nullptr*/, const TCHAR* InPackageToLoadFrom /*= nullptr*/, FLoadPackageAsyncDelegate InCompletionDelegate /*= FLoadPackageAsyncDelegate()*/, EPackageFlags InPackageFlags /*= PKG_None*/, int32 InPIEInstanceID /*= INDEX_NONE*/, uint32 InPackagePriority /*= 0*/)
 {
 #if !WITH_EDITOR
 	if (GPreloadPackageDependencies)
@@ -2129,14 +2019,14 @@ int32 LoadPackageAsync(const FString& InName, const FGuid* InGuid /*= nullptr*/,
 	return RequestID;
 }
 
-int32 LoadPackageAsync(const FString& PackageName, FLoadPackageAsyncDelegate CompletionDelegate, int32 InPackagePriority /*= 0*/, EPackageFlags InPackageFlags /*= PKG_None*/)
+int32 LoadPackageAsync(const FString& PackageName, FLoadPackageAsyncDelegate CompletionDelegate, uint32 InPackagePriority /*= 0*/, EPackageFlags InPackageFlags /*= PKG_None*/)
 {
 	const FGuid* Guid = nullptr;
 	const TCHAR* PackageToLoadFrom = nullptr;
 	return LoadPackageAsync(PackageName, Guid, PackageToLoadFrom, CompletionDelegate, InPackageFlags, -1, InPackagePriority );
 }
 
-int32 LoadPackageAsync(const FString& InName, const FGuid* InGuid, FName InType /* Unused, deprecated */, const TCHAR* InPackageToLoadFrom /*= nullptr*/, FLoadPackageAsyncDelegate InCompletionDelegate /*= FLoadPackageAsyncDelegate()*/, EPackageFlags InPackageFlags /*= PKG_None*/, int32 InPIEInstanceID /*= INDEX_NONE*/, int32 InPackagePriority /*= 0*/)
+int32 LoadPackageAsync(const FString& InName, const FGuid* InGuid, FName InType /* Unused, deprecated */, const TCHAR* InPackageToLoadFrom /*= nullptr*/, FLoadPackageAsyncDelegate InCompletionDelegate /*= FLoadPackageAsyncDelegate()*/, EPackageFlags InPackageFlags /*= PKG_None*/, int32 InPIEInstanceID /*= INDEX_NONE*/, uint32 InPackagePriority /*= 0*/)
 {
 	return LoadPackageAsync(InName, InGuid, InPackageToLoadFrom, InCompletionDelegate, InPackageFlags, InPIEInstanceID, InPackagePriority);
 }
@@ -2618,7 +2508,7 @@ bool FArchiveAsync::Precache( int64 RequestOffset, int64 RequestSize )
 									PrecacheEndPos[CURRENT] - PrecacheStartPos[CURRENT], 
 									PrecacheBuffer[CURRENT], 
 									&PrecacheReadStatus[CURRENT],
-									AIOP_Normal);
+									AIOP_Normal );
 			check(RequestId);
 		}
 

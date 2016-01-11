@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MaterialShader.h: Material shader definitions.
@@ -41,6 +41,12 @@ extern ENGINE_API void DumpMaterialStats( EShaderPlatform Platform );
 class FMaterialShaderType : public FShaderType
 {
 public:
+
+	/**
+	 * Finds a FMaterialShaderType by name.
+	 */
+	static FMaterialShaderType* GetTypeByName(const FString& TypeName);
+
 	struct CompiledShaderInitializerType : FGlobalShaderType::CompiledShaderInitializerType
 	{
 		const FUniformExpressionSet& UniformExpressionSet;
@@ -52,11 +58,10 @@ public:
 			FShaderResource* InResource,
 			const FUniformExpressionSet& InUniformExpressionSet,
 			const FSHAHash& InMaterialShaderMapHash,
-			const FShaderPipelineType* InShaderPipeline,
 			FVertexFactoryType* InVertexFactoryType,
 			const FString& InDebugDescription
 			)
-		: FGlobalShaderType::CompiledShaderInitializerType(InType,CompilerOutput,InResource,InMaterialShaderMapHash,InShaderPipeline,InVertexFactoryType)
+		: FGlobalShaderType::CompiledShaderInitializerType(InType,CompilerOutput,InResource,InMaterialShaderMapHash,InVertexFactoryType)
 		, UniformExpressionSet(InUniformExpressionSet)
 		, DebugDescription(InDebugDescription)
 		{}
@@ -86,23 +91,13 @@ public:
 	 * Enqueues a compilation for a new shader of this type.
 	 * @param Material - The material to link the shader with.
 	 */
-	class FShaderCompileJob* BeginCompileShader(
+	void BeginCompileShader(
 		uint32 ShaderMapId,
 		const FMaterial* Material,
 		FShaderCompilerEnvironment* MaterialEnvironment,
-		const FShaderPipelineType* ShaderPipeline,
 		EShaderPlatform Platform,
-		TArray<FShaderCommonCompileJob*>& NewJobs
+		TArray<FShaderCompileJob*>& NewJobs
 		);
-
-	static void BeginCompileShaderPipeline(
-		uint32 ShaderMapId,
-		EShaderPlatform Platform,
-		const FMaterial* Material,
-		FShaderCompilerEnvironment* MaterialEnvironment,
-		const FShaderPipelineType* ShaderPipeline,
-		const TArray<FMaterialShaderType*>& ShaderStages,
-		TArray<FShaderCommonCompileJob*>& NewJobs);
 
 	/**
 	 * Either creates a new instance of this type or returns an equivalent existing shader.
@@ -113,7 +108,6 @@ public:
 		const FUniformExpressionSet& UniformExpressionSet,
 		const FSHAHash& MaterialShaderMapHash,
 		const FShaderCompileJob& CurrentJob,
-		const FShaderPipelineType* ShaderPipeline,
 		const FString& InDebugDescription
 		);
 
@@ -129,8 +123,7 @@ public:
 	}
 
 	// Dynamic casting.
-	virtual FMaterialShaderType* GetMaterialShaderType() override { return this; }
-	virtual const FMaterialShaderType* GetMaterialShaderType() const override { return this; }
+	virtual FMaterialShaderType* GetMaterialShaderType() { return this; }
 
 protected:
 

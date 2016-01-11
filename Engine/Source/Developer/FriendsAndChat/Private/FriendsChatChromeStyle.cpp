@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "FriendsAndChatPrivatePCH.h"
 
@@ -10,6 +10,11 @@ const FFriendsChatChromeStyle& FFriendsChatChromeStyle::GetDefault()
 	return Default;
 }
 
+FFriendsChatChromeStyle& FFriendsChatChromeStyle::SetSlashMarkupButtonStyle(const FButtonStyle& ButtonStyle)
+{
+	SlashMarkupButtonStyle = ButtonStyle;
+	return *this;
+}
 
 FFriendsChatChromeStyle& FFriendsChatChromeStyle::SetChatBackgroundBrush(const FSlateBrush& Value)
 {
@@ -17,89 +22,8 @@ FFriendsChatChromeStyle& FFriendsChatChromeStyle::SetChatBackgroundBrush(const F
 	return *this;
 }
 
-FFriendsChatChromeStyle& FFriendsChatChromeStyle::SetChatEntryBackgroundBrush(const FSlateBrush& Value)
-{
-	ChatEntryBackgroundBrush = Value;
-	return *this;
-}
-
-FFriendsChatChromeStyle& FFriendsChatChromeStyle::SetChannelBackgroundBrush(const FSlateBrush& Value)
-{
-	ChannelBackgroundBrush = Value;
-	return *this;
-}
-
-FFriendsChatChromeStyle& FFriendsChatChromeStyle::SetChatEntryBackgroundColor(const FLinearColor& Value)
-{
-	ChatEntryBackgroundColor = Value;
-	return *this;
-}
-
 FFriendsChatChromeStyle& FFriendsChatChromeStyle::SetTabBackgroundBrush(const FSlateBrush& Value)
 {
 	TabBackgroundBrush = Value;
-	return *this;
-}
-
-FFriendsChatChromeStyle& FFriendsChatChromeStyle::SetNoneActiveTabColor(const FLinearColor& Value)
-{
-	NoneActiveTabColor = Value;
-	return *this;
-}
-
-FFriendsChatChromeStyle& FFriendsChatChromeStyle::SetTabFontColor(const FLinearColor& Value)
-{
-	TabFontColor = Value;
-	return *this;
-}
-
-FFriendsChatChromeStyle& FFriendsChatChromeStyle::SetTabFontColorInverted(const FLinearColor& Value)
-{
-	TabFontColorInverted = Value;
-	return *this;
-}
-
-
-FFriendsChatChromeStyle& FFriendsChatChromeStyle::SetTabWidth(float Value)
-{
-	TabWidth = Value;
-	return *this;
-}
-
-FFriendsChatChromeStyle& FFriendsChatChromeStyle::SetTabPadding(const FMargin& Value)
-{
-	TabPadding = Value;
-	return *this;
-}
-
-FFriendsChatChromeStyle& FFriendsChatChromeStyle::SetChatWindowPadding(const FMargin& Value)
-{
-	ChatWindowPadding = Value;
-	return *this;
-}
-
-
-FFriendsChatChromeStyle& FFriendsChatChromeStyle::SetChatWindowToEntryMargin(const FMargin& Value)
-{
-	ChatWindowToEntryMargin = Value;
-	return *this;
-}
-
-FFriendsChatChromeStyle& FFriendsChatChromeStyle::SetChatChannelPadding(const FMargin& Value)
-{
-	ChatChannelPadding = Value;
-	return *this;
-}
-
-
-FFriendsChatChromeStyle& FFriendsChatChromeStyle::SetChatEntryPadding(const FMargin& Value)
-{
-	ChatEntryPadding = Value;
-	return *this;
-}
-
-FFriendsChatChromeStyle& FFriendsChatChromeStyle::SetChatBackgroundColor(const FLinearColor& Value)
-{
-	ChatBackgroundColor = Value;
 	return *this;
 }

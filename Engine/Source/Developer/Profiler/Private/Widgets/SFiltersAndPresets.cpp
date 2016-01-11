@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ProfilerPrivatePCH.h"
 #include "SSearchBox.h"
@@ -43,7 +43,12 @@ public:
 	SFiltersAndPresetsTooltip( const uint32 InStatID )
 		: StatID( InStatID )
 	{
-		ProfilerSession = FProfilerManager::Get()->GetProfilerSession();
+		// TODO: At this moment only single profiler instance is supported.
+		const int32 NumInstances = FProfilerManager::Get()->GetProfilerInstancesNum();
+		if( NumInstances == 1 )
+		{
+			ProfilerSession = FProfilerManager::Get()->GetProfilerInstancesIterator().Value();
+		}
 	}
 
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -758,8 +763,8 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void SFiltersAndPresets::ProfilerManager_OnRequestFilterAndPresetsUpdate()
 {
-	FProfilerSessionPtr ProfilerSessionLocal = FProfilerManager::Get()->GetProfilerSession();
-	UpdateGroupAndStatTree( ProfilerSessionLocal );
+	auto It = FProfilerManager::Get()->GetProfilerInstancesIterator();
+	UpdateGroupAndStatTree(It.Value());
 }
 
 void SFiltersAndPresets::UpdateGroupAndStatTree( const FProfilerSessionPtr InProfilerSession )

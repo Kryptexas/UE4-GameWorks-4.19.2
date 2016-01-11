@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -30,7 +30,7 @@ public:
 	 * @Address The message address to add.
 	 * @NodeId The identifier of the remote node that handles the message address.
 	 */
-	void Add(const FMessageAddress& Address, const FGuid& NodeId)
+	void Add( const FMessageAddress& Address, const FGuid& NodeId )
 	{
 		FScopeLock Lock(CriticalSection);
 
@@ -51,7 +51,7 @@ public:
 	 * @param Address The address to check.
 	 * @return true if the address is known, false otherwise.
 	 */
-	bool Contains(const FMessageAddress& Address)
+	bool Contains( const FMessageAddress& Address )
 	{
 		FScopeLock Lock(CriticalSection);
 
@@ -64,15 +64,15 @@ public:
 	 * @param Addresses The address list to retrieve the node identifiers for.
 	 * @return The list of node identifiers.
 	 */
-	TArray<FGuid> GetNodesFor(const TArray<FMessageAddress>& Addresses)
+	TArray<FGuid> GetNodesFor( const TArray<FMessageAddress>& Addresses )
 	{
 		TArray<FGuid> FoundNodes;
 
 		FScopeLock Lock(CriticalSection);
 
-		for (const auto& Address : Addresses)
+		for (int32 AddressIndex = 0; AddressIndex < Addresses.Num(); ++AddressIndex)
 		{
-			FGuid* NodeId = Entries.Find(Address);
+			FGuid* NodeId = Entries.Find(Addresses[AddressIndex]);
 
 			if (NodeId != nullptr)
 			{
@@ -92,7 +92,7 @@ public:
 	 * @param OutRemovedRecipients Will hold a list of recipients that were removed.
 	 * @see Clear, RemoveNode
 	 */
-	void RemoveAll(TArray<FMessageAddress>& OutRemovedAddresses)
+	void RemoveAll( TArray<FMessageAddress>& OutRemovedAddresses )
 	{
 		OutRemovedAddresses.Reset();
 
@@ -109,23 +109,23 @@ public:
 	 * @param OutRemovedRecipients Will hold a list of recipients that were removed.
 	 * @see Clear, RemoveAllNodes
 	 */
-	void RemoveNode(const FGuid& NodeId, TArray<FMessageAddress>& OutRemovedAddresses)
+	void RemoveNode( const FGuid& NodeId, TArray<FMessageAddress>& OutRemovedAddresses )
 	{
 		OutRemovedAddresses.Reset();
 
 		FScopeLock Lock(CriticalSection);
 
-		for (const auto& EntryPair : Entries)
+		for (TMap<FMessageAddress, FGuid>::TConstIterator It(Entries); It; ++It)
 		{
-			if (EntryPair.Value == NodeId)
+			if (It.Value() == NodeId)
 			{
-				OutRemovedAddresses.Add(EntryPair.Key);
+				OutRemovedAddresses.Add(It.Key());
 			}
 		}
 
-		for (const auto& Address : OutRemovedAddresses)
+		for (int32 Index = 0; Index < OutRemovedAddresses.Num(); ++Index)
 		{
-			Entries.Remove(Address);
+			Entries.Remove(OutRemovedAddresses[Index]);
 		}
 	}
 

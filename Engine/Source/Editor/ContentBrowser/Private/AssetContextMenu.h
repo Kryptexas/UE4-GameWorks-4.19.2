@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -237,7 +237,6 @@ private:
 	bool CanExecuteProperties() const;
 
 	/** Handler to check to see if a property matrix command is allowed */
-	bool CanExecutePropertyMatrix(FText& OutErrorMessage) const;
 	bool CanExecutePropertyMatrix() const;
 
 	/** Handler to check to see if a "Remove from collection" command is allowed */
@@ -312,12 +311,9 @@ private:
 	/** Handles when the Assign chunkID dialog Cancel button is clicked */
 	FReply OnChunkIDAssignCancel(TSharedPtr<SWindow> Window);
 
-	/** Generates tooltip for the Property Matrix menu option */
-	FText GetExecutePropertyMatrixTooltip() const;
-
 private:
 	/** Generates a list of selected assets in the content browser */
-	void GetSelectedAssets(TArray<UObject*>& Assets, bool SkipRedirectors) const;
+	void GetSelectedAssets(TArray<UObject*>& Assets, bool SkipRedirectors);
 
 	TArray<FAssetData> SelectedAssets;
 	FSourcesData SourcesData;

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 //=============================================================================
 // CheatManager
@@ -71,17 +71,15 @@ class ENGINE_API UCheatManager : public UObject
 	/** If we should should perform a debug capsule trace and draw results. Toggled with DebugCapsuleSweep() */
 	uint32 bDebugCapsuleSweep:1;
 
+	/** If we should should perform a debug capsule trace and draw results. Toggled with DebugCapsuleSweep() */
+	uint32 bDebugCapsuleSweepPawn:1;
+
 	/** If we should trace complex collision in debug capsule sweeps. Set with DebugCapsuleSweepComplex() */
 	uint32 bDebugCapsuleTraceComplex:1;
 
 	/** Holds information if we used ToggleAILogging cheat to activate AI logging */
 	uint32 bToggleAILogging : 1;
 
-	/** If we should should perform a debug capsule trace for pawns and draw results. Toggled with DebugCapsuleSweepPawn() */
-	static bool bDebugCapsuleSweepPawn;
-
-	/** Return true if debug sweeps are enabled for pawns. */ 
-	static FORCEINLINE bool IsDebugCapsuleSweepPawnEnabled() { return bDebugCapsuleSweepPawn; }
 
 	/** How far debug trace should go out from player viewpoint */
 	float DebugTraceDistance;

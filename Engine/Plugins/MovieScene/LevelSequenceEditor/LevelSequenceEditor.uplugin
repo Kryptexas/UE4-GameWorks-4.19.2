@@ -1,25 +1,24 @@
 {
 	"FileVersion" : 3,
+	
+	"FriendlyName" : "Level Sequence Editor",
 	"Version" : 1,
 	"VersionName" : "1.0",
-	"FriendlyName" : "Level Sequence Editor",
-	"Description" : "Content Editor for LevelSequence Assets.",
-	"Category" : "Editor",
 	"CreatedBy" : "Epic Games, Inc.",
 	"CreatedByURL" : "http://epicgames.com",
-	"DocsURL" : "",
-	"MarketplaceURL" : "",
-	"SupportURL" : "",
+	"EngineVersion" : "4.5.0",
+	"Description" : "Content Editor for LevelSequence Assets.",
+	"Category" : "Editor",
 	"EnabledByDefault" : false,
-	"CanContainContent" : false,
-	"IsBetaVersion" : true,
-	"Installed" : false,
+	"IsBetaVersion": true,
+
 	"Modules" :
 	[
 		{
 			"Name" : "LevelSequenceEditor",
-			"Type" : "Editor",
-			"LoadingPhase" : "Default"
+			"Type" : "Editor"
 		}
-	]
+	],
+
+	"CanContainContent" : false
 }

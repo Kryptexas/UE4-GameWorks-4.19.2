@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MessagingPrivatePCH.h"
 
@@ -72,16 +72,18 @@ void FMessageRouter::Exit()
 	TArray<IReceiveMessagesWeakPtr> Recipients;
 
 	// gather all subscribed and registered recipients
-	for (const auto& RecipientPair : ActiveRecipients)
+	for (TMap<FMessageAddress, IReceiveMessagesWeakPtr>::TConstIterator It(ActiveRecipients); It; ++It)
 	{
-		Recipients.AddUnique(RecipientPair.Value);
+		Recipients.AddUnique(It.Value());
 	}
 
-	for (const auto& SubscriptionsPair : ActiveSubscriptions)
+	for (TMap<FName, TArray<IMessageSubscriptionPtr> >::TIterator It(ActiveSubscriptions); It; ++It)
 	{
-		for (const auto& Subscription : SubscriptionsPair.Value)
+		TArray<IMessageSubscriptionPtr>& Subscribers = It.Value();
+
+		for (int32 Index = 0; Index < Subscribers.Num(); ++Index)
 		{
-			Recipients.AddUnique(Subscription->GetSubscriber());
+			Recipients.AddUnique(Subscribers[Index]->GetSubscriber());
 		}
 	}
 }
@@ -119,9 +121,9 @@ void FMessageRouter::DispatchMessage( const IMessageContextRef& Context )
 
 		if (RecipientList.Num() > 0)
 		{
-			for (const auto& RecipientAddress : RecipientList)
+			for (int32 Index = 0; Index < RecipientList.Num(); Index++)
 			{
-				IReceiveMessagesPtr Recipient = ActiveRecipients.FindRef(RecipientAddress).Pin();
+				IReceiveMessagesPtr Recipient = ActiveRecipients.FindRef(RecipientList[Index]).Pin();
 
 				if (Recipient.IsValid())
 				{
@@ -129,7 +131,7 @@ void FMessageRouter::DispatchMessage( const IMessageContextRef& Context )
 				}
 				else
 				{
-					ActiveRecipients.Remove(RecipientAddress);
+					ActiveRecipients.Remove(RecipientList[Index]);
 				}
 			}
 		}
@@ -141,8 +143,9 @@ void FMessageRouter::DispatchMessage( const IMessageContextRef& Context )
 		}
 
 		// dispatch the message
-		for (auto& Recipient : Recipients)
+		for (int32 RecipientIndex = 0; RecipientIndex < Recipients.Num(); RecipientIndex++)
 		{
+			IReceiveMessagesPtr Recipient = Recipients[RecipientIndex];
 			ENamedThreads::Type RecipientThread = Recipient->GetRecipientThread();
 
 			if (RecipientThread == ENamedThreads::AnyThread)
@@ -168,32 +171,30 @@ void FMessageRouter::FilterSubscriptions( TArray<IMessageSubscriptionPtr>& Subsc
 	{
 		const IMessageSubscriptionPtr& Subscription = Subscriptions[SubscriptionIndex];
 
-		if (!Subscription->IsEnabled() || !Subscription->GetScopeRange().Contains(MessageScope))
+		if (Subscription->IsEnabled() && Subscription->GetScopeRange().Contains(MessageScope))
 		{
-			continue;
-		}
+			IReceiveMessagesPtr Subscriber = Subscription->GetSubscriber().Pin();
 
-		IReceiveMessagesPtr Subscriber = Subscription->GetSubscriber().Pin();
-
-		if (Subscriber.IsValid())
-		{
-			if (MessageScope == EMessageScope::Thread)
+			if (Subscriber.IsValid())
 			{
-				ENamedThreads::Type RecipientThread = Subscriber->GetRecipientThread();
-				ENamedThreads::Type SenderThread = Context->GetSenderThread();
-
-				if (RecipientThread != SenderThread)
+				if (MessageScope == EMessageScope::Thread)
 				{
-					continue;
-				}
-			}
+					ENamedThreads::Type RecipientThread = Subscriber->GetRecipientThread();
+					ENamedThreads::Type SenderThread = Context->GetSenderThread();
 
-			OutRecipients.AddUnique(Subscriber);
-		}
-		else
-		{
-			Subscriptions.RemoveAtSwap(SubscriptionIndex);
-			--SubscriptionIndex;
+					if (RecipientThread != SenderThread)
+					{
+						continue;
+					}
+				}
+
+				OutRecipients.AddUnique(Subscriber);
+			}
+			else
+			{
+				Subscriptions.RemoveAtSwap(SubscriptionIndex);
+				--SubscriptionIndex;
+			}
 		}
 	}
 }
@@ -244,9 +245,10 @@ void FMessageRouter::HandleRemoveInterceptor( IMessageInterceptorRef Interceptor
 {
 	if (MessageType == NAME_All)
 	{
-		for (auto& InterceptorsPair : ActiveInterceptors)
+		for (TMap<FName, TArray<IMessageInterceptorPtr> >::TIterator It(ActiveInterceptors); It; ++It)
 		{
-			InterceptorsPair.Value.Remove(Interceptor);
+			TArray<IMessageInterceptorPtr>& Interceptors = It.Value();
+			Interceptors.Remove(Interceptor);
 		}
 	}
 	else
@@ -276,30 +278,25 @@ void FMessageRouter::HandleRemoveSubscriber( IReceiveMessagesWeakPtr SubscriberP
 {
 	IReceiveMessagesPtr Subscriber = SubscriberPtr.Pin();
 
-	if (!Subscriber.IsValid())
+	if (Subscriber.IsValid())
 	{
-		return;
-	}
-
-	for (auto& SubscriptionsPair : ActiveSubscriptions)
-	{
-		if ((MessageType != NAME_All) && (MessageType != SubscriptionsPair.Key))
+		for (TMap<FName, TArray<IMessageSubscriptionPtr> >::TIterator It(ActiveSubscriptions); It; ++It)
 		{
-			continue;
-		}
-
-		TArray<IMessageSubscriptionPtr>& Subscriptions = SubscriptionsPair.Value;
-
-		for (int32 Index = 0; Index < Subscriptions.Num(); Index++)
-		{
-			const auto& Subscription = Subscriptions[Index];
-
-			if (Subscription->GetSubscriber().Pin() == Subscriber)
+			if ((MessageType == NAME_All) || (MessageType == It.Key()))
 			{
-				Subscriptions.RemoveAtSwap(Index);
-				Tracer->TraceRemovedSubscription(Subscription.ToSharedRef(), MessageType);
+				TArray<IMessageSubscriptionPtr>& Subsriptions = It.Value();
 
-				break;
+				for (int32 Index = 0; Index < Subsriptions.Num(); Index++)
+				{
+					if (Subsriptions[Index]->GetSubscriber().Pin() == Subscriber)
+					{
+						Subsriptions.RemoveAtSwap(Index);
+
+						Tracer->TraceRemovedSubscription(Subsriptions[Index].ToSharedRef(), MessageType);
+
+						break;
+					}
+				}
 			}
 		}
 	}
@@ -308,16 +305,14 @@ void FMessageRouter::HandleRemoveSubscriber( IReceiveMessagesWeakPtr SubscriberP
 
 void FMessageRouter::HandleRouteMessage( IMessageContextRef Context )
 {
-	Tracer->TraceRoutedMessage(Context);
-
 	// intercept routing
 	TArray<IMessageInterceptorPtr>& Interceptors = ActiveInterceptors.FindOrAdd(Context->GetMessageType());
 
-	for (auto& Interceptor : Interceptors)
+	for (TArray<IMessageInterceptorPtr>::TIterator It(Interceptors); It; ++It)
 	{
-		if (Interceptor->InterceptMessage(Context))
+		if ((*It)->InterceptMessage(Context))
 		{
-			Tracer->TraceInterceptedMessage(Context, Interceptor.ToSharedRef());
+			Tracer->TraceInterceptedMessage(Context, It->ToSharedRef());
 
 			return;
 		}
@@ -333,4 +328,6 @@ void FMessageRouter::HandleRouteMessage( IMessageContextRef Context )
 	{
 		DispatchMessage(Context);
 	}
+
+	Tracer->TraceRoutedMessage(Context);
 }

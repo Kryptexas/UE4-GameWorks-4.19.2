@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #ifndef __LevelEditor_h__
 #define __LevelEditor_h__
@@ -204,7 +204,6 @@ public:
 	virtual TArray<FLevelEditorMenuExtender>& GetAllLevelEditorToolbarCompileMenuExtenders() {return LevelEditorToolbarCompileMenuExtenders;}
 	virtual TArray<FLevelEditorMenuExtender>& GetAllLevelEditorToolbarSourceControlMenuExtenders() { return LevelEditorToolbarSourceControlMenuExtenders; }
 	virtual TArray<FLevelEditorMenuExtender>& GetAllLevelEditorToolbarCreateMenuExtenders() { return LevelEditorToolbarCreateMenuExtenders; }
-	virtual TArray<FLevelEditorMenuExtender>& GetAllLevelEditorToolbarPlayMenuExtenders() { return LevelEditorToolbarPlayMenuExtenders; }
 	virtual TArray<TSharedPtr<FExtender>>& GetAllLevelEditorToolbarCinematicsMenuExtenders() {return LevelEditorToolbarCinematicsMenuExtenders;}
 	
 	/** Gets the extensibility managers for outside entities to extend static mesh editor's menus and toolbars */
@@ -281,7 +280,6 @@ private:
 	TArray<FLevelEditorMenuExtender> LevelEditorToolbarCompileMenuExtenders;
 	TArray<FLevelEditorMenuExtender> LevelEditorToolbarSourceControlMenuExtenders;
 	TArray<FLevelEditorMenuExtender> LevelEditorToolbarCreateMenuExtenders;
-	TArray<FLevelEditorMenuExtender> LevelEditorToolbarPlayMenuExtenders;
 	TArray<TSharedPtr<FExtender>> LevelEditorToolbarCinematicsMenuExtenders;
 
 	/* Pointer to the current level Editor instance */

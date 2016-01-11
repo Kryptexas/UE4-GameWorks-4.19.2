@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -17,26 +17,26 @@ struct FAutomationWorkerFindWorkers
 	GENERATED_USTRUCT_BODY()
 
 	/** Holds the change list number to find workers for. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	int32 Changelist;
 
 	/** The name of the game. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString GameName;
 
 	/** The name of the process. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString ProcessName;
 
 	/** Holds the session identifier to find workers for. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FGuid SessionId;
 
 	/** Default constructor. */
-	FAutomationWorkerFindWorkers() { }
+	FAutomationWorkerFindWorkers( ) { }
 
 	/** Creates and initializes a new instance. */
-	FAutomationWorkerFindWorkers(int32 InChangelist, const FString& InGameName, const FString& InProcessName, const FGuid& InSessionId)
+	FAutomationWorkerFindWorkers( int32 InChangelist, const FString& InGameName, const FString& InProcessName, const FGuid& InSessionId )
 		: Changelist(InChangelist)
 		, GameName(InGameName)
 		, ProcessName(InProcessName)
@@ -54,47 +54,49 @@ struct FAutomationWorkerFindWorkersResponse
 	GENERATED_USTRUCT_BODY()
 
 	/** Holds the name of the device that the worker is running on. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString DeviceName;
 
 	/** Holds the name of the worker's application instance. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString InstanceName;
 
 	/** Holds the name of the platform that the worker is running on. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString Platform;
 
 	/** Holds the name of the operating system version. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString OSVersionName;
 
 	/** Holds the name of the device model. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString ModelName;
 
 	/** Holds the name of the GPU. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString GPUName;
 
 	/** Holds the name of the CPU model. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString CPUModelName;
 
 	/** Holds the amount of RAM this device has in gigabytes. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	uint32 RAMInGB;
 
 	/** Holds the name of the current render mode. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString RenderModeName;
 
 	/** Holds the worker's application session identifier. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FGuid SessionId;
 
-	/** Default constructor. */
-	FAutomationWorkerFindWorkersResponse() { }
+	/**
+	 * Default constructor.
+	 */
+	FAutomationWorkerFindWorkersResponse( ) { }
 };
 
 
@@ -144,20 +146,24 @@ struct FAutomationWorkerRequestTests
 	GENERATED_USTRUCT_BODY()
 
 	/** Holds a flag indicating whether the developer directory should be included. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	bool DeveloperDirectoryIncluded;
 
-	/** Holds a flag indicating which tests we'd like to request. */
-	UPROPERTY(EditAnywhere, Category="Message")
-	uint32 RequestedTestFlags;
+	/** Holds a flag indicating whether the visual commandlet filter is enabled. */
+	UPROPERTY()
+	bool VisualCommandletFilterOn;
 
-	/** Default constructor. */
-	FAutomationWorkerRequestTests() { }
+	/**
+	 * Default constructor.
+	 */
+	FAutomationWorkerRequestTests( ) { }
 
-	/** Creates and initializes a new instance. */
-	FAutomationWorkerRequestTests(bool InDeveloperDirectoryIncluded, uint32 InRequestedTestFlags)
+	/**
+	 * Creates and initializes a new instance.
+	 */
+	FAutomationWorkerRequestTests( bool InDeveloperDirectoryIncluded, bool InVisualCommandletFilterOn )
 		: DeveloperDirectoryIncluded(InDeveloperDirectoryIncluded)
-		, RequestedTestFlags(InRequestedTestFlags)
+		, VisualCommandletFilterOn(InVisualCommandletFilterOn)
 	{ }
 };
 
@@ -171,30 +177,25 @@ struct FAutomationWorkerRequestTestsReply
 	GENERATED_USTRUCT_BODY()
 
 	/** Holds the test information serialized into a string. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString TestInfo;
 
 	/** Holds the total number of tests returned. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	int32 TotalNumTests;
 
-	/** Default constructor. */
-	FAutomationWorkerRequestTestsReply() { }
+	/**
+	 * Default constructor.
+	 */
+	FAutomationWorkerRequestTestsReply( ) { }
 
-	/** Creates and initializes a new instance. */
-	FAutomationWorkerRequestTestsReply(const FString& InTestInfo, const int32& InTotalNumTests)
+	/**
+	 * Creates and initializes a new instance.
+	 */
+	FAutomationWorkerRequestTestsReply( const FString& InTestInfo, const int32& InTotalNumTests )
 		: TestInfo(InTestInfo)
 		, TotalNumTests(InTotalNumTests)
 	{ }
-};
-
-
-/**
-*/
-USTRUCT()
-struct FAutomationWorkerRequestTestsReplyComplete
-{
-	GENERATED_USTRUCT_BODY()
 };
 
 
@@ -207,45 +208,39 @@ struct FAutomationWorkerRunTests
 	GENERATED_USTRUCT_BODY()
 
 	/** */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	uint32 ExecutionCount;
 
 	/** */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	int32 RoleIndex;
 
 	/** Holds the name of the test to run. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString TestName;
 
-	/** Holds the name of the test to run. */
-	UPROPERTY()
-	FString BeautifiedTestName;
-
 	/** If true, we will save out screenshots for tests that support them. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	bool bScreenshotsEnabled;
 
 	/** If true, we will not resize screen shots. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	bool bUseFullSizeScreenShots;
 
-	/** If true, send results to analytics when complete */
-	UPROPERTY()
-	bool bSendAnalytics;
-
-	/** Default constructor. */
+	/**
+	 * Default constructor.
+	 */
 	FAutomationWorkerRunTests( ) { }
 
-	/** Creates and initializes a new instance. */
-	FAutomationWorkerRunTests( uint32 InExecutionCount, int32 InRoleIndex, FString InTestName, FString InBeautifiedTestName, bool InScreenshotsEnabled, bool InFullSizeScreenshots, bool InSendAnalytics)
+	/**
+	 * Creates and initializes a new instance.
+	 */
+	FAutomationWorkerRunTests( uint32 InExecutionCount, int32 InRoleIndex, FString InTestName, bool InScreenshotsEnabled, bool InFullSizeScreenshots )
 		: ExecutionCount(InExecutionCount)
 		, RoleIndex(InRoleIndex)
 		, TestName(InTestName)
-		, BeautifiedTestName(InBeautifiedTestName)
 		, bScreenshotsEnabled(InScreenshotsEnabled)
 		, bUseFullSizeScreenShots(InFullSizeScreenshots)
-		, bSendAnalytics(InSendAnalytics)
 	{ }
 };
 
@@ -259,31 +254,31 @@ struct FAutomationWorkerRunTestsReply
 	GENERATED_USTRUCT_BODY()
 
 	/** */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	float Duration;
 
 	/** */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	TArray<FString> Errors;
 
 	/** */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	uint32 ExecutionCount;
 
 	/** */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	TArray<FString> Logs;
 
 	/** */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	bool Success;
 
 	/** */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString TestName;
 
 	/** */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	TArray<FString> Warnings;
 };
 
@@ -296,14 +291,18 @@ struct FAutomationWorkerRequestNextNetworkCommand
 	GENERATED_USTRUCT_BODY()
 
 	/** */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	uint32 ExecutionCount;
 
-	/** Default constructor. */
-	FAutomationWorkerRequestNextNetworkCommand() { }
+	/**
+	 * Default constructor.
+	 */
+	FAutomationWorkerRequestNextNetworkCommand( ) { }
 
-	/** Creates and initializes a new instance. */
-	FAutomationWorkerRequestNextNetworkCommand(uint32 InExecutionCount)
+	/**
+	 * Creates and initializes a new instance.
+	 */
+	FAutomationWorkerRequestNextNetworkCommand( uint32 InExecutionCount )
 		: ExecutionCount(InExecutionCount)
 	{ }
 };
@@ -327,10 +326,10 @@ struct FAutomationWorkerScreenImage
 	GENERATED_USTRUCT_BODY()
 
 	/** The screen shot data. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	TArray<uint8> ScreenImage;
 
 	/** The screen shot name. */
-	UPROPERTY(EditAnywhere, Category="Message")
+	UPROPERTY()
 	FString ScreenShotName;
 };

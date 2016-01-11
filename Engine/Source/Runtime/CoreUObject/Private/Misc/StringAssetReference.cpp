@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
 
@@ -9,47 +9,23 @@ FStringAssetReference::FStringAssetReference(const UObject* InObject)
 {
 	if (InObject)
 	{
-		SetPath(InObject->GetPathName());
+		AssetLongPathname = InObject->GetPathName();
 	}
 }
-
-PRAGMA_DISABLE_DEPRECATION_WARNINGS
-FStringAssetReference::~FStringAssetReference()
-{
-
-}
-
-const FString& FStringAssetReference::ToString() const
-{
-	return AssetLongPathname;
-}
-
-void FStringAssetReference::SetPath(FString Path)
-{
-	if (!FPackageName::IsShortPackageName(Path))
-	{
-		AssetLongPathname = MoveTemp(Path);
-	}
-	else
-	{
-		AssetLongPathname = FPackageName::GetNormalizedObjectPath(Path);
-	}
-}
-PRAGMA_POP
 
 bool FStringAssetReference::Serialize(FArchive& Ar)
 {
 #if WITH_EDITOR
 	if (Ar.IsSaving() && Ar.IsPersistent() && FCoreUObjectDelegates::StringAssetReferenceSaving.IsBound())
 	{
-		SetPath(FCoreUObjectDelegates::StringAssetReferenceSaving.Execute(ToString()));
+		AssetLongPathname = FCoreUObjectDelegates::StringAssetReferenceSaving.Execute(AssetLongPathname);
 	}
 #endif // WITH_EDITOR
 	Ar << *this;
 #if WITH_EDITOR
 	if (Ar.IsLoading() && Ar.IsPersistent() && FCoreUObjectDelegates::StringAssetReferenceLoaded.IsBound())
 	{
-		FCoreUObjectDelegates::StringAssetReferenceLoaded.Execute(ToString());
+		FCoreUObjectDelegates::StringAssetReferenceLoaded.Execute(AssetLongPathname);
 	}
 #endif // WITH_EDITOR
 
@@ -63,22 +39,17 @@ bool FStringAssetReference::Serialize(FArchive& Ar)
 }
 bool FStringAssetReference::operator==(FStringAssetReference const& Other) const
 {
-	return ToString() == Other.ToString();
+	return AssetLongPathname == Other.AssetLongPathname;
 }
 void FStringAssetReference::operator=(FStringAssetReference const& Other)
 {
-	SetPath(Other.ToString());
+	AssetLongPathname = Other.AssetLongPathname;
 }
 bool FStringAssetReference::ExportTextItem(FString& ValueStr, FStringAssetReference const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const
 {
-	if (0 != (PortFlags & EPropertyPortFlags::PPF_ExportCpp))
+	if (!AssetLongPathname.IsEmpty())
 	{
-		return false;
-	}
-
-	if (IsValid())
-	{
-		ValueStr += ToString();
+		ValueStr += AssetLongPathname;
 	}
 	else
 	{
@@ -86,43 +57,41 @@ bool FStringAssetReference::ExportTextItem(FString& ValueStr, FStringAssetRefere
 	}
 	return true;
 }
-bool FStringAssetReference::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText)
+bool FStringAssetReference::ImportTextItem( const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText )
 {
-	FString ImportedPath = TEXT("");
-	const TCHAR* NewBuffer = UPropertyHelpers::ReadToken(Buffer, ImportedPath, 1);
-	if (!NewBuffer)
+	AssetLongPathname = TEXT("");
+	const TCHAR* NewBuffer = UPropertyHelpers::ReadToken( Buffer, AssetLongPathname, 1 );
+	if( !NewBuffer )
 	{
 		return false;
 	}
 	Buffer = NewBuffer;
-	if (ImportedPath == TEXT("None"))
+	if( AssetLongPathname==TEXT("None") )
 	{
-		ImportedPath = TEXT("");
+		AssetLongPathname = TEXT("");
 	}
 	else
 	{
-		if (*Buffer == TCHAR('\''))
+		if( *Buffer == TCHAR('\'') )
 		{
-			NewBuffer = UPropertyHelpers::ReadToken(Buffer, ImportedPath, 1);
-			if (!NewBuffer)
+			NewBuffer = UPropertyHelpers::ReadToken( Buffer, AssetLongPathname, 1 );
+			if( !NewBuffer )
 			{
 				return false;
 			}
 			Buffer = NewBuffer;
-			if (*Buffer++ != TCHAR('\''))
+			if( *Buffer++ != TCHAR('\'') )
 			{
 				return false;
 			}
 		}
 	}
 
-	SetPath(MoveTemp(ImportedPath));
-
 #if WITH_EDITOR
 	// Consider this a load, so Config string asset references get cooked
 	if (FCoreUObjectDelegates::StringAssetReferenceLoaded.IsBound())
 	{
-		FCoreUObjectDelegates::StringAssetReferenceLoaded.Execute(ToString());
+		FCoreUObjectDelegates::StringAssetReferenceLoaded.Execute(AssetLongPathname);
 	}
 #endif // WITH_EDITOR
 
@@ -139,16 +108,7 @@ bool FStringAssetReference::SerializeFromMismatchedTag(struct FPropertyTag const
 		static const FName FORCEINLINE GetTypeName() { return NAME_ObjectProperty; }
 	};
 
-	FString Path = ToString();
-
-	bool bReturn = SerializeFromMismatchedTagTemplate<UObjectTypePolicy>(Path, Tag, Ar);
-
-	if (Ar.IsLoading())
-	{
-		SetPath(MoveTemp(Path));
-	}
-
-	return bReturn;
+	return SerializeFromMismatchedTagTemplate<UObjectTypePolicy>(AssetLongPathname, Tag, Ar);
 }
 
 UObject* FStringAssetReference::TryLoad() const
@@ -213,7 +173,7 @@ void FStringAssetReference::FixupForPIE()
 		{
 			check(GPlayInEditorID != -1);
 
-			FString PIEPath = FString::Printf(TEXT("%s/%s_%d_%s"), *FPackageName::GetLongPackagePath(Path), PLAYWORLD_PACKAGE_PREFIX, GPlayInEditorID, *ShortPackageOuterAndName);
+			const FString PIEPath = FString::Printf(TEXT("%s/%s_%d_%s"), *FPackageName::GetLongPackagePath(Path), PLAYWORLD_PACKAGE_PREFIX, GPlayInEditorID, *ShortPackageOuterAndName);
 
 			// Determine if this refers to a package that is being duplicated for PIE
 			for (auto PackageNameIt = PackageNamesBeingDuplicatedForPIE.CreateConstIterator(); PackageNameIt; ++PackageNameIt)
@@ -222,7 +182,7 @@ void FStringAssetReference::FixupForPIE()
 				if (PIEPath.StartsWith(PathPrefix))
 				{
 					// Need to prepend PIE prefix, as we're in PIE and this refers to an object in a PIE package
-					SetPath(MoveTemp(PIEPath));
+					AssetLongPathname = PIEPath;
 
 					break;
 				}

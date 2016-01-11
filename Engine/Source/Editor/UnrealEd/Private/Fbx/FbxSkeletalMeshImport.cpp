@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*
 * Copyright 2009 - 2010 Autodesk, Inc.  All Rights Reserved.
@@ -390,7 +390,7 @@ bool UnFbx::FFbxImporter::FacesAreSmoothlyConnected( FSkeletalMeshImportData &Im
 	return ( VertMatches >= 2 );
 }
 
-int32	UnFbx::FFbxImporter::DoUnSmoothVerts(FSkeletalMeshImportData &ImportData, bool bDuplicateUnSmoothWedges)
+int32	UnFbx::FFbxImporter::DoUnSmoothVerts(FSkeletalMeshImportData &ImportData)
 {
 	//
 	// Connectivity: triangles with non-matching smoothing groups will be physically split.
@@ -431,20 +431,11 @@ int32	UnFbx::FFbxImporter::DoUnSmoothVerts(FSkeletalMeshImportData &ImportData, 
 
 	for(int32 i=0; i< ImportData.Influences.Num(); i++)
 	{
-		if (PointInfluences.Num() <= ImportData.Influences[i].VertexIndex)
-		{
-			PointInfluences.AddZeroed(ImportData.Influences[i].VertexIndex - PointInfluences.Num() + 1);
-		}
 		PointInfluences[ImportData.Influences[i].VertexIndex ].RawInfIndices.Add( i );
 	}
 
 	for(int32 i=0; i< ImportData.Wedges.Num(); i++)
 	{
-		if (uint32(PointWedges.Num()) <= ImportData.Wedges[i].VertexIndex)
-		{
-			PointWedges.AddZeroed(ImportData.Wedges[i].VertexIndex - PointWedges.Num() + 1);
-		}
-
 		PointWedges[ImportData.Wedges[i].VertexIndex ].WedgeList.Add( i );
 	}
 
@@ -574,28 +565,20 @@ int32	UnFbx::FFbxImporter::DoUnSmoothVerts(FSkeletalMeshImportData &ImportData, 
 					{
 						int32 OldWedgeIndex = PointWedges[p].WedgeList[w];
 						int32 NewWedgeIndex = ImportData.Wedges.Num();
+						ImportData.Wedges.AddUninitialized();
+						ImportData.Wedges[NewWedgeIndex] = ImportData.Wedges[ OldWedgeIndex ];
+						ImportData.Wedges[ NewWedgeIndex ].VertexIndex = NewPointIndex; 
 
-						if( bDuplicateUnSmoothWedges )
+						//  Update relevant face's Wedges. Inelegant: just check all associated faces for every new wedge.
+						for( int32 s=0; s< FaceSets[f].Faces.Num(); s++)
 						{
-							ImportData.Wedges.AddUninitialized();
-							ImportData.Wedges[NewWedgeIndex] = ImportData.Wedges[ OldWedgeIndex ];
-							ImportData.Wedges[ NewWedgeIndex ].VertexIndex = NewPointIndex; 
-
-							//  Update relevant face's Wedges. Inelegant: just check all associated faces for every new wedge.
-							for( int32 s=0; s< FaceSets[f].Faces.Num(); s++)
+							int32 FanIndex = FaceSets[f].Faces[s];
+							if( Fans[p].FaceRecord[ FanIndex ].WedgeIndex == OldWedgeIndex )
 							{
-								int32 FanIndex = FaceSets[f].Faces[s];
-								if( Fans[p].FaceRecord[ FanIndex ].WedgeIndex == OldWedgeIndex )
-								{
-									// Update just the right one for this face (HoekIndex!) 
-									ImportData.Faces[ Fans[p].FaceRecord[ FanIndex].FaceIndex ].WedgeIndex[ Fans[p].FaceRecord[ FanIndex ].HoekIndex ] = NewWedgeIndex;
-									RemappedHoeks++;
-								}
+								// Update just the right one for this face (HoekIndex!) 
+								ImportData.Faces[ Fans[p].FaceRecord[ FanIndex].FaceIndex ].WedgeIndex[ Fans[p].FaceRecord[ FanIndex ].HoekIndex ] = NewWedgeIndex;
+								RemappedHoeks++;
 							}
-						}
-						else
-						{
-							ImportData.Wedges[OldWedgeIndex].VertexIndex = NewPointIndex; 
 						}
 					}
 				}
@@ -647,23 +630,20 @@ void UnFbx::FFbxImporter::BuildSkeletonSystem(TArray<FbxCluster*>& ClusterArray,
 	for (ClusterIndex = 0; ClusterIndex < ClusterArray.Num(); ClusterIndex++)
 	{
 		Link = ClusterArray[ClusterIndex]->GetLink();
-		if (Link)
+		Link = GetRootSkeleton(Link);
+		int32 LinkIndex;
+		for (LinkIndex=0; LinkIndex<RootLinks.Num(); LinkIndex++)
 		{
-			Link = GetRootSkeleton(Link);
-			int32 LinkIndex;
-			for (LinkIndex = 0; LinkIndex < RootLinks.Num(); LinkIndex++)
+			if (Link == RootLinks[LinkIndex])
 			{
-				if (Link == RootLinks[LinkIndex])
-				{
-					break;
-				}
+				break;
 			}
-
-			// this link is a new root, add it
-			if (LinkIndex == RootLinks.Num())
-			{
-				RootLinks.Add(Link);
-			}
+		}
+		
+		// this link is a new root, add it
+		if (LinkIndex == RootLinks.Num())
+		{
+			RootLinks.Add(Link);
 		}
 	}
 
@@ -1111,7 +1091,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 
 	if ( !FbxShapeArray  )
 	{
-		UObject* ExistingObject = StaticFindObjectFast(UObject::StaticClass(), InParent, *Name.ToString(), false, false, RF_NoFlags, EInternalObjectFlags::PendingKill);
+		UObject* ExistingObject = StaticFindObjectFast(UObject::StaticClass(), InParent, *Name.ToString(), false, false, RF_PendingKill);
 		USkeletalMesh* ExistingSkelMesh = Cast<USkeletalMesh>(ExistingObject);
 
 		if (ExistingSkelMesh)
@@ -1226,8 +1206,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 	
 	if( ImportOptions->bPreserveSmoothingGroups )
 	{
-		bool bDuplicateUnSmoothWedges = (ImportOptions->NormalGenerationMethod != EFBXNormalGenerationMethod::MikkTSpace);
-		DoUnSmoothVerts(*SkelMeshImportDataPtr, bDuplicateUnSmoothWedges);
+		DoUnSmoothVerts(*SkelMeshImportDataPtr);
 	}
 	else
 	{
@@ -1296,35 +1275,39 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 		TArray<int32> LODPointToRawMap;
 		SkelMeshImportDataPtr->CopyLODImportData(LODPoints,LODWedges,LODFaces,LODInfluences,LODPointToRawMap);
 
-		IMeshUtilities::MeshBuildOptions BuildOptions;
-		BuildOptions.bKeepOverlappingVertices = ImportOptions->bKeepOverlappingVertices;
-		BuildOptions.bComputeNormals = !ImportOptions->ShouldImportNormals() || !SkelMeshImportDataPtr->bHasNormals;
-		BuildOptions.bComputeTangents = !ImportOptions->ShouldImportTangents() || !SkelMeshImportDataPtr->bHasTangents;
-		BuildOptions.bUseMikkTSpace = (ImportOptions->NormalGenerationMethod == EFBXNormalGenerationMethod::MikkTSpace);
-		BuildOptions.bRemoveDegenerateTriangles = false;
+		const bool bShouldComputeNormals = !ImportOptions->ShouldImportNormals() || !SkelMeshImportDataPtr->bHasNormals;
+		const bool bShouldComputeTangents = !ImportOptions->ShouldImportTangents() || !SkelMeshImportDataPtr->bHasTangents;
 
 		IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
 		
 		TArray<FText> WarningMessages;
 		TArray<FName> WarningNames;
 		// Create actual rendering data.
-		bool bBuildSuccess = MeshUtilities.BuildSkeletalMesh(ImportedResource->LODModels[0],SkeletalMesh->RefSkeleton,LODInfluences,LODWedges,LODFaces,LODPoints,LODPointToRawMap,BuildOptions, &WarningMessages, &WarningNames);
-
-		// temporary hack of message/names, should be one token or a struct
-		if(WarningMessages.Num() > 0 && WarningNames.Num() == WarningMessages.Num())
+		if ( !MeshUtilities.BuildSkeletalMesh(ImportedResource->LODModels[0],SkeletalMesh->RefSkeleton,LODInfluences,LODWedges,LODFaces,LODPoints,LODPointToRawMap, ImportOptions->bKeepOverlappingVertices, bShouldComputeNormals, bShouldComputeTangents, &WarningMessages, &WarningNames ) )
 		{
-			EMessageSeverity::Type MessageSeverity = bBuildSuccess ? EMessageSeverity::Warning : EMessageSeverity::Error;
-
-			for(int32 MessageIdx = 0; MessageIdx<WarningMessages.Num(); ++MessageIdx)
+			if (WarningNames.Num() == WarningMessages.Num())
 			{
-				AddTokenizedErrorMessage(FTokenizedMessage::Create(MessageSeverity, WarningMessages[MessageIdx]), WarningNames[MessageIdx]);
+				// temporary hack of message/names, should be one token or a struct
+				for(int32 MessageIdx = 0; MessageIdx<WarningMessages.Num(); ++MessageIdx)
+				{
+					AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, WarningMessages[MessageIdx]), WarningNames[MessageIdx]);
+				}
 			}
-		}
 
-		if( !bBuildSuccess )
-		{
 			SkeletalMesh->MarkPendingKill();
 			return NULL;
+		}
+		else if (WarningMessages.Num() > 0)
+		{
+			// temporary hack of message/names, should be one token or a struct
+			if(WarningNames.Num() == WarningMessages.Num())
+			{
+				// temporary hack of message/names, should be one token or a struct
+				for(int32 MessageIdx = 0; MessageIdx<WarningMessages.Num(); ++MessageIdx)
+				{
+					AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, WarningMessages[MessageIdx]), WarningNames[MessageIdx]);
+				}
+			}
 		}
 
 		// Presize the per-section shadow casting array with the number of sections in the imported LOD.
@@ -2477,13 +2460,12 @@ void UnFbx::FFbxImporter::InsertNewLODToBaseSkeletalMesh(USkeletalMesh* InSkelet
 	// Index buffer will be destroyed when we copy the LOD model so we must copy the index buffer and reinitialize it after the copy
 	FMultiSizeIndexContainerData Data;
 	NewLODModel.MultiSizeIndexContainer.GetIndexBufferData(Data);
-	FMultiSizeIndexContainerData AdjacencyData;
-	NewLODModel.AdjacencyMultiSizeIndexContainer.GetIndexBufferData(AdjacencyData);
 
 	// Assign new FStaticLODModel to desired slot in selected skeletal mesh.
 	DestImportedResource->LODModels[DesiredLOD] = NewLODModel;
 
-	DestImportedResource->LODModels[DesiredLOD].RebuildIndexBuffer(&Data, &AdjacencyData);
+	DestImportedResource->LODModels[DesiredLOD].MultiSizeIndexContainer.RebuildIndexBuffer(Data);
+
 	// rebuild vertex buffers and reinit RHI resources
 	BaseSkeletalMesh->PostEditChange();
 }
@@ -2702,12 +2684,9 @@ public:
 		TArray<FVertInfluence> LODInfluences;
 		TArray<int32> LODPointToRawMap;
 		ImportData.CopyLODImportData(LODPoints,LODWedges,LODFaces,LODInfluences,LODPointToRawMap);
-
-		IMeshUtilities::MeshBuildOptions BuildOptions;
-		BuildOptions.bKeepOverlappingVertices = bKeepOverlappingVertices;
 	
 		ImportData.Empty();
-		MeshUtilities->BuildSkeletalMesh( TempSkeletalMesh->GetImportedResource()->LODModels[0], TempSkeletalMesh->RefSkeleton, LODInfluences, LODWedges, LODFaces, LODPoints, LODPointToRawMap, BuildOptions);
+		MeshUtilities->BuildSkeletalMesh( TempSkeletalMesh->GetImportedResource()->LODModels[0], TempSkeletalMesh->RefSkeleton, LODInfluences, LODWedges, LODFaces, LODPoints, LODPointToRawMap, bKeepOverlappingVertices);
 	}
 
 	FORCEINLINE TStatId GetStatId() const

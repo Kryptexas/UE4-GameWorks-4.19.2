@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2625743
+﻿INTSourceChangelist:2572470
 Availability:Public
 Title:ビヘイビアツリーのクイックスタートガイド
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
@@ -38,26 +38,16 @@ Description:AI の概要とサンプル
 [/OBJECT]
 [/VAR]
 
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-ｚ1td5wSD3PPU
-[/PARAMLITERAL]
-[/OBJECT]
+![](Engine\AI\BehaviorTrees\QuickStart\14\BTFinal.gif)(convert:false)
 
-ビヘイビアツリー クイックスタート ガイドでは、NavMesh の作成、AI コントローラの作成、その AI コントローラに制御されることになるキャラクターの作成、基本的なビヘイビアツリーに必要なすべての部分の作成プロセスを説明します。
+ビヘイビアツリー クイックスタート ガイドでは、NavMesh の作成、 AI コントローラの作成、 その AI コントローラに制御されることになるキャラクターの作成、基本的なビヘイビアツリーに必要なすべての部分の作成プロセスを説明します。
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		ステップ
+		手順
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

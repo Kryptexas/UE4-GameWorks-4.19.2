@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "Internationalization/Text.h"
@@ -29,9 +29,9 @@ public:
 									const FDateTimeFormattingRules& InDateTimeFormattingRule);
 #endif
 
-	const FString& GetDisplayName() const;
+	FString GetDisplayName() const;
 
-	const FString& GetEnglishName() const;
+	FString GetEnglishName() const;
 
 	int GetKeyboardLayoutId() const;
 
@@ -41,25 +41,25 @@ public:
 
 	static FString GetCanonicalName(const FString& Name);
 
-	const FString& GetName() const;
+	FString GetName() const;
 	
-	const FString& GetNativeName() const;
+	FString GetNativeName() const;
 
-	const FString& GetUnrealLegacyThreeLetterISOLanguageName() const;
+	FString GetUnrealLegacyThreeLetterISOLanguageName() const;
 
-	const FString& GetThreeLetterISOLanguageName() const;
+	FString GetThreeLetterISOLanguageName() const;
 
-	const FString& GetTwoLetterISOLanguageName() const;
+	FString GetTwoLetterISOLanguageName() const;
 
-	const FString& GetNativeLanguage() const;
+	FString GetNativeLanguage() const;
 
-	const FString& GetRegion() const;
+	FString GetRegion() const;
 
-	const FString& GetNativeRegion() const;
+	FString GetNativeRegion() const;
 
-	const FString& GetScript() const;
+	FString GetScript() const;
 
-	const FString& GetVariant() const;
+	FString GetVariant() const;
 
 public:
 #if UE_ENABLE_ICU
@@ -97,19 +97,6 @@ private:
 	const FTextFormattingRules TextFormattingRule;
 	const FNumberFormattingRules NumberFormattingRule;
 #endif
-
-	FString CachedDisplayName;
-	FString CachedEnglishName;
-	FString CachedName;
-	FString CachedNativeName;
-	FString CachedUnrealLegacyThreeLetterISOLanguageName;
-	FString CachedThreeLetterISOLanguageName;
-	FString CachedTwoLetterISOLanguageName;
-	FString CachedNativeLanguage;
-	FString CachedRegion;
-	FString CachedNativeRegion;
-	FString CachedScript;
-	FString CachedVariant;
 };
 
 #include "CulturePointer.h"

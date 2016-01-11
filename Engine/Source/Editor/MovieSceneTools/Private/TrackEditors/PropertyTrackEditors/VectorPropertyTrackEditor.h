@@ -1,16 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "MovieSceneVectorTrack.h"
-#include "MovieSceneVectorSection.h"
 
 
 /**
  * A property track editor for vectors.
  */
 class FVectorPropertyTrackEditor
-	: public FPropertyTrackEditor<UMovieSceneVectorTrack, UMovieSceneVectorSection, FVectorKey>
+	: public FPropertyTrackEditor<UMovieSceneVectorTrack, FVectorKey>
 {
 public:
 
@@ -20,7 +19,7 @@ public:
 	 * @param InSequencer The sequencer instance to be used by this tool
 	 */
 	FVectorPropertyTrackEditor( TSharedRef<ISequencer> InSequencer )
-		: FPropertyTrackEditor<UMovieSceneVectorTrack, UMovieSceneVectorSection, FVectorKey>( InSequencer, NAME_Vector, NAME_Vector4, NAME_Vector2D )
+		: FPropertyTrackEditor<UMovieSceneVectorTrack, FVectorKey>( InSequencer, NAME_Vector, NAME_Vector4, NAME_Vector2D )
 	{ }
 
 	/**
@@ -31,16 +30,15 @@ public:
 	 */
 	static TSharedRef<ISequencerTrackEditor> CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer );
 
+public:
+
+	// ISequencerTrackEditor interface
+
+	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track ) override;
+
 protected:
 
 	// FPropertyTrackEditor interface
-	virtual TSharedRef<FPropertySection> MakePropertySectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track ) override;
-	virtual void GenerateKeysFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, TArray<FVectorKey>& NewGeneratedKeys, TArray<FVectorKey>& DefaultGeneratedKeys ) override;
-	virtual void InitializeNewTrack( UMovieSceneVectorTrack* NewTrack, FPropertyChangedParams PropertyChangedParams ) override;
 
-private:
-	static FName XName;
-	static FName YName;
-	static FName ZName;
-	static FName WName;
+	virtual bool TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, FVectorKey& OutKey ) override;
 };

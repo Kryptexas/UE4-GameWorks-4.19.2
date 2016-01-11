@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -22,7 +22,6 @@ public:
 	TSharedPtr<FUICommandInfo> ZoomToFitHorizontal;
 	TSharedPtr<FUICommandInfo> ZoomToFitVertical;
 	TSharedPtr<FUICommandInfo> ZoomToFit;
-	TSharedPtr<FUICommandInfo> ZoomToFitAll;
 	TSharedPtr<FUICommandInfo> ToggleSnapping;
 
 	TSharedPtr<FUICommandInfo> InterpolationConstant;

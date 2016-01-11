@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*================================================================================
 	SplashScreen.cpp: Splash screen for game/editor startup
@@ -891,7 +891,9 @@ void FLinuxPlatformSplash::Show( )
 	const FText GameName = FText::FromString(FApp::GetGameName());
 
 	const TCHAR* SplashImage = GIsEditor ? ( GameName.IsEmpty() ? TEXT("EdSplashDefault") : TEXT("EdSplash") ) : ( GameName.IsEmpty() ? TEXT("SplashDefault") : TEXT("Splash") );
-	const TCHAR* IconImage = GIsEditor ? ( GameName.IsEmpty() ? TEXT("EdIconDefault") : TEXT("EdIcon") ) : ( GameName.IsEmpty() ? TEXT("IconDefault") : TEXT("Icon.bmp") );
+	// TODO: add an icon
+	//const TCHAR* IconImage = GIsEditor ? ( GameName.IsEmpty() ? TEXT("EdIconDefault") : TEXT("EdIcon") ) : ( GameName.IsEmpty() ? TEXT("IconDefault") : TEXT("Icon.bmp") );
+	const TCHAR* IconImage = GIsEditor ? ( GameName.IsEmpty() ? TEXT("EdSplashDefault") : TEXT("EdSplash") ) : ( GameName.IsEmpty() ? TEXT("SplashDefault") : TEXT("Splash") );
 
 	// make sure a splash was found
 	bool IsCustom;
@@ -919,7 +921,7 @@ void FLinuxPlatformSplash::Show( )
 
 		// Set version info
 		{
-			const FText Version = FText::FromString( FEngineVersion::Current().ToString( FEngineBuildSettings::IsPerforceBuild() ? EVersionComponent::Branch : EVersionComponent::Patch ) );
+			const FText Version = FText::FromString( GEngineVersion.ToString( FEngineBuildSettings::IsPerforceBuild() ? EVersionComponent::Branch : EVersionComponent::Patch ) );
 
 			FText VersionInfo;
 			FText AppName;
@@ -942,7 +944,7 @@ void FLinuxPlatformSplash::Show( )
 
 		// Display copyright information in editor splash screen
 		{
-			const FText CopyrightInfo = NSLOCTEXT( "UnrealEd", "SplashScreen_CopyrightInfo", "Copyright \x00a9 1998-2016   Epic Games, Inc.   All rights reserved." );
+			const FText CopyrightInfo = NSLOCTEXT( "UnrealEd", "SplashScreen_CopyrightInfo", "Copyright \x00a9 1998-2015   Epic Games, Inc.   All rights reserved." );
 			StartSetSplashText( SplashTextType::CopyrightInfo, CopyrightInfo );
 		}
 	}

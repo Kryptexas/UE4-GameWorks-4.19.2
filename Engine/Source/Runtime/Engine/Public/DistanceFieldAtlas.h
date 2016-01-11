@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DistanceFieldAtlas.h
@@ -219,12 +219,10 @@ private:
 	TArray<FAsyncDistanceFieldTask*> ReferencedTasks;
 
 	/** Tasks that have not yet started processing yet. */
-	// consider changing this from FIFO to Unordered, which may be faster
-	TLockFreePointerListLIFO<FAsyncDistanceFieldTask> TaskQueue;
+	TLockFreePointerList<FAsyncDistanceFieldTask> TaskQueue;
 
 	/** Tasks that have completed processing. */
-	// consider changing this from FIFO to Unordered, which may be faster
-	TLockFreePointerListLIFO<FAsyncDistanceFieldTask> CompletedTasks;
+	TLockFreePointerList<FAsyncDistanceFieldTask> CompletedTasks;
 
 	class IMeshUtilities* MeshUtilities;
 

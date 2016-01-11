@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	
@@ -155,11 +155,9 @@ USceneCaptureComponent::USceneCaptureComponent(const FObjectInitializer& ObjectI
 	MaxViewDistanceOverride = -1;
 
 	// Disable features that are not desired when capturing the scene
-	ShowFlags.SetMotionBlur(0); // motion blur doesn't work correctly with scene captures.
-	ShowFlags.SetSeparateTranslucency(0);
-	ShowFlags.SetHMDDistortion(0);
-
-    CaptureStereoPass = EStereoscopicPass::eSSP_FULL;
+	ShowFlags.MotionBlur = 0; // motion blur doesn't work correctly with scene captures.
+	ShowFlags.SeparateTranslucency = 0;
+	ShowFlags.HMDDistortion = 0;
 }
 
 void USceneCaptureComponent::PostLoad()
@@ -280,7 +278,6 @@ USceneCaptureComponent2D::USceneCaptureComponent2D(const FObjectInitializer& Obj
 	CaptureSource = SCS_SceneColorHDR;
 	// default to full blend weight..
 	PostProcessBlendWeight = 1.0f;
-	CaptureStereoPass = EStereoscopicPass::eSSP_FULL;
 }
 
 void USceneCaptureComponent2D::OnRegister()
@@ -327,7 +324,6 @@ void USceneCaptureComponent2D::UpdateDeferredCaptures( FSceneInterface* Scene )
 	UWorld* World = Scene->GetWorld();
 	if( World && SceneCapturesToUpdateMap.Num() > 0 )
 	{
-		World->SendAllEndOfFrameUpdates();
 		// Only update the scene captures assoicated with the current scene.
 		// Updating others not associated with the scene would cause invalid data to be rendered into the target
 		TArray< TWeakObjectPtr<USceneCaptureComponent2D> > SceneCapturesToUpdate;
@@ -422,7 +418,6 @@ void USceneCaptureComponentCube::UpdateDeferredCaptures( FSceneInterface* Scene 
 	
 	if( World && CubedSceneCapturesToUpdateMap.Num() > 0 )
 	{
-		World->SendAllEndOfFrameUpdates();
 		// Only update the scene captures associated with the current scene.
 		// Updating others not associated with the scene would cause invalid data to be rendered into the target
 		TArray< TWeakObjectPtr<USceneCaptureComponentCube> > SceneCapturesToUpdate;

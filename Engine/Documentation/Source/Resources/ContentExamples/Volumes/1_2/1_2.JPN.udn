@@ -1,0 +1,28 @@
+﻿Availability:Docs
+Title:1.2 - Blocking Volume
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Volumes
+Description:ボリュームの事例概要 1.2:Blocking Volume
+
+[TOC(start:2 end:2)]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Volumes/1_2:title%](Resources\ContentExamples\Volumes\content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Volumes/1_2:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Volumes/1_2:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Volumes/1_2]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+これはプレイヤーがアクセスすべきではない領域をブロックする、またはスタティックメッシュからのシンプルなコリジョンだけでは不十分な環境でコリジョンを調整するために使用する不可視のコリジョンです。

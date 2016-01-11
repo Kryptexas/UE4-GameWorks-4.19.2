@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "Culture.h"
@@ -196,15 +196,15 @@ bool FindDelimitedString(const FString& InStr, const FString& LeftDelim, const F
 FPortableObjectCulture::FPortableObjectCulture( const FString& LangCode, const FString& PluralForms )
 	: LanguageCode( LangCode )
 	, LanguagePluralForms( PluralForms )
-	, Culture( FInternationalization::Get().GetCulture( LangCode ) )
+	, Culture( FCulture::Create( LangCode ) )
 {
-	
+
 }
 
 FPortableObjectCulture::FPortableObjectCulture( const FPortableObjectCulture& Other )
 	: LanguageCode( Other.LanguageCode )
 	, LanguagePluralForms( Other.LanguagePluralForms )
-	, Culture( FInternationalization::Get().GetCulture( Other.LanguageCode ) )
+	, Culture( FCulture::Create( Other.LanguageCode ) )
 {
 
 }
@@ -212,7 +212,7 @@ FPortableObjectCulture::FPortableObjectCulture( const FPortableObjectCulture& Ot
 void FPortableObjectCulture::SetLanguageCode( const FString& LangCode )
 {
 	LanguageCode = LangCode;
-	Culture = FInternationalization::Get().GetCulture( LangCode );
+	Culture = FCulture::Create( LangCode );
 }
 
 
@@ -719,7 +719,7 @@ void FPortableObjectFormatDOM::CreateNewHeader()
 	//Hard code some header entries for now in the following format
 	/*
 	# Engine English translation
-	# Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+	# Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 	#
 	msgid ""
 	msgstr ""
@@ -748,7 +748,7 @@ void FPortableObjectFormatDOM::CreateNewHeader()
 	Header.SetEntryValue( TEXT("Plural-Forms"), Language.GetPluralForms() );
 
 	Header.Comments.Add( FString::Printf(TEXT("%s %s translation."), *GetProjectName(), *Language.EnglishName() ) );
-	Header.Comments.Add( TEXT("Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.") );
+	Header.Comments.Add( TEXT("Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.") );
 	Header.Comments.Add( FString(TEXT("")) );
 
 }
@@ -812,7 +812,7 @@ void FPortableObjectFormatDOM::SortEntries()
 	// Sort keys.
 	for (const TSharedPtr<FPortableObjectEntry>& Entry : Entries)
 	{
-		Entry->ReferenceComments.Sort();
+		Entry->ExtractedComments.Sort();
 	}
 
 	// Sort by namespace, then keys, then source text.
@@ -832,26 +832,11 @@ void FPortableObjectFormatDOM::SortEntries()
 		const int32 ExtractedCommentCount = FMath::Max(A->ExtractedComments.Num(), B->ExtractedComments.Num());
 		for (int32 i = 0; i < ExtractedCommentCount; ++i)
 		{
-			// If A has no more comments, it is before B.
-			if (!A->ExtractedComments.IsValidIndex(i) && B->ExtractedComments.IsValidIndex(i))
+			if (A->ExtractedComments[i] < B->ExtractedComments[i] || (!A->ExtractedComments.IsValidIndex(i) && B->ExtractedComments.IsValidIndex(i)))
 			{
 				return true;
 			}
-			// If B has no more comments, it is before A.
-			if (A->ExtractedComments.IsValidIndex(i) && !B->ExtractedComments.IsValidIndex(i))
-			{
-				return false;
-			}
-
-			check(A->ExtractedComments.IsValidIndex(i) && B->ExtractedComments.IsValidIndex(i));
-
-			// If A's comment is lexicographically less, it is before B.
-			if (A->ExtractedComments[i] < B->ExtractedComments[i])
-			{
-				return true;
-			}
-			// If B's comment is lexicographically less, it is before A.
-			if (A->ExtractedComments[i] > B->ExtractedComments[i])
+			else if (A->ExtractedComments[i] > B->ExtractedComments[i] || (A->ExtractedComments.IsValidIndex(i) && !B->ExtractedComments.IsValidIndex(i)))
 			{
 				return false;
 			}

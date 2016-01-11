@@ -1,11 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AsyncLoadingThread.h: Unreal async loading code.
 =============================================================================*/
 #pragma once
-
-class IAssetRegistryInterface;
 
 /**
  * Async loading thread. Preloads/serializes packages on async loading thread. Postloads objects on the game thread.
@@ -25,8 +23,6 @@ class FAsyncLoadingThread : public FRunnable
 	FEvent* CancelLoadingEvent;
 	/** [ASYNC/GAME THREAD] Event used to signal that the async loading thread should be suspended */
 	FEvent* ThreadSuspendedEvent;
-	/** [ASYNC/GAME THREAD] Event used to signal that the async loading thread has resumed */
-	FEvent* ThreadResumedEvent;
 	/** [ASYNC/GAME THREAD] List of queued packages to stream */
 	TArray<FAsyncPackageDesc*> QueuedPackages;
 #if THREADSAFE_UOBJECTS
@@ -78,15 +74,8 @@ class FAsyncLoadingThread : public FRunnable
 	/** Async loading thread ID */
 	static uint32 AsyncLoadingThreadID;
 
-	/** Helper for tracking the dependency packages that have been requested while loading a package */
-	TSet<FName> DependencyTracker;
-
-	/** Enum describing async package request insertion mode */
-	enum class EAsyncPackageInsertMode
-	{
-		InsertBeforeMatchingPriorities,	// Insert this package before all other packages of the same priority
-		InsertAfterMatchingPriorities	// Insert this package after all other packages of the same priority
-	};
+	/** Helper map for tracking the dependency packages that have been requested while loading a package */
+	TMap<FName, int32> DependencyTracker;
 
 #if LOOKING_FOR_PERF_ISSUES
 	/** Thread safe counter used to accumulate cycles spent on blocking. Using stats may generate to many stats messages. */
@@ -114,11 +103,11 @@ class FAsyncLoadingThread : public FRunnable
 
 public:
 
-	//~ Begin FRunnable Interface.
+	// Begin FRunnable interface.
 	virtual bool Init();
 	virtual uint32 Run();
 	virtual void Stop();
-	//~ End FRunnable Interface
+	// End FRunnable interface
 
 	/** Returns the async loading thread singleton */
 	static FAsyncLoadingThread& Get();
@@ -217,10 +206,9 @@ public:
 	/**
 	* [ASYNC THREAD] Inserts package to queue according to priority.
 	*
-	* @param PackageName - async package name.
-	* @param InsertMode - Insert mode, describing how we insert this package into the request list
+	* @param PackageName async package name.
 	*/
-	void InsertPackage(FAsyncPackage* Package, EAsyncPackageInsertMode InsertMode = EAsyncPackageInsertMode::InsertBeforeMatchingPriorities);
+	void InsertPackage(FAsyncPackage* Package);
 
 	/**
 	* [ASYNC THREAD] Finds an existing async package in the LoadedPackages by its name.
@@ -368,12 +356,7 @@ private:
 	* [ASYNC THREAD] Internal helper function for processing a package load request. If dependency preloading is enabled, 
 	* it will call itself recursively for all the package dependencies
 	*/
-	void ProcessAsyncPackageRequest(FAsyncPackageDesc* InRequest, FAsyncPackage* InRootPackage, TSet<FName>& InDependencyTracker, IAssetRegistryInterface* InAssetRegistry);
-
-	/**
-	* [ASYNC THREAD] Internal helper function for updating the priorities of an existing package and all its dependencies
-	*/
-	void UpdateExistingPackagePriorities(FAsyncPackage* InPackage, TAsyncLoadPriority InNewPriority, TSet<FName>& InDependencyTracker, IAssetRegistryInterface* InAssetRegistry);
+	void ProcessAsyncPackageRequest(FAsyncPackageDesc* InRequest, FAsyncPackage* InRootPackage, TMap<FName, int32>& InDependencyTracker);
 
 	/**
 	* [ASYNC THREAD] Finds existing async package and adds the new request's completion callback to it.

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "K2Node.h"
@@ -16,16 +16,16 @@ class UK2Node_PureAssignmentStatement : public UK2Node
 	// Name of the output pin for this node
 	static FString OutputPinName;
 
-	//~ Begin UEdGraphNode Interface
+	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
-	//~ End UEdGraphNode Interface
+	// End UEdGraphNode interface
 
-	//~ Begin UK2Node Interface
+	// Begin UK2Node interface
 	virtual bool IsNodePure() const override { return true; }
 	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) override;
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
 	virtual int32 GetNodeRefreshPriority() const override { return EBaseNodeRefreshPriority::Low_UsesDependentWildcard; }
-	//~ End UK2Node Interface
+	// End UK2Node interface
 
 	/** Get the Then output pin */
 	BLUEPRINTGRAPH_API UEdGraphPin* GetOutputPin() const;

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintEditorPrivatePCH.h"
@@ -492,7 +492,7 @@ void FSCSEditorTreeNode::AddChild(FSCSEditorTreeNodePtrType InChildNodePtr)
 				if(SCS_Node->GetSCS() == SCS)
 				{
 					// Add the child into the parent's list of children
-					if(!SCS_Node->GetChildNodes().Contains(SCS_ChildNode))
+					if(!SCS_Node->ChildNodes.Contains(SCS_ChildNode))
 					{
 						SCS_Node->AddChildNode(SCS_ChildNode);
 					}
@@ -2058,7 +2058,7 @@ void SSCS_RowWidget::HandleOnDragEnter( const FDragDropEvent& DragDropEvent )
 							// Only available action is to copy the dragged node(s) to the other Blueprint and attach it to the root
 							if (DragRowOp->SourceNodes.Num() > 1)
 							{
-								Message = FText::Format(LOCTEXT("DropActionToolTip_AttachComponentsToThisNodeFromCopyWithMultipleSelection", "Drop here to copy the selected components to new variables and attach them to {0}."), NodePtr->GetDisplayName());
+								Message = FText::Format(LOCTEXT("DropActionToolTip_AttachToThisNodeFromCopyWithMultipleSelection", "Drop here to copy the selected components to new variables and attach them to {0}."), NodePtr->GetDisplayName());
 							}
 							else
 							{
@@ -2144,7 +2144,7 @@ void SSCS_RowWidget::HandleOnDragEnter( const FDragDropEvent& DragDropEvent )
 					{
 						if (DragRowOp->SourceNodes.Num() > 1)
 						{
-							Message = FText::Format(LOCTEXT("DropActionToolTip_AttachToThisNodeFromCopyWithMultipleSelection", "Drop here to copy the selected nodes to new variables and attach them to {0}."), NodePtr->GetDisplayName());
+							Message = FText::Format(LOCTEXT("DropActionToolTip_AttachToThisNodeFromCopyWithMultipleSelection", "Drop here to copy the selected nodes to new variables and attach to {0}."), NodePtr->GetDisplayName());
 						}
 						else
 						{
@@ -2153,7 +2153,7 @@ void SSCS_RowWidget::HandleOnDragEnter( const FDragDropEvent& DragDropEvent )
 					}
 					else if (DragRowOp->SourceNodes.Num() > 1)
 					{
-						Message = FText::Format(LOCTEXT("DropActionToolTip_AttachToThisNodeWithMultipleSelection", "Drop here to attach the selected components to {0}."), NodePtr->GetDisplayName());
+						Message = FText::Format(LOCTEXT("DropActionToolTip_AttachToThisNodeWithMultipleSelection", "Drop here to attach the selected nodes to {0}."), NodePtr->GetDisplayName());
 					}
 					else
 					{
@@ -3068,7 +3068,7 @@ bool SSCS_RowWidget_ActorRoot::OnVerifyActorLabelChanged(const FText& InLabel, F
 
 	if (TrimmedLabel.IsEmpty())
 	{
-		OutErrorMessage = LOCTEXT("RenameFailed_LeftBlank", "Names cannot be left blank!");
+		OutErrorMessage = LOCTEXT("RenameFailed_LeftBlank", "Names cannot be left blank");
 		return false;
 	}
 
@@ -3231,6 +3231,7 @@ TSharedRef<SWidget> SSCS_RowWidget_Separator::GenerateWidgetForColumn(const FNam
 //////////////////////////////////////////////////////////////////////////
 // SSCSEditor
 
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SSCSEditor::Construct( const FArguments& InArgs )
 {
 	EditorMode = InArgs._EditorMode;
@@ -4026,8 +4027,11 @@ FSCSEditorTreeNodePtrType SSCSEditor::GetNodeFromActorComponent(const UActorComp
 						if(ParentBPStack[StackIndex]->SimpleConstructionScript)
 						{
 							// Attempt to locate an SCS node with a variable name that matches the name of the given component
-							for (USCS_Node* SCS_Node : ParentBPStack[StackIndex]->SimpleConstructionScript->GetAllNodes())
+							TArray<USCS_Node*> AllNodes = ParentBPStack[StackIndex]->SimpleConstructionScript->GetAllNodes();
+							for (int32 i = 0; i < AllNodes.Num(); ++i)
 							{
+								USCS_Node* SCS_Node = AllNodes[i];
+
 								check(SCS_Node != NULL);
 								if (SCS_Node->VariableName == ActorComponent->GetFName())
 								{
@@ -4584,9 +4588,9 @@ void SSCSEditor::SaveSCSNode( USCS_Node* Node )
 	{
 		Node->Modify();
 
-		for ( USCS_Node* ChildNode : Node->GetChildNodes() )
+		for( int32 i=0; i<Node->ChildNodes.Num(); i++ )
 		{
-			SaveSCSNode( ChildNode );
+			SaveSCSNode( Node->ChildNodes[i] );
 		}
 	}
 }
@@ -5300,9 +5304,9 @@ FSCSEditorTreeNodePtrType SSCSEditor::AddTreeNode(USCS_Node* InSCSNode, FSCSEdit
 	}
 
 	// Recursively add the given SCS node's child nodes
-	for (USCS_Node* ChildNode : InSCSNode->GetChildNodes())
+	for(int32 NodeIndex = 0; NodeIndex < InSCSNode->ChildNodes.Num(); ++NodeIndex)
 	{
-		AddTreeNode(ChildNode, NewNodePtr, bIsInheritedSCS);
+		AddTreeNode(InSCSNode->ChildNodes[NodeIndex], NewNodePtr, bIsInheritedSCS);
 	}
 
 	return NewNodePtr;
@@ -5313,7 +5317,7 @@ FSCSEditorTreeNodePtrType SSCSEditor::AddTreeNodeFromComponent(USceneComponent* 
 	FSCSEditorTreeNodePtrType NewNodePtr;
 
 	check(InSceneComponent != NULL);
-	ensure(!InSceneComponent->IsPendingKill());
+	ensure(!InSceneComponent->HasAnyFlags(RF_PendingKill));
 
 	// If the given component has a parent, and if we're not in "instance" mode OR the owner of the parent matches the Actor instance we're editing
 	if(InSceneComponent->AttachParent != NULL

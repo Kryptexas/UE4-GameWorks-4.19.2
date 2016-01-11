@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "SNotificationList.h"
@@ -268,7 +268,6 @@ class SNotificationItemImpl : public SNotificationExtendable
 public:
 	SLATE_BEGIN_ARGS( SNotificationItemImpl )
 		: _Text()
-		, _Font()
 		, _Image()	
 		, _FadeInDuration(0.5f)
 		, _FadeOutDuration(2.f)
@@ -278,8 +277,6 @@ public:
 
 		/** The text displayed in this text block */
 		SLATE_ATTRIBUTE( FText, Text )
-		/** Sets the font used to draw the text */
-		SLATE_ATTRIBUTE(FSlateFontInfo, Font)
 		/** Setup information for the buttons on the notification */ 
 		SLATE_ATTRIBUTE(TArray<FNotificationButtonInfo>, ButtonDetails)
 		/** The icon image to display next to the text */
@@ -366,14 +363,9 @@ public:
 		];
 
 		{
-			FSlateFontInfo Font = InArgs._Font.Get();
-
-			if (!Font.HasValidFont())
-			{
-				Font = InArgs._bUseLargeFont.Get()
-					? FCoreStyle::Get().GetFontStyle(TEXT("NotificationList.FontBold"))
-					: FCoreStyle::Get().GetFontStyle(TEXT("NotificationList.FontLight"));
-			}
+			const FSlateFontInfo Font = InArgs._bUseLargeFont.Get() 
+				? FCoreStyle::Get().GetFontStyle(TEXT("NotificationList.FontBold")) 
+				: FCoreStyle::Get().GetFontStyle(TEXT("NotificationList.FontLight"));
 
 			// Container for the text and optional interactive widgets (buttons, check box, and hyperlink)
 			TSharedRef<SVerticalBox> TextAndInteractiveWidgetsBox = SNew(SVerticalBox);
@@ -687,7 +679,6 @@ TSharedRef<SNotificationItem> SNotificationList::AddNotification(const FNotifica
 		// Create notification.
 		NewItem = SNew(SNotificationItemImpl)
 			.Text(Info.Text)
-			.Font(Font)
 			.ButtonDetails(Info.ButtonDetails)
 			.Image((Info.Image != nullptr) ? Info.Image : CachedImage)
 			.FadeInDuration(Info.FadeInDuration)
@@ -744,7 +735,6 @@ void SNotificationList::NotificationItemFadedOut (const TSharedRef<SNotification
 void SNotificationList::Construct(const FArguments& InArgs)
 {
 	bDone = false;
-	Font = InArgs._Font;
 
 	ChildSlot
 	[

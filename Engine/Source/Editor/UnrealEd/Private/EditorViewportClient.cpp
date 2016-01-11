@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "PreviewScene.h"
@@ -1503,13 +1503,9 @@ void FEditorViewportClient::UpdateCameraMovement( float DeltaTime )
 			NewViewRotation = FRotator::MakeFromEuler( NewViewEuler );
 		}
 
-		// See if translation/rotation have changed
-		const bool bTransformDifferent = !NewViewLocation.Equals(GetViewLocation(), SMALL_NUMBER) || NewViewRotation != GetViewRotation();
-		// See if FOV has changed
-		const bool bFOVDifferent = !FMath::IsNearlyEqual( NewViewFOV, ViewFOV, float(SMALL_NUMBER) );
-
-		// If something has changed, tell the actor
-		if(bTransformDifferent || bFOVDifferent)
+		if( !NewViewLocation.Equals( GetViewLocation(), SMALL_NUMBER ) ||
+			NewViewRotation != GetViewRotation() ||
+			!FMath::IsNearlyEqual( NewViewFOV, ViewFOV, float(SMALL_NUMBER) ) )
 		{
 			// Something has changed!
 			const bool bInvalidateChildViews=true;
@@ -1522,12 +1518,9 @@ void FEditorViewportClient::UpdateCameraMovement( float DeltaTime )
 			ViewFOV = NewViewFOV;
 
 			// Actually move/rotate the camera
-			if(bTransformDifferent)
-			{
-				MoveViewportPerspectiveCamera(
-					NewViewLocation - GetViewLocation(),
-					NewViewRotation - GetViewRotation() );
-			}
+			MoveViewportPerspectiveCamera(
+				NewViewLocation - GetViewLocation(),
+				NewViewRotation - GetViewRotation() );
 
 			// Invalidate the viewport widget
 			if (EditorViewportWidget.IsValid())
@@ -1561,7 +1554,7 @@ void FEditorViewportClient::UpdateLightingShowFlags( FEngineShowFlags& InOutShow
 				{
 					// We have lights in the scene now so go ahead and turn lighting back on
 					// designer can see what they're interacting with!
-					InOutShowFlags.SetLighting(true);
+					InOutShowFlags.Lighting = true;
 				}
 
 				// No longer forcing lighting to be off
@@ -1574,7 +1567,7 @@ void FEditorViewportClient::UpdateLightingShowFlags( FEngineShowFlags& InOutShow
 				{
 					// No lights in the scene, so make sure that lighting is turned off so the level
 					// designer can see what they're interacting with!
-					InOutShowFlags.SetLighting(false);
+					InOutShowFlags.Lighting = false;
 				}
 			}
 		}
@@ -4265,12 +4258,12 @@ bool FEditorViewportClient::IsSetShowGridChecked() const
 
 void FEditorViewportClient::SetShowBounds(bool bShow)
 {
-	EngineShowFlags.SetBounds(bShow);
+	EngineShowFlags.Bounds = bShow;
 }
 
 void FEditorViewportClient::ToggleShowBounds()
 {
-	EngineShowFlags.SetBounds(!EngineShowFlags.Bounds);
+	EngineShowFlags.Bounds = 1 - EngineShowFlags.Bounds;
 	if (FEngineAnalytics::IsAvailable())
 	{
 		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Toolbar"), TEXT("Bounds"), FString::Printf(TEXT("%d"), EngineShowFlags.Bounds));
@@ -4285,7 +4278,7 @@ bool FEditorViewportClient::IsSetShowBoundsChecked() const
 
 void FEditorViewportClient::SetShowCollision()
 {
-	EngineShowFlags.SetCollision(!EngineShowFlags.Collision);
+	EngineShowFlags.Collision = !EngineShowFlags.Collision;
 	Invalidate();
 }
 
@@ -4794,17 +4787,17 @@ void FEditorViewportClient::SetGameView(bool bGameViewEnable)
 	}
 
 	// maintain this state
-	EngineShowFlags.SetCompositeEditorPrimitives(bCompositeEditorPrimitives);
-	LastEngineShowFlags.SetCompositeEditorPrimitives(bCompositeEditorPrimitives);
+	EngineShowFlags.CompositeEditorPrimitives = bCompositeEditorPrimitives;
+	LastEngineShowFlags.CompositeEditorPrimitives = bCompositeEditorPrimitives;
 
 	//reset game engine show flags that may have been turned on by making a selection in game view
 	if(bGameViewEnable)
 	{
-		EngineShowFlags.SetModeWidgets(false);
-		EngineShowFlags.SetSelection(false);
+		EngineShowFlags.ModeWidgets = 0;
+		EngineShowFlags.Selection = 0;
 	}
 
-	EngineShowFlags.SetSelectionOutline(bGameViewEnable ? false : GetDefault<ULevelEditorViewportSettings>()->bUseSelectionOutline);
+	EngineShowFlags.SelectionOutline = bGameViewEnable ? false : GetDefault<ULevelEditorViewportSettings>()->bUseSelectionOutline;
 
 	ApplyViewMode(GetViewMode(), IsPerspective(), EngineShowFlags);
 

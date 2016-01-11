@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __MainFrameActions_h__
@@ -179,9 +179,6 @@ public:
 
 	/** Refresh the project in the current IDE */
 	static void RefreshCodeProject();
-
-	/** Determines whether the project is a code project */
-	static bool IsCodeProject();
 
 	/** Opens an IDE to edit c++ code */
 	static void OpenIDE();

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "StandaloneRendererPrivate.h"
 #include "OpenGL/SlateOpenGLRenderer.h"
@@ -8,6 +8,7 @@
 #include "MacWindow.h"
 #include "MacTextInputMethodSystem.h"
 #include "CocoaTextView.h"
+#include "CocoaThread.h"
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
 
@@ -203,7 +204,6 @@ void FSlateOpenGLContext::Destroy()
 {
 	if (View)
 	{
-		LockGLContext(Context);
 		NSOpenGLContext* Current = [NSOpenGLContext currentContext];
 		[Context makeCurrentContext];
 		FSlateCocoaView* SlateView = ((FSlateCocoaView*)View);
@@ -225,10 +225,11 @@ void FSlateOpenGLContext::Destroy()
 		// PixelFormat and Context are released by View
 		CGDisplayRemoveReconfigurationCallback(&MacOpenGLContextReconfigurationCallBack, this);
 
-		[PixelFormat release];
-		[Context clearDrawable];
-		UnlockGLContext(Context);
-		[Context release];
+		MainThreadCall(^{
+			[PixelFormat release];
+			[Context clearDrawable];
+			[Context release];
+		}, NSDefaultRunLoopMode, false);
 		PixelFormat = NULL;
 		Context = NULL;
 	}

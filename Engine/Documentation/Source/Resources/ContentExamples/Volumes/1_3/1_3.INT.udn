@@ -1,0 +1,32 @@
+Availability: Docs
+Title:1.3 - Cull Distance Volume
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Volumes
+Description:An overview of the Volumes example level, example 1.3: Cull Distance Volume
+
+[TOC(start:2 end:2)]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Volumes/1_3:title%](Resources\ContentExamples\Volumes\content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Volumes/1_3:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Volumes/1_3:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Volumes/1_3]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+It culls (not drawing) objects based on distance and size. You can set as many steps as you want. In this example, you see left the objects outside of the cull distance volume. These objects are always drawn when on screen. On the right side, you see the same objects inside the volume. The blue small sphere is culled first at a distance of 500 units. The red medium sphere is culled at distance greater than 1000 units. The Green Sphere is set 0 Distance it will get never culled by the volume.
+
+This is for optimizing performance
+
+

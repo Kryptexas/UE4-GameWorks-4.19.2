@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 
@@ -51,9 +51,11 @@ bool UBlueprintThumbnailRenderer::CanVisualizeAsset(UObject* Object)
 
 			if (BlueprintToHarvestComponents->SimpleConstructionScript)
 			{
-				for (USCS_Node* Node : BlueprintToHarvestComponents->SimpleConstructionScript->GetAllNodes())
+				TArray<USCS_Node*> AllNodes = BlueprintToHarvestComponents->SimpleConstructionScript->GetAllNodes();
+
+				for (auto NodeIt = AllNodes.CreateConstIterator(); NodeIt; ++NodeIt)
 				{
-					if (ThumbnailScene->IsValidComponentForVisualization(Node->ComponentTemplate))
+					if (ThumbnailScene->IsValidComponentForVisualization((*NodeIt)->ComponentTemplate))
 					{
 						return true;
 					}

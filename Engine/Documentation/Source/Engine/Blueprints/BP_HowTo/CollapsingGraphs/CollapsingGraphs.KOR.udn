@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2679264
+﻿INTSourceChangelist:2590930
 Availability: Public
 Title:그래프 접기
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -6,11 +6,6 @@ Description:노드를 새로운 그래프나 함수나 매크로에 접는 방�
 Related: Engine/Blueprints/UserGuide
 Related: Engine/Blueprints/UserGuide/Functions
 Related: Engine/Blueprints/UserGuide/Macros
-version:4.9
-skilllevel:Beginner
-parent:Engine/Blueprints/BP_HowTo
-type:howto
-order:4
 
 여기서는 **블루프린트** 그래프를 하나의 노드나 **함수** 나 **매크로** 로 통합시켜 접어 넣어, 커다란 그래프를 정리하는 데 도움이 되는 여러가지 방법을 알아보겠습니다.
 
@@ -62,7 +57,7 @@ order:4
 
 	![](Collapse9.png)(w:540)
 
-1.	접힌 노드 위에 **우클릭** 한 다음 **노드 펼침** 을 선택하여 노드를 원래 상태로 되돌릴 수 있습니다.
+1.	접힌 노드 위에 **우클릭** 한 다음 **노드 펼침** 을 선택하여 접힌 노드를 다시 펼칠 수 있습니다.
 
 	![](Collapse7.png)
 	
@@ -99,7 +94,7 @@ order:4
 
 	여기서는 F 가 눌릴 때마다 **Remove Energy** 함수를 호출하고 있습니다.
 
-1.	함수에 **우클릭** 한 다음 **노드 펼침** 옵션을 선택하여 접은 것을 되돌릴 수 있습니다.
+1.	함수에 **우클릭** 한 다음 **노드 펼침** 옵션을 선택하여 접은 것을 도로 펼칠 수 있습니다.
 
 함수 사용 및 호출 관련 상세 정보는, [](Engine/Blueprints/UserGuide/Functions) 문서를 참고하세요.
 
@@ -131,10 +126,6 @@ order:4
 1.	매크로에 **우클릭** 한 다음 **노드 펼침** 을 선택하면 접힌 노드 망을 다시 펼칩니다.
 
 매크로 관련 상세 정보는 [](Engine/Blueprints/UserGuide/Macros) 문서를 참고하세요.
-
-
-
-
 
 
 

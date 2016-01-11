@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "GraphEditorCommon.h"
@@ -891,7 +891,7 @@ FSlateColor SGraphPin::GetPinColor() const
 	}
 	if (const UEdGraphSchema* Schema = GraphPinObj->GetSchema())
 	{
-		if(!GetPinObj()->GetOwningNode()->IsNodeEnabled())
+		if(!GetPinObj()->GetOwningNode()->bIsNodeEnabled)
 		{
 			return Schema->GetPinTypeColor(GraphPinObj->PinType) * FLinearColor(1.0f, 1.0f, 1.0f, 0.5f);
 		}
@@ -907,7 +907,7 @@ FSlateColor SGraphPin::GetPinTextColor() const
 	// If there is no schema there is no owning node (or basically this is a deleted node)
 	if (UEdGraphNode* GraphNode = GraphPinObj->GetOwningNodeUnchecked())
 	{
-		if(!GraphNode->IsNodeEnabled())
+		if(!GraphNode->bIsNodeEnabled)
 		{
 			return FLinearColor(1.0f, 1.0f, 1.0f, 0.5f);
 		}

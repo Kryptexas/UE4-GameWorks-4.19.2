@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
 #include "EngineVersion.h"
@@ -189,7 +189,7 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 
 		if( Sum.GetFileVersionUE4() >= VER_UE4_ENGINE_VERSION_OBJECT )
 		{
-			if(Ar.IsCooking() || (Ar.IsSaving() && !FEngineVersion::Current().HasChangelist()))
+			if(Ar.IsCooking() || (Ar.IsSaving() && !GEngineVersion.HasChangelist()))
 			{
 				FEngineVersion EmptyEngineVersion;
 				Ar << EmptyEngineVersion;
@@ -212,7 +212,7 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 
 		if (Sum.GetFileVersionUE4() >= VER_UE4_PACKAGE_SUMMARY_HAS_COMPATIBLE_ENGINE_VERSION )
 		{
-			if(Ar.IsCooking() || (Ar.IsSaving() && !FEngineVersion::Current().HasChangelist()))
+			if(Ar.IsCooking() || (Ar.IsSaving() && !GEngineVersion.HasChangelist()))
 			{
 				FEngineVersion EmptyEngineVersion;
 				Ar << EmptyEngineVersion;

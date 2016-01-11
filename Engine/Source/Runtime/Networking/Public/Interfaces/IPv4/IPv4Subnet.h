@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,7 +13,7 @@ class FIPv4Subnet
 	/**
 	 * Default constructor.
 	 */
-	FIPv4Subnet() { }
+	FIPv4Subnet( ) { }
 
 	/**
 	 * Creates and initializes a new IPv4 subnet with the specified address and mask.
@@ -21,7 +21,7 @@ class FIPv4Subnet
 	 * @param InAddress - The subnet's address.
 	 * @param InMask - The subnet's mask.
 	 */
-	FIPv4Subnet(const FIPv4Address& InAddress, const FIPv4SubnetMask& InMask)
+	FIPv4Subnet( const FIPv4Address& InAddress, const FIPv4SubnetMask& InMask )
 		: Address(InAddress)
 		, Mask(InMask)
 	{ }
@@ -36,7 +36,7 @@ public:
 	 *
 	 * @return true if the subnets are equal, false otherwise.
 	 */
-	bool operator==(const FIPv4Subnet& Other) const
+	bool operator==( const FIPv4Subnet& Other ) const
 	{
 		return ((Address == Other.Address) && (Mask == Other.Mask));
 	}
@@ -48,7 +48,7 @@ public:
 	 *
 	 * @return true if the subnets are not equal, false otherwise.
 	 */
-	bool operator!=(const FIPv4Subnet& Other) const
+	bool operator!=( const FIPv4Subnet& Other ) const
 	{
 		return ((Address != Other.Address) || (Mask != Other.Mask));
 	}
@@ -61,7 +61,7 @@ public:
 	 *
 	 * @return The archive.
 	 */
-	friend FArchive& operator<<(FArchive& Ar, FIPv4Subnet& Subnet)
+	friend FArchive& operator<<( FArchive& Ar, FIPv4Subnet& Subnet )
 	{
 		return Ar << Subnet.Address << Subnet.Mask;
 	}
@@ -76,7 +76,7 @@ public:
 	 *
 	 * @return true if the subnet contains the address, false otherwise.
 	 */
-	bool ContainsAddress(const FIPv4Address& TestAddress)
+	bool ContainsAddress( const FIPv4Address& TestAddress )
 	{
 		return ((Address & Mask) == (TestAddress & Mask));
 	}
@@ -86,7 +86,7 @@ public:
 	 *
 	 * @return Subnet address.
 	 */
-	FIPv4Address GetAddress() const
+	FIPv4Address GetAddress( ) const
 	{
 		return Address;
 	}
@@ -96,7 +96,7 @@ public:
 	 *
 	 * @return The broadcast address.
 	 */
-	FIPv4Address GetBroadcastAddress() const
+	FIPv4Address GetBroadcastAddress( ) const
 	{
 		return (Address | ~Mask);
 	}
@@ -106,7 +106,7 @@ public:
 	 *
 	 * @return Subnet mask.
 	 */
-	FIPv4SubnetMask GetMask() const
+	FIPv4SubnetMask GetMask( ) const
 	{
 		return Mask;
 	}
@@ -116,7 +116,7 @@ public:
 	 *
 	 * @return String representation.
 	 */
-	NETWORKING_API FText ToText() const;
+	NETWORKING_API FText ToText( ) const;
 
 
 public:
@@ -128,7 +128,7 @@ public:
 	 *
 	 * @return Hash value.
 	 */
-	friend uint32 GetTypeHash(const FIPv4Subnet& Subnet)
+	friend uint32 GetTypeHash( const FIPv4Subnet& Subnet )
 	{
 		return GetTypeHash(Subnet.Address) + GetTypeHash(Subnet.Mask) * 23;
 	}
@@ -144,7 +144,7 @@ public:
 	 *
 	 * @return true if the string was converted successfully, false otherwise.
 	 */
-	static NETWORKING_API bool Parse(const FString& SubnetString, FIPv4Subnet& OutSubnet);
+	static NETWORKING_API bool Parse( const FString& SubnetString, FIPv4Subnet& OutSubnet );
 
 
 private:

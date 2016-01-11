@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "ContentBrowserPCH.h"
@@ -210,7 +210,7 @@ void FContentBrowserSingleton::CreateNewAsset(const FString& DefaultAssetName, c
 	}
 }
 
-void FContentBrowserSingleton::SyncBrowserToAssets(const TArray<FAssetData>& AssetDataList, bool bAllowLockedBrowsers, bool bFocusContentBrowser)
+void FContentBrowserSingleton::SyncBrowserToAssets(const TArray<FAssetData>& AssetDataList, bool bAllowLockedBrowsers)
 {
 	TSharedPtr<SContentBrowser> ContentBrowserToSync;
 
@@ -256,10 +256,7 @@ void FContentBrowserSingleton::SyncBrowserToAssets(const TArray<FAssetData>& Ass
 	if ( ContentBrowserToSync.IsValid() )
 	{
 		// Finally, focus and sync the browser that was found
-		if (bFocusContentBrowser)
-		{
-			FocusContentBrowser(ContentBrowserToSync);
-		}
+		FocusContentBrowser(ContentBrowserToSync);
 		ContentBrowserToSync->SyncToAssets(AssetDataList);
 	}
 	else
@@ -268,7 +265,7 @@ void FContentBrowserSingleton::SyncBrowserToAssets(const TArray<FAssetData>& Ass
 	}
 }
 
-void FContentBrowserSingleton::SyncBrowserToAssets(const TArray<UObject*>& AssetList, bool bAllowLockedBrowsers, bool bFocusContentBrowser)
+void FContentBrowserSingleton::SyncBrowserToAssets(const TArray<UObject*>& AssetList, bool bAllowLockedBrowsers)
 {
 	// Convert UObject* array to FAssetData array
 	TArray<FAssetData> AssetDataList;
@@ -280,7 +277,7 @@ void FContentBrowserSingleton::SyncBrowserToAssets(const TArray<UObject*>& Asset
 		}
 	}
 
-	SyncBrowserToAssets(AssetDataList, bAllowLockedBrowsers, bFocusContentBrowser);
+	SyncBrowserToAssets(AssetDataList, bAllowLockedBrowsers);
 }
 
 void FContentBrowserSingleton::GetSelectedAssets(TArray<FAssetData>& SelectedAssets)

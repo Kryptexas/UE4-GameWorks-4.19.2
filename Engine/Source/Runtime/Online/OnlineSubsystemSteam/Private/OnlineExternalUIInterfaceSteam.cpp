@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemSteamPrivatePCH.h"
 #include "OnlineExternalUIInterfaceSteam.h"
@@ -29,10 +29,6 @@ void FOnlineAsyncEventSteamExternalUITriggered::TriggerDelegates()
 		FOnlineExternalUISteamPtr ExternalUISteam = StaticCastSharedPtr<FOnlineExternalUISteam>(ExternalUIInterface);
 		ExternalUISteam->ProfileUIClosedDelegate.ExecuteIfBound();
 		ExternalUISteam->ProfileUIClosedDelegate.Unbind();
-
-		//@todo samz - obtain final url
-		ExternalUISteam->ShowWebUrlClosedDelegate.ExecuteIfBound(TEXT(""));
-		ExternalUISteam->ShowWebUrlClosedDelegate.Unbind();
 	}
 }
 
@@ -70,27 +66,21 @@ bool FOnlineExternalUISteam::ShowLeaderboardUI(const FString& LeaderboardName)
 	return false;
 }
 
-bool FOnlineExternalUISteam::ShowWebURL(const FString& Url, const FShowWebUrlParams& ShowParams, const FOnShowWebUrlClosedDelegate& Delegate)
+bool FOnlineExternalUISteam::ShowWebURL(const FString& WebURL)
 {
-	if (!Url.StartsWith(TEXT("https://")))
+	if (!WebURL.StartsWith(TEXT("https://")))
 	{
-		SteamFriends()->ActivateGameOverlayToWebPage(TCHAR_TO_UTF8(*FString::Printf(TEXT("https://%s"), *Url)));
+		SteamFriends()->ActivateGameOverlayToWebPage(TCHAR_TO_UTF8(*FString::Printf(TEXT("https://%s"), *WebURL)));
 	}
 	else
 	{
-		SteamFriends()->ActivateGameOverlayToWebPage(TCHAR_TO_UTF8(*Url));
+		SteamFriends()->ActivateGameOverlayToWebPage(TCHAR_TO_UTF8(*WebURL));
 	}
-
-	ShowWebUrlClosedDelegate = Delegate;
+	
 	return true;
 }
 
-bool FOnlineExternalUISteam::CloseWebURL()
-{
-	return false;
-}
-
-bool FOnlineExternalUISteam::ShowProfileUI(const FUniqueNetId& Requestor, const FUniqueNetId& Requestee, const FOnProfileUIClosedDelegate& Delegate)
+bool FOnlineExternalUISteam::ShowProfileUI( const FUniqueNetId& Requestor, const FUniqueNetId& Requestee, const FOnProfileUIClosedDelegate& Delegate )
 {
 	SteamFriends()->ActivateGameOverlayToUser(TCHAR_TO_UTF8(TEXT("steamid")), (const FUniqueNetIdSteam&)Requestee);
 

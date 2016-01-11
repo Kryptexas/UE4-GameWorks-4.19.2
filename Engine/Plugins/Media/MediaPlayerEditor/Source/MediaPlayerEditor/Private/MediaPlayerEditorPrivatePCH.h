@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -12,10 +12,6 @@
 #include "Engine.h"
 #include "SlateStyle.h"
 #include "EditorStyle.h"
-#include "DetailCategoryBuilder.h"
-#include "DetailLayoutBuilder.h"
-#include "DetailWidgetRow.h"
-#include "IDetailPropertyRow.h"
 #include "IDetailsView.h"
 #include "IMediaStream.h"
 #include "IMediaAudioTrack.h"
@@ -38,10 +34,6 @@
 
 /* Private includes
  *****************************************************************************/
-
-#include "MediaPlayerCustomization.h"
-#include "MediaSoundWaveCustomization.h"
-#include "MediaTextureCustomization.h"
 
 #include "MediaPlayerFactory.h"
 #include "MediaPlayerFactoryNew.h"

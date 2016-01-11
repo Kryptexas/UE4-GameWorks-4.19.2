@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "UnrealEd.h"
@@ -953,9 +953,9 @@ bool FLevelEditorViewportClient::DropObjectsOnWidget(FSceneView* View, FViewport
 	const bool bOldModeWidgets1 = EngineShowFlags.ModeWidgets;
 	const bool bOldModeWidgets2 = View->Family->EngineShowFlags.ModeWidgets;
 
-	EngineShowFlags.SetModeWidgets(false);
+	EngineShowFlags.ModeWidgets = 0;
 	FSceneViewFamily* SceneViewFamily = const_cast< FSceneViewFamily* >( View->Family );
-	SceneViewFamily->EngineShowFlags.SetModeWidgets(false);
+	SceneViewFamily->EngineShowFlags.ModeWidgets = 0;
 
 	// Invalidate the hit proxy map so it will be rendered out again when GetHitProxy is called
 	Viewport->InvalidateHitProxy();
@@ -976,8 +976,8 @@ bool FLevelEditorViewportClient::DropObjectsOnWidget(FSceneView* View, FViewport
 	bResult = DropObjectsAtCoordinates(CursorPos.X, CursorPos.Y, DroppedObjects, TemporaryActors, bOnlyDropOnTarget, bCreateDropPreview);
 
 	// Restore the original flags
-	EngineShowFlags.SetModeWidgets(bOldModeWidgets1);
-	SceneViewFamily->EngineShowFlags.SetModeWidgets(bOldModeWidgets2);
+	EngineShowFlags.ModeWidgets = bOldModeWidgets1;
+	SceneViewFamily->EngineShowFlags.ModeWidgets = bOldModeWidgets2;
 
 	return bResult;
 }
@@ -1879,9 +1879,9 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 			const bool bOldModeWidgets1 = EngineShowFlags.ModeWidgets;
 			const bool bOldModeWidgets2 = View.Family->EngineShowFlags.ModeWidgets;
 
-			EngineShowFlags.SetModeWidgets(false);
+			EngineShowFlags.ModeWidgets = 0;
 			FSceneViewFamily* SceneViewFamily = const_cast<FSceneViewFamily*>(View.Family);
-			SceneViewFamily->EngineShowFlags.SetModeWidgets(false);
+			SceneViewFamily->EngineShowFlags.ModeWidgets = 0;
 			bool bWasWidgetDragging = Widget->IsDragging();
 			Widget->SetDragging(false);
 
@@ -1898,8 +1898,8 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 			}
 
 			// Undo the evil
-			EngineShowFlags.SetModeWidgets(bOldModeWidgets1);
-			SceneViewFamily->EngineShowFlags.SetModeWidgets(bOldModeWidgets2);
+			EngineShowFlags.ModeWidgets = bOldModeWidgets1;
+			SceneViewFamily->EngineShowFlags.ModeWidgets = bOldModeWidgets2;
 
 			Widget->SetDragging(bWasWidgetDragging);
 
@@ -2094,19 +2094,7 @@ void FLevelEditorViewportClient::UpdateViewForLockedActor()
 			if (bLockedCameraView)
 			{
 				// If this is a camera actor, then inherit some other settings
-				TArray<UCameraComponent*> CamComps;
-				Actor->GetComponents<UCameraComponent>(CamComps);
-
-				UCameraComponent* CameraComponent = nullptr;
-				for (UCameraComponent* Comp : CamComps)
-				{
-					if (Comp->bIsActive)
-					{
-						CameraComponent = Comp;
-						break;
-					}
-				}
-
+				UCameraComponent* CameraComponent = Actor->FindComponentByClass<UCameraComponent>();
 				if (CameraComponent != NULL)
 				{
 					bUseControllingActorViewInfo = true;
@@ -2792,7 +2780,7 @@ void FLevelEditorViewportClient::HandleViewportSettingChanged(FName PropertyName
 {
 	if (PropertyName == GET_MEMBER_NAME_CHECKED(ULevelEditorViewportSettings, bUseSelectionOutline))
 	{
-		EngineShowFlags.SetSelectionOutline(GetDefault<ULevelEditorViewportSettings>()->bUseSelectionOutline);
+		EngineShowFlags.SelectionOutline = GetDefault<ULevelEditorViewportSettings>()->bUseSelectionOutline;
 	}
 }
 
@@ -4005,14 +3993,14 @@ void FLevelEditorViewportClient::SetupViewForRendering( FSceneViewFamily& ViewFa
 		// unless the view port is Matinee controlled
 		ViewFamily.EngineShowFlags.CameraInterpolation = 0;
 		// keep the image sharp - ScreenPercentage is an optimization and should not affect the editor
-		ViewFamily.EngineShowFlags.SetScreenPercentage(false);
+		ViewFamily.EngineShowFlags.ScreenPercentage = 0;
 	}
 
 	TSharedPtr<FDragDropOperation> DragOperation = FSlateApplication::Get().GetDragDroppingContent();
 	if (!(DragOperation.IsValid() && DragOperation->IsOfType<FBrushBuilderDragDropOp>()))
 	{
 		// Hide the builder brush when not in geometry mode
-		ViewFamily.EngineShowFlags.SetBuilderBrush(false);
+		ViewFamily.EngineShowFlags.BuilderBrush = 0;
 	}
 
 	// Update the listener.

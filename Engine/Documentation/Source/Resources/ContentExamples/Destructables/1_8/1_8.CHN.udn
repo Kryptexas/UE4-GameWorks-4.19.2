@@ -1,0 +1,41 @@
+﻿INTSourceChangelist:2591123
+Availability: Docs
+Title:1.8 - 冲击时的伤害
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Destructables
+Description:破坏性示例关卡概述，示例1.8： 冲击时的伤害
+
+
+[VAR:Topic]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Destructables/1_5:title%](Resources/ContentExamples/Destructables/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Destructables/1_5:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Destructables/1_5:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Destructables/1_5]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth raw]
+![](Resources/ContentExamples/Destructables/physics_banner.png)
+[/REGION]
+
+在破坏事件发生时播放音效。
+
+[REGION:todo]
+在此处如能指出如何通过蓝图来实现，或者写出这个音效的实际运行原理则更好。
+[/REGION]
+
+<!--[REGION:lightbox]
+[![](1_5_solid.png)(w:300)](1_5_solid.png)
+[/REGION]-->

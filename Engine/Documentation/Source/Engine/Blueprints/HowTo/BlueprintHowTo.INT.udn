@@ -2,7 +2,6 @@ Availability: Public
 Title:Blueprint Communication Project
 Crumbs: %ROOT%, Engine, Engine/Blueprints
 Description:A sample project created using different methods of Blueprint Communications. 
-version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -23,6 +22,7 @@ version: 4.9
 	[/PARAM]
 [/OBJECT]
 [/VAR]
+
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]

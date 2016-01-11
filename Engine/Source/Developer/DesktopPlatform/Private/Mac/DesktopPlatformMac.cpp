@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DesktopPlatformPrivatePCH.h"
 #include "MacApplication.h"
@@ -160,7 +160,7 @@ private:
 }
 
 - (int32)SelectedExtension {
-    return SelectedExtension;
+	return SelectedExtension;
 }
 
 @end
@@ -372,9 +372,17 @@ bool FDesktopPlatformMac::OpenLauncher(bool Install, FString LauncherRelativeUrl
 		LauncherUriRequest = FString::Printf(TEXT("com.epicgames.launcher://%s"), *LauncherRelativeUrl);
 	}
 
-	if (FParse::Param(FCommandLine::Get(), TEXT("Dev")))
+	// We need to take the silent option and convert it to a uri query string option.
+	if ( CommandLineParams.Contains("-silent") )
 	{
-		CommandLineParams += TEXT(" -noselfupdate");
+		if ( LauncherUriRequest.Contains("?") )
+		{
+			LauncherUriRequest += TEXT("&silent=true");
+		}
+		else
+		{
+			LauncherUriRequest += TEXT("?silent=true");
+		}
 	}
 
 	// If the launcher is already running, bring it to front
@@ -533,7 +541,7 @@ bool FDesktopPlatformMac::RegisterEngineInstallation(const FString &RootDir, FSt
 		ConfigFile.Read(ConfigPath);
 
 		FConfigSection &Section = ConfigFile.FindOrAdd(TEXT("Installations"));
-		OutIdentifier = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphensInBraces);
+		OutIdentifier = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens);
 		Section.AddUnique(*OutIdentifier, RootDir);
 
 		ConfigFile.Dirty = true;
@@ -596,9 +604,7 @@ void FDesktopPlatformMac::EnumerateEngineInstallations(TMap<FString, FString> &O
 				const FName* Key = Section.FindKey(EngineDir);
 				if (Key)
 				{
-					FGuid IdGuid;
-					FGuid::Parse(Key->ToString(), IdGuid);
-					EngineId = IdGuid.ToString(EGuidFormats::DigitsWithHyphensInBraces);;
+					EngineId = Key->ToString();
 				}
 				else
 				{

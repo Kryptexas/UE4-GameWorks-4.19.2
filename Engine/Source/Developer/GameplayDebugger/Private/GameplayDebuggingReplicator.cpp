@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayDebuggerPrivate.h"
 #include "Engine/GameInstance.h"
@@ -122,9 +122,6 @@ void AGameplayDebuggingReplicator::PostEditChangeProperty(FPropertyChangedEvent&
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	// @note patching up OR-9814
-	UGameplayDebuggingComponent* DummyPointer = GetDebugComponent();
-
 	if (!PropertyChangedEvent.Property)
 	{
 		return;
@@ -136,7 +133,7 @@ void AGameplayDebuggingReplicator::PostEditChangeProperty(FPropertyChangedEvent&
 	if (PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(AGameplayDebuggingReplicator, __FlagName_)) \
 	{ \
 		__FlagName_ ? Settings.SetFlag(EAIDebugDrawDataView::__FlagName_) : Settings.ClearFlag(EAIDebugDrawDataView::__FlagName_); \
-		DebugComponent->ServerReplicateData(Settings.CheckFlag(EAIDebugDrawDataView::__FlagName_) ? EDebugComponentMessage::ActivateDataView : EDebugComponentMessage::DeactivateDataView, EAIDebugDrawDataView::__FlagName_); \
+		GetDebugComponent()->ServerReplicateData(Settings.CheckFlag(EAIDebugDrawDataView::__FlagName_) ? EDebugComponentMessage::ActivateDataView : EDebugComponentMessage::DeactivateDataView, EAIDebugDrawDataView::__FlagName_); \
 	}else
 
 	CHECK_AND_UPDATE_FLAGS(OverHead)
@@ -153,14 +150,14 @@ void AGameplayDebuggingReplicator::PostEditChangeProperty(FPropertyChangedEvent&
 #if WITH_EQS
 	if (PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(AGameplayDebuggingReplicator, EQS))
 	{
-		DebugComponent->EnableClientEQSSceneProxy(EQS);
-		DebugComponent->SetEQSIndex(ActiveEQSIndex);
-		DebugComponent->MarkRenderStateDirty();
+		GetDebugComponent()->EnableClientEQSSceneProxy(EQS);
+		GetDebugComponent()->SetEQSIndex(ActiveEQSIndex);
+		GetDebugComponent()->MarkRenderStateDirty();
 	}
 
 	if (PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(AGameplayDebuggingReplicator, ActiveEQSIndex))
 	{
-		DebugComponent->SetEQSIndex(ActiveEQSIndex);
+		GetDebugComponent()->SetEQSIndex(ActiveEQSIndex);
 	}
 #endif // WITH_EQS
 #undef CHECK_AND_UPDATE_FLAGS
@@ -188,12 +185,7 @@ void AGameplayDebuggingReplicator::BeginPlay()
 				DebugComponentClass = UGameplayDebuggingComponent::StaticClass();
 			}
 		}
-		// @note patching up OR-9814
-		const UGameplayDebuggingComponent* DummyPointer = GetDebugComponent();
-		if (DummyPointer == nullptr)
-		{
-			UE_LOG(LogGameplayDebugger, Error, TEXT("Unable to create UGameplayDebuggingComponent instance!"));
-		}
+		GetDebugComponent();
 	}
 
 	if (GetWorld() && GetNetMode() != ENetMode::NM_DedicatedServer)
@@ -368,11 +360,9 @@ bool AGameplayDebuggingReplicator::ClientEnableTargetSelection_Validate(bool, AP
 void AGameplayDebuggingReplicator::ClientEnableTargetSelection_Implementation(bool bEnable, APlayerController* Context)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	// @note patching up OR-9814
-	const UGameplayDebuggingComponent* DummyPointer = GetDebugComponent();
-	if (DebugComponent)
+	if (GetDebugComponent())
 	{
-		DebugComponent->ClientEnableTargetSelection(bEnable);
+		GetDebugComponent()->ClientEnableTargetSelection(bEnable);
 	}
 #endif
 }
@@ -401,11 +391,9 @@ void AGameplayDebuggingReplicator::ServerReplicateMessage_Implementation(class  
 		MarkComponentsRenderStateDirty();
 	}
 
-	// @note patching up OR-9814
-	const UGameplayDebuggingComponent* DummyPointer = GetDebugComponent();
-	if (DebugComponent)
+	if (GetDebugComponent())
 	{
-		DebugComponent->ServerReplicateData((EDebugComponentMessage::Type)InMessage, (EAIDebugDrawDataView::Type)DataView);
+		GetDebugComponent()->ServerReplicateData((EDebugComponentMessage::Type)InMessage, (EAIDebugDrawDataView::Type)DataView);
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
@@ -469,17 +457,13 @@ void AGameplayDebuggingReplicator::CreateTool()
 void AGameplayDebuggingReplicator::EnableTool()
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	// @note patching up OR-9814
-	if (GetWorld() && GetNetMode() != ENetMode::NM_DedicatedServer && DebugComponent != nullptr)
+	if (GetWorld() && GetNetMode() != ENetMode::NM_DedicatedServer)
 	{
-		UGameplayDebuggingControllerComponent* GDC = FindComponentByClass<UGameplayDebuggingControllerComponent>();
+		UGameplayDebuggingControllerComponent*  GDC = FindComponentByClass<UGameplayDebuggingControllerComponent>();
 		if (GDC)
 		{
 			// simulate key press
 			GDC->OnActivationKeyPressed();
-			ClientEnableTargetSelection(true, LocalPlayerOwner);
-			// @note patching up OR-9814
-			DebugComponent->SelectTargetToDebug();
 			GDC->OnActivationKeyReleased();
 		}
 	}
@@ -540,11 +524,9 @@ void AGameplayDebuggingReplicator::ServerSetActorToDebug_Implementation(AActor* 
 		}
 	}
 
-	// @note patching up OR-9814
-	const UGameplayDebuggingComponent* DummyPointer = GetDebugComponent();
-	if (DebugComponent)
+	if (UGameplayDebuggingComponent* DebuggingComponent = GetDebugComponent())
 	{
-		DebugComponent->SetActorToDebug(InActor);
+		DebuggingComponent->SetActorToDebug(InActor);
 	}
 #endif
 }
@@ -672,13 +654,8 @@ void AGameplayDebuggingReplicator::DrawDebugDataDelegate(class UCanvas* Canvas, 
 				ServerSetActorToDebug(NewTarget);
 			}
 
-			// @note patching up OR-9814
-			const UGameplayDebuggingComponent* DummyPointer = GetDebugComponent();
-			if (DebugComponent)
-			{
-				DebugComponent->SetActorToDebug(NewTarget);
-				DebugComponent->CollectDataToReplicate(true);
-			}
+			GetDebugComponent()->SetActorToDebug(NewTarget);
+			GetDebugComponent()->CollectDataToReplicate(true);
 		}
 	}
 
@@ -699,9 +676,7 @@ void AGameplayDebuggingReplicator::DrawDebugData(class UCanvas* Canvas, class AP
 	{
 		// check for spectator debug camera
 		UGameplayDebuggingControllerComponent* GDC = FindComponentByClass<UGameplayDebuggingControllerComponent>();
-
-		// bAllowToDraw here used to check GDC->GetDebugCameraController().IsValid(), but it doesn't seem to be necessary, and it was preventing display in some desired cases.
-		bAllowToDraw = GDC && (Canvas->SceneView->ViewActor->GetInstigatorController() == GDC->GetDebugCameraController().Get());
+		bAllowToDraw = GDC && GDC->GetDebugCameraController().IsValid() && Canvas->SceneView->ViewActor->GetInstigatorController() == GDC->GetDebugCameraController().Get();
 		
 		if (!bAllowToDraw)
 		{

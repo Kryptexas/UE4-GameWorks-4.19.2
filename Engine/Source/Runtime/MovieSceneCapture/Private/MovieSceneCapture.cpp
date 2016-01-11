@@ -1,19 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneCapturePCH.h"
 #include "MovieSceneCapture.h"
-#include "ActiveMovieSceneCaptures.h"
-#include "HighResScreenshot.h"
-#include "BufferVisualizationData.h"
-#include "SceneViewExtension.h"
 
 #if WITH_EDITOR
 #include "ImageWrapper.h"
 #endif
 
 #include "MovieSceneCaptureModule.h"
-
-#define LOCTEXT_NAMESPACE "MovieSceneCapture"
 
 struct FUniqueMovieSceneCaptureHandle : FMovieSceneCaptureHandle
 {
@@ -29,261 +23,257 @@ FMovieSceneCaptureSettings::FMovieSceneCaptureSettings()
 	: Resolution(1280, 720)
 {
 	OutputDirectory.Path = FPaths::VideoCaptureDir();
-	FPaths::MakePlatformFilename( OutputDirectory.Path );
-
-	bCreateTemporaryCopiesOfLevels = false;
-	bUseRelativeFrameNumbers = false;
-	GameModeOverride = nullptr;
-	OutputFormat = TEXT("{world}_{frame}");
+	OutputFormat = NSLOCTEXT("MovieCapture", "DefaultFormat", "MovieCapture_{width}x{height}_{quality}").ToString();
 	FrameRate = 24;
+	CaptureType = EMovieCaptureType::AVI;
+	bUseCompression = true;
+	CompressionQuality = 1.f;
 	bEnableTextureStreaming = true;
 	bCinematicMode = true;
-	bAllowMovement = false;
-	bAllowTurning = false;
-	bShowPlayer = false;
-	bShowHUD = false;
+	bAllowMovement = true;
+	bAllowTurning = true;
+	bShowPlayer = true;
+	bShowHUD = true;
 }
 
 UMovieSceneCapture::UMovieSceneCapture(const FObjectInitializer& Initializer)
 	: Super(Initializer)
 {
+	bBufferVisualizationDumpFrames = false;
+
 	TArray<FString> Tokens, Switches;
 	FCommandLine::Parse( FCommandLine::Get(), Tokens, Switches );
 	for (auto& Switch : Switches)
 	{
-		InheritedCommandLineArguments.AppendChar('-');
-		InheritedCommandLineArguments.Append(Switch);
-		InheritedCommandLineArguments.AppendChar(' ');
+		AdditionalCommandLineArguments.AppendChar('-');
+		AdditionalCommandLineArguments.Append(Switch);
+		AdditionalCommandLineArguments.AppendChar(' ');
 	}
+	AdditionalCommandLineArguments += TEXT("-PIEVIACONSOLE -nomovie ");
 
-	AdditionalCommandLineArguments += TEXT("-NoLoadingScreen -NOSCREENMESSAGES -ForceRes");
+	// renderer overrides - hack
+	AdditionalCommandLineArguments += FParse::Param(FCommandLine::Get(), TEXT("d3d11"))		?	TEXT("-d3d11 ")		: TEXT("");
+	AdditionalCommandLineArguments += FParse::Param(FCommandLine::Get(), TEXT("sm5"))		?	TEXT("-sm5 ")		: TEXT("");
+	AdditionalCommandLineArguments += FParse::Param(FCommandLine::Get(), TEXT("dx11"))		?	TEXT("-dx11 ")		: TEXT("");
+	AdditionalCommandLineArguments += FParse::Param(FCommandLine::Get(), TEXT("d3d10"))		?	TEXT("-d3d10 ")		: TEXT("");
+	AdditionalCommandLineArguments += FParse::Param(FCommandLine::Get(), TEXT("sm4"))		?	TEXT("-sm4 ")		: TEXT("");
+	AdditionalCommandLineArguments += FParse::Param(FCommandLine::Get(), TEXT("dx10"))		?	TEXT("-dx10 ")		: TEXT("");
+	AdditionalCommandLineArguments += FParse::Param(FCommandLine::Get(), TEXT("opengl"))	?	TEXT("-opengl ")	: TEXT("");
+	AdditionalCommandLineArguments += FParse::Param(FCommandLine::Get(), TEXT("opengl3"))	?	TEXT("-opengl3 ")	: TEXT("");
+	AdditionalCommandLineArguments += FParse::Param(FCommandLine::Get(), TEXT("opengl4"))	?	TEXT("-opengl4 ")	: TEXT("");
 
 	Handle = FUniqueMovieSceneCaptureHandle();
-
-	FrameCount = 0;
-	bCapturing = false;
-	FrameNumberOffset = 0;
-	CaptureType = TEXT("Video");
 }
 
-void UMovieSceneCapture::PostInitProperties()
+void UMovieSceneCapture::Initialize(FViewport* InViewport)
 {
-	if (!HasAnyFlags(RF_ClassDefaultObject))
-	{
-		ProtocolSettings = IMovieSceneCaptureModule::Get().GetProtocolRegistry().FactorySettingsType(CaptureType, this);
-		if (ProtocolSettings)
-		{
-			ProtocolSettings->LoadConfig();
-		}
-	}
-
-	Super::PostInitProperties();
-}
-
-void UMovieSceneCapture::Initialize(TSharedPtr<FSceneViewport> InSceneViewport, int32 PIEInstance)
-{
-	ensure(!bCapturing);
-
-	// Apply command-line overrides
-	{
-		FString OutputPathOverride;
-		if( FParse::Value( FCommandLine::Get(), TEXT( "-MovieFolder=" ), OutputPathOverride ) )
-		{
-			Settings.OutputDirectory.Path = OutputPathOverride;
-		}
-
-		FString OutputNameOverride;
-		if( FParse::Value( FCommandLine::Get(), TEXT( "-MovieName=" ), OutputNameOverride ) )
-		{
-			Settings.OutputFormat = OutputNameOverride;
-		}
-
-		bool bOverrideOverwriteExisting;
-		if( FParse::Bool( FCommandLine::Get(), TEXT( "-MovieOverwriteExisting=" ), bOverrideOverwriteExisting ) )
-		{
-			Settings.bOverwriteExisting = bOverrideOverwriteExisting;
-		}
-
-		bool bOverrideRelativeFrameNumbers;
-		if( FParse::Bool( FCommandLine::Get(), TEXT( "-MovieRelativeFrames=" ), bOverrideRelativeFrameNumbers ) )
-		{
-			Settings.bUseRelativeFrameNumbers = bOverrideRelativeFrameNumbers;
-		}
-
-		bool bOverrideCinematicMode;
-		if( FParse::Bool( FCommandLine::Get(), TEXT( "-MovieCinematicMode=" ), bOverrideCinematicMode ) )
-		{
-			Settings.bCinematicMode = bOverrideCinematicMode;
-		}
-
-		FString FormatOverride;
-		if( FParse::Value( FCommandLine::Get(), TEXT( "-MovieFormat=" ), FormatOverride ) )
-		{
-			CaptureType = *FormatOverride;
-		}
-
-		int32 FrameRateOverride;
-		if( FParse::Value( FCommandLine::Get(), TEXT( "-MovieFrameRate=" ), FrameRateOverride ) )
-		{
-			Settings.FrameRate = FrameRateOverride;
-		}
-	}
-
-	bFinalizeWhenReady = false;
-
-	InitSettings = FCaptureProtocolInitSettings::FromSlateViewport(InSceneViewport.ToSharedRef(), ProtocolSettings);
-
-	CachedMetrics = FCachedMetrics();
-	CachedMetrics.Width = InitSettings->DesiredSize.X;
-	CachedMetrics.Height = InitSettings->DesiredSize.Y;
-
-	FormatMappings.Reserve(10);
-	FormatMappings.Add(TEXT("fps"), FString::Printf(TEXT("%d"), Settings.FrameRate));
-	FormatMappings.Add(TEXT("width"), FString::Printf(TEXT("%d"), CachedMetrics.Width));
-	FormatMappings.Add(TEXT("height"), FString::Printf(TEXT("%d"), CachedMetrics.Height));
-	FormatMappings.Add(TEXT("world"), GWorld->GetName());
-
-	if (!HasAnyFlags(RF_ClassDefaultObject))
-	{
-		FActiveMovieSceneCaptures::Get().Add(this);
-	}
-}
-
-void UMovieSceneCapture::StartWarmup()
-{
-	check( !bCapturing );
-	if( !CaptureStrategy.IsValid() )
-	{
-		CaptureStrategy = MakeShareable( new FRealTimeCaptureStrategy( Settings.FrameRate ) );
-	}
-	CaptureStrategy->OnWarmup();
+	Viewport = InViewport;
 }
 
 void UMovieSceneCapture::StartCapture()
 {
-	bFinalizeWhenReady = false;
-	bCapturing = true;
-
 	if (!CaptureStrategy.IsValid())
 	{
-		CaptureStrategy = MakeShareable(new FRealTimeCaptureStrategy(Settings.FrameRate));
+		CaptureStrategy = MakeShareable(new FFixedTimeStepCaptureStrategy(Settings.FrameRate));
 	}
 
 	CaptureStrategy->OnStart();
 
-	CaptureProtocol = IMovieSceneCaptureModule::Get().GetProtocolRegistry().Factory(CaptureType);
-	if (ensure(CaptureProtocol.IsValid()))
+	CachedMetrics.ElapsedSeconds = 0;
+
+	if (bBufferVisualizationDumpFrames)
 	{
-		CaptureProtocol->Initialize(InitSettings.GetValue(), *this);
+		static IConsoleVariable* CVarDumpFrames = IConsoleManager::Get().FindConsoleVariable(TEXT("r.BufferVisualizationDumpFrames"));
+		if (CVarDumpFrames)
+		{
+			CVarDumpFrames->Set(1, ECVF_SetByCommandline);
+		}
+	}
+
+	CachedMetrics.Width = Viewport->GetSizeXY().X;
+	CachedMetrics.Height = Viewport->GetSizeXY().Y;
+
+	Viewport->SetMovieSceneCapture(Handle);
+
+	// Ensure the destination folder exists
+	FPlatformFileManager::Get().GetPlatformFile().CreateDirectory(*Settings.OutputDirectory.Path);
+
+	if (Settings.CaptureType == EMovieCaptureType::AVI)
+	{
+		FAVIWriterOptions Options;
+		Options.OutputFilename = ResolveUniqueFilename();
+		Options.CaptureFPS = Settings.FrameRate;
+		Options.CodecName = Settings.Codec;
+		Options.bSynchronizeFrames = CaptureStrategy->ShouldSynchronizeFrames();
+
+		if (Settings.bUseCompression)
+		{
+			Options.CompressionQuality = Settings.CompressionQuality;
+		}
+
+		AVIWriter.Reset(FAVIWriter::CreateInstance(Options));
+		AVIWriter->StartCapture(Viewport);
 	}
 }
 
-void UMovieSceneCapture::CaptureThisFrame(float DeltaSeconds)
+void UMovieSceneCapture::CaptureFrame(float DeltaSeconds)
 {
-	if (!bCapturing || !CaptureStrategy.IsValid() || !CaptureProtocol.IsValid() || bFinalizeWhenReady)
+	if (!CaptureStrategy.IsValid())
 	{
 		return;
 	}
 
 	CachedMetrics.ElapsedSeconds += DeltaSeconds;
+
 	if (CaptureStrategy->ShouldPresent(CachedMetrics.ElapsedSeconds, CachedMetrics.Frame))
 	{
 		uint32 NumDroppedFrames = CaptureStrategy->GetDroppedFrames(CachedMetrics.ElapsedSeconds, CachedMetrics.Frame);
 		CachedMetrics.Frame += NumDroppedFrames;
 
 		CaptureStrategy->OnPresent(CachedMetrics.ElapsedSeconds, CachedMetrics.Frame);
-
-		const FFrameMetrics ThisFrameMetrics(
-			CachedMetrics.ElapsedSeconds,
-			DeltaSeconds,
-			CachedMetrics.Frame,
-			NumDroppedFrames
-			);
-		CaptureProtocol->CaptureFrame(ThisFrameMetrics, *this);
-
 		++CachedMetrics.Frame;
-
-		if (!bFinalizeWhenReady && (FrameCount != 0 && CachedMetrics.Frame >= FrameCount))
+		
+		if (AVIWriter)
 		{
-			FinalizeWhenReady();
+			AVIWriter->DropFrames(NumDroppedFrames);
+			AVIWriter->Update(CachedMetrics.ElapsedSeconds);
 		}
+#if WITH_EDITOR
+		else
+		{
+			TArray<FColor> Data;
+			Viewport->ReadPixels(Data, FReadSurfaceDataFlags());
+			CaptureSnapshot(Data);
+		}
+#endif
 	}
 }
 
-void UMovieSceneCapture::FinalizeWhenReady()
+void UMovieSceneCapture::StopCapture()
 {
-	bFinalizeWhenReady = true;
-}
+	CaptureStrategy->OnStop();
+	CaptureStrategy = nullptr;
 
-void UMovieSceneCapture::Finalize()
-{
-	FActiveMovieSceneCaptures::Get().Remove(this);
-
-	if (bCapturing)
+	if (AVIWriter)
 	{
-		bCapturing = false;
-
-		if (CaptureStrategy.IsValid())
-		{
-			CaptureStrategy->OnStop();
-			CaptureStrategy = nullptr;
-		}
-
-		if (CaptureProtocol.IsValid())
-		{
-			CaptureProtocol->Finalize();
-			CaptureProtocol = nullptr;
-		}
-
-		OnCaptureFinishedDelegate.Broadcast();
+		AVIWriter->StopCapture();
+		AVIWriter.Reset();
 	}
 }
 
-FString UMovieSceneCapture::ResolveFileFormat(const FString& Format, const FFrameMetrics& FrameMetrics) const
+void UMovieSceneCapture::Close()
 {
-	FormatMappings.Add(TEXT("frame"), FString::Printf(TEXT("%04d"), Settings.bUseRelativeFrameNumbers ? FrameMetrics.FrameNumber : FrameMetrics.FrameNumber + FrameNumberOffset));
-	
-	if (CaptureProtocol.IsValid())
-	{
-		CaptureProtocol->AddFormatMappings(FormatMappings);
-	}
-	return FString::Format(*Format, FormatMappings);
+	StopCapture();
+	IMovieSceneCaptureModule::Get().OnMovieSceneCaptureFinished(this);
 }
 
-FString UMovieSceneCapture::GenerateFilename(const FFrameMetrics& FrameMetrics, const TCHAR* Extension) const
+#if WITH_EDITOR
+void UMovieSceneCapture::CaptureSnapshot(const TArray<FColor>& Colors)
 {
-	FString OutputDirectory = ResolveFileFormat(Settings.OutputDirectory.Path, FrameMetrics);
-
-	if (!IFileManager::Get().DirectoryExists(*OutputDirectory))
+	if (Colors.Num() == 0)
 	{
-		IFileManager::Get().MakeDirectory(*OutputDirectory);
+		return;
 	}
 
-	const FString BaseFilename = OutputDirectory / ResolveFileFormat(Settings.OutputFormat, FrameMetrics);
-
-	FString ThisTry = BaseFilename + Extension;
-
-	if (Settings.bOverwriteExisting)
+	FString Filename = ResolveUniqueFilename();
+	if (Filename.IsEmpty())
 	{
-		// Try and delete it first
-		while (IFileManager::Get().FileSize(*ThisTry) != -1 && !FPlatformFileManager::Get().GetPlatformFile().DeleteFile(*ThisTry))
+		return;
+	}
+
+	IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>( FName("ImageWrapper") );
+
+	// clamp to 1-100 range
+	const int32 ImageCompressionQuality = FMath::Clamp<int32>(Settings.CompressionQuality * 100, 1, 100);
+
+	switch (Settings.CaptureType)
+	{
+	case EMovieCaptureType::BMP:
+		FFileHelper::CreateBitmap(*Filename, CachedMetrics.Width, CachedMetrics.Height, Colors.GetData());
+		break;
+
+	case EMovieCaptureType::PNG:
 		{
-			// popup a message box
-			FText MessageText = FText::Format(LOCTEXT("UnableToRemoveFile_Format", "The destination file '{0}' could not be deleted because it's in use by another application.\n\nPlease close this application before continuing."), FText::FromString(ThisTry));
-			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *MessageText.ToString(), *LOCTEXT("UnableToRemoveFile", "Unable to remove file").ToString());
+			IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+
+			TArray<FColor> FinalColors = Colors;
+			for (FColor& Color : FinalColors)
+			{
+				Color.A = 255;
+			}
+
+			if (ImageWrapper.IsValid() && ImageWrapper->SetRaw(&FinalColors[0], FinalColors.Num() * sizeof(FColor), CachedMetrics.Width, CachedMetrics.Height, ERGBFormat::BGRA, 8))
+			{
+				FFileHelper::SaveArrayToFile(ImageWrapper->GetCompressed(ImageCompressionQuality), *Filename);
+			}
 		}
+		break;
+
+	case EMovieCaptureType::JPEG:
+		{
+			IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::JPEG);
+			if (ImageWrapper.IsValid() && ImageWrapper->SetRaw(&Colors[0], Colors.Num() * sizeof(FColor), CachedMetrics.Width, CachedMetrics.Height, ERGBFormat::BGRA, 8))
+			{
+				FFileHelper::SaveArrayToFile(ImageWrapper->GetCompressed(ImageCompressionQuality), *Filename);
+			}
+		}
+		break;
+
+	default:
+		break;
+	}
+}
+#endif
+
+const TCHAR* UMovieSceneCapture::GetDefaultFileExtension() const
+{
+	switch (Settings.CaptureType)
+	{
+		case EMovieCaptureType::BMP:	return TEXT(".bmp");
+		case EMovieCaptureType::PNG:	return TEXT(".png");
+		case EMovieCaptureType::JPEG:	return TEXT(".jpeg");
+#if PLATFORM_MAC
+		default:						return TEXT(".mov");
+#else
+		default:						return TEXT(".avi");
+#endif
+	}
+}
+
+FString UMovieSceneCapture::ResolveFileFormat(const FString& Folder, const FString& Format) const
+{
+	TMap<FString, FStringFormatArg> Mappings;
+	Mappings.Add(TEXT("fps"), FString::Printf(TEXT("%d"), Settings.FrameRate));
+	Mappings.Add(TEXT("frame"), FString::Printf(TEXT("%04d"), CachedMetrics.Frame));
+	Mappings.Add(TEXT("width"), FString::Printf(TEXT("%d"), CachedMetrics.Width));
+	Mappings.Add(TEXT("height"), FString::Printf(TEXT("%d"), CachedMetrics.Height));
+
+	if (Settings.bUseCompression)
+	{
+		Mappings.Add(TEXT("quality"), FString::Printf(TEXT("%.2f"), Settings.CompressionQuality));
+	}
+	else
+	{
+		Mappings.Add(TEXT("quality"), NSLOCTEXT("MovieCapture", "Uncompressed", "Uncompressed").ToString());
+	}
+
+	return Folder / FString::Format(*Format, Mappings);
+}
+
+FString UMovieSceneCapture::ResolveUniqueFilename()
+{
+	FString BaseFilename = ResolveFileFormat(Settings.OutputDirectory.Path, Settings.OutputFormat);
+	FString ThisTry = BaseFilename + GetDefaultFileExtension();
+
+	if (IFileManager::Get().FileSize(*ThisTry) != -1)
+	{
 		return ThisTry;
 	}
 
-	if (IFileManager::Get().FileSize(*ThisTry) == -1)
-	{
-		return ThisTry;
-	}
-
-	int32 DuplicateIndex = 1;
+	uint32 Index = 2;
 	for (;;)
 	{
-		ThisTry = BaseFilename + FString::Printf(TEXT("_(%d)"), DuplicateIndex) + Extension;
+		ThisTry = BaseFilename + FString::Printf(TEXT(" %02d"), Index) + GetDefaultFileExtension();
 
 		// If the file doesn't exist, we can use that, else, increment the index and try again
 		if (IFileManager::Get().FileSize(*ThisTry) == -1)
@@ -291,39 +281,15 @@ FString UMovieSceneCapture::GenerateFilename(const FFrameMetrics& FrameMetrics, 
 			return ThisTry;
 		}
 
-		++DuplicateIndex;
+		++Index;
 	}
 
 	return ThisTry;
 }
 
-#if WITH_EDITOR
-void UMovieSceneCapture::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent)
-{
-	FName PropertyName = (PropertyChangedEvent.MemberProperty != NULL) ? PropertyChangedEvent.MemberProperty->GetFName() : NAME_None;
-
-	if (PropertyName == GET_MEMBER_NAME_CHECKED(UMovieSceneCapture, CaptureType))
-	{
-		ProtocolSettings = IMovieSceneCaptureModule::Get().GetProtocolRegistry().FactorySettingsType(CaptureType, this);
-		if (ProtocolSettings)
-		{
-			ProtocolSettings->LoadConfig();
-		}
-	}
-
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-}
-#endif
-
 FFixedTimeStepCaptureStrategy::FFixedTimeStepCaptureStrategy(uint32 InTargetFPS)
 	: TargetFPS(InTargetFPS)
 {
-}
-
-void FFixedTimeStepCaptureStrategy::OnWarmup()
-{
-	FApp::SetFixedDeltaTime(1.0 / TargetFPS);
-	FApp::SetUseFixedTimeStep(true);
 }
 
 void FFixedTimeStepCaptureStrategy::OnStart()
@@ -356,10 +322,6 @@ FRealTimeCaptureStrategy::FRealTimeCaptureStrategy(uint32 InTargetFPS)
 {
 }
 
-void FRealTimeCaptureStrategy::OnWarmup()
-{
-}
-
 void FRealTimeCaptureStrategy::OnStart()
 {
 }
@@ -386,5 +348,3 @@ int32 FRealTimeCaptureStrategy::GetDroppedFrames(double CurrentTimeSeconds, uint
 	}
 	return 0;
 }
-
-#undef LOCTEXT_NAMESPACE

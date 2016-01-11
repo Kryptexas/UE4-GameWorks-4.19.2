@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "XmppPrivatePCH.h"
 #include "XmppJingle.h"
@@ -223,9 +223,7 @@ bool FXmppChatJingle::SendChat(FString RecipientId, const FXmppChatMessage& Chat
 {
 	FXmppChatMessageJingle* NewChat = new FXmppChatMessageJingle();
 	ConvertFromMessage(*NewChat, ChatMessage);
-	bool bChatSent = SendChatQueue.Enqueue(NewChat);
-	bChatSent ? NumSentChat++ : 0;
-	return bChatSent;
+	return SendChatQueue.Enqueue(NewChat);
 }
 
 bool FXmppChatJingle::Tick(float DeltaTime)
@@ -235,7 +233,6 @@ bool FXmppChatJingle::Tick(float DeltaTime)
 		FXmppChatMessage* ChatMessage = NULL;
 		if (ReceivedChatQueue.Dequeue(ChatMessage))
 		{
-			NumReceivedChat++;
 			OnReceiveChat().Broadcast(Connection.AsShared(), ChatMessage->FromJid, MakeShareable(ChatMessage));
 		}
 	}
@@ -279,7 +276,7 @@ void FXmppChatJingle::HandlePumpTick(buzz::XmppPump* XmppPump)
 		FXmppChatMessageJingle* ChatMessage = NULL;
 		if (SendChatQueue.Dequeue(ChatMessage))
 		{
-			// kick off the send task
+			// kick off hte send task
 			if (ChatSendTask != NULL)
 			{
 				ChatSendTask->Send(ChatMessage->ToJid, *ChatMessage);

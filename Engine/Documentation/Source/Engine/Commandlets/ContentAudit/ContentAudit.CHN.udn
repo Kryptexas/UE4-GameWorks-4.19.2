@@ -1,0 +1,88 @@
+﻿Availability: Docs
+Title: 内容审计命令行开关
+Crumbs: %ROOT%, Engine, Engine/Commandlets
+Description:该命令行开关用于分析游戏中使用的内容来发现有问题的资源。
+
+[REGION:todo]
+	本文从虚幻引擎3中转换而来，目前正在审阅中。有些信息可能过期了。
+[/REGION]
+
+[TOC (start:2)]
+
+## 主旨概述
+
+查找应该审查的有问题的内容并进行可能的修复。
+
+
+
+## 详细动机
+
+在优化我们的内容过程中，为得到最大的性能消耗，我们想出了许多内容应该遵循/遵守的“规则”。ContentAudit（内容审计）命令开关将评判整个游戏的内容，然后报告（通过标签）有问题的内容/打破规则的内容。
+
+
+
+## 操作
+
+要通过一个命令提示窗口运行这个命令行开关，请浏览到  _UnrealEngine3\Binaries_ 目录。
+
+
+### 语法
+
+语法如下所示：
+
+    [GameName].exe ContentAuditCommandlet
+    
+
+## 如何 使用/打开 
+
+每夜运行 GAMENAME ContentAuditCommandlet 可能是确保标签随时进行更新的最好方法。
+
+没有遵循“规则”的内容会在 ContentBrowser（内容浏览器）中通过标签显露出来。
+
+对于每个“规则”，我们都有一个代表“规则”的标签。每个标签还有一个 _whitelist 标签。主意是指一些“有问题”的内容实际上却有效。
+
+ContentAuditCommandlet（内容审计命令开关）还将输出一个所有 Audit（审计）标签及其数目的列表。这可以通过您的制作工作人员给予趋势分析。目标是每部分审计标签数目为“0”。
+
+进一步注意：  随着时间推移，_whitelist 将可能获得越来越多的“条目”。所以您会希望对每个 _whitelist 进行“审计”，确保其中的条目都是实际应该包含在内的条目。如果您发现您的 _whitelist 有大量的条目，那么您可能会想要研究为什么这种情况下会启动如此多的资源（可能需要更好的“规则”存在才能移除一直处于白名单的对象）
+
+
+
+##  详细示例
+
+示例：  就内存消耗而言，G8 贴图确实很昂贵。G8 贴图通常可以由 DXT1 取代，不会降低贴图品质。
+
+示例：  贴图是 G8 而且使用大量内存，但是它实际上需要的就是 G8。所以我们会将通过使用 Texture_G8_Whitelist 触发的资源“列入白名单”。基本上，这意味着有人已经评判过该贴图并将其视为有效。
+
+以下是 ContentAuditCommandlet（内容审计命令开关）要检查的一些项：
+
+
+* Texture_NormalmapNonDXT1CompressionNoAlphaIsTrue
+* Texture_LODBiasIsNegative
+* Texture_NeverStream
+* Texture_G8
+
+* Material_MissingPhysicalMaterial
+
+* PhysAsset_MissingPhysicalMaterial
+
+* Particle_BadFixedRelativeBoundingBox
+* Particle_MissingFixedRelativeBoundingBox
+
+* SoundCue_DiconnectedSoundNodes
+* SoundCue_MoreThan3Waves
+* SoundCue_HasMixerWithMoreThan2Children
+* SoundCue_NoSoundClass
+* SoundCue_IncorrectAmbientSoundClass
+
+* SoundWave_QualityHigherThan40
+
+* StaticMesh_WithMissingUVSets
+* StaticMesh_WithBadUVSets
+* StaticMesh_EmptySections
+
+ 
+
+
+
+
+

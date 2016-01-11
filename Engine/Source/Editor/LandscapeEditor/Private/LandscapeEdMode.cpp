@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LandscapeEditorPrivatePCH.h"
 
@@ -169,7 +169,6 @@ FEdModeLandscape::FEdModeLandscape()
 	GSelectionRegionMaterial = LoadObject<UMaterialInstanceConstant>(NULL, TEXT("/Engine/EditorLandscapeResources/SelectBrushMaterial_SelectedRegion.SelectBrushMaterial_SelectedRegion"), NULL, LOAD_None, NULL);
 	GMaskRegionMaterial = LoadObject<UMaterialInstanceConstant>(NULL, TEXT("/Engine/EditorLandscapeResources/MaskBrushMaterial_MaskedRegion.MaskBrushMaterial_MaskedRegion"), NULL, LOAD_None, NULL);
 	GLandscapeBlackTexture = LoadObject<UTexture2D>(NULL, TEXT("/Engine/EngineResources/Black.Black"), NULL, LOAD_None, NULL);
-	GLandscapeLayerUsageMaterial = LoadObject<UMaterial>(NULL, TEXT("/Engine/EditorLandscapeResources/LandscapeLayerUsageMaterial.LandscapeLayerUsageMaterial"), NULL, LOAD_None, NULL);
 
 	// Initialize modes
 	InitializeToolModes();
@@ -1719,7 +1718,7 @@ int32 FEdModeLandscape::UpdateLandscapeList()
 	{
 		if (LandscapeList.Num() > 0)
 		{
-			if (CurrentTool != nullptr)
+			if (CurrentTool != NULL)
 			{
 				CurrentBrush->LeaveBrush();
 				CurrentTool->ExitTool();
@@ -1727,7 +1726,7 @@ int32 FEdModeLandscape::UpdateLandscapeList()
 			CurrentToolTarget.LandscapeInfo = LandscapeList[0].Info;
 			CurrentIndex = 0;
 			UpdateTargetList();
-			if (CurrentTool != nullptr)
+			if (CurrentTool != NULL)
 			{
 				CurrentTool->EnterTool();
 				CurrentBrush->EnterBrush();
@@ -1735,11 +1734,7 @@ int32 FEdModeLandscape::UpdateLandscapeList()
 		}
 		else
 		{
-			// no landscape, switch to "new landscape" tool
-			CurrentToolTarget.LandscapeInfo = nullptr;
-			UpdateTargetList();
-			SetCurrentToolMode("ToolMode_Manage", false);
-			SetCurrentTool("NewLandscape");
+			CurrentToolTarget.LandscapeInfo = NULL;
 		}
 	}
 
@@ -2087,6 +2082,7 @@ void FEdModeLandscape::Render(const FSceneView* View, FViewport* Viewport, FPrim
 /** FEdMode: Render HUD elements for this tool */
 void FEdModeLandscape::DrawHUD(FEditorViewportClient* ViewportClient, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas)
 {
+
 }
 
 bool FEdModeLandscape::UsesTransformWidget() const
@@ -2500,8 +2496,6 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 	check(NumSubsections > 0);
 	check(SubsectionSizeQuads > 0);
 
-	const int32 NewComponentSizeQuads = NumSubsections * SubsectionSizeQuads;
-
 	ALandscape* Landscape = NULL;
 
 	ULandscapeInfo* LandscapeInfo = CurrentToolTarget.LandscapeInfo.Get();
@@ -2514,8 +2508,8 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 
 			const int32 OldVertsX = OldMaxX - OldMinX + 1;
 			const int32 OldVertsY = OldMaxY - OldMinY + 1;
-			const int32 NewVertsX = NumComponentsX * NewComponentSizeQuads + 1;
-			const int32 NewVertsY = NumComponentsY * NewComponentSizeQuads + 1;
+			const int32 NewVertsX = NumComponentsX * NumSubsections * SubsectionSizeQuads + 1;
+			const int32 NewVertsY = NumComponentsY * NumSubsections * SubsectionSizeQuads + 1;
 
 			FLandscapeEditDataInterface LandscapeEdit(LandscapeInfo);
 			TArray<uint16> HeightData;
@@ -2523,14 +2517,8 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 			FVector LandscapeOffset = FVector::ZeroVector;
 			float LandscapeScaleFactor = 1.0f;
 
-			int32 NewMinX, NewMinY, NewMaxX, NewMaxY;
 			if (bResample)
 			{
-				NewMinX = OldMinX / LandscapeInfo->ComponentSizeQuads * NewComponentSizeQuads;
-				NewMinY = OldMinY / LandscapeInfo->ComponentSizeQuads * NewComponentSizeQuads;
-				NewMaxX = NewMinX + NewVertsX - 1;
-				NewMaxY = NewMinY + NewVertsY - 1;
-
 				HeightData.AddZeroed(OldVertsX * OldVertsY * sizeof(uint16));
 
 				// GetHeightData alters its args, so make temp copies to avoid screwing things up
@@ -2556,14 +2544,14 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 					}
 				}
 
-				LandscapeScaleFactor = (float)OldLandscapeProxy->ComponentSizeQuads / NewComponentSizeQuads;
+				LandscapeScaleFactor = (float)OldLandscapeProxy->ComponentSizeQuads / (NumSubsections * SubsectionSizeQuads);
 			}
 			else
 			{
-				NewMinX = OldMinX + (OldVertsX - NewVertsX) / 2;
-				NewMinY = OldMinY + (OldVertsY - NewVertsY) / 2;
-				NewMaxX = NewMinX + NewVertsX - 1;
-				NewMaxY = NewMinY + NewVertsY - 1;
+				const int32 NewMinX = OldMinX + (OldVertsX - NewVertsX) / 2;
+				const int32 NewMinY = OldMinY + (OldVertsY - NewVertsY) / 2;
+				const int32 NewMaxX = NewMinX + NewVertsX - 1;
+				const int32 NewMaxY = NewMinY + NewVertsY - 1;
 				const int32 RequestedMinX = FMath::Max(OldMinX, NewMinX);
 				const int32 RequestedMinY = FMath::Max(OldMinY, NewMinY);
 				const int32 RequestedMaxX = FMath::Min(OldMaxX, NewMaxX);
@@ -2598,25 +2586,18 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 					}
 				}
 
-				// offset landscape to component boundary
-				LandscapeOffset = FVector(NewMinX, NewMinY, 0) * OldLandscapeProxy->GetActorScale();
-				NewMinX = 0;
-				NewMinY = 0;
-				NewMaxX = NewVertsX - 1;
-				NewMaxY = NewVertsY - 1;
+				LandscapeOffset = FVector(NewMinX - OldMinX, NewMinY - OldMinY, 0) * OldLandscapeProxy->GetActorScale();
 			}
 
 			const FVector Location = OldLandscapeProxy->GetActorLocation() + LandscapeOffset;
-			FActorSpawnParameters SpawnParams;
-			SpawnParams.OverrideLevel = OldLandscapeProxy->GetLevel();
-			Landscape = OldLandscapeProxy->GetWorld()->SpawnActor<ALandscape>(Location, OldLandscapeProxy->GetActorRotation(), SpawnParams);
+			Landscape = OldLandscapeProxy->GetWorld()->SpawnActor<ALandscape>(Location, OldLandscapeProxy->GetActorRotation());
 
 			const FVector OldScale = OldLandscapeProxy->GetActorScale();
 			Landscape->SetActorRelativeScale3D(FVector(OldScale.X * LandscapeScaleFactor, OldScale.Y * LandscapeScaleFactor, OldScale.Z));
 
 			Landscape->LandscapeMaterial = OldLandscapeProxy->LandscapeMaterial;
 			Landscape->CollisionMipLevel = OldLandscapeProxy->CollisionMipLevel;
-			Landscape->Import(FGuid::NewGuid(), NewMinX, NewMinY, NewMaxX, NewMaxY, NumSubsections, SubsectionSizeQuads, HeightData.GetData(), *OldLandscapeProxy->ReimportHeightmapFilePath, ImportLayerInfos, ELandscapeImportAlphamapType::Additive);
+			Landscape->Import(FGuid::NewGuid(), NewVertsX, NewVertsY, NumSubsections*SubsectionSizeQuads, NumSubsections, SubsectionSizeQuads, HeightData.GetData(), *OldLandscapeProxy->ReimportHeightmapFilePath, ImportLayerInfos);
 
 			Landscape->MaxLODLevel = OldLandscapeProxy->MaxLODLevel;
 			Landscape->ExportLOD = OldLandscapeProxy->ExportLOD;
@@ -2646,7 +2627,7 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 			if (OldLandscapeActor.IsValid() && OldLandscapeActor->SplineComponent != NULL)
 			{
 				ULandscapeSplinesComponent* OldSplines = OldLandscapeActor->SplineComponent;
-				ULandscapeSplinesComponent* NewSplines = DuplicateObject<ULandscapeSplinesComponent>(OldSplines, Landscape, OldSplines->GetFName());
+				ULandscapeSplinesComponent* NewSplines = DuplicateObject<ULandscapeSplinesComponent>(OldSplines, Landscape, *OldSplines->GetName());
 				NewSplines->AttachTo(Landscape->GetRootComponent(), NAME_None, EAttachLocation::KeepWorldPosition);
 
 				const FVector OldSplineScale = OldSplines->GetRelativeTransform().GetScale3D();

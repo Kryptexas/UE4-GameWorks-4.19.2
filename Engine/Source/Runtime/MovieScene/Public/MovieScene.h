@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -28,7 +28,6 @@ struct FMovieSceneExpansionState
 	bool bExpanded;
 };
 
-
 /**
  * Editor only data that needs to be saved between sessions for editing but has no runtime purpose
  */
@@ -40,37 +39,6 @@ struct FMovieSceneEditorData
 	/** Map of node path -> expansion state. */
 	UPROPERTY()
 	TMap<FString, FMovieSceneExpansionState> ExpansionStates;
-
-	/** User-defined working range in which the entire sequence should reside. */
-	UPROPERTY()
-	FFloatRange WorkingRange;
-
-	/** The last view-range that the user was observing */
-	UPROPERTY()
-	FFloatRange ViewRange;
-};
-
-
-/**
- * Structure for labels that can be assigned to movie scene tracks.
- */
-USTRUCT()
-struct FMovieSceneTrackLabels
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	TArray<FString> Strings;
-
-	void FromString(const FString& LabelString)
-	{
-		LabelString.ParseIntoArray(Strings, TEXT(" "));
-	}
-
-	FString ToString() const
-	{
-		return FString::Join(Strings, TEXT(" "));
-	}
 };
 
 
@@ -93,9 +61,10 @@ public:
 	 *
 	 * @param Name Name of the spawnable.
 	 * @param Blueprint	The blueprint to add.
+	 * @param CounterpartGamePreviewObject	Optional game preview object to map to this spawnable.  Only a weak pointer to this object is stored.
 	 * @return Guid of the newly-added spawnable.
 	 */
-	FGuid AddSpawnable(const FString& Name, UBlueprint* Blueprint);
+	FGuid AddSpawnable(const FString& Name, UBlueprint* Blueprint, UObject* CounterpartGamePreviewObject);
 
 	/**
 	 * Removes a spawnable from this movie scene.
@@ -105,15 +74,15 @@ public:
 	 */
 	bool RemoveSpawnable(const FGuid& Guid);
 
-	/**
-	 * Attempt to find a spawnable using some custom prodeicate
-	 *
-	 * @param InPredicate A predicate to test each spawnable against
-	 * @return Spawnable object that was found (or nullptr if not found).
-	 */
-	FMovieSceneSpawnable* FindSpawnable( const TFunctionRef<bool(FMovieSceneSpawnable&)>& InPredicate );
-
 #endif //WITH_EDITOR
+
+	/**
+	 * Grabs a reference to a specific spawnable by index.
+	 *
+	 * @param Index of spawnable to return.
+	 * @return Returns the specified spawnable by index.
+	 */
+	FMovieSceneSpawnable& GetSpawnable(const int32 Index);
 
 	/**
 	 * Tries to locate a spawnable in this MovieScene for the specified spawnable GUID.
@@ -122,6 +91,14 @@ public:
 	 * @return Spawnable object that was found (or nullptr if not found).
 	 */
 	FMovieSceneSpawnable* FindSpawnable(const FGuid& Guid);
+
+	/**
+	 * Tries to locate a spawnable for the specified game preview object (e.g. a PIE-world actor).
+	 *
+	 * @param GamePreviewObject The object to find a spawnable counterpart for.
+	 * @return Spawnable object that was found (or nullptr if not found).
+	 */
+	const FMovieSceneSpawnable* FindSpawnableForCounterpart(UObject* GamePreviewObject) const;
 
 	/**
 	 * Get the number of spawnable objects in this scene.
@@ -179,6 +156,16 @@ public:
 public:
 
 	/**
+	 * Finds a track.
+	 *
+	 * @param TrackClass The class of the track to find.
+	 * @param ObjectGuid The runtime object guid that the track is bound to.
+	 * @param UniqueTypeName The unique name of the track to differentiate the one we are searching for from other tracks of the same class.
+	 * @return The found track or nullptr if one does not exist.
+	 */
+	UMovieSceneTrack* FindTrack(TSubclassOf<UMovieSceneTrack> TrackClass, const FGuid& ObjectGuid, FName UniqueTypeName) const;
+
+	/**
 	 * Adds a track.
 	 *
 	 * Note: The type should not already exist.
@@ -186,143 +173,35 @@ public:
 	 * @param TrackClass The class of the track to create.
 	 * @param ObjectGuid The runtime object guid that the type should bind to.
 	 * @param Type The newly created type.
-	 * @see  FindTrack, RemoveTrack
 	 */
 	UMovieSceneTrack* AddTrack(TSubclassOf<UMovieSceneTrack> TrackClass, const FGuid& ObjectGuid);
-
-	/**
-	 * Adds a track.
-	 *
-	 * Note: The type should not already exist.
-	 *
-	 * @param TrackClass The class of the track to create.
-	 * @param ObjectGuid The runtime object guid that the type should bind to.
-	 * @param Type The newly created type.
-	 * @see FindTrack, RemoveTrack
-	 */
-	template<typename TrackClass>
-	TrackClass* AddTrack(const FGuid& ObjectGuid)
-	{
-		return Cast<TrackClass>(AddTrack(TrackClass::StaticClass(), ObjectGuid));
-	}
-
-	/**
-	 * Finds a track.
-	 *
-	 * @param TrackClass The class of the track to find.
-	 * @param ObjectGuid The runtime object guid that the track is bound to.
-	 * @param TrackName The name of the track to differentiate the one we are searching for from other tracks of the same class.
-	 * @return The found track or nullptr if one does not exist.
-	 * @see AddTrack, RemoveTrack
-	 */
-	UMovieSceneTrack* FindTrack(TSubclassOf<UMovieSceneTrack> TrackClass, const FGuid& ObjectGuid, const FName& TrackName) const;
 	
-	/**
-	 * Finds a track.
-	 *
-	 * @param TrackClass The class of the track to find.
-	 * @param ObjectGuid The runtime object guid that the track is bound to.
-	 * @param TrackName The name of the track to differentiate the one we are searching for from other tracks of the same class (optional).
-	 * @return The found track or nullptr if one does not exist.
-	 * @see AddTrack, RemoveTrack
-	 */
-	template<typename TrackClass>
-	TrackClass* FindTrack(const FGuid& ObjectGuid, const FName& TrackName = NAME_None) const
-	{
-		return Cast<TrackClass>(FindTrack(TrackClass::StaticClass(), ObjectGuid, TrackName));
-	}
-
 	/**
 	 * Removes a track.
 	 *
 	 * @param Track The track to remove.
 	 * @return true if anything was removed.
-	 * @see AddTrack, FindTrack
 	 */
-	bool RemoveTrack(UMovieSceneTrack& Track);
-
-public:
-
-	/**
-	 * Adds a master track.
-	 *
-	 * Note: The type should not already exist.
-	 *
-	 * @param TrackClass The class of the track to create
-	 * @param Type	The newly created type
-	 * @see FindMasterTrack, GetMasterTracks, IsMasterTrack, RemoveMasterTrack
-	 */
-	UMovieSceneTrack* AddMasterTrack(TSubclassOf<UMovieSceneTrack> TrackClass);
-	
-	/**
-	 * Adds a master track.
-	 *
-	 * Note: The type should not already exist.
-	 *
-	 * @param TrackClass The class of the track to create
-	 * @param Type	The newly created type
-	 * @see FindMasterTrack, GetMasterTracks, IsMasterTrack, RemoveMasterTrack
-	 */
-	template<typename TrackClass>
-	TrackClass* AddMasterTrack()
-	{
-		return Cast<TrackClass>(AddMasterTrack(TrackClass::StaticClass()));
-	}
+	bool RemoveTrack( UMovieSceneTrack* Track );
 
 	/**
 	 * Finds a master track (one not bound to a runtime objects).
 	 *
 	 * @param TrackClass The class of the track to find.
 	 * @return The found track or nullptr if one does not exist.
-	 * @see AddMasterTrack, GetMasterTracks, IsMasterTrack, RemoveMasterTrack
 	 */
 	UMovieSceneTrack* FindMasterTrack(TSubclassOf<UMovieSceneTrack> TrackClass) const;
 
 	/**
-	 * Finds a master track (one not bound to a runtime objects).
+	 * Adds a master track.
 	 *
-	 * @param TrackClass The class of the track to find.
-	 * @return The found track or nullptr if one does not exist.
-	 * @see AddMasterTrack, GetMasterTracks, IsMasterTrack, RemoveMasterTrack
-	 */
-	template<typename TrackClass>
-	TrackClass* FindMasterTrack() const
-	{
-		return Cast<TrackClass>(FindMasterTrack(TrackClass::StaticClass()));
-	}
-
-	/**
-	 * Get all master tracks.
+	 * Note: The type should not already exist.
 	 *
-	 * @return Track collection.
-	 * @see AddMasterTrack, FindMasterTrack, IsMasterTrack, RemoveMasterTrack
+	 * @param TrackClass The class of the track to create
+	 * @param Type	The newly created type
 	 */
-	const TArray<UMovieSceneTrack*>& GetMasterTracks() const
-	{
-		return MasterTracks;
-	}
-
-	/**
-	 * Check whether the specified track is a master track in this scene.
-	 *
-	 * @return true if the track is a master track, false otherwise.
-	 * @see AddMasterTrack, FindMasterTrack, GetMasterTracks, RemoveMasterTrack
-	 */
-	bool IsAMasterTrack(const UMovieSceneTrack& Track) const;
-
-	/**
-	 * Removes a master track.
-	 *
-	 * @param Track The track to remove.
-	 * @return true if anything was removed.
-	 * @see AddMasterTrack, FindMasterTrack, GetMasterTracks, IsMasterTrack
-	 */
-	bool RemoveMasterTrack(UMovieSceneTrack& Track);
-
-public:
-
-	// @todo sequencer: the following methods really shouldn't be here
-
+	UMovieSceneTrack* AddMasterTrack(TSubclassOf<UMovieSceneTrack> TrackClass);
+	
 	/**
 	 * Adds a new shot track if it doesn't exist 
 	 * A shot track is a special kind of sub-movie scene track that allows for cutting between camera views
@@ -333,20 +212,40 @@ public:
 	 */
 	UMovieSceneTrack* AddShotTrack( TSubclassOf<UMovieSceneTrack> TrackClass );
 	
-	/** @return The shot track if it exists. */
+	/** @return The shot track if it exists */
 	UMovieSceneTrack* GetShotTrack();
 
-	/** Removes the shot track if it exists. */
+	/**
+	 * Removes the shot track if it exists
+	 */
 	void RemoveShotTrack();
 
-public:
+	/**
+	 * Removes a master track.
+	 *
+	 * @param Track The track to remove.
+	 * @return true if anything was removed.
+	 */
+	bool RemoveMasterTrack( UMovieSceneTrack* Track );
 
 	/**
-	 * Returns all sections and their associated binding data.
+	 * Check whether the specified track is a master track in this scene.
 	 *
-	 * @return A list of sections with object bindings and names.
+	 * @return true if the track is a master track, false otherwise.
 	 */
-	TArray<UMovieSceneSection*> GetAllSections() const;
+	bool IsAMasterTrack(const UMovieSceneTrack& Track) const;
+
+	/**
+	 * Get all master tracks.
+	 *
+	 * @return Track collection.
+	 */
+	const TArray<UMovieSceneTrack*>& GetMasterTracks() const
+	{
+		return MasterTracks;
+	}
+
+public:
 
 	/**
 	 * @return All object bindings.
@@ -356,51 +255,23 @@ public:
 		return ObjectBindings;
 	}
 
-	/**
-	 * Get the display name of the object with the specified identifier.
-	 *
-	 * @param ObjectId The object identifier.
-	 * @result The object's display name.
-	 */
-	FText GetObjectDisplayName(const FGuid& ObjectId);
-
-	/**
-	 * @return The playback time range of this movie scene, relative to its 0-time offset.
-	 */
-	TRange<float> GetPlaybackRange() const;
-
 	/*
 	* Replace an existing binding with another 
 	*/
 	void ReplaceBinding(const FGuid& OldGuid, const FGuid& NewGuid, const FString& Name);
 
-#if WITH_EDITORONLY_DATA
 	/**
+	 * @return The time range of the movie scene (the in to out time range)
 	 */
-	TMap<FString, FMovieSceneTrackLabels>& GetObjectsToLabels()
-	{
-		return ObjectsToLabels;
-	}
+	TRange<float> GetTimeRange() const;
 
 	/**
-	 * Get the display name of the object with the specified identifier.
+	 * Returns all sections and their associated binding data.
 	 *
-	 * @param ObjectId The object identifier.
-	 * @result The object's display name.
+	 * @return A list of sections with object bindings and names.
 	 */
-	void SetObjectDisplayName(const FGuid& ObjectId, const FText& DisplayName);
-#endif
+	TArray<UMovieSceneSection*> GetAllSections() const;
 
-	/**
-	 * Set the start and end playback positions (playback range) for this movie scene
-	 *
-	 * @param Start The offset from 0-time to start playback of this movie scene
-	 * @param End The offset from 0-time to end playback of this movie scene
-	 */
-	void SetPlaybackRange(float Start, float End);
-
-public:
-	
 #if WITH_EDITORONLY_DATA
 	/**
 	 * @return The editor only data for use with this movie scene
@@ -419,17 +290,6 @@ protected:
 	 * @param Guid The guid bound to animation data to remove
 	 */
 	void RemoveBinding(const FGuid& Guid);
-
-protected:
-
-	/** Called after this object has been deserialized */
-	virtual void PostLoad() override;
-
-	/** Called before this object is being deserialized. */
-	virtual void PreSave() override;
-
-	/** Perform legacy upgrade of time ranges */
-	void UpgradeTimeRanges();
 
 private:
 
@@ -458,34 +318,25 @@ private:
 	UMovieSceneTrack* ShotTrack;
 
 #if WITH_EDITORONLY_DATA
-	/** Maps object GUIDs to user defined display names. */
-	UPROPERTY()
-	TMap<FString, FText> ObjectsToDisplayNames;
-
-	/** Maps object GUIDs to user defined labels. */
-	UPROPERTY()
-	TMap<FString, FMovieSceneTrackLabels> ObjectsToLabels;
-
 	/** Editor only data that needs to be saved between sessions for editing but has no runtime purpose */
 	UPROPERTY()
 	FMovieSceneEditorData EditorData;
 #endif
 
-private:
+public:
+	/** In time of the movie scene in seconds*/
+	UPROPERTY()
+	float InTime;
 
-	/** User-defined playback range for this movie scene. Must be a finite range. Relative to this movie-scene's 0-time origin. */
+	/** Out time of the movie scene in seconds */
 	UPROPERTY()
-	FFloatRange PlaybackRange;
-	
-	UPROPERTY()
-	float InTime_DEPRECATED;
+	float OutTime;
 
+	/** Start time of the movie scene in seconds*/
 	UPROPERTY()
-	float OutTime_DEPRECATED;
+	float StartTime;
 
+	/** End time of the movie scene in seconds */
 	UPROPERTY()
-	float StartTime_DEPRECATED;
-
-	UPROPERTY()
-	float EndTime_DEPRECATED;
+	float EndTime;
 };

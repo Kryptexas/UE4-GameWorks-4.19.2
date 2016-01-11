@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
@@ -15,7 +15,6 @@
 //
 static bool		SavedbHidden;
 static AActor*	SavedOwner;
-static bool		SavedbRepPhysics;
 
 #define DEPRECATED_NET_PRIORITY -17.0f // Pick an arbitrary invalid priority, check for that
 
@@ -94,19 +93,10 @@ void AActor::PreNetReceive()
 {
 	SavedbHidden = bHidden;
 	SavedOwner = Owner;
-	SavedbRepPhysics = ReplicatedMovement.bRepPhysics;
 }
 
 void AActor::PostNetReceive()
 {
-	if (!bNetCheckedInitialPhysicsState)
-	{
-		// Initially we need to sync the state regardless of whether bRepPhysics has "changed" since it may not currently match IsSimulatingPhysics().
-		SyncReplicatedPhysicsSimulation();
-		SavedbRepPhysics = ReplicatedMovement.bRepPhysics;
-		bNetCheckedInitialPhysicsState = true;
-	}
-
 	ExchangeB( bHidden, SavedbHidden );
 	Exchange ( Owner, SavedOwner );
 
@@ -122,42 +112,16 @@ void AActor::PostNetReceive()
 
 void AActor::OnRep_ReplicatedMovement()
 {
-	if (RootComponent)
+	if( RootComponent && RootComponent->IsSimulatingPhysics() )
 	{
-		if (SavedbRepPhysics != ReplicatedMovement.bRepPhysics)
+		PostNetReceivePhysicState();
+	}
+	else
+	{
+		if (Role == ROLE_SimulatedProxy)
 		{
-			// Turn on/off physics sim to match server.
-			SyncReplicatedPhysicsSimulation();
-		}
-
-		if (ReplicatedMovement.bRepPhysics)
-		{
-			// Sync physics state
-			checkSlow(RootComponent->IsSimulatingPhysics());
-			PostNetReceivePhysicState();
-		}
-		else
-		{
-			// Attachment trumps global position updates, see GatherCurrentMovement().
-			if (!RootComponent->AttachParent)
-			{
-				if (Role == ROLE_SimulatedProxy)
-				{
-#if ENABLE_NAN_DIAGNOSTIC
-					if (ReplicatedMovement.Location.ContainsNaN())
-					{
-						logOrEnsureNanError(TEXT("AActor::OnRep_ReplicatedMovement found NaN in ReplicatedMovement.Location"));
-					}
-					if (ReplicatedMovement.Rotation.ContainsNaN())
-					{
-						logOrEnsureNanError(TEXT("AActor::OnRep_ReplicatedMovement found NaN in ReplicatedMovement.Rotation"));
-					}
-#endif
-
-					PostNetReceiveVelocity(ReplicatedMovement.LinearVelocity);
-					PostNetReceiveLocationAndRotation();
-				}
-			}
+			PostNetReceiveVelocity(ReplicatedMovement.LinearVelocity);
+			PostNetReceiveLocationAndRotation();
 		}
 	}
 }
@@ -184,18 +148,6 @@ void AActor::PostNetReceivePhysicState()
 
 		FVector DeltaPos(FVector::ZeroVector);
 		RootPrimComp->ConditionalApplyRigidBodyState(NewState, GEngine->PhysicErrorCorrection, DeltaPos);
-	}
-}
-
-void AActor::SyncReplicatedPhysicsSimulation()
-{
-	if (bReplicateMovement && RootComponent && (RootComponent->IsSimulatingPhysics() != ReplicatedMovement.bRepPhysics))
-	{
-		UPrimitiveComponent* RootPrimComp = Cast<UPrimitiveComponent>(RootComponent);
-		if (RootPrimComp)
-		{
-			RootPrimComp->SetSimulatePhysics(ReplicatedMovement.bRepPhysics);
-		}
 	}
 }
 
@@ -242,8 +194,6 @@ bool AActor::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget
 
 void AActor::GatherCurrentMovement()
 {
-	AttachmentReplication.AttachParent = nullptr;
-
 	UPrimitiveComponent* RootPrimComp = Cast<UPrimitiveComponent>(GetRootComponent());
 	if (RootPrimComp && RootPrimComp->IsSimulatingPhysics())
 	{
@@ -251,23 +201,19 @@ void AActor::GatherCurrentMovement()
 		RootPrimComp->GetRigidBodyState(RBState);
 
 		ReplicatedMovement.FillFrom(RBState);
-		ReplicatedMovement.bRepPhysics = true;
 	}
-	else if (RootComponent != nullptr)
+	else if(RootComponent != NULL)
 	{
-		// If we are attached, don't replicate absolute position, use AttachmentReplication instead.
-		if (RootComponent->AttachParent != nullptr)
+		// If we are attached, don't replicate absolute position
+		if( RootComponent->AttachParent != NULL )
 		{
 			// Networking for attachments assumes the RootComponent of the AttachParent actor. 
 			// If that's not the case, we can't update this, as the client wouldn't be able to resolve the Component and would detach as a result.
-			AttachmentReplication.AttachParent = RootComponent->AttachParent->GetAttachmentRootActor();
-			if (AttachmentReplication.AttachParent != nullptr)
+			if( AttachmentReplication.AttachParent != NULL )
 			{
 				AttachmentReplication.LocationOffset = RootComponent->RelativeLocation;
 				AttachmentReplication.RotationOffset = RootComponent->RelativeRotation;
 				AttachmentReplication.RelativeScale3D = RootComponent->RelativeScale3D;
-				AttachmentReplication.AttachComponent = RootComponent->AttachParent;
-				AttachmentReplication.AttachSocket = RootComponent->AttachSocketName;
 			}
 		}
 		else
@@ -276,9 +222,8 @@ void AActor::GatherCurrentMovement()
 			ReplicatedMovement.Rotation = RootComponent->GetComponentRotation();
 			ReplicatedMovement.LinearVelocity = GetVelocity();
 			ReplicatedMovement.AngularVelocity = FVector::ZeroVector;
+			ReplicatedMovement.bRepPhysics = false;
 		}
-
-		ReplicatedMovement.bRepPhysics = false;
 	}
 }
 
@@ -298,7 +243,7 @@ void AActor::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifeti
 
 	DOREPLIFETIME( AActor, bTearOff );
 	DOREPLIFETIME( AActor, bCanBeDamaged );
-	DOREPLIFETIME_CONDITION( AActor, AttachmentReplication, COND_Custom );
+	DOREPLIFETIME( AActor, AttachmentReplication );
 
 	DOREPLIFETIME( AActor, Instigator );
 
@@ -376,9 +321,4 @@ bool AActor::IsNameStableForNetworking() const
 bool AActor::IsSupportedForNetworking() const
 {
 	return true;		// All actors are supported for networking
-}
-
-void AActor::OnRep_Owner()
-{
-
 }

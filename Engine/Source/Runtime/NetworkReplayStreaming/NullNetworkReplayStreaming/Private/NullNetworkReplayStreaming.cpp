@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "NullNetworkReplayStreaming.h"
 #include "Paths.h"
@@ -43,7 +43,7 @@ static FString GetStreamBaseFilename(const FString& StreamName)
 	DemoName.ReplaceInline( TEXT( "%td" ), *FDateTime::Now().ToString() );
 	DemoName.ReplaceInline( TEXT( "%d" ), *FString::Printf( TEXT( "%i-%i-%i" ), Month, Day, Year ) );
 	DemoName.ReplaceInline( TEXT( "%t" ), *FString::Printf( TEXT( "%i" ), ( ( Hour * 3600 ) + ( Min * 60 ) + Sec ) * 1000 + MSec ) );
-	DemoName.ReplaceInline( TEXT( "%v" ), *FString::Printf( TEXT( "%i" ), FEngineVersion::Current().GetChangelist() ) );
+	DemoName.ReplaceInline( TEXT( "%v" ), *FString::Printf( TEXT( "%i" ), GEngineVersion.GetChangelist() ) );
 
 	// replace bad characters with underscores
 	DemoName.ReplaceInline( TEXT( "\\" ),	TEXT( "_" ) );
@@ -112,28 +112,15 @@ static FNullReplayInfo ReadReplayInfo( const FString& StreamName )
 	const FString InfoFilename = GetInfoFilename(StreamName);
 	TUniquePtr<FArchive> InfoFileArchive( IFileManager::Get().CreateFileReader( *InfoFilename ) );
 
-	if ( InfoFileArchive.IsValid() && InfoFileArchive->TotalSize() != 0)
+	if ( InfoFileArchive.IsValid() )
 	{
 		FString JsonString;
 		*InfoFileArchive << JsonString;
 
 		Info.FromJson(JsonString);
-		Info.bIsValid = true;
 	}
 
 	return Info;
-}
-
-static void WriteReplayInfo( const FString& StreamName, const FNullReplayInfo& ReplayInfo )
-{
-	// Update metadata file with latest info
-	TUniquePtr<FArchive> ReplayInfoFileAr(IFileManager::Get().CreateFileWriter(*GetInfoFilename(StreamName)));
-
-	if (ReplayInfoFileAr.IsValid())
-	{
-		FString JsonString = ReplayInfo.ToJson();
-		*ReplayInfoFileAr << JsonString; 
-	}
 }
 
 // Returns a name formatted as "demoX", where X is 0-9.
@@ -203,8 +190,8 @@ void FNullNetworkReplayStreamer::StartStreaming( const FString& CustomName, cons
 		ReplayInfo = ReadReplayInfo( CurrentStreamName );
 
 		// Open file for reading
-		ReopenStreamFileForReading();
-		HeaderAr.Reset( IFileManager::Get().CreateFileReader( *FullHeaderFilename, FILEREAD_AllowWrite ) );
+		FileAr.Reset( IFileManager::Get().CreateFileReader( *FullDemoFilename ) );
+		HeaderAr.Reset( IFileManager::Get().CreateFileReader( *FullHeaderFilename ) );
 		StreamerState = EStreamerState::Playback;
 	}
 	else
@@ -217,7 +204,7 @@ void FNullNetworkReplayStreamer::StartStreaming( const FString& CustomName, cons
 
 		// Open file for writing
 		FileAr.Reset( IFileManager::Get().CreateFileWriter( *FullDemoFilename, FILEWRITE_AllowRead ) );
-		HeaderAr.Reset( IFileManager::Get().CreateFileWriter( *FullHeaderFilename, FILEWRITE_AllowRead ) );
+		HeaderAr.Reset( IFileManager::Get().CreateFileWriter( *FullHeaderFilename ) );
 		StreamerState = EStreamerState::Recording;
 
 		CurrentCheckpointIndex = 0;
@@ -226,8 +213,6 @@ void FNullNetworkReplayStreamer::StartStreaming( const FString& CustomName, cons
 		ReplayInfo.NetworkVersion = ReplayVersion.NetworkVersion;
 		ReplayInfo.Changelist = ReplayVersion.Changelist;
 		ReplayInfo.FriendlyName = FriendlyName;
-
-		WriteReplayInfo(CurrentStreamName, ReplayInfo);
 	}
 
 	// Notify immediately
@@ -238,7 +223,14 @@ void FNullNetworkReplayStreamer::StopStreaming()
 {
 	if (StreamerState == EStreamerState::Recording)
 	{
-		WriteReplayInfo(CurrentStreamName, ReplayInfo);
+		// Update metadata file with latest info
+		TUniquePtr<FArchive> ReplayInfoFileAr(IFileManager::Get().CreateFileWriter(*GetInfoFilename(CurrentStreamName)));
+
+		if (ReplayInfoFileAr.IsValid())
+		{
+			FString JsonString = ReplayInfo.ToJson();
+			*ReplayInfoFileAr << JsonString; 
+		}
 	}
 
 	HeaderAr.Reset();
@@ -286,16 +278,7 @@ FArchive* FNullNetworkReplayStreamer::GetMetadataArchive()
 
 void FNullNetworkReplayStreamer::UpdateTotalDemoTime(uint32 TimeInMS)
 {
-	check(StreamerState == EStreamerState::Recording);
-
 	ReplayInfo.LengthInMS = TimeInMS;
-}
-
-bool FNullNetworkReplayStreamer::IsDataAvailable() const
-{
-	check(StreamerState == EStreamerState::Playback);
-
-	return FileAr.IsValid() && FileAr->Tell() < ReplayInfo.DemoFileLastOffset;
 }
 
 bool FNullNetworkReplayStreamer::IsLive() const
@@ -305,8 +288,15 @@ bool FNullNetworkReplayStreamer::IsLive() const
 
 bool FNullNetworkReplayStreamer::IsNamedStreamLive( const FString& StreamName ) const
 {
+	// If the directory for this stream doesn't exist, it can't possibly be live.
+	if (!IFileManager::Get().DirectoryExists(*GetStreamDirectory(StreamName)))
+	{
+		return false;
+	}
+
 	// If the metadata file doesn't exist, this is a live stream.
-	return !IFileManager::Get().FileExists(*GetMetadataFilename(StreamName));
+	const int64 MetadataFileSize = IFileManager::Get().FileSize(*GetMetadataFilename(StreamName));
+	return MetadataFileSize == INDEX_NONE;
 }
 
 void FNullNetworkReplayStreamer::DeleteFinishedStream( const FString& StreamName, const FOnDeleteFinishedStreamComplete& Delegate ) const
@@ -329,11 +319,6 @@ void FNullNetworkReplayStreamer::DeleteFinishedStream( const FString& StreamName
 
 void FNullNetworkReplayStreamer::EnumerateStreams( const FNetworkReplayVersion& ReplayVersion, const FString& UserString, const FString& MetaString, const FOnEnumerateStreamsComplete& Delegate )
 {
-	EnumerateStreams( ReplayVersion, UserString, MetaString, TArray< FString >(), Delegate );
-}
-
-void FNullNetworkReplayStreamer::EnumerateStreams( const FNetworkReplayVersion& ReplayVersion, const FString& UserString, const FString& MetaString, const TArray< FString >& ExtraParms, const FOnEnumerateStreamsComplete& Delegate )
-{
 	// Simply returns a stream for each folder in the Saved/Demos directory
 	const FString WildCardPath = GetDemoPath() + TEXT( "*" );
 
@@ -342,67 +327,49 @@ void FNullNetworkReplayStreamer::EnumerateStreams( const FNetworkReplayVersion& 
 
 	TArray<FNetworkReplayStreamInfo> Results;
 
-	for ( const FString& Directory : DirectoryNames )
+	for (const FString& Directory : DirectoryNames)
 	{
 		// Assume there will be one file with a .demo extension in the directory
-		const FString FullDemoFilePath = GetDemoFilename( Directory );
+		const FString FullDemoFilePath = GetDemoFilename(Directory);
 
 		FNetworkReplayStreamInfo Info;
 		Info.SizeInBytes = IFileManager::Get().FileSize( *FullDemoFilePath );
-
-		// Read stored info for this replay
-		FNullReplayInfo StoredReplayInfo = ReadReplayInfo( Directory );
-
-		if ( !StoredReplayInfo.bIsValid )
+		
+		if (Info.SizeInBytes != INDEX_NONE)
 		{
-			continue;
-		}
+			// Read stored info for this replay
+			FNullReplayInfo StoredReplayInfo = ReadReplayInfo( Directory );
+			
+			// Check version. NetworkVersion and changelist of 0 will ignore version check.
+			const bool NetworkVersionMatches = ReplayVersion.NetworkVersion == StoredReplayInfo.NetworkVersion;
+			const bool ChangelistMatches = ReplayVersion.Changelist == StoredReplayInfo.Changelist;
 
-		// Check version. NetworkVersion and changelist of 0 will ignore version check.
-		const bool NetworkVersionMatches = ReplayVersion.NetworkVersion == StoredReplayInfo.NetworkVersion;
-		const bool ChangelistMatches = ReplayVersion.Changelist == StoredReplayInfo.Changelist;
+			const bool NetworkVersionPasses = ReplayVersion.NetworkVersion == 0 || NetworkVersionMatches;
+			const bool ChangelistPasses = ReplayVersion.Changelist == 0 || ChangelistMatches;
 
-		const bool NetworkVersionPasses = ReplayVersion.NetworkVersion == 0 || NetworkVersionMatches;
-		const bool ChangelistPasses = ReplayVersion.Changelist == 0 || ChangelistMatches;
+			if ( NetworkVersionPasses && ChangelistPasses )
+			{
+				Info.Name = Directory;
+				Info.Timestamp = IFileManager::Get().GetTimeStamp( *FullDemoFilePath );
+				Info.bIsLive = IsNamedStreamLive( Directory );
+				Info.LengthInMS = StoredReplayInfo.LengthInMS;
+				Info.FriendlyName = StoredReplayInfo.FriendlyName;
 
-		if ( NetworkVersionPasses && ChangelistPasses )
-		{
-			Info.Name = Directory;
-			Info.Timestamp = IFileManager::Get().GetTimeStamp( *FullDemoFilePath );
-			Info.bIsLive = IsNamedStreamLive( Directory );
-			Info.LengthInMS = StoredReplayInfo.LengthInMS;
-			Info.FriendlyName = StoredReplayInfo.FriendlyName;
-
-			Results.Add( Info );
+				// Live streams not supported yet
+				if (!Info.bIsLive)
+				{
+					Results.Add(Info);
+				}
+			}
 		}
 	}
 
-	Delegate.ExecuteIfBound( Results );
+	Delegate.ExecuteIfBound(Results);
 }
 
 void FNullNetworkReplayStreamer::AddUserToReplay(const FString& UserString)
 {
 	UE_LOG(LogNullReplay, Log, TEXT("FNullNetworkReplayStreamer::AddUserToReplay is currently unsupported."));
-}
-
-void FNullNetworkReplayStreamer::AddEvent( const uint32 TimeInMS, const FString& Group, const FString& Meta, const TArray<uint8>& Data )
-{
-	UE_LOG(LogNullReplay, Log, TEXT("FNullNetworkReplayStreamer::AddEvent is currently unsupported."));
-}
-
-void FNullNetworkReplayStreamer::EnumerateEvents( const FString& Group, const FEnumerateEventsCompleteDelegate& EnumerationCompleteDelegate )
-{
-	UE_LOG(LogNullReplay, Log, TEXT("FNullNetworkReplayStreamer::EnumerateEvents is currently unsupported."));
-}
-
-void FNullNetworkReplayStreamer::RequestEventData(const FString& EventID, const FOnRequestEventDataComplete& RequestEventDataComplete)
-{
-	UE_LOG(LogNullReplay, Log, TEXT("FNullNetworkReplayStreamer::RequestEventData is currently unsupported."));
-}
-
-void FNullNetworkReplayStreamer::SearchEvents(const FString& EventGroup, const FOnEnumerateStreamsComplete& Delegate)
-{
-	UE_LOG(LogNullReplay, Log, TEXT("FNullNetworkReplayStreamer::SearchEvents is currently unsupported."));
 }
 
 FArchive* FNullNetworkReplayStreamer::GetCheckpointArchive()
@@ -495,34 +462,10 @@ void FNullNetworkReplayStreamer::GotoCheckpointIndexInternal(int32 CheckpointInd
 		FNullCheckpointListItem Item;
 		Item.FromJson(JsonString);
 
-		// Reopen, since for live replays the file is being written to and read from simultaneously
-		// and we need the reported file size to be up to date.
-		ReopenStreamFileForReading();
-
 		FileAr->Seek( FCString::Atoi64( *Item.Metadata ) );
 	}
 
 	Delegate.ExecuteIfBound( true, TimeInMS );
-}
-
-void FNullNetworkReplayStreamer::ReopenStreamFileForReading()
-{
-	const FString FullName = GetDemoFilename(CurrentStreamName);
-	FileAr.Reset( IFileManager::Get().CreateFileReader( *FullName, FILEREAD_AllowWrite ) );
-	if (FileAr.IsValid())
-	{
-		LastKnownFileSize = FileAr->TotalSize();
-	}
-}
-
-void FNullNetworkReplayStreamer::UpdateReplayInfoIfValid()
-{
-	FNullReplayInfo LatestInfo = ReadReplayInfo(CurrentStreamName);
-
-	if (LatestInfo.bIsValid)
-	{
-		ReplayInfo = LatestInfo;
-	}
 }
 
 void FNullNetworkReplayStreamer::GotoTimeInMS(const uint32 TimeInMS, const FOnCheckpointReadyDelegate& Delegate)
@@ -590,44 +533,6 @@ void FNullNetworkReplayStreamer::GotoTimeInMS(const uint32 TimeInMS, const FOnCh
 	}
 
 	GotoCheckpointIndexInternal( CheckpointIndex, Delegate, ExtraSkipTimeInMS );
-}
-
-void FNullNetworkReplayStreamer::Tick(float DeltaSeconds)
-{
-	// This relies on the fact that the DemoNetDriver isn't currently in the middle of its own tick,
-	// and has either read or written a whole demo frame.
-	if (StreamerState == EStreamerState::Playback)
-	{
-		// Re-read replay info
-		UpdateReplayInfoIfValid();
-
-		// If there are new whole frames to read in the file, reopen it to refresh the size
-		if (ReplayInfo.DemoFileLastOffset > LastKnownFileSize)
-		{
-			const int64 OldLocation = FileAr->Tell();
-			ReopenStreamFileForReading();
-			if (FileAr.IsValid())
-			{
-				FileAr->Seek(OldLocation);
-			}
-		}
-	}
-	else if (StreamerState == EStreamerState::Recording)
-	{
-		// Note the size of the file between demo frames
-		if (FileAr.IsValid() && ReplayInfo.DemoFileLastOffset < FileAr->Tell())
-		{
-			ReplayInfo.DemoFileLastOffset = FileAr->Tell();
-			FileAr->Flush();
-
-			WriteReplayInfo(CurrentStreamName, ReplayInfo);
-		}
-	}
-}
-
-TStatId FNullNetworkReplayStreamer::GetStatId() const
-{
-	RETURN_QUICK_DECLARE_CYCLE_STAT(FNullNetworkReplayStreamer, STATGROUP_Tickables);
 }
 
 IMPLEMENT_MODULE( FNullNetworkReplayStreamingFactory, NullNetworkReplayStreaming )

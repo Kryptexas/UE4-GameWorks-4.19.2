@@ -1,9 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "PropertyEditorConstants.h"
-
-class UProperty;
 
 class SPropertyEditorArrayItem : public SCompoundWidget
 {
@@ -28,5 +26,4 @@ private:
 
 private:
 	TSharedPtr<FPropertyEditor> PropertyEditor;
-	TSharedPtr<IPropertyHandle> TitlePropertyHandle;
 };

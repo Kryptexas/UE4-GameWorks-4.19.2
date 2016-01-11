@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "ActorPositioning.h"
@@ -111,14 +111,14 @@ FActorPositionTraceResult FActorPositioning::TraceWorldForPosition(const UWorld&
 		}
 
 		// Go through all hits and find closest
-		float ClosestHitDistanceSqr = TNumericLimits<float>::Max();
+		float ClosestHitDistance = TNumericLimits<float>::Max();
 
 		for (const auto& Hit : Hits)
 		{
-			const float DistanceToHitSqr = (Hit.ImpactPoint - RayStart).SizeSquared();
-			if (DistanceToHitSqr < ClosestHitDistanceSqr)
+			const float DistanceToHit = (Hit.ImpactPoint - RayStart).Size();
+			if (DistanceToHit < ClosestHitDistance)
 			{
-				ClosestHitDistanceSqr = DistanceToHitSqr;
+				ClosestHitDistance = DistanceToHit;
 				Results.Location = Hit.Location;
 				Results.SurfaceNormal = Hit.Normal.GetSafeNormal();
 				Results.State = FActorPositionTraceResult::HitSuccess;

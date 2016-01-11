@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -46,8 +46,6 @@ public:
 	virtual IOnlineIdentityPtr GetIdentityInterface() const override;
 	virtual IOnlineTitleFilePtr GetTitleFileInterface() const override;
 	virtual IOnlineStorePtr GetStoreInterface() const override;
-	virtual IOnlineStoreV2Ptr GetStoreV2Interface() const override { return nullptr; }
-	virtual IOnlinePurchasePtr GetPurchaseInterface() const override { return nullptr; }
 	virtual IOnlineEventsPtr GetEventsInterface() const override;
 	virtual IOnlineAchievementsPtr GetAchievementsInterface() const override;
 	virtual IOnlineSharingPtr GetSharingInterface() const override;
@@ -79,23 +77,23 @@ PACKAGE_SCOPE:
 	/** Only the factory makes instances */
 	FOnlineSubsystemNull(FName InInstanceName) :
 		FOnlineSubsystemImpl(InInstanceName),
-		SessionInterface(nullptr),
-		VoiceInterface(nullptr),
-		LeaderboardsInterface(nullptr),
-		IdentityInterface(nullptr),
-		AchievementsInterface(nullptr),
-		OnlineAsyncTaskThreadRunnable(nullptr),
-		OnlineAsyncTaskThread(nullptr)
+		SessionInterface(NULL),
+		VoiceInterface(NULL),
+		LeaderboardsInterface(NULL),
+		IdentityInterface(NULL),
+		AchievementsInterface(NULL),
+		OnlineAsyncTaskThreadRunnable(NULL),
+		OnlineAsyncTaskThread(NULL)
 	{}
 
 	FOnlineSubsystemNull() :
-		SessionInterface(nullptr),
-		VoiceInterface(nullptr),
-		LeaderboardsInterface(nullptr),
-		IdentityInterface(nullptr),
-		AchievementsInterface(nullptr),
-		OnlineAsyncTaskThreadRunnable(nullptr),
-		OnlineAsyncTaskThread(nullptr)
+		SessionInterface(NULL),
+		VoiceInterface(NULL),
+		LeaderboardsInterface(NULL),
+		IdentityInterface(NULL),
+		AchievementsInterface(NULL),
+		OnlineAsyncTaskThreadRunnable(NULL),
+		OnlineAsyncTaskThread(NULL)
 	{}
 
 private:

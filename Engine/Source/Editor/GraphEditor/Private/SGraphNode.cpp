@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "GraphEditorCommon.h"
 #include "NodeFactory.h"
@@ -523,7 +523,7 @@ FSlateColor SGraphNode::GetNodeTitleColor() const
 {
 	FLinearColor ReturnTitleColor = GraphNode->IsDeprecated() ? FLinearColor::Red : GetNodeObj()->GetNodeTitleColor();
 
-	if(!GraphNode->IsNodeEnabled())
+	if(!GraphNode->bIsNodeEnabled)
 	{
 		ReturnTitleColor *= FLinearColor(0.5f, 0.5f, 0.5f, 0.4f);
 	}
@@ -537,7 +537,7 @@ FSlateColor SGraphNode::GetNodeTitleColor() const
 FSlateColor SGraphNode::GetNodeBodyColor() const
 {
 	FLinearColor ReturnBodyColor = FLinearColor::White;
-	if(!GraphNode->IsNodeEnabled())
+	if(!GraphNode->bIsNodeEnabled)
 	{
 		ReturnBodyColor *= FLinearColor(1.0f, 1.0f, 1.0f, 0.5f); 
 	}
@@ -547,7 +547,7 @@ FSlateColor SGraphNode::GetNodeBodyColor() const
 FSlateColor SGraphNode::GetNodeTitleIconColor() const
 {
 	FLinearColor ReturnIconColor = IconColor;
-	if(!GraphNode->IsNodeEnabled())
+	if(!GraphNode->bIsNodeEnabled)
 	{
 		ReturnIconColor *= FLinearColor(1.0f, 1.0f, 1.0f, 0.3f); 
 	}
@@ -557,7 +557,7 @@ FSlateColor SGraphNode::GetNodeTitleIconColor() const
 FLinearColor SGraphNode::GetNodeTitleTextColor() const
 {
 	FLinearColor ReturnTextColor = FLinearColor::White;
-	if(!GraphNode->IsNodeEnabled())
+	if(!GraphNode->bIsNodeEnabled)
 	{
 		ReturnTextColor *= FLinearColor(1.0f, 1.0f, 1.0f, 0.3f); 
 	}

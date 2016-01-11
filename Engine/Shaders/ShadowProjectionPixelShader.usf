@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShadowProjectionPixelShader.usf: Pixel shader for projecting a shadow depth buffer onto the scene.
@@ -59,7 +59,7 @@ void Main(
 	out float4 OutColor : SV_Target0
 	)
 {
-	float2 ScreenUV = float2( SVPos.xy * Frame.BufferSizeAndInvSize.zw );
+	float2 ScreenUV = float2( SVPos.xy * View.BufferSizeAndInvSize.zw );
 	float SceneW = CalcSceneDepth( ScreenUV );
 	float2 ScreenPosition = ( ScreenUV.xy - View.ScreenPositionScaleBias.wz ) / View.ScreenPositionScaleBias.xy;
 	float4 ShadowPosition = mul(float4(ScreenPosition.xy * SceneW,SceneW,1), ScreenToShadowMatrix);
@@ -70,7 +70,6 @@ void Main(
 	float LightSpacePixelDepthForOpaque = min(ShadowPosition.z, 0.99999f);
 	// Must not clamp for SSS shadowing, the subsurface gradient must continue past the far plane
 	float LightSpacePixelDepthForSSS = ShadowPosition.z;
-
 
 	float Shadow = 1;
 	float SSSTransmission = 1;
@@ -118,19 +117,13 @@ void Main(
 		BRANCH
 		if (IsSubsurfaceModel(InGBufferData.ShadingModelID))
 		{
-			float Opacity = InGBufferData.CustomData.a;
 			// Derive density from a heuristic using opacity, tweaked for useful falloff ranges and to give a linear depth falloff with opacity
-			float Density = -.05f * log(1 - min(Opacity, .999f));
-			if( InGBufferData.ShadingModelID == SHADINGMODELID_HAIR || InGBufferData.ShadingModelID == SHADINGMODELID_EYE )
-			{
-				Opacity = 1;
-				Density = 1;
-			}
+			float Density = -.05f * log(1 - min(InGBufferData.Opacity, .999f));
 			//@todo - Use a larger kernel filter based on material opacity
 			// This is not being done currently because a varying opacity causes discontinuities in the shadow result
 			// Note: Snapping based on the largest size kernel is done in FProjectedShadowInfo::FProjectedShadowInfo, MaxDownsampleFactor is set to 4
 			// Only factors of MaxDownsampleFactor will be stable
-			float SquareRootFilterScale = lerp(1.999f, 0, Opacity);
+			float SquareRootFilterScale = lerp(1.999f, 0, InGBufferData.Opacity);
 			int SquareRootFilterScaleInt = SquareRootFilterScale + 1;
 
 			#if UNFILTERED_SHADOW_PROJECTION
@@ -179,7 +172,7 @@ void Main(
 		OutColor.rgb = lerp(ModulatedShadowColor.rgb, float3(1, 1, 1), FadedShadow);
 		OutColor.a = 0;
 #if (ES2_PROFILE || ES3_1_PROFILE) && ( (COMPILER_GLSL_ES2) || (MOBILE_EMULATION) )
-		// Do decal blending if encoding requires it.
+		// Do blending if encoding requires it.
 		if (GetHDR32bppEncodeMode() == HDR_ENCODE_RGBA)
 		{
 			OutColor.rgb = ModulatedShadowBlendOp(OutColor.rgb);
@@ -203,7 +196,7 @@ void MainOnePassPointLightPS(
 	)
 {
 
-	float2 ScreenUV = float2( SVPos.xy * Frame.BufferSizeAndInvSize.zw );
+	float2 ScreenUV = float2( SVPos.xy * View.BufferSizeAndInvSize.zw );
 	float SceneW = CalcSceneDepth( ScreenUV );
 	float2 ScreenPosition = ( ScreenUV.xy - View.ScreenPositionScaleBias.wz ) / View.ScreenPositionScaleBias.xy;
 	float4 HomogeneousWorldPosition = mul(float4(ScreenPosition.xy * SceneW, SceneW, 1), View.ScreenToWorld);

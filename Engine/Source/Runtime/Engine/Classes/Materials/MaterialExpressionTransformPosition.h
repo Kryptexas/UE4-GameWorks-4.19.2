@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -8,20 +8,17 @@
 UENUM()
 enum EMaterialPositionTransformSource
 {
-	/** Local space */
+	/** Local Space */
 	TRANSFORMPOSSOURCE_Local UMETA(DisplayName="Local Space"),
 	
-	/** Absolute world space */
+	/** Absolute World Space */
 	TRANSFORMPOSSOURCE_World UMETA(DisplayName="Absolute World Space"),
 	
-	/** Camera relative world space */
+	/** Camera Relative World Space */
 	TRANSFORMPOSSOURCE_TranslatedWorld  UMETA(DisplayName="Camera Relative World Space"),
 
-	/** View space (differs from camera space in the shadow passes) */
+	/** View Space */
 	TRANSFORMPOSSOURCE_View  UMETA(DisplayName="View Space"),
-
-	/** Camera space */
-	TRANSFORMPOSSOURCE_Camera  UMETA(DisplayName="Camera Space"),
 	
 	TRANSFORMPOSSOURCE_MAX,
 };
@@ -44,10 +41,10 @@ class UMaterialExpressionTransformPosition : public UMaterialExpression
 	TEnumAsByte<enum EMaterialPositionTransformSource> TransformType;
 
 
-	//~ Begin UMaterialExpression Interface
+	// Begin UMaterialExpression Interface
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
-	//~ End UMaterialExpression Interface
+	// End UMaterialExpression Interface
 };
 
 

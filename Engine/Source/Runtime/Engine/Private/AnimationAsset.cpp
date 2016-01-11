@@ -1,160 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Animation/AnimSequence.h"
-#include "AnimationUtils.h"
-#include "Animation/AnimInstanceProxy.h"
-
-#define LEADERSCORE_ALWAYSLEADER  	2.f
-#define LEADERSCORE_MONTAGE			3.f
-//////////////////////////////////////////////////////////////////////////
-// FAnimGroupInstance
-
-void FAnimGroupInstance::TestTickRecordForLeadership(EAnimGroupRole::Type MembershipType)
-{
-	// always set leader score if you have potential to be leader
-	// that way if the top leader fails, we'll continue to search next available leader
-	int32 TestIndex = ActivePlayers.Num() - 1;
-	FAnimTickRecord& Candidate = ActivePlayers[TestIndex];
-
-	switch (MembershipType)
-	{
-	case EAnimGroupRole::CanBeLeader:
-	case EAnimGroupRole::TransitionLeader:
-		Candidate.LeaderScore = Candidate.EffectiveBlendWeight;
-		break;
-	case EAnimGroupRole::AlwaysLeader:
-		// Always set the leader index
-		Candidate.LeaderScore = LEADERSCORE_ALWAYSLEADER;
-		break;
-	default:
-	case EAnimGroupRole::AlwaysFollower:
-		// Never set the leader index; the actual tick code will handle the case of no leader by using the first element in the array
-		break;
-	}
-}
-
-void FAnimGroupInstance::TestMontageTickRecordForLeadership()
-{
-	int32 TestIndex = ActivePlayers.Num() - 1;
-	ensure(TestIndex <= 1);
-	FAnimTickRecord& Candidate = ActivePlayers[TestIndex];
-
-	// if the candidate has higher weight
-	if (Candidate.EffectiveBlendWeight > MontageLeaderWeight)
-	{
-		// if this is going to be leader, I'll clean ActivePlayers because we don't sync multi montages
-		const int32 LastIndex = TestIndex - 1;
-		if (LastIndex >= 0)
-		{
-			ActivePlayers.RemoveAt(TestIndex - 1, 1);
-		}
-
-		// at this time, it should only have one
-		ensure(ActivePlayers.Num() == 1);
-
-		// then override
-		// @note : leader weight doesn't applied WITHIN montages
-		// we still only contain one montage at a time, if this montage fails, next candidate will get the chance, not next weight montage
-		MontageLeaderWeight = Candidate.EffectiveBlendWeight;
-		Candidate.LeaderScore = LEADERSCORE_MONTAGE;
-	}
-}
-
-void FAnimGroupInstance::Finalize(const FAnimGroupInstance* PreviousGroup)
-{
-	if (!PreviousGroup || PreviousGroup->GroupLeaderIndex != GroupLeaderIndex || ValidMarkers != PreviousGroup->ValidMarkers
-		|| (PreviousGroup->MontageLeaderWeight > 0.f && MontageLeaderWeight == 0.f/*if montage disappears, we should reset as well*/))
-	{
-		UE_LOG(LogAnimMarkerSync, Log, TEXT("Resetting Marker Sync Groups"));
-
-		for (int32 RecordIndex = GroupLeaderIndex + 1; RecordIndex < ActivePlayers.Num(); ++RecordIndex)
-		{
-			ActivePlayers[RecordIndex].MarkerTickRecord->Reset();
-		}
-	}
-}
-
-void FAnimGroupInstance::Prepare(const FAnimGroupInstance* PreviousGroup)
-{
-	ActivePlayers.Sort();
-
-	TArray<FName>* MarkerNames = ActivePlayers[0].SourceAsset->GetUniqueMarkerNames();
-	if (MarkerNames)
-	{
-		// Group leader has markers, off to a good start
-		ValidMarkers = *MarkerNames;
-		ActivePlayers[0].bCanUseMarkerSync = true;
-		bCanUseMarkerSync = true;
-
-		int32 PlayerIndexToResetMarkers = INDEX_NONE;
-
-		//filter markers based on what exists in the other animations
-		for ( int32 ActivePlayerIndex = 0; ActivePlayerIndex < ActivePlayers.Num(); ++ActivePlayerIndex )
-		{
-			FAnimTickRecord& Candidate = ActivePlayers[ActivePlayerIndex];
-
-			if (PreviousGroup)
-			{
-				bool bCandidateFound = false;
-				for (const FAnimTickRecord& PrevRecord : PreviousGroup->ActivePlayers)
-				{
-					if (PrevRecord.MarkerTickRecord == Candidate.MarkerTickRecord)
-					{
-						// Found previous record for "us"
-						if (PrevRecord.SourceAsset != Candidate.SourceAsset)
-						{
-							Candidate.MarkerTickRecord->Reset(); // Changed animation, clear our cached data
-						}
-						bCandidateFound = true;
-						break;
-					}
-				}
-				if (!bCandidateFound)
-				{
-					Candidate.MarkerTickRecord->Reset(); // we weren't active last frame, reset
-				}
-			}
-
-			if (ActivePlayerIndex != 0 && ValidMarkers.Num() > 0)
-			{
-				TArray<FName>* PlayerMarkerNames = Candidate.SourceAsset->GetUniqueMarkerNames();
-				if ( PlayerMarkerNames ) // Let anims with no markers set use length scaling sync
-				{
-					Candidate.bCanUseMarkerSync = true;
-					for ( int32 ValidMarkerIndex = ValidMarkers.Num() - 1; ValidMarkerIndex >= 0; --ValidMarkerIndex )
-					{
-						FName& MarkerName = ValidMarkers[ValidMarkerIndex];
-						if ( !PlayerMarkerNames->Contains(MarkerName) )
-						{
-							ValidMarkers.RemoveAtSwap(ValidMarkerIndex, 1, false);
-
-							PlayerIndexToResetMarkers = ActivePlayerIndex;
-						}
-					}
-				}
-			}
-		}
-
-		bCanUseMarkerSync = ValidMarkers.Num() > 0;
-
-		ValidMarkers.Sort();
-
-		// if we have list of markers that needs to rest
-		if (PlayerIndexToResetMarkers > 0)
-		{
-			// if you removed valid markers, we also should reset previous candidate marker tick record
-			// because they might contain previous marker sets
-			for (int32 InternalActivePlayerIndex = 0; InternalActivePlayerIndex < PlayerIndexToResetMarkers; ++InternalActivePlayerIndex)
-			{
-				ActivePlayers[InternalActivePlayerIndex].MarkerTickRecord->Reset();
-			}
-		}
-	}
-}
-
-//////////////////////////////////////////////////////////////////////////
-// UAnimationAsset
 
 UAnimationAsset::UAnimationAsset(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -173,6 +20,7 @@ void UAnimationAsset::PostLoad()
 	}
 
 	ValidateSkeleton();
+
 
 	check( Skeleton==NULL || SkeletonGuid.IsValid() );
 }
@@ -203,13 +51,6 @@ void UAnimationAsset::SetSkeleton(USkeleton* NewSkeleton)
 		Skeleton = NewSkeleton;
 		SkeletonGuid = NewSkeleton->GetGuid();
 	}
-}
-
-void UAnimationAsset::TickAssetPlayerInstance(FAnimTickRecord& Instance, class UAnimInstance* AnimInstance, FAnimAssetTickContext& Context) const
-{ 
-	// @todo: remove after deprecation
-	// Forward to non-deprecated function
-	TickAssetPlayer(Instance, AnimInstance->NotifyQueue, Context); 
 }
 
 #if WITH_EDITOR
@@ -304,7 +145,6 @@ FBoneContainer::FBoneContainer()
 , RefSkeleton(NULL)
 , bDisableRetargeting(false)
 , bUseRAWData(false)
-, bUseSourceData(false)
 {
 	BoneIndicesArray.Empty();
 	BoneSwitchArray.Empty();
@@ -320,7 +160,6 @@ FBoneContainer::FBoneContainer(const TArray<FBoneIndexType>& InRequiredBoneIndex
 , RefSkeleton(NULL)
 , bDisableRetargeting(false)
 , bUseRAWData(false)
-, bUseSourceData(false)
 {
 	Initialize();
 }
@@ -336,36 +175,29 @@ void FBoneContainer::InitializeTo(const TArray<FBoneIndexType>& InRequiredBoneIn
 void FBoneContainer::Initialize()
 {
 	RefSkeleton = NULL;
-	UObject* AssetObj = Asset.Get();
-	USkeletalMesh* AssetSkeletalMeshObj = Cast<USkeletalMesh>(AssetObj);
-	USkeleton* AssetSkeletonObj = nullptr;
-
-	if (AssetSkeletalMeshObj)
+	AssetSkeletalMesh = Cast<USkeletalMesh>(Asset.Get());
+	if( AssetSkeletalMesh.IsValid() )
 	{
-		RefSkeleton = &AssetSkeletalMeshObj->RefSkeleton;
-		AssetSkeletonObj = AssetSkeletalMeshObj->Skeleton;
+		RefSkeleton = &AssetSkeletalMesh->RefSkeleton;
+		AssetSkeleton = AssetSkeletalMesh->Skeleton;
 	}
 	else
 	{
-		AssetSkeletonObj = Cast<USkeleton>(AssetObj);
-		if (AssetSkeletonObj)
+		AssetSkeleton = Cast<USkeleton>(Asset.Get());
+		if( AssetSkeleton.IsValid() )
 		{
-			RefSkeleton = &AssetSkeletonObj->GetReferenceSkeleton();
+			RefSkeleton = &AssetSkeleton->GetReferenceSkeleton();
 		}
 	}
-
 	// Only supports SkeletalMeshes or Skeletons.
-	check( AssetSkeletalMeshObj || AssetSkeletonObj );
+	check( AssetSkeletalMesh.Get() || AssetSkeleton.Get() );
 	// Skeleton should always be there.
-	checkf( AssetSkeletonObj, TEXT("%s missing skeleton"), *GetNameSafe(AssetSkeletalMeshObj));
+	checkf( AssetSkeleton.Get(), TEXT("%s missing skeleton"), *GetNameSafe(AssetSkeletalMesh.Get()));
 	check( RefSkeleton );
-
-	AssetSkeleton = AssetSkeletonObj;
-	AssetSkeletalMesh = AssetSkeletalMeshObj;
 
 	// Take biggest amount of bones between SkeletalMesh and Skeleton for BoneSwitchArray.
 	// SkeletalMesh can have less, but AnimSequences tracks will map to Skeleton which can have more.
-	const int32 MaxBones = AssetSkeletonObj ? FMath::Max<int32>(RefSkeleton->GetNum(), AssetSkeletonObj->GetReferenceSkeleton().GetNum()) : RefSkeleton->GetNum();
+	const int32 MaxBones = AssetSkeleton.IsValid() ? FMath::Max<int32>(RefSkeleton->GetNum(), AssetSkeleton->GetReferenceSkeleton().GetNum()) : RefSkeleton->GetNum();
 
 	// Initialize BoneSwitchArray.
 	BoneSwitchArray.Init(false, MaxBones);
@@ -383,15 +215,15 @@ void FBoneContainer::Initialize()
 	// Cache our mapping tables
 	// Here we create look up tables between our target asset and its USkeleton's refpose.
 	// Most times our Target is a SkeletalMesh
-	if (AssetSkeletalMeshObj)
+	if( AssetSkeletalMesh.IsValid() )
 	{
-		RemapFromSkelMesh(*AssetSkeletalMeshObj, *AssetSkeletonObj);
+		RemapFromSkelMesh(*AssetSkeletalMesh.Get(), *AssetSkeleton.Get());
 	}
 	// But we also support a Skeleton's RefPose.
 	else
 	{
 		// Right now we only support a single Skeleton. Skeleton hierarchy coming soon!
-		RemapFromSkeleton(*AssetSkeletonObj);
+		RemapFromSkeleton(*AssetSkeleton.Get());
 	}
 
 	//Set up compact pose data
@@ -493,49 +325,3 @@ void FBoneContainer::RemapFromSkeleton(USkeleton const & SourceSkeleton)
 	PoseToSkeletonBoneIndexArray = SkeletonToPoseBoneIndexArray;
 }
 
-void FBlendSampleData::NormalizeDataWeight(TArray<FBlendSampleData>& SampleDataList)
-{
-	float TotalSum = 0.f;
-
-	check(SampleDataList.Num() > 0);
-	int32 NumBones = SampleDataList[0].PerBoneBlendData.Num();
-
-	TArray<float> PerBoneTotalSums;
-	PerBoneTotalSums.AddZeroed(NumBones);
-
-	for(int32 I = 0; I < SampleDataList.Num(); ++I)
-	{
-		checkf(SampleDataList[I].PerBoneBlendData.Num() == NumBones, TEXT("Attempted to normalise a blend sample list, but the samples have differing numbers of bones."));
-
-		TotalSum += SampleDataList[I].GetWeight();
-
-		if(SampleDataList[I].PerBoneBlendData.Num() > 0)
-		{
-			// now interpolate the per bone weights
-			for(int32 Iter = 0; Iter<SampleDataList[I].PerBoneBlendData.Num(); ++Iter)
-			{
-				PerBoneTotalSums[Iter] += SampleDataList[I].PerBoneBlendData[Iter];
-			}
-		}
-	}
-
-	if(ensure(TotalSum > ZERO_ANIMWEIGHT_THRESH))
-	{
-		for(int32 I = 0; I < SampleDataList.Num(); ++I)
-		{
-			if(FMath::Abs<float>(TotalSum - 1.f) > ZERO_ANIMWEIGHT_THRESH)
-			{
-				SampleDataList[I].TotalWeight /= TotalSum;
-			}
-
-			// now interpolate the per bone weights
-			for(int32 Iter = 0; Iter < SampleDataList[I].PerBoneBlendData.Num(); ++Iter)
-			{
-				if(FMath::Abs<float>(PerBoneTotalSums[Iter] - 1.f) > ZERO_ANIMWEIGHT_THRESH)
-				{
-					SampleDataList[I].PerBoneBlendData[Iter] /= PerBoneTotalSums[Iter];
-				}
-			}
-		}
-	}
-}

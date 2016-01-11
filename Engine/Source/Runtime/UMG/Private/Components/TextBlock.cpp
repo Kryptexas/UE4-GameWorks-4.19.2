@@ -1,7 +1,6 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
-#include "SInvalidationPanel.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -12,16 +11,14 @@ UTextBlock::UTextBlock(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	bIsVariable = false;
-	bWrapWithInvalidationPanel = false;
+
 	ShadowOffset = FVector2D(1.0f, 1.0f);
 	ColorAndOpacity = FLinearColor::White;
 	ShadowColorAndOpacity = FLinearColor::Transparent;
+	LineHeightPercentage = 1.0f;
 
-	if (!UE_SERVER)
-	{
-		static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
-		Font = FSlateFontInfo(RobotoFontObj.Object, 24, FName("Bold"));
-	}
+	static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
+	Font = FSlateFontInfo(RobotoFontObj.Object, 24, FName("Bold"));
 }
 
 void UTextBlock::ReleaseSlateResources(bool bReleaseChildren)
@@ -86,19 +83,10 @@ void UTextBlock::SetJustification( ETextJustify::Type InJustification )
 
 TSharedRef<SWidget> UTextBlock::RebuildWidget()
 {
- 	if (bWrapWithInvalidationPanel && !IsDesignTime())
- 	{
- 		TSharedPtr<SWidget> RetWidget = SNew(SInvalidationPanel)
- 		[
- 			SAssignNew(MyTextBlock, STextBlock)
- 		];
- 		return RetWidget.ToSharedRef();
- 	}
- 	else
-	{
-		MyTextBlock = SNew(STextBlock);
-		return MyTextBlock.ToSharedRef();
-	}
+	MyTextBlock = SNew(STextBlock);
+//		.TextStyle(&WidgetStyle);
+
+	return MyTextBlock.ToSharedRef();
 }
 
 void UTextBlock::OnBindingChanged(const FName& Property)
@@ -137,17 +125,17 @@ void UTextBlock::SynchronizeProperties()
 	TAttribute<FSlateColor> ColorAndOpacityBinding = OPTIONAL_BINDING(FSlateColor, ColorAndOpacity);
 	TAttribute<FLinearColor> ShadowColorAndOpacityBinding = OPTIONAL_BINDING(FLinearColor, ShadowColorAndOpacity);
 
-	if ( MyTextBlock.IsValid() )
-	{
-		MyTextBlock->SetText( TextBinding );
-		MyTextBlock->SetFont( Font );
-		MyTextBlock->SetColorAndOpacity( ColorAndOpacityBinding );
-		MyTextBlock->SetShadowOffset( ShadowOffset );
-		MyTextBlock->SetShadowColorAndOpacity( ShadowColorAndOpacityBinding );
-		MyTextBlock->SetMinDesiredWidth( MinDesiredWidth );
-
-		Super::SynchronizeTextLayoutProperties( *MyTextBlock );
-	}
+	MyTextBlock->SetText(TextBinding);
+	MyTextBlock->SetFont(Font);
+	MyTextBlock->SetColorAndOpacity(ColorAndOpacityBinding);
+	MyTextBlock->SetShadowOffset(ShadowOffset);
+	MyTextBlock->SetShadowColorAndOpacity(ShadowColorAndOpacityBinding);
+	MyTextBlock->SetAutoWrapText(AutoWrapText);
+	MyTextBlock->SetWrapTextAt(WrapTextAt != 0 ? WrapTextAt : TAttribute<float>());
+	MyTextBlock->SetMinDesiredWidth(MinDesiredWidth);
+	MyTextBlock->SetLineHeightPercentage(LineHeightPercentage);
+	MyTextBlock->SetMargin(Margin);
+	MyTextBlock->SetJustification(Justification);
 }
 
 FText UTextBlock::GetText() const
@@ -166,6 +154,19 @@ void UTextBlock::SetText(FText InText)
 	if ( MyTextBlock.IsValid() )
 	{
 		MyTextBlock->SetText(Text);
+	}
+}
+
+void UTextBlock::PostLoad()
+{
+	Super::PostLoad();
+
+	if ( GetLinkerUE4Version() < VER_UE4_DEPRECATE_UMG_STYLE_ASSETS )
+	{
+		if ( Style_DEPRECATED != nullptr )
+		{
+			Style_DEPRECATED = nullptr;
+		}
 	}
 }
 

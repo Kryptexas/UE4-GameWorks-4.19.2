@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ForwardTranslucentRendering.cpp: translucent rendering implementation.
@@ -96,19 +96,19 @@ public:
 
 	const FViewInfo& View;
 	bool bBackFace;
-	FMeshDrawingRenderState DrawRenderState;
+	float DitheredLODTransitionValue;
 	FHitProxyId HitProxyId;
 
 	/** Initialization constructor. */
 	FDrawTranslucentMeshForwardShadingAction(
 		const FViewInfo& InView,
 		bool bInBackFace,
-		const FMeshDrawingRenderState& InDrawRenderState,
+		float InDitheredLODTransitionValue,
 		FHitProxyId InHitProxyId
 		):
 		View(InView),
 		bBackFace(bInBackFace),
-		DrawRenderState(InDrawRenderState),
+		DitheredLODTransitionValue(InDitheredLODTransitionValue),
 		HitProxyId(InHitProxyId)
 	{}
 	
@@ -152,9 +152,6 @@ public:
 
 		for (int32 BatchElementIndex = 0; BatchElementIndex<Parameters.Mesh.Elements.Num(); BatchElementIndex++)
 		{
-			TDrawEvent<FRHICommandList> MeshEvent;
-			BeginMeshDrawEvent(RHICmdList, Parameters.PrimitiveSceneProxy, Parameters.Mesh, MeshEvent);
-
 			DrawingPolicy.SetMeshRenderState(
 				RHICmdList, 
 				View,
@@ -162,7 +159,7 @@ public:
 				Parameters.Mesh,
 				BatchElementIndex,
 				bBackFace,
-				DrawRenderState,
+				DitheredLODTransitionValue,
 				typename TBasePassForForwardShadingDrawingPolicy<LightMapPolicyType, NumDynamicPointLights>::ElementDataType(LightMapElementData),
 				typename TBasePassForForwardShadingDrawingPolicy<LightMapPolicyType, NumDynamicPointLights>::ContextDataType()
 				);
@@ -217,7 +214,7 @@ bool FTranslucencyForwardShadingDrawingPolicyFactory::DrawDynamicMesh(
 			FDrawTranslucentMeshForwardShadingAction(
 				View,
 				bBackFace,
-				FMeshDrawingRenderState(Mesh.DitheredLODTransitionAlpha),
+				Mesh.DitheredLODTransitionAlpha,
 				HitProxyId
 				)
 			);

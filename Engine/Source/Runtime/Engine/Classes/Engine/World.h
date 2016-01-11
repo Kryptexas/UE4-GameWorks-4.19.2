@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -374,7 +374,7 @@ struct FEndPhysicsTickFunction : public FTickFunction
 * Tick function that starts the cloth tick
 **/
 USTRUCT()
-struct FStartAsyncSimulationFunction : public FTickFunction
+struct FStartClothSimulationFunction : public FTickFunction
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -393,12 +393,50 @@ struct FStartAsyncSimulationFunction : public FTickFunction
 	virtual FString DiagnosticMessage() override;
 };
 
+/**
+* Tick function that ends the cloth tick
+**/
+USTRUCT()
+struct FEndClothSimulationFunction : public FTickFunction
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** World this tick function belongs to **/
+	class UWorld*	Target;
+
+	/**
+	* Abstract function actually execute the tick.
+	* @param DeltaTime - frame time to advance, in seconds
+	* @param TickType - kind of tick for this frame
+	* @param CurrentThread - thread we are executing on, useful to pass along as new tasks are created
+	* @param MyCompletionGraphEvent - completion event for this task. Useful for holding the completetion of this task until certain child tasks are complete.
+	**/
+	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
+	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
+	virtual FString DiagnosticMessage() override;
+};
 
 /* Struct of optional parameters passed to SpawnActor function(s). */
-PRAGMA_DISABLE_DEPRECATION_WARNINGS // Required for auto-generated functions referencing bNoCollisionFail
 struct ENGINE_API FActorSpawnParameters
 {
-	FActorSpawnParameters();
+	FActorSpawnParameters()
+		:	Name(NAME_None)
+		,	Template(NULL)
+		,	Owner(NULL)
+		,	Instigator(NULL)
+		,	OverrideLevel(NULL)
+		,	SpawnCollisionHandlingOverride(ESpawnActorCollisionHandlingMethod::Undefined)
+		,	bNoCollisionFail(false)
+		,	bRemoteOwned(false)
+		,	bNoFail(false)
+		,	bDeferConstruction(false)		
+		,	bAllowDuringConstructionScript(false)
+		,	ObjectFlags(RF_Transactional)
+	{
+	}
+
+	// Assignment operator overriden to allow disabling of deprecation warning when copying bNoCollisionFail
+	FActorSpawnParameters& operator=(const FActorSpawnParameters& Other);
 
 	/* A name to assign as the Name of the Actor being spawned. If no value is specified, the name of the spawned Actor will be automatically generated using the form [Class]_[Number]. */
 	FName Name;
@@ -437,8 +475,6 @@ struct ENGINE_API FActorSpawnParameters
 	/* Flags used to describe the spawned actor/object instance. */
 	EObjectFlags ObjectFlags;		
 };
-PRAGMA_ENABLE_DEPRECATION_WARNINGS
-
 
 /**
  *  This encapsulate World's async trace functionality. This contains two buffers of trace data buffer and alternates it for each tick. 
@@ -465,6 +501,10 @@ struct ENGINE_API FWorldAsyncTraceState
 
 	/** Used as counter for Buffer swap for DataBuffer. Right now it's only 2, but it can change. */
 	int32 CurrentFrame;
+
+	/** Next available index for each pool - used as ID for each trace query **/
+	int32 NextAvailableTraceIndex;
+	int32 NextAvailableOverlapIndex;
 };
 
 #if WITH_EDITOR
@@ -698,7 +738,7 @@ public:
 #if WITH_EDITOR
 
 	/** Change the feature level that this world is current rendering with */
-	void ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel, bool bShowSlowProgressDialog = true);
+	void ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel);
 
 #endif // WITH_EDITOR
 
@@ -723,10 +763,10 @@ private:
 	FPhysScene*									PhysicsScene;
 
 	/** Set of components that need updates at the end of the frame */
-	TSet<TWeakObjectPtr<class UActorComponent> > ComponentsThatNeedEndOfFrameUpdate;
+	TArray<TWeakObjectPtr<class UActorComponent> > ComponentsThatNeedEndOfFrameUpdate;
 
 	/** Set of components that need recreates at the end of the frame */
-	TSet<TWeakObjectPtr<class UActorComponent> > ComponentsThatNeedEndOfFrameUpdate_OnGameThread;
+	TArray<TWeakObjectPtr<class UActorComponent> > ComponentsThatNeedEndOfFrameUpdate_OnGameThread;
 
 	/** The state of async tracing - abstracted into its own object for easier reference */
 	FWorldAsyncTraceState AsyncTraceState;
@@ -846,7 +886,9 @@ public:
 	FEndPhysicsTickFunction EndPhysicsTickFunction;
 
 	/** Tick function for starting cloth simulation																				*/
-	FStartAsyncSimulationFunction StartAsyncTickFunction;
+	FStartClothSimulationFunction StartClothTickFunction;
+	/** Tick function for ending cloth simulation																				*/
+	FEndClothSimulationFunction EndClothTickFunction;
 
 	/** 
 	 * Indicates that during world ticking we are doing the final component update of dirty components 
@@ -2086,14 +2128,6 @@ public:
 	/** Returns a reference to the game viewport displaying this world if one exists. */
 	UGameViewportClient* GetGameViewport() const;
 
-private:
-	/** Begin async simulation */
-	void StartAsyncSim();
-
-	friend FStartAsyncSimulationFunction;
-
-public:
-
 	DEPRECATED(4.3, "GetBrush is deprecated use GetDefaultBrush instead.")
 	ABrush* GetBrush() const;
 	/** 
@@ -2286,7 +2320,7 @@ public:
 	 */
 	virtual bool AllowAudioPlayback();
 
-	//~ Begin UObject Interface
+	// Begin UObject Interface
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void FinishDestroy() override;
 	virtual void PostLoad() override;
@@ -2299,7 +2333,7 @@ public:
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 #endif
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
-	//~ End UObject Interface
+	// End UObject Interface
 	
 	/**
 	 * Clears all level components and world components like e.g. line batcher.
@@ -2707,15 +2741,6 @@ private:
 	/** Utility function to handle Exec/Console Commands related to stopping demo playback */
 	bool HandleDemoStopCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );
 
-	/** Utility function to handle Exec/Console Command for scrubbing to a specific time */
-	bool HandleDemoScrubCommand(const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld);
-
-	/** Utility function to handle Exec/Console Command for pausing and unpausing a replay */
-	bool HandleDemoPauseCommand(const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld);
-
-	/** Utility function to handle Exec/Console Command for setting the speed of a replay */
-	bool HandleDemoSpeedCommand(const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld);
-
 public:
 
 	// Destroys the current demo net driver
@@ -2768,7 +2793,7 @@ public:
 	 * @param	Class					Class to Spawn
 	 * @param	Location				Location To Spawn
 	 * @param	Rotation				Rotation To Spawn
-	 * @param	SpawnParameters			Spawn Parameters
+	 * @param	SpawmParameters			Spawn Parameters
 	 *
 	 * @return	Actor that just spawned
 	 */
@@ -2778,7 +2803,7 @@ public:
 	 * 
 	 * @param	Class					Class to Spawn
 	 * @param	Transform				World Transform to spawn on
-	 * @param	SpawnParameters			Spawn Parameters
+	 * @param	SpawmParameters			Spawm Parameters
 	 *
 	 * @return	Actor that just spawned
 	 */
@@ -2789,7 +2814,7 @@ public:
 	 * 
 	 * @param	Class					Class to Spawn
 	 * @param	AbsoluteTransform		World Transform to spawn on - without considering CDO's relative transform, thus Absolute
-	 * @param	SpawnParameters			Spawn Parameters
+	 * @param	SpawmParameters			Spawm Parameters
 	 *
 	 * @return	Actor that just spawned
 	 */
@@ -2963,6 +2988,9 @@ public:
 	/** Waits for the physics scene to be done processing */
 	void FinishPhysicsSim();
 
+	/** Begin cloth simulation */
+	void StartClothSim();
+
 	/** Spawns GameMode for the level. */
 	bool SetGameMode(const FURL& InURL);
 
@@ -2986,12 +3014,12 @@ public:
 	 */
 	bool DestroySwappedPC(UNetConnection* Connection);
 
-	//~ Begin FNetworkNotify Interface
+	// Begin FNetworkNotify interface
 	virtual EAcceptConnection::Type NotifyAcceptingConnection() override;
 	virtual void NotifyAcceptedConnection( class UNetConnection* Connection ) override;
 	virtual bool NotifyAcceptingChannel( class UChannel* Channel ) override;
 	virtual void NotifyControlMessage(UNetConnection* Connection, uint8 MessageType, class FInBunch& Bunch) override;
-	//~ End FNetworkNotify Interface
+	// End FNetworkNotify interface
 
 	/** Welcome a new player joining this server. */
 	void WelcomePlayer(UNetConnection* Connection);
@@ -3025,11 +3053,6 @@ public:
 	{
 		NetDriver = NewDriver;
 	}
-
-	/**
-	 * Returns true if the game net driver exists and is a client and the demo net driver exists and is a server.
-	 */
-	bool IsRecordingClientReplay() const;
 
 	/**
 	 * Sets the number of frames to delay Streaming Volume updating, 
@@ -3105,9 +3128,6 @@ public:
 
 	/** Returns true if this world is any kind of game world (including PIE worlds) */
 	bool IsGameWorld() const;
-
-	/** Returns true if this world is a preview game world (blueprint editor) */
-	bool IsPreviewWorld() const;
 
 	/** Returns true if this world should look at game hidden flags instead of editor hidden flags for the purposes of rendering */
 	bool UsesGameHiddenFlags() const;

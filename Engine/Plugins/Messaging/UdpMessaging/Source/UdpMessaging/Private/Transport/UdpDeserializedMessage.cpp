@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UdpMessagingPrivatePCH.h"
 #include "JsonStructDeserializerBackend.h"
@@ -8,7 +8,7 @@
 /* FUdpDeserializedMessage interface
  *****************************************************************************/
 
-bool FUdpDeserializedMessage::Deserialize(const FUdpReassembledMessageRef& ReassembledMessage)
+bool FUdpDeserializedMessage::Deserialize( const FUdpReassembledMessageRef& ReassembledMessage )
 {
 	// Note that some complex values are deserialized manually here, so that we
 	// can sanity check their values. @see FUdpSerializeMessageTask::DoTask()

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "AnimationUtils.h"
@@ -7,11 +7,81 @@
 #include "Animation/AnimSequenceBase.h"
 #include "Animation/AnimInstance.h"
 
+#define NOTIFY_TRIGGER_OFFSET KINDA_SMALL_NUMBER;
 
-DEFINE_LOG_CATEGORY(LogAnimMarkerSync);
+float GetTriggerTimeOffsetForType(EAnimEventTriggerOffsets::Type OffsetType)
+{
+	switch (OffsetType)
+	{
+	case EAnimEventTriggerOffsets::OffsetBefore:
+		{
+			return -NOTIFY_TRIGGER_OFFSET;
+			break;
+		}
+	case EAnimEventTriggerOffsets::OffsetAfter:
+		{
+			return NOTIFY_TRIGGER_OFFSET;
+			break;
+		}
+	case EAnimEventTriggerOffsets::NoOffset:
+		{
+			return 0.f;
+			break;
+		}
+	default:
+		{
+			check(false); // Unknown value supplied for OffsetType
+			break;
+		}
+	}
+	return 0.f;
+}
 
-DECLARE_CYCLE_STAT(TEXT("AnimSeq EvalCurveData"), STAT_AnimSeq_EvalCurveData, STATGROUP_Anim);
+/////////////////////////////////////////////////////
+// FAnimNotifyEvent
 
+void FAnimNotifyEvent::RefreshTriggerOffset(EAnimEventTriggerOffsets::Type PredictedOffsetType)
+{
+	if(PredictedOffsetType == EAnimEventTriggerOffsets::NoOffset || TriggerTimeOffset == 0.f)
+	{
+		TriggerTimeOffset = GetTriggerTimeOffsetForType(PredictedOffsetType);
+	}
+}
+
+void FAnimNotifyEvent::RefreshEndTriggerOffset( EAnimEventTriggerOffsets::Type PredictedOffsetType )
+{
+	if(PredictedOffsetType == EAnimEventTriggerOffsets::NoOffset || EndTriggerTimeOffset == 0.f)
+	{
+		EndTriggerTimeOffset = GetTriggerTimeOffsetForType(PredictedOffsetType);
+	}
+}
+
+float FAnimNotifyEvent::GetTriggerTime() const
+{
+	return GetTime() + TriggerTimeOffset;
+}
+
+float FAnimNotifyEvent::GetEndTriggerTime() const
+{
+	return GetTriggerTime() + GetDuration() + EndTriggerTimeOffset;
+}
+
+float FAnimNotifyEvent::GetDuration() const
+{
+	return NotifyStateClass ? EndLink.GetTime() - GetTime() : 0.0f;
+}
+
+void FAnimNotifyEvent::SetDuration(float NewDuration)
+{
+	Duration = NewDuration;
+	EndLink.SetTime(GetTime() + Duration);
+}
+
+void FAnimNotifyEvent::SetTime(float NewTime, EAnimLinkMethod::Type ReferenceFrame /*= EAnimLinkMethod::Absolute*/)
+{
+	FAnimLinkableElement::SetTime(NewTime, ReferenceFrame);
+	SetDuration(Duration);
+}
 
 /////////////////////////////////////////////////////
 
@@ -24,9 +94,18 @@ UAnimSequenceBase::UAnimSequenceBase(const FObjectInitializer& ObjectInitializer
 template <typename DataType>
 void UAnimSequenceBase::VerifyCurveNames(USkeleton* Skeleton, const FName& NameContainer, TArray<DataType>& CurveList)
 {
+	FSmartNameMapping* NameMapping = Skeleton->SmartNames.GetContainer(NameContainer);
+
 	// since this is verify function that makes sure it exists after loaded
 	// we should add it if it doesn't exist
-	const FSmartNameMapping* NameMapping = Skeleton->GetOrAddSmartNameContainer(NameContainer);
+	if (!NameMapping)
+	{
+		// if it doens't exists, we should add it
+		Skeleton->Modify(true);
+		Skeleton->SmartNames.AddContainer(NameContainer);
+		NameMapping = Skeleton->SmartNames.GetContainer(NameContainer);
+		check(NameMapping);
+	}
 
 	TArray<DataType*> UnlinkedCurves;
 	for(DataType& Curve : CurveList)
@@ -50,7 +129,7 @@ void UAnimSequenceBase::VerifyCurveNames(USkeleton* Skeleton, const FName& NameC
 
 	for(DataType* Curve : UnlinkedCurves)
 	{
-		Skeleton->AddSmartNameAndModify(NameContainer, Curve->LastObservedName, Curve->CurveUid);
+		NameMapping->AddOrFindName(Curve->LastObservedName, Curve->CurveUid);
 	}
 }
 
@@ -79,18 +158,20 @@ void UAnimSequenceBase::PostLoad()
 
 #if WITH_EDITOR
 	InitializeNotifyTrack();
+	UpdateAnimNotifyTrackCache();
 #endif
-	RefreshCacheData();
 
 	if(USkeleton* Skeleton = GetSkeleton())
 	{
 		// Fix up the existing curves to work with smartnames
 		if(GetLinkerUE4Version() < VER_UE4_SKELETON_ADD_SMARTNAMES)
 		{
+			// Get the name mapping object for curves
+			FSmartNameMapping* NameMapping = Skeleton->SmartNames.GetContainer(USkeleton::AnimCurveMappingName);
 			for(FFloatCurve& Curve : RawCurveData.FloatCurves)
 			{
 				// Add the names of the curves into the smartname mapping and store off the curve uid which will be saved next time the sequence saves.
-				Skeleton->AddSmartNameAndModify(USkeleton::AnimCurveMappingName, Curve.LastObservedName, Curve.CurveUid);
+				NameMapping->AddOrFindName(Curve.LastObservedName, Curve.CurveUid);
 			}
 		}
 		else
@@ -208,10 +289,10 @@ void UAnimSequenceBase::GetAnimNotifiesFromDeltaPositions(const float& PreviousP
 	}
 }
 
-void UAnimSequenceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNotifyQueue& NotifyQueue, FAnimAssetTickContext& Context) const
+void UAnimSequenceBase::TickAssetPlayerInstance(const FAnimTickRecord& Instance, class UAnimInstance* InstanceOwner, FAnimAssetTickContext& Context) const
 {
 	float& CurrentTime = *(Instance.TimeAccumulator);
-	float PreviousTime = CurrentTime;
+	const float PreviousTime = CurrentTime;
 	const float PlayRate = Instance.PlayRateMultiplier * this->RateScale;
 
 	float MoveDelta = 0.f;
@@ -221,37 +302,18 @@ void UAnimSequenceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimN
 		const float DeltaTime = Context.GetDeltaTime();
 		MoveDelta = PlayRate * DeltaTime;
 
-		Context.SetLeaderDelta(MoveDelta);
-		if (MoveDelta != 0.f)
+		if( MoveDelta != 0.f )
 		{
-			if (Instance.bCanUseMarkerSync && Context.CanUseMarkerPosition())
-			{
-				TickByMarkerAsLeader(*Instance.MarkerTickRecord, Context.MarkerTickContext, CurrentTime, PreviousTime, MoveDelta, Instance.bLooping);
-			}
-			else
-			{
-				// Advance time
-				FAnimationRuntime::AdvanceTime(Instance.bLooping, MoveDelta, CurrentTime, SequenceLength);
-				UE_LOG(LogAnimMarkerSync, Log, TEXT("Leader (%s) (normal advance)  - PreviousTime (%0.2f), CurrentTime (%0.2f), MoveDelta (%0.2f), Looping (%d) "), *GetName(), PreviousTime, CurrentTime, MoveDelta, Instance.bLooping ? 1 : 0);
-			}
+			// Advance time
+			FAnimationRuntime::AdvanceTime(Instance.bLooping, MoveDelta, CurrentTime, SequenceLength);
 		}
 
-		Context.SetAnimationPositionRatio(CurrentTime / SequenceLength);
+		Context.SetSyncPoint(CurrentTime / SequenceLength);
 	}
 	else
 	{
 		// Follow the leader
-		if (Instance.bCanUseMarkerSync && Context.CanUseMarkerPosition() && Context.MarkerTickContext.IsMarkerSyncStartValid())
-		{
-			TickByMarkerAsFollower(*Instance.MarkerTickRecord, Context.MarkerTickContext, CurrentTime, PreviousTime, Context.GetLeaderDelta(), Instance.bLooping);
-		}
-		else
-		{
-			CurrentTime = Context.GetAnimationPositionRatio() * SequenceLength;
-			UE_LOG(LogAnimMarkerSync, Log, TEXT("Follower (%s) (normal advance) - PreviousTime (%0.2f), CurrentTime (%0.2f), MoveDelta (%0.2f), Looping (%d) "), *GetName(), PreviousTime, CurrentTime, MoveDelta, Instance.bLooping ? 1 : 0);
-		}
-
-
+		CurrentTime = Context.GetSyncPoint() * SequenceLength;
 		//@TODO: NOTIFIES: Calculate AdvanceType based on what the new delta time is
 
 		if( CurrentTime != PreviousTime )
@@ -266,43 +328,14 @@ void UAnimSequenceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimN
 		}
 	}
 
-	HandleAssetPlayerTickedInternal(Context, PreviousTime, MoveDelta, Instance, NotifyQueue);
+	OnAssetPlayerTickedInternal(Context, PreviousTime, MoveDelta, Instance, InstanceOwner);
+
 }
 
-void UAnimSequenceBase::TickByMarkerAsFollower(FMarkerTickRecord &Instance, FMarkerTickContext &MarkerContext, float& CurrentTime, float& OutPreviousTime, const float MoveDelta, const bool bLooping) const
-{
-	if (!Instance.IsValid())
-	{
-		GetMarkerIndicesForPosition(MarkerContext.GetMarkerSyncStartPosition(), bLooping, Instance.PreviousMarker, Instance.NextMarker, CurrentTime);
-	}
-
-	OutPreviousTime = CurrentTime;
-
-	AdvanceMarkerPhaseAsFollower(MarkerContext, MoveDelta, bLooping, CurrentTime, Instance.PreviousMarker, Instance.NextMarker);
-	UE_LOG(LogAnimMarkerSync, Log, TEXT("Follower (%s) - PreviousTime (%0.2f), CurrentTime (%0.2f), MoveDelta (%0.2f), Looping(%d) "), *GetName(), OutPreviousTime, CurrentTime, MoveDelta, bLooping ? 1 : 0);
-}
-
-void UAnimSequenceBase::TickByMarkerAsLeader(FMarkerTickRecord& Instance, FMarkerTickContext& MarkerContext, float& CurrentTime, float& OutPreviousTime, const float MoveDelta, const bool bLooping) const
-{
-	if (!Instance.IsValid())
-	{
-		GetMarkerIndicesForTime(CurrentTime, bLooping, MarkerContext.GetValidMarkerNames(), Instance.PreviousMarker, Instance.NextMarker);
-	}
-
-	MarkerContext.SetMarkerSyncStartPosition(GetMarkerSyncPositionfromMarkerIndicies(Instance.PreviousMarker.MarkerIndex, Instance.NextMarker.MarkerIndex, CurrentTime));
-
-	OutPreviousTime = CurrentTime;
-
-	AdvanceMarkerPhaseAsLeader(bLooping, MoveDelta, MarkerContext.GetValidMarkerNames(), CurrentTime, Instance.PreviousMarker, Instance.NextMarker, MarkerContext.MarkersPassedThisTick);
-
-	MarkerContext.SetMarkerSyncEndPosition(GetMarkerSyncPositionfromMarkerIndicies(Instance.PreviousMarker.MarkerIndex, Instance.NextMarker.MarkerIndex, CurrentTime));
-
-	UE_LOG(LogAnimMarkerSync, Log, TEXT("Leader (%s) - PreviousTime (%0.2f), CurrentTime (%0.2f), MoveDelta (%0.2f), Looping(%d) "), *GetName(), OutPreviousTime, CurrentTime, MoveDelta, bLooping ? 1 : 0);
-}
-
-void UAnimSequenceBase::RefreshCacheData()
-{
 #if WITH_EDITOR
+
+void UAnimSequenceBase::UpdateAnimNotifyTrackCache()
+{
 	SortNotifies();
 
 	for (int32 TrackIndex=0; TrackIndex<AnimNotifyTracks.Num(); ++TrackIndex)
@@ -328,10 +361,8 @@ void UAnimSequenceBase::RefreshCacheData()
 
 	// notification broadcast
 	OnNotifyChanged.Broadcast();
-#endif //WITH_EDITOR
 }
 
-#if WITH_EDITOR
 void UAnimSequenceBase::InitializeNotifyTrack()
 {
 	if ( AnimNotifyTracks.Num() == 0 ) 
@@ -435,41 +466,35 @@ uint8* UAnimSequenceBase::FindNotifyPropertyData(int32 NotifyIndex, UArrayProper
 
 	if(Notifies.IsValidIndex(NotifyIndex))
 	{
-		return FindArrayProperty(TEXT("Notifies"), ArrayProperty, NotifyIndex);
-	}
-	return NULL;
-}
+		// find Notifies property start point
+		UProperty* Property = FindField<UProperty>(GetClass(), TEXT("Notifies"));
 
-uint8* UAnimSequenceBase::FindArrayProperty(const TCHAR* PropName, UArrayProperty*& ArrayProperty, int32 ArrayIndex)
-{
-	// find Notifies property start point
-	UProperty* Property = FindField<UProperty>(GetClass(), PropName);
-
-	// found it and if it is array
-	if (Property && Property->IsA(UArrayProperty::StaticClass()))
-	{
-		// find Property Value from UObject we got
-		uint8* PropertyValue = Property->ContainerPtrToValuePtr<uint8>(this);
-
-		// it is array, so now get ArrayHelper and find the raw ptr of the data
-		ArrayProperty = CastChecked<UArrayProperty>(Property);
-		FScriptArrayHelper ArrayHelper(ArrayProperty, PropertyValue);
-
-		if (ArrayProperty->Inner && ArrayIndex < ArrayHelper.Num())
+		// found it and if it is array
+		if(Property && Property->IsA(UArrayProperty::StaticClass()))
 		{
-			//Get property data based on selected index
-			return ArrayHelper.GetRawPtr(ArrayIndex);
+			// find Property Value from UObject we got
+			uint8* PropertyValue = Property->ContainerPtrToValuePtr<uint8>(this);
+
+			// it is array, so now get ArrayHelper and find the raw ptr of the data
+			ArrayProperty = CastChecked<UArrayProperty>(Property);
+			FScriptArrayHelper ArrayHelper(ArrayProperty, PropertyValue);
+
+			if(ArrayProperty->Inner && NotifyIndex < ArrayHelper.Num())
+			{
+				//Get property data based on selected index
+				return ArrayHelper.GetRawPtr(NotifyIndex);
+			}
 		}
 	}
 	return NULL;
 }
+
 #endif	//WITH_EDITOR
 
 
 /** Add curve data to Instance at the time of CurrentTime **/
 void UAnimSequenceBase::EvaluateCurveData(FBlendedCurve& OutCurve, float CurrentTime ) const
 {
-	SCOPE_CYCLE_COUNTER(STAT_AnimSeq_EvalCurveData);
 	RawCurveData.EvaluateCurveData(OutCurve, CurrentTime);
 }
 
@@ -481,7 +506,7 @@ void UAnimSequenceBase::Serialize(FArchive& Ar)
 	{
 		if(USkeleton* Skeleton = GetSkeleton())
 		{
-			const FSmartNameMapping* Mapping = GetSkeleton()->GetSmartNameContainer(USkeleton::AnimCurveMappingName);
+			FSmartNameMapping* Mapping = GetSkeleton()->SmartNames.GetContainer(USkeleton::AnimCurveMappingName);
 			check(Mapping); // Should always exist
 			RawCurveData.UpdateLastObservedNames(Mapping);
 		}
@@ -492,10 +517,10 @@ void UAnimSequenceBase::Serialize(FArchive& Ar)
 	{
 		if(USkeleton* Skeleton = GetSkeleton())
 		{
-			// we don't add track curve container unless it has been edited. 
+			// we don't add track curve container unless it has been editied. 
 			if ( RawCurveData.TransformCurves.Num() > 0 )
 			{
-				const FSmartNameMapping* Mapping = GetSkeleton()->GetSmartNameContainer(USkeleton::AnimTrackCurveMappingName);
+				FSmartNameMapping* Mapping = GetSkeleton()->SmartNames.GetContainer(USkeleton::AnimTrackCurveMappingName);
 				// this name might not exists because it's only available if you edit animation
 				if (Mapping)
 				{
@@ -509,20 +534,13 @@ void UAnimSequenceBase::Serialize(FArchive& Ar)
 	RawCurveData.Serialize(Ar);
 }
 
-void UAnimSequenceBase::OnAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, class UAnimInstance* InAnimInstance) const
-{
-	// @todo: remove after deprecation
-	// forward to non-deprecated version
-	HandleAssetPlayerTickedInternal(Context, PreviousTime, MoveDelta, Instance, InAnimInstance->NotifyQueue);
-}
-
-void UAnimSequenceBase::HandleAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, struct FAnimNotifyQueue& NotifyQueue) const
+void UAnimSequenceBase::OnAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, class UAnimInstance* InstanceOwner) const
 {
 	if (Context.ShouldGenerateNotifies())
 	{
 		// Harvest and record notifies
 		TArray<const FAnimNotifyEvent*> AnimNotifies;
 		GetAnimNotifies(PreviousTime, MoveDelta, Instance.bLooping, AnimNotifies);
-		NotifyQueue.AddAnimNotifies(AnimNotifies, Instance.EffectiveBlendWeight);
+		InstanceOwner->AddAnimNotifies(AnimNotifies, Instance.EffectiveBlendWeight);
 	}
 }

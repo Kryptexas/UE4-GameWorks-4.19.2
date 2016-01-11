@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "GameProjectGenerationPrivatePCH.h"
@@ -471,15 +471,6 @@ bool GameProjectUtils::IsValidProjectFileForCreation(const FString& ProjectFile,
 		return false;
 	}
 
-	// Don't allow any files within target directory so we can safely delete everything on failure
-	TArray<FString> ExistingFiles;
-	IFileManager::Get().FindFiles(ExistingFiles, *(FPaths::GetPath(ProjectFile) / TEXT("*")), true, true);
-	if (ExistingFiles.Num() > 0)
-	{
-		OutFailReason = LOCTEXT("ProjectFileCannotBeWithExistingFiles", "Project cannot be saved in a folder with existing files. Please choose a different directory/project name.");
-		return false;
-	}
-
 	return true;
 }
 
@@ -640,17 +631,6 @@ bool GameProjectUtils::CreateProject(const FProjectInformation& InProjectInfo, F
 	{
 		bProjectCreationSuccessful = CreateProjectFromTemplate(InProjectInfo, OutFailReason, OutFailLog, OutCreatedFiles);
 		TemplateName = FPaths::GetBaseFilename(InProjectInfo.TemplateFile);
-	}
-
-	if (!bProjectCreationSuccessful && CleanupIsEnabled())
-	{
-		// Delete the new project folder
-		const FString NewProjectFolder = FPaths::GetPath(InProjectInfo.ProjectFilename);
-		IFileManager::Get().DeleteDirectory(*NewProjectFolder, /*RequireExists=*/false, /*Tree=*/true);
-		if( OutCreatedFiles != nullptr )
-		{
-			OutCreatedFiles->Empty();
-		}
 	}
 
 	if( FEngineAnalytics::IsAvailable() )
@@ -1087,12 +1067,14 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FProjectInformation& InP
 	// Generate config files
 	if (!GenerateConfigFiles(InProjectInfo, CreatedFiles, OutFailReason))
 	{
+		DeleteCreatedFiles(NewProjectFolder, CreatedFiles);
 		return false;
 	}
 
 	// Insert any required feature packs (EG starter content) into ini file. These will be imported automatically when the editor is first run
 	if(!InsertFeaturePacksIntoINIFile(InProjectInfo, OutFailReason))
 	{
+		DeleteCreatedFiles(NewProjectFolder, CreatedFiles);
 		return false;
 	}
 	
@@ -1103,6 +1085,7 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FProjectInformation& InP
 		FFormatNamedArguments Args;
 		Args.Add( TEXT("ContentFolder"), FText::FromString( ContentFolder ) );
 		OutFailReason = FText::Format( LOCTEXT("FailedToCreateContentFolder", "Failed to create the content folder {ContentFolder}"), Args );
+		DeleteCreatedFiles(NewProjectFolder, CreatedFiles);
 		return false;
 	}
 
@@ -1117,6 +1100,7 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FProjectInformation& InP
 		// Generate basic source code files
 		if ( !GenerateBasicSourceCode(NewProjectFolder / TEXT("Source"), NewProjectName, NewProjectFolder, StartupModuleNames, CreatedFiles, OutFailReason) )
 		{
+			DeleteCreatedFiles(NewProjectFolder, CreatedFiles);
 			return false;
 		}
 
@@ -1124,6 +1108,7 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FProjectInformation& InP
 		// Generate game framework source code files
 		if ( !GenerateGameFrameworkSourceCode(NewProjectFolder / TEXT("Source"), NewProjectName, CreatedFiles, OutFailReason) )
 		{
+			DeleteCreatedFiles(NewProjectFolder, CreatedFiles);
 			return false;
 		}
 	}
@@ -1144,6 +1129,7 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FProjectInformation& InP
 		if(!Descriptor.Save(InProjectInfo.ProjectFilename, LocalFailReason))
 		{
 			OutFailReason = LocalFailReason;
+			DeleteCreatedFiles(NewProjectFolder, CreatedFiles);
 			return false;
 		}
 		CreatedFiles.Add(InProjectInfo.ProjectFilename);
@@ -1151,6 +1137,7 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FProjectInformation& InP
 		// Set the engine identifier for it. Do this after saving, so it can be correctly detected as foreign or non-foreign.
 		if(!SetEngineAssociationForForeignProject(InProjectInfo.ProjectFilename, OutFailReason))
 		{
+			DeleteCreatedFiles(NewProjectFolder, CreatedFiles);
 			return false;
 		}
 	}
@@ -1162,6 +1149,8 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FProjectInformation& InP
 		// Generate project files
 		if ( !GenerateCodeProjectFiles(InProjectInfo.ProjectFilename, OutFailReason, OutFailLog) )
 		{
+			DeleteGeneratedProjectFiles(InProjectInfo.ProjectFilename);
+			DeleteCreatedFiles(NewProjectFolder, CreatedFiles);
 			return false;
 		}
 	}
@@ -1334,6 +1323,7 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 				FailArgs.Add(TEXT("SrcFilename"), FText::FromString(SrcFilename));
 				FailArgs.Add(TEXT("DestFilename"), FText::FromString(DestFilename));
 				OutFailReason = FText::Format(LOCTEXT("FailedToCopyFile", "Failed to copy \"{SrcFilename}\" to \"{DestFilename}\"."), FailArgs);
+				DeleteCreatedFiles(DestFolder, CreatedFiles);
 				return false;
 			}
 		}
@@ -1375,6 +1365,7 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 				FFormatNamedArguments Args;
 				Args.Add( TEXT("FileToFix"), FText::FromString( FileToFix ) );
 				OutFailReason = FText::Format( LOCTEXT("FailedToFixUpFile", "Failed to process file \"{FileToFix}\"."), Args );
+				DeleteCreatedFiles(DestFolder, CreatedFiles);
 				return false;
 			}
 		}
@@ -1516,6 +1507,7 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 		if ( !bSuccessfullyProcessed )
 		{
 			OutFailReason = LOCTEXT("FailedToFixUpDefaultEngine", "Failed to process file DefaultEngine.ini");
+			DeleteCreatedFiles(DestFolder, CreatedFiles);
 			return false;
 		}
 	}
@@ -1523,11 +1515,13 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 	// Insert any required feature packs (EG starter content) into ini file. These will be imported automatically when the editor is first run
 	if(!InsertFeaturePacksIntoINIFile(InProjectInfo, OutFailReason))
 	{
+		DeleteCreatedFiles(DestFolder, CreatedFiles);
 		return false;
 	}
 
 	if( AddSharedContentToProject(InProjectInfo, CreatedFiles, OutFailReason ) == false )
 	{
+		DeleteCreatedFiles(DestFolder, CreatedFiles);
 		return false;
 	}
 
@@ -1540,6 +1534,7 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 		FProjectDescriptor Project;
 		if(!Project.Load(InProjectInfo.TemplateFile, OutFailReason))
 		{
+			DeleteCreatedFiles(DestFolder, CreatedFiles);
 			return false;
 		}
 
@@ -1559,12 +1554,14 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 		// Save it to disk
 		if(!Project.Save(InProjectInfo.ProjectFilename, OutFailReason))
 		{
+			DeleteCreatedFiles(DestFolder, CreatedFiles);
 			return false;
 		}
 
 		// Set the engine identifier if it's a foreign project. Do this after saving, so it can be correctly detected as foreign.
 		if(!SetEngineAssociationForForeignProject(InProjectInfo.ProjectFilename, OutFailReason))
 		{
+			DeleteCreatedFiles(DestFolder, CreatedFiles);
 			return false;
 		}
 
@@ -1580,6 +1577,8 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 		// Generate project files
 		if ( !GenerateCodeProjectFiles(InProjectInfo.ProjectFilename, OutFailReason, OutFailLog) )
 		{
+			DeleteGeneratedProjectFiles(InProjectInfo.ProjectFilename);
+			DeleteCreatedFiles(DestFolder, CreatedFiles);
 			return false;
 		}
 	}
@@ -1588,6 +1587,8 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 
 	if (!TemplateDefs->PostGenerateProject(DestFolder, SrcFolder, InProjectInfo.ProjectFilename, InProjectInfo.TemplateFile, InProjectInfo.bShouldGenerateCode, OutFailReason))
 	{
+		DeleteGeneratedProjectFiles(InProjectInfo.ProjectFilename);
+		DeleteCreatedFiles(DestFolder, CreatedFiles);
 		return false;
 	}
 	
@@ -1703,6 +1704,35 @@ void GameProjectUtils::DeleteCreatedFiles(const FString& RootFolder, const TArra
 		{
 			IFileManager::Get().DeleteDirectory(*RootFolder, /*RequireExists=*/false, /*Tree=*/true);
 		}
+	}
+}
+
+void GameProjectUtils::DeleteGeneratedProjectFiles(const FString& NewProjectFile)
+{
+	if (CleanupIsEnabled())
+	{
+		const FString NewProjectFolder = FPaths::GetPath(NewProjectFile);
+		const FString NewProjectName = FPaths::GetBaseFilename(NewProjectFile);
+
+		// Since it is hard to tell which files were created from the code project file generation process, just delete the entire ProjectFiles folder.
+		const FString IntermediateProjectFileFolder = NewProjectFolder / TEXT("Intermediate") / TEXT("ProjectFiles");
+		IFileManager::Get().DeleteDirectory(*IntermediateProjectFileFolder, /*RequireExists=*/false, /*Tree=*/true);
+
+		// Delete the solution file
+		const FString SolutionFileName = NewProjectFolder / NewProjectName + TEXT(".sln");
+		IFileManager::Get().Delete( *SolutionFileName );
+	}
+}
+
+void GameProjectUtils::DeleteGeneratedBuildFiles(const FString& NewProjectFolder)
+{
+	if (CleanupIsEnabled())
+	{
+		// Since it is hard to tell which files were created from the build process, just delete the entire Binaries and Build folders.
+		const FString BinariesFolder = NewProjectFolder / TEXT("Binaries");
+		const FString BuildFolder    = NewProjectFolder / TEXT("Intermediate") / TEXT("Build");
+		IFileManager::Get().DeleteDirectory(*BinariesFolder, /*RequireExists=*/false, /*Tree=*/true);
+		IFileManager::Get().DeleteDirectory(*BuildFolder, /*RequireExists=*/false, /*Tree=*/true);
 	}
 }
 
@@ -2235,7 +2265,7 @@ GameProjectUtils::EProjectDuplicateResult GameProjectUtils::DuplicateProjectForU
 	}
 
 	// Append the new version number
-	NewDirectoryName += FString::Printf(TEXT(" %s"), *FEngineVersion::Current().ToString(EVersionComponent::Minor));
+	NewDirectoryName += FString::Printf(TEXT(" %s"), *GEngineVersion.ToString(EVersionComponent::Minor));
 
 	// Find a directory name that doesn't exist
 	FString BaseDirectoryName = NewDirectoryName;
@@ -2793,35 +2823,6 @@ bool GameProjectUtils::GenerateGameModuleHeaderFile(const FString& NewBuildFileN
 	return WriteOutputFile(NewBuildFileName, FinalOutput, OutFailReason);
 }
 
-bool GameProjectUtils::GeneratePluginModuleCPPFile(const FString& CPPFileName, const FString& ModuleName, const FString& StartupSourceCode, FText& OutFailReason)
-{
-	FString Template;
-	if (!ReadTemplateFile(TEXT("PluginModule.cpp.template"), Template, OutFailReason))
-	{
-		return false;
-	}
-
-	FString FinalOutput = Template.Replace(TEXT("%COPYRIGHT_LINE%"), *MakeCopyrightLine(), ESearchCase::CaseSensitive);
-	FinalOutput = FinalOutput.Replace(TEXT("%MODULE_NAME%"), *ModuleName, ESearchCase::CaseSensitive);
-	FinalOutput = FinalOutput.Replace(TEXT("%MODULE_STARTUP_CODE%"), *StartupSourceCode, ESearchCase::CaseSensitive);
-
-	return WriteOutputFile(CPPFileName, FinalOutput, OutFailReason);
-}
-
-bool GameProjectUtils::GeneratePluginModuleHeaderFile(const FString& HeaderFileName, const TArray<FString>& PublicHeaderIncludes, FText& OutFailReason)
-{
-	FString Template;
-	if (!ReadTemplateFile(TEXT("PluginModule.h.template"), Template, OutFailReason))
-	{
-		return false;
-	}
-
-	FString FinalOutput = Template.Replace(TEXT("%COPYRIGHT_LINE%"), *MakeCopyrightLine(), ESearchCase::CaseSensitive);
-	FinalOutput = FinalOutput.Replace(TEXT("%PUBLIC_HEADER_INCLUDES%"), *MakeIncludeList(PublicHeaderIncludes), ESearchCase::CaseSensitive);
-
-	return WriteOutputFile(HeaderFileName, FinalOutput, OutFailReason);
-}
-
 void GameProjectUtils::OnUpdateProjectConfirm()
 {
 	UpdateProject();
@@ -3060,7 +3061,7 @@ bool GameProjectUtils::ProjectRequiresBuild(const FName InPlatformInfoName)
 
 	bool bRequiresBuild = false;
 
-	if (!FApp::IsEngineInstalled())
+	if (!FRocketSupport::IsRocket())
 	{
 		// check to see if the default build settings have changed
 		bRequiresBuild |= !HasDefaultBuildSettings(InPlatformInfoName);
@@ -3184,7 +3185,7 @@ GameProjectUtils::EAddCodeToProjectResult GameProjectUtils::AddCodeToProject_Int
 {
 	if ( !ParentClassInfo.IsSet() )
 	{
-		OutFailReason = LOCTEXT("MissingParentClass", "You must specify a parent class");
+		OutFailReason = LOCTEXT("NoParentClass", "You must specify a parent class");
 		return EAddCodeToProjectResult::InvalidInput;
 	}
 

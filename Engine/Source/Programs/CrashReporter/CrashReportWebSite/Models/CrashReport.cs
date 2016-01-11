@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
@@ -8,8 +8,6 @@ using System.Data.Linq;
 using System.Diagnostics;
 using Tools.DotNETCommon;
 using System.Web;
-
-using Tools.CrashReporter.CrashReportCommon;
 
 namespace Tools.CrashReporter.CrashReportWebSite.Models
 {
@@ -125,7 +123,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		string ToJiraSummary = "";
 
 		/// <summary>Branches in JIRA</summary>
-		HashSet<string> ToJiraBranches = null;
+		List<object> ToJiraBranches = null;
 
 		/// <summary>Versions in JIRA</summary>
 		List<object> ToJiraVersions = null;
@@ -158,7 +156,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			this.AffectedPlatforms = new SortedSet<string>();
 			this.CrashesInTimeFrameAll = CrashesForBugg.Count;
 			this.CrashesInTimeFrameGroup = CrashesForBugg.Count;
-			var HashSetDescriptions = new HashSet<string>();
+			var HashSetDecsriptions = new HashSet<string>();
 
 			HashSet<string> MachineIds = new HashSet<string>();
 			int FirstCLAffected = int.MaxValue;
@@ -169,10 +167,12 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				if (Crash.MachineId != null && Crash.MachineId.Length == 32)
 				{
 					MachineIds.Add( Crash.MachineId );
-					if (Crash.Description.Length > 4)
+
+					// Sent in the unattended mode 29 char
+					if( Crash.Description.Length > 32 )
 					{
-						HashSetDescriptions.Add( Crash.Description );
-					}										
+						HashSetDecsriptions.Add( Crash.Description );
+					}
 				}
 
 				// @TODO Ignore bad build versions.
@@ -181,8 +181,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					{
 						this.AffectedVersions.Add( Crash.BuildVersion );
 					}
-					// Depot || Stream
-					if (!string.IsNullOrEmpty( Crash.Branch ) && ( Crash.Branch.StartsWith( "UE4" ) || Crash.Branch.StartsWith( "//UE4" ) ))
+					if( !string.IsNullOrEmpty( Crash.Branch ) && Crash.Branch.StartsWith( "UE4" ) )
 					{
 						this.BranchesFoundIn.Add( Crash.Branch );
 					}
@@ -207,7 +206,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			}
 
 			// CopyToJira 
-			foreach( var Line in HashSetDescriptions )
+			foreach( var Line in HashSetDecsriptions )
 			{
 				string ListItem = "- " + HttpUtility.HtmlEncode( Line );
 				ToJiraDescriptions.Add( ListItem );
@@ -269,32 +268,26 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			}
 
 			// ToJiraBranches
-			this.ToJiraBranches = new HashSet<string>();
-			foreach( var BranchName in this.BranchesFoundIn )
+			this.ToJiraBranches = new List<object>();
+			foreach( var Platform in this.BranchesFoundIn )
 			{
-				if( !string.IsNullOrEmpty(BranchName) )
+				string CleanedBranch = Platform.Contains( "UE4-Releases" ) ? "UE4-Releases" : Platform;
+				Dictionary<string, object> JiraBranch = null;
+				JC.GetNameToBranchFoundIn().TryGetValue( CleanedBranch, out JiraBranch );
+				if( JiraBranch != null && !this.ToJiraBranches.Contains( JiraBranch ) )
 				{
-					// Stream
-					if (BranchName.StartsWith( "//UE4" ))
-					{
-						this.ToJiraBranches.Add( BranchName );
-					}
-					// Depot
-					else
-					{
-						this.ToJiraBranches.Add( CrashReporterConstants.P4_DEPOT_PREFIX + BranchName );
-					}
+					this.ToJiraBranches.Add( JiraBranch );
 				}
 			}
 
 			// ToJiraPlatforms
 			this.ToJiraPlatforms = new List<object>();
-			foreach( var BranchName in this.AffectedPlatforms )
+			foreach( var Platform in this.AffectedPlatforms )
 			{
-				bool bValid = JC.GetNameToPlatform().ContainsKey( BranchName );
+				bool bValid = JC.GetNameToPlatform().ContainsKey( Platform );
 				if( bValid )
 				{
-					this.ToJiraPlatforms.Add( JC.GetNameToPlatform()[BranchName] );
+					this.ToJiraPlatforms.Add( JC.GetNameToPlatform()[Platform] );
 				}
 			}
 		}
@@ -324,13 +317,13 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				Fields.Add( "versions", ToJiraVersions );
 
 				// ToJiraBranches
-				Fields.Add( "customfield_12402", ToJiraBranches.ToList() );						// NewBranchFoundIn
+				Fields.Add( "customfield_11201", ToJiraBranches );
 
 				// ToJiraPlatforms
 				Fields.Add( "customfield_11203", ToJiraPlatforms );
 
 				// Callstack customfield_11807
-				string JiraCallstack = "{noformat}" + string.Join( "\r\n", ToJiraFunctionCalls ) + "{noformat}";
+				string JiraCallstack = string.Join( "\r\n", ToJiraFunctionCalls );
 				Fields.Add( "customfield_11807", JiraCallstack );								// Callstack
 
 				string BuggLink = "http://crashreporter/Buggs/Show/" + Id;
@@ -366,11 +359,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			Tooltip += "JiraVersions: " + JiraVersions + NL;
 
 			// "value"
-			string JiraBranches = "";
-			foreach (var Branch in ToJiraBranches)
-			{
-				JiraBranches += Branch + ", ";
-			}
+			string JiraBranches = GetFieldsFrom( ToJiraBranches, "value" );
 			Tooltip += "JiraBranches: " + JiraBranches + NL;
 
 			// "value"
@@ -520,37 +509,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 	/// </summary>
 	public partial class Crash
 	{
-		/// <summary>Hard coded site path.</summary>
-		const string SitePath = @"\\devweb-02\Sites";
-
-		/// <summary>Crash context for this crash.</summary>
-		FGenericCrashContext CrashContext = null;
-
-		bool bUseFullMinidumpPath = false;
-
-		/// <summary>If available, will read CrashContext.runtime-xml.</summary>
-		public void ReadCrashContextIfAvailable()
-		{
-			try
-			{
-				bool bHasCrashContext = HasCrashContextFile();
-				if (bHasCrashContext)
-				{
-					CrashContext = FGenericCrashContext.FromFile( SitePath + GetCrashContextUrl() );
-					bool bTest = CrashContext != null && !string.IsNullOrEmpty( CrashContext.PrimaryCrashProperties.FullCrashDumpLocation );
-					if(bTest)
-					{
-						bUseFullMinidumpPath = true;// System.IO.Directory.Exists( CrashContext.PrimaryCrashProperties.FullCrashDumpLocation ); Doesn't work, probably due to some permissions.
-						FLogger.Global.WriteEvent( "ReadCrashContextIfAvailable " + CrashContext.PrimaryCrashProperties.FullCrashDumpLocation + " is " + bUseFullMinidumpPath );
-					}
-				}
-			}
-			catch (Exception Ex)
-			{
-				Debug.WriteLine( "Exception in ReadCrashContextIfAvailable: " + Ex.ToString() );
-			}
-		}
-
 		/// <summary> Helper method, display this Bugg as a human readable string. Debugging purpose. </summary>
 		public override string ToString()
 		{
@@ -585,26 +543,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// </summary>
 		public string GetMiniDumpUrl()
 		{
-			var WebPath = Properties.Settings.Default.CrashReporterFiles + Id + "_MiniDump.dmp";
-			var Path = UseFullMinidumpPath() ? CrashContext.PrimaryCrashProperties.FullCrashDumpLocation : WebPath;
-			return Path;
-		}
-
-		/// <summary>
-		/// Tooltip for the dump.
-		/// </summary>
-		public string GetDumpTitle()
-		{
-			var Title = UseFullMinidumpPath() ? "Copy the link and open in the explorer" : "";
-			return Title;
-		}
-
-		/// <summary>
-		/// Return the short name of the dump.
-		/// </summary>
-		public string GetDumpName()
-		{
-			return UseFullMinidumpPath() ? "Fulldump" : "Minidump";
+			return Properties.Settings.Default.CrashReporterFiles + Id + "_MiniDump.dmp";
 		}
 
 		/// <summary>
@@ -613,14 +552,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		public string GetDiagnosticsUrl()
 		{
 			return Properties.Settings.Default.CrashReporterFiles + Id + "_Diagnostics.txt";
-		}
-
-		/// <summary>
-		/// Return the Url of the crash context file.
-		/// </summary>
-		public string GetCrashContextUrl()
-		{
-			return Properties.Settings.Default.CrashReporterFiles + Id + "_CrashContext.runtime-xml";
 		}
 
 		/// <summary>
@@ -827,6 +758,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			}
 		}
 
+		/// <summary>Hard coded site path.</summary>
+		const string SitePath = @"\\devweb-02\Sites";
+
 		/// <summary>Return true, if there is a diagnostics file associated with the crash</summary>
 		public bool HasDiagnosticsFile()
 		{
@@ -834,25 +768,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			return System.IO.File.Exists( Path );
 		}
 
-
-		/// <summary>Return true, if there is a crash context file associated with the crash</summary>
-		public bool HasCrashContextFile()
-		{
-			var Path = SitePath + GetCrashContextUrl();
-			return System.IO.File.Exists( Path );
-		}
-
 		/// <summary>Return true, if there is a minidump file associated with the crash</summary>
 		public bool HasMiniDumpFile()
 		{
 			var Path = SitePath + GetMiniDumpUrl();
-			return UseFullMinidumpPath() ? true : System.IO.File.Exists( Path );
-		}
-
-		/// <summary>Whether to use the full minidump.</summary>
-		public bool UseFullMinidumpPath()
-		{
-			return bUseFullMinidumpPath;
+			return System.IO.File.Exists( Path );
 		}
 
 		/// <summary>Return true, if there is a log file associated with the crash</summary>

@@ -1,19 +1,16 @@
 {
 	"FileVersion" : 3,
+	
+	"FriendlyName" : "Example Device Profile Selector",
 	"Version" : 1,
 	"VersionName" : "1.0",
-	"FriendlyName" : "Example Device Profile Selector",
-	"Description" : "Example Device Profile Selector used show selection of device profiles on hardware",
-	"Category" : "Device Profile Selectors",
 	"CreatedBy" : "Epic Games, Inc.",
 	"CreatedByURL" : "http://epicgames.com",
-	"DocsURL" : "",
-	"MarketplaceURL" : "",
-	"SupportURL" : "",
+	"EngineVersion" : "4.2.0",
+	"Description" : "Example Device Profile Selector used show selection of device profiles on hardware",
+	"Category" : "Device Profile Selectors",
 	"EnabledByDefault" : true,
-	"CanContainContent" : false,
-	"IsBetaVersion" : false,
-	"Installed" : false,
+	
 	"Modules" :
 	[
 		{

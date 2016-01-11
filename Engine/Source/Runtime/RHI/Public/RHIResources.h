@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -21,11 +21,8 @@ public:
 	{
 	}
 	virtual ~FRHIResource() 
-	{
-		if (!PlatformNeedsExtraDeletionLatency())
-		{
-			check(NumRefs.GetValue() == 0 && (CurrentlyDeleting == this || bDoNotDeferDelete || Bypass())); // this should not have any outstanding refs
-		}
+	{ 
+		check(NumRefs.GetValue() == 0 && (CurrentlyDeleting == this || bDoNotDeferDelete || Bypass())); // this should not have any outstanding refs
 	}
 	uint32 AddRef() const
 	{
@@ -69,11 +66,6 @@ public:
 
 	static void FlushPendingDeletes();
 
-	static bool PlatformNeedsExtraDeletionLatency()
-	{
-		return (PLATFORM_XBOXONE == 1);
-	}
-
 #if DISABLE_RHI_DEFFERED_DELETE
 	FORCEINLINE static bool Bypass()
 	{
@@ -87,35 +79,8 @@ private:
 	mutable FThreadSafeCounter NumRefs;
 	mutable int32 MarkedForDelete;
 	bool bDoNotDeferDelete;
-	static TLockFreePointerListUnordered<FRHIResource> PendingDeletes;
+	static TLockFreePointerList<FRHIResource> PendingDeletes;
 	static FRHIResource* CurrentlyDeleting;
-
-	// Some APIs don't do internal reference counting, so we have to wait an extra couple of frames before deleting resources
-	// to ensure the GPU has completely finished with them. This avoids expensive fences, etc.
-	struct ResourceToDelete
-	{
-		ResourceToDelete()
-			: Resource(nullptr)
-			, FrameDeleted(0)
-		{
-
-		}
-
-		ResourceToDelete(
-			FRHIResource* InResource,
-			uint32 InFrameDeleted)
-			: Resource(InResource)
-			, FrameDeleted(InFrameDeleted)
-		{
-
-		}
-
-		FRHIResource*	Resource;
-		uint32			FrameDeleted;
-	};
-
-	static TQueue<ResourceToDelete> DeferredDeletionQueue;
-	static uint32 CurrentFrame;
 };
 
 
@@ -147,11 +112,6 @@ public:
 	void SetHash(FSHAHash InHash) { Hash = InHash; }
 	FSHAHash GetHash() const { return Hash; }
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	// for debugging only e.g. MaterialName:ShaderFile.usf or ShaderFile.usf/EntryFunc
-	FString ShaderName;
-#endif
-
 private:
 	FSHAHash Hash;
 };
@@ -181,7 +141,7 @@ struct FRHIUniformBufferLayout
 	{
 		if (!bComputedHash)
 		{
-			uint32 TmpHash = ConstantBufferSize << 16;
+			uint32 TmpHash = ConstantBufferSize;
 			// This is to account for 32vs64 bits difference in pointer sizes.
 			TmpHash ^= Align(ResourceOffset, 8);
 			uint32 N = Resources.Num();
@@ -191,11 +151,6 @@ struct FRHIUniformBufferLayout
 				TmpHash ^= (Resources[--N] << 8);
 				TmpHash ^= (Resources[--N] << 16);
 				TmpHash ^= (Resources[--N] << 24);
-			}
-			while (N >= 2)
-			{
-				TmpHash ^= Resources[--N] << 0;
-				TmpHash ^= Resources[--N] << 16;
 			}
 			while (N > 0)
 			{
@@ -207,44 +162,15 @@ struct FRHIUniformBufferLayout
 		return Hash;
 	}
 
-	explicit FRHIUniformBufferLayout(FName InName) :
+	FRHIUniformBufferLayout() :
 		ConstantBufferSize(0),
 		ResourceOffset(0),
-		Name(InName),
 		Hash(0),
 		bComputedHash(false)
 	{
 	}
-
-	enum EInit
-	{
-		Zero
-	};
-	explicit FRHIUniformBufferLayout(EInit) :
-		ConstantBufferSize(0),
-		ResourceOffset(0),
-		Name(FName()),
-		Hash(0),
-		bComputedHash(false)
-	{
-	}
-
-	void CopyFrom(const FRHIUniformBufferLayout& Source)
-	{
-		ConstantBufferSize = Source.ConstantBufferSize;
-		ResourceOffset = Source.ResourceOffset;
-		Resources = Source.Resources;
-		Name = Source.Name;
-		Hash = Source.Hash;
-		bComputedHash = Source.bComputedHash;
-	}
-
-	const FName GetDebugName() const { return Name; }
 
 private:
-	// for debugging / error message
-	FName Name;
-
 	mutable uint32 Hash;
 	mutable bool bComputedHash;
 };
@@ -305,10 +231,7 @@ class FRHIVertexBuffer : public FRHIResource
 {
 public:
 
-	/**
-	 * Initialization constructor.
-	 * @apram InUsage e.g. BUF_UnorderedAccess
-	 */
+	/** Initialization constructor. */
 	FRHIVertexBuffer(uint32 InSize,uint32 InUsage)
 	: Size(InSize)
 	, Usage(InUsage)
@@ -317,15 +240,13 @@ public:
 	/** @return The number of bytes in the vertex buffer. */
 	uint32 GetSize() const { return Size; }
 
-	/** @return The usage flags used to create the vertex buffer. e.g. BUF_UnorderedAccess */
+	/** @return The usage flags used to create the vertex buffer. */
 	uint32 GetUsage() const { return Usage; }
 
 private:
 	uint32 Size;
-	// e.g. BUF_UnorderedAccess
 	uint32 Usage;
 };
-
 class FRHIStructuredBuffer : public FRHIResource
 {
 public:
@@ -362,14 +283,7 @@ public:
 	FLastRenderTimeContainer() : LastRenderTime(-FLT_MAX) {}
 
 	double GetLastRenderTime() const { return LastRenderTime; }
-	FORCEINLINE_DEBUGGABLE void SetLastRenderTime(double InLastRenderTime) 
-	{ 
-		// avoid dirty caches from redundant writes
-		if (LastRenderTime != InLastRenderTime)
-		{
-			LastRenderTime = InLastRenderTime;
-		}
-	}
+	void SetLastRenderTime(double InLastRenderTime) { LastRenderTime = InLastRenderTime; }
 
 private:
 	/** The last time the resource was rendered. */
@@ -439,7 +353,7 @@ public:
 	FRHIResourceInfo ResourceInfo;
 
 	/** sets the last time this texture was cached in a resource table. */
-	FORCEINLINE_DEBUGGABLE void SetLastRenderTime(float InLastRenderTime)
+	void SetLastRenderTime(float InLastRenderTime)
 	{
 		LastRenderTime.SetLastRenderTime(InLastRenderTime);
 	}
@@ -659,45 +573,6 @@ public:
 
 class FRHIRenderQuery : public FRHIResource {};
 
-class FRHIComputeFence : public FRHIResource
-{
-public:
-
-	FRHIComputeFence(FName InName)
-		: Name(InName)
-		, bWriteEnqueued(false)
-	{}
-
-	FORCEINLINE FName GetName() const
-	{
-		return Name;
-	}
-
-	FORCEINLINE bool GetWriteEnqueued() const
-	{
-		return bWriteEnqueued;
-	}
-
-	virtual void Reset()
-	{
-		bWriteEnqueued = false;
-	}
-
-	virtual void WriteFence()
-	{
-		ensureMsgf(!bWriteEnqueued, TEXT("ComputeFence: %s already written this frame. You should use a new label"), *Name.ToString());
-		bWriteEnqueued = true;
-	}
-
-private:
-	//debug name of the label.
-	FName Name;
-
-	//has the label been written to since being created.
-	//check this when queuing waits to catch GPU hangs on the CPU at command creation time.
-	bool bWriteEnqueued;
-};
-
 class FRHIViewport : public FRHIResource 
 {
 public:
@@ -788,10 +663,6 @@ typedef TRefCountPtr<FRHIGeometryShader> FGeometryShaderRHIRef;
 
 typedef FRHIComputeShader*              FComputeShaderRHIParamRef;
 typedef TRefCountPtr<FRHIComputeShader> FComputeShaderRHIRef;
-
-typedef FRHIComputeFence*				FComputeFenceRHIParamRef;
-typedef TRefCountPtr<FRHIComputeFence>	FComputeFenceRHIRef;
-
 
 typedef FRHIBoundShaderState*              FBoundShaderStateRHIParamRef;
 typedef TRefCountPtr<FRHIBoundShaderState> FBoundShaderStateRHIRef;
@@ -954,12 +825,6 @@ public:
 	{
 		return ExtractStencil() == StencilWrite;
 	}
-
-	inline bool IsAnyWrite() const
-	{
-		return IsDepthWrite() || IsStencilWrite();
-	}
-
 	inline void SetDepthWrite()
 	{
 		Value = (Type)(ExtractStencil() | DepthWrite);
@@ -1162,16 +1027,11 @@ public:
 	bool bClearDepth;
 	bool bClearStencil;
 
-	// UAVs info.
-	FUnorderedAccessViewRHIRef UnorderedAccessView[MaxSimultaneousUAVs];
-	int32 NumUAVs;
-
 	FRHISetRenderTargetsInfo() :
 		NumColorRenderTargets(0),
 		bClearColor(false),		
 		bClearDepth(false),
-		bClearStencil(false),
-		NumUAVs(0)
+		bClearStencil(false)
 	{}
 
 	FRHISetRenderTargetsInfo(int32 InNumColorRenderTargets, const FRHIRenderTargetView* InColorRenderTargets, const FRHIDepthRenderTargetView& InDepthStencilRenderTarget) :
@@ -1179,8 +1039,7 @@ public:
 		bClearColor(InNumColorRenderTargets > 0 && InColorRenderTargets[0].LoadAction == ERenderTargetLoadAction::EClear),
 		DepthStencilRenderTarget(InDepthStencilRenderTarget),		
 		bClearDepth(InDepthStencilRenderTarget.Texture && InDepthStencilRenderTarget.DepthLoadAction == ERenderTargetLoadAction::EClear),
-		bClearStencil(InDepthStencilRenderTarget.Texture && InDepthStencilRenderTarget.StencilLoadAction == ERenderTargetLoadAction::EClear),
-		NumUAVs(0)
+		bClearStencil(InDepthStencilRenderTarget.Texture && InDepthStencilRenderTarget.StencilLoadAction == ERenderTargetLoadAction::EClear)
 	{
 		check(InNumColorRenderTargets <= 0 || InColorRenderTargets);
 		for (int32 Index = 0; Index < InNumColorRenderTargets; ++Index)

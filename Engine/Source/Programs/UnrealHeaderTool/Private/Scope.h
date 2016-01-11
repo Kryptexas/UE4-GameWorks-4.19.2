@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,9 +8,6 @@
 class UStruct;
 class FClassMetaData;
 class FUnrealSourceFile;
-class FUHTMakefile;
-class FFileScope;
-class FStructScope;
 
 // Traits to achieve conditional types for const/non-const iterators.
 template <bool Condition, class TypeIfTrue, class TypeIfFalse>
@@ -28,7 +25,7 @@ public:
 };
 
 // Base class representing type scope.
-class FScope : public TSharedFromThis<FScope>
+class FScope
 {
 public:
 	// Default constructor i.e. Parent == nullptr
@@ -40,9 +37,6 @@ public:
 	// Virtual destructor.
 	virtual ~FScope()
 	{ };
-
-	virtual FFileScope* AsFileScope() { return nullptr; }
-	virtual FStructScope* AsStructScope() { return nullptr; }
 
 	/**
 	 * Adds type to the scope.
@@ -114,7 +108,7 @@ public:
 	 *
 	 * @returns Newly added scope.
 	 */
-	static TSharedRef<FScope> AddTypeScope(UStruct* Type, FScope* ParentScope, FUnrealSourceFile* UnrealSourceFile, FUHTMakefile& UHTMakefile);
+	static TSharedRef<FScope> AddTypeScope(UStruct* Type, FScope* ParentScope);
 
 	/**
 	 * Gets structs, enums and delegate functions from this scope.
@@ -244,7 +238,6 @@ public:
 	 */
 	bool ContainsTypes() const;
 
-	FFileScope* GetFileScope();
 private:
 	// This scopes parent.
 	const FScope* Parent;
@@ -254,10 +247,6 @@ private:
 
 	// Global map type <-> scope.
 	static TMap<UStruct*, TSharedRef<FScope> > ScopeMap;
-
-	friend struct FScopeArchiveProxy;
-	friend struct FStructScopeArchiveProxy;
-	friend class FUHTMakefile;
 };
 
 /**
@@ -266,10 +255,6 @@ private:
 class FFileScope : public FScope
 {
 public:
-	FFileScope()
-		: SourceFile(nullptr)
-		, Name(NAME_None)
-	{ }
 	// Constructor.
 	FFileScope(FName Name, FUnrealSourceFile* SourceFile);
 
@@ -279,8 +264,6 @@ public:
 	 * @param IncludedScope File scope to include.
 	 */
 	void IncludeScope(FFileScope* IncludedScope);
-
-	virtual FFileScope* AsFileScope() override { return this; }
 
 	/**
 	 * Gets scope name.
@@ -314,16 +297,6 @@ public:
 		}
 	}
 
-
-	const TArray<FFileScope*>& GetIncludedScopes() const
-	{
-		return IncludedScopes;
-	}
-
-	void SetSourceFile(FUnrealSourceFile* InSourceFile)
-	{
-		SourceFile = InSourceFile;
-	}
 private:
 	// Source file.
 	FUnrealSourceFile* SourceFile;
@@ -333,8 +306,6 @@ private:
 
 	// Included scopes list.
 	TArray<FFileScope*> IncludedScopes;
-
-	friend struct FFileScopeArchiveProxy;
 };
 
 
@@ -347,11 +318,15 @@ public:
 	// Constructor.
 	FStructScope(UStruct* Struct, FScope* Parent);
 
-	virtual FStructScope* AsStructScope() override { return this; }
 	/**
 	 * Gets struct associated with this scope.
 	 */
 	UStruct* GetStruct() const;
+
+	/**
+	 * Gets metadata associated with class of this scope.
+	 */
+	FClassMetaData* GetClassMetaData() const;
 
 	/**
 	 * Gets scope name.
@@ -361,8 +336,6 @@ public:
 private:
 	// Struct associated with this scope.
 	UStruct* Struct;
-
-	friend struct FStructScopeArchiveProxy;
 };
 
 /**

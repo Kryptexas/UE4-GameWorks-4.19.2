@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System;
@@ -51,7 +51,6 @@ public class Core : ModuleRules
 			new string[] {
 				"TargetPlatform",
 				"DerivedDataCache",
-                "CookingStats",
 				"InputDevice",
                 "Analytics"
 			}
@@ -90,22 +89,19 @@ public class Core : ModuleRules
 				PublicAdditionalLibraries.Add("/System/Library/PrivateFrameworks/MultitouchSupport.framework/Versions/Current/MultitouchSupport");
 			}
 		}
-		else if (Target.Platform == UnrealTargetPlatform.IOS || Target.Platform == UnrealTargetPlatform.TVOS)
+		else if (Target.Platform == UnrealTargetPlatform.IOS)
 		{
 			PublicIncludePaths.AddRange(new string[] {"Runtime/Core/Public/Apple", "Runtime/Core/Public/IOS"});
 			AddThirdPartyPrivateStaticDependencies(Target, 
 				"zlib"
 				);
-			PublicFrameworks.AddRange(new string[] { "UIKit", "Foundation", "AudioToolbox", "AVFoundation", "GameKit", "StoreKit", "CoreVideo", "CoreMedia", "CoreGraphics", "GameController"});
-			if (Target.Platform == UnrealTargetPlatform.IOS)
-			{
-				PublicFrameworks.AddRange(new string[] { "CoreMotion" });
-			}
+			PublicFrameworks.AddRange(new string[] { "UIKit", "Foundation", "AudioToolbox", "AVFoundation", "GameKit", "StoreKit", "CoreVideo", "CoreMedia", "CoreMotion"});
 
-			bool bSupportAdvertising = Target.Platform == UnrealTargetPlatform.IOS;
+			bool bSupportAdvertising = true;
+
 			if (bSupportAdvertising)
 			{
-				PublicFrameworks.AddRange(new string[] { "iAD" });
+				PublicFrameworks.AddRange(new string[] { "iAD", "CoreGraphics" });
 			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Android)

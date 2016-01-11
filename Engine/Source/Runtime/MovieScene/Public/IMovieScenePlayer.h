@@ -1,8 +1,6 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#include "IMovieSceneSpawnRegister.h"
 
 namespace EMovieScenePlayerStatus
 {
@@ -63,10 +61,10 @@ public:
 	/**
 	 * Updates the perspective viewports with the actor to view through
 	 *
-	 * @param CameraObject The object, probably a camera, that the viewports should lock to
-	 * @param UnlockIfCameraObject If this is not nullptr, release actor lock only if currently locked to this object.
+	 * @param ObjectToViewThrough	The object, probably a camera, that the viewports should lock to
+	 * @param bNewCameraCut			If true this is a new camera cut
 	 */
-	virtual void UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject = nullptr) const = 0;
+	virtual void UpdateCameraCut(UObject* ObjectToViewThrough, bool bNewCameraCut) const = 0;
 
 	/*
 	 * Set the perspective viewport settings
@@ -105,18 +103,4 @@ public:
 
 	/** @return whether the player is currently playing, scrubbing, etc. */
 	virtual EMovieScenePlayerStatus::Type GetPlaybackStatus() const = 0;
-
-	/**
-	 * Obtain an object responsible for managing movie scene spawnables
-	 */
-	virtual IMovieSceneSpawnRegister& GetSpawnRegister() { return NullRegister; }
-
-	/**
-	 * Access the playback context for this movie scene player
-	 */
-	virtual UObject* GetPlaybackContext() const { return nullptr; }
-
-private:
-	/** Null register that asserts on use */
-	FNullMovieSceneSpawnRegister NullRegister;
 };

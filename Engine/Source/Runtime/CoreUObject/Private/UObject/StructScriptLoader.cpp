@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
 #include "StructScriptLoader.h"
@@ -260,7 +260,7 @@ bool FStructScriptLoader::LoadStructWithScript(UStruct* DestScriptContainer, FAr
 	ensure(ScriptEndOffset == Ar.Tell());
 	checkf(BytecodeIndex == BytecodeBufferSize, TEXT("'%s' script expression-count mismatch; Expected: %i, Got: %i"), *DestScriptContainer->GetName(), BytecodeBufferSize, BytecodeIndex);
 
-	if (!GUObjectArray.IsDisregardForGC(DestScriptContainer))
+	if (!GetUObjectArray().IsDisregardForGC(DestScriptContainer))
 	{
 		DestScriptContainer->ScriptObjectReferences.Empty();
 		FArchiveScriptReferenceCollector ObjRefCollector(DestScriptContainer->ScriptObjectReferences);

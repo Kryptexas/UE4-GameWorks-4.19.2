@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ProjectsPrivatePCH.h"
 
@@ -81,9 +81,6 @@ const TCHAR* EHostType::ToString( const EHostType::Type Value )
 
 		case Program:
 			return TEXT("Program");
-
-		case ServerOnly:
-			return TEXT("ServerOnly");
 
 		default:
 			ensureMsgf( false, TEXT( "Unrecognized EModuleType value: %i" ), Value );
@@ -296,9 +293,6 @@ bool FModuleDescriptor::IsCompiledInCurrentConfiguration() const
 			return true;
 		#endif
 		break;
-
-	case EHostType::ServerOnly:
-		return !FPlatformProperties::IsClientOnly();
 	}
 
 	return false;
@@ -350,9 +344,6 @@ bool FModuleDescriptor::IsLoadedInCurrentConfiguration() const
 			return true;
 		#endif
 		break;
-
-	case EHostType::ServerOnly:
-		return !FPlatformProperties::IsClientOnly();
 	}
 
 	return false;

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -25,17 +25,6 @@ struct FThreadSet
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
 		return FilesInFlight.Contains(Key);
-	}
-	bool AddIfNotExists(const FString& Key)
-	{
-		FScopeLock ScopeLock(&SynchronizationObject);
-		check(Key.Len());
-		if (!FilesInFlight.Contains(Key))
-		{
-			FilesInFlight.Add(Key);
-			return true;
-		}
-		return false;
 	}
 };
 /** 
@@ -185,8 +174,7 @@ public:
 		{
 			return; // no point in continuing down the chain
 		}
-		const bool bAdded = FilesInFlight.AddIfNotExists(CacheKey);
-		if (!bAdded)
+		if (FilesInFlight.Exists(CacheKey))
 		{
 			return; // if it is already on its way, we don't need to send it again
 		}
@@ -198,6 +186,7 @@ public:
 			}
 			InflightCache->PutCachedData(CacheKey, InData, true); // temp copy stored in memory while the async task waits to complete
 		}
+		FilesInFlight.Add(CacheKey);
 		FDerivedDataBackend::Get().AddToAsyncCompletionCounter(1);
 		(new FAutoDeleteAsyncTask<FCachePutAsyncWorker>(CacheKey, &InData, InnerBackend, bPutEvenIfExists, InflightCache.GetOwnedPointer(), &FilesInFlight))->StartBackgroundTask();
 	}

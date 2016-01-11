@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -285,40 +285,6 @@ public:
 		return *this;
 	}
 
-	/** Constructor for moving elements from a TSet with a different SetAllocator */
-	template<typename OtherAllocator>
-	TSet(TSet<ElementType, KeyFuncs, OtherAllocator>&& Other)
-		: HashSize(0)
-	{
-		Append(MoveTemp(Other));
-	}
-
-	/** Constructor for copying elements from a TSet with a different SetAllocator */
-	template<typename OtherAllocator>
-	TSet(const TSet<ElementType, KeyFuncs, OtherAllocator>& Other)
-		: HashSize(0)
-	{
-		Append(Other);
-	}
-
-	/** Assignment operator for moving elements from a TSet with a different SetAllocator */
-	template<typename OtherAllocator>
-	TSet& operator=(TSet<ElementType, KeyFuncs, OtherAllocator>&& Other)
-	{
-		Reset();
-		Append(MoveTemp(Other));
-		return *this;
-	}
-
-	/** Assignment operator for copying elements from a TSet with a different SetAllocator */
-	template<typename OtherAllocator>
-	TSet& operator=(const TSet<ElementType, KeyFuncs, OtherAllocator>& Other)
-	{
-		Reset();
-		Append(Other);
-		return *this;
-	}
-
 	/**
 	 * Removes all elements from the set, potentially leaving space allocated for an expected number of elements about to be added.
 	 * @param ExpectedNumElements - The number of elements about to be added to the set.
@@ -332,7 +298,7 @@ public:
 		if(!ConditionalRehash(ExpectedNumElements,true))
 		{
 			// If the hash was already the desired size, clear the references to the elements that have now been removed.
-			for (int32 HashIndex = 0, LocalHashSize = HashSize; HashIndex < LocalHashSize; ++HashIndex)
+			for(int32 HashIndex = 0;HashIndex < HashSize;HashIndex++)
 			{
 				GetTypedHash(HashIndex) = FSetElementId();
 			}
@@ -346,7 +312,7 @@ public:
 		Elements.Reset();
 
 		// Clear the references to the elements that have now been removed.
-		for (int32 HashIndex = 0, LocalHashSize = HashSize; HashIndex < LocalHashSize; ++HashIndex)
+		for(int32 HashIndex = 0;HashIndex < HashSize;HashIndex++)
 		{
 			GetTypedHash(HashIndex) = FSetElementId();
 		}
@@ -362,10 +328,8 @@ public:
 	/** Compacts the allocated elements into a contiguous range. */
 	FORCEINLINE void Compact()
 	{
-		if (Elements.Compact())
-		{
-			Rehash();
-		}
+		Elements.Compact();
+		Rehash();
 	}
 
 	/** Preallocates enough memory to contain Number elements */
@@ -461,23 +425,18 @@ public:
 		if (!KeyFuncs::bAllowDuplicateKeys)
 		{
 			// If the set doesn't allow duplicate keys, check for an existing element with the same key as the element being added.
-
-			// Don't bother searching for a duplicate if this is the first element we're adding
-			if (Elements.Num() != 1)
+			FSetElementId ExistingId = FindId(KeyFuncs::GetSetKey(Element.Value));
+			bIsAlreadyInSet = ExistingId.IsValidId();
+			if (bIsAlreadyInSet)
 			{
-				FSetElementId ExistingId = FindId(KeyFuncs::GetSetKey(Element.Value));
-				bIsAlreadyInSet = ExistingId.IsValidId();
-				if (bIsAlreadyInSet)
-				{
-					// If there's an existing element with the same key as the new element, replace the existing element with the new element.
-					MoveByRelocate(Elements[ExistingId].Value, Element.Value);
+				// If there's an existing element with the same key as the new element, replace the existing element with the new element.
+				MoveByRelocate(Elements[ExistingId].Value, Element.Value);
 
-					// Then remove the new element.
-					Elements.RemoveAtUninitialized(ElementId);
+				// Then remove the new element.
+				Elements.RemoveAtUninitialized(ElementId);
 
-					// Then point the return value at the replaced element.
-					ElementId = ExistingId;
-				}
+				// Then point the return value at the replaced element.
+				ElementId = ExistingId;
 			}
 		}
 
@@ -499,50 +458,32 @@ public:
 		return ElementId;
 	}
 
-	template<typename ArrayAllocator>
-	void Append(const TArray<ElementType, ArrayAllocator>& InElements)
+	void Append(const TArray<ElementType>& InElements)
 	{
-		Reserve(Elements.Num() + InElements.Num());
 		for (auto& Element : InElements)
 		{
 			Add(Element);
 		}
 	}
 
-	template<typename ArrayAllocator>
-	void Append(TArray<ElementType, ArrayAllocator>&& InElements)
+	void Append(TArray<ElementType>&& InElements)
 	{
-		Reserve(Elements.Num() + InElements.Num());
 		for (auto& Element : InElements)
 		{
 			Add(MoveTemp(Element));
 		}
-		InElements.Reset();
 	}
 
 	/**
 	 * Add all items from another set to our set (union without creating a new set)
 	 * @param OtherSet - The other set of items to add.
-	 */
-	template<typename OtherAllocator>
-	void Append(const TSet<ElementType, KeyFuncs, OtherAllocator>& OtherSet)
+     */
+	void Append( const TSet& OtherSet )
 	{
-		Reserve(Elements.Num() + OtherSet.Num());
-		for (auto& Element : OtherSet)
+		for(TConstIterator SetIt(OtherSet);SetIt;++SetIt)
 		{
-			Add(Element);
+			Add(*SetIt);
 		}
-	}
-
-	template<typename OtherAllocator>
-	void Append(TSet<ElementType, KeyFuncs, OtherAllocator>&& OtherSet)
-	{
-		Reserve(Elements.Num() + OtherSet.Num());
-		for (auto& Element : OtherSet)
-		{
-			Add(MoveTemp(Element));
-		}
-		OtherSet.Reset();
 	}
 
 	/**
@@ -551,7 +492,7 @@ public:
 	 */
 	void Remove(FSetElementId ElementId)
 	{
-		if (Elements.Num())
+		if(HashSize)
 		{
 			const auto& ElementBeingRemoved = Elements[ElementId];
 
@@ -579,7 +520,7 @@ public:
 	 */
 	FSetElementId FindId(KeyInitType Key) const
 	{
-		if (Elements.Num())
+		if(HashSize)
 		{
 			for(FSetElementId ElementId = GetTypedHash(KeyFuncs::GetKeyHash(Key));
 				ElementId.IsValidId();
@@ -640,7 +581,7 @@ public:
 	{
 		int32 NumRemovedElements = 0;
 
-		if (Elements.Num())
+		if(HashSize)
 		{
 			FSetElementId* NextElementId = &GetTypedHash(KeyFuncs::GetKeyHash(Key));
 			while(NextElementId->IsValidId())
@@ -718,7 +659,7 @@ public:
 	void Dump(FOutputDevice& Ar)
 	{
 		Ar.Logf( TEXT("TSet: %i elements, %i hash slots"), Elements.Num(), HashSize );
-		for (int32 HashIndex = 0, LocalHashSize = HashSize; HashIndex < LocalHashSize; ++HashIndex)
+		for(int32 HashIndex = 0;HashIndex < HashSize;HashIndex++)
 		{
 			// Count the number of elements in this hash bucket.
 			int32 NumElementsInBucket = 0;
@@ -736,7 +677,7 @@ public:
 	bool VerifyHashElementsKey(KeyInitType Key)
 	{
 		bool bResult=true;
-		if (Elements.Num())
+		if(HashSize)
 		{
 			// iterate over all elements for the hash entry of the given key 
 			// and verify that the ids are valid
@@ -756,7 +697,7 @@ public:
 
 	void DumpHashElements(FOutputDevice& Ar)
 	{
-		for (int32 HashIndex = 0, LocalHashSize = HashSize; HashIndex < LocalHashSize; ++HashIndex)
+		for(int32 HashIndex = 0;HashIndex < HashSize;HashIndex++)
 		{
 			Ar.Logf(TEXT("   Hash[%i]"),HashIndex);
 
@@ -972,13 +913,12 @@ private:
 		// Free the old hash.
 		Hash.ResizeAllocation(0,0,sizeof(FSetElementId));
 
-		int32 LocalHashSize = HashSize;
-		if (LocalHashSize)
+		if(HashSize)
 		{
 			// Allocate the new hash.
-			checkSlow(!(LocalHashSize & (HashSize - 1)));
-			Hash.ResizeAllocation(0, LocalHashSize, sizeof(FSetElementId));
-			for (int32 HashIndex = 0; HashIndex < LocalHashSize; ++HashIndex)
+			checkSlow(!(HashSize&(HashSize-1)));
+			Hash.ResizeAllocation(0,HashSize,sizeof(FSetElementId));
+			for(int32 HashIndex = 0;HashIndex < HashSize;HashIndex++)
 			{
 				GetTypedHash(HashIndex) = FSetElementId();
 			}

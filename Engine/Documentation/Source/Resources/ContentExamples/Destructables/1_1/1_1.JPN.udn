@@ -1,0 +1,37 @@
+﻿INTSourceChangelist:2435924
+Availability:Docs
+Title:1.1 - ボロノイ
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Destructables
+Description: 破壊性能事例レベルの概要、例 1.1:ボロノイ
+
+
+[VAR:Topic]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Destructables/1_1:title%](Resources/ContentExamples/Destructables/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Destructables/1_1:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Destructables/1_1:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Destructables/1_1]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth raw]
+![](Resources/ContentExamples/Destructables/physics_banner.png)
+[/REGION]
+
+アルゴリズムを使用して自動作成された破壊です。エディタで作成可能です。デストラクタブル メッシュ エディタにある [Fracture] ボタンをクリックするだけで、右下隅の設定に応じてメッシュがフラクチャー (破砕) されます。
+
+[REGION:lightbox]
+[![](1_1_solid.png)(w:300)](1_1_solid.png) [![](1_1_fractured.png)(w:300)](1_1_fractured.png) [![](1_1_blown.png)(w:300)](1_1_blown.png)
+[/REGION]

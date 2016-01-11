@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -20,9 +20,6 @@ private:
 	TMap<FNiagaraVariableInfo, class UNiagaraDataObject*> DataConstants;
 
 public:
-	FNiagaraConstantMap()
-	{
-	}
 
 	void Empty();
 
@@ -247,7 +244,7 @@ public:
 	FORCEINLINE int32 NumScalars()const { return ScalarConstants.Num(); }
 	FORCEINLINE int32 NumVectors()const { return VectorConstants.Num(); }
 	FORCEINLINE int32 NumMatrices()const { return MatrixConstants.Num(); }
-	FORCEINLINE int32 ScalarTableSize()const { return(NumScalars()); }
+	FORCEINLINE int32 ScalarTableSize()const { return(NumScalars() / 4) + FMath::Min(1,NumScalars() % 4); }
 	FORCEINLINE int32 VectorTableSize()const { return(NumVectors()); }
 	FORCEINLINE int32 MatrixTableSize()const { return(NumMatrices() * 4); }
 
@@ -265,7 +262,7 @@ public:
 		int Idx = ScalarConstants.IndexOfByPredicate([&](const FNiagaraConstants_Float& V){ return Constant.Name == V.Name; });
 		if (Idx != INDEX_NONE)
 		{
-			return Idx;
+			return Idx / 4;
 		}
 		return INDEX_NONE;
 	}
@@ -294,4 +291,7 @@ public:
 	{ 
 		return DataObjectConstants.IndexOfByPredicate([&](const FNiagaraConstants_DataObject& V){ return Constant.Name == V.Name; });
 	}
+
+	/** Return the absolute index of the passed scalar. Can be used to get the component index also. */
+	FORCEINLINE int32 GetAbsoluteIndex_Scalar(const FNiagaraVariableInfo& Constant)const{ return ScalarConstants.IndexOfByPredicate([&](const FNiagaraConstants_Float& V){ return Constant.Name == V.Name; });; }
 };

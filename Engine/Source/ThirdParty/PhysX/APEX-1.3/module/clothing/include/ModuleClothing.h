@@ -126,7 +126,7 @@ public:
 	}
 	bool						getLODEnabled() const
 	{
-		return false;
+		return Module::getLODEnabled();
 	}
 	NxApexRenderableIterator*	createRenderableIterator(const NxApexScene&);
 

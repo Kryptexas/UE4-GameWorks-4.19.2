@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -53,7 +53,7 @@ namespace AutomationTool
 		/// Creates a new process and adds it to the tracking list.
 		/// </summary>
 		/// <returns>New Process objects</returns>
-		public static ProcessResult CreateProcess(string AppName, bool bAllowSpew, string LogName, Dictionary<string, string> Env = null, UnrealBuildTool.LogEventType SpewVerbosity = UnrealBuildTool.LogEventType.Console)
+		public static ProcessResult CreateProcess(string AppName, bool bAllowSpew, string LogName, Dictionary<string, string> Env = null, TraceEventType SpewVerbosity = TraceEventType.Information)
 		{
 			var NewProcess = HostPlatform.Current.CreateProcess(LogName);
 			if (Env != null)
@@ -119,14 +119,14 @@ namespace AutomationTool
 				var ProcessName = ProcessesToKill[ProcessIndex].GetProcessName();
 				if (!String.IsNullOrEmpty(ProcessName) && !CanBeKilled(ProcessName))
 				{
-					CommandUtils.LogLog("Ignoring process \"{0}\" because it can't be killed.", ProcessName);
+					CommandUtils.Log("Ignoring process \"{0}\" because it can't be killed.", ProcessName);
 					ProcessesToKill.RemoveAt(ProcessIndex);
 				}
 			}
-			CommandUtils.LogLog("Trying to kill {0} spawned processes.", ProcessesToKill.Count);
+			CommandUtils.Log("Trying to kill {0} spawned processes.", ProcessesToKill.Count);
 			foreach (var Proc in ProcessesToKill)
 			{
-				CommandUtils.LogLog("  {0}", Proc.GetProcessName());
+				CommandUtils.Log("  {0}", Proc.GetProcessName());
 			}
             if (CommandUtils.IsBuildMachine)
             {
@@ -140,12 +140,12 @@ namespace AutomationTool
                             if (!Proc.HasExited)
                             {
                                 AllDone = false;
-								CommandUtils.LogLog("Waiting for process: {0}", Proc.GetProcessName());
+                                CommandUtils.Log(TraceEventType.Information, "Waiting for process: {0}", Proc.GetProcessName());
                             }
                         }
                         catch (Exception)
                         {
-							CommandUtils.LogWarning("Exception Waiting for process");
+                            CommandUtils.Log(TraceEventType.Information, "Exception Waiting for process");
                             AllDone = false;
                         }
                     }
@@ -154,12 +154,12 @@ namespace AutomationTool
                         if (ProcessResult.HasAnyDescendants(Process.GetCurrentProcess()))
                         {
                             AllDone = false;
-							CommandUtils.Log("Waiting for descendants of main process...");
+                            CommandUtils.Log(TraceEventType.Information, "Waiting for descendants of main process...");
                         }
                     }
                     catch (Exception)
                     {
-						CommandUtils.LogWarning("Exception Waiting for descendants of main process");
+                        CommandUtils.Log(TraceEventType.Information, "Exception Waiting for descendants of main process");
                         AllDone = false;
                     }
 
@@ -177,27 +177,27 @@ namespace AutomationTool
 				{
 					if (!Proc.HasExited)
 					{
-						CommandUtils.LogLog("Killing process: {0}", ProcName);
+						CommandUtils.Log(TraceEventType.Information, "Killing process: {0}", ProcName);
 						Proc.StopProcess(false);
 					}
 				}
 				catch (Exception Ex)
 				{
-					CommandUtils.LogWarning("Exception while trying to kill process {0}:", ProcName);
-					CommandUtils.LogWarning(LogUtils.FormatException(Ex));
+					CommandUtils.Log(TraceEventType.Warning, "Exception while trying to kill process {0}:", ProcName);
+					CommandUtils.Log(TraceEventType.Warning, Ex);
 				}
 			}
             try
             {
                 if (CommandUtils.IsBuildMachine && ProcessResult.HasAnyDescendants(Process.GetCurrentProcess()))
                 {
-					CommandUtils.LogLog("current process still has descendants, trying to kill them...");
+                    CommandUtils.Log(TraceEventType.Information, "current process still has descendants, trying to kill them...");
                     ProcessResult.KillAllDescendants(Process.GetCurrentProcess());
                 }
             }
             catch (Exception)
             {
-				CommandUtils.LogWarning("Exception killing descendants of main process");
+                CommandUtils.Log(TraceEventType.Information, "Exception killing descendants of main process");
             }
 
 		}
@@ -214,14 +214,14 @@ namespace AutomationTool
 		private int ProcessExitCode = -1;
 		private StringBuilder ProcessOutput = new StringBuilder();
 		private bool AllowSpew = true;
-		private UnrealBuildTool.LogEventType SpewVerbosity = UnrealBuildTool.LogEventType.Console;
+		private TraceEventType SpewVerbosity = TraceEventType.Information;
 		private string AppName = String.Empty;
 		private Process Proc = null;
 		private AutoResetEvent OutputWaitHandle = new AutoResetEvent(false);
 		private AutoResetEvent ErrorWaitHandle = new AutoResetEvent(false);
 		private object ProcSyncObject;
 
-		public ProcessResult(string InAppName, Process InProc, bool bAllowSpew, string LogName, UnrealBuildTool.LogEventType SpewVerbosity = UnrealBuildTool.LogEventType.Console)
+		public ProcessResult(string InAppName, Process InProc, bool bAllowSpew, string LogName, TraceEventType SpewVerbosity = TraceEventType.Information)
 		{
 			AppName = InAppName;
 			ProcSyncObject = new object();
@@ -258,7 +258,7 @@ namespace AutomationTool
         /// <param name="Verbosity"></param>
         /// <param name="Message"></param>
         [MethodImplAttribute(MethodImplOptions.NoInlining)]
-		private void LogOutput(UnrealBuildTool.LogEventType Verbosity, string Message)
+        private void LogOutput(TraceEventType Verbosity, string Message)
 		{
             UnrealBuildTool.Log.WriteLine(1, Source, Verbosity, Message);
 		}
@@ -448,7 +448,7 @@ namespace AutomationTool
 				}
                 if (!(bStdOutSignalReceived && bStdErrSignalReceived))
                 {
-					CommandUtils.LogLog("Waited for a long time for output of {0}, some output may be missing; we gave up.", AppName);
+                    CommandUtils.Log("Waited for a long time for output of {0}, some output may be missing; we gave up.", AppName);
                 }
 
 				// Double-check if the process terminated
@@ -526,7 +526,7 @@ namespace AutomationTool
 						IsOurDescendant(ProcessToKill, KillCandidate.Id, VisitedPids))
 					{
 						KilledPids.Add(KillCandidate.Id);
-						CommandUtils.LogLog("Trying to kill descendant pid={0}, name={1}", KillCandidate.Id, KillCandidate.ProcessName);
+						CommandUtils.Log("Trying to kill descendant pid={0}, name={1}", KillCandidate.Id, KillCandidate.ProcessName);
 						try
 						{
 							KillCandidate.Kill();
@@ -534,8 +534,8 @@ namespace AutomationTool
 						}
 						catch (Exception Ex)
 						{
-							CommandUtils.LogWarning("Failed to kill descendant:");
-							CommandUtils.LogWarning(LogUtils.FormatException(Ex));
+							CommandUtils.Log(TraceEventType.Warning, "Failed to kill descendant:");
+							CommandUtils.Log(TraceEventType.Warning, Ex);
 						}
 						break;  // exit the loop as who knows what else died, so let's get processes anew
 					}
@@ -555,7 +555,7 @@ namespace AutomationTool
                 HashSet<int> VisitedPids = new HashSet<int>();
                 if (ProcessManager.CanBeKilled(KillCandidate.ProcessName) && IsOurDescendant(ProcessToCheck, KillCandidate.Id, VisitedPids))
                 {
-					CommandUtils.LogLog("Descendant pid={0}, name={1}, filename={2}", KillCandidate.Id, KillCandidate.ProcessName,
+                    CommandUtils.Log("Descendant pid={0}, name={1}, filename={2}", KillCandidate.Id, KillCandidate.ProcessName,
 						KillCandidate.MainModule != null ? KillCandidate.MainModule.FileName : "unknown");
                     return true;
                 }
@@ -587,19 +587,19 @@ namespace AutomationTool
 					ProcToKill.WaitForExit(60000);
 					if (!ProcToKill.HasExited)
 					{
-						CommandUtils.LogLog("Process {0} failed to exit.", ProcToKillName);
+						CommandUtils.Log("Process {0} failed to exit.", ProcToKillName);
 					}
 					else
 					{
-						CommandUtils.LogLog("Process {0} successfully exited.", ProcToKillName);
+						CommandUtils.Log("Process {0} successfully exited.", ProcToKillName);
 						OnProcessExited();
 					}
 					ProcToKill.Close();					
 				}
 				catch (Exception Ex)
 				{
-					CommandUtils.LogWarning("Exception while trying to kill process {0}:", ProcToKillName);
-					CommandUtils.LogWarning(LogUtils.FormatException(Ex));
+					CommandUtils.Log(TraceEventType.Warning, "Exception while trying to kill process {0}:", ProcToKillName);
+					CommandUtils.Log(TraceEventType.Warning, Ex);
 				}
 			}
 		}
@@ -630,7 +630,7 @@ namespace AutomationTool
 		{
 			foreach (var Item in ExeToTimeInMs)
 			{
-				LogVerbose("Run: Total {0}s to run " + Item.Key, Item.Value / 1000);
+				Log("Run: Total {0}s to run " + Item.Key, Item.Value / 1000);
 			}
 			ExeToTimeInMs.Clear();
 		}
@@ -682,10 +682,10 @@ namespace AutomationTool
 			}
 			var StartTime = DateTime.UtcNow;
 
-			UnrealBuildTool.LogEventType SpewVerbosity = Options.HasFlag(ERunOptions.SpewIsVerbose) ? UnrealBuildTool.LogEventType.Verbose : UnrealBuildTool.LogEventType.Console;
+			TraceEventType SpewVerbosity = Options.HasFlag(ERunOptions.SpewIsVerbose) ? TraceEventType.Verbose : TraceEventType.Information;
             if (!Options.HasFlag(ERunOptions.NoLoggingOfRunCommand))
             {
-                LogWithVerbosity(SpewVerbosity,"Run: " + App + " " + (String.IsNullOrEmpty(CommandLine) ? "" : CommandLine));
+                Log(SpewVerbosity,"Run: " + App + " " + (String.IsNullOrEmpty(CommandLine) ? "" : CommandLine));
             }
 			ProcessResult Result = ProcessManager.CreateProcess(App, Options.HasFlag(ERunOptions.AllowSpew), Path.GetFileNameWithoutExtension(App), Env, SpewVerbosity:SpewVerbosity);
 			Process Proc = Result.ProcessObject;
@@ -729,7 +729,7 @@ namespace AutomationTool
 				Result.ExitCode = Proc.ExitCode;
 				if (!Options.HasFlag(ERunOptions.NoLoggingOfRunCommand) || Options.HasFlag(ERunOptions.LoggingOfRunDuration))
                 {
-                    LogWithVerbosity(SpewVerbosity,"Run: Took {0}s to run {1}, ExitCode={2}", BuildDuration / 1000, Path.GetFileName(App), Result.ExitCode);
+                    Log(SpewVerbosity,"Run: Took {0}s to run {1}, ExitCode={2}", BuildDuration / 1000, Path.GetFileName(App), Result.ExitCode);
                 }
 				Result.OnProcessExited();
                 Result.DisposeProcess();
@@ -749,7 +749,7 @@ namespace AutomationTool
         /// <param name="App">Executable to run</param>
         /// <param name="LogName">Name of the logfile ( if null, executable name is used )</param>
         /// <returns>The log file name.</returns>
-        public static string GetRunAndLogOnlyName(CommandEnvironment Env, string App, string LogName = null)
+        public static string GetRunAndLogLogName(CommandEnvironment Env, string App, string LogName = null)
         {
             if (LogName == null)
             {
@@ -769,7 +769,7 @@ namespace AutomationTool
 		/// <param name="Options">Defines the options how to run. See ERunOptions.</param>
 		public static void RunAndLog(CommandEnvironment Env, string App, string CommandLine, string LogName = null, int MaxSuccessCode = 0, string Input = null, ERunOptions Options = ERunOptions.Default, Dictionary<string, string> EnvVars = null)
 		{
-            RunAndLog(App, CommandLine, GetRunAndLogOnlyName(Env, App, LogName), MaxSuccessCode, Input, Options, EnvVars);
+            RunAndLog(App, CommandLine, GetRunAndLogLogName(Env, App, LogName), MaxSuccessCode, Input, Options, EnvVars);
 		}
         /// <summary>
         /// Runs external program and writes the output to a logfile.
@@ -797,7 +797,7 @@ namespace AutomationTool
 
             if (Result > MaxSuccessCode || Result < 0)
             {
-                throw new AutomationException((ExitCode)Result.ExitCode, String.Format("Command failed (Result:{3}): {0} {1}. See logfile for details: '{2}' ",
+                throw new AutomationException((ErrorCodes)Result.ExitCode, String.Format("Command failed (Result:{3}): {0} {1}. See logfile for details: '{2}' ",
                                                 App, CommandLine, Path.GetFileName(Logfile), Result.ExitCode));
             }
             if (Result.Output.Length > 0)
@@ -839,7 +839,7 @@ namespace AutomationTool
         /// <returns>Whether the program executed successfully or not.</returns>
         public static string RunAndLog(CommandEnvironment Env, string App, string CommandLine, out int SuccessCode, string LogName = null, Dictionary<string, string> EnvVars = null)
         {
-            return RunAndLog(App, CommandLine, out SuccessCode, GetRunAndLogOnlyName(Env, App, LogName), EnvVars);
+            return RunAndLog(App, CommandLine, out SuccessCode, GetRunAndLogLogName(Env, App, LogName), EnvVars);
         }
 
 		/// <summary>
@@ -858,15 +858,10 @@ namespace AutomationTool
 				{
 					BaseLogSubdir = BaseLogSubdir + "_" + CommandLine.Substring(0, Space);
 				}
-                else if (CommandLine.Contains("-profile"))
-                {
-                    string PathToProfile = CommandLine.Substring(CommandLine.IndexOf('=') + 1);
-                    BaseLogSubdir = BaseLogSubdir + "_" + (Path.GetFileNameWithoutExtension(PathToProfile));
-                }
-                else
-                {
-                    BaseLogSubdir = BaseLogSubdir + "_" + CommandLine;
-                }
+				else
+				{
+					BaseLogSubdir = BaseLogSubdir + "_" + CommandLine;
+				}
 			}
 			int Index = 0;
 
@@ -890,7 +885,7 @@ namespace AutomationTool
 				LogSubdir = CombinePaths(CmdEnv.LogFolder, DirOnlyName, "");
 			}
 			string LogFile = CombinePaths(CmdEnv.LogFolder, DirOnlyName + ".log");
-			LogVerbose("Recursive UAT Run, in log folder {0}, main log file {1}", LogSubdir, LogFile);
+			Log("Recursive UAT Run, in log folder {0}, main log file {1}", LogSubdir, LogFile);
 			CreateDirectory(LogSubdir);
 
 			string App = CmdEnv.UATExe;
@@ -915,7 +910,7 @@ namespace AutomationTool
 				WriteToFile(LogFile, "[None!, no output produced]");
 			}
 
-			LogVerbose("Flattening log folder {0}", LogSubdir);
+			Log("Flattening log folder {0}", LogSubdir);
 
 			var Files = FindFiles("*", true, LogSubdir);
 			string MyLogFolder = CombinePaths(CmdEnv.LogFolder, "");

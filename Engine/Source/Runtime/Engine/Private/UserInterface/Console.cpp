@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Interaction.cpp: See .UC for for info
@@ -164,7 +164,7 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 			for (TFieldIterator<UProperty> PropIt(Func); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
 			{
 				UProperty *Prop = *PropIt;
-				FuncName = FString::Printf(TEXT("%s[%s]"),*Prop->GetName(),*Prop->GetCPPType());
+				FuncName = FString::Printf(TEXT("%s %s[%s]"),*FuncName,*Prop->GetName(),*Prop->GetCPPType());
 			}
 			AutoCompleteList[NewIdx].Desc = FuncName;
 			ScriptExecCnt++;
@@ -207,8 +207,11 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 				NewIdx = AutoCompleteList.AddZeroed(3);
 			}
 			AutoCompleteList[NewIdx].Command = FString::Printf(TEXT("open %s"),*TrimmedMapName);
+			AutoCompleteList[NewIdx].Desc = FString::Printf(TEXT("open %s"),*TrimmedMapName);
 			AutoCompleteList[NewIdx+1].Command = FString::Printf(TEXT("travel %s"),*TrimmedMapName);
+			AutoCompleteList[NewIdx+1].Desc = FString::Printf(TEXT("travel %s"),*TrimmedMapName);
 			AutoCompleteList[NewIdx+2].Command = FString::Printf(TEXT("servertravel %s"),*TrimmedMapName);
+			AutoCompleteList[NewIdx+2].Desc = FString::Printf(TEXT("servertravel %s"),*TrimmedMapName);
 			//MapNames.AddItem(Pkg);
 		}
 	}
@@ -216,7 +219,7 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 	{
 		int32 NewIdx = AutoCompleteList.AddZeroed(1);
 		AutoCompleteList[NewIdx].Command = FString(TEXT("open 127.0.0.1"));
-		AutoCompleteList[NewIdx].Desc = FString(TEXT("(opens connection to localhost)"));
+		AutoCompleteList[NewIdx].Desc = FString(TEXT("open 127.0.0.1 (opens connection to localhost)"));
 	}
 
 #if STATS
@@ -231,6 +234,7 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 			Command += StatGroupName.ToString().RightChop(sizeof("STATGROUP_") - 1);
 
 			AutoCompleteList[NewIdx].Command = Command;
+			AutoCompleteList[NewIdx].Desc = FString();
 			NewIdx++;
 		}
 	}
@@ -253,7 +257,7 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 				
 				int32 NewIdx = AutoCompleteList.AddZeroed(1);
 				AutoCompleteList[NewIdx].Command = TEXT("show ") + InName;
-				AutoCompleteList[NewIdx].Desc = FString::Printf(TEXT("(toggles the %s showflag)"),*LocName.ToString());
+				AutoCompleteList[NewIdx].Desc = FString::Printf(TEXT("show %s (toggles the %s showflag)"),*InName, *LocName.ToString());
 				
 				return true;
 			}
@@ -415,7 +419,7 @@ void UConsole::SetAutoCompleteFromHistory()
 		FAutoCompleteCommand Cmd;
 
 		Cmd.Command = HistoryBuffer[i]; 
-		Cmd.SetHistory();
+		Cmd.Desc = FString::Printf(TEXT("> %s"), *Cmd.Command);
 
 		AutoComplete.Add(Cmd);
 	}
@@ -445,17 +449,24 @@ void UConsole::ConsoleCommand(const FString& Command)
 
 	OutputText(FString::Printf(TEXT("\n>>> %s <<<"), *Command));
 
-	UGameInstance* GameInstance = GetOuterUGameViewportClient()->GetGameInstance();
+	UWorld *World = GetOuterUGameViewportClient()->GetWorld();
 	if(ConsoleTargetPlayer != NULL)
 	{
 		// If there is a console target player, execute the command in the player's context.
 		ConsoleTargetPlayer->PlayerController->ConsoleCommand(Command);
 	}
-	else if(GameInstance && GameInstance->GetFirstLocalPlayerController())
+	else if(World && World->GetPlayerControllerIterator())
 	{
-		// If there are any players, execute the command in the first local player's context.
-		APlayerController* PC = GameInstance->GetFirstLocalPlayerController();
-		PC->ConsoleCommand(Command);
+		// If there are any players, execute the command in the first player's context that has a non-null Player.
+		for (auto PCIter = World->GetPlayerControllerIterator(); PCIter; ++PCIter)
+		{
+			APlayerController* PC = *PCIter;
+			if (PC && PC->Player)
+			{
+				PC->ConsoleCommand(Command);
+				break;
+			}
+		}
 	}
 	else
 	{
@@ -886,10 +897,8 @@ namespace ConsoleDefs
 	static const FColor CursorColor( 255, 255, 255 );
 	static const FColor InputTextColor( 220, 220, 220 );
 	static const FColor AutocompleteBackgroundColor( 0, 0, 0 );
-	static const FColor AutocompletePartialSuggestionColor( 100, 100, 100 );
+	static const FColor AutocompletePartialSuggestionColor( 120, 120, 120 );
 	static const FColor AutocompleteSuggestionColor( 180, 180, 180 );
-	static const FColor CursorLineColor( 0, 50, 0 );
-	static const int32 AutocompleteGap = 6;
 
 	/** Text that appears before the user's typed input string that acts as a visual cue for the editable area */
 	static const FString LeadingInputText( TEXT( " > " ) );
@@ -1217,7 +1226,7 @@ void UConsole::PostRender_InputLine(UCanvas* Canvas, FIntPoint UserInputLinePos)
 		ConsoleTile.Texture = DefaultTexture_White->Resource;
 
 		// wasteful memory allocations but when typing in a console command this is fine
-		TArray<const FAutoCompleteCommand*> AutoCompleteElements;
+		TArray<FString> AutoCompleteElements;
 		// to avoid memory many allocations
 		AutoCompleteElements.Empty(MAX_AUTOCOMPLETION_LINES + 1);
 
@@ -1226,42 +1235,36 @@ void UConsole::PostRender_InputLine(UCanvas* Canvas, FIntPoint UserInputLinePos)
 			const FAutoCompleteCommand &Cmd = AutoComplete[StartIdx + MatchIdx];
 			OutStr = Cmd.Desc;
 
-			AutoCompleteElements.Add(&Cmd);
+			if(OutStr.IsEmpty())
+			{
+				// no Description means we display the Command directly, without that the line would be empty (happens for ConsoleVariables and some ConsoleSettings->ManualAutoCompleteList)
+				OutStr = Cmd.Command;
+			}
+
+			AutoCompleteElements.Add(OutStr);
 		}
 
 		// Display a message if there were more matches
 		if (AutoComplete.Num() >= MAX_AUTOCOMPLETION_LINES)
 		{
-			static FAutoCompleteCommand MoreMatchesLine;
-
-			MoreMatchesLine.Desc = FString::Printf(TEXT("[%i more matches]"), (AutoComplete.Num() - MAX_AUTOCOMPLETION_LINES + 1));
-			AutoCompleteElements.Add(&MoreMatchesLine);
+			OutStr = FString::Printf(TEXT("[%i more matches]"), (AutoComplete.Num() - MAX_AUTOCOMPLETION_LINES + 1));
+			AutoCompleteElements.Add(OutStr);
 		}
 
 		// background rectangle behind auto completion
-		float MaxWidth = 0;
 		{
+			float MaxWidth = 0;
 			float MaxHeight = 0;
 
 			for(int32 i = 0, Num = AutoCompleteElements.Num(); i < Num; ++i)
 			{
-				const FAutoCompleteCommand& AutoCompleteElement = *AutoCompleteElements[i];
+				const FString& AutoCompleteElement = AutoCompleteElements[i];
 
-				float Width = 0;
-				{
-					float info_xl, info_yl;
-					Canvas->StrLen(Font, AutoCompleteElement.GetLeft(), info_xl, info_yl);
-					Width += info_xl;
-				}
-				if(!AutoCompleteElement.Desc.IsEmpty())
-				{
-					Width += ConsoleDefs::AutocompleteGap;
+				float info_xl, info_yl;
 
-					float info_xl, info_yl;
-					Canvas->StrLen(Font, AutoCompleteElement.GetRight(), info_xl, info_yl);
-					Width += info_xl;
-				}
-				MaxWidth = FMath::Max(MaxWidth, Width);
+				Canvas->StrLen(Font, AutoCompleteElement, info_xl, info_yl);
+
+				MaxWidth = FMath::Max(MaxWidth, info_xl);
 				MaxHeight += yl;
 			}
 
@@ -1283,45 +1286,19 @@ void UConsole::PostRender_InputLine(UCanvas* Canvas, FIntPoint UserInputLinePos)
 		// auto completion elements
 		for(int32 i = 0, Num = AutoCompleteElements.Num(); i < Num; ++i)
 		{
-			const FAutoCompleteCommand& AutoCompleteElement = *AutoCompleteElements[i];
+			const FString& AutoCompleteElement = AutoCompleteElements[i];
 
-			const bool bCursorLineColor = (i == AutoCompleteCursor);
-			const bool bMoreMatches = (Num >= MAX_AUTOCOMPLETION_LINES && i == Num - 1);
-			const bool bHistory = AutoCompleteElement.IsHistory();
-		
-			FColor LeftC = ConsoleDefs::AutocompleteSuggestionColor;
-			FColor RightC = ConsoleDefs::AutocompletePartialSuggestionColor;
-
-			if(bCursorLineColor)
+			if (i == AutoCompleteCursor									// cursor line is highlighted
+				|| (Num >= MAX_AUTOCOMPLETION_LINES && i == Num - 1))	// e.g. [%i more matches]
 			{
-				ConsoleTile.Size = FVector2D(MaxWidth, yl);
-				ConsoleTile.SetColor(ConsoleDefs::CursorLineColor);
-				Canvas->DrawItem(ConsoleTile, UserInputLinePos.X + xl, y);
-				LeftC = ConsoleDefs::CursorColor;
+				ConsoleText.SetColor( ConsoleDefs::AutocompleteSuggestionColor );
 			}
-
-			if(bMoreMatches)
+			else
 			{
-				LeftC = RightC = ConsoleDefs::AutocompletePartialSuggestionColor;
+				ConsoleText.SetColor( ConsoleDefs::AutocompletePartialSuggestionColor );
 			}
-
-			if(bHistory)
-			{
-				// > HistoryElement has the strings swapped so we need to swap the colors
-				Swap(LeftC, RightC);
-			}
-
-			ConsoleText.SetColor(LeftC);
-			ConsoleText.Text = FText::FromString(AutoCompleteElement.GetLeft());
+			ConsoleText.Text = FText::FromString(AutoCompleteElement);
 			Canvas->DrawItem( ConsoleText, UserInputLinePos.X + xl, y );
-			float info_xl;
-			{
-				float info_yl;
-				Canvas->StrLen(Font, AutoCompleteElement.GetLeft(), info_xl, info_yl);
-			}
-			ConsoleText.SetColor(RightC);
-			ConsoleText.Text = FText::FromString(AutoCompleteElement.GetRight());
-			Canvas->DrawItem( ConsoleText, UserInputLinePos.X + xl + info_xl + ConsoleDefs::AutocompleteGap, y );
 			y -= yl;
 		}
 	}
@@ -1352,12 +1329,7 @@ void UConsole::FakeGotoState(FName NextStateName)
 	if (NextStateName == NAME_Typing)
 	{
 		BeginState_Typing(ConsoleState);
-
-		// Save the currently focused widget so that we can restore to it once the console is closed
-		PreviousFocusedWidget = FSlateApplication::Get().GetKeyboardFocusedWidget();
-
 		FSlateApplication::Get().ResetToDefaultPointerInputSettings();
-		FSlateApplication::Get().SetKeyboardFocus(GetOuterUGameViewportClient()->GetGameViewportWidget());
 	}
 	else if (NextStateName == NAME_Open)
 	{
@@ -1370,23 +1342,13 @@ void UConsole::FakeGotoState(FName NextStateName)
 		// to SetKeyboardFocus the console is still considered active
 		ConsoleState = NAME_None;
 
-		TSharedPtr<SWidget> WidgetToFocus;
-		if (PreviousFocusedWidget.IsValid())
-		{
-			// Restore focus to whatever was the focus before the console was opened.
-			WidgetToFocus = PreviousFocusedWidget.Pin();
-		}
-		else
-		{
-			// Since the viewport may not be the current focus, we need to re-focus whatever the current focus is,
-			// in order to ensure it gets a chance to reapply any custom input settings
-			WidgetToFocus = FSlateApplication::Get().GetKeyboardFocusedWidget();
-		}
-
-		if (WidgetToFocus.IsValid())
+		// Since the viewport may not be the current focus, we need to re-focus whatever the current focus is,
+		// in order to ensure it gets a chance to reapply any custom input settings
+		auto CurrentFocus = FSlateApplication::Get().GetKeyboardFocusedWidget();
+		if (CurrentFocus.IsValid())
 		{
 			FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::SetDirectly);
-			FSlateApplication::Get().SetKeyboardFocus(WidgetToFocus);
+			FSlateApplication::Get().SetKeyboardFocus(CurrentFocus);
 		}
 	}
 

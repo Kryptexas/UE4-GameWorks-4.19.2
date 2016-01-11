@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "DataProviders/AIDataProvider.h"
@@ -31,16 +31,16 @@ void FAIDataProviderValue::GetMatchingProperties(TArray<FName>& MatchingProperti
 }
 
 template<typename T>
-T* FAIDataProviderValue::GetRawValuePtr() const
+T* FAIDataProviderValue::GetRawValue() const
 {
 	return CachedProperty ? CachedProperty->ContainerPtrToValuePtr<T>(DataBinding) : nullptr;
 }
 
-void FAIDataProviderValue::BindData(const UObject* Owner, int32 RequestId) const
+void FAIDataProviderValue::BindData(UObject* Owner, int32 RequestId) const
 {
-	if (DataBinding && ensure(Owner))
+	if (DataBinding)
 	{
-		DataBinding->BindData(*Owner, RequestId);
+		DataBinding->BindData(Owner, RequestId);
 		CachedProperty = DataBinding->GetClass()->FindPropertyByName(DataField);
 	}
 }
@@ -89,7 +89,7 @@ FAIDataProviderIntValue::FAIDataProviderIntValue()
 
 int32 FAIDataProviderIntValue::GetValue() const
 {
-	int32* PropValue = GetRawValuePtr<int32>();
+	int32* PropValue = GetRawValue<int32>();
 	return PropValue ? *PropValue : DefaultValue;
 }
 
@@ -108,7 +108,7 @@ FAIDataProviderFloatValue::FAIDataProviderFloatValue()
 
 float FAIDataProviderFloatValue::GetValue() const
 {
-	float* PropValue = GetRawValuePtr<float>();
+	float* PropValue = GetRawValue<float>();
 	return PropValue ? *PropValue : DefaultValue;
 }
 
@@ -127,7 +127,7 @@ FAIDataProviderBoolValue::FAIDataProviderBoolValue()
 
 bool FAIDataProviderBoolValue::GetValue() const
 {
-	bool* PropValue = GetRawValuePtr<bool>();
+	bool* PropValue = GetRawValue<bool>();
 	return PropValue ? *PropValue : DefaultValue;
 }
 
@@ -143,7 +143,7 @@ UAIDataProvider::UAIDataProvider(const FObjectInitializer& ObjectInitializer) : 
 {
 }
 
-void UAIDataProvider::BindData(const UObject& Owner, int32 RequestId)
+void UAIDataProvider::BindData(UObject* Owner, int32 RequestId)
 {
 	// empty in base class
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Services/BTService_DefaultFocus.h"
@@ -30,7 +30,7 @@ void UBTService_DefaultFocus::OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp
 	MyMemory->Reset();
 
 	AAIController* OwnerController = OwnerComp.GetAIOwner();
-	UBlackboardComponent* MyBlackboard = OwnerComp.GetBlackboardComponent();
+	const UBlackboardComponent* MyBlackboard = OwnerComp.GetBlackboardComponent();
 	
 	if (OwnerController != NULL && MyBlackboard != NULL)
 	{
@@ -51,9 +51,6 @@ void UBTService_DefaultFocus::OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp
 			OwnerController->SetFocalPoint(FocusLocation, FocusPriority);
 			MyMemory->FocusLocationSet = FocusLocation;
 		}
-
-		auto KeyID = BlackboardKey.GetSelectedKeyID();
-		MyBlackboard->RegisterObserver(KeyID, this, FOnBlackboardChangeNotification::CreateUObject(this, &UBTService_DefaultFocus::OnBlackboardKeyValueChange));
 	}
 }
 
@@ -81,12 +78,6 @@ void UBTService_DefaultFocus::OnCeaseRelevant(UBehaviorTreeComponent& OwnerComp,
 			OwnerController->ClearFocus(FocusPriority);
 		}
 	}
-
-	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
-	if (BlackboardComp)
-	{
-		BlackboardComp->UnregisterObserversFrom(this);
-	}
 }
 
 FString UBTService_DefaultFocus::GetStaticDescription() const
@@ -101,39 +92,9 @@ FString UBTService_DefaultFocus::GetStaticDescription() const
 	return FString::Printf(TEXT("Set default focus to %s"), *KeyDesc);
 }
 
-EBlackboardNotificationResult UBTService_DefaultFocus::OnBlackboardKeyValueChange(const UBlackboardComponent& Blackboard, FBlackboard::FKey ChangedKeyID)
+void UBTService_DefaultFocus::DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
-	UBehaviorTreeComponent* OwnerComp = Cast<UBehaviorTreeComponent>(Blackboard.GetBrainComponent());
-	AAIController* OwnerController = OwnerComp ? OwnerComp->GetAIOwner() : nullptr;
-	if (OwnerController == nullptr)
-	{
-		return EBlackboardNotificationResult::ContinueObserving;
-	}
-
-	const int32 NodeInstanceIdx = OwnerComp->FindInstanceContainingNode(this);
-	FBTFocusMemory* MyMemory = (FBTFocusMemory*)OwnerComp->GetNodeMemory(this, NodeInstanceIdx);
-	MyMemory->Reset();
-	OwnerController->ClearFocus(FocusPriority);
-
-	if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Object::StaticClass())
-	{
-		UObject* KeyValue = Blackboard.GetValue<UBlackboardKeyType_Object>(ChangedKeyID);
-		AActor* TargetActor = Cast<AActor>(KeyValue);
-		if (TargetActor)
-		{
-			OwnerController->SetFocus(TargetActor, FocusPriority);
-			MyMemory->FocusActorSet = TargetActor;
-			MyMemory->bActorSet = true;
-		}
-	}
-	else
-	{
-		const FVector FocusLocation = Blackboard.GetValue<UBlackboardKeyType_Vector>(ChangedKeyID);
-		OwnerController->SetFocalPoint(FocusLocation, FocusPriority);
-		MyMemory->FocusLocationSet = FocusLocation;
-	}
-
-	return EBlackboardNotificationResult::ContinueObserving;
+	Super::DescribeRuntimeValues(OwnerComp, NodeMemory, Verbosity, Values);
 }
 
 #if WITH_EDITOR

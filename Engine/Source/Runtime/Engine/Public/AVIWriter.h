@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AVIWriter.h: Helper class for creating AVI files.
 =============================================================================*/
 
 #pragma once
+
+#include "UnrealClient.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogMovieCapture, Warning, All);
 
@@ -17,8 +19,6 @@ struct FAVIWriterOptions
 		: OutputFilename(FPaths::VideoCaptureDir() / TEXT("Capture.avi"))
 		, CaptureFPS(30)
 		, bSynchronizeFrames(false)
-		, Width(0)
-		, Height(0)
 	{}
 
 	/** Output filename */
@@ -35,10 +35,6 @@ struct FAVIWriterOptions
 
 	/** When true, the game thread will block until captured frames have been processed by the avi writer */
 	bool bSynchronizeFrames;
-
-	uint32 Width;
-
-	uint32 Height;
 };
 
 /** Data structure representing a captured frame */
@@ -120,13 +116,14 @@ private:
 	TOptional<TFuture<void>> UnarchiveTask;
 };
 
-/** Class responsible for writing frames out to an AVI file */
+/** Class responsible for capturing frames from a viewport, and writing them out to an AVI file */
 class FAVIWriter
 {
 protected:
 	/** Protected constructor to avoid abuse. */
 	FAVIWriter(const FAVIWriterOptions& InOptions) 
 		: bCapturing(false)
+		, CaptureViewport(nullptr)
 		, FrameNumber(0)
 		, Options(InOptions)
 	{
@@ -134,6 +131,9 @@ protected:
 
 	/** Whether we are capturing or not */
 	FThreadSafeBool bCapturing;
+
+	/** The viewport we are capturing from */
+	FViewport* CaptureViewport;
 
 	/** The current frame number */
 	int32 FrameNumber;
@@ -166,12 +166,12 @@ public:
 
 	uint32 GetWidth() const
 	{
-		return Options.Width;
+		return CaptureViewport ? CaptureViewport->GetSizeXY().X : 0;
 	}
 
 	uint32 GetHeight() const
 	{
-		return Options.Height;
+		return CaptureViewport ? CaptureViewport->GetSizeXY().Y : 0;
 	}
 
 	int32 GetFrameNumber() const
@@ -184,10 +184,15 @@ public:
 		return bCapturing;
 	}
 
-	ENGINE_API void Update(double FrameTimeSeconds, TArray<FColor> FrameData);
+	FViewport* GetViewport()
+	{
+		return CaptureViewport;
+	}
+
+	ENGINE_API void Update(double FrameTimeSeconds);
 	
-	virtual void Initialize() = 0;
-	virtual void Finalize() = 0;
-	
+	virtual void StartCapture(FViewport* Viewport = NULL) = 0;
+	virtual void StopCapture() = 0;
+	virtual void Close() = 0;
 	virtual void DropFrames(int32 NumFramesToDrop) = 0;
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LandscapeSpline.cpp
@@ -284,7 +284,7 @@ public:
 		}
 	}
 
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
 	{
 		FPrimitiveViewRelevance Result;
 		Result.bDrawRelevance = IsShown(View) && View->Family->EngineShowFlags.Splines;
@@ -1723,8 +1723,7 @@ void ULandscapeSplineSegment::PostInitProperties()
 	Super::PostInitProperties();
 
 #if WITH_EDITORONLY_DATA
-	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad) &&
-		!HasAnyInternalFlags(EInternalObjectFlags::AsyncLoading))
+	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad | RF_AsyncLoading))
 	{
 		// create a new random seed for all new objects
 		RandomSeed = FMath::Rand();
@@ -1780,38 +1779,38 @@ void ULandscapeSplineSegment::PostLoad()
 		ULandscapeSplinesComponent* OuterSplines = GetOuterULandscapeSplinesComponent();
 		if (OuterSplines->SplineEditorMesh != nullptr)
 		{
-			for (auto* LocalMeshComponent : LocalMeshComponents)
+			for (auto* MeshComponent : LocalMeshComponents)
 			{
-				if (LocalMeshComponent->StaticMesh == nullptr)
+				if (MeshComponent->StaticMesh == nullptr)
 				{
-					LocalMeshComponent->ConditionalPostLoad();
-					LocalMeshComponent->SetStaticMesh(OuterSplines->SplineEditorMesh);
-					LocalMeshComponent->SetHiddenInGame(true);
-					LocalMeshComponent->SetVisibility(OuterSplines->bShowSplineEditorMesh);
-					LocalMeshComponent->BodyInstance.SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+					MeshComponent->ConditionalPostLoad();
+					MeshComponent->SetStaticMesh(OuterSplines->SplineEditorMesh);
+					MeshComponent->SetHiddenInGame(true);
+					MeshComponent->SetVisibility(OuterSplines->bShowSplineEditorMesh);
+					MeshComponent->BodyInstance.SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 				}
 			}
 		}
 
-		for (auto* LocalMeshComponent : LocalMeshComponents)
+		for (auto* MeshComponent : LocalMeshComponents)
 		{
-			OuterSplines->MeshComponentLocalOwnersMap.Add(LocalMeshComponent, this);
+			OuterSplines->MeshComponentLocalOwnersMap.Add(MeshComponent, this);
 		}
 	}
 
 	if (GetLinkerUE4Version() < VER_UE4_LANDSCAPE_SPLINE_CROSS_LEVEL_MESHES)
 	{
 		// Fix collision profile
-		for (auto* LocalMeshComponent : LocalMeshComponents) // ForeignMeshComponents didn't exist yet
+		for (auto* MeshComponent : LocalMeshComponents) // ForeignMeshComponents didn't exist yet
 		{
-			const bool bUsingEditorMesh = LocalMeshComponent->bHiddenInGame;
+			const bool bUsingEditorMesh = MeshComponent->bHiddenInGame;
 			const FName CollisionProfile = (bEnableCollision && !bUsingEditorMesh) ? UCollisionProfile::BlockAll_ProfileName : UCollisionProfile::NoCollision_ProfileName;
-			if (LocalMeshComponent->GetCollisionProfileName() != CollisionProfile)
+			if (MeshComponent->GetCollisionProfileName() != CollisionProfile)
 			{
-				LocalMeshComponent->SetCollisionProfileName(CollisionProfile);
+				MeshComponent->SetCollisionProfileName(CollisionProfile);
 			}
 
-			LocalMeshComponent->SetFlags(RF_TextExportTransient);
+			MeshComponent->SetFlags(RF_TextExportTransient);
 		}
 	}
 #endif
@@ -1824,20 +1823,20 @@ void ULandscapeSplineSegment::SetSplineSelected(bool bInSelected)
 	bSelected = bInSelected;
 	GetOuterULandscapeSplinesComponent()->MarkRenderStateDirty();
 
-	for (auto* LocalMeshComponent : LocalMeshComponents)
+	for (auto* MeshComponent : LocalMeshComponents)
 	{
-		LocalMeshComponent->bSelected = bInSelected;
-		LocalMeshComponent->PushSelectionToProxy();
+		MeshComponent->bSelected = bInSelected;
+		MeshComponent->PushSelectionToProxy();
 	}
 
 	auto ForeignMeshComponentsMap = GetForeignMeshComponents();
 	for (auto& ForeignMeshComponentsPair : ForeignMeshComponentsMap)
 	{
 		ULandscapeSplinesComponent* MeshComponentOuterSplines = ForeignMeshComponentsPair.Key;
-		for (auto* ForeignMeshComponent : ForeignMeshComponentsPair.Value)
+		for (auto* MeshComponent : ForeignMeshComponentsPair.Value)
 		{
-			ForeignMeshComponent->bSelected = bInSelected;
-			ForeignMeshComponent->PushSelectionToProxy();
+			MeshComponent->bSelected = bInSelected;
+			MeshComponent->PushSelectionToProxy();
 		}
 	}
 }
@@ -2007,19 +2006,19 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 	auto ForeignMeshComponentsMap = GetForeignMeshComponents();
 
 	// Unregister components
-	for (auto* LocalMeshComponent : OldLocalMeshComponents)
+	for (auto* MeshComponent : OldLocalMeshComponents)
 	{
-		LocalMeshComponent->Modify();
-		LocalMeshComponent->UnregisterComponent();
+		MeshComponent->Modify();
+		MeshComponent->UnregisterComponent();
 	}
 	for (auto& ForeignMeshComponentsPair : ForeignMeshComponentsMap)
 	{
 		ForeignMeshComponentsPair.Key->Modify();
 		ForeignMeshComponentsPair.Key->GetOwner()->Modify();
-		for (auto* ForeignMeshComponent : ForeignMeshComponentsPair.Value)
+		for (auto* MeshComponent : ForeignMeshComponentsPair.Value)
 		{
-			ForeignMeshComponent->Modify();
-			ForeignMeshComponent->UnregisterComponent();
+			MeshComponent->Modify();
+			MeshComponent->UnregisterComponent();
 		}
 	}
 
@@ -2149,21 +2148,21 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 		MeshSettings.Add(FMeshSettings(T, nullptr));
 
 		// Destroy old unwanted components now
-		for (UMeshComponent* LocalMeshComponent : OldLocalMeshComponents)
+		for (UMeshComponent* MeshComponent : OldLocalMeshComponents)
 		{
-			checkSlow(OuterSplines->MeshComponentLocalOwnersMap.FindRef(LocalMeshComponent) == this);
-			verifySlow(OuterSplines->MeshComponentLocalOwnersMap.Remove(LocalMeshComponent) == 1);
-			LocalMeshComponent->DestroyComponent();
+			checkSlow(OuterSplines->MeshComponentLocalOwnersMap.FindRef(MeshComponent) == this);
+			verifySlow(OuterSplines->MeshComponentLocalOwnersMap.Remove(MeshComponent) == 1);
+			MeshComponent->DestroyComponent();
 		}
 		OldLocalMeshComponents.Empty();
 
 		for (auto& ForeignMeshComponentsPair : ForeignMeshComponentsMap)
 		{
 			ULandscapeSplinesComponent* MeshComponentOuterSplines = ForeignMeshComponentsPair.Key;
-			for (auto* ForeignMeshComponent : ForeignMeshComponentsPair.Value)
+			for (auto* MeshComponent : ForeignMeshComponentsPair.Value)
 			{
-				MeshComponentOuterSplines->RemoveForeignMeshComponent(this, ForeignMeshComponent);
-				ForeignMeshComponent->DestroyComponent();
+				MeshComponentOuterSplines->RemoveForeignMeshComponent(this, MeshComponent);
+				MeshComponent->DestroyComponent();
 			}
 		}
 		ForeignMeshComponentsMap.Empty();
@@ -2356,11 +2355,11 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 	else
 	{
 		// Spline needs no mesh components (0 length or no meshes to use) so destroy any we have
-		for (auto* LocalMeshComponent : OldLocalMeshComponents)
+		for (auto* MeshComponent : OldLocalMeshComponents)
 		{
-			checkSlow(OuterSplines->MeshComponentLocalOwnersMap.FindRef(LocalMeshComponent) == this);
-			verifySlow(OuterSplines->MeshComponentLocalOwnersMap.Remove(LocalMeshComponent) == 1);
-			LocalMeshComponent->DestroyComponent();
+			checkSlow(OuterSplines->MeshComponentLocalOwnersMap.FindRef(MeshComponent) == this);
+			verifySlow(OuterSplines->MeshComponentLocalOwnersMap.Remove(MeshComponent) == 1);
+			MeshComponent->DestroyComponent();
 		}
 		OldLocalMeshComponents.Empty();
 		for (auto& ForeignMeshComponentsPair : ForeignMeshComponentsMap)
@@ -2383,22 +2382,22 @@ void ULandscapeSplineSegment::UpdateSplineEditorMesh()
 {
 	ULandscapeSplinesComponent* OuterSplines = CastChecked<ULandscapeSplinesComponent>(GetOuter());
 
-	for (auto* LocalMeshComponent : LocalMeshComponents)
+	for (auto* MeshComponent : LocalMeshComponents)
 	{
-		if (LocalMeshComponent->bHiddenInGame)
+		if (MeshComponent->bHiddenInGame)
 		{
-			LocalMeshComponent->SetVisibility(OuterSplines->bShowSplineEditorMesh);
+			MeshComponent->SetVisibility(OuterSplines->bShowSplineEditorMesh);
 		}
 	}
 
 	auto ForeignMeshComponentsMap = GetForeignMeshComponents();
 	for (auto& ForeignMeshComponentsPair : ForeignMeshComponentsMap)
 	{
-		for (auto* ForeignMeshComponent : ForeignMeshComponentsPair.Value)
+		for (auto* MeshComponent : ForeignMeshComponentsPair.Value)
 		{
-			if (ForeignMeshComponent->bHiddenInGame)
+			if (MeshComponent->bHiddenInGame)
 			{
-				ForeignMeshComponent->SetVisibility(OuterSplines->bShowSplineEditorMesh);
+				MeshComponent->SetVisibility(OuterSplines->bShowSplineEditorMesh);
 			}
 		}
 	}
@@ -2436,11 +2435,11 @@ void ULandscapeSplineSegment::DeleteSplinePoints()
 		ULandscapeSplinesComponent* MeshComponentOuterSplines = ForeignMeshComponentsPair.Key;
 		MeshComponentOuterSplines->Modify();
 		MeshComponentOuterSplines->GetOwner()->Modify();
-		for (auto* ForeignMeshComponent : ForeignMeshComponentsPair.Value)
+		for (auto* MeshComponent : ForeignMeshComponentsPair.Value)
 		{
-			ForeignMeshComponent->Modify();
-			MeshComponentOuterSplines->RemoveForeignMeshComponent(this, ForeignMeshComponent);
-			ForeignMeshComponent->DestroyComponent();
+			MeshComponent->Modify();
+			MeshComponentOuterSplines->RemoveForeignMeshComponent(this, MeshComponent);
+			MeshComponent->DestroyComponent();
 		}
 	}
 

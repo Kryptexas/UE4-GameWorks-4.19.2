@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ShaderFormatD3D.h"
 #include "ShaderPreprocessor.h"
@@ -26,37 +26,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogD3D11ShaderCompiler, Log, All);
 #undef DrawText
 
 #pragma warning(pop)
-
-static int32 GD3DAllowRemoveUnused = 0;
-static FAutoConsoleVariableRef CVarD3DUseExternalShaderCompiler(
-	TEXT("r.D3DRemoveUnusedInterpolators"),
-	GD3DAllowRemoveUnused,
-	TEXT("Enables removing unused interpolators mode when compiling pipelines for D3D.\n")
-	TEXT(" -1: Do not actually remove, but make the app think it did (for debugging)\n")
-	TEXT(" 0: Disable (default)\n")
-	TEXT(" 1: Enable removing unused"),
-	ECVF_Default
-	);
-
-static int32 GD3DCheckForDoubles = 1;
-static FAutoConsoleVariableRef CVarD3DCheckForDoubles(
-	TEXT("r.D3DCheckShadersForDouble"),
-	GD3DCheckForDoubles,
-	TEXT("Enables checking the D3D microcode for uses of double. This is not allowed on all D3D11 cards.\n")
-	TEXT(" 0: Do not check for faster compilation\n")
-	TEXT(" 1: Enable checking and error if found (default)"),
-	ECVF_Default
-	);
-
-static int32 GD3DDumpAMDCodeXLFile = 0;
-static FAutoConsoleVariableRef CVarD3DDumpAMDCodeXLFile(
-	TEXT("r.D3DDumpAMDCodeXLFile"),
-	GD3DDumpAMDCodeXLFile,
-	TEXT("When r.DumpShaderDebugInfo is enabled, this will generate a batch file for running CodeXL.\n")
-	TEXT(" 0: Do not generate extra batch file (default)\n")
-	TEXT(" 1: Enable generating extra batch file"),
-	ECVF_Default
-	);
 
 /**
  * TranslateCompilerFlag - translates the platform-independent compiler flags into D3DX defines
@@ -184,12 +153,6 @@ static FString D3D11CreateShaderCompileCommandLine(
 		FXCCommandline += FString(TEXT(" /Od"));
 	}
 
-	if (CompileFlags & D3D10_SHADER_SKIP_VALIDATION)
-	{
-		CompileFlags &= ~D3D10_SHADER_SKIP_VALIDATION;
-		FXCCommandline += FString(TEXT(" /Vd"));
-	}
-
 	if(CompileFlags & D3D10_SHADER_AVOID_FLOW_CONTROL)
 	{
 		CompileFlags &= ~D3D10_SHADER_AVOID_FLOW_CONTROL;
@@ -208,20 +171,16 @@ static FString D3D11CreateShaderCompileCommandLine(
 		FXCCommandline += FString(TEXT(" /Gec"));
 	}
 
-	if ((CompileFlags & D3D10_SHADER_OPTIMIZATION_LEVEL2) == D3D10_SHADER_OPTIMIZATION_LEVEL2)
-	{
-		CompileFlags &= ~D3D10_SHADER_OPTIMIZATION_LEVEL2;
-		FXCCommandline += FString(TEXT(" /O2"));
-	}
-	else if (CompileFlags & D3D10_SHADER_OPTIMIZATION_LEVEL3)
-	{
-		CompileFlags &= ~D3D10_SHADER_OPTIMIZATION_LEVEL3;
-		FXCCommandline += FString(TEXT(" /O3"));
-	}
-	else if (CompileFlags & D3D10_SHADER_OPTIMIZATION_LEVEL1)
+	if(CompileFlags & D3D10_SHADER_OPTIMIZATION_LEVEL1)
 	{
 		CompileFlags &= ~D3D10_SHADER_OPTIMIZATION_LEVEL1;
 		FXCCommandline += FString(TEXT(" /O1"));
+	}
+
+	if(CompileFlags & D3D10_SHADER_OPTIMIZATION_LEVEL3)
+	{
+		CompileFlags &= ~D3D10_SHADER_OPTIMIZATION_LEVEL3;
+		FXCCommandline += FString(TEXT(" /O3"));
 	}
 
 	checkf(CompileFlags == 0, TEXT("Unhandled d3d11 shader compiler flag!"));
@@ -347,117 +306,174 @@ HRESULT D3DCompileWrapper(
 #endif
 }
 
-// Utility variable so we can place a breakpoint while debugging
-static int32 GBreakpoint = 0;
-
-// Generate the dumped usf file; call the D3D compiler, gather reflection information and generate the output data
-static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const FString& CompilerPath,
-	uint32 CompileFlags, const FShaderCompilerInput& Input, FString& EntryPointName,
-	const TCHAR* ShaderProfile, bool bProcessingSecondTime, TArray<FString>& FilteredErrors, FShaderCompilerOutput& Output)
+void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput& Output, FShaderCompilerDefinitions& AdditionalDefines, const FString& WorkingDirectory)
 {
-	auto AnsiSourceFile = StringCast<ANSICHAR>(*PreprocessedShaderSource);
+	FString PreprocessedShaderSource;
+	FString CompilerPath;
+	const TCHAR* ShaderProfile = GetShaderProfileName(Input.Target);
 
-	// Write out the preprocessed file and a batch file to compile it if requested (DumpDebugInfoPath is valid)
-	if (Input.DumpDebugInfoPath.Len() > 0 && IFileManager::Get().DirectoryExists(*Input.DumpDebugInfoPath))
+	if(!ShaderProfile)
 	{
-		FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / Input.SourceFilename + TEXT(".usf")));
-		if (FileWriter)
-		{
-			FileWriter->Serialize((ANSICHAR*)AnsiSourceFile.Get(), AnsiSourceFile.Length());
-			FileWriter->Close();
-			delete FileWriter;
-		}
+		Output.Errors.Add(FShaderCompilerError(TEXT("Unrecognized shader frequency")));
+		return;
+	}
 
-		const FString BatchFileContents = D3D11CreateShaderCompileCommandLine((Input.SourceFilename + TEXT(".usf")), *EntryPointName, ShaderProfile, CompileFlags);
-		FFileHelper::SaveStringToFile(BatchFileContents, *(Input.DumpDebugInfoPath / TEXT("CompileD3D.bat")));
+	// Set additional defines.
+	AdditionalDefines.SetDefine(TEXT("COMPILER_HLSL"), 1);
 
-		if (GD3DDumpAMDCodeXLFile)
+	// Preprocess the shader.
+	if (PreprocessShader(PreprocessedShaderSource, Output, Input, AdditionalDefines) != true)
+	{
+		// The preprocessing stage will add any relevant errors.
+		return;
+	}
+
+	if (!RemoveUniformBuffersFromSource(PreprocessedShaderSource))
+	{
+		return;
+	}
+
+	// Search definitions for a custom D3D compiler path.
+	for(TMap<FString,FString>::TConstIterator DefinitionIt(Input.Environment.GetDefinitions());DefinitionIt;++DefinitionIt)
+	{
+		const FString& Name = DefinitionIt.Key();
+		const FString& Definition = DefinitionIt.Value();
+
+		if(Name == TEXT("D3DCOMPILER_PATH"))
 		{
-			const FString BatchFileContents2 = CreateAMDCodeXLCommandLine((Input.SourceFilename + TEXT(".usf")), *EntryPointName, ShaderProfile, CompileFlags);
-			FFileHelper::SaveStringToFile(BatchFileContents2, *(Input.DumpDebugInfoPath / TEXT("CompileAMD.bat")));
+			CompilerPath = Definition;
 		}
 	}
 
-	TRefCountPtr<ID3DBlob> Shader;
-	TRefCountPtr<ID3DBlob> Errors;
+	// @TODO - currently d3d11 uses d3d10 shader compiler flags... update when this changes in DXSDK
+	// @TODO - implement different material path to allow us to remove backwards compat flag on sm5 shaders
+	uint32 CompileFlags = D3D10_SHADER_ENABLE_BACKWARDS_COMPATIBILITY
+		// Unpack uniform matrices as row-major to match the CPU layout.
+		| D3D10_SHADER_PACK_MATRIX_ROW_MAJOR;
 
-	HRESULT Result;
-	pD3DCompile D3DCompileFunc = GetD3DCompileFunc(CompilerPath);
-
-	if (D3DCompileFunc)
+	if (DEBUG_SHADERS || Input.Environment.CompilerFlags.Contains(CFLAG_Debug)) 
 	{
-		bool bException = false;
-
-		Result = D3DCompileWrapper(
-			D3DCompileFunc,
-			bException,
-			AnsiSourceFile.Get(),
-			AnsiSourceFile.Length(),
-			TCHAR_TO_ANSI(*Input.SourceFilename),
-			/*pDefines=*/ NULL,
-			/*pInclude=*/ NULL,
-			TCHAR_TO_ANSI(*EntryPointName),
-			TCHAR_TO_ANSI(ShaderProfile),
-			CompileFlags,
-			0,
-			Shader.GetInitReference(),
-			Errors.GetInitReference()
-			);
-
-		if (bException)
-		{
-			FilteredErrors.Add(TEXT("D3DCompile exception"));
-		}
+		//add the debug flags
+		CompileFlags |= D3D10_SHADER_DEBUG | D3D10_SHADER_SKIP_OPTIMIZATION;
 	}
 	else
 	{
-		FilteredErrors.Add(FString::Printf(TEXT("Couldn't find shader compiler: %s"), *CompilerPath));
-		Result = E_FAIL;
+		if (Input.Environment.CompilerFlags.Contains(CFLAG_StandardOptimization))
+		{
+			CompileFlags |= D3D10_SHADER_OPTIMIZATION_LEVEL1;
+		}
+		else
+		{
+			CompileFlags |= D3D10_SHADER_OPTIMIZATION_LEVEL3;
+		}
 	}
 
-	// Filter any errors.
-	void* ErrorBuffer = Errors ? Errors->GetBufferPointer() : NULL;
-	if (ErrorBuffer)
+	for(int32 FlagIndex = 0;FlagIndex < Input.Environment.CompilerFlags.Num();FlagIndex++)
 	{
-		D3D11FilterShaderCompileWarnings(ANSI_TO_TCHAR(ErrorBuffer), FilteredErrors);
+		//accumulate flags set by the shader
+		CompileFlags |= TranslateCompilerFlagD3D11((ECompilerFlags)Input.Environment.CompilerFlags[FlagIndex]);
 	}
 
-	// Fail the compilation if double operations are being used, since those are not supported on all D3D11 cards
-	if (SUCCEEDED(Result))
+	auto AnsiSourceFile = StringCast<ANSICHAR>(*PreprocessedShaderSource);
+	TArray<FString> FilteredErrors;
 	{
-		if (GD3DCheckForDoubles)
+		TRefCountPtr<ID3DBlob> Shader;
+		TRefCountPtr<ID3DBlob> Errors;
+
+		HRESULT Result;
+		pD3DCompile D3DCompileFunc = GetD3DCompileFunc(CompilerPath);
+			
+		if(D3DCompileFunc)
+		{
+			bool bException = false;
+
+			Result = D3DCompileWrapper(
+				D3DCompileFunc,
+				bException,
+				AnsiSourceFile.Get(),
+				AnsiSourceFile.Length(),
+				TCHAR_TO_ANSI(*Input.SourceFilename),
+				/*pDefines=*/ NULL,
+				/*pInclude=*/ NULL,
+				TCHAR_TO_ANSI(*Input.EntryPointName),
+				TCHAR_TO_ANSI(ShaderProfile),
+				CompileFlags,
+				0,
+				Shader.GetInitReference(),
+				Errors.GetInitReference()
+			);
+
+			if( bException )
+			{
+				FilteredErrors.Add( TEXT("D3DCompile exception") );
+			}
+		}
+		else
+		{
+			FilteredErrors.Add(FString::Printf(TEXT("Couldn't find shader compiler: %s"), *CompilerPath));
+			Result = E_FAIL;
+		}
+
+		// Filter any errors.
+		void* ErrorBuffer = Errors ? Errors->GetBufferPointer() : NULL;
+		if (ErrorBuffer)
+		{
+			D3D11FilterShaderCompileWarnings(ANSI_TO_TCHAR(ErrorBuffer), FilteredErrors);
+		}
+
+		// Fail the compilation if double operations are being used, since those are not supported on all D3D11 cards
+		if (SUCCEEDED(Result))
 		{
 			TRefCountPtr<ID3DBlob> Dissasembly;
+
 			if (SUCCEEDED(D3DDisassemble(Shader->GetBufferPointer(), Shader->GetBufferSize(), 0, "", Dissasembly.GetInitReference())))
 			{
 				ANSICHAR* DissasemblyString = new ANSICHAR[Dissasembly->GetBufferSize() + 1];
 				FMemory::Memcpy(DissasemblyString, Dissasembly->GetBufferPointer(), Dissasembly->GetBufferSize());
 				DissasemblyString[Dissasembly->GetBufferSize()] = 0;
 				FString DissasemblyStringW(DissasemblyString);
-				delete[] DissasemblyString;
+				delete [] DissasemblyString;
 
 				// dcl_globalFlags will contain enableDoublePrecisionFloatOps when the shader uses doubles, even though the docs on dcl_globalFlags don't say anything about this
 				if (DissasemblyStringW.Contains(TEXT("enableDoublePrecisionFloatOps")))
 				{
 					FilteredErrors.Add(TEXT("Shader uses double precision floats, which are not supported on all D3D11 hardware!"));
-					return false;
+					Result = E_FAIL;
 				}
 			}
 		}
 
-		// Gather reflection information
+		// Write out the preprocessed file and a batch file to compile it if requested (DumpDebugInfoPath is valid)
+		if (Input.DumpDebugInfoPath != TEXT("") 
+			&& IFileManager::Get().DirectoryExists(*Input.DumpDebugInfoPath))
+		{
+			FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / Input.SourceFilename + TEXT(".usf")));
+
+			if (FileWriter)
+			{
+				FileWriter->Serialize((ANSICHAR*)AnsiSourceFile.Get(), AnsiSourceFile.Length());
+				FileWriter->Close();
+				delete FileWriter;
+			}
+
+			const FString BatchFileContents = D3D11CreateShaderCompileCommandLine((Input.SourceFilename + TEXT(".usf")), *Input.EntryPointName, ShaderProfile, CompileFlags);
+			FFileHelper::SaveStringToFile(BatchFileContents, *(Input.DumpDebugInfoPath / TEXT("CompileD3D.bat")));
+
+			const FString BatchFileContents2 = CreateAMDCodeXLCommandLine((Input.SourceFilename + TEXT(".usf")), *Input.EntryPointName, ShaderProfile, CompileFlags);
+			FFileHelper::SaveStringToFile(BatchFileContents2, *(Input.DumpDebugInfoPath / TEXT("CompileAMD.bat")));
+		}
+
 		int32 NumInterpolants = 0;
 		TIndirectArray<FString> InterpolantNames;
-		TArray<FString> ShaderInputs;
 		if (SUCCEEDED(Result))
 		{
 			Output.bSucceeded = true;
 
 			ID3D11ShaderReflection* Reflector = NULL;
-			Result = D3DReflect(Shader->GetBufferPointer(), Shader->GetBufferSize(), IID_ID3D11ShaderReflection, (void**)&Reflector);
-			if (FAILED(Result))
+			Result = D3DReflect( Shader->GetBufferPointer(), Shader->GetBufferSize(), IID_ID3D11ShaderReflection, (void**) &Reflector );
+			if(FAILED(Result))
 			{
-				UE_LOG(LogD3D11ShaderCompiler, Fatal, TEXT("D3DReflect failed: Result=%08x"), Result);
+				UE_LOG(LogD3D11ShaderCompiler, Fatal,TEXT("D3DReflect failed: Result=%08x"),Result);
 			}
 
 			// Read the constant table description.
@@ -469,11 +485,9 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 			uint32 NumSRVs = 0;
 			uint32 NumCBs = 0;
 			uint32 NumUAVs = 0;
-			TArray<FString> UniformBufferNames;
-			TArray<FString> ShaderOutputs;
 
 			TBitArray<> UsedUniformBufferSlots;
-			UsedUniformBufferSlots.Init(false, 32);
+			UsedUniformBufferSlots.Init(false,32);
 
 			if (Input.Target.Frequency == SF_Vertex)
 			{
@@ -484,73 +498,7 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 					if (ParamDesc.SystemValueType == D3D_NAME_UNDEFINED && ParamDesc.Mask != 0)
 					{
 						++NumInterpolants;
-						new(InterpolantNames) FString(FString::Printf(TEXT("%s%d"), ANSI_TO_TCHAR(ParamDesc.SemanticName), ParamDesc.SemanticIndex));
-						ShaderOutputs.Add(*InterpolantNames.Last());
-					}
-				}
-			}
-			else if (Input.Target.Frequency == SF_Pixel)
-			{
-				if (GD3DAllowRemoveUnused != 0 && Input.bCompilingForShaderPipeline)
-				{
-					// Handy place for a breakpoint for debugging...
-					++GBreakpoint;
-				}
-
-				bool bFoundUnused = false;
-				for (uint32 Index = 0; Index < ShaderDesc.InputParameters; ++Index)
-				{
-					D3D11_SIGNATURE_PARAMETER_DESC ParamDesc;
-					Reflector->GetInputParameterDesc(Index, &ParamDesc);
-					if (ParamDesc.SystemValueType == D3D_NAME_UNDEFINED)
-					{
-						if (ParamDesc.ReadWriteMask != 0)
-						{
-							FString SemanticName = ANSI_TO_TCHAR(ParamDesc.SemanticName);
-
-							ShaderInputs.AddUnique(SemanticName);
-
-							// Add the number (for the case of TEXCOORD)
-							FString SemanticIndexName = FString::Printf(TEXT("%s%d"), *SemanticName, ParamDesc.SemanticIndex);
-							ShaderInputs.AddUnique(SemanticIndexName);
-
-							// Add _centroid
-							ShaderInputs.AddUnique(SemanticName + TEXT("_centroid"));
-							ShaderInputs.AddUnique(SemanticIndexName + TEXT("_centroid"));
-						}
-						else
-						{
-							bFoundUnused = true;
-						}
-					}
-					else
-					{
-						//if (ParamDesc.ReadWriteMask != 0)
-						{
-							// Keep system values
-							ShaderInputs.AddUnique(FString(ANSI_TO_TCHAR(ParamDesc.SemanticName)));
-						}
-					}
-				}
-
-				if (GD3DAllowRemoveUnused && Input.bCompilingForShaderPipeline && bFoundUnused && !bProcessingSecondTime)
-				{
-					// Rewrite the source removing the unused inputs so the bindings will match
-					TArray<FString> Errors;
-					if (RemoveUnusedInputs(PreprocessedShaderSource, ShaderInputs, EntryPointName, Errors))
-					{
-						return CompileAndProcessD3DShader(PreprocessedShaderSource, CompilerPath, CompileFlags, Input, EntryPointName, ShaderProfile, true, FilteredErrors, Output);
-					}
-					else
-					{
-						UE_LOG(LogD3D11ShaderCompiler, Warning, TEXT("Failed to Remove unused inputs [%s]!"), *Input.DumpDebugInfoPath);
-						for (int32 Index = 0; Index < Errors.Num(); ++Index)
-						{
-							FShaderCompilerError NewError;
-							NewError.StrippedErrorMessage = Errors[Index];
-							Output.Errors.Add(NewError);
-						}
-						Output.bFailedRemovingUnused = true;
+						new(InterpolantNames) FString(FString::Printf(TEXT("%s%d"),ANSI_TO_TCHAR(ParamDesc.SemanticName),ParamDesc.SemanticIndex));
 					}
 				}
 			}
@@ -571,26 +519,26 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 
 					if (bGlobalCB)
 					{
-						// Track all of the variables in this constant buffer.
-						for (uint32 ConstantIndex = 0; ConstantIndex < CBDesc.Variables; ConstantIndex++)
+					// Track all of the variables in this constant buffer.
+					for (uint32 ConstantIndex = 0; ConstantIndex < CBDesc.Variables; ConstantIndex++)
+					{
+						ID3D11ShaderReflectionVariable* Variable = ConstantBuffer->GetVariableByIndex(ConstantIndex);
+						D3D11_SHADER_VARIABLE_DESC VariableDesc;
+						Variable->GetDesc(&VariableDesc);
+						if (VariableDesc.uFlags & D3D10_SVF_USED)
 						{
-							ID3D11ShaderReflectionVariable* Variable = ConstantBuffer->GetVariableByIndex(ConstantIndex);
-							D3D11_SHADER_VARIABLE_DESC VariableDesc;
-							Variable->GetDesc(&VariableDesc);
-							if (VariableDesc.uFlags & D3D10_SVF_USED)
-							{
 								bGlobalUniformBufferUsed = true;
 
-								Output.ParameterMap.AddParameterAllocation(
-									ANSI_TO_TCHAR(VariableDesc.Name),
-									CBIndex,
-									VariableDesc.StartOffset,
-									VariableDesc.Size
-									);
+							Output.ParameterMap.AddParameterAllocation(
+								ANSI_TO_TCHAR(VariableDesc.Name),
+								CBIndex,
+								VariableDesc.StartOffset,
+								VariableDesc.Size
+								);
 								UsedUniformBufferSlots[CBIndex] = true;
-							}
 						}
 					}
+				}
 					else
 					{
 						// Track just the constant buffer itself.
@@ -601,12 +549,6 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 							0
 							);
 						UsedUniformBufferSlots[CBIndex] = true;
-
-						if (UniformBufferNames.Num() <= (int32)CBIndex)
-						{
-							UniformBufferNames.AddDefaulted(CBIndex - UniformBufferNames.Num() + 1);
-						}
-						UniformBufferNames[CBIndex] = CBDesc.Name;
 					}
 
 					NumCBs = FMath::Max(NumCBs, BindDesc.BindPoint + BindDesc.BindCount);
@@ -625,7 +567,7 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 						TCHAR *BracketLocation = FCString::Strchr(OfficialName, TEXT('['));
 						if (BracketLocation)
 						{
-							*BracketLocation = 0;
+							*BracketLocation = 0;	
 
 							const int32 NumCharactersBeforeArray = BracketLocation - OfficialName;
 
@@ -650,7 +592,7 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 									break;
 								}
 							}
-						}
+						}		
 					}
 
 					if (BindDesc.Type == D3D10_SIT_SAMPLER)
@@ -670,22 +612,22 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 						BindCount
 						);
 				}
-				else if (BindDesc.Type == D3D11_SIT_UAV_RWTYPED || BindDesc.Type == D3D11_SIT_UAV_RWSTRUCTURED ||
-					BindDesc.Type == D3D11_SIT_UAV_RWBYTEADDRESS || BindDesc.Type == D3D11_SIT_UAV_RWSTRUCTURED_WITH_COUNTER ||
-					BindDesc.Type == D3D11_SIT_UAV_APPEND_STRUCTURED)
+				else if (BindDesc.Type == D3D11_SIT_UAV_RWTYPED || BindDesc.Type == D3D11_SIT_UAV_RWSTRUCTURED || 
+						 BindDesc.Type == D3D11_SIT_UAV_RWBYTEADDRESS || BindDesc.Type == D3D11_SIT_UAV_RWSTRUCTURED_WITH_COUNTER ||
+						 BindDesc.Type == D3D11_SIT_UAV_APPEND_STRUCTURED)
 				{
-					TCHAR OfficialName[1024];
-					FCString::Strcpy(OfficialName, ANSI_TO_TCHAR(BindDesc.Name));
+						TCHAR OfficialName[1024];
+						FCString::Strcpy(OfficialName, ANSI_TO_TCHAR(BindDesc.Name));
 
-					Output.ParameterMap.AddParameterAllocation(
-						OfficialName,
-						0,
-						BindDesc.BindPoint,
-						1
-						);
+						Output.ParameterMap.AddParameterAllocation(
+							OfficialName,
+							0,
+							BindDesc.BindPoint,
+							1
+							);
 
-					NumUAVs = FMath::Max(NumUAVs, BindDesc.BindPoint + BindDesc.BindCount);
-				}
+						NumUAVs = FMath::Max(NumUAVs, BindDesc.BindPoint + BindDesc.BindCount);
+					}
 				else if (BindDesc.Type == D3D11_SIT_STRUCTURED || BindDesc.Type == D3D11_SIT_BYTEADDRESS)
 				{
 					TCHAR OfficialName[1024];
@@ -721,37 +663,16 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 
 				if (FAILED(Result))
 				{
-					UE_LOG(LogD3D11ShaderCompiler, Fatal, TEXT("D3DStripShader failed: Result=%08x"), Result);
+					UE_LOG(LogD3D11ShaderCompiler, Fatal,TEXT("D3DStripShader failed: Result=%08x"),Result);
 				}
 			}
-
+			
 			// Build the SRT for this shader.
 			FD3D11ShaderResourceTable SRT;
-
-			TArray<uint8> UniformBufferNameBytes;
-
 			{
 				// Build the generic SRT for this shader.
-				FShaderCompilerResourceTable GenericSRT;
+				FShaderResourceTable GenericSRT;
 				BuildResourceTableMapping(Input.Environment.ResourceTableMap, Input.Environment.ResourceTableLayoutHashes, UsedUniformBufferSlots, Output.ParameterMap, GenericSRT);
-
-				if (UniformBufferNames.Num() < GenericSRT.ResourceTableLayoutHashes.Num())
-				{
-					UniformBufferNames.AddDefaulted(GenericSRT.ResourceTableLayoutHashes.Num() - UniformBufferNames.Num() + 1);
-				}
-
-				for (int32 Index = 0; Index < GenericSRT.ResourceTableLayoutHashes.Num(); ++Index)
-				{
-					if (GenericSRT.ResourceTableLayoutHashes[Index] != 0 && UniformBufferNames[Index].Len() == 0)
-					{
-						auto* Name = Input.Environment.ResourceTableLayoutHashes.FindKey(GenericSRT.ResourceTableLayoutHashes[Index]);
-						check(Name);
-						UniformBufferNames[Index] = *Name;
-					}
-				}
-
-				FMemoryWriter UniformBufferNameWriter(UniformBufferNameBytes);
-				UniformBufferNameWriter << UniformBufferNames;
 
 				// At runtime textures are just SRVs, so combine them for the purposes of building token streams.
 				GenericSRT.ShaderResourceViewMap.Append(GenericSRT.TextureMap);
@@ -765,32 +686,19 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 				BuildResourceTableTokenStream(GenericSRT.ShaderResourceViewMap, GenericSRT.MaxBoundResourceTable, SRT.ShaderResourceViewMap);
 				BuildResourceTableTokenStream(GenericSRT.SamplerMap, GenericSRT.MaxBoundResourceTable, SRT.SamplerMap);
 				BuildResourceTableTokenStream(GenericSRT.UnorderedAccessViewMap, GenericSRT.MaxBoundResourceTable, SRT.UnorderedAccessViewMap);
+
 			}
 
-			if (GD3DAllowRemoveUnused != 0 && Input.Target.Frequency == SF_Pixel && Input.bCompilingForShaderPipeline && bProcessingSecondTime)
-			{
-				Output.bSupportsQueryingUsedAttributes = true;
-				if (GD3DAllowRemoveUnused == 1)
-				{
-					Output.UsedAttributes = ShaderInputs;
-				}
-			}
-
-			// Generate the final Output
-			FMemoryWriter Ar(Output.ShaderCode.GetWriteAccess(), true);
+			FMemoryWriter Ar( Output.Code, true );
 			Ar << SRT;
-			Ar.Serialize(CompressedData->GetBufferPointer(), CompressedData->GetBufferSize());
+			Ar.Serialize( CompressedData->GetBufferPointer(), CompressedData->GetBufferSize() );
 
-			// append data that is generate from the shader code and assist the usage, mostly needed for DX12 
-			{
-				FShaderCodePackedResourceCounts PackedResourceCounts = { bGlobalUniformBufferUsed, NumSamplers, NumSRVs, NumCBs, NumUAVs };
-
-				Output.ShaderCode.AddOptionalData(PackedResourceCounts);
-				Output.ShaderCode.AddOptionalData('u', UniformBufferNameBytes.GetData(), UniformBufferNameBytes.Num());
-			}
-
-			// store data we can pickup later with ShaderCode.FindOptionalData('n'), could be removed for shipping
-			Output.ShaderCode.AddOptionalData('n', TCHAR_TO_UTF8(*Input.GenerateShaderName()));
+			// Pack bGlobalUniformBufferUsed and resource counts in the last few bytes
+			Output.Code.Add(bGlobalUniformBufferUsed);
+			Output.Code.Add(NumSamplers);
+			Output.Code.Add(NumSRVs);
+			Output.Code.Add(NumCBs);
+			Output.Code.Add(NumUAVs);
 
 			// Set the number of instructions.
 			Output.NumInstructions = ShaderDesc.InstructionCount;
@@ -820,161 +728,50 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 				FString InterpolantsStr;
 				for (int32 i = 0; i < InterpolantNames.Num(); ++i)
 				{
-					InterpolantsStr += FString::Printf(TEXT("\n\t%s"), *InterpolantNames[i]);
+					InterpolantsStr += FString::Printf(TEXT("\n\t%s"),*InterpolantNames[i]);
 				}
 				FilteredErrors.Add(FString::Printf(TEXT("Shader uses more than 8 interpolants which is not supported by ES2!  Used: %u%s"), NumInterpolants, *InterpolantsStr));
 				Result = E_FAIL;
 				Output.bSucceeded = false;
 			}
 		}
-	}
-	else
-	{
-		++GBreakpoint;
-	}
 
-	return SUCCEEDED(Result);
-}
-
-void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput& Output, FShaderCompilerDefinitions& AdditionalDefines, const FString& WorkingDirectory)
-{
-	FString PreprocessedShaderSource;
-	FString CompilerPath;
-	const TCHAR* ShaderProfile = GetShaderProfileName(Input.Target);
-
-	if(!ShaderProfile)
-	{
-		Output.Errors.Add(FShaderCompilerError(TEXT("Unrecognized shader frequency")));
-		return;
-	}
-
-	// Set additional defines.
-	AdditionalDefines.SetDefine(TEXT("COMPILER_HLSL"), 1);
-
-	if (Input.bSkipPreprocessedCache)
-	{
-		FFileHelper::LoadFileToString(PreprocessedShaderSource, *Input.SourceFilename);
-	}
-	else
-	{
-		// Preprocess the shader.
-		if (PreprocessShader(PreprocessedShaderSource, Output, Input, AdditionalDefines) != true)
-		{
-			// The preprocessing stage will add any relevant errors.
-			return;
-		}
-	}
-
-	FString EntryPointName = Input.EntryPointName;
-
-	Output.bFailedRemovingUnused = false;
-	if (GD3DAllowRemoveUnused == 1 && Input.Target.Frequency == SF_Vertex && Input.bCompilingForShaderPipeline)
-	{
-		// Always add SV_Position
-		TArray<FString> UsedOutputs = Input.UsedOutputs;
-		UsedOutputs.AddUnique(TEXT("SV_POSITION"));
-
-		TArray<FString> Errors;
-		if (!RemoveUnusedOutputs(PreprocessedShaderSource, UsedOutputs, EntryPointName, Errors))
-		{
-			UE_LOG(LogD3D11ShaderCompiler, Warning, TEXT("Failed to Remove unused outputs [%s]!"), *Input.DumpDebugInfoPath);
-			for (int32 Index = 0; Index < Errors.Num(); ++Index)
-			{
-				FShaderCompilerError NewError;
-				NewError.StrippedErrorMessage = Errors[Index];
-				Output.Errors.Add(NewError);
-			}
-			Output.bFailedRemovingUnused = true;
-		}
-	}
-
-	if (!RemoveUniformBuffersFromSource(PreprocessedShaderSource))
-	{
-		return;
-	}
-
-	// Search definitions for a custom D3D compiler path.
-	for(TMap<FString,FString>::TConstIterator DefinitionIt(Input.Environment.GetDefinitions());DefinitionIt;++DefinitionIt)
-	{
-		const FString& Name = DefinitionIt.Key();
-		const FString& Definition = DefinitionIt.Value();
-
-		if(Name == TEXT("D3DCOMPILER_PATH"))
-		{
-			CompilerPath = Definition;
-			break;
-		}
-	}
-
-	// @TODO - currently d3d11 uses d3d10 shader compiler flags... update when this changes in DXSDK
-	// @TODO - implement different material path to allow us to remove backwards compat flag on sm5 shaders
-	uint32 CompileFlags = D3D10_SHADER_ENABLE_BACKWARDS_COMPATIBILITY
-		// Unpack uniform matrices as row-major to match the CPU layout.
-		| D3D10_SHADER_PACK_MATRIX_ROW_MAJOR;
-
-	if (DEBUG_SHADERS || Input.Environment.CompilerFlags.Contains(CFLAG_Debug)) 
-	{
-		//add the debug flags
-		CompileFlags |= D3D10_SHADER_DEBUG | D3D10_SHADER_SKIP_OPTIMIZATION;
-	}
-	else
-	{
-		if (Input.Environment.CompilerFlags.Contains(CFLAG_StandardOptimization))
-		{
-			CompileFlags |= D3D10_SHADER_OPTIMIZATION_LEVEL1;
-		}
-		else
-		{
-			CompileFlags |= D3D10_SHADER_OPTIMIZATION_LEVEL3;
-		}
-	}
-
-	for (int32 FlagIndex = 0; FlagIndex < Input.Environment.CompilerFlags.Num(); FlagIndex++)
-	{
-		//accumulate flags set by the shader
-		CompileFlags |= TranslateCompilerFlagD3D11((ECompilerFlags)Input.Environment.CompilerFlags[FlagIndex]);
-	}
-
-	TArray<FString> FilteredErrors;
-	if (!CompileAndProcessD3DShader(PreprocessedShaderSource, CompilerPath, CompileFlags, Input, EntryPointName, ShaderProfile, false, FilteredErrors, Output))
-	{
-		if (!FilteredErrors.Num())
+		if(FAILED(Result) && !FilteredErrors.Num())
 		{
 			FilteredErrors.Add(TEXT("Compile Failed without errors!"));
 		}
-	}
 
-	// Process errors
-	for (int32 ErrorIndex = 0; ErrorIndex < FilteredErrors.Num(); ErrorIndex++)
-	{
-		const FString& CurrentError = FilteredErrors[ErrorIndex];
-		FShaderCompilerError NewError;
-		// Extract the filename and line number from the shader compiler error message for PC whose format is:
-		// "d:\UE4\Binaries\BasePassPixelShader(30,7): error X3000: invalid target or usage string"
-		int32 FirstParenIndex = CurrentError.Find(TEXT("("));
-		int32 LastParenIndex = CurrentError.Find(TEXT("):"));
-		if (FirstParenIndex != INDEX_NONE 
-			&& LastParenIndex != INDEX_NONE
-			&& LastParenIndex > FirstParenIndex)
+		for (int32 ErrorIndex = 0; ErrorIndex < FilteredErrors.Num(); ErrorIndex++)
 		{
-			FString ErrorFileAndPath = CurrentError.Left(FirstParenIndex);
-			if (FPaths::GetExtension(ErrorFileAndPath).ToUpper() == TEXT("USF"))
+			const FString& CurrentError = FilteredErrors[ErrorIndex];
+			FShaderCompilerError NewError;
+			// Extract the filename and line number from the shader compiler error message for PC whose format is:
+			// "d:\UnrealEngine3\Binaries\BasePassPixelShader(30,7): error X3000: invalid target or usage string"
+			int32 FirstParenIndex = CurrentError.Find(TEXT("("));
+			int32 LastParenIndex = CurrentError.Find(TEXT("):"));
+			if (FirstParenIndex != INDEX_NONE 
+				&& LastParenIndex != INDEX_NONE
+				&& LastParenIndex > FirstParenIndex)
 			{
-				NewError.ErrorFile = FPaths::GetCleanFilename(ErrorFileAndPath);
+				FString ErrorFileAndPath = CurrentError.Left(FirstParenIndex);
+				if (FPaths::GetExtension(ErrorFileAndPath).ToUpper() == TEXT("USF"))
+				{
+					NewError.ErrorFile = FPaths::GetCleanFilename(ErrorFileAndPath);
+				}
+				else
+				{
+					NewError.ErrorFile = FPaths::GetCleanFilename(ErrorFileAndPath) + TEXT(".usf");
+				}
+
+				NewError.ErrorLineString = CurrentError.Mid(FirstParenIndex + 1, LastParenIndex - FirstParenIndex - FCString::Strlen(TEXT("(")));
+				NewError.StrippedErrorMessage = CurrentError.Right(CurrentError.Len() - LastParenIndex - FCString::Strlen(TEXT("):")));
 			}
 			else
 			{
-				NewError.ErrorFile = FPaths::GetCleanFilename(ErrorFileAndPath) + TEXT(".usf");
+				NewError.StrippedErrorMessage = CurrentError;
 			}
-
-			NewError.ErrorLineString = CurrentError.Mid(FirstParenIndex + 1, LastParenIndex - FirstParenIndex - FCString::Strlen(TEXT("(")));
-			NewError.StrippedErrorMessage = CurrentError.Right(CurrentError.Len() - LastParenIndex - FCString::Strlen(TEXT("):")));
+			Output.Errors.Add(NewError);
 		}
-		else
-		{
-			NewError.StrippedErrorMessage = CurrentError;
-		}
-		Output.Errors.Add(NewError);
 	}
 }
 

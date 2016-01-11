@@ -1,29 +1,23 @@
 {
-	"FileVersion" : 3,
+    "FileVersion" : 1,
+	
+	"FriendlyName" : "Android Movie Player",
 	"Version" : 1,
 	"VersionName" : "1.0",
-	"FriendlyName" : "Android Movie Player",
-	"Description" : "Android Platform Movie Player using Android Media library",
-	"Category" : "Movie Players",
 	"CreatedBy" : "Epic Games, Inc.",
 	"CreatedByURL" : "http://epicgames.com",
-	"DocsURL" : "",
-	"MarketplaceURL" : "",
-	"SupportURL" : "",
+	"EngineVersion" : 1579795,
+	"Description" : "Android Platform Movie Player using Android Media library",
+	"Category" : "Media Players",
 	"EnabledByDefault" : true,
-	"CanContainContent" : false,
-	"IsBetaVersion" : false,
-	"Installed" : false,
-	"Modules" :
+	
+    "Modules" :
 	[
 		{
 			"Name" : "AndroidMoviePlayer",
 			"Type" : "RuntimeNoCommandlet",
 			"LoadingPhase" : "PreLoadingScreen",
-			"WhitelistPlatforms" :
-			[
-				"Android"
-			]
+			"WhitelistPlatforms" : [ "Android" ]
 		}
 	]
 }

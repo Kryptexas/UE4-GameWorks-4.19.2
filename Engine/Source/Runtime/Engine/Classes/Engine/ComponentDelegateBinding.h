@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -41,10 +41,10 @@ class ENGINE_API UComponentDelegateBinding
 	UPROPERTY()
 	TArray<FBlueprintComponentDelegateBinding> ComponentDelegateBindings;
 
-	//~ Begin DynamicBlueprintBinding Interface
+	// Begin DynamicBlueprintBinding interface
 	virtual void BindDynamicDelegates(UObject* InInstance) const override;
 	virtual void UnbindDynamicDelegatesForProperty(UObject* InInstance, const UObjectProperty* InObjectProperty) const override;
-	//~ End DynamicBlueprintBinding Interface
+	// End DynamicBlueprintBinding interface
 
 private:
 	// Utility method used to find the target delegate given an instance and a binding descriptor

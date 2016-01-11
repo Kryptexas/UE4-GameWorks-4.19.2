@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemSteamPrivatePCH.h"
 #include "OnlineSessionInterfaceSteam.h"
@@ -127,14 +127,11 @@ class FOnlineAsyncTaskSteamDestroySession : public FOnlineAsyncTaskSteam
 private:
 	/** Name of session ending */
 	FName SessionName;
-	/** */
-	FOnDestroySessionCompleteDelegate CompletionDelegate;
 
 public:
-	FOnlineAsyncTaskSteamDestroySession(FOnlineSubsystemSteam* InSubsystem, FName InSessionName, const FOnDestroySessionCompleteDelegate& InCompletionDelegate) :
+	FOnlineAsyncTaskSteamDestroySession(FOnlineSubsystemSteam* InSubsystem, FName InSessionName) :
 		FOnlineAsyncTaskSteam(InSubsystem, k_uAPICallInvalid),
-		SessionName(InSessionName),
-		CompletionDelegate(InCompletionDelegate)
+		SessionName(InSessionName)
 	{
 	}
 
@@ -200,7 +197,6 @@ public:
 		IOnlineSessionPtr SessionInt = Subsystem->GetSessionInterface();
 		if (SessionInt.IsValid())
 		{
-			CompletionDelegate.ExecuteIfBound(SessionName, bWasSuccessful);
 			SessionInt->TriggerOnDestroySessionCompleteDelegates(SessionName, bWasSuccessful);
 		}
 	}
@@ -535,7 +531,7 @@ uint32 FOnlineSessionSteam::EndInternetSession(FNamedOnlineSession* Session)
 	return ERROR_IO_PENDING;
 }
 
-bool FOnlineSessionSteam::DestroySession(FName SessionName, const FOnDestroySessionCompleteDelegate& CompletionDelegate)
+bool FOnlineSessionSteam::DestroySession(FName SessionName)
 {
 	uint32 Result = E_FAIL;
 	// Find the session in question
@@ -554,11 +550,11 @@ bool FOnlineSessionSteam::DestroySession(FName SessionName, const FOnDestroySess
 
 				if (Session->SessionSettings.bUsesPresence)
 				{
-					Result = DestroyLobbySession(Session, CompletionDelegate);
+					Result = DestroyLobbySession(Session);
 				}
 				else
 				{
-					Result = DestroyInternetSession(Session, CompletionDelegate);
+					Result = DestroyInternetSession(Session);
 				}
 			}
 			else
@@ -578,7 +574,6 @@ bool FOnlineSessionSteam::DestroySession(FName SessionName, const FOnDestroySess
 			{
 				// The session info is no longer needed
 				RemoveNamedSession(Session->SessionName);
-				CompletionDelegate.ExecuteIfBound(SessionName, (Result == ERROR_SUCCESS) ? true : false);
 				TriggerOnDestroySessionCompleteDelegates(SessionName, (Result == ERROR_SUCCESS) ? true : false);
 			}
 		}
@@ -591,14 +586,13 @@ bool FOnlineSessionSteam::DestroySession(FName SessionName, const FOnDestroySess
 	else
 	{
 		UE_LOG_ONLINE(Warning, TEXT("Can't destroy a null online session (%s)"), *SessionName.ToString());
-		CompletionDelegate.ExecuteIfBound(SessionName, false);
 		TriggerOnDestroySessionCompleteDelegates(SessionName, false);
 	}
 
 	return Result == ERROR_SUCCESS || Result == ERROR_IO_PENDING;
 }
 
-uint32 FOnlineSessionSteam::DestroyLobbySession(FNamedOnlineSession* Session, const FOnDestroySessionCompleteDelegate& CompletionDelegate)
+uint32 FOnlineSessionSteam::DestroyLobbySession(FNamedOnlineSession* Session)
 {
 	Session->SessionState = EOnlineSessionState::Destroying;
 
@@ -611,13 +605,13 @@ uint32 FOnlineSessionSteam::DestroyLobbySession(FNamedOnlineSession* Session, co
 		SteamSubsystem->QueueAsyncTask(NewTask);
 	}
 
-	FOnlineAsyncTaskSteamDestroySession* NewTask = new FOnlineAsyncTaskSteamDestroySession(SteamSubsystem, Session->SessionName, CompletionDelegate);
+	FOnlineAsyncTaskSteamDestroySession* NewTask = new FOnlineAsyncTaskSteamDestroySession(SteamSubsystem, Session->SessionName);
 	SteamSubsystem->QueueAsyncTask(NewTask);
 
 	return ERROR_IO_PENDING;
 }
 
-uint32 FOnlineSessionSteam::DestroyInternetSession(FNamedOnlineSession* Session, const FOnDestroySessionCompleteDelegate& CompletionDelegate)
+uint32 FOnlineSessionSteam::DestroyInternetSession(FNamedOnlineSession* Session)
 {
 	Session->SessionState = EOnlineSessionState::Destroying;
 
@@ -635,7 +629,7 @@ uint32 FOnlineSessionSteam::DestroyInternetSession(FNamedOnlineSession* Session,
 	}
 
 	// Destroy the session
-	FOnlineAsyncTaskSteamDestroySession* DestroyTask = new FOnlineAsyncTaskSteamDestroySession(SteamSubsystem, Session->SessionName, CompletionDelegate);
+	FOnlineAsyncTaskSteamDestroySession* DestroyTask = new FOnlineAsyncTaskSteamDestroySession(SteamSubsystem, Session->SessionName);
 	SteamSubsystem->QueueAsyncTask(DestroyTask);
 
 	return ERROR_IO_PENDING;
@@ -1693,11 +1687,8 @@ void FOnlineSessionSteam::OnLANSearchTimeout()
 
 	if (CurrentSessionSearch.IsValid())
 	{
-		if (CurrentSessionSearch->SearchResults.Num() > 0)
-		{
-			// Allow game code to sort the servers
-			CurrentSessionSearch->SortSearchResults();
-		}
+		// Allow game code to sort the servers
+		CurrentSessionSearch->SortSearchResults();
 		CurrentSessionSearch->SearchState = EOnlineAsyncTaskState::Done;
 
 		CurrentSessionSearch = NULL;

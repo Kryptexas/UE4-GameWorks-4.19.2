@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneFadeSection.h"
@@ -6,10 +6,7 @@
 #include "MovieSceneFadeTrackInstance.h"
 
 
-#define LOCTEXT_NAMESPACE "MovieSceneFadeTrack"
-
-
-/* UMovieSceneFadeTrack interface
+/* UMovieSceneEventTrack interface
  *****************************************************************************/
 
 TSharedPtr<IMovieSceneTrackInstance> UMovieSceneFadeTrack::CreateInstance()
@@ -24,12 +21,7 @@ UMovieSceneSection* UMovieSceneFadeTrack::CreateNewSection()
 }
 
 
-#if WITH_EDITORONLY_DATA
-FText UMovieSceneFadeTrack::GetDisplayName() const
+FName UMovieSceneFadeTrack::GetTrackName() const
 {
-	return LOCTEXT("TrackName", "Fade");
+	return FName("Fade");
 }
-#endif
-
-
-#undef LOCTEXT_NAMESPACE

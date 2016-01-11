@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12Shaders.cpp: D3D shader RHI implementation.
@@ -8,21 +8,21 @@
 
 FVertexShaderRHIRef FD3D12DynamicRHI::RHICreateVertexShader(const TArray<uint8>& Code)
 {
-	FShaderCodeReader ShaderCode(Code);
-
+	check(Code.Num());
 	FD3D12VertexShader* Shader = new FD3D12VertexShader;
 
 	FMemoryReader Ar(Code, true);
 	Ar << Shader->ShaderResourceTable;
 	int32 Offset = Ar.Tell();
 	const uint8* CodePtr = Code.GetData() + Offset;
-	const SIZE_T CodeSize = ShaderCode.GetActualShaderCodeSize() - Offset;
+	const SIZE_T CodeSize = Code.Num() - Offset - 5;
 
-	Shader->ResourceCounts = *ShaderCode.FindOptionalData<FShaderCodePackedResourceCounts>();
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	Shader->ShaderName = ShaderCode.FindOptionalData('n');
-#endif
+	// bGlobalUniformBufferUsed and resource counts are packed in the last few bytes, see CompileD3D11Shader
+	Shader->bShaderNeedsGlobalConstantBuffer = Code[Code.Num() - 5] != 0;
+	Shader->SamplerCount                     = Code[Code.Num() - 4];
+	Shader->SRVCount                         = Code[Code.Num() - 3];
+	Shader->CBCount                          = Code[Code.Num() - 2];
+	Shader->UAVCount                         = Code[Code.Num() - 1];
 
 	Shader->Code = Code;
 	Shader->Offset = Offset;
@@ -37,7 +37,7 @@ FVertexShaderRHIRef FD3D12DynamicRHI::RHICreateVertexShader(const TArray<uint8>&
 
 FPixelShaderRHIRef FD3D12DynamicRHI::RHICreatePixelShader(const TArray<uint8>& Code)
 {
-	FShaderCodeReader ShaderCode(Code);
+	check(Code.Num());
 
 	FD3D12PixelShader* Shader = new FD3D12PixelShader;
 
@@ -45,13 +45,14 @@ FPixelShaderRHIRef FD3D12DynamicRHI::RHICreatePixelShader(const TArray<uint8>& C
 	Ar << Shader->ShaderResourceTable;
 	int32 Offset = Ar.Tell();
 	const uint8* CodePtr = Code.GetData() + Offset;
-	const SIZE_T CodeSize = ShaderCode.GetActualShaderCodeSize() - Offset;
+	const SIZE_T CodeSize = Code.Num() - Offset - 5;
 
-	Shader->ResourceCounts = *ShaderCode.FindOptionalData<FShaderCodePackedResourceCounts>();
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	Shader->ShaderName = ShaderCode.FindOptionalData('n');
-#endif
+	// bGlobalUniformBufferUsed and resource counts are packed in the last few bytes, see CompileD3D11Shader
+	Shader->bShaderNeedsGlobalConstantBuffer = Code[Code.Num() - 5] != 0;
+	Shader->SamplerCount                     = Code[Code.Num() - 4];
+	Shader->SRVCount                         = Code[Code.Num() - 3];
+	Shader->CBCount                          = Code[Code.Num() - 2];
+	Shader->UAVCount                         = Code[Code.Num() - 1];
 
 	Shader->Code = Code;
 
@@ -65,7 +66,7 @@ FPixelShaderRHIRef FD3D12DynamicRHI::RHICreatePixelShader(const TArray<uint8>& C
 
 FHullShaderRHIRef FD3D12DynamicRHI::RHICreateHullShader(const TArray<uint8>& Code)
 {
-	FShaderCodeReader ShaderCode(Code);
+	check(Code.Num());
 
 	FD3D12HullShader* Shader = new FD3D12HullShader;
 
@@ -73,13 +74,14 @@ FHullShaderRHIRef FD3D12DynamicRHI::RHICreateHullShader(const TArray<uint8>& Cod
 	Ar << Shader->ShaderResourceTable;
 	int32 Offset = Ar.Tell();
 	const uint8* CodePtr = Code.GetData() + Offset;
-	const SIZE_T CodeSize = ShaderCode.GetActualShaderCodeSize() - Offset;
+	const SIZE_T CodeSize = Code.Num() - Offset - 5;
 
-	Shader->ResourceCounts = *ShaderCode.FindOptionalData<FShaderCodePackedResourceCounts>();
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	Shader->ShaderName = ShaderCode.FindOptionalData('n');
-#endif
+	// bGlobalUniformBufferUsed and resource counts are packed in the last few bytes, see CompileD3D11Shader
+	Shader->bShaderNeedsGlobalConstantBuffer = Code[Code.Num() - 5] != 0;
+	Shader->SamplerCount                     = Code[Code.Num() - 4];
+	Shader->SRVCount                         = Code[Code.Num() - 3];
+	Shader->CBCount                          = Code[Code.Num() - 2];
+	Shader->UAVCount                         = Code[Code.Num() - 1];
 
 	Shader->Code = Code;
 
@@ -93,7 +95,7 @@ FHullShaderRHIRef FD3D12DynamicRHI::RHICreateHullShader(const TArray<uint8>& Cod
 
 FDomainShaderRHIRef FD3D12DynamicRHI::RHICreateDomainShader(const TArray<uint8>& Code)
 {
-	FShaderCodeReader ShaderCode(Code);
+	check(Code.Num());
 
 	FD3D12DomainShader* Shader = new FD3D12DomainShader;
 
@@ -101,13 +103,14 @@ FDomainShaderRHIRef FD3D12DynamicRHI::RHICreateDomainShader(const TArray<uint8>&
 	Ar << Shader->ShaderResourceTable;
 	int32 Offset = Ar.Tell();
 	const uint8* CodePtr = Code.GetData() + Offset;
-	const SIZE_T CodeSize = ShaderCode.GetActualShaderCodeSize() - Offset;
+	const SIZE_T CodeSize = Code.Num() - Offset - 5;
 
-	Shader->ResourceCounts = *ShaderCode.FindOptionalData<FShaderCodePackedResourceCounts>();
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	Shader->ShaderName = ShaderCode.FindOptionalData('n');
-#endif
+	// bGlobalUniformBufferUsed and resource counts are packed in the last few bytes, see CompileD3D11Shader
+	Shader->bShaderNeedsGlobalConstantBuffer = Code[Code.Num() - 5] != 0;
+	Shader->SamplerCount                     = Code[Code.Num() - 4];
+	Shader->SRVCount                         = Code[Code.Num() - 3];
+	Shader->CBCount                          = Code[Code.Num() - 2];
+	Shader->UAVCount                         = Code[Code.Num() - 1];
 
 	Shader->Code = Code;
 
@@ -121,7 +124,7 @@ FDomainShaderRHIRef FD3D12DynamicRHI::RHICreateDomainShader(const TArray<uint8>&
 
 FGeometryShaderRHIRef FD3D12DynamicRHI::RHICreateGeometryShader(const TArray<uint8>& Code)
 {
-	FShaderCodeReader ShaderCode(Code);
+	check(Code.Num());
 
 	FD3D12GeometryShader* Shader = new FD3D12GeometryShader;
 
@@ -129,13 +132,14 @@ FGeometryShaderRHIRef FD3D12DynamicRHI::RHICreateGeometryShader(const TArray<uin
 	Ar << Shader->ShaderResourceTable;
 	int32 Offset = Ar.Tell();
 	const uint8* CodePtr = Code.GetData() + Offset;
-	const SIZE_T CodeSize = ShaderCode.GetActualShaderCodeSize() - Offset;
+	const SIZE_T CodeSize = Code.Num() - Offset - 5;
 
-	Shader->ResourceCounts = *ShaderCode.FindOptionalData<FShaderCodePackedResourceCounts>();
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	Shader->ShaderName = ShaderCode.FindOptionalData('n');
-#endif
+	// bGlobalUniformBufferUsed and resource counts are packed in the last few bytes, see CompileD3D11Shader
+	Shader->bShaderNeedsGlobalConstantBuffer = Code[Code.Num() - 5] != 0;
+	Shader->SamplerCount                     = Code[Code.Num() - 4];
+	Shader->SRVCount                         = Code[Code.Num() - 3];
+	Shader->CBCount                          = Code[Code.Num() - 2];
+	Shader->UAVCount                         = Code[Code.Num() - 1];
 
 	Shader->Code = Code;
 
@@ -149,7 +153,7 @@ FGeometryShaderRHIRef FD3D12DynamicRHI::RHICreateGeometryShader(const TArray<uin
 
 FGeometryShaderRHIRef FD3D12DynamicRHI::RHICreateGeometryShaderWithStreamOutput(const TArray<uint8>& Code, const FStreamOutElementList& ElementList, uint32 NumStrides, const uint32* Strides, int32 RasterizedStream)
 {
-	FShaderCodeReader ShaderCode(Code);
+	check(Code.Num());
 
 	FD3D12GeometryShader* Shader = new FD3D12GeometryShader;
 
@@ -157,7 +161,7 @@ FGeometryShaderRHIRef FD3D12DynamicRHI::RHICreateGeometryShaderWithStreamOutput(
 	Ar << Shader->ShaderResourceTable;
 	int32 Offset = Ar.Tell();
 	const uint8* CodePtr = Code.GetData() + Offset;
-	const SIZE_T CodeSize = ShaderCode.GetActualShaderCodeSize() - Offset;
+	const SIZE_T CodeSize = Code.Num() - Offset - 5;
 
 	Shader->StreamOutput.RasterizedStream = RasterizedStream;
 	if (RasterizedStream == -1)
@@ -182,11 +186,13 @@ FGeometryShaderRHIRef FD3D12DynamicRHI::RHICreateGeometryShaderWithStreamOutput(
 		Shader->pStreamOutEntries[EntryIndex].OutputSlot = ElementList[EntryIndex].OutputSlot;
 	}
 
-	Shader->ResourceCounts = *ShaderCode.FindOptionalData<FShaderCodePackedResourceCounts>();
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	Shader->ShaderName = ShaderCode.FindOptionalData('n');
-#endif
+	// bGlobalUniformBufferUsed and resource counts are packed in the last few bytes, see CompileD3D11Shader
+	Shader->bShaderNeedsGlobalConstantBuffer = Code[Code.Num() - 5] != 0;
+	Shader->SamplerCount                     = Code[Code.Num() - 4];
+	Shader->SRVCount                         = Code[Code.Num() - 3];
+	Shader->CBCount                          = Code[Code.Num() - 2];
+	Shader->UAVCount                         = Code[Code.Num() - 1];
 
 	// Indicate this shader uses stream output
 	Shader->bShaderNeedsStreamOutput = true;
@@ -213,7 +219,7 @@ FGeometryShaderRHIRef FD3D12DynamicRHI::RHICreateGeometryShaderWithStreamOutput(
 
 FComputeShaderRHIRef FD3D12DynamicRHI::RHICreateComputeShader(const TArray<uint8>& Code)
 {
-	FShaderCodeReader ShaderCode(Code);
+	check(Code.Num());
 
 	FD3D12ComputeShader* Shader = new FD3D12ComputeShader;
 
@@ -221,13 +227,14 @@ FComputeShaderRHIRef FD3D12DynamicRHI::RHICreateComputeShader(const TArray<uint8
 	Ar << Shader->ShaderResourceTable;
 	int32 Offset = Ar.Tell();
 	const uint8* CodePtr = Code.GetData() + Offset;
-	const SIZE_T CodeSize = ShaderCode.GetActualShaderCodeSize() - Offset;
+	const SIZE_T CodeSize = Code.Num() - Offset - 5;
 
-	Shader->ResourceCounts = *ShaderCode.FindOptionalData<FShaderCodePackedResourceCounts>();
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	Shader->ShaderName = ShaderCode.FindOptionalData('n');
-#endif
+	// bGlobalUniformBufferUsed and resource counts are packed in the last few bytes, see CompileD3D11Shader
+	Shader->bShaderNeedsGlobalConstantBuffer = Code[Code.Num() - 5] != 0;
+	Shader->SamplerCount                     = Code[Code.Num() - 4];
+	Shader->SRVCount                         = Code[Code.Num() - 3];
+	Shader->CBCount                          = Code[Code.Num() - 2];
+	Shader->UAVCount                         = Code[Code.Num() - 1];
 
 	Shader->Code = Code;
 
@@ -276,11 +283,11 @@ FD3D12BoundShaderState::FD3D12BoundShaderState(
 	InputLayout.NumElements = (InVertexDeclaration ? InVertexDeclaration->VertexElements.Num() : 0);
 	InputLayout.pInputElementDescs = (InVertexDeclaration ? InVertexDeclaration->VertexElements.GetData() : nullptr);
 
-	bShaderNeedsGlobalConstantBuffer[SF_Vertex] = InVertexShader->ResourceCounts.bGlobalUniformBufferUsed;
-	bShaderNeedsGlobalConstantBuffer[SF_Hull] = InHullShader ? InHullShader->ResourceCounts.bGlobalUniformBufferUsed : false;
-	bShaderNeedsGlobalConstantBuffer[SF_Domain] = InDomainShader ? InDomainShader->ResourceCounts.bGlobalUniformBufferUsed : false;
-	bShaderNeedsGlobalConstantBuffer[SF_Pixel] = InPixelShader ? InPixelShader->ResourceCounts.bGlobalUniformBufferUsed : false;
-	bShaderNeedsGlobalConstantBuffer[SF_Geometry] = InGeometryShader ? InGeometryShader->ResourceCounts.bGlobalUniformBufferUsed : false;
+	bShaderNeedsGlobalConstantBuffer[SF_Vertex] = InVertexShader->bShaderNeedsGlobalConstantBuffer;
+	bShaderNeedsGlobalConstantBuffer[SF_Hull] = InHullShader ? InHullShader->bShaderNeedsGlobalConstantBuffer : false;
+	bShaderNeedsGlobalConstantBuffer[SF_Domain] = InDomainShader ? InDomainShader->bShaderNeedsGlobalConstantBuffer : false;
+	bShaderNeedsGlobalConstantBuffer[SF_Pixel] = InPixelShader ? InPixelShader->bShaderNeedsGlobalConstantBuffer : false;
+	bShaderNeedsGlobalConstantBuffer[SF_Geometry] = InGeometryShader ? InGeometryShader->bShaderNeedsGlobalConstantBuffer : false;
 
 	static_assert(ARRAY_COUNT(bShaderNeedsGlobalConstantBuffer) == SF_NumFrequencies, "EShaderFrequency size should match with array count of bShaderNeedsGlobalConstantBuffer.");
 

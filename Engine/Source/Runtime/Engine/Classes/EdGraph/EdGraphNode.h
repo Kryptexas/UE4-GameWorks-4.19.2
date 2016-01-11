@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -54,18 +54,6 @@ namespace ENodeAdvancedPins
 		Hidden
 	};
 }
-
-/** Enum to indicate a node's enabled state. */
-UENUM()
-enum class ENodeEnabledState : uint8
-{
-	/** Node is enabled. */
-	Enabled,
-	/** Node is disabled. */
-	Disabled,
-	/** Node is enabled for development only. */
-	DevelopmentOnly
-};
 
 /** Holds metadata keys, so as to discourage text duplication throughout the engine. */
 struct ENGINE_API FNodeMetadata
@@ -164,42 +152,9 @@ class ENGINE_API UEdGraphNode : public UObject
 	UPROPERTY()
 	TEnumAsByte<ENodeAdvancedPins::Type> AdvancedPinDisplay;
 
-	/** Indicates in what state the node is enabled, which may eliminate it from being compiled */
+	/** FALSE if the node is a disabled, which eliminates it from being compiled */
 	UPROPERTY()
-	ENodeEnabledState EnabledState;
-
-	/** Indicates whether or not the user explicitly set the enabled state */
-	UPROPERTY()
-	bool bUserSetEnabledState;
-
-private:
-	/** (DEPRECATED) FALSE if the node is a disabled, which eliminates it from being compiled */
-	UPROPERTY()
-	bool bIsNodeEnabled_DEPRECATED;
-
-public:
-	/** Enables this node. */
-	FORCEINLINE void EnableNode()
-	{
-		bUserSetEnabledState = false;
-		EnabledState = ENodeEnabledState::Enabled;
-	}
-
-	/** Disables this node. */
-	FORCEINLINE void DisableNode()
-	{
-		bUserSetEnabledState = false;
-		EnabledState = ENodeEnabledState::Disabled;
-	}
-
-	/** Determines whether or not the node is enabled. */
-	FORCEINLINE bool IsNodeEnabled() const
-	{
-		return (EnabledState == ENodeEnabledState::Enabled) || (EnabledState == ENodeEnabledState::DevelopmentOnly && IsInDevelopmentMode());
-	}
-
-	/** Determines whether or not the node will compile in development mode. */
-	virtual bool IsInDevelopmentMode() const;
+	bool bIsNodeEnabled;
 
 #if WITH_EDITOR
 
@@ -209,7 +164,6 @@ private:
 public:
 	// UObject interface
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End of UObject interface
@@ -336,9 +290,6 @@ public:
 
 	/** Gets the name of this node, shown in title bar */
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const;
-
-	/** Gets the search string to find references to this node */
-	virtual FString GetFindReferenceSearchString() const;
 
 	/** 
 	 * Gets the draw color of a node's title bar

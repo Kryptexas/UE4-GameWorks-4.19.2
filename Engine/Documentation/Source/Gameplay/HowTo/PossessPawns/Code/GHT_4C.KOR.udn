@@ -1,0 +1,41 @@
+﻿INTSourceChangelist:2300047
+Availability: Docs
+Title:코드로 폰 빙의 비법
+Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/PossessPawns
+Description:코드로 캐릭터나 다양한 유형의 폰 빙의를 전환하는 비법 안내입니다.
+
+[TOC (start:2)]
+
+## 개요
+
+여기서는 **폰 빙의** (Pawn Possessing) 및 레벨의 다양한 캐릭터를 전환하는 법에 대해 알아봅니다. 삼인칭 캐릭터와 조종 가능 비히클에 타고 내리는 법도 배워보도록 하겠습니다.
+ 
+## 여러 캐릭터 전환
+
+다음은 여러 캐릭터 사이를 전환하는 방법입니다.
+
+
+
+
+## 비히클 타고 내리기
+
+삼인칭 캐릭터가 조종 가능 비히클에 타고 내리도록 하는데 사용할 수 있는 방법입니다.
+
+
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+

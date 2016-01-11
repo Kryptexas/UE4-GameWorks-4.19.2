@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,13 +11,6 @@
  */
 #define ALLOW_LIGHTMAP_SAMPLE_DEBUGGING	0
 
-#if USE_EMBREE
-#include <embree2/rtcore.h>
-#include <embree2/rtcore_ray.h>
-#else
-typedef void* RTCDevice;
-#endif
-
 #include "LightmassScene.h"
 #include "Mesh.h"
 #include "Texture.h"
@@ -27,17 +20,6 @@ typedef void* RTCDevice;
 #include "LightmapData.h"
 #include "Mappings.h"
 #include "Collision.h"
-#include "Embree.h"
-
-namespace Lightmass
-{
-#if USE_EMBREE
-	typedef FStaticLightingAggregateMesh FStaticLightingAggregateMeshType;
-#else
-	typedef FDefaultAggregateMesh FStaticLightingAggregateMeshType;
-#endif
-}
-
 #include "BSP.h"
 #include "StaticMesh.h"
 #include "FluidSurface.h"

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneByteTrack.h"
@@ -13,20 +13,17 @@ FMovieSceneByteTrackInstance::FMovieSceneByteTrackInstance( UMovieSceneByteTrack
 }
 
 
-void FMovieSceneByteTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+void FMovieSceneByteTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
 	for( UObject* Object : RuntimeObjects )
 	{
-		if (InitByteMap.Find(Object) == nullptr)
-		{
-			uint8 ByteValue = PropertyBindings->GetCurrentValue<uint8>(Object);
-			InitByteMap.Add(Object, ByteValue);
-		}
+		uint8 ByteValue = PropertyBindings->GetCurrentValue<uint8>(Object);
+		InitByteMap.Add(Object, ByteValue);
 	}
 }
 
 
-void FMovieSceneByteTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+void FMovieSceneByteTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
 	for( UObject* Object : RuntimeObjects )
 	{
@@ -46,7 +43,7 @@ void FMovieSceneByteTrackInstance::RestoreState(const TArray<UObject*>& RuntimeO
 }
 
 
-void FMovieSceneByteTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass ) 
+void FMovieSceneByteTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
 {
 	uint8 ByteValue = 0;
 	if( ByteTrack->Eval( Position, LastPosition, ByteValue ) )
@@ -59,7 +56,7 @@ void FMovieSceneByteTrackInstance::Update( float Position, float LastPosition, c
 }
 
 
-void FMovieSceneByteTrackInstance::RefreshInstance( const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance )
+void FMovieSceneByteTrackInstance::RefreshInstance( const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player )
 {
 	PropertyBindings->UpdateBindings( RuntimeObjects );
 }

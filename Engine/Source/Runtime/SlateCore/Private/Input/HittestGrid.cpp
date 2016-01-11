@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateCorePrivatePCH.h"
 #include "HittestGrid.h"
@@ -45,15 +45,18 @@ FVector2D ClosestPointOnSlateRotatedRect(const FVector2D &Point, const FSlateRot
 	return RetPoint;
 }
 
-FORCEINLINE float DistanceSqToSlateRotatedRect(const FVector2D &Point, const FSlateRotatedRect& RotatedRect)
+
+float DistanceSqToSlateRotatedRect(const FVector2D &Point, const FSlateRotatedRect& RotatedRect)
 {
 	return FVector2D::DistSquared(ClosestPointOnSlateRotatedRect(Point, RotatedRect), Point);
 }
 
-FORCEINLINE bool IsOverlappingSlateRotatedRect(const FVector2D& Point, const float Radius, const FSlateRotatedRect& RotatedRect)
+
+bool IsOverlappingSlateRotatedRect(const FVector2D& Point, const float Radius, const FSlateRotatedRect& RotatedRect)
 {
 	return DistanceSqToSlateRotatedRect( Point, RotatedRect ) <= (Radius * Radius);
 }
+
 
 bool ContainsInteractableWidget(const TArray<FWidgetAndPointer>& PathToTest)
 {
@@ -67,6 +70,8 @@ bool ContainsInteractableWidget(const TArray<FWidgetAndPointer>& PathToTest)
 	}
 	return false;
 }
+
+
 
 //
 // FHittestGrid
@@ -112,7 +117,7 @@ struct FHittestGrid::FCachedWidget
 	FGeometry CachedGeometry;
 	// @todo umg : ideally this clipping rect is optional and we only have them on a small number of widgets.
 	FSlateRect ClippingRect;
-	TArray<int32, TInlineAllocator<16> > Children;
+	TArray<int32> Children;
 	int32 ParentIndex;
 };
 
@@ -154,7 +159,8 @@ TArray<FWidgetAndPointer> FHittestGrid::GetBubblePath(FVector2D DesktopSpaceCoor
 		const FIntPoint LRIndex = GetCellCoordinate(CursorPositionInGrid + RadiusVector);
 
 		//first, find all the overlapping cells
-		TArray<FIntPoint, TInlineAllocator<16>> CellIndexes;
+		TArray<FIntPoint> CellIndexes;
+		CellIndexes.Reserve(16);
 
 		for (int32 YIndex = ULIndex.Y; YIndex <= LRIndex.Y; ++YIndex)
 		{
@@ -222,7 +228,7 @@ void FHittestGrid::ClearGridForNewFrame( const FSlateRect& HittestArea )
 	GridOrigin = HittestArea.GetTopLeft();
 	const FVector2D GridSize = HittestArea.GetSize();
 	NumCells = FIntPoint( FMath::CeilToInt(GridSize.X / CellSize.X), FMath::CeilToInt(GridSize.Y / CellSize.Y) );
-	WidgetsCachedThisFrame->Reset();
+	WidgetsCachedThisFrame->Empty(WidgetsCachedThisFrame->Num());
 
 	const int32 NewTotalCells = NumCells.X * NumCells.Y;
 	if (NewTotalCells != Cells.Num())
@@ -535,11 +541,25 @@ TSharedPtr<SWidget> FHittestGrid::FindNextFocusableWidget(const FArrangedWidget&
 	return Widget;
 }
 
+
+
 FIntPoint FHittestGrid::GetCellCoordinate(FVector2D Position)
 {
 	return FIntPoint(
 		FMath::Min(FMath::Max(FMath::FloorToInt(Position.X / CellSize.X), 0), NumCells.X - 1),
 		FMath::Min(FMath::Max(FMath::FloorToInt(Position.Y / CellSize.Y), 0), NumCells.Y - 1));
+}
+
+FHittestGrid::FCell& FHittestGrid::CellAt( const int32 X, const int32 Y )
+{
+	check( (Y*NumCells.X + X) < Cells.Num() );
+	return Cells[ Y*NumCells.X + X ];
+}
+
+const FHittestGrid::FCell& FHittestGrid::CellAt( const int32 X, const int32 Y ) const
+{
+	check( (Y*NumCells.X + X) < Cells.Num() );
+	return Cells[ Y*NumCells.X + X ];
 }
 
 bool FHittestGrid::IsValidCellCoord(const FIntPoint& CellCoord) const

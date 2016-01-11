@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,15 +9,14 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnButtonClickedEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnButtonPressedEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnButtonReleasedEvent);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnButtonHoverEvent);
 
 /**
  * The button is a click-able primitive widget to enable basic interaction, you
  * can place any other widget inside a button to make a more complex and 
  * interesting click-able element in your UI.
  *
- * * Single Child
- * * Clickable
+ * ● Single Child
+ * ● Clickable
  */
 UCLASS()
 class UMG_API UButton : public UContentWidget
@@ -67,18 +66,8 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="Button|Event")
 	FOnButtonReleasedEvent OnReleased;
 
-	UPROPERTY( BlueprintAssignable, Category = "Button|Event" )
-	FOnButtonHoverEvent OnHovered;
-
-	UPROPERTY( BlueprintAssignable, Category = "Button|Event" )
-	FOnButtonHoverEvent OnUnhovered;
-
 public:
 	
-	/** Sets the color multiplier for the button background */
-	UFUNCTION(BlueprintCallable, Category="Button|Appearance")
-	void SetStyle(const FButtonStyle& InStyle);
-
 	/** Sets the color multiplier for the button content */
 	UFUNCTION(BlueprintCallable, Category="Button|Appearance")
 	void SetColorAndOpacity(FLinearColor InColorAndOpacity);
@@ -97,17 +86,17 @@ public:
 
 public:
 
-	//~ Begin UWidget Interface
+	// UWidget interface
 	virtual void SynchronizeProperties() override;
-	//~ End UWidget Interface
+	// End of UWidget interface
 
-	//~ Begin UVisual Interface
+	// UVisual interface
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
-	//~ End UVisual Interface
+	// End of UVisual interface
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void PostLoad() override;
-	//~ End UObject Interface
+	// End of UObject interface
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
@@ -127,13 +116,11 @@ protected:
 	FReply SlateHandleClicked();
 	void SlateHandlePressed();
 	void SlateHandleReleased();
-	void SlateHandleHovered();
-	void SlateHandleUnhovered();
 
 protected:
-	//~ Begin UWidget Interface
+	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
-	//~ End UWidget Interface
+	// End of UWidget interface
 
 protected:
 	/** Cached pointer to the underlying slate button owned by this UWidget */

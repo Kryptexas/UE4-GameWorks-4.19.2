@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "LayoutUtils.h"
@@ -165,7 +165,6 @@ void SScrollBox::Construct( const FArguments& InArgs )
 	ConsumeMouseWheel = InArgs._ConsumeMouseWheel;
 	TickScrollDelta = 0;
 	AllowOverscroll = InArgs._AllowOverscroll;
-	DestinationScrollingWidgetIntoView = EDescendantScrollDestination::IntoView;
 	bAnimateScrollingWidgetIntoView = false;
 
 	if (InArgs._ExternalScrollbar.IsValid())
@@ -369,19 +368,16 @@ void SScrollBox::ScrollToEnd()
 	bScrollToEnd = true;
 }
 
-void SScrollBox::ScrollDescendantIntoView(const TSharedPtr<SWidget>& WidgetToFind, bool InAnimateScroll, EDescendantScrollDestination InDestination)
+void SScrollBox::ScrollDescendantIntoView(const TSharedPtr<SWidget>& WidgetToFind, bool InAnimateScroll)
 {
 	WidgetToScrollIntoView = WidgetToFind;
-	DestinationScrollingWidgetIntoView = InDestination;
 	bAnimateScrollingWidgetIntoView = InAnimateScroll;
 
 	// This will force the active timer system to wakeup for a frame to ensure we tick at least once.
-	bIsScrolling = true;
-	bIsScrollingActiveTimerRegistered = true;
 	RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SScrollBox::UpdateInertialScroll));
 }
 
-bool SScrollBox::ScrollDescendantIntoView(const FGeometry& MyGeometry, const TSharedPtr<SWidget>& WidgetToFind, bool InAnimateScroll, EDescendantScrollDestination InDestination)
+bool SScrollBox::ScrollDescendantIntoView(const FGeometry& MyGeometry, const TSharedPtr<SWidget>& WidgetToFind, bool InAnimateScroll)
 {
 	// We need to safely find the one WidgetToFind among our descendants.
 	TSet< TSharedRef<SWidget> > WidgetsToFind;
@@ -398,45 +394,32 @@ bool SScrollBox::ScrollDescendantIntoView(const FGeometry& MyGeometry, const TSh
 		// @todo: This is a workaround because DesiredScrollOffset can exceed the ScrollMax when mouse dragging on the scroll bar and we need it clamped here or the offset is wrong
 		ScrollBy(MyGeometry, 0, EAllowOverscroll::No, false);
 
-		float ScrollOffset = 0.0f;
-		if ( InDestination == EDescendantScrollDestination::TopOrLeft )
+		// If the scale is 0, we can't really calculate things properly.
+		if ( MyGeometry.Scale != 0 )
 		{
 			// Calculate how much we would need to scroll to bring this to the top/left of the scroll box
-			const float WidgetPosition = GetScrollComponentFromVector(WidgetGeometry->Geometry.AbsolutePosition);
-			const float MyPosition = GetScrollComponentFromVector(MyGeometry.AbsolutePosition);
-			ScrollOffset = WidgetPosition - MyPosition;
-		}
-		else
-		{
-			// If the scale is 0, we can't really calculate things properly.
-			if ( MyGeometry.Scale != 0 )
+			// NOTE: The scrollbox does all offset calculation using desired sizes which doesn't involve scale,
+			//       so we need to remove the scale from positions so that they are in the same unscaled space.
+			const float WidgetStartPosition = GetScrollComponentFromVector(WidgetGeometry->Geometry.AbsolutePosition / MyGeometry.Scale);
+			const float WidgetEndPosition = GetScrollComponentFromVector(WidgetGeometry->Geometry.AbsolutePosition / MyGeometry.Scale + WidgetGeometry->Geometry.GetLocalSize());
+			const float ViewStartPosition = GetScrollComponentFromVector(MyGeometry.AbsolutePosition / MyGeometry.Scale);
+			const float ViewEndPosition = GetScrollComponentFromVector(MyGeometry.AbsolutePosition / MyGeometry.Scale + MyGeometry.GetLocalSize());
+
+			const float ViewDelta = ( ViewEndPosition - ViewStartPosition );
+			const float WidgetDelta = ( WidgetEndPosition - WidgetStartPosition );
+
+			if ( WidgetStartPosition < ViewStartPosition )
 			{
-				// Calculate how much we would need to scroll to bring this to the top/left of the scroll box
-				// NOTE: The scrollbox does all offset calculation using desired sizes which doesn't involve scale,
-				//       so we need to remove the scale from positions so that they are in the same unscaled space.
-				const float WidgetStartPosition = GetScrollComponentFromVector(WidgetGeometry->Geometry.AbsolutePosition / MyGeometry.Scale);
-				const float WidgetEndPosition = GetScrollComponentFromVector(WidgetGeometry->Geometry.AbsolutePosition / MyGeometry.Scale + WidgetGeometry->Geometry.GetLocalSize());
-				const float ViewStartPosition = GetScrollComponentFromVector(MyGeometry.AbsolutePosition / MyGeometry.Scale);
-				const float ViewEndPosition = GetScrollComponentFromVector(MyGeometry.AbsolutePosition / MyGeometry.Scale + MyGeometry.GetLocalSize());
-
-				const float ViewDelta = ( ViewEndPosition - ViewStartPosition );
-				const float WidgetDelta = ( WidgetEndPosition - WidgetStartPosition );
-
-				if ( WidgetStartPosition < ViewStartPosition )
-				{
-					ScrollOffset = WidgetStartPosition - ViewStartPosition;
-				}
-				else if ( WidgetEndPosition > ViewEndPosition )
-				{
-					ScrollOffset = ( WidgetEndPosition - ViewDelta ) - ViewStartPosition;
-				}
+				const float ScrollOffset = WidgetStartPosition - ViewStartPosition;
+				ScrollBy(MyGeometry, ScrollOffset, EAllowOverscroll::No, InAnimateScroll);
+			}
+			else if ( WidgetEndPosition > ViewEndPosition )
+			{
+				const float ScrollOffset = ( WidgetEndPosition - ViewDelta ) - ViewStartPosition;
+				ScrollBy(MyGeometry, ScrollOffset, EAllowOverscroll::No, InAnimateScroll);
 			}
 		}
 
-		if ( ScrollOffset != 0.0f )
-		{
-			ScrollBy(MyGeometry, ScrollOffset, EAllowOverscroll::No, InAnimateScroll);
-		}
 		return true;
 	}
 	return false;
@@ -485,7 +468,7 @@ void SScrollBox::SetScrollBarThickness(FVector2D InThickness)
 
 EActiveTimerReturnType SScrollBox::UpdateInertialScroll(double InCurrentTime, float InDeltaTime)
 {
-	bool bKeepTicking = bIsScrolling;
+	bool bKeepTicking = false;
 
 	//if (bIsScrolling)
 	//{
@@ -554,7 +537,7 @@ void SScrollBox::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 	// If we needed a widget to be scrolled into view, make that happen.
 	if ( WidgetToScrollIntoView.IsValid() )
 	{
-		ScrollDescendantIntoView(AllottedGeometry, WidgetToScrollIntoView, bAnimateScrollingWidgetIntoView, DestinationScrollingWidgetIntoView);
+		ScrollDescendantIntoView(AllottedGeometry, WidgetToScrollIntoView, bAnimateScrollingWidgetIntoView);
 		WidgetToScrollIntoView.Reset();
 	}
 
@@ -719,7 +702,7 @@ void SScrollBox::OnMouseLeave( const FPointerEvent& MouseEvent )
 
 FReply SScrollBox::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	if (ScrollBar->IsNeeded() && ConsumeMouseWheel != EConsumeMouseWheel::Never )
+	if (ScrollBar->IsNeeded())
 	{
 		// Make sure scroll velocity is cleared so it doesn't fight with the mouse wheel input
 		InertialScrollManager.ClearScrollVelocity();
@@ -752,11 +735,11 @@ bool SScrollBox::ScrollBy(const FGeometry& AllottedGeometry, float ScrollAmount,
 
 	const float PreviousScrollOffset = DesiredScrollOffset;
 
+	const float ScrollMin = 0.0f;
+	const float ScrollMax = ContentSize - GetScrollComponentFromVector(ScrollPanelGeometry.Size);
+
 	if ( ScrollAmount != 0 )
 	{
-		const float ScrollMin = 0.0f;
-		const float ScrollMax = ContentSize - GetScrollComponentFromVector(ScrollPanelGeometry.Size);
-
 		if ( Overscrolling == EAllowOverscroll::Yes && Overscroll.ShouldApplyOverscroll(DesiredScrollOffset == 0, DesiredScrollOffset == ScrollMax, ScrollAmount) )
 		{
 			Overscroll.ScrollBy(ScrollAmount);

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,12 +11,6 @@
 
 
 #define DEBUG_HEAP 0
-
-#if UE_BUILD_SHIPPING || UE_BUILD_TEST
-	#define TARRAY_RANGED_FOR_CHECKS 0
-#else
-	#define TARRAY_RANGED_FOR_CHECKS 1
-#endif
 
 
 /**
@@ -136,91 +130,6 @@ FORCEINLINE TIndexedContainerIterator<ContainerType, ElementType, IndexType> ope
 {
 	return RHS + Offset;
 }
-
-#if TARRAY_RANGED_FOR_CHECKS
-
-	/**
-	 * Pointer-like iterator type for ranged-for loops which checks that the
-	 * container hasn't been resized during iteration.
-	 */
-	template <typename ElementType>
-	struct TCheckedPointerIterator
-	{
-		// This iterator type only supports the minimal functionality needed to support
-		// C++ ranged-for syntax.  For example, it does not provide post-increment ++ nor ==.
-		//
-		// We do add an operator-- to help FString implementation
-
-		explicit TCheckedPointerIterator(const int32& InNum, ElementType* InPtr)
-			: Ptr       (InPtr)
-			, CurrentNum(InNum)
-			, InitialNum(InNum)
-		{
-		}
-
-		FORCEINLINE ElementType& operator*() const
-		{
-			return *Ptr;
-		}
-
-		FORCEINLINE TCheckedPointerIterator& operator++()
-		{
-			++Ptr;
-			return *this;
-		}
-
-		FORCEINLINE TCheckedPointerIterator& operator--()
-		{
-			--Ptr;
-			return *this;
-		}
-
-	private:
-		ElementType* Ptr;
-		const int32& CurrentNum;
-		int32        InitialNum;
-
-		friend bool operator!=(const TCheckedPointerIterator& Lhs, const TCheckedPointerIterator& Rhs)
-		{
-			// We only need to do the check in this operator, because no other operator will be
-			// called until after this one returns.
-			//
-			// Also, we should only need to check one side of this comparison - if the other iterator isn't
-			// even from the same array then the compiler has generated bad code.
-			ensureMsgf(Lhs.CurrentNum == Lhs.InitialNum, TEXT("Array has changed during ranged-for iteration!"));
-			return Lhs.Ptr != Rhs.Ptr;
-		}
-	};
-
-#endif
-
-template <typename ElementType, typename IteratorType>
-struct TDereferencingIterator
-{
-	explicit TDereferencingIterator(IteratorType InIter)
-		: Iter(InIter)
-	{
-	}
-
-	FORCEINLINE ElementType& operator*() const
-	{
-		return *(ElementType*)*Iter;
-	}
-
-	FORCEINLINE TDereferencingIterator& operator++()
-	{
-		++Iter;
-		return *this;
-	}
-
-private:
-	IteratorType Iter;
-
-	FORCEINLINE friend bool operator!=(const TDereferencingIterator& Lhs, const TDereferencingIterator& Rhs)
-	{
-		return Lhs.Iter != Rhs.Iter;
-	}
-};
 
 /**
  * Base dynamic array.
@@ -495,7 +404,7 @@ public:
 	template <typename OtherElementType, typename OtherAllocator>
 	explicit TArray(const TArray<OtherElementType, OtherAllocator>& Other)
 	{
-		CopyToEmpty(Other, 0, 0);
+		CopyToEmpty(Other);
 	}
 
 	/**
@@ -505,7 +414,7 @@ public:
 	 */
 	TArray(const TArray& Other)
 	{
-		CopyToEmpty(Other, 0, 0);
+		CopyToEmpty(Other);
 	}
 
 	/**
@@ -517,7 +426,7 @@ public:
 	 */
 	TArray(const TArray& Other, int32 ExtraSlack)
 	{
-		CopyToEmpty(Other, 0, ExtraSlack);
+		CopyToEmpty(Other, ExtraSlack);
 	}
 
 	/**
@@ -532,7 +441,7 @@ public:
 	TArray& operator=(const TArray<ElementType, OtherAllocator>& Other)
 	{
 		DestructItems(GetData(), ArrayNum);
-		CopyToEmpty(Other, ArrayMax, 0);
+		CopyToEmpty(Other);
 		return *this;
 	}
 
@@ -547,7 +456,7 @@ public:
 		if (this != &Other)
 		{
 			DestructItems(GetData(), ArrayNum);
-			CopyToEmpty(Other, ArrayMax, 0);
+			CopyToEmpty(Other);
 		}
 		return *this;
 	}
@@ -562,7 +471,7 @@ private:
 	 * @param FromArray Array to move from.
 	 */
 	template <typename FromArrayType, typename ToArrayType>
-	static FORCEINLINE typename TEnableIf<UE4Array_Private::TCanMoveTArrayPointersBetweenArrayTypes<FromArrayType, ToArrayType>::Value>::Type MoveOrCopy(ToArrayType& ToArray, FromArrayType& FromArray, int32 PrevMax)
+	static FORCEINLINE typename TEnableIf<UE4Array_Private::TCanMoveTArrayPointersBetweenArrayTypes<FromArrayType, ToArrayType>::Value>::Type MoveOrCopy(ToArrayType& ToArray, FromArrayType& FromArray)
 	{
 		ToArray.AllocatorInstance.MoveToEmpty(FromArray.AllocatorInstance);
 
@@ -570,22 +479,6 @@ private:
 		ToArray  .ArrayMax = FromArray.ArrayMax;
 		FromArray.ArrayNum = 0;
 		FromArray.ArrayMax = 0;
-	}
-
-	/**
-	 * Moves or copies array. Depends on the array type traits.
-	 *
-	 * This override copies.
-	 *
-	 * @param ToArray Array to move into.
-	 * @param FromArray Array to move from.
-	 * @param ExtraSlack Tells how much extra memory should be preallocated
-	 *                   at the end of the array in the number of elements.
-	 */
-	template <typename FromArrayType, typename ToArrayType>
-	static FORCEINLINE typename TEnableIf<!UE4Array_Private::TCanMoveTArrayPointersBetweenArrayTypes<FromArrayType, ToArrayType>::Value>::Type MoveOrCopy(ToArrayType& ToArray, FromArrayType& FromArray, int32 PrevMax)
-	{
-		ToArray.CopyToEmpty(FromArray, PrevMax, 0);
 	}
 
 	/**
@@ -599,9 +492,9 @@ private:
 	 *                   at the end of the array in the number of elements.
 	 */
 	template <typename FromArrayType, typename ToArrayType>
-	static FORCEINLINE typename TEnableIf<UE4Array_Private::TCanMoveTArrayPointersBetweenArrayTypes<FromArrayType, ToArrayType>::Value>::Type MoveOrCopyWithSlack(ToArrayType& ToArray, FromArrayType& FromArray, int32 PrevMax, int32 ExtraSlack)
+	static FORCEINLINE typename TEnableIf<UE4Array_Private::TCanMoveTArrayPointersBetweenArrayTypes<FromArrayType, ToArrayType>::Value>::Type MoveOrCopy(ToArrayType& ToArray, FromArrayType& FromArray, int32 ExtraSlack)
 	{
-		MoveOrCopy(ToArray, FromArray, PrevMax);
+		MoveOrCopy(ToArray, FromArray);
 
 		ToArray.Reserve(ToArray.ArrayNum + ExtraSlack);
 	}
@@ -617,9 +510,9 @@ private:
 	 *                   at the end of the array in the number of elements.
 	 */
 	template <typename FromArrayType, typename ToArrayType>
-	static FORCEINLINE typename TEnableIf<!UE4Array_Private::TCanMoveTArrayPointersBetweenArrayTypes<FromArrayType, ToArrayType>::Value>::Type MoveOrCopyWithSlack(ToArrayType& ToArray, FromArrayType& FromArray, int32 PrevMax, int32 ExtraSlack)
+	static FORCEINLINE typename TEnableIf<!UE4Array_Private::TCanMoveTArrayPointersBetweenArrayTypes<FromArrayType, ToArrayType>::Value>::Type MoveOrCopy(ToArrayType& ToArray, FromArrayType& FromArray, int32 ExtraSlack = 0)
 	{
-		ToArray.CopyToEmpty(FromArray, PrevMax, ExtraSlack);
+		ToArray.CopyToEmpty(FromArray, ExtraSlack);
 	}
 
 public:
@@ -630,7 +523,7 @@ public:
 	 */
 	FORCEINLINE TArray(TArray&& Other)
 	{
-		MoveOrCopy(*this, Other, 0);
+		MoveOrCopy(*this, Other);
 	}
 
 	/**
@@ -641,7 +534,7 @@ public:
 	template <typename OtherElementType, typename OtherAllocator>
 	FORCEINLINE explicit TArray(TArray<OtherElementType, OtherAllocator>&& Other)
 	{
-		MoveOrCopy(*this, Other, 0);
+		MoveOrCopy(*this, Other);
 	}
 
 	/**
@@ -658,7 +551,7 @@ public:
 		// to tell if they're compatible with the current one.  Probably going to be a pretty
 		// rare requirement anyway.
 
-		MoveOrCopyWithSlack(*this, Other, 0, ExtraSlack);
+		MoveOrCopy(*this, Other, ExtraSlack);
 	}
 
 	/**
@@ -671,7 +564,7 @@ public:
 		if (this != &Other)
 		{
 			DestructItems(GetData(), ArrayNum);
-			MoveOrCopy(*this, Other, ArrayMax);
+			MoveOrCopy(*this, Other);
 		}
 		return *this;
 	}
@@ -1139,7 +1032,7 @@ public:
 
 	/**
 	 * Finds an item by key (assuming the ElementType overloads operator== for
-	 * the comparison). Time Complexity: O(n), starts iteration from the beginning so better performance if Key is in the front
+	 * the comparison).
 	 *
 	 * @param Key The key to search by.
 	 *
@@ -1733,16 +1626,6 @@ public:
 	}
 
 	/**
-	 * Does nothing except setting the new number of elements in the array. Does not destruct items, does not de-allocate memory.
-	 * @param NewNum New number of elements in the array, must be <= the current number of elements in the array.
-	 */
-	void SetNumUnsafeInternal(int32 NewNum)
-	{
-		checkSlow(NewNum <= Num() && NewNum >= 0);
-		ArrayNum = NewNum;
-	}
-
-	/**
 	 * Appends the specified array to this array.
 	 *
 	 * Allocator changing version.
@@ -2308,30 +2191,15 @@ public:
 		return TConstIterator(*this);
 	}
 
-	#if TARRAY_RANGED_FOR_CHECKS
-		typedef TCheckedPointerIterator<      ElementType> RangedForIteratorType;
-		typedef TCheckedPointerIterator<const ElementType> RangedForConstIteratorType;
-	#else
-		typedef       ElementType* RangedForIteratorType;
-		typedef const ElementType* RangedForConstIteratorType;
-	#endif
-
 private:
 	/**
 	 * DO NOT USE DIRECTLY
 	 * STL-like iterators to enable range-based for loop support.
 	 */
-	#if TARRAY_RANGED_FOR_CHECKS
-		FORCEINLINE friend RangedForIteratorType      begin(      TArray& Array) { return RangedForIteratorType     (Array.ArrayNum, Array.GetData()); }
-		FORCEINLINE friend RangedForConstIteratorType begin(const TArray& Array) { return RangedForConstIteratorType(Array.ArrayNum, Array.GetData()); }
-		FORCEINLINE friend RangedForIteratorType      end  (      TArray& Array) { return RangedForIteratorType     (Array.ArrayNum, Array.GetData() + Array.Num()); }
-		FORCEINLINE friend RangedForConstIteratorType end  (const TArray& Array) { return RangedForConstIteratorType(Array.ArrayNum, Array.GetData() + Array.Num()); }
-	#else
-		FORCEINLINE friend RangedForIteratorType      begin(      TArray& Array) { return Array.GetData(); }
-		FORCEINLINE friend RangedForConstIteratorType begin(const TArray& Array) { return Array.GetData(); }
-		FORCEINLINE friend RangedForIteratorType      end  (      TArray& Array) { return Array.GetData() + Array.Num(); }
-		FORCEINLINE friend RangedForConstIteratorType end  (const TArray& Array) { return Array.GetData() + Array.Num(); }
-	#endif
+	FORCEINLINE friend TIterator      begin(      TArray& Array) { return TIterator     (Array); }
+	FORCEINLINE friend TConstIterator begin(const TArray& Array) { return TConstIterator(Array); }
+	FORCEINLINE friend TIterator      end  (      TArray& Array) { return TIterator     (Array, Array.Num()); }
+	FORCEINLINE friend TConstIterator end  (const TArray& Array) { return TConstIterator(Array, Array.Num()); }
 
 public:
 	/**
@@ -2397,21 +2265,17 @@ private:
 	 * data in question does not need a constructor.
 	 *
 	 * @param Source The source array to copy
-	 * @param PrevMax The previous allocated size
-	 * @param ExtraSlack Additional amount of memory to allocate at
+	 * @param ExtraSlack (Optional) Additional amount of memory to allocate at
 	 *                   the end of the buffer. Counted in elements. Zero by
 	 *                   default.
 	 */
 	template <typename OtherElementType, typename OtherAllocator>
-	void CopyToEmpty(const TArray<OtherElementType, OtherAllocator>& Source, int32 PrevMax, int32 ExtraSlack)
+	void CopyToEmpty(const TArray<OtherElementType, OtherAllocator>& Source, int32 ExtraSlack = 0)
 	{
 		check(ExtraSlack >= 0);
 
 		int32 SourceCount = Source.Num();
-		if (SourceCount + ExtraSlack != PrevMax)
-		{
-			AllocatorInstance.ResizeAllocation(0, SourceCount + ExtraSlack, sizeof(ElementType));
-		}
+		AllocatorInstance.ResizeAllocation(0, SourceCount + ExtraSlack, sizeof(ElementType));
 
 		ConstructItems<ElementType>(GetData(), Source.GetData(), SourceCount);
 
@@ -2508,10 +2372,10 @@ public:
 	 * @param Predicate Predicate class instance.
 	 */
 	template <class PREDICATE_CLASS>
-	void HeapPop(ElementType& OutItem, const PREDICATE_CLASS& Predicate, bool bAllowShrinking = true)
+	void HeapPop(ElementType& OutItem, const PREDICATE_CLASS& Predicate)
 	{
 		OutItem = (*this)[0];
-		RemoveAtSwap(0, 1, bAllowShrinking);
+		RemoveAtSwap(0);
 
 		TDereferenceWrapper< ElementType, PREDICATE_CLASS> PredicateWrapper(Predicate);
 		SiftDown(0, Num(), PredicateWrapper);
@@ -2526,11 +2390,10 @@ public:
 	 * the template type.
 	 *
 	 * @param OutItem The removed item.
-	 * @param bAllowShrinking (Optional) Tells if this call can shrink the array allocation if suitable after the pop. Default is true.
 	 */
-	void HeapPop(ElementType& OutItem, bool bAllowShrinking = true)
+	void HeapPop(ElementType& OutItem)
 	{
-		HeapPop(OutItem, TLess<ElementType>(), bAllowShrinking);
+		HeapPop(OutItem, TLess<ElementType>());
 	}
 
 	/**
@@ -2557,12 +2420,11 @@ public:
 	 * Removes the top element from the heap.
 	 *
 	 * @param Predicate Predicate class instance.
-	 * @param bAllowShrinking (Optional) Tells if this call can shrink the array allocation if suitable after the discard. Default is true.
 	 */
 	template <class PREDICATE_CLASS>
-	void HeapPopDiscard(const PREDICATE_CLASS& Predicate, bool bAllowShrinking = true)
+	void HeapPopDiscard(const PREDICATE_CLASS& Predicate)
 	{
-		RemoveAtSwap(0, 1, bAllowShrinking);
+		RemoveAtSwap(0);
 		TDereferenceWrapper< ElementType, PREDICATE_CLASS> PredicateWrapper(Predicate);
 		SiftDown(0, Num(), PredicateWrapper);
 
@@ -2574,11 +2436,10 @@ public:
 	/** 
 	 * Removes the top element from the heap. Assumes < operator is defined for
 	 * the template type.
-	 * @param bAllowShrinking (Optional) Tells if this call can shrink the array allocation if suitable after the discard. Default is true.
 	 */
-	void HeapPopDiscard(bool bAllowShrinking = true)
+	void HeapPopDiscard()
 	{
-		HeapPopDiscard(TLess<ElementType>(), bAllowShrinking);
+		HeapPopDiscard(TLess<ElementType>());
 	}
 
 	/** 
@@ -2608,12 +2469,11 @@ public:
 	 *
 	 * @param Index Position at which to remove item.
 	 * @param Predicate Predicate class instance.
-	 * @param bAllowShrinking (Optional) Tells if this call can shrink the array allocation if suitable after the remove. Default is true.
 	 */
 	template <class PREDICATE_CLASS>
-	void HeapRemoveAt(int32 Index, const PREDICATE_CLASS& Predicate, bool bAllowShrinking = true)
+	void HeapRemoveAt(int32 Index, const PREDICATE_CLASS& Predicate)
 	{
-		RemoveAtSwap(Index, 1, bAllowShrinking);
+		RemoveAtSwap(Index);
 
 		TDereferenceWrapper< ElementType, PREDICATE_CLASS> PredicateWrapper(Predicate);
 		SiftDown(Index, Num(), PredicateWrapper);
@@ -2629,11 +2489,10 @@ public:
 	 * template type.
 	 *
 	 * @param Index Position at which to remove item.
-	 * @param bAllowShrinking (Optional) Tells if this call can shrink the array allocation if suitable after the remove. Default is true.
 	 */
-	void HeapRemoveAt(int32 Index, bool bAllowShrinking = true)
+	void HeapRemoveAt(int32 Index)
 	{
-		HeapRemoveAt(Index, TLess< ElementType >(), bAllowShrinking);
+		HeapRemoveAt(Index, TLess< ElementType >());
 	}
 
 	/**
@@ -3479,10 +3338,10 @@ private:
 	 * DO NOT USE DIRECTLY
 	 * STL-like iterators to enable range-based for loop support.
 	 */
-	FORCEINLINE friend TDereferencingIterator<      ElementType, typename InternalArrayType::RangedForIteratorType     > begin(      TIndirectArray& IndirectArray) { return TDereferencingIterator<      ElementType, typename InternalArrayType::RangedForIteratorType     >(begin(IndirectArray.Array)); }
-	FORCEINLINE friend TDereferencingIterator<const ElementType, typename InternalArrayType::RangedForConstIteratorType> begin(const TIndirectArray& IndirectArray) { return TDereferencingIterator<const ElementType, typename InternalArrayType::RangedForConstIteratorType>(begin(IndirectArray.Array)); }
-	FORCEINLINE friend TDereferencingIterator<      ElementType, typename InternalArrayType::RangedForIteratorType     > end  (      TIndirectArray& IndirectArray) { return TDereferencingIterator<      ElementType, typename InternalArrayType::RangedForIteratorType     >(end  (IndirectArray.Array)); }
-	FORCEINLINE friend TDereferencingIterator<const ElementType, typename InternalArrayType::RangedForConstIteratorType> end  (const TIndirectArray& IndirectArray) { return TDereferencingIterator<const ElementType, typename InternalArrayType::RangedForConstIteratorType>(end  (IndirectArray.Array)); }
+	FORCEINLINE friend TIterator      begin(      TIndirectArray& IndirectArray) { return TIterator     (IndirectArray); }
+	FORCEINLINE friend TConstIterator begin(const TIndirectArray& IndirectArray) { return TConstIterator(IndirectArray); }
+	FORCEINLINE friend TIterator      end  (      TIndirectArray& IndirectArray) { return TIterator     (IndirectArray, IndirectArray.Array.Num()); }
+	FORCEINLINE friend TConstIterator end  (const TIndirectArray& IndirectArray) { return TConstIterator(IndirectArray, IndirectArray.Array.Num()); }
 
 	InternalArrayType Array;
 };

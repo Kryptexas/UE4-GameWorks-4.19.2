@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,41 +9,36 @@
 #include "BonePose.h"
 #include "AnimNodeBase.generated.h"
 
-struct FAnimInstanceProxy;
-
 /** Base class for update/evaluate contexts */
 struct FAnimationBaseContext
 {
 public:
-	DEPRECATED(4.11, "Please use AnimInstanceProxy")
 	UAnimInstance* AnimInstance;
-
-	FAnimInstanceProxy* AnimInstanceProxy;
-
 protected:
-	// DEPRECATED - Please use constructor that uses an FAnimInstanceProxy*
-	ENGINE_API FAnimationBaseContext(UAnimInstance* InAnimInstance);
-
-	ENGINE_API FAnimationBaseContext(FAnimInstanceProxy* InAnimInstanceProxy);
-
-public:
-	// we define a copy constructor here simply to avoid deprecation warnings with clang
-	ENGINE_API FAnimationBaseContext(const FAnimationBaseContext& InContext);
+	FAnimationBaseContext(UAnimInstance* InInstance)
+		: AnimInstance(InInstance)
+	{
+	}
 
 public:
 	// Get the Blueprint Generated Class associated with this context, if there is one.
 	// Note: This can return NULL, so check the result.
-	DEPRECATED(4.11, "GetAnimBlueprintClass() is deprecated, UAnimBlueprintGeneratedClass should not be directly used at runtime. Please use GetAnimClass() instead.")
-	ENGINE_API UAnimBlueprintGeneratedClass* GetAnimBlueprintClass() const;
-
-	// Get the Blueprint IAnimClassInterface associated with this context, if there is one.
-	// Note: This can return NULL, so check the result.
-	ENGINE_API IAnimClassInterface* GetAnimClass() const;
+	UAnimBlueprintGeneratedClass* GetAnimBlueprintClass() const
+	{
+		return Cast<UAnimBlueprintGeneratedClass>(AnimInstance->GetClass());
+	}
 
 #if WITH_EDITORONLY_DATA
 	// Get the AnimBlueprint associated with this context, if there is one.
 	// Note: This can return NULL, so check the result.
-	ENGINE_API UAnimBlueprint* GetAnimBlueprint() const;
+	UAnimBlueprint* GetAnimBlueprint() const
+	{
+		if (UAnimBlueprintGeneratedClass* Class = GetAnimBlueprintClass())
+		{
+			return Cast<UAnimBlueprint>(Class->ClassGeneratedBy);
+		}
+		return NULL;
+	}
 #endif //WITH_EDITORONLY_DATA
 };
 
@@ -52,14 +47,8 @@ public:
 struct FAnimationInitializeContext : public FAnimationBaseContext
 {
 public:
-	DEPRECATED(4.11, "Please use constructor that uses an FAnimInstanceProxy*")
-	FAnimationInitializeContext(UAnimInstance* InAnimInstance)
-		: FAnimationBaseContext(InAnimInstance)
-	{
-	}
-
-	FAnimationInitializeContext(FAnimInstanceProxy* InAnimInstanceProxy)
-		: FAnimationBaseContext(InAnimInstanceProxy)
+	FAnimationInitializeContext(UAnimInstance* InInstance)
+		: FAnimationBaseContext(InInstance)
 	{
 	}
 };
@@ -71,14 +60,8 @@ public:
 struct FAnimationCacheBonesContext : public FAnimationBaseContext
 {
 public:
-	DEPRECATED(4.11, "Please use constructor that uses an FAnimInstanceProxy*")
-	FAnimationCacheBonesContext(UAnimInstance* InAnimInstance)
-		: FAnimationBaseContext(InAnimInstance)
-	{
-	}
-
-	FAnimationCacheBonesContext(FAnimInstanceProxy* InAnimInstanceProxy)
-		: FAnimationBaseContext(InAnimInstanceProxy)
+	FAnimationCacheBonesContext(UAnimInstance* InInstance)
+		: FAnimationBaseContext(InInstance)
 	{
 	}
 };
@@ -90,16 +73,8 @@ private:
 	float CurrentWeight;
 	float DeltaTime;
 public:
-	DEPRECATED(4.11, "Please use constructor that uses an FAnimInstanceProxy*")
-	FAnimationUpdateContext(UAnimInstance* InAnimInstance, float InDeltaTime)
-		: FAnimationBaseContext(InAnimInstance)
-		, CurrentWeight(1.0f)
-		, DeltaTime(InDeltaTime)
-	{
-	}
-
-	FAnimationUpdateContext(FAnimInstanceProxy* InAnimInstanceProxy, float InDeltaTime)
-		: FAnimationBaseContext(InAnimInstanceProxy)
+	FAnimationUpdateContext(UAnimInstance* Instance, float InDeltaTime)
+		: FAnimationBaseContext(Instance)
 		, CurrentWeight(1.0f)
 		, DeltaTime(InDeltaTime)
 	{
@@ -107,14 +82,14 @@ public:
 
 	FAnimationUpdateContext FractionalWeight(float Multiplier) const
 	{
-		FAnimationUpdateContext Result(AnimInstanceProxy, DeltaTime);
+		FAnimationUpdateContext Result(AnimInstance, DeltaTime);
 		Result.CurrentWeight = CurrentWeight * Multiplier;
 		return Result;
 	}
 
 	FAnimationUpdateContext FractionalWeightAndTime(float WeightMultiplier, float TimeMultiplier) const
 	{
-		FAnimationUpdateContext Result(AnimInstanceProxy, DeltaTime * TimeMultiplier);
+		FAnimationUpdateContext Result(AnimInstance, DeltaTime * TimeMultiplier);
 		Result.CurrentWeight = CurrentWeight * WeightMultiplier;
 		return Result;
 	}
@@ -135,28 +110,26 @@ public:
 	FBlendedCurve	Curve;
 
 public:
-	DEPRECATED(4.11, "Please use constructor that uses an FAnimInstanceProxy*")
+	// This constructor allocates a new uninitialized pose for the specified anim instance
 	FPoseContext(UAnimInstance* InAnimInstance)
 		: FAnimationBaseContext(InAnimInstance)
 	{
-		Initialize(AnimInstanceProxy);
-	}
-
-	// This constructor allocates a new uninitialized pose for the specified anim instance
-	FPoseContext(FAnimInstanceProxy* InAnimInstanceProxy)
-		: FAnimationBaseContext(InAnimInstanceProxy)
-	{
-		Initialize(InAnimInstanceProxy);
+		Initialize(InAnimInstance);
 	}
 
 	// This constructor allocates a new uninitialized pose, copying non-pose state from the source context
 	FPoseContext(const FPoseContext& SourceContext)
-		: FAnimationBaseContext(SourceContext.AnimInstanceProxy)
+		: FAnimationBaseContext(SourceContext.AnimInstance)
 	{
-		Initialize(SourceContext.AnimInstanceProxy);
+		Initialize(SourceContext.AnimInstance);
 	}
 
-	ENGINE_API void Initialize(FAnimInstanceProxy* InAnimInstanceProxy);
+	void Initialize(UAnimInstance* InAnimInstance)
+	{
+		checkSlow(AnimInstance && AnimInstance->RequiredBones.IsValid());
+		Pose.SetBoneContainer(&AnimInstance->RequiredBones);
+		Curve.InitFrom(AnimInstance->CurrentSkeleton);
+	}
 
 	void ResetToRefPose()
 	{
@@ -180,9 +153,9 @@ public:
 
 	FPoseContext& operator=(const FPoseContext& Other)
 	{
-		if (AnimInstanceProxy != Other.AnimInstanceProxy)
+		if (AnimInstance != Other.AnimInstance)
 		{
-			Initialize(AnimInstanceProxy);
+			Initialize(AnimInstance);
 		}
 
 		Pose = Other.Pose;
@@ -200,30 +173,29 @@ public:
 	FBlendedCurve			Curve;
 
 public:
-	DEPRECATED(4.11, "Please use constructor that uses an FAnimInstanceProxy*")
+	// This constructor allocates a new uninitialized pose for the specified anim instance
 	FComponentSpacePoseContext(UAnimInstance* InAnimInstance)
 		: FAnimationBaseContext(InAnimInstance)
-	{
-	}
-
-	// This constructor allocates a new uninitialized pose for the specified anim instance
-	FComponentSpacePoseContext(FAnimInstanceProxy* InAnimInstanceProxy)
-		: FAnimationBaseContext(InAnimInstanceProxy)
 	{
 		// No need to initialize, done through FA2CSPose::AllocateLocalPoses
 	}
 
 	// This constructor allocates a new uninitialized pose, copying non-pose state from the source context
 	FComponentSpacePoseContext(const FComponentSpacePoseContext& SourceContext)
-		: FAnimationBaseContext(SourceContext.AnimInstanceProxy)
+		: FAnimationBaseContext(SourceContext.AnimInstance)
 	{
 		// No need to initialize, done through FA2CSPose::AllocateLocalPoses
 	}
 
-	ENGINE_API void ResetToRefPose();
+	void ResetToRefPose()
+	{
+		checkSlow( AnimInstance && AnimInstance->RequiredBones.IsValid() );
+		Pose.InitPose(&AnimInstance->RequiredBones);
+		Curve.InitFrom(AnimInstance->CurrentSkeleton);
+	}
 
-	ENGINE_API bool ContainsNaN() const;
-	ENGINE_API bool IsNormalized() const;
+	bool ContainsNaN() const;
+	bool IsNormalized() const;
 };
 
 struct ENGINE_API FNodeDebugData
@@ -249,9 +221,6 @@ private:
 	/** Nodes that we are dependent on. */
 	TArray<DebugItem> NodeChain;
 
-	/** Additional info provided, used in GetNodeName. States machines can provide the state names for the Root Nodes to use for example. */
-	FString NodeDescription;
-
 public:
 	struct FFlattenedDebugData
 	{
@@ -267,21 +236,14 @@ public:
 
 	FNodeDebugData(const class UAnimInstance* InAnimInstance) : AbsoluteWeight(1.f), AnimInstance(InAnimInstance) {}
 	FNodeDebugData(const class UAnimInstance* InAnimInstance, const float AbsWeight) : AbsoluteWeight(AbsWeight), AnimInstance(InAnimInstance) {}
-	FNodeDebugData(const class UAnimInstance* InAnimInstance, const float AbsWeight, FString InNodeDescription) 
-		: AbsoluteWeight(AbsWeight)
-		, NodeDescription(InNodeDescription)
-		, AnimInstance(InAnimInstance) 
-	{}
 
 	void AddDebugItem(FString DebugData, bool bPoseSource = false);
-	FNodeDebugData& BranchFlow(float BranchWeight, FString InNodeDescription = FString());
+	FNodeDebugData& BranchFlow(float BranchWeight);
 
 	template<class Type>
 	FString GetNodeName(Type* Node)
 	{
-		FString FinalString = FString::Printf(TEXT("%s<W:%.1f%%> %s"), *Node->StaticStruct()->GetName(), AbsoluteWeight*100.f, *NodeDescription);
-		NodeDescription.Empty();
-		return FinalString;
+		return FString::Printf(TEXT("%s<W:%.1f%%>"), *Node->StaticStruct()->GetName(), AbsoluteWeight*100.f);
 	}
 
 	void GetFlattenedDebugData(TArray<FFlattenedDebugData>& FlattenedDebugData, int32 Indent, int32& ChainID);
@@ -318,8 +280,6 @@ namespace EPinHidingMode
 	};
 }
 
-#define ENABLE_ANIMGRAPH_TRAVERSAL_DEBUG 0
-
 /** A pose link to another node */
 USTRUCT()
 struct ENGINE_API FPoseLinkBase
@@ -334,13 +294,6 @@ struct ENGINE_API FPoseLinkBase
 	/** The source link ID, used for debug visualization. */
 	UPROPERTY()
 	int32 SourceLinkID;
-#endif
-
-#if ENABLE_ANIMGRAPH_TRAVERSAL_DEBUG
-	FGraphTraversalCounter InitializationCounter;
-	FGraphTraversalCounter CachedBonesCounter;
-	FGraphTraversalCounter UpdateCounter;
-	FGraphTraversalCounter EvaluationCounter;
 #endif
 
 protected:
@@ -372,8 +325,6 @@ public:
 	void AttemptRelink(const FAnimationBaseContext& Context);
 };
 
-#define ENABLE_ANIMNODE_POSE_DEBUG 0
-
 /** A local-space pose link to another node */
 USTRUCT()
 struct ENGINE_API FPoseLink : public FPoseLinkBase
@@ -383,12 +334,6 @@ struct ENGINE_API FPoseLink : public FPoseLinkBase
 public:
 	// Interface
 	void Evaluate(FPoseContext& Output);
-
-#if ENABLE_ANIMNODE_POSE_DEBUG
-private:
-	// forwarded pose data from the wired node which current node's skeletal control is not applied yet
-	FCompactPose CurrentPose;
-#endif //#if ENABLE_ANIMNODE_POSE_DEBUG
 };
 
 /** A component-space pose link to another node */
@@ -402,106 +347,27 @@ public:
 	void EvaluateComponentSpace(FComponentSpacePoseContext& Output);
 };
 
-UENUM()
-enum class EPostCopyOperation : uint8
-{
-	None,
-
-	LogicalNegateBool,
-};
-
-USTRUCT()
-struct FExposedValueCopyRecord
-{
-	GENERATED_USTRUCT_BODY()
-
-	FExposedValueCopyRecord()
-		: SourceProperty_DEPRECATED(nullptr)
-		, SourcePropertyName(NAME_None)
-		, SourceSubPropertyName(NAME_None)
-		, SourceArrayIndex(0)
-		, DestProperty(nullptr)
-		, DestArrayIndex(0)
-		, Size(0)
-		, PostCopyOperation(EPostCopyOperation::None)
-		, Source(nullptr)
-		, Dest(nullptr)
-	{}
-
-	void PostSerialize(const FArchive& Ar);
-
-	UPROPERTY()
-	UProperty* SourceProperty_DEPRECATED;
-
-	UPROPERTY()
-	FName SourcePropertyName;
-
-	UPROPERTY()
-	FName SourceSubPropertyName;
-
-	UPROPERTY()
-	int32 SourceArrayIndex;
-
-	UPROPERTY()
-	UProperty* DestProperty;
-
-	UPROPERTY()
-	int32 DestArrayIndex;
-
-	UPROPERTY()
-	int32 Size;
-
-	UPROPERTY()
-	EPostCopyOperation PostCopyOperation;
-
-	// Cached source copy ptr
-	void* Source;
-
-	// Cached dest copy ptr
-	void* Dest;
-};
-
-template<>
-struct TStructOpsTypeTraits< FExposedValueCopyRecord > : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithPostSerialize = true,
-	};
-};
-
 // An exposed value updater
 USTRUCT()
-struct ENGINE_API FExposedValueHandler
+struct FExposedValueHandler
 {
 	GENERATED_USTRUCT_BODY()
-
-	FExposedValueHandler()
-		: BoundFunction(NAME_None)
-		, Function(nullptr)
-		, bInitialized(false)
-	{
-	}
 
 	// The function to call to update associated properties (can be NULL)
 	UPROPERTY()
 	FName BoundFunction;
 
-	// Direct data access to property in anim instance
-	UPROPERTY()
-	TArray<FExposedValueCopyRecord> CopyRecords;
-
-	// function pointer if BoundFunction != NAME_None
-	UFunction* Function;
-
-	// Prevent multiple initialization
-	bool bInitialized;
-
-	// Bind copy records and cache UFunction if necessary
-	void Initialize(FAnimNode_Base* AnimNode, UObject* AnimInstanceObject);
-
-	// Execute the function and copy records
-	void Execute(const FAnimationBaseContext& Context) const;
+	void Execute(const FAnimationBaseContext& Context) const
+	{
+		if (BoundFunction != NAME_None)
+		{
+			//@TODO: Should be able to be Checked, or at least produce a warning when it fails
+			if (UFunction* Function = Context.AnimInstance->FindFunction(BoundFunction))
+			{
+				Context.AnimInstance->ProcessEvent(Function, NULL);
+			}
+		}
+	}
 };
 
 /**
@@ -517,13 +383,13 @@ struct ENGINE_API FAnimNode_Base
 	GENERATED_USTRUCT_BODY()
 
 	// The default handler for graph-exposed inputs
-	UPROPERTY(meta=(BlueprintCompilerGeneratedDefaults))
+	UPROPERTY()
 	FExposedValueHandler EvaluateGraphExposedInputs;
 
 	// A derived class should implement Initialize, Update, and either Evaluate or EvaluateComponentSpace, but not both of them
 
 	// Interface to implement
-	virtual void Initialize(const FAnimationInitializeContext& Context);
+	virtual void Initialize(const FAnimationInitializeContext& Context) {}
 	virtual void CacheBones(const FAnimationCacheBonesContext& Context) {}
 	virtual void Update(const FAnimationUpdateContext& Context) {}
 	virtual void Evaluate(FPoseContext& Output) { check(false); }
@@ -534,24 +400,9 @@ struct ENGINE_API FAnimNode_Base
 
 	virtual void GatherDebugData(FNodeDebugData& DebugData)
 	{ 
-		DebugData.AddDebugItem(FString::Printf(TEXT("Non Overriden GatherDebugData! (%s)"), *DebugData.GetNodeName(this)));
+		DebugData.AddDebugItem(TEXT("Non Overriden GatherDebugData")); 
 	}
-
-	virtual bool CanUpdateInWorkerThread() const { return true; }
-
-	/**
-	 * Override this to indicate that PreUpdate() should be called on the game thread (usually to 
-	 * gather non-thread safe data) before Update() is called.
-	 */
-	virtual bool HasPreUpdate() const { return false; }
-
-	/** Override this to perform game-thread work prior to non-game thread Update() being called */
-	virtual void PreUpdate(const UAnimInstance* InAnimInstance) {}
 	// End of interface to implement
 
 	virtual ~FAnimNode_Base() {}
-
-protected:
-	/** return true if enabled, otherwise, return false. This is utility function that can be used per node level */
-	bool IsLODEnabled(FAnimInstanceProxy* AnimInstanceProxy, int32 InLODThreshold);
 };

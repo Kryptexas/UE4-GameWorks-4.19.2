@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "Actions/PawnActionsComponent.h"
@@ -418,7 +418,7 @@ EPawnActionAbortState::Type UPawnActionsComponent::K2_ForceAbortAction(UPawnActi
 {
 	if (ActionToAbort)
 	{
-		return ForceAbortAction(*ActionToAbort);
+		ForceAbortAction(*ActionToAbort);
 	}
 	return EPawnActionAbortState::NeverStarted;
 }
@@ -553,7 +553,7 @@ bool UPawnActionsComponent::K2_PerformAction(APawn* Pawn, UPawnAction* Action, T
 {
 	if (Pawn && Action)
 	{
-		return PerformAction(*Pawn, *Action, Priority);
+		PerformAction(*Pawn, *Action, Priority);
 	}
 	return false;
 }

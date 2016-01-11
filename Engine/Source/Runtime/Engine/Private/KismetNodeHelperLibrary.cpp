@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Kismet/KismetNodeHelperLibrary.h"
@@ -158,23 +158,16 @@ FString UKismetNodeHelperLibrary::GetEnumeratorUserFriendlyName(const UEnum* Enu
 	return FName().ToString();
 }
 
-uint8 UKismetNodeHelperLibrary::GetValidValue(const UEnum* Enum, uint8 EnumeratorValue)
+uint8 UKismetNodeHelperLibrary::GetValidIndex(const UEnum* Enum, uint8 EnumeratorIndex)
 {
 	if (NULL != Enum)
 	{
-		if (Enum->IsValidEnumValue(EnumeratorValue))
+		uint8 EnumValue = Enum->GetValueByIndex(EnumeratorIndex);
+		if (Enum->IsValidEnumValue(EnumValue))
 		{
-			return EnumeratorValue;
+			return EnumValue;
 		}
+		return Enum->GetMaxEnumValue();
 	}
-	return Enum->GetMaxEnumValue();
-}
-
-uint8 UKismetNodeHelperLibrary::GetEnumeratorValueFromIndex(const UEnum* Enum, uint8 EnumeratorIndex)
-{
-	if (NULL != Enum)
-	{
-		return Enum->GetValueByIndex(EnumeratorIndex);
-	}
-	return INDEX_NONE;
+	return 0;
 }

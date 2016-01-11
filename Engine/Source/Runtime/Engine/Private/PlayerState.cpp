@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PlayerState.cpp: 
@@ -96,17 +96,6 @@ void APlayerState::CopyProperties(APlayerState* PlayerState)
 	PlayerState->SavedNetworkAddress = SavedNetworkAddress;
 }
 
-void APlayerState::OnDeactivated()
-{
-	// By default we duplicate the inactive player state and destroy the old one
-	Destroy();
-}
-
-void APlayerState::OnReactivated()
-{
-	// Stub
-}
-
 void APlayerState::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
@@ -190,14 +179,11 @@ void APlayerState::OnRep_PlayerName()
 
 void APlayerState::OnRep_bIsInactive()
 {
-	// remove and re-add from the GameState so it's in the right list  
-	UWorld* World = GetWorld();
-	if (ensure(World && World->GameState))
-	{
-		World->GameState->RemovePlayerState(this);
-		World->GameState->AddPlayerState(this);
-	}
+	// remove and re-add from the GameState so it's in the right list
+	GetWorld()->GameState->RemovePlayerState(this);
+	GetWorld()->GameState->AddPlayerState(this);
 }
+
 
 bool APlayerState::ShouldBroadCastWelcomeMessage(bool bExiting)
 {
@@ -206,15 +192,14 @@ bool APlayerState::ShouldBroadCastWelcomeMessage(bool bExiting)
 
 void APlayerState::Destroyed()
 {
-	UWorld* World = GetWorld();
-	if (World->GameState != NULL)
+	if ( GetWorld()->GameState != NULL )
 	{
-		World->GameState->RemovePlayerState(this);
+		GetWorld()->GameState->RemovePlayerState(this);
 	}
 
 	if( ShouldBroadCastWelcomeMessage(true) )
 	{
-		for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
+		for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
 		{
 			APlayerController* PlayerController = *Iterator;
 			if( PlayerController )

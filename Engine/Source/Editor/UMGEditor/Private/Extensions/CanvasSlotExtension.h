@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,20 +9,23 @@ class UCanvasPanel;
 class UCanvasPanelSlot;
 
 /** Set of anchor widget types */
-enum class EAnchorWidget : uint8
+namespace EAnchorWidget
 {
-	Center,
-	Left,
-	Right,
-	Top,
-	Bottom,
-	TopLeft,
-	TopRight,
-	BottomLeft,
-	BottomRight,
+	enum Type
+	{
+		Center,
+		Left,
+		Right,
+		Top,
+		Bottom,
+		TopLeft,
+		TopRight,
+		BottomLeft,
+		BottomRight,
 
-	Count
-};
+		MAX_COUNT
+	};
+}
 
 /**
  * The canvas slot extension provides design time widgets for widgets that are selected in the canvas.
@@ -41,18 +44,18 @@ public:
 
 private:
 
-	FReply HandleAnchorBeginDrag(const FGeometry& Geometry, const FPointerEvent& Event, EAnchorWidget AnchorType);
-	FReply HandleAnchorEndDrag(const FGeometry& Geometry, const FPointerEvent& Event, EAnchorWidget AnchorType);
-	FReply HandleAnchorDragging(const FGeometry& Geometry, const FPointerEvent& Event, EAnchorWidget AnchorType);
+	FReply HandleAnchorBeginDrag(const FGeometry& Geometry, const FPointerEvent& Event, EAnchorWidget::Type AnchorType);
+	FReply HandleAnchorEndDrag(const FGeometry& Geometry, const FPointerEvent& Event, EAnchorWidget::Type AnchorType);
+	FReply HandleAnchorDragging(const FGeometry& Geometry, const FPointerEvent& Event, EAnchorWidget::Type AnchorType);
 
-	TSharedRef<SWidget> MakeAnchorWidget(EAnchorWidget AnchorType, float Width, float Height);
+	TSharedRef<SWidget> MakeAnchorWidget(EAnchorWidget::Type AnchorType, float Width, float Height);
 
 	void OnMouseEnterAnchor();
 	void OnMouseLeaveAnchor();
 
-	const FSlateBrush* GetAnchorBrush(EAnchorWidget AnchorType) const;
-	EVisibility GetAnchorVisibility(EAnchorWidget AnchorType) const;
-	FVector2D GetAnchorAlignment(EAnchorWidget AnchorType) const;
+	const FSlateBrush* GetAnchorBrush(EAnchorWidget::Type AnchorType) const;
+	EVisibility GetAnchorVisibility(EAnchorWidget::Type AnchorType) const;
+	FVector2D GetAnchorAlignment(EAnchorWidget::Type AnchorType) const;
 
 	static bool GetCollisionSegmentsForSlot(UCanvasPanel* Canvas, int32 SlotIndex, TArray<FVector2D>& Segments);
 	static bool GetCollisionSegmentsForSlot(UCanvasPanel* Canvas, UCanvasPanelSlot* Slot, TArray<FVector2D>& Segments);

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "SoundClassGraphNode.generated.h"
@@ -19,14 +19,14 @@ class USoundClassGraphNode : public UEdGraphNode
 	/** Check whether the children of this node match the SoundClass it is representing */
 	bool CheckRepresentsSoundClass();
 
-	//~ Begin UEdGraphNode Interface.
+	// Begin UEdGraphNode interface.
 	virtual FLinearColor GetNodeTitleColor() const override;
 	virtual void AllocateDefaultPins() override;
 	virtual void AutowireNewNode(UEdGraphPin* FromPin) override;
 	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* Schema) const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual bool CanUserDeleteNode() const override;
-	//~ End UEdGraphNode Interface.
+	// End UEdGraphNode interface.
 
 private:
 	/** Pin that connects to all children */

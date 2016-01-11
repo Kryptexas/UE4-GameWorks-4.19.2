@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticMesh.h: Static mesh class definition.
@@ -539,12 +539,8 @@ struct FStaticMeshLODResources
 
 	/** Index buffer resource for rendering. */
 	FRawStaticIndexBuffer IndexBuffer;
-	/** Reversed index buffer, used to prevent changing culling state between drawcalls. */
-	FRawStaticIndexBuffer ReversedIndexBuffer;
 	/** Index buffer resource for rendering in depth only passes. */
 	FRawStaticIndexBuffer DepthOnlyIndexBuffer;
-	/** Reversed depth only index buffer, used to prevent changing culling state between drawcalls. */
-	FRawStaticIndexBuffer ReversedDepthOnlyIndexBuffer;
 	/** Index buffer resource for rendering wireframe mode. */
 	FRawStaticIndexBuffer WireframeIndexBuffer;
 	/** Index buffer containing adjacency information required by tessellation. */
@@ -552,9 +548,6 @@ struct FStaticMeshLODResources
 
 	/** The vertex factory used when rendering this mesh. */
 	FLocalVertexFactory VertexFactory;
-
-	/** The vertex factory used when rendering this mesh with vertex colors. This is lazy init.*/
-	FLocalVertexFactory VertexFactoryOverrideColorVertexBuffer;
 
 	/** Sections for this LOD. */
 	TArray<FStaticMeshSection> Sections;
@@ -566,19 +559,7 @@ struct FStaticMeshLODResources
 	float MaxDeviation;
 
 	/** True if the adjacency index buffer contained data at init. Needed as it will not be available to the CPU afterwards. */
-	uint32 bHasAdjacencyInfo : 1;
-
-	/** True if the depth only index buffers contained data at init. Needed as it will not be available to the CPU afterwards. */
-	uint32 bHasDepthOnlyIndices : 1;
-
-	/** True if the reversed index buffers contained data at init. Needed as it will not be available to the CPU afterwards. */
-	uint32 bHasReversedIndices : 1;
-
-	/** True if the reversed index buffers contained data at init. Needed as it will not be available to the CPU afterwards. */
-	uint32 bHasReversedDepthOnlyIndices: 1;
-
-
-	uint32 DepthOnlyNumTriangles;
+	bool bHasAdjacencyInfo;
 
 	/** Default constructor. */
 	FStaticMeshLODResources();
@@ -607,9 +588,9 @@ struct FStaticMeshLODResources
 	 *
 	 * @param	InOutVertexFactory				The vertex factory to configure
 	 * @param	InParentMesh					Parent static mesh
-	 * @param	bInOverrideColorVertexBuffer	If true, make a vertex factory ready for per-instance colors
+	 * @param	InOverrideColorVertexBuffer		Optional color vertex buffer to use *instead* of the color vertex stream associated with this static mesh
 	 */
-	void InitVertexFactory(FLocalVertexFactory& InOutVertexFactory, UStaticMesh* InParentMesh, bool bInOverrideColorVertexBuffer);
+	void InitVertexFactory(FLocalVertexFactory& InOutVertexFactory, UStaticMesh* InParentMesh, FColorVertexBuffer* InOverrideColorVertexBuffer);
 };
 
 /**
@@ -705,7 +686,7 @@ public:
 		{
 			if ( It->StaticMesh == InStaticMesh )
 			{
-				checkf( !It->IsUnreachable(), TEXT("%s"), *It->GetFullName() );
+				checkf( !It->HasAnyFlags(RF_Unreachable), TEXT("%s"), *It->GetFullName() );
 
 				if ( It->bRenderStateCreated )
 				{
@@ -770,25 +751,17 @@ public:
 	virtual bool GetShadowMeshElement(int32 LODIndex, int32 BatchIndex, uint8 InDepthPriorityGroup, FMeshBatch& OutMeshBatch, bool bDitheredLODTransition) const;
 
 	/** Sets up a FMeshBatch for a specific LOD and element. */
-	virtual bool GetMeshElement(
-		int32 LODIndex, 
-		int32 BatchIndex, 
-		int32 ElementIndex, 
-		uint8 InDepthPriorityGroup, 
-		bool bUseSelectedMaterial, 
-		bool bUseHoveredMaterial, 
-		bool bAllowPreCulledIndices,
-		FMeshBatch& OutMeshBatch) const;
+	virtual bool GetMeshElement(int32 LODIndex, int32 BatchIndex, int32 ElementIndex, uint8 InDepthPriorityGroup, const bool bUseSelectedMaterial, const bool bUseHoveredMaterial, FMeshBatch& OutMeshBatch) const;
 
 	/** Sets up a wireframe FMeshBatch for a specific LOD. */
-	virtual bool GetWireframeMeshElement(int32 LODIndex, int32 BatchIndex, const FMaterialRenderProxy* WireframeRenderProxy, uint8 InDepthPriorityGroup, bool bAllowPreCulledIndices, FMeshBatch& OutMeshBatch) const;
+	virtual bool GetWireframeMeshElement(int32 LODIndex, int32 BatchIndex, const FMaterialRenderProxy* WireframeRenderProxy, uint8 InDepthPriorityGroup, FMeshBatch& OutMeshBatch) const;
 
 
 protected:
 	/**
 	 * Sets IndexBuffer, FirstIndex and NumPrimitives of OutMeshElement.
 	 */
-	virtual void SetIndexSource(int32 LODIndex, int32 ElementIndex, FMeshBatch& OutMeshElement, bool bWireframe, bool bRequiresAdjacencyInformation, bool bUseInversedIndices, bool bAllowPreCulledIndices) const;
+	virtual void SetIndexSource(int32 LODIndex, int32 ElementIndex, FMeshBatch& OutMeshElement, bool bWireframe, bool bRequiresAdjacencyInformation ) const;
 	bool IsCollisionView(const FEngineShowFlags& EngineShowFlags, bool& bDrawSimpleCollision, bool& bDrawComplexCollision) const;
 
 public:
@@ -799,7 +772,7 @@ public:
 	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) override;
 	virtual void OnTransformChanged() override;
 	virtual int32 GetLOD(const FSceneView* View) const override;
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override;
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
 	virtual bool CanBeOccluded() const override;
 	virtual void GetLightRelevance(const FLightSceneProxy* LightSceneProxy, bool& bDynamic, bool& bRelevant, bool& bLightMapped, bool& bShadowMapped) const override;
 	virtual void GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane, TArray<FMatrix>& ObjectLocalToWorldTransforms) const override;
@@ -808,12 +781,7 @@ public:
 	virtual uint32 GetMemoryFootprint( void ) const override { return( sizeof( *this ) + GetAllocatedSize() ); }
 	uint32 GetAllocatedSize( void ) const { return( FPrimitiveSceneProxy::GetAllocatedSize() + LODs.GetAllocatedSize() ); }
 
-	virtual void GetMeshDescription(int32 LODIndex, TArray<FMeshBatch>& OutMeshElements) const override;
-
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
-
-	virtual void GetLCIs(FLCIArray& LCIs) override;
-
 protected:
 
 	/** Information used by the proxy about a single LOD of the mesh. */
@@ -831,8 +799,6 @@ protected:
 #if WITH_EDITOR
 				, HitProxy(NULL)
 #endif
-				, FirstPreCulledIndex(0)
-				, NumPreCulledTriangles(-1)
 			{}
 
 			/** The material with which to render this section. */
@@ -845,9 +811,6 @@ protected:
 			/** The editor needs to be able to individual sub-mesh hit detection, so we store a hit proxy on each mesh. */
 			HHitProxy* HitProxy;
 #endif
-
-			int32 FirstPreCulledIndex;
-			int32 NumPreCulledTriangles;
 		};
 
 		/** Per-section information. */
@@ -856,17 +819,40 @@ protected:
 		/** Vertex color data for this LOD (or NULL when not overridden), FStaticMeshComponentLODInfo handle the release of the memory */
 		FColorVertexBuffer* OverrideColorVertexBuffer;
 
-		const FRawStaticIndexBuffer* PreCulledIndexBuffer;
+		/** When the mesh component has overridden the LOD's vertex colors, this vertex factory will be created
+		    and passed along to the renderer instead of the mesh's stock vertex factory */
+		TScopedPointer< FLocalVertexFactory > OverrideColorVertexFactory;
+
 
 		/** Initialization constructor. */
 		FLODInfo(const UStaticMeshComponent* InComponent,int32 InLODIndex);
 
+		/** Destructor */
+		virtual ~FLODInfo();
+
+		// Accessors.
+		const FLightMap* GetLightMap() const
+		{
+			return LightMap;
+		}
+
 		bool UsesMeshModifyingMaterials() const { return bUsesMeshModifyingMaterials; }
 
 		// FLightCacheInterface.
-		virtual FLightInteraction GetInteraction(const FLightSceneProxy* LightSceneProxy) const override;
+		virtual FLightInteraction GetInteraction(const FLightSceneProxy* LightSceneProxy) const;
+
+		virtual FLightMapInteraction GetLightMapInteraction(ERHIFeatureLevel::Type InFeatureLevel) const;
+
+		virtual FShadowMapInteraction GetShadowMapInteraction() const;
+
 
 	private:
+
+		/** The lightmap used by this LOD. */
+		FLightMap* LightMap;
+
+		/** The shadowmap used by this LOD. */
+		FShadowMap* ShadowMap;
 
 		TArray<FGuid> IrrelevantLights;
 
@@ -881,7 +867,7 @@ protected:
 
 	TIndirectArray<FLODInfo> LODs;
 
-	const FDistanceFieldVolumeData* DistanceFieldData;	
+	const FDistanceFieldVolumeData* DistanceFieldData;
 
 	/**
 	 * The forcedLOD set in the static mesh editor, copied from the mesh component
@@ -902,11 +888,6 @@ protected:
 	/** Collision Response of this component**/
 	FCollisionResponseContainer CollisionResponse;
 
-#if WITH_EDITORONLY_DATA
-	/** Index of the section to preview. If set to INDEX_NONE, all section will be rendered */
-	int32 SectionIndexPreview;
-#endif
-
 	/**
 	 * Returns the display factor for the given LOD level
 	 *
@@ -924,13 +905,12 @@ protected:
 	FStaticMeshInstanceData
 -----------------------------------------------------------------------------*/
 
-template <class FloatType>
 struct FInstanceStream
 {
 	FVector4 InstanceOrigin;  // per-instance random in w 
-	FloatType InstanceTransform1[4];  // hitproxy.r + 256 * selected in .w
-	FloatType InstanceTransform2[4]; // hitproxy.g in .w
-	FloatType InstanceTransform3[4]; // hitproxy.b in .w
+	FFloat16 InstanceTransform1[4];  // hitproxy.r + 256 * selected in .w
+	FFloat16 InstanceTransform2[4]; // hitproxy.g in .w
+	FFloat16 InstanceTransform3[4]; // hitproxy.b in .w
 	int16 InstanceLightmapAndShadowMapUVBias[4]; 
 
 	FORCEINLINE void SetInstance(const FMatrix& Transform, float RandomInstanceID)
@@ -946,17 +926,17 @@ struct FInstanceStream
 		Me->InstanceTransform1[0] = Transform.M[0][0];
 		Me->InstanceTransform1[1] = Transform.M[1][0];
 		Me->InstanceTransform1[2] = Transform.M[2][0];
-		Me->InstanceTransform1[3] = FloatType();
+		Me->InstanceTransform1[3] = FFloat16();
 
 		Me->InstanceTransform2[0] = Transform.M[0][1];
 		Me->InstanceTransform2[1] = Transform.M[1][1];
 		Me->InstanceTransform2[2] = Transform.M[2][1];
-		Me->InstanceTransform2[3] = FloatType();
+		Me->InstanceTransform2[3] = FFloat16();
 
 		Me->InstanceTransform3[0] = Transform.M[0][2];
 		Me->InstanceTransform3[1] = Transform.M[1][2];
 		Me->InstanceTransform3[2] = Transform.M[2][2];
-		Me->InstanceTransform3[3] = FloatType();
+		Me->InstanceTransform3[3] = FFloat16();
 
 		Me->InstanceLightmapAndShadowMapUVBias[0] = 0;
 		Me->InstanceLightmapAndShadowMapUVBias[1] = 0;
@@ -986,35 +966,6 @@ struct FInstanceStream
 		Transform.M[1][3] = 0.f;
 		Transform.M[2][3] = 0.f;
 		Transform.M[3][3] = 0.f;
-	}
-
-	FORCEINLINE void GetInstanceShaderValues(FVector4 OutInstanceTransform[3], FVector4& OutInstanceLightmapAndShadowMapUVBias, FVector4& OutInstanceOrigin) const
-	{
-		OutInstanceLightmapAndShadowMapUVBias = FVector4(
-			float(InstanceLightmapAndShadowMapUVBias[0]),
-			float(InstanceLightmapAndShadowMapUVBias[1]),
-			float(InstanceLightmapAndShadowMapUVBias[2]),
-			float(InstanceLightmapAndShadowMapUVBias[3]));
-			
-		OutInstanceTransform[0] = FVector4(
-			(float)InstanceTransform1[0],
-			(float)InstanceTransform1[1],
-			(float)InstanceTransform1[2],
-			(float)InstanceTransform1[3]);
-
-		OutInstanceTransform[1] = FVector4(
-			(float)InstanceTransform2[0],
-			(float)InstanceTransform2[1],
-			(float)InstanceTransform2[2],
-			(float)InstanceTransform2[3]);
-		
-		OutInstanceTransform[2] = FVector4(
-			(float)InstanceTransform3[0],
-			(float)InstanceTransform3[1],
-			(float)InstanceTransform3[2],
-			(float)InstanceTransform3[3]);
-
-		OutInstanceOrigin = InstanceOrigin;
 	}
 
 	FORCEINLINE void SetInstance(const FMatrix& Transform, float RandomInstanceID, const FVector2D& LightmapUVBias, const FVector2D& ShadowmapUVBias, FColor HitProxyColor, bool bSelected)
@@ -1065,17 +1016,17 @@ struct FInstanceStream
 		Me->InstanceTransform1[0] = Transform.M[0][0];
 		Me->InstanceTransform1[1] = Transform.M[1][0];
 		Me->InstanceTransform1[2] = Transform.M[2][0];
-		Me->InstanceTransform1[3] = FloatType();
+		Me->InstanceTransform1[3] = FFloat16();
 
 		Me->InstanceTransform2[0] = Transform.M[0][1];
 		Me->InstanceTransform2[1] = Transform.M[1][1];
 		Me->InstanceTransform2[2] = Transform.M[2][1];
-		Me->InstanceTransform2[3] = FloatType();
+		Me->InstanceTransform2[3] = FFloat16();
 
 		Me->InstanceTransform3[0] = Transform.M[0][2];
 		Me->InstanceTransform3[1] = Transform.M[1][2];
 		Me->InstanceTransform3[2] = Transform.M[2][2];
-		Me->InstanceTransform3[3] = FloatType();
+		Me->InstanceTransform3[3] = FFloat16();
 
 		Me->InstanceLightmapAndShadowMapUVBias[0] = FMath::Clamp<int32>(FMath::TruncToInt(rLightmapUVBias->X  * 32767.0f), MIN_int16, MAX_int16);
 		Me->InstanceLightmapAndShadowMapUVBias[1] = FMath::Clamp<int32>(FMath::TruncToInt(rLightmapUVBias->Y  * 32767.0f), MIN_int16, MAX_int16);
@@ -1086,17 +1037,17 @@ struct FInstanceStream
 	FORCEINLINE void NullifyInstance()
 	{
 		FInstanceStream* RESTRICT Me = (FInstanceStream* RESTRICT)this;
-		Me->InstanceTransform1[0] = FloatType();
-		Me->InstanceTransform1[1] = FloatType();
-		Me->InstanceTransform1[2] = FloatType();
+		Me->InstanceTransform1[0] = FFloat16();
+		Me->InstanceTransform1[1] = FFloat16();
+		Me->InstanceTransform1[2] = FFloat16();
 
-		Me->InstanceTransform2[0] = FloatType();
-		Me->InstanceTransform2[1] = FloatType();
-		Me->InstanceTransform2[2] = FloatType();
+		Me->InstanceTransform2[0] = FFloat16();
+		Me->InstanceTransform2[1] = FFloat16();
+		Me->InstanceTransform2[2] = FFloat16();
 
-		Me->InstanceTransform3[0] = FloatType();
-		Me->InstanceTransform3[1] = FloatType();
-		Me->InstanceTransform3[2] = FloatType();
+		Me->InstanceTransform3[0] = FFloat16();
+		Me->InstanceTransform3[1] = FFloat16();
+		Me->InstanceTransform3[2] = FFloat16();
 	}
 
 	FORCEINLINE void SetInstanceEditorData(FColor HitProxyColor, bool bSelected)
@@ -1138,40 +1089,33 @@ struct FInstanceStream
 	}
 };
 
-typedef FInstanceStream<FFloat16>	FInstanceStream16;
-typedef FInstanceStream<float>		FInstanceStream32;
 
 /** The implementation of the static mesh instance data storage type. */
 class FStaticMeshInstanceData :
-	public FStaticMeshVertexDataInterface
+	public FStaticMeshVertexDataInterface,
+	public TResourceArray<FInstanceStream, VERTEXBUFFER_ALIGNMENT>
 {
 public:
-	FStaticMeshInstanceData()
-		: InstanceStream16(false)
-		, InstanceStream32(false)
-		, bUseHalfFloat(PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || GVertexElementTypeSupport.IsSupported(VET_Half2))
-	{
-	}
+
+	typedef TResourceArray<FInstanceStream, VERTEXBUFFER_ALIGNMENT> ArrayType;
+
 	/**
 	 * Constructor
 	 * @param InNeedsCPUAccess - true if resource array data should be CPU accessible
-	 * @param bSupportsVertexHalfFloat - true if device has support for half float in vertex arrays
 	 */
-	FStaticMeshInstanceData(bool InNeedsCPUAccess, bool bInUseHalfFloat)
-		: InstanceStream16(InNeedsCPUAccess)
-		, InstanceStream32(InNeedsCPUAccess)
-		, bUseHalfFloat(bInUseHalfFloat)
+	FStaticMeshInstanceData(bool InNeedsCPUAccess=false)
+		:	TResourceArray<FInstanceStream, VERTEXBUFFER_ALIGNMENT>(InNeedsCPUAccess)
 	{
 	}
 
-	SIZE_T GetResourceSize() const
+	static uint32 StaticGetStride()
 	{
-		return SIZE_T(NumInstances()) * SIZE_T(GetStride());
+		return sizeof(FInstanceStream);
 	}
 
-	static SIZE_T GetResourceSize(int32 InNumInstances, bool bInUseHalfFloat)
+	static SIZE_T GetResourceSize(uint32 NumInstances)
 	{
-		return SIZE_T(InNumInstances) * SIZE_T(bInUseHalfFloat ? sizeof(FInstanceStream16) : sizeof(FInstanceStream32));
+		return SIZE_T(NumInstances) * SIZE_T(StaticGetStride());
 	}
 
 	/**
@@ -1185,185 +1129,41 @@ public:
 
 	virtual uint32 GetStride() const override
 	{
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
-		{
-			return sizeof(FInstanceStream16);
-		}
-		else
-		{
-			return sizeof(FInstanceStream32);
-		}
+		return StaticGetStride();
 	}
 	virtual uint8* GetDataPointer() override
 	{
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
-		{
-			return (uint8*)&(InstanceStream16)[0];
-		}
-		else
-		{
-			return (uint8*)&(InstanceStream32)[0];
-		}
+		return (uint8*)&(*this)[0];
 	}
 	virtual FResourceArrayInterface* GetResourceArray() override
 	{
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
-		{
-			return &InstanceStream16;
-		}
-		else
-		{
-			return &InstanceStream32;
-		}
+		return this;
 	}
 	virtual void Serialize(FArchive& Ar) override
 	{
-		InstanceStream16.BulkSerialize(Ar);
-		InstanceStream32.BulkSerialize(Ar);
+		TResourceArray<FInstanceStream,VERTEXBUFFER_ALIGNMENT>::BulkSerialize(Ar);
 	}
+
+#if 0
+	void Set(const TArray<FInstanceStream>& RawData)
+	{
+		*((ArrayType*)this) = TArray<FInstanceStream, TAlignedHeapAllocator<VERTEXBUFFER_ALIGNMENT> >(RawData);
+	}
+#endif
 
 	void AllocateInstances(int32 NumInstances)
 	{
 		// We cannot write directly to the data on all platforms,
 		// so we make a TArray of the right type, then assign it
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
-		{
-			InstanceStream16.Empty(NumInstances);
-			InstanceStream16.AddUninitialized(NumInstances);
-		}
-		else
-		{
-			InstanceStream32.Empty(NumInstances);
-			InstanceStream32.AddUninitialized(NumInstances);
-		}
+		Empty(NumInstances);
+		AddUninitialized(NumInstances);
 	}
-
-	FORCEINLINE void GetInstanceTransform(int32 InstanceIndex, FMatrix& Transform) const
+	FORCEINLINE FInstanceStream* GetInstanceWriteAddress(int32 InstanceIndex)
 	{
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
-		{
-			InstanceStream16[InstanceIndex].GetInstanceTransform(Transform);
-		}
-		else
-		{
-			InstanceStream32[InstanceIndex].GetInstanceTransform(Transform);
-		}
+		return GetData() + InstanceIndex;
 	}
-
-	FORCEINLINE void GetInstanceShaderValues(int32 InstanceIndex, FVector4 InstanceTransform[3], FVector4& InstanceLightmapAndShadowMapUVBias, FVector4& InstanceOrigin) const
-	{
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
-		{
-			InstanceStream16[InstanceIndex].GetInstanceShaderValues(InstanceTransform, InstanceLightmapAndShadowMapUVBias, InstanceOrigin);
-		}
-		else
-		{
-			InstanceStream32[InstanceIndex].GetInstanceShaderValues(InstanceTransform, InstanceLightmapAndShadowMapUVBias, InstanceOrigin);
-		}
-	}
-
-	FORCEINLINE void SetInstance(int32 InstanceIndex, const FMatrix& Transform, float RandomInstanceID)
-	{
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
-		{
-			InstanceStream16[InstanceIndex].SetInstance(Transform, RandomInstanceID);
-		}
-		else
-		{
-			InstanceStream32[InstanceIndex].SetInstance(Transform, RandomInstanceID);
-		}
-	}
-	
-	FORCEINLINE void SetInstance(int32 InstanceIndex, const FMatrix& Transform, float RandomInstanceID, const FVector2D& LightmapUVBias, const FVector2D& ShadowmapUVBias)
-	{
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
-		{
-			InstanceStream16[InstanceIndex].SetInstance(Transform, RandomInstanceID, LightmapUVBias, ShadowmapUVBias);
-		}
-		else
-		{
-			InstanceStream32[InstanceIndex].SetInstance(Transform, RandomInstanceID, LightmapUVBias, ShadowmapUVBias);
-		}
-	}
-	
-	FORCEINLINE void NullifyInstance(int32 InstanceIndex)
-	{
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
-		{
-			InstanceStream16[InstanceIndex].NullifyInstance();
-		}
-		else
-		{
-			InstanceStream32[InstanceIndex].NullifyInstance();
-		}
-	}
-
-	FORCEINLINE void SetInstanceEditorData(int32 InstanceIndex, FColor HitProxyColor, bool bSelected)
-	{
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
-		{
-			InstanceStream16[InstanceIndex].SetInstanceEditorData(HitProxyColor, bSelected);
-		}
-		else
-		{
-			InstanceStream32[InstanceIndex].SetInstanceEditorData(HitProxyColor, bSelected);
-		}
-	}
-
-	FORCEINLINE uint8* GetInstanceWriteAddress(int32 InstanceIndex)
-	{
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
-		{
-			return (uint8*)(InstanceStream16.GetData() + InstanceIndex);
-		}
-		else
-		{
-			return (uint8*)(InstanceStream32.GetData() + InstanceIndex);
-		}
-	}
-
-	FORCEINLINE int32 NumInstances() const
-	{
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
-		{
-			return InstanceStream16.Num();
-		}
-		else
-		{
-			return InstanceStream32.Num();
-		}
-	}
-
-	FORCEINLINE bool GetAllowCPUAccess() const
-	{
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
-		{
-			return InstanceStream16.GetAllowCPUAccess();
-		}
-		else
-		{
-			return InstanceStream32.GetAllowCPUAccess();
-		}
-	}
-
-	FORCEINLINE void SetAllowCPUAccess(bool bInNeedsCPUAccess)
-	{
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
-		{
-			return InstanceStream16.SetAllowCPUAccess(bInNeedsCPUAccess);
-		}
-		else
-		{
-			return InstanceStream32.SetAllowCPUAccess(bInNeedsCPUAccess);
-		}
-	}
-
-private:
-	TResourceArray<FInstanceStream16, VERTEXBUFFER_ALIGNMENT> InstanceStream16;
-	TResourceArray<FInstanceStream32, VERTEXBUFFER_ALIGNMENT> InstanceStream32;
-	const bool bUseHalfFloat;
 };
-	
+
 #if WITH_EDITOR
 /**
  * Remaps painted vertex colors when the renderable mesh has changed.

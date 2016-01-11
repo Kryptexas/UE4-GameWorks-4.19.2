@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PackagesDialog.h"
@@ -32,22 +32,17 @@ UObject* FPackageItem::GetPackageObject() const
 		PackageTools::GetObjectsInPackages(&Packages, ObjectsInPackages);
 		return ( ObjectsInPackages.Num() > 0 ? ObjectsInPackages.Last() : NULL );
 	}
-	return nullptr;
+	return NULL;
 }
 
 bool FPackageItem::GetTypeNameAndColor(FString& OutName, FColor& OutColor) const
 {
-	// Resolve the object belonging to the package and cache.
-	if (!Object.IsValid())
-	{
-		Object = GetPackageObject();
-	}
-
-	if (Object.IsValid())
+	const UObject* Object = GetPackageObject();
+	if ( Object )
 	{
 		// Load the asset tools module to get access to the class color
 		const FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
-		const TSharedPtr<IAssetTypeActions> AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(Object->GetClass()).Pin();
+		const TSharedPtr<IAssetTypeActions> AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass( Object->GetClass() ).Pin();
 		if ( AssetTypeActions.IsValid() )
 		{
 			const FColor EngineBorderColor = AssetTypeActions->GetTypeColor();

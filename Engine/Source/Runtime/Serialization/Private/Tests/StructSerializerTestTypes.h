@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -135,17 +135,13 @@ struct FStructSerializerBuiltinTestStruct
 	FRotator Rotator;
 
 	UPROPERTY()
-	FText Text;
-
-	UPROPERTY()
 	FVector Vector;
 
 	/** Default constructor. */
 	FStructSerializerBuiltinTestStruct()
 		: Guid(FGuid::NewGuid())
-		, String("Test String")
+		, String("Hello World!")
 		, Rotator(4096, 8192, 16384)
-		, Text(FText::FromString("Test Text"))
 		, Vector(1.0f, 2.0f, 3.0f)
 	{ }
 
@@ -204,37 +200,6 @@ struct FStructSerializerArrayTestStruct
 
 
 /**
- * Test structure for map properties.
- */
-USTRUCT()
-struct FStructSerializerMapTestStruct
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY()
-	TMap<int32, FString> IntToStr;
-
-	UPROPERTY()
-	TMap<FString, FVector> StrToVec;
-
-	/** Default constructor. */
-	FStructSerializerMapTestStruct()
-	{
-		IntToStr.Add(1, TEXT("One"));
-		IntToStr.Add(2, TEXT("Two"));
-		IntToStr.Add(3, TEXT("Three"));
-
-		StrToVec.Add(TEXT("V000"), FVector(0.0f, 0.0f, 0.0f));
-		StrToVec.Add(TEXT("V123"), FVector(1.0f, 2.0f, 3.0f));
-		StrToVec.Add(TEXT("V666"), FVector(6.0f, 6.0f, 6.0f));
-	}
-
-	/** Creates an uninitialized instance. */
-	FStructSerializerMapTestStruct( ENoInit ) { }
-};
-
-
-/**
  * Test structure for all supported types.
  */
 USTRUCT()
@@ -257,9 +222,6 @@ struct FStructSerializerTestStruct
 	UPROPERTY()
 	FStructSerializerArrayTestStruct Arrays;
 
-	UPROPERTY()
-	FStructSerializerMapTestStruct Maps;
-
 	/** Default constructor. */
 	FStructSerializerTestStruct() { }
 
@@ -270,6 +232,5 @@ struct FStructSerializerTestStruct
 		, Objects(NoInit)
 		, Builtins(NoInit)
 		, Arrays(NoInit)
-		, Maps(NoInit)
 	{ }
 };

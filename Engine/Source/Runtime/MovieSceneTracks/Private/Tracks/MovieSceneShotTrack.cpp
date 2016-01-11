@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneShotSection.h"
@@ -10,119 +10,107 @@
 #define LOCTEXT_NAMESPACE "MovieSceneShotTrack"
 
 
-/* UMovieSceneShotTrack interface
- *****************************************************************************/
+UMovieSceneShotTrack::UMovieSceneShotTrack( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
+{ }
 
-void UMovieSceneShotTrack::AddNewShot(FGuid CameraHandle, float StartTime, const FText& ShotName, int32 ShotNumber)
+
+FName UMovieSceneShotTrack::GetTrackName() const
 {
-	Modify();
+	static const FName UniqueName("Shots");
 
-	FName UniqueShotName = MakeUniqueObjectName(this, UMovieSceneShotSection::StaticClass(), *ShotName.ToString());
-	UMovieSceneShotSection* NewSection = NewObject<UMovieSceneShotSection>(this, UniqueShotName, RF_Transactional);
-	{
-		NewSection->SetStartTime(StartTime);
-		NewSection->SetEndTime(FindEndTimeForShot(StartTime));
-		NewSection->SetCameraGuid(CameraHandle);
-		NewSection->SetShotNameAndNumber(ShotName , ShotNumber);
-	}
-
-	Sections.Add(NewSection);
-
-	// When a new shot is added, sort all shots to ensure they are in the correct order
-	SortShots();
-
-	// Once shots are sorted fixup the surrounding shots to fix any gaps
-	FixupSurroundingShots(*NewSection, false);
-}
-
-
-/* UMovieSceneTrack interface
- *****************************************************************************/
-
-void UMovieSceneShotTrack::AddSection(UMovieSceneSection& Section)
-{
-	if (Section.IsA<UMovieSceneShotSection>())
-	{
-		Sections.Add(&Section);
-	}
+	return UniqueName;
 }
 
 
 TSharedPtr<IMovieSceneTrackInstance> UMovieSceneShotTrack::CreateInstance()
 {
-	return MakeShareable(new FMovieSceneShotTrackInstance(*this)); 
+	return MakeShareable( new FMovieSceneShotTrackInstance( *this ) ); 
 }
 
 
-UMovieSceneSection* UMovieSceneShotTrack::CreateNewSection()
+void UMovieSceneShotTrack::AddSection( UMovieSceneSection* Section )
 {
-	return NewObject<UMovieSceneShotSection>(this, NAME_None, RF_Transactional);
+	Super::AddSection( Section );
 }
 
 
-const TArray<UMovieSceneSection*>& UMovieSceneShotTrack::GetAllSections() const
+void UMovieSceneShotTrack::RemoveSection( UMovieSceneSection* Section )
 {
-	return Sections;
-}
+	FixupSurroundingShots( *Section, true );
 
+	Super::RemoveSection( Section );
 
-void UMovieSceneShotTrack::RemoveSection(UMovieSceneSection& Section)
-{
-	Sections.Remove(&Section);
-	FixupSurroundingShots(Section, true);
 	SortShots();
 
 	// @todo Sequencer: The movie scene owned by the section is now abandoned.  Should we offer to delete it?  
+
 }
 
 
-#if WITH_EDITORONLY_DATA
-FText UMovieSceneShotTrack::GetDisplayName() const
+void UMovieSceneShotTrack::AddNewShot(FGuid CameraHandle, UMovieSceneSequence& ShotMovieSceneSequence, float StartTime, const FText& ShotName, int32 ShotNumber )
 {
-	return LOCTEXT("TrackName", "Shots");
+	Modify();
+
+	FName UniqueShotName = MakeUniqueObjectName( this, UMovieSceneShotSection::StaticClass(), *ShotName.ToString() );
+
+	UMovieSceneShotSection* NewSection = NewObject<UMovieSceneShotSection>( this, UniqueShotName, RF_Transactional );
+	NewSection->SetMovieSceneAnimation( &ShotMovieSceneSequence );
+	NewSection->SetStartTime( StartTime );
+	NewSection->SetEndTime( FindEndTimeForShot( StartTime ) );
+	NewSection->SetCameraGuid( CameraHandle );
+	NewSection->SetShotNameAndNumber( ShotName , ShotNumber );
+
+	SubMovieSceneSections.Add( NewSection );
+
+	// When a new shot is added, sort all shots to ensure they are in the correct order
+	SortShots();
+
+
+
+	// Once shots are sorted fixup the surrounding shots to fix any gaps
+	FixupSurroundingShots( *NewSection, false );
 }
-#endif
 
 
 #if WITH_EDITOR
-void UMovieSceneShotTrack::OnSectionMoved(UMovieSceneSection& Section)
+void UMovieSceneShotTrack::OnSectionMoved( UMovieSceneSection& Section )
 {
-	FixupSurroundingShots(Section, false);
+	FixupSurroundingShots( Section, false );
 }
 #endif
 
 
 void UMovieSceneShotTrack::SortShots()
 {
-	Sections.Sort([](const UMovieSceneSection& A, const UMovieSceneSection& B)
-		{
-			return A.GetStartTime() < B.GetStartTime();
-		}
-	);
+	SubMovieSceneSections.Sort(
+		[](const UMovieSceneSection& A, const UMovieSceneSection& B)
+	{
+		return A.GetStartTime() < B.GetStartTime();
+	});
 }
 
 
-void UMovieSceneShotTrack::FixupSurroundingShots(UMovieSceneSection& Section, bool bDelete)
+void UMovieSceneShotTrack::FixupSurroundingShots( UMovieSceneSection& Section, bool bDelete )
 {
 	// Find the previous section and extend it to take the place of the section being deleted
 	int32 SectionIndex = INDEX_NONE;
-
-	if (Sections.Find(&Section, SectionIndex))
+	if( SubMovieSceneSections.Find( &Section, SectionIndex ) )
 	{
 		int32 PrevSectionIndex = SectionIndex - 1;
-		if( Sections.IsValidIndex( PrevSectionIndex ) )
+		if( SubMovieSceneSections.IsValidIndex( PrevSectionIndex ) )
 		{
 			// Extend the previous section
-			Sections[PrevSectionIndex]->SetEndTime( bDelete ? Section.GetEndTime() : Section.GetStartTime() );
+			SubMovieSceneSections[PrevSectionIndex]->SetEndTime( bDelete ? Section.GetEndTime() : Section.GetStartTime() );
 		}
 
 		if( !bDelete )
 		{
 			int32 NextSectionIndex = SectionIndex + 1;
-			if(Sections.IsValidIndex(NextSectionIndex))
+			if(SubMovieSceneSections.IsValidIndex(NextSectionIndex))
 			{
 				// Shift the next shot's start time so that it starts when the new shot ends
-				Sections[NextSectionIndex]->SetStartTime(Section.GetEndTime());
+				SubMovieSceneSections[NextSectionIndex]->SetStartTime(Section.GetEndTime());
 			}
 		}
 	}
@@ -135,8 +123,7 @@ float UMovieSceneShotTrack::FindEndTimeForShot( float StartTime )
 {
 	float EndTime = 0;
 	bool bFoundEndTime = false;
-
-	for( UMovieSceneSection* Section : Sections )
+	for( UMovieSceneSection* Section : SubMovieSceneSections )
 	{
 		if( Section->GetStartTime() >= StartTime )
 		{
@@ -151,7 +138,7 @@ float UMovieSceneShotTrack::FindEndTimeForShot( float StartTime )
 		UMovieScene* OwnerScene = GetTypedOuter<UMovieScene>();
 
 		// End time should just end where the movie scene ends.  Ensure it is at least the same as start time (this should only happen when the movie scene has an initial time range smaller than the start time
-		EndTime = FMath::Max( OwnerScene->GetPlaybackRange().GetUpperBoundValue(), StartTime );
+		EndTime = FMath::Max( OwnerScene->GetTimeRange().GetUpperBoundValue(), StartTime );
 	}
 
 			

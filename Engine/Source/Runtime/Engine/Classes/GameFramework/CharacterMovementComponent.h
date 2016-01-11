@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "AI/Navigation/NavigationAvoidanceTypes.h"
@@ -9,12 +9,10 @@
 #include "GameFramework/PawnMovementComponent.h"
 #include "Interfaces/NetworkPredictionInterface.h"
 #include "WorldCollision.h"
-#include "GameFramework/RootMotionSource.h"
 #include "CharacterMovementComponent.generated.h"
 
 class FDebugDisplayInfo;
 class ACharacter;
-class UCharacterMovementComponent;
 
 /** Data about the floor for walking movement, used by CharacterMovementComponent. */
 USTRUCT(BlueprintType)
@@ -79,10 +77,10 @@ public:
 };
 
 /** 
- * Tick function that calls UCharacterMovementComponent::PostPhysicsTickComponent
+ * Tick function that calls UCharacterMovementComponent::PreClothTick
  **/
 USTRUCT()
-struct FCharacterMovementComponentPostPhysicsTickFunction : public FTickFunction
+struct FCharacterMovementComponentPreClothTickFunction : public FTickFunction
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -341,7 +339,7 @@ public:
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, AdvancedDisplay, meta=(ClampMin="0", UIMin="0"))
 	float PerchAdditionalHeight;
 
-	/** Change in rotation per second, used when UseControllerDesiredRotation or OrientRotationToMovement are true. Set a negative value for infinite rotation rate and instant turns. */
+	/** Change in rotation per second, used when UseControllerDesiredRotation or OrientRotationToMovement are true. */
 	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite)
 	FRotator RotationRate;
 
@@ -409,14 +407,6 @@ public:
 	/** If true, Character can walk off a ledge when crouching. */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
 	uint32 bCanWalkOffLedgesWhenCrouching:1;
-
-	/**
-	 * Signals that smoothed position/rotation has reached target, and no more smoothing is necessary until a future update.
-	 * This is used as an optimization to skip calls to SmoothClientPosition() when true. SmoothCorrection() sets it false when a new network update is received.
-	 * SmoothClientPosition_Interpolate() sets this to true when the interpolation reaches the target, before one last call to SmoothClientPosition_UpdateVisuals().
-	 * If this is not desired, override SmoothClientPosition() to always set this to false to avoid this feature.
-	 */
-	uint32 bNetworkSmoothingComplete:1;
 
 public:
 
@@ -518,12 +508,6 @@ protected:
 	UPROPERTY()
 	FVector LastUpdateLocation;
 
-	/**
-	 * Velocity after last PerformMovement update. Used internally to detect changes in velocity from external sources.
-	 */
-	UPROPERTY()
-	FVector LastUpdateVelocity;
-
 	/** Accumulated impulse to be added next tick. */
 	UPROPERTY()
 	FVector PendingImpulseToApply;
@@ -577,30 +561,16 @@ public:
 	int32 MaxSimulationIterations;
 
 	/**
-	 * How long to take to smoothly interpolate from the old pawn position on the client to the corrected one sent by the server. Not used by Linear smoothing.
+	 * How long to take to smoothly interpolate from the old pawn position on the client to the corrected one sent by the server.
 	 */
-	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, AdvancedDisplay, meta=(ClampMin="0.0", ClampMax="1.0", UIMin="0.0", UIMax="1.0"))
+	UPROPERTY(Category="Character Movement (General Settings)", EditDefaultsOnly, AdvancedDisplay, meta=(ClampMin="0.0", ClampMax="1.0", UIMin="0.0", UIMax="1.0"))
 	float NetworkSimulatedSmoothLocationTime;
 
 	/**
-	 * How long to take to smoothly interpolate from the old pawn rotation on the client to the corrected one sent by the server. Not used by Linear smoothing.
+	 * How long to take to smoothly interpolate from the old pawn rotation on the client to the corrected one sent by the server.
 	 */
-	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, AdvancedDisplay, meta=(ClampMin="0.0", ClampMax="1.0", UIMin="0.0", UIMax="1.0"))
+	UPROPERTY(Category="Character Movement (General Settings)", EditDefaultsOnly, AdvancedDisplay, meta=(ClampMin="0.0", ClampMax="1.0", UIMin="0.0", UIMax="1.0"))
 	float NetworkSimulatedSmoothRotationTime;
-
-	/** Maximum distance character is allowed to lag behind server location when interpolating between updates. */
-	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, meta=(ClampMin="0.0", UIMin="0.0"))
-	float NetworkMaxSmoothUpdateDistance;
-
-	/**
-	 * Maximum distance beyond which character is teleported to the new server location without any smoothing.
-	 */
-	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, meta=(ClampMin="0.0", UIMin="0.0"))
-	float NetworkNoSmoothUpdateDistance;
-
-	/** Smoothing mode for simulated proxies in network game. */
-	UPROPERTY(Category="Character Movement (Networking)", EditAnywhere, BlueprintReadOnly)
-	ENetworkSmoothingMode NetworkSmoothingMode;
 
 	/** Used in determining if pawn is going off ledge.  If the ledge is "shorter" than this value then the pawn will be able to walk off it. **/
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
@@ -679,15 +649,6 @@ public:
 	UPROPERTY(Transient)
 	uint32 bNetworkMovementModeChanged:1;
 
-	/** 
-	 * True when we should ignore server location difference checks for client error on this movement component 
-	 * This can be useful when character is moving at extreme speeds for a duration and you need it to look
-	 * smooth on clients. Make sure to disable when done, as this would break this character's server-client
-	 * movement correction.
-	 */
-	UPROPERTY(Transient, Category="Character Movement", EditAnywhere, BlueprintReadWrite)
-	uint32 bIgnoreClientMovementErrorChecksAndCorrection:1;
-
 	/** if true, event NotifyJumpApex() to CharacterOwner's controller when at apex of jump.  Is cleared when event is triggered. */
 	UPROPERTY(Category="Character Movement: Jumping / Falling", EditAnywhere, BlueprintReadWrite)
 	uint32 bNotifyApex:1;
@@ -746,7 +707,7 @@ public:
 	UPROPERTY()
 	uint32 bWantsToLeaveNavWalking:1;
 
-	/** If set, component will use RVO avoidance. This only runs on the server. */
+	/** If set, component will use RVO avoidance */
 	UPROPERTY(Category="Character Movement: Avoidance", EditAnywhere, BlueprintReadOnly)
 	uint32 bUseRVOAvoidance:1;
 
@@ -783,10 +744,6 @@ protected:
 	/** Whether to raycast to underlying geometry to better conform navmesh-walking characters */
 	UPROPERTY(Category="Character Movement: NavMesh Movement", EditAnywhere, BlueprintReadOnly)
 	uint32 bProjectNavMeshWalking : 1;
-
-	/** Use both WorldStatic and WorldDynamic channels for NavWalking geometry conforming */
-	UPROPERTY(Category = "Character Movement: NavMesh Movement", EditAnywhere, BlueprintReadOnly, AdvancedDisplay)
-	uint32 bProjectNavMeshOnBothWorldChannels : 1;
 
 	/** forced avoidance velocity, used when AvoidanceLockTimer is > 0 */
 	FVector AvoidanceLockVelocity;
@@ -1438,10 +1395,10 @@ public:
 
 	/** Post-physics tick function for this character */
 	UPROPERTY()
-	struct FCharacterMovementComponentPostPhysicsTickFunction PostPhysicsTickFunction;
+	struct FCharacterMovementComponentPreClothTickFunction PreClothComponentTick;
 
 	/** Tick function called after physics (sync scene) has finished simulation, before cloth */
-	virtual void PostPhysicsTickComponent(float DeltaTime, FCharacterMovementComponentPostPhysicsTickFunction& ThisTickFunction);
+	virtual void PreClothTick(float DeltaTime, FCharacterMovementComponentPreClothTickFunction& ThisTickFunction);
 
 protected:
 	/** @note Movement update functions should only be called through StartNewPhysics()*/
@@ -1692,9 +1649,7 @@ public:
 	 * @param NavFloorLocation	Location on navmesh
 	 * @return True if projection was performed (successfully or not)
 	 */
-	virtual bool FindNavFloor(const FVector& TestLocation, FNavLocation& NavFloorLocation) const;
-
-protected:
+	bool FindNavFloor(const FVector& TestLocation, FNavLocation& NavFloorLocation) const;
 
 	// Movement functions broken out based on owner's network Role.
 	// TickComponent calls the correct version based on the Role.
@@ -1707,10 +1662,8 @@ protected:
 	/** Special Tick for Simulated Proxies */
 	void SimulatedTick(float DeltaSeconds);
 
-	/** Simulate movement on a non-owning client. Called by SimulatedTick(). */
+	/** Simulate movement on a non-owning client. */
 	virtual void SimulateMovement(float DeltaTime);
-
-public:
 
 	/** Force a client update by making it appear on the server that the client hasn't updated in a long time. */
 	virtual void ForceReplicationUpdate();
@@ -1737,16 +1690,9 @@ public:
 	//--------------------------------
 	// Client hook
 	//--------------------------------
+	virtual void SmoothCorrection(const FVector& OldLocation, const FQuat& OldRotation) override;
 
-	/**
-	 * React to new transform from network update. Sets bNetworkSmoothingComplete to false to ensure future smoothing updates.
-	 * IMPORTANT: It is expected that this function triggers any movement/transform updates to match the network update if desired.
-	 */
-	virtual void SmoothCorrection(const FVector& OldLocation, const FQuat& OldRotation, const FVector& NewLocation, const FQuat& NewRotation) override;
-
-	/** Get prediction data for a client game. Should not be used if not running as a client. Allocates the data on demand and can be overridden to allocate a custom override if desired. */
 	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;
-	/** Get prediction data for a server game. Should not be used if not running as a server. Allocates the data on demand and can be overridden to allocate a custom override if desired. */
 	virtual class FNetworkPredictionData_Server* GetPredictionData_Server() const override;
 
 	virtual bool HasPredictionData_Client() const override { return ClientPredictionData != NULL; }
@@ -1759,27 +1705,10 @@ protected:
 	class FNetworkPredictionData_Client_Character* ClientPredictionData;
 	class FNetworkPredictionData_Server_Character* ServerPredictionData;
 
-	class FNetworkPredictionData_Client_Character* GetPredictionData_Client_Character() const;
-	class FNetworkPredictionData_Server_Character* GetPredictionData_Server_Character() const;
+	virtual class FNetworkPredictionData_Client_Character* GetPredictionData_Client_Character() const;
+	virtual class FNetworkPredictionData_Server_Character* GetPredictionData_Server_Character() const;
 
-	/**
-	 * Smooth mesh location for network interpolation, based on values set up by SmoothCorrection.
-	 * Internally this simply calls SmoothClientPosition_Interpolate() then SmoothClientPosition_UpdateVisuals().
-	 * This function is not called when bNetworkSmoothingComplete is true.
-	 * @param DeltaSeconds Time since last update.
-	 */
-	virtual void SmoothClientPosition(float DeltaSeconds);
-
-	/**
-	 * Update interpolation values for client smoothing. Does not change actual mesh location.
-	 * Sets bNetworkSmoothingComplete to true when the interpolation reaches the target.
-	 */
-	void SmoothClientPosition_Interpolate(float DeltaSeconds);
-
-	/** Update mesh location based on interpolated values. */
-	void SmoothClientPosition_UpdateVisuals();
-
-	static uint32 PackYawAndPitchTo32(const float Yaw, const float Pitch); 
+	virtual void SmoothClientPosition(float DeltaTime);
 
 	/*
 	========================================================================
@@ -1857,12 +1786,6 @@ public:
 		!! ServerData.CurrentClientTimeStamp can be reset !!
 		@returns true if TimeStamp is valid, or false if it has expired. */
 	bool VerifyClientTimeStamp(float TimeStamp, FNetworkPredictionData_Server_Character & ServerData);
-protected:
-	/** Internal const check for client timestamp validity without side-effects. 
-	  * @see VerifyClientTimeStamp */
-	bool IsClientTimeStampValid(float TimeStamp, const FNetworkPredictionData_Server_Character& ServerData, bool& bTimeStampResetDetected) const;
-
-public:
 
 	////////////////////////////////////
 	// Network RPCs for movement
@@ -1907,63 +1830,14 @@ public:
 	virtual void ClientVeryShortAdjustPosition(float TimeStamp, FVector NewLoc, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
 	virtual void ClientVeryShortAdjustPosition_Implementation(float TimeStamp, FVector NewLoc, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
 	
-	/** Replicate position correction to client when using root motion for movement. (animation root motion specific) */
+	/** Replicate position correction to client when using root motion for movement. */
 	UFUNCTION(unreliable, client)
 	void ClientAdjustRootMotionPosition(float TimeStamp, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, UPrimitiveComponent* ServerBase, FName ServerBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
 	void ClientAdjustRootMotionPosition_Implementation(float TimeStamp, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, UPrimitiveComponent* ServerBase, FName ServerBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
 
-	/** Replicate root motion source correction to client when using root motion for movement. */
-	UFUNCTION(unreliable, client)
-	void ClientAdjustRootMotionSourcePosition(float TimeStamp, FRootMotionSourceGroup ServerRootMotion, bool bHasAnimRootMotion, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, UPrimitiveComponent* ServerBase, FName ServerBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
-	void ClientAdjustRootMotionSourcePosition_Implementation(float TimeStamp, FRootMotionSourceGroup ServerRootMotion, bool bHasAnimRootMotion, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, UPrimitiveComponent* ServerBase, FName ServerBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
-
 	// Root Motion
 public:
-	/** Root Motion Group containing active root motion sources being applied to movement */
-	UPROPERTY(Transient)
-	FRootMotionSourceGroup CurrentRootMotion;
-
-	/** @return true if we have Root Motion from any source to use in PerformMovement() physics. */
-	bool HasRootMotionSources() const;
-
-	/** Apply a RootMotionSource to current root motion 
-	 *  @return LocalID for this Root Motion Source */
-	uint16 ApplyRootMotionSource(FRootMotionSource* SourcePtr);
-
-	/** Get a RootMotionSource from current root motion by name */
-	TSharedPtr<FRootMotionSource> GetRootMotionSource(FName InstanceName);
-
-	/** Get a RootMotionSource from current root motion by ID */
-	TSharedPtr<FRootMotionSource> GetRootMotionSourceByID(uint16 RootMotionSourceID);
-
-	/** Remove a RootMotionSource from current root motion by name */
-	void RemoveRootMotionSource(FName InstanceName);
-
-	/** Remove a RootMotionSource from current root motion by ID */
-	void RemoveRootMotionSourceByID(uint16 RootMotionSourceID);
-
-	/** Converts received server IDs in a root motion group to local IDs  */
-	void ConvertRootMotionServerIDsToLocalIDs(const FRootMotionSourceGroup& LocalRootMotionToMatchWith, FRootMotionSourceGroup& InOutServerRootMotion, float TimeStamp);
-
-	/** Collection of the most recent ID mappings */
-	enum class ERootMotionMapping : uint32 { MapSize = 16 };
-	TArray<FRootMotionServerToLocalIDMapping, TInlineAllocator<(uint32)ERootMotionMapping::MapSize> > RootMotionIDMappings;
-
-protected:
-	/** Restores Velocity to LastPreAdditiveVelocity during Root Motion Phys*() function calls */
-	void RestorePreAdditiveRootMotionVelocity();
-
-	/** Applies root motion from root motion sources to velocity (override and additive) */
-	void ApplyRootMotionToVelocity(float deltaTime);
-
-public:
-
-	/**
-	*	Animation root motion (special case for now)
-	*/
-
-	/** Root Motion movement params. Holds result of anim montage root motion during PerformMovement(), and is overridden
-	*   during autonomous move playback to force historical root motion for MoveAutonomous() calls */
+	/** Root Motion movement params */
 	UPROPERTY(Transient)
 	FRootMotionMovementParams RootMotionParams;
 
@@ -1971,9 +1845,9 @@ public:
 	UPROPERTY(Transient)
 	bool bWasSimulatingRootMotion;
 
-	/** @return true if we have Root Motion from animation to use in PerformMovement() physics. 
+	/** @return true if we have Root Motion to use in PerformMovement() physics. 
 		Not valid outside of the scope of that function. Since RootMotion is extracted and used in it. */
-	bool HasAnimRootMotion() const
+	bool HasRootMotion() const
 	{
 		return RootMotionParams.bHasRootMotion;
 	}
@@ -2049,13 +1923,6 @@ FORCEINLINE_DEBUGGABLE bool UCharacterMovementComponent::IsWalking() const
 	return IsMovingOnGround();
 }
 
-FORCEINLINE uint32 UCharacterMovementComponent::PackYawAndPitchTo32(const float Yaw, const float Pitch)
-{
-	const uint32 YawShort = FRotator::CompressAxisToShort(Yaw);
-	const uint32 PitchShort = FRotator::CompressAxisToShort(Pitch);
-	const uint32 Rotation32 = (YawShort << 16) | PitchShort;
-	return Rotation32;
-}
 
 
 /** FSavedMove_Character represents a saved move on the client that has been sent to the server and might need to be played back. */
@@ -2112,8 +1979,6 @@ public:
 	TWeakObjectPtr<class UAnimMontage> RootMotionMontage;
 	float RootMotionTrackPosition;
 	FRootMotionMovementParams RootMotionMovement;
-
-	FRootMotionSourceGroup SavedRootMotion;
 
 	/** Threshold for deciding this is an "important" move based on DP with last acked acceleration. */
 	float AccelDotThreshold;    
@@ -2201,7 +2066,7 @@ public:
 	uint8 MovementMode;
 };
 
-class ENGINE_API FNetworkPredictionData_Client_Character : public FNetworkPredictionData_Client, protected FNoncopyable
+class ENGINE_API FNetworkPredictionData_Client_Character : public FNetworkPredictionData_Client
 {
 public:
 
@@ -2222,71 +2087,55 @@ public:
 	int32 MaxFreeMoveCount;					// Limit on size of free list
 	int32 MaxSavedMoveCount;				// Limit on the size of the saved move buffer
 
+	uint32 bUpdatePosition:1; // when true, update the position (via ClientUpdatePosition)
+	
 	/** RootMotion saved while animation is updated, so we can store it and replay if needed in case of a position correction. */
 	FRootMotionMovementParams RootMotionMovement;
-
-	uint32 bUpdatePosition:1; // when true, update the position (via ClientUpdatePosition)
 
 	// Mesh smoothing variables (for network smoothing)
 	//
 	/** Whether to smoothly interpolate pawn position corrections on clients based on received location updates */
-	DEPRECATED(4.11, "bSmoothNetUpdates will be removed, use UCharacterMovementComponent::NetworkSmoothingMode instead.")
 	uint32 bSmoothNetUpdates:1;
+
+	/** Used for position smoothing in net games */
+	FVector MeshTranslationOffset;
+
+	/** Used for rotation smoothing in net games */
+	FQuat MeshRotationOffset;
 
 	/** Used for position smoothing in net games */
 	FVector OriginalMeshTranslationOffset;
 
-	/** World space offset of the mesh. Target value is zero offset. Used for position smoothing in net games. */
-	FVector MeshTranslationOffset;
-
-	/** Used for rotation smoothing in net games (only used by linear smoothing). */
+	/** Used for rotation smoothing in net games */
 	FQuat OriginalMeshRotationOffset;
-
-	/** Component space offset of the mesh. Used for rotation smoothing in net games. */
-	FQuat MeshRotationOffset;
-
-	/** Target for mesh rotation interpolation. */
-	FQuat MeshRotationTarget;
 
 	/** Used for remembering how much time has passed between server corrections */
 	float LastCorrectionDelta;
 
-	/** Used to track time of last correction */
-	float LastCorrectionTime;
-
-	/** Used to track how much time has elapsed since last correction. It can be computed as World->TimeSince(LastCorrectionTime). */
-	DEPRECATED(4.11, "bUseLinearSmoothing will be removed, use LastCorrectionTime instead.")
+	/** Used to track how much time has elapsed since last correction */
 	float CurrentSmoothTime;
 
 	/** Used to signify that linear smoothing is desired */
-	DEPRECATED(4.11, "bUseLinearSmoothing will be removed, use UCharacterMovementComponent::NetworkSmoothingMode instead.")
 	bool bUseLinearSmoothing;
 
-	/**
-	 * Copied value from UCharacterMovementComponent::NetworkMaxSmoothUpdateDistance.
-	 * @see UCharacterMovementComponent::NetworkMaxSmoothUpdateDistance
-	 */
+	/** Maximum location correction distance for which other pawn positions on a client will be smoothly updated */
 	float MaxSmoothNetUpdateDist;
 
-	/**
-	 * Copied value from UCharacterMovementComponent::NetworkNoSmoothUpdateDistance.
-	 * @see UCharacterMovementComponent::NetworkNoSmoothUpdateDistance
-	 */
+	/** If the updated location is more than NoSmoothNetUpdateDist from the current pawn position on the client, pop it to the updated location.
+	If it is between MaxSmoothNetUpdateDist and NoSmoothNetUpdateDist, pop to MaxSmoothNetUpdateDist away from the updated location */
 	float NoSmoothNetUpdateDist;
 
-	/** How long to take to smoothly interpolate from the old pawn position on the client to the corrected one sent by the server.  Must be >= 0. Not used for linear smoothing. */
+	/** How long to take to smoothly interpolate from the old pawn position on the client to the corrected one sent by the server.  Must be >= 0.0 
+	This variable isn't used when bUseLinearSmoothing = true */
 	float SmoothNetUpdateTime;
 
-	/** How long to take to smoothly interpolate from the old pawn rotation on the client to the corrected one sent by the server.  Must be >= 0. Not used for linear smoothing. */
+	/** How long to take to smoothly interpolate from the old pawn rotation on the client to the corrected one sent by the server.  Must be >= 0.0
+	This variable isn't used when bUseLinearSmoothing = true */
 	float SmoothNetUpdateRotationTime;
 	
-	/** How long server will wait for client move update before setting position */
+	// how long server will wait for client move update before setting position
+	// @TODO: don't duplicate between server and client data (though it's used by both)
 	float MaxResponseTime;
-
-	/** Values used for visualization and debugging of simulated net corrections */
-	FVector LastSmoothLocation;
-	FVector LastServerLocation;
-	float	SimulatedDebugDrawTime;
 
 	/** Finds SavedMove index for given TimeStamp. Returns INDEX_NONE if not found (move has been already Acked or cleared). */
 	int32 GetSavedMoveIndex(float TimeStamp) const;
@@ -2311,7 +2160,7 @@ public:
 };
 
 
-class ENGINE_API FNetworkPredictionData_Server_Character : public FNetworkPredictionData_Server, protected FNoncopyable
+class ENGINE_API FNetworkPredictionData_Server_Character : public FNetworkPredictionData_Server
 {
 public:
 

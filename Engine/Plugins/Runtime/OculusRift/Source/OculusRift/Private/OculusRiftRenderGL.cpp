@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 //
 #include "HMDPrivatePCH.h"
 #include "OculusRiftHMD.h"
@@ -71,7 +71,7 @@ public:
 	void SwitchToNextElement();
 	void AddTexture(GLuint InTexture);
 
-	ovrSwapTextureSet* GetSwapTextureSet() const { return TextureSet; }
+	ovrSwapTextureSet* GetTextureSet() const { return TextureSet; }
 
 	static FOpenGLTexture2DSet* CreateTexture2DSet(
 		FOpenGLDynamicRHI* InGLRHI,
@@ -89,44 +89,6 @@ protected:
 	TArray<TextureElement> Textures;
 
 	ovrSwapTextureSet* TextureSet;
-};
-
-class FOpenGLTexture2DSetProxy : public FTexture2DSetProxy
-{
-public:
-	FOpenGLTexture2DSetProxy(ovrSession InOvrSession, FTextureRHIRef InTexture, uint32 SrcSizeX, uint32 SrcSizeY, EPixelFormat SrcFormat) 
-		: FTexture2DSetProxy(InOvrSession, InTexture, SrcSizeX, SrcSizeY, SrcFormat) {}
-
-	virtual ovrSwapTextureSet* GetSwapTextureSet() const override
-	{
-		if (!RHITexture.IsValid())
-		{
-			return nullptr;
-		}
-		auto GLTS = static_cast<FOpenGLTexture2DSet*>(RHITexture->GetTexture2D());
-		return GLTS->GetSwapTextureSet();
-	}
-
-	virtual void SwitchToNextElement() override
-	{
-		if (RHITexture.IsValid())
-		{
-			auto GLTS = static_cast<FOpenGLTexture2DSet*>(RHITexture->GetTexture2D());
-			GLTS->SwitchToNextElement();
-		}
-	}
-
-	virtual void ReleaseResources() override
-	{
-		if (RHITexture.IsValid())
-		{
-			auto GLTS = static_cast<FOpenGLTexture2DSet*>(RHITexture->GetTexture2D());
-			GLTS->ReleaseResources(OvrSession);
-			RHITexture = nullptr;
-		}
-	}
-
-protected:
 };
 
 void FOpenGLTexture2DSet::AddTexture(GLuint InTexture)
@@ -284,46 +246,67 @@ void FOculusRiftHMD::OGLBridge::Init(ovrSession InOvrSession)
 	bInitialized = true;
 }
 
-FTexture2DSetProxyRef FOculusRiftHMD::OGLBridge::CreateTextureSet(const uint32 InSizeX, const uint32 InSizeY, const EPixelFormat InFormat, uint32 InNumMips, uint32 InFlags)
+bool FOculusRiftHMD::OGLBridge::AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 InFlags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples)
 {
-	check(InSizeX != 0 && InSizeY != 0);
+	check(SizeX != 0 && SizeY != 0);
 
-	auto GLRHI = static_cast<FOpenGLDynamicRHI*>(GDynamicRHI);
-	FResourceBulkDataInterface* BulkData = nullptr;
-
-	const bool bSRGB = true; //(InFlags & TexCreate_SRGB) != 0;
-	const FOpenGLTextureFormat& GLFormat = GOpenGLTextureFormats[InFormat];
-	if (GLFormat.InternalFormat[bSRGB] == GL_NONE)
+	if (!ColorTextureSet || (ColorTextureSet->GetSizeX() != SizeX || ColorTextureSet->GetSizeY() != SizeY || ColorTextureSet->GetFormat() != Format))
 	{
-		UE_LOG(LogRHI, Fatal, TEXT("Texture format '%s' not supported (sRGB=%d)."), GPixelFormats[InFormat].Name, bSRGB);
+		bNeedReAllocateTextureSet = true;
 	}
 
-	ovrSwapTextureSet* textureSet;
-	ovrResult res = ovr_CreateSwapTextureSetGL(OvrSession, GLFormat.InternalFormat[bSRGB], InSizeX, InSizeY, &textureSet);
-	if (!textureSet || !OVR_SUCCESS(res))
+	InFlags |= TargetableTextureFlags;
+
+	if (OvrSession && bNeedReAllocateTextureSet)
 	{
-		UE_LOG(LogHMD, Error, TEXT("Can't create swap texture set (size %d x %d), error = %d"), InSizeX, InSizeY, res);
-		if (res == ovrError_DisplayLost)
+		auto GLRHI = static_cast<FOpenGLDynamicRHI*>(GDynamicRHI);
+		FResourceBulkDataInterface* BulkData = nullptr;
+
+// 		FRHITexture* p = GLRHI->CreateOpenGLTexture(SizeX, SizeY, false, false, Format, NumMips, NumSamples, 1, InFlags, BulkData);
+// 		OutTargetableTexture = p->GetTexture2D();
+// 		OutShaderResourceTexture = p->GetTexture2D();
+// 		return true;
+
+		if (ColorTextureSet)
 		{
-			bNeedReAllocateMirrorTexture = bNeedReAllocateTextureSet = true;
-			FPlatformAtomics::InterlockedExchange(&NeedToKillHmd, 1);
+			ColorTextureSet->ReleaseResources(OvrSession);
+			ColorTextureSet = nullptr;
 		}
-		return false;
-	}
-	UE_LOG(LogHMD, Log, TEXT("Allocated a new swap texture set (size %d x %d)"), InSizeX, InSizeY);
 
-	TRefCountPtr<FOpenGLTexture2DSet> ColorTextureSet = FOpenGLTexture2DSet::CreateTexture2DSet(
-		GLRHI,
-		textureSet,
-		1,
-		EPixelFormat(InFormat),
-		TexCreate_RenderTargetable | TexCreate_ShaderResource | TexCreate_SRGB
-		);
-	if (ColorTextureSet)
-	{
-		return MakeShareable(new FOpenGLTexture2DSetProxy(OvrSession, ColorTextureSet->GetTexture2D(), InSizeX, InSizeY, InFormat));
+		const bool bSRGB = (InFlags & TexCreate_SRGB) != 0;
+		const FOpenGLTextureFormat& GLFormat = GOpenGLTextureFormats[Format];
+		if (GLFormat.InternalFormat[bSRGB] == GL_NONE)
+		{
+			UE_LOG(LogRHI, Fatal, TEXT("Texture format '%s' not supported (sRGB=%d)."), GPixelFormats[Format].Name, bSRGB);
+		}
+
+		ovrSwapTextureSet* textureSet;
+		ovrResult res = ovr_CreateSwapTextureSetGL(OvrSession, GLFormat.InternalFormat[bSRGB], SizeX, SizeY, &textureSet);
+		if (!textureSet || res != ovrSuccess)
+		{
+			UE_LOG(LogHMD, Error, TEXT("Can't create swap texture set (size %d x %d), error = %d"), SizeX, SizeY, res);
+			if (res == ovrError_DisplayLost)
+			{
+				bNeedReAllocateMirrorTexture = bNeedReAllocateTextureSet = true;
+				FPlatformAtomics::InterlockedExchange(&NeedToKillHmd, 1);
+			}
+			return false;
+		}
+		bNeedReAllocateTextureSet = false;
+		bNeedReAllocateMirrorTexture = true;
+		UE_LOG(LogHMD, Log, TEXT("Allocated a new swap texture set (size %d x %d)"), SizeX, SizeY);
+
+		ColorTextureSet = FOpenGLTexture2DSet::CreateTexture2DSet(
+			GLRHI,
+			textureSet,
+			1,
+			EPixelFormat(Format),
+			TexCreate_RenderTargetable | TexCreate_ShaderResource
+			);
 	}
-	return nullptr;
+	OutTargetableTexture = ColorTextureSet->GetTexture2D();
+	OutShaderResourceTexture = ColorTextureSet->GetTexture2D();
+	return true;
 }
 
 void FOculusRiftHMD::OGLBridge::BeginRendering(FHMDViewExtension& InRenderContext, const FTexture2DRHIRef& RT)
@@ -360,7 +343,7 @@ void FOculusRiftHMD::OGLBridge::BeginRendering(FHMDViewExtension& InRenderContex
 		ActualMirrorWindowSize.X != 0 && ActualMirrorWindowSize.Y != 0)
 	{
 		ovrResult res = ovr_CreateMirrorTextureGL(OvrSession, GL_RGBA, ActualMirrorWindowSize.X, ActualMirrorWindowSize.Y, &MirrorTexture);
-		if (!MirrorTexture || !OVR_SUCCESS(res))
+		if (!MirrorTexture || res != ovrSuccess)
 		{
 			UE_LOG(LogHMD, Error, TEXT("Can't create a mirror texture, error = %d"), res);
 			return;
@@ -382,6 +365,88 @@ void FOculusRiftHMD::OGLBridge::BeginRendering(FHMDViewExtension& InRenderContex
 	}
 }
 
+void FOculusRiftHMD::OGLBridge::FinishRendering()
+{
+	SCOPE_CYCLE_COUNTER(STAT_FinishRendering);
+
+	check(IsInRenderingThread());
+
+	check(RenderContext.IsValid());
+
+	if (RenderContext->bFrameBegun && ColorTextureSet)
+	{
+		if (!ColorTextureSet)
+		{
+			UE_LOG(LogHMD, Warning, TEXT("Skipping frame: TextureSet is null ?"));
+		}
+		else
+		{
+			// Finish the frame and let OVR do buffer swap (Present) and flush/sync.
+			FSettings* FrameSettings = RenderContext->GetFrameSettings();
+
+			check(ColorTextureSet->GetTextureSet());
+			FrameSettings->EyeLayer.EyeFov.ColorTexture[0] = ColorTextureSet->GetTextureSet();
+			FrameSettings->EyeLayer.EyeFov.ColorTexture[1] = ColorTextureSet->GetTextureSet();
+
+			ovrLayerHeader* LayerList[1];
+			LayerList[0] = &FrameSettings->EyeLayer.EyeFov.Header;
+
+			// Set up positional data.
+			ovrViewScaleDesc viewScaleDesc;
+			viewScaleDesc.HmdSpaceToWorldScaleInMeters = 1.0f;
+			viewScaleDesc.HmdToEyeViewOffset[0] = FrameSettings->EyeRenderDesc[0].HmdToEyeViewOffset;
+			viewScaleDesc.HmdToEyeViewOffset[1] = FrameSettings->EyeRenderDesc[1].HmdToEyeViewOffset;
+			
+			glCheckFramebufferStatus(GL_FRAMEBUFFER);
+			
+			ovrResult res = ovr_SubmitFrame(RenderContext->OvrSession, RenderContext->RenderFrame->FrameNumber, &viewScaleDesc, LayerList, 1);
+			if (res != ovrSuccess)
+			{
+				UE_LOG(LogHMD, Warning, TEXT("Error at SubmitFrame, err = %d"), int(res));
+
+				if (res == ovrError_DisplayLost)
+				{
+					bNeedReAllocateMirrorTexture = bNeedReAllocateTextureSet = true;
+					FPlatformAtomics::InterlockedExchange(&NeedToKillHmd, 1);
+				}
+			}
+
+			glCheckFramebufferStatus(GL_FRAMEBUFFER);
+
+			ColorTextureSet->SwitchToNextElement();
+
+			// Update frame stats
+#if STATS
+			struct 
+			{
+				float LatencyRender;
+				float LatencyTimewarp;
+				float LatencyPostPresent;
+				float ErrorRender;
+				float ErrorTimewarp;
+			} DK2Latency;
+
+			const unsigned int DK2LatencyCount = sizeof(DK2Latency) / sizeof(float);
+
+			if (ovr_GetFloatArray(RenderContext->OvrSession, "DK2Latency", (float*) &DK2Latency, DK2LatencyCount) == DK2LatencyCount)
+			{
+				SET_FLOAT_STAT(STAT_LatencyRender, DK2Latency.LatencyRender * 1000.0f);
+				SET_FLOAT_STAT(STAT_LatencyTimewarp, DK2Latency.LatencyTimewarp * 1000.0f);
+				SET_FLOAT_STAT(STAT_LatencyPostPresent, DK2Latency.LatencyPostPresent * 1000.0f);
+				SET_FLOAT_STAT(STAT_ErrorRender, DK2Latency.ErrorRender * 1000.0f);
+				SET_FLOAT_STAT(STAT_ErrorTimewarp, DK2Latency.ErrorTimewarp * 1000.0f);
+			}
+#endif
+		}
+	}
+	else
+	{
+		UE_LOG(LogHMD, Warning, TEXT("Skipping frame: FinishRendering called with no corresponding BeginRendering (was BackBuffer re-allocated?)"));
+	}
+	RenderContext->bFrameBegun = false;
+	SetRenderContext(nullptr);
+}
+
 void FOculusRiftHMD::OGLBridge::Reset_RenderThread()
 {
 	if (MirrorTexture)
@@ -390,7 +455,11 @@ void FOculusRiftHMD::OGLBridge::Reset_RenderThread()
 		MirrorTextureRHI = nullptr;
 		MirrorTexture = nullptr;
 	}
-	LayerMgr.ReleaseRenderLayers_RenderThread();
+	if (ColorTextureSet)
+	{
+		ColorTextureSet->ReleaseResources(OvrSession);
+		ColorTextureSet = nullptr;
+	}
 	OvrSession = nullptr;
 
 	if (RenderContext.IsValid())

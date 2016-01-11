@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -172,7 +172,7 @@ public:
 	 * 
 	 * @return the test type.
 	 */
-	virtual uint32 GetTestFlags() const = 0;
+	virtual uint8 GetTestType() const = 0;
 
 	/** Recursively gets the number of child nodes */
 	virtual int32 GetTotalNumChildren() const = 0;
@@ -210,11 +210,11 @@ public:
 	virtual void SetSupport(const int32 ClusterIndex) = 0;
 
 	/**
-	 * Set the test flags.
+	 * Set the test type.
 	 * 
-	 * @param InTestFlags The EAutomationTestFlags of the test.
+	 * @param InTestType The type of test.
 	 */
-	virtual void SetTestFlags(const uint32 InTestFlags) = 0;
+	virtual void SetTestType(const uint8 InTestType) = 0;
 
 	/** Returns if a particular platform is supported */
 	virtual bool IsSupported(const int32 ClusterIndex) const = 0;

@@ -1,0 +1,51 @@
+﻿INTSourceChangelist:2092280
+Availability: docs
+title:複雑なモーション
+Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
+Description:マテリアル ネットワーク内でテクスチャの複雑なモーションを処理する関数
+
+[TOC (start:2 end:3)]
+
+## 概要
+
+複雑なモーションの関数は、ランダムに見える方法でテクスチャを摂動させるのに有益です。きらきらと光るエフェクト、例えば水面の動きなどに効果的です。
+
+## 複雑なモーションの関数
+
+以下は、複雑なモーションを実現する関数のリストです。
+
+### Motion_4WayChaos
+
+Motion_4WayChaos 関数は、インポートされたテクスチャに沿って無秩序な斜めのモーションをもたらします。基本的には、テクスチャのコピーを 4 つとり、常に別の対角方向からそれぞれのテクスチャをパンして、結果をブレンドします。
+
+| アイテム | 説明 |
+| -------- | -------- |
+| [REGION:tablesection]入力値[/REGION] ||
+| **Coordinates** | タイリングなど、テクスチャ座標に対する任意の入力調整です。 |
+| **Speed** | 4 方向モーションの移動の速さです。 |
+| **Divisor** | 4 方向を加算した総合結果をどれだけ削減するかを決定します。 |
+| **Texture** | 摂動させる入力テクスチャです。 |
+
+
+![Motion_4WayChaos](Motion_4WayChaos.png)
+
+![Motion_4WayChaos Incoming Texture](Motion_4WayChaos_Texture.png) ![Motion_4WayChaos Result](Motion_4WayChaos_Result.png)
+
+### Motion_4WayChaos_Normal
+
+Motion_4WayChaos 関数同様に、Motion_4WayChaos_Normal 関数もインポートされたテクスチャに沿って無秩序な斜めのモーションをもたらします。しかし、この関数は特に法線マップとの連携のためにデザインされています。基本的には、テクスチャのコピーを 4 つとり、常に別の対角方向からそれぞれのテクスチャをパンして、結果をブレンドします。
+
+
+| アイテム | 説明 |
+| -------- | -------- |
+| [REGION:tablesection]入力値[/REGION] ||
+| **Coordinates** | タイリングなど、テクスチャ座標に対する任意の入力調整です。 |
+| **Speed** | 4 方向モーションの移動の速さです。 |
+| **Divisor** | 4 方向を加算した総合結果をどれだけ削減するかを決定します。 |
+| **Texture** | 摂動させる入力テクスチャです。 |
+
+
+![Motion_4WayChaos_Normal](Motion_4WayChaos_Normal.png)
+
+
+![Motion_4WayChaos_Normal Incoming Texture](Motion_4WayChaos_Normal_Texture.png) ![Motion_4WayChaos_Normal Result](Motion_4WayChaos_Normal_Result.png)

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved
 
 #include "../IOSTargetPlatformPrivatePCH.h"
 
@@ -302,23 +302,20 @@ void FIOSDeviceHelper::DoDeviceConnect(void* deviceHandle)
         // get the needed data
         CFStringRef deviceName = AMDeviceCopyValue(deviceHandle, 0, CFSTR("DeviceName"));
         CFStringRef deviceId = AMDeviceCopyValue(deviceHandle, 0, CFSTR("UniqueDeviceID"));
-		CFStringRef productType = AMDeviceCopyValue(deviceHandle, 0, CFSTR("ProductType"));
 
         // fire the event
         TCHAR idBuffer[128];
 		TCHAR nameBuffer[256];
-		TCHAR productBuffer[128];
-		FPlatformString::CFStringToTCHAR(deviceId, idBuffer);
+        FPlatformString::CFStringToTCHAR(deviceId, idBuffer);
 		FPlatformString::CFStringToTCHAR(deviceName, nameBuffer);
-		FPlatformString::CFStringToTCHAR(productType, productBuffer);
-		FIOSLaunchDaemonPong Event;
-        Event.DeviceID = FString::Printf(TEXT("%s@%s"), (FString(productBuffer).Contains("AppleTV") ? TEXT("TVOS") : TEXT("IOS")), idBuffer);
+        FIOSLaunchDaemonPong Event;
+        Event.DeviceID = FString::Printf(TEXT("IOS@%s"), idBuffer);
 		Event.DeviceName = FString::Printf(TEXT("%s"), nameBuffer);
         Event.bCanReboot = false;
         Event.bCanPowerOn = false;
         Event.bCanPowerOff = false;
-		Event.DeviceType = FString::Printf(TEXT("%s"), productBuffer);
-		FIOSDeviceHelper::OnDeviceConnected().Broadcast(Event);
+        Event.DeviceName = nameBuffer;
+        FIOSDeviceHelper::OnDeviceConnected().Broadcast(Event);
                 
         // add to the device list
         ConnectedDevices.Add(Device, Event);

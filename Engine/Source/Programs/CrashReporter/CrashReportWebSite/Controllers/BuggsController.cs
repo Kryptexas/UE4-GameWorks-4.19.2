@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -163,11 +163,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 					{
 						// Grab the data form JIRA.
 						string JiraSearchQuery = "key = " + NewBugg.Jira;
-						var JiraResults = new Dictionary<string, Dictionary<string, object>>();
 
-						try
-						{
-							JiraResults = JC.SearchJiraTickets(
+						var JiraResults = JC.SearchJiraTickets(
 							JiraSearchQuery,
 							new string[] 
 							{ 
@@ -179,15 +176,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 								"customfield_11200" // string
 							} );
 
-						}
-						catch (System.Exception)
-						{
-							NewBugg.JiraSummary = "JIRA MISMATCH";
-							NewBugg.JiraComponentsText = "JIRA MISMATCH";
-							NewBugg.JiraResolution = "JIRA MISMATCH";
-							NewBugg.JiraFixVersionsText = "JIRA MISMATCH";
-							NewBugg.JiraFixCL = "JIRA MISMATCH";
-						}
 
 						// Jira Key, Summary, Components, Resolution, Fix version, Fix changelist
 						foreach( var Jira in JiraResults )

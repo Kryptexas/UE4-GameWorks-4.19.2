@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneVectorTrackInstance.h"
@@ -12,7 +12,7 @@ FMovieSceneVectorTrackInstance::FMovieSceneVectorTrackInstance( UMovieSceneVecto
 }
 
 
-void FMovieSceneVectorTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+void FMovieSceneVectorTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
 	int32 NumChannelsUsed = VectorTrack->GetNumChannelsUsed();
 	for( UObject* Object : RuntimeObjects )
@@ -21,29 +21,20 @@ void FMovieSceneVectorTrackInstance::SaveState(const TArray<UObject*>& RuntimeOb
 		{
 			case 2:
 			{
-				if (InitVector2DMap.Find(Object) == nullptr)
-				{
-					FVector2D VectorValue = PropertyBindings->GetCurrentValue<FVector2D>(Object);
-					InitVector2DMap.Add(Object, VectorValue);
-				}
+				FVector2D VectorValue = PropertyBindings->GetCurrentValue<FVector2D>(Object);
+				InitVector2DMap.Add(Object, VectorValue);
 				break;
 			}
 			case 3:
 			{
-				if (InitVector3DMap.Find(Object) == nullptr)
-				{
-					FVector VectorValue = PropertyBindings->GetCurrentValue<FVector>(Object);
-					InitVector3DMap.Add(Object, VectorValue);
-				}
+				FVector VectorValue = PropertyBindings->GetCurrentValue<FVector>(Object);
+				InitVector3DMap.Add(Object, VectorValue);
 				break;
 			}
 			case 4:
 			{
-				if (InitVector4DMap.Find(Object) == nullptr)
-				{
-					FVector4 VectorValue = PropertyBindings->GetCurrentValue<FVector4>(Object);
-					InitVector4DMap.Add(Object, VectorValue);
-				}
+				FVector4 VectorValue = PropertyBindings->GetCurrentValue<FVector4>(Object);
+				InitVector4DMap.Add(Object, VectorValue);
 				break;
 			}
 		}
@@ -51,7 +42,7 @@ void FMovieSceneVectorTrackInstance::SaveState(const TArray<UObject*>& RuntimeOb
 }
 
 
-void FMovieSceneVectorTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+void FMovieSceneVectorTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
 	int32 NumChannelsUsed = VectorTrack->GetNumChannelsUsed();
 	for( UObject* Object : RuntimeObjects )
@@ -97,7 +88,7 @@ void FMovieSceneVectorTrackInstance::RestoreState(const TArray<UObject*>& Runtim
 }
 
 
-void FMovieSceneVectorTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass ) 
+void FMovieSceneVectorTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
 {
 	FVector4 Vector;
 	if( VectorTrack->Eval( Position, LastPosition, Vector ) )
@@ -119,7 +110,7 @@ void FMovieSceneVectorTrackInstance::Update( float Position, float LastPosition,
 				FVector Value(Vector.X, Vector.Y, Vector.Z);
 				for(UObject* Object : RuntimeObjects)
 				{
-					PropertyBindings->CallFunction<FVector>(Object, &Value);
+					PropertyBindings->CallFunction<FVector2D>(Object, &Value);
 				}
 				break;
 			}
@@ -127,7 +118,7 @@ void FMovieSceneVectorTrackInstance::Update( float Position, float LastPosition,
 			{
 				for(UObject* Object : RuntimeObjects)
 				{
-					PropertyBindings->CallFunction<FVector4>(Object, &Vector);
+					PropertyBindings->CallFunction<FVector2D>(Object, &Vector);
 				}
 				break;
 			}
@@ -140,7 +131,7 @@ void FMovieSceneVectorTrackInstance::Update( float Position, float LastPosition,
 }
 
 
-void FMovieSceneVectorTrackInstance::RefreshInstance(const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+void FMovieSceneVectorTrackInstance::RefreshInstance(const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player)
 {
 	PropertyBindings->UpdateBindings(RuntimeObjects);
 }

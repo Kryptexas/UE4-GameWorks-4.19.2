@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MainFramePrivatePCH.h"
 #include "CompilerResultsLog.h"
@@ -91,8 +91,10 @@ void FMainFrameModule::CreateDefaultMainFrame( const bool bStartImmersivePIE )
 
 		const bool bShowRootWindowImmediately = false;
 		FSlateApplication::Get().AddWindow( RootWindow, bShowRootWindowImmediately );
-
+		
+#if !PLATFORM_MAC // On OS X we don't want Top-Level windows to have a parent, as we don't really support the notion of child windows on that OS
 		FGlobalTabmanager::Get()->SetRootWindow(RootWindow);
+#endif
 		FSlateNotificationManager::Get().SetRootWindow(RootWindow);
 
 		TSharedPtr<SWidget> MainFrameContent;
@@ -270,7 +272,7 @@ TSharedRef<SWidget> FMainFrameModule::MakeDeveloperTools() const
 
 		static FText GetUObjectCountAsString() 
 		{
-			return FText::AsNumber(GUObjectArray.GetObjectArrayNumMinusAvailable());
+			return FText::AsNumber(GetUObjectArray().GetObjectArrayNumMinusAvailable());
 		}
 
 		static void OpenVideo( FString SourceFilePath )
@@ -701,7 +703,7 @@ void FMainFrameModule::HandleLevelEditorModuleCompileStarted( bool bIsAsyncCompi
 
 	if ( GEditor )
 	{
-		GEditor->PlayEditorSound(CompileStartSound);
+		GEditor->PlayPreviewSound(CompileStartSound);
 	}
 
 	FNotificationInfo Info( NSLOCTEXT("MainFrame", "RecompileInProgress", "Compiling C++ Code") );
@@ -752,7 +754,7 @@ void FMainFrameModule::HandleLevelEditorModuleCompileFinished(const FString& Log
 		{
 			if ( GEditor )
 			{
-				GEditor->PlayEditorSound(CompileSuccessSound);
+				GEditor->PlayPreviewSound(CompileSuccessSound);
 			}
 
 			NotificationItem->SetText(NSLOCTEXT("MainFrame", "RecompileComplete", "Compile Complete!"));
@@ -772,7 +774,7 @@ void FMainFrameModule::HandleLevelEditorModuleCompileFinished(const FString& Log
 
 			if ( GEditor )
 			{
-				GEditor->PlayEditorSound(CompileFailSound);
+				GEditor->PlayPreviewSound(CompileFailSound);
 			}
 
 			if (CompilationResult == ECompilationResult::FailedDueToHeaderChange)
@@ -781,7 +783,7 @@ void FMainFrameModule::HandleLevelEditorModuleCompileFinished(const FString& Log
 			}
 			else if (CompilationResult == ECompilationResult::Canceled)
 			{
-				NotificationItem->SetText(NSLOCTEXT("MainFrame", "RecompileCanceled", "Compile Canceled!"));
+				NotificationItem->SetText(NSLOCTEXT("MainFrame", "RecompileFailed", "Compile Canceled!"));
 			}
 			else
 			{
@@ -820,7 +822,7 @@ void FMainFrameModule::HandleHotReloadFinished( bool bWasTriggeredAutomatically 
 		NotificationItem->SetCompletionState(SNotificationItem::CS_Success);
 		NotificationItem->ExpireAndFadeout();
 	
-		GEditor->PlayEditorSound(CompileSuccessSound);
+		GEditor->PlayPreviewSound(CompileSuccessSound);
 	}
 }
 

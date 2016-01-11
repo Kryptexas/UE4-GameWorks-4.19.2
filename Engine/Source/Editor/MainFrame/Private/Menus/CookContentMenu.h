@@ -1,10 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "ProjectTargetPlatformEditor.h"
 #include "IProjectManager.h"
-#include "InstalledPlatformInfo.h"
 
 
 #define LOCTEXT_NAMESPACE "FCookContentMenu"
@@ -36,7 +35,6 @@ public:
 		});
 
 		IProjectTargetPlatformEditorModule& ProjectTargetPlatformEditorModule = FModuleManager::LoadModuleChecked<IProjectTargetPlatformEditorModule>("ProjectTargetPlatformEditor");
-		EProjectType ProjectType = FGameProjectGenerationModule::Get().ProjectHasCodeFiles() ? EProjectType::Code : EProjectType::Content;
 
 		// Build up a menu from the tree of platforms
 		for (const PlatformInfo::FVanillaPlatformEntry& VanillaPlatform : VanillaPlatforms)
@@ -44,7 +42,7 @@ public:
 			check(VanillaPlatform.PlatformInfo->IsVanilla());
 
 			// Only care about game targets
-			if (VanillaPlatform.PlatformInfo->PlatformType != PlatformInfo::EPlatformType::Game || !VanillaPlatform.PlatformInfo->bEnabledForUse || !FInstalledPlatformInfo::Get().IsValidPlatform(VanillaPlatform.PlatformInfo->BinaryFolderName, ProjectType))
+			if (VanillaPlatform.PlatformInfo->PlatformType != PlatformInfo::EPlatformType::Game || !VanillaPlatform.PlatformInfo->bEnabledForUse || (!VanillaPlatform.PlatformInfo->bEnabledInBinary && FRocketSupport::IsRocket()))
 			{
 				continue;
 			}
@@ -81,10 +79,8 @@ protected:
 	 */
 	static void AddPlatformToMenu(FMenuBuilder& MenuBuilder, const PlatformInfo::FPlatformInfo& PlatformInfo)
 	{
-		EProjectType ProjectType = FGameProjectGenerationModule::Get().ProjectHasCodeFiles() ? EProjectType::Code : EProjectType::Content;
-
-		// don't add sub-platforms that are aren't valid in an installed build
-		if (!FInstalledPlatformInfo::Get().IsValidPlatform(PlatformInfo.BinaryFolderName, ProjectType))
+		// don't add sub-platforms that are disabled in rocket
+		if (!PlatformInfo.bEnabledInBinary && FRocketSupport::IsRocket())
 		{
 			return;
 		}

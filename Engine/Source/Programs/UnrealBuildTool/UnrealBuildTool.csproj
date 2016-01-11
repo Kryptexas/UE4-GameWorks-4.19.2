@@ -39,7 +39,7 @@
     <Optimize>true</Optimize>
     <OutputPath>..\..\..\Binaries\DotNET\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
-    <Optimize>false</Optimize>
+    <Optimize>true</Optimize>
     <DebugType>pdbonly</DebugType>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
@@ -60,7 +60,7 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <OutputPath>..\..\..\Binaries\DotNET\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <Optimize>false</Optimize>
+    <Optimize>true</Optimize>
     <DebugType>pdbonly</DebugType>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
@@ -114,23 +114,17 @@
     </When>
   </Choose>
   <ItemGroup>
+    <Compile Include="Android\AndroidPluginLanguage.cs" />
     <Compile Include="Mac\MacToolChain.cs" />
     <Compile Include="Mac\UEBuildMac.cs" />
     <Compile Include="Mac\MacProjectGenerator.cs" />
     <Compile Include="Mac\UEDeployMac.cs" />
-    <Compile Include="System\FileSystemReference.cs" />
-    <Compile Include="System\InstalledPlatformInfo.cs" />
-    <Compile Include="System\TargetReceipt.cs" />
-    <Compile Include="System\VersionManifest.cs" />
     <Compile Include="ToolChain\AppleToolChain.cs" />
-    <Compile Include="TVOS\TVOSProjectGenerator.cs" />
-    <Compile Include="TVOS\TVOSToolChain.cs" />
-    <Compile Include="TVOS\UEBuildTVOS.cs" />
-    <Compile Include="TVOS\UEDeployTVOS.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <Compile Include="Android\UEBuildAndroid.cs" />
     <Compile Include="Android\UEDeployAndroid.cs" />
     <Compile Include="Android\AndroidToolChain.cs" />
-    <Compile Include="Android\AndroidPluginLanguage.cs" />
     <Compile Include="Android\AndroidProjectGenerator.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -138,8 +132,6 @@
     <Compile Include="UWP\UWPDeploy.cs" />
     <Compile Include="UWP\UWPProjectGenerator.cs" />
     <Compile Include="UWP\UWPToolChain.cs" />
-    <Compile Include="Windows\WindowsDeploy.cs" />
-    <Compile Include="Windows\WinResources.cs" />
     <Compile Include="WinRT\UEBuildWinRT.cs" />
     <Compile Include="WinRT\WinRTToolChain.cs" />
     <Compile Include="WinRT\WinRTDeploy.cs" />
@@ -196,6 +188,7 @@
     <Compile Include="System\BuildException.cs" />
     <Compile Include="Configuration\BuildConfiguration.cs" />
     <Compile Include="System\BuildHostPlatform.cs" />
+    <Compile Include="System\BuildReceipt.cs" />
     <Compile Include="System\FlatCPPIncludeDepencencyCache.cs" />
     <Compile Include="System\Distcc.cs" />
     <Compile Include="System\CodeLiteGenerator.cs" />
@@ -308,7 +301,4 @@
     <PreBuildEvent>
     </PreBuildEvent>
   </PropertyGroup>
-  <ItemGroup>
-    <Folder Include="TVOS\" />
-  </ItemGroup>
 </Project>

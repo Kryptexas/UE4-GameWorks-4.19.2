@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -24,21 +24,16 @@ public:
 		Serialize(Archive);
 	}
 
-	FLauncherProfileLaunchRole(const FJsonObject& Object)
-	{
-		Load(Object);
-	}
-
 public:
 
-	//~ Begin ILauncherProfileLaunchRole Interface
+	// Begin ILauncherProfileLaunchRole interface
 
 	virtual const FString& GetAssignedDevice( ) const override
 	{
 		return AssignedDevice;
 	}
 
-	virtual const FString& GetUATCommandLine( ) const override
+	virtual const FString& GetCommandLine( ) const override
 	{
 		return CommandLine;
 	}
@@ -66,32 +61,6 @@ public:
 	virtual bool IsVsyncEnabled( ) const override
 	{
 		return VsyncEnabled;
-	}
-
-	virtual void Load(const FJsonObject& Object)
-	{
-		AssignedDevice = Object.GetStringField("AssignedDevice");
-		CommandLine = Object.GetStringField("CommandLine");
-		DeviceId = Object.GetStringField("DeviceId");
-		InitialCulture = Object.GetStringField("InitialCulture");
-		InitialMapName = Object.GetStringField("InitialMapName");
-		Name = Object.GetStringField("Name");
-		InstanceType = (TEnumAsByte<ELauncherProfileRoleInstanceTypes::Type>)((int32)Object.GetNumberField("InstanceType"));
-		VsyncEnabled = Object.GetBoolField("VsyncEnabled");
-	}
-
-	virtual void Save(TJsonWriter<>& Writer, const TCHAR* InName = TEXT(""))
-	{
-		Writer.WriteObjectStart(InName);
-		Writer.WriteValue("AssignedDevice", AssignedDevice);
-		Writer.WriteValue("CommandLine", CommandLine);
-		Writer.WriteValue("DeviceId", DeviceId);
-		Writer.WriteValue("InitialCulture", InitialCulture);
-		Writer.WriteValue("InitialMapName", InitialMapName);
-		Writer.WriteValue("Name", InName);
-		Writer.WriteValue("InstanceType", InstanceType);
-		Writer.WriteValue("VsyncEnabled", VsyncEnabled);
-		Writer.WriteObjectEnd();
 	}
 
 	virtual void Serialize( FArchive& Archive ) override
@@ -136,7 +105,7 @@ public:
 		VsyncEnabled = Enabled;
 	}
 
-	//~ End ILauncherProfileLaunchRole Interface
+	// End ILauncherProfileLaunchRole interface
 
 private:
 

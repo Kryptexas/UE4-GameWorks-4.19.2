@@ -1,0 +1,11 @@
+﻿Availability: Public
+Title:Swing Ninja示例
+Crumbs:%ROOT%, Resources
+Description:涵盖Swing Ninja游戏的文件。
+
+[REGION:banner]
+![](SwingNinjaBanner.png)
+[/REGION]
+
+**Swing Ninja** 是一个简化的演示示例游戏，在其中，玩家控制一个忍者角色，它使用拉绳在关卡周围吊起自己收集金币。 这个游戏完全通过蓝图可视脚本来构建，并且由一个美术而不是由程序员来单独完成。 这个项目的目标是创建一个简化的概念游戏的成果，它着重于通过小团队针对移动平台开发游戏。
+

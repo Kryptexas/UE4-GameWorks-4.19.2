@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "Actions/PawnAction_Move.h"
@@ -15,9 +15,6 @@ UPawnAction_Move::UPawnAction_Move(const FObjectInitializer& ObjectInitializer)
 	, bAbortChildActionOnPathChange(false)
 {
 	bShouldPauseMovement = true;
-
-	// force using OnFinished notify to clear observer delegates from path when action leaves the stack
-	bAlwaysNotifyOnFinished = true;
 }
 
 void UPawnAction_Move::BeginDestroy()
@@ -291,17 +288,6 @@ void UPawnAction_Move::OnPathUpdated(FNavigationPath* UpdatedPath, ENavPathEvent
 		{
 			UPathFollowingComponent::LogPathHelper(MyOwner, UpdatedPath, UpdatedPath->GetGoalActor());
 		}
-
-		// make sure it's still satisfying partial path condition
-		if (UpdatedPath && UpdatedPath->IsPartial())
-		{
-			const bool bIsAllowed = IsPartialPathAllowed();
-			if (!bIsAllowed)
-			{
-				UE_VLOG(MyOwner, LogPawnAction, Log, TEXT(">> partial path is not allowed, aborting"));
-				GetOwnerComponent()->AbortAction(*this);
-			}
-		}
 	}
 }
 
@@ -355,9 +341,4 @@ bool UPawnAction_Move::CheckAlreadyAtGoal(AAIController& Controller, const AActo
 	}
 
 	return bAlreadyAtGoal;
-}
-
-bool UPawnAction_Move::IsPartialPathAllowed() const
-{
-	return bAllowPartialPath;
 }

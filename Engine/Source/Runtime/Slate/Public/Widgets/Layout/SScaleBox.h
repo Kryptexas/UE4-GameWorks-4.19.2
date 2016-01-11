@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -69,7 +69,6 @@ public:
 	, _StretchDirection(EStretchDirection::Both)
 	, _Stretch(EStretch::None)
 	, _UserSpecifiedScale(1.0f)
-	, _IgnoreInheritedScale(false)
 	{}
 		/** Slot for this designers content (optional) */
 		SLATE_DEFAULT_SLOT(FArguments, Content)
@@ -89,17 +88,7 @@ public:
 		/** Optional scale that can be specified by the User */
 		SLATE_ATTRIBUTE(float, UserSpecifiedScale)
 
-		/** Undo any inherited scale factor before applying this scale box's scale */
-		SLATE_ATTRIBUTE(bool, IgnoreInheritedScale)
-
 	SLATE_END_ARGS()
-
-	/** Constructor */
-	SScaleBox()
-	{
-		bCanTick = false;
-		bCanSupportFocus = false;
-	}
 
 	void Construct(const FArguments& InArgs);
 	
@@ -125,13 +114,7 @@ public:
 
 	/** See UserSpecifiedScale argument */
 	void SetUserSpecifiedScale(float InUserSpecifiedScale);
-
-	/** Set IgnoreInheritedScale argument */
-	void SetIgnoreInheritedScale(bool InIgnoreInheritedScale);
 	
-protected:
-	virtual float GetRelativeLayoutScale(const FSlotBase& Child) const override;
-
 private:
 	/** The allowed direction of stretching of the content */
 	TAttribute<EStretchDirection::Type> StretchDirection;
@@ -141,7 +124,4 @@ private:
 
 	/** Optional scale that can be specified by the User */
 	TAttribute<float> UserSpecifiedScale;
-
-	/** Optional bool to ignore the inherited scale */
-	TAttribute<bool> IgnoreInheritedScale;
 };

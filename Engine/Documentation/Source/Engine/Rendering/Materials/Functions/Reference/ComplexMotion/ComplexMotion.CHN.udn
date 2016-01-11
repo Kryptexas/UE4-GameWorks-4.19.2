@@ -1,0 +1,51 @@
+﻿INTSourceChangelist:0
+Availability: docs
+title:Complex Motion
+Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
+Description:Functions for handling complicated motion of textures within a material network.
+
+[TOC (start:2 end:3)]
+
+## Overview
+
+The complex motion functions are useful when you need to perturb your textures in a random-looking manner. This is good for shimmering effects such as motion along the surface of water.
+
+## Complex Motion Functions
+
+Below is a list of the complex motion functions.
+
+### Motion_4WayChaos
+
+The Motion_4WayChaos function provides chaotic diagonal motion along the imported texture. Essentially, it makes 4 copies of the texture, constantly pans each one in a different diagonal direction, and then blends the result together.
+
+| Item | Description |
+| -------- | -------- |
+|[REGION:tablesection]Inputs[/REGION] ||
+| **Coordinates** | Any incoming adjustments to texture coordinates, such as tiling. |
+| **Speed** | How fast the 4-way motion will move. |
+| **Divisor** | How much to reduce the overall combined results of the 4 way add. |
+| **Texture** | The incoming texture to be perturbed. |
+
+
+![Motion_4WayChaos](Motion_4WayChaos.png)
+
+![Motion_4WayChaos Incoming Texture](Motion_4WayChaos_Texture.png) ![Motion_4WayChaos Result](Motion_4WayChaos_Result.png)
+
+### Motion_4WayChaos_Normal
+
+Like the Motion_4WayChaos function, Motion_4WayChaos_Normal function provides chaotic diagonal motion along the imported texture. However, this version is specifically designed to work with normal maps.  Essentially, it makes 4 copies of the texture, constantly pans each one in a different diagonal direction, and then blends the result together.
+
+
+| Item | Description |
+| -------- | -------- |
+|[REGION:tablesection]Inputs[/REGION] ||
+| **Coordinates** | Any incoming adjustments to texture coordinates, such as tiling.|
+| **Speed** | How fast the 4-way motion will move.|
+| **Divisor** | How much to reduce the overall combined results of the 4 way add.|
+| **Texture** | The incoming normal map texture to be perturbed.|
+
+
+![Motion_4WayChaos_Normal](Motion_4WayChaos_Normal.png)
+
+
+![Motion_4WayChaos_Normal Incoming Texture](Motion_4WayChaos_Normal_Texture.png) ![Motion_4WayChaos_Normal Result](Motion_4WayChaos_Normal_Result.png)

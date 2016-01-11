@@ -2,13 +2,9 @@ Availability:Public
 Title:Level Designer Quick Start
 Crumbs: %ROOT%, GettingStarted
 Description: Getting up and running with the basics of the Unreal Editor.
-prereq:GettingStarted/Installation
 prereq:Engine/Basics/Projects/Browser
 SkillLevel: Beginner
-Version: 4.9
-parent:Engine/Editor
-order:1
-checkpoint: editorqs
+Version: 4.8
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -61,7 +57,7 @@ After going through this tutorial, developers will know the following:
 *	How to place and edit actors in levels.
 *	How to build and run levels.
 
-[OBJECT:TopicList]
+[OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
@@ -71,10 +67,15 @@ After going through this tutorial, developers will know the following:
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-	[DIR(output:"checkpoint" parent:"Engine/QuickStart" org:"hierarchy")]
+	* [](Engine/QuickStart/1 "%Engine/QuickStart/1:description%")
+	* [](Engine/QuickStart/2 "%Engine/QuickStart/2:description%")
+	* [](Engine/QuickStart/3 "%Engine/QuickStart/3:description%")
+	* [](Engine/QuickStart/4 "%Engine/QuickStart/4:description%")
+	* [](Engine/QuickStart/5 "%Engine/QuickStart/5:description%")
+	* [](Engine/QuickStart/6 "%Engine/QuickStart/6:description%")
+	* [](Engine/QuickStart/7 "%Engine/QuickStart/7:description%")
 	[/PARAM]
 [/OBJECT]
 
-[REGION:call_to_action]
-	[Click to Start](Engine/QuickStart/1 "%Engine/QuickStart/1:title%")
-[/REGION]
+
+

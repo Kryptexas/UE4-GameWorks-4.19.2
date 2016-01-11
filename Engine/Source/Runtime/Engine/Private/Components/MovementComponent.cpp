@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EnginePrivate.h"
@@ -25,7 +25,6 @@ UMovementComponent::UMovementComponent(const FObjectInitializer& ObjectInitializ
 
 	bUpdateOnlyIfRendered = false;
 	bAutoUpdateTickRegistration = true;
-	bTickBeforeOwner = true;
 	bAutoRegisterUpdatedComponent = true;
 
 	PlaneConstraintNormal = FVector::ZeroVector;
@@ -142,7 +141,7 @@ void UMovementComponent::RegisterComponentTickFunctions(bool bRegister)
 
 	// If the owner ticks, make sure we tick first
 	AActor* Owner = GetOwner();
-	if (bTickBeforeOwner && bRegister && PrimaryComponentTick.bCanEverTick && Owner && Owner->CanEverTick())
+	if (bRegister && PrimaryComponentTick.bCanEverTick && Owner && Owner->CanEverTick())
 	{
 		Owner->PrimaryActorTick.AddPrerequisite(this, PrimaryComponentTick);
 	}

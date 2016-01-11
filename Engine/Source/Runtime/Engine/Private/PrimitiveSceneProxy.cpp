@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PrimitiveSceneProxy.cpp: Primitive scene proxy implementation.
@@ -43,8 +43,6 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,   bAffectDistanceFieldLighting(InComponent->bAffectDistanceFieldLighting)
 ,	bCastStaticShadow(InComponent->CastShadow && InComponent->bCastStaticShadow)
 ,	bCastVolumetricTranslucentShadow(InComponent->bCastDynamicShadow && InComponent->CastShadow && InComponent->bCastVolumetricTranslucentShadow)
-,	bCastCapsuleDirectShadow(false)
-,	bCastCapsuleIndirectShadow(false)
 ,	bCastHiddenShadow(InComponent->bCastHiddenShadow)
 ,	bCastShadowAsTwoSided(InComponent->bCastShadowAsTwoSided)
 ,	bSelfShadowOnly(InComponent->bSelfShadowOnly)
@@ -53,7 +51,6 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	bCastFarShadow(InComponent->bCastFarShadow)
 ,	bLightAsIfStatic(InComponent->bLightAsIfStatic)
 ,	bLightAttachmentsAsGroup(InComponent->bLightAttachmentsAsGroup)
-,	bSingleSampleShadowFromStationaryLights(InComponent->bSingleSampleShadowFromStationaryLights)
 ,	bStaticElementsAlwaysUseProxyPrimitiveUniformBuffer(false)
 ,	bAlwaysHasVelocity(false)
 ,	bUseEditorDepthTest(true)
@@ -67,7 +64,6 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	bUseEditorCompositing(InComponent->bUseEditorCompositing)
 ,	bRenderCustomDepth(InComponent->bRenderCustomDepth)
 ,	CustomDepthStencilValue((uint8)InComponent->CustomDepthStencilValue) 
-,	LightingChannelMask(GetLightingChannelMaskForStruct(InComponent->LightingChannels))
 ,	LpvBiasMultiplier(InComponent->LpvBiasMultiplier)
 ,	IndirectLightingCacheQuality(InComponent->IndirectLightingCacheQuality)
 ,	Scene(InComponent->GetScene())
@@ -176,7 +172,7 @@ HHitProxy* FPrimitiveSceneProxy::CreateHitProxies(UPrimitiveComponent* Component
 	}
 }
 
-FPrimitiveViewRelevance FPrimitiveSceneProxy::GetViewRelevance(const FSceneView* View) const
+FPrimitiveViewRelevance FPrimitiveSceneProxy::GetViewRelevance(const FSceneView* View)
 {
 	return FPrimitiveViewRelevance();
 }
@@ -204,23 +200,21 @@ static TAutoConsoleVariable<int32> CVarDeferUniformBufferUpdatesUntilVisible(
 
 void FPrimitiveSceneProxy::UpdateUniformBufferMaybeLazy()
 {
-	if (PrimitiveSceneInfo && CVarDeferUniformBufferUpdatesUntilVisible.GetValueOnAnyThread() > 0)
+	if (CVarDeferUniformBufferUpdatesUntilVisible.GetValueOnAnyThread() > 0)
 	{
-		PrimitiveSceneInfo->SetNeedsUniformBufferUpdate(true);
+		if (PrimitiveSceneInfo)
+		{
+			PrimitiveSceneInfo->SetNeedsUniformBufferUpdate(true);
+		}
 	}
 	else
 	{
 		UpdateUniformBuffer();
+		if (PrimitiveSceneInfo)
+		{
+			PrimitiveSceneInfo->SetNeedsUniformBufferUpdate(false);
+		}
 	}
-}
-
-bool FPrimitiveSceneProxy::NeedsUniformBufferUpdate() const
-{
-	if (PrimitiveSceneInfo && CVarDeferUniformBufferUpdatesUntilVisible.GetValueOnAnyThread() > 0)
-	{
-		return PrimitiveSceneInfo->NeedsUniformBufferUpdate();
-	}
-	return false;
 }
 
 void FPrimitiveSceneProxy::UpdateUniformBuffer()
@@ -236,14 +230,9 @@ void FPrimitiveSceneProxy::UpdateUniformBuffer()
 			bReceivesDecals, 
 			HasDistanceFieldRepresentation(), 
 			SupportsHeightfieldRepresentation(), 
-			UseSingleSampleShadowFromStationaryLights(),
 			UseEditorDepthTest(), 
-			LpvBiasMultiplier);
+			LpvBiasMultiplier );
 	UniformBuffer.SetContents(PrimitiveUniformShaderParameters);
-	if (PrimitiveSceneInfo)
-	{
-		PrimitiveSceneInfo->SetNeedsUniformBufferUpdate(false);
-	}
 }
 
 void FPrimitiveSceneProxy::SetTransform(const FMatrix& InLocalToWorld, const FBoxSphereBounds& InBounds, const FBoxSphereBounds& InLocalBounds, FVector InActorPosition)

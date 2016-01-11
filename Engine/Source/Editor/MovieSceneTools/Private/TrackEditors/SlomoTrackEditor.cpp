@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneToolsPrivatePCH.h"
 #include "MovieSceneSlomoTrack.h"
@@ -33,7 +33,7 @@ void FSlomoTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
 {
 	UMovieSceneSequence* RootMovieSceneSequence = GetSequencer()->GetRootMovieSceneSequence();
 
-	if ((RootMovieSceneSequence == nullptr) || (RootMovieSceneSequence->GetClass()->GetName() != TEXT("LevelSequence")))
+	if ((RootMovieSceneSequence == nullptr) || (RootMovieSceneSequence->GetClass()->GetName() != TEXT("LevelSequenceInstance")))
 	{
 		return;
 	}
@@ -60,15 +60,14 @@ bool FSlomoTrackEditor::SupportsType(TSubclassOf<UMovieSceneTrack> Type) const
 
 void FSlomoTrackEditor::HandleAddSlomoTrackMenuEntryExecute()
 {
-	UMovieScene* MovieScene = GetFocusedMovieScene();
-
+	UMovieSceneSequence* FocusedSequence = GetSequencer()->GetFocusedMovieSceneSequence();
+	UMovieScene* MovieScene = FocusedSequence->GetMovieScene();
 	if (MovieScene == nullptr)
 	{
 		return;
 	}
 
-	UMovieSceneTrack* SlomoTrack = MovieScene->FindMasterTrack<UMovieSceneSlomoTrack>();
-
+	UMovieSceneTrack* SlomoTrack = MovieScene->FindMasterTrack( UMovieSceneSlomoTrack::StaticClass() );
 	if (SlomoTrack != nullptr)
 	{
 		return;
@@ -78,13 +77,10 @@ void FSlomoTrackEditor::HandleAddSlomoTrackMenuEntryExecute()
 
 	MovieScene->Modify();
 		
-	SlomoTrack = FindOrCreateMasterTrack<UMovieSceneSlomoTrack>().Track;
+	SlomoTrack = GetMasterTrack( UMovieSceneSlomoTrack::StaticClass() );
 	ensure(SlomoTrack);
 
-	UMovieSceneSection* NewSection = SlomoTrack->CreateNewSection();
-	ensure(NewSection);
-
-	SlomoTrack->AddSection(*NewSection);
+	SlomoTrack->AddSection(SlomoTrack->CreateNewSection());
 
 	GetSequencer()->NotifyMovieSceneDataChanged();
 }

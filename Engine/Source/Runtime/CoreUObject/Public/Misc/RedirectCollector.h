@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CallbackDevice.h:  Allows the engine to do callbacks into the editor
@@ -44,26 +44,6 @@ struct FRedirection
 class COREUOBJECT_API FRedirectCollector
 {
 public:
-	
-	/** Helper struct for string asset reference tracking */
-	struct FPackagePropertyPair
-	{
-		FPackagePropertyPair() {}
-		FPackagePropertyPair(const FString& InPackage, const FString& InProperty)
-		: Package(InPackage)
-		, Property(InProperty)
-		{}
-
-		bool operator==(const FPackagePropertyPair& Other) const
-		{
-			return Package == Other.Package &&
-				Property == Other.Property;
-		}
-
-		FString Package;
-		FString Property;
-	};
-
 	/**
 	 * Responds to FCoreDelegates::RedirectorFollowed. Records all followed redirections
 	 * so they can be cleaned later.
@@ -88,9 +68,8 @@ public:
 
 	/**
 	 * Load the string asset references to resolve them, add that to the remap table, and empty the array
-	 * @param FilterPackage If set, only fixup references that were created by FilterPackage. If empty, clear all of them
 	 */
-	void ResolveStringAssetReference(FString FilterPackage = FString());
+	void ResolveStringAssetReference();
 
 	/** If not an empty string, only fixup redirects in this package */
 	FString FileToFixup;
@@ -99,7 +78,7 @@ public:
 	TArray<FRedirection> Redirections;
 
 	/** A gathered list string asset references , with the key being the string reference (GetPathName()) and the value equal to the package with the reference */
-	TMultiMap<FString, FPackagePropertyPair> StringAssetReferences;
+	TMultiMap<FString, FString> StringAssetReferences;
 
 	/** When saving, apply this remapping to all string asset references */
 	TMap<FString, FString> StringAssetRemap;

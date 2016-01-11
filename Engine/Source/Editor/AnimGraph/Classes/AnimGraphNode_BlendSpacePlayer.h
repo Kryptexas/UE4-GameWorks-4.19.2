@@ -1,8 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "AnimGraphNode_BlendSpaceBase.h"
-#include "AnimNodes/AnimNode_BlendSpacePlayer.h"
+#include "Animation/AnimNode_BlendSpacePlayer.h"
 #include "EdGraph/EdGraphNodeUtils.h" // for FNodeTitleTextTable
 #include "AnimGraphNode_BlendSpacePlayer.generated.h"
 
@@ -13,6 +13,10 @@ class UAnimGraphNode_BlendSpacePlayer : public UAnimGraphNode_BlendSpaceBase
 
 	UPROPERTY(EditAnywhere, Category=Settings)
 	FAnimNode_BlendSpacePlayer Node;
+
+	// Sync group settings for this player.  Sync groups keep related animations with different lengths synchronized.
+	UPROPERTY(EditAnywhere, Category=Settings)
+	FAnimationGroupReference SyncGroup;
 
 	// UEdGraphNode interface
 	virtual FText GetTooltipText() const override;

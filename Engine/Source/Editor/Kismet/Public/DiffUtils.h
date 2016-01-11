@@ -1,17 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "PropertyPath.h"
+#include "IAssetTypeActions.h"
 
 struct FResolvedProperty
 {
 	explicit FResolvedProperty()
-		: Object(nullptr)
-		, Property(nullptr)
+	: Object(nullptr)
+	, Property(nullptr)
 	{
 	}
 
-	FResolvedProperty(const void* InObject, const UProperty* InProperty)
+	FResolvedProperty(const UObject* InObject, const UProperty* InProperty)
 		: Object(InObject)
 		, Property(InProperty)
 	{
@@ -24,7 +25,7 @@ struct FResolvedProperty
 
 	inline bool operator!=(const FResolvedProperty& RHS) const { return !(*this == RHS); }
 
-	const void* Object;
+	const UObject* Object;
 	const UProperty* Property;
 };
 
@@ -225,8 +226,6 @@ namespace DiffTreeView
 	KISMET_API bool HasPrevDifference(TSharedRef< STreeView<TSharedPtr< FBlueprintDifferenceTreeEntry > > > TreeView, const TArray< TSharedPtr<class FBlueprintDifferenceTreeEntry> >& Differences);
 }
 
-struct FRevisionInfo;
-
 namespace DiffViewUtils
 {
 	KISMET_API FLinearColor LookupColor( bool bDiffers, bool bConflicts = false );
@@ -237,7 +236,7 @@ namespace DiffViewUtils
 
 	KISMET_API FText PropertyDiffMessage(FSingleObjectDiffEntry Difference, FText ObjectName);
 	KISMET_API FText SCSDiffMessage(const FSCSDiffEntry& Difference, FText ObjectName);
-	KISMET_API FText GetPanelLabel(const UBlueprint* Blueprint, FRevisionInfo const& Revision, FText Label);
+	KISMET_API FText GetPanelLabel( const UBlueprint* Blueprint, const FRevisionInfo& Revision, FText Label );
 
 	KISMET_API SHorizontalBox::FSlot& Box(bool bIsPresent, FLinearColor Color);
 }

@@ -1,8 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Box2DIntegration.h"
-#include "Collision/PhysicsFiltering.h"
 
 #if WITH_BOX2D
 
@@ -141,8 +140,8 @@ bool FPhysicsScene2D::ShouldCollide(b2Fixture* FixtureA, b2Fixture* FixtureB)
 	const b2Filter& FilterDataA = FixtureA->GetFilterData();
 	const b2Filter& FilterDataB = FixtureB->GetFilterData();
 
-	const ECollisionChannel ChannelA = GetCollisionChannel(FilterDataA.ObjectTypeAndFlags);
-	const ECollisionChannel ChannelB = GetCollisionChannel(FilterDataB.ObjectTypeAndFlags);
+	const ECollisionChannel ChannelA = static_cast<ECollisionChannel>(FilterDataA.ObjectTypeAndFlags >> 24);
+	const ECollisionChannel ChannelB = static_cast<ECollisionChannel>(FilterDataB.ObjectTypeAndFlags >> 24);
 	const b2BodyType BodyTypeA = FixtureA->GetBody()->GetType();
 	const b2BodyType BodyTypeB = FixtureB->GetBody()->GetType();
 

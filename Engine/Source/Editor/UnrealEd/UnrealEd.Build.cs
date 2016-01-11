@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.IO;
@@ -58,10 +58,6 @@ public class UnrealEd : ModuleRules
                 "Niagara",
 				"SizeMap",
                 "LocalizationService",
-                "HierarchicalLODUtilities",
-                "MessagingRpc",
-                "PortalRpc",
-                "PortalServices",
 			}
 		);
 
@@ -83,13 +79,11 @@ public class UnrealEd : ModuleRules
 				"SourceControl",
 				"UnrealEdMessages",
                 "AIModule",
-				"GameplayDebugger",
 				"BlueprintGraph",
                 "Http",
 				"UnrealAudio",
                 "Niagara",
                 "VectorVM",
-                "FunctionalTesting"
 			}
 		);
 
@@ -101,7 +95,6 @@ public class UnrealEd : ModuleRules
                 "AppFramework",
 				"BlueprintGraph",
 				"OnlineSubsystem",
-				"OnlineSubsystemUtils",
 				"OnlineBlueprintSupport",
 				"DesktopPlatform",
 				"EditorStyle",
@@ -143,10 +136,7 @@ public class UnrealEd : ModuleRules
                 "LocalizationService",
 				"AddContentDialog",
 				"GameProjectGeneration",
-                "HierarchicalLODUtilities",
-                "BlueprintNativeCodeGen",
-                "Analytics",
-                "PluginWarden"
+                "Analytics"
 			}
 		);
 
@@ -214,9 +204,6 @@ public class UnrealEd : ModuleRules
                 "IOSPlatformEditor",
 				"HTML5PlatformEditor",
 				"SizeMap",
-                "PortalProxies",
-                "PortalServices",
-                "GeometryCacheEd",
 			}
 		);
 
@@ -245,8 +232,7 @@ public class UnrealEd : ModuleRules
 				"NiagaraEditor",
                 "Niagara",
                 "VectorVM",
-				"AddContentDialog",                
-                "MeshUtilities"
+				"AddContentDialog",
 			}
 			);
 

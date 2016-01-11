@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "NetcodeUnitTestPCH.h"
 
@@ -19,7 +19,7 @@ UUnitTestChannel::UUnitTestChannel(const FObjectInitializer& ObjectInitializer)
 }
 
 /**
- * @todo #JohnBDoc
+ * @todo JohnB
  */
 void UUnitTestChannel::Init(UNetConnection* InConnection, int32 InChIndex, bool InOpenedLocally)
 {
@@ -38,23 +38,27 @@ void UUnitTestChannel::Init(UNetConnection* InConnection, int32 InChIndex, bool 
 }
 
 /**
- * @todo #JohnBDoc
+ * @todo JohnB
  */
 void UUnitTestChannel::ReceivedBunch(FInBunch& Bunch)
 {
+	// @todo JohnB: Add default behaviour for when not bound, to output channel data someplace (perhaps the log, if not too verbose?)
+
+	// @todo JohnB: Perhaps make the delegate a multicast one, since that may be useful for multiple processing
+
 	// Pass on to delegate
 	ReceivedBunchDel.ExecuteIfBound(Bunch);
 }
 
 /**
- * @todo #JohnBDoc
+ * @todo JohnB
  */
 void UUnitTestChannel::Tick()
 {
 	Super::Tick();
 
 	// Copied from the control channel code
-	// @todo #JohnBBug: This can spam the log sometimes, upon unit test error; fix this
+	// @todo JohnB: This can spam the log sometimes, upon unit test error; fix this
 	if (!OpenAcked)
 	{
 		int32 Count = 0;

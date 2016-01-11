@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -123,9 +123,8 @@ public:
 	/** Resets the list of objects we have processed the latent action list for.	 */	
 	void BeginFrame()
 	{
-		ProcessedThisFrame.Reset();
+		ProcessedThisFrame.Empty();
 	}
-
 #if WITH_EDITOR
 	/** 
 	 * Builds a set of the UUIDs of pending latent actions on a specific object.
@@ -136,6 +135,7 @@ public:
 	 */
 	void GetActiveUUIDs(UObject* InObject, TSet<int32>& UUIDList) const;
 
+	
 	/** 
 	 * Gets the description string of a pending latent action with the specified UUID for a given object, or the empty string if it's an invalid UUID
 	 *
@@ -145,8 +145,6 @@ public:
 	 */
 	FString GetDescription(UObject* InObject, int32 UUID) const;
 #endif
-
-	~FLatentActionManager();
 
 protected:
 	/** 

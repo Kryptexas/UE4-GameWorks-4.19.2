@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
 #include "SequencerEntityVisitor.h"
@@ -10,9 +10,7 @@
 #include "SSequencerTreeView.h"
 #include "SequencerHotspots.h"
 
-
-struct FSelectionPreviewVisitor
-	: ISequencerEntityVisitor
+struct FSelectionPreviewVisitor : ISequencerEntityVisitor
 {
 	FSelectionPreviewVisitor(FSequencerSelectionPreview& InSelectionPreview, FSequencerSelection& InSelection, ESelectionPreviewState InSetStateTo)
 		: SelectionPreview(InSelectionPreview)
@@ -22,7 +20,7 @@ struct FSelectionPreviewVisitor
 
 	virtual void VisitKey(FKeyHandle KeyHandle, float KeyTime, const TSharedPtr<IKeyArea>& KeyArea, UMovieSceneSection* Section) const override
 	{
-		FSequencerSelectedKey Key(*Section, KeyArea, KeyHandle);
+		FSelectedKey Key(*Section, KeyArea, KeyHandle);
 
 		bool bResetSectionSelection = false;
 
@@ -54,9 +52,7 @@ private:
 	ESelectionPreviewState SetStateTo;
 };
 
-
-class FMarqueeDragOperation
-	: public ISequencerEditToolDragOperation
+class FMarqueeDragOperation : public IEditToolDragOperation
 {
 public:
 
@@ -66,19 +62,11 @@ public:
 		, PreviewState(ESelectionPreviewState::Selected)
 	{}
 
-public:
-
-	// ISequencerEditToolDragOperation interface
-
-	virtual FCursorReply GetCursor() const override
-	{
-		return FCursorReply::Cursor( EMouseCursor::Default );
-	}
-
+	/** Start a new marquee selection */
 	virtual void OnBeginDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea) override
 	{
-		// Start a new marquee selection
 		InitialPosition =  VirtualTrackArea.PhysicalToVirtual(LocalMousePos);
+
 		CurrentMousePos = LocalMousePos;
 
 		if (MouseEvent.IsShiftDown())
@@ -98,10 +86,11 @@ public:
 		}
 	}
 
+	/** Change the current marquee selection */
 	virtual void OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea) override
 	{
-		// hange the current marquee selection
 		const FVector2D MouseDelta = MouseEvent.GetCursorDelta();
+
 		auto PinnedSequencer = Sequencer.Pin();
 
 		// Handle virtual scrolling when at the vertical extremes of the widget (performed before we clamp the mouse pos)
@@ -173,10 +162,11 @@ public:
 		Walker.Traverse(FSelectionPreviewVisitor(SelectionPreview, PinnedSequencer->GetSelection(), PreviewState), RootNodes);
 	}
 
+	/** Finish dragging the marquee selection */
 	virtual void OnEndDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea) override
 	{
-		// finish dragging the marquee selection
 		auto PinnedSequencer = Sequencer.Pin();
+
 		auto& Selection = PinnedSequencer->GetSelection();
 		auto& SelectionPreview = PinnedSequencer->GetSelectionPreview();
 
@@ -214,7 +204,7 @@ public:
 
 	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
 	{
-		// convert to physical space for rendering
+		// Convert to physical space for rendering
 		const FVirtualTrackArea VirtualTrackArea = SequencerWidget.Pin()->GetVirtualTrackArea();
 
 		FVector2D SelectionTopLeft = VirtualTrackArea.VirtualToPhysical(TopLeft());
@@ -263,25 +253,22 @@ private:
 	FVector2D CurrentMousePos;
 };
 
-
 FSequencerEditTool_Selection::FSequencerEditTool_Selection(TSharedPtr<FSequencer> InSequencer, TSharedPtr<SSequencer> InSequencerWidget)
 	: Sequencer(InSequencer)
 	, SequencerWidget(InSequencerWidget)
 	, CursorDecorator(nullptr)
-{ }
-
+{
+}
 
 ISequencer& FSequencerEditTool_Selection::GetSequencer() const
 {
 	return *Sequencer.Pin();
 }
 
-
 FCursorReply FSequencerEditTool_Selection::OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const
 {
 	return FCursorReply::Cursor(EMouseCursor::Crosshairs);
 }
-
 
 int32 FSequencerEditTool_Selection::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
 {
@@ -304,7 +291,6 @@ int32 FSequencerEditTool_Selection::OnPaint(const FGeometry& AllottedGeometry, c
 	return LayerId;
 }
 
-
 FReply FSequencerEditTool_Selection::OnMouseButtonDown(SWidget& OwnerWidget, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	UpdateCursor(MyGeometry, MouseEvent);
@@ -318,7 +304,6 @@ FReply FSequencerEditTool_Selection::OnMouseButtonDown(SWidget& OwnerWidget, con
 	}
 	return FReply::Unhandled();
 }
-
 
 FReply FSequencerEditTool_Selection::OnMouseMove(SWidget& OwnerWidget, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
@@ -367,7 +352,6 @@ FReply FSequencerEditTool_Selection::OnMouseMove(SWidget& OwnerWidget, const FGe
 	return FReply::Unhandled();
 }
 
-
 FReply FSequencerEditTool_Selection::OnMouseButtonUp(SWidget& OwnerWidget, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	UpdateCursor(MyGeometry, MouseEvent);
@@ -388,7 +372,6 @@ FReply FSequencerEditTool_Selection::OnMouseButtonUp(SWidget& OwnerWidget, const
 	return FSequencerEditTool_Default::OnMouseButtonUp(OwnerWidget, MyGeometry, MouseEvent);
 }
 
-
 void FSequencerEditTool_Selection::OnMouseLeave(SWidget& OwnerWidget, const FPointerEvent& MouseEvent)
 {
 	if (!DragOperation.IsValid())
@@ -397,7 +380,6 @@ void FSequencerEditTool_Selection::OnMouseLeave(SWidget& OwnerWidget, const FPoi
 	}
 }
 
-
 void FSequencerEditTool_Selection::OnMouseCaptureLost()
 {
 	DelayedDrag.Reset();
@@ -405,13 +387,11 @@ void FSequencerEditTool_Selection::OnMouseCaptureLost()
 	CursorDecorator = nullptr;
 }
 
-
 FName FSequencerEditTool_Selection::GetIdentifier() const
 {
 	static FName Identifier("Selection");
 	return Identifier;
 }
-
 
 void FSequencerEditTool_Selection::UpdateCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {

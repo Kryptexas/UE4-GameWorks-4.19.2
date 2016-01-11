@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,20 +8,36 @@
 /**
  * Implements loading and saving of internationalization settings.
  */
-UCLASS(config=EditorSettings)
+UCLASS()
 class INTERNATIONALIZATIONSETTINGS_API UInternationalizationSettingsModel
-	: public UObject
+	:	public UObject
 {
 	GENERATED_UCLASS_BODY()
 
 public:
+
+	void SaveDefaults();
 	void ResetToDefault();
-	bool GetEditorCultureName(FString& OutEditorCultureName) const;
+	FString GetEditorCultureName() const;
 	void SetEditorCultureName(const FString& CultureName);
-	bool GetNativeGameCultureName(FString& OutNativeGameCultureName) const;
+	FString GetNativeGameCultureName() const;
 	void SetNativeGameCultureName(const FString& CultureName);
 	bool ShouldLoadLocalizedPropertyNames() const;
 	void ShouldLoadLocalizedPropertyNames(const bool Value);
 	bool ShouldShowNodesAndPinsUnlocalized() const;
 	void ShouldShowNodesAndPinsUnlocalized(const bool Value);
+public:
+
+	/**
+	 * Returns an event delegate that is executed when a setting has changed.
+	 *
+	 * @return The delegate.
+	 */
+	DECLARE_EVENT(UInternationalizationSettingsModel, FSettingsChangedEvent);
+	FSettingsChangedEvent& OnSettingsChanged( ) { return SettingsChangedEvent; }
+
+private:
+
+	// Holds an event delegate that is executed when a setting has changed.
+	FSettingsChangedEvent SettingsChangedEvent;
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 // CrossCompilerTool.cpp: Driver for testing compilation of an individual shader
 
@@ -6,7 +6,6 @@
 #include "hlslcc.h"
 #include "MetalBackend.h"
 #include "GlslBackend.h"
-#include "HlslAST.h"
 #include "HlslLexer.h"
 #include "HlslParser.h"
 #include "ShaderPreprocessor.h"
@@ -29,52 +28,27 @@ namespace CCT
 		return PreprocessShaderFile(Output, Errors, InputFile);
 	}
 
-	static void DumpMessages(CrossCompiler::FCompilerMessages& Messages)
-	{
-		for (auto& Message : Messages.MessageList)
-		{
-			if (Message.bIsError)
-			{
-				UE_LOG(LogCrossCompilerTool, Error, TEXT("%s"), *Message.Message);
-			}
-			else
-			{
-				UE_LOG(LogCrossCompilerTool, Warning, TEXT("%s"), *Message.Message);
-			}
-		}
-	}
-
 	static int32 Run(const FRunInfo& RunInfo)
 	{
 		ILanguageSpec* Language = nullptr;
 		FCodeBackend* Backend = nullptr;
 
-		EHlslCompileTarget CompileTarget = RunInfo.Target;
+		uint32 Flags = 0;
 
-		uint32 Flags = HLSLCC_PackUniforms;
-		Flags |= RunInfo.bValidate ? 0 : HLSLCC_NoValidation;
 		Flags |= RunInfo.bRunCPP ? 0 : HLSLCC_NoPreprocess;
-		Flags |= RunInfo.bPackIntoUBs ? HLSLCC_PackUniformsIntoUniformBuffers : 0;
-		Flags |= RunInfo.bUseDX11Clip ? HLSLCC_DX11ClipSpace : 0;
-		Flags |= RunInfo.bFlattenUBs ? HLSLCC_FlattenUniformBuffers : 0;
-		Flags |= RunInfo.bFlattenUBStructs ? HLSLCC_FlattenUniformBufferStructures : 0;
-		Flags |= RunInfo.bGroupFlattenUBs ? HLSLCC_GroupFlattenedUniformBuffers : 0;
-		Flags |= RunInfo.bCSE ? HLSLCC_ApplyCommonSubexpressionElimination : 0;
-		Flags |= RunInfo.bExpandExpressions ? HLSLCC_ExpandSubexpressions : 0;
-		Flags |= RunInfo.bFixAtomics ? HLSLCC_FixAtomicReferences : 0;
-		Flags |= RunInfo.bSeparateShaders ? HLSLCC_SeparateShaderObjects : 0;
+		Flags |= RunInfo.bForcePackedUBs ? (HLSLCC_PackUniforms | HLSLCC_FlattenUniformBufferStructures | HLSLCC_FlattenUniformBuffers) : 0;
+		Flags |= RunInfo.bPackGlobalsIntoUB ? HLSLCC_PackUniformsIntoUniformBuffers : 0;
 
 		FGlslLanguageSpec GlslLanguage(RunInfo.Target == HCT_FeatureLevelES2);
 		FGlslCodeBackend GlslBackend(Flags, RunInfo.Target);
 		FMetalLanguageSpec MetalLanguage;
-		FMetalCodeBackend MetalBackend(Flags, CompileTarget);
+		FMetalCodeBackend MetalBackend(Flags, RunInfo.Target);
 
 		switch (RunInfo.BackEnd)
 		{
 		case CCT::FRunInfo::BE_Metal:
 			Language = &MetalLanguage;
 			Backend = &MetalBackend;
-			CompileTarget = HCT_FeatureLevelES3_1;
 			break;
 
 		case CCT::FRunInfo::BE_OpenGL:
@@ -116,15 +90,11 @@ namespace CCT
 					}
 					UE_LOG(LogCrossCompilerTool, Log, TEXT("%d: %s"), Count++, *File);
 
-					CrossCompiler::FCompilerMessages Messages;
-					if (!CrossCompiler::Parser::Parse(HLSLShader, File, Messages))
+					if (!CrossCompiler::Parser::Parse(HLSLShader, File, false))
 					{
-						DumpMessages(Messages);
 						UE_LOG(LogCrossCompilerTool, Log, TEXT("Error compiling '%s'!"), *File);
 						return 1;
 					}
-
-					DumpMessages(Messages);
 				}
 			}
 			else
@@ -153,15 +123,11 @@ namespace CCT
 					return 0;
 				}
 
-				CrossCompiler::FCompilerMessages Messages;
-				if (!CrossCompiler::Parser::Parse(HLSLShaderSource, *RunInfo.InputFile, Messages))
+				if (!CrossCompiler::Parser::Parse(HLSLShaderSource, *RunInfo.InputFile, true))
 				{
 					UE_LOG(LogCrossCompilerTool, Log, TEXT("Error compiling '%s'!"), *RunInfo.InputFile);
-					DumpMessages(Messages);
 					return 1;
 				}
-
-				DumpMessages(Messages);
 			}
 			//Scanner.Dump();
 			return 0;
@@ -178,7 +144,7 @@ namespace CCT
 		ANSICHAR* ShaderSource = 0;
 		ANSICHAR* ErrorLog = 0;
 
-		FHlslCrossCompilerContext Context(Flags, RunInfo.Frequency, CompileTarget);
+		FHlslCrossCompilerContext Context(Flags, RunInfo.Frequency, RunInfo.Target);
 		if (Context.Init(TCHAR_TO_ANSI(*RunInfo.InputFile), Language))
 		{
 			Context.Run(

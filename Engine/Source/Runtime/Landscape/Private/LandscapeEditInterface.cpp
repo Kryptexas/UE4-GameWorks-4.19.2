@@ -1,13 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 LandscapeEditInterface.cpp: Landscape editing interface
 =============================================================================*/
 
 #include "Landscape.h"
-
-#if WITH_EDITOR
-
 #include "LandscapeDataAccess.h"
 #include "LandscapeEdit.h"
 #include "LandscapeRender.h"
@@ -15,10 +12,8 @@ LandscapeEditInterface.cpp: Landscape editing interface
 #include "LandscapeInfo.h"
 #include "LandscapeLayerInfoObject.h"
 #include "ComponentReregisterContext.h"
-#include "FixedSizeArrayView.h"
 
-// Channel remapping
-static const size_t ChannelOffsets[4] = {STRUCT_OFFSET(FColor,R), STRUCT_OFFSET(FColor,G), STRUCT_OFFSET(FColor,B), STRUCT_OFFSET(FColor,A)};
+#if WITH_EDITOR
 
 //
 // FLandscapeEditDataInterface
@@ -1583,6 +1578,9 @@ void ULandscapeComponent::DeleteLayer(ULandscapeLayerInfoObject* LayerInfo, FLan
 			TexDataInfos.Add(LandscapeEdit->GetTextureDataInfo(Component->WeightmapTextures[WeightmapIdx]));
 		}
 
+		// Channel remapping
+		const int32 ChannelOffsets[4] = {(int32)STRUCT_OFFSET(FColor,R), (int32)STRUCT_OFFSET(FColor,G), (int32)STRUCT_OFFSET(FColor,B), (int32)STRUCT_OFFSET(FColor,A)};
+
 		TArray<bool> LayerNoWeightBlends;	// Array of NoWeightBlend flags
 		TArray<uint8*> LayerDataPtrs;		// Pointers to all layers' data 
 
@@ -1821,6 +1819,9 @@ void ULandscapeComponent::ReplaceLayer(ULandscapeLayerInfoObject* FromLayerInfo,
 		check(ToTexDataInfo->GetMipSizeX(0) == ToTexDataInfo->GetMipSizeY(0));
 		check(FromTexDataInfo->GetMipSizeX(0) == ToTexDataInfo->GetMipSizeX(0));
 		const int32 MipSize = FromTexDataInfo->GetMipSizeX(0);
+
+		// Channel remapping
+		const int32 ChannelOffsets[4] = {(int32)STRUCT_OFFSET(FColor,R), (int32)STRUCT_OFFSET(FColor,G), (int32)STRUCT_OFFSET(FColor,B), (int32)STRUCT_OFFSET(FColor,A)};
 
 		uint8* const SrcTextureData = (uint8*)FromTexDataInfo->GetMipData(0) + ChannelOffsets[FromLayerAllocation.WeightmapTextureChannel];
 		uint8* const DestTextureData = (uint8*)ToTexDataInfo->GetMipData(0) + ChannelOffsets[ToLayerAllocation.WeightmapTextureChannel];
@@ -2135,233 +2136,7 @@ bool DeleteLayerIfAllZero(ULandscapeComponent* const Component, const uint8* con
 	return true;
 }
 
-
-inline bool FLandscapeEditDataInterface::IsWhitelisted(const ULandscapeLayerInfoObject* const LayerInfo, const int32 ComponentIndexX, const int32 SubIndexX, const int32 SubX, const int32 ComponentIndexY, const int32 SubIndexY, const int32 SubY)
-{
-	// left / right
-	if (SubIndexX == 0 && SubX == 0)
-	{
-		ULandscapeComponent* EdgeComponent = LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint(ComponentIndexX - 1, ComponentIndexY));
-		if (EdgeComponent && !EdgeComponent->LayerWhitelist.Contains(LayerInfo))
-		{
-			return false;
-		}
-	}
-	else if (SubIndexX == ComponentNumSubsections - 1 && SubX == SubsectionSizeQuads)
-	{
-		ULandscapeComponent* EdgeComponent = LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint(ComponentIndexX + 1, ComponentIndexY));
-		if (EdgeComponent && !EdgeComponent->LayerWhitelist.Contains(LayerInfo))
-		{
-			return false;
-		}
-	}
-
-	// up / down
-	if (SubIndexY == 0 && SubY == 0)
-	{
-		ULandscapeComponent* EdgeComponent = LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint(ComponentIndexX, ComponentIndexY - 1));
-		if (EdgeComponent && !EdgeComponent->LayerWhitelist.Contains(LayerInfo))
-		{
-			return false;
-		}
-	}
-	else if (SubIndexY == ComponentNumSubsections - 1 && SubY == SubsectionSizeQuads)
-	{
-		ULandscapeComponent* EdgeComponent = LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint(ComponentIndexX, ComponentIndexY + 1));
-		if (EdgeComponent && !EdgeComponent->LayerWhitelist.Contains(LayerInfo))
-		{
-			return false;
-		}
-	}
-
-	// diagonals
-	if (SubIndexY == 0 && SubY == 0 && SubIndexX == 0 && SubX == 0)
-	{
-		ULandscapeComponent* CornerComponent = LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint(ComponentIndexX - 1, ComponentIndexY - 1));
-		if (CornerComponent && !CornerComponent->LayerWhitelist.Contains(LayerInfo))
-		{
-			return false;
-		}
-	}
-	else if (SubIndexY == 0 && SubY == 0 && SubIndexX == ComponentNumSubsections - 1 && SubX == SubsectionSizeQuads)
-	{
-		ULandscapeComponent* CornerComponent = LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint(ComponentIndexX + 1, ComponentIndexY - 1));
-		if (CornerComponent && !CornerComponent->LayerWhitelist.Contains(LayerInfo))
-		{
-			return false;
-		}
-	}
-	else if (SubIndexY == ComponentNumSubsections - 1 && SubY == SubsectionSizeQuads && SubIndexX == 0 && SubX == 0)
-	{
-		ULandscapeComponent* CornerComponent = LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint(ComponentIndexX - 1, ComponentIndexY + 1));
-		if (CornerComponent && !CornerComponent->LayerWhitelist.Contains(LayerInfo))
-		{
-			return false;
-		}
-	}
-	else if (SubIndexY == ComponentNumSubsections - 1 && SubY == SubsectionSizeQuads && SubIndexX == ComponentNumSubsections - 1 && SubX == SubsectionSizeQuads)
-	{
-		ULandscapeComponent* CornerComponent = LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint(ComponentIndexX + 1, ComponentIndexY + 1));
-		if (CornerComponent && !CornerComponent->LayerWhitelist.Contains(LayerInfo))
-		{
-			return false;
-		}
-	}
-
-	return true;
-}
-
-inline TMap<const ULandscapeLayerInfoObject*, uint32> FLandscapeEditDataInterface::CountWeightBlendedLayerInfluence(const int32 ComponentIndexX, const int32 ComponentIndexY, TOptional<TFixedSizeArrayView<const uint8* const>> InOptionalLayerDataPtrs)
-{
-	// the counts should easily fit in a uint32, a 255x255 x2x2 Component with weights of all 255 only totals 26 bits
-	checkSlow(FMath::CeilLogTwo(ComponentSizeQuads + 1) * 2 + 8 /*ceillog2(255)*/ <= 32);
-	TMap<const ULandscapeLayerInfoObject*, uint32> LayerInfluenceMap;
-
-	ULandscapeComponent* Component = LandscapeInfo->XYtoComponentMap.FindChecked(FIntPoint(ComponentIndexX,ComponentIndexY));
-
-	// used if InOptionalLayerDataPtrs is null
-	TArray<FLandscapeTextureDataInfo*, TInlineAllocator<2>> InternalTexDataInfos;
-	TArray<const uint8*, TInlineAllocator<8>> InternalLayerDataPtrs;
-	TFixedSizeArrayView<const uint8* const> LayerDataPtrs;
-	if (InOptionalLayerDataPtrs)
-	{
-		check(InOptionalLayerDataPtrs->Num() == Component->WeightmapLayerAllocations.Num());
-		LayerDataPtrs = InOptionalLayerDataPtrs.GetValue();
-	}
-	else
-	{
-		InternalTexDataInfos.AddUninitialized(Component->WeightmapTextures.Num());
-		for (int32 WeightmapIdx = 0; WeightmapIdx < Component->WeightmapTextures.Num(); ++WeightmapIdx)
-		{
-			InternalTexDataInfos[WeightmapIdx] = GetTextureDataInfo(Component->WeightmapTextures[WeightmapIdx]);
-		}
-
-		InternalLayerDataPtrs.AddUninitialized(Component->WeightmapLayerAllocations.Num());
-		for (int32 LayerIdx = 0; LayerIdx < Component->WeightmapLayerAllocations.Num(); LayerIdx++)
-		{
-			const FWeightmapLayerAllocationInfo& Allocation = Component->WeightmapLayerAllocations[LayerIdx];
-			InternalLayerDataPtrs[LayerIdx] = (uint8*)InternalTexDataInfos[Allocation.WeightmapTextureIndex]->GetMipData(0) + ChannelOffsets[Allocation.WeightmapTextureChannel];
-		}
-
-		LayerDataPtrs = InternalLayerDataPtrs;
-	}
-
-	const int32 ScanlineSize = (SubsectionSizeQuads + 1) * ComponentNumSubsections * 4;
-
-	for (int32 LayerIdx = 0; LayerIdx < Component->WeightmapLayerAllocations.Num(); LayerIdx++)
-	{
-		const FWeightmapLayerAllocationInfo& Allocation = Component->WeightmapLayerAllocations[LayerIdx];
-		if (Allocation.LayerInfo->bNoWeightBlend)
-		{
-			continue;
-		}
-		auto& Count = LayerInfluenceMap.Add(Allocation.LayerInfo, 0);
-
-		for (int32 SubIndexY = 0; SubIndexY < ComponentNumSubsections; ++SubIndexY)
-		{
-			const int32 YStart = SubIndexY * (SubsectionSizeQuads + 1);
-			const int32 YEnd = YStart + (SubsectionSizeQuads + 1);
-			for (int32 Y = YStart; Y < YEnd; ++Y)
-			{
-				for (int32 SubIndexX = 0; SubIndexX < ComponentNumSubsections; ++SubIndexX)
-				{
-					const int32 XStart = SubIndexX * (SubsectionSizeQuads + 1);
-					const int32 XEnd = XStart + (SubsectionSizeQuads + 1);
-					for (int32 X = XStart; X < XEnd; ++X)
-					{
-						const int32 TexDataIndex = Y * ScanlineSize + X * 4;
-						const uint8 Weight = LayerDataPtrs[LayerIdx][TexDataIndex];
-						Count += Weight;
-					}
-				}
-			}
-		}
-	}
-
-	LayerInfluenceMap.ValueSort(TGreater<uint32>());
-	return LayerInfluenceMap;
-}
-
-const ULandscapeLayerInfoObject* FLandscapeEditDataInterface::ChooseReplacementLayer(const ULandscapeLayerInfoObject* const LayerInfo, const int32 ComponentIndexX, const int32 SubIndexX, const int32 SubX, const int32 ComponentIndexY, const int32 SubIndexY, const int32 SubY, TMap<FIntPoint, TMap<const ULandscapeLayerInfoObject*, uint32>>& LayerInfluenceCache, TFixedSizeArrayView<const uint8* const> LayerDataPtrs)
-{
-	const TMap<const ULandscapeLayerInfoObject*, uint32>* LayerInfluenceMapCacheEntry = LayerInfluenceCache.Find(FIntPoint(ComponentIndexX, ComponentIndexY));
-	if (!LayerInfluenceMapCacheEntry)
-	{
-		LayerInfluenceMapCacheEntry = &LayerInfluenceCache.Add(FIntPoint(ComponentIndexX, ComponentIndexY), CountWeightBlendedLayerInfluence(ComponentIndexX, ComponentIndexY, LayerDataPtrs));
-	}
-
-	if (!(SubIndexX == 0 && SubX == 0) &&
-		!(SubIndexX == ComponentNumSubsections - 1 && SubX == SubsectionSizeQuads) &&
-		!(SubIndexY == 0 && SubY == 0) &&
-		!(SubIndexY == ComponentNumSubsections - 1 && SubY == SubsectionSizeQuads))
-	{
-		for (const auto& LayerInfluenceMapPair : *LayerInfluenceMapCacheEntry)
-		{
-			if (LayerInfluenceMapPair.Key != LayerInfo)
-			{
-				return LayerInfluenceMapPair.Key;
-			}
-		}
-		return nullptr;
-	}
-
-	TMap<const ULandscapeLayerInfoObject*, uint32, TInlineSetAllocator<8>> LayerInfluenceMap = *LayerInfluenceMapCacheEntry;
-
-	const int32 ComponentXStart = (SubIndexX == 0 && SubX == 0) ? ComponentIndexX - 1 : ComponentIndexX;
-	const int32 ComponentXEnd = (SubIndexX == ComponentNumSubsections - 1 && SubX == SubsectionSizeQuads) ? ComponentIndexX + 1 : ComponentIndexX;
-	const int32 ComponentYStart = (SubIndexY == 0 && SubY == 0) ? ComponentIndexY - 1 : ComponentIndexY;
-	const int32 ComponentYEnd = (SubIndexY == ComponentNumSubsections - 1 && SubY == SubsectionSizeQuads) ? ComponentIndexY + 1 : ComponentIndexY;
-	for (int32 Y = ComponentYStart; Y <= ComponentYEnd; ++Y)
-	{
-		for (int32 X = ComponentXStart; X <= ComponentXEnd; ++X)
-		{
-			if (X == ComponentIndexX && Y == ComponentIndexY)
-			{
-				// skip the current component, it is already included above
-				continue;
-			}
-
-			ULandscapeComponent* Component = LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint(X, Y));
-			if (!Component)
-			{
-				// skip missing components
-				continue;
-			}
-
-			const TMap<const ULandscapeLayerInfoObject*, uint32>* OtherLayerInfluenceMapCacheEntry = LayerInfluenceCache.Find(FIntPoint(X, Y));
-			if (!OtherLayerInfluenceMapCacheEntry)
-			{
-				OtherLayerInfluenceMapCacheEntry = &LayerInfluenceCache.Add(FIntPoint(X, Y), CountWeightBlendedLayerInfluence(X, Y, {}));
-			}
-
-			for (auto LayerInfluenceMapIt = LayerInfluenceMap.CreateIterator(); LayerInfluenceMapIt; ++LayerInfluenceMapIt)
-			{
-				const uint32* Value = OtherLayerInfluenceMapCacheEntry->Find(LayerInfluenceMapIt->Key);
-				if (Value)
-				{
-					LayerInfluenceMapIt->Value += *Value;
-				}
-				else
-				{
-					// only allow layers that exist in *all* the touched components
-					LayerInfluenceMapIt.RemoveCurrent();
-				}
-			}
-		}
-	}
-
-	LayerInfluenceMap.ValueSort(TGreater<uint32>());
-	for (const auto& LayerInfluenceMapPair : LayerInfluenceMap)
-	{
-		if (LayerInfluenceMapPair.Key != LayerInfo)
-		{
-			return LayerInfluenceMapPair.Key;
-		}
-	}
-	return nullptr;
-}
-
-void FLandscapeEditDataInterface::SetAlphaData(ULandscapeLayerInfoObject* const LayerInfo, const int32 X1, const int32 Y1, const int32 X2, const int32 Y2, const uint8* Data, int32 Stride, ELandscapeLayerPaintingRestriction PaintingRestriction /*= None*/, bool bWeightAdjust /*= true*/, bool bTotalWeightAdjust /*= false*/)
+void FLandscapeEditDataInterface::SetAlphaData(ULandscapeLayerInfoObject* const LayerInfo, const int32 X1, const int32 Y1, const int32 X2, const int32 Y2, const uint8* Data, int32 Stride, ELandscapeLayerPaintingRestriction::Type PaintingRestriction /*= None*/, bool bWeightAdjust /*= true*/, bool bTotalWeightAdjust /*= false*/)
 {
 	check(LayerInfo != NULL);
 	if (LayerInfo->bNoWeightBlend)
@@ -2374,6 +2149,9 @@ void FLandscapeEditDataInterface::SetAlphaData(ULandscapeLayerInfoObject* const 
 		Stride = (1+X2-X1);
 	}
 
+	// Channel remapping
+	size_t ChannelOffsets[4] = {STRUCT_OFFSET(FColor,R), STRUCT_OFFSET(FColor,G), STRUCT_OFFSET(FColor,B), STRUCT_OFFSET(FColor,A)};
+
 	check(ComponentSizeQuads > 0);
 	// Find component range for this block of data
 	int32 ComponentIndexX1 = (X1-1 >= 0) ? (X1-1) / ComponentSizeQuads : (X1) / ComponentSizeQuads - 1;	// -1 because we need to pick up vertices shared between components
@@ -2382,13 +2160,11 @@ void FLandscapeEditDataInterface::SetAlphaData(ULandscapeLayerInfoObject* const 
 	int32 ComponentIndexY2 = (Y2 >= 0) ? Y2 / ComponentSizeQuads : (Y2+1) / ComponentSizeQuads - 1;
 
 	TArray<FLandscapeTextureDataInfo*, TInlineAllocator<2>> TexDataInfos;
-	TArray<uint8*, TInlineAllocator<8>> LayerDataPtrs;      // Pointers to all layers' data
-	TArray<bool, TInlineAllocator<8>> LayerNoWeightBlends;  // NoWeightBlend flags
-	TArray<bool, TInlineAllocator<8>> LayerEditDataAllZero; // Whether the data we are editing for this layer is all zero
+	TArray<uint8*, TInlineAllocator<8>> LayerDataPtrs;		// Pointers to all layers' data 
+	TArray<bool, TInlineAllocator<8>> LayerNoWeightBlends;	// NoWeightBlend flags
+	TArray<bool, TInlineAllocator<8>> LayerEditDataAllZero; // Whether the data we are editing for this layer is all zero 
 	TArray<FColor*> CollisionWeightmapMipData;
 	TArray<FColor*> WeightmapTextureMipData;
-
-	TMap<FIntPoint, TMap<const ULandscapeLayerInfoObject*, uint32>> LayerInfluenceCache;
 
 	for (int32 ComponentIndexY = ComponentIndexY1; ComponentIndexY <= ComponentIndexY2; ComponentIndexY++)
 	{
@@ -2399,11 +2175,6 @@ void FLandscapeEditDataInterface::SetAlphaData(ULandscapeLayerInfoObject* const 
 
 			// if NULL, there is no component at this location
 			if (Component == NULL)
-			{
-				continue;
-			}
-
-			if (PaintingRestriction == ELandscapeLayerPaintingRestriction::UseComponentWhitelist && !Component->LayerWhitelist.Contains(LayerInfo))
 			{
 				continue;
 			}
@@ -2419,7 +2190,8 @@ void FLandscapeEditDataInterface::SetAlphaData(ULandscapeLayerInfoObject* const 
 
 				// if we can't allocate a layer, then there is nothing to paint
 				if (PaintingRestriction == ELandscapeLayerPaintingRestriction::ExistingOnly ||
-					(PaintingRestriction == ELandscapeLayerPaintingRestriction::UseMaxLayers && LayerLimit > 0 && Component->WeightmapLayerAllocations.Num() >= LayerLimit))
+					(PaintingRestriction == ELandscapeLayerPaintingRestriction::UseMaxLayers &&
+					 LayerLimit > 0 && Component->WeightmapLayerAllocations.Num() >= LayerLimit))
 				{
 					continue;
 				}
@@ -2442,7 +2214,7 @@ void FLandscapeEditDataInterface::SetAlphaData(ULandscapeLayerInfoObject* const 
 			for (int32 WeightmapIdx = 0; WeightmapIdx < Component->WeightmapTextures.Num(); ++WeightmapIdx)
 			{
 				TexDataInfos[WeightmapIdx] = GetTextureDataInfo(Component->WeightmapTextures[WeightmapIdx]);
-			}
+			};
 
 			LayerDataPtrs.Reset();        // Pointers to all layers' data
 			LayerDataPtrs.AddUninitialized(Component->WeightmapLayerAllocations.Num());
@@ -2460,7 +2232,7 @@ void FLandscapeEditDataInterface::SetAlphaData(ULandscapeLayerInfoObject* const 
 			}
 
 			// Find the texture data corresponding to this vertex
-			const int32 TexSize = (SubsectionSizeQuads+1) * ComponentNumSubsections;
+			const int32 TexSize = (Component->SubsectionSizeQuads+1) * Component->NumSubsections; 
 
 			// Find coordinates of box that lies inside component
 			const int32 ComponentX1 = FMath::Clamp<int32>(X1-ComponentIndexX*ComponentSizeQuads, 0, ComponentSizeQuads);
@@ -2469,10 +2241,10 @@ void FLandscapeEditDataInterface::SetAlphaData(ULandscapeLayerInfoObject* const 
 			const int32 ComponentY2 = FMath::Clamp<int32>(Y2-ComponentIndexY*ComponentSizeQuads, 0, ComponentSizeQuads);
 
 			// Find subsection range for this box
-			const int32 SubIndexX1 = FMath::Clamp<int32>((ComponentX1-1) / SubsectionSizeQuads, 0, ComponentNumSubsections-1); // -1 because we need to pick up vertices shared between subsections
-			const int32 SubIndexY1 = FMath::Clamp<int32>((ComponentY1-1) / SubsectionSizeQuads, 0, ComponentNumSubsections-1);
-			const int32 SubIndexX2 = FMath::Clamp<int32>(ComponentX2 / SubsectionSizeQuads, 0, ComponentNumSubsections-1);
-			const int32 SubIndexY2 = FMath::Clamp<int32>(ComponentY2 / SubsectionSizeQuads, 0, ComponentNumSubsections-1);
+			const int32 SubIndexX1 = FMath::Clamp<int32>((ComponentX1-1) / SubsectionSizeQuads,0,ComponentNumSubsections-1);	// -1 because we need to pick up vertices shared between subsections
+			const int32 SubIndexY1 = FMath::Clamp<int32>((ComponentY1-1) / SubsectionSizeQuads,0,ComponentNumSubsections-1);
+			const int32 SubIndexX2 = FMath::Clamp<int32>(ComponentX2 / SubsectionSizeQuads,0,ComponentNumSubsections-1);
+			const int32 SubIndexY2 = FMath::Clamp<int32>(ComponentY2 / SubsectionSizeQuads,0,ComponentNumSubsections-1);
 
 			for (int32 SubIndexY = SubIndexY1; SubIndexY <= SubIndexY2; SubIndexY++)
 			{
@@ -2498,32 +2270,16 @@ void FLandscapeEditDataInterface::SetAlphaData(ULandscapeLayerInfoObject* const 
 							const int32 DataIndex = (LandscapeX-X1) + Stride * (LandscapeY-Y1);
 							uint8 NewWeight = Data[DataIndex];
 
+							// Adjust all layer weights
 							const int32 TexX = (SubsectionSizeQuads+1) * SubIndexX + SubX;
 							const int32 TexY = (SubsectionSizeQuads+1) * SubIndexY + SubY;
+
 							const int32 TexDataIndex = 4 * (TexX + TexY * TexSize);
 
-							uint8 CurrentWeight = LayerDataPtrs[UpdateLayerIdx][TexDataIndex];
-							if (NewWeight == CurrentWeight)
-							{
-								continue;
-							}
-
-							if (PaintingRestriction == ELandscapeLayerPaintingRestriction::UseComponentWhitelist && NewWeight != 0)
-							{
-								bool bWhitelisted = IsWhitelisted(LayerInfo, ComponentIndexX, SubIndexX, SubX, ComponentIndexY, SubIndexY, SubY);
-								if (!bWhitelisted)
-								{
-									NewWeight = 0;
-								}
-							}
-
-							// Adjust all layer weights
-							// (bWeightAdjust implies that this is a weight-blended layer)
 							int32 OtherLayerWeightSum = 0;
+
 							if (bWeightAdjust)
 							{
-								// Normalize all layers including the painted one
-								// gmartin: this isn't used. TODO: Remove
 								if (bTotalWeightAdjust)
 								{
 									int32 MaxLayerIdx = -1;
@@ -2592,56 +2348,32 @@ void FLandscapeEditDataInterface::SetAlphaData(ULandscapeLayerInfoObject* const 
 										}
 									}
 
-									if (OtherLayerWeightSum == 0 && NewWeight < 255)
+									if (OtherLayerWeightSum == 0)
 									{
-										if (NewWeight < CurrentWeight)
-										{
-											// When reducing the layer weight from 255, we need to choose another layer to fill to avoid a black hole
-											const ULandscapeLayerInfoObject* ReplacementLayer = ChooseReplacementLayer(LayerInfo, ComponentIndexX, SubIndexX, SubX, ComponentIndexY, SubIndexY, SubY, LayerInfluenceCache, LayerDataPtrs);
-											if (ReplacementLayer)
-											{
-												const int32 ReplacementLayerIndex = Component->WeightmapLayerAllocations.IndexOfByPredicate([&](const FWeightmapLayerAllocationInfo& AllocationInfo) { return AllocationInfo.LayerInfo == ReplacementLayer; });
-
-												LayerDataPtrs[ReplacementLayerIndex][TexDataIndex] = 255 - NewWeight;
-												LayerEditDataAllZero[ReplacementLayerIndex] = false;
-											}
-											else
-											{
-												// if we didn't find a suitable replacement we just have to leave it at 255, unfortunately
-												NewWeight = 255;
-											}
-										}
-										else if (NewWeight > CurrentWeight)
-										{
-											// if weight is increasing on a black spot then go straight to 255
-											NewWeight = 255;
-										}
-
-										LayerDataPtrs[UpdateLayerIdx][TexDataIndex] = NewWeight;
+										NewWeight = 255;
+										OtherLayerWeightSum = 1;
 									}
-									else
+
+									for (int32 LayerIdx = 0; LayerIdx < Component->WeightmapLayerAllocations.Num(); LayerIdx++)
 									{
-										for (int32 LayerIdx = 0; LayerIdx < Component->WeightmapLayerAllocations.Num(); LayerIdx++)
+										uint8& Weight = LayerDataPtrs[LayerIdx][TexDataIndex];
+
+										if (LayerIdx == UpdateLayerIdx)
 										{
-											uint8& Weight = LayerDataPtrs[LayerIdx][TexDataIndex];
+											Weight = NewWeight;
+										}
+										else
+										{
+											// Exclude bNoWeightBlend layers
+											if (LayerNoWeightBlends[LayerIdx] == false)
+											{
+												Weight = FMath::Clamp<uint8>( FMath::RoundToInt((float)(255 - NewWeight) * (float)Weight/(float)OtherLayerWeightSum), 0, 255 );
+											}
+										}
 
-											if (LayerIdx == UpdateLayerIdx)
-											{
-												Weight = NewWeight;
-											}
-											else
-											{
-												// Exclude bNoWeightBlend layers
-												if (LayerNoWeightBlends[LayerIdx] == false)
-												{
-													Weight = FMath::Clamp<uint8>(FMath::RoundToInt((float)(255 - NewWeight) * (float)Weight / (float)OtherLayerWeightSum), 0, 255);
-												}
-											}
-
-											if (Weight != 0)
-											{
-												LayerEditDataAllZero[LayerIdx] = false;
-											}
+										if (Weight != 0)
+										{
+											LayerEditDataAllZero[LayerIdx] = false;
 										}
 									}
 								}
@@ -2731,7 +2463,7 @@ void FLandscapeEditDataInterface::SetAlphaData(ULandscapeLayerInfoObject* const 
 	}
 }
 
-void FLandscapeEditDataInterface::SetAlphaData(const TSet<ULandscapeLayerInfoObject*>& DirtyLayerInfos, const int32 X1, const int32 Y1, const int32 X2, const int32 Y2, const uint8* Data, int32 Stride, ELandscapeLayerPaintingRestriction PaintingRestriction /*= None*/)
+void FLandscapeEditDataInterface::SetAlphaData(const TSet<ULandscapeLayerInfoObject*>& DirtyLayerInfos, const int32 X1, const int32 Y1, const int32 X2, const int32 Y2, const uint8* Data, int32 Stride, ELandscapeLayerPaintingRestriction::Type PaintingRestriction /*= None*/)
 {
 	if (DirtyLayerInfos.Num() == 0)
 	{
@@ -2751,6 +2483,9 @@ void FLandscapeEditDataInterface::SetAlphaData(const TSet<ULandscapeLayerInfoObj
 	{
 		Stride = (1+X2-X1) * LandscapeInfo->Layers.Num();
 	}
+
+	// Channel remapping
+	size_t ChannelOffsets[4] = {STRUCT_OFFSET(FColor,R), STRUCT_OFFSET(FColor,G), STRUCT_OFFSET(FColor,B), STRUCT_OFFSET(FColor,A)};
 
 	check(ComponentSizeQuads > 0);
 	// Find component range for this block of data
@@ -3001,6 +2736,9 @@ void FLandscapeEditDataInterface::GetWeightDataTemplFast(ULandscapeLayerInfoObje
 	int32 ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2;
 	ALandscape::CalcComponentIndicesNoOverlap(X1, Y1, X2, Y2, ComponentSizeQuads, ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2);
 
+	// Channel remapping
+	int32 ChannelOffsets[4] = {(int32)STRUCT_OFFSET(FColor,R),(int32)STRUCT_OFFSET(FColor,G),(int32)STRUCT_OFFSET(FColor,B),(int32)STRUCT_OFFSET(FColor,A)};
+
 	for( int32 ComponentIndexY=ComponentIndexY1;ComponentIndexY<=ComponentIndexY2;ComponentIndexY++ )
 	{
 		for( int32 ComponentIndexX=ComponentIndexX1;ComponentIndexX<=ComponentIndexX2;ComponentIndexX++ )
@@ -3136,6 +2874,7 @@ void FLandscapeEditDataInterface::GetWeightDataTemplFast(ULandscapeLayerInfoObje
 uint8 FLandscapeEditDataInterface::GetWeightMapData(const ULandscapeComponent* Component, ULandscapeLayerInfoObject* LayerInfo, int32 TexU, int32 TexV, uint8 Offset /*= 0*/, UTexture2D* Texture /*= NULL*/, uint8* TextureData /*= NULL*/)
 {
 	check(Component);
+	int32 ChannelOffsets[4] = {(int32)STRUCT_OFFSET(FColor,R),(int32)STRUCT_OFFSET(FColor,G),(int32)STRUCT_OFFSET(FColor,B),(int32)STRUCT_OFFSET(FColor,A)};
 	if (!Texture || !TextureData)
 	{
 		if (LayerInfo != NULL)
@@ -3197,6 +2936,9 @@ void FLandscapeEditDataInterface::GetWeightDataTempl(ULandscapeLayerInfoObject* 
 	uint8 NeighborWeightmapChannelOffset[4] = {0, 0, 0, 0};
 	uint8 CornerValues[4] = {0, 0, 0, 0};
 	int32 EdgeCoord = (SubsectionSizeQuads+1) * ComponentNumSubsections - 1; //ComponentSizeQuads;
+
+	// Channel remapping
+	int32 ChannelOffsets[4] = {(int32)STRUCT_OFFSET(FColor,R),(int32)STRUCT_OFFSET(FColor,G),(int32)STRUCT_OFFSET(FColor,B),(int32)STRUCT_OFFSET(FColor,A)};
 
 	// initial loop....
 	for( int32 ComponentIndexY=ComponentIndexY1;ComponentIndexY<=ComponentIndexY2;ComponentIndexY++ )
@@ -3799,6 +3541,9 @@ void FLandscapeEditDataInterface::CopyTextureChannel(UTexture2D* Dest, int32 Des
 	int32 MipSize = Dest->Source.GetSizeX();
 	check(Dest->Source.GetSizeX() == Dest->Source.GetSizeY() && Src->Source.GetSizeX() == Dest->Source.GetSizeX());
 
+	// Channel remapping
+	int32 ChannelOffsets[4] = {(int32)STRUCT_OFFSET(FColor,R),(int32)STRUCT_OFFSET(FColor,G),(int32)STRUCT_OFFSET(FColor,B),(int32)STRUCT_OFFSET(FColor,A)};
+
 	for( int32 MipIdx=0;MipIdx<DestDataInfo->NumMips();MipIdx++ )
 	{
 		uint8* DestTextureData = (uint8*)DestDataInfo->GetMipData(MipIdx) + ChannelOffsets[DestChannel];
@@ -3819,6 +3564,9 @@ void FLandscapeEditDataInterface::CopyTextureFromHeightmap(UTexture2D* Dest, int
 	FLandscapeTextureDataInfo* DestDataInfo = GetTextureDataInfo(Dest);
 	int32 MipSize = Dest->Source.GetSizeX();
 	check(Dest->Source.GetSizeX() == Dest->Source.GetSizeY());
+
+	// Channel remapping
+	int32 ChannelOffsets[4] = {(int32)STRUCT_OFFSET(FColor,R),(int32)STRUCT_OFFSET(FColor,G),(int32)STRUCT_OFFSET(FColor,B),(int32)STRUCT_OFFSET(FColor,A)};
 
 	for( int32 MipIdx=0;MipIdx<DestDataInfo->NumMips();MipIdx++ )
 	{
@@ -3845,6 +3593,9 @@ void FLandscapeEditDataInterface::CopyTextureFromWeightmap(UTexture2D* Dest, int
 	int32 MipSize = Dest->Source.GetSizeX();
 	check(Dest->Source.GetSizeX() == Dest->Source.GetSizeY());
 
+	// Channel remapping
+	int32 ChannelOffsets[4] = { (int32)STRUCT_OFFSET(FColor, R), (int32)STRUCT_OFFSET(FColor, G), (int32)STRUCT_OFFSET(FColor, B), (int32)STRUCT_OFFSET(FColor, A) };
+
 	for (int32 MipIdx = 0; MipIdx < DestDataInfo->NumMips(); MipIdx++)
 	{
 		FLandscapeComponentDataInterface DataInterface(Comp, MipIdx);
@@ -3868,6 +3619,9 @@ void FLandscapeEditDataInterface::ZeroTextureChannel(UTexture2D* Dest, int32 Des
 	FLandscapeTextureDataInfo* DestDataInfo = GetTextureDataInfo(Dest);
 	int32 MipSize = Dest->Source.GetSizeX();
 	check(Dest->Source.GetSizeX() == Dest->Source.GetSizeY());
+
+	// Channel remapping
+	int32 ChannelOffsets[4] = {(int32)STRUCT_OFFSET(FColor,R),(int32)STRUCT_OFFSET(FColor,G),(int32)STRUCT_OFFSET(FColor,B),(int32)STRUCT_OFFSET(FColor,A)};
 
 	for( int32 MipIdx=0;MipIdx<DestDataInfo->NumMips();MipIdx++ )
 	{
@@ -5004,7 +4758,7 @@ bool FLandscapeTextureDataInfo::UpdateTextureData()
 	{
 		if( MipInfo[i].MipData && MipInfo[i].MipUpdateRegions.Num()>0 )
 		{
-			Texture->UpdateTextureRegions( i, MipInfo[i].MipUpdateRegions.Num(), &MipInfo[i].MipUpdateRegions[0], ((Texture->Source.GetSizeX())>>i)*DataSize, DataSize, (uint8*)MipInfo[i].MipData);
+			Texture->UpdateTextureRegions( i, MipInfo[i].MipUpdateRegions.Num(), &MipInfo[i].MipUpdateRegions[0], ((Texture->Source.GetSizeX())>>i)*DataSize, DataSize, (uint8*)MipInfo[i].MipData, false );
 			bNeedToWaitForUpdate = true;
 		}
 	}

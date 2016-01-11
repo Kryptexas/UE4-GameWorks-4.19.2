@@ -1,9 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "NetcodeUnitTestPCH.h"
 
 #include "Engine.h"
 #include "Net/UnrealNetwork.h"
+#include "OnlineSubsystemUtilsClasses.h"
 
 #include "NUTUtil.h"
 #include "Net/NUTUtilNet.h"
@@ -36,13 +37,8 @@ void UUnitTestNetConnection::InitBase(UNetDriver* InDriver, class FSocket* InSoc
 #endif
 }
 
-#if TARGET_UE4_CL < CL_INITCONNPARAM
 void UUnitTestNetConnection::InitConnection(UNetDriver* InDriver, EConnectionState InState, const FURL& InURL,
-											int32 InConnectionSpeed/*=0*/)
-#else
-void UUnitTestNetConnection::InitConnection(UNetDriver* InDriver, EConnectionState InState, const FURL& InURL,
-											int32 InConnectionSpeed/*=0*/, int32 InMaxPacket/*=0*/)
-#endif
+											int32 InConnectionSpeed, int32 InMaxPacket)
 {
 	Super::InitConnection(InDriver, InState, InURL, InConnectionSpeed);
 
@@ -93,7 +89,7 @@ void UUnitTestNetConnection::HandleClientPlayer(class APlayerController* PC, cla
 	PlayerController = PC;
 	OwningActor = PC;
 
-	// @todo #JohnBReview: This might cause undesirable behaviour, if - for example - HandleDisconnect gets called by
+	// @todo JohnB: This might cause undesirable behaviour, if - for example - HandleDisconnect gets called by
 	//				RPC's, so may want to create a fake localplayer instead
 	PC->Player = GEngine->GetFirstGamePlayer(NUTUtil::GetPrimaryWorld());
 

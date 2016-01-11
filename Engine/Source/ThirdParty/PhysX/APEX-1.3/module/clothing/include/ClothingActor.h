@@ -26,6 +26,8 @@
 
 #include "ClothingRenderProxy.h"
 
+#include "PsSync.h"
+
 #pragma warning(push)
 #pragma warning(disable:4324)
 
@@ -93,6 +95,25 @@ struct ClothingGraphicalMeshActor
 
 	ClothingRenderProxy* renderProxy;
 };
+
+
+
+class ClothingWaitForFetchTask : public PxTask
+{
+public:
+	ClothingWaitForFetchTask()
+	{
+		mWaiting.set();
+	}
+
+	virtual void run();
+	virtual void release();
+	virtual const char* getName() const;
+
+	Sync mWaiting;
+};
+
+
 
 class ClothingActor : public ApexActor, public ApexResource
 {
@@ -246,7 +267,7 @@ public:
 	void destroy();
 
 	// Tasks
-	void initBeforeTickTasks(PxF32 deltaTime, PxF32 substepSize, PxU32 numSubSteps, PxTaskManager* taskManager, PxTaskID before, PxTaskID after);
+	void initBeforeTickTasks(PxF32 deltaTime, PxF32 substepSize, PxU32 numSubSteps);
 	void submitTasksDuring(PxTaskManager* taskManager);
 	void setTaskDependenciesBefore(PxBaseTask* after);
 	PxTaskID setTaskDependenciesDuring(PxTaskID before, PxTaskID after);
@@ -258,6 +279,7 @@ public:
 		return mDuringTickTask.getTaskID();
 	}
 
+	void setFetchContinuation();
 	void startFetchTasks();
 
 	// teleport
@@ -290,9 +312,6 @@ public:
 	{
 		bActorCollisionChanged = 1;
 	}
-
-	void simulate(PxF32 dt);
-	void setFetchResultsSync() { mFetchResultsSync.set(); }
 
 protected:
 	struct WriteBackInfo;
@@ -472,9 +491,9 @@ protected:
 
 	ClothingCookingTask*			mActiveCookingTask;
 
+	ClothingWaitForFetchTask		mWaitForFetchTask;
 	bool							mFetchResultsRunning;
 	Mutex							mFetchResultsRunningMutex;
-	physx::shdfnd::Sync				mFetchResultsSync;
 
 	shdfnd::Array<PxVec3>			mWindDebugRendering;
 

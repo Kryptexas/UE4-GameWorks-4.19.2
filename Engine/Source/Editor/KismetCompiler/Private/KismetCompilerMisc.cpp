@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	KismetCompilerMisc.cpp
@@ -531,12 +531,10 @@ void FKismetCompilerUtilities::ValidateEnumProperties(UObject* DefaultObject, FC
 				{
 					MessageLog.Warning(
 						*FString::Printf(
-							*LOCTEXT("InvalidEnumDefaultValue_Error", "Default Enum value '%s' for class '%s' is invalid in object '%s'. EnumVal: %d. EnumAcceptableMax: %d ").ToString(),
+							*LOCTEXT("InvalidEnumDefaultValue_Error", "Default Enum value '%s' for class '%s' is invalid in object '%s' ").ToString(),
 							*ByteProperty->GetName(),
 							*DefaultObject->GetClass()->GetName(),
-							*DefaultObject->GetName(),
-							EnumValue,
-							Enum->GetMaxEnumValue()
+							*DefaultObject->GetName()
 						)
 					);
 				}
@@ -714,8 +712,6 @@ void FKismetCompilerUtilities::CreateObjectAssignmentStatement(FKismetFunctionCo
 		ClassTerm->bIsLiteral = true;
 		ClassTerm->Source = DstTerm->Source;
 		ClassTerm->ObjectLiteral = OutputObjClass;
-		check(Context.Schema);
-		ClassTerm->Type.PinCategory = Context.Schema->PC_Class;
 
 		EKismetCompiledStatementType CastOpType = bIsOutputInterface ? KCST_CastObjToInterface : KCST_CastInterfaceToObj;
 		FBlueprintCompiledStatement& CastStatement = Context.AppendStatementForNode(Node);
@@ -793,10 +789,7 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 
 		if (SubType != NULL)
 		{
-			const bool bIsInterface = SubType->HasAnyClassFlags(CLASS_Interface)
-				|| ((SubType == SelfClass) && ensure(SelfClass->ClassGeneratedBy) && FBlueprintEditorUtils::IsInterfaceBlueprint(CastChecked<UBlueprint>(SelfClass->ClassGeneratedBy)));
-
-			if (bIsInterface)
+			if (SubType->HasAnyClassFlags(CLASS_Interface))
 			{
 				UInterfaceProperty* NewPropertyObj = NewObject<UInterfaceProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 				// we want to use this setter function instead of setting the 
@@ -840,15 +833,6 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 				UStructProperty* NewPropertyStruct = NewObject<UStructProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 				NewPropertyStruct->Struct = SubType;
 				NewProperty = NewPropertyStruct;
-
-				if (SubType->StructFlags & STRUCT_HasInstancedReference)
-				{
-					NewProperty->SetPropertyFlags(CPF_ContainsInstancedReference);
-					if (NewArrayProperty)
-					{
-						NewArrayProperty->SetPropertyFlags(CPF_ContainsInstancedReference);
-					}
-				}
 			}
 			else
 			{
@@ -887,7 +871,6 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 				// MetaClass member directly, because it properly handles  
 				// placeholder classes (classes that are stubbed in during load)
 				AssetClassProperty->SetMetaClass(SubType);
-				AssetClassProperty->PropertyClass = UClass::StaticClass();
 				NewProperty = AssetClassProperty;
 			}
 			else
@@ -1268,10 +1251,10 @@ FBlueprintCompiledStatement& FNodeHandlingFunctor::GenerateSimpleThenGoto(FKisme
 		TargetNode = ThenExecPin->LinkedTo[0]->GetOwningNode();
 	}
 
-	if (Context.bCreateDebugData || Context.bInstrumentScriptCode)
+	if (Context.bCreateDebugData)
 	{
 		FBlueprintCompiledStatement& TraceStatement = Context.AppendStatementForNode(&Node);
-		TraceStatement.Type = Context.GetWireTraceType();
+		TraceStatement.Type = KCST_WireTraceSite;
 		TraceStatement.Comment = Node.NodeComment.IsEmpty() ? Node.GetName() : Node.NodeComment;
 	}
 
@@ -1404,7 +1387,7 @@ KISMETCOMPILER_API FString FNetNameMapping::MakeBaseName<UEdGraphNode>(const UEd
 //////////////////////////////////////////////////////////////////////////
 // FKismetFunctionContext
 
-FKismetFunctionContext::FKismetFunctionContext(FCompilerResultsLog& InMessageLog, UEdGraphSchema_K2* InSchema, UBlueprintGeneratedClass* InNewClass, UBlueprint* InBlueprint, bool bInGeneratingCpp, bool bInWantsInstrumentation)
+FKismetFunctionContext::FKismetFunctionContext(FCompilerResultsLog& InMessageLog, UEdGraphSchema_K2* InSchema, UBlueprintGeneratedClass* InNewClass, UBlueprint* InBlueprint, bool bInGeneratingCpp)
 	: Blueprint(InBlueprint)
 	, SourceGraph(NULL)
 	, EntryPoint(NULL)
@@ -1417,7 +1400,6 @@ FKismetFunctionContext::FKismetFunctionContext(FCompilerResultsLog& InMessageLog
 	, bIsInterfaceStub(false)
 	, bIsConstFunction(false)
 	, bEnforceConstCorrectness(false)
-	, bInstrumentScriptCode(bInWantsInstrumentation)
 	// only need debug-data when running in the editor app:
 	, bCreateDebugData(GIsEditor && !IsRunningCommandlet())
 	, bIsSimpleStubGraphWithNoParams(false)
@@ -1470,33 +1452,6 @@ int32 FKismetFunctionContext::GetContextUniqueID()
 	return UUIDCounter++;
 }
 
-bool FKismetFunctionContext::MustUseSwitchState(const FBlueprintCompiledStatement* ExcludeThisOne) const
-{
-	for (auto Node : LinearExecutionList)
-	{
-		auto StatementList = StatementsPerNode.Find(Node);
-		if (StatementList)
-		{
-			for (auto Statement : (*StatementList))
-			{
-				if (Statement && (Statement != ExcludeThisOne) && (
-					Statement->Type == KCST_UnconditionalGoto ||
-					Statement->Type == KCST_PushState ||
-					Statement->Type == KCST_GotoIfNot ||
-					Statement->Type == KCST_ComputedGoto ||
-					Statement->Type == KCST_EndOfThread ||
-					Statement->Type == KCST_EndOfThreadIfNot ||
-					Statement->Type == KCST_GotoReturn ||
-					Statement->Type == KCST_GotoReturnIfNot))
-				{
-					return true;
-				}
-			}
-		}
-	}
-	return false;
-}
-
 void FKismetFunctionContext::MergeAdjacentStates()
 {
 	for (int32 ExecIndex = 0; ExecIndex < LinearExecutionList.Num(); ++ExecIndex)
@@ -1529,8 +1484,7 @@ void FKismetFunctionContext::MergeAdjacentStates()
 	const auto LastExecutedNode = LinearExecutionList.Num() ? LinearExecutionList.Last() : NULL;
 	TArray<FBlueprintCompiledStatement*>* StatementList = StatementsPerNode.Find(LastExecutedNode);
 	FBlueprintCompiledStatement* LastStatementInLastNode = (StatementList && StatementList->Num()) ? StatementList->Last() : NULL;
-	const bool SafeForNativeCode = !bGeneratingCpp || !MustUseSwitchState(LastStatementInLastNode);
-	if (LastStatementInLastNode && SafeForNativeCode && (KCST_GotoReturn == LastStatementInLastNode->Type) && !LastStatementInLastNode->bIsJumpTarget)
+	if (LastStatementInLastNode && (KCST_GotoReturn == LastStatementInLastNode->Type) && !LastStatementInLastNode->bIsJumpTarget)
 	{
 		StatementList->RemoveAt(StatementList->Num() - 1);
 	}
@@ -1863,7 +1817,7 @@ FBPTerminal* FKismetFunctionContext::CreateLocalTerminal(ETerminalSpecification 
 	switch (Spec)
 	{
 	case ETerminalSpecification::TS_ForcedShared:
-		ensure(IsEventGraph());
+		// ensure(IsEventGraph()); it's used in function by UK2Node_AddComponent
 		Result = new (EventGraphLocals)FBPTerminal();
 		break;
 	case ETerminalSpecification::TS_Literal:

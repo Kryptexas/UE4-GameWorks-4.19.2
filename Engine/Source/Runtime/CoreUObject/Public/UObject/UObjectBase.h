@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UObjectBase.h: Unreal UObject base class
@@ -11,7 +11,6 @@ DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("STAT_UObjectsStatGroupTester"), STAT_UOb
 
 class COREUOBJECT_API UObjectBase
 {
-	friend class UObjectBaseUtility;
 	friend COREUOBJECT_API class UClass* Z_Construct_UClass_UObject();
 	friend class FUObjectArray; // for access to InternalIndex without revealing it to anyone else
 	friend class FUObjectAllocator; // for access to destructor without revealing it to anyone else
@@ -38,11 +37,10 @@ public:
 	 * Constructor used by StaticAllocateObject
 	 * @param	InClass				non NULL, this gives the class of the new object, if known at this time
 	 * @param	InFlags				RF_Flags to assign
-	 * @param	InInternalFlags EInternalObjectFlags to assign
 	 * @param	InOuter				outer for this object
 	 * @param	InName				name of the new object
 	 */
-	UObjectBase( UClass* InClass, EObjectFlags InFlags, EInternalObjectFlags InInternalFlags, UObject *InOuter, FName InName );
+	UObjectBase( UClass* InClass, EObjectFlags InFlags, UObject *InOuter, FName InName );
 
 	/**
 	 * Final destructor, removes the object from the object array, and indirectly, from any annotations
@@ -81,9 +79,8 @@ private:
 	 * Add a newly created object to the name hash tables and the object array
 	 *
 	 * @param Name name to assign to this uobject
-	 * @param InSetInternalFlags Internal object flags to be set on the object once it's been added to the array
 	 */
-	void AddObject(FName Name, EInternalObjectFlags InSetInternalFlags);
+	void AddObject(FName Name);
 public:
 	/**
 	 * Checks to see if the object appears to be valid
@@ -93,7 +90,7 @@ public:
 
 	/**
 	 * Faster version of IsValidLowLevel.
-	 * Checks to see if the object appears to be valid by checking pointers and their alignment.
+	 * Checks to see if the object appears to be valid by checking pointers and their alingment.
 	 * Name and InternalIndex checks are less accurate than IsValidLowLevel.
 	 * @param bRecursive true if the Class pointer should be checked with IsValidLowLevelFast
 	 * @return true if this appears to be a valid object
@@ -116,10 +113,7 @@ public:
 	{
 		return Outer;
 	}
-	FORCEINLINE FName GetFName() const
-	{
-		return Name;
-	}
+	const FName GetFName() const;
 
 	/** 
 	 * Returns the stat ID of the object...
@@ -206,6 +200,34 @@ public:
 		while( FPlatformAtomics::InterlockedCompareExchange( (int32*)&ObjectFlags, NewFlags, OldFlags) != OldFlags );
 	}
 
+	/**
+	 * Atomically clear the unreachable flag
+	 *
+	 * @return true if we are the thread that cleared RF_Unreachable
+	 **/
+	FORCEINLINE bool ThisThreadAtomicallyClearedRFUnreachable()
+	{
+		static_assert(sizeof(int32) == sizeof(EObjectFlags), "Flags must be 32-bit for atomics.");
+		bool bIChangedIt = false;
+		while (1)
+		{
+			int32 StartValue = int32(ObjectFlags);
+			if (!(StartValue & int32(RF_Unreachable)))
+			{
+				break;
+			}
+			EObjectFlags OldValue = (EObjectFlags)FPlatformAtomics::InterlockedCompareExchange((int32*)&ObjectFlags, StartValue & ~int32(RF_Unreachable),StartValue);
+			if (OldValue == StartValue)
+			{
+				bIChangedIt = true;
+				break;
+			}
+			// Remove later.
+			checkSlow(OldValue == (StartValue & ~int32(RF_Unreachable)));
+		}
+		return bIChangedIt;
+	}
+
 private:
 
 	/** Flags used to track and report various object states. This needs to be 8 byte aligned on 32-bit
@@ -231,11 +253,6 @@ private:
 	// This is used by the reinstancer to re-class and re-archetype the current instances of a class before recompiling
 	friend class FBlueprintCompileReinstancer;
 	void SetClass(UClass* NewClass);
-
-#if HACK_HEADER_GENERATOR
-	// Required by UHT makefiles for internal data serialization.
-	friend struct FObjectBaseArchiveProxy;
-#endif // HACK_HEADER_GENERATOR
 };
 
 namespace Internal
@@ -309,34 +326,26 @@ struct TClassCompiledInDefer : public FFieldCompiledInInfo
 /**
  * Stashes the singleton function that builds a compiled in class. Later, this is executed.
  */
-COREUOBJECT_API void UObjectCompiledInDefer(class UClass *(*InRegister)(), class UClass *(*InStaticClass)(), const TCHAR* Name, bool bDynamic, const TCHAR* DynamicPathName);
+COREUOBJECT_API void UObjectCompiledInDefer(class UClass *(*InRegister)(), const TCHAR* Name);
 
 struct FCompiledInDefer
 {
-	FCompiledInDefer(class UClass *(*InRegister)(), class UClass *(*InStaticClass)(), const TCHAR* Name, bool bDynamic, const TCHAR* DynamicPackageName = nullptr, const TCHAR* DynamicPathName = nullptr)
+	FCompiledInDefer(class UClass *(*InRegister)(), const TCHAR* Name)
 	{
-		if (bDynamic)
-		{
-			GetConvertedDynamicPackageNameToTypeName().Add(FName(DynamicPackageName), FName(Name));
-		}
-		UObjectCompiledInDefer(InRegister, InStaticClass, Name, bDynamic, DynamicPathName);
+		UObjectCompiledInDefer(InRegister, Name);
 	}
 };
 
 /**
  * Stashes the singleton function that builds a compiled in struct (StaticStruct). Later, this is executed.
  */
-COREUOBJECT_API void UObjectCompiledInDeferStruct(class UScriptStruct *(*InRegister)(), const TCHAR* PackageName, const FName PathName, bool bDynamic);
+COREUOBJECT_API void UObjectCompiledInDeferStruct(class UScriptStruct *(*InRegister)(), const TCHAR* PackageName);
 
 struct FCompiledInDeferStruct
 {
-	FCompiledInDeferStruct(class UScriptStruct *(*InRegister)(), const TCHAR* PackageName, const TCHAR* Name, bool bDynamic, const TCHAR* DynamicPackageName, const TCHAR* DynamicPathName)
+	FCompiledInDeferStruct(class UScriptStruct *(*InRegister)(), const TCHAR* PackageName)
 	{
-		if (bDynamic)
-		{
-			GetConvertedDynamicPackageNameToTypeName().Add(FName(DynamicPackageName), FName(Name));
-		}
-		UObjectCompiledInDeferStruct(InRegister, PackageName, DynamicPathName, bDynamic);
+		UObjectCompiledInDeferStruct(InRegister, PackageName);
 	}
 };
 
@@ -348,17 +357,13 @@ COREUOBJECT_API class UScriptStruct *GetStaticStruct(class UScriptStruct *(*InRe
 /**
  * Stashes the singleton function that builds a compiled in enum. Later, this is executed.
  */
-COREUOBJECT_API void UObjectCompiledInDeferEnum(class UEnum *(*InRegister)(), const TCHAR* PackageName, const FName PathName, bool bDynamic);
+COREUOBJECT_API void UObjectCompiledInDeferEnum(class UEnum *(*InRegister)(), const TCHAR* PackageName);
 
 struct FCompiledInDeferEnum
 {
-	FCompiledInDeferEnum(class UEnum *(*InRegister)(), const TCHAR* PackageName, const TCHAR* Name, bool bDynamic, const TCHAR* DynamicPackageName, const TCHAR* DynamicPathName)
+	FCompiledInDeferEnum(class UEnum *(*InRegister)(), const TCHAR* PackageName)
 	{
-		if (bDynamic)
-		{
-			GetConvertedDynamicPackageNameToTypeName().Add(FName(DynamicPackageName), FName(Name));
-		}
-		UObjectCompiledInDeferEnum(InRegister, PackageName, DynamicPathName, bDynamic);
+		UObjectCompiledInDeferEnum(InRegister, PackageName);
 	}
 };
 
@@ -367,8 +372,8 @@ struct FCompiledInDeferEnum
  */
 COREUOBJECT_API class UEnum *GetStaticEnum(class UEnum *(*InRegister)(), UObject* EnumOuter, const TCHAR* EnumName);
 
-COREUOBJECT_API class UScriptStruct* FindExistingStructIfHotReloadOrDynamic(UObject* Outer, const TCHAR* StructName, SIZE_T Size, uint32 Crc, bool bIsDynamic);
-COREUOBJECT_API class UEnum* FindExistingEnumIfHotReloadOrDynamic(UObject* Outer, const TCHAR* EnumName, SIZE_T Size, uint32 Crc, bool bIsDynamic);
+COREUOBJECT_API class UScriptStruct* FindExistingStructIfHotReload(UObject* Outer, const TCHAR* StructName, SIZE_T Size, uint32 Crc);
+COREUOBJECT_API class UEnum* FindExistingEnumIfHotReload(UObject* Outer, const TCHAR* EnumName, SIZE_T Size, uint32 Crc);
 
 /** @return	True if there are any newly-loaded UObjects that are waiting to be registered by calling ProcessNewlyLoadedUObjects() */
 COREUOBJECT_API bool AnyNewlyLoadedUObjects();

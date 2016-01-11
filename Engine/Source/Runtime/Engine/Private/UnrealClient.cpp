@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EnginePrivate.h"
@@ -19,8 +19,8 @@
 #include "EngineModule.h"
 #include "ContentStreaming.h"
 #include "SceneUtils.h"
+#include "MovieSceneCaptureModule.h"
 #include "NotificationManager.h"
-#include "Performance/EnginePerformanceTargets.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogClient, Log, All);
 
@@ -362,6 +362,7 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 	const bool bStereoRendering = (GEngine && GEngine->IsStereoscopic3D(InViewport));
 	UFont* Font = (!FPlatformProperties::SupportsWindowedMode() && GEngine->GetMediumFont()) ? GEngine->GetMediumFont() : GEngine->GetSmallFont();
 
+	FColor Color;
 	// Note InX should already be within the safe zone
 	int32 X3 = InX * (bStereoRendering ? 0.5f : 1.0f);
 	if (bShowUnitMaxTimes)
@@ -373,52 +374,43 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 	const int32 RowHeight = FMath::TruncToInt(Font->GetMaxCharHeight() * 1.1f);
 	const bool bShowUnitTimeGraph = InViewport->GetClient() ? InViewport->GetClient()->IsStatEnabled(TEXT("UnitGraph")) : false;
 
+	// 0-34 ms: Green, 34-50 ms: Yellow, 50+ ms: Red
+	Color = FrameTime < 34.0f ? FColor::Green : (FrameTime < 50.0f ? FColor::Yellow : FColor::Red);
+	InCanvas->DrawShadowedString(X1, InY, TEXT("Frame:"), Font, bShowUnitTimeGraph ? FColor(100, 255, 100) : FColor::White);
+	InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), FrameTime), Font, Color);
+	if (bShowUnitMaxTimes)
 	{
-		const FColor FrameTimeAverageColor = GEngine->GetFrameTimeDisplayColor(FrameTime);
-		InCanvas->DrawShadowedString(X1, InY, TEXT("Frame:"), Font, bShowUnitTimeGraph ? FColor(100, 255, 100) : FColor::White);
-		InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), FrameTime), Font, FrameTimeAverageColor);
-		if (bShowUnitMaxTimes)
-		{
-			const FColor MaxFrameTimeColor = GEngine->GetFrameTimeDisplayColor(Max_FrameTime);
-			InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_FrameTime), Font, MaxFrameTimeColor);
-		}
-		InY += RowHeight;
+		InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_FrameTime), Font, Color);
 	}
+	InY += RowHeight;
 
+	Color = GameThreadTime < 34.0f ? FColor::Green : (GameThreadTime < 50.0f ? FColor::Yellow : FColor::Red);
+	InCanvas->DrawShadowedString(X1, InY, TEXT("Game:"), Font, bShowUnitTimeGraph ? FColor(255, 100, 100) : FColor::White);
+	InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), GameThreadTime), Font, Color);
+	if (bShowUnitMaxTimes)
 	{
-		const FColor GameThreadAverageColor = GEngine->GetFrameTimeDisplayColor(GameThreadTime);
-		InCanvas->DrawShadowedString(X1, InY, TEXT("Game:"), Font, bShowUnitTimeGraph ? FColor(255, 100, 100) : FColor::White);
-		InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), GameThreadTime), Font, GameThreadAverageColor);
-		if (bShowUnitMaxTimes)
-		{
-			const FColor GameThreadMaxColor = GEngine->GetFrameTimeDisplayColor(Max_GameThreadTime);
-			InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_GameThreadTime), Font, GameThreadMaxColor);
-		}
-		InY += RowHeight;
+		InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_GameThreadTime), Font, Color);
 	}
+	InY += RowHeight;
 
+	Color = RenderThreadTime < 34.0f ? FColor::Green : (RenderThreadTime < 50.0f ? FColor::Yellow : FColor::Red);
+	InCanvas->DrawShadowedString(X1, InY, TEXT("Draw:"), Font, bShowUnitTimeGraph ? FColor(100, 100, 255) : FColor::White);
+	InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), RenderThreadTime), Font, Color);
+	if (bShowUnitMaxTimes)
 	{
-		const FColor RenderThreadAverageColor = GEngine->GetFrameTimeDisplayColor(RenderThreadTime);
-		InCanvas->DrawShadowedString(X1, InY, TEXT("Draw:"), Font, bShowUnitTimeGraph ? FColor(100, 100, 255) : FColor::White);
-		InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), RenderThreadTime), Font, RenderThreadAverageColor);
-		if (bShowUnitMaxTimes)
-		{
-			const FColor RenderThreadMaxColor = GEngine->GetFrameTimeDisplayColor(Max_RenderThreadTime);
-			InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_RenderThreadTime), Font, RenderThreadMaxColor);
-		}
-		InY += RowHeight;
+		InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_RenderThreadTime), Font, Color);
 	}
+	InY += RowHeight;
 
 	const bool bHaveGPUData = GPUCycles > 0;
 	if (bHaveGPUData)
 	{
-		const FColor GPUAverageColor = GEngine->GetFrameTimeDisplayColor(GPUFrameTime);
+		Color = GPUFrameTime < 34.0f ? FColor::Green : (GPUFrameTime < 50.0f ? FColor::Yellow : FColor::Red);
 		InCanvas->DrawShadowedString(X1, InY, TEXT("GPU:"), Font, bShowUnitTimeGraph ? FColor(255, 255, 100) : FColor::White);
-		InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), GPUFrameTime), Font, GPUAverageColor);
+		InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), GPUFrameTime), Font, Color);
 		if (bShowUnitMaxTimes)
 		{
-			const FColor GPUMaxColor = GEngine->GetFrameTimeDisplayColor(Max_GPUFrameTime);
-			InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_GPUFrameTime), Font, GPUMaxColor);
+			InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_GPUFrameTime), Font, Color);
 		}
 		InY += RowHeight;
 	}
@@ -436,10 +428,7 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 		// The horizontal axis is the frame number (NOT time!!!)
 
 		// Threshold where graph lines will pulsate for slow frames
-		extern TAutoConsoleVariable<float> GTargetFrameTimeThresholdCVar;
-		const float TargetTimeMS = GTargetFrameTimeThresholdCVar.GetValueOnGameThread();
-
-		const float AlertTimeMS = TargetTimeMS;
+		const float AlertTimeMS = 33.33f;
 
 		// Graph layout
 		const float GraphLeftXPos = 80.0f;
@@ -453,7 +442,7 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 
 		// Compute pulse effect for lines above alert threshold
 		const float AlertPulseFreq = 8.0f;
-		const float AlertPulse = 0.5f + 0.5f * FMath::Sin((0.25f * PI * 2.0) + (FApp::GetCurrentTime() * PI * 2.0) * AlertPulseFreq);
+		const float AlertPulse = 0.5f + 0.5f * (float)sin((0.25f * PI * 2.0) + (FApp::GetCurrentTime() * PI * 2.0) * AlertPulseFreq);
 
 
 		// For each type of statistic that we want to graph (0=Render, 1=Game, 2=GPU, 3=Frame)
@@ -619,10 +608,8 @@ int32 FStatHitchesData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32
 	const double CurrentTime = FPlatformTime::Seconds();
 	if (LastTime > 0)
 	{
-		const float HitchThresholdSecs = FEnginePerformanceTargets::GetHitchFrameTimeThresholdMS() * 0.001f;
-
-		const float DeltaSeconds = CurrentTime - LastTime;
-		if (DeltaSeconds > HitchThresholdSecs)
+		float DeltaSeconds = CurrentTime - LastTime;
+		if (DeltaSeconds > GHitchThreshold)
 		{
 			Hitches[OverwriteIndex] = DeltaSeconds;
 			When[OverwriteIndex] = CurrentTime;
@@ -641,21 +628,17 @@ int32 FStatHitchesData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32
 				UE_LOG(LogClient, Warning, TEXT("HITCH %d              running cnt = %5d"), int32(DeltaSeconds * 1000), Count++);
 			}
 		}
-
-		const int32 MaxY = InViewport->GetSizeXY().Y;
+		int32	MaxY = InViewport->GetSizeXY().Y;
 		static const double TravelTime = 4.2;
 		for (int32 i = 0; i < NumHitches; i++)
 		{
 			if (When[i] > 0 && When[i] <= CurrentTime && When[i] >= CurrentTime - TravelTime)
 			{
-				const float MyHitchSecs = Hitches[i];
-				const float MyHitchMS = MyHitchSecs * 1000.0f;
-
-				// Scale the time before passing in so that hitches aren't all red
-				const FColor MyColor = GEngine->GetFrameTimeDisplayColor(MyHitchMS * 0.25f);
-
-				const int32 MyY = InY + int32(float(MaxY - InY) * float((CurrentTime - When[i]) / TravelTime));
-				const FString Hitch = FString::Printf(TEXT("%5d"), int32(MyHitchMS));
+				FColor MyColor = FColor::Green;
+				if (Hitches[i] > 0.2f) MyColor = FColor::Yellow;
+				if (Hitches[i] > 0.3f) MyColor = FColor::Red;
+				int32 MyY = InY + int32(float(MaxY - InY) * float((CurrentTime - When[i]) / TravelTime));
+				FString Hitch = FString::Printf(TEXT("%5d"), int32(Hitches[i] * 1000.0f));
 				InCanvas->DrawShadowedString(InX, MyY, *Hitch, GEngine->GetSmallFont(), MyColor);
 			}
 		}
@@ -701,13 +684,19 @@ FViewport::FViewport(FViewportClient* InViewportClient):
 	}
 #endif
 
-	AppVersionString = FString::Printf( TEXT( "Version: %s" ), *FEngineVersion::Current().ToString() );
+	AppVersionString = FString::Printf( TEXT( "Version: %s" ), *GEngineVersion.ToString() );
 
 	bIsPlayInEditorViewport = false;
 }
 
 FViewport::~FViewport()
 {
+#if WITH_EDITOR
+	if (auto* MovieSceneCapture = GetMovieSceneCapture())
+	{
+		MovieSceneCapture->Close();
+	}
+#endif
 }
 
 bool FViewport::TakeHighResScreenShot()
@@ -764,35 +753,19 @@ void FViewport::HighResScreenshot()
 
 	BeginInitResource(DummyViewport);
 
-	bool MaskShowFlagBackup = ViewportClient->GetEngineShowFlags()->HighResScreenshotMask;
-	const uint32 MotionBlurShowFlagBackup = ViewportClient->GetEngineShowFlags()->MotionBlur;
+	DummyViewport->EnqueueBeginRenderFrame();
 
-	ViewportClient->GetEngineShowFlags()->SetHighResScreenshotMask(GetHighResScreenshotConfig().bMaskEnabled);
-	ViewportClient->GetEngineShowFlags()->SetMotionBlur(false);
+	uint32 MaskShowFlagBackup = ViewportClient->GetEngineShowFlags()->HighResScreenshotMask;
+	uint32 MotionBlurShowFlagBackup = ViewportClient->GetEngineShowFlags()->MotionBlur;
+	ViewportClient->GetEngineShowFlags()->HighResScreenshotMask = GetHighResScreenshotConfig().bMaskEnabled ? 1 : 0;
+	ViewportClient->GetEngineShowFlags()->MotionBlur = 0;
 
-	// Render the requested number of frames (at least once)
-	static const auto HighResScreenshotDelay = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HighResScreenshotDelay"));
-	const uint32 DefaultScreenshotDelay = 4;
-	uint32 FrameDelay = HighResScreenshotDelay ? FMath::Max(HighResScreenshotDelay->GetValueOnGameThread(), 1) : DefaultScreenshotDelay;
-
-	while (FrameDelay)
+	FCanvas Canvas(DummyViewport, NULL, ViewportClient->GetWorld(), ViewportClient->GetWorld()->FeatureLevel);
 	{
-		DummyViewport->EnqueueBeginRenderFrame();
-
-		FCanvas Canvas(DummyViewport, NULL, ViewportClient->GetWorld(), ViewportClient->GetWorld()->FeatureLevel);
-		{
-			ViewportClient->Draw(DummyViewport, &Canvas);
-		}
-		Canvas.Flush_GameThread();
-
-		// Draw the debug canvas
-		DummyViewport->GetDebugCanvas()->Flush_GameThread(true);
-		FlushRenderingCommands();
-
-		--FrameDelay;
+		ViewportClient->Draw(DummyViewport, &Canvas);
 	}
-
-	ViewportClient->GetEngineShowFlags()->SetHighResScreenshotMask(MaskShowFlagBackup);
+	Canvas.Flush_GameThread();
+	ViewportClient->GetEngineShowFlags()->HighResScreenshotMask = MaskShowFlagBackup;
 	ViewportClient->GetEngineShowFlags()->MotionBlur = MotionBlurShowFlagBackup;
 	ViewportClient->ProcessScreenShots(DummyViewport);
 
@@ -805,6 +778,9 @@ void FViewport::HighResScreenshot()
 		GetRendererModule().SceneRenderTargetsSetBufferSize(InRestoreSize.X, InRestoreSize.Y);
 	});
 
+	// Draw the debug canvas;
+	DummyViewport->GetDebugCanvas()->Flush_GameThread(true);
+
 	BeginReleaseResource(DummyViewport);
 	FlushRenderingCommands();
 	delete DummyViewport;
@@ -814,7 +790,6 @@ void FViewport::HighResScreenshot()
 	bTakeHighResScreenShot = false;
 
 	// Notification of a successful screenshot
-	if (GIsEditor || !IsFullscreen())
 	{
 		auto Message = NSLOCTEXT("UnrealClient", "HighResScreenshotSavedAs", "High resolution screenshot saved as");
 		FNotificationInfo Info(Message);
@@ -993,21 +968,15 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 		}
 		else
 		{
-			if( GIsHighResScreenshot )
+			if( GIsHighResScreenshot || bTakeHighResScreenShot )
 			{
 				const bool bShowUI = false;
 				const bool bAddFilenameSuffix = true;
 				FScreenshotRequest::RequestScreenshot( FString(), bShowUI, bAddFilenameSuffix );
+				GIsHighResScreenshot = true;
 				GScreenMessagesRestoreState = GAreScreenMessagesEnabled;
 				GAreScreenMessagesEnabled = false;
 				HighResScreenshot();
-			}
-			else if(bAnyScreenshotsRequired && bBufferVisualizationDumpingRequired)
-			{
-				// request the screenshot early so we have the name setup that BufferVisualization can dump it's content
-				const bool bShowUI = false;
-				const bool bAddFilenameSuffix = true;
-				FScreenshotRequest::RequestScreenshot( FString(), bShowUI, bAddFilenameSuffix );
 			}
 	
 			if( SizeX > 0 && SizeY > 0 )
@@ -1142,8 +1111,10 @@ const TArray<FColor>& FViewport::GetRawHitProxyData(FIntRect InRect)
 			FViewport*, Viewport, this,
 			{
 			// Set the hit proxy map's render target.
+			SetRenderTarget(RHICmdList, Viewport->HitProxyMap.GetRenderTargetTexture(), FTextureRHIRef());
+
 			// Clear the hit proxy map to white, which is overloaded to mean no hit proxy.
-			SetRenderTarget(RHICmdList, Viewport->HitProxyMap.GetRenderTargetTexture(), FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorExistingDepth, FExclusiveDepthStencil::DepthWrite_StencilWrite, true);
+			RHICmdList.Clear(true, FLinearColor::White, false, 0, false, 0, FIntRect());
 		});
 
 		// Let the viewport client draw its hit proxies.
@@ -1462,7 +1433,7 @@ void FViewport::FHitProxyMap::Init(uint32 NewSizeX,uint32 NewSizeY)
 
 	// Create a render target to store the hit proxy map.
 	{
-		FRHIResourceCreateInfo CreateInfo(FClearValueBinding::White);
+		FRHIResourceCreateInfo CreateInfo;
 		RHICreateTargetableShaderResource2D(SizeX,SizeY,PF_B8G8R8A8,1,TexCreate_None,TexCreate_RenderTargetable,false,CreateInfo,RenderTargetTextureRHI,HitProxyTexture);
 	}
 	{
@@ -1557,6 +1528,16 @@ void FViewport::SetInitialSize( FIntPoint InitialSizeXY )
 	{
 		UpdateViewportRHI( false, InitialSizeXY.X, InitialSizeXY.Y, EWindowMode::Windowed );
 	}
+}
+
+IMovieSceneCaptureInterface* FViewport::GetMovieSceneCapture() const
+{
+	if (MovieSceneCaptureHandle.IsValid())
+	{
+		return IMovieSceneCaptureModule::Get().RetrieveMovieSceneInterface(MovieSceneCaptureHandle);
+	}
+
+	return nullptr;
 }
 
 

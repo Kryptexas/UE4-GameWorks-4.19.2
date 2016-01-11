@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -22,9 +22,7 @@ public:
 	 */
 	static inline IGameplayAbilitiesModule& Get()
 	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_IGameplayAbilitiesModule_Get);
-		static IGameplayAbilitiesModule& Singleton = FModuleManager::LoadModuleChecked< IGameplayAbilitiesModule >("GameplayAbilities");
-		return Singleton;
+		return FModuleManager::LoadModuleChecked< IGameplayAbilitiesModule >("GameplayAbilities");
 	}
 
 	/**
@@ -34,7 +32,6 @@ public:
 	 */
 	static inline bool IsAvailable()
 	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_IGameplayAbilitiesModule_IsAvailable);
 		return FModuleManager::Get().IsModuleLoaded( "GameplayAbilities" );
 	}
 

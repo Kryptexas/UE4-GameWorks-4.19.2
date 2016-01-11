@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -63,12 +63,12 @@ public:
 	/** Destructor */
 	virtual ~FOnlineStoreInterfaceIOS();
 
-	//~ Begin IOnlineStore Interface
+	// Begin IOnlineStore interface
 	virtual bool QueryForAvailablePurchases(const TArray<FString>& ProductIDs, FOnlineProductInformationReadRef& InReadObject) override;
 	virtual bool BeginPurchase(const FInAppPurchaseProductRequest& ProductRequest, FOnlineInAppPurchaseTransactionRef& InReadObject) override;
 	virtual bool IsAllowedToMakePurchases() override;
 	virtual bool RestorePurchases(FOnlineInAppPurchaseRestoreReadRef& InReadObject) override;
-	//~ End IOnlineStore Interface
+	// End IOnlineStore interface
 
 	/**
 	 * Process a response from the StoreKit

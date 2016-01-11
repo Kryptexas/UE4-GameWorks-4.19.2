@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "DebugRenderSceneProxy.h"
@@ -41,22 +41,21 @@ class LOGVISUALIZER_API AVisualLoggerRenderingActor : public AActor
 
 public:
 	GENERATED_UCLASS_BODY()
-	virtual ~AVisualLoggerRenderingActor();
-	void ResetRendering();
-	void ObjectSelectionChanged(const TArray<FName>& Selection);
-	void OnItemSelectionChanged(const FVisualLoggerDBRow& BDRow, int32 ItemIndex);
+
+	void OnItemSelectionChanged(const FVisualLogDevice::FVisualLogEntryItem& EntryItem);
+	void ObjectSelectionChanged(TArray<TSharedPtr<class STimeline> >& TimeLines);
+
+	void GetDebugShapes(const FVisualLogDevice::FVisualLogEntryItem& EntryItem, FTimelineDebugShapes& DebugShapes);
 
 private:
 	void AddDebugRendering();
-	void GetDebugShapes(const FVisualLogDevice::FVisualLogEntryItem& EntryItem, FTimelineDebugShapes& DebugShapes);
-	void OnFiltersChanged();
 
 public:
 	UPrimitiveComponent* RenderingComponent;
 
-	//FTimelineDebugShapes PrimaryDebugShapes;
+	FTimelineDebugShapes PrimaryDebugShapes;
+	FTimelineDebugShapes SecondaryDebugShapes;
 	FTimelineDebugShapes TestDebugShapes;
 
-	TArray<FName> CachedRowSelection;
-	TMap<FName, FTimelineDebugShapes> DebugShapesPerRow;
+	TArray<TSharedPtr<class STimeline> > SelectedTimeLines;
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UdpMessagingPrivatePCH.h"
 
@@ -91,8 +91,10 @@ void FUdpMessageSegmenter::MarkAsSent(uint16 Segment)
 
 void FUdpMessageSegmenter::MarkForRetransmission(const TArray<uint16>& Segments)
 {
-	for (const auto& Segment : Segments)
+	for (int32 Index = 0; Index < Segments.Num(); ++Index)
 	{
+		uint16 Segment = Segments[Index];
+
 		if (Segment < PendingSegments.Num())
 		{
 			PendingSegments[Segment] = true;

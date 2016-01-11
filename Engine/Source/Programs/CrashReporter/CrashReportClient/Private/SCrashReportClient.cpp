@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CrashReportClientApp.h"
 
@@ -8,7 +8,6 @@
 #include "CrashReportClientStyle.h"
 #include "SlateStyle.h"
 #include "SThrobber.h"
-#include "CrashDescription.h"
 
 #define LOCTEXT_NAMESPACE "CrashReportClient"
 
@@ -34,12 +33,12 @@ void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashRe
 {
 	CrashReportClient = Client;
 
-	auto CrashedAppName = FPrimaryCrashProperties::Get()->IsValid() ? FPrimaryCrashProperties::Get()->GameName : TEXT("");
+	auto CrashedAppName = CrashReportClient->GetCrashedAppName();
 
 	// Set the text displaying the name of the crashed app, if available
 	const FText CrashedAppText = CrashedAppName.IsEmpty() ?
-		LOCTEXT( "CrashedAppNotFound", "An unknown process has crashed" ) :
-		LOCTEXT( "CrashedAppUnreal", "An Unreal process has crashed: " );
+		LOCTEXT("CrashedAppNotFound", "An Unreal process has crashed") :
+		LOCTEXT("CrashedApp", "The following process has crashed: ");
 
 	const FText CrashReportDataText = FText::Format( LOCTEXT(
 		"CrashReportData",
@@ -191,7 +190,7 @@ void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashRe
 			.Padding( FMargin( 4, 12, 4, 4 ) )
 			[
 				SNew( SHorizontalBox )
-				.Visibility( FCrashReportClientConfig::Get().GetHideLogFilesOption() ? EVisibility::Collapsed : EVisibility::Visible )
+
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				.VAlign( VAlign_Center )
@@ -275,7 +274,6 @@ void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashRe
 					.ContentPadding( FMargin(8,2) )
 					.Text(LOCTEXT("Send", "Send and Close"))
 					.OnClicked(Client, &FCrashReportClient::Submit)
-					.IsEnabled( !CrashedAppName.IsEmpty() )
 				]
 
 				+SHorizontalBox::Slot()
@@ -288,7 +286,6 @@ void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashRe
 					.ContentPadding( FMargin(8,2) )
 					.Text(LOCTEXT("SendAndRestartEditor", "Send and Restart"))
 					.OnClicked(Client, &FCrashReportClient::SubmitAndRestart)
-					.IsEnabled( !CrashedAppName.IsEmpty() )
 				]			
 			]
 		]

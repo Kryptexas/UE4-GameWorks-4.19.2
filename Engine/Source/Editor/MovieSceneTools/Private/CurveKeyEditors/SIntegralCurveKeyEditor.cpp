@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneToolsPrivatePCH.h"
 #include "SIntegralCurveKeyEditor.h"
@@ -10,7 +10,6 @@ void SIntegralCurveKeyEditor::Construct(const FArguments& InArgs)
 	Sequencer = InArgs._Sequencer;
 	OwningSection = InArgs._OwningSection;
 	Curve = InArgs._Curve;
-	IntermediateValue = InArgs._IntermediateValue;
 	ChildSlot
 	[
 		SNew(SSpinBox<int32>)
@@ -34,7 +33,7 @@ void SIntegralCurveKeyEditor::OnBeginSliderMovement()
 {
 	GEditor->BeginTransaction(LOCTEXT("SetIntegralKey", "Set Integral Key Value"));
 	OwningSection->SetFlags(RF_Transactional);
-	OwningSection->TryModify();
+	OwningSection->Modify();
 }
 
 void SIntegralCurveKeyEditor::OnEndSliderMovement(int32 Value)
@@ -47,44 +46,38 @@ void SIntegralCurveKeyEditor::OnEndSliderMovement(int32 Value)
 
 int32 SIntegralCurveKeyEditor::OnGetKeyValue() const
 {
-	if ( IntermediateValue.IsSet() && IntermediateValue.Get().IsSet() )
-	{
-		return IntermediateValue.Get().GetValue();
-	}
-
 	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
 	return Curve->Evaluate(CurrentTime);
 }
 
 void SIntegralCurveKeyEditor::OnValueChanged(int32 Value)
 {
-	if (OwningSection->TryModify())
+	OwningSection->Modify();
+
+	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+
+	bool bKeyWillBeAdded = Curve->IsKeyHandleValid(Curve->FindKey(CurrentTime)) == false;
+	if (bKeyWillBeAdded)
 	{
-		float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
-
-		bool bKeyWillBeAdded = Curve->IsKeyHandleValid(Curve->FindKey(CurrentTime)) == false;
-		if (bKeyWillBeAdded)
+		if (OwningSection->GetStartTime() > CurrentTime)
 		{
-			if (OwningSection->GetStartTime() > CurrentTime)
-			{
-				OwningSection->SetStartTime(CurrentTime);
-			}
-			if (OwningSection->GetEndTime() < CurrentTime)
-			{
-				OwningSection->SetEndTime(CurrentTime);
-			}
+			OwningSection->SetStartTime(CurrentTime);
 		}
-
-		if (Curve->GetNumKeys() == 0)
+		if (OwningSection->GetEndTime() < CurrentTime)
 		{
-			Curve->SetDefaultValue(Value);
+			OwningSection->SetEndTime(CurrentTime);
 		}
-		else
-		{
-			Curve->UpdateOrAddKey(CurrentTime, Value);
-		}
-		Sequencer->UpdateRuntimeInstances();
 	}
+
+	if (Curve->GetNumKeys() == 0)
+	{
+		Curve->SetDefaultValue(Value);
+	}
+	else
+	{
+		Curve->UpdateOrAddKey(CurrentTime, Value);
+	}
+	Sequencer->UpdateRuntimeInstances();
 }
 
 void SIntegralCurveKeyEditor::OnValueCommitted(int32 Value, ETextCommit::Type CommitInfo)

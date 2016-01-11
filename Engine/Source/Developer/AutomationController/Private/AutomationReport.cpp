@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AutomationControllerPrivatePCH.h"
 
@@ -14,7 +14,7 @@ FAutomationReport::FAutomationReport(FAutomationTestInfo& InTestInfo, bool InIsP
 	, NumRecordsToKeep(0)
 {
 	// Enable smoke tests
-	if ( TestInfo.GetTestFlags() == EAutomationTestFlags::SmokeFilter )
+	if ( TestInfo.GetTestType() == EAutomationTestType::ATT_SmokeTest )
 	{
 		bEnabled = true;
 	}
@@ -197,17 +197,17 @@ bool FAutomationReport::IsSupported(const int32 ClusterIndex) const
 }
 
 
-uint32 FAutomationReport::GetTestFlags( ) const
+uint8 FAutomationReport::GetTestType( ) const
 {
-	return TestInfo.GetTestFlags();
+	return TestInfo.GetTestType();
 }
 
 
-void FAutomationReport::SetTestFlags( const uint32 InTestFlags)
+void FAutomationReport::SetTestType( const uint8 InTestType )
 {
-	TestInfo.AddTestFlags( InTestFlags );
+	TestInfo.AddTestType( InTestType );
 
-	if ( InTestFlags == EAutomationTestFlags::SmokeFilter )
+	if ( InTestType == EAutomationTestType::ATT_SmokeTest )
 	{
 		bEnabled = true;
 	}
@@ -220,7 +220,7 @@ const bool FAutomationReport::IsParent()
 
 const bool FAutomationReport::IsSmokeTest( )
 {
-	return GetTestFlags( ) & EAutomationTestFlags::SmokeFilter ? true : false;
+	return GetTestType( ) & EAutomationTestType::ATT_SmokeTest ? true : false;
 }
 
 bool FAutomationReport::SetFilter( TSharedPtr< AutomationFilterCollection > InFilter, const bool ParentPassedFilter )
@@ -737,7 +737,7 @@ TSharedPtr<IAutomationReport> FAutomationReport::EnsureReportExists(FAutomationT
 		else
 		{
 			// Create a parent node
-			FAutomationTestInfo ParentTestInfo( NameToMatch, "", InTestInfo.GetTestFlags(), InTestInfo.GetNumParticipantsRequired() ) ;
+			FAutomationTestInfo ParentTestInfo( NameToMatch, "", InTestInfo.GetTestType(), InTestInfo.GetNumParticipantsRequired() ) ;
 			MatchTest = MakeShareable(new FAutomationReport(ParentTestInfo, true));
 		}
 		//make new test
@@ -747,7 +747,7 @@ TSharedPtr<IAutomationReport> FAutomationReport::EnsureReportExists(FAutomationT
 	//mark this test as supported on a particular platform
 	MatchTest->SetSupport(ClusterIndex);
 
-	MatchTest->SetTestFlags( InTestInfo.GetTestFlags() );
+	MatchTest->SetTestType( InTestInfo.GetTestType() );
 	MatchTest->SetNumParticipantsRequired( MatchTest->GetNumParticipantsRequired() > InTestInfo.GetNumParticipantsRequired() ? MatchTest->GetNumParticipantsRequired() : InTestInfo.GetNumParticipantsRequired() );
 
 	TSharedPtr<IAutomationReport> FoundTest;

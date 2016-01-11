@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateCorePrivatePCH.h"
 #include "FontProviderInterface.h"
@@ -16,7 +16,6 @@ FSlateFontInfo::FSlateFontInfo( )
 	, Size(0)
 	, FontName_DEPRECATED()
 	, Hinting_DEPRECATED(EFontHinting::Default)
-	, FontFallback(EFontFallback::FF_Max)
 {
 }
 
@@ -29,7 +28,6 @@ FSlateFontInfo::FSlateFontInfo( TSharedPtr<const FCompositeFont> InCompositeFont
 	, Size(InSize)
 	, FontName_DEPRECATED()
 	, Hinting_DEPRECATED(EFontHinting::Default)
-	, FontFallback(EFontFallback::FF_Max)
 {
 	if (!InCompositeFont.IsValid())
 	{
@@ -46,14 +44,13 @@ FSlateFontInfo::FSlateFontInfo( const UObject* InFontObject, const int32 InSize,
 	, Size(InSize)
 	, FontName_DEPRECATED()
 	, Hinting_DEPRECATED(EFontHinting::Default)
-	, FontFallback(EFontFallback::FF_Max)
 {
 	if (InFontObject)
 	{
 		const IFontProviderInterface* FontProvider = Cast<const IFontProviderInterface>(InFontObject);
 		if (!FontProvider || !FontProvider->GetCompositeFont())
 		{
-			UE_LOG(LogSlate, Verbose, TEXT("'%s' does not provide a composite font that can be used with Slate. Slate will be forced to use the fallback font path which may be slower."), *InFontObject->GetName());
+			UE_LOG(LogSlate, Warning, TEXT("'%s' does not provide a composite font that can be used with Slate. Slate will be forced to use the fallback font path which may be slower."), *InFontObject->GetName());
 		}
 	}
 	else
@@ -71,7 +68,6 @@ FSlateFontInfo::FSlateFontInfo( const FString& InFontName, uint16 InSize, EFontH
 	, Size(InSize)
 	, FontName_DEPRECATED(*InFontName)
 	, Hinting_DEPRECATED(InHinting)
-	, FontFallback(EFontFallback::FF_Max)
 {
 	//Useful for debugging style breakages
 	//check( FPaths::FileExists( FontName.ToString() ) );
@@ -88,7 +84,6 @@ FSlateFontInfo::FSlateFontInfo( const FName& InFontName, uint16 InSize, EFontHin
 	, Size(InSize)
 	, FontName_DEPRECATED(InFontName)
 	, Hinting_DEPRECATED(InHinting)
-	, FontFallback(EFontFallback::FF_Max)
 {
 	//Useful for debugging style breakages
 	//check( FPaths::FileExists( FontName.ToString() ) );
@@ -105,7 +100,6 @@ FSlateFontInfo::FSlateFontInfo( const ANSICHAR* InFontName, uint16 InSize, EFont
 	, Size(InSize)
 	, FontName_DEPRECATED(InFontName)
 	, Hinting_DEPRECATED(InHinting)
-	, FontFallback(EFontFallback::FF_Max)
 {
 	//Useful for debugging style breakages
 	//check( FPaths::FileExists( FontName.ToString() ) );
@@ -122,7 +116,6 @@ FSlateFontInfo::FSlateFontInfo( const WIDECHAR* InFontName, uint16 InSize, EFont
 	, Size(InSize)
 	, FontName_DEPRECATED(InFontName)
 	, Hinting_DEPRECATED(InHinting)
-	, FontFallback(EFontFallback::FF_Max)
 {
 	//Useful for debugging style breakages
 	//check( FPaths::FileExists( FontName.ToString() ) );
@@ -143,7 +136,7 @@ const FCompositeFont* FSlateFontInfo::GetCompositeFont() const
 	if (FontProvider)
 	{
 		const FCompositeFont* const ProvidedCompositeFont = FontProvider->GetCompositeFont();
-		return (ProvidedCompositeFont) ? ProvidedCompositeFont : FLegacySlateFontInfoCache::Get().GetLastResortFont().Get();
+		return (ProvidedCompositeFont) ? ProvidedCompositeFont : FLegacySlateFontInfoCache::Get().GetFallbackFont().Get();
 	}
 
 	if (CompositeFont.IsValid())
@@ -151,7 +144,7 @@ const FCompositeFont* FSlateFontInfo::GetCompositeFont() const
 		return CompositeFont.Get();
 	}
 
-	return FLegacySlateFontInfoCache::Get().GetLastResortFont().Get();
+	return FLegacySlateFontInfoCache::Get().GetFallbackFont().Get();
 }
 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,7 +7,7 @@
  * Widget that visualizes the contents of a FReflectorNode.
  */
 class SLATEREFLECTOR_API SReflectorTreeWidgetItem
-	: public SMultiColumnTableRow<TSharedRef<FWidgetReflectorNodeBase>>
+	: public SMultiColumnTableRow<UWidgetReflectorNodeBase*>
 {
 public:
 
@@ -17,7 +17,7 @@ public:
 		, _AssetAccessor()
 	{ }
 
-		SLATE_ARGUMENT(TSharedPtr<FWidgetReflectorNodeBase>, WidgetInfoToVisualize)
+		SLATE_ARGUMENT(UWidgetReflectorNodeBase*, WidgetInfoToVisualize)
 		SLATE_ARGUMENT(FAccessSourceCode, SourceCodeAccessor)
 		SLATE_ARGUMENT(FAccessAsset, AssetAccessor)
 
@@ -36,14 +36,14 @@ public:
 		this->OnAccessSourceCode = InArgs._SourceCodeAccessor;
 		this->OnAccessAsset = InArgs._AssetAccessor;
 
-		check(WidgetInfo.IsValid());
+		check(WidgetInfo);
 		CachedWidgetType = WidgetInfo->GetWidgetType();
 		CachedWidgetVisibility = WidgetInfo->GetWidgetVisibilityText();
 		CachedReadableLocation = WidgetInfo->GetWidgetReadableLocation();
 		CachedWidgetFile = WidgetInfo->GetWidgetFile();
 		CachedWidgetLineNumber = WidgetInfo->GetWidgetLineNumber();
 
-		SMultiColumnTableRow< TSharedRef<FWidgetReflectorNodeBase> >::Construct( SMultiColumnTableRow< TSharedRef<FWidgetReflectorNodeBase> >::FArguments().Padding(1), InOwnerTableView );
+		SMultiColumnTableRow< UWidgetReflectorNodeBase* >::Construct( SMultiColumnTableRow< UWidgetReflectorNodeBase* >::FArguments().Padding(1), InOwnerTableView );
 	}
 
 public:
@@ -96,7 +96,7 @@ protected:
 private:
 
 	/** The info about the widget that we are visualizing. */
-	TSharedPtr<FWidgetReflectorNodeBase> WidgetInfo;
+	UWidgetReflectorNodeBase* WidgetInfo;
 
 	FText CachedWidgetType;
 	FText CachedWidgetVisibility;

@@ -1,16 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
 #include "RichCurveEditorCommands.h"
-#include "Sequencer.h"
 
 #define LOCTEXT_NAMESPACE "CurveEditorToolBar"
 
-void SSequencerCurveEditorToolBar::Construct( const FArguments& InArgs, TSharedRef<FSequencer> InSequencer, TSharedPtr<FUICommandList> CurveEditorCommandList )
+void SSequencerCurveEditorToolBar::Construct( const FArguments& InArgs, TSharedPtr<FUICommandList> CurveEditorCommandList )
 {
-	Sequencer = InSequencer;
-	SequencerSettings = InSequencer->GetSettings();
-
 	FToolBarBuilder ToolBarBuilder( CurveEditorCommandList, FMultiBoxCustomization::None, TSharedPtr<FExtender>(), Orient_Horizontal, true );
 
 	ToolBarBuilder.AddComboButton(
@@ -20,21 +16,6 @@ void SSequencerCurveEditorToolBar::Construct( const FArguments& InArgs, TSharedR
 		LOCTEXT( "CurveEditorViewOptionsToolTip", "View Options" ),
 		TAttribute<FSlateIcon>(),
 		true );
-
-	ToolBarBuilder.AddWidget(
-		SNew( SImage )
-			.Image(FEditorStyle::GetBrush("Sequencer.Value")) );
-
-	ToolBarBuilder.AddWidget(
-		SNew( SBox )
-			.VAlign( VAlign_Center )
-			[
-				SNew( SNumericDropDown<float> )
-					.DropDownValues( SequencerSnapValues::GetSnapValues() )
-					.ToolTipText( LOCTEXT( "ValueSnappingIntervalToolTip", "Curve value snapping interval" ) )
-					.Value( this, &SSequencerCurveEditorToolBar::OnGetValueSnapInterval )
-					.OnValueChanged( this, &SSequencerCurveEditorToolBar::OnValueSnapIntervalChanged )
-			]);
 
 	ToolBarBuilder.BeginSection( "Curve" );
 	{
@@ -148,19 +129,5 @@ TSharedRef<SWidget> SSequencerCurveEditorToolBar::MakeCurveEditorCurveOptionsMen
 	
 	return MenuBuilder.MakeWidget();
 }
-
-float SSequencerCurveEditorToolBar::OnGetValueSnapInterval() const
-{
-	return SequencerSettings->GetCurveValueSnapInterval();
-}
-
-
-void SSequencerCurveEditorToolBar::OnValueSnapIntervalChanged( float InInterval )
-{
-	SequencerSettings->SetCurveValueSnapInterval( InInterval );
-}
-
-
-
 
 #undef LOCTEXT_NAMESPACE

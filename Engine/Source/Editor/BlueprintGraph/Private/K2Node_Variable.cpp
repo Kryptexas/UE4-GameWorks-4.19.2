@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintGraphPrivatePCH.h"
@@ -27,19 +27,14 @@ void UK2Node_Variable::Serialize(FArchive& Ar)
 			VariableReference.SetDirect(VariableName_DEPRECATED, FGuid(), VariableSourceClass_DEPRECATED, bSelfContext_DEPRECATED);
 		}
 
-		if(Ar.UE4Ver() < VER_UE4_K2NODE_VAR_REFERENCEGUIDS)
+		if(Ar.UE4Ver() < VER_UE4_K2NODE_REFERENCEGUIDS)
 		{
 			FGuid VarGuid;
 			
-			// Do not let this code run for local variables
-			if (!VariableReference.IsLocalScope())
+			if (UBlueprint::GetGuidFromClassByFieldName<UProperty>(GetBlueprint()->GeneratedClass, VariableReference.GetMemberName(), VarGuid))
 			{
 				const bool bSelf = VariableReference.IsSelfContext();
-				UClass* MemberParentClass = VariableReference.GetMemberParentClass(nullptr);
-				if (UBlueprint::GetGuidFromClassByFieldName<UProperty>(bSelf? *GetBlueprint()->GeneratedClass : MemberParentClass, VariableReference.GetMemberName(), VarGuid))
-				{
-					VariableReference.SetDirect(VariableReference.GetMemberName(), VarGuid, bSelf ? nullptr : MemberParentClass, bSelf);
-				}
+				VariableReference.SetDirect(VariableReference.GetMemberName(), VarGuid, (bSelf ? NULL : VariableReference.GetMemberParentClass((UClass*)NULL)), bSelf);
 			}
 		}
 	}
@@ -197,21 +192,6 @@ FLinearColor UK2Node_Variable::GetNodeTitleColor() const
 	}
 
 	return FLinearColor::White;
-}
-
-FString UK2Node_Variable::GetFindReferenceSearchString() const
-{
-	FString ResultSearchString;
-	if (VariableReference.IsLocalScope())
-	{
-		ResultSearchString = VariableReference.GetReferenceSearchString(nullptr);
-	}
-	else
-	{
-		UProperty* VariableProperty = VariableReference.ResolveMember<UProperty>(GetBlueprintClassFromNode());
-		ResultSearchString = VariableReference.GetReferenceSearchString(VariableProperty->GetOwnerClass());
-	}
-	return ResultSearchString;
 }
 
 UK2Node::ERedirectType UK2Node_Variable::DoPinsMatchForReconstruction( const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex ) const 
@@ -836,11 +816,10 @@ void UK2Node_Variable::PostPasteNode()
 		// If the current graph is a Function graph, look to see if there is a compatible local variable (same name)
 		if (GetGraph()->GetSchema()->GetGraphType(GetGraph()) == GT_Function)
 		{
-			UEdGraph* FunctionGraph = FBlueprintEditorUtils::GetTopLevelGraph(GetGraph());
-			FBPVariableDescription* VariableDescription = FBlueprintEditorUtils::FindLocalVariable(Blueprint, FunctionGraph, VariableReference.GetMemberName());
+			FBPVariableDescription* VariableDescription = FBlueprintEditorUtils::FindLocalVariable(Blueprint, GetGraph(), VariableReference.GetMemberName());
 			if(VariableDescription)
 			{
-				VariableReference.SetLocalMember(VariableReference.GetMemberName(), FunctionGraph->GetName(), VariableReference.GetMemberGuid());
+				VariableReference.SetLocalMember(VariableReference.GetMemberName(), GetGraph()->GetName(), VariableReference.GetMemberGuid());
 			}
 		}
 		// If no variable was found, ResolveMember should automatically find a member variable with the same name in the current Blueprint and hook up to it as expected

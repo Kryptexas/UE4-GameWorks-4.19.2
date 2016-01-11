@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -37,13 +37,13 @@ public:
 	TMap<UFoliageType*, TUniqueObj<FFoliageMeshInfo>> FoliageMeshes;
 
 public:
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	//~ End UObject Interface. 
+	// End UObject interface. 
 
-	//~ Begin AActor Interface.
+	// Begin AActor interface.
 	// we don't want to have our components automatically destroyed by the Blueprint code
 	virtual void RerunConstructionScripts() override {}
 	virtual bool IsLevelBoundsRelevant() const override { return false; }
@@ -57,7 +57,7 @@ public:
 	virtual void Destroyed() override;
 	FOLIAGE_API void CleanupDeletedFoliageType();
 #endif
-	//~ End AActor Interface.
+	// End AActor interface.
 
 
 	// Performs a reverse lookup from a mesh to a local foliage type (i.e. the foliage type owned exclusively by this IFA)
@@ -101,7 +101,7 @@ public:
 	*/
 	static FOLIAGE_API AInstancedFoliageActor* GetInstancedFoliageActorForLevel(ULevel* Level, bool bCreateIfNone = false);
 
-	static FOLIAGE_API bool FoliageTrace(const UWorld* InWorld, FHitResult& OutHit, const FDesiredFoliageInstance& DesiredInstance, FName InTraceTag = NAME_None, bool InbReturnFaceIndex = false, const FFoliageTraceFilterFunc& FilterFunc = FFoliageTraceFilterFunc());
+	static FOLIAGE_API bool FoliageTrace(const UWorld* InWorld, FHitResult& OutHit, const FDesiredFoliageInstance& DesiredInstance, FName InTraceTag = NAME_None, bool InbReturnFaceIndex = false, FFoliageTraceFilterFunc FilterFunc = FFoliageTraceFilterFunc());
 	static FOLIAGE_API bool CheckCollisionWithWorld(const UWorld* InWorld, const UFoliageType* Settings, const FFoliageInstance& Inst, const FVector& HitNormal, const FVector& HitLocation);
 
 #if WITH_EDITOR

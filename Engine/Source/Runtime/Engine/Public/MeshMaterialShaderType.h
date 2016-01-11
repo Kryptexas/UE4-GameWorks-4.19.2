@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MeshMaterialShader.h: Mesh material shader definitions.
@@ -15,6 +15,12 @@
 class FMeshMaterialShaderType : public FShaderType
 {
 public:
+
+	/**
+	* Finds a FMeshMaterialShaderType by name.
+	*/
+	static FMeshMaterialShaderType* GetTypeByName(const FString& TypeName);
+
 	struct CompiledShaderInitializerType : FMaterialShaderType::CompiledShaderInitializerType
 	{
 		FVertexFactoryType* VertexFactoryType;
@@ -25,10 +31,9 @@ public:
 			const FUniformExpressionSet& InUniformExpressionSet,
 			const FSHAHash& InMaterialShaderMapHash,
 			const FString& InDebugDescription,
-			const FShaderPipelineType* InShaderPipeline,
 			FVertexFactoryType* InVertexFactoryType
 			):
-			FMaterialShaderType::CompiledShaderInitializerType(InType,CompilerOutput,InResource,InUniformExpressionSet,InMaterialShaderMapHash,InShaderPipeline,InVertexFactoryType,InDebugDescription),
+			FMaterialShaderType::CompiledShaderInitializerType(InType,CompilerOutput,InResource,InUniformExpressionSet,InMaterialShaderMapHash,InVertexFactoryType,InDebugDescription),
 			VertexFactoryType(InVertexFactoryType)
 		{}
 	};
@@ -59,25 +64,13 @@ public:
 	 * @param Material - The material to link the shader with.
 	 * @param VertexFactoryType - The vertex factory to compile with.
 	 */
-	class FShaderCompileJob* BeginCompileShader(
+	void BeginCompileShader(
 		uint32 ShaderMapId,
 		EShaderPlatform Platform,
 		const FMaterial* Material,
 		FShaderCompilerEnvironment* MaterialEnvironment,
 		FVertexFactoryType* VertexFactoryType,
-		const FShaderPipelineType* ShaderPipeline,
-		TArray<FShaderCommonCompileJob*>& NewJobs
-		);
-
-	static void BeginCompileShaderPipeline(
-		uint32 ShaderMapId,
-		EShaderPlatform Platform,
-		const FMaterial* Material,
-		FShaderCompilerEnvironment* MaterialEnvironment,
-		FVertexFactoryType* VertexFactoryType,
-		const FShaderPipelineType* ShaderPipeline,
-		const TArray<FMeshMaterialShaderType*>& ShaderStages,
-		TArray<FShaderCommonCompileJob*>& NewJobs
+		TArray<FShaderCompileJob*>& NewJobs
 		);
 
 	/**
@@ -89,7 +82,6 @@ public:
 		const FUniformExpressionSet& UniformExpressionSet, 
 		const FSHAHash& MaterialShaderMapHash,
 		const FShaderCompileJob& CurrentJob,
-		const FShaderPipelineType* ShaderPipeline,
 		const FString& InDebugDescription
 		);
 
@@ -106,8 +98,7 @@ public:
 	}
 
 	// Dynamic casting.
-	virtual FMeshMaterialShaderType* GetMeshMaterialShaderType() override { return this; }
-	virtual const FMeshMaterialShaderType* GetMeshMaterialShaderType() const override { return this; }
+	virtual FMeshMaterialShaderType* GetMeshMaterialShaderType() { return this; }
 
 protected:
 

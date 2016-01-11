@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SessionServicesPrivatePCH.h"
 
@@ -6,7 +6,7 @@
 /* FSessionService structors
  *****************************************************************************/
 
-FSessionService::FSessionService(const IMessageBusRef& InMessageBus)
+FSessionService::FSessionService( const IMessageBusRef& InMessageBus )
 	: MessageBusPtr(InMessageBus)
 { }
 
@@ -60,61 +60,53 @@ void FSessionService::Stop()
 /* FSessionService implementation
  *****************************************************************************/
 
-void FSessionService::SendLog(const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category)
+void FSessionService::SendLog( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category )
 {
-	if (!MessageEndpoint.IsValid())
+	if (MessageEndpoint.IsValid())
 	{
-		return;
+		FScopeLock Lock(&LogSubscribersLock);
+
+		if (LogSubscribers.Num() > 0)
+		{
+			MessageEndpoint->Send(
+				new FSessionServiceLog(
+					Category,
+					Data,
+					FApp::GetInstanceId(),
+					FPlatformTime::Seconds() - GStartTime,
+					Verbosity
+				),
+				LogSubscribers
+			);
+		}
 	}
+}
 
-	FScopeLock Lock(&LogSubscribersLock);
 
-	if (LogSubscribers.Num() > 0)
+void FSessionService::SendNotification( const TCHAR* NotificationText, const FMessageAddress& Recipient )
+{
+	if (MessageEndpoint.IsValid())
 	{
 		MessageEndpoint->Send(
 			new FSessionServiceLog(
-				Category,
-				Data,
+				FName("RemoteSession"),
+				NotificationText,
 				FApp::GetInstanceId(),
 				FPlatformTime::Seconds() - GStartTime,
-				Verbosity
+				ELogVerbosity::Display
 			),
-			LogSubscribers
+			Recipient
 		);
 	}
 }
 
 
-void FSessionService::SendNotification(const TCHAR* NotificationText, const FMessageAddress& Recipient)
+void FSessionService::SendPong( const IMessageContextRef& Context )
 {
-	if (!MessageEndpoint.IsValid())
+	if (MessageEndpoint.IsValid())
 	{
-		return;
-	}
+		FSessionServicePong* Message = new FSessionServicePong();
 
-	MessageEndpoint->Send(
-		new FSessionServiceLog(
-			FName("RemoteSession"),
-			NotificationText,
-			FApp::GetInstanceId(),
-			FPlatformTime::Seconds() - GStartTime,
-			ELogVerbosity::Display
-		),
-		Recipient
-	);
-}
-
-
-void FSessionService::SendPong(const IMessageContextRef& Context, const FString& UserName)
-{
-	if (!MessageEndpoint.IsValid())
-	{
-		return;
-	}
-
-	FSessionServicePong* Message = new FSessionServicePong();
-	{
-		Message->Authorized = FApp::IsAuthorizedUser(UserName);
 		Message->BuildDate = FApp::GetBuildDate();
 		Message->DeviceName = FPlatformProcess::ComputerName();
 		Message->InstanceId = FApp::GetInstanceId();
@@ -131,9 +123,9 @@ void FSessionService::SendPong(const IMessageContextRef& Context, const FString&
 		Message->SessionName = FApp::GetSessionName();
 		Message->SessionOwner = FApp::GetSessionOwner();
 		Message->Standalone = FApp::IsStandalone();
-	}
 
-	MessageEndpoint->Send(Message, Context->GetSender());
+		MessageEndpoint->Send(Message, Context->GetSender());
+	}
 }
 
 
@@ -146,21 +138,21 @@ void FSessionService::HandleMessageEndpointShutdown()
 }
 
 
-void FSessionService::HandleSessionLogSubscribeMessage(const FSessionServiceLogSubscribe& Message, const IMessageContextRef& Context)
+void FSessionService::HandleSessionLogSubscribeMessage( const FSessionServiceLogSubscribe& Message, const IMessageContextRef& Context )
 {
 	FScopeLock Lock(&LogSubscribersLock);
 	LogSubscribers.AddUnique(Context->GetSender());
 }
 
 
-void FSessionService::HandleSessionLogUnsubscribeMessage(const FSessionServiceLogUnsubscribe& Message, const IMessageContextRef& Context)
+void FSessionService::HandleSessionLogUnsubscribeMessage( const FSessionServiceLogUnsubscribe& Message, const IMessageContextRef& Context )
 {
 	FScopeLock Lock(&LogSubscribersLock);
 	LogSubscribers.Remove(Context->GetSender());
 }
 
 
-void FSessionService::HandleSessionPingMessage(const FSessionServicePing& Message, const IMessageContextRef& Context)
+void FSessionService::HandleSessionPingMessage( const FSessionServicePing& Message, const IMessageContextRef& Context )
 {
-	SendPong(Context, Message.UserName);
+	SendPong(Context);
 }

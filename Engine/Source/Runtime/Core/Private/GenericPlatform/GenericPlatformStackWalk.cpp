@@ -1,7 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
-#include "GenericPlatformCrashContext.h"
+#include "GenericPlatformContext.h"
 
 FProgramCounterSymbolInfo::FProgramCounterSymbolInfo() :
 	LineNumber( 0 ),
@@ -46,13 +46,13 @@ bool FGenericPlatformStackWalk::SymbolInfoToHumanReadableString( const FProgramC
 		const ANSICHAR* StrippedModuleName = RealPos > 0 ? (const ANSICHAR*)(RealPos + 1) : SymbolInfo.ModuleName;
 
 		//FCStringAnsi::Sprintf( StackLine, "%s!%s [%s:%i]", StrippedModuleName, (const ANSICHAR*)SymbolInfo.FunctionName, (const ANSICHAR*)SymbolInfo.Filename, SymbolInfo.LineNumber );
-		FCStringAnsi::Strncat(StackLine, StrippedModuleName, MAX_SPRINTF);
+		FCStringAnsi::Strcat( StackLine, MAX_SPRINTF, StrippedModuleName );
 		
 		const bool bHasValidFunctionName = FCStringAnsi::Strlen( SymbolInfo.FunctionName ) > 0;
 		if( bHasValidFunctionName )
 		{
-			FCStringAnsi::Strncat(StackLine, "!", MAX_SPRINTF);
-			FCStringAnsi::Strncat(StackLine, SymbolInfo.FunctionName, MAX_SPRINTF);
+			FCStringAnsi::Strcat( StackLine, MAX_SPRINTF, "!" );
+			FCStringAnsi::Strcat( StackLine, MAX_SPRINTF, SymbolInfo.FunctionName );
 		}
 
 		const bool bHasValidFilename = FCStringAnsi::Strlen( SymbolInfo.Filename ) > 0 && SymbolInfo.LineNumber > 0;
@@ -60,12 +60,12 @@ bool FGenericPlatformStackWalk::SymbolInfoToHumanReadableString( const FProgramC
 		{
 			ANSICHAR FilenameAndLineNumber[MAX_TEMP_SPRINTF] = {0};
 			FCStringAnsi::Snprintf( FilenameAndLineNumber, MAX_TEMP_SPRINTF, " [%s:%i]", SymbolInfo.Filename, SymbolInfo.LineNumber );
-			FCStringAnsi::Strncat(StackLine, FilenameAndLineNumber, MAX_SPRINTF);
+			FCStringAnsi::Strcat( StackLine, MAX_SPRINTF, FilenameAndLineNumber );
 		}
 
 
 		// Append the stack line.
-		FCStringAnsi::Strncat(HumanReadableString, StackLine, HumanReadableStringSize);
+		FCStringAnsi::Strcat( HumanReadableString, HumanReadableStringSize, StackLine );
 
 		// Return true, if we have a valid function name.
 		return bHasValidFunctionName;
@@ -130,7 +130,7 @@ void FGenericPlatformStackWalk::StackWalkAndDump( ANSICHAR* HumanReadableString,
 	while( StackTrace[CurrentDepth] || ( CurrentDepth == IgnoreCount ) )
 	{
 		FPlatformStackWalk::ProgramCounterToHumanReadableString( CurrentDepth, StackTrace[CurrentDepth], HumanReadableString, HumanReadableStringSize, reinterpret_cast< FGenericCrashContext* >( Context ) );
-		FCStringAnsi::Strncat(HumanReadableString, LINE_TERMINATOR_ANSI, HumanReadableStringSize);
+		FCStringAnsi::Strcat( HumanReadableString, HumanReadableStringSize, LINE_TERMINATOR_ANSI );
 		CurrentDepth++;
 	}
 }

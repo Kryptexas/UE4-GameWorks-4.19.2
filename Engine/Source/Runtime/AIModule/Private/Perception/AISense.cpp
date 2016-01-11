@@ -1,11 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "Perception/AISense.h"
 #include "Perception/AISenseConfig_Sight.h"
 #include "Perception/AISenseConfig_Hearing.h"
-#include "Perception/AISenseConfig_Prediction.h"
-#include "Perception/AISense_Prediction.h"
 
 #if !UE_BUILD_SHIPPING
 #include "DrawDebugHelpers.h"
@@ -20,8 +18,6 @@ UAISense::UAISense(const FObjectInitializer& ObjectInitializer)
 {
 	DebugName = GetName();
 	DefaultExpirationAge = FAIStimulus::NeverHappenedAge;
-
-	bNeedsForgettingNotification = false;
 
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{
@@ -120,6 +116,13 @@ TSubclassOf<UAISense> UAISenseConfig::GetSenseImplementation() const
 	return UAISense::StaticClass(); 
 }
 
+#if !UE_BUILD_SHIPPING
+void UAISenseConfig::DrawDebugInfo(UCanvas& Canvas, UAIPerceptionComponent& PerceptionComponent) const
+{
+
+}
+#endif // !UE_BUILD_SHIPPING
+
 //----------------------------------------------------------------------//
 // 
 //----------------------------------------------------------------------//
@@ -129,7 +132,7 @@ TSubclassOf<UAISense> UAISenseConfig_Sight::GetSenseImplementation() const
 }
 
 #if !UE_BUILD_SHIPPING
-void UAISenseConfig_Sight::GetDebugData(TArray<FString>& OnScreenStrings, TArray<FGameplayDebuggerShapeElement>& DebugShapes, const UAIPerceptionComponent& PerceptionComponent) const
+void UAISenseConfig_Sight::DrawDebugInfo(UCanvas& Canvas, UAIPerceptionComponent& PerceptionComponent) const
 {
 	/*PeripheralVisionAngleDegrees*/
 	const AActor* BodyActor = PerceptionComponent.GetBodyActor();
@@ -138,14 +141,13 @@ void UAISenseConfig_Sight::GetDebugData(TArray<FString>& OnScreenStrings, TArray
 		UWorld* World = BodyActor->GetWorld();
 		FVector BodyLocation, BodyFacing;
 		PerceptionComponent.GetLocationAndDirection(BodyLocation, BodyFacing);
-
-		DebugShapes.Add(UGameplayDebuggerHelper::MakeCylinder(BodyLocation, BodyLocation + FVector(0, 0, -50), LoseSightRadius, 32, UAISense_Sight::GetDebugLoseSightColor()));
-		DebugShapes.Add(UGameplayDebuggerHelper::MakeCylinder(BodyLocation, BodyLocation + FVector(0, 0, -50), SightRadius, 32, UAISense_Sight::GetDebugSightRangeColor()));
+		DrawDebugCylinder(World, BodyLocation, BodyLocation + FVector(0, 0, -50), SightRadius, 32, UAISense_Sight::GetDebugSightRangeColor());
+		DrawDebugCylinder(World, BodyLocation, BodyLocation + FVector(0, 0, -50), LoseSightRadius, 32, UAISense_Sight::GetDebugLoseSightColor());
 
 		const float SightPieLength = FMath::Max(LoseSightRadius, SightRadius);
-		DebugShapes.Add(UGameplayDebuggerHelper::MakeLine(BodyLocation, BodyLocation + (BodyFacing * SightPieLength), UAISense_Sight::GetDebugSightRangeColor()));
-		DebugShapes.Add(UGameplayDebuggerHelper::MakeLine(BodyLocation, BodyLocation + (BodyFacing.RotateAngleAxis(PeripheralVisionAngleDegrees, FVector::UpVector) * SightPieLength), UAISense_Sight::GetDebugSightRangeColor()));
-		DebugShapes.Add(UGameplayDebuggerHelper::MakeLine(BodyLocation, BodyLocation + (BodyFacing.RotateAngleAxis(-PeripheralVisionAngleDegrees, FVector::UpVector) * SightPieLength), UAISense_Sight::GetDebugSightRangeColor()));
+		DrawDebugLine(World, BodyLocation, BodyLocation + (BodyFacing * SightPieLength), UAISense_Sight::GetDebugSightRangeColor());
+		DrawDebugLine(World, BodyLocation, BodyLocation + (BodyFacing.RotateAngleAxis(PeripheralVisionAngleDegrees, FVector::UpVector) * SightPieLength), UAISense_Sight::GetDebugSightRangeColor());
+		DrawDebugLine(World, BodyLocation, BodyLocation + (BodyFacing.RotateAngleAxis(-PeripheralVisionAngleDegrees, FVector::UpVector) * SightPieLength), UAISense_Sight::GetDebugSightRangeColor());
 	}
 }
 #endif // !UE_BUILD_SHIPPING
@@ -164,26 +166,18 @@ TSubclassOf<UAISense> UAISenseConfig_Hearing::GetSenseImplementation() const
 	return *Implementation; 
 }
 #if !UE_BUILD_SHIPPING
-void UAISenseConfig_Hearing::GetDebugData(TArray<FString>& OnScreenStrings, TArray<FGameplayDebuggerShapeElement>& DebugShapes, const UAIPerceptionComponent& PerceptionComponent) const
-{
+void UAISenseConfig_Hearing::DrawDebugInfo(UCanvas& Canvas, UAIPerceptionComponent& PerceptionComponent) const
+{	
 	const AActor* BodyActor = PerceptionComponent.GetBodyActor();
 	if (BodyActor != nullptr)
 	{
 		UWorld* World = BodyActor->GetWorld();
 		FVector OwnerLocation = BodyActor->GetActorLocation();
-		DebugShapes.Add(UGameplayDebuggerHelper::MakeCylinder(OwnerLocation, OwnerLocation + FVector(0, 0, -50), HearingRange, 32, UAISense_Hearing::GetDebugHearingRangeColor()));
+		DrawDebugCylinder(World, OwnerLocation, OwnerLocation + FVector(0, 0, -50), HearingRange, 32, UAISense_Hearing::GetDebugHearingRangeColor());
 		if (bUseLoSHearing)
 		{
-			DebugShapes.Add(UGameplayDebuggerHelper::MakeCylinder(OwnerLocation, OwnerLocation + FVector(0, 0, -50), LoSHearingRange, 32, UAISense_Hearing::GetDebugLoSHearingRangeeColor()));
+			DrawDebugCylinder(World, OwnerLocation, OwnerLocation + FVector(0, 0, -50), LoSHearingRange, 32, UAISense_Hearing::GetDebugLoSHearingRangeeColor());
 		}
 	}
 }
 #endif // !UE_BUILD_SHIPPING
-
-//----------------------------------------------------------------------//
-// UAISenseConfig_Prediction
-//----------------------------------------------------------------------//
-TSubclassOf<UAISense> UAISenseConfig_Prediction::GetSenseImplementation() const 
-{ 
-	return UAISense_Prediction::StaticClass(); 
-}

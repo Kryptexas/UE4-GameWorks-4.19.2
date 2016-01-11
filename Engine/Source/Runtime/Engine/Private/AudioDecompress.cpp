@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EnginePrivate.h"
@@ -332,7 +332,6 @@ void FAsyncAudioDecompressWorker::DoWork()
 			else
 			{
 				Wave->RawPCMDataSize = QualityInfo.SampleDataSize;
-				check(Wave->RawPCMData == nullptr);
 				Wave->RawPCMData = ( uint8* )FMemory::Malloc( Wave->RawPCMDataSize );
 
 				// Decompress all the sample data into preallocated memory

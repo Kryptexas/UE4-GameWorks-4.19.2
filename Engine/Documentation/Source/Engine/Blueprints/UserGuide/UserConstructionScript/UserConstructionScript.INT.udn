@@ -2,7 +2,6 @@ Availability:Public
 Title:Construction Script
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:Executed when instances of a Blueprint are created to perform initialization actions.
-version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -48,6 +47,7 @@ version: 4.9
 [/REGION]
 
 
+[TOC(start:2 end:3)]
 
 [EXCERPT:Intro]
 
@@ -60,7 +60,7 @@ version: 4.9
 Only Blueprint Classes contain **Construction Scripts**. Level Blueprints do not have them.
 [/REGION]
 
-The execution entry point into the **Construction Script** Graph is through a **ConstructionScript** node that is always present.
+The execution entry point into the **Construction Script** Graph is through a _ConstructionScript_ node that is always present.
 
 ![](construction_script.png)
 
@@ -68,4 +68,4 @@ The execution entry point into the **Construction Script** Graph is through a **
 
 [INCLUDE:Shared/Glossary/G/#Glossary_Graph_Mode]
 
-See the [](Engine/Blueprints/Editor/UIComponents/GraphEditor) for a detailed guide to working with the **ConstructionScript** and other Graphs within Blueprints.
+See the [](Engine/Blueprints/Editor/UIComponents/GraphEditor) for a detailed guide to working with the **ConstructionScript** and other **Graphs** within Blueprints.

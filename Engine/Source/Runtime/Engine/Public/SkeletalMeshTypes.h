@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalMesh.h: Unreal skeletal mesh objects.
@@ -1663,12 +1663,6 @@ public:
 	 * Get Resource Size
 	 */
 	SIZE_T GetResourceSize() const;
-
-	/** Rebuild index buffer for everything **/
-#if WITH_EDITOR
-	ENGINE_API void RebuildIndexBuffer();
-#endif
-	ENGINE_API void RebuildIndexBuffer(FMultiSizeIndexContainerData* IndexBufferData, FMultiSizeIndexContainerData* AdjacencyData);
 };
 
 /**
@@ -1748,12 +1742,9 @@ public:
 	virtual HHitProxy* CreateHitProxies(UPrimitiveComponent* Component, TArray<TRefCountPtr<HHitProxy> >& OutHitProxies) override;
 #endif
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override;
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
 	virtual bool CanBeOccluded() const override;
 	
-	virtual bool HasDistanceFieldRepresentation() const override;
-	virtual void GetShadowShapes(TArray<FCapsuleShape>& CapsuleShapes) const override;
-
 	/**
 	 * Returns the world transform to use for drawing.
 	 * @param OutLocalToWorld - Will contain the local-to-world transform when the function returns.

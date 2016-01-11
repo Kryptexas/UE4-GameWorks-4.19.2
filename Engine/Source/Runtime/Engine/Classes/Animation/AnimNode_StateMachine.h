@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "AnimNodeBase.h"
@@ -51,16 +51,10 @@ struct FAnimationActiveTransitionEntry
 
 	TArray<FAnimNode_TransitionPoseEvaluator*> PoseEvaluators;
 
-	// Blend data used for per-bone animation evaluation
-	TArray<FBlendSampleData> StateBlendData;
-
 #if WITH_EDITORONLY_DATA
 	TArray<int32, TInlineAllocator<3>> SourceTransitionIndices;
 #endif
 
-	// Blend profile to use for this transition. Specifying this will make the transition evaluate per-bone
-	UPROPERTY()
-	UBlendProfile* BlendProfile;
 
 public:
 	FAnimationActiveTransitionEntry();
@@ -138,7 +132,7 @@ public:
 
 protected:
 	// The state machine description this is an instance of
-	const FBakedAnimationStateMachine* PRIVATE_MachineDescription;
+	FBakedAnimationStateMachine* PRIVATE_MachineDescription;
 
 	// The current state within the state machine
 	UPROPERTY()
@@ -170,10 +164,6 @@ private:
 	// true if it is the first update.
 	bool bFirstUpdate;
 
-	TArray<FPoseContext*> StateCachedPoses;
-
-	TArray<FGraphTraversalCounter> StateCacheBoneCounters;
-
 public:
 	FAnimNode_StateMachine()
 		: MaxTransitionsPerFrame(3)
@@ -191,8 +181,6 @@ public:
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
 	// End of FAnimNode_Base interface
 
-	void ConditionallyCacheBonesForState(int32 StateIndex, FAnimationBaseContext Context);
-
 	// Returns the blend weight of the specified state, as calculated by the last call to Update()
 	float GetStateWeight(int32 StateIndex) const;
 
@@ -201,12 +189,9 @@ public:
 	
 	bool IsValidTransitionIndex(int32 TransitionIndex) const;
 
-	/** Cache the internal machine description */
-	void CacheMachineDescription(IAnimClassInterface* AnimBlueprintClass);
-
 protected:
 	// Tries to get the instance information for the state machine
-	const FBakedAnimationStateMachine* GetMachineDescription() const;
+	FBakedAnimationStateMachine* GetMachineDescription();
 
 	void SetState(const FAnimationBaseContext& Context, int32 NewStateIndex);
 	void SetStateInternal(int32 NewStateIndex);
@@ -229,15 +214,12 @@ protected:
 
 	// helper functions for calling update and evaluate on state nodes
 	void UpdateState(int32 StateIndex, const FAnimationUpdateContext& Context);
-	const FPoseContext& EvaluateState(int32 StateIndex, const FPoseContext& Context);
+	void EvaluateState(int32 StateIndex, FPoseContext& Output);
 
 	// transition type evaluation functions
 	void EvaluateTransitionStandardBlend(FPoseContext& Output, FAnimationActiveTransitionEntry& Transition, bool bIntermediatePoseIsValid);
-	void EvaluateTransitionStandardBlendInternal(FPoseContext& Output, FAnimationActiveTransitionEntry& Transition, const FPoseContext& PreviousStateResult, const FPoseContext& NextStateResult);
 	void EvaluateTransitionCustomBlend(FPoseContext& Output, FAnimationActiveTransitionEntry& Transition, bool bIntermediatePoseIsValid);
 
-	FAnimNode_AssetPlayerBase* GetRelevantAssetPlayerFromState(const FAnimationUpdateContext& Context, const FBakedAnimationState& StateInfo);
-
 public:
-	friend struct FAnimInstanceProxy;
+	friend class UAnimInstance;
 };

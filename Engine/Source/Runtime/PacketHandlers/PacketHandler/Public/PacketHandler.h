@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -84,7 +84,7 @@ public:
 	virtual void Tick(float DeltaTime);
 
 	/* For adding handler components */
-	virtual void Add(TSharedPtr<HandlerComponent> NewHandler);
+	virtual void Add(HandlerComponent* NewHandler);
 
 	/* Handles any incoming packets */
 	virtual const ProcessedPacket Incoming(uint8* Packet, int32 Count);
@@ -100,10 +100,6 @@ public:
 
 	/* Gets a packet from the the buffered packet queue for sending */
 	BufferedPacket* GetQueuedPacket();
-
-
-	/** Whether or not the PacketHandler system is enabled */
-	bool bEnabled;
 
 	/* Mode of the handler, Client or Server */
 	Handler::Mode Mode;
@@ -125,7 +121,7 @@ private:
 	FBitReader IncomingPacket;
 
 	/* Array of Handler components */
-	TArray<TSharedPtr<HandlerComponent>> HandlerComponents;
+	TArray<HandlerComponent*> HandlerComponents;
 
 	/* State of the handler */
 	Handler::State State;
@@ -142,7 +138,7 @@ private:
 	TQueue<BufferedPacket*> QueuedPackets;
 
 	/* Reliability Handler Component */
-	TSharedPtr<ReliabilityHandlerComponent> ReliabilityComponent;
+	ReliabilityHandlerComponent* ReliabilityComponent;
 };
 
 /*
@@ -154,9 +150,6 @@ class PACKETHANDLER_API HandlerComponent
 public:
 	/* Default initialization of data */
 	HandlerComponent();
-
-	/** Base destructor */
-	virtual ~HandlerComponent() {}
 
 	/* Returns whether this handler is currently active */
 	virtual bool IsActive() const;
@@ -218,6 +211,7 @@ class FPacketHandlerComponentModuleInterface : public IModuleInterface
 {
 public:
 	/* Creates an instance of this component */
-	virtual TSharedPtr<HandlerComponent> CreateComponentInstance(FString& Options)
-		PURE_VIRTUAL(FPacketHandlerModuleInterface::CreateComponentInstance, return TSharedPtr<HandlerComponent>(NULL););
+	virtual HandlerComponent* CreateComponentInstance() PURE_VIRTUAL(FPacketHandlerModuleInterface::CreateComponentInstance,return nullptr;);
+	/* Creates an instance of this component with an FString of options */
+	virtual HandlerComponent* CreateComponentInstance(FString& Options) PURE_VIRTUAL(FPacketHandlerModuleInterface::CreateComponentInstance,return nullptr;);
 };

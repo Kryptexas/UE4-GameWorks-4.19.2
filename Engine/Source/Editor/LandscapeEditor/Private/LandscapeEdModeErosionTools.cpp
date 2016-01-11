@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LandscapeEditorPrivatePCH.h"
 #include "ObjectTools.h"
@@ -20,8 +20,8 @@
 class FLandscapeToolStrokeErosionBase : public FLandscapeToolStrokeBase
 {
 public:
-	FLandscapeToolStrokeErosionBase(FEdModeLandscape* InEdMode, FEditorViewportClient* InViewportClient, const FLandscapeToolTarget& InTarget)
-		: FLandscapeToolStrokeBase(InEdMode, InViewportClient, InTarget)
+	FLandscapeToolStrokeErosionBase(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
+		: FLandscapeToolStrokeBase(InEdMode, InTarget)
 		, HeightCache(InTarget)
 		, WeightCache(InTarget)
 		, bWeightApplied(InTarget.TargetType != ELandscapeToolTargetType::Heightmap)
@@ -56,8 +56,8 @@ public:
 class FLandscapeToolStrokeErosion : public FLandscapeToolStrokeErosionBase
 {
 public:
-	FLandscapeToolStrokeErosion(FEdModeLandscape* InEdMode, FEditorViewportClient* InViewportClient, const FLandscapeToolTarget& InTarget)
-		: FLandscapeToolStrokeErosionBase(InEdMode, InViewportClient, InTarget)
+	FLandscapeToolStrokeErosion(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
+		: FLandscapeToolStrokeErosionBase(InEdMode, InTarget)
 	{
 	}
 
@@ -288,8 +288,8 @@ public:
 class FLandscapeToolStrokeHydraErosion : public FLandscapeToolStrokeErosionBase
 {
 public:
-	FLandscapeToolStrokeHydraErosion(FEdModeLandscape* InEdMode, FEditorViewportClient* InViewportClient, const FLandscapeToolTarget& InTarget)
-		: FLandscapeToolStrokeErosionBase(InEdMode, InViewportClient, InTarget)
+	FLandscapeToolStrokeHydraErosion(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
+		: FLandscapeToolStrokeErosionBase(InEdMode, InTarget)
 	{
 	}
 

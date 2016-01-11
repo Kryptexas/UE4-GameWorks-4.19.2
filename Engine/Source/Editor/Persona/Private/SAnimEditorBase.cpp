@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PersonaPrivatePCH.h"
@@ -247,7 +247,7 @@ void SAnimEditorBase::RecalculateSequenceLength()
 			if (PreviewInstance)
 			{
 				// Re-set the position, so instance is clamped properly
-				PreviewInstance->SetPosition(PreviewInstance->GetCurrentTime(), false); 
+				PreviewInstance->SetPosition(PreviewInstance->CurrentTime, false); 
 			}
 		}
 	}
@@ -292,7 +292,7 @@ float SAnimEditorBase::GetScrubValue() const
 	UAnimSingleNodeInstance * PreviewInstance = GetPreviewInstance();
 	if (PreviewInstance)
 	{
-		float CurTime = PreviewInstance->GetCurrentTime();
+		float CurTime = PreviewInstance->CurrentTime;
 		return (CurTime); 
 	}
 	else
@@ -315,7 +315,7 @@ FText SAnimEditorBase::GetCurrentSequenceTime() const
 
 	if (PreviewInstance)
 	{
-		CurTime = PreviewInstance->GetCurrentTime();
+		CurTime = PreviewInstance->CurrentTime;
 	}
 
 	static const FNumberFormattingOptions FractionNumberFormat = FNumberFormattingOptions()
@@ -330,7 +330,7 @@ FText SAnimEditorBase::GetCurrentPercentage() const
 	float Percentage = 0.f;
 	if (PreviewInstance)
 	{
-		Percentage = PreviewInstance->GetCurrentTime() / GetEditorObject()->SequenceLength;
+		Percentage = PreviewInstance->CurrentTime / GetEditorObject()->SequenceLength;
 	}
 
 	static const FNumberFormattingOptions PercentNumberFormat = FNumberFormattingOptions()
@@ -347,7 +347,7 @@ FText SAnimEditorBase::GetCurrentFrame() const
 
 	if (PreviewInstance)
 	{
-		Percentage = PreviewInstance->GetCurrentTime()/GetEditorObject()->SequenceLength;
+		Percentage = PreviewInstance->CurrentTime/GetEditorObject()->SequenceLength;
 	}
 
 	static const FNumberFormattingOptions FractionNumberFormat = FNumberFormattingOptions()

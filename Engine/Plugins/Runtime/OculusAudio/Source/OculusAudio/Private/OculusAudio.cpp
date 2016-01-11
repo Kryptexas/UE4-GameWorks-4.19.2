@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OculusAudio.h"
 #include "OVR_Audio.h"
@@ -13,71 +13,27 @@
 // Oculus Audio Plugin Implementation
 //---------------------------------------------------
 
-static const TCHAR* GetOculusErrorString(ovrResult Result)
-{
-	switch (Result)
-	{
-		default:
-		case ovrError_AudioUnknown:			return TEXT("Unknown Error");
-		case ovrError_AudioInvalidParam:	return TEXT("Invalid Param");
-		case ovrError_AudioBadSampleRate:	return TEXT("Bad Samplerate");
-		case ovrError_AudioMissingDLL:		return TEXT("Missing DLL");
-		case ovrError_AudioBadAlignment:	return TEXT("Pointers did not meet 16 byte alignment requirements");
-		case ovrError_AudioUninitialized:	return TEXT("Function called before initialization");
-		case ovrError_AudioHRTFInitFailure: return TEXT("HRTF Profider initialization failed");
-		case ovrError_AudioBadVersion:		return TEXT("Bad audio version");
-		case ovrError_AudioSRBegin:			return TEXT("Sample rate begin");
-		case ovrError_AudioSREnd:			return TEXT("Sample rate end");
-	}
-}
-
-#define OVR_AUDIO_CHECK(Result, Context)																\
-	if (Result != ovrSuccess)																			\
-	{																									\
-		const TCHAR* ErrString = GetOculusErrorString(Result);											\
-		UE_LOG(LogAudio, Error, TEXT("Oculus Audio SDK Error - %s: %s"), TEXT(Context), ErrString);	\
-		return;																							\
-	}
-
-
 class FHrtfSpatializationAlgorithm : public IAudioSpatializationAlgorithm
 {
 public:
 	FHrtfSpatializationAlgorithm(class FAudioDevice * AudioDevice)
 		: bOvrContextInitialized(false)
 		, AudioDevice(AudioDevice)
-		, OvrAudioContextFast(nullptr)
+		, OvrAudioContextFast(0)
 #if OCULUS_HQ_ENABLED
 		, OvrAudioContextHighQuality(0)
 #endif
 	{
-		// XAudio2's buffer lengths are always 1 percent of sample rate
-		uint32 BufferLength = AudioDevice->SampleRate / 100;
-		InitializeSpatializationEffect(BufferLength);
-
-		check(HRTFEffects.Num() == 0);
-		check(Params.Num() == 0);
-
-		for (int32 EffectIndex = 0; EffectIndex < (int32)AudioDevice->MaxChannels; ++EffectIndex)
-		{
-			FXAudio2HRTFEffect* NewHRTFEffect = new FXAudio2HRTFEffect(EffectIndex, AudioDevice);
-			NewHRTFEffect->Initialize(nullptr, 0);
-			HRTFEffects.Add(NewHRTFEffect);
-
-			Params.Add(FAudioSpatializationParams());
-		}
 	}
 
 	~FHrtfSpatializationAlgorithm()
 	{
 		// Release all the effects for the oculus spatialization effect
-		for (FXAudio2HRTFEffect* Effect : HRTFEffects)
+		for (TMap<uint32, class FXAudio2HRTFEffect* >::TIterator It(HRTFEffects); It; ++It)
 		{
-			if (Effect)
-			{
-				delete Effect;
-			}
+			It.Value()->Release();
 		}
+
 		HRTFEffects.Empty();
 
 		// Destroy the contexts if we created them
@@ -86,7 +42,6 @@ public:
 			if (OvrAudioContextFast != nullptr)
 			{
 				ovrAudio_DestroyContext(OvrAudioContextFast);
-				OvrAudioContextFast = nullptr;
 			}
 
 #if OCULUS_HQ_ENABLED
@@ -118,23 +73,31 @@ public:
 		ContextConfig.acc_Size = sizeof(ovrAudioContextConfiguration);
 
 		// First initialize the Fast algorithm context
-		ContextConfig.acc_Provider = ovrAudioSpatializationProvider_OVR_Simple;
+		ContextConfig.acc_Provider = ovrAudioSpatializationProvider_OVR_Fast;
 		ContextConfig.acc_MaxNumSources = MaxNumSources;
 		ContextConfig.acc_SampleRate = SampleRate;
 		ContextConfig.acc_BufferLength = BufferLength;
 
 		check(OvrAudioContextFast == nullptr);
 		// Create the OVR Audio Context with a given quality
-		ovrResult Result = ovrAudio_CreateContext(&OvrAudioContextFast, &ContextConfig);
-		OVR_AUDIO_CHECK(Result, "Failed to create simple context");
+		if (!ovrAudio_CreateContext(&OvrAudioContextFast, &ContextConfig))
+		{
+			const char* ErrorString = ovrAudio_GetLastError(OvrAudioContextFast);
+			UE_LOG(LogAudio, Warning, TEXT("Failed to create a Fast OVR Audio context: %s"), ErrorString);
+			return;
+		}
 
 		// Now initialize the high quality algorithm context
 #if OCULUS_HQ_ENABLED
 		ContextConfig.acc_Provider = ovrAudioSpatializationProvider_OVR_HQ;
 		check(OvrAudioContextHighQuality == nullptr);
 		// Create the OVR Audio Context with a given quality
-		Result = ovrAudio_CreateContext(&OvrAudioContextHighQuality, &ContextConfig);
-		OVR_AUDIO_CHECK(Result, "Failed to create high-quality context");
+		if (!ovrAudio_CreateContext(&OvrAudioContextHighQuality, &ContextConfig))
+		{
+			const char* ErrorString = ovrAudio_GetLastError(OvrAudioContextHighQuality);
+			UE_LOG(LogAudio, Warning, TEXT("Failed to create a High Quality OVR Audio context: %s"), ErrorString);
+			return;
+		}
 #endif // #if OCULUS_HQ_ENABLED
 
 		bOvrContextInitialized = true;
@@ -142,7 +105,7 @@ public:
 
 	void ProcessSpatializationForVoice(ESpatializationEffectType Type, uint32 VoiceIndex, float* InSamples, float* OutSamples, const FVector& Position) override
 	{
-		if (Type == SPATIALIZATION_TYPE_FAST && OvrAudioContextFast)
+		if (Type == SPATIALIZATION_TYPE_FAST)
 		{
 			ProcessAudio(OvrAudioContextFast, VoiceIndex, InSamples, OutSamples, Position);
 		}
@@ -158,56 +121,67 @@ public:
 	virtual bool CreateSpatializationEffect(uint32 VoiceId) override
 	{
 		// If an effect for this voice has already been created, then leave
-		if ((int32)VoiceId >= HRTFEffects.Num())
+		if (HRTFEffects.Contains(VoiceId))
 		{
 			return false;
 		}
+
+		FXAudio2HRTFEffect* NewHRTFEffect = new FXAudio2HRTFEffect(VoiceId, AudioDevice);
+		NewHRTFEffect->Initialize(nullptr, 0);
+		HRTFEffects.Add(VoiceId, NewHRTFEffect);
 		return true;
 	}
 
 	void* GetSpatializationEffect(uint32 VoiceId) override
 	{
-		if ((int32)VoiceId < HRTFEffects.Num())
+		FXAudio2HRTFEffect** OculusEffect = HRTFEffects.Find(VoiceId);
+		if (OculusEffect)
 		{
-			return (void*)HRTFEffects[VoiceId];
+			// Trust us...
+			return (void*)(*OculusEffect);
 		}
 		return nullptr;
 	}
 
-	void SetSpatializationParameters(uint32 VoiceId, const FAudioSpatializationParams& InParams) override
+	void SetSpatializationParameters(uint32 VoiceId, const FVector& EmitterPosition, ESpatializationEffectType AlgorithmType) override
 	{
-		check((int32)VoiceId < Params.Num());
-
-		FScopeLock ScopeLock(&ParamCriticalSection);
-		Params[VoiceId] = InParams;
-	}
-
-	void GetSpatializationParameters(uint32 VoiceId, FAudioSpatializationParams& OutParams) override
-	{
-		check((int32)VoiceId < Params.Num());
-
-		FScopeLock ScopeLock(&ParamCriticalSection);
-		OutParams = Params[VoiceId];
+		FXAudio2HRTFEffect** OculusEffect = HRTFEffects.Find(VoiceId);
+		if (OculusEffect)
+		{
+			FAudioHRTFEffectParameters Params(EmitterPosition);
+			(*OculusEffect)->SetParameters((const void *)&Params, sizeof(Params));
+		}
 	}
 
 private:
 
 	void ProcessAudio(ovrAudioContext AudioContext, uint32 VoiceIndex, float* InSamples, float* OutSamples, const FVector& Position)
 	{
-		ovrResult Result = ovrAudio_SetAudioSourceAttenuationMode(AudioContext, VoiceIndex, ovrAudioSourceAttenuationMode_None, 1.0f);
-		OVR_AUDIO_CHECK(Result, "Failed to set source attenuation mode");
+		if (!ovrAudio_SetAudioSourceAttenuationMode(AudioContext, VoiceIndex, ovrAudioSourceAttenuationMode_None, 1.0f))
+		{
+			const char* ErrorString = ovrAudio_GetLastError(AudioContext);
+			UE_LOG(LogAudio, Warning, TEXT("Failed to set the OVR source attenuation mode for voice index %d: %s"), VoiceIndex, ErrorString);
+			return;
+		}
 
 		// Translate the input position to OVR coordinates
 		FVector OvrPosition = ToOVRVector(Position);
 
 		// Set the source position to current audio position
-		Result = ovrAudio_SetAudioSourcePos(AudioContext, VoiceIndex, OvrPosition.X, OvrPosition.Y, OvrPosition.Z);
-		OVR_AUDIO_CHECK(Result, "Failed to set audio source position");
+		if (!ovrAudio_SetAudioSourcePos(AudioContext, VoiceIndex, OvrPosition.X, OvrPosition.Y, OvrPosition.Z))
+		{
+			const char* ErrorString = ovrAudio_GetLastError(AudioContext);
+			UE_LOG(LogAudio, Warning, TEXT("Failed to set the OVR source position (%.4f, %.4f, %.4f) for voice %d: %s"), OvrPosition.X, OvrPosition.Y, OvrPosition.Z, VoiceIndex, ErrorString);
+			return;
+		}
 
 		// Perform the processing
-		uint32 Status;
-		Result = ovrAudio_SpatializeMonoSourceInterleaved(AudioContext, VoiceIndex, ovrAudioSpatializationFlag_None, &Status, OutSamples, InSamples);
-		OVR_AUDIO_CHECK(Result, "Failed to spatialize mono source interleaved");
+		if (!ovrAudio_SpatializeMonoSourceInterleaved(AudioContext, VoiceIndex, OutSamples, InSamples))
+		{
+			const char* ErrorString = ovrAudio_GetLastError(AudioContext);
+			UE_LOG(LogAudio, Warning, TEXT("Failed to OVR spatialize for for voice %d: %s"), VoiceIndex, ErrorString);
+			return;
+		}
 	}
 
 	/** Helper function to convert from UE coords to OVR coords. */
@@ -231,10 +205,9 @@ private:
 #endif
 
 	/** Xaudio2 effects for the oculus plugin */
-	TArray<class FXAudio2HRTFEffect*> HRTFEffects;
-	TArray<FAudioSpatializationParams> Params;
+	TMap<uint32, class FXAudio2HRTFEffect* > HRTFEffects;
 
-	FCriticalSection ParamCriticalSection;
+
 };
 
 
@@ -266,8 +239,11 @@ public:
 			int32 PatchNumber;
 
 			// Initialize the OVR Audio SDK before making any calls to ovrAudio
-			ovrResult Result = ovrAudio_Initialize();
-			OVR_AUDIO_CHECK(Result, "Failed to initialize OVR Audio system");
+			if (!ovrAudio_Initialize())
+			{
+				UE_LOG(LogAudio, Error, TEXT("Failed to initialize OVR Audio system"));
+				return;
+			}
 
 			const char* OvrVersionString = ovrAudio_GetVersion(&MajorVersionNumber, &MinorVersionNumber, &PatchNumber);
 			if (MajorVersionNumber != OVR_AUDIO_MAJOR_VERSION || MinorVersionNumber != OVR_AUDIO_MINOR_VERSION)

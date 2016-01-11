@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEffectApplied.h"
@@ -69,7 +69,7 @@ UAbilitySystemComponent* UAbilityTask_WaitGameplayEffectApplied::GetASC()
 {
 	if (UseExternalOwner)
 	{
-		return ExternalOwner;
+		return ExternalOwner.Get();
 	}
-	return AbilitySystemComponent;
+	return AbilitySystemComponent.Get();
 }

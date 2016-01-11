@@ -2,7 +2,6 @@
 Title:Destructible Properties Matrix
 Crumbs: %ROOT%, Engine
 Description:Descriptions of all the properties on Destructible Actors in the DestructibleMesh Editor.
-Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -75,7 +74,7 @@ Version: 4.9
 | **Sound** | The sound or sound cue to play when a chunk breaks.|
 
 
-For the Physics and Collision section of properties, see the [**Collision**](Engine/Physics/Collision) documentation.
+For the Physics and Collision section of properties, see the [Collision](Engine/Physics/Collision) documentation.
 	
 ### Skeletal Mesh Sub Category
 

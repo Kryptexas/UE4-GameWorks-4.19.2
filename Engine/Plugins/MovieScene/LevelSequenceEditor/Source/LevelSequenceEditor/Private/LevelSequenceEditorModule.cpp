@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LevelSequenceEditorPCH.h"
 #include "LevelEditor.h"
@@ -6,8 +6,6 @@
 #include "LevelSequenceEditorStyle.h"
 #include "ModuleInterface.h"
 #include "PropertyEditorModule.h"
-#include "ISettingsModule.h"
-#include "LevelSequenceProjectSettings.h"
 
 #define LOCTEXT_NAMESPACE "LevelSequenceEditor"
 
@@ -46,15 +44,6 @@ public:
 	{
 		Style = MakeShareable(new FLevelSequenceEditorStyle());
 
-		if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
-		{
-			SettingsModule->RegisterSettings("Project", "Editor", "Level Sequences",
-				LOCTEXT("RuntimeSettingsName", "Level Sequences"),
-				LOCTEXT("RuntimeSettingsDescription", "Configure project settings relating to Level Sequences"),
-				GetMutableDefault<ULevelSequenceProjectSettings>()
-			);
-		}
-
 		RegisterAssetTools();
 		RegisterCustomizations();
 		RegisterMenuExtensions();
@@ -62,11 +51,6 @@ public:
 	
 	virtual void ShutdownModule() override
 	{
-		if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
-		{
-			SettingsModule->UnregisterSettings("Project", "Editor", "Level Sequences");
-		}
-
 		UnregisterAssetTools();
 		UnregisterCustomizations();
 		UnregisterMenuExtensions();
@@ -78,6 +62,7 @@ protected:
 	void RegisterAssetTools()
 	{
 		IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
+
 		RegisterAssetTypeAction(AssetTools, MakeShareable(new FLevelSequenceActions(Style.ToSharedRef())));
 	}
 
@@ -133,6 +118,7 @@ protected:
 		FLevelSequenceExtensionCommands::Register();
 
 		CommandList = MakeShareable(new FUICommandList);
+
 		CommandList->MapAction(FLevelSequenceExtensionCommands::Get().CreateNewLevelSequenceInLevel,
 			FExecuteAction::CreateStatic(&FLevelSequenceEditorModule::OnCreateActorInLevel)
 		);
@@ -154,7 +140,6 @@ protected:
 		{
 			LevelEditorModule->GetAllLevelEditorToolbarCinematicsMenuExtenders().Remove(CinematicsMenuExtender);
 		}
-
 		CinematicsMenuExtender = nullptr;
 		CommandList = nullptr;
 
@@ -190,20 +175,20 @@ protected:
 		}
 
 		// Spawn a  actor at the origin, and either move infront of the camera or focus camera on it (depending on the viewport) and open for edit
-		UActorFactory* ActorFactory = GEditor->FindActorFactoryForActorClass(ALevelSequenceActor::StaticClass());
+		UActorFactory* ActorFactory = GEditor->FindActorFactoryForActorClass( ALevelSequenceActor::StaticClass() );
 		if (!ensure(ActorFactory))
 		{
 			return;
 		}
 
 		ALevelSequenceActor* NewActor = CastChecked<ALevelSequenceActor>(GEditor->UseActorFactory(ActorFactory, FAssetData(NewAsset), &FTransform::Identity));
-		if (GCurrentLevelEditingViewportClient->IsPerspective())
+		if( GCurrentLevelEditingViewportClient->IsPerspective() )
 		{
-			GEditor->MoveActorInFrontOfCamera(*NewActor, GCurrentLevelEditingViewportClient->GetViewLocation(), GCurrentLevelEditingViewportClient->GetViewRotation().Vector());
+			GEditor->MoveActorInFrontOfCamera( *NewActor, GCurrentLevelEditingViewportClient->GetViewLocation(), GCurrentLevelEditingViewportClient->GetViewRotation().Vector() );
 		}
 		else
 		{
-			GEditor->MoveViewportCamerasToActor(*NewActor, false);
+			GEditor->MoveViewportCamerasToActor( *NewActor, false );
 		}
 
 		FAssetEditorManager::Get().OpenEditorForAsset(NewAsset);

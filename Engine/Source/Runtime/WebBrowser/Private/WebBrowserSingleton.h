@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -58,23 +58,14 @@ public:
 	TSharedPtr<IWebBrowserWindow> CreateBrowserWindow(
 		void* OSWindowHandle, 
 		FString InitialURL, 
-		bool bUseTransparency,
+		uint32 Width, 
+		uint32 Height, 
+		bool bUseTransparency, 
 		bool bThumbMouseButtonNavigation,
 		TOptional<FString> ContentsToLoad = TOptional<FString>(), 
 		bool ShowErrorMessage = true,
 		FColor BackgroundColor = FColor(255, 255, 255, 255)) override;
 
-	virtual void DeleteBrowserCookies(FString URL = TEXT(""), FString CookieName = TEXT(""), TFunction<void (int)> Completed = nullptr) override;
-
-	virtual bool IsDevToolsShortcutEnabled() override
-	{
-		return bDevToolsShortcutEnabled;
-	}
-
-	virtual void SetDevToolsShortcutEnabled(bool Value) override
-	{
-		bDevToolsShortcutEnabled = Value;
-	}
 
 public:
 
@@ -91,5 +82,4 @@ private:
 	/** List of currently existing browser windows */
 	TArray<TWeakPtr<FWebBrowserWindow>>	WindowInterfaces;
 #endif
-	bool bDevToolsShortcutEnabled;
 };

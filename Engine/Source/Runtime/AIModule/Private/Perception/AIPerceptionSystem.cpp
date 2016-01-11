@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "Perception/AIPerceptionSystem.h"
@@ -165,7 +165,6 @@ void UAIPerceptionSystem::OnListenerUpdate(const FPerceptionListener& UpdatedLis
 void UAIPerceptionSystem::Tick(float DeltaSeconds)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_PerceptionSys);
-	SCOPE_CYCLE_COUNTER(STAT_AI_Overall);
 
 	// if no new stimuli
 	// and it's not time to remove stimuli from "know events"
@@ -397,42 +396,6 @@ void UAIPerceptionSystem::OnListenerRemoved(const FPerceptionListener& NewListen
 		if (*SenseInstance != nullptr && NewListener.HasSense((*SenseInstance)->GetSenseID()))
 		{
 			(*SenseInstance)->OnListenerRemoved(NewListener);
-		}
-	}
-}
-
-void UAIPerceptionSystem::OnListenerForgetsActor(const UAIPerceptionComponent& Listener, AActor& ActorToForget)
-{
-	const FPerceptionListenerID ListenerId = Listener.GetListenerId();
-
-	if (ListenerId != FPerceptionListenerID::InvalidID())
-	{
-		FPerceptionListener& ListenerEntry = ListenerContainer[ListenerId];
-		
-		for (UAISense* Sense : Senses)
-		{
-			if (Sense != nullptr && Sense->NeedsNotificationOnForgetting() && ListenerEntry.HasSense(Sense->GetSenseID()))
-			{
-				Sense->OnListenerForgetsActor(ListenerEntry, ActorToForget);
-			}
-		}
-	}
-}
-
-void UAIPerceptionSystem::OnListenerForgetsAll(const UAIPerceptionComponent& Listener)
-{
-	const FPerceptionListenerID ListenerId = Listener.GetListenerId();
-
-	if (ListenerId != FPerceptionListenerID::InvalidID())
-	{
-		FPerceptionListener& ListenerEntry = ListenerContainer[ListenerId];
-
-		for (UAISense* Sense : Senses)
-		{
-			if (Sense != nullptr && Sense->NeedsNotificationOnForgetting() && ListenerEntry.HasSense(Sense->GetSenseID()))
-			{
-				Sense->OnListenerForgetsAll(ListenerEntry);
-			}
 		}
 	}
 }

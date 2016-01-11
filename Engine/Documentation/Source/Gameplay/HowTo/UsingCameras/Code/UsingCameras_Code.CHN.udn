@@ -1,0 +1,18 @@
+﻿INTSourceChangelist:2321424
+Availability: Docs
+Title:如何在代码中使用相机
+Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\UsingCameras
+Description:关于如何在代码中使用相机的指南。
+
+[TOC (start:2 end:2)]
+
+## 概述
+
+## 使用静态相机
+
+## 在多个相机间切换
+
+## 使用相机组件
+
+## 使用弹簧臂组件
+

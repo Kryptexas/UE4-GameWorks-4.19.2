@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,7 +10,7 @@
 #include "AnimSequence.h"
 #include "AnimCompress.generated.h"
 
-UCLASS(abstract, hidecategories=Object, MinimalAPI, EditInlineNew)
+UCLASS(abstract, hidecategories=Object, MinimalAPI)
 class UAnimCompress : public UObject
 {
 	GENERATED_UCLASS_BODY()

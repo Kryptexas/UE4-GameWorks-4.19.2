@@ -1,15 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PortalProxiesPrivatePCH.h"
 #include "IPortalServiceProvider.h"
-
-#include "IPortalApplicationWindow.h"
-#include "IPortalUser.h"
-#include "IPortalUserLogin.h"
-
-#include "PortalApplicationWindowProxy.h"
-#include "PortalUserProxy.h"
-#include "PortalUserLoginProxy.h"
+#include "IPortalAppWindow.h"
 
 
 /**
@@ -22,12 +15,7 @@ public:
 
 	// IModuleInterface interface
 
-	virtual void StartupModule() override 
-	{
-		ApplicationWindow_SupportedServiceNames.Add(TNameOf<IPortalApplicationWindow>::GetName());
-		PortalUser_SupportedServiceNames.Add(TNameOf<IPortalUser>::GetName());
-		PortalUserLogin_SupportedServiceNames.Add(TNameOf<IPortalUserLogin>::GetName());
-	}
+	virtual void StartupModule() override { }
 	virtual void ShutdownModule() override { }
 
 	virtual bool SupportsDynamicReloading() override
@@ -48,30 +36,18 @@ public:
 			return nullptr;
 		}
 
-		if (ApplicationWindow_SupportedServiceNames.Contains(ServiceName))
+		if (ServiceName == TNameOf<IPortalAppWindow>::GetName())
 		{
-			return FPortalApplicationWindowProxyFactory::Create(RpcClient.ToSharedRef());
+			return MakeShareable(new FPortalAppWindowProxy(RpcClient.ToSharedRef()));
 		}
-		else if (PortalUser_SupportedServiceNames.Contains(ServiceName))
+		
+		if (ServiceName == TNameOf<IPortalPackageInstaller>::GetName())
 		{
-			return FPortalUserProxyFactory::Create(RpcClient.ToSharedRef());
+			return MakeShareable(new FPortalPackageInstallerProxy(RpcClient.ToSharedRef()));
 		}
-		else if (PortalUserLogin_SupportedServiceNames.Contains(ServiceName))
-		{
-			return FPortalUserLoginProxyFactory::Create(RpcClient.ToSharedRef());
-		}
-
-		//Add additional supported proxy services here
 
 		return nullptr;
 	}
-
-private:
-
-	TSet<FString> ApplicationWindow_SupportedServiceNames;
-	TSet<FString> PortalUser_SupportedServiceNames;
-	TSet<FString> PortalUserLogin_SupportedServiceNames;
-
 };
 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -8,7 +8,6 @@ class  USCS_Node;
 class  UActorComponent;
 struct FUCSComponentId;
 class  UBlueprint;
-class  UBlueprintGeneratedClass;
 
 USTRUCT()
 struct ENGINE_API FComponentKey
@@ -19,7 +18,7 @@ struct ENGINE_API FComponentKey
 		: OwnerClass(nullptr)
 	{}
 
-	FComponentKey(const USCS_Node* SCSNode);
+	FComponentKey(USCS_Node* SCSNode);
 #if WITH_EDITOR
 	FComponentKey(UBlueprint* Blueprint, const FUCSComponentId& UCSComponentID);
 #endif 
@@ -45,13 +44,13 @@ struct ENGINE_API FComponentKey
 	UActorComponent* GetOriginalTemplate() const;
 	bool RefreshVariableName();
 
-	class UBlueprintGeneratedClass* GetComponentOwner()  const { return OwnerClass; }
+	UClass* GetComponentOwner()  const { return OwnerClass; }
 	FName   GetSCSVariableName() const { return SCSVariableName; }
 	FGuid   GetAssociatedGuid()  const { return AssociatedGuid; }
 
 private: 
 	UPROPERTY()
-	class UBlueprintGeneratedClass* OwnerClass;
+	UBlueprintGeneratedClass* OwnerClass;
 
 	UPROPERTY()
 	FName SCSVariableName;
@@ -115,9 +114,9 @@ public:
 
 public:
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void PostLoad() override;
-	//~ End UObject Interface
+	// End UObject interface
 
 	void PreloadAllTempates();
 	void PreloadAll();

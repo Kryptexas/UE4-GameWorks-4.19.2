@@ -1,16 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 GameplayDebuggerSettings.h: Declares the UGameplayDebuggerSettings class.
 =============================================================================*/
 #pragma once
 
+
 #include "LogVisualizerSettings.generated.h"
-
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnFilterCategoryAdded, FString, ELogVerbosity::Type);
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnFilterCategoryRemoved, FString);
-
-struct FVisualLoggerDBRow;
 
 USTRUCT()
 struct FCategoryFilter
@@ -24,13 +20,11 @@ struct FCategoryFilter
 	int32 LogVerbosity;
 
 	UPROPERTY(config)
-	uint32 Enabled : 1;
-
-	uint32 bIsInUse : 1;
+	bool Enabled;
 };
 
 USTRUCT()
-struct FVisualLoggerFiltersData
+struct FVisualLoggerFilters
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -45,52 +39,6 @@ struct FVisualLoggerFiltersData
 	
 	UPROPERTY(config)
 	TArray<FString> SelectedClasses;
-};
-
-USTRUCT()
-struct FVisualLoggerFilters : public FVisualLoggerFiltersData
-{
-	GENERATED_USTRUCT_BODY()
-
-	FOnFilterCategoryAdded OnFilterCategoryAdded;
-	FOnFilterCategoryRemoved OnFilterCategoryRemoved;
-
-	static FVisualLoggerFilters& Get();
-	static void Initialize();
-	static void Shutdown();
-
-	void Reset();
-	void InitWith(const FVisualLoggerFiltersData& NewFiltersData);
-
-	bool MatchCategoryFilters(FString String, ELogVerbosity::Type Verbosity = ELogVerbosity::All);
-
-	bool MatchSearchString(FString String) { return SearchBoxFilter == String; }
-	void SetSearchString(FString InString) { SearchBoxFilter = InString; }
-	FString GetSearchString() { return SearchBoxFilter; }
-
-	void AddCategory(FString InName, ELogVerbosity::Type InVerbosity);
-	void RemoveCategory(FString InName);
-	FCategoryFilter& GetCategoryByName(const FString& InName);
-	FCategoryFilter& GetCategoryByName(const FName& InName);
-
-	void DeactivateAllButThis(const FString& InName);
-	void EnableAllCategories();
-
-	bool MatchObjectName(FString String);
-	void SelectObject(FString ObjectName);
-	void RemoveObjectFromSelection(FString ObjectName);
-	const TArray<FString>& GetSelectedObjects() const;
-
-	void DisableGraphData(FName GraphName, FName DataName, bool SetAsDisabled);
-	bool IsGraphDataDisabled(FName GraphName, FName DataName);
-
-protected:
-	void OnNewItemHandler(const FVisualLoggerDBRow& BDRow, int32 ItemIndex);
-
-private:
-	static TSharedPtr< struct FVisualLoggerFilters > StaticInstance;
-	TMap<FName, FCategoryFilter*>	FastCategoryFilterMap;
-	TArray<FName> DisabledGraphDatas;
 };
 
 struct FCategoryFiltersManager;
@@ -160,15 +108,11 @@ public:
 
 	class UMaterial* GetDebugMeshMaterial();
 
-	void SavePresistentData();
-
-	void ClearPresistentData();
-
-	void LoadPresistentData();
-
 protected:
+	FVisualLoggerFilters CurrentFilters;
+	
 	UPROPERTY(config)
-	FVisualLoggerFiltersData PresistentFilters;
+	FVisualLoggerFilters PresistentFilters;
 
 	/** A material used to render debug meshes with kind of flat shading, mostly used by Visual Logger tool. */
 	UPROPERTY()
@@ -182,4 +126,35 @@ private:
 	// Holds an event delegate that is executed when a setting has changed.
 	FSettingChangedEvent SettingChangedEvent;
 
+};
+
+struct FCategoryFiltersManager
+{
+	static FCategoryFiltersManager& Get() { return StaticManager; }
+
+	bool MatchCategoryFilters(FString String, ELogVerbosity::Type Verbosity = ELogVerbosity::All);
+	bool MatchObjectName(FString String);
+	bool MatchSearchString(FString String);
+
+	void SetSearchString(FString InString);
+	FString GetSearchString();
+
+	void SetObjectFilterString(FString InFilterString);
+	FString GetObjectFilterString();
+
+	void AddCategory(FString InName, ELogVerbosity::Type InVerbosity);
+	void RemoveCategory(FString InName);
+	bool IsValidCategory(FString InName);
+	FCategoryFilter& GetCategory(FString InName);
+
+	void SelectObject(FString ObjectName);
+	void RemoveObjectFromSelection(FString ObjectName);
+	const TArray<FString>& GetSelectedObjects();
+
+	void SavePresistentData();
+	void ClearPresistentData();
+	void LoadPresistentData();
+
+protected:
+	static FCategoryFiltersManager StaticManager;
 };

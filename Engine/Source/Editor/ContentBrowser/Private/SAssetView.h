@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -32,9 +32,6 @@ public:
 		, _AllowDragging(true)
 		, _AllowFocusOnSync(true)
 		, _FillEmptySpaceInTileView(true)
-		, _ShowPathInColumnView(false)
-		, _ShowTypeInColumnView(true)
-		, _SortByPathInColumnView(false)
 		{}
 
 		/** Called to check if an asset should be filtered out by external code */
@@ -141,15 +138,6 @@ public:
 
 		/** Whether this asset view should allow the thumbnails to consume empty space after the user scale is applied */
 		SLATE_ARGUMENT( bool, FillEmptySpaceInTileView )
-
-		/** Should show Path in column view if true */
-		SLATE_ARGUMENT(bool, ShowPathInColumnView)
-
-		/** Should show Type in column view if true */
-		SLATE_ARGUMENT(bool, ShowTypeInColumnView)
-
-		/** Sort by path in the column view. Only works if the initial view type is Column */
-		SLATE_ARGUMENT(bool, SortByPathInColumnView)
 
 		/** Called to check if an asset tag should be display in details view. */
 		SLATE_EVENT( FOnShouldDisplayAssetTag, OnAssetTagWantsToBeDisplayed )
@@ -800,15 +788,6 @@ private:
 
 	/** Indicates if the context menu is going to load the assets, and if so to preload before the context menu is shown, and warn about the pending load. */
 	bool bPreloadAssetsForContextMenu;
-
-	/** If true, it will show path column in the asset view */
-	bool bShowPathInColumnView;
-
-	/** If true, it will show type in the asset view */
-	bool bShowTypeInColumnView;
-
-	/** If true, it sorts by path and then name */
-	bool bSortByPathInColumnView;
 
 	/** The current selection mode used by the asset view */
 	ESelectionMode::Type SelectionMode;

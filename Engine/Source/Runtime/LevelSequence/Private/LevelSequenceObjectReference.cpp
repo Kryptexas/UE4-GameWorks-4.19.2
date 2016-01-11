@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LevelSequencePCH.h"
 #include "LevelSequenceObjectReference.h"
@@ -7,43 +7,29 @@ FLevelSequenceObjectReference::FLevelSequenceObjectReference(UObject* InObject, 
 {
 	if (InObject->IsA<AActor>() || InObject->IsA<UActorComponent>())
 	{
-		if (InContext->IsA<AActor>())
-		{
-			// When the context is an actor, we only use path name lookup within the actor since it's assumed the actor will be a spawnable
-			// As such, a persistent identifier for a dynamically spawned actor is not tenable
-			ObjectPath = InObject->GetPathName(InContext);
-			ObjectId = FUniqueObjectGuid();
-		}
-		else
-		{
-			ObjectId = FLazyObjectPtr(InObject).GetUniqueID();
-			ObjectPath = InObject->GetPathName(InContext);
-		}
+		ObjectId = FLazyObjectPtr(InObject).GetUniqueID();
+		ObjectPath = InObject->GetPathName(InContext);
 	}
 }
 
 UObject* FLevelSequenceObjectReference::Resolve(UObject* InContext) const
 {
-	if (ObjectId.IsValid())
+#if WITH_EDITOR
+	int32 PIEInstanceID = InContext->GetOutermost()->PIEInstanceID;
+	FUniqueObjectGuid FixedUpId = PIEInstanceID == -1 ? ObjectId : ObjectId.FixupForPIE(PIEInstanceID);
+#else
+	FUniqueObjectGuid FixedUpId = ObjectId;
+#endif
+	
+
+	FLazyObjectPtr LazyPtr;
+	LazyPtr = FixedUpId;
+
+	if (UObject* FoundObject = LazyPtr.Get())
 	{
-	#if WITH_EDITOR
-		int32 PIEInstanceID = InContext->GetOutermost()->PIEInstanceID;
-		FUniqueObjectGuid FixedUpId = PIEInstanceID == -1 ? ObjectId : ObjectId.FixupForPIE(PIEInstanceID);
-	#else
-		FUniqueObjectGuid FixedUpId = ObjectId;
-	#endif
-		
-
-		FLazyObjectPtr LazyPtr;
-		LazyPtr = FixedUpId;
-
-		if (UObject* FoundObject = LazyPtr.Get())
-		{
-			return FoundObject;
-		}
+		return FoundObject;
 	}
-
-	if (!ObjectPath.IsEmpty())
+	else if (!ObjectPath.IsEmpty())
 	{
 		return FindObject<UObject>(InContext, *ObjectPath, false);
 	}

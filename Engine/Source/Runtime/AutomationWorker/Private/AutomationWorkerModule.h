@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,22 +11,22 @@ class FAutomationWorkerModule
 {
 public:
 
-	//~ Begin IModuleInterface Interface
+	// Begin IModuleInterface interface
 
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 
 	virtual bool SupportsDynamicReloading() override;
 
-	//~ End IModuleInterface Interface
+	// End IModuleInterface interface
 
 public:
 
-	//~ Begin IAutomationWorkerModule Interface
+	// Begin IAutomationWorkerModule interface
 
 	virtual void Tick() override;
 
-	//~ End IAutomationWorkerModule Interface
+	// End IAutomationWorkerModule interface
 
 protected:
 
@@ -100,12 +100,6 @@ private:
 	void HandleScreenShotCapturedWithName(int32 Width, int32 Height, const TArray<FColor>& Bitmap, const FString& ScreenShotName);
 #endif
 
-	//dispatches analytics events to the data collector
-	void SendAnalyticsEvents(TArray<FString>& InAnalyticsItems);
-
-	// Helper for Performance Capture Analytics
-	void RecordPerformanceAnalytics( const FAutomationPerformanceSnapshot& PerfSnapshot );
-
 private:
 
 	// The collection of test data we are to send to a controller
@@ -125,12 +119,6 @@ private:
 	/** Execute one of the tests by request of the controller. */
 	FString TestName;
 
-	/** Beautified name of the test */
-	FString BeautifiedTestName;
-
-	/** Whether to send analytics events to the backend - sent from controller */
-	bool bSendAnalytics;
-
 	/** Whether the controller has requested that the network command should execute */
 	bool bExecuteNextNetworkCommand;
 
@@ -139,4 +127,7 @@ private:
 
 	/** Delegate to fire when the test is complete */
 	FStopTestEvent StopTestEvent;
+
+	// Holds the automation command line arguments.
+	TArray<FString> DeferredAutomationCommands;
 };

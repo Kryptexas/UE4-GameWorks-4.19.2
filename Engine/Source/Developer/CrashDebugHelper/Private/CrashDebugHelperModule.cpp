@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CrashDebugHelperPrivatePCH.h"
 
@@ -21,7 +21,7 @@ DEFINE_LOG_CATEGORY(LogCrashDebugHelper);
 void FCrashDebugHelperModule::StartupModule()
 {
 	CrashDebugHelper = new FCrashDebugHelper();
-	if (CrashDebugHelper != nullptr)
+	if (CrashDebugHelper != NULL)
 	{
 		CrashDebugHelper->Init();
 	}
@@ -29,10 +29,10 @@ void FCrashDebugHelperModule::StartupModule()
 
 void FCrashDebugHelperModule::ShutdownModule()
 {
-	if (CrashDebugHelper != nullptr)
+	if (CrashDebugHelper != NULL)
 	{
 		delete CrashDebugHelper;
-		CrashDebugHelper = nullptr;
+		CrashDebugHelper = NULL;
 	}
 }
 

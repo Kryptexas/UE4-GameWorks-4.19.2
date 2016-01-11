@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	NetConnection.cpp: Unreal connection base class.
@@ -14,21 +14,9 @@
 #include "GameFramework/GameMode.h"
 #include "Runtime/PacketHandlers/PacketHandler/Public/PacketHandler.h"
 
-#include "PerfCountersHelpers.h"
 #if WITH_EDITOR
 #include "UnrealEd.h"
 #endif
-
-#if !UE_BUILD_SHIPPING
-static TAutoConsoleVariable<int32> CVarPingExcludeFrameTime( TEXT( "net.PingExcludeFrameTime" ), 0, TEXT( "Calculate RTT time between NIC's of server and client." ) );
-static TAutoConsoleVariable<int32> CVarPingDisplayServerTime( TEXT( "net.PingDisplayServerTime" ), 0, TEXT( "Show server frame time" ) );
-#endif
-
-static TAutoConsoleVariable<int32> CVarTickAllOpenChannels( TEXT( "net.TickAllOpenChannels" ), 0, TEXT( "If nonzero, each net connection will tick all of its open channels every tick. Leaving this off will improve performance." ) );
-
-DECLARE_CYCLE_STAT(TEXT("NetConnection SendAcks"), Stat_NetConnectionSendAck, STATGROUP_Net);
-DECLARE_CYCLE_STAT(TEXT("NetConnection Tick"), Stat_NetConnectionTick, STATGROUP_Net);
-
 
 /*-----------------------------------------------------------------------------
 	UNetConnection implementation.
@@ -68,16 +56,13 @@ UNetConnection::UNetConnection(const FObjectInitializer& ObjectInitializer)
 ,	CumulativeTime		( 0 )
 ,	AverageFrameTime	( 0 )
 ,	CountedFrames		( 0 )
-,	InBytes				( 0 )
-,	OutBytes			( 0 )
-,	InBytesPerSecond	( 0 )
-,	OutBytesPerSecond	( 0 )
 
 ,	SendBuffer			( 0 )
 ,	InPacketId			( -1 )
 ,	OutPacketId			( 0 ) // must be initialized as OutAckPacketId + 1 so loss of first packet can be detected
 ,	OutAckPacketId		( -1 )
-,	bLastHasServerFrameTime( false )
+,	LastPingAck			( 0.f )
+,	LastPingAckPacketId	( -1 )
 ,	ClientWorldPackageName( NAME_None )
 {
 }
@@ -97,27 +82,13 @@ void UNetConnection::InitBase(UNetDriver* InDriver,class FSocket* InSocket, cons
 	// Owning net driver
 	Driver = InDriver;
 
-	// Reset Handler
-	Handler.Reset(NULL);
-
-	Handler = MakeUnique<PacketHandler>();
-
-	if(Handler.IsValid())
-	{
-		Handler::Mode Mode = Driver->ServerConnection != nullptr ? Handler::Mode::Client : Handler::Mode::Server;
-		Handler->Initialize(Mode);
-	}
-
 	// Stats
-	StatUpdateTime			= Driver->Time;
-	LastReceiveTime			= Driver->Time;
-	LastReceiveRealtime		= FPlatformTime::Seconds();
-	LastGoodPacketRealtime	= FPlatformTime::Seconds();
-	LastTime				= FPlatformTime::Seconds();
-	LastSendTime			= Driver->Time;
-	LastTickTime			= Driver->Time;
-	LastRecvAckTime			= Driver->Time;
-	ConnectTime				= Driver->Time;
+	StatUpdateTime = Driver->Time;
+	LastReceiveTime = Driver->Time;
+	LastSendTime = Driver->Time;
+	LastTickTime = Driver->Time;
+	LastRecvAckTime = Driver->Time;
+	ConnectTime = Driver->Time;
 
 	// Current state
 	State = InState;
@@ -166,12 +137,6 @@ void UNetConnection::InitBase(UNetDriver* InDriver,class FSocket* InSocket, cons
 void UNetConnection::InitConnection(UNetDriver* InDriver, EConnectionState InState, const FURL& InURL, int32 InConnectionSpeed, int32 InMaxPacket)
 {
 	Driver = InDriver;
-
-	if (!Handler.IsValid())
-	{
-		Handler = MakeUnique<PacketHandler>();
-	}
-
 	// We won't be sending any packets, so use a default size
 	MaxPacket = (InMaxPacket == 0 || InMaxPacket > MAX_PACKET_SIZE) ? MAX_PACKET_SIZE : InMaxPacket;
 	PacketOverhead = 0;
@@ -233,8 +198,15 @@ void UNetConnection::Close()
 {
 	if (Driver != NULL && State != USOCK_Closed)
 	{
-		NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("CLOSE"), *(GetName() + TEXT(" ") + LowLevelGetRemoteAddress()), this));
-		UE_LOG(LogNet, Log, TEXT("UNetConnection::Close: %s, Channels: %i, Time: %s"), *Describe(), OpenChannels.Num(), *FDateTime::UtcNow().ToString(TEXT("%Y.%m.%d-%H.%M.%S")));
+		NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("CLOSE"), *(GetName() + TEXT(" ") + LowLevelGetRemoteAddress())));
+		UE_LOG(LogNet, Log, TEXT("UNetConnection::Close: Name: %s, Driver: %s, PC: %s, Owner: %s, Channels: %i, RemoteAddr: %s, Time: %s"), 
+			*GetName(), 
+			*Driver->GetDescription(), 
+			PlayerController ? *PlayerController->GetName() : TEXT("NULL"),
+			OwningActor ? *OwningActor->GetName() : TEXT("NULL"),
+			OpenChannels.Num(),
+			*LowLevelGetRemoteAddress(true),
+			*FDateTime::UtcNow().ToString(TEXT("%Y.%m.%d-%H.%M.%S")));
 
 		if (Channels[0] != NULL)
 		{
@@ -243,21 +215,14 @@ void UNetConnection::Close()
 		State = USOCK_Closed;
 		FlushNet();
 	}
+	else
+	{
+		UE_LOG(LogNet, Verbose, TEXT("UNetConnection::Close: Already closed. Name: %s"), *GetName() );
+	}
 
 	LogCallLastTime		= 0;
 	LogCallCount		= 0;
 	LogSustainedCount	= 0;
-}
-
-FString UNetConnection::Describe()
-{
-	return FString::Printf( TEXT( "[UNetConnection] RemoteAddr: %s, Name: %s, Driver: %s, IsServer: %s, PC: %s, Owner: %s" ),
-			*LowLevelGetRemoteAddress( true ),
-			*GetName(),
-			Driver ? *Driver->GetDescription() : TEXT( "NULL" ),
-			Driver && Driver->IsServer() ? TEXT( "YES" ) : TEXT( "NO" ),
-			PlayerController ? *PlayerController->GetName() : TEXT( "NULL" ),
-			OwningActor ? *OwningActor->GetName() : TEXT( "NULL" ) );
 }
 
 void UNetConnection::CleanUp()
@@ -271,7 +236,12 @@ void UNetConnection::CleanUp()
 
 	if ( State != USOCK_Closed )
 	{
-		UE_LOG( LogNet, Log, TEXT( "UNetConnection::Cleanup: Closing open connection. %s" ), *Describe() );
+		UE_LOG(LogNet, Log, TEXT("UNetConnection::Cleanup: Closing open connection. Name: %s, RemoteAddr: %s Driver: %s, PC: %s, Owner: %s"),
+			*GetName(),
+			*LowLevelGetRemoteAddress(true),
+			Driver ? *Driver->NetDriverName.ToString() : TEXT("NULL"),
+			PlayerController ? *PlayerController->GetName() : TEXT("NoPC"),
+			OwningActor ? *OwningActor->GetName() : TEXT("No Owner"));
 	}
 
 	Close();
@@ -288,8 +258,6 @@ void UNetConnection::CleanUp()
 		{
 			check(Driver->ServerConnection == NULL);
 			verify(Driver->ClientConnections.Remove(this) == 1);
-
-			PerfCountersIncrement(TEXT("RemovedConnections"));
 		}
 	}
 
@@ -333,8 +301,6 @@ void UNetConnection::CleanUp()
 	}
 
 	CleanupDormantActorState();
-
-	Handler.Reset(NULL);
 
 	Driver = NULL;
 }
@@ -576,7 +542,7 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 #if DO_ENABLE_NET_TEST
 		// if the connection is closing/being destroyed/etc we need to send immediately regardless of settings
 		// because we won't be around to send it delayed
-		if (State == USOCK_Closed || IsGarbageCollecting() || bIgnoreSimulation || InternalAck)
+		if (State == USOCK_Closed || IsGarbageCollecting() || bIgnoreSimulation)
 		{
 			// Checked in FlushNet() so each child class doesn't have to implement this
 			if (Driver->IsNetResourceValid())
@@ -637,11 +603,8 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 #endif
 		// Update stuff.
 		const int32 Index = OutPacketId & (ARRAY_COUNT(OutLagPacketId)-1);
-
-		// Remember the actual time this packet was sent out, so we can compute ping when the ack comes back
-		OutLagPacketId[Index]	= OutPacketId;
-		OutLagTime[Index]		= FPlatformTime::Seconds();
-
+		OutLagPacketId [Index] = OutPacketId;
+		OutLagTime     [Index] = Driver->Time;
 		OutPacketId++;
 		Driver->OutPackets++;
 		LastSendTime = Driver->Time;
@@ -686,6 +649,22 @@ void UNetConnection::ReceivedNak( int32 NakPacketId )
 	}
 }
 
+/** 
+ * Generates a 32 bit value from some input data blob
+ * @BunchData	Data blob used to produce 32 bit value
+ * @NumBits		Number of bits in data blob
+ * @PacketId	PacketId of the packet used to produce this ack data
+*/
+static uint32 CalcPingAckData( const uint8* BunchData, const int32 NumBits, const int32 PacketId )
+{
+	// Simply walk the bunch data, based upon OutPacketId, to get 'good enough' random data for verification
+	const int32	BunchBytesFloor = NumBits / 8;
+	const int32	PingAckIdx		= ( PacketId % MAX_PACKETID ) / PING_ACK_PACKET_INTERVAL;
+
+	return	( BunchData[( PingAckIdx + 0 ) % BunchBytesFloor] << 24 )	+ ( BunchData[( PingAckIdx + 1 ) % BunchBytesFloor] << 16 ) +
+			( BunchData[( PingAckIdx + 2 ) % BunchBytesFloor] << 8 )	+ ( BunchData[( PingAckIdx + 3 ) % BunchBytesFloor] );
+}
+
 void UNetConnection::ReceivedPacket( FBitReader& Reader )
 {
 	AssertValid();
@@ -700,8 +679,7 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 	ValidateSendBuffer();
 
 	// Update receive time to avoid timeout.
-	LastReceiveTime		= Driver->Time;
-	LastReceiveRealtime = FPlatformTime::Seconds();
+	LastReceiveTime = Driver->Time;
 
 	// Check packet ordering.
 	const int32 PacketId = InternalAck ? InPacketId + 1 : MakeRelative(Reader.ReadInt(MAX_PACKETID),InPacketId,MAX_PACKETID);
@@ -711,14 +689,15 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 		
 		if ( PacketsLost > 10 )
 		{
-			UE_LOG( LogNetTraffic, Warning, TEXT( "High single frame packet loss. PacketsLost: %i %s" ), PacketsLost, *Describe() );
+			UE_LOG( LogNetTraffic, Warning, TEXT( "High single frame packet loss: %i" ), PacketsLost );
 		}
 
 		InPacketsLost += PacketsLost;
 		Driver->InPacketsLost += PacketsLost;
 		InPacketId = PacketId;
 	}
-	else
+	// Invalid Data Packet: Received a duplicate packet
+	else if ( PacketId > 0)
 	{
 		Driver->InOutOfOrderPackets++;
 		// Protect against replay attacks
@@ -726,9 +705,23 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 		// The only bunch we would process would be unreliable RPC's, which could allow for replay attacks
 		// So rather than add individual protection for unreliable RPC's as well, just kill it at the source, 
 		// which protects everything in one fell swoop
+
+		UE_SECURITY_LOG(this, ESecurityEvent::Invalid_Data, TEXT("Received a packet with an Acked PacketID"));
+
+		return;		
+	}
+	// Invalid Data Packet: User has sent an invalid PacketId
+	else if ( PacketId < 0)
+	{
+		UE_SECURITY_LOG(this, ESecurityEvent::Invalid_Data, TEXT("Received a packet with an invalid PacketID"));
+
 		return;
 	}
 
+	// Detect packets on the client, which should trigger PingAck verification
+	bool bPendingSendPingAck = Driver->ServerConnection != NULL && (PacketId % PING_ACK_PACKET_INTERVAL) == 0;
+	bool bGotPingAckData = false;
+	uint32 OutPingAckData = 0;
 
 	bool bSkipAck = false;
 
@@ -750,7 +743,7 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 			LastRecvAckTime = Driver->Time;
 
 			// This is an acknowledgment.
-			const int32 AckPacketId = MakeRelative(Reader.ReadInt(MAX_PACKETID),OutAckPacketId,MAX_PACKETID);
+			int32 AckPacketId = MakeRelative(Reader.ReadInt(MAX_PACKETID),OutAckPacketId,MAX_PACKETID);
 
 			if( Reader.IsError() )
 			{
@@ -758,29 +751,26 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 				return;
 			}
 
-			double ServerFrameTime = 0;
 
-			// If this is the server, we're reading in the request to send them our frame time
-			// If this is the client, we're reading in confirmation that our request to get frame time from server is granted
-			const bool bHasServerFrameTime = !!Reader.ReadBit();
+			// Detect ack packets on the server, containing PingAckData
+			bool bPingAck = Driver->ServerConnection == NULL && (AckPacketId % PING_ACK_PACKET_INTERVAL) == 0;
+			bool bHasPingAckData = false;
+			uint32 InPingAckData = 0;
 
-#if !UE_BUILD_SHIPPING	// We never actually read it for shipping
-			if ( !Driver->IsServer() )
+			if (bPingAck)
 			{
-				if ( bHasServerFrameTime )
+				bHasPingAckData = !!Reader.ReadBit();
+
+				if (bHasPingAckData)
 				{
-					// As a client, our request was granted, read the frame time
-					uint8 FrameTimeByte	= 0;
-					Reader << FrameTimeByte;
-					ServerFrameTime = ( double )FrameTimeByte / 1000;
+					Reader.Serialize(&InPingAckData, sizeof(uint32));
 				}
 			}
-			else
-			{
-				// Server remembers so he can use during SendAck to notify to client of his frame time
-				bLastHasServerFrameTime = bHasServerFrameTime;
-			}
-#endif
+
+
+			// For clientside monitoring of ping, watch out for duplicate acks (they come one tick later than the original ack),
+			//	because if you don't, the calculated ping value will be high by one tick
+			bool bPotentialDupeAck = false;
 
 			// Resend any old reliable packets that the receiver hasn't acknowledged.
 			if( AckPacketId>OutAckPacketId )
@@ -796,34 +786,32 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 			{
 				//warning: Double-ack logic makes this unmeasurable.
 				//OutOrdAcc++;
+
+				bPotentialDupeAck = true;
 			}
 
-			// Update ping
-			const int32 Index = AckPacketId & (ARRAY_COUNT(OutLagPacketId)-1);
-
-			if ( OutLagPacketId[Index] == AckPacketId )
+			// Update lag.
+			int32 Index = AckPacketId & (ARRAY_COUNT(OutLagPacketId)-1);
+			if( OutLagPacketId[Index]==AckPacketId )
 			{
-				OutLagPacketId[Index] = -1;		// Only use the ack once
-
-#if !UE_BUILD_SHIPPING
-				if ( CVarPingDisplayServerTime.GetValueOnGameThread() > 0 )
-				{
-					UE_LOG( LogNetTraffic, Warning, TEXT( "ServerFrameTime: %2.2f" ), ServerFrameTime * 1000.0f );
-				}
-
-				const float GameTime	= ServerFrameTime + FrameTime;
-				const float RTT			= ( FPlatformTime::Seconds() - OutLagTime[Index] ) - ( CVarPingExcludeFrameTime.GetValueOnGameThread() ? GameTime : 0.0f );
-				const float NewLag		= FMath::Max( RTT, 0.0f );
-#else
-				const float NewLag		= FPlatformTime::Seconds() - OutLagTime[Index];
-#endif
+				float NewLag = Driver->Time - OutLagTime[Index] - (FrameTime/2.f);
 
 				LagAcc += NewLag;
 				LagCount++;
 
 				if (PlayerController != NULL)
 				{
-					PlayerController->UpdatePing(NewLag);
+					// Verify PingAck's, and pass notification up
+					if (bPingAck && bHasPingAckData &&
+						PingAckDataCache[(AckPacketId % MAX_PACKETID)/PING_ACK_PACKET_INTERVAL] == InPingAckData)
+					{
+						PlayerController->UpdatePing(NewLag);
+					}
+					// For clients monitoring their own ping, trigger UpdatePing so long as this is not a duplicate ack
+					else if (Driver->ServerConnection != NULL && !bPotentialDupeAck)
+					{
+						PlayerController->UpdatePing(NewLag);
+					}
 				}
 			}
 
@@ -834,7 +822,6 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 
 			// Forward the ack to the channel.
 			UE_LOG(LogNetTraffic, Verbose, TEXT("   Received ack %i (%.1f)"), AckPacketId, (Reader.GetPosBits()-StartPos)/8.f );
-
 			for( int32 i=OpenChannels.Num()-1; i>=0; i-- )
 			{
 				UChannel* Channel = OpenChannels[i];
@@ -973,6 +960,14 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 				return;
 			}
 
+			// Handle grabbing of PingAckData, for client PingAck verification (need a minimum of 32bits data, for OutPingAckData)
+			if (bPendingSendPingAck && !bGotPingAckData && BunchDataBits >= 32 &&
+				FMath::Abs(Driver->Time - LastPingAck) >= PING_ACK_DELAY)
+			{
+				OutPingAckData = CalcPingAckData( Bunch.GetData(), Bunch.GetNumBits(), PacketId );
+				bGotPingAckData = true;
+				LastPingAck = Driver->Time;
+			}
 
 			// Receiving data.
 			UChannel* Channel = Channels[Bunch.ChIndex];
@@ -980,8 +975,8 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 			// Ignore if reliable packet has already been processed.
 			if ( Bunch.bReliable && Bunch.ChSequence <= InReliable[Bunch.ChIndex] )
 			{
-				UE_LOG( LogNetTraffic, Log, TEXT( "UNetConnection::ReceivedPacket: Received outdated bunch (Channel %d Current Sequence %i)" ), Bunch.ChIndex, InReliable[Bunch.ChIndex] );
 				check( !InternalAck );		// Should be impossible with 100% reliable connections
+				UE_LOG( LogNetTraffic, Log, TEXT( "UNetConnection::ReceivedPacket: Received outdated bunch (Channel %d Current Sequence %i)" ), Bunch.ChIndex, InReliable[Bunch.ChIndex] );
 				continue;
 			}
 			
@@ -996,16 +991,9 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 				const bool ValidUnreliableOpen = Bunch.bOpen && (Bunch.bClose || Bunch.bPartial);
 				if (!ValidUnreliableOpen)
 				{
-					if ( InternalAck )
-					{
-						// Should be impossible with 100% reliable connections
-						UE_LOG( LogNetTraffic, Error, TEXT( "      Received unreliable bunch before open with reliable connection (Channel %d Current Sequence %i)" ), Bunch.ChIndex, InReliable[Bunch.ChIndex] );
-					}
-					else
-					{
-						UE_LOG( LogNetTraffic, Warning, TEXT( "      Received unreliable bunch before open (Channel %d Current Sequence %i)" ), Bunch.ChIndex, InReliable[Bunch.ChIndex] );
-					}
+					check( !InternalAck );		// Should be impossible with 100% reliable connections
 
+					UE_LOG( LogNetTraffic, Warning, TEXT( "      Received unreliable bunch before open (Channel %d Current Sequence %i)" ), Bunch.ChIndex, InReliable[Bunch.ChIndex] );
 					// Since we won't be processing this packet, don't ack it
 					// We don't want the sender to think this bunch was processed when it really wasn't
 					bSkipAck = true;
@@ -1064,19 +1052,18 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 			{
 				UE_LOG( LogNetTraffic, Error, TEXT("Received corrupted packet data from client %s.  Disconnecting."), *LowLevelGetRemoteAddress() );
 				State = USOCK_Closed;
-				bSkipAck = true;
 			}
 		}
 	}
 
 	ValidateSendBuffer();
 
+	check( !bSkipAck || !InternalAck );		// 100% reliable connections shouldn't be skipping acks
+
 	// Acknowledge the packet.
 	if ( !bSkipAck )
 	{
-		LastGoodPacketRealtime = FPlatformTime::Seconds();
-
-		SendAck(PacketId, true);
+		SendAck(PacketId, true, bGotPingAckData, OutPingAckData);
 	}
 }
 
@@ -1179,10 +1166,8 @@ void UNetConnection::PurgeAcks()
 }
 
 
-void UNetConnection::SendAck(int32 AckPacketId, bool FirstTime/*=1*/)
+void UNetConnection::SendAck( int32 AckPacketId, bool FirstTime/*=1*/, bool bHavePingAckData/*=0*/, uint32 PingAckData/*=0*/ )
 {
-	SCOPE_CYCLE_COUNTER(Stat_NetConnectionSendAck);
-
 	ValidateSendBuffer();
 
 	if( !InternalAck )
@@ -1197,29 +1182,24 @@ void UNetConnection::SendAck(int32 AckPacketId, bool FirstTime/*=1*/)
 
 		AckData.WriteBit( 1 );
 		AckData.WriteIntWrapped(AckPacketId, MAX_PACKETID);
-		
-#if !UE_BUILD_SHIPPING	// We never actually write it for shipping
-		const bool bHasServerFrameTime = Driver->IsServer() ? bLastHasServerFrameTime : ( CVarPingExcludeFrameTime.GetValueOnGameThread() > 0 ? true : false );
 
-		AckData.WriteBit( bHasServerFrameTime ? 1 : 0 );
+		const bool bPingAck = Driver->ServerConnection != NULL && (AckPacketId % PING_ACK_PACKET_INTERVAL) == 0;
 
-		if ( Driver->IsServer() && bHasServerFrameTime )
+		if ( bPingAck )
 		{
-			uint8 FrameTimeByte = FMath::Min( FMath::FloorToInt( FrameTime * 1000 ), 255 );
-			AckData << FrameTimeByte;
-		}
-#else
-		// We still write the bit in shipping to keep the format the same
-		AckData.WriteBit( 0 );
-#endif
+			AckData.WriteBit( bHavePingAckData );
 
-		NETWORK_PROFILER( GNetworkProfiler.TrackSendAck( AckData.GetNumBits(), this ) );
+			if ( bHavePingAckData )
+			{
+				AckData.Serialize( &PingAckData, sizeof( uint32 ) );
+			}
+		}
+
+		NETWORK_PROFILER( GNetworkProfiler.TrackSendAck( AckData.GetNumBits() ) );
 
 		WriteBitsToSendBuffer( AckData.GetData(), AckData.GetNumBits(), nullptr, 0, EWriteBitsDataType::Ack );
 
 		AllowMerge = false;
-
-		TimeSensitive = 1;
 
 		UE_LOG(LogNetTraffic, Log, TEXT("   Send ack %i"), AckPacketId);
 	}
@@ -1303,6 +1283,20 @@ int32 UNetConnection::SendRawBunch( FOutBunch& Bunch, bool InAllowMerge )
 		Driver->NetGUIDOutBytes += (Header.GetNumBits() + Bunch.GetNumBits()) >> 3;
 	}
 
+	// Verified client ping tracking - caches some semi-random bytes of the packet, for ping validation
+	if (Driver->ServerConnection == NULL && Bunch.PacketId != LastPingAckPacketId && (Bunch.PacketId % PING_ACK_PACKET_INTERVAL) == 0 &&
+		Bunch.GetNumBits() >= 32)
+	{
+		const uint32 PingAckData = CalcPingAckData( Bunch.GetData(), Bunch.GetNumBits(), Bunch.PacketId );
+
+		const int32 PingAckIdx = (Bunch.PacketId % MAX_PACKETID) / PING_ACK_PACKET_INTERVAL;
+
+		PingAckDataCache[PingAckIdx] = PingAckData;
+
+		// Multiple bunches get written per-packet, but PingAck only uses the first bunch, so don't process more bunches this PacketId
+		LastPingAckPacketId = Bunch.PacketId;
+	}
+
 	return Bunch.PacketId;
 }
 
@@ -1351,11 +1345,6 @@ UChannel* UNetConnection::CreateChannel( EChannelType ChType, bool bOpenedLocall
 	Channel->Init( this, ChIndex, bOpenedLocally );
 	Channels[ChIndex] = Channel;
 	OpenChannels.Add(Channel);
-	// Always tick the control & voice channels
-	if (Channel->ChType == CHTYPE_Control || Channel->ChType == CHTYPE_Voice)
-	{
-		StartTickingChannel(Channel);
-	}
 	UE_LOG(LogNetTraffic, Log, TEXT("Created channel %i of type %i"), ChIndex, (int32)ChType);
 
 	return Channel;
@@ -1370,21 +1359,8 @@ UVoiceChannel* UNetConnection::GetVoiceChannel()
 		(UVoiceChannel*)Channels[VOICE_CHANNEL_INDEX] : NULL;
 }
 
-float UNetConnection::GetTimeoutValue()
-{
-	float Timeout = Driver->InitialConnectTimeout;
-	if ( ( State != USOCK_Pending ) && ( bPendingDestroy || ( OwningActor && OwningActor->UseShortConnectTimeout() ) ) )
-	{
-		Timeout = bPendingDestroy ? 2.f : Driver->ConnectionTimeout;
-	}
-
-	return Timeout;
-}
-
 void UNetConnection::Tick()
 {
-	SCOPE_CYCLE_COUNTER(Stat_NetConnectionTick);
-
 	AssertValid();
 
 	// Lag simulation.
@@ -1399,19 +1375,14 @@ void UNetConnection::Tick()
 				Delayed.RemoveAt( i );
 				i--;
 			}
-			else
-			{
-				// Break now instead of continuing to iterate through the list. Otherwise LagVariance may cause out of order sends
-				break;
-			}
 		}
 	}
 #endif
 
 	// Get frame time.
-	const double CurrentRealtimeSeconds = FPlatformTime::Seconds();
-	FrameTime = CurrentRealtimeSeconds - LastTime;
-	LastTime = CurrentRealtimeSeconds;
+	double CurrentTime = FPlatformTime::Seconds();
+	FrameTime = CurrentTime - LastTime;
+	LastTime = CurrentTime;
 	CumulativeTime += FrameTime;
 	CountedFrames++;
 	if(CumulativeTime > 1.f)
@@ -1427,8 +1398,6 @@ void UNetConnection::Tick()
 		OutAckPacketId = OutPacketId;
 
 		LastReceiveTime = Driver->Time;
-		LastReceiveRealtime = FPlatformTime::Seconds();
-		LastGoodPacketRealtime = FPlatformTime::Seconds();
 		for( int32 i=OpenChannels.Num()-1; i>=0; i-- )
 		{
 			UChannel* It = OpenChannels[i];
@@ -1442,22 +1411,19 @@ void UNetConnection::Tick()
 	}
 
 	// Update stats.
-	if ( CurrentRealtimeSeconds - StatUpdateTime > StatPeriod )
+	if( Driver->Time - StatUpdateTime > StatPeriod )
 	{
 		// Update stats.
-		const float RealTime = CurrentRealtimeSeconds - StatUpdateTime;
+		float const RealTime = Driver->Time - StatUpdateTime;
 		if( LagCount )
 		{
 			AvgLag = LagAcc/LagCount;
 		}
 		BestLag = AvgLag;
 
-		InBytesPerSecond = FMath::TruncToInt(static_cast<float>(InBytes) / RealTime);
-		OutBytesPerSecond = FMath::TruncToInt(static_cast<float>(OutBytes) / RealTime);
-
 		// Init counters.
 		LagAcc = 0;
-		StatUpdateTime = CurrentRealtimeSeconds;
+		StatUpdateTime = Driver->Time;
 		BestLagAcc = 9999;
 		LagCount = 0;
 		InPacketsLost = 0;
@@ -1467,46 +1433,33 @@ void UNetConnection::Tick()
 	}
 
 	// Compute time passed since last update.
-	const float DeltaTime	= Driver->Time - LastTickTime;
-	LastTickTime			= Driver->Time;
-
-	// Check to see if too much time is passing between ticks
-	// Setting this to somewhat large value for now, but small enough to catch blocking calls that are causing timeouts
-	const float TickWarnThreshold = 5.0f;
-
-	if ( DeltaTime > TickWarnThreshold || FrameTime > TickWarnThreshold )
-	{
-		UE_LOG( LogNet, Warning, TEXT( "UNetConnection::Tick: Very long time between ticks. DeltaTime: %2.2f, Realtime: %2.2f %s" ), DeltaTime, FrameTime, *Describe() );
-	}
+	float DeltaTime     = Driver->Time - LastTickTime;
+	LastTickTime        = Driver->Time;
 
 	// Handle timeouts.
-	const float Timeout = GetTimeoutValue();
-
-#if !UE_BUILD_SHIPPING
-	if (!Driver->bNoTimeouts && (Driver->Time - LastReceiveTime) > Timeout)
-#else
-	if ((Driver->Time - LastReceiveTime) > Timeout)
-#endif
+	float Timeout = Driver->InitialConnectTimeout;
+	if ( (State!=USOCK_Pending) && (bPendingDestroy || (PlayerController && PlayerController->bShortConnectTimeOut) ) )
 	{
-		// Compute true realtime since packet was received (as well as truly processed)
-		const double Seconds = FPlatformTime::Seconds();
-
-		const float ReceiveRealtimeDelta	= Seconds - LastReceiveRealtime;
-		const float GoodRealtimeDelta		= Seconds - LastGoodPacketRealtime;
-
+		Timeout = bPendingDestroy ? 2.f : Driver->ConnectionTimeout;
+	}
+	bool bUseTimeout = true;
+#if WITH_EDITOR
+	// Do not time out in PIE since the server is local.
+	bUseTimeout = !(GEditor && GEditor->PlayWorld);
+#endif
+	if ( bUseTimeout && Driver->Time - LastReceiveTime > Timeout )
+	{
 		// Timeout.
-		FString Error = FString::Printf(TEXT("UNetConnection::Tick: Connection TIMED OUT. Closing connection. Elapsed: %2.2f, Real: %2.2f, Good: %2.2f, DriverTime: %2.2f, Threshold: %2.2f, %s"),
+		FString Error = FString::Printf(TEXT("UNetConnection::Tick: Connection TIMED OUT. Closing connection. Driver: %s, Elapsed: %f, Threshold: %f, RemoteAddr: %s, PC: %s, Owner: %s"),
+			*Driver->GetName(),
 			Driver->Time - LastReceiveTime,
-			ReceiveRealtimeDelta,
-			GoodRealtimeDelta,
-			Driver->Time,
-			Timeout,
-			*Describe());
+			Timeout, *LowLevelGetRemoteAddress(true),
+			PlayerController ? *PlayerController->GetName() : TEXT("NoPC"),
+			OwningActor ? *OwningActor->GetName() : TEXT("No Owner")
+			);
 		UE_LOG(LogNet, Warning, TEXT("%s"), *Error);
 		GEngine->BroadcastNetworkFailure(Driver->GetWorld(), Driver, ENetworkFailure::ConnectionTimeout, Error);
 		Close();
-
-		PerfCountersIncrement(TEXT("TimedoutConnections"));
 
 		if (Driver == NULL)
 		{
@@ -1516,28 +1469,10 @@ void UNetConnection::Tick()
 	}
 	else
 	{
-		// We should never need more ticking channels than open channels
-		checkf(ChannelsToTick.Num() <= OpenChannels.Num(), TEXT("More ticking channels (%d) than open channels (%d) for net connection!"), ChannelsToTick.Num(), OpenChannels.Num())
-
 		// Tick the channels.
-		if (CVarTickAllOpenChannels.GetValueOnGameThread() == 0)
+		for( int32 i=OpenChannels.Num()-1; i>=0; i-- )
 		{
-			for( int32 i=ChannelsToTick.Num()-1; i>=0; i-- )
-			{
-				ChannelsToTick[i]->Tick();
-
-				if (ChannelsToTick[i]->CanStopTicking())
-				{
-					ChannelsToTick.RemoveAt(i);
-				}
-			}
-		}
-		else
-		{
-			for( int32 i=OpenChannels.Num()-1; i>=0; i-- )
-			{
-				OpenChannels[i]->Tick();
-			}
+			OpenChannels[i]->Tick();
 		}
 
 		for ( auto It = KeepProcessingActorChannelBunchesMap.CreateIterator(); It; ++It )
@@ -1614,9 +1549,9 @@ void UNetConnection::HandleClientPlayer( APlayerController *PC, UNetConnection* 
 		break;
 	}
 
-	// Detach old player if same world.
+	// Detach old player.
 	check(LocalPlayer);
-	if( LocalPlayer->PlayerController && LocalPlayer->PlayerController->GetWorld() == PC->GetWorld() )
+	if( LocalPlayer->PlayerController )
 	{
 		if (LocalPlayer->PlayerController->Role == ROLE_Authority)
 		{
@@ -1811,7 +1746,6 @@ void UNetConnection::ResetGameWorldState()
 	RecentlyDormantActors.Empty();
 	DormantActors.Empty();
 	ClientVisibleLevelNames.Empty();
-	ClientWorldPackageName = NAME_None;
 	KeepProcessingActorChannelBunchesMap.Empty();
 	DormantReplicatorMap.Empty();
 
@@ -1985,8 +1919,6 @@ bool UNetConnection::TrackLogsPerSecond()
 			// Hit this instant limit, we instantly disconnect them
 			UE_LOG( LogNet, Warning, TEXT( "UNetConnection::TrackLogsPerSecond instant FAILED. LogsPerSecond: %f, RemoteAddr: %s" ), (float)LogsPerSecond, *LowLevelGetRemoteAddress() );
 			Close();		// Close the connection
-
-			PerfCountersIncrement(TEXT("ClosedConnectionsDueToMaxBadRPCsLimit"));
 			return false;
 		}
 
@@ -2003,8 +1935,6 @@ bool UNetConnection::TrackLogsPerSecond()
 				// Hit the sustained limit for too long, disconnect them
 				UE_LOG( LogNet, Warning, TEXT( "UNetConnection::TrackLogsPerSecond: LogSustainedCount > MAX_SUSTAINED_COUNT. LogsPerSecond: %f, RemoteAddr: %s" ), (float)LogsPerSecond, *LowLevelGetRemoteAddress() );
 				Close();		// Close the connection
-
-				PerfCountersIncrement(TEXT("ClosedConnectionsDueToMaxBadRPCsLimit"));
 				return false;
 			}
 		}

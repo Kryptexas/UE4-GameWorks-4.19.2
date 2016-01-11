@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -21,16 +21,14 @@ public:
 	 */
 	void Construct(const FArguments& InArgs, TSharedPtr<SSearchBox> InDefaultFocusWidget, TSharedPtr< SListView< ListType > > InTargetListView)
 	{
+		check(InDefaultFocusWidget.IsValid());
 		check(InTargetListView.IsValid());
 
 		TargetListView = InTargetListView;
 		DefaultFocusWidget = InDefaultFocusWidget;
 
-		if (DefaultFocusWidget.IsValid())
-		{
-			// We have some overrides for OnKeyDown handling of the SSearchBox to provide the seamless functionality
-			InDefaultFocusWidget->SetOnKeyDownHandler(FOnKeyDown::CreateSP(this, &SListViewSelectorDropdownMenu<ListType>::OnKeyDown));
-		}
+		// We have some overrides for OnKeyDown handling of the SSearchBox to provide the seamless functionality
+		InDefaultFocusWidget->SetOnKeyDownHandler(FOnKeyDown::CreateSP(this, &SListViewSelectorDropdownMenu<ListType>::OnKeyDown));
 
 		this->ChildSlot
 		[
@@ -57,7 +55,7 @@ public:
 			}
 			return FReply::Handled();
 		}
-		else if (DefaultFocusWidget.IsValid())
+		else
 		{
 			TSharedPtr< SWidget > DefaultFocusWidgetPtr = DefaultFocusWidget.Pin();
 			FReply Reply = DefaultFocusWidgetPtr->OnKeyDown(FindChildGeometry(MyGeometry, TargetListViewPtr.ToSharedRef()), KeyEvent);

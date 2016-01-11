@@ -1,11 +1,8 @@
-﻿INTSourceChangelist:2735872
-Availability:Public
+﻿Availability:Public
 Title:ペルソナ：スケルタルメッシュのアニメーション
 Crumbs: %ROOT%, Engine
 Description:キーフレーム アニメーション データとモーフ ターゲットに基いてスケルタル メッシュを変形するシステム
 Navigation:topic
-parent:Engine
-order:3
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -107,7 +104,6 @@ order:3
 		* [](Engine/Animation/PhysicallyDrivenAnimation "%Engine/Animation/PhysicallyDrivenAnimation:description%")
 		* [](Engine/Animation/RootMotion "%Engine/Animation/RootMotion:description%")
 		* [](Engine/Animation/NonUniformScale "%Engine/Animation/NonUniformScale:description%")
-		* [](Engine\Animation\NonLinearBlends "%Engine\Animation\NonLinearBlends:description%")
 	[/PARAM]
 [/OBJECT]
 
@@ -136,7 +132,7 @@ order:3
 		* [](Engine/Content/FBX/Animations "%Engine/Content/FBX/Animations:description%")
 		* [](Engine/Content/FBX/MorphTargets "%Engine/Content/FBX/MorphTargets:description%")
 		* **プログラミング**		
-			* [](Programming/Animation/AnimNodes) - %Programming/Animation/AnimNodes:description%
+			* [](Programming/Animation "%Programming/Animation:description%")
 		* **チュートリアル**		
 			* [](Engine/Animation/CharacterSetupOverview "%Engine/Animation/CharacterSetupOverview:description%")
 			* [](Engine/Animation/IKSetups "%Engine/Animation/IKSetups:description%")

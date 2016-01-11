@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Core utility archive classes.  Must be separate from ArchiveBase.h since 
@@ -144,7 +144,7 @@ public:
 	 *
 	 * This is overridden for the specific Archive Types
 	 **/
-	virtual FString GetArchiveName() const { return *FString::Printf( TEXT("FBufferArchive %s"), *ArchiveName.ToString()); }
+	virtual FString GetArchiveName() const { return TEXT("FBufferArchive"); }
 };
 
 /**
@@ -163,12 +163,12 @@ public:
 
 	int64 TotalSize()
 	{
-		return FMath::Min((int64)Bytes.Num(), LimitSize);
+		return Bytes.Num();
 	}
 
 	void Seek(int64 InPos )
 	{
-		check(InPos <= TotalSize());
+		check(InPos<=Bytes.Num());
 		FMemoryArchive::Seek(InPos);
 	}
 
@@ -177,7 +177,7 @@ public:
 		if (Num && !ArIsError)
 		{
 			// Only serialize if we have the requested amount of data
-			if (Offset + Num <= TotalSize())
+			if (Offset + Num <= Bytes.Num())
 			{
 				FMemory::Memcpy( Data, &Bytes[Offset], Num );
 				Offset += Num;
@@ -188,26 +188,17 @@ public:
 			}
 		}
 	}
-
 	FMemoryReader( const TArray<uint8>& InBytes, bool bIsPersistent = false )
 	: FMemoryArchive()
 	, Bytes(InBytes)
-	, LimitSize(INT64_MAX)
 	{
 		ArIsLoading		= true;
 		ArIsPersistent	= bIsPersistent;
 	}
 
-	/** With this method it's possible to attach data behind some serialized data. */
-	void SetLimitSize(int64 NewLimitSize)
-	{
-		LimitSize = NewLimitSize;
-	}
-
 protected:
 
 	const TArray<uint8>& Bytes;
-	int64 LimitSize;
 };
 
 /**

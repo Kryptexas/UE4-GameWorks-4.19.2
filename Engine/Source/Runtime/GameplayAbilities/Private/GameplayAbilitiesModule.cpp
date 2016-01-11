@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemGlobals.h"
@@ -13,7 +13,6 @@ class FGameplayAbilitiesModule : public IGameplayAbilitiesModule
 
 	virtual UAbilitySystemGlobals* GetAbilitySystemGlobals() override
 	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_IGameplayAbilitiesModule_GetAbilitySystemGlobals);
 		// Defer loading of globals to the first time it is requested
 		if (!AbilitySystemGlobals)
 		{
@@ -23,8 +22,7 @@ class FGameplayAbilitiesModule : public IGameplayAbilitiesModule
 
 			checkf(SingletonClass != NULL, TEXT("Ability config value AbilitySystemGlobalsClassName is not a valid class name."));
 
-			AbilitySystemGlobals = NewObject<UAbilitySystemGlobals>(GetTransientPackage(), SingletonClass, NAME_None);
-			AbilitySystemGlobals->AddToRoot();
+			AbilitySystemGlobals = NewObject<UAbilitySystemGlobals>(GetTransientPackage(), SingletonClass, NAME_None, RF_RootSet);
 		}
 
 		check(AbilitySystemGlobals);
@@ -33,7 +31,6 @@ class FGameplayAbilitiesModule : public IGameplayAbilitiesModule
 
 	virtual bool IsAbilitySystemGlobalsAvailable() override
 	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_IGameplayAbilitiesModule_IsAbilitySystemGlobalsAvailable);
 		return AbilitySystemGlobals != nullptr;
 	}
 
