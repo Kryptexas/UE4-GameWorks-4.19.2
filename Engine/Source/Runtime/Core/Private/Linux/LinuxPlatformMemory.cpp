@@ -47,7 +47,7 @@ class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 
 	// Prefer jemalloc for the editor and programs as it saved ~20% RES usage in my (RCL) tests.
 	// Leave binned as the default for games and servers to keep runtime behavior consistent across platforms.
-	if (PLATFORM_SUPPORTS_JEMALLOC && (UE_EDITOR || IS_PROGRAM))
+	if (PLATFORM_SUPPORTS_JEMALLOC && (UE_EDITOR != 0 || IS_PROGRAM != 0))
 	{
 		AllocatorToUse = EAllocatorToUse::Jemalloc;
 	}
