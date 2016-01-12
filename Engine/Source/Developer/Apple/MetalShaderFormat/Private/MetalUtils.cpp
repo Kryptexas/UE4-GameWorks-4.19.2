@@ -1,14 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MetalShaderFormat.h"
-#include "MetalUtils.h"
-#include "MetalBackend.h"
 
 #include "Core.h"
 
 #include "hlslcc.h"
 #include "hlslcc_private.h"
 #include "compiler.h"
+#include "MetalUtils.h"
+#include "MetalBackend.h"
 
 PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 #include "glsl_parser_extras.h"
