@@ -62,6 +62,8 @@ protected:
 	// Interface for derived skeletal controls to implement
 	// use this function to update for skeletal control base
 	virtual void UpdateInternal(const FAnimationUpdateContext& Context);
+	// use this function to evaluate for skeletal control base
+	virtual void EvaluateComponentSpaceInternal(FComponentSpacePoseContext& Context);
 	// Evaluate the new component-space transforms for the affected bones.
 	virtual void EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms) {}
 	// return true if it is valid to Evaluate

@@ -56,6 +56,10 @@ bool ContainsNaN(const TArray<FBoneTransform> & BoneTransforms)
 	return false;
 }
 
+void FAnimNode_SkeletalControlBase::EvaluateComponentSpaceInternal(FComponentSpacePoseContext& Context)
+{
+}
+
 void FAnimNode_SkeletalControlBase::EvaluateComponentSpace(FComponentSpacePoseContext& Output)
 {
 	// Evaluate the input
@@ -67,6 +71,8 @@ void FAnimNode_SkeletalControlBase::EvaluateComponentSpace(FComponentSpacePoseCo
 		const float ActualAlpha = AlphaScaleBias.ApplyTo(Alpha);
 		if ((ActualAlpha >= ZERO_ANIMWEIGHT_THRESH) && IsValidToEvaluate(Output.AnimInstanceProxy->GetSkeleton(), Output.AnimInstanceProxy->GetRequiredBones()))
 		{
+			EvaluateComponentSpaceInternal(Output);
+
 			USkeletalMeshComponent* Component = Output.AnimInstanceProxy->GetSkelMeshComponent();
 
 #if WITH_EDITORONLY_DATA
