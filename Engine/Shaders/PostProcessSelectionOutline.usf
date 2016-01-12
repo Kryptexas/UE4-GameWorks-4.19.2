@@ -63,7 +63,7 @@ FPixelInfo GetPixelInfo(int2 PixelPos, int SampleID, int OffsetX, int OffsetY, f
 
 #if !COMPILER_GLSL && !PS4_PROFILE && !COMPILER_METAL
 	// not yet supported on OpenGL, slightly better quality
-	//ReconstructionOffset += PostprocessInput1MS.GetSamplePosition(SampleID);
+	ReconstructionOffset += PostprocessInput1MS.GetSamplePosition(SampleID);
 #endif
 
 #else
