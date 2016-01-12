@@ -562,6 +562,12 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 	, ComponentLightInfo(nullptr)
 	, LandscapeComponent(InComponent)
 	, LODFalloff(InComponent->GetLandscapeProxy()->LODFalloff)
+#if WITH_EDITOR || !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	, bBakeMaterialPositionOffsetIntoCollision(InComponent->GetLandscapeProxy()->bBakeMaterialPositionOffsetIntoCollision)
+	, CollisionMipLevel(InComponent->CollisionMipLevel)
+	, SimpleCollisionMipLevel(InComponent->SimpleCollisionMipLevel)
+	, CollisionResponse(InComponent->GetLandscapeProxy()->BodyInstance.GetResponseToChannels())
+#endif
 {
 	if (!IsComponentLevelVisible())
 	{
@@ -650,7 +656,17 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 #endif
 
 	bRequiresAdjacencyInformation = RequiresAdjacencyInformation(MaterialInterface, XYOffsetmapTexture == nullptr ? &FLandscapeVertexFactory::StaticType : &FLandscapeXYOffsetVertexFactory::StaticType, InComponent->GetWorld()->FeatureLevel);
-	SharedBuffersKey = (SubsectionSizeQuads & 0xffff) | ((NumSubsections & 0xf) << 16) | (FeatureLevel <= ERHIFeatureLevel::ES3_1 ? 0 : 1 << 20) | (XYOffsetmapTexture == nullptr ? 0 : 1 << 31);
+
+	const int8 SubsectionSizeLog2 = FMath::CeilLogTwo(InComponent->SubsectionSizeQuads + 1);
+#if WITH_EDITOR
+	const int8 SharedBufferCollisionMip = bBakeMaterialPositionOffsetIntoCollision ? CollisionMipLevel : 0;
+	const int8 SharedBufferSimpleCollisionMip = bBakeMaterialPositionOffsetIntoCollision ? SimpleCollisionMipLevel : 0;
+#endif
+	SharedBuffersKey = (SubsectionSizeLog2 & 0xf) | ((NumSubsections & 0xf) << 4) |
+#if WITH_EDITOR
+	                   ((SharedBufferCollisionMip & 0xf) << 8) | ((SharedBufferSimpleCollisionMip & 0xf) << 12) |
+#endif
+	                   (FeatureLevel <= ERHIFeatureLevel::ES3_1 ? 0 : 1 << 30) | (XYOffsetmapTexture == nullptr ? 0 : 1 << 31);
 
 	bSupportsHeightfieldRepresentation = true;
 
@@ -681,7 +697,18 @@ void FLandscapeComponentSceneProxy::CreateRenderThreadResources()
 	SharedBuffers = FLandscapeComponentSceneProxy::SharedBuffersMap.FindRef(SharedBuffersKey);
 	if (SharedBuffers == nullptr)
 	{
-		SharedBuffers = new FLandscapeSharedBuffers(SharedBuffersKey, SubsectionSizeQuads, NumSubsections, FeatureLevel, bRequiresAdjacencyInformation);
+#if WITH_EDITOR
+		SharedBuffers = new FLandscapeSharedBuffers(
+			SharedBuffersKey, SubsectionSizeQuads, NumSubsections,
+			FeatureLevel, bRequiresAdjacencyInformation,
+			bBakeMaterialPositionOffsetIntoCollision ? CollisionMipLevel : INDEX_NONE,
+			bBakeMaterialPositionOffsetIntoCollision ? SimpleCollisionMipLevel : INDEX_NONE);
+#else
+		SharedBuffers = new FLandscapeSharedBuffers(
+			SharedBuffersKey, SubsectionSizeQuads, NumSubsections,
+			FeatureLevel, bRequiresAdjacencyInformation);
+#endif
+
 		FLandscapeComponentSceneProxy::SharedBuffersMap.Add(SharedBuffersKey, SharedBuffers);
 
 		if (!XYOffsetmapTexture)
@@ -738,10 +765,12 @@ void FLandscapeComponentSceneProxy::CreateRenderThreadResources()
 	// Assign LandscapeUniformShaderParameters
 	LandscapeUniformShaderParameters.InitResource();
 
+#if WITH_EDITOR
 	// Create MeshBatch for grass rendering
 	if(SharedBuffers->GrassIndexBuffer)
 	{
-		GrassMeshBatch.Elements.Empty(1);
+		GrassMeshBatch.Elements.Empty(3);
+		GrassMeshBatch.Elements.AddDefaulted(3);
 
 		FMaterialRenderProxy* RenderProxy = MaterialInterface->GetRenderProxy(false);
 		GrassMeshBatch.VertexFactory = VertexFactory;
@@ -753,26 +782,54 @@ void FLandscapeComponentSceneProxy::CreateRenderThreadResources()
 		GrassMeshBatch.DepthPriorityGroup = SDPG_World;
 
 		// Combined grass rendering batch element
-		FMeshBatchElement* BatchElement = new(GrassMeshBatch.Elements) FMeshBatchElement;
-		FLandscapeBatchElementParams* BatchElementParams = &GrassBatchParams;
+		FMeshBatchElement* GrassBatchElement = &GrassMeshBatch.Elements[0];
+		FLandscapeBatchElementParams* BatchElementParams = &GrassBatchParams[0];
 		BatchElementParams->LocalToWorldNoScalingPtr = &LocalToWorldNoScaling;
-		BatchElement->UserData = BatchElementParams;
-		if (NeedsUniformBufferUpdate())
-		{
-			UpdateUniformBuffer();
-		}
-		BatchElement->PrimitiveUniformBufferResource = &GetUniformBuffer();
 		BatchElementParams->LandscapeUniformShaderParametersResource = &LandscapeUniformShaderParameters;
 		BatchElementParams->SceneProxy = this;
 		BatchElementParams->SubX = -1;
 		BatchElementParams->SubY = -1;
 		BatchElementParams->CurrentLOD = 0;
-		BatchElement->IndexBuffer = SharedBuffers->GrassIndexBuffer;
-		BatchElement->NumPrimitives = FMath::Square(NumSubsections) * FMath::Square(SubsectionSizeVerts);
-		BatchElement->FirstIndex = 0;
-		BatchElement->MinVertexIndex = 0;
-		BatchElement->MaxVertexIndex = SharedBuffers->NumVertices - 1;
+		GrassBatchElement->UserData = BatchElementParams;
+		if (NeedsUniformBufferUpdate())
+		{
+			UpdateUniformBuffer();
+		}
+		GrassBatchElement->PrimitiveUniformBufferResource = &GetUniformBuffer();
+		GrassBatchElement->IndexBuffer = SharedBuffers->GrassIndexBuffer;
+		GrassBatchElement->NumPrimitives = FMath::Square(NumSubsections) * FMath::Square(SubsectionSizeVerts);
+		GrassBatchElement->FirstIndex = 0;
+		GrassBatchElement->MinVertexIndex = 0;
+		GrassBatchElement->MaxVertexIndex = SharedBuffers->NumVertices - 1;
+
+		const bool bRenderCollision = CollisionMipLevel > 0;
+		const bool bRenderSimpleCollision = SimpleCollisionMipLevel > CollisionMipLevel;
+
+		if (bRenderCollision)
+		{
+			FMeshBatchElement* CollisionBatchElement = &GrassMeshBatch.Elements[1];
+			*CollisionBatchElement = *GrassBatchElement;
+			FLandscapeBatchElementParams* CollisionBatchElementParams = &GrassBatchParams[1];
+			*CollisionBatchElementParams = *BatchElementParams;
+			CollisionBatchElementParams->CurrentLOD = CollisionMipLevel;
+			CollisionBatchElement->UserData = CollisionBatchElementParams;
+			CollisionBatchElement->NumPrimitives = FMath::Square(NumSubsections) * FMath::Square(SubsectionSizeVerts >> CollisionMipLevel);
+			CollisionBatchElement->FirstIndex = SharedBuffers->GrassCollisionOffset;
+		}
+
+		if (bRenderSimpleCollision)
+		{
+			FMeshBatchElement* SimpleCollisionBatchElement = &GrassMeshBatch.Elements[2];
+			*SimpleCollisionBatchElement = *GrassBatchElement;
+			FLandscapeBatchElementParams* SimpleCollisionBatchElementParams = &GrassBatchParams[2];
+			*SimpleCollisionBatchElementParams = *BatchElementParams;
+			SimpleCollisionBatchElementParams->CurrentLOD = SimpleCollisionMipLevel;
+			SimpleCollisionBatchElement->UserData = SimpleCollisionBatchElementParams;
+			SimpleCollisionBatchElement->NumPrimitives = FMath::Square(NumSubsections) * FMath::Square(SubsectionSizeVerts >> SimpleCollisionMipLevel);
+			SimpleCollisionBatchElement->FirstIndex = SharedBuffers->GrassSimpleCollisionOffset;
+		}
 	}
+#endif
 }
 
 void FLandscapeComponentSceneProxy::OnLevelAddedToWorld()
@@ -881,8 +938,15 @@ FPrimitiveViewRelevance FLandscapeComponentSceneProxy::GetViewRelevance(const FS
 	}
 #endif
 
+#if WITH_EDITOR || !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	const bool bInCollisionView = View->Family->EngineShowFlags.CollisionVisibility || View->Family->EngineShowFlags.CollisionPawn;
+#endif
+
 	// Use the dynamic path for rendering landscape components pass only for Rich Views or if the static path is disabled for debug.
 	if (IsRichView(*View->Family) ||
+#if WITH_EDITOR || !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		bInCollisionView ||
+#endif
 		GLandscapeDebugOptions.bDisableStatic ||
 		View->Family->EngineShowFlags.Wireframe ||
 #if WITH_EDITOR
@@ -1351,6 +1415,12 @@ void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FS
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FLandscapeComponentSceneProxy_GetMeshElements);
 
+#if WITH_EDITOR || !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	const bool bInCollisionView = ViewFamily.EngineShowFlags.CollisionVisibility || ViewFamily.EngineShowFlags.CollisionPawn;
+	const bool bDrawSimpleCollision  = ViewFamily.EngineShowFlags.CollisionPawn       && CollisionResponse.GetResponse(ECC_Pawn) != ECR_Ignore;
+	const bool bDrawComplexCollision = ViewFamily.EngineShowFlags.CollisionVisibility && CollisionResponse.GetResponse(ECC_Visibility) != ECR_Ignore;
+#endif
+
 	int32 NumPasses = 0;
 	int32 NumTriangles = 0;
 	int32 NumDrawCalls = 0;
@@ -1366,7 +1436,7 @@ void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FS
 
 			FLandscapeElementParamArray& ParameterArray = Collector.AllocateOneFrameResource<FLandscapeElementParamArray>();
 			ParameterArray.ElementParams.Empty(NumSubsections * NumSubsections);
-			ParameterArray.ElementParams.AddUninitialized(NumSubsections * NumSubsections);
+			ParameterArray.ElementParams.AddDefaulted(NumSubsections * NumSubsections);
 
 			FMeshBatch& Mesh = Collector.AllocateMesh();
 
@@ -1395,6 +1465,19 @@ void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FS
 				{
 					int32 SubSectionIdx = SubX + SubY*NumSubsections;
 					int32 CurrentLOD = CalcLODForSubsection(*View, SubX, SubY, CameraLocalPos);
+#if WITH_EDITOR || !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+					if (bInCollisionView)
+					{
+						if (bDrawSimpleCollision)
+						{
+							CurrentLOD = FMath::Max(CollisionMipLevel, SimpleCollisionMipLevel);
+						}
+						else if (bDrawComplexCollision)
+						{
+							CurrentLOD = CollisionMipLevel;
+						}
+					}
+#endif
 
 			#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 					// We simplify this by considering only the biggest LOD index for this mesh element.
@@ -1443,9 +1526,9 @@ void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FS
 #endif
 				}
 			}
+
 			// Render the landscape component
 #if WITH_EDITOR
-
 			switch (GLandscapeViewMode)
 			{
 			case ELandscapeViewMode::DebugLayer:
@@ -1496,7 +1579,7 @@ void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FS
 
 			case ELandscapeViewMode::LayerUsage:
 				if (EditToolRenderData && GLandscapeLayerUsageMaterial)
-				{	
+				{
 					float Rotation = ((SectionBase.X / ComponentSizeQuads) ^ (SectionBase.Y / ComponentSizeQuads)) & 1 ? 0 : 2.f * PI;
 					auto LayerUsageMaterialInstance = new FLandscapeLayerUsageRenderProxy(GLandscapeLayerUsageMaterial->GetRenderProxy(false), ComponentSizeVerts, LayerColors, Rotation);
 					MeshTools.MaterialRenderProxy = LayerUsageMaterialInstance;
@@ -1584,6 +1667,32 @@ void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FS
 #else
 			{
 #endif // WITH_EDITOR
+
+#if WITH_EDITOR || !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+				if (AllowDebugViewmodes() && bInCollisionView)
+				{
+					if (bDrawSimpleCollision || bDrawComplexCollision)
+					{
+						// Override the mesh's material with our material that draws the collision color
+						auto CollisionMaterialInstance = new FColoredMaterialRenderProxy(
+							GEngine->ShadedLevelColorationUnlitMaterial->GetRenderProxy(IsSelected(), IsHovered()),
+							WireframeColor
+							);
+						Collector.RegisterOneFrameMaterialProxy(CollisionMaterialInstance);
+
+						Mesh.MaterialRenderProxy = CollisionMaterialInstance;
+						Mesh.bCanApplyViewModeOverrides = true;
+						Mesh.bUseWireframeSelectionColoring = IsSelected();
+
+						Collector.AddMesh(ViewIndex, Mesh);
+
+						NumPasses++;
+						NumTriangles += Mesh.GetNumPrimitives();
+						NumDrawCalls += Mesh.Elements.Num();
+					}
+				}
+				else
+#endif
 				// Regular Landscape rendering. Only use the dynamic path if we're rendering a rich view or we've disabled the static path for debugging.
 				if( IsRichView(ViewFamily) || 
 					GLandscapeDebugOptions.bDisableStatic ||
@@ -1607,8 +1716,8 @@ void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FS
 					NumDrawCalls += Mesh.Elements.Num();
 				}
 			}
-#if WITH_EDITOR
 
+#if WITH_EDITOR
 			// Extra render passes for landscape tools
 			if (GLandscapeEditModeActive)
 			{
@@ -1971,11 +2080,20 @@ void FLandscapeSharedBuffers::CreateIndexBuffers(ERHIFeatureLevel::Type InFeatur
 	}
 }
 
+#if WITH_EDITOR
 template <typename INDEX_TYPE>
 void FLandscapeSharedBuffers::CreateGrassIndexBuffer()
 {
 	TArray<INDEX_TYPE> NewIndices;
-	int32 ExpectedNumIndices = (FMath::Square(NumSubsections) * FMath::Square(SubsectionSizeVerts));
+
+	const bool bRenderCollision = GrassCollisionMip > 0;
+	const bool bRenderSimpleCollision = GrassSimpleCollisionMip > GrassCollisionMip;
+	const int32 CollisionSubsectionSizeVerts = bRenderCollision ? SubsectionSizeVerts >> GrassCollisionMip : 0;
+	const int32 SimpleCollisionSubsectionSizeVerts = bRenderSimpleCollision ? SubsectionSizeVerts >> GrassSimpleCollisionMip : 0;
+
+	int32 ExpectedNumIndices = FMath::Square(NumSubsections) * FMath::Square(SubsectionSizeVerts) +
+	                           FMath::Square(NumSubsections) * FMath::Square(CollisionSubsectionSizeVerts) +
+	                           FMath::Square(NumSubsections) * FMath::Square(SimpleCollisionSubsectionSizeVerts);
 	NewIndices.Empty(ExpectedNumIndices);
 
 	int32 SubOffset = 0;
@@ -1994,6 +2112,48 @@ void FLandscapeSharedBuffers::CreateGrassIndexBuffer()
 			SubOffset += FMath::Square(SubsectionSizeVerts);
 		}
 	}
+	if (bRenderCollision)
+	{
+		GrassCollisionOffset = NewIndices.Num();
+
+		SubOffset = 0;
+		for (int32 SubY = 0; SubY < NumSubsections; SubY++)
+		{
+			for (int32 SubX = 0; SubX < NumSubsections; SubX++)
+			{
+				for (int32 y = 0; y < CollisionSubsectionSizeVerts; y++)
+				{
+					for (int32 x = 0; x < CollisionSubsectionSizeVerts; x++)
+					{
+						NewIndices.Add(x + y * SubsectionSizeVerts + SubOffset);
+					}
+				}
+
+				SubOffset += FMath::Square(SubsectionSizeVerts);
+			}
+		}
+	}
+	if (bRenderSimpleCollision)
+	{
+		GrassSimpleCollisionOffset = NewIndices.Num();
+
+		SubOffset = 0;
+		for (int32 SubY = 0; SubY < NumSubsections; SubY++)
+		{
+			for (int32 SubX = 0; SubX < NumSubsections; SubX++)
+			{
+				for (int32 y = 0; y < SimpleCollisionSubsectionSizeVerts; y++)
+				{
+					for (int32 x = 0; x < SimpleCollisionSubsectionSizeVerts; x++)
+					{
+						NewIndices.Add(x + y * SubsectionSizeVerts + SubOffset);
+					}
+				}
+
+				SubOffset += FMath::Square(SubsectionSizeVerts);
+			}
+		}
+	}
 
 	check(NewIndices.Num() == ExpectedNumIndices);
 
@@ -2003,17 +2163,30 @@ void FLandscapeSharedBuffers::CreateGrassIndexBuffer()
 	IndexBuffer->InitResource();
 	GrassIndexBuffer = IndexBuffer;
 }
+#endif
 
-FLandscapeSharedBuffers::FLandscapeSharedBuffers(int32 InSharedBuffersKey, int32 InSubsectionSizeQuads, int32 InNumSubsections, ERHIFeatureLevel::Type InFeatureLevel, bool bRequiresAdjacencyInformation)
+#if WITH_EDITOR
+FLandscapeSharedBuffers::FLandscapeSharedBuffers(const int32 InSharedBuffersKey, const int32 InSubsectionSizeQuads, const int32 InNumSubsections, const ERHIFeatureLevel::Type InFeatureLevel, const bool bRequiresAdjacencyInformation, const int32 InCollisionMipLevel, const int32 InSimpleCollisionMipLevel)
+#else
+FLandscapeSharedBuffers::FLandscapeSharedBuffers(const int32 InSharedBuffersKey, const int32 InSubsectionSizeQuads, const int32 InNumSubsections, const ERHIFeatureLevel::Type InFeatureLevel, const bool bRequiresAdjacencyInformation)
+#endif
 	: SharedBuffersKey(InSharedBuffersKey)
 	, NumIndexBuffers(FMath::CeilLogTwo(InSubsectionSizeQuads + 1))
 	, SubsectionSizeVerts(InSubsectionSizeQuads + 1)
 	, NumSubsections(InNumSubsections)
+#if WITH_EDITOR
+	, GrassCollisionMip(InCollisionMipLevel)
+	, GrassSimpleCollisionMip(InSimpleCollisionMipLevel)
+#endif
 	, VertexFactory(nullptr)
 	, VertexBuffer(nullptr)
 	, AdjacencyIndexBuffers(nullptr)
 	, bUse32BitIndices(false)
+#if WITH_EDITOR
 	, GrassIndexBuffer(nullptr)
+	, GrassCollisionOffset(INDEX_NONE)
+	, GrassSimpleCollisionOffset(INDEX_NONE)
+#endif
 {
 	NumVertices = FMath::Square(SubsectionSizeVerts) * FMath::Square(NumSubsections);
 	if (InFeatureLevel > ERHIFeatureLevel::ES3_1)
@@ -2030,18 +2203,22 @@ FLandscapeSharedBuffers::FLandscapeSharedBuffers(int32 InSharedBuffersKey, int32
 	{
 		bUse32BitIndices = true;
 		CreateIndexBuffers<uint32>(InFeatureLevel, bRequiresAdjacencyInformation);
+#if WITH_EDITOR
 		if (InFeatureLevel > ERHIFeatureLevel::ES3_1)
 		{
 			CreateGrassIndexBuffer<uint32>();
 		}
+#endif
 	}
 	else
 	{
 		CreateIndexBuffers<uint16>(InFeatureLevel, bRequiresAdjacencyInformation);
+#if WITH_EDITOR
 		if (InFeatureLevel > ERHIFeatureLevel::ES3_1)
 		{
 			CreateGrassIndexBuffer<uint16>();
 		}
+#endif
 	}
 }
 
@@ -2057,11 +2234,13 @@ FLandscapeSharedBuffers::~FLandscapeSharedBuffers()
 	delete[] IndexBuffers;
 	delete[] IndexRanges;
 
+#if WITH_EDITOR
 	if (GrassIndexBuffer)
 	{
 		GrassIndexBuffer->ReleaseResource();
 		delete GrassIndexBuffer;
 	}
+#endif
 
 	if (AdjacencyIndexBuffers)
 	{
@@ -2338,14 +2517,14 @@ void FLandscapeVertexFactoryPixelShaderParameters::Bind(const FShaderParameterMa
 void FLandscapeVertexFactoryPixelShaderParameters::Serialize(FArchive& Ar)
 {
 	Ar << NormalmapTextureParameter
-		<< NormalmapTextureParameterSampler
-		<< LocalToWorldNoScalingParameter;
+	   << NormalmapTextureParameterSampler
+	   << LocalToWorldNoScalingParameter;
 }
 
 /**
 * Set any shader data specific to this vertex factory
 */
-void FLandscapeVertexFactoryPixelShaderParameters::SetMesh(FRHICommandList& RHICmdList, FShader* PixelShader, const class FVertexFactory* VertexFactory, const class FSceneView& View, const struct FMeshBatchElement& BatchElement, uint32 DataFlags) const
+void FLandscapeVertexFactoryPixelShaderParameters::SetMesh(FRHICommandList& RHICmdList, FShader* PixelShader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_LandscapeVFDrawTime);
 

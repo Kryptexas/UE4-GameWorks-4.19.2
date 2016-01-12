@@ -317,12 +317,15 @@ void PlatformReleaseRenderQuery( GLuint Query, uint64 QueryContext )
 bool FAndroidOpenGL::bUseHalfFloatTexStorage = false;
 bool FAndroidOpenGL::bUseES30ShadingLanguage = false;
 bool FAndroidOpenGL::bES30Support = false;
+bool FAndroidOpenGL::bSupportsInstancing = false;
 
 void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 {
 	FOpenGLES2::ProcessExtensions(ExtensionsString);
 
-	bES30Support = FString(ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_VERSION))).Contains(TEXT("OpenGL ES 3."));
+	FString VersionString = FString(ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_VERSION)));
+	
+	bES30Support = VersionString.Contains(TEXT("OpenGL ES 3."));
 
 	// Get procedures
 	if (bSupportsOcclusionQueries || bSupportsDisjointTimeQueries)
@@ -389,6 +392,8 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		glDrawElementsInstanced = (PFNGLDRAWELEMENTSINSTANCEDPROC)((void*)eglGetProcAddress("glDrawElementsInstanced"));
 		glDrawArraysInstanced = (PFNGLDRAWARRAYSINSTANCEDPROC)((void*)eglGetProcAddress("glDrawArraysInstanced"));
 		glVertexAttribDivisor = (PFNGLVERTEXATTRIBDIVISORPROC)((void*)eglGetProcAddress("glVertexAttribDivisor"));
+		
+		bSupportsInstancing = true;
 	}
 
 	if (bES30Support || bIsAdrenoBased)
@@ -424,6 +429,13 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 	if( RendererString.Contains(TEXT("Mali-400")) )
 	{
 		bSupportsShaderTextureCubeLod = false;
+	}
+
+	// Nexus 5 (Android 4.4.2) doesn't like glVertexAttribDivisor(index, 0) called when not using a glDrawElementsInstanced
+	if (bIsAdrenoBased && VersionString.Contains(TEXT("OpenGL ES 3.0 V@66.0 AU@  (CL@)")))
+	{
+		UE_LOG(LogRHI, Warning, TEXT("Disabling support for hardware instancing on Adreno 330 OpenGL ES 3.0 V@66.0 AU@  (CL@)"));
+		bSupportsInstancing = false;
 	}
 }
 

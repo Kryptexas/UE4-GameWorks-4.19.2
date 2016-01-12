@@ -546,7 +546,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 
 	// OpenGL Gamma space output in GLSL flips Y when rendering directly to the back buffer (so not needed on PC, as we never render directly into the back buffer)
 	auto ShaderPlatform = GShaderPlatformForFeatureLevel[FeatureLevel];
-	bool bUsingForwardRenderer = (Family && Family->Scene) ? !Family->Scene->ShouldUseDeferredRenderer() : false;
+	bool bUsingForwardRenderer = FSceneInterface::ShouldUseDeferredRenderer(FeatureLevel) == false;
 	bool bPlatformRequiresReverseCulling = (IsOpenGLPlatform(ShaderPlatform) && bUsingForwardRenderer && !IsPCPlatform(ShaderPlatform));
 	static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
 	check(MobileHDRCvar);
@@ -561,7 +561,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 
 	TranslucentSortAxis = GetDefault<URendererSettings>()->TranslucentSortAxis;
 
-	// As the world is only accessable from the game thread, bIsGameView should be explicitly
+	// As the world is only accessible from the game thread, bIsGameView should be explicitly
 	// set on any other thread.
 	if(IsInGameThread())
 	{

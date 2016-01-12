@@ -320,9 +320,14 @@ public:
 	virtual ERHIFeatureLevel::Type GetFeatureLevel() const { return GMaxRHIFeatureLevel; }
 	EShaderPlatform GetShaderPlatform() const { return GShaderPlatformForFeatureLevel[GetFeatureLevel()]; }
 
+	static bool ShouldUseDeferredRenderer(ERHIFeatureLevel::Type InFeatureLevel)
+	{
+		return InFeatureLevel >= ERHIFeatureLevel::SM4;
+	}
+
 	bool ShouldUseDeferredRenderer() const
 	{
-		return GetFeatureLevel() >= ERHIFeatureLevel::SM4;
+		return ShouldUseDeferredRenderer(GetFeatureLevel());
 	}
 
 	/**

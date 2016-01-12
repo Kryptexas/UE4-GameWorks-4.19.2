@@ -98,7 +98,7 @@ struct FLandscapeBatchElementParams
 	const FLandscapeComponentSceneProxy* SceneProxy;
 	int32 SubX;
 	int32 SubY;
-	int32	CurrentLOD;
+	int32 CurrentLOD;
 };
 
 class FLandscapeElementParamArray : public FOneFrameResource
@@ -290,6 +290,10 @@ public:
 	int32 NumIndexBuffers;
 	int32 SubsectionSizeVerts;
 	int32 NumSubsections;
+#if WITH_EDITOR
+	int32 GrassCollisionMip;
+	int32 GrassSimpleCollisionMip;
+#endif
 
 	FLandscapeVertexFactory* VertexFactory;
 	FLandscapeVertexBuffer* VertexBuffer;
@@ -297,14 +301,25 @@ public:
 	FLandscapeIndexRanges* IndexRanges;
 	FLandscapeSharedAdjacencyIndexBuffer* AdjacencyIndexBuffers;
 	bool bUse32BitIndices;
+#if WITH_EDITOR
 	FIndexBuffer* GrassIndexBuffer;
+	int32 GrassCollisionOffset;
+	int32 GrassSimpleCollisionOffset;
+#endif
 
-	FLandscapeSharedBuffers(int32 SharedBuffersKey, int32 SubsectionSizeQuads, int32 NumSubsections, ERHIFeatureLevel::Type InFeatureLevel, bool bRequiresAdjacencyInformation);
+#if WITH_EDITOR
+	FLandscapeSharedBuffers(int32 SharedBuffersKey, int32 SubsectionSizeQuads, int32 NumSubsections, ERHIFeatureLevel::Type FeatureLevel, bool bRequiresAdjacencyInformation, int32 CollisionMipLevel, int32 SimpleCollisionMipLevel);
+#else
+	FLandscapeSharedBuffers(int32 SharedBuffersKey, int32 SubsectionSizeQuads, int32 NumSubsections, ERHIFeatureLevel::Type FeatureLevel, bool bRequiresAdjacencyInformation);
+#endif
 
 	template <typename INDEX_TYPE>
 	void CreateIndexBuffers(ERHIFeatureLevel::Type InFeatureLevel, bool bRequiresAdjacencyInformation);
+
+#if WITH_EDITOR
 	template <typename INDEX_TYPE>
 	void CreateGrassIndexBuffer();
+#endif
 
 	virtual ~FLandscapeSharedBuffers();
 };
@@ -476,21 +491,21 @@ protected:
 	int32						LastLOD;	// Last LOD we have batch elements for
 
 	/** 
-	 * Number of subsections within the component in each dimension, this can be 1 or 2.  
-	 * Subsections exist to improve the speed at which LOD transitions can take place over distance. 
+	 * Number of subsections within the component in each dimension, this can be 1 or 2.
+	 * Subsections exist to improve the speed at which LOD transitions can take place over distance.
 	 */
 	int32						NumSubsections;
 	/** Number of unique heights in the subsection. */
 	int32						SubsectionSizeQuads;
-	/** Number of heightmap heights in the subsection.  This includes the duplicate row at the end. */
+	/** Number of heightmap heights in the subsection. This includes the duplicate row at the end. */
 	int32						SubsectionSizeVerts;
 	/** Size of the component in unique heights. */
-	int32						ComponentSizeQuads;	
+	int32						ComponentSizeQuads;
 	/** 
-	 * ComponentSizeQuads + 1.  
+	 * ComponentSizeQuads + 1.
 	 * Note: in the case of multiple subsections, this is not very useful, as there will be an internal duplicate row of heights in addition to the row at the end.
 	 */
-	int32						ComponentSizeVerts; 
+	int32						ComponentSizeVerts;
 	uint8						StaticLightingLOD;
 	float						StaticLightingResolution;
 	/** Address of the component within the parent Landscape in unique height texels. */
@@ -500,9 +515,14 @@ protected:
 	// Storage for static draw list batch params
 	TArray<FLandscapeBatchElementParams> StaticBatchParamArray;
 
-	// Precomputed grass rendering MeshBatch
+#if WITH_EDITOR
+	// Precomputed grass rendering MeshBatch and params
+	// 0 - regular grass rendering at LOD 0
+	// 1 - rendering for collision baking
+	// 2 - rendering for "simple collision" baking
 	FMeshBatch					GrassMeshBatch;
-	FLandscapeBatchElementParams GrassBatchParams;
+	FLandscapeBatchElementParams GrassBatchParams[3];
+#endif
 
 	// Precomputed values
 	float					LODDistance;
@@ -544,6 +564,15 @@ protected:
 
 	ELandscapeLODFalloff::Type LODFalloff;
 
+	// data used in editor or visualisers
+#if WITH_EDITOR || !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	bool bBakeMaterialPositionOffsetIntoCollision;
+	int32 CollisionMipLevel;
+	int32 SimpleCollisionMipLevel;
+
+	FCollisionResponseContainer CollisionResponse;
+#endif
+
 	TUniformBuffer<FLandscapeUniformShaderParameters> LandscapeUniformShaderParameters;
 
 	// Cached versions of these
@@ -579,8 +608,9 @@ public:
 	int32 CalcLODForSubsection(const FSceneView& View, int32 SubX, int32 SubY, const FVector2D& CameraLocalPos) const;
 	void CalcLODParamsForSubsection(const FSceneView& View, const FVector2D& CameraLocalPos, int32 SubX, int32 SubY, int32 BatchLOD, float& OutfLOD, FVector4& OutNeighborLODs) const;
 	uint64 GetStaticBatchElementVisibility(const FSceneView& View, const FMeshBatch* Batch) const;
+#if WITH_EDITOR
 	const FMeshBatch& GetGrassMeshBatch() const { return GrassMeshBatch; }
-
+#endif
 
 	// FLandcapeSceneProxy
 	void ChangeLODDistanceFactor_RenderThread(float InLODDistanceFactor);

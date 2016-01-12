@@ -123,6 +123,10 @@ struct FLandscapeComponentGrassData
 	FQuat RotationForWPO;
 
 	TArray<uint16> HeightData;
+#if WITH_EDITORONLY_DATA
+	TArray<uint16> CollisionHeightData;
+	TArray<uint16> SimpleCollisionHeightData;
+#endif
 	TMap<ULandscapeGrassType*, TArray<uint8>> WeightData;
 
 	FLandscapeComponentGrassData() {}
@@ -141,7 +145,13 @@ struct FLandscapeComponentGrassData
 		{
 			WeightSize += It.Value().GetAllocatedSize();
 		}
-		return sizeof(*this) + HeightData.GetAllocatedSize() + WeightData.GetAllocatedSize() + WeightSize;
+		return sizeof(*this)
+			+ HeightData.GetAllocatedSize()
+#if WITH_EDITORONLY_DATA
+			+ CollisionHeightData.GetAllocatedSize()
+			+ SimpleCollisionHeightData.GetAllocatedSize()
+#endif
+			+ WeightData.GetAllocatedSize() + WeightSize;
 	}
 
 	friend FArchive& operator<<(FArchive& Ar, FLandscapeComponentGrassData& Data);
@@ -237,6 +247,10 @@ public:
 	/** Heightfield mipmap used to generate collision */
 	UPROPERTY(EditAnywhere, Category=LandscapeComponent)
 	int32 CollisionMipLevel;
+
+	/** Heightfield mipmap used to generate simple collision */
+	UPROPERTY(EditAnywhere, Category=LandscapeComponent)
+	int32 SimpleCollisionMipLevel;
 
 	/** StaticLightingResolution overriding per component, default value 0 means no overriding */
 	UPROPERTY(EditAnywhere, Category=LandscapeComponent)
@@ -498,12 +512,17 @@ public:
 	static void UpdateDataMips(int32 InNumSubsections, int32 InSubsectionSizeQuads, UTexture2D* Texture, TArray<uint8*>& TextureMipData, int32 ComponentX1=0, int32 ComponentY1=0, int32 ComponentX2=MAX_int32, int32 ComponentY2=MAX_int32, FLandscapeTextureDataInfo* TextureDataInfo=nullptr);
 
 	/**
-	 * Create or updatescollision component height data
+	 * Create or updates collision component height data
 	 * @param HeightmapTextureMipData: heightmap data
 	 * @param ComponentX1, ComponentY1, ComponentX2, ComponentY2: region to update
-	 * @param Whether to update bounds from render component.
+	 * @param bUpdateBounds: Whether to update bounds from render component.
+	 * @param XYOffsetTextureMipData: xy-offset map data
 	 */
-	void UpdateCollisionHeightData(const FColor* HeightmapTextureMipData, int32 ComponentX1=0, int32 ComponentY1=0, int32 ComponentX2=MAX_int32, int32 ComponentY2=MAX_int32, bool bUpdateBounds=false, const FColor* XYOffsetTextureMipData = NULL, bool bRebuild=false);
+	void UpdateCollisionHeightData(const FColor* HeightmapTextureMipData, const FColor* SimpleCollisionHeightmapTextureData, int32 ComponentX1=0, int32 ComponentY1=0, int32 ComponentX2=MAX_int32, int32 ComponentY2=MAX_int32, bool bUpdateBounds=false, const FColor* XYOffsetTextureMipData=nullptr);
+
+	/** Updates collision component height data for the entire component, locking and unlocking heightmap textures
+	 * @param: bRebuild: If true, recreates the collision component */
+	void UpdateCollisionData(bool bRebuild);
 
 	/**
 	 * Update collision component dominant layer data
@@ -511,7 +530,7 @@ public:
 	 * @param ComponentX1, ComponentY1, ComponentX2, ComponentY2: region to update
 	 * @param Whether to update bounds from render component.
 	 */
-	void UpdateCollisionLayerData(TArray<FColor*>& WeightmapTextureMipData, int32 ComponentX1=0, int32 ComponentY1=0, int32 ComponentX2=MAX_int32, int32 ComponentY2=MAX_int32);
+	void UpdateCollisionLayerData(const FColor* const* WeightmapTextureMipData, const FColor* const* const SimpleCollisionWeightmapTextureMipData, int32 ComponentX1=0, int32 ComponentY1=0, int32 ComponentX2=MAX_int32, int32 ComponentY2=MAX_int32);
 
 	/**
 	 * Update collision component dominant layer data for the whole component, locking and unlocking the weightmap textures.

@@ -245,9 +245,18 @@ void FLandscapeComponentSceneProxyMobile::CreateRenderThreadResources()
 {
 	// Use only Index buffers
 	SharedBuffers = FLandscapeComponentSceneProxy::SharedBuffersMap.FindRef(SharedBuffersKey);
-	if( SharedBuffers == NULL )
+	if (SharedBuffers == nullptr)
 	{
-		SharedBuffers = new FLandscapeSharedBuffers(SharedBuffersKey, SubsectionSizeQuads, NumSubsections, GetScene().GetFeatureLevel(), false);
+#if WITH_EDITOR
+		SharedBuffers = new FLandscapeSharedBuffers(
+			SharedBuffersKey, SubsectionSizeQuads, NumSubsections,
+			GetScene().GetFeatureLevel(), false,
+			CollisionMipLevel, SimpleCollisionMipLevel);
+#else
+		SharedBuffers = new FLandscapeSharedBuffers(
+			SharedBuffersKey, SubsectionSizeQuads, NumSubsections,
+			GetScene().GetFeatureLevel(), false);
+#endif
 		FLandscapeComponentSceneProxy::SharedBuffersMap.Add(SharedBuffersKey, SharedBuffers);
 	}
 

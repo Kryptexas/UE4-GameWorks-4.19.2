@@ -353,7 +353,7 @@ public:
 
 #if WITH_EDITORONLY_DATA
 	/** LOD level to use when exporting the landscape to obj or FBX */
-	UPROPERTY(EditAnywhere, Category=LOD)
+	UPROPERTY(EditAnywhere, Category=LOD, AdvancedDisplay)
 	int32 ExportLOD;
 #endif
 
@@ -435,11 +435,16 @@ public:
 	FLightmassPrimitiveSettings LightmassSettings;
 
 	// Landscape LOD to use for collision tests. Higher numbers use less memory and process faster, but are much less accurate
-	UPROPERTY(EditAnywhere, Category=Landscape)
+	UPROPERTY(EditAnywhere, Category=Collision)
 	int32 CollisionMipLevel;
 
+	// If set higher than the "Collision Mip Level", this specifies the Landscape LOD to use for "simple collision" tests, otherwise the "Collision Mip Level" is used for both simple and complex collision.
+	// Does not work with an XY offset map (mesh collision)
+	UPROPERTY(EditAnywhere, Category=Collision)
+	int32 SimpleCollisionMipLevel;
+
 	/** Thickness of the collision surface, in unreal units */
-	UPROPERTY(EditAnywhere, Category=Landscape)
+	UPROPERTY(EditAnywhere, Category=Collision)
 	float CollisionThickness;
 
 	/** Collision profile settings for this landscape */
@@ -448,9 +453,8 @@ public:
 
 	/** Whether to bake the landscape material's vertical world position offset into the collision heightfield.
 		Note: Only z (vertical) offset is supported. XY offsets are ignored.
-		Does not work with CollisionMipLevel > 0
 		Does not work with an XY offset map (mesh collision) */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Landscape)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Collision)
 	bool bBakeMaterialPositionOffsetIntoCollision;
 
 #if WITH_EDITORONLY_DATA

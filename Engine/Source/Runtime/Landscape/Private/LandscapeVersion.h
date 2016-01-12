@@ -11,6 +11,10 @@ namespace FLandscapeCustomVersion
 		BeforeCustomVersionWasAdded = 0,
 		// Changed to TMap properties instead of manual serialization and fixed landscape spline control point cross-level mesh components not being serialized
 		NewSplineCrossLevelMeshSerialization,
+		// Support material world-position-offset in the heightmap used for grass placement
+		GrassMaterialWPO,
+		// Support material world-position-offset in landscape simple collision
+		CollisionMaterialWPO,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
